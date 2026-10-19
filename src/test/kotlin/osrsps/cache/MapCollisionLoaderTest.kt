@@ -1,0 +1,106 @@
+package osrsps.cache
+
+import com.displee.cache.CacheLibrary
+import java.io.ByteArrayOutputStream
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.io.path.createFile
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import org.junit.jupiter.api.io.TempDir
+import osrsps.map.CollisionFlag
+
+class MapCollisionLoaderTest {
+    /** Terrain where every tile is plain, except the given settings for (level, x, z). */
+    private fun terrain(settings: Map<Triple<Int, Int, Int>, Int>): ByteArray {
+        val out = ByteArrayOutputStream()
+        fun u16(v: Int) { out.write(v shr 8); out.write(v and 0xFF) }
+        for (level in 0 until 4) for (x in 0 until 64) for (z in 0 until 64) {
+            u16(82 + 3) // an underlay, which has no payload
+            u16(10); u16(7) // an overlay with its id
+            settings[Triple(level, x, z)]?.let { u16(49 + it) }
+            if ((x + z) % 2 == 0) u16(0) else { u16(1); out.write(20) } // both ways a tile can end
+        }
+        return out.toByteArray()
+    }
+
+    /** A loc file holding one loc. */
+    private fun locs(id: Int, x: Int, z: Int, level: Int, shape: Int, rotation: Int): ByteArray {
+        val out = ByteArrayOutputStream()
+        fun smart(v: Int) = if (v < 128) out.write(v) else { out.write((v + 0x8000) shr 8); out.write((v + 0x8000) and 0xFF) }
+        var idDelta = id + 1
+        while (idDelta >= 32767) { smart(32767); idDelta -= 32767 }
+        smart(idDelta)
+        smart(((level shl 12) or (x shl 6) or z) + 1)
+        out.write((shape shl 2) or rotation)
+        smart(0)
+        smart(0)
+        return out.toByteArray()
+    }
+
+    @Test
+    fun `decodes terrain settings`() {
+        val settings = MapCollisionLoader.decodeTerrain(terrain(mapOf(Triple(2, 5, 6) to 3)))
+        assertEquals(3, settings[2][5][6].toInt())
+        assertEquals(0, settings[0][5][6].toInt())
+    }
+
+    @Test
+    fun `decodes a loc with a large id`() {
+        val found = ArrayList<List<Int>>()
+        MapCollisionLoader.decodeLocs(locs(40_000, 12, 34, 1, 10, 3)) { id, x, z, level, shape, rotation ->
+            found.add(listOf(id, x, z, level, shape, rotation))
+        }
+        assertEquals(listOf(listOf(40_000, 12, 34, 1, 10, 3)), found)
+    }
+
+    @Test
+    fun `loads collision from a cache, moving bridge tiles down a level`(@TempDir dir: Path) {
+        val cacheDir = Files.createDirectories(dir.resolve("cache"))
+        cacheDir.resolve("main_file_cache.dat2").createFile()
+        cacheDir.resolve("main_file_cache.idx255").createFile()
+        val library = CacheLibrary.create(cacheDir.toString())
+        repeat(6) { library.createIndex(named = true) }
+        // Loc 5: a solid 2x1 table. Opcodes 14 (width) and 2 (name) then end.
+        library.put(2, 6, 5, byteArrayOf(14, 2, 2, 'T'.code.toByte(), 0, 0))
+        // Square 50_50: blocked floor at 3, 4 on level 0; a bridge column at 10, 10 with blocked floor on level 1.
+        val settings = mapOf(Triple(0, 3, 4) to 1, Triple(1, 10, 10) to 3)
+        library.put(5, "m50_50", terrain(settings))
+        library.put(5, "l50_50", locs(5, 20, 20, 0, 10, 0))
+        library.update()
+        library.close()
+
+        val map = CacheLibrary.create(cacheDir.toString()).use { MapCollisionLoader.load(it) }
+        assertEquals(CollisionFlag.FLOOR, map[3203, 3204, 0])
+        assertEquals(CollisionFlag.FLOOR, map[3210, 3210, 0], "bridge floor drops to level 0")
+        assertEquals(0, map[3210, 3210, 1])
+        assertEquals(CollisionFlag.LOC or CollisionFlag.LOC_PROJ, map[3220, 3220, 0])
+        assertEquals(CollisionFlag.LOC or CollisionFlag.LOC_PROJ, map[3221, 3220, 0])
+        assertEquals(0, map[3222, 3220, 0])
+        assertEquals(CollisionFlag.UNLOADED, map[3264, 3220, 0])
+    }
+
+    @Test
+    fun `fails loudly on an unknown loc opcode`() {
+        assertFailsWith<IllegalStateException> { LocTypeDecoder.decode(byteArrayOf(200.toByte(), 0)) }
+    }
+
+    @Test
+    fun `skips the opcodes collision does not need`() {
+        val def = byteArrayOf(
+            1, 1, 0, 9, 10, // models with types
+            30, 'W'.code.toByte(), 'a'.code.toByte(), 0, // op1 text
+            77, 0, 1, 0, 2, 1, 0, 3, 0, 4, // multiloc: varbit, varp, count 1, two ids
+            102, 0, 0, 1, 0, 2, 0, 3, 0, 0, 0, 4, 0, 0, 0, 5, 'x'.code.toByte(), 0, // conditional sub op
+            249.toByte(), 1, 1, 0, 0, 7, 'p'.code.toByte(), 0, // one string param
+            15, 3, 27, 0,
+        )
+        val type = LocTypeDecoder.decode(def)
+        assertEquals(1, type.width)
+        assertEquals(3, type.length)
+        assertEquals(1, type.interactType)
+    }
+}
+
+private inline fun <T> CacheLibrary.use(block: (CacheLibrary) -> T): T = try { block(this) } finally { close() }

@@ -91,3 +91,27 @@ config:
 ```
 
 Launch RuneLite from RSProx with that target and log in with any username and password.
+
+## Walking
+
+Click the game view or minimap to walk. The run orb toggles running, ctrl-click inverts walk/run for one click, and
+ctrl+shift-click teleports to the clicked tile (a testing tool). Collision is built from the cache's map files at
+startup; the log line `Loaded collision for N map squares` confirms it.
+
+To see what the server thinks is walkable around a tile (north up, `###` blocked, `[ ] ^ _` walls):
+
+```bash
+docker compose run --rm osrsps collision 3222 3218   # x z [level]; default is the Lumbridge spawn
+```
+
+Movement rules and where they come from:
+
+| Rule | Source |
+|------|--------|
+| Route search: the client's 128x128 breadth-first search, neighbour order W, E, S, N, SW, SE, NW, NE | client behaviour |
+| Unreachable target: closest reached tile within 10, by distance then path length | client behaviour |
+| Walk 1 tile a tick, run 2; an odd last tile is walked | OSRS Wiki |
+| Run drain ⌊60 + 67 × weight / 64⌋ × (1 − agility / 300), restore ⌊agility / 10⌋ + 15 a tick | OSRS Wiki, Energy |
+| Run switches off at 0 energy; one-tile ticks don't drain | guessed |
+| Map rebuild within 16 tiles of the 104x104 build area's edge | inferred, not measured |
+| Routes cut to 25 turns | guessed |

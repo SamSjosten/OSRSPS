@@ -2,6 +2,7 @@ package osrsps.game
 
 import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
+import osrsps.map.Tile
 
 /** A logged-in player. Only touched on the game thread, apart from [disconnected]. */
 class Player(
@@ -20,4 +21,24 @@ class Player(
     /** Set from a Netty thread when the connection drops; the game thread does the cleanup. */
     @Volatile
     var disconnected: Boolean = false
+
+    /** Turning points of the current route, next one first. */
+    val waypoints = ArrayDeque<Tile>()
+
+    /** The run orb. */
+    var runEnabled: Boolean = false
+
+    /** Ctrl-click flips walk and run for the route it starts. */
+    var invertRun: Boolean = false
+
+    /** 0 to 10,000; 100 units show as 1% on the orb. */
+    var runEnergy: Int = Movement.MAX_ENERGY
+
+    /** What the client was last told, so changes are sent once. */
+    var sentRunEnabled: Boolean? = null
+    var sentRunEnergy: Int = -1
+
+    /** The zone the client's build area was last centred on. */
+    var buildAreaZoneX: Int = x shr 3
+    var buildAreaZoneZ: Int = z shr 3
 }
