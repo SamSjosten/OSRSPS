@@ -13,13 +13,16 @@ private val logger = KotlinLogging.logger {}
 private val dataDir: Path = Path.of(System.getenv("OSRSPS_DATA") ?: "data")
 private val cacheDir: Path = dataDir.resolve("cache")
 
+private const val DEFAULT_PORT = 43594
+
 fun main(args: Array<String>) {
     when (args.firstOrNull()) {
         null -> logger.info { "OSRSPS server skeleton, revision ${Revision.MAJOR}, Java ${Runtime.version()}" }
         "fetch-cache" -> fetchCache()
         "cache-info" -> cacheInfo()
+        "serve" -> serve(args.getOrNull(1)?.toInt() ?: DEFAULT_PORT)
         else -> {
-            System.err.println("Usage: osrsps [fetch-cache | cache-info]")
+            System.err.println("Usage: osrsps [fetch-cache | cache-info | serve [port]]")
             exitProcess(2)
         }
     }
@@ -39,6 +42,12 @@ private fun fetchCache() {
     Files.move(staging, cacheDir)
     Files.writeString(dataDir.resolve("cache-source.txt"), "openrs2 ${entry.scope}/${entry.id} build ${entry.build} ${entry.timestamp}\n")
     cacheInfo()
+}
+
+private fun serve(port: Int) {
+    val server = GameServer(dataDir, port)
+    server.start()
+    Runtime.getRuntime().addShutdownHook(Thread(server::stop))
 }
 
 private fun cacheInfo() {

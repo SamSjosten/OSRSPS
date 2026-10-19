@@ -39,3 +39,33 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 ```
 
 `data/cache-source.txt` records which OpenRS2 cache was used.
+
+## Run the server
+
+```bash
+./gradlew run --args=serve          # JS5 and game on port 43594
+./gradlew run --args="serve 50000"  # another port
+```
+
+The first start generates a 1024-bit RSA key in `data/rsa.key` and writes its modulus to `data/rsa-modulus.txt`.
+Any username and password log in, and you appear in Lumbridge.
+
+## Connect RuneLite through RSProx
+
+From Windows (PowerShell), forward the game port through the jump host and keep this window open:
+
+```powershell
+ssh -J root@192.168.0.210 -L 43594:127.0.0.1:43594 sam@10.99.0.10
+```
+
+Then add a target to `%USERPROFILE%\.rsprox\proxy-targets.yaml`, with the modulus from `data/rsa-modulus.txt` on the VM:
+
+```yaml
+config:
+  - name: OSRSPS
+    jav_config_url: https://client.blurite.io/jav_local_241.ws
+    revision: 241.1
+    modulus: <contents of data/rsa-modulus.txt>
+```
+
+`jav_local_241.ws` is Blurite's jav_config pointing the client at 127.0.0.1, which the tunnel carries to the VM.

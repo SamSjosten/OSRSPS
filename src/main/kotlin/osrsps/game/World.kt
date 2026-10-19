@@ -1,0 +1,160 @@
+package osrsps.game
+
+import io.github.oshai.kotlinlogging.KotlinLogging
+import net.rsprot.protocol.api.GameConnectionHandler
+import net.rsprot.protocol.api.NetworkService
+import net.rsprot.protocol.api.login.GameLoginResponseHandler
+import net.rsprot.protocol.common.client.OldSchoolClientType
+import net.rsprot.protocol.game.outgoing.info.util.isEmpty
+import net.rsprot.protocol.game.outgoing.info.util.onFailure
+import net.rsprot.protocol.game.outgoing.info.util.onSuccess
+import net.rsprot.protocol.game.outgoing.info.util.safeReleaseOrThrow
+import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
+import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop
+import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
+import net.rsprot.protocol.loginprot.incoming.util.AuthenticationType
+import net.rsprot.protocol.loginprot.incoming.util.LoginBlock
+import net.rsprot.crypto.xtea.XteaKey
+import net.rsprot.protocol.loginprot.outgoing.LoginResponse
+import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+
+private val logger = KotlinLogging.logger {}
+
+/**
+ * The game world: a single thread that runs a 600 ms tick.
+ * Logins arrive from RSProt's login threads and are completed at the start of the next tick.
+ */
+class World(private val js5Crcs: IntArray) : GameConnectionHandler<Player> {
+    lateinit var network: NetworkService<Player>
+
+    private val pendingLogins = ConcurrentLinkedQueue<PendingLogin>()
+    private val players = arrayOfNulls<Player>(MAX_PLAYERS)
+    private val executor = Executors.newSingleThreadScheduledExecutor { Thread(it, "game") }
+    var tick: Long = 0
+        private set
+
+    private class PendingLogin(val responseHandler: GameLoginResponseHandler<Player>, val block: LoginBlock<AuthenticationType>)
+
+    override fun onLogin(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<AuthenticationType>) {
+        block.authentication.clear()
+        if (!block.crc.validate(js5Crcs)) {
+            logger.info { "Rejecting ${block.username}: client cache CRCs do not match ours" }
+            responseHandler.writeFailedResponse(LoginResponse.OutOfDateReload)
+            return
+        }
+        pendingLogins.add(PendingLogin(responseHandler, block))
+    }
+
+    override fun onReconnect(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<XteaKey>) {
+        responseHandler.writeFailedResponse(LoginResponse.ConnectFail)
+    }
+
+    fun start() {
+        executor.execute { network.setCommunicationThread(Thread.currentThread(), true) }
+        executor.scheduleAtFixedRate(::safeTick, TICK_MILLIS, TICK_MILLIS, TimeUnit.MILLISECONDS)
+    }
+
+    fun stop() {
+        executor.shutdown()
+        executor.awaitTermination(5, TimeUnit.SECONDS)
+    }
+
+    private fun safeTick() {
+        try {
+            tick()
+        } catch (e: Throwable) {
+            logger.error(e) { "Tick $tick failed" }
+        }
+    }
+
+    private fun tick() {
+        tick++
+        acceptLogins()
+        for (player in players) {
+            if (player == null) continue
+            if (player.disconnected) remove(player) else player.session.processIncomingPackets(player)
+        }
+        for (player in players) {
+            player?.infos?.updateRootCoord(player.level, player.x, player.z)
+        }
+        network.infoProtocols.update()
+        for (player in players) {
+            if (player != null) sendInfo(player)
+        }
+    }
+
+    private fun acceptLogins() {
+        while (true) {
+            val login = pendingLogins.poll() ?: return
+            val index = (1 until MAX_PLAYERS).firstOrNull { players[it] == null }
+            if (index == null) {
+                login.responseHandler.writeFailedResponse(LoginResponse.ServerFull)
+                continue
+            }
+            val ok = LoginResponse.Ok(AuthenticatorResponse.NoAuthenticator, 2, false, index, true, index.toLong(), index.toLong(), index.toLong())
+            val player = Player(index, login.block.username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
+            player.session = login.responseHandler.writeSuccessfulResponse(ok, login.block)
+            player.session.setDisconnectionHook { player.disconnected = true }
+            players[index] = player
+            enterWorld(player)
+            logger.info { "${player.username} logged in as player $index" }
+        }
+    }
+
+    private fun enterWorld(player: Player) {
+        val infos = network.infoProtocols.alloc(player.index, OldSchoolClientType.DESKTOP)
+        player.infos = infos
+        infos.updateRootCoord(player.level, player.x, player.z)
+        infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
+        val session = player.session
+        session.queue(RebuildLoginV2(player.x shr 3, player.z shr 3, -1, infos.playerInfo))
+
+        val appearance = infos.playerInfo.avatar.extendedInfo
+        appearance.setName(player.username)
+        appearance.setCombatLevel(3)
+        // Default male look and the standard human animations. Guessed, not checked against live.
+        DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
+        for (slot in 0 until 5) appearance.setColour(slot, 0)
+        appearance.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824)
+
+        session.queue(IfOpenTop(GameFrame.TOPLEVEL_RESIZABLE))
+        for ((interfaceId, component) in GameFrame.overlays) {
+            session.queue(IfOpenSub(GameFrame.TOPLEVEL_RESIZABLE, component, interfaceId, OVERLAY))
+        }
+    }
+
+    private fun sendInfo(player: Player) {
+        val session = player.session
+        val packets = player.infos.getPackets().rootWorldInfoPackets
+        session.queue(packets.activeWorld)
+        session.queue(packets.npcUpdateOrigin)
+        packets.worldEntityInfo.onSuccess(session::queue).onFailure { logger.error(it) { "World entity info failed for ${player.username}" } }
+        packets.playerInfo.onSuccess(session::queue).onFailure { logger.error(it) { "Player info failed for ${player.username}" } }
+        val npcInfo = packets.npcInfo
+        if (npcInfo.isEmpty()) npcInfo.safeReleaseOrThrow() else npcInfo.onSuccess(session::queue)
+        session.flush()
+    }
+
+    private fun remove(player: Player) {
+        network.infoProtocols.dealloc(player.infos)
+        player.session.clear()
+        players[player.index] = null
+        logger.info { "${player.username} disconnected" }
+    }
+
+    companion object {
+        const val TICK_MILLIS = 600L
+        const val MAX_PLAYERS = 2048
+        const val OVERLAY = 1
+
+        // Lumbridge castle courtyard.
+        const val SPAWN_X = 3222
+        const val SPAWN_Z = 3218
+        const val SPAWN_LEVEL = 0
+
+        private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
+    }
+}
