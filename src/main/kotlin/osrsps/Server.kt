@@ -8,6 +8,7 @@ import net.rsprot.compression.provider.DefaultHuffmanCodecProvider
 import net.rsprot.protocol.api.NetworkService
 import osrsps.game.Player
 import osrsps.game.World
+import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
 import osrsps.net.NetworkFactory
 import osrsps.net.RsaKeys
@@ -18,8 +19,14 @@ private val logger = KotlinLogging.logger {}
 
 /** The JS5 and game server on [port], built from the cache in [dataDir]/cache. */
 @OptIn(ExperimentalUnsignedTypes::class, ExperimentalStdlibApi::class)
-class GameServer(private val dataDir: Path, private val port: Int) {
+class GameServer(
+    private val dataDir: Path,
+    private val port: Int,
+    private val httpPort: Int = port + 1,
+    private val publicHost: String = "127.0.0.1",
+) {
     private lateinit var world: World
+    private val clientConfig = ClientConfig(publicHost, httpPort)
     private lateinit var network: NetworkService<Player>
 
     fun start() {
@@ -40,12 +47,14 @@ class GameServer(private val dataDir: Path, private val port: Int) {
         network = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world).build()
         world.network = network
         network.start()
+        clientConfig.start()
         world.start()
         logger.info { "Listening on port $port. RSProx modulus: ${dataDir.resolve("rsa-modulus.txt").toAbsolutePath()}" }
     }
 
     fun stop() {
         world.stop()
+        clientConfig.stop()
         network.shutdownNow(0, 5, TimeUnit.SECONDS)
     }
 

@@ -13,6 +13,6 @@ WORKDIR /opt/osrsps
 COPY --from=build /src/build/install/osrsps ./
 ENV OSRSPS_DATA=/data
 VOLUME /data
-EXPOSE 43594
+EXPOSE 43594 43595
 ENTRYPOINT ["bin/osrsps"]
 CMD ["serve"]

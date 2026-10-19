@@ -15,6 +15,9 @@ private val cacheDir: Path = dataDir.resolve("cache")
 
 private const val DEFAULT_PORT = 43594
 
+/** The address players' PCs reach the server on: 127.0.0.1 through a tunnel, or the LAN address that forwards to it. */
+private val publicHost: String = System.getenv("OSRSPS_PUBLIC_HOST") ?: "127.0.0.1"
+
 fun main(args: Array<String>) {
     when (args.firstOrNull()) {
         null -> logger.info { "OSRSPS server skeleton, revision ${Revision.MAJOR}, Java ${Runtime.version()}" }
@@ -22,7 +25,7 @@ fun main(args: Array<String>) {
         "cache-info" -> cacheInfo()
         "serve" -> serve(args.getOrNull(1)?.toInt() ?: DEFAULT_PORT)
         else -> {
-            System.err.println("Usage: osrsps [fetch-cache | cache-info | serve [port]]")
+            System.err.println("Usage: osrsps [fetch-cache | cache-info | serve [port]]  (HTTP config on port+1)")
             exitProcess(2)
         }
     }
@@ -45,7 +48,7 @@ private fun fetchCache() {
 }
 
 private fun serve(port: Int) {
-    val server = GameServer(dataDir, port)
+    val server = GameServer(dataDir, port, port + 1, publicHost)
     server.start()
     Runtime.getRuntime().addShutdownHook(Thread(server::stop))
 }

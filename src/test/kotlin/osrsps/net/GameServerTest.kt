@@ -5,11 +5,13 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createFile
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.GameServer
 import osrsps.Revision
@@ -30,7 +32,8 @@ class GameServerTest {
         library.close()
 
         val port = ServerSocket(0).use { it.localPort }
-        val server = GameServer(dataDir, port)
+        val httpPort = ServerSocket(0).use { it.localPort }
+        val server = GameServer(dataDir, port, httpPort, "127.0.0.1")
         server.start()
         try {
             Socket("127.0.0.1", port).use { socket ->
@@ -53,6 +56,8 @@ class GameServerTest {
                 assertEquals(11 * 8, input.readInt(), "crc and version for each of the 11 archives")
             }
             assertEquals(256, Files.readString(dataDir.resolve("rsa-modulus.txt")).trim().length)
+            val javConfig = URI("http://127.0.0.1:$httpPort/jav_config.ws").toURL().readText()
+            assertTrue(javConfig.lines().contains("codebase=http://127.0.0.1/"), javConfig)
         } finally {
             server.stop()
         }
