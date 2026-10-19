@@ -27,6 +27,7 @@ class GameServer(
 ) {
     private lateinit var world: World
     private val clientConfig = ClientConfig(publicHost, httpPort)
+    private lateinit var factory: NetworkFactory
     private lateinit var network: NetworkService<Player>
 
     fun start() {
@@ -44,17 +45,30 @@ class GameServer(
 
         val rsa = RsaKeys.loadOrCreate(dataDir)
         world = World(js5.crcs)
-        network = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world).build()
+        factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
+        network = factory.build()
         world.network = network
         network.start()
-        clientConfig.start()
-        world.start()
+        try {
+            clientConfig.start()
+            world.start()
+        } catch (e: Exception) {
+            // Don't leave the game port open with no world behind it: fail the whole start.
+            clientConfig.stop()
+            stopNetwork()
+            throw e
+        }
         logger.info { "Listening on port $port. RSProx modulus: ${dataDir.resolve("rsa-modulus.txt").toAbsolutePath()}" }
     }
 
     fun stop() {
         world.stop()
         clientConfig.stop()
+        stopNetwork()
+    }
+
+    private fun stopNetwork() {
+        factory.closeListeners()
         network.shutdownNow(0, 5, TimeUnit.SECONDS)
     }
 

@@ -3,6 +3,7 @@ package osrsps.net
 import com.displee.cache.CacheLibrary
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.io.IOException
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.URI
@@ -11,6 +12,7 @@ import java.nio.file.Path
 import kotlin.io.path.createFile
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.GameServer
@@ -18,8 +20,7 @@ import osrsps.Revision
 
 /** Boots the real server on a tiny generated cache and talks JS5 to it over a socket. */
 class GameServerTest {
-    @Test
-    fun `serves the master index over JS5 and writes the RSA modulus`(@TempDir dataDir: Path) {
+    private fun writeTinyCache(dataDir: Path) {
         val cacheDir = Files.createDirectories(dataDir.resolve("cache"))
         cacheDir.resolve("main_file_cache.dat2").createFile()
         cacheDir.resolve("main_file_cache.idx255").createFile()
@@ -30,6 +31,22 @@ class GameServerTest {
         library.put(0, 1, byteArrayOf(1, 2, 3))
         library.update()
         library.close()
+    }
+
+    @Test
+    fun `releases the game port when the HTTP port cannot be bound`(@TempDir dataDir: Path) {
+        writeTinyCache(dataDir)
+        val port = ServerSocket(0).use { it.localPort }
+        ServerSocket(0).use { taken ->
+            val server = GameServer(dataDir, port, taken.localPort, "127.0.0.1")
+            assertFailsWith<IOException> { server.start() }
+        }
+        assertFailsWith<IOException>("game port should be closed again") { Socket("127.0.0.1", port).close() }
+    }
+
+    @Test
+    fun `serves the master index over JS5 and writes the RSA modulus`(@TempDir dataDir: Path) {
+        writeTinyCache(dataDir)
 
         val port = ServerSocket(0).use { it.localPort }
         val httpPort = ServerSocket(0).use { it.localPort }
