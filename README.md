@@ -50,6 +50,17 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 The first start generates a 1024-bit RSA key in `data/rsa.key` and writes its modulus to `data/rsa-modulus.txt`.
 Any username and password log in, and you appear in Lumbridge.
 
+## Keep it running with Docker
+
+On the VM, Docker keeps the server up across crashes and reboots. `data/` is mounted into the container, so the
+cache and RSA key are shared with the Gradle commands above.
+
+```bash
+docker compose up -d --build   # build and start; rerun after pulling changes
+docker compose logs -f         # follow the log
+docker compose down            # stop
+```
+
 ## Connect RuneLite through RSProx
 
 From Windows (PowerShell), forward the game port through the jump host and keep this window open:

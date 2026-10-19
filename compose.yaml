@@ -1,0 +1,12 @@
+# Runs the server on the sandbox VM and keeps it up across crashes and reboots.
+#   docker compose up -d --build     start (or rebuild after a git pull)
+#   docker compose logs -f           follow the log
+#   docker compose run --rm osrsps fetch-cache    download the cache into ./data
+services:
+  osrsps:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "43594:43594"
+    volumes:
+      - ./data:/data
