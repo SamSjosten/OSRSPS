@@ -13,6 +13,8 @@ kotlin {
 dependencies {
     // RSProt for revision 241; wired into login in the next step.
     implementation(libs.rsprot.api)
+    implementation(libs.displee.cache)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlin.logging)
     runtimeOnly(libs.logback.classic)
 
