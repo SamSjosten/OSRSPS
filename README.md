@@ -39,3 +39,52 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 ```
 
 `data/cache-source.txt` records which OpenRS2 cache was used.
+
+## Run the server
+
+```bash
+./gradlew run --args=serve          # JS5 and game on port 43594
+./gradlew run --args="serve 50000"  # another port
+```
+
+The first start generates a 1024-bit RSA key in `data/rsa.key` and writes its modulus to `data/rsa-modulus.txt`.
+Any username and password log in, and you appear in Lumbridge.
+
+## Keep it running with Docker
+
+On the VM, Docker keeps the server up across crashes and reboots. `data/` is mounted into the container, so the
+cache and RSA key are shared with the Gradle commands above.
+
+```bash
+docker compose up -d --build   # build and start; rerun after pulling changes
+docker compose logs -f         # follow the log
+docker compose down            # stop
+```
+
+## Connect RuneLite through RSProx
+
+The server also hosts the launcher files on the HTTP port (game port + 1): `jav_config.ws` and `world_list.ws`,
+both pointing at `OSRSPS_PUBLIC_HOST` (default `127.0.0.1`). RSProx reads them to find the world and connects to that
+host on the game port.
+
+**Over the LAN** (once the Proxmox host forwards 43594 and 43595 to the VM; the compose file sets
+`OSRSPS_PUBLIC_HOST=192.168.0.210`): nothing needs to run on your PC.
+
+**Over an SSH tunnel** (PowerShell, keep the window open; the default public host 127.0.0.1 matches this):
+
+```powershell
+ssh -J root@192.168.0.210 -L 43594:127.0.0.1:43594 -L 43595:127.0.0.1:43595 sam@10.99.0.10
+```
+
+Then add a target to `%USERPROFILE%\.rsprox\proxy-targets.yaml`, with the modulus from `data/rsa-modulus.txt`
+on the VM and the host you use above:
+
+```yaml
+config:
+  - name: OSRSPS
+    jav_config_url: http://192.168.0.210:43595/jav_config.ws
+    revision: 241.1
+    modulus: <contents of data/rsa-modulus.txt>
+```
+
+Launch RuneLite from RSProx with that target and log in with any username and password.
