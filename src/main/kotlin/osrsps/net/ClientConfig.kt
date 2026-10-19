@@ -28,7 +28,7 @@ class ClientConfig(
             appendLine("title=OSRSPS")
             appendLine("adverturl=http://$publicHost:$httpPort/advert.ws")
             appendLine("codebase=http://$publicHost/")
-            appendLine("cachedir=oldschool")
+            appendLine("cachedir=osrsps")
             appendLine("storebase=0")
             appendLine("initial_jar=gamepack.jar")
             appendLine("initial_class=client.class")
