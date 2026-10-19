@@ -39,6 +39,12 @@ class OpenRs2ArchiveTest {
         val entry = OpenRs2Archive.selectLatest(caches, 241)!!
         assertEquals(2, entry.id)
         assertEquals(3, entry.minor)
+        assertEquals("241.3", entry.build)
+    }
+
+    @Test
+    fun `formats a build without a minor version`() {
+        assertEquals("241", CacheEntry(1, "runescape", 241, null, null).build)
     }
 
     @Test

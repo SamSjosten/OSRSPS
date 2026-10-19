@@ -29,7 +29,10 @@ data class CacheEntry(
     val major: Int,
     val minor: Int?,
     val timestamp: String?,
-)
+) {
+    /** The build as OpenRS2 lists it, e.g. `241.3`, or `241` when it has no minor build. */
+    val build: String get() = minor?.let { "$major.$it" } ?: "$major"
+}
 
 /** Downloads a live OSRS cache and its XTEA keys from the OpenRS2 archive. */
 class OpenRs2Archive(
