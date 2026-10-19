@@ -27,3 +27,15 @@ Windows (PowerShell):
 ```
 
 A successful run logs `OSRSPS server skeleton, revision 241`.
+
+## Get the cache
+
+The server downloads the live revision 241 cache and its XTEA keys from the [OpenRS2 archive](https://archive.openrs2.org)
+into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sandbox VM:
+
+```bash
+./gradlew run --args=fetch-cache   # download, then print a summary
+./gradlew run --args=cache-info    # summarise an existing download
+```
+
+`data/cache-source.txt` records which OpenRS2 cache was used.
