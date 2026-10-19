@@ -30,10 +30,13 @@ private fun fetchCache() {
     val entry = OpenRs2Archive.selectLatest(archive.listCaches(), Revision.MAJOR)
         ?: error("OpenRS2 lists no live oldschool cache for revision ${Revision.MAJOR}")
     logger.info { "Selected OpenRS2 cache ${entry.id}: build ${entry.major}.${entry.minor}, ${entry.timestamp}" }
-    if (Files.exists(cacheDir)) {
-        cacheDir.toFile().deleteRecursively()
-    }
-    archive.download(entry, cacheDir)
+    // Download and check into a sibling folder so a failed fetch leaves the current cache untouched.
+    val staging = dataDir.resolve("cache.download")
+    staging.toFile().deleteRecursively()
+    archive.download(entry, staging)
+    CacheInfo.read(staging)
+    cacheDir.toFile().deleteRecursively()
+    Files.move(staging, cacheDir)
     Files.writeString(dataDir.resolve("cache-source.txt"), "openrs2 ${entry.scope}/${entry.id} build ${entry.major}.${entry.minor} ${entry.timestamp}\n")
     cacheInfo()
 }

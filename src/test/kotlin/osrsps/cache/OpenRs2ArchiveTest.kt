@@ -28,12 +28,14 @@ class OpenRs2ArchiveTest {
           {"id": 5, "scope": "runescape", "game": "runescape", "environment": "live", "language": "en",
            "builds": [{"major": 241, "minor": 9}], "timestamp": "2026-10-17T11:00:00Z"},
           {"id": 6, "scope": "runescape", "game": "oldschool", "environment": "live", "language": "en",
-           "builds": [], "timestamp": null}
+           "builds": [], "timestamp": null},
+          {"id": 7, "scope": "runescape", "game": "oldschool", "environment": "live", "language": "en",
+           "builds": [{"major": 241, "minor": null}], "timestamp": "2026-10-18T11:00:00Z", "disk_store_valid": null}
         ]
     """.trimIndent()
 
     @Test
-    fun `selects the newest valid live oldschool build for the revision`() {
+    fun `selects the newest finished live oldschool cache for the revision`() {
         val entry = OpenRs2Archive.selectLatest(caches, 241)!!
         assertEquals(2, entry.id)
         assertEquals(3, entry.minor)

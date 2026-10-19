@@ -67,16 +67,17 @@ class OpenRs2Archive(
         private val json = Json { ignoreUnknownKeys = true }
 
         /**
-         * Picks the live English OSRS cache for [major]: the highest minor build, then the newest timestamp.
-         * Entries OpenRS2 marks as having an invalid disk store are skipped.
+         * Picks the newest live English OSRS cache for [major], by timestamp then minor build.
+         * Only entries whose disk store OpenRS2 has finished and validated (`disk_store_valid: true`) qualify;
+         * null means it is still being processed.
          */
         fun selectLatest(cachesJson: String, major: Int): CacheEntry? = json.parseToJsonElement(cachesJson).jsonArray
             .map { it.jsonObject }
             .filter { it.string("game") == "oldschool" && it.string("environment") == "live" }
             .filter { it.string("language") == null || it.string("language") == "en" }
-            .filter { it["disk_store_valid"]?.jsonPrimitive?.booleanOrNull != false }
+            .filter { it["disk_store_valid"]?.jsonPrimitive?.booleanOrNull == true }
             .mapNotNull { it.toEntry(major) }
-            .maxWithOrNull(compareBy<CacheEntry>({ it.minor ?: -1 }, { it.timestamp ?: "" }))
+            .maxWithOrNull(compareBy<CacheEntry>({ it.timestamp ?: "" }, { it.minor ?: -1 }))
 
         private fun JsonObject.toEntry(major: Int): CacheEntry? {
             val build = (this["builds"] as? JsonArray)
