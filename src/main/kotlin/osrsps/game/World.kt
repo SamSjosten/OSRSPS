@@ -40,6 +40,12 @@ class World(private val js5Crcs: IntArray) : GameConnectionHandler<Player> {
 
     override fun onLogin(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<AuthenticationType>) {
         block.authentication.clear()
+        // RSProt's per-address limit; without it one host could queue logins without bound.
+        if (!responseHandler.validateNewConnection()) {
+            logger.info { "Rejecting ${block.username}: too many connections from one address" }
+            responseHandler.writeFailedResponse(LoginResponse.IPLimit)
+            return
+        }
         if (!block.crc.validate(js5Crcs)) {
             logger.info { "Rejecting ${block.username}: client cache CRCs do not match ours" }
             responseHandler.writeFailedResponse(LoginResponse.OutOfDateReload)

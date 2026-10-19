@@ -44,8 +44,10 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 
 ```bash
 ./gradlew run --args=serve          # JS5 and game on port 43594
-./gradlew run --args="serve 50000"  # another port
+./gradlew run --args="serve 50000"  # another port (launcher files on 50001)
 ```
+
+RSProx assumes the game port is 43594. For another port, add `game_server_port: 50000` to the RSProx target below.
 
 The first start generates a 1024-bit RSA key in `data/rsa.key` and writes its modulus to `data/rsa-modulus.txt`.
 Any username and password log in, and you appear in Lumbridge.
@@ -85,6 +87,7 @@ config:
     jav_config_url: http://192.168.0.210:43595/jav_config.ws
     revision: 241.1
     modulus: <contents of data/rsa-modulus.txt>
+    # game_server_port: 50000   # only when the server runs on a port other than 43594
 ```
 
 Launch RuneLite from RSProx with that target and log in with any username and password.
