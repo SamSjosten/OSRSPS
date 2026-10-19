@@ -15,9 +15,10 @@ class CollisionMap {
 
     operator fun get(x: Int, z: Int, level: Int): Int {
         if (x < 0 || z < 0 || level !in 0..3) return CollisionFlag.UNLOADED
-        val zone = zones[zoneKey(x, z, level)]
-        if (zone != null) return zone[tileIndex(x, z)]
-        return if (squareKey(x shr 6, z shr 6) in loadedSquares) 0 else CollisionFlag.UNLOADED
+        // A wall or large loc on a square's edge can flag tiles in a neighbouring square with no terrain; those
+        // tiles still read as unloaded.
+        if (squareKey(x shr 6, z shr 6) !in loadedSquares) return CollisionFlag.UNLOADED
+        return zones[zoneKey(x, z, level)]?.get(tileIndex(x, z)) ?: 0
     }
 
     fun add(x: Int, z: Int, level: Int, mask: Int) {

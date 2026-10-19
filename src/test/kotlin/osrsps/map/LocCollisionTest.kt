@@ -50,4 +50,11 @@ class LocCollisionTest {
     fun `tiles outside loaded map squares are blocked`() {
         assertEquals(CollisionFlag.UNLOADED, map[3100, 3210, 0])
     }
+
+    @Test
+    fun `a wall on a square's edge does not make the unloaded square next to it walkable`() {
+        locs.addLoc(LocCollisionType(), 3200, 3210, 0, LocShape.WALL_STRAIGHT, 0)
+        assertEquals(CollisionFlag.UNLOADED, map[3199, 3210, 0])
+        assertEquals(CollisionFlag.UNLOADED, map[3198, 3210, 0])
+    }
 }
