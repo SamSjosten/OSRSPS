@@ -31,10 +31,17 @@ object MapCollisionLoader {
         val collision = LocCollision(map)
         var squares = 0
         var badLocFiles = 0
+        var badTerrainFiles = 0
         for (squareX in 0 until 256) {
             for (squareZ in 0 until 256) {
                 val terrain = library.data(MAPS_INDEX, "m${squareX}_$squareZ") ?: continue
-                val settings = decodeTerrain(terrain)
+                val settings = try {
+                    decodeTerrain(terrain)
+                } catch (e: Exception) {
+                    // Left unloaded, so nobody walks there, rather than failing the whole start.
+                    if (badTerrainFiles++ == 0) logger.warn(e) { "Could not read terrain for map square ${squareX}_$squareZ" }
+                    continue
+                }
                 map.markLoaded(squareX, squareZ)
                 addTerrain(collision, settings, squareX shl 6, squareZ shl 6)
                 try {
@@ -47,6 +54,7 @@ object MapCollisionLoader {
                 squares++
             }
         }
+        if (badTerrainFiles > 0) logger.warn { "$badTerrainFiles map squares are unwalkable: their terrain did not decode" }
         if (badLocFiles > 0) logger.warn { "$badLocFiles map squares have no loc collision: their loc files did not decode" }
         logger.info { "Loaded collision for $squares map squares and ${locTypes.size} loc types" }
         return map
