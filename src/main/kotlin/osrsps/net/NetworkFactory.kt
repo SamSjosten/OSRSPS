@@ -72,9 +72,12 @@ class NetworkFactory(
 private class ServerChannelTracker : ChannelInboundHandlerAdapter() {
     private val channels = CopyOnWriteArrayList<io.netty.channel.Channel>()
 
-    override fun channelActive(ctx: ChannelHandlerContext) {
+    // handlerAdded runs when the server channel registers with its event loop, which Netty completes
+    // before the bind future that RSProt's start() waits on. channelActive would be too late: Netty
+    // schedules it after the bind future completes, so a fast failure could miss the channel.
+    override fun handlerAdded(ctx: ChannelHandlerContext) {
         channels.add(ctx.channel())
-        super.channelActive(ctx)
+        super.handlerAdded(ctx)
     }
 
     fun closeAll() {
