@@ -127,3 +127,15 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::tick` | The server's current tick number |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
+
+## Chat
+
+Anything typed without `::` is public chat: it shows over your head and in the chatbox of every player who can see you, yourself included. Colour and effect prefixes (`red:`, `wave:`, `pattern...`) work. Code is in `src/main/kotlin/osrsps/game/PublicChat.kt`.
+
+| Rule | Source |
+|------|--------|
+| 80 characters at most; types 0 (normal) and 1 (autotyper) are public chat | RSProt / client behaviour |
+| A colour, effect or pattern the client can't send falls back to plain yellow | guessed |
+| Friends, clan and guest channel messages get "There are no chat-channels on this server yet." | ours, no channels yet |
+| Public, private and trade filter changes are echoed back so the tab labels update; nothing is filtered on the server | inferred |
+| "Welcome to Old School RuneScape." after login | from memory of live, not a recording |

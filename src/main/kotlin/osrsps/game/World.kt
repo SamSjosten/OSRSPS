@@ -140,6 +140,7 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         appearance.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824)
         sendRunState(player)
+        player.message(WELCOME_MESSAGE)
 
         session.queue(IfOpenTop(GameFrame.TOPLEVEL_RESIZABLE))
         for ((interfaceId, component) in GameFrame.overlays) {
@@ -278,6 +279,9 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
         const val SPAWN_X = 3222
         const val SPAWN_Z = 3218
         const val SPAWN_LEVEL = 0
+
+        /** The first game message after login on live, from memory rather than a recording. */
+        const val WELCOME_MESSAGE = "Welcome to Old School RuneScape."
 
         private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }
