@@ -1,7 +1,10 @@
 package osrsps
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import com.displee.cache.CacheLibrary
 import osrsps.cache.CacheInfo
+import osrsps.cache.MapCollisionLoader
+import osrsps.map.CollisionPrinter
 import osrsps.cache.OpenRs2Archive
 import java.nio.file.Files
 import java.nio.file.Path
@@ -24,8 +27,9 @@ fun main(args: Array<String>) {
         "fetch-cache" -> fetchCache()
         "cache-info" -> cacheInfo()
         "serve" -> serve(args.getOrNull(1)?.toInt() ?: DEFAULT_PORT)
+        "collision" -> printCollision(args.getOrNull(1)?.toInt() ?: 3222, args.getOrNull(2)?.toInt() ?: 3218, args.getOrNull(3)?.toInt() ?: 0)
         else -> {
-            System.err.println("Usage: osrsps [fetch-cache | cache-info | serve [port]]  (HTTP config on port+1)")
+            System.err.println("Usage: osrsps [fetch-cache | cache-info | serve [port] | collision [x z [level]]]  (HTTP config on port+1)")
             exitProcess(2)
         }
     }
@@ -58,3 +62,15 @@ private fun cacheInfo() {
     summary.indices.forEach { logger.info { "index ${it.id}: ${it.groups} groups, revision ${it.revision}, crc ${it.crc}" } }
     logger.info { "Cache at ${cacheDir.toAbsolutePath()} has ${summary.indices.size} indices" }
 }
+
+/** Prints the collision 15 tiles around a tile, north up, so it can be compared with the game. */
+private fun printCollision(x: Int, z: Int, level: Int) {
+    val library = CacheLibrary.create(cacheDir.toString())
+    val map = try {
+        MapCollisionLoader.load(library)
+    } finally {
+        library.close()
+    }
+    println(CollisionPrinter.render(map, x, z, level, 15))
+}
+

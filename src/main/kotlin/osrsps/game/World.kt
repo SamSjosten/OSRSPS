@@ -12,11 +12,16 @@ import net.rsprot.protocol.game.outgoing.info.util.safeReleaseOrThrow
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
+import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
+import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
+import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
+import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.loginprot.incoming.util.AuthenticationType
 import net.rsprot.protocol.loginprot.incoming.util.LoginBlock
 import net.rsprot.crypto.xtea.XteaKey
 import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
+import osrsps.map.CollisionMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -27,8 +32,10 @@ private val logger = KotlinLogging.logger {}
  * The game world: a single thread that runs a 600 ms tick.
  * Logins arrive from RSProt's login threads and are completed at the start of the next tick.
  */
-class World(private val js5Crcs: IntArray) : GameConnectionHandler<Player> {
+class World(private val js5Crcs: IntArray, collision: CollisionMap) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
+
+    private val movement = Movement(collision)
 
     private val pendingLogins = ConcurrentLinkedQueue<PendingLogin>()
     private val players = arrayOfNulls<Player>(MAX_PLAYERS)
@@ -84,7 +91,9 @@ class World(private val js5Crcs: IntArray) : GameConnectionHandler<Player> {
             if (player.disconnected) remove(player) else player.session.processIncomingPackets(player)
         }
         for (player in players) {
-            player?.infos?.updateRootCoord(player.level, player.x, player.z)
+            if (player == null) continue
+            move(player)
+            player.infos.updateRootCoord(player.level, player.x, player.z)
         }
         network.infoProtocols.update()
         for (player in players) {
@@ -125,11 +134,82 @@ class World(private val js5Crcs: IntArray) : GameConnectionHandler<Player> {
         DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         appearance.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824)
+        sendRunState(player)
 
         session.queue(IfOpenTop(GameFrame.TOPLEVEL_RESIZABLE))
         for ((interfaceId, component) in GameFrame.overlays) {
             session.queue(IfOpenSub(GameFrame.TOPLEVEL_RESIZABLE, component, interfaceId, OVERLAY))
         }
+    }
+
+    /** A click on the game view or minimap. [keyCombination] is 1 with ctrl held, 2 with ctrl and shift. */
+    fun onMoveClick(player: Player, x: Int, z: Int, keyCombination: Int) {
+        if (keyCombination == 2) {
+            // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
+            player.waypoints.clear()
+            player.x = x
+            player.z = z
+            return
+        }
+        val route = movement.request(player, x, z, invertRun = keyCombination == 1)
+        // Guessed: with no route the client's flag would stay up forever, so clear it.
+        if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)
+    }
+
+    fun onButton(player: Player, interfaceId: Int, componentId: Int, op: Int) {
+        if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
+            player.runEnabled = !player.runEnabled
+            return
+        }
+        logger.info { "${player.username} clicked $interfaceId:$componentId op $op (not handled)" }
+    }
+
+    private fun move(player: Player) {
+        val result = movement.process(player)
+        val extendedInfo = player.infos.playerInfo.avatar.extendedInfo
+        val speed = when (result) {
+            MoveResult.NONE -> null
+            MoveResult.WALKED -> MOVE_SPEED_WALK
+            MoveResult.RAN -> MOVE_SPEED_RUN
+        }
+        // Inferred: a tick moved at a speed other than the orb's (ctrl-click, the last odd tile of a run) is sent
+        // as a one-tick temporary speed so the client animates it right.
+        if (speed != null && speed != moveSpeed(player)) extendedInfo.setTempMoveSpeed(speed)
+        sendRunState(player)
+        rebuildIfNeeded(player)
+    }
+
+    private fun moveSpeed(player: Player) = if (player.runEnabled) MOVE_SPEED_RUN else MOVE_SPEED_WALK
+
+    /** Sends the run orb's state and energy when they change. */
+    private fun sendRunState(player: Player) {
+        if (player.runEnabled != player.sentRunEnabled) {
+            player.session.queue(VarpSmall(VARP_RUN, if (player.runEnabled) 1 else 0))
+            player.infos.playerInfo.avatar.extendedInfo.setMoveSpeed(moveSpeed(player))
+            player.sentRunEnabled = player.runEnabled
+        }
+        if (player.runEnergy != player.sentRunEnergy) {
+            player.session.queue(UpdateRunEnergy(player.runEnergy))
+            player.sentRunEnergy = player.runEnergy
+        }
+    }
+
+    /**
+     * Rebuilds the client's 104x104 build area around the player once they come within 16 tiles of its edge.
+     * The 16-tile margin is inferred from the client's scene size, not measured on live.
+     */
+    private fun rebuildIfNeeded(player: Player) {
+        val originX = (player.buildAreaZoneX - 6) shl 3
+        val originZ = (player.buildAreaZoneZ - 6) shl 3
+        val localX = player.x - originX
+        val localZ = player.z - originZ
+        if (localX in REBUILD_MARGIN until BUILD_AREA_SIZE - REBUILD_MARGIN &&
+            localZ in REBUILD_MARGIN until BUILD_AREA_SIZE - REBUILD_MARGIN
+        ) return
+        player.buildAreaZoneX = player.x shr 3
+        player.buildAreaZoneZ = player.z shr 3
+        player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
+        player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
     }
 
     private fun sendInfo(player: Player) {
@@ -155,6 +235,15 @@ class World(private val js5Crcs: IntArray) : GameConnectionHandler<Player> {
         const val TICK_MILLIS = 600L
         const val MAX_PLAYERS = 2048
         const val OVERLAY = 1
+
+        const val MOVE_SPEED_WALK = 1
+        const val MOVE_SPEED_RUN = 2
+
+        /** option_run: the run orb's on/off state. */
+        const val VARP_RUN = 173
+
+        const val BUILD_AREA_SIZE = 104
+        const val REBUILD_MARGIN = 16
 
         // Lumbridge castle courtyard.
         const val SPAWN_X = 3222

@@ -9,6 +9,10 @@ package osrsps.game
 object GameFrame {
     const val TOPLEVEL_RESIZABLE = 161
 
+    /** The minimap orbs and the run orb's button, from RuneLite's gameval InterfaceID.Orbs (live cache). */
+    const val ORBS = 160
+    const val ORBS_RUN_BUTTON = 28
+
     /** Overlay interface id to the component of [TOPLEVEL_RESIZABLE] it opens into. */
     val overlays: List<Pair<Int, Int>> = listOf(
         162 to 96, // chatbox

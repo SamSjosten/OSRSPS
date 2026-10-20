@@ -1,0 +1,110 @@
+package osrsps.game
+
+import osrsps.map.CollisionFlag.BLOCK_WALK
+import osrsps.map.CollisionFlag.WALL_EAST
+import osrsps.map.CollisionFlag.WALL_NORTH
+import osrsps.map.CollisionFlag.WALL_NORTH_EAST
+import osrsps.map.CollisionFlag.WALL_NORTH_WEST
+import osrsps.map.CollisionFlag.WALL_SOUTH
+import osrsps.map.CollisionFlag.WALL_SOUTH_EAST
+import osrsps.map.CollisionFlag.WALL_SOUTH_WEST
+import osrsps.map.CollisionFlag.WALL_WEST
+import osrsps.map.CollisionMap
+import osrsps.map.Route
+import osrsps.map.RouteFinder
+import kotlin.math.sign
+
+/** What a player's movement did this tick. */
+enum class MoveResult { NONE, WALKED, RAN }
+
+/**
+ * Routes players to clicked tiles and moves them along the route: one tile a tick walking, two running.
+ *
+ * Run energy follows the OSRS Wiki "Energy" article: running drains ⌊60 + 67 × weight / 64⌋ × (1 − agility / 300)
+ * units a tick, and any tick spent not running restores ⌊agility / 10⌋ + 15. Weight is 0 and Agility 1 until we have
+ * items and stats.
+ */
+class Movement(private val collision: CollisionMap) {
+    private val routeFinder = RouteFinder(collision)
+
+    /** Replaces [player]'s route with one to [destX], [destZ]. [invertRun] is the ctrl key. */
+    fun request(player: Player, destX: Int, destZ: Int, invertRun: Boolean): Route {
+        val route = routeFinder.find(player.level, player.x, player.z, destX, destZ)
+        player.waypoints.clear()
+        player.waypoints.addAll(route.waypoints)
+        player.invertRun = invertRun
+        return route
+    }
+
+    fun process(player: Player): MoveResult {
+        val wantsRun = player.runEnabled != player.invertRun
+        val steps = if (wantsRun && player.runEnergy > 0) 2 else 1
+        var taken = 0
+        while (taken < steps && step(player)) taken++
+        val result = when (taken) {
+            0 -> MoveResult.NONE
+            1 -> MoveResult.WALKED
+            else -> MoveResult.RAN
+        }
+        updateEnergy(player, result)
+        return result
+    }
+
+    /** Takes one step toward the next waypoint. False when there is nowhere to go or the way is blocked. */
+    private fun step(player: Player): Boolean {
+        val target = player.waypoints.firstOrNull() ?: return false
+        val dx = (target.x - player.x).sign
+        val dz = (target.z - player.z).sign
+        if (!canStep(player.level, player.x, player.z, dx, dz)) {
+            // The map changed under the route (nothing does that yet); stop like the server does.
+            player.waypoints.clear()
+            return false
+        }
+        player.x += dx
+        player.z += dz
+        if (player.x == target.x && player.z == target.z) player.waypoints.removeFirst()
+        return true
+    }
+
+    /** The same checks the route finder makes for one step. */
+    fun canStep(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean {
+        fun open(ox: Int, oz: Int, mask: Int) = collision[x + ox, z + oz, level] and mask == 0
+        val westEast = when (dx) {
+            -1 -> open(-1, 0, BLOCK_WALK or WALL_EAST)
+            1 -> open(1, 0, BLOCK_WALK or WALL_WEST)
+            else -> true
+        }
+        val southNorth = when (dz) {
+            -1 -> open(0, -1, BLOCK_WALK or WALL_NORTH)
+            1 -> open(0, 1, BLOCK_WALK or WALL_SOUTH)
+            else -> true
+        }
+        if (dx == 0 || dz == 0) return westEast && southNorth && (dx != 0 || dz != 0)
+        val corner = when {
+            dx < 0 && dz < 0 -> BLOCK_WALK or WALL_NORTH or WALL_NORTH_EAST or WALL_EAST
+            dx > 0 && dz < 0 -> BLOCK_WALK or WALL_NORTH_WEST or WALL_NORTH or WALL_WEST
+            dx < 0 -> BLOCK_WALK or WALL_EAST or WALL_SOUTH_EAST or WALL_SOUTH
+            else -> BLOCK_WALK or WALL_SOUTH or WALL_SOUTH_WEST or WALL_WEST
+        }
+        return westEast && southNorth && open(dx, dz, corner)
+    }
+
+    private fun updateEnergy(player: Player, result: MoveResult) {
+        // Guessed: only a two-tile tick counts as running, and a single tile at the end of a run drains nothing.
+        if (result == MoveResult.RAN) {
+            val base = 60 + 67 * WEIGHT.coerceIn(0, 64) / 64
+            val drain = base * (300 - AGILITY) / 300
+            player.runEnergy = (player.runEnergy - drain).coerceAtLeast(0)
+            // Guessed: run switches itself off when energy runs out, as the orb does on live.
+            if (player.runEnergy == 0) player.runEnabled = false
+        } else {
+            player.runEnergy = (player.runEnergy + AGILITY / 10 + 15).coerceAtMost(MAX_ENERGY)
+        }
+    }
+
+    companion object {
+        const val MAX_ENERGY = 10_000
+        private const val AGILITY = 1
+        private const val WEIGHT = 0
+    }
+}
