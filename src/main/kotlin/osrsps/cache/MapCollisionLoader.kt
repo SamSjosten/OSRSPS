@@ -11,7 +11,7 @@ import osrsps.map.LocCollisionType
 private val logger = KotlinLogging.logger {}
 
 /**
- * Builds the world's collision from the cache: terrain (`m{x}_{z}`) and locs (`l{x}_{z}`) in the maps archive,
+ * Builds the world's collision from the cache: each map square's terrain and locs in the maps index,
  * and loc types from config archive 6. Neither map file is XTEA-encrypted in revision 241.
  */
 object MapCollisionLoader {
@@ -32,32 +32,54 @@ object MapCollisionLoader {
         var squares = 0
         var badLocFiles = 0
         var badTerrainFiles = 0
-        for (squareX in 0 until 256) {
-            for (squareZ in 0 until 256) {
-                val terrain = library.data(MAPS_INDEX, "m${squareX}_$squareZ") ?: continue
-                val settings = try {
-                    decodeTerrain(terrain)
-                } catch (e: Exception) {
-                    // Left unloaded, so nobody walks there, rather than failing the whole start.
-                    if (badTerrainFiles++ == 0) logger.warn(e) { "Could not read terrain for map square ${squareX}_$squareZ" }
-                    continue
-                }
-                map.markLoaded(squareX, squareZ)
-                addTerrain(collision, settings, squareX shl 6, squareZ shl 6)
-                try {
-                    library.data(MAPS_INDEX, "l${squareX}_$squareZ")?.let { locs ->
-                        addLocs(collision, locTypes, settings, locs, squareX shl 6, squareZ shl 6)
-                    }
-                } catch (e: Exception) {
-                    if (badLocFiles++ == 0) logger.warn(e) { "Could not read locs for map square ${squareX}_$squareZ" }
-                }
-                squares++
+        for ((squareX, squareZ, files) in mapSquares(library)) {
+            val terrain = files.terrain() ?: continue
+            val settings = try {
+                decodeTerrain(terrain)
+            } catch (e: Exception) {
+                // Left unloaded, so nobody walks there, rather than failing the whole start.
+                if (badTerrainFiles++ == 0) logger.warn(e) { "Could not read terrain for map square ${squareX}_$squareZ" }
+                continue
             }
+            map.markLoaded(squareX, squareZ)
+            addTerrain(collision, settings, squareX shl 6, squareZ shl 6)
+            try {
+                files.locs()?.let { locs ->
+                    addLocs(collision, locTypes, settings, locs, squareX shl 6, squareZ shl 6)
+                }
+            } catch (e: Exception) {
+                if (badLocFiles++ == 0) logger.warn(e) { "Could not read locs for map square ${squareX}_$squareZ" }
+            }
+            squares++
         }
+        if (squares == 0) logger.warn { "No map squares found in the cache: every tile is unwalkable" }
         if (badTerrainFiles > 0) logger.warn { "$badTerrainFiles map squares are unwalkable: their terrain did not decode" }
         if (badLocFiles > 0) logger.warn { "$badLocFiles map squares have no loc collision: their loc files did not decode" }
         logger.info { "Loaded collision for $squares map squares and ${locTypes.size} loc types" }
         return map
+    }
+
+    private class SquareFiles(val terrain: () -> ByteArray?, val locs: () -> ByteArray?)
+
+    private data class MapSquare(val x: Int, val z: Int, val files: SquareFiles)
+
+    /**
+     * Older caches name each square's groups `m{x}_{z}` and `l{x}_{z}`. Current ones (revision 241 included) leave
+     * the maps index unnamed: group `x shl 8 or z` holds the terrain as file 0 and the locs as file 1, as RuneLite's
+     * cache RegionLoader reads them.
+     */
+    private fun mapSquares(library: CacheLibrary): Sequence<MapSquare> {
+        val index = library.index(MAPS_INDEX) ?: return emptySequence()
+        if (index.isNamed()) {
+            return (0 until 256 * 256).asSequence().map { id ->
+                val x = id shr 8
+                val z = id and 0xFF
+                MapSquare(x, z, SquareFiles({ library.data(MAPS_INDEX, "m${x}_$z") }, { library.data(MAPS_INDEX, "l${x}_$z") }))
+            }
+        }
+        return index.archiveIds().asSequence().map { id ->
+            MapSquare(id shr 8, id and 0xFF, SquareFiles({ library.data(MAPS_INDEX, id, 0) }, { library.data(MAPS_INDEX, id, 1) }))
+        }
     }
 
     private fun loadLocTypes(library: CacheLibrary): Map<Int, LocCollisionType> {
