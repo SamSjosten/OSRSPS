@@ -1106,7 +1106,8 @@ public class TickRecorderPlugin extends Plugin
 		WorldView wv = worldView();
 		if (wv.isInstance())
 		{
-			LocalPoint local = LocalPoint.fromWorld(wv, point);
+			// fromWorld(wv, WorldPoint) refuses other planes; the x/y overload does not, and the plane is passed below.
+			LocalPoint local = LocalPoint.fromWorld(wv, point.getX(), point.getY());
 			int[][][] chunks = wv.getInstanceTemplateChunks();
 			int plane = point.getPlane();
 			if (local != null && chunks != null && plane >= 0 && plane < chunks.length)

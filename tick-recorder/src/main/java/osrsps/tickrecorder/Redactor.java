@@ -1,6 +1,9 @@
 package osrsps.tickrecorder;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -25,12 +28,20 @@ final class Redactor
 		{
 			return text;
 		}
-		String result = text;
+		// Longest names first, so "Bob" never eats the front of "Bob Smith".
+		List<String[]> names = new ArrayList<>();
 		for (String name : others)
 		{
-			result = replaceName(result, name, PLAYER);
+			names.add(new String[]{name, PLAYER});
 		}
-		return replaceName(result, self, SELF);
+		names.add(new String[]{self, SELF});
+		names.sort(Comparator.comparingInt((String[] n) -> n[0] == null ? 0 : n[0].length()).reversed());
+		String result = text;
+		for (String[] name : names)
+		{
+			result = replaceName(result, name[0], name[1]);
+		}
+		return result;
 	}
 
 	/** Drops colour and image tags such as {@code <col=ffffff>}. */

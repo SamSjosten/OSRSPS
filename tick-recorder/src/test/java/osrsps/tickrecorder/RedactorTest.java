@@ -23,6 +23,13 @@ public class RedactorTest
 	}
 
 	@Test
+	public void replacesLongerNamesFirst()
+	{
+		assertEquals("{player} met {player} and {self}",
+			Redactor.scrub("Bob Smith met Bob and Bobby", "Bobby", Arrays.asList("Bob", "Bob Smith")));
+	}
+
+	@Test
 	public void leavesTextWithoutNamesAlone()
 	{
 		assertEquals("You eat the shark.", Redactor.scrub("You eat the shark.", "Sam", Collections.emptyList()));
