@@ -15,7 +15,7 @@ public interface TickRecorderConfig extends Config
 	@ConfigItem(
 		keyName = RECORDING,
 		name = "Recording",
-		description = "Write what the client sees each tick to .runelite/tick-recorder. A new file starts each time this is turned on.",
+		description = "Write what the client sees each tick to the tick-recorder folder in RuneLite's settings folder. A new file starts each time this is turned on.",
 		position = 0
 	)
 	default boolean recording()
@@ -49,7 +49,7 @@ public interface TickRecorderConfig extends Config
 	@ConfigItem(
 		keyName = "otherPlayers",
 		name = "Other players",
-		description = "Also record other players' positions and animations. Names are never recorded.",
+		description = "Also record other players' positions, animations and clicks on them, by index. Names in text are replaced with {player}.",
 		position = 3
 	)
 	default boolean otherPlayers()
@@ -59,8 +59,8 @@ public interface TickRecorderConfig extends Config
 
 	@ConfigItem(
 		keyName = "objects",
-		name = "Objects",
-		description = "Record objects appearing and disappearing near you",
+		name = "Objects and ground items",
+		description = "Record objects and ground items near you",
 		position = 4
 	)
 	default boolean objects()
