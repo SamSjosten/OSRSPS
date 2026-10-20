@@ -150,12 +150,25 @@ class World(
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         appearance.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824)
         sendRunState(player)
+        allowChat(player)
         player.message(WELCOME_MESSAGE)
 
         session.queue(IfOpenTop(GameFrame.TOPLEVEL_RESIZABLE))
         for ((interfaceId, component) in GameFrame.overlays) {
             session.queue(IfOpenSub(GameFrame.TOPLEVEL_RESIZABLE, component, interfaceId, OVERLAY))
         }
+    }
+
+    /**
+     * Tells the client the account has a display name. Without it the chatbox refuses all typing, `::` commands
+     * included, with "You must set a name before you can chat". Inferred from the varbit's name and that message.
+     */
+    internal fun allowChat(player: Player) {
+        if (varTypes.varbit(VARBIT_HAS_DISPLAYNAME) == null) {
+            logger.warn { "No varbit $VARBIT_HAS_DISPLAYNAME in the cache; the client will not let ${player.username} chat" }
+            return
+        }
+        player.vars.setVarbit(VARBIT_HAS_DISPLAYNAME, 1)
     }
 
     /** A click on the game view or minimap. [keyCombination] is 1 with ctrl held, 2 with ctrl and shift. */
@@ -299,6 +312,9 @@ class World(
         const val SPAWN_X = 3222
         const val SPAWN_Z = 3218
         const val SPAWN_LEVEL = 0
+
+        /** has_displayname_transmitter in RuneLite's VarbitID. */
+        const val VARBIT_HAS_DISPLAYNAME = 8119
 
         /** The first game message after login on live, from memory rather than a recording. */
         const val WELCOME_MESSAGE = "Welcome to Old School RuneScape."

@@ -74,3 +74,22 @@ class PublicChatTest {
         assertEquals(PublicChat.MAX_LENGTH, chat("a".repeat(100))!!.text.length)
     }
 }
+
+class AllowChatTest {
+    private fun world(types: VarTypes) = World(IntArray(0), osrsps.map.CollisionMap(), types)
+
+    @Test
+    fun `login sets the display-name varbit so the chatbox takes typing`() {
+        // The base varp and bits here are made up; the real ones come from the cache.
+        val types = VarTypes(2000, mapOf(World.VARBIT_HAS_DISPLAYNAME to VarbitType(1737, 31, 31)))
+        val player = Player(1, "test", 3222, 3218, 0, types)
+        world(types).allowChat(player)
+        assertEquals(1, player.vars.getVarbit(World.VARBIT_HAS_DISPLAYNAME))
+    }
+
+    @Test
+    fun `a cache without the varbit doesn't stop the login`() {
+        val player = Player(1, "test", 3222, 3218, 0)
+        world(VarTypes.NONE).allowChat(player)
+    }
+}

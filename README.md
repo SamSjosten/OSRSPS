@@ -144,3 +144,4 @@ Anything typed without `::` is public chat: it shows over your head and in the c
 | Friends, clan and guest channel messages get "There are no chat-channels on this server yet." | ours, no channels yet |
 | Public, private and trade filter changes are echoed back so the tab labels update; nothing is filtered on the server | inferred |
 | "Welcome to Old School RuneScape." after login | from memory of live, not a recording |
+| Varbit 8119 (`has_displayname_transmitter`) set to 1 at login, or the client says "You must set a name before you can chat" and blocks typing | var name from RuneLite's VarbitID; that the chatbox checks it is inferred |
