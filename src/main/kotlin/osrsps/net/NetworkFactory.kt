@@ -17,6 +17,7 @@ import net.rsprot.protocol.game.incoming.misc.client.NoTimeout
 import net.rsprot.protocol.game.incoming.misc.client.WindowStatus
 import net.rsprot.protocol.game.incoming.buttons.If1Button
 import net.rsprot.protocol.game.incoming.buttons.If3Button
+import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import net.rsprot.protocol.game.incoming.misc.user.MoveGameClick
 import net.rsprot.protocol.game.incoming.misc.user.MoveMinimapClick
 import net.rsprot.protocol.loginprot.incoming.pow.NopProofOfWorkProvider
@@ -75,6 +76,10 @@ class NetworkFactory(
         })
         builder.addListener(MoveMinimapClick::class.java, MessageConsumer { player, message ->
             world.onMoveClick(player, message.x, message.z, message.keyCombination)
+        })
+        // Autocomplete is the C++ client's console tab key; only a command sent with enter runs.
+        builder.addListener(ClientCheat::class.java, MessageConsumer { player, message ->
+            if (!message.autocomplete) world.onCommand(player, message.command)
         })
         builder.addListener(If1Button::class.java, MessageConsumer { player, message ->
             world.onButton(player, message.interfaceId, message.componentId, 1)
