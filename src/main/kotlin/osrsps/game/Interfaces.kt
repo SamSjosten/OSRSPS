@@ -41,10 +41,17 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
      * resizable layouts moves them next tick (RSMod's delays).
      */
     fun requestFrame(player: Player, dest: GameFrame, tick: Long) {
+        // A choice made while an earlier one waits for its tick replaces it; the client's window mode already
+        // follows the earlier choice, so compare with that.
+        val pending = player.pendingFrameMove
+        val chosen = pending?.dest ?: player.frame
+        if (dest == chosen) return
+        if (dest.resizable != chosen.resizable) send(player, RunClientScript(GameFrame.CLIENT_MODE_SCRIPT, listOf(dest.clientMode)))
         val current = player.frame
-        if (dest == current) return
-        val windowModeChanges = dest.resizable != current.resizable
-        if (windowModeChanges) send(player, RunClientScript(GameFrame.CLIENT_MODE_SCRIPT, listOf(dest.clientMode)))
+        if (dest == current) {
+            player.pendingFrameMove = null
+            return
+        }
         // RSMod: going from fixed to a resizable layout whose stone arrangement isn't the current one goes through
         // the resizable layout that matches the current arrangement first.
         val intermediate = if (dest.resizable && !current.resizable && player.stoneArrangement != dest.stoneArrangement) {
@@ -52,7 +59,8 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         } else {
             null
         }
-        player.pendingFrameMove = FrameMove(current, dest, intermediate, tick + if (windowModeChanges) 2 else 1)
+        val dueTick = tick + if (dest.resizable != current.resizable) 2 else 1
+        player.pendingFrameMove = FrameMove(current, dest, intermediate, maxOf(dueTick, pending?.dueTick ?: 0))
     }
 
     /** Moves the interfaces into the frame the player asked for once its tick comes. */

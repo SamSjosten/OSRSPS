@@ -98,4 +98,22 @@ class InterfacesTest {
         interfaces.closeModals(player)
         assertTrue(sent.isEmpty())
     }
+
+    @Test
+    fun `a second choice before the move replaces the first`() {
+        val player = player(GameFrame.RESIZABLE_CLASSIC)
+        interfaces.requestFrame(player, GameFrame.FIXED, tick = 10)
+        interfaces.requestFrame(player, GameFrame.RESIZABLE_CLASSIC, tick = 11)
+        assertNull(player.pendingFrameMove)
+        assertEquals<List<OutgoingGameMessage>>(
+            listOf(RunClientScript(GameFrame.CLIENT_MODE_SCRIPT, listOf(0)), RunClientScript(GameFrame.CLIENT_MODE_SCRIPT, listOf(1))),
+            sent,
+        )
+        interfaces.requestFrame(player, GameFrame.FIXED, tick = 12)
+        interfaces.requestFrame(player, GameFrame.RESIZABLE_MODERN, tick = 13)
+        interfaces.processFrameMove(player, tick = 14)
+        assertEquals(GameFrame.RESIZABLE_MODERN, player.frame)
+        assertEquals(listOf(IfOpenTop(164)), sentOf<IfOpenTop>())
+        assertEquals(4, sentOf<RunClientScript>().count { it.id == GameFrame.CLIENT_MODE_SCRIPT })
+    }
 }
