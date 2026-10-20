@@ -44,7 +44,7 @@ template tile the instance was built from, which stays the same between visits.
 | `interact` | actor changes target | `actor`, `target` |
 | `say` | NPC overhead text | `actor`, `text` |
 | `npcSpawn` / `npcDespawn` / `npcChange` | NPC appears, leaves or transforms | `actor`, `id`, `name`, `size`, `combatLevel`, `at`, `oldId` |
-| `projectile` | first tick a projectile is seen | `id`, `from`, `startCycle`, `endCycle`, `startHeight`, `endHeight`, `slope`, `target` |
+| `projectile` | first tick a projectile is seen | `id`, `from`, `source`, `to`, `target`, `startCycle`, `endCycle`, `startHeight`, `endHeight`, `slope`, `startPos` |
 | `spotanim` | graphic on a tile | `id`, `at`, `startCycle` |
 | `objectSpawn` / `objectDespawn` / `wallSpawn` / `wallDespawn` | object changes nearby | `id`, `at`, `orientation` |
 | `message` | game message (never player chat) | `type`, `text` |

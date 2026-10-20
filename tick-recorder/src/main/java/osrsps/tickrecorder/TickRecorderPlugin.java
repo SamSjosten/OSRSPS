@@ -240,13 +240,13 @@ public class TickRecorderPlugin extends Plugin
 
 	private void recordNewProjectiles()
 	{
-		for (Projectile projectile : worldView().getProjectiles())
+		for (Projectile projectile : client.getProjectiles())
 		{
 			if (!seenProjectiles.add(projectile))
 			{
 				continue;
 			}
-			LocalPoint source = new LocalPoint(projectile.getX1(), projectile.getY1(), worldView());
+			LocalPoint source = local(projectile.getSourcePoint());
 			if (!nearby(source))
 			{
 				continue;
@@ -254,16 +254,23 @@ public class TickRecorderPlugin extends Plugin
 			JsonObject json = line("projectile");
 			json.addProperty("id", projectile.getId());
 			json.add("from", location(source));
+			Actor sourceActor = projectile.getSourceActor();
+			if (sourceActor != null)
+			{
+				json.add("source", actorRef(sourceActor));
+			}
+			json.add("to", location(local(projectile.getTargetPoint())));
+			Actor target = projectile.getTargetActor();
+			if (target != null)
+			{
+				json.add("target", actorRef(target));
+			}
 			json.addProperty("startCycle", projectile.getStartCycle());
 			json.addProperty("endCycle", projectile.getEndCycle());
 			json.addProperty("startHeight", projectile.getStartHeight());
 			json.addProperty("endHeight", projectile.getEndHeight());
 			json.addProperty("slope", projectile.getSlope());
-			Actor target = projectile.getInteracting();
-			if (target != null)
-			{
-				json.add("target", actorRef(target));
-			}
+			json.addProperty("startPos", projectile.getStartPos());
 			emit(json);
 		}
 	}
@@ -701,6 +708,11 @@ public class TickRecorderPlugin extends Plugin
 		int dx = Math.abs(point.getSceneX() - here.getSceneX());
 		int dy = Math.abs(point.getSceneY() - here.getSceneY());
 		return Math.max(dx, dy) <= config.radius();
+	}
+
+	private LocalPoint local(WorldPoint point)
+	{
+		return point == null ? null : LocalPoint.fromWorld(worldView(), point);
 	}
 
 	private WorldView worldView()
