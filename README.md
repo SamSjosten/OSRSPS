@@ -115,3 +115,15 @@ Movement rules and where they come from:
 | Run switches off at 0 energy; one-tile ticks don't drain | guessed |
 | Map rebuild within 16 tiles of the 104x104 build area's edge | inferred, not measured |
 | Routes cut to 25 turns | guessed |
+
+## Developer commands
+
+Type these in the chatbox; the answer shows as a game message. Every player can use them.
+
+| Command | What it does |
+|---------|--------------|
+| `::pos` | Your coordinates as `x, z, level`, plus the map region and your tile inside it |
+| `::tele x z [level]` | Teleports there; the level stays the same when left out. `::tele 3222, 3218, 0` also works, so `::pos` output pastes in |
+| `::tick` | The server's current tick number |
+
+Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.

@@ -2,6 +2,7 @@ package osrsps.game
 
 import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
+import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import osrsps.map.Tile
 
 /** A logged-in player. Only touched on the game thread, apart from [disconnected]. */
@@ -38,7 +39,19 @@ class Player(
     var sentRunEnabled: Boolean? = null
     var sentRunEnergy: Int = -1
 
+    /** Moved by a teleport this tick; the client is told when the tick's movement is sent. */
+    var teleported: Boolean = false
+
     /** The zone the client's build area was last centred on. */
     var buildAreaZoneX: Int = x shr 3
     var buildAreaZoneZ: Int = z shr 3
+
+    /** Shows [text] in the chatbox as a game message. */
+    fun message(text: String) {
+        session.queue(MessageGame(CHATTYPE_GAMEMESSAGE, text))
+    }
+
+    private companion object {
+        const val CHATTYPE_GAMEMESSAGE = 0
+    }
 }

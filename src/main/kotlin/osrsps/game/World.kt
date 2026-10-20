@@ -21,6 +21,9 @@ import net.rsprot.protocol.loginprot.incoming.util.LoginBlock
 import net.rsprot.crypto.xtea.XteaKey
 import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
+import osrsps.game.command.CommandRegistry
+import osrsps.game.command.registerDevCommands
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
@@ -32,10 +35,12 @@ private val logger = KotlinLogging.logger {}
  * The game world: a single thread that runs a 600 ms tick.
  * Logins arrive from RSProt's login threads and are completed at the start of the next tick.
  */
-class World(private val js5Crcs: IntArray, collision: CollisionMap) : GameConnectionHandler<Player> {
+class World(private val js5Crcs: IntArray, private val collision: CollisionMap) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
     private val movement = Movement(collision)
+
+    val commands = CommandRegistry().apply { registerDevCommands(this@World) }
 
     private val pendingLogins = ConcurrentLinkedQueue<PendingLogin>()
     private val players = arrayOfNulls<Player>(MAX_PLAYERS)
@@ -146,15 +151,30 @@ class World(private val js5Crcs: IntArray, collision: CollisionMap) : GameConnec
     fun onMoveClick(player: Player, x: Int, z: Int, keyCombination: Int) {
         if (keyCombination == 2) {
             // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
-            player.waypoints.clear()
-            player.x = x
-            player.z = z
+            teleport(player, x, z, player.level)
             return
         }
         val route = movement.request(player, x, z, invertRun = keyCombination == 1)
         // Guessed: with no route the client's flag would stay up forever, so clear it.
         if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)
     }
+
+    /** A `::` command typed in the chatbox, without the `::`. */
+    fun onCommand(player: Player, input: String) {
+        commands.execute(player, input, player::message)
+    }
+
+    /** Moves [player] straight to the tile, dropping any route. The client is told at the end of the tick. */
+    fun teleport(player: Player, x: Int, z: Int, level: Int) {
+        player.waypoints.clear()
+        player.x = x
+        player.z = z
+        player.level = level
+        player.teleported = true
+    }
+
+    /** Whether the cache has terrain for the map square holding [x], [z]. */
+    fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
 
     fun onButton(player: Player, interfaceId: Int, componentId: Int, op: Int) {
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
@@ -172,9 +192,17 @@ class World(private val js5Crcs: IntArray, collision: CollisionMap) : GameConnec
             MoveResult.WALKED -> MOVE_SPEED_WALK
             MoveResult.RAN -> MOVE_SPEED_RUN
         }
-        // Inferred: a tick moved at a speed other than the orb's (ctrl-click, the last odd tile of a run) is sent
-        // as a one-tick temporary speed so the client animates it right.
-        if (speed != null && speed != moveSpeed(player)) extendedInfo.setTempMoveSpeed(speed)
+        if (player.teleported) {
+            // A teleport is sent as the one-tick teleport speed so the client jumps instead of walking there, and the
+            // old route's flag is cleared. Clearing the flag is guessed, not checked against live.
+            extendedInfo.setTempMoveSpeed(MOVE_SPEED_TELEPORT)
+            player.session.queue(SetMapFlagV2.RESET)
+            player.teleported = false
+        } else if (speed != null && speed != moveSpeed(player)) {
+            // Inferred: a tick moved at a speed other than the orb's (ctrl-click, the last odd tile of a run) is sent
+            // as a one-tick temporary speed so the client animates it right.
+            extendedInfo.setTempMoveSpeed(speed)
+        }
         sendRunState(player)
         rebuildIfNeeded(player)
     }
@@ -238,6 +266,7 @@ class World(private val js5Crcs: IntArray, collision: CollisionMap) : GameConnec
 
         const val MOVE_SPEED_WALK = 1
         const val MOVE_SPEED_RUN = 2
+        const val MOVE_SPEED_TELEPORT = 127
 
         /** option_run: the run orb's on/off state. */
         const val VARP_RUN = 173
