@@ -19,6 +19,9 @@ object MapCollisionLoader {
     private const val LOC_TYPE_GROUP = 6
     private const val MAPS_INDEX = 5
 
+    /** Every one of the 4 x 64 x 64 tiles needs at least its two-byte end marker. */
+    private const val MIN_TERRAIN_SIZE = 4 * 64 * 64 * 2
+
     /** Bit 1 of a tile's settings: the tile can't be walked on. */
     private const val SETTING_BLOCKED = 0x1
 
@@ -32,8 +35,15 @@ object MapCollisionLoader {
         var squares = 0
         var badLocFiles = 0
         var badTerrainFiles = 0
+        val notSquares = ArrayList<String>()
         for ((squareX, squareZ, files) in mapSquares(library)) {
             val terrain = files.terrain() ?: continue
+            if (terrain.size < MIN_TERRAIN_SIZE) {
+                // Too short to hold every tile, so not terrain. In the 241 cache, group 25287 ("98_199") is 37 files
+                // of 3 bytes each, apparently a colour table kept in the maps index; real squares have files 0 to 4.
+                notSquares.add("$squareX shl 8 or $squareZ")
+                continue
+            }
             val settings = try {
                 decodeTerrain(terrain)
             } catch (e: Exception) {
@@ -53,6 +63,7 @@ object MapCollisionLoader {
             squares++
         }
         if (squares == 0) logger.warn { "No map squares found in the cache: every tile is unwalkable" }
+        if (notSquares.isNotEmpty()) logger.debug { "Skipped maps groups that hold no terrain: ${notSquares.joinToString()}" }
         if (badTerrainFiles > 0) logger.warn { "$badTerrainFiles map squares are unwalkable: their terrain did not decode" }
         if (badLocFiles > 0) logger.warn { "$badLocFiles map squares have no loc collision: their loc files did not decode" }
         logger.info { "Loaded collision for $squares map squares and ${locTypes.size} loc types" }

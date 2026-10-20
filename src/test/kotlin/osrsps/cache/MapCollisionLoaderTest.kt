@@ -97,6 +97,8 @@ class MapCollisionLoaderTest {
         library.put(5, (50 shl 8) or 50, 1, locs(5, 20, 20, 0, 10, 0))
         // Square 51_50 has terrain only.
         library.put(5, (51 shl 8) or 50, 0, terrain(emptyMap()))
+        // Group 52_50 holds no terrain: 37 three-byte files, like group 25287 in the live 241 cache.
+        repeat(37) { library.put(5, (52 shl 8) or 50, it, byteArrayOf(0xFF.toByte(), 0, 0)) }
         library.update()
         library.close()
 
@@ -104,7 +106,7 @@ class MapCollisionLoaderTest {
         assertEquals(CollisionFlag.FLOOR, map[3203, 3204, 0])
         assertEquals(CollisionFlag.LOC or CollisionFlag.LOC_PROJ, map[3221, 3220, 0])
         assertEquals(0, map[3270, 3220, 0], "51_50 is loaded and open")
-        assertEquals(CollisionFlag.UNLOADED, map[3340, 3220, 0])
+        assertEquals(CollisionFlag.UNLOADED, map[3340, 3220, 0], "the non-terrain group is skipped")
     }
 
     @Test
