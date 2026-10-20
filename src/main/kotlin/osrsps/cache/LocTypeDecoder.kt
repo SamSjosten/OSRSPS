@@ -52,7 +52,7 @@ object LocTypeDecoder {
     }
 
     private fun ByteBuf.skipString() {
-        while (readByte().toInt() != 0) Unit
+        while (readByte().toInt() != 0) continue
     }
 
     private fun ByteBuf.skipParams() {

@@ -82,6 +82,32 @@ class MapCollisionLoaderTest {
     }
 
     @Test
+    fun `loads squares from an unnamed maps index, as current caches store them`(@TempDir dir: Path) {
+        val cacheDir = Files.createDirectories(dir.resolve("cache"))
+        cacheDir.resolve("main_file_cache.dat2").createFile()
+        cacheDir.resolve("main_file_cache.idx255").createFile()
+        val library = CacheLibrary.create(cacheDir.toString())
+        repeat(5) { library.createIndex(named = true) }
+        library.createIndex(named = false)
+        // displee only reads group N when the .dat2 is at least 6 * (N + 1) bytes, a check real caches always pass.
+        library.put(0, 0, kotlin.random.Random(1).nextBytes(100_000)) // random, so compression keeps it large
+        library.put(2, 6, 5, byteArrayOf(14, 2, 0))
+        // Square 50_50 (group 50 shl 8 or 50) with terrain in file 0 and locs in file 1.
+        library.put(5, (50 shl 8) or 50, 0, terrain(mapOf(Triple(0, 3, 4) to 1)))
+        library.put(5, (50 shl 8) or 50, 1, locs(5, 20, 20, 0, 10, 0))
+        // Square 51_50 has terrain only.
+        library.put(5, (51 shl 8) or 50, 0, terrain(emptyMap()))
+        library.update()
+        library.close()
+
+        val map = CacheLibrary.create(cacheDir.toString()).use { MapCollisionLoader.load(it) }
+        assertEquals(CollisionFlag.FLOOR, map[3203, 3204, 0])
+        assertEquals(CollisionFlag.LOC or CollisionFlag.LOC_PROJ, map[3221, 3220, 0])
+        assertEquals(0, map[3270, 3220, 0], "51_50 is loaded and open")
+        assertEquals(CollisionFlag.UNLOADED, map[3340, 3220, 0])
+    }
+
+    @Test
     fun `fails loudly on an unknown loc opcode`() {
         assertFailsWith<IllegalStateException> { LocTypeDecoder.decode(byteArrayOf(200.toByte(), 0)) }
     }
