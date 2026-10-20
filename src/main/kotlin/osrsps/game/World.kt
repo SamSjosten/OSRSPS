@@ -9,8 +9,7 @@ import net.rsprot.protocol.game.outgoing.info.util.isEmpty
 import net.rsprot.protocol.game.outgoing.info.util.onFailure
 import net.rsprot.protocol.game.outgoing.info.util.onSuccess
 import net.rsprot.protocol.game.outgoing.info.util.safeReleaseOrThrow
-import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
-import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop
+import net.rsprot.protocol.game.outgoing.logout.Logout
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
@@ -35,10 +34,16 @@ private val logger = KotlinLogging.logger {}
  * The game world: a single thread that runs a 600 ms tick.
  * Logins arrive from RSProt's login threads and are completed at the start of the next tick.
  */
-class World(private val js5Crcs: IntArray, private val collision: CollisionMap) : GameConnectionHandler<Player> {
+class World(
+    private val js5Crcs: IntArray,
+    private val collision: CollisionMap,
+    /** Interface ids in the cache, or null when unknown (tests). */
+    private val interfaceIds: Set<Int>? = null,
+) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
     private val movement = Movement(collision)
+    private val interfaces = Interfaces()
 
     val commands = CommandRegistry().apply { registerDevCommands(this@World) }
 
@@ -97,6 +102,7 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
         }
         for (player in players) {
             if (player == null) continue
+            interfaces.processFrameMove(player, tick)
             move(player)
             player.infos.updateRootCoord(player.level, player.x, player.z)
         }
@@ -118,6 +124,7 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
             val player = Player(index, login.block.username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
             player.session = login.responseHandler.writeSuccessfulResponse(ok, login.block)
             player.session.setDisconnectionHook { player.disconnected = true }
+            player.frame = GameFrame.forLogin(login.block.resizable, player.stoneArrangement)
             players[index] = player
             enterWorld(player)
             logger.info { "${player.username} logged in as player $index" }
@@ -141,14 +148,12 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
         appearance.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824)
         sendRunState(player)
 
-        session.queue(IfOpenTop(GameFrame.TOPLEVEL_RESIZABLE))
-        for ((interfaceId, component) in GameFrame.overlays) {
-            session.queue(IfOpenSub(GameFrame.TOPLEVEL_RESIZABLE, component, interfaceId, OVERLAY))
-        }
+        interfaces.openGameFrame(player)
     }
 
     /** A click on the game view or minimap. [keyCombination] is 1 with ctrl held, 2 with ctrl and shift. */
     fun onMoveClick(player: Player, x: Int, z: Int, keyCombination: Int) {
+        interfaces.closeModals(player)
         if (keyCombination == 2) {
             // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
             teleport(player, x, z, player.level)
@@ -176,13 +181,30 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
     /** Whether the cache has terrain for the map square holding [x], [z]. */
     fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
 
-    fun onButton(player: Player, interfaceId: Int, componentId: Int, op: Int) {
+    fun onButton(player: Player, interfaceId: Int, componentId: Int, sub: Int, op: Int) {
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return
         }
-        logger.info { "${player.username} clicked $interfaceId:$componentId op $op (not handled)" }
+        if (interfaceId == GameFrame.SETTINGS_SIDE && componentId == GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS) {
+            val frame = GameFrame.forLayoutOption(sub)
+            if (frame != null) interfaces.requestFrame(player, frame, tick)
+            return
+        }
+        if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
+            interfaces.closeModals(player)
+            player.logoutRequested = true
+            return
+        }
+        logger.info { "${player.username} clicked $interfaceId:$componentId sub $sub op $op (not handled)" }
     }
+
+    /** The client closed its modal: Esc, or a close button. */
+    fun onCloseModal(player: Player) = interfaces.closeModals(player)
+
+    fun interfaceExists(interfaceId: Int): Boolean = interfaceIds?.contains(interfaceId) ?: (interfaceId >= 0)
+
+    fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) = interfaces.openModal(player, slot, interfaceId)
 
     private fun move(player: Player) {
         val result = movement.process(player)
@@ -249,6 +271,14 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
         packets.playerInfo.onSuccess(session::queue).onFailure { logger.error(it) { "Player info failed for ${player.username}" } }
         val npcInfo = packets.npcInfo
         if (npcInfo.isEmpty()) npcInfo.safeReleaseOrThrow() else npcInfo.onSuccess(session::queue)
+        if (player.logoutRequested) {
+            // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
+            // the player is removed on the next tick by hand.
+            session.queue(Logout)
+            session.requestClose()
+            player.disconnected = true
+            return
+        }
         session.flush()
     }
 
@@ -262,7 +292,10 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
     companion object {
         const val TICK_MILLIS = 600L
         const val MAX_PLAYERS = 2048
-        const val OVERLAY = 1
+
+        /** The logout tab and its "Click here to logout" button, logout:logout. */
+        const val LOGOUT_TAB = 182
+        const val LOGOUT_BUTTON = 8
 
         const val MOVE_SPEED_WALK = 1
         const val MOVE_SPEED_RUN = 2

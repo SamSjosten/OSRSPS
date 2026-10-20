@@ -116,6 +116,23 @@ Movement rules and where they come from:
 | Map rebuild within 16 tiles of the 104x104 build area's edge | inferred, not measured |
 | Routes cut to 25 turns | guessed |
 
+## Game frame
+
+Logging in with a fixed-size client opens the fixed frame; a resizable client gets resizable classic. The settings
+tab's "Game client layout" dropdown switches between fixed, resizable classic and resizable modern. Walking, Esc and
+a modal's close button close it; the logout tab's button logs out. Every interface and component id in
+`game/GameFrame.kt` is checked against the cache's own names at startup: the log line
+`Game frame ids match the cache's names` confirms it, and a revision that moves something logs a `Game frame:` warning.
+
+| Behaviour | Source |
+|-----------|--------|
+| Interface and component ids | 241 cache gameval names |
+| Dropdown options 1, 2, 3 are fixed, classic, modern | RSMod (rev 233), not checked against live |
+| Layout change: window mode script 3998 first, interfaces move 2 ticks later (1 between the resizable layouts) | RSMod's emulation of live |
+| Fixed to modern passes through classic when the stone arrangement differs | RSMod's emulation of live |
+| Zoom limits script 626 on login | inferred from the 241 client scripts, not seen on live |
+| Walking closes modals | RSMod; well known from live, not measured |
+
 ## Developer commands
 
 Type these in the chatbox; the answer shows as a game message. Every player can use them.
@@ -125,5 +142,6 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::pos` | Your coordinates as `x, z, level`, plus the map region and your tile inside it |
 | `::tele x z [level]` | Teleports there; the level stays the same when left out. `::tele 3222, 3218, 0` also works, so `::pos` output pastes in |
 | `::tick` | The server's current tick number |
+| `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
