@@ -12,6 +12,8 @@ enum class TickPhase {
 
     /** Each player's delayed script, queues and timers; see [osrsps.game.script.ScriptRunner]. */
     SCRIPTS,
+
+    /** Timed loc changes run out; then each player walks, using the loc they clicked before and after their step. */
     MOVEMENT,
 
     /** Player and NPC info, then each client's packets are flushed. */

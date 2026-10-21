@@ -14,6 +14,7 @@ import net.rsprot.protocol.game.outgoing.logout.Logout
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
 import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
+import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
@@ -26,12 +27,18 @@ import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
+import osrsps.game.command.registerLocCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
+import osrsps.game.loc.Doors
+import osrsps.game.loc.LocInteractions
+import osrsps.game.loc.LocTypes
+import osrsps.game.loc.Locs
+import osrsps.game.loc.StaticLocs
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.ScriptRunner
@@ -60,6 +67,9 @@ class World(
     val quests: Quests = Quests.NONE,
     /** Where players are saved on logout and every [AUTOSAVE_CYCLES]. */
     private val saves: SaveStore = MemorySaveStore(),
+    locTypes: LocTypes = LocTypes.NONE,
+    /** The locs the cache's maps place. */
+    staticLocs: StaticLocs = StaticLocs(),
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -75,7 +85,14 @@ class World(
     /** Locs, ground objs, graphics, projectiles and sounds, sent to the players near them. */
     val zones = Zones()
 
+    /** Every loc in the world now; changing one updates collision and the zones. */
+    val locs = Locs(locTypes, staticLocs, collision, zones) { tick }
+
+    val doors = Doors(locs)
+
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
+
+    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors)
 
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
@@ -85,6 +102,7 @@ class World(
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World)
+        registerLocCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -181,10 +199,17 @@ class World(
             if (player != null) scripts.process(player)
         }
         phase = TickPhase.MOVEMENT
+        // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
+        locs.process()
         for (player in players) {
             if (player == null) continue
             interfaces.processFrameMove(player, tick)
-            move(player)
+            locInteractions.process(player) { move(player) }
+            // A loc used after the player's step (a ladder on arrival) can teleport them once move() has run.
+            if (player.teleported) {
+                finishTeleport(player)
+                rebuildIfNeeded(player)
+            }
             player.infos.updateRootCoord(player.level, player.x, player.z)
         }
         phase = TickPhase.UPDATES
@@ -479,6 +504,7 @@ class World(
         // Inferred: a delayed player can't walk away, as on an agility obstacle.
         if (player.scripts.delayed) return@act
         scripts.interrupt(player)
+        player.interaction = null
         if (keyCombination == 2) {
             // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
             teleport(player, x, z, player.level)
@@ -489,6 +515,24 @@ class World(
         if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)
     }
 
+    /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
+    fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+        // Inferred, as for a walk: a delayed player's clicks do nothing.
+        if (player.scripts.delayed) return@act
+        locInteractions.click(player, id, x, z, option, ctrl)
+    }
+
+    /**
+     * Examine on loc [id], the type the player sees (after any multiloc change). Sent as an object-examine chat message,
+     * type 29 in RuneLite's ChatMessageType. Live's examine texts aren't in the cache, so until content has them the
+     * message says what the loc is.
+     */
+    fun onLocExamine(player: Player, id: Int) = act(player) {
+        val type = locs.types[id]
+        val name = type?.internalName?.let { " $it" }.orEmpty()
+        player.session.queue(MessageGame(CHATTYPE_OBJEXAMINE, "${type?.name ?: "Loc"} (loc $id$name): no examine text yet."))
+    }
+
     /** A `::` command typed in the chatbox, without the `::`. Commands run straight away, even while paused. */
     fun onCommand(player: Player, input: String) {
         commands.execute(player, input, player::message)
@@ -497,6 +541,7 @@ class World(
     /** Moves [player] straight to the tile, dropping any route. The client is told at the end of the tick. */
     fun teleport(player: Player, x: Int, z: Int, level: Int) {
         player.waypoints.clear()
+        player.interaction = null
         player.x = x
         player.z = z
         player.level = level
@@ -544,11 +589,7 @@ class World(
             MoveResult.RAN -> MOVE_SPEED_RUN
         }
         if (player.teleported) {
-            // A teleport is sent as the one-tick teleport speed so the client jumps instead of walking there, and the
-            // old route's flag is cleared. Clearing the flag is guessed, not checked against live.
-            extendedInfo.setTempMoveSpeed(MOVE_SPEED_TELEPORT)
-            player.session.queue(SetMapFlagV2.RESET)
-            player.teleported = false
+            finishTeleport(player)
         } else if (speed != null && speed != moveSpeed(player)) {
             // Inferred: a tick moved at a speed other than the orb's (ctrl-click, the last odd tile of a run) is sent
             // as a one-tick temporary speed so the client animates it right.
@@ -556,6 +597,16 @@ class World(
         }
         sendRunState(player)
         rebuildIfNeeded(player)
+    }
+
+    /**
+     * A teleport is sent as the one-tick teleport speed so the client jumps instead of walking there, and the old route's
+     * flag is cleared. Clearing the flag is guessed, not checked against live.
+     */
+    private fun finishTeleport(player: Player) {
+        player.infos.playerInfo.avatar.extendedInfo.setTempMoveSpeed(MOVE_SPEED_TELEPORT)
+        player.session.queue(SetMapFlagV2.RESET)
+        player.teleported = false
     }
 
     private fun moveSpeed(player: Player) = if (player.runEnabled) MOVE_SPEED_RUN else MOVE_SPEED_WALK
@@ -689,6 +740,9 @@ class World(
         const val SPAWN_X = 3222
         const val SPAWN_Z = 3218
         const val SPAWN_LEVEL = 0
+
+        /** OBJECT_EXAMINE in RuneLite's ChatMessageType. */
+        const val CHATTYPE_OBJEXAMINE = 29
 
         /** has_displayname_transmitter in RuneLite's VarbitID. */
         const val VARBIT_HAS_DISPLAYNAME = 8119

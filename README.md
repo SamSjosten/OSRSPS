@@ -156,6 +156,10 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::groundobj id [count]` | Puts obj `id` on your tile for everyone, until `::cleartile` or a restart (no ground item timers yet) |
 | `::cleartile` | Removes every obj from your tile |
+| `::locs [radius]` | Lists the locs within radius tiles of you (default 1): id, name, tile, shape and angle, and whether they differ from the cache |
+| `::addloc id [shape] [angle]` | Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
+| `::delloc` | Removes every loc on your tile |
+| `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
@@ -235,6 +239,45 @@ player alone. Zone updates are sent on paused cycles too, so `::gfx` typed while
 Check with two clients logged in near each other: `::gfx 85` on one shows the graphic on both (any spotanim id works;
 85 should be the magic splash, from memory). `::groundobj 1351` shows a bronze axe to both; walk the second client 40
 tiles away and back, or log it out and in, and the axe is still there.
+
+## Locs and doors
+
+Every loc the cache's maps place (about 4.9 million in 241) is loaded at startup with its type from config archive 6:
+name, options, size, collision and the sides it can't be used from. `World.locs` (`game/loc/Locs.kt`) keeps what has
+changed since: `add`, `remove`, `replace` and `restore` update collision and tell nearby players through the zones, and
+take an optional number of ticks after which the tile goes back how it was.
+
+Clicking a loc option walks you to the nearest tile that reaches the loc, then runs its handler, registered with
+`World.handlers.onLoc(id, option) { op -> ... }`; `op.loc` is the loc clicked. A loc next to you is used on the tick
+the click is read, one further away on the tick you arrive. With no handler you get "Nothing interesting happens.",
+and if the route can't get there, "I can't reach that!" when you stop. Changing level from a ladder or staircase is a
+handler that calls `World.teleport` with the new level; the climbing animation and its delay come with task 12.
+
+Single doors open and close without any content: a closed door type `x` with an Open option and a type `xopen` or
+`x_open` with a Close option (Jagex's gameval names, also in the cache) pair up, which covers about 140 door types,
+Lumbridge Castle's `poordoor` (1535), `elfdoor` (1543) and `poordoor_m` (56376) among them. A handler for a door id
+takes over from this. Doors whose names don't pair (the castle kitchen door, 12348) and double doors are left to
+content, which can pair a door with `World.doors.register(closed, open)`.
+
+| Loc behaviour | Source |
+|---------------|--------|
+| Loc type fields, map loc file format, shapes and layers | the 241 cache, decoded with RuneLite's loader's opcode table; all 62,534 loc types decode |
+| Which tiles reach a wall, wall decoration or ground loc, and turning the blocked sides with the loc | the client's reach checks as open-source route finders document them, not checked on live |
+| An unreachable loc walks you to the nearest tile to its footprint (within 10 tiles) | the client's route finder fallback, as above |
+| Used before moving and again after, in the movement phase | the 2004Scape reconstruction of the RS2 world cycle, not checked on OSRS |
+| "Nothing interesting happens." and "I can't reach that!" | live messages, from memory |
+| The player turns to face the loc when using it | guessed |
+| A loc that changes before you get there ends the interaction; you finish the walk | guessed |
+| Door pairs by gameval name | the 241 cache's own names |
+| Where an opened door goes (a quarter turn clockwise, onto the next tile) | RS2 engine rule; 151 of the 191 open doors the 241 maps place line up with it, 19 with the opposite turn (mostly double-door leaves) |
+| Doors stay open until closed, with no sound yet | guessed; sounds come with task 12 |
+| Examine shows the loc's name and id, as type 29 (object examine) chat | live's examine texts are not in the cache |
+| Timed loc changes run out at the start of the movement phase | guessed |
+
+Check after a redeploy: `::tele 3222 3214` puts you in the castle courtyard, four tiles west of the door at 3226,
+3214. Click Open on it: you walk up to it and it swings open onto the tile east of it. Walk through to 3228, 3214,
+then Close it from there: it shuts, and clicking 3225, 3214 no longer takes you through it. `::locs 2` next to it lists
+the door, back at 3226, 3214 and no longer marked changed.
 
 ## Chat
 

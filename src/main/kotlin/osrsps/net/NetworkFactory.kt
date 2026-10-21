@@ -17,6 +17,8 @@ import net.rsprot.protocol.game.incoming.misc.client.NoTimeout
 import net.rsprot.protocol.game.incoming.misc.client.WindowStatus
 import net.rsprot.protocol.game.incoming.buttons.If1Button
 import net.rsprot.protocol.game.incoming.buttons.If3Button
+import net.rsprot.protocol.game.incoming.locs.OpLoc6
+import net.rsprot.protocol.game.incoming.locs.OpLocV2
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import net.rsprot.protocol.game.incoming.misc.user.CloseModal
@@ -99,6 +101,10 @@ class NetworkFactory(
         builder.addListener(If3Button::class.java, MessageConsumer { player, message ->
             world.onButton(player, message.interfaceId, message.componentId, message.sub, message.op)
         })
+        builder.addListener(OpLocV2::class.java, MessageConsumer { player, message ->
+            world.onLocOp(player, message.id, message.x, message.z, message.op, message.controlKey)
+        })
+        builder.addListener(OpLoc6::class.java, MessageConsumer { player, message -> world.onLocExamine(player, message.id) })
         builder.addListener(CloseModal::class.java, MessageConsumer { player, _ -> world.onCloseModal(player) })
         return DefaultGameMessageConsumerRepositoryProvider(builder.build())
     }

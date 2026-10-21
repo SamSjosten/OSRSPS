@@ -35,33 +35,66 @@ object LocShape {
     const val GROUND_DECOR = 22
 }
 
-/** Adds terrain and loc collision the way the client does when it builds the scene. */
+/**
+ * Adds terrain and loc collision the way the client does when it builds the scene, and takes loc collision away again
+ * the way it does when a loc is removed.
+ */
 class LocCollision(private val map: CollisionMap) {
     fun addFloor(x: Int, z: Int, level: Int) = map.add(x, z, level, FLOOR)
 
-    fun addLoc(type: LocCollisionType, x: Int, z: Int, level: Int, shape: Int, rotation: Int) {
+    fun addLoc(type: LocCollisionType, x: Int, z: Int, level: Int, shape: Int, rotation: Int) =
+        changeLoc(type, x, z, level, shape, rotation, map::add)
+
+    fun removeLoc(type: LocCollisionType, x: Int, z: Int, level: Int, shape: Int, rotation: Int) =
+        changeLoc(type, x, z, level, shape, rotation, map::remove)
+
+    private fun changeLoc(
+        type: LocCollisionType,
+        x: Int,
+        z: Int,
+        level: Int,
+        shape: Int,
+        rotation: Int,
+        change: (x: Int, z: Int, level: Int, mask: Int) -> Unit,
+    ) {
         when (shape) {
-            LocShape.GROUND_DECOR -> if (type.interactType == 1) map.add(x, z, level, FLOOR_DECORATION)
+            LocShape.GROUND_DECOR -> if (type.interactType == 1) change(x, z, level, FLOOR_DECORATION)
             in LocShape.WALL_STRAIGHT..LocShape.WALL_SQUARE_CORNER ->
-                if (type.interactType != 0) addWall(x, z, level, shape, rotation, type.blocksProjectile)
+                if (type.interactType != 0) wall(x, z, level, shape, rotation, type.blocksProjectile, change)
             // Wall decorations (4 to 8) never block.
             in 4..8 -> {}
             else -> if (type.interactType != 0) {
                 // A loc rotated a quarter turn swaps its footprint.
                 val (width, length) = if (rotation and 1 == 1) type.length to type.width else type.width to type.length
-                addSolid(x, z, level, width, length, type.blocksProjectile)
+                solid(x, z, level, width, length, type.blocksProjectile, change)
             }
         }
     }
 
-    private fun addSolid(x: Int, z: Int, level: Int, width: Int, length: Int, blocksProjectile: Boolean) {
+    private fun solid(
+        x: Int,
+        z: Int,
+        level: Int,
+        width: Int,
+        length: Int,
+        blocksProjectile: Boolean,
+        change: (Int, Int, Int, Int) -> Unit,
+    ) {
         val mask = if (blocksProjectile) LOC or LOC_PROJ else LOC
-        for (dx in 0 until width) for (dz in 0 until length) map.add(x + dx, z + dz, level, mask)
+        for (dx in 0 until width) for (dz in 0 until length) change(x + dx, z + dz, level, mask)
     }
 
-    private fun addWall(x: Int, z: Int, level: Int, shape: Int, rotation: Int, blocksProjectile: Boolean) {
+    private fun wall(
+        x: Int,
+        z: Int,
+        level: Int,
+        shape: Int,
+        rotation: Int,
+        blocksProjectile: Boolean,
+        change: (Int, Int, Int, Int) -> Unit,
+    ) {
         val add = { tx: Int, tz: Int, mask: Int ->
-            map.add(tx, tz, level, if (blocksProjectile) mask or (mask shl PROJ_SHIFT) else mask)
+            change(tx, tz, level, if (blocksProjectile) mask or (mask shl PROJ_SHIFT) else mask)
         }
         when (shape) {
             LocShape.WALL_STRAIGHT -> when (rotation) {

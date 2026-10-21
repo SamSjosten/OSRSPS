@@ -27,6 +27,13 @@ class CollisionMap {
         zone[tileIndex(x, z)] = zone[tileIndex(x, z)] or mask
     }
 
+    /** Clears [mask] on a tile, as the client does when a loc is removed: a flag two locs both set goes with either. */
+    fun remove(x: Int, z: Int, level: Int, mask: Int) {
+        if (x < 0 || z < 0 || level !in 0..3) return
+        val zone = zones[zoneKey(x, z, level)] ?: return
+        zone[tileIndex(x, z)] = zone[tileIndex(x, z)] and mask.inv()
+    }
+
     private fun squareKey(squareX: Int, squareZ: Int) = (squareX shl 8) or squareZ
 
     private fun zoneKey(x: Int, z: Int, level: Int) = (level shl 28) or ((x shr 3) shl 14) or (z shr 3)

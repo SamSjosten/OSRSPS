@@ -12,6 +12,7 @@ import osrsps.map.CollisionFlag.WALL_WEST
 import osrsps.map.CollisionMap
 import osrsps.map.Route
 import osrsps.map.RouteFinder
+import osrsps.map.RouteTarget
 import kotlin.math.sign
 
 /** What a player's movement did this tick. */
@@ -28,8 +29,12 @@ class Movement(private val collision: CollisionMap) {
     private val routeFinder = RouteFinder(collision)
 
     /** Replaces [player]'s route with one to [destX], [destZ]. [invertRun] is the ctrl key. */
-    fun request(player: Player, destX: Int, destZ: Int, invertRun: Boolean): Route {
-        val route = routeFinder.find(player.level, player.x, player.z, destX, destZ)
+    fun request(player: Player, destX: Int, destZ: Int, invertRun: Boolean): Route =
+        request(player, RouteTarget.tile(destX, destZ), invertRun)
+
+    /** Replaces [player]'s route with one to wherever reaches [target]. */
+    fun request(player: Player, target: RouteTarget, invertRun: Boolean): Route {
+        val route = routeFinder.find(player.level, player.x, player.z, target)
         player.waypoints.clear()
         player.waypoints.addAll(route.waypoints)
         player.invertRun = invertRun
@@ -57,7 +62,7 @@ class Movement(private val collision: CollisionMap) {
         val dx = (target.x - player.x).sign
         val dz = (target.z - player.z).sign
         if (!canStep(player.level, player.x, player.z, dx, dz)) {
-            // The map changed under the route (nothing does that yet); stop like the server does.
+            // The map changed under the route (a door closed); stop like the server does.
             player.waypoints.clear()
             return false
         }

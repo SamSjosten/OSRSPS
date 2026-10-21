@@ -4,11 +4,18 @@ import com.displee.cache.CacheLibrary
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import osrsps.game.loc.LocType
+import osrsps.game.loc.LocTypes
+import osrsps.game.loc.StaticLocs
+import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollision
-import osrsps.map.LocCollisionType
+import java.nio.charset.Charset
 
 private val logger = KotlinLogging.logger {}
+
+/** The world as the cache's maps build it: collision, every loc the map files place, and the loc types. */
+class WorldMap(val collision: CollisionMap, val locs: StaticLocs, val locTypes: LocTypes)
 
 /**
  * Builds the world's collision from the cache: each map square's terrain and locs in the maps index,
@@ -18,6 +25,9 @@ object MapCollisionLoader {
     private const val CONFIG_INDEX = 2
     private const val LOC_TYPE_GROUP = 6
     private const val MAPS_INDEX = 5
+    private const val GAMEVAL_INDEX = 24
+    private const val GAMEVAL_LOCS = 6
+    private val CP1252: Charset = Charset.forName("windows-1252")
 
     /** Every one of the 4 x 64 x 64 tiles needs at least its two-byte end marker. */
     private const val MIN_TERRAIN_SIZE = 4 * 64 * 64 * 2
@@ -28,9 +38,12 @@ object MapCollisionLoader {
     /** Bit 2 on level 1: a bridge. Everything on this column belongs one level lower. */
     private const val SETTING_BRIDGE = 0x2
 
-    fun load(library: CacheLibrary): CollisionMap {
+    fun load(library: CacheLibrary): CollisionMap = loadWorld(library).collision
+
+    fun loadWorld(library: CacheLibrary): WorldMap {
         val map = CollisionMap()
         val locTypes = loadLocTypes(library)
+        val staticLocs = StaticLocs()
         val collision = LocCollision(map)
         var squares = 0
         var badLocFiles = 0
@@ -55,19 +68,20 @@ object MapCollisionLoader {
             addTerrain(collision, settings, squareX shl 6, squareZ shl 6)
             try {
                 files.locs()?.let { locs ->
-                    addLocs(collision, locTypes, settings, locs, squareX shl 6, squareZ shl 6)
+                    addLocs(collision, staticLocs, locTypes, settings, locs, squareX shl 6, squareZ shl 6)
                 }
             } catch (e: Exception) {
                 if (badLocFiles++ == 0) logger.warn(e) { "Could not read locs for map square ${squareX}_$squareZ" }
             }
             squares++
         }
+        staticLocs.trim()
         if (squares == 0) logger.warn { "No map squares found in the cache: every tile is unwalkable" }
         if (notSquares.isNotEmpty()) logger.debug { "Skipped maps groups that hold no terrain: ${notSquares.joinToString()}" }
         if (badTerrainFiles > 0) logger.warn { "$badTerrainFiles map squares are unwalkable: their terrain did not decode" }
         if (badLocFiles > 0) logger.warn { "$badLocFiles map squares have no loc collision: their loc files did not decode" }
-        logger.info { "Loaded collision for $squares map squares and ${locTypes.size} loc types" }
-        return map
+        logger.info { "Loaded collision for $squares map squares, ${staticLocs.size} locs and ${locTypes.size} loc types" }
+        return WorldMap(map, staticLocs, locTypes)
     }
 
     private class SquareFiles(val terrain: () -> ByteArray?, val locs: () -> ByteArray?)
@@ -93,21 +107,26 @@ object MapCollisionLoader {
         }
     }
 
-    private fun loadLocTypes(library: CacheLibrary): Map<Int, LocCollisionType> {
-        val archive = library.index(CONFIG_INDEX)?.archive(LOC_TYPE_GROUP) ?: return emptyMap()
-        val types = HashMap<Int, LocCollisionType>()
+    private fun loadLocTypes(library: CacheLibrary): LocTypes {
+        val archive = library.index(CONFIG_INDEX)?.archive(LOC_TYPE_GROUP) ?: return LocTypes.NONE
+        val types = HashMap<Int, LocType>()
+        // Jagex's own names for locs (poordoor, poordooropen), shipped in the cache from about revision 230. Doors pair
+        // up by them.
+        val gamevals = library.index(GAMEVAL_INDEX)?.archive(GAMEVAL_LOCS)
         var failed = 0
         for (file in archive.files()) {
             val data = file.data ?: continue
             try {
-                types[file.id] = LocTypeDecoder.decode(data)
+                val internalName = gamevals?.file(file.id)?.data?.let { String(it, CP1252) }
+                types[file.id] = LocTypeDecoder.decode(file.id, data, internalName)
             } catch (e: Exception) {
                 if (failed++ == 0) logger.warn(e) { "Could not decode loc type ${file.id}" }
             }
         }
         // A loc type we can't read adds no collision, so players could walk through it.
         if (failed > 0) logger.warn { "$failed loc types did not decode and will not block" }
-        return types
+        if (gamevals == null) logger.warn { "No loc names in the cache's gameval index; doors will not open" }
+        return LocTypes(types)
     }
 
     /** Returns the settings byte of each tile, indexed `[level][x][z]`. */
@@ -147,7 +166,8 @@ object MapCollisionLoader {
 
     private fun addLocs(
         collision: LocCollision,
-        types: Map<Int, LocCollisionType>,
+        staticLocs: StaticLocs,
+        types: LocTypes,
         settings: Array<Array<ByteArray>>,
         data: ByteArray,
         baseX: Int,
@@ -156,7 +176,10 @@ object MapCollisionLoader {
         decodeLocs(data) { id, x, z, level, shape, rotation ->
             val target = adjustedLevel(settings, level, x, z)
             val type = types[id]
-            if (target >= 0 && type != null) collision.addLoc(type, baseX + x, baseZ + z, target, shape, rotation)
+            if (target >= 0 && type != null) {
+                collision.addLoc(type.collision, baseX + x, baseZ + z, target, shape, rotation)
+                staticLocs.add(ZoneLoc(id, shape, rotation, baseX + x, baseZ + z, target))
+            }
         }
     }
 
