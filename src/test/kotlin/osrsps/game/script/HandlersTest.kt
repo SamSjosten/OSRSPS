@@ -48,4 +48,17 @@ class HandlersTest {
         assertFailsWith<IllegalArgumentException> { handlers.onButton(149, 0, 11) {} }
         handlers.onButton(149, 0, 10) {}
     }
+
+    @Test
+    fun `items used on NPCs are found by NPC and item, with a catch-all for the NPC`() {
+        val bucket: Handler = {}
+        val any: Handler = {}
+        handlers.onObjOnNpc(3105, 1925, bucket)
+        handlers.onObjOnNpc(3105, handler = any)
+        assertSame(bucket, handlers.find(Op.objOnNpc(3105, 1925, 0)))
+        // Obj 0 is a real item, not "any".
+        assertSame(any, handlers.find(Op.objOnNpc(3105, 0, 0)))
+        assertNull(handlers.find(Op.objOnNpc(3106, 1925, 0)))
+        assertFailsWith<IllegalArgumentException> { handlers.register(OpTarget.OBJ_ON_NPC, 3105, 1) {} }
+    }
 }

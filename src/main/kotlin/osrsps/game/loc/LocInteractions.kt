@@ -2,6 +2,7 @@ package osrsps.game.loc
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
+import osrsps.game.Interaction
 import osrsps.game.Movement
 import osrsps.game.Player
 import osrsps.game.script.Handlers
@@ -16,7 +17,7 @@ import osrsps.map.RouteTarget
 private val logger = KotlinLogging.logger {}
 
 /** A loc option the player clicked and is walking to. */
-data class LocInteraction(val loc: ZoneLoc, val option: Int)
+data class LocInteraction(val loc: ZoneLoc, val option: Int) : Interaction
 
 /**
  * Clicks on locs: walk to the loc, then run its handler.
@@ -63,11 +64,11 @@ class LocInteractions(
     }
 
     /**
-     * Runs [player]'s part of the movement phase: their interaction, if any, around [move], which walks them one tick.
-     * A delayed player's interaction waits for the delay to end.
+     * Runs [player]'s part of the movement phase: their loc interaction, if any, around [move], which walks them one
+     * tick. A delayed player's interaction waits for the delay to end.
      */
     fun process(player: Player, move: () -> Unit) {
-        val interaction = player.interaction
+        val interaction = player.interaction as? LocInteraction
         if (interaction == null || player.scripts.delayed || tryInteract(player, interaction)) {
             move()
             return

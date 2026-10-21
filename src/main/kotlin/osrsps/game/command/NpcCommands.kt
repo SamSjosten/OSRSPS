@@ -38,6 +38,19 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         if (near.size > MAX_LISTED) reply("...and ${near.size - MAX_LISTED} more.")
     }
 
+    register("follow", "::follow index") {
+        val index = args.singleOrNull()?.toIntOrNull() ?: fail("Usage: ::follow index (from ::npcs); again to stop")
+        val npc = world.npcs[index] ?: fail("No NPC #$index")
+        if (npc.following === player) {
+            world.npcs.stopFollowing(npc)
+            reply("${npc.type.name} #$index stopped following you.")
+            return@register
+        }
+        if (npc.level != player.level) fail("${npc.type.name} #$index is on another level")
+        world.npcs.follow(npc, player)
+        reply("${npc.type.name} #$index follows you. ::follow $index again to stop.")
+    }
+
     register("delnpc", "::delnpc index") {
         val index = args.singleOrNull()?.toIntOrNull() ?: fail("Usage: ::delnpc index (from ::npcs)")
         val npc = world.npcs[index] ?: fail("No NPC #$index")

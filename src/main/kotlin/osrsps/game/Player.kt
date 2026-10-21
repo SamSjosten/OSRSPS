@@ -3,7 +3,7 @@ package osrsps.game
 import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
-import osrsps.game.loc.LocInteraction
+import osrsps.game.npc.Npc
 import osrsps.game.script.PlayerScripts
 import osrsps.game.zone.ZoneView
 import osrsps.map.Tile
@@ -74,8 +74,11 @@ class Player(
     /** Turning points of the current route, next one first. */
     val waypoints = ArrayDeque<Tile>()
 
-    /** The loc option the player is walking to use, if any. Walking elsewhere or teleporting drops it. */
-    var interaction: LocInteraction? = null
+    /** The loc or NPC option the player is walking to use, if any. Walking elsewhere or teleporting drops it. */
+    var interaction: Interaction? = null
+
+    /** The NPC the client was told this player turns to, or null. */
+    var facingNpc: Npc? = null
 
     val vars = PlayerVars(varTypes)
 

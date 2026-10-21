@@ -1,7 +1,9 @@
 package osrsps.game.npc
 
 import net.rsprot.protocol.game.outgoing.info.npcinfo.NpcAvatar
+import osrsps.game.Facing
 import osrsps.game.NpcType
+import osrsps.game.Player
 import osrsps.map.Tile
 
 /** The eight directions an NPC can face when it spawns, with the ids RSProt's NPC info sends them as. */
@@ -78,8 +80,44 @@ class Npc(
     /** What the client is told it does through NPC info; null until the world gives it one (and in tests). */
     var avatar: NpcAvatar? = null
 
+    /**
+     * The player this NPC is busy with: one who talked to it or used an item on it. It faces them and stands still
+     * until [osrsps.game.npc.NpcInteractions] lets it go.
+     */
+    var engagedWith: Player? = null
+        internal set
+
+    /** The tick it became [engagedWith] that player. */
+    internal var engagedTick: Long = 0
+
+    /** The player it follows, stopping beside them; see [Npcs.follow]. */
+    var following: Player? = null
+        internal set
+
+    /** The player it is told to face, null when it faces where it last turned. */
+    var facing: Player? = null
+        private set
+
     /** Whether it covers [tileX], [tileZ] on its level. */
     fun covers(tileX: Int, tileZ: Int): Boolean = tileX in x until x + type.size && tileZ in z until z + type.size
+
+    /**
+     * Turns to [player] and keeps turning to them as they move, until [resetFace]. walkMode 0 is the old face-entity
+     * behaviour as RSProt maps it: the NPC looks where it walks and turns back once it stops. Inferred from RSProt, not
+     * checked against live.
+     */
+    fun face(player: Player) {
+        facing = player
+        val angle = Facing.angle(x, z, type.size, player.x, player.z, 1) ?: 0
+        avatar?.extendedInfo?.setFacePlayer(player.index, false, 0, angle)
+    }
+
+    /** Stops turning to the player it faces. Inferred: the client leaves it looking the way it last turned. */
+    fun resetFace() {
+        if (facing == null) return
+        facing = null
+        avatar?.extendedInfo?.resetFacing()
+    }
 
     override fun toString(): String = "${type.name} (${type.id}) #$index at $x, $z, $level"
 }
