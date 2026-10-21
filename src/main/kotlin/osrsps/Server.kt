@@ -7,7 +7,9 @@ import net.rsprot.compression.HuffmanCodec
 import net.rsprot.compression.provider.DefaultHuffmanCodecProvider
 import net.rsprot.protocol.api.NetworkService
 import osrsps.cache.MapCollisionLoader
+import osrsps.cache.VarTypeLoader
 import osrsps.game.Player
+import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.map.CollisionMap
 import osrsps.net.ClientConfig
@@ -37,9 +39,11 @@ class GameServer(
         val js5: Js5Store
         val huffman: HuffmanCodec
         val collision: CollisionMap
+        val varTypes: VarTypes
         try {
             js5 = Js5Store.load(library)
             collision = MapCollisionLoader.load(library)
+            varTypes = VarTypeLoader.load(library)
             val huffmanData = library.data(HUFFMAN_ARCHIVE, "huffman", 0) ?: error("No huffman group in the cache")
             huffman = HuffmanCodec.create(Unpooled.wrappedBuffer(huffmanData))
         } finally {
@@ -48,7 +52,7 @@ class GameServer(
         logger.info { "Loaded ${js5.size} JS5 responses for ${js5.crcs.size} archives" }
 
         val rsa = RsaKeys.loadOrCreate(dataDir)
-        world = World(js5.crcs, collision)
+        world = World(js5.crcs, collision, varTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()
         world.network = network
