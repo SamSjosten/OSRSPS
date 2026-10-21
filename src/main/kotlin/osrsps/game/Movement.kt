@@ -38,7 +38,8 @@ class Movement(private val collision: CollisionMap) {
 
     fun process(player: Player): MoveResult {
         val wantsRun = player.runEnabled != player.invertRun
-        val steps = if (wantsRun && player.runEnergy > 0) 2 else 1
+        // Inferred: a delayed player keeps their route but doesn't walk it until the delay ends. Energy still changes.
+        val steps = if (player.scripts.delayed) 0 else if (wantsRun && player.runEnergy > 0) 2 else 1
         var taken = 0
         while (taken < steps && step(player)) taken++
         val result = when (taken) {

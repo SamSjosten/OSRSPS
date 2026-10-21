@@ -3,6 +3,7 @@ package osrsps.game
 import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
+import osrsps.game.script.PlayerScripts
 import osrsps.map.Tile
 
 /** A logged-in player. Only touched on the game thread, apart from [disconnected]. */
@@ -59,6 +60,9 @@ class Player(
         }
 
     val skills = PlayerSkills()
+
+    /** Queues, timers and the current delay; run by [World.scripts]. */
+    val scripts = PlayerScripts()
 
     /** Current hitpoints, which are the Hitpoints skill's current level. */
     var hitpoints: Int

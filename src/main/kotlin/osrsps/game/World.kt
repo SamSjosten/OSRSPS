@@ -26,10 +26,14 @@ import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
+import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
+import osrsps.game.script.Handlers
+import osrsps.game.script.Op
+import osrsps.game.script.ScriptRunner
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -59,12 +63,18 @@ class World(
     // Before commands: the tick commands keep hold of it.
     val clock = TickClock()
 
+    /** Content handlers for clicks, by what was clicked and which option. */
+    val handlers = Handlers()
+
+    val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
+
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
         registerTickCommands(this@World)
         registerVarCommands()
         registerSkillCommands()
         registerSeedCommands(this@World)
+        registerScriptCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -127,7 +137,9 @@ class World(
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.SCRIPTS
-        // Nothing runs here yet: queues, timers and handlers come with the scripting framework.
+        for (player in players) {
+            if (player != null) scripts.process(player)
+        }
         phase = TickPhase.MOVEMENT
         for (player in players) {
             if (player == null) continue
@@ -284,7 +296,9 @@ class World(
 
     /** A click on the game view or minimap. [keyCombination] is 1 with ctrl held, 2 with ctrl and shift. */
     fun onMoveClick(player: Player, x: Int, z: Int, keyCombination: Int) = act(player) {
-        interfaces.closeModals(player)
+        // Inferred: a delayed player can't walk away, as on an agility obstacle.
+        if (player.scripts.delayed) return@act
+        scripts.interrupt(player)
         if (keyCombination == 2) {
             // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
             teleport(player, x, z, player.level)
@@ -330,11 +344,12 @@ class World(
             player.logoutRequested = true
             return@act
         }
+        if (scripts.trigger(player, Op.button(interfaceId, componentId, op, sub))) return@act
         logger.info { "${player.username} clicked $interfaceId:$componentId sub $sub op $op (not handled)" }
     }
 
     /** The client closed its modal: Esc, or a close button. */
-    fun onCloseModal(player: Player) = act(player) { interfaces.closeModals(player) }
+    fun onCloseModal(player: Player) = act(player) { scripts.interrupt(player) }
 
     fun interfaceExists(interfaceId: Int): Boolean = interfaceIds?.contains(interfaceId) ?: (interfaceId >= 0)
 
