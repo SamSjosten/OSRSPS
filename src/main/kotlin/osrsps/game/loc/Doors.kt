@@ -19,7 +19,7 @@ private val logger = KotlinLogging.logger {}
  * turned a quarter clockwise to lie on that tile's north edge, and so on round. That is the usual RS2 engine rule, and
  * the 241 maps agree with it: of the 191 paired open doors they place, 151 have the wall they would close into lined up
  * with this rule and 19 with the opposite turn (mostly left leaves of double doors). Not yet watched on live. Opened
- * doors stay open until closed (guessed: no timer), and door sounds come with task 12.
+ * doors stay open until closed (guessed: no timer), and play no sound until a recording gives the ids.
  */
 class Doors(private val locs: Locs) {
     private val openTypes = HashMap<Int, Int>()

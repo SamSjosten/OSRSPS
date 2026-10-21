@@ -27,6 +27,7 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         for (overlay in GameFrame.overlays) {
             send(player, IfOpenSub(frame.interfaceId, frame.component(overlay.slot), overlay.interfaceId, OVERLAY))
         }
+        openJournalTab(player, JournalTab.forValue(journalTabVarbit(player)?.let { player.vars.getVarbit(it) } ?: 0))
         // Lets the client send clicks on the "Game client layout" dropdown's three options.
         send(player, IfSetEventsV2(GameFrame.SETTINGS_SIDE, GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS, 1, 3, IF_EVENT_OP1, 0))
         // Inferred: the client's scroll-wheel zoom clamps to varcs camera_zoom_small/big_min/max, which start at 0.
@@ -107,6 +108,19 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     }
 
     /** Opens [interfaceId] as a modal in [slot], replacing whatever modal was there. */
+    /**
+     * Shows [tab] inside the quest tab. The sub-interface sits in side_journal, not the top-level, so it moves with
+     * side_journal on a frame change and is only opened at login and when the player picks another tab.
+     */
+    fun openJournalTab(player: Player, tab: JournalTab) {
+        journalTabVarbit(player)?.let { player.vars.setVarbit(it, tab.value) }
+        send(player, IfOpenSub(JournalTab.SIDE_JOURNAL, JournalTab.TAB_CONTAINER, tab.interfaceId, OVERLAY))
+    }
+
+    /** Null when the cache has no such varbit (tests); the tab then still opens but isn't remembered. */
+    private fun journalTabVarbit(player: Player): Int? =
+        JournalTab.VARBIT_SIDE_JOURNAL_TAB.takeIf { player.vars.types.varbit(it) != null }
+
     fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) {
         player.modals[slot] = interfaceId
         val frame = player.frame

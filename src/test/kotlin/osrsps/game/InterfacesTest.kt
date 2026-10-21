@@ -32,9 +32,11 @@ class InterfacesTest {
     fun `fixed mode opens every overlay into the fixed top-level`() {
         interfaces.openGameFrame(player(GameFrame.FIXED))
         assertEquals(IfOpenTop(548), sent.first())
-        val subs = sentOf<IfOpenSub>()
+        val subs = sentOf<IfOpenSub>().filter { it.destinationInterfaceId != JournalTab.SIDE_JOURNAL }
         assertEquals(GameFrame.overlays.size, subs.size)
         assertTrue(subs.all { it.destinationInterfaceId == 548 })
+        // With no tab remembered, the quest tab shows the character summary.
+        assertTrue(IfOpenSub(629, 43, 712, Interfaces.OVERLAY) in sent)
         // The inventory goes into side3, which is component 84 in fixed and 79 in resizable classic.
         assertTrue(IfOpenSub(548, 84, 149, Interfaces.OVERLAY) in subs)
         assertTrue(RunClientScript(GameFrame.ZOOM_LIMITS_DEFAULT_SCRIPT, emptyList()) in sent)
@@ -128,5 +130,31 @@ class InterfacesTest {
         assertEquals(GameFrame.RESIZABLE_MODERN, player.frame)
         assertEquals(listOf(IfOpenTop(164)), sentOf<IfOpenTop>())
         assertEquals(4, sentOf<RunClientScript>().count { it.id == GameFrame.CLIENT_MODE_SCRIPT })
+    }
+
+    @Test
+    fun `picking a quest tab sub-tab opens it and keeps it in the varbit the login frame reads`() {
+        val types = VarTypes(9_000, mapOf(JournalTab.VARBIT_SIDE_JOURNAL_TAB to VarbitType(1_141, 0, 2)))
+        val player = Player(1, "test", 3222, 3218, 0, types).apply { frame = GameFrame.FIXED }
+        interfaces.openJournalTab(player, JournalTab.QUESTS)
+        assertEquals(listOf(IfOpenSub(629, 43, 399, Interfaces.OVERLAY)), sentOf<IfOpenSub>())
+        assertEquals(1, player.vars.getVarbit(JournalTab.VARBIT_SIDE_JOURNAL_TAB))
+
+        sent.clear()
+        interfaces.openGameFrame(player)
+        assertTrue(IfOpenSub(629, 43, 399, Interfaces.OVERLAY) in sent)
+    }
+
+    @Test
+    fun `the picked sub-tab comes back after a save and a new login`() {
+        val types = VarTypes(9_000, mapOf(JournalTab.VARBIT_SIDE_JOURNAL_TAB to VarbitType(1_141, 0, 2)))
+        val before = Player(1, "test", 3222, 3218, 0, types).apply { frame = GameFrame.FIXED }
+        interfaces.openJournalTab(before, JournalTab.QUESTS)
+
+        val after = Player(1, "test", 3222, 3218, 0, types).apply { frame = GameFrame.FIXED }
+        PlayerSave.fromJson(PlayerSave.of(before).toJson("test")).applyTo(after)
+        sent.clear()
+        interfaces.openGameFrame(after)
+        assertTrue(IfOpenSub(629, 43, 399, Interfaces.OVERLAY) in sent)
     }
 }
