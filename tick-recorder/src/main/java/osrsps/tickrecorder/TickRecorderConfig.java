@@ -87,7 +87,7 @@ public interface TickRecorderConfig extends Config
 	)
 	default boolean menuClicks()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(
