@@ -90,6 +90,12 @@ class Player(
     /** What the player wears, inv 94, one slot per [WearPos]. Changes are sent at the end of the cycle. */
     val equipment = Inventory(Inventory.WORN, WearPos.COUNT)
 
+    /** The `::scenario` the player last started, null when they aren't in one. Saved. */
+    var scenario: String? = null
+
+    /** What `::reset` puts back: the player before their first `::scenario` since the last reset. Saved. */
+    var beforeScenario: PlayerSave? = null
+
     /** Queues, timers and the current delay; run by [World.scripts]. */
     val scripts = PlayerScripts()
 

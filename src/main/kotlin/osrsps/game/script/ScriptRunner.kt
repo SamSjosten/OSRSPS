@@ -102,6 +102,20 @@ class ScriptRunner(
         player.scripts.weakQueue.clear()
     }
 
+    /**
+     * Drops everything [player] had going: modals, every queue, timers and a delay, whose script never carries on.
+     * For `::scenario` and `::reset`, which start from a clean slate; not something live does.
+     */
+    fun clearAll(player: Player) {
+        closeModals(player)
+        val state = player.scripts
+        state.queue.clear()
+        state.weakQueue.clear()
+        state.timers.clear()
+        state.suspended = null
+        state.delayedUntil = 0
+    }
+
     /** Runs [player]'s part of this tick's script phase. */
     fun process(player: Player) {
         resumeDelayed(player)

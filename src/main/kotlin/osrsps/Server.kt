@@ -20,6 +20,7 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.Quests
+import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.npc.NpcExamines
@@ -90,9 +91,19 @@ class GameServer(
         val npcSpawns = NpcSpawnFile.loadAll(npcTypes)
         val npcExamines = NpcExamines.load()
         logger.info { "Loaded ${npcSpawns.size} NPC spawns and ${npcExamines.size} NPC examine texts" }
+        val scenarios = Scenarios.load()
+        for (name in scenarios.names) {
+            // Checked again when started; warned about here so a bad item name shows in the deploy log.
+            try {
+                scenarios[name]!!.loadout(objTypes)
+            } catch (e: IllegalArgumentException) {
+                logger.warn { "Scenario $name can't start: ${e.message}" }
+            }
+        }
+        logger.info { "Loaded ${scenarios.names.size} scenarios: ${scenarios.names.joinToString()}" }
         world = World(
             js5.crcs, collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
-            npcSpawns, npcExamines, effectIds,
+            npcSpawns, npcExamines, effectIds, scenarios,
         )
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()

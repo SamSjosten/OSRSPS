@@ -166,6 +166,8 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
 | `::npcs [radius]` | Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
+| `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
+| `::reset` | Puts you back as you were before your first `::scenario` |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
@@ -377,3 +379,27 @@ inventory's and equipment's slots; the bank joins it when it exists. Code is in 
 | A reconnect must send back the ISAAC seed of the connection it lost | RSProt / client protocol |
 | After a reconnect every varp and stat is sent again and the map is rebuilt; interfaces are left as the client has them | inferred, not checked against live |
 | All varps are saved; live keeps some only for the session, which ours doesn't know about yet | guessed |
+
+## Scenarios
+
+A scenario sets a player up for a test in one go: where they stand, their skills, inventory, equipment, run energy and
+any varps or varbits. Scenarios are JSON files in `src/main/resources/scenarios/`, named after the scenario and listed in
+`Scenarios.FILES`; the format is in `game/Scenario.kt`. They are testing tools, not live content.
+
+| Scenario behaviour | Source |
+|--------------------|--------|
+| What a scenario leaves out is reset: unnamed skills are a new account's, run energy is full, slots it doesn't fill are empty | ours, so a scenario always starts the same |
+| Varps and varbits it doesn't name, and the run orb unless it says, are kept | ours: they hold settings and quest states |
+| Starting one closes interfaces and drops queued scripts, timers and delays | ours |
+| Items are checked against the cache before anything changes; level requirements aren't checked | ours |
+
+`::reset` puts back the player as they were before their first `::scenario`: a second scenario still resets to before
+the first. The way back is kept in the save (`beforeScenario`), so a logout in the middle loses nothing. The server log
+warns at startup about any scenario naming an item the cache lacks.
+
+`lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
+Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a
+tinderbox and 100 coins, with run on.
+
+Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
+you were with your own stats and items.

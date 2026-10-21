@@ -32,6 +32,7 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerNpcCommands
+import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
@@ -77,6 +78,8 @@ class World(
     private val npcExamines: NpcExamines = NpcExamines.NONE,
     /** The animation, spotanim, sound and jingle ids the dev commands accept. */
     val effectIds: EffectIds = EffectIds.UNKNOWN,
+    /** What `::scenario` can start. */
+    val scenarios: Scenarios = Scenarios.NONE,
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -113,6 +116,7 @@ class World(
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
         registerNpcCommands(this@World)
+        registerScenarioCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
