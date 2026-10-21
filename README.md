@@ -151,6 +151,7 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too |
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
+| `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
@@ -188,6 +189,22 @@ the start of the next tick, as if they had arrived then. Commands run straight a
 and you see it on the next step.
 
 Check: `::pause`, click a tile and nothing moves; each `::step` then moves you one tile (two with run on).
+
+## Random seeds
+
+Every random roll in the game (drops, NPC wandering, hit rolls, once they exist) comes from one seeded source,
+`World.random` (`GameRandom`). The same seed with the same input on the same ticks gives the same rolls, so a run can be
+repeated. A test fails if code under `src/main` uses any other random source.
+
+The seed is set at startup from `OSRSPS_SEED` (add it under `environment:` in `compose.yaml`), or picked at random and
+logged as `Random seed N` when unset. `::seed n` restarts the rolls from seed n at any time; to repeat a run from a known
+point, `::pause`, `::seed n`, set things up, then `::step` or `::resume`. `::seed` alone shows the seed and how many
+numbers have been drawn since, so two runs can be compared.
+
+The generator is xoshiro256\*\* seeded through SplitMix64, written out in the repo so a seed gives the same rolls after
+JDK or Kotlin upgrades. It is not the generator live uses: only repeatability matters here. With more than one player,
+rolls are made in player index order within each tick phase, so the same seed also needs the same players in the same
+slots (inferred from the tick loop; nothing rolls yet).
 
 ## Chat
 

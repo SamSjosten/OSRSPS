@@ -9,6 +9,7 @@ import net.rsprot.protocol.api.NetworkService
 import osrsps.cache.GameFrameCheck
 import osrsps.cache.MapCollisionLoader
 import osrsps.cache.VarTypeLoader
+import osrsps.game.GameRandom
 import osrsps.game.Player
 import osrsps.game.VarTypes
 import osrsps.game.World
@@ -29,6 +30,8 @@ class GameServer(
     private val port: Int,
     private val httpPort: Int = port + 1,
     private val publicHost: String = "127.0.0.1",
+    /** The game's random seed; null picks one, which is logged so the run can be repeated. */
+    private val seed: Long? = null,
 ) {
     private lateinit var world: World
     private val clientConfig = ClientConfig(publicHost, httpPort)
@@ -61,7 +64,9 @@ class GameServer(
         logger.info { "Loaded ${js5.size} JS5 responses for ${js5.crcs.size} archives" }
 
         val rsa = RsaKeys.loadOrCreate(dataDir)
-        world = World(js5.crcs, collision, varTypes, interfaceIds)
+        val random = GameRandom(seed ?: GameRandom.newSeed())
+        logger.info { "Random seed ${random.seed}" + if (seed == null) " (picked at startup; set OSRSPS_SEED to fix it)" else " (from OSRSPS_SEED)" }
+        world = World(js5.crcs, collision, varTypes, interfaceIds, random)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()
         world.network = network

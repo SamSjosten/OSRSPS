@@ -26,6 +26,7 @@ import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
+import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -47,6 +48,8 @@ class World(
     val varTypes: VarTypes = VarTypes.NONE,
     /** Interface ids in the cache, or null when unknown (tests). */
     private val interfaceIds: Set<Int>? = null,
+    /** Every random roll in the game comes from here; see [GameRandom]. */
+    val random: GameRandom = GameRandom(),
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -61,6 +64,7 @@ class World(
         registerTickCommands(this@World)
         registerVarCommands()
         registerSkillCommands()
+        registerSeedCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
