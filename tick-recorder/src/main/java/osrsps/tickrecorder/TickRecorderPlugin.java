@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.inject.Provides;
-import java.io.File;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -75,7 +75,6 @@ import net.runelite.api.events.WallObjectSpawned;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.events.WorldChanged;
-import net.runelite.client.RuneLite;
 import net.runelite.client.RuneLiteProperties;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -85,7 +84,10 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.util.Filepath;
 import net.runelite.client.util.HotkeyListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Records what the client already sees to a JSON lines file: one "tick" line per game tick with the
@@ -95,12 +97,14 @@ import net.runelite.client.util.HotkeyListener;
 @PluginDescriptor(
 	name = "Tick Recorder",
 	description = "Records what the client sees each game tick to a local file",
-	tags = {"record", "log", "tick", "animation", "projectile", "hitsplat", "npc"}
+	tags = {"record", "log", "tick", "animation", "projectile", "hitsplat", "npc"},
+	internalName = "tickrecorder",
+	legacyDataDirectory = "tick-recorder"
 )
 public class TickRecorderPlugin extends Plugin
 {
 	static final int FORMAT_VERSION = 2;
-	static final File RECORDINGS_DIR = new File(RuneLite.RUNELITE_DIR, "tick-recorder");
+	private static final Logger log = LoggerFactory.getLogger(TickRecorderPlugin.class);
 
 	private static final DateTimeFormatter FILE_TIME =
 		DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss.SSS'Z'").withZone(ZoneOffset.UTC);
@@ -129,6 +133,10 @@ public class TickRecorderPlugin extends Plugin
 	private Gson gson;
 
 	private Gson json;
+	/** This plugin's own folder under RuneLite's plugin-data, or null when it could not be set up. */
+	private Filepath folder;
+	/** Why {@link #folder} is null, said in the chatbox when recording is turned on. */
+	private String folderFailure;
 	private volatile RecordingWriter writer;
 	private volatile boolean recording;
 	/** Tick lines written so far; events carry tick + 1, the number of the tick line that follows them. */
@@ -157,7 +165,17 @@ public class TickRecorderPlugin extends Plugin
 	protected void startUp()
 	{
 		json = gson.newBuilder().disableHtmlEscaping().create();
-		writer = new RecordingWriter();
+		try
+		{
+			// RuneLite's folder for this plugin, plugin-data/tickrecorder; an older tick-recorder folder is moved there once.
+			folder = getPluginDirectory();
+			writer = new RecordingWriter(folder);
+		}
+		catch (IOException e)
+		{
+			log.warn("Tick Recorder: cannot set up its folder", e);
+			folderFailure = "cannot set up its folder: " + e;
+		}
 		keyManager.registerKeyListener(hotkeyListener);
 		if (config.recording())
 		{
@@ -230,12 +248,17 @@ public class TickRecorderPlugin extends Plugin
 		RecordingWriter w = writer;
 		if (w == null)
 		{
+			if (folderFailure != null)
+			{
+				configManager.setConfiguration(TickRecorderConfig.GROUP, TickRecorderConfig.RECORDING, false);
+				chat("Tick Recorder stopped: " + folderFailure);
+			}
 			return;
 		}
 		String name = FILE_TIME.format(Instant.now());
 		// Say so before recording starts, so our own chat line is not recorded as a game message.
-		chat("Tick Recorder: recording to tick-recorder/" + name + ".jsonl");
-		w.open(RECORDINGS_DIR.toPath(), name);
+		chat("Tick Recorder: recording to " + folder.join(name + ".jsonl"));
+		w.open(name);
 		tick = 0;
 		seenProjectiles.clear();
 		npcsInRange = new HashSet<>();

@@ -12,8 +12,8 @@ the game, and never touches network traffic.
 Until it is on the Plugin Hub, run it only against our own server, never on Jagex's worlds.
 
 - Turn on **Recording** in the plugin's settings (or bind the toggle hotkey). Each start writes a
-  new file to `<RuneLite folder>\tick-recorder\<UTC time>.jsonl` and says so in the chatbox. An
-  existing file is never overwritten.
+  new file to `<RuneLite folder>\plugin-data\tickrecorder\<UTC time>.jsonl` and says so in the
+  chatbox. An existing file is never overwritten.
 - Turn it off to close the file. If the file can't be written, recording turns itself off and the
   chatbox says why.
 
@@ -30,7 +30,8 @@ so:
 1. Download `tick-recorder-jar` from the latest `build` run on GitHub Actions and unzip it.
 2. Copy `tick-recorder-<version>.jar` to `C:\RSPS\.rlcustom\sideloaded-plugins\`.
 3. Start `C:\RSPS\RSProx.cmd`, log in, and turn on Recording in the plugin's settings.
-4. Recordings land in `C:\RSPS\.rlcustom\tick-recorder\`.
+4. Recordings land in `C:\RSPS\.rlcustom\plugin-data\tickrecorder\`. The first start after this
+   change moves an older `C:\RSPS\.rlcustom\tick-recorder\` folder there.
 
 ## Privacy
 
@@ -125,4 +126,4 @@ means copying this folder into a new public repo and opening a pull request on
 `runelite/plugin-hub`. That happens only with Sam's go. Before that, the wording here and the
 `osrsps` package name need a decision, since a plugin framed around a private server may be refused,
 and the new repo needs a LICENSE. The plugin uses no extra dependencies, reflection or network
-access, and writes only under the RuneLite folder.
+access, and writes only to its own folder through RuneLite's file API.

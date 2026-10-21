@@ -88,7 +88,8 @@ class EffectCommandsTest {
     fun `arguments are checked`() {
         run("anim")
         run("anim x")
-        run("anim 866 70000")
+        run("anim 866 256")
+        run("spotanim 85 0 70000")
         run("spotanim 85 0 0 256")
         run("sound 3813 0")
         run("areasound 3813 32")
@@ -97,6 +98,7 @@ class EffectCommandsTest {
             listOf(
                 "Usage: ::anim id [delay]",
                 "Usage: ::anim id [delay] ('x' is not a number)",
+                "Delay must be 0 to 255 client cycles",
                 "Delay must be 0 to 65535 client cycles",
                 "Slot must be 0 to 255",
                 "Loops must be 1 to 255",
