@@ -10,6 +10,7 @@ import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop
 import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.game.outgoing.varp.VarpLarge
+import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.message.OutgoingGameMessage
 
 class InterfacesTest {
@@ -66,6 +67,18 @@ class InterfacesTest {
         assertEquals(1, player.stoneArrangement)
         assertEquals(listOf(VarpLarge(GameFrame.STONE_ARRANGEMENT_VARP, 1 shl GameFrame.STONE_ARRANGEMENT_BIT)), sentOf<VarpLarge>())
         assertEquals(listOf(IfOpenTop(164)), sentOf<IfOpenTop>())
+    }
+
+    @Test
+    fun `the stone arrangement follows its varp`() {
+        val player = player(GameFrame.RESIZABLE_MODERN)
+        // As ::varp 1055 would set it, with another bit of the varp also set.
+        player.vars[GameFrame.STONE_ARRANGEMENT_VARP] = (1 shl GameFrame.STONE_ARRANGEMENT_BIT) or 1
+        assertEquals(1, player.stoneArrangement)
+        interfaces.requestFrame(player, GameFrame.RESIZABLE_CLASSIC, tick = 10)
+        interfaces.processFrameMove(player, tick = 11)
+        assertEquals(0, player.stoneArrangement)
+        assertEquals(listOf(VarpSmall(GameFrame.STONE_ARRANGEMENT_VARP, 1)), sentOf<VarpSmall>())
     }
 
     @Test
