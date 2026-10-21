@@ -119,6 +119,13 @@ class World(
     }
 
     override fun onReconnect(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<XteaKey>) {
+        // The same per-address limit as a login, so reconnects can't queue without bound either. The old connection may
+        // still count against it until it times out, which the limit of 10 leaves room for.
+        if (!responseHandler.validateNewConnection()) {
+            logger.info { "Rejecting a reconnect for ${block.username}: too many connections from one address" }
+            responseHandler.writeFailedResponse(LoginResponse.IPLimit)
+            return
+        }
         if (!block.crc.validate(js5Crcs)) {
             logger.info { "Rejecting a reconnect for ${block.username}: client cache CRCs do not match ours" }
             responseHandler.writeFailedResponse(LoginResponse.OutOfDateReload)
