@@ -31,7 +31,8 @@ fun CommandRegistry.registerZoneCommands(world: World) {
         val dz = values.getOrElse(2) { PROJ_DEFAULT_DISTANCE }
         if (id !in 0..MAX_ID) fail("Spotanim id must be 0 to $MAX_ID")
         if (dx == 0 && dz == 0) fail("dx and dz can't both be 0: the client doesn't draw a projectile that goes nowhere")
-        if (abs(dx) > PROJ_MAX_DISTANCE || abs(dz) > PROJ_MAX_DISTANCE) fail("dx and dz must be within $PROJ_MAX_DISTANCE")
+        // A range check rather than abs(), which leaves Int.MIN_VALUE negative.
+        if (dx !in -PROJ_MAX_DISTANCE..PROJ_MAX_DISTANCE || dz !in -PROJ_MAX_DISTANCE..PROJ_MAX_DISTANCE) fail("dx and dz must be within $PROJ_MAX_DISTANCE")
         val distance = max(abs(dx), abs(dz))
         // Guessed flight values, about a ranged attack's: heights, start delay, speed, arc and start offset are not
         // taken from any live projectile.

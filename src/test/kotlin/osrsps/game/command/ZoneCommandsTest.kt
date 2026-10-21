@@ -58,6 +58,7 @@ class ZoneCommandsTest {
         run("gfx 70000")
         run("proj 91 0 0")
         run("proj 91 1")
+        run("proj 91 -2147483648 0")
         assertEquals(
             listOf(
                 "Usage: ::gfx id [height] [delay]",
@@ -65,6 +66,7 @@ class ZoneCommandsTest {
                 "Spotanim id must be 0 to 65535",
                 "dx and dz can't both be 0: the client doesn't draw a projectile that goes nowhere",
                 "Usage: ::proj id [dx dz]",
+                "dx and dz must be within 20",
             ),
             replies,
         )
