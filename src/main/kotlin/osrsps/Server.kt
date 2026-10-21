@@ -13,6 +13,7 @@ import osrsps.cache.NpcTypeLoader
 import osrsps.cache.ObjTypeLoader
 import osrsps.cache.QuestLoader
 import osrsps.cache.VarTypeLoader
+import osrsps.cache.WorldMap
 import osrsps.game.EffectIds
 import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
@@ -24,7 +25,6 @@ import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.npc.NpcExamines
 import osrsps.game.npc.NpcSpawnFile
-import osrsps.map.CollisionMap
 import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
 import osrsps.net.NetworkFactory
@@ -53,7 +53,7 @@ class GameServer(
         val library = CacheLibrary.create(dataDir.resolve("cache").toString())
         val js5: Js5Store
         val huffman: HuffmanCodec
-        val collision: CollisionMap
+        val map: WorldMap
         val interfaceIds: Set<Int>
         val varTypes: VarTypes
         val objTypes: ObjTypes
@@ -62,7 +62,7 @@ class GameServer(
         val effectIds: EffectIds
         try {
             js5 = Js5Store.load(library)
-            collision = MapCollisionLoader.load(library)
+            map = MapCollisionLoader.loadWorld(library)
             varTypes = VarTypeLoader.load(library)
             objTypes = ObjTypeLoader.load(library)
             npcTypes = NpcTypeLoader.load(library)
@@ -91,8 +91,8 @@ class GameServer(
         val npcExamines = NpcExamines.load()
         logger.info { "Loaded ${npcSpawns.size} NPC spawns and ${npcExamines.size} NPC examine texts" }
         world = World(
-            js5.crcs, collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
-            npcSpawns, npcExamines, effectIds,
+            js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
+            npcSpawns, npcExamines, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
         )
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()

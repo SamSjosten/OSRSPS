@@ -94,4 +94,43 @@ class RouteFinderTest {
         assertEquals(Tile(3200, 3210), route.destination)
         assertTrue(route.alternative)
     }
+
+    @Test
+    fun `a route to a ground loc stops beside it`() {
+        val map = openSquare()
+        // A solid 2x2 loc at 3215..3216, 3210..3211.
+        LocCollision(map).addLoc(LocCollisionType(width = 2, length = 2), 3215, 3210, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        val target = RouteTarget.loc(3215, 3210, LocShape.CENTREPIECE_STRAIGHT, 0, 2, 2, 0)
+        val route = RouteFinder(map).find(0, 3210, 3210, target)
+        assertEquals(Tile(3214, 3210), route.destination)
+        assertFalse(route.alternative)
+    }
+
+    @Test
+    fun `a route to a door ends on the near side of it`() {
+        val map = openSquare()
+        // A closed door on the east edge of 3215, 3210, in a wall running north and south.
+        val walls = LocCollision(map)
+        for (z in 3200..3220) walls.addLoc(LocCollisionType(), 3215, z, 0, LocShape.WALL_STRAIGHT, 2)
+        val door = RouteTarget.loc(3215, 3210, LocShape.WALL_STRAIGHT, 2, 1, 1, 0)
+        // From the west: the door's own tile or the one north or south of it, all five steps away.
+        val west = RouteFinder(map).find(0, 3210, 3210, door).destination!!
+        assertEquals(3215, west.x)
+        assertTrue(west.z in 3209..3211)
+        assertEquals(Tile(3216, 3210), RouteFinder(map).find(0, 3220, 3210, door).destination, "from the east, the far side")
+    }
+
+    @Test
+    fun `an unreachable loc walks to the closest tile to its footprint`() {
+        val map = openSquare()
+        // A 3x1 loc that can only be used from the north, boxed in on the north by walls.
+        val walls = LocCollision(map)
+        for (x in 3215..3217) walls.addLoc(LocCollisionType(), x, 3211, 0, LocShape.WALL_STRAIGHT, 3)
+        val target = RouteTarget.loc(3215, 3210, LocShape.CENTREPIECE_STRAIGHT, 0, 3, 1, 2 + 4 + 8)
+        LocCollision(map).addLoc(LocCollisionType(width = 3), 3215, 3210, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        val route = RouteFinder(map).find(0, 3210, 3210, target)
+        assertTrue(route.alternative)
+        // Next to the west end: distance 1 to the footprint, and nearest by path.
+        assertEquals(Tile(3214, 3210), route.destination)
+    }
 }

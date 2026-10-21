@@ -1,5 +1,7 @@
 package osrsps.game.script
 
+import osrsps.game.zone.ZoneLoc
+
 /** What a player can click an option on. */
 enum class OpTarget {
     /** A loc (object) in the world, by loc type id. */
@@ -21,8 +23,9 @@ enum class OpTarget {
 /**
  * One click on an option: [option] is 1 to 5 for locs, NPCs and items (op1 to op5, as in the cache's option lists), 1 to
  * 8 for worn items and 1 to 10 for buttons. [sub] is the button's slot (an inventory slot, a dropdown entry), -1 when there is none.
+ * [loc] is the loc clicked, for a loc op.
  */
-data class Op(val target: OpTarget, val id: Int, val option: Int, val sub: Int = -1) {
+data class Op(val target: OpTarget, val id: Int, val option: Int, val sub: Int = -1, val loc: ZoneLoc? = null) {
     val interfaceId: Int get() = id ushr 16
     val componentId: Int get() = id and 0xFFFF
 
@@ -50,7 +53,8 @@ typealias Handler = suspend ScriptContext.(Op) -> Unit
  * that has no handler of its own.
  *
  * Clicks on buttons, on inventory items (iop1 to iop5, with the slot as [Op.sub]) and on worn items' own options reach
- * handlers so far; locs come with task 11 and NPCs with task 17, each after walking to the target.
+ * handlers straight away; clicks on locs once the player has walked to them (see [osrsps.game.loc.LocInteractions]).
+ * NPCs come with task 17, also after walking to them.
  */
 class Handlers {
     private val handlers = HashMap<Key, Handler>()
