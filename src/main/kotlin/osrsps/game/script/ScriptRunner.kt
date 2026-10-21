@@ -104,7 +104,6 @@ class ScriptRunner(
     fun process(player: Player) {
         resumeDelayed(player)
         val state = player.scripts
-        if (state.queue.any { it.type == QueueType.STRONG }) interrupt(player)
         processQueue(player, state.queue)
         processQueue(player, state.weakQueue)
         processTimers(player, TimerType.NORMAL)
@@ -121,19 +120,29 @@ class ScriptRunner(
 
     private fun processQueue(player: Player, queue: MutableList<QueuedScript>) {
         val pass = ++passes
+        // A strong script anywhere in the queue closes modals and removes weak scripts before anything runs; one queued
+        // during the phase does so when the phase reaches it, before the weak queue runs.
+        var strongSeen = queue.any { it.type == QueueType.STRONG }
+        if (strongSeen) interrupt(player)
         var runs = 0
         var i = 0
         while (i < queue.size) {
             val entry = queue[i]
             entry.lastPass = pass
+            if (entry.type == QueueType.STRONG && !strongSeen) {
+                strongSeen = true
+                interrupt(player)
+            }
             val due = entry.delay-- <= 0
             if (!due || !canRun(player, entry.type)) {
                 i++
                 continue
             }
             queue.removeAt(i)
-            // Strong verified as closing modals before it runs (2004Scape); soft doing the same is a guess.
-            if (entry.type == QueueType.STRONG || entry.type == QueueType.SOFT) interrupt(player)
+            // Strong closing modals before it runs is from 2004Scape; soft doing the same is a guess. Closing a modal
+            // removes weak scripts, but a soft script with none open leaves them alone.
+            val closesModals = entry.type == QueueType.STRONG || (entry.type == QueueType.SOFT && player.modals.isNotEmpty())
+            if (closesModals) interrupt(player)
             start(player, entry.script)
             // Guessed: a script queued during the phase with delay 0 runs in it too. The bound is ours, so a script that
             // keeps queueing itself can't hang the game thread.

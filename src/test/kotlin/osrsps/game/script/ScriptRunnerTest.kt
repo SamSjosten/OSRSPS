@@ -90,6 +90,25 @@ class ScriptRunnerTest {
     }
 
     @Test
+    fun `a soft script with no modal open leaves weak scripts alone`() {
+        queue("soft", QueueType.SOFT)
+        queue("weak", QueueType.WEAK)
+        ticks()
+        assertEquals(listOf("soft@1", "weak@1"), ran)
+        assertEquals(0, modalsClosed)
+    }
+
+    @Test
+    fun `a strong script queued during the phase removes weak scripts before they run`() {
+        runner.queue(player, "queues strong", QueueType.NORMAL, 0) {
+            queue("strong", QueueType.STRONG, delay = 2, script = record("strong"))
+        }
+        queue("weak", QueueType.WEAK)
+        ticks(3)
+        assertEquals(listOf("strong@3"), ran)
+    }
+
+    @Test
     fun `interrupting removes weak scripts and closes modals but keeps the rest`() {
         openModal()
         queue("weak", QueueType.WEAK)
