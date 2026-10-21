@@ -14,6 +14,7 @@ import net.rsprot.protocol.common.client.OldSchoolClientType
 import net.rsprot.protocol.game.incoming.misc.client.Idle
 import net.rsprot.protocol.game.incoming.misc.client.MapBuildComplete
 import net.rsprot.protocol.game.incoming.misc.client.NoTimeout
+import net.rsprot.protocol.game.incoming.misc.client.SoundJingleEnd
 import net.rsprot.protocol.game.incoming.misc.client.WindowStatus
 import net.rsprot.protocol.game.incoming.buttons.If1Button
 import net.rsprot.protocol.game.incoming.buttons.If3Button
@@ -77,6 +78,8 @@ class NetworkFactory(
         builder.addListener(MapBuildComplete::class.java, MessageConsumer { _, _ -> })
         builder.addListener(NoTimeout::class.java, MessageConsumer { _, _ -> })
         builder.addListener(Idle::class.java, MessageConsumer { _, _ -> })
+        // The client says a jingle finished. Nothing waits on one yet.
+        builder.addListener(SoundJingleEnd::class.java, MessageConsumer { _, _ -> })
         builder.addListener(WindowStatus::class.java, MessageConsumer { player, message -> player.windowMode = message.windowMode })
         // Consumers run on the game thread, inside World's processIncomingPackets.
         builder.addListener(MoveGameClick::class.java, MessageConsumer { player, message ->

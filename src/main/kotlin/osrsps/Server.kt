@@ -6,12 +6,14 @@ import io.netty.buffer.Unpooled
 import net.rsprot.compression.HuffmanCodec
 import net.rsprot.compression.provider.DefaultHuffmanCodecProvider
 import net.rsprot.protocol.api.NetworkService
+import osrsps.cache.EffectIdLoader
 import osrsps.cache.GameFrameCheck
 import osrsps.cache.MapCollisionLoader
 import osrsps.cache.NpcTypeLoader
 import osrsps.cache.ObjTypeLoader
 import osrsps.cache.QuestLoader
 import osrsps.cache.VarTypeLoader
+import osrsps.game.EffectIds
 import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
 import osrsps.game.NpcTypes
@@ -57,6 +59,7 @@ class GameServer(
         val objTypes: ObjTypes
         val npcTypes: NpcTypes
         val quests: Quests
+        val effectIds: EffectIds
         try {
             js5 = Js5Store.load(library)
             collision = MapCollisionLoader.load(library)
@@ -64,6 +67,7 @@ class GameServer(
             objTypes = ObjTypeLoader.load(library)
             npcTypes = NpcTypeLoader.load(library)
             quests = QuestLoader.load(library)
+            effectIds = EffectIdLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
             val huffmanData = library.data(HUFFMAN_ARCHIVE, "huffman", 0) ?: error("No huffman group in the cache")
             huffman = HuffmanCodec.create(Unpooled.wrappedBuffer(huffmanData))
@@ -88,7 +92,7 @@ class GameServer(
         logger.info { "Loaded ${npcSpawns.size} NPC spawns and ${npcExamines.size} NPC examine texts" }
         world = World(
             js5.crcs, collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
-            npcSpawns, npcExamines,
+            npcSpawns, npcExamines, effectIds,
         )
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()
