@@ -2,6 +2,7 @@ package osrsps.game.npc
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
+import osrsps.game.ConditionalOp
 import osrsps.game.Facing
 import osrsps.game.Interaction
 import osrsps.game.Inventory
@@ -72,8 +73,8 @@ class NpcInteractions(
         val npc = clickable(player, index) ?: return
         val type = shownType(npc, player)
         // A multi-NPC's options belong to the type the player's vars show; one showing nothing has none.
-        if (option !in 1..Handlers.MAX_OPTION || type == null || shownOp(type, option, player) == null) {
-            logger.debug { "${player.username} clicked option $option of $npc, which has no such option" }
+        if (option !in 1..Handlers.MAX_OPTION || type == null || !offers(type, option, sub, player)) {
+            logger.debug { "${player.username} clicked option $option (sub $sub) of $npc, which has no such option" }
             return
         }
         start(player, NpcInteraction(npc, option, sub), invertRun)
@@ -142,6 +143,7 @@ class NpcInteractions(
         if (player.interaction !== interaction || tryInteract(player, interaction)) return
         if (player.waypoints.isEmpty()) {
             player.interaction = null
+            stopFacing(player)
             message(player, CANT_REACH)
         }
     }
@@ -166,7 +168,7 @@ class NpcInteractions(
         player.interaction = null
         player.waypoints.clear()
         val type = shownType(npc, player)
-        if (type == null || !type.interactable || (!interaction.usesObj && shownOp(type, interaction.option, player) == null)) {
+        if (type == null || !type.interactable || (!interaction.usesObj && !offers(type, interaction.option, interaction.sub, player))) {
             // A multi-NPC (or an option on a var) changed on the way, so what was clicked isn't there any more. Guessed.
             stopFacing(player)
             return true
@@ -217,9 +219,17 @@ class NpcInteractions(
         }
     }
 
-    /** Option [option] of [type] as [player] sees it, conditional options included; null when there is none. */
-    private fun shownOp(type: NpcType, option: Int, player: Player): String? =
-        type.op(option) { if (it.varbit >= 0) readVar(player, -1, it.varbit) else readVar(player, it.varp, -1) }
+    /**
+     * Whether [player] sees option [option] of [type], and its sub-option [sub] when that isn't -1; conditional ones
+     * included. Inferred: that OpNpcV2's sub-option is the cache's sub index as is (RSProt sends 0 for none).
+     */
+    private fun offers(type: NpcType, option: Int, sub: Int, player: Player): Boolean {
+        if (type.op(option) { readVar(player, it) } == null) return false
+        return sub < 0 || type.subOp(option, sub) { readVar(player, it) } != null
+    }
+
+    private fun readVar(player: Player, condition: ConditionalOp): Int? =
+        if (condition.varbit >= 0) readVar(player, -1, condition.varbit) else readVar(player, condition.varp, -1)
 
     /** Varbit [varbit], or varp [varp] when the varbit is -1, for [player]; null for a var our cache doesn't have. */
     private fun readVar(player: Player, varp: Int, varbit: Int): Int? = try {

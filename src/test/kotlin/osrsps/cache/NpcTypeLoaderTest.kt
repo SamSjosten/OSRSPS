@@ -102,6 +102,13 @@ class NpcTypeLoaderTest {
         assertEquals(listOf(3, 5, -1, 1, 2), listOf(conditional.index, conditional.varp, conditional.varbit, conditional.min, conditional.max))
         assertEquals("Cond", type.op(4) { 2 })
         assertEquals(null, type.op(4) { 3 })
+        // Sub 2 of option 2 always; sub 4 of option 4 while varp 5 is 1 or 2.
+        assertEquals("Sub", type.subOp(2, 2) { null })
+        assertEquals(null, type.subOp(2, 3) { null })
+        val conditionalSub = type.subOps.last().condition!!
+        assertEquals(listOf(3, 5, -1, 1, 2), listOf(conditionalSub.index, conditionalSub.varp, conditionalSub.varbit, conditionalSub.min, conditionalSub.max))
+        assertEquals("Cond sub", type.subOp(4, 4) { 1 })
+        assertEquals(null, type.subOp(4, 4) { 0 })
     }
 
     @Test

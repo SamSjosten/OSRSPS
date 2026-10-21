@@ -12,6 +12,7 @@ import osrsps.game.Movement
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
+import osrsps.game.SubOp
 import osrsps.game.VarTypes
 import osrsps.game.loc.LocInteraction
 import osrsps.game.script.Handlers
@@ -186,6 +187,9 @@ class NpcInteractionsTest {
         assertEquals(listOf(NpcInteractions.CANT_REACH), messages)
         assertNull(player.interaction)
         assertNull(npc.engagedWith)
+        // The player stops turning to the NPC they gave up on.
+        assertNull(player.facingNpc)
+        assertNull(faced.last())
     }
 
     @Test
@@ -341,6 +345,35 @@ class NpcInteractionsTest {
         // The var changes on the way: the option is gone on arrival, so nothing runs.
         var used = false
         handlers.onNpc(GUARD, 3) { used = true }
+        player.vars[7] = 0
+        repeat(5) { interactions.process(player) { movement.process(player) } }
+        assertTrue(!used)
+        assertNull(player.interaction)
+    }
+
+    @Test
+    fun `only sub-options the NPC shows can be clicked`() {
+        val vars = VarTypes(varpCount = 200, varbits = emptyMap())
+        val guard = NpcType(
+            GUARD, "Guard", ops = listOf("Talk-to", null, null, null, null),
+            subOps = listOf(SubOp(0, 1, "Ask"), SubOp(0, 2, "Pay", ConditionalOp(0, 7, -1, 1, 1, "Pay"))),
+        )
+        val interactions = NpcInteractions(npcs, NpcTypes.of(guard), map, movement, handlers, scripts, { tick }, { _, _ -> }, { _, _ -> }, {})
+        val player = Player(2, "sub", 3212, 3210, 0, vars)
+        val npc = npcs.add(NpcSpawn(guard, 3216, 3210, source = "test"))!!
+        // A forged sub-option the NPC doesn't have, and one hidden by its var, are ignored.
+        interactions.click(player, npc.index, 1, 9, invertRun = false)
+        assertNull(player.interaction)
+        interactions.click(player, npc.index, 1, 2, invertRun = false)
+        assertNull(player.interaction)
+        interactions.click(player, npc.index, 1, 1, invertRun = false)
+        assertTrue(player.interaction is NpcInteraction)
+        player.vars[7] = 1
+        interactions.click(player, npc.index, 1, 2, invertRun = false)
+        assertEquals(2, (player.interaction as NpcInteraction).sub)
+        // The var changes on the way: the sub-option is gone on arrival, so nothing runs.
+        var used = false
+        handlers.onNpc(GUARD, 1) { used = true }
         player.vars[7] = 0
         repeat(5) { interactions.process(player) { movement.process(player) } }
         assertTrue(!used)

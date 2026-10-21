@@ -7,6 +7,7 @@ import io.netty.buffer.Unpooled
 import osrsps.game.ConditionalOp
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.SubOp
 import java.nio.charset.Charset
 
 private val logger = KotlinLogging.logger {}
@@ -65,6 +66,7 @@ object NpcTypeLoader {
         var interactable = true
         var params: Map<Int, Any> = emptyMap()
         val conditionalOps = ArrayList<ConditionalOp>()
+        val subOps = ArrayList<SubOp>()
         while (true) {
             when (val opcode = buf.readUnsignedByte().toInt()) {
                 0 -> break
@@ -110,9 +112,10 @@ object NpcTypeLoader {
                 115, 117 -> buf.skipBytes(8)
                 249 -> params = buf.readParams()
                 251 -> {
-                    // A sub-option: option index, sub index, text.
-                    buf.skipBytes(2)
-                    buf.readString()
+                    // A sub-option: option index, sub index, text. Layouts of 251 to 253 match RuneLite's EntityOpsLoader.
+                    val index = buf.readUnsignedByte().toInt()
+                    val sub = buf.readUnsignedByte().toInt()
+                    subOps += SubOp(index, sub, buf.readString().takeUnless { it.equals("Hidden", ignoreCase = true) })
                 }
                 252 -> {
                     // An option shown only while a varp or varbit is in a range: index, varp, varbit, min, max, text.
@@ -125,8 +128,15 @@ object NpcTypeLoader {
                     conditionalOps += ConditionalOp(index, varp, varbit, min, max, text)
                 }
                 253 -> {
-                    buf.skipBytes(1 + 2 + 2 + 2 + 4 + 4)
-                    buf.readString()
+                    // A sub-option shown only while a var is in a range: index, sub index, varp, varbit, min, max, text.
+                    val index = buf.readUnsignedByte().toInt()
+                    val sub = buf.readUnsignedShort()
+                    val varp = buf.readUnsignedShort().let { if (it == 0xFFFF) -1 else it }
+                    val varbit = buf.readUnsignedShort().let { if (it == 0xFFFF) -1 else it }
+                    val min = buf.readInt()
+                    val max = buf.readInt()
+                    val text = buf.readString().takeUnless { it.equals("Hidden", ignoreCase = true) }
+                    subOps += SubOp(index, sub, text, ConditionalOp(index, varp, varbit, min, max, text))
                 }
                 else -> error("Unknown NPC opcode $opcode")
             }
@@ -134,7 +144,7 @@ object NpcTypeLoader {
         check(!buf.isReadable) { "${buf.readableBytes()} bytes left after the end of NPC $id" }
         return NpcType(
             id, name, size, ops, combatLevel, standAnim, walkAnim, multiVarbit, multiVarp, multiNpcs, interactable,
-            params, internalName, conditionalOps,
+            params, internalName, conditionalOps, subOps,
         )
     }
 
