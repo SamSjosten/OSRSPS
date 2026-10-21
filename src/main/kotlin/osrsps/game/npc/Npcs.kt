@@ -64,7 +64,8 @@ class Npcs(
     fun follow(npc: Npc, player: Player) {
         npc.following = player
         npc.destination = null
-        npc.face(player)
+        // Busy with someone, it keeps facing them; release turns it to the player it follows.
+        if (npc.engagedWith == null) npc.face(player)
     }
 
     fun stopFollowing(npc: Npc) {

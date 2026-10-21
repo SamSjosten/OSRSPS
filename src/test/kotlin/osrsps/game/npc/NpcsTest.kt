@@ -226,6 +226,19 @@ class NpcsTest {
     }
 
     @Test
+    fun `a busy NPC told to follow someone else keeps facing its player until let go`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val npc = npcs.add(spawn(wander = 0))!!
+        val talker = Player(1, "talker", 3231, 3230, 0)
+        val other = Player(2, "other", 3229, 3230, 0)
+        npcs.engage(npc, talker, 0)
+        npcs.follow(npc, other)
+        assertSame(talker, npc.facing)
+        npcs.release(npc)
+        assertSame(other, npc.facing)
+    }
+
+    @Test
     fun `a following NPC gives up on a player who goes far away`() {
         val npcs = Npcs(map(), GameRandom(1))
         val npc = npcs.add(spawn(wander = 0))!!
