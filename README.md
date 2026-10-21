@@ -148,6 +148,7 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::varp id [value]` | Shows a varp, or sets it. `::varp 173 1` turns the run orb on |
 | `::varbit id [value]` | Shows a varbit with the varp and bits it lives in, or sets it |
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
+
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
 Varps and varbits are per player (`Player.vars`). Varbit layouts come from cache config 14 and the number of varps
