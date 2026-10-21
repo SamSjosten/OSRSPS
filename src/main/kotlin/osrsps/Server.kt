@@ -9,6 +9,7 @@ import net.rsprot.protocol.api.NetworkService
 import osrsps.cache.GameFrameCheck
 import osrsps.cache.MapCollisionLoader
 import osrsps.cache.VarTypeLoader
+import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
 import osrsps.game.Player
 import osrsps.game.VarTypes
@@ -66,7 +67,9 @@ class GameServer(
         val rsa = RsaKeys.loadOrCreate(dataDir)
         val random = GameRandom(seed ?: GameRandom.newSeed())
         logger.info { "Random seed ${random.seed}" + if (seed == null) " (picked at startup; set OSRSPS_SEED to fix it)" else " (from OSRSPS_SEED)" }
-        world = World(js5.crcs, collision, varTypes, interfaceIds, random)
+        val saveDir = dataDir.resolve("saves")
+        logger.info { "Player saves in ${saveDir.toAbsolutePath()}" }
+        world = World(js5.crcs, collision, varTypes, interfaceIds, random, FileSaveStore(saveDir))
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()
         world.network = network

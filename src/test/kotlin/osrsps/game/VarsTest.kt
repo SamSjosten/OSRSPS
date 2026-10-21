@@ -71,4 +71,28 @@ class VarsTest {
         player.runEnabled = false
         assertEquals(0, player.vars[World.VARP_RUN])
     }
+
+    @Test
+    fun `resendAll sends varps that aren't 0 and those sent before, once`() {
+        vars[5] = 3
+        flushed()
+        vars[5] = 0
+        flushed()
+        vars[7] = 9
+        flushed()
+        vars[8] = 1
+        vars.resendAll()
+        assertEquals(listOf(8 to 1, 5 to 0, 7 to 9), flushed())
+        assertEquals(emptyList(), flushed())
+    }
+
+    @Test
+    fun `forEachNonZero lists the varps that aren't 0 in id order`() {
+        vars[20] = 1
+        vars[3] = -1
+        vars[4] = 0
+        val out = mutableListOf<Pair<Int, Int>>()
+        vars.forEachNonZero { id, v -> out.add(id to v) }
+        assertEquals(listOf(3 to -1, 20 to 1), out)
+    }
 }

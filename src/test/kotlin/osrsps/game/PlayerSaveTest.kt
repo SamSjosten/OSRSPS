@@ -1,0 +1,126 @@
+package osrsps.game
+
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import org.junit.jupiter.api.io.TempDir
+import osrsps.map.CollisionMap
+
+class PlayerSaveTest {
+    private val saves = MemorySaveStore()
+    private val world = World(IntArray(0), CollisionMap(), saves = saves)
+
+    @Test
+    fun `a saved player loads back where they were with the same state`() {
+        val player = world.loadPlayer(1, "Test")
+        player.x = 3210
+        player.z = 3270
+        player.level = 1
+        player.runEnergy = 4_321
+        player.runEnabled = true
+        player.vars[1_000] = -5
+        player.skills.setLevel(Skill.ATTACK, 99)
+        player.skills.addTenths(Skill.COOKING, 175)
+        player.skills.setCurrentLevel(Skill.STRENGTH, 5)
+        assertTrue(world.save(player))
+
+        val loaded = world.loadPlayer(2, "test")
+        assertEquals(listOf(3210, 3270, 1), listOf(loaded.x, loaded.z, loaded.level))
+        assertEquals(listOf(3210 shr 3, 3270 shr 3), listOf(loaded.buildAreaZoneX, loaded.buildAreaZoneZ))
+        assertEquals(4_321, loaded.runEnergy)
+        assertTrue(loaded.runEnabled)
+        assertEquals(-5, loaded.vars[1_000])
+        assertEquals(99, loaded.skills.baseLevel(Skill.ATTACK))
+        assertEquals(175, loaded.skills.tenths(Skill.COOKING))
+        assertEquals(5, loaded.skills.currentLevel(Skill.STRENGTH))
+        assertEquals(10, loaded.skills.currentLevel(Skill.HITPOINTS))
+        assertEquals(player.skills.combatLevel, loaded.skills.combatLevel)
+    }
+
+    @Test
+    fun `a player with no save starts new in Lumbridge`() {
+        val player = world.loadPlayer(1, "nobody")
+        assertEquals(listOf(World.SPAWN_X, World.SPAWN_Z, World.SPAWN_LEVEL), listOf(player.x, player.z, player.level))
+        assertEquals(Movement.MAX_ENERGY, player.runEnergy)
+        assertEquals(3, player.skills.combatLevel)
+    }
+
+    @Test
+    fun `the save is readable JSON with only the varps that aren't 0`() {
+        val player = world.loadPlayer(1, "Test")
+        player.vars[173] = 1
+        world.save(player)
+        val text = saves.saves.getValue("test")
+        assertTrue("\"version\": 1" in text)
+        assertTrue("\"username\": \"Test\"" in text)
+        assertTrue("\"173\": 1" in text)
+        assertEquals(1, PlayerSave.fromJson(text).varps.size)
+    }
+
+    @Test
+    fun `loaded varps are sent on the first flush`() {
+        val player = world.loadPlayer(1, "Test")
+        player.vars[173] = 1
+        world.save(player)
+        val sent = mutableListOf<Pair<Int, Int>>()
+        world.loadPlayer(2, "Test").vars.flush { varp, value -> sent += varp to value }
+        assertEquals(listOf(173 to 1), sent)
+    }
+
+    @Test
+    fun `a varp the cache no longer has is dropped instead of failing the login`() {
+        saves.write("test", PlayerSave(3222, 3218, 0, 10_000, mapOf(173 to 1, 9_999 to 7), emptyMap()).toJson("test"))
+        val player = world.loadPlayer(1, "test")
+        assertEquals(1, player.vars[173])
+    }
+
+    @Test
+    fun `saves that can't be used are refused`() {
+        val good = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        val bad = listOf(
+            "not json",
+            "[]",
+            good.replace("\"version\": 1", "\"version\": 2"),
+            good.replace("\"level\": 0", "\"level\": 4"),
+            good.replace("\"runEnergy\": 10000", "\"runEnergy\": 10001"),
+            good.replace("\"runEnergy\": 10000", "\"runEnergy\": \"full\""),
+            good.replace("\"skills\": {}", "\"skills\": {\"attack\": {\"xpTenths\": -1, \"currentLevel\": 1}}"),
+            good.replace("\"skills\": {}", "\"skills\": {\"dancing\": {\"xpTenths\": 0, \"currentLevel\": 1}}"),
+            good.replace("\"varps\": {}", "\"varps\": {\"abc\": 1}"),
+            good.replace("\"position\"", "\"place\""),
+        )
+        for (text in bad) {
+            saves.write("test", text)
+            assertFailsWith<IllegalArgumentException>(text) { world.loadPlayer(1, "test") }
+        }
+    }
+
+    @Test
+    fun `save keys ignore case and spaces and can't leave the folder`() {
+        assertEquals("zezima", SaveStore.saveKey(" Zezima "))
+        assertEquals("iron_man", SaveStore.saveKey("Iron Man"))
+        assertEquals(SaveStore.saveKey("iron man"), SaveStore.saveKey("IRON_MAN"))
+        assertEquals("%2e%2e%2fetc", SaveStore.saveKey("../etc"))
+        assertEquals("a%40b%2ecom", SaveStore.saveKey("a@b.com"))
+        assertEquals("%c3%a9", SaveStore.saveKey("é"))
+        assertNull(SaveStore.saveKey("   "))
+        assertNull(SaveStore.saveKey("x".repeat(SaveStore.MAX_KEY_LENGTH + 1)))
+    }
+
+    @Test
+    fun `file saves are read back, replaced whole and leave no temporary file`(@TempDir dir: Path) {
+        val store = FileSaveStore(dir.resolve("saves"))
+        assertNull(store.read("test"))
+        store.write("test", "one")
+        store.write("test", "two")
+        assertEquals("two", store.read("test"))
+        assertEquals(listOf("test.json"), dir.resolve("saves").listDirectoryEntries().map { it.name })
+        assertEquals("two", Files.readString(dir.resolve("saves/test.json")))
+    }
+}
