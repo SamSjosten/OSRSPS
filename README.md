@@ -148,12 +148,28 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::varp id [value]` | Shows a varp, or sets it. `::varp 173 1` turns the run orb on |
 | `::varbit id [value]` | Shows a varbit with the varp and bits it lives in, or sets it |
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
+| `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
+| `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too |
+| `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
 Varps and varbits are per player (`Player.vars`). Varbit layouts come from cache config 14 and the number of varps
 from config 16; a changed varp is sent once at the end of the cycle, with its value then, so `::varp` also shows while
 paused. The run orb is varp 173.
+
+Skills are per player too (`Player.skills`): all 24, Sailing included, by name, short name (`hp`, `rc`, `wc`) or id.
+XP is kept in tenths and sent whole; a changed skill is sent once at the end of the cycle (so also while paused), every
+skill on the first one, and the combat level goes out in the appearance block when it changes. Current hitpoints are
+the Hitpoints skill's current level (`Player.hitpoints`).
+
+| Skills behaviour | Source |
+|------------------|--------|
+| XP table, 200M XP cap, XP kept to one decimal place | OSRS Wiki, Experience |
+| Combat level ⌊¼ (Defence + Hitpoints + ⌊Prayer / 2⌋) + 13⁄40 max(Attack + Strength, ⌊3 Ranged / 2⌋, ⌊3 Magic / 2⌋)⌋ | OSRS Wiki, Combat level |
+| New account: 10 Hitpoints, 1 elsewhere | OSRS Wiki |
+| A level gained while boosted or drained raises the current level by one | inferred, not measured |
+| The stat packet's invisible boost equals the current level | guessed |
 
 ## Tick control
 

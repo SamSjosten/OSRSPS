@@ -16,6 +16,7 @@ import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
 import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
+import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
 import net.rsprot.protocol.game.outgoing.varp.VarpLarge
 import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.loginprot.incoming.util.AuthenticationType
@@ -25,6 +26,7 @@ import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
+import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.map.CollisionFlag
@@ -58,6 +60,7 @@ class World(
         registerDevCommands(this@World)
         registerTickCommands(this@World)
         registerVarCommands()
+        registerSkillCommands()
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -159,9 +162,12 @@ class World(
 
     /** Sends every player this cycle's updates. [tickEnd] says whether the cycle was a game tick. */
     private fun sendUpdates(tickEnd: Boolean) {
-        // Here rather than in the movement loop so a ::varp typed while paused shows without waiting for a step.
+        // Here rather than in the movement loop so a ::varp or ::setlevel typed while paused shows without waiting for a
+        // step.
         for (player in players) {
-            if (player != null) sendVars(player)
+            if (player == null) continue
+            sendVars(player)
+            sendStats(player)
         }
         network.infoProtocols.update()
         for (player in players) {
@@ -249,7 +255,6 @@ class World(
 
         val appearance = infos.playerInfo.avatar.extendedInfo
         appearance.setName(player.username)
-        appearance.setCombatLevel(3)
         // Default male look and the standard human animations. Guessed, not checked against live.
         DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
         for (slot in 0 until 5) appearance.setColour(slot, 0)
@@ -376,6 +381,22 @@ class World(
         player.vars.flush { varp, value ->
             // Same split as the client's two packets: a value that fits a signed byte goes in the small one.
             player.session.queue(if (value in Byte.MIN_VALUE..Byte.MAX_VALUE) VarpSmall(varp, value) else VarpLarge(varp, value))
+        }
+    }
+
+    /**
+     * Sends the skills that changed this cycle, and the combat level over player info when it changes. Every skill is
+     * sent on the first cycle, as the client starts them all at 0.
+     */
+    private fun sendStats(player: Player) {
+        player.skills.flush { skill, currentLevel, xp ->
+            // Guessed: the invisible boost is the current level unless something hides a boost, which nothing does yet.
+            player.session.queue(UpdateStatV2(skill.id, currentLevel, currentLevel, xp))
+        }
+        val combatLevel = player.skills.combatLevel
+        if (combatLevel != player.sentCombatLevel) {
+            player.infos.playerInfo.avatar.extendedInfo.setCombatLevel(combatLevel)
+            player.sentCombatLevel = combatLevel
         }
     }
 
