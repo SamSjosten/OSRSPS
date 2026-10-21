@@ -25,6 +25,7 @@ import net.rsprot.protocol.game.incoming.misc.user.CloseModal
 import net.rsprot.protocol.game.incoming.misc.user.MoveGameClick
 import net.rsprot.protocol.game.incoming.misc.user.MoveMinimapClick
 import net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings
+import net.rsprot.protocol.game.incoming.npcs.OpNpc6
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
 import net.rsprot.protocol.loginprot.incoming.pow.NopProofOfWorkProvider
@@ -113,6 +114,8 @@ class NetworkFactory(
                 message.targetInterfaceId, message.targetComponentId, message.targetSub, message.targetObj,
             )
         })
+        // The other NPC options (OpNpcV2) come with task 17, which walks the player to the NPC first.
+        builder.addListener(OpNpc6::class.java, MessageConsumer { player, message -> world.onNpcExamine(player, message.id) })
         builder.addListener(CloseModal::class.java, MessageConsumer { player, _ -> world.onCloseModal(player) })
         return DefaultGameMessageConsumerRepositoryProvider(builder.build())
     }

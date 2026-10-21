@@ -14,6 +14,7 @@ import net.rsprot.protocol.game.outgoing.logout.Logout
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
 import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
+import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
@@ -27,12 +28,17 @@ import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerItemCommands
+import osrsps.game.command.registerNpcCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
+import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcExamines
+import osrsps.game.npc.NpcSpawn
+import osrsps.game.npc.Npcs
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.ScriptRunner
@@ -62,6 +68,10 @@ class World(
     /** Where players are saved on logout and every [AUTOSAVE_CYCLES]. */
     private val saves: SaveStore = MemorySaveStore(),
     val objTypes: ObjTypes = ObjTypes.NONE,
+    val npcTypes: NpcTypes = NpcTypes.NONE,
+    /** The NPCs put in the world when it starts. */
+    private val npcSpawns: List<NpcSpawn> = emptyList(),
+    private val npcExamines: NpcExamines = NpcExamines.NONE,
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -77,6 +87,8 @@ class World(
     /** Locs, ground objs, graphics, projectiles and sounds, sent to the players near them. */
     val zones = Zones()
 
+    val npcs = Npcs(collision, random)
+
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
     private val inventoryTab = InventoryTab(objTypes, scripts, interfaces::closeModals)
@@ -90,6 +102,7 @@ class World(
         registerScriptCommands(this@World)
         registerZoneCommands(this@World)
         registerItemCommands(this@World)
+        registerNpcCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -148,7 +161,11 @@ class World(
     }
 
     fun start() {
-        executor.execute { network.setCommunicationThread(Thread.currentThread(), true) }
+        executor.execute {
+            network.setCommunicationThread(Thread.currentThread(), true)
+            // On the game thread: RSProt hands out NPC avatars only there.
+            spawnNpcs()
+        }
         executor.scheduleAtFixedRate(::safeCycle, TICK_MILLIS, TICK_MILLIS, TimeUnit.MILLISECONDS)
     }
 
@@ -181,6 +198,8 @@ class World(
         tick++
         phase = TickPhase.INPUT
         readInput(ticking = true)
+        phase = TickPhase.NPCS
+        npcs.process()
         phase = TickPhase.SCRIPTS
         for (player in players) {
             if (player != null) scripts.process(player)
@@ -561,6 +580,49 @@ class World(
         logger.info { "${player.username} used $interfaceId:$componentId sub $fromSub on $toInterfaceId:$toComponentId sub $toSub (not handled)" }
     }
 
+    /**
+     * Examine on an NPC of type [id]. Inferred: live answers with a game message of chat type 28, which RuneLite's
+     * ChatMessageType calls NPC_EXAMINE; not checked against a recording.
+     */
+    fun onNpcExamine(player: Player, id: Int) = act(player) {
+        val text = npcExamines[id]
+        if (text != null) {
+            player.session.queue(MessageGame(CHATTYPE_NPC_EXAMINE, text))
+            return@act
+        }
+        // Not live behaviour: tells the tester the text is missing from npc-examines.json.
+        val name = npcTypes[id]?.name ?: "NPC"
+        player.message("No examine text for $name ($id) yet.")
+    }
+
+    private fun spawnNpcs() {
+        var spawned = 0
+        for (spawn in npcSpawns) {
+            if (spawnNpc(spawn) != null) spawned++
+        }
+        if (npcSpawns.isNotEmpty()) logger.info { "Spawned $spawned of ${npcSpawns.size} NPCs" }
+    }
+
+    /** Puts an NPC in the world. Returns null, after logging why, if there is no room for it. */
+    fun spawnNpc(spawn: NpcSpawn): Npc? {
+        val npc = npcs.add(spawn)
+        if (npc == null) {
+            logger.warn { "No free NPC slot for ${spawn.type} from ${spawn.source}" }
+            return null
+        }
+        // No network in unit tests: the NPC then exists without being sent to anyone.
+        if (this::network.isInitialized) {
+            npc.avatar = network.npcAvatarFactory.alloc(npc.index, spawn.type.id, npc.level, npc.x, npc.z, direction = spawn.direction.id)
+        }
+        return npc
+    }
+
+    fun removeNpc(npc: Npc) {
+        npcs.remove(npc)
+        npc.avatar?.let(network.npcAvatarFactory::release)
+        npc.avatar = null
+    }
+
     /** The client closed its modal: Esc, or a close button. */
     fun onCloseModal(player: Player) = act(player) { scripts.interrupt(player) }
 
@@ -722,6 +784,9 @@ class World(
         const val SPAWN_X = 3222
         const val SPAWN_Z = 3218
         const val SPAWN_LEVEL = 0
+
+        /** RuneLite's ChatMessageType.NPC_EXAMINE. */
+        const val CHATTYPE_NPC_EXAMINE = 28
 
         /** has_displayname_transmitter in RuneLite's VarbitID. */
         const val VARBIT_HAS_DISPLAYNAME = 8119
