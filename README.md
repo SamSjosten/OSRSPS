@@ -433,7 +433,7 @@ any varps or varbits. Scenarios are JSON files in `src/main/resources/scenarios/
 |--------------------|--------|
 | What a scenario leaves out is reset: unnamed skills are a new account's, run energy is full, slots it doesn't fill are empty | ours, so a scenario always starts the same |
 | Varps and varbits it doesn't name, and the run orb unless it says, are kept | ours: they hold settings and quest states |
-| Starting one closes interfaces and drops queued scripts, timers and delays | ours |
+| Starting one, or `::reset`, closes interfaces and drops queued scripts, timers, delays and clicks held while paused | ours |
 | Items are checked against the cache before anything changes; level requirements aren't checked | ours |
 
 `::reset` puts back the player as they were before their first `::scenario`: a second scenario still resets to before

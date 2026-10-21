@@ -103,11 +103,13 @@ class ScriptRunner(
     }
 
     /**
-     * Drops everything [player] had going: modals, every queue, timers and a delay, whose script never carries on.
-     * For `::scenario` and `::reset`, which start from a clean slate; not something live does.
+     * Drops everything [player] had going: modals, every queue, timers, a delay (whose script never carries on) and
+     * clicks held while the clock is paused. For `::scenario` and `::reset`, which start from a clean slate; not
+     * something live does.
      */
     fun clearAll(player: Player) {
         closeModals(player)
+        player.heldActions.clear()
         val state = player.scripts
         state.queue.clear()
         state.weakQueue.clear()

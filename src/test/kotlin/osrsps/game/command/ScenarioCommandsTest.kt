@@ -144,6 +144,17 @@ class ScenarioCommandsTest {
     }
 
     @Test
+    fun `clicks held while paused don't run into the scenario or the reset`() {
+        player.heldActions.addLast { player.runEnabled = false }
+        run("scenario cows")
+        assertTrue(player.heldActions.isEmpty())
+        player.heldActions.addLast { player.inventory.clear() }
+        run("reset")
+        assertTrue(player.heldActions.isEmpty())
+        assertEquals(listOf(5 to InvObj(1351, 1)), player.inventory.contents())
+    }
+
+    @Test
     fun `a scenario that can't start changes nothing`() {
         run("scenario ghost")
         assertEquals(listOf("Scenario ghost can't start: The cache has no item 'ectoplasm'"), replies)
