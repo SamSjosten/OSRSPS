@@ -20,6 +20,8 @@ import net.rsprot.protocol.game.incoming.buttons.If1Button
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import net.rsprot.protocol.game.incoming.buttons.IfButtonD
 import net.rsprot.protocol.game.incoming.buttons.IfButtonT
+import net.rsprot.protocol.game.incoming.locs.OpLoc6
+import net.rsprot.protocol.game.incoming.locs.OpLocV2
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import net.rsprot.protocol.game.incoming.misc.user.CloseModal
@@ -117,6 +119,10 @@ class NetworkFactory(
                 message.targetInterfaceId, message.targetComponentId, message.targetSub, message.targetObj,
             )
         })
+        builder.addListener(OpLocV2::class.java, MessageConsumer { player, message ->
+            world.onLocOp(player, message.id, message.x, message.z, message.op, message.controlKey)
+        })
+        builder.addListener(OpLoc6::class.java, MessageConsumer { player, message -> world.onLocExamine(player, message.id) })
         // The other NPC options (OpNpcV2) come with task 17, which walks the player to the NPC first.
         builder.addListener(OpNpc6::class.java, MessageConsumer { player, message -> world.onNpcExamine(player, message.id) })
         builder.addListener(CloseModal::class.java, MessageConsumer { player, _ -> world.onCloseModal(player) })

@@ -8,7 +8,9 @@ import kotlin.io.path.createFile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionFlag
 
 class MapCollisionLoaderTest {
@@ -128,6 +130,52 @@ class MapCollisionLoaderTest {
         assertEquals(1, type.width)
         assertEquals(3, type.length)
         assertEquals(1, type.interactType)
+    }
+
+    @Test
+    fun `reads a loc type's name, options, access sides and multiloc`() {
+        fun text(value: String) = value.toByteArray(Charsets.ISO_8859_1).toList() + 0.toByte()
+        val def = (
+            listOf<Byte>(2) + text("Door") +
+                listOf<Byte>(30) + text("Open") +
+                listOf<Byte>(31) + text("Hidden") +
+                listOf<Byte>(19, 1, 69, 29) +
+                listOf<Byte>(92, 0, 1, 0, 2, 0, 9, 1, 0, 3, 0, 4) + // multiloc with a default: varbit, varp, default, count 1, two ids
+                listOf<Byte>(0)
+            ).toByteArray()
+        val type = LocTypeDecoder.decode(1535, def, "poordoor")
+        assertEquals("Door", type.name)
+        assertEquals(listOf("Open", null, null, null, null), type.ops)
+        assertEquals(1, type.op("open"))
+        assertEquals(29, type.accessBlock)
+        assertTrue(type.multiloc)
+        assertEquals("poordoor", type.internalName)
+    }
+
+    @Test
+    fun `keeps the map's locs and the loc types' gameval names`(@TempDir dir: Path) {
+        val cacheDir = Files.createDirectories(dir.resolve("cache"))
+        cacheDir.resolve("main_file_cache.dat2").createFile()
+        cacheDir.resolve("main_file_cache.idx255").createFile()
+        val library = CacheLibrary.create(cacheDir.toString())
+        repeat(5) { library.createIndex(named = true) }
+        library.createIndex(named = false)
+        repeat(19) { library.createIndex(named = false) }
+        library.put(0, 0, kotlin.random.Random(1).nextBytes(100_000))
+        library.put(2, 6, 5, byteArrayOf(14, 2, 0))
+        library.put(24, 6, 5, "table".toByteArray())
+        library.put(5, (50 shl 8) or 50, 0, terrain(emptyMap()))
+        library.put(5, (50 shl 8) or 50, 1, locs(5, 20, 21, 0, 10, 1))
+        library.update()
+        library.close()
+
+        val world = CacheLibrary.create(cacheDir.toString()).use { MapCollisionLoader.loadWorld(it) }
+        assertEquals(listOf(ZoneLoc(5, 10, 1, 3220, 3221, 0)), world.locs.at(3220, 3221, 0))
+        assertEquals(1, world.locs.size)
+        assertEquals("table", world.locTypes[5]?.internalName)
+        assertEquals(2, world.locTypes[5]?.width)
+        // Turned a quarter, the 2x1 table covers 3220, 3221 and 3220, 3222.
+        assertEquals(CollisionFlag.LOC or CollisionFlag.LOC_PROJ, world.collision[3220, 3222, 0])
     }
 }
 
