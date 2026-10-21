@@ -1,5 +1,7 @@
 package osrsps.game.script
 
+import osrsps.game.zone.ZoneObj
+
 /** What a player can click an option on. */
 enum class OpTarget {
     /** A loc (object) in the world, by loc type id. */
@@ -11,6 +13,9 @@ enum class OpTarget {
     /** An item (obj) in the inventory, by obj type id. */
     OBJ,
 
+    /** An item (obj) on the ground, by obj type id, once the player has reached it. */
+    GROUND_OBJ,
+
     /** An interface component, by [Op.button]'s packed id. */
     BUTTON,
 }
@@ -18,8 +23,9 @@ enum class OpTarget {
 /**
  * One click on an option: [option] is 1 to 5 for locs, NPCs and items (op1 to op5, as in the cache's option lists) and
  * 1 to 10 for buttons. [sub] is the button's slot (an inventory slot, a dropdown entry), -1 when there is none.
+ * [groundObj] is the obj clicked on the ground, for [OpTarget.GROUND_OBJ].
  */
-data class Op(val target: OpTarget, val id: Int, val option: Int, val sub: Int = -1) {
+data class Op(val target: OpTarget, val id: Int, val option: Int, val sub: Int = -1, val groundObj: ZoneObj? = null) {
     val interfaceId: Int get() = id ushr 16
     val componentId: Int get() = id and 0xFFFF
 
@@ -46,8 +52,8 @@ typealias Handler = suspend ScriptContext.(Op) -> Unit
  * Content handlers, by what was clicked and which option. A handler registered for [ANY_OPTION] catches every option
  * that has no handler of its own.
  *
- * Clicks on buttons and on inventory items (iop1 to iop5, with the slot as [Op.sub]) reach handlers so far; locs come
- * with task 11 and NPCs with task 17, each after walking to the target.
+ * Clicks on buttons, on inventory items (iop1 to iop5, with the slot as [Op.sub]) and on ground objs (op1 to op5, once
+ * the player has walked to them) reach handlers so far; locs come with task 11 and NPCs with task 17.
  */
 class Handlers {
     private val handlers = HashMap<Key, Handler>()
@@ -59,6 +65,9 @@ class Handlers {
     fun onNpc(id: Int, option: Int, handler: Handler) = register(OpTarget.NPC, id, option, handler)
 
     fun onObj(id: Int, option: Int, handler: Handler) = register(OpTarget.OBJ, id, option, handler)
+
+    /** An option on obj [id] on the ground. A handler for op3 replaces the built-in Take for that obj. */
+    fun onGroundObj(id: Int, option: Int, handler: Handler) = register(OpTarget.GROUND_OBJ, id, option, handler)
 
     fun onButton(interfaceId: Int, componentId: Int, option: Int = ANY_OPTION, handler: Handler) =
         register(OpTarget.BUTTON, Op.packButton(interfaceId, componentId), option, handler)

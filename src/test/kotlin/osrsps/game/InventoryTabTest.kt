@@ -20,7 +20,8 @@ class InventoryTabTest {
     private val sent = mutableListOf<OutgoingGameMessage>()
     private var modalsClosed = 0
     private val scripts = ScriptRunner(handlers, { modalsClosed++ }) { 0 }
-    private val tab = InventoryTab(ObjTypes.of(axe, coins), scripts, { modalsClosed++ }) { _, message -> sent += message }
+    private val dropped = mutableListOf<Int>()
+    private val tab = InventoryTab(ObjTypes.of(axe, coins), scripts, { modalsClosed++ }, { _, slot -> dropped += slot }) { _, message -> sent += message }
     private val player = Player(1, "test", 3222, 3218, 0)
 
     private fun messages() = sent.filterIsInstance<MessageGame>().map { it.message }
@@ -51,8 +52,23 @@ class InventoryTabTest {
     @Test
     fun `an option nothing handles says nothing interesting happens`() {
         player.inventory.add(axe, 1)
-        tab.click(player, 0, 1351, 7)
+        tab.click(player, 0, 1351, 3)
         assertEquals(listOf("Nothing interesting happens."), messages())
+    }
+
+    @Test
+    fun `Drop drops the slot, unless a handler takes the option`() {
+        player.inventory.add(axe, 1)
+        player.inventory.add(axe, 1)
+        tab.click(player, 1, 1351, 7)
+        assertEquals(listOf(1), dropped)
+        assertTrue(messages().isEmpty())
+
+        val ran = mutableListOf<Op>()
+        handlers.onObj(1351, 5) { ran += it }
+        tab.click(player, 0, 1351, 7)
+        assertEquals(listOf(1), dropped)
+        assertEquals(listOf(Op(OpTarget.OBJ, 1351, 5, 0)), ran)
     }
 
     @Test

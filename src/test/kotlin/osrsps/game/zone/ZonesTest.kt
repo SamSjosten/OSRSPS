@@ -12,6 +12,7 @@ import net.rsprot.protocol.game.outgoing.zone.payload.LocAddChangeV2
 import net.rsprot.protocol.game.outgoing.zone.payload.LocDel
 import net.rsprot.protocol.game.outgoing.zone.payload.MapAnim
 import net.rsprot.protocol.game.outgoing.zone.payload.ObjAdd
+import net.rsprot.protocol.game.outgoing.zone.payload.ObjCount
 import net.rsprot.protocol.game.outgoing.zone.payload.ObjDel
 import net.rsprot.protocol.message.OutgoingGameMessage
 import net.rsprot.protocol.message.ZoneProt
@@ -211,5 +212,42 @@ class ZonesTest {
         val updates = cycle(alice).single()
         assertEquals(42, updates.size)
         assertTrue(updates.all { it.zoneX >= 0 })
+    }
+
+    @Test
+    fun `a public obj someone dropped tells each client whose it is`() {
+        cycle(alice, bob)
+        zones.addObj(ZoneObj(1351, 1, 3222, 3218, 0, droppedBy = "alice", ticksUntilDespawn = 50))
+        val (toAlice, toBob) = cycle(alice, bob).map { updates -> updates.single().own.single() as ObjAdd }
+        assertEquals(listOf(Zones.OWNERSHIP_SELF, 50), listOf(toAlice.ownershipType, toAlice.timeUntilDespawn))
+        assertEquals(listOf(Zones.OWNERSHIP_OTHER, 50), listOf(toBob.ownershipType, toBob.timeUntilDespawn))
+    }
+
+    @Test
+    fun `revealing a private obj tells everyone but its owner`() {
+        val obj = ZoneObj(995, 5, 3222, 3218, 0, owner = "alice", ticksUntilPublic = 3)
+        zones.addObj(obj)
+        cycle(alice, bob)
+        zones.revealObj(obj)
+        val (toAlice, toBob) = cycle(alice, bob)
+        assertEquals(emptyList(), toAlice)
+        val add = toBob.single().own.single() as ObjAdd
+        assertEquals(listOf(995, 5, Zones.OWNERSHIP_OTHER, 0), listOf(add.id, add.quantity, add.ownershipType, add.timeUntilPublic))
+        assertTrue(obj.visibleTo("bob"))
+    }
+
+    @Test
+    fun `a stack's new count goes to whoever can see it`() {
+        val private = ZoneObj(995, 5, 3222, 3218, 0, owner = "alice")
+        val public = ZoneObj(995, 7, 3223, 3218, 0)
+        zones.addObj(private)
+        zones.addObj(public)
+        cycle(alice, bob)
+        zones.setObjCount(private, 8)
+        zones.setObjCount(public, 9)
+        val (toAlice, toBob) = cycle(alice, bob)
+        assertEquals(listOf(5 to 8), toAlice.single().own.map { (it as ObjCount).oldQuantity to it.newQuantity })
+        assertEquals(listOf(7 to 9), toBob.single().shared.map { (it as ObjCount).oldQuantity to it.newQuantity })
+        assertTrue(toBob.single().own.isEmpty())
     }
 }

@@ -22,6 +22,8 @@ class InventoryTab(
     private val objTypes: ObjTypes,
     private val scripts: ScriptRunner,
     private val closeModals: (Player) -> Unit,
+    /** Drops the slot's stack on the ground; see [GroundObjs.drop]. */
+    private val onDrop: (Player, Int) -> Unit = { _, _ -> },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     /** Lets the client send clicks, drags and "Use" on the 28 slots. Sent once the panel is open on login. */
@@ -75,6 +77,10 @@ class InventoryTab(
         // Clicking an item closes any open modal, as RSMod does. It doesn't stop the player walking.
         closeModals(player)
         if (scripts.trigger(player, Op(OpTarget.OBJ, type.id, option, slot))) return
+        if (type.iop(option).equals(DROP, ignoreCase = true)) {
+            onDrop(player, slot)
+            return
+        }
         logger.info { "${player.username} picked ${type.iop(option)} on $type in slot $slot (not handled)" }
         nothingInteresting(player)
     }
@@ -142,6 +148,9 @@ class InventoryTab(
         const val ITEMS = 0
 
         const val EXAMINE_OP = 10
+
+        /** The inventory option that drops the item, unless a handler takes it. */
+        const val DROP = "Drop"
         const val EXAMINE_SCRIPT = 6003
         const val NOTHING_INTERESTING = "Nothing interesting happens."
         private const val CHATTYPE_GAMEMESSAGE = 0

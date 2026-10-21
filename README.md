@@ -154,8 +154,10 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
-| `::groundobj id [count]` | Puts obj `id` on your tile for everyone, until `::cleartile` or a restart (no ground item timers yet) |
-| `::cleartile` | Removes every obj from your tile |
+| `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
+| `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
+| `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
+| `::cleartile` | Removes every obj from your tile; item spawns there come back as if taken |
 | `::item id\|name [count]` | Puts items in your inventory, by id, menu name or gameval name: `::item 1351`, `::item bronze axe 2`, `::item coins 10k`. Adds what fits |
 | `::empty` | Empties your inventory |
 
@@ -232,6 +234,47 @@ JDK or Kotlin upgrades. It is not the generator live uses: only repeatability ma
 rolls are made in player index order within each tick phase, so the same seed also needs the same players in the same
 slots (inferred from the tick loop; nothing rolls yet).
 
+## Ground items
+
+Everything on the ground goes through `World.groundObjs` (`game/GroundObjs.kt`): Drop in the inventory, walking to
+an item and taking it, the timers, and item spawns. The clients are sent it through the zone updates below. Each obj
+tells the client whose it is and the ticks until it turns public and until it disappears, which RuneLite's ground item
+plugins read.
+
+| Ground item behaviour | Source |
+|-----------------------|--------|
+| A drop is only the dropper's for 100 ticks (60 s) | OSRS Wiki, Drop and Dropped items |
+| A tradeable drop then turns public and disappears 300 ticks (3 minutes) after the drop | OSRS Wiki, Drop ("visible after 60 s, disappear after another 120 s"); the Dropped items page's 200 ticks is for monster drops |
+| An untradeable drop never turns public and disappears after 300 ticks; its timer stops while its owner is logged out | OSRS Wiki, Drop |
+| Spawn respawn time ⌊BaseRate × (4000 − players) / 4000⌋, counted when taken | OSRS Wiki, Item spawn; each spawn's BaseRate is content's, default 100 ticks guessed |
+| Timers run once a tick before players' input | guessed phase |
+| A stackable drop joins the dropper's private stack on that tile and its timers start again | RSMod merges; restarting the timers is guessed |
+| Take is op3; the player walks onto the item and takes it the tick they arrive | the cache's default ground ops; tick from the RS2 world cycle, inferred |
+| An item on a tile you can't stand on (a table) is taken from the tile beside it, north/south/east/west with no wall between, a tick later | RSMod and inferred; RSMod also plays animation 832, which waits for task 12 |
+| "I can't reach that!", "Too late - it's gone!", "You don't have enough inventory space to hold that item." | RSMod (rev 233), not checked against live |
+| An item that vanished while you walked to it just ends the walk | guessed |
+| Ground Examine shows the inventory examine (script 6003) | guessed |
+| The obj times are in ticks and 0 means none | inferred from RSProt and RuneLite's TileItem |
+
+Not built yet: the drop and pick-up sounds and the table animation (they wait for task 12's sound and animation
+calls), the warning before dropping an item worth 30,000 coins or more (needs dialogue, task 18), the Wilderness rules,
+items placed on tables, the 128-items-a-tile limit, and "Use" of an item on a ground item.
+
+Content adds item spawns in tab-separated files under `src/main/resources/obj-spawns/`, one per area:
+
+```
+obj	count	x	z	level	respawn	# source
+bronze_axe	1	3225	3218	0	100	# wiki item spawn list; respawn guessed
+```
+
+`obj` is a gameval name or id, `respawn` the BaseRate in ticks; the format is in `ObjSpawnFiles`. Content can also
+handle a ground option with `Handlers.onGroundObj(id, option)`, which gets the obj as `Op.groundObj`; one on op3
+replaces Take for that item.
+
+Check with two clients near each other: `::item bronze axe`, then Drop it on the first. `::grounditems` there shows it
+private, public in 100 ticks. The second client sees nothing until 60 s later, when the axe appears for it; take it
+with the second client. RuneLite's Ground Items plugin with its despawn timer on shows the times counting down.
+
 ## Zone updates
 
 The map is split into zones of 8x8 tiles per level, and everything other players must see happen on the ground goes
@@ -255,7 +298,7 @@ player alone. Zone updates are sent on paused cycles too, so `::gfx` typed while
 | `::proj` flight values (heights, timing, arc) | guessed |
 
 Check with two clients logged in near each other: `::gfx 85` on one shows the graphic on both (any spotanim id works;
-85 should be the magic splash, from memory). `::groundobj 1351` shows a bronze axe to both; walk the second client 40
+85 should be the magic splash, from memory). `::groundobj 1351` shows a bronze axe to both at once; walk the second client 40
 tiles away and back, or log it out and in, and the axe is still there.
 
 ## Chat

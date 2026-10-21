@@ -30,14 +30,14 @@ fun CommandRegistry.registerItemCommands(world: World) {
     }
 }
 
-private fun findItem(world: World, text: String): ObjType? {
+internal fun findItem(world: World, text: String): ObjType? {
     val types = world.objTypes
     text.toIntOrNull()?.let { return types[it] }
     return types.find(text.replace(' ', '_')) ?: types.findByName(text)
 }
 
 /** "5", "10k" or "2m" to a count from 1 to Int.MAX_VALUE; null for anything else. */
-private fun parseCount(text: String): Int? {
+internal fun parseCount(text: String): Int? {
     val multiplier = when (text.lowercase().lastOrNull()) {
         'k' -> 1_000L
         'm' -> 1_000_000L

@@ -20,6 +20,8 @@ import net.rsprot.protocol.game.incoming.buttons.If3Button
 import net.rsprot.protocol.game.incoming.buttons.IfButtonD
 import net.rsprot.protocol.game.incoming.buttons.IfButtonT
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic
+import net.rsprot.protocol.game.incoming.objs.OpObj6
+import net.rsprot.protocol.game.incoming.objs.OpObjV2
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import net.rsprot.protocol.game.incoming.misc.user.CloseModal
 import net.rsprot.protocol.game.incoming.misc.user.MoveGameClick
@@ -112,6 +114,12 @@ class NetworkFactory(
                 player, message.selectedInterfaceId, message.selectedComponentId, message.selectedSub, message.selectedObj,
                 message.targetInterfaceId, message.targetComponentId, message.targetSub, message.targetObj,
             )
+        })
+        builder.addListener(OpObjV2::class.java, MessageConsumer { player, message ->
+            world.onGroundObjOp(player, message.id, message.x, message.z, message.op, message.controlKey)
+        })
+        builder.addListener(OpObj6::class.java, MessageConsumer { player, message ->
+            world.onGroundObjExamine(player, message.id, message.x, message.z)
         })
         builder.addListener(CloseModal::class.java, MessageConsumer { player, _ -> world.onCloseModal(player) })
         return DefaultGameMessageConsumerRepositoryProvider(builder.build())

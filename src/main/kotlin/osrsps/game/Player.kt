@@ -70,6 +70,9 @@ class Player(
     /** The tick the lost connection was noticed on, or -1 while connected. */
     var connectionLostTick: Long = -1
 
+    /** What the player is walking to do, such as taking a ground obj; null when nothing. */
+    var interaction: Interaction? = null
+
     /** Turning points of the current route, next one first. */
     val waypoints = ArrayDeque<Tile>()
 

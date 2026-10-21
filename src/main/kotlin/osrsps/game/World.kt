@@ -26,6 +26,7 @@ import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
+import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
@@ -79,7 +80,10 @@ class World(
 
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
-    private val inventoryTab = InventoryTab(objTypes, scripts, interfaces::closeModals)
+    /** Items on the ground: drops, takes, their timers and item spawns. */
+    val groundObjs = GroundObjs(zones, objTypes, scripts, collision, { findPlayer(it) != null }, { players.count { it != null } })
+
+    private val inventoryTab = InventoryTab(objTypes, scripts, interfaces::closeModals, onDrop = groundObjs::drop)
 
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
@@ -90,6 +94,7 @@ class World(
         registerScriptCommands(this@World)
         registerZoneCommands(this@World)
         registerItemCommands(this@World)
+        registerGroundObjCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -179,6 +184,8 @@ class World(
 
     private fun tick() {
         tick++
+        phase = TickPhase.WORLD
+        groundObjs.process()
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.SCRIPTS
@@ -190,6 +197,7 @@ class World(
             if (player == null) continue
             interfaces.processFrameMove(player, tick)
             move(player)
+            interact(player)
             player.infos.updateRootCoord(player.level, player.x, player.z)
         }
         phase = TickPhase.UPDATES
@@ -445,6 +453,8 @@ class World(
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
         player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
+        // The ground items and loc changes it missed go again too, as after any rebuild.
+        player.zoneView.reset()
     }
 
     private fun enterWorld(player: Player) {
@@ -487,6 +497,7 @@ class World(
         // Inferred: a delayed player can't walk away, as on an agility obstacle.
         if (player.scripts.delayed) return@act
         scripts.interrupt(player)
+        player.interaction = null
         if (keyCombination == 2) {
             // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
             teleport(player, x, z, player.level)
@@ -497,6 +508,26 @@ class World(
         if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)
     }
 
+    /**
+     * A click on option [option] (1 to 5) of obj [id] on the ground. The player walks there and the option runs once
+     * they reach it; see [GroundObjs]. [ctrl] flips walk and run, as on a move click.
+     */
+    fun onGroundObjOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+        // Delayed players can't walk off, as for a move click.
+        if (player.scripts.delayed) return@act
+        val interaction = groundObjs.click(player, id, x, z, option) ?: return@act
+        scripts.interrupt(player)
+        movement.request(player, x, z, invertRun = ctrl)
+        player.interaction = interaction
+    }
+
+    /** Examine on obj [id] on the ground: the same examine as in the inventory. Guessed, not checked against live. */
+    fun onGroundObjExamine(player: Player, id: Int, x: Int, z: Int) = act(player) {
+        val obj = groundObjs.visibleAt(player, x, z, player.level).firstOrNull { it.id == id } ?: return@act
+        val type = objTypes[id] ?: return@act
+        inventoryTab.examine(player, type, obj.count)
+    }
+
     /** A `::` command typed in the chatbox, without the `::`. Commands run straight away, even while paused. */
     fun onCommand(player: Player, input: String) {
         commands.execute(player, input, player::message)
@@ -505,6 +536,7 @@ class World(
     /** Moves [player] straight to the tile, dropping any route. The client is told at the end of the tick. */
     fun teleport(player: Player, x: Int, z: Int, level: Int) {
         player.waypoints.clear()
+        player.interaction = null
         player.x = x
         player.z = z
         player.level = level
@@ -589,6 +621,17 @@ class World(
         }
         sendRunState(player)
         rebuildIfNeeded(player)
+    }
+
+    /**
+     * Carries on the player's interaction after their movement, if they aren't delayed. Inferred from the RS2 world
+     * cycle: an option on something the player just walked up to runs in the tick they arrive.
+     */
+    private fun interact(player: Player) {
+        val interaction = player.interaction ?: return
+        if (player.scripts.delayed) return
+        // The interaction may start another, which then stays.
+        if (interaction.process(player) && player.interaction === interaction) player.interaction = null
     }
 
     private fun moveSpeed(player: Player) = if (player.runEnabled) MOVE_SPEED_RUN else MOVE_SPEED_WALK
