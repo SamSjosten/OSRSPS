@@ -174,6 +174,11 @@ class PlayerSkills {
         }
     }
 
+    /** Makes the next [flush] send every skill again. */
+    fun resendAll() {
+        changed.fill(true)
+    }
+
     companion object {
         const val MAX_CURRENT_LEVEL = 255
     }

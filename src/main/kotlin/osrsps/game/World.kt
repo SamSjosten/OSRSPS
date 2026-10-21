@@ -56,6 +56,8 @@ class World(
     val random: GameRandom = GameRandom(),
     /** Set complete for every player at login. */
     val quests: Quests = Quests.NONE,
+    /** Where players are saved on logout and every [AUTOSAVE_CYCLES]. */
+    private val saves: SaveStore = MemorySaveStore(),
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -92,7 +94,15 @@ class World(
     var tick: Long = 0
         private set
 
-    private class PendingLogin(val responseHandler: GameLoginResponseHandler<Player>, val block: LoginBlock<AuthenticationType>)
+    /** Cycles run, paused ones included, for saving every few minutes of real time. */
+    private var cycles: Long = 0
+
+    /** A login or, with [reconnectSeed], a reconnect: the ISAAC seed the client says its last connection used. */
+    private class PendingLogin(
+        val responseHandler: GameLoginResponseHandler<Player>,
+        val block: LoginBlock<*>,
+        val reconnectSeed: IntArray? = null,
+    )
 
     override fun onLogin(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<AuthenticationType>) {
         block.authentication.clear()
@@ -111,7 +121,19 @@ class World(
     }
 
     override fun onReconnect(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<XteaKey>) {
-        responseHandler.writeFailedResponse(LoginResponse.ConnectFail)
+        // The same per-address limit as a login, so reconnects can't queue without bound either. The old connection may
+        // still count against it until it times out, which the limit of 10 leaves room for.
+        if (!responseHandler.validateNewConnection()) {
+            logger.info { "Rejecting a reconnect for ${block.username}: too many connections from one address" }
+            responseHandler.writeFailedResponse(LoginResponse.IPLimit)
+            return
+        }
+        if (!block.crc.validate(js5Crcs)) {
+            logger.info { "Rejecting a reconnect for ${block.username}: client cache CRCs do not match ours" }
+            responseHandler.writeFailedResponse(LoginResponse.OutOfDateReload)
+            return
+        }
+        pendingLogins.add(PendingLogin(responseHandler, block, block.authentication.key.copyOf()))
     }
 
     fun start() {
@@ -119,9 +141,16 @@ class World(
         executor.scheduleAtFixedRate(::safeCycle, TICK_MILLIS, TICK_MILLIS, TimeUnit.MILLISECONDS)
     }
 
+    /** Stops the cycle and saves everyone still in the world. */
     fun stop() {
         executor.shutdown()
-        executor.awaitTermination(5, TimeUnit.SECONDS)
+        if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+            // Saving now would race the game thread for the players and the save files; the last autosave stands.
+            logger.error { "The game thread didn't stop in 5 s; not saving on shutdown" }
+            return
+        }
+        // Once the executor has stopped this thread is the only one touching the players.
+        saveAll()
     }
 
     private fun safeCycle() {
@@ -132,6 +161,9 @@ class World(
         } finally {
             phase = null
         }
+        cycles++
+        // Guessed interval: the task asks for "every few minutes"; live's own autosave interval isn't known.
+        if (cycles % AUTOSAVE_CYCLES == 0L) saveAll()
     }
 
     private fun tick() {
@@ -166,13 +198,13 @@ class World(
     }
 
     private fun readInput(ticking: Boolean) {
+        // Leavers go first, so their save is written before a login on the same name reads it.
+        for (player in players) {
+            if (player != null && (player.loggedOut || (player.connectionLost && lingerOver(player)))) remove(player)
+        }
         acceptLogins()
         for (player in players) {
             if (player == null) continue
-            if (player.disconnected) {
-                remove(player)
-                continue
-            }
             if (ticking) runHeldActions(player)
             player.session.processIncomingPackets(player)
         }
@@ -244,23 +276,157 @@ class World(
         }
     }
 
+    /**
+     * Whether a player whose connection dropped has waited long enough for a reconnect. The wait is counted in ticks,
+     * so a paused world keeps them until it runs again.
+     */
+    private fun lingerOver(player: Player): Boolean {
+        if (player.connectionLostTick < 0) {
+            player.connectionLostTick = tick
+            logger.info { "${player.username} lost their connection; keeping them for $LINGER_TICKS ticks for a reconnect" }
+        }
+        return tick - player.connectionLostTick >= LINGER_TICKS
+    }
+
     private fun acceptLogins() {
         while (true) {
             val login = pendingLogins.poll() ?: return
-            val index = (1 until MAX_PLAYERS).firstOrNull { players[it] == null }
-            if (index == null) {
-                login.responseHandler.writeFailedResponse(LoginResponse.ServerFull)
-                continue
-            }
-            val ok = LoginResponse.Ok(AuthenticatorResponse.NoAuthenticator, 2, false, index, true, index.toLong(), index.toLong(), index.toLong())
-            val player = Player(index, login.block.username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
-            player.session = login.responseHandler.writeSuccessfulResponse(ok, login.block)
-            player.session.setDisconnectionHook { player.disconnected = true }
-            player.frame = GameFrame.forLogin(login.block.resizable, player.stoneArrangement)
-            players[index] = player
-            enterWorld(player)
-            logger.info { "${player.username} logged in as player $index" }
+            val seed = login.reconnectSeed
+            if (seed != null) reconnect(login, seed) else login(login)
         }
+    }
+
+    private fun login(login: PendingLogin) {
+        val username = login.block.username
+        val key = SaveStore.saveKey(username)
+        if (key == null) {
+            logger.info { "Rejecting '$username': not a name a save can be kept under" }
+            login.responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
+            return
+        }
+        // Live refuses a login while the account is still in the world, a dropped connection waiting for a
+        // reconnect included, with "Your account is already logged in". Two players on one save would also overwrite
+        // each other's progress.
+        if (findPlayer(key) != null) {
+            logger.info { "Rejecting $username: already in the world" }
+            login.responseHandler.writeFailedResponse(LoginResponse.Duplicate)
+            return
+        }
+        val index = (1 until MAX_PLAYERS).firstOrNull { players[it] == null }
+        if (index == null) {
+            login.responseHandler.writeFailedResponse(LoginResponse.ServerFull)
+            return
+        }
+        val player = try {
+            loadPlayer(index, username)
+        } catch (e: Exception) {
+            // Refused rather than started afresh, which would overwrite the save on logout.
+            logger.error(e) { "Rejecting $username: their save can't be read" }
+            login.responseHandler.writeFailedResponse(LoginResponse.InvalidSave)
+            return
+        }
+        val ok = LoginResponse.Ok(AuthenticatorResponse.NoAuthenticator, 2, false, index, true, index.toLong(), index.toLong(), index.toLong())
+        player.loginSeed = login.block.seed.copyOf()
+        player.session = login.responseHandler.writeSuccessfulResponse(ok, login.block)
+        watchConnection(player)
+        player.frame = GameFrame.forLogin(login.block.resizable, player.stoneArrangement)
+        players[index] = player
+        enterWorld(player)
+        logger.info { "${player.username} logged in as player $index at ${player.x}, ${player.z}, ${player.level}" }
+    }
+
+    /**
+     * Builds the player logging in as [username] from their save, or a new player in Lumbridge if they have none.
+     * Throws if the save can't be read.
+     */
+    internal fun loadPlayer(index: Int, username: String): Player {
+        val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
+        val text = saves.read(player.saveKey) ?: return player
+        PlayerSave.fromJson(text).applyTo(player)
+        return player
+    }
+
+    /** Writes [player]'s save. Returns false, after logging why, if it couldn't be written. */
+    internal fun save(player: Player): Boolean = try {
+        saves.write(player.saveKey, PlayerSave.of(player).toJson(player.username))
+        true
+    } catch (e: Exception) {
+        logger.error(e) { "Couldn't save ${player.username}" }
+        false
+    }
+
+    private fun saveAll() {
+        var count = 0
+        for (player in players) {
+            if (player != null && save(player)) count++
+        }
+        if (count > 0) logger.info { "Saved $count player${if (count == 1) "" else "s"}" }
+    }
+
+    private fun findPlayer(saveKey: String): Player? = players.firstOrNull { it?.saveKey == saveKey }
+
+    /**
+     * Puts a reconnecting client back on its player, who is still in the world. The client proves it is the same one
+     * by sending back the ISAAC seed of the connection it lost.
+     */
+    private fun reconnect(login: PendingLogin, seed: IntArray) {
+        val username = login.block.username
+        val player = reconnectTarget(username, seed)
+        if (player == null) {
+            // Inferred: with nobody to reconnect to, live sends the client back to the login screen.
+            logger.info { "Refusing a reconnect for $username: no such player waiting, or the seed doesn't match" }
+            login.responseHandler.writeFailedResponse(LoginResponse.ConnectFail)
+            return
+        }
+        val old = player.session
+        val infos = player.infos
+        // RSProt needs all three reset before it writes the reconnect response's player info block.
+        infos.playerInfo.onReconnect()
+        infos.npcInfo.onReconnect()
+        infos.worldEntityInfo.onReconnect()
+        player.session = login.responseHandler.writeSuccessfulResponse(LoginResponse.ReconnectOk(infos.playerInfo), login.block, old)
+        // Whatever the old connection still had queued can't arrive. Closing it also drops its disconnection hook;
+        // if it is still open (a pulled cable the server hasn't noticed yet), RSProt's idle timeout ends it.
+        old.clear()
+        old.requestClose()
+        player.loginSeed = login.block.seed.copyOf()
+        player.connectionLostTick = -1
+        watchConnection(player)
+        resync(player)
+        logger.info { "${player.username} reconnected as player ${player.index}" }
+    }
+
+    /** The player a reconnect as [username] with [seed] goes back to, or null if there is none. */
+    internal fun reconnectTarget(username: String, seed: IntArray): Player? {
+        val key = SaveStore.saveKey(username) ?: return null
+        val player = findPlayer(key) ?: return null
+        if (player.loggedOut || !player.loginSeed.contentEquals(seed)) return null
+        return player
+    }
+
+    /** Marks the player's connection lost when its session drops. See [Player.droppedSession]. */
+    private fun watchConnection(player: Player) {
+        val session = player.session
+        session.setDisconnectionHook { player.droppedSession = session }
+    }
+
+    /**
+     * After a reconnect, sends again what the client may have missed: anything queued for the old connection after
+     * it really died never arrived. Every varp the client may hold, every stat and the run state go again, and the
+     * map is rebuilt around the player. Inferred, not checked against a live reconnect: the client is taken to keep
+     * its interfaces over a reconnect, so they aren't reopened.
+     */
+    internal fun resync(player: Player) {
+        player.vars.resendAll()
+        player.skills.resendAll()
+        player.sentRunEnabled = null
+        player.sentRunEnergy = -1
+        player.sentCombatLevel = -1
+        sendRunState(player)
+        player.buildAreaZoneX = player.x shr 3
+        player.buildAreaZoneZ = player.z shr 3
+        player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
+        player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
     }
 
     private fun enterWorld(player: Player) {
@@ -457,17 +623,19 @@ class World(
             // the player is removed on the next tick by hand.
             session.queue(Logout)
             session.requestClose()
-            player.disconnected = true
+            player.loggedOut = true
             return
         }
         session.flush()
     }
 
+    /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
+        save(player)
         network.infoProtocols.dealloc(player.infos)
         player.session.clear()
         players[player.index] = null
-        logger.info { "${player.username} disconnected" }
+        logger.info { "${player.username} logged out" + if (player.loggedOut) "" else " (connection lost)" }
     }
 
     companion object {
@@ -477,6 +645,16 @@ class World(
         /** The logout tab and its "Click here to logout" button, logout:logout. */
         const val LOGOUT_TAB = 182
         const val LOGOUT_BUTTON = 8
+
+        /**
+         * How long a player whose connection dropped stays in the world for the client to reconnect: 60 s, the
+         * wiki's "60 second timer before the game forcibly logs you out after an unexpected disconnection" (Logout
+         * button). The wiki gives it for combat; using it outside combat too is inferred.
+         */
+        const val LINGER_TICKS = 100L
+
+        /** 3 minutes of cycles. */
+        const val AUTOSAVE_CYCLES = 300L
 
         /** Guessed bound on clicks held per player while paused, so a long pause can't pile them up without end. */
         const val MAX_HELD_ACTIONS = 50
