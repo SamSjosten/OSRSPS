@@ -152,6 +152,10 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too |
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
+| `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
+| `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
+| `::groundobj id [count]` | Puts obj `id` on your tile for everyone, until `::cleartile` or a restart (no ground item timers yet) |
+| `::cleartile` | Removes every obj from your tile |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
@@ -205,6 +209,32 @@ The generator is xoshiro256\*\* seeded through SplitMix64, written out in the re
 JDK or Kotlin upgrades. It is not the generator live uses: only repeatability matters here. With more than one player,
 rolls are made in player index order within each tick phase, so the same seed also needs the same players in the same
 slots (inferred from the tick loop; nothing rolls yet).
+
+## Zone updates
+
+The map is split into zones of 8x8 tiles per level, and everything other players must see happen on the ground goes
+through `World.zones` (`game/zone/Zones.kt`) by zone: locs that differ from the cache, objs on the ground, spotanims on
+tiles, projectiles, area sounds and loc animations.
+
+Each player watches the 7x7 block of zones around their own, on their level, cut to their build area. When a zone comes
+into view (login, walking 8 tiles, a level change, a map rebuild) it is wiped on the client (`UpdateZoneFullFollows`)
+and its lasting changes are sent again. Each cycle, what happened in a watched zone goes out as one
+`UpdateZonePartialEnclosed`, encoded once and shared by everyone watching. An obj only one player can see goes to that
+player alone. Zone updates are sent on paused cycles too, so `::gfx` typed while paused shows straight away.
+
+| Zone behaviour | Source |
+|----------------|--------|
+| 8x8 zones, the packets and their order after the infos | RSProt |
+| 7x7 zones in view, cut to the build area | RSMod's reading of the client, not measured on live |
+| A zone that just came into view gets no graphics or sounds from that cycle, only its lasting state | RSMod, not checked on live |
+| Every zone in view is sent again after a map rebuild | guessed safe: the client may keep them, but resending is right either way |
+| Private obj updates follow the shared ones in a cycle | guessed |
+| Every right-click option shown on added objs and locs | guessed, until item and loc types |
+| `::proj` flight values (heights, timing, arc) | guessed |
+
+Check with two clients logged in near each other: `::gfx 85` on one shows the graphic on both (any spotanim id works;
+85 should be the magic splash, from memory). `::groundobj 1351` shows a bronze axe to both; walk the second client 40
+tiles away and back, or log it out and in, and the axe is still there.
 
 ## Chat
 

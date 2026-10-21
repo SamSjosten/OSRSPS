@@ -31,9 +31,11 @@ import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
+import osrsps.game.command.registerZoneCommands
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.ScriptRunner
+import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -66,6 +68,9 @@ class World(
     /** Content handlers for clicks, by what was clicked and which option. */
     val handlers = Handlers()
 
+    /** Locs, ground objs, graphics, projectiles and sounds, sent to the players near them. */
+    val zones = Zones()
+
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
     val commands = CommandRegistry().apply {
@@ -75,6 +80,7 @@ class World(
         registerSkillCommands()
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
+        registerZoneCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -186,8 +192,13 @@ class World(
             sendStats(player)
         }
         network.infoProtocols.update()
-        for (player in players) {
-            if (player != null) sendInfo(player, tickEnd)
+        try {
+            for (player in players) {
+                if (player != null) sendInfo(player, tickEnd)
+            }
+        } finally {
+            // Even after a failure, so a graphic is never sent twice and the shared buffers are always freed.
+            zones.endCycle()
         }
     }
 
@@ -435,6 +446,9 @@ class World(
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
         player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
+        // Guessed safe rather than checked: the client may carry zones that stay in view across a rebuild, but sending
+        // them all again in full is right either way.
+        player.zoneView.reset()
     }
 
     private fun sendInfo(player: Player, tickEnd: Boolean) {
@@ -446,6 +460,8 @@ class World(
         packets.playerInfo.onSuccess(session::queue).onFailure { logger.error(it) { "Player info failed for ${player.username}" } }
         val npcInfo = packets.npcInfo
         if (npcInfo.isEmpty()) npcInfo.safeReleaseOrThrow() else npcInfo.onSuccess(session::queue)
+        // After the infos, as RSProt's guide orders them. Also on paused cycles, so a ::gfx typed while paused shows.
+        zones.update(player, session::queue)
         // Live closes every tick with ServerTickEnd, and RuneLite fires its GameTick (and replays deferred events such
         // as VarbitChanged) only on it, so without it the client never sees a tick. A paused cycle is not a tick.
         if (tickEnd) session.queue(ServerTickEnd)
