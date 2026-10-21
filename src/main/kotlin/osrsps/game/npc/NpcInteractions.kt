@@ -208,6 +208,14 @@ class NpcInteractions(
     }
 
     /**
+     * [npc] left the world: the [players] still turned to it stop, so none of them turns to whichever NPC takes its
+     * index next.
+     */
+    fun removed(npc: Npc, players: Iterable<Player?>) {
+        for (player in players) if (player != null && player.facingNpc === npc) stopFacing(player)
+    }
+
+    /**
      * Lets NPCs go once the player they are busy with is done: not delayed, no dialogue or other modal open, and at
      * least a tick on from the option. Guessed; run at the start of the NPC phase so a released NPC moves that tick.
      */

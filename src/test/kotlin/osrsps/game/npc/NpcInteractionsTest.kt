@@ -381,6 +381,18 @@ class NpcInteractionsTest {
     }
 
     @Test
+    fun `a player still turned to an NPC after talking stops when it is removed`() {
+        val npc = spawn(x = 3213)
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        tick()
+        assertSame(npc, player.facingNpc)
+        npcs.remove(npc)
+        interactions.removed(npc, listOf(null, player))
+        assertNull(player.facingNpc)
+        assertNull(faced.last())
+    }
+
+    @Test
     fun `the player stops facing the NPC when the used item goes`() {
         val npc = spawn()
         player.inventory[4] = InvObj(BUCKET, 1)
