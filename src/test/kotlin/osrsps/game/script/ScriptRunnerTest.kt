@@ -109,7 +109,7 @@ class ScriptRunnerTest {
             ran += "end@$tick"
         }
         assertTrue(player.scripts.delayed)
-        assertEquals(8, player.scripts.delayedUntil)
+        assertEquals(8L, player.scripts.delayedUntil)
         ticks(2)
         assertEquals(listOf("start@5"), ran)
         ticks()
@@ -161,7 +161,7 @@ class ScriptRunnerTest {
         }
         ticks()
         assertEquals(listOf("soft@1"), ran)
-        assertEquals(5, player.scripts.delayedUntil)
+        assertEquals(5L, player.scripts.delayedUntil)
     }
 
     @Test
