@@ -144,4 +144,17 @@ class InterfacesTest {
         interfaces.openGameFrame(player)
         assertTrue(IfOpenSub(629, 43, 399, Interfaces.OVERLAY) in sent)
     }
+
+    @Test
+    fun `the picked sub-tab comes back after a save and a new login`() {
+        val types = VarTypes(9_000, mapOf(JournalTab.VARBIT_SIDE_JOURNAL_TAB to VarbitType(1_141, 0, 2)))
+        val before = Player(1, "test", 3222, 3218, 0, types).apply { frame = GameFrame.FIXED }
+        interfaces.openJournalTab(before, JournalTab.QUESTS)
+
+        val after = Player(1, "test", 3222, 3218, 0, types).apply { frame = GameFrame.FIXED }
+        PlayerSave.fromJson(PlayerSave.of(before).toJson("test")).applyTo(after)
+        sent.clear()
+        interfaces.openGameFrame(after)
+        assertTrue(IfOpenSub(629, 43, 399, Interfaces.OVERLAY) in sent)
+    }
 }
