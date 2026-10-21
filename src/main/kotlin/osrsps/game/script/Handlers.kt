@@ -46,8 +46,8 @@ typealias Handler = suspend ScriptContext.(Op) -> Unit
  * Content handlers, by what was clicked and which option. A handler registered for [ANY_OPTION] catches every option
  * that has no handler of its own.
  *
- * Only clicks on buttons reach handlers so far; locs come with task 11, items with task 13 and NPCs with task 17, each
- * after walking to the target.
+ * Clicks on buttons and on inventory items (iop1 to iop5, with the slot as [Op.sub]) reach handlers so far; locs come
+ * with task 11 and NPCs with task 17, each after walking to the target.
  */
 class Handlers {
     private val handlers = HashMap<Key, Handler>()
