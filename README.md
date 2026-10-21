@@ -188,7 +188,7 @@ the Hitpoints skill's current level (`Player.hitpoints`).
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
 `::item`. Every player has the 28-slot inventory, inv 93 (`Player.inventory`); it is sent in full on the first cycle
 and then once a cycle with the changed slots. Item options reach content as `Handlers.onObj(id, option)` with the slot
-as `Op.sub`. Inventories are not in the save file yet; a follow-up to task 8 adds them.
+as `Op.sub`. The inventory is saved with the player.
 
 | Inventory behaviour | Source |
 |---------------------|--------|
@@ -202,6 +202,34 @@ as `Op.sub`. Inventories are not in the save file yet; a follow-up to task 8 add
 | Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
 
 Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it.
+
+## Equipment
+
+Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and
+Equip move an item there when no content handler takes the option; the equipment tab (wornitems, 387) removes it and
+opens Equipment Stats (84, with the side inventory 85). The worn items show on the player's model, the weapon sets the
+stance and the combat tab's weapon category, and equipment is saved with the player. Rules are in `Equipment.kt`, the
+interfaces in `EquipmentTab.kt` and the weapon tables in `Weapons.kt`.
+
+| Equipment behaviour | Source |
+|---------------------|--------|
+| Slot (wearpos1), covered slots (wearpos2/3: hair, jaw, arms; the shield for two-handed weapons) | 241 cache; RSProt hides covered slots on the model |
+| A two-handed weapon takes off the weapon and the shield; a shield takes off a two-handed weapon; the swapped item goes into the slot the new one left | well known; slots from memory of live |
+| Bonuses: params 0 to 9 attack and defence, 10 melee strength, 11 prayer, 12 ranged strength, 299 magic damage in tenths of a percent, 14 attack speed in ticks | 241 cache params, matched against items with well-known stats |
+| Level requirements: params 434/436 and 435/437 (skill, level), checked against base levels | 241 cache (whip 0/70, granite maul 0/50 + 2/50); base levels from memory |
+| Standard metal items without those params (mithril scimitar, rune dagger...) need 5/10/20/30/40/60 for steel to dragon | from memory of the OSRS Wiki, not checked; halberds left out |
+| Combat tab: varbit 357 (combat_weapon_category) picks the tab from dbtable 78's rows; style buttons set varp 43 (com_mode) | 241 cache |
+| Which items get which weapon category: by the item's category (obj opcode 94), e.g. 35 axes, 21 scimitars and longswords | inferred from item names; unknown weapons show as unarmed |
+| A style the new weapon lacks falls back to the first | guessed |
+| Stances (standing, walking and running animations) for 2h swords, godswords, staves, halberds, whips, mauls, crossbows, chinchompas, banners, the bulwark | animation ids from their gameval names; which weapon uses which is guessed |
+| Worn ops: 1 Remove, 2 to 9 the item's params 451 to 458 (`Handlers.onWorn`), 10 Examine | 241 cache click masks and params; op numbering after RSMod |
+| Equipment Stats text ("Stab: +4", "Melee strength: +5", "Magic damage: +5.0%", "Base: 2.4s") and the side inventory script 149 arguments | from memory / RSMod, not checked |
+| "You are not a high enough level to use this item.", "You don't have enough free inventory space to do that." | from memory of live, not checked |
+| Not built: equip sounds, weight from worn items, set effects, special attack bar, autocast | later tasks |
+
+Check: `::item bronze axe`, click Wield: the axe shows in your hand, in the equipment tab's weapon slot, and the combat
+tab says Axe with Chop, Hack, Smash and Block. `::item bronze 2h sword` and `::item wooden shield`, wear the shield,
+then wield the 2h sword: the shield comes off. "View equipment stats" shows the bonuses; Remove puts items back.
 
 ## Tick control
 
@@ -303,7 +331,7 @@ Anything typed without `::` is public chat: it shows over your head and in the c
 Each player is saved to `data/saves/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/saves/`, which is not backed up).
 Names ignore case and treat spaces as underscores, so `Test` and `test` share a save. A save holds position, run energy,
 every varp that isn't 0 (the run orb and the resizable layout among them), each skill's XP and current level, and the
-inventory's slots; equipment and the bank join it when they exist. Code is in `src/main/kotlin/osrsps/game/PlayerSave.kt` and `SaveStore.kt`.
+inventory's and equipment's slots; the bank joins it when it exists. Code is in `src/main/kotlin/osrsps/game/PlayerSave.kt` and `SaveStore.kt`.
 
 | Rule | Source |
 |------|--------|

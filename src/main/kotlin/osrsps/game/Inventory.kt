@@ -95,6 +95,9 @@ class Inventory(
         changed += checkSlot(slot)
     }
 
+    /** Whether the next [flush] sends anything. */
+    val hasChanges: Boolean get() = !sentOnce || changed.isNotEmpty()
+
     /** Makes the next [flush] send every slot again, as after a reconnect. */
     fun resendAll() {
         sentOnce = false
@@ -129,5 +132,8 @@ class Inventory(
         /** inv in the cache's gameval index, 28 slots. */
         const val INV = 93
         const val INV_CAPACITY = 28
+
+        /** worn in the cache's gameval index: the equipment, one slot per [WearPos]. */
+        const val WORN = 94
     }
 }

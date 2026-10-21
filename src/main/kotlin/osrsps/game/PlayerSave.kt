@@ -2,6 +2,7 @@ package osrsps.game
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArrayBuilder
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -29,6 +30,8 @@ class PlayerSave(
     val skills: Map<Skill, SkillSave>,
     /** The inventory's filled slots, by slot. */
     val inventory: Map<Int, InvObj> = emptyMap(),
+    /** What is worn, by [WearPos]. */
+    val equipment: Map<Int, InvObj> = emptyMap(),
 ) {
     class SkillSave(val tenths: Int, val currentLevel: Int)
 
@@ -54,6 +57,8 @@ class PlayerSave(
         }
         // Item ids aren't checked against the cache: live doesn't remove items between revisions.
         for ((slot, obj) in inventory) player.inventory[slot] = obj
+        // Not checked against levels either: a save is what the player had, even if something has changed since.
+        for ((slot, obj) in equipment) player.equipment[slot] = obj
     }
 
     fun toJson(username: String): String {
@@ -78,15 +83,8 @@ class PlayerSave(
             putJsonObject("varps") {
                 for ((varp, value) in varps.toSortedMap()) put(varp.toString(), value)
             }
-            putJsonArray("inventory") {
-                for ((slot, obj) in inventory.toSortedMap()) {
-                    addJsonObject {
-                        put("slot", slot)
-                        put("id", obj.id)
-                        put("count", obj.count)
-                    }
-                }
-            }
+            putJsonArray("inventory") { putObjs(inventory) }
+            putJsonArray("equipment") { putObjs(equipment) }
         }
         return format.encodeToString(JsonObject.serializer(), json) + "\n"
     }
@@ -102,7 +100,8 @@ class PlayerSave(
             player.vars.forEachNonZero { varp, value -> varps[varp] = value }
             val skills = Skill.entries.associateWith { SkillSave(player.skills.tenths(it), player.skills.currentLevel(it)) }
             val inventory = player.inventory.contents().toMap()
-            return PlayerSave(player.x, player.z, player.level, player.runEnergy, varps, skills, inventory)
+            val equipment = player.equipment.contents().toMap()
+            return PlayerSave(player.x, player.z, player.level, player.runEnergy, varps, skills, inventory, equipment)
         }
 
         /** Reads a save written by [toJson]. Throws [IllegalArgumentException] if it can't be used as it is. */
@@ -138,16 +137,10 @@ class PlayerSave(
                     require(varp >= 0) { "Varp id $varp is negative" }
                     varps[varp] = value.jsonPrimitive.int
                 }
-                // Optional: saves written before the inventory existed have none.
-                val inventory = LinkedHashMap<Int, InvObj>()
-                for (element in root["inventory"]?.jsonArray.orEmpty()) {
-                    val entry = element.jsonObject
-                    val slot = entry.int("slot")
-                    require(slot in 0 until Inventory.INV_CAPACITY) { "Inventory slot $slot is out of range" }
-                    require(slot !in inventory) { "Inventory slot $slot is saved twice" }
-                    inventory[slot] = InvObj(entry.int("id"), entry.int("count"))
-                }
-                return PlayerSave(x, z, level, runEnergy, varps, skills, inventory)
+                // Optional: saves written before the inventory or equipment existed have none.
+                val inventory = root.objs("inventory", "Inventory", Inventory.INV_CAPACITY)
+                val equipment = root.objs("equipment", "Equipment", WearPos.COUNT)
+                return PlayerSave(x, z, level, runEnergy, varps, skills, inventory, equipment)
             } catch (e: IllegalArgumentException) {
                 throw e
             } catch (e: Exception) {
@@ -157,6 +150,29 @@ class PlayerSave(
         }
 
         private fun JsonObject.int(key: String): Int = getValue(key).jsonPrimitive.int
+
+        private fun JsonArrayBuilder.putObjs(objs: Map<Int, InvObj>) {
+            for ((slot, obj) in objs.toSortedMap()) {
+                addJsonObject {
+                    put("slot", slot)
+                    put("id", obj.id)
+                    put("count", obj.count)
+                }
+            }
+        }
+
+        /** The {slot, id, count} entries under [key], none if it is missing. */
+        private fun JsonObject.objs(key: String, what: String, capacity: Int): Map<Int, InvObj> {
+            val objs = LinkedHashMap<Int, InvObj>()
+            for (element in this[key]?.jsonArray.orEmpty()) {
+                val entry = element.jsonObject
+                val slot = entry.int("slot")
+                require(slot in 0 until capacity) { "$what slot $slot is out of range" }
+                require(slot !in objs) { "$what slot $slot is saved twice" }
+                objs[slot] = InvObj(entry.int("id"), entry.int("count"))
+            }
+            return objs
+        }
 
         private const val MAX_COORD = 16383
     }

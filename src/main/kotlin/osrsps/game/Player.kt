@@ -87,6 +87,9 @@ class Player(
     /** The 28-slot inventory, inv 93. Changes are sent at the end of the cycle. */
     val inventory = Inventory(Inventory.INV, Inventory.INV_CAPACITY)
 
+    /** What the player wears, inv 94, one slot per [WearPos]. Changes are sent at the end of the cycle. */
+    val equipment = Inventory(Inventory.WORN, WearPos.COUNT)
+
     /** Queues, timers and the current delay; run by [World.scripts]. */
     val scripts = PlayerScripts()
 
@@ -105,6 +108,9 @@ class Player(
     var sentRunEnabled: Boolean? = null
     var sentRunEnergy: Int = -1
     var sentCombatLevel: Int = -1
+
+    /** The stance last put in the player's appearance; null until the first is sent. */
+    var sentStance: Stance? = null
 
     /** Moved by a teleport this tick; the client is told when the tick's movement is sent. */
     var teleported: Boolean = false

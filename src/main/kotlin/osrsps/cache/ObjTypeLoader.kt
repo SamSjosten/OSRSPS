@@ -20,6 +20,8 @@ private val logger = KotlinLogging.logger {}
  *   90 to 93 (none of which the 241 cache uses). 45 and 48 carry the offset byte as 23 and 25 did. Which model each
  *   one is is inferred from the old opcodes' order; only the sizes are checked.
  * - 15, 160 and 251 carry no data. 251 is on exactly the items with 65 (tradeable). What they mean is unknown.
+ * - 94 is the item's category, as in RuneLite's ItemLoader. It groups weapons by kind (every axe and battleaxe is
+ *   35), which [osrsps.game.Weapons] maps to the combat tab's weapon categories.
  * Every other opcode has to be known too, so an unknown one fails loudly instead of misreading the rest.
  */
 object ObjTypeLoader {
@@ -99,7 +101,7 @@ object ObjTypeLoader {
         tradeable = tradeable, ops = type.ops, iops = type.iops, wearpos1 = type.wearpos1, wearpos2 = type.wearpos2,
         wearpos3 = type.wearpos3, weight = type.weight, certlink = type.certlink, certtemplate = type.certtemplate,
         placeholderlink = type.placeholderlink, placeholdertemplate = type.placeholdertemplate, params = type.params,
-        internalName = type.internalName,
+        internalName = type.internalName, category = type.category,
     )
 
     fun decode(id: Int, data: ByteArray, internalName: String? = null): ObjType {
@@ -121,10 +123,12 @@ object ObjTypeLoader {
         var placeholderlink = -1
         var placeholdertemplate = -1
         var params: Map<Int, Any> = emptyMap()
+        var category = -1
         while (true) {
             when (val opcode = buf.readUnsignedByte().toInt()) {
                 0 -> break
-                1, 4, 5, 6, 7, 8, 24, 26, 78, 79, in 90..95 -> buf.skipBytes(2)
+                94 -> category = buf.readUnsignedShort()
+                1, 4, 5, 6, 7, 8, 24, 26, 78, 79, in 90..93, 95 -> buf.skipBytes(2)
                 2 -> name = buf.readString()
                 3 -> desc = buf.readString()
                 9 -> buf.readString()
@@ -164,7 +168,7 @@ object ObjTypeLoader {
         check(!buf.isReadable) { "${buf.readableBytes()} bytes left after the end of item $id" }
         return ObjType(
             id, name, desc, cost, stackable, members, tradeable, ops, iops, wearpos1, wearpos2, wearpos3, weight,
-            certlink, certtemplate, placeholderlink, placeholdertemplate, params, internalName,
+            certlink, certtemplate, placeholderlink, placeholdertemplate, params, internalName, category,
         )
     }
 

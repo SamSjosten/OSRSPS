@@ -84,7 +84,11 @@ class World(
 
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
-    private val inventoryTab = InventoryTab(objTypes, scripts, interfaces::closeModals)
+    private val equipment = Equipment(objTypes)
+
+    private val inventoryTab: InventoryTab = InventoryTab(objTypes, scripts, interfaces::closeModals, wear = { player, slot -> equipmentTab.wear(player, slot) })
+
+    private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal)
 
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
@@ -237,6 +241,7 @@ class World(
             sendStats(player)
             sendEffects(player)
             inventoryTab.flush(player)
+            equipmentTab.flush(player)
         }
         network.infoProtocols.update()
         try {
@@ -444,6 +449,7 @@ class World(
         player.vars.resendAll()
         player.skills.resendAll()
         player.inventory.resendAll()
+        player.equipment.resendAll()
         player.sentRunEnabled = null
         player.sentRunEnergy = -1
         player.sentCombatLevel = -1
@@ -464,10 +470,9 @@ class World(
 
         val appearance = infos.playerInfo.avatar.extendedInfo
         appearance.setName(player.username)
-        // Default male look and the standard human animations. Guessed, not checked against live.
+        // Default male look. Guessed, not checked against live. Worn items and the stance go with the first flush.
         DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
         for (slot in 0 until 5) appearance.setColour(slot, 0)
-        appearance.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824)
         sendRunState(player)
         allowChat(player)
         quests.completeAll(player.vars)
@@ -530,6 +535,9 @@ class World(
             inventoryTab.click(player, sub, obj, op)
             return@act
         }
+        if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
+        if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
+        if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act
