@@ -149,9 +149,9 @@ the Tick Recorder gets one tick line per server tick (check: record 60 s standin
 client sees no ticks until the next `::step`.
 
 While paused, no game time passes, but the server still reads packets and sends unchanged player info every 600 ms, so
-commands answer and the client stays connected. Clicks and buttons made while paused are held and run at the start of
-the next tick, as if they had arrived then. Commands run straight away, so `::tele` while paused moves you, and you see
-it on the next step.
+commands answer and the client stays connected. Clicks, buttons and public chat made while paused are held and run at
+the start of the next tick, as if they had arrived then. Commands run straight away, so `::tele` while paused moves you,
+and you see it on the next step.
 
 Check: `::pause`, click a tile and nothing moves; each `::step` then moves you one tile (two with run on).
 
