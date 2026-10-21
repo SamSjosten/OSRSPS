@@ -19,6 +19,7 @@ import net.rsprot.protocol.game.incoming.buttons.If1Button
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
+import net.rsprot.protocol.game.incoming.misc.user.CloseModal
 import net.rsprot.protocol.game.incoming.misc.user.MoveGameClick
 import net.rsprot.protocol.game.incoming.misc.user.MoveMinimapClick
 import net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings
@@ -93,11 +94,12 @@ class NetworkFactory(
             player.session.queue(ChatFilterSettingsPrivateChat(message.privateChatFilter))
         })
         builder.addListener(If1Button::class.java, MessageConsumer { player, message ->
-            world.onButton(player, message.interfaceId, message.componentId, 1)
+            world.onButton(player, message.interfaceId, message.componentId, -1, 1)
         })
         builder.addListener(If3Button::class.java, MessageConsumer { player, message ->
-            world.onButton(player, message.interfaceId, message.componentId, message.op)
+            world.onButton(player, message.interfaceId, message.componentId, message.sub, message.op)
         })
+        builder.addListener(CloseModal::class.java, MessageConsumer { player, _ -> world.onCloseModal(player) })
         return DefaultGameMessageConsumerRepositoryProvider(builder.build())
     }
 }

@@ -6,6 +6,7 @@ import io.netty.buffer.Unpooled
 import net.rsprot.compression.HuffmanCodec
 import net.rsprot.compression.provider.DefaultHuffmanCodecProvider
 import net.rsprot.protocol.api.NetworkService
+import osrsps.cache.GameFrameCheck
 import osrsps.cache.MapCollisionLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.game.Player
@@ -39,20 +40,28 @@ class GameServer(
         val js5: Js5Store
         val huffman: HuffmanCodec
         val collision: CollisionMap
+        val interfaceIds: Set<Int>
         val varTypes: VarTypes
         try {
             js5 = Js5Store.load(library)
             collision = MapCollisionLoader.load(library)
             varTypes = VarTypeLoader.load(library)
+            interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
             val huffmanData = library.data(HUFFMAN_ARCHIVE, "huffman", 0) ?: error("No huffman group in the cache")
             huffman = HuffmanCodec.create(Unpooled.wrappedBuffer(huffmanData))
+            val frameProblems = GameFrameCheck.check(library)
+            if (frameProblems.isEmpty()) {
+                logger.info { "Game frame ids match the cache's names" }
+            } else {
+                frameProblems.forEach { logger.warn { "Game frame: $it" } }
+            }
         } finally {
             library.close()
         }
         logger.info { "Loaded ${js5.size} JS5 responses for ${js5.crcs.size} archives" }
 
         val rsa = RsaKeys.loadOrCreate(dataDir)
-        world = World(js5.crcs, collision, varTypes)
+        world = World(js5.crcs, collision, varTypes, interfaceIds)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()
         world.network = network
@@ -82,5 +91,6 @@ class GameServer(
 
     private companion object {
         const val HUFFMAN_ARCHIVE = 10
+        const val INTERFACE_INDEX = 3
     }
 }
