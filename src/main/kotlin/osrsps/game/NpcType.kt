@@ -27,9 +27,26 @@ class NpcType(
     val params: Map<Int, Any> = emptyMap(),
     /** The name in the cache's gameval index, e.g. `hans`; null when the cache has no gameval names. */
     val internalName: String? = null,
+    /** Options shown only while a var is in a range (cache opcode 252), in cache order. */
+    val conditionalOps: List<ConditionalOp> = emptyList(),
 ) {
-    /** The option [option] (1 to 5), or null if the NPC has none there. */
+    /** The option [option] (1 to 5), or null if the NPC has none there. Conditional options are not looked at. */
     fun op(option: Int): String? = ops.getOrNull(option - 1)
+
+    /**
+     * The option [option] (1 to 5) a player sees, with [value] reading a conditional option's var for them (null when
+     * it can't be read): the first conditional option for that slot whose var is in range, else the plain one.
+     * Inferred from the opcode's layout: that the slot index is 0-based like opcodes 30 to 34, and that a matching
+     * conditional option replaces the plain one, are not checked against the client.
+     */
+    fun op(option: Int, value: (ConditionalOp) -> Int?): String? {
+        for (conditional in conditionalOps) {
+            if (conditional.index != option - 1) continue
+            val current = value(conditional) ?: continue
+            if (current in conditional.min..conditional.max) return conditional.text
+        }
+        return op(option)
+    }
 
     override fun toString(): String = "$name ($id)"
 
@@ -38,6 +55,12 @@ class NpcType(
         val DEFAULT_OPS: List<String?> = listOf(null, null, null, null, null)
     }
 }
+
+/**
+ * An option at slot [index] (0 to 4) shown while varbit [varbit], or varp [varp] when [varbit] is -1, is in [min] to
+ * [max]. [text] is null for "Hidden".
+ */
+class ConditionalOp(val index: Int, val varp: Int, val varbit: Int, val min: Int, val max: Int, val text: String?)
 
 /** Every NPC type in the cache, by id. */
 class NpcTypes(private val types: Array<NpcType?>) {

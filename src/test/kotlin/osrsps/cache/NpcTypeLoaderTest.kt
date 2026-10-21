@@ -97,6 +97,11 @@ class NpcTypeLoaderTest {
         // Opcode 118 replaced 106's list: one entry, then its default.
         assertContentEquals(intArrayOf(11, 12), type.multiNpcs)
         assertFalse(type.interactable)
+        // The conditional option sits in slot 4 (index 3) while varp 5 is 1 or 2.
+        val conditional = type.conditionalOps.single()
+        assertEquals(listOf(3, 5, -1, 1, 2), listOf(conditional.index, conditional.varp, conditional.varbit, conditional.min, conditional.max))
+        assertEquals("Cond", type.op(4) { 2 })
+        assertEquals(null, type.op(4) { 3 })
     }
 
     @Test

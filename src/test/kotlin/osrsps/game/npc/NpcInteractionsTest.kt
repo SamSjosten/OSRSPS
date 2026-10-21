@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import osrsps.game.ConditionalOp
 import osrsps.game.GameRandom
 import osrsps.game.InvObj
 import osrsps.game.Movement
@@ -325,11 +326,44 @@ class NpcInteractionsTest {
         assertSame(player, npc.engagedWith)
     }
 
+    @Test
+    fun `an option shown by a conditional option can be clicked while its var is in range`() {
+        val vars = VarTypes(varpCount = 200, varbits = emptyMap())
+        val guard = NpcType(GUARD, "Guard", ops = listOf("Talk-to", null, null, null, null), conditionalOps = listOf(ConditionalOp(2, 7, -1, 1, 1, "Pay")))
+        val interactions = NpcInteractions(npcs, NpcTypes.of(guard), map, movement, handlers, scripts, { tick }, { _, _ -> }, { _, _ -> }, {})
+        val player = Player(2, "cond", 3212, 3210, 0, vars)
+        val npc = npcs.add(NpcSpawn(guard, 3216, 3210, source = "test"))!!
+        interactions.click(player, npc.index, 3, -1, invertRun = false)
+        assertNull(player.interaction)
+        player.vars[7] = 1
+        interactions.click(player, npc.index, 3, -1, invertRun = false)
+        assertTrue(player.interaction is NpcInteraction)
+        // The var changes on the way: the option is gone on arrival, so nothing runs.
+        var used = false
+        handlers.onNpc(GUARD, 3) { used = true }
+        player.vars[7] = 0
+        repeat(5) { interactions.process(player) { movement.process(player) } }
+        assertTrue(!used)
+        assertNull(player.interaction)
+    }
+
+    @Test
+    fun `the player stops facing the NPC when the used item goes`() {
+        val npc = spawn()
+        player.inventory[4] = InvObj(BUCKET, 1)
+        interactions.useObj(player, npc.index, 4, BUCKET, invertRun = false)
+        player.inventory[4] = null
+        tick()
+        assertNull(player.facingNpc)
+        assertNull(faced.last())
+    }
+
     private companion object {
         const val HANS = 3105
         const val COW = 2790
         const val BUCKET = 1925
         const val MULTI = 50
         const val SHOWN = 51
+        const val GUARD = 52
     }
 }

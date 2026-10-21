@@ -72,7 +72,7 @@ class NpcInteractions(
         val npc = clickable(player, index) ?: return
         val type = shownType(npc, player)
         // A multi-NPC's options belong to the type the player's vars show; one showing nothing has none.
-        if (option !in 1..Handlers.MAX_OPTION || type == null || type.op(option) == null) {
+        if (option !in 1..Handlers.MAX_OPTION || type == null || shownOp(type, option, player) == null) {
             logger.debug { "${player.username} clicked option $option of $npc, which has no such option" }
             return
         }
@@ -158,6 +158,7 @@ class NpcInteractions(
         if (interaction.usesObj && !holds(player, interaction.slot, interaction.obj)) {
             // Guessed: the item left the slot on the way (dropped, used up); the player gives up.
             player.interaction = null
+            stopFacing(player)
             return true
         }
         val size = npc.type.size
@@ -165,8 +166,8 @@ class NpcInteractions(
         player.interaction = null
         player.waypoints.clear()
         val type = shownType(npc, player)
-        if (type == null) {
-            // A multi-NPC whose var changed on the way so it shows nothing: there is nothing left to use. Guessed.
+        if (type == null || !type.interactable || (!interaction.usesObj && shownOp(type, interaction.option, player) == null)) {
+            // A multi-NPC (or an option on a var) changed on the way, so what was clicked isn't there any more. Guessed.
             stopFacing(player)
             return true
         }
@@ -216,6 +217,21 @@ class NpcInteractions(
         }
     }
 
+    /** Option [option] of [type] as [player] sees it, conditional options included; null when there is none. */
+    private fun shownOp(type: NpcType, option: Int, player: Player): String? =
+        type.op(option) { if (it.varbit >= 0) readVar(player, -1, it.varbit) else readVar(player, it.varp, -1) }
+
+    /** Varbit [varbit], or varp [varp] when the varbit is -1, for [player]; null for a var our cache doesn't have. */
+    private fun readVar(player: Player, varp: Int, varbit: Int): Int? = try {
+        when {
+            varbit >= 0 -> player.vars.getVarbit(varbit)
+            varp >= 0 -> player.vars[varp]
+            else -> null
+        }
+    } catch (e: IllegalArgumentException) {
+        null
+    }
+
     /**
      * The NPC type [player] sees: a multi-NPC shows one of its types by a varbit or varp, as the client picks it. Null
      * when it shows none.
@@ -223,16 +239,8 @@ class NpcInteractions(
     fun shownType(npc: Npc, player: Player): NpcType? {
         val type = npc.type
         if (type.multiNpcs.isEmpty()) return type
-        val value = try {
-            when {
-                type.multiVarbit >= 0 -> player.vars.getVarbit(type.multiVarbit)
-                type.multiVarp >= 0 -> player.vars[type.multiVarp]
-                else -> -1
-            }
-        } catch (e: IllegalArgumentException) {
-            // A var our cache doesn't have: show the default.
-            -1
-        }
+        // A var our cache doesn't have shows the default.
+        val value = readVar(player, type.multiVarp, type.multiVarbit) ?: -1
         val id = if (value in 0 until type.multiNpcs.size - 1) type.multiNpcs[value] else type.multiNpcs.last()
         return if (id < 0) null else npcTypes[id]
     }

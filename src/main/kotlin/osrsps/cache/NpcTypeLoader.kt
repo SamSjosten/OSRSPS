@@ -4,6 +4,7 @@ import com.displee.cache.CacheLibrary
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import osrsps.game.ConditionalOp
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import java.nio.charset.Charset
@@ -63,6 +64,7 @@ object NpcTypeLoader {
         var multiNpcs = IntArray(0)
         var interactable = true
         var params: Map<Int, Any> = emptyMap()
+        val conditionalOps = ArrayList<ConditionalOp>()
         while (true) {
             when (val opcode = buf.readUnsignedByte().toInt()) {
                 0 -> break
@@ -114,8 +116,13 @@ object NpcTypeLoader {
                 }
                 252 -> {
                     // An option shown only while a varp or varbit is in a range: index, varp, varbit, min, max, text.
-                    buf.skipBytes(1 + 2 + 2 + 4 + 4)
-                    buf.readString()
+                    val index = buf.readUnsignedByte().toInt()
+                    val varp = buf.readUnsignedShort().let { if (it == 0xFFFF) -1 else it }
+                    val varbit = buf.readUnsignedShort().let { if (it == 0xFFFF) -1 else it }
+                    val min = buf.readInt()
+                    val max = buf.readInt()
+                    val text = buf.readString().takeUnless { it.equals("Hidden", ignoreCase = true) }
+                    conditionalOps += ConditionalOp(index, varp, varbit, min, max, text)
                 }
                 253 -> {
                     buf.skipBytes(1 + 2 + 2 + 2 + 4 + 4)
@@ -127,7 +134,7 @@ object NpcTypeLoader {
         check(!buf.isReadable) { "${buf.readableBytes()} bytes left after the end of NPC $id" }
         return NpcType(
             id, name, size, ops, combatLevel, standAnim, walkAnim, multiVarbit, multiVarp, multiNpcs, interactable,
-            params, internalName,
+            params, internalName, conditionalOps,
         )
     }
 
