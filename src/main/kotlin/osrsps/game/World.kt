@@ -54,6 +54,8 @@ class World(
     private val interfaceIds: Set<Int>? = null,
     /** Every random roll in the game comes from here; see [GameRandom]. */
     val random: GameRandom = GameRandom(),
+    /** Set complete for every player at login. */
+    val quests: Quests = Quests.NONE,
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -277,6 +279,7 @@ class World(
         appearance.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824)
         sendRunState(player)
         allowChat(player)
+        quests.completeAll(player.vars)
         player.message(WELCOME_MESSAGE)
 
         interfaces.openGameFrame(player)
