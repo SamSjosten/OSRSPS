@@ -70,13 +70,9 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         player.pendingFrameMove = null
         if (move.dest.resizable && player.stoneArrangement != move.dest.stoneArrangement) {
             player.stoneArrangement = move.dest.stoneArrangement
-            // Kept in Player.vars so the varp's other bits survive, but sent now rather than with the end-of-cycle var
-            // flush so it reaches the client before the frame moves. The flush then resends the same value.
-            val varp = GameFrame.STONE_ARRANGEMENT_VARP
-            val bit = 1 shl GameFrame.STONE_ARRANGEMENT_BIT
-            val value = if (player.stoneArrangement == 0) player.vars[varp] and bit.inv() else player.vars[varp] or bit
-            player.vars[varp] = value
-            sendVarp(player, varp, value)
+            // Sent now rather than with the end-of-cycle var flush so it reaches the client before the frame moves. The
+            // flush then resends the same value.
+            sendVarp(player, GameFrame.STONE_ARRANGEMENT_VARP, player.vars[GameFrame.STONE_ARRANGEMENT_VARP])
         }
         if (move.intermediate != null) {
             moveFrame(player, move.from, move.intermediate)

@@ -24,7 +24,14 @@ class Player(
     var frame: GameFrame = GameFrame.RESIZABLE_CLASSIC
 
     /** Varbit resizable_stone_arrangement: which resizable layout the player last chose. */
-    var stoneArrangement: Int = 0
+    var stoneArrangement: Int
+        // Read from and written to the varp itself, so ::varp and ::varbit changes are seen here too.
+        get() = (vars[GameFrame.STONE_ARRANGEMENT_VARP] ushr GameFrame.STONE_ARRANGEMENT_BIT) and 1
+        set(value) {
+            val bit = 1 shl GameFrame.STONE_ARRANGEMENT_BIT
+            val varp = vars[GameFrame.STONE_ARRANGEMENT_VARP]
+            vars[GameFrame.STONE_ARRANGEMENT_VARP] = if (value == 0) varp and bit.inv() else varp or bit
+        }
 
     /** A layout change waiting for its tick. */
     var pendingFrameMove: FrameMove? = null
