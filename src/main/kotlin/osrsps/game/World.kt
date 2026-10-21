@@ -5,6 +5,7 @@ import net.rsprot.protocol.api.GameConnectionHandler
 import net.rsprot.protocol.api.NetworkService
 import net.rsprot.protocol.api.login.GameLoginResponseHandler
 import net.rsprot.protocol.common.client.OldSchoolClientType
+import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.outgoing.info.util.isEmpty
 import net.rsprot.protocol.game.outgoing.info.util.onFailure
 import net.rsprot.protocol.game.outgoing.info.util.onSuccess
@@ -13,6 +14,7 @@ import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
+import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
 import net.rsprot.protocol.game.outgoing.varp.VarpLarge
@@ -125,7 +127,7 @@ class World(
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
-        sendUpdates()
+        sendUpdates(tickEnd = true)
     }
 
     /**
@@ -136,7 +138,7 @@ class World(
         readInput(ticking = false)
         // Inferred, not measured: the client shows "Connection lost" after about 15 s with nothing from the server, so a
         // frozen world still sends its unchanged player info every cycle. This also flushes command replies.
-        sendUpdates()
+        sendUpdates(tickEnd = false)
     }
 
     private fun readInput(ticking: Boolean) {
@@ -152,14 +154,15 @@ class World(
         }
     }
 
-    private fun sendUpdates() {
+    /** Sends every player this cycle's updates. [tickEnd] says whether the cycle was a game tick. */
+    private fun sendUpdates(tickEnd: Boolean) {
         // Here rather than in the movement loop so a ::varp typed while paused shows without waiting for a step.
         for (player in players) {
             if (player != null) sendVars(player)
         }
         network.infoProtocols.update()
         for (player in players) {
-            if (player != null) sendInfo(player)
+            if (player != null) sendInfo(player, tickEnd)
         }
     }
 
@@ -248,11 +251,25 @@ class World(
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         appearance.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824)
         sendRunState(player)
+        allowChat(player)
+        player.message(WELCOME_MESSAGE)
 
         session.queue(IfOpenTop(GameFrame.TOPLEVEL_RESIZABLE))
         for ((interfaceId, component) in GameFrame.overlays) {
             session.queue(IfOpenSub(GameFrame.TOPLEVEL_RESIZABLE, component, interfaceId, OVERLAY))
         }
+    }
+
+    /**
+     * Tells the client the account has a display name. Without it the chatbox refuses all typing, `::` commands
+     * included, with "You must set a name before you can chat". Inferred from the varbit's name and that message.
+     */
+    internal fun allowChat(player: Player) {
+        if (varTypes.varbit(VARBIT_HAS_DISPLAYNAME) == null) {
+            logger.warn { "No varbit $VARBIT_HAS_DISPLAYNAME in the cache; the client will not let ${player.username} chat" }
+            return
+        }
+        player.vars.setVarbit(VARBIT_HAS_DISPLAYNAME, 1)
     }
 
     /** A click on the game view or minimap. [keyCombination] is 1 with ctrl held, 2 with ctrl and shift. */
@@ -283,6 +300,9 @@ class World(
 
     /** Whether the cache has terrain for the map square holding [x], [z]. */
     fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
+
+    /** Public chat is game input like a click, so while paused it is held for the next tick. */
+    fun onPublicChat(player: Player, message: MessagePublic) = act(player) { sayPublicChat(player, message) }
 
     fun onButton(player: Player, interfaceId: Int, componentId: Int, op: Int) = act(player) {
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
@@ -358,7 +378,7 @@ class World(
         player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
     }
 
-    private fun sendInfo(player: Player) {
+    private fun sendInfo(player: Player, tickEnd: Boolean) {
         val session = player.session
         val packets = player.infos.getPackets().rootWorldInfoPackets
         session.queue(packets.activeWorld)
@@ -367,6 +387,9 @@ class World(
         packets.playerInfo.onSuccess(session::queue).onFailure { logger.error(it) { "Player info failed for ${player.username}" } }
         val npcInfo = packets.npcInfo
         if (npcInfo.isEmpty()) npcInfo.safeReleaseOrThrow() else npcInfo.onSuccess(session::queue)
+        // Live closes every tick with ServerTickEnd, and RuneLite fires its GameTick (and replays deferred events such
+        // as VarbitChanged) only on it, so without it the client never sees a tick. A paused cycle is not a tick.
+        if (tickEnd) session.queue(ServerTickEnd)
         session.flush()
     }
 
@@ -399,6 +422,12 @@ class World(
         const val SPAWN_X = 3222
         const val SPAWN_Z = 3218
         const val SPAWN_LEVEL = 0
+
+        /** has_displayname_transmitter in RuneLite's VarbitID. */
+        const val VARBIT_HAS_DISPLAYNAME = 8119
+
+        /** The first game message after login on live, from memory rather than a recording. */
+        const val WELCOME_MESSAGE = "Welcome to Old School RuneScape."
 
         private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }

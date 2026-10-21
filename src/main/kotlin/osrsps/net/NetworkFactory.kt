@@ -17,9 +17,13 @@ import net.rsprot.protocol.game.incoming.misc.client.NoTimeout
 import net.rsprot.protocol.game.incoming.misc.client.WindowStatus
 import net.rsprot.protocol.game.incoming.buttons.If1Button
 import net.rsprot.protocol.game.incoming.buttons.If3Button
+import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import net.rsprot.protocol.game.incoming.misc.user.MoveGameClick
 import net.rsprot.protocol.game.incoming.misc.user.MoveMinimapClick
+import net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings
+import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
+import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
 import net.rsprot.protocol.loginprot.incoming.pow.NopProofOfWorkProvider
 import net.rsprot.protocol.message.codec.incoming.GameMessageConsumerRepositoryBuilder
 import net.rsprot.protocol.message.codec.incoming.MessageConsumer
@@ -80,6 +84,13 @@ class NetworkFactory(
         // Autocomplete is the C++ client's console tab key; only a command sent with enter runs.
         builder.addListener(ClientCheat::class.java, MessageConsumer { player, message ->
             if (!message.autocomplete) world.onCommand(player, message.command)
+        })
+        builder.addListener(MessagePublic::class.java, MessageConsumer { player, message -> world.onPublicChat(player, message) })
+        // Inferred: the chat tabs' filter labels change only when the server echoes the setting back. Nothing filters
+        // chat on the server yet.
+        builder.addListener(SetChatFilterSettings::class.java, MessageConsumer { player, message ->
+            player.session.queue(ChatFilterSettings(message.publicChatFilter, message.tradeChatFilter))
+            player.session.queue(ChatFilterSettingsPrivateChat(message.privateChatFilter))
         })
         builder.addListener(If1Button::class.java, MessageConsumer { player, message ->
             world.onButton(player, message.interfaceId, message.componentId, 1)
