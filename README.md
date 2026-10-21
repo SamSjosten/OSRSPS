@@ -156,7 +156,7 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::groundobj id [count]` | Puts obj `id` on your tile for everyone, until `::cleartile` or a restart (no ground item timers yet) |
 | `::cleartile` | Removes every obj from your tile |
-| `::anim id [delay]` | Plays animation (seq) `id` on you, seen by everyone nearby; `-1` stops it. `::anim 866` dances |
+| `::anim id [delay]` | Plays animation (seq) `id` on you, seen by everyone nearby; `-1` stops it. Delay is 0 to 255 client cycles. `::anim 866` dances |
 | `::spotanim id [height] [delay] [slot]` | Plays spotanim `id` on you rather than on your tile; `-1` clears the slot (0 to 255) |
 | `::sound [id] [loops] [delay]` | Plays sound effect `id` to you alone (default 3813, the town crier's bell) |
 | `::areasound id [radius] [loops]` | Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
