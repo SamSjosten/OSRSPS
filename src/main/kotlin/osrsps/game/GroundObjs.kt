@@ -104,8 +104,9 @@ class GroundObjs(
      * [neverPublic], and gone after [despawnTicks] (or never, with [ZoneObj.NEVER]). Drops, and later NPC loot, come
      * through here.
      *
-     * A stackable obj lands on [owner]'s private stack of the same item on that tile, if there is one, as RSMod does;
-     * the timers then start again. Guessed: live may keep the old stack's timers. Anything else goes down one per obj.
+     * A stackable obj lands on [owner]'s private stack of the same item on that tile, if there is one, as RSMod does,
+     * and the stack keeps its timers. Guessed: live may restart them, but ObjCount carries no times, so the client would
+     * then count down the old ones anyway. Anything else goes down one per obj.
      */
     fun addPrivate(
         type: ObjType,
@@ -125,9 +126,6 @@ class GroundObjs(
             }
             if (stack != null) {
                 zones.setObjCount(stack, stack.count + count)
-                stack.ticksUntilPublic = privateTicks
-                stack.ticksUntilDespawn = despawnTicks
-                timed += stack
                 return stack
             }
         }

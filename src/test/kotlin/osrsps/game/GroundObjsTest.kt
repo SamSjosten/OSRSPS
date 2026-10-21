@@ -137,7 +137,7 @@ class GroundObjsTest {
     }
 
     @Test
-    fun `a stackable drop lands on the dropper's own stack and starts its timers again`() {
+    fun `a stackable drop lands on the dropper's own stack, which keeps its timers`() {
         watch()
         alice.inventory.add(coins, 50)
         val first = assertNotNull(ground.drop(alice, 0))
@@ -147,7 +147,7 @@ class GroundObjsTest {
         val second = assertNotNull(ground.drop(alice, 0))
         assertSame(first, second)
         assertEquals(75, first.count)
-        assertEquals(listOf(100, 300), listOf(first.ticksUntilPublic, first.ticksUntilDespawn))
+        assertEquals(listOf(70, 270), listOf(first.ticksUntilPublic, first.ticksUntilDespawn))
         val count = prots(alice).single() as ObjCount
         assertEquals(listOf(50, 75), listOf(count.oldQuantity, count.newQuantity))
         assertTrue(prots(bob).isEmpty())
