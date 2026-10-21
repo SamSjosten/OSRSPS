@@ -212,6 +212,22 @@ class NpcsTest {
     }
 
     @Test
+    fun `a big following NPC on top of the player steps out over several ticks`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val npc = npcs.add(spawn(NpcType(3, "Giant", size = 3), x = 3230, z = 3230, wander = 0))!!
+        // The player stands on the middle tile of the 3x3 NPC: no one step clears them.
+        val player = Player(1, "test", 3231, 3231, 0)
+        npcs.follow(npc, player)
+        npcs.process()
+        assertEquals(Tile(3229, 3230), Tile(npc.x, npc.z))
+        npcs.process()
+        assertEquals(Tile(3228, 3230), Tile(npc.x, npc.z))
+        // Beside the player now, so it stays.
+        npcs.process()
+        assertEquals(Tile(3228, 3230), Tile(npc.x, npc.z))
+    }
+
+    @Test
     fun `a busy NPC stands still and is let go`() {
         val npcs = Npcs(map(), GameRandom(1))
         val npc = npcs.add(spawn(wander = 5))!!

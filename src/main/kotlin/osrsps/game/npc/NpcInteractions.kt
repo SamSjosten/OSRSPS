@@ -221,7 +221,8 @@ class NpcInteractions(
 
     /**
      * Whether [player] sees option [option] of [type], and its sub-option [sub] when that isn't -1; conditional ones
-     * included. Inferred: that OpNpcV2's sub-option is the cache's sub index as is (RSProt sends 0 for none).
+     * included. Inferred: that OpNpcV2's sub-option is the cache's sub index as is, 0 meaning none. The cache's only NPC
+     * sub-options (Pete Kayer's, rev 241) are numbered from 1, which fits; not checked against a client recording.
      */
     private fun offers(type: NpcType, option: Int, sub: Int, player: Player): Boolean {
         if (type.op(option) { readVar(player, it) } == null) return false

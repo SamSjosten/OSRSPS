@@ -131,9 +131,9 @@ class Npcs(
         }
         if (Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, target.x, target.z, 1, 1)) return
         val (sx, sz) = if (npc.covers(target.x, target.z)) {
-            STEP_OUT.firstOrNull { (dx, dz) ->
-                !overlaps(npc.x + dx, npc.z + dz, size, target.x, target.z) && canStep(npc, dx, dz)
-            } ?: return
+            // The side that clears the target in the fewest steps; a 3x3 or bigger NPC can need several ticks.
+            STEP_OUT.sortedBy { (dx, dz) -> stepsToClear(npc, dx, dz, target) }.firstOrNull { (dx, dz) -> canStep(npc, dx, dz) }
+                ?: return
         } else {
             // Toward the target from the nearest edge of the NPC, so a big NPC lines up with them.
             val dx = if (target.x < npc.x) -1 else if (target.x >= npc.x + size) 1 else 0
@@ -144,6 +144,17 @@ class Npcs(
                 ?: return
         }
         move(npc, sx, sz)
+    }
+
+    /** Steps [npc] must take in direction [dx], [dz] (one of [STEP_OUT]) until it no longer covers [target]. */
+    private fun stepsToClear(npc: Npc, dx: Int, dz: Int, target: Player): Int {
+        val size = npc.type.size
+        return when {
+            dx < 0 -> npc.x + size - target.x
+            dx > 0 -> target.x - npc.x + 1
+            dz < 0 -> npc.z + size - target.z
+            else -> target.z - npc.z + 1
+        }
     }
 
     private fun overlaps(x: Int, z: Int, size: Int, tileX: Int, tileZ: Int) = tileX in x until x + size && tileZ in z until z + size
