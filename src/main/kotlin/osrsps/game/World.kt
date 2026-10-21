@@ -135,7 +135,11 @@ class World(
     /** Stops the cycle and saves everyone still in the world. */
     fun stop() {
         executor.shutdown()
-        if (!executor.awaitTermination(5, TimeUnit.SECONDS)) logger.warn { "The game thread didn't stop in 5 s; saving anyway" }
+        if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+            // Saving now would race the game thread for the players and the save files; the last autosave stands.
+            logger.error { "The game thread didn't stop in 5 s; not saving on shutdown" }
+            return
+        }
         // Once the executor has stopped this thread is the only one touching the players.
         saveAll()
     }

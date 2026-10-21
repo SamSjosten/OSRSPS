@@ -228,7 +228,7 @@ join it with the inventory. Code is in `src/main/kotlin/osrsps/game/PlayerSave.k
 
 | Rule | Source |
 |------|--------|
-| Saved on logout, when a lost connection gives up, every 3 minutes of real time (paused or not) and on shutdown | ours |
+| Saved on logout, when a lost connection gives up, every 3 minutes of real time (paused or not) and on shutdown (skipped if the game thread is stuck, leaving the last autosave) | ours |
 | A save that can't be read refuses the login rather than starting afresh and overwriting it | ours |
 | A dropped connection keeps the player in the world for 100 ticks (60 s) for the client to reconnect | wiki (Logout button) gives the 60 s for combat; outside combat is inferred |
 | Logging in while that player is still in the world, waiting for a reconnect included, gets "already logged in" | inferred from live |
