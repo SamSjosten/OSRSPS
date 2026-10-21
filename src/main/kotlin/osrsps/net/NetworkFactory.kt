@@ -17,6 +17,8 @@ import net.rsprot.protocol.game.incoming.misc.client.NoTimeout
 import net.rsprot.protocol.game.incoming.misc.client.WindowStatus
 import net.rsprot.protocol.game.incoming.buttons.If1Button
 import net.rsprot.protocol.game.incoming.buttons.If3Button
+import net.rsprot.protocol.game.incoming.buttons.IfButtonD
+import net.rsprot.protocol.game.incoming.buttons.IfButtonT
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import net.rsprot.protocol.game.incoming.misc.user.CloseModal
@@ -97,7 +99,19 @@ class NetworkFactory(
             world.onButton(player, message.interfaceId, message.componentId, -1, 1)
         })
         builder.addListener(If3Button::class.java, MessageConsumer { player, message ->
-            world.onButton(player, message.interfaceId, message.componentId, message.sub, message.op)
+            world.onButton(player, message.interfaceId, message.componentId, message.sub, message.op, message.obj)
+        })
+        builder.addListener(IfButtonD::class.java, MessageConsumer { player, message ->
+            world.onButtonDrag(
+                player, message.selectedInterfaceId, message.selectedComponentId, message.selectedSub, message.selectedObj,
+                message.targetInterfaceId, message.targetComponentId, message.targetSub,
+            )
+        })
+        builder.addListener(IfButtonT::class.java, MessageConsumer { player, message ->
+            world.onButtonTarget(
+                player, message.selectedInterfaceId, message.selectedComponentId, message.selectedSub, message.selectedObj,
+                message.targetInterfaceId, message.targetComponentId, message.targetSub, message.targetObj,
+            )
         })
         builder.addListener(CloseModal::class.java, MessageConsumer { player, _ -> world.onCloseModal(player) })
         return DefaultGameMessageConsumerRepositoryProvider(builder.build())

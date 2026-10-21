@@ -156,6 +156,8 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::groundobj id [count]` | Puts obj `id` on your tile for everyone, until `::cleartile` or a restart (no ground item timers yet) |
 | `::cleartile` | Removes every obj from your tile |
+| `::item id\|name [count]` | Puts items in your inventory, by id, menu name or gameval name: `::item 1351`, `::item bronze axe 2`, `::item coins 10k`. Adds what fits |
+| `::empty` | Empties your inventory |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
@@ -175,6 +177,26 @@ the Hitpoints skill's current level (`Player.hitpoints`).
 | New account: 10 Hitpoints, 1 elsewhere | OSRS Wiki |
 | A level gained while boosted or drained raises the current level by one | inferred, not measured |
 | The stat packet's invisible boost equals the current level | guessed |
+
+## Items and inventory
+
+Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
+`::item`. Every player has the 28-slot inventory, inv 93 (`Player.inventory`); it is sent in full on the first cycle
+and then once a cycle with the changed slots. Item options reach content as `Handlers.onObj(id, option)` with the slot
+as `Op.sub`. Inventories are not in the save file yet; a follow-up to task 8 adds them.
+
+| Inventory behaviour | Source |
+|---------------------|--------|
+| Rev 241 item opcodes 44 to 54 (4-byte models), 15, 160 and 251 (no data) | found by decoding all 34,646 items in the 2026-10-14 cache; meanings of 15, 160, 251 unknown |
+| Slot events, button ops 2, 3, 4, 6, 7 = iop1 to iop5, 10 = Examine | RSMod (rev 233) |
+| Examine runs client script 6003 with the item's examine text and values | RSMod; argument types from the 241 cache |
+| The examine's Grand Exchange price is the item's value | guessed: the server has no market prices |
+| Notes: the item's name and value, stackable, "Swap this note at any bank for the equivalent item." | client genCert; the text from memory of live |
+| Dragging swaps two slots; a click on a slot that holds something else is dropped | RSMod / inferred |
+| An option or "Use" nothing handles says "Nothing interesting happens." | from memory of live |
+| Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
+
+Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it.
 
 ## Tick control
 

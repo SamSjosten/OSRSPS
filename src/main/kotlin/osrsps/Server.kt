@@ -8,10 +8,12 @@ import net.rsprot.compression.provider.DefaultHuffmanCodecProvider
 import net.rsprot.protocol.api.NetworkService
 import osrsps.cache.GameFrameCheck
 import osrsps.cache.MapCollisionLoader
+import osrsps.cache.ObjTypeLoader
 import osrsps.cache.QuestLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
+import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.Quests
 import osrsps.game.VarTypes
@@ -48,11 +50,13 @@ class GameServer(
         val collision: CollisionMap
         val interfaceIds: Set<Int>
         val varTypes: VarTypes
+        val objTypes: ObjTypes
         val quests: Quests
         try {
             js5 = Js5Store.load(library)
             collision = MapCollisionLoader.load(library)
             varTypes = VarTypeLoader.load(library)
+            objTypes = ObjTypeLoader.load(library)
             quests = QuestLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
             val huffmanData = library.data(HUFFMAN_ARCHIVE, "huffman", 0) ?: error("No huffman group in the cache")
@@ -73,7 +77,7 @@ class GameServer(
         logger.info { "Random seed ${random.seed}" + if (seed == null) " (picked at startup; set OSRSPS_SEED to fix it)" else " (from OSRSPS_SEED)" }
         val saveDir = dataDir.resolve("saves")
         logger.info { "Player saves in ${saveDir.toAbsolutePath()}" }
-        world = World(js5.crcs, collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir))
+        world = World(js5.crcs, collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()
         world.network = network
