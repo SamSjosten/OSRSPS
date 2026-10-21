@@ -16,6 +16,7 @@ import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
 import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
+import net.rsprot.protocol.game.outgoing.varp.VarpLarge
 import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.loginprot.incoming.util.AuthenticationType
 import net.rsprot.protocol.loginprot.incoming.util.LoginBlock
@@ -25,6 +26,7 @@ import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerTickCommands
+import osrsps.game.command.registerVarCommands
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -37,7 +39,11 @@ private val logger = KotlinLogging.logger {}
  * The game world: a single thread that runs a 600 ms cycle. Each cycle is a game tick in the [TickPhase] order unless
  * [clock] is paused. Logins arrive from RSProt's login threads and are completed at the start of the next cycle.
  */
-class World(private val js5Crcs: IntArray, private val collision: CollisionMap) : GameConnectionHandler<Player> {
+class World(
+    private val js5Crcs: IntArray,
+    private val collision: CollisionMap,
+    val varTypes: VarTypes = VarTypes.NONE,
+) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
     private val movement = Movement(collision)
@@ -48,6 +54,7 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
         registerTickCommands(this@World)
+        registerVarCommands()
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -148,6 +155,10 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
 
     /** Sends every player this cycle's updates. [tickEnd] says whether the cycle was a game tick. */
     private fun sendUpdates(tickEnd: Boolean) {
+        // Here rather than in the movement loop so a ::varp typed while paused shows without waiting for a step.
+        for (player in players) {
+            if (player != null) sendVars(player)
+        }
         network.infoProtocols.update()
         for (player in players) {
             if (player != null) sendInfo(player, tickEnd)
@@ -214,7 +225,7 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
                 continue
             }
             val ok = LoginResponse.Ok(AuthenticatorResponse.NoAuthenticator, 2, false, index, true, index.toLong(), index.toLong(), index.toLong())
-            val player = Player(index, login.block.username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
+            val player = Player(index, login.block.username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
             player.session = login.responseHandler.writeSuccessfulResponse(ok, login.block)
             player.session.setDisconnectionHook { player.disconnected = true }
             players[index] = player
@@ -308,16 +319,26 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
 
     private fun moveSpeed(player: Player) = if (player.runEnabled) MOVE_SPEED_RUN else MOVE_SPEED_WALK
 
-    /** Sends the run orb's state and energy when they change. */
+    /** Sends the move speed that goes with the run orb, and the run energy, when they change. The orb is a varp. */
     private fun sendRunState(player: Player) {
         if (player.runEnabled != player.sentRunEnabled) {
-            player.session.queue(VarpSmall(VARP_RUN, if (player.runEnabled) 1 else 0))
             player.infos.playerInfo.avatar.extendedInfo.setMoveSpeed(moveSpeed(player))
             player.sentRunEnabled = player.runEnabled
         }
         if (player.runEnergy != player.sentRunEnergy) {
             player.session.queue(UpdateRunEnergy(player.runEnergy))
             player.sentRunEnergy = player.runEnergy
+        }
+    }
+
+    /**
+     * Sends the varps that changed this tick. Varps start at 0 on both sides at login, so only changes are sent; live
+     * may also send zeros at login, which isn't checked.
+     */
+    private fun sendVars(player: Player) {
+        player.vars.flush { varp, value ->
+            // Same split as the client's two packets: a value that fits a signed byte goes in the small one.
+            player.session.queue(if (value in Byte.MIN_VALUE..Byte.MAX_VALUE) VarpSmall(varp, value) else VarpLarge(varp, value))
         }
     }
 
