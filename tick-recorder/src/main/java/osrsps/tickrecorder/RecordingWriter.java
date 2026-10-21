@@ -2,10 +2,7 @@ package osrsps.tickrecorder;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -13,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import net.runelite.client.util.Filepath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,8 +21,16 @@ import org.slf4j.LoggerFactory;
  */
 class RecordingWriter
 {
+	/** Creates a file by name, throwing {@link FileAlreadyExistsException} when the name is taken. */
+	interface Opener
+	{
+		BufferedWriter open(String fileName) throws IOException;
+	}
+
 	private static final Logger log = LoggerFactory.getLogger(RecordingWriter.class);
 
+	private final String where;
+	private final Opener opener;
 	private final ExecutorService executor = Executors.newSingleThreadExecutor(r ->
 	{
 		Thread thread = new Thread(r, "tick-recorder-writer");
@@ -33,14 +39,31 @@ class RecordingWriter
 	});
 
 	private BufferedWriter out;
-	private volatile Path file;
+	private volatile String file;
 	private volatile String failure;
 
+	/** Writes into {@code dir}, the plugin's own folder from RuneLite, creating it when needed. */
+	RecordingWriter(Filepath dir)
+	{
+		this(dir.toString(), fileName ->
+		{
+			dir.createDirectories();
+			return dir.join(fileName).openBufferedWriter(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+		});
+	}
+
+	/** {@code where} names the place files go, for messages; {@code opener} creates them there. */
+	RecordingWriter(String where, Opener opener)
+	{
+		this.where = where;
+		this.opener = opener;
+	}
+
 	/**
-	 * Starts a new file {@code <name>.jsonl} in {@code dir}. An existing file is never overwritten:
+	 * Starts a new file {@code <name>.jsonl}. An existing file is never overwritten:
 	 * {@code <name>-1.jsonl}, {@code <name>-2.jsonl} and so on are tried instead.
 	 */
-	void open(Path dir, String name)
+	void open(String name)
 	{
 		submit(() ->
 		{
@@ -48,14 +71,12 @@ class RecordingWriter
 			file = null;
 			try
 			{
-				Files.createDirectories(dir);
 				for (int attempt = 0; out == null; attempt++)
 				{
-					Path candidate = dir.resolve(attempt == 0 ? name + ".jsonl" : name + "-" + attempt + ".jsonl");
+					String candidate = attempt == 0 ? name + ".jsonl" : name + "-" + attempt + ".jsonl";
 					try
 					{
-						out = Files.newBufferedWriter(candidate, StandardCharsets.UTF_8,
-							StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+						out = opener.open(candidate);
 						file = candidate;
 					}
 					catch (FileAlreadyExistsException e)
@@ -69,7 +90,7 @@ class RecordingWriter
 			}
 			catch (IOException e)
 			{
-				fail("cannot create a file in " + dir, e);
+				fail("cannot create a file in " + where, e);
 			}
 		});
 	}
@@ -89,7 +110,7 @@ class RecordingWriter
 			}
 			catch (IOException e)
 			{
-				fail("cannot write " + file, e);
+				fail("cannot write " + file + " in " + where, e);
 			}
 		});
 	}
@@ -109,7 +130,7 @@ class RecordingWriter
 			}
 			catch (IOException e)
 			{
-				fail("cannot write " + file, e);
+				fail("cannot write " + file + " in " + where, e);
 			}
 		});
 	}
@@ -118,12 +139,6 @@ class RecordingWriter
 	Future<?> close()
 	{
 		return submit(this::closeQuietly);
-	}
-
-	/** The file being written, once {@link #open} has succeeded. */
-	Path file()
-	{
-		return file;
 	}
 
 	/** Returns and clears the reason writing stopped, or null when all is well. */
@@ -145,7 +160,7 @@ class RecordingWriter
 		}
 		catch (InterruptedException e)
 		{
-			Thread.currentThread().interrupt();
+			// The caller is being torn down; the daemon writer thread finishes the close on its own.
 		}
 	}
 

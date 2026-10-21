@@ -21,7 +21,11 @@ class InventoryTabTest {
     private var modalsClosed = 0
     private val scripts = ScriptRunner(handlers, { modalsClosed++ }) { 0 }
     private val dropped = mutableListOf<Int>()
-    private val tab = InventoryTab(ObjTypes.of(axe, coins), scripts, { modalsClosed++ }, { _, slot -> dropped += slot }) { _, message -> sent += message }
+    private val tab = InventoryTab(
+        ObjTypes.of(axe, coins), scripts, { modalsClosed++ },
+        send = { _, message -> sent += message },
+        onDrop = { _, slot -> dropped += slot },
+    )
     private val player = Player(1, "test", 3222, 3218, 0)
 
     private fun messages() = sent.filterIsInstance<MessageGame>().map { it.message }

@@ -2,7 +2,6 @@ package osrsps.game
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
-import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -11,7 +10,9 @@ import osrsps.game.zone.ZoneObj
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
-import kotlin.math.abs
+import osrsps.map.LocShape
+import osrsps.map.Reach
+import osrsps.map.RouteTarget
 
 private val logger = KotlinLogging.logger {}
 
@@ -24,12 +25,6 @@ data class ObjSpawn(val id: Int, val count: Int, val x: Int, val z: Int, val lev
         require(id >= 0 && count >= 1) { "Bad obj spawn $id x $count" }
         require(respawnTicks >= 1) { "An obj spawn needs a respawn time of at least 1 tick, not $respawnTicks" }
     }
-}
-
-/** Something the player walks to and then does. [World] checks it after the player's movement each tick. */
-fun interface Interaction {
-    /** Called after the player moved, unless they are delayed. Returns true once it is done or has given up. */
-    fun process(player: Player): Boolean
 }
 
 /**
@@ -224,7 +219,7 @@ class GroundObjs(
      * A click on [option] (1 to 5) of obj [id] on a tile. Returns the interaction to walk to it with, or null when the
      * player can't see such an obj there or it has no such option: the client was behind, so the click is dropped.
      */
-    fun click(player: Player, id: Int, x: Int, z: Int, option: Int): Interaction? {
+    fun click(player: Player, id: Int, x: Int, z: Int, option: Int): GroundObjInteraction? {
         val type = objTypes[id] ?: return null
         if (option !in 1..5 || type.ops.getOrNull(option - 1) == null) {
             logger.info { "${player.username} sent op $option on $type on the ground, which has no such option" }
@@ -234,44 +229,26 @@ class GroundObjs(
         return GroundObjInteraction(id, x, z, player.level, option)
     }
 
-    private inner class GroundObjInteraction(val id: Int, val x: Int, val z: Int, val level: Int, val option: Int) : Interaction {
-        override fun process(player: Player): Boolean {
+    /**
+     * Walking to obj [id] on [x], [z] to use [option] on it. An obj on a tile the player can walk on is reached by
+     * standing on it; one on a tile they can't (a table) from any tile beside it with no wall between, as a 1x1 ground
+     * decoration is (see [Reach]). Inferred from how items on tables work on live and RSMod's reach rule, not measured.
+     */
+    inner class GroundObjInteraction(val id: Int, val x: Int, val z: Int, val level: Int, val option: Int) : Interaction {
+        /** Where the route goes; decided at the click, so a table put down meanwhile doesn't move it. */
+        val target: RouteTarget =
+            if (collision[x, z, level] and CollisionFlag.BLOCK_WALK == 0) RouteTarget.tile(x, z)
+            else RouteTarget.loc(x, z, LocShape.GROUND_DECOR, 0, 1, 1, 0)
+
+        override fun tryInteract(player: Player): Boolean {
             if (player.level != level) return true
             // Guessed: an obj that vanished while the player walked to it just ends the walk, with no message.
             val obj = find(player, id, x, z, level) ?: return true
-            if (player.x == x && player.z == z) {
-                run(player, obj, option, far = false)
-                return true
-            }
-            if (player.waypoints.isNotEmpty()) return false
-            if (reachableFromBeside(player, x, z, level)) {
-                run(player, obj, option, far = true)
-            } else {
-                message(player, CANT_REACH)
-            }
-            // Guessed: the client's flag sits on the obj's tile, which the player didn't reach, so clear it.
-            send(player, SetMapFlagV2.RESET)
+            if (!Reach.reached(collision, level, player.x, player.z, target)) return false
+            player.waypoints.clear()
+            run(player, obj, option, far = player.x != x || player.z != z)
             return true
         }
-    }
-
-    /**
-     * Whether the player can take an obj from the tile beside it: the obj's tile can't be walked on (a table) and the
-     * player stands next to it, north, south, east or west, with no wall between. Inferred from how items on tables
-     * work on live and RSMod's reach rule, not measured.
-     */
-    private fun reachableFromBeside(player: Player, x: Int, z: Int, level: Int): Boolean {
-        val dx = x - player.x
-        val dz = z - player.z
-        if (abs(dx) + abs(dz) != 1) return false
-        if (collision[x, z, level] and CollisionFlag.BLOCK_WALK == 0) return false
-        val (out, into) = when {
-            dx == 1 -> CollisionFlag.WALL_EAST to CollisionFlag.WALL_WEST
-            dx == -1 -> CollisionFlag.WALL_WEST to CollisionFlag.WALL_EAST
-            dz == 1 -> CollisionFlag.WALL_NORTH to CollisionFlag.WALL_SOUTH
-            else -> CollisionFlag.WALL_SOUTH to CollisionFlag.WALL_NORTH
-        }
-        return collision[player.x, player.z, level] and out == 0 && collision[x, z, level] and into == 0
     }
 
     /**
@@ -365,7 +342,6 @@ class GroundObjs(
          */
         const val MAX_SPLIT = 128
 
-        const val CANT_REACH = "I can't reach that!"
         const val TOO_LATE = "Too late - it's gone!"
         const val NO_SPACE = "You don't have enough inventory space to hold that item."
 

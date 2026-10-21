@@ -13,7 +13,7 @@ fun CommandRegistry.registerEffectCommands(world: World) {
         val id = values[0]
         val delay = values.getOrElse(1) { 0 }
         if (id != -1 && !ids.seqExists(id)) fail("No animation $id in the cache")
-        checkDelay(delay)
+        if (delay !in 0..PlayerEffects.MAX_ANIM_DELAY) fail("Delay must be 0 to ${PlayerEffects.MAX_ANIM_DELAY} client cycles")
         player.anim(id, delay)
         reply(if (id == -1) "Animation stopped" else "Animation $id")
     }

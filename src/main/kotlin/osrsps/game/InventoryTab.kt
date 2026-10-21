@@ -22,9 +22,11 @@ class InventoryTab(
     private val objTypes: ObjTypes,
     private val scripts: ScriptRunner,
     private val closeModals: (Player) -> Unit,
+    /** Wears the item in a slot: what Wear, Wield and Equip do when no content handler takes them. */
+    private val wear: (Player, Int) -> Unit = { _, _ -> },
+    private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
     /** Drops the slot's stack on the ground; see [GroundObjs.drop]. */
     private val onDrop: (Player, Int) -> Unit = { _, _ -> },
-    private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     /** Lets the client send clicks, drags and "Use" on the 28 slots. Sent once the panel is open on login. */
     fun open(player: Player) {
@@ -32,23 +34,7 @@ class InventoryTab(
     }
 
     /** Sends the inventory if it changed: every slot the first time, then the changed ones. */
-    fun flush(player: Player) {
-        val inv = player.inventory
-        inv.flush(
-            full = { slots ->
-                // Only up to the last item; the client empties the inventory before filling it.
-                val count = slots.indexOfLast { it != null } + 1
-                send(player, UpdateInvFull(inv.type, count) { slot -> slots[slot]?.let { InventoryObject(slot, it.id, it.count) } ?: InventoryObject.NULL })
-            },
-            partial = { changed ->
-                val bySlot = changed.toMap()
-                send(player, UpdateInvPartial(inv.type, object : UpdateInvPartial.IndexedObjectProvider(changed.map { it.first }.iterator()) {
-                    // The partial update's encoder writes an id of -1 as an empty slot.
-                    override fun provide(slot: Int): Long = bySlot[slot]?.let { InventoryObject(slot, it.id, it.count) } ?: InventoryObject(slot, -1, 0)
-                }))
-            },
-        )
-    }
+    fun flush(player: Player) = sendInventory(player, player.inventory, send)
 
     /**
      * A click on an inventory slot's option. The button op is the menu entry the client built: 2, 3, 4, 6 and 7 are
@@ -77,6 +63,10 @@ class InventoryTab(
         // Clicking an item closes any open modal, as RSMod does. It doesn't stop the player walking.
         closeModals(player)
         if (scripts.trigger(player, Op(OpTarget.OBJ, type.id, option, slot))) return
+        if (type.wearable && type.iop(option) in Equipment.WEAR_OPTIONS) {
+            wear(player, slot)
+            return
+        }
         if (type.iop(option).equals(DROP, ignoreCase = true)) {
             onDrop(player, slot)
             return
@@ -166,4 +156,22 @@ class InventoryTab(
         val EVENTS_LOW: Int = (11..16).fold(0) { mask, bit -> mask or (1 shl bit) } or (1 shl 17) or (1 shl 20) or (1 shl 21)
         val EVENTS_HIGH: Int = listOf(2, 3, 4, 6, 7, 10).fold(0) { mask, op -> mask or (1 shl (op - 1)) }
     }
+}
+
+/** Sends [inv] to [player] if it changed: every slot the first time, then the changed ones. */
+internal fun sendInventory(player: Player, inv: Inventory, send: (Player, OutgoingGameMessage) -> Unit) {
+    inv.flush(
+        full = { slots ->
+            // Only up to the last item; the client empties the inventory before filling it.
+            val count = slots.indexOfLast { it != null } + 1
+            send(player, UpdateInvFull(inv.type, count) { slot -> slots[slot]?.let { InventoryObject(slot, it.id, it.count) } ?: InventoryObject.NULL })
+        },
+        partial = { changed ->
+            val bySlot = changed.toMap()
+            send(player, UpdateInvPartial(inv.type, object : UpdateInvPartial.IndexedObjectProvider(changed.map { it.first }.iterator()) {
+                // The partial update's encoder writes an id of -1 as an empty slot.
+                override fun provide(slot: Int): Long = bySlot[slot]?.let { InventoryObject(slot, it.id, it.count) } ?: InventoryObject(slot, -1, 0)
+            }))
+        },
+    )
 }

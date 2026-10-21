@@ -13,8 +13,16 @@ enum class TickPhase {
     /** Logins, disconnects, then each player's packets from the client. */
     INPUT,
 
+    /**
+     * Every NPC's movement, before any player's scripts. Inferred: Mod Ash has described live's tick as handling NPCs
+     * before players; not checked against a recording.
+     */
+    NPCS,
+
     /** Each player's delayed script, queues and timers; see [osrsps.game.script.ScriptRunner]. */
     SCRIPTS,
+
+    /** Timed loc changes run out; then each player walks, using the loc they clicked before and after their step. */
     MOVEMENT,
 
     /** Player and NPC info, then each client's packets are flushed. */

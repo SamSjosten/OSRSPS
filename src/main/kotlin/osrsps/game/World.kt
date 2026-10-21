@@ -14,6 +14,7 @@ import net.rsprot.protocol.game.outgoing.logout.Logout
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
 import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
+import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
@@ -31,12 +32,23 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerItemCommands
+import osrsps.game.command.registerLocCommands
+import osrsps.game.command.registerNpcCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
+import osrsps.game.loc.Doors
+import osrsps.game.loc.LocInteractions
+import osrsps.game.loc.LocTypes
+import osrsps.game.loc.Locs
+import osrsps.game.loc.StaticLocs
+import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcExamines
+import osrsps.game.npc.NpcSpawn
+import osrsps.game.npc.Npcs
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.ScriptRunner
@@ -66,8 +78,15 @@ class World(
     /** Where players are saved on logout and every [AUTOSAVE_CYCLES]. */
     private val saves: SaveStore = MemorySaveStore(),
     val objTypes: ObjTypes = ObjTypes.NONE,
+    val npcTypes: NpcTypes = NpcTypes.NONE,
+    /** The NPCs put in the world when it starts. */
+    private val npcSpawns: List<NpcSpawn> = emptyList(),
+    private val npcExamines: NpcExamines = NpcExamines.NONE,
     /** The animation, spotanim, sound and jingle ids the dev commands accept. */
     val effectIds: EffectIds = EffectIds.UNKNOWN,
+    locTypes: LocTypes = LocTypes.NONE,
+    /** The locs the cache's maps place. */
+    staticLocs: StaticLocs = StaticLocs(),
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -83,12 +102,31 @@ class World(
     /** Locs, ground objs, graphics, projectiles and sounds, sent to the players near them. */
     val zones = Zones()
 
+    /** Every loc in the world now; changing one updates collision and the zones. */
+    val locs = Locs(locTypes, staticLocs, collision, zones) { tick }
+
+    val doors = Doors(locs)
+
+    val npcs = Npcs(collision, random)
+
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
     /** Items on the ground: drops, takes, their timers and item spawns. */
     val groundObjs = GroundObjs(zones, objTypes, scripts, collision, { findPlayer(it) != null }, { players.count { it != null } })
 
-    private val inventoryTab = InventoryTab(objTypes, scripts, interfaces::closeModals, onDrop = groundObjs::drop)
+    private val equipment = Equipment(objTypes)
+
+    private val inventoryTab: InventoryTab = InventoryTab(
+        objTypes, scripts, interfaces::closeModals,
+        wear = { player, slot -> equipmentTab.wear(player, slot) },
+        onDrop = groundObjs::drop,
+    )
+
+    private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal)
+
+    private val interactions = Interactions()
+
+    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors)
 
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
@@ -101,6 +139,8 @@ class World(
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
         registerGroundObjCommands(this@World)
+        registerLocCommands(this@World)
+        registerNpcCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -159,7 +199,11 @@ class World(
     }
 
     fun start() {
-        executor.execute { network.setCommunicationThread(Thread.currentThread(), true) }
+        executor.execute {
+            network.setCommunicationThread(Thread.currentThread(), true)
+            // On the game thread: RSProt hands out NPC avatars only there.
+            spawnNpcs()
+        }
         executor.scheduleAtFixedRate(::safeCycle, TICK_MILLIS, TICK_MILLIS, TimeUnit.MILLISECONDS)
     }
 
@@ -194,16 +238,24 @@ class World(
         groundObjs.process()
         phase = TickPhase.INPUT
         readInput(ticking = true)
+        phase = TickPhase.NPCS
+        npcs.process()
         phase = TickPhase.SCRIPTS
         for (player in players) {
             if (player != null) scripts.process(player)
         }
         phase = TickPhase.MOVEMENT
+        // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
+        locs.process()
         for (player in players) {
             if (player == null) continue
             interfaces.processFrameMove(player, tick)
-            move(player)
-            interact(player)
+            interactions.process(player) { move(player) }
+            // A loc or obj used after the player's step (a ladder on arrival) can teleport them once move() has run.
+            if (player.teleported) {
+                finishTeleport(player)
+                rebuildIfNeeded(player)
+            }
             player.infos.updateRootCoord(player.level, player.x, player.z)
         }
         phase = TickPhase.UPDATES
@@ -245,6 +297,7 @@ class World(
             sendStats(player)
             sendEffects(player)
             inventoryTab.flush(player)
+            equipmentTab.flush(player)
         }
         network.infoProtocols.update()
         try {
@@ -452,6 +505,7 @@ class World(
         player.vars.resendAll()
         player.skills.resendAll()
         player.inventory.resendAll()
+        player.equipment.resendAll()
         player.sentRunEnabled = null
         player.sentRunEnergy = -1
         player.sentCombatLevel = -1
@@ -474,10 +528,9 @@ class World(
 
         val appearance = infos.playerInfo.avatar.extendedInfo
         appearance.setName(player.username)
-        // Default male look and the standard human animations. Guessed, not checked against live.
+        // Default male look. Guessed, not checked against live. Worn items and the stance go with the first flush.
         DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
         for (slot in 0 until 5) appearance.setColour(slot, 0)
-        appearance.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824)
         sendRunState(player)
         allowChat(player)
         quests.completeAll(player.vars)
@@ -524,8 +577,10 @@ class World(
         if (player.scripts.delayed) return@act
         val interaction = groundObjs.click(player, id, x, z, option) ?: return@act
         scripts.interrupt(player)
-        movement.request(player, x, z, invertRun = ctrl)
         player.interaction = interaction
+        val route = movement.request(player, interaction.target, invertRun = ctrl)
+        // Guessed, as for a walk: with no route to walk the client's flag would stay up.
+        if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)
     }
 
     /** Examine on obj [id] on the ground: the same examine as in the inventory. Guessed, not checked against live. */
@@ -533,6 +588,24 @@ class World(
         val obj = groundObjs.visibleAt(player, x, z, player.level).firstOrNull { it.id == id } ?: return@act
         val type = objTypes[id] ?: return@act
         inventoryTab.examine(player, type, obj.count)
+    }
+
+    /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
+    fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+        // Inferred, as for a walk: a delayed player's clicks do nothing.
+        if (player.scripts.delayed) return@act
+        locInteractions.click(player, id, x, z, option, ctrl)
+    }
+
+    /**
+     * Examine on loc [id], the type the player sees (after any multiloc change). Sent as an object-examine chat message,
+     * type 29 in RuneLite's ChatMessageType. Live's examine texts aren't in the cache, so until content has them the
+     * message says what the loc is.
+     */
+    fun onLocExamine(player: Player, id: Int) = act(player) {
+        val type = locs.types[id]
+        val name = type?.internalName?.let { " $it" }.orEmpty()
+        player.session.queue(MessageGame(CHATTYPE_OBJEXAMINE, "${type?.name ?: "Loc"} (loc $id$name): no examine text yet."))
     }
 
     /** A `::` command typed in the chatbox, without the `::`. Commands run straight away, even while paused. */
@@ -562,6 +635,9 @@ class World(
             inventoryTab.click(player, sub, obj, op)
             return@act
         }
+        if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
+        if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
+        if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act
@@ -607,6 +683,49 @@ class World(
         logger.info { "${player.username} used $interfaceId:$componentId sub $fromSub on $toInterfaceId:$toComponentId sub $toSub (not handled)" }
     }
 
+    /**
+     * Examine on an NPC of type [id]. Inferred: live answers with a game message of chat type 28, which RuneLite's
+     * ChatMessageType calls NPC_EXAMINE; not checked against a recording.
+     */
+    fun onNpcExamine(player: Player, id: Int) = act(player) {
+        val text = npcExamines[id]
+        if (text != null) {
+            player.session.queue(MessageGame(CHATTYPE_NPC_EXAMINE, text))
+            return@act
+        }
+        // Not live behaviour: tells the tester the text is missing from npc-examines.json.
+        val name = npcTypes[id]?.name ?: "NPC"
+        player.message("No examine text for $name ($id) yet.")
+    }
+
+    private fun spawnNpcs() {
+        var spawned = 0
+        for (spawn in npcSpawns) {
+            if (spawnNpc(spawn) != null) spawned++
+        }
+        if (npcSpawns.isNotEmpty()) logger.info { "Spawned $spawned of ${npcSpawns.size} NPCs" }
+    }
+
+    /** Puts an NPC in the world. Returns null, after logging why, if there is no room for it. */
+    fun spawnNpc(spawn: NpcSpawn): Npc? {
+        val npc = npcs.add(spawn)
+        if (npc == null) {
+            logger.warn { "No free NPC slot for ${spawn.type} from ${spawn.source}" }
+            return null
+        }
+        // No network in unit tests: the NPC then exists without being sent to anyone.
+        if (this::network.isInitialized) {
+            npc.avatar = network.npcAvatarFactory.alloc(npc.index, spawn.type.id, npc.level, npc.x, npc.z, direction = spawn.direction.id)
+        }
+        return npc
+    }
+
+    fun removeNpc(npc: Npc) {
+        npcs.remove(npc)
+        npc.avatar?.let(network.npcAvatarFactory::release)
+        npc.avatar = null
+    }
+
     /** The client closed its modal: Esc, or a close button. */
     fun onCloseModal(player: Player) = act(player) { scripts.interrupt(player) }
 
@@ -623,11 +742,7 @@ class World(
             MoveResult.RAN -> MOVE_SPEED_RUN
         }
         if (player.teleported) {
-            // A teleport is sent as the one-tick teleport speed so the client jumps instead of walking there, and the
-            // old route's flag is cleared. Clearing the flag is guessed, not checked against live.
-            extendedInfo.setTempMoveSpeed(MOVE_SPEED_TELEPORT)
-            player.session.queue(SetMapFlagV2.RESET)
-            player.teleported = false
+            finishTeleport(player)
         } else if (speed != null && speed != moveSpeed(player)) {
             // Inferred: a tick moved at a speed other than the orb's (ctrl-click, the last odd tile of a run) is sent
             // as a one-tick temporary speed so the client animates it right.
@@ -638,14 +753,13 @@ class World(
     }
 
     /**
-     * Carries on the player's interaction after their movement, if they aren't delayed. Inferred from the RS2 world
-     * cycle: an option on something the player just walked up to runs in the tick they arrive.
+     * A teleport is sent as the one-tick teleport speed so the client jumps instead of walking there, and the old route's
+     * flag is cleared. Clearing the flag is guessed, not checked against live.
      */
-    private fun interact(player: Player) {
-        val interaction = player.interaction ?: return
-        if (player.scripts.delayed) return
-        // The interaction may start another, which then stays.
-        if (interaction.process(player) && player.interaction === interaction) player.interaction = null
+    private fun finishTeleport(player: Player) {
+        player.infos.playerInfo.avatar.extendedInfo.setTempMoveSpeed(MOVE_SPEED_TELEPORT)
+        player.session.queue(SetMapFlagV2.RESET)
+        player.teleported = false
     }
 
     private fun moveSpeed(player: Player) = if (player.runEnabled) MOVE_SPEED_RUN else MOVE_SPEED_WALK
@@ -795,6 +909,11 @@ class World(
         const val SPAWN_X = 3222
         const val SPAWN_Z = 3218
         const val SPAWN_LEVEL = 0
+
+        /** OBJECT_EXAMINE in RuneLite's ChatMessageType. */
+        const val CHATTYPE_OBJEXAMINE = 29
+        /** RuneLite's ChatMessageType.NPC_EXAMINE. */
+        const val CHATTYPE_NPC_EXAMINE = 28
 
         /** has_displayname_transmitter in RuneLite's VarbitID. */
         const val VARBIT_HAS_DISPLAYNAME = 8119

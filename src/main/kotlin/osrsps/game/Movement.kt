@@ -1,17 +1,10 @@
 package osrsps.game
 
-import osrsps.map.CollisionFlag.BLOCK_WALK
-import osrsps.map.CollisionFlag.WALL_EAST
-import osrsps.map.CollisionFlag.WALL_NORTH
-import osrsps.map.CollisionFlag.WALL_NORTH_EAST
-import osrsps.map.CollisionFlag.WALL_NORTH_WEST
-import osrsps.map.CollisionFlag.WALL_SOUTH
-import osrsps.map.CollisionFlag.WALL_SOUTH_EAST
-import osrsps.map.CollisionFlag.WALL_SOUTH_WEST
-import osrsps.map.CollisionFlag.WALL_WEST
 import osrsps.map.CollisionMap
 import osrsps.map.Route
 import osrsps.map.RouteFinder
+import osrsps.map.RouteTarget
+import osrsps.map.Steps
 import kotlin.math.sign
 
 /** What a player's movement did this tick. */
@@ -28,8 +21,12 @@ class Movement(private val collision: CollisionMap) {
     private val routeFinder = RouteFinder(collision)
 
     /** Replaces [player]'s route with one to [destX], [destZ]. [invertRun] is the ctrl key. */
-    fun request(player: Player, destX: Int, destZ: Int, invertRun: Boolean): Route {
-        val route = routeFinder.find(player.level, player.x, player.z, destX, destZ)
+    fun request(player: Player, destX: Int, destZ: Int, invertRun: Boolean): Route =
+        request(player, RouteTarget.tile(destX, destZ), invertRun)
+
+    /** Replaces [player]'s route with one to wherever reaches [target]. */
+    fun request(player: Player, target: RouteTarget, invertRun: Boolean): Route {
+        val route = routeFinder.find(player.level, player.x, player.z, target)
         player.waypoints.clear()
         player.waypoints.addAll(route.waypoints)
         player.invertRun = invertRun
@@ -57,7 +54,7 @@ class Movement(private val collision: CollisionMap) {
         val dx = (target.x - player.x).sign
         val dz = (target.z - player.z).sign
         if (!canStep(player.level, player.x, player.z, dx, dz)) {
-            // The map changed under the route (nothing does that yet); stop like the server does.
+            // The map changed under the route (a door closed); stop like the server does.
             player.waypoints.clear()
             return false
         }
@@ -68,27 +65,7 @@ class Movement(private val collision: CollisionMap) {
     }
 
     /** The same checks the route finder makes for one step. */
-    fun canStep(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean {
-        fun open(ox: Int, oz: Int, mask: Int) = collision[x + ox, z + oz, level] and mask == 0
-        val westEast = when (dx) {
-            -1 -> open(-1, 0, BLOCK_WALK or WALL_EAST)
-            1 -> open(1, 0, BLOCK_WALK or WALL_WEST)
-            else -> true
-        }
-        val southNorth = when (dz) {
-            -1 -> open(0, -1, BLOCK_WALK or WALL_NORTH)
-            1 -> open(0, 1, BLOCK_WALK or WALL_SOUTH)
-            else -> true
-        }
-        if (dx == 0 || dz == 0) return westEast && southNorth && (dx != 0 || dz != 0)
-        val corner = when {
-            dx < 0 && dz < 0 -> BLOCK_WALK or WALL_NORTH or WALL_NORTH_EAST or WALL_EAST
-            dx > 0 && dz < 0 -> BLOCK_WALK or WALL_NORTH_WEST or WALL_NORTH or WALL_WEST
-            dx < 0 -> BLOCK_WALK or WALL_EAST or WALL_SOUTH_EAST or WALL_SOUTH
-            else -> BLOCK_WALK or WALL_SOUTH or WALL_SOUTH_WEST or WALL_WEST
-        }
-        return westEast && southNorth && open(dx, dz, corner)
-    }
+    fun canStep(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean = Steps.canStep(collision, level, x, z, dx, dz)
 
     private fun updateEnergy(player: Player, result: MoveResult) {
         // Guessed: only a two-tile tick counts as running, and a single tile at the end of a run drains nothing.

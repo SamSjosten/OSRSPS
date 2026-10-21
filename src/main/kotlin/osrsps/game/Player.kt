@@ -70,11 +70,11 @@ class Player(
     /** The tick the lost connection was noticed on, or -1 while connected. */
     var connectionLostTick: Long = -1
 
-    /** What the player is walking to do, such as taking a ground obj; null when nothing. */
-    var interaction: Interaction? = null
-
     /** Turning points of the current route, next one first. */
     val waypoints = ArrayDeque<Tile>()
+
+    /** What the player is walking to use, a loc or a ground obj, if anything. Walking elsewhere or teleporting drops it. */
+    var interaction: Interaction? = null
 
     val vars = PlayerVars(varTypes)
 
@@ -89,6 +89,9 @@ class Player(
 
     /** The 28-slot inventory, inv 93. Changes are sent at the end of the cycle. */
     val inventory = Inventory(Inventory.INV, Inventory.INV_CAPACITY)
+
+    /** What the player wears, inv 94, one slot per [WearPos]. Changes are sent at the end of the cycle. */
+    val equipment = Inventory(Inventory.WORN, WearPos.COUNT)
 
     /** Queues, timers and the current delay; run by [World.scripts]. */
     val scripts = PlayerScripts()
@@ -108,6 +111,9 @@ class Player(
     var sentRunEnabled: Boolean? = null
     var sentRunEnergy: Int = -1
     var sentCombatLevel: Int = -1
+
+    /** The stance last put in the player's appearance; null until the first is sent. */
+    var sentStance: Stance? = null
 
     /** Moved by a teleport this tick; the client is told when the tick's movement is sent. */
     var teleported: Boolean = false

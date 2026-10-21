@@ -9,19 +9,23 @@ import net.rsprot.protocol.api.NetworkService
 import osrsps.cache.EffectIdLoader
 import osrsps.cache.GameFrameCheck
 import osrsps.cache.MapCollisionLoader
+import osrsps.cache.NpcTypeLoader
 import osrsps.cache.ObjTypeLoader
 import osrsps.cache.QuestLoader
 import osrsps.cache.VarTypeLoader
+import osrsps.cache.WorldMap
 import osrsps.game.EffectIds
 import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
+import osrsps.game.NpcTypes
 import osrsps.game.ObjSpawnFiles
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.Quests
 import osrsps.game.VarTypes
 import osrsps.game.World
-import osrsps.map.CollisionMap
+import osrsps.game.npc.NpcExamines
+import osrsps.game.npc.NpcSpawnFile
 import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
 import osrsps.net.NetworkFactory
@@ -50,17 +54,19 @@ class GameServer(
         val library = CacheLibrary.create(dataDir.resolve("cache").toString())
         val js5: Js5Store
         val huffman: HuffmanCodec
-        val collision: CollisionMap
+        val map: WorldMap
         val interfaceIds: Set<Int>
         val varTypes: VarTypes
         val objTypes: ObjTypes
+        val npcTypes: NpcTypes
         val quests: Quests
         val effectIds: EffectIds
         try {
             js5 = Js5Store.load(library)
-            collision = MapCollisionLoader.load(library)
+            map = MapCollisionLoader.loadWorld(library)
             varTypes = VarTypeLoader.load(library)
             objTypes = ObjTypeLoader.load(library)
+            npcTypes = NpcTypeLoader.load(library)
             quests = QuestLoader.load(library)
             effectIds = EffectIdLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
@@ -82,7 +88,13 @@ class GameServer(
         logger.info { "Random seed ${random.seed}" + if (seed == null) " (picked at startup; set OSRSPS_SEED to fix it)" else " (from OSRSPS_SEED)" }
         val saveDir = dataDir.resolve("saves")
         logger.info { "Player saves in ${saveDir.toAbsolutePath()}" }
-        world = World(js5.crcs, collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, effectIds = effectIds)
+        val npcSpawns = NpcSpawnFile.loadAll(npcTypes)
+        val npcExamines = NpcExamines.load()
+        logger.info { "Loaded ${npcSpawns.size} NPC spawns and ${npcExamines.size} NPC examine texts" }
+        world = World(
+            js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
+            npcSpawns, npcExamines, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
+        )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()

@@ -9,7 +9,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
-import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.zone.payload.ObjAdd
 import net.rsprot.protocol.game.outgoing.zone.payload.ObjCount
 import net.rsprot.protocol.game.outgoing.zone.payload.ObjDel
@@ -238,10 +237,10 @@ class GroundObjsTest {
         val obj = ground.addPublic(axe, 1, 3224, 3218, 0).single()
         val interaction = assertNotNull(ground.click(alice, 1351, 3224, 3218, GroundObjs.TAKE_OPTION))
         alice.waypoints.add(osrsps.map.Tile(3224, 3218))
-        assertFalse(interaction.process(alice), "still walking")
+        assertFalse(interaction.tryInteract(alice), "still walking")
         alice.x = 3224
         alice.waypoints.clear()
-        assertTrue(interaction.process(alice))
+        assertTrue(interaction.tryInteract(alice))
         assertFalse(zones.hasObj(obj))
         assertEquals(1, alice.inventory.count(1351))
     }
@@ -251,7 +250,7 @@ class GroundObjsTest {
         collision.add(3223, 3218, 0, CollisionFlag.LOC)
         val obj = ground.addPublic(axe, 1, 3223, 3218, 0).single()
         val interaction = assertNotNull(ground.click(alice, 1351, 3223, 3218, GroundObjs.TAKE_OPTION))
-        assertTrue(interaction.process(alice))
+        assertTrue(interaction.tryInteract(alice))
         assertTrue(zones.hasObj(obj), "the take waits a tick")
         assertTrue(alice.scripts.delayed)
         ticks(1)
@@ -259,16 +258,21 @@ class GroundObjsTest {
         assertEquals(1, alice.inventory.count(1351))
         assertEquals(GroundObjs.ANIM_PICKUP_TABLE, alice.effects.anim?.id)
         assertEquals(listOf(GroundObjs.SOUND_PICK), alice.effects.pendingSounds.map { it.id })
-        assertTrue(sent.any { it.second === SetMapFlagV2.RESET })
     }
 
     @Test
     fun `a wall between the player and the table stops the take`() {
+        // A wall flags the tiles on both its sides, as the map loader does.
         collision.add(3223, 3218, 0, CollisionFlag.LOC or CollisionFlag.WALL_WEST)
+        collision.add(3222, 3218, 0, CollisionFlag.WALL_EAST)
         ground.addPublic(axe, 1, 3223, 3218, 0)
         val interaction = assertNotNull(ground.click(alice, 1351, 3223, 3218, GroundObjs.TAKE_OPTION))
-        assertTrue(interaction.process(alice))
-        assertEquals(listOf(GroundObjs.CANT_REACH), messages(alice))
+        assertFalse(interaction.tryInteract(alice))
+        val told = mutableListOf<String>()
+        alice.interaction = interaction
+        Interactions { _, text -> told += text }.process(alice) {}
+        assertEquals(listOf(Interactions.CANT_REACH), told)
+        assertNull(alice.interaction)
         assertEquals(0L, alice.inventory.count(1351))
     }
 
@@ -278,7 +282,7 @@ class GroundObjsTest {
         val interaction = assertNotNull(ground.click(alice, 1351, 3224, 3218, GroundObjs.TAKE_OPTION))
         ground.take(bob, obj)
         alice.x = 3224
-        assertTrue(interaction.process(alice))
+        assertTrue(interaction.tryInteract(alice))
         assertTrue(messages(alice).isEmpty())
     }
 
@@ -287,14 +291,14 @@ class GroundObjsTest {
         val ran = mutableListOf<Op>()
         handlers.onGroundObj(1511, 4) { ran += it }
         val obj = ground.addPublic(logs, 1, alice.x, alice.z, 0).single()
-        assertNotNull(ground.click(alice, 1511, alice.x, alice.z, 4)).process(alice)
+        assertNotNull(ground.click(alice, 1511, alice.x, alice.z, 4)).tryInteract(alice)
         assertEquals(listOf(Op(OpTarget.GROUND_OBJ, 1511, 4, groundObj = obj)), ran)
         assertTrue(zones.hasObj(obj))
 
         assertNull(ground.click(alice, 1511, alice.x, alice.z, 5), "logs have no op5")
         handlers.onGroundObj(1351, 3) { ran += it }
         ground.addPublic(axe, 1, alice.x, alice.z, 0)
-        assertNotNull(ground.click(alice, 1351, alice.x, alice.z, 3)).process(alice)
+        assertNotNull(ground.click(alice, 1351, alice.x, alice.z, 3)).tryInteract(alice)
         assertEquals(2, ran.size)
         assertEquals(0L, alice.inventory.count(1351), "the handler replaced Take")
     }

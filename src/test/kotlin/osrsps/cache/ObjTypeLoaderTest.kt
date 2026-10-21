@@ -71,6 +71,7 @@ class ObjTypeLoaderTest {
         assertEquals(listOf(null, "Wield", null, null, "Drop"), type.iops)
         assertEquals(listOf(null, null, "Take", "Light", null), type.ops)
         assertEquals(3, type.wearpos1)
+        assertEquals(35, type.category)
         assertEquals(1360, type.weight)
         assertTrue(type.tradeable)
         assertFalse(type.stackable)

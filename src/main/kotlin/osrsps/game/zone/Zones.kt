@@ -240,6 +240,17 @@ class Zones {
     }
 
     /**
+     * The tile's [layer] is back to what the cache has there, so players who see the zone later need not be told about
+     * it. Sends nothing: call it after the [addLoc] or [removeLoc] that put it back, which watching players still get.
+     */
+    fun forgetLoc(x: Int, z: Int, level: Int, layer: Int) {
+        val key = ZoneKey.of(x, z, level).packed
+        val state = states[key] ?: return
+        state.locs.remove(locSlot(x, z, layer))
+        if (state.isEmpty) states.remove(key)
+    }
+
+    /**
      * Sends [player] this cycle's zone updates through [out]: zones that came into view in full, and what happened this
      * cycle in the zones they were already watching. Call once a cycle per player, after their map rebuild if any.
      *
