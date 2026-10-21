@@ -156,7 +156,7 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::groundobj id [count]` | Puts obj `id` on your tile for everyone, until `::cleartile` or a restart (no ground item timers yet) |
 | `::cleartile` | Removes every obj from your tile |
-| `::anim id [delay]` | Plays animation (seq) `id` on you, seen by everyone nearby; `-1` stops it. `::anim 866` dances |
+| `::anim id [delay]` | Plays animation (seq) `id` on you, seen by everyone nearby; `-1` stops it. Delay is 0 to 255 client cycles. `::anim 866` dances |
 | `::spotanim id [height] [delay] [slot]` | Plays spotanim `id` on you rather than on your tile; `-1` clears the slot (0 to 255) |
 | `::sound [id] [loops] [delay]` | Plays sound effect `id` to you alone (default 3813, the town crier's bell) |
 | `::areasound id [radius] [loops]` | Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
@@ -167,6 +167,9 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::addloc id [shape] [angle]` | Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
+| `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
+| `::npcs [radius]` | Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range |
+| `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
@@ -192,7 +195,7 @@ the Hitpoints skill's current level (`Player.hitpoints`).
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
 `::item`. Every player has the 28-slot inventory, inv 93 (`Player.inventory`); it is sent in full on the first cycle
 and then once a cycle with the changed slots. Item options reach content as `Handlers.onObj(id, option)` with the slot
-as `Op.sub`. Inventories are not in the save file yet; a follow-up to task 8 adds them.
+as `Op.sub`. The inventory is saved with the player.
 
 | Inventory behaviour | Source |
 |---------------------|--------|
@@ -206,6 +209,34 @@ as `Op.sub`. Inventories are not in the save file yet; a follow-up to task 8 add
 | Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
 
 Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it.
+
+## Equipment
+
+Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and
+Equip move an item there when no content handler takes the option; the equipment tab (wornitems, 387) removes it and
+opens Equipment Stats (84, with the side inventory 85). The worn items show on the player's model, the weapon sets the
+stance and the combat tab's weapon category, and equipment is saved with the player. Rules are in `Equipment.kt`, the
+interfaces in `EquipmentTab.kt` and the weapon tables in `Weapons.kt`.
+
+| Equipment behaviour | Source |
+|---------------------|--------|
+| Slot (wearpos1), covered slots (wearpos2/3: hair, jaw, arms; the shield for two-handed weapons) | 241 cache; RSProt hides covered slots on the model |
+| A two-handed weapon takes off the weapon and the shield; a shield takes off a two-handed weapon; the swapped item goes into the slot the new one left | well known; slots from memory of live |
+| Bonuses: params 0 to 9 attack and defence, 10 melee strength, 11 prayer, 12 ranged strength, 299 magic damage in tenths of a percent, 14 attack speed in ticks | 241 cache params, matched against items with well-known stats |
+| Level requirements: params 434/436 and 435/437 (skill, level), checked against base levels | 241 cache (whip 0/70, granite maul 0/50 + 2/50); base levels from memory |
+| Standard metal items without those params (mithril scimitar, rune dagger...) need 5/10/20/30/40/60 for steel to dragon | from memory of the OSRS Wiki, not checked; halberds left out |
+| Combat tab: varbit 357 (combat_weapon_category) picks the tab from dbtable 78's rows; style buttons set varp 43 (com_mode) | 241 cache |
+| Which items get which weapon category: by the item's category (obj opcode 94), e.g. 35 axes, 21 scimitars and longswords | inferred from item names; unknown weapons show as unarmed |
+| A style the new weapon lacks falls back to the first | guessed |
+| Stances (standing, walking and running animations) for 2h swords, godswords, staves, halberds, whips, mauls, crossbows, chinchompas, banners, the bulwark | animation ids from their gameval names; which weapon uses which is guessed |
+| Worn ops: 1 Remove, 2 to 9 the item's params 451 to 458 (`Handlers.onWorn`), 10 Examine | 241 cache click masks and params; op numbering after RSMod |
+| Equipment Stats text ("Stab: +4", "Melee strength: +5", "Magic damage: +5.0%", "Base: 2.4s") and the side inventory script 149 arguments | from memory / RSMod, not checked |
+| "You are not a high enough level to use this item.", "You don't have enough free inventory space to do that." | from memory of live, not checked |
+| Not built: equip sounds, weight from worn items, set effects, special attack bar, autocast | later tasks |
+
+Check: `::item bronze axe`, click Wield: the axe shows in your hand, in the equipment tab's weapon slot, and the combat
+tab says Axe with Chop, Hack, Smash and Block. `::item bronze 2h sword` and `::item wooden shield`, wear the shield,
+then wield the 2h sword: the shield comes off. "View equipment stats" shows the bonuses; Remove puts items back.
 
 ## Tick control
 
@@ -240,6 +271,38 @@ The generator is xoshiro256\*\* seeded through SplitMix64, written out in the re
 JDK or Kotlin upgrades. It is not the generator live uses: only repeatability matters here. With more than one player,
 rolls are made in player index order within each tick phase, so the same seed also needs the same players in the same
 slots (inferred from the tick loop; nothing rolls yet).
+
+## NPCs
+
+NPC types come from cache config 9 at startup (`NpcTypeLoader`), with gameval names from index 24 archive 1. NPC
+spawns are not in the cache: they live in `src/main/resources/npc-spawns/`, one JSON file per area listed in
+`NpcSpawnFile.FILES`, and every spawn names its source. Examine texts are in `src/main/resources/npc-examines.json`
+by type id, also with sources. NPCs are sent through RSProt's NPC info; the tick moves every NPC (`World.npcs`, in
+`game/npc/`) before any player's scripts.
+
+`lumbridge.json` has Hans in the castle courtyard and the 21 cows and 8 calves of the Lumbridge cow field east of the
+river, on the wiki's tiles. The castle's own NPCs, and Hans's real lap, come with the Lumbridge Castle piece.
+
+| NPC behaviour | Source |
+|---------------|--------|
+| NPC type opcodes; all 16,631 rev 241 types decode | RuneLite's NpcLoader, checked against the 2026-10-14 cache |
+| Spawn tiles, ids and examine texts of Hans, cows and calves | OSRS Wiki pages Hans, Cow, Cow calf (2026-10-21) |
+| Which cow or calf type stands on which wiki tile | guessed: the wiki maps give tiles per name, so the types take turns |
+| Wander: pick a tile in the square of the wander radius around the spawn (even from outside it), walk there | OSRS Wiki, Wander radius |
+| NPCs walk naively: diagonally, then straight | OSRS Wiki, Pathfinding |
+| An idle NPC picks a new tile 1 tick in 8 | guessed, from the 2004Scape project's RS2 engine; not measured |
+| Every wander range is 5 | guessed until recorded |
+| A blocked diagonal tries the x step, then the z step; with neither it gives up on the tile | guessed |
+| NPCs don't walk into each other; players don't block them | inferred / guessed |
+| A 2x2 NPC moves as its four tiles would, so it can't straddle a fence | inferred from the one-tile rules |
+| NPCs move before players' scripts each tick | inferred from Mod Ash's descriptions; not recorded |
+| Examine answers with chat type 28 (NPC_EXAMINE) | RuneLite's ChatMessageType |
+| Hans faces south when he spawns, as does every NPC without a direction | guessed |
+
+Check: in the cow field east of the River Lum (`::tele 3253 3275`) the cows and calves wander inside the fences,
+`::npcs` lists them, and Examine on one gives its wiki text. Hans is in the castle courtyard and wanders. Same seed, same
+paths: start the server twice with the same `OSRSPS_SEED`, `::pause`, `::step` until `::tick` reads the same number
+(500, say) and `::npcs` lists the same tiles both times.
 
 ## Zone updates
 
@@ -346,7 +409,7 @@ Anything typed without `::` is public chat: it shows over your head and in the c
 Each player is saved to `data/saves/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/saves/`, which is not backed up).
 Names ignore case and treat spaces as underscores, so `Test` and `test` share a save. A save holds position, run energy,
 every varp that isn't 0 (the run orb and the resizable layout among them), each skill's XP and current level, and the
-inventory's slots; equipment and the bank join it when they exist. Code is in `src/main/kotlin/osrsps/game/PlayerSave.kt` and `SaveStore.kt`.
+inventory's and equipment's slots; the bank joins it when it exists. Code is in `src/main/kotlin/osrsps/game/PlayerSave.kt` and `SaveStore.kt`.
 
 | Rule | Source |
 |------|--------|

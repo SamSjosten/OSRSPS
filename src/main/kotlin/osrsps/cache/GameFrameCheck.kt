@@ -1,14 +1,15 @@
 package osrsps.cache
 
 import com.displee.cache.CacheLibrary
+import osrsps.game.EquipmentTab
 import osrsps.game.FrameSlot
 import osrsps.game.GameFrame
 import java.nio.charset.Charset
 
 /**
- * Checks [GameFrame]'s interface and component ids against the names in the cache's gameval index, which Jagex
- * ships with the cache from about rev 230. A mismatch means a revision moved something and the frame will show a
- * missing or wrong panel.
+ * Checks [GameFrame]'s and [EquipmentTab]'s interface and component ids against the names in the cache's gameval
+ * index, which Jagex ships with the cache from about rev 230. A mismatch means a revision moved something and the
+ * frame will show a missing or wrong panel.
  */
 object GameFrameCheck {
     private const val GAMEVAL_INDEX = 24
@@ -35,6 +36,18 @@ object GameFrameCheck {
         for (overlay in GameFrame.overlays) {
             val actual = names(overlay.interfaceId)?.name
             if (actual != overlay.cacheName) problems += "interface ${overlay.interfaceId} should be ${overlay.cacheName} but is $actual"
+        }
+        for ((interfaceId, expected) in EquipmentTab.CACHE_NAMES) {
+            val (name, components) = expected
+            val interfaceNames = names(interfaceId)
+            if (interfaceNames == null || interfaceNames.name != name) {
+                problems += "interface $interfaceId should be $name but is ${interfaceNames?.name}"
+                continue
+            }
+            for ((component, componentName) in components) {
+                val actual = interfaceNames.components[component]
+                if (actual != componentName) problems += "$name component $component should be $componentName but is $actual"
+            }
         }
         return problems
     }

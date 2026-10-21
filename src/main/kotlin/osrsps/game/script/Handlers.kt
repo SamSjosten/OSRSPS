@@ -15,12 +15,15 @@ enum class OpTarget {
 
     /** An interface component, by [Op.button]'s packed id. */
     BUTTON,
+
+    /** A worn item's own options (a ring's teleports), by obj type id, with the equipment slot as [Op.sub]. */
+    WORN,
 }
 
 /**
- * One click on an option: [option] is 1 to 5 for locs, NPCs and items (op1 to op5, as in the cache's option lists) and
- * 1 to 10 for buttons. [sub] is the button's slot (an inventory slot, a dropdown entry), -1 when there is none. [loc] is
- * the loc clicked, for a loc op.
+ * One click on an option: [option] is 1 to 5 for locs, NPCs and items (op1 to op5, as in the cache's option lists), 1 to
+ * 8 for worn items and 1 to 10 for buttons. [sub] is the button's slot (an inventory slot, a dropdown entry), -1 when there is none.
+ * [loc] is the loc clicked, for a loc op.
  */
 data class Op(val target: OpTarget, val id: Int, val option: Int, val sub: Int = -1, val loc: ZoneLoc? = null) {
     val interfaceId: Int get() = id ushr 16
@@ -49,9 +52,9 @@ typealias Handler = suspend ScriptContext.(Op) -> Unit
  * Content handlers, by what was clicked and which option. A handler registered for [ANY_OPTION] catches every option
  * that has no handler of its own.
  *
- * Clicks on buttons and on inventory items (iop1 to iop5, with the slot as [Op.sub]) reach handlers straight away;
- * clicks on locs once the player has walked to them (see [osrsps.game.loc.LocInteractions]). NPCs come with task 17,
- * also after walking to them.
+ * Clicks on buttons, on inventory items (iop1 to iop5, with the slot as [Op.sub]) and on worn items' own options reach
+ * handlers straight away; clicks on locs once the player has walked to them (see [osrsps.game.loc.LocInteractions]).
+ * NPCs come with task 17, also after walking to them.
  */
 class Handlers {
     private val handlers = HashMap<Key, Handler>()
@@ -64,11 +67,18 @@ class Handlers {
 
     fun onObj(id: Int, option: Int, handler: Handler) = register(OpTarget.OBJ, id, option, handler)
 
+    /** A worn item's option [option], 1 to 8: the item's params 451 to 458, which the equipment tab shows after Remove. */
+    fun onWorn(id: Int, option: Int, handler: Handler) = register(OpTarget.WORN, id, option, handler)
+
     fun onButton(interfaceId: Int, componentId: Int, option: Int = ANY_OPTION, handler: Handler) =
         register(OpTarget.BUTTON, Op.packButton(interfaceId, componentId), option, handler)
 
     fun register(target: OpTarget, id: Int, option: Int, handler: Handler) {
-        val maxOption = if (target == OpTarget.BUTTON) MAX_BUTTON_OPTION else MAX_OPTION
+        val maxOption = when (target) {
+            OpTarget.BUTTON -> MAX_BUTTON_OPTION
+            OpTarget.WORN -> MAX_WORN_OPTION
+            else -> MAX_OPTION
+        }
         require(option == ANY_OPTION || option in 1..maxOption) { "Bad option $option for a ${target.name.lowercase()}" }
         require(id >= 0) { "Bad id $id" }
         val key = Key(target, id, option)
@@ -82,5 +92,6 @@ class Handlers {
         const val ANY_OPTION = 0
         const val MAX_OPTION = 5
         const val MAX_BUTTON_OPTION = 10
+        const val MAX_WORN_OPTION = 8
     }
 }

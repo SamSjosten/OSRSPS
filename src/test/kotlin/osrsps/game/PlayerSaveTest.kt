@@ -30,6 +30,8 @@ class PlayerSaveTest {
         player.skills.setCurrentLevel(Skill.STRENGTH, 5)
         player.inventory[0] = InvObj(1351, 1)
         player.inventory[27] = InvObj(995, 1_000_000)
+        player.equipment[WearPos.WEAPON] = InvObj(1351, 1)
+        player.equipment[WearPos.AMMO] = InvObj(882, 500)
         assertTrue(world.save(player))
 
         val loaded = world.loadPlayer(2, "test")
@@ -44,6 +46,21 @@ class PlayerSaveTest {
         assertEquals(10, loaded.skills.currentLevel(Skill.HITPOINTS))
         assertEquals(player.skills.combatLevel, loaded.skills.combatLevel)
         assertEquals(listOf(0 to InvObj(1351, 1), 27 to InvObj(995, 1_000_000)), loaded.inventory.contents())
+        assertEquals(listOf(WearPos.WEAPON to InvObj(1351, 1), WearPos.AMMO to InvObj(882, 500)), loaded.equipment.contents())
+    }
+
+    @Test
+    fun `a save from before equipment loads with nothing worn`() {
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        saves.write("test", text.replace(Regex(",\\s*\"equipment\": \\[\\s*]"), ""))
+        assertTrue("equipment" !in saves.saves.getValue("test"))
+        assertTrue(world.loadPlayer(1, "test").equipment.isEmpty())
+    }
+
+    @Test
+    fun `an equipment slot past the last is refused`() {
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), equipment = mapOf(3 to InvObj(1351, 1))).toJson("test")
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(text.replace("\"slot\": 3", "\"slot\": 14")) }
     }
 
     @Test

@@ -33,7 +33,7 @@ class PlayerEffects {
      */
     fun anim(id: Int, delay: Int) {
         require(id == -1 || id in 0..MAX_SHORT) { "Animation id $id must be -1 or 0 to $MAX_SHORT" }
-        requireDelay(delay)
+        require(delay in 0..MAX_ANIM_DELAY) { "Animation delay $delay must be 0 to $MAX_ANIM_DELAY client cycles" }
         anim = Anim(id, delay)
     }
 
@@ -94,6 +94,9 @@ class PlayerEffects {
     companion object {
         private const val MAX_SHORT = 65535
         private const val MAX_LOOPS = 255
+
+        /** An animation's delay goes in one byte of player info (RSProt's PlayerSequenceEncoder); the others take two. */
+        const val MAX_ANIM_DELAY = 255
 
         /** The client's spotanim slots on one player, as RSProt sizes them. */
         const val SPOTANIM_SLOTS = 256

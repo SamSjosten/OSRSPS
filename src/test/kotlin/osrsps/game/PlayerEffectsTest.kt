@@ -61,6 +61,7 @@ class PlayerEffectsTest {
     fun `refuses values the client can't take, before anything is sent`() {
         assertFailsWith<IllegalArgumentException> { player.anim(65536) }
         assertFailsWith<IllegalArgumentException> { player.anim(866, delay = -1) }
+        assertFailsWith<IllegalArgumentException> { player.anim(866, delay = 256) }
         assertFailsWith<IllegalArgumentException> { player.spotanim(85, slot = 256) }
         assertFailsWith<IllegalArgumentException> { player.spotanim(85, height = 65536) }
         assertFailsWith<IllegalArgumentException> { player.sound(-1) }
