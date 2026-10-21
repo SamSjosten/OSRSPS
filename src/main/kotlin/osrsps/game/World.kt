@@ -532,6 +532,13 @@ class World(
             if (frame != null) interfaces.requestFrame(player, frame, tick)
             return@act
         }
+        if (interfaceId == JournalTab.SIDE_JOURNAL) {
+            val tab = JournalTab.forButton(componentId)
+            if (tab != null) {
+                interfaces.openJournalTab(player, tab)
+                return@act
+            }
+        }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
             interfaces.closeModals(player)
             player.logoutRequested = true
