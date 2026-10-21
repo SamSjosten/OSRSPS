@@ -150,3 +150,28 @@ enum class FrameSlot(val fixed: Int, val classic: Int, val modern: Int) {
 
     val cacheName: String get() = name.lowercase()
 }
+
+/**
+ * The quest tab (side_journal, 629) and its sub-tabs. Each sub-tab button is a component of 629 whose click the
+ * client sends without needing events (click mask op1 in the cache); the server answers by opening that tab's
+ * interface into 629:43 (tab_container). Varbit side_journal_tab (8168) remembers the choice; the client's own
+ * script 2800 maps its values 0 to 4 onto the five button groups in this order.
+ * Interface ids are from their cache names (account_summary_sidepanel, questlist, area_task); not checked against
+ * a live login. Adventure paths and leagues (values 3 and 4) are hidden outside those modes and left out.
+ */
+enum class JournalTab(val value: Int, val button: Int, val interfaceId: Int) {
+    SUMMARY(0, 2, 712),
+    QUESTS(1, 10, 399),
+    DIARIES(2, 18, 259),
+    ;
+
+    companion object {
+        const val SIDE_JOURNAL = 629
+        const val TAB_CONTAINER = 43
+        const val VARBIT_SIDE_JOURNAL_TAB = 8168
+
+        fun forValue(value: Int): JournalTab = entries.firstOrNull { it.value == value } ?: SUMMARY
+
+        fun forButton(component: Int): JournalTab? = entries.firstOrNull { it.button == component }
+    }
+}
