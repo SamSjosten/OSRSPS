@@ -239,6 +239,16 @@ class LocInteractionsTest {
         assertNull(doors.openType(CRATE))
     }
 
+    @Test
+    fun `registering a door again drops its old partners`() {
+        doors.register(DOOR, CRATE)
+        assertNull(doors.closedType(DOOR_OPEN), "the old open type no longer closes into the door")
+        assertEquals(DOOR, doors.closedType(CRATE))
+        doors.register(LADDER, CRATE)
+        assertNull(doors.openType(DOOR), "the door no longer opens into the reused open type")
+        assertEquals(CRATE, doors.openType(LADDER))
+    }
+
     private companion object {
         const val WALL = 1
         const val DOOR = 1535

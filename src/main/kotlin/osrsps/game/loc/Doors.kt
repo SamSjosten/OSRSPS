@@ -39,6 +39,10 @@ class Doors(private val locs: Locs) {
 
     /** Makes [closed] open into [open] and [open] close into [closed], replacing any pairing either had. */
     fun register(closed: Int, open: Int) {
+        // Unlink both old partners, so a replaced open type can't still close into [closed] and [open]'s old closed
+        // type can't still open into it.
+        openTypes.remove(closed)?.let { closedTypes.remove(it) }
+        closedTypes.remove(open)?.let { openTypes.remove(it) }
         openTypes[closed] = open
         closedTypes[open] = closed
     }
