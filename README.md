@@ -275,8 +275,8 @@ Anything typed without `::` is public chat: it shows over your head and in the c
 
 Each player is saved to `data/saves/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/saves/`, which is not backed up).
 Names ignore case and treat spaces as underscores, so `Test` and `test` share a save. A save holds position, run energy,
-every varp that isn't 0 (the run orb and the resizable layout among them) and each skill's XP and current level; items
-join it with the inventory. Code is in `src/main/kotlin/osrsps/game/PlayerSave.kt` and `SaveStore.kt`.
+every varp that isn't 0 (the run orb and the resizable layout among them), each skill's XP and current level, and the
+inventory's slots; equipment and the bank join it when they exist. Code is in `src/main/kotlin/osrsps/game/PlayerSave.kt` and `SaveStore.kt`.
 
 | Rule | Source |
 |------|--------|
