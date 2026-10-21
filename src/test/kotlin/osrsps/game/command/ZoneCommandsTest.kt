@@ -29,6 +29,13 @@ class ZoneCommandsTest {
         return out
     }
 
+    /** How many objs [observer] is told about this cycle; payloads are encoded, so read the updates before that. */
+    private fun objAdds(observer: Player): Int {
+        val count = world.zones.collect(observer).sumOf { update -> (update.shared + update.own).count { it is ObjAdd } }
+        world.zones.endCycle()
+        return count
+    }
+
     @AfterTest
     fun release() {
         sent.filterIsInstance<UpdateZonePartialEnclosed>().forEach { it.release() }
@@ -77,10 +84,10 @@ class ZoneCommandsTest {
     fun `groundobj stays for players who come by later, and cleartile takes it away`() {
         run("groundobj 1351")
         run("groundobj 995 50")
-        assertEquals(2, cycle(other).count { it is ObjAdd })
+        assertEquals(2, objAdds(other))
         run("cleartile")
         assertEquals("Removed 2 objs from 3222, 3218", replies.last())
         other.zoneView.reset()
-        assertEquals(0, cycle(other).count { it is ObjAdd })
+        assertEquals(0, objAdds(other))
     }
 }

@@ -6,7 +6,6 @@ import net.rsprot.protocol.common.client.OldSchoolClientType
 import net.rsprot.protocol.game.outgoing.util.OpFlags
 import net.rsprot.protocol.game.outgoing.zone.header.UpdateZoneFullFollows
 import net.rsprot.protocol.game.outgoing.zone.header.UpdateZonePartialEnclosed
-import net.rsprot.protocol.game.outgoing.zone.header.UpdateZonePartialFollows
 import net.rsprot.protocol.game.outgoing.zone.payload.LocAddChangeV2
 import net.rsprot.protocol.game.outgoing.zone.payload.LocAnim
 import net.rsprot.protocol.game.outgoing.zone.payload.LocDel
@@ -47,6 +46,19 @@ data class ZoneLoc(val id: Int, val shape: Int, val angle: Int, val x: Int, val 
     }
 }
 
+/**
+ * What one player is sent for one zone in a cycle. [zoneX] and [zoneZ] are the zone's south-west tile in their build
+ * area. [full] means the zone is wiped first; [shared] is what everyone watching gets, [own] what only this player does.
+ */
+class ZoneUpdate(
+    val zone: ZoneKey,
+    val zoneX: Int,
+    val zoneZ: Int,
+    val full: Boolean,
+    val shared: List<ZoneProt>,
+    val own: List<ZoneProt>,
+)
+
 /** Which zones a player's client is getting updates for. Reset whenever the client rebuilds its map. */
 class ZoneView {
     internal var centre: ZoneKey? = null
@@ -69,7 +81,7 @@ class ZoneView {
  * and sent in full, after an UpdateZoneFullFollows that wipes the client's copy, whenever a zone comes into a player's
  * view. Everything that happened in a zone this cycle (those same changes, plus graphics, projectiles and sounds) is
  * sent once to each player already watching the zone, in one UpdateZonePartialEnclosed whose payload is encoded once
- * and shared. Objs only one player can see go to that player alone in an UpdateZonePartialFollows.
+ * and shared. Objs only one player can see go to that player alone, in a second UpdateZonePartialEnclosed of their own.
  *
  * A player watches the zones within [VIEW_RADIUS] of their own on their level that fit in their build area. That
  * radius and the rest of this flow follow RSMod's and RSProt's reading of the client, not a recording of live.
@@ -152,28 +164,53 @@ class Zones {
     /**
      * Sends [player] this cycle's zone updates through [out]: zones that came into view in full, and what happened this
      * cycle in the zones they were already watching. Call once a cycle per player, after their map rebuild if any.
+     *
+     * Every zone payload goes inside an UpdateZonePartialEnclosed: the client only takes obj, projectile and area sound
+     * packets that way, and RSProt refuses them on their own.
      */
     fun update(player: Player, out: (OutgoingGameMessage) -> Unit) {
+        for (update in collect(player)) {
+            if (update.full) out(UpdateZoneFullFollows(update.zoneX, update.zoneZ, update.zone.level))
+            if (update.shared.isNotEmpty()) {
+                val payload = enclosedPayloads.getOrPut(update.zone.packed) {
+                    enclosedCache.computeZoneForClient(OldSchoolClientType.DESKTOP, update.shared)
+                }
+                out(UpdateZonePartialEnclosed(update.zoneX, update.zoneZ, update.zone.level, payload))
+            }
+            if (update.own.isNotEmpty()) {
+                val payload = enclosedCache.computeZoneForClient(OldSchoolClientType.DESKTOP, update.own)
+                out(UpdateZonePartialEnclosed(update.zoneX, update.zoneZ, update.zone.level, payload))
+            }
+        }
+    }
+
+    /**
+     * Works out what [player] gets this cycle, zone by zone, and moves their view on. [update] sends it; tests read it
+     * directly, as the encoded payloads are opaque.
+     */
+    fun collect(player: Player): List<ZoneUpdate> {
         val view = player.zoneView
         val centre = ZoneKey.of(player.x, player.z, player.level)
         val buildAreaX = (player.buildAreaZoneX - BUILD_AREA_ZONE_RADIUS) shl 3
         val buildAreaZ = (player.buildAreaZoneZ - BUILD_AREA_ZONE_RADIUS) shl 3
+        val updates = ArrayList<ZoneUpdate>()
         if (centre == view.centre) {
-            for (zone in view.visible) sendPartial(player.username, ZoneKey(zone), buildAreaX, buildAreaZ, out)
-            return
+            for (zone in view.visible) partial(player.username, ZoneKey(zone), buildAreaX, buildAreaZ)?.let(updates::add)
+            return updates
         }
         val inView = zonesInView(centre, buildAreaX, buildAreaZ)
         for (zone in inView) {
-            if (zone.packed !in view.visible) sendFull(player.username, zone, buildAreaX, buildAreaZ, out)
+            if (zone.packed !in view.visible) updates += full(player.username, zone, buildAreaX, buildAreaZ)
         }
         // A zone that just came into view was sent in full, which already has this cycle's lasting changes. Its
         // graphics and sounds from this cycle are not sent, as RSMod does; live is not checked.
         for (zone in inView) {
-            if (zone.packed in view.visible) sendPartial(player.username, zone, buildAreaX, buildAreaZ, out)
+            if (zone.packed in view.visible) partial(player.username, zone, buildAreaX, buildAreaZ)?.let(updates::add)
         }
         view.visible.clear()
         inView.mapTo(view.visible) { it.packed }
         view.centre = centre
+        return updates
     }
 
     /** Forgets this cycle's updates and frees their shared buffers. Call once at the end of every cycle. */
@@ -199,43 +236,30 @@ class Zones {
         return zones
     }
 
-    private fun sendFull(observer: String, zone: ZoneKey, buildAreaX: Int, buildAreaZ: Int, out: (OutgoingGameMessage) -> Unit) {
-        out(UpdateZoneFullFollows(zone.baseX - buildAreaX, zone.baseZ - buildAreaZ, zone.level))
-        val state = states[zone.packed] ?: return
-        for (change in state.locs.values) {
-            val loc = change.loc
-            out(if (change.removed) LocDel(loc.x and 7, loc.z and 7, loc.shape, loc.angle) else locAddChange(loc))
-        }
-        for (obj in state.objs) {
-            if (obj.owner == null || obj.owner == observer) out(objAdd(obj))
-        }
-    }
-
-    private fun sendPartial(observer: String, zone: ZoneKey, buildAreaX: Int, buildAreaZ: Int, out: (OutgoingGameMessage) -> Unit) {
-        val events = pending[zone.packed] ?: return
-        val dx = zone.baseX - buildAreaX
-        val dz = zone.baseZ - buildAreaZ
-        val payload = enclosedPayloads[zone.packed] ?: sharedPayload(zone, events)
-        if (payload != null) out(UpdateZonePartialEnclosed(dx, dz, zone.level, payload))
-        // Guessed: private updates follow the shared ones, so their order against each other is lost.
-        var header = false
-        for (event in events) {
-            if (event.onlyFor != observer) continue
-            if (!header) {
-                out(UpdateZonePartialFollows(dx, dz, zone.level))
-                header = true
+    /** A zone's lasting state, as [observer] may see it, after a wipe. */
+    private fun full(observer: String, zone: ZoneKey, buildAreaX: Int, buildAreaZ: Int): ZoneUpdate {
+        val prots = ArrayList<ZoneProt>()
+        val state = states[zone.packed]
+        if (state != null) {
+            for (change in state.locs.values) {
+                val loc = change.loc
+                prots += if (change.removed) LocDel(loc.x and 7, loc.z and 7, loc.shape, loc.angle) else locAddChange(loc)
             }
-            out(event.prot)
+            for (obj in state.objs) {
+                if (obj.owner == null || obj.owner == observer) prots += objAdd(obj)
+            }
         }
+        return ZoneUpdate(zone, zone.baseX - buildAreaX, zone.baseZ - buildAreaZ, full = true, shared = emptyList(), own = prots)
     }
 
-    /** Encodes the zone's public updates once for everyone watching it; null if they are all private. */
-    private fun sharedPayload(zone: ZoneKey, events: List<ZoneEvent>): ByteBuf? {
-        val public = events.filter { it.onlyFor == null }.map { it.prot }
-        if (public.isEmpty()) return null
-        val payload = enclosedCache.computeZoneForClient(OldSchoolClientType.DESKTOP, public)
-        enclosedPayloads[zone.packed] = payload
-        return payload
+    /** This cycle's updates in a watched zone, or null if nothing [observer] can see happened there. */
+    private fun partial(observer: String, zone: ZoneKey, buildAreaX: Int, buildAreaZ: Int): ZoneUpdate? {
+        val events = pending[zone.packed] ?: return null
+        val shared = events.filter { it.onlyFor == null }.map { it.prot }
+        // Guessed: a player's private updates follow the shared ones, so their order against each other is lost.
+        val own = events.filter { it.onlyFor == observer }.map { it.prot }
+        if (shared.isEmpty() && own.isEmpty()) return null
+        return ZoneUpdate(zone, zone.baseX - buildAreaX, zone.baseZ - buildAreaZ, full = false, shared, own)
     }
 
     private fun event(x: Int, z: Int, level: Int, prot: ZoneProt, onlyFor: String? = null) {
