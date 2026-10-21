@@ -79,6 +79,7 @@ class GroundObjsTest {
         watch()
         val obj = dropAxe()
         assertTrue(alice.inventory.isEmpty())
+        assertEquals(listOf(GroundObjs.SOUND_PUT_DOWN), alice.effects.pendingSounds.map { it.id })
         val add = prots(alice).single() as ObjAdd
         assertEquals(listOf(1351, 1, 100, 300, Zones.OWNERSHIP_SELF), listOf(add.id, add.quantity, add.timeUntilPublic, add.timeUntilDespawn, add.ownershipType))
         assertFalse(add.neverBecomesPublic)
@@ -256,6 +257,8 @@ class GroundObjsTest {
         ticks(1)
         assertFalse(zones.hasObj(obj))
         assertEquals(1, alice.inventory.count(1351))
+        assertEquals(GroundObjs.ANIM_PICKUP_TABLE, alice.effects.anim?.id)
+        assertEquals(listOf(GroundObjs.SOUND_PICK), alice.effects.pendingSounds.map { it.id })
         assertTrue(sent.any { it.second === SetMapFlagV2.RESET })
     }
 

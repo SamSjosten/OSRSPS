@@ -255,14 +255,14 @@ plugins read.
 | Timers run once a tick before players' input | guessed phase |
 | A stackable drop joins the dropper's private stack on that tile and its timers start again | RSMod merges; restarting the timers is guessed |
 | Take is op3; the player walks onto the item and takes it the tick they arrive | the cache's default ground ops; tick from the RS2 world cycle, inferred |
-| An item on a tile you can't stand on (a table) is taken from the tile beside it, north/south/east/west with no wall between, a tick later | RSMod and inferred; RSMod also plays animation 832, which waits for task 12 |
+| An item on a tile you can't stand on (a table) is taken from the tile beside it, north/south/east/west with no wall between, a tick later, with animation 832 | RSMod and inferred |
+| Drop plays sound 2739, a take sound 2582 | RSMod's symbol names (put_down, pick2), not checked against the 241 cache |
 | "I can't reach that!", "Too late - it's gone!", "You don't have enough inventory space to hold that item." | RSMod (rev 233), not checked against live |
 | An item that vanished while you walked to it just ends the walk | guessed |
 | Ground Examine shows the inventory examine (script 6003) | guessed |
 | The obj times are in ticks and 0 means none | inferred from RSProt and RuneLite's TileItem |
 
-Not built yet: the drop and pick-up sounds and the table animation (they wait for task 12's sound and animation
-calls), the warning before dropping an item worth 30,000 coins or more (needs dialogue, task 18), the Wilderness rules,
+Not built yet: the warning before dropping an item worth 30,000 coins or more (needs dialogue, task 18), the Wilderness rules,
 items placed on tables, the 128-items-a-tile limit, and "Use" of an item on a ground item.
 
 Content adds item spawns in tab-separated files under `src/main/resources/obj-spawns/`, one per area:

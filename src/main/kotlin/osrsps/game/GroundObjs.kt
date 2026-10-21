@@ -95,6 +95,7 @@ class GroundObjs(
             return null
         }
         player.inventory.remove(slot)
+        player.sound(SOUND_PUT_DOWN)
         return addPrivate(type, held.count, player.x, player.z, player.level, player.saveKey, DROP_PRIVATE_TICKS, DROP_DESPAWN_TICKS, neverPublic = !type.tradeable)
     }
 
@@ -277,7 +278,7 @@ class GroundObjs(
 
     /**
      * The player reached [obj]: the content handler for [option] runs if there is one, else Take for op3. Taking from
-     * beside the tile waits a tick first, as RSMod does (rev 233), where it also plays human_pickuptable (seq 832).
+     * beside the tile waits a tick, then plays human_pickuptable (seq 832), as RSMod does (rev 233).
      */
     private fun run(player: Player, obj: ZoneObj, option: Int, far: Boolean) {
         if (scripts.trigger(player, Op(OpTarget.GROUND_OBJ, obj.id, option, groundObj = obj))) return
@@ -296,6 +297,7 @@ class GroundObjs(
         }
         scripts.start(player) {
             delay(1)
+            player.anim(ANIM_PICKUP_TABLE)
             take(player, obj)
         }
     }
@@ -316,6 +318,8 @@ class GroundObjs(
         }
         remove(obj)
         player.inventory.add(type, obj.count)
+        // Guessed: only a take that worked makes the sound; RSMod plays it before checking.
+        player.sound(SOUND_PICK)
         return true
     }
 
@@ -345,6 +349,11 @@ class GroundObjs(
 
         /** Guessed, as RSMod's default: the wiki gives no respawn times, and each spawn should set its own. */
         const val DEFAULT_RESPAWN_TICKS = 100
+
+        /** Synths put_down and pick2 and seq human_pickuptable, by RSMod's rev 233 symbol names. */
+        const val SOUND_PUT_DOWN = 2739
+        const val SOUND_PICK = 2582
+        const val ANIM_PICKUP_TABLE = 832
 
         /** Take is op3 for every obj on the ground, as the cache's default ground options have it. */
         const val TAKE_OPTION = 3
