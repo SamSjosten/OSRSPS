@@ -5,6 +5,7 @@ import net.rsprot.protocol.api.GameConnectionHandler
 import net.rsprot.protocol.api.NetworkService
 import net.rsprot.protocol.api.login.GameLoginResponseHandler
 import net.rsprot.protocol.common.client.OldSchoolClientType
+import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.outgoing.info.util.isEmpty
 import net.rsprot.protocol.game.outgoing.info.util.onFailure
 import net.rsprot.protocol.game.outgoing.info.util.onSuccess
@@ -301,6 +302,9 @@ class World(
 
     /** Whether the cache has terrain for the map square holding [x], [z]. */
     fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
+
+    /** Public chat is game input like a click, so while paused it is held for the next tick. */
+    fun onPublicChat(player: Player, message: MessagePublic) = act(player) { sayPublicChat(player, message) }
 
     fun onButton(player: Player, interfaceId: Int, componentId: Int, sub: Int, op: Int) = act(player) {
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {

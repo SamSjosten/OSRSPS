@@ -88,6 +88,13 @@ class AllowChatTest {
     }
 
     @Test
+    fun `public chat outside a tick is held like a click`() {
+        val player = Player(1, "test", 3222, 3218, 0)
+        world(VarTypes.NONE).onPublicChat(player, MessagePublic(0, 0, 0, "hello", null, -1))
+        assertEquals(1, player.heldActions.size)
+    }
+
+    @Test
     fun `a cache without the varbit doesn't stop the login`() {
         val player = Player(1, "test", 3222, 3218, 0)
         world(VarTypes.NONE).allowChat(player)

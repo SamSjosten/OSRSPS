@@ -58,8 +58,8 @@ class PublicChat(
     }
 }
 
-/** [player] typed [message] in the chatbox without a `::` in front. */
-fun onPublicChat(player: Player, message: MessagePublic) {
+/** [player] typed [message] in the chatbox without a `::` in front. Runs in a tick's input phase, see [World.onPublicChat]. */
+fun sayPublicChat(player: Player, message: MessagePublic) {
     val chat = PublicChat.from(message)
     if (chat == null) {
         // Guessed wording: there are no friends, clan or guest channels to talk in yet.

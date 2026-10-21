@@ -32,7 +32,6 @@ import net.rsprot.protocol.message.codec.incoming.provider.DefaultGameMessageCon
 import net.rsprot.protocol.message.codec.incoming.provider.GameMessageConsumerRepositoryProvider
 import osrsps.game.Player
 import osrsps.game.World
-import osrsps.game.onPublicChat
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.function.Consumer
 
@@ -87,7 +86,7 @@ class NetworkFactory(
         builder.addListener(ClientCheat::class.java, MessageConsumer { player, message ->
             if (!message.autocomplete) world.onCommand(player, message.command)
         })
-        builder.addListener(MessagePublic::class.java, MessageConsumer { player, message -> onPublicChat(player, message) })
+        builder.addListener(MessagePublic::class.java, MessageConsumer { player, message -> world.onPublicChat(player, message) })
         // Inferred: the chat tabs' filter labels change only when the server echoes the setting back. Nothing filters
         // chat on the server yet.
         builder.addListener(SetChatFilterSettings::class.java, MessageConsumer { player, message ->
