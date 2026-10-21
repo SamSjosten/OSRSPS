@@ -4,6 +4,7 @@ import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import osrsps.game.script.PlayerScripts
+import osrsps.game.zone.ZoneView
 import osrsps.map.Tile
 
 /** A logged-in player. Only touched on the game thread, apart from [droppedSession]. */
@@ -111,6 +112,9 @@ class Player(
     /** The zone the client's build area was last centred on. */
     var buildAreaZoneX: Int = x shr 3
     var buildAreaZoneZ: Int = z shr 3
+
+    /** The zones this client gets updates for. */
+    val zoneView = ZoneView()
 
     /** Shows [text] in the chatbox as a game message. */
     fun message(text: String) {
