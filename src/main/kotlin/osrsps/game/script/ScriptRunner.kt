@@ -67,6 +67,8 @@ class ScriptRunner(
         require(delay >= 0) { "Can't queue $name with delay $delay" }
         val entry = QueuedScript(name, type, delay, script)
         if (type == QueueType.WEAK) player.scripts.weakQueue += entry else player.scripts.queue += entry
+        // Removed now rather than at the next script phase; nothing could run them in between.
+        if (type == QueueType.STRONG) player.scripts.weakQueue.clear()
     }
 
     /** Removes every queued script called [name], weak ones included. */
@@ -104,11 +106,8 @@ class ScriptRunner(
     fun process(player: Player) {
         resumeDelayed(player)
         val state = player.scripts
-        // A strong script in the queue closes modals and removes weak scripts before anything runs, and again before
-        // the weak queue if one is there by then, so a weak script queued during the phase doesn't slip through.
-        if (state.queue.any { it.type == QueueType.STRONG }) interrupt(player)
+        if (hasStrong(player)) interrupt(player)
         processQueue(player, state.queue)
-        if (state.queue.any { it.type == QueueType.STRONG }) interrupt(player)
         processQueue(player, state.weakQueue)
         processTimers(player, TimerType.NORMAL)
         processTimers(player, TimerType.SOFT)
@@ -153,8 +152,12 @@ class ScriptRunner(
 
     private fun canRun(player: Player, type: QueueType): Boolean = when (type) {
         QueueType.SOFT -> true
-        QueueType.STRONG, QueueType.NORMAL, QueueType.WEAK -> !busy(player)
+        QueueType.STRONG, QueueType.NORMAL -> !busy(player)
+        // However a weak script got queued, it never runs while a strong one waits.
+        QueueType.WEAK -> !busy(player) && !hasStrong(player)
     }
+
+    private fun hasStrong(player: Player) = player.scripts.queue.any { it.type == QueueType.STRONG }
 
     private fun processTimers(player: Player, type: TimerType) {
         val timers = player.scripts.timers

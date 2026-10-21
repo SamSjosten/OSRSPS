@@ -120,6 +120,18 @@ class ScriptRunnerTest {
     }
 
     @Test
+    fun `a strong script queued by a weak script stops the weak scripts after it`() {
+        runner.queue(player, "queues strong", QueueType.WEAK, 0) {
+            queue("strong", QueueType.STRONG, delay = 1, script = record("strong"))
+            queue("weak 2", QueueType.WEAK, script = record("weak 2"))
+        }
+        queue("weak 1", QueueType.WEAK)
+        // Queued after tick 1's main queue ran, so its delay only starts counting down in tick 2.
+        ticks(3)
+        assertEquals(listOf("strong@3"), ran)
+    }
+
+    @Test
     fun `interrupting removes weak scripts and closes modals but keeps the rest`() {
         openModal()
         queue("weak", QueueType.WEAK)

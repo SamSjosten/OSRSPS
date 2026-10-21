@@ -26,8 +26,9 @@ enum class QueueType {
     NORMAL,
 
     /**
-     * Every script phase it is in the queue, it closes the player's modals and removes their weak scripts before
-     * anything runs. It runs once it is due and the player isn't delayed.
+     * Removes the player's weak scripts when queued, and every script phase it is in the queue closes their modals and
+     * removes weak scripts before anything runs; no weak script runs while it waits. It runs once it is due and the
+     * player isn't delayed.
      */
     STRONG,
 
