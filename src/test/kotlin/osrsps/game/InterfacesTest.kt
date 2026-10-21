@@ -133,7 +133,7 @@ class InterfacesTest {
     }
 
     @Test
-    fun `picking a quest tab sub-tab opens it and remembers it for the next login`() {
+    fun `picking a quest tab sub-tab opens it and keeps it in the varbit the login frame reads`() {
         val types = VarTypes(9_000, mapOf(JournalTab.VARBIT_SIDE_JOURNAL_TAB to VarbitType(1_141, 0, 2)))
         val player = Player(1, "test", 3222, 3218, 0, types).apply { frame = GameFrame.FIXED }
         interfaces.openJournalTab(player, JournalTab.QUESTS)
