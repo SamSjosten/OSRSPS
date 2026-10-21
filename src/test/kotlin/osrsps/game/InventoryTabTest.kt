@@ -96,6 +96,7 @@ class InventoryTabTest {
         scripts.start(player) { delay(2) }
         tab.drag(player, 0, 1351, 4)
         assertEquals(InvObj(1351, 1), player.inventory[0])
+        assertEquals(0, modalsClosed, "refused input leaves modals open")
         val resent = mutableListOf<Int>()
         player.inventory.flush({}, { changed -> resent += changed.map { it.first } })
         assertEquals(listOf(0, 4), resent)
@@ -117,5 +118,15 @@ class InventoryTabTest {
         player.inventory.add(coins, 1)
         tab.use(player, 0, 1351, 1, 995)
         assertEquals(listOf("Nothing interesting happens."), messages())
+    }
+
+    @Test
+    fun `using items while delayed does nothing`() {
+        player.inventory.add(axe, 1)
+        player.inventory.add(coins, 1)
+        scripts.start(player) { delay(2) }
+        tab.use(player, 0, 1351, 1, 995)
+        assertTrue(sent.isEmpty())
+        assertEquals(0, modalsClosed)
     }
 }

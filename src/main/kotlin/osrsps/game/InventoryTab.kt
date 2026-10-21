@@ -83,20 +83,22 @@ class InventoryTab(
     fun drag(player: Player, from: Int, fromObj: Int, to: Int) {
         if (from == to || to !in 0 until Inventory.INV_CAPACITY) return
         if (held(player, from, fromObj) == null) return
-        closeModals(player)
         if (player.scripts.delayed) {
-            // Inferred: a delayed player's drag is refused, and the client, which may have moved the item already, is
-            // sent both slots again.
+            // Inferred: a delayed player's drag is refused, with no other effect, and the client, which may have moved
+            // the item already, is sent both slots again.
             player.inventory.resend(from)
             player.inventory.resend(to)
             return
         }
+        closeModals(player)
         player.inventory.swap(from, to)
     }
 
     /** The player used one inventory item on another. Nothing handles that yet. */
     fun use(player: Player, from: Int, fromObj: Int, to: Int, toObj: Int) {
         if (held(player, from, fromObj) == null || held(player, to, toObj) == null) return
+        // Ignored while delayed, like other clicks.
+        if (player.scripts.delayed) return
         closeModals(player)
         logger.info { "${player.username} used $fromObj on $toObj (not handled)" }
         nothingInteresting(player)
