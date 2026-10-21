@@ -69,4 +69,15 @@ class DevCommandsTest {
         run("tick")
         assertEquals(listOf("Tick 0"), replies)
     }
+
+    @Test
+    fun `if checks its arguments and that the cache has the interface`() {
+        val world = World(IntArray(0), CollisionMap(), interfaceIds = setOf(12))
+        for (input in listOf("if", "if bank", "if 12 top", "if 13")) world.commands.execute(player, input, replies::add)
+        assertEquals(
+            listOf("Usage: ::if id [side]", "Usage: ::if id [side] ('bank' is not a number)", "Usage: ::if id [side]", "The cache has no interface 13"),
+            replies,
+        )
+        assertTrue(player.modals.isEmpty())
+    }
 }

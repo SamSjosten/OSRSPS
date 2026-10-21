@@ -10,13 +10,13 @@ import net.rsprot.protocol.game.outgoing.info.util.isEmpty
 import net.rsprot.protocol.game.outgoing.info.util.onFailure
 import net.rsprot.protocol.game.outgoing.info.util.onSuccess
 import net.rsprot.protocol.game.outgoing.info.util.safeReleaseOrThrow
-import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
-import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop
+import net.rsprot.protocol.game.outgoing.logout.Logout
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
 import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
+import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
 import net.rsprot.protocol.game.outgoing.varp.VarpLarge
 import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.loginprot.incoming.util.AuthenticationType
@@ -27,6 +27,7 @@ import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerSeedCommands
+import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.map.CollisionFlag
@@ -45,12 +46,15 @@ class World(
     private val js5Crcs: IntArray,
     private val collision: CollisionMap,
     val varTypes: VarTypes = VarTypes.NONE,
+    /** Interface ids in the cache, or null when unknown (tests). */
+    private val interfaceIds: Set<Int>? = null,
     /** Every random roll in the game comes from here; see [GameRandom]. */
     val random: GameRandom = GameRandom(),
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
     private val movement = Movement(collision)
+    private val interfaces = Interfaces()
 
     // Before commands: the tick commands keep hold of it.
     val clock = TickClock()
@@ -59,6 +63,7 @@ class World(
         registerDevCommands(this@World)
         registerTickCommands(this@World)
         registerVarCommands()
+        registerSkillCommands()
         registerSeedCommands(this@World)
     }
 
@@ -126,6 +131,7 @@ class World(
         phase = TickPhase.MOVEMENT
         for (player in players) {
             if (player == null) continue
+            interfaces.processFrameMove(player, tick)
             move(player)
             player.infos.updateRootCoord(player.level, player.x, player.z)
         }
@@ -160,9 +166,12 @@ class World(
 
     /** Sends every player this cycle's updates. [tickEnd] says whether the cycle was a game tick. */
     private fun sendUpdates(tickEnd: Boolean) {
-        // Here rather than in the movement loop so a ::varp typed while paused shows without waiting for a step.
+        // Here rather than in the movement loop so a ::varp or ::setlevel typed while paused shows without waiting for a
+        // step.
         for (player in players) {
-            if (player != null) sendVars(player)
+            if (player == null) continue
+            sendVars(player)
+            sendStats(player)
         }
         network.infoProtocols.update()
         for (player in players) {
@@ -233,6 +242,7 @@ class World(
             val player = Player(index, login.block.username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
             player.session = login.responseHandler.writeSuccessfulResponse(ok, login.block)
             player.session.setDisconnectionHook { player.disconnected = true }
+            player.frame = GameFrame.forLogin(login.block.resizable, player.stoneArrangement)
             players[index] = player
             enterWorld(player)
             logger.info { "${player.username} logged in as player $index" }
@@ -249,7 +259,6 @@ class World(
 
         val appearance = infos.playerInfo.avatar.extendedInfo
         appearance.setName(player.username)
-        appearance.setCombatLevel(3)
         // Default male look and the standard human animations. Guessed, not checked against live.
         DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
         for (slot in 0 until 5) appearance.setColour(slot, 0)
@@ -258,10 +267,7 @@ class World(
         allowChat(player)
         player.message(WELCOME_MESSAGE)
 
-        session.queue(IfOpenTop(GameFrame.TOPLEVEL_RESIZABLE))
-        for ((interfaceId, component) in GameFrame.overlays) {
-            session.queue(IfOpenSub(GameFrame.TOPLEVEL_RESIZABLE, component, interfaceId, OVERLAY))
-        }
+        interfaces.openGameFrame(player)
     }
 
     /**
@@ -278,6 +284,7 @@ class World(
 
     /** A click on the game view or minimap. [keyCombination] is 1 with ctrl held, 2 with ctrl and shift. */
     fun onMoveClick(player: Player, x: Int, z: Int, keyCombination: Int) = act(player) {
+        interfaces.closeModals(player)
         if (keyCombination == 2) {
             // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
             teleport(player, x, z, player.level)
@@ -308,13 +315,30 @@ class World(
     /** Public chat is game input like a click, so while paused it is held for the next tick. */
     fun onPublicChat(player: Player, message: MessagePublic) = act(player) { sayPublicChat(player, message) }
 
-    fun onButton(player: Player, interfaceId: Int, componentId: Int, op: Int) = act(player) {
+    fun onButton(player: Player, interfaceId: Int, componentId: Int, sub: Int, op: Int) = act(player) {
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act
         }
-        logger.info { "${player.username} clicked $interfaceId:$componentId op $op (not handled)" }
+        if (interfaceId == GameFrame.SETTINGS_SIDE && componentId == GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS) {
+            val frame = GameFrame.forLayoutOption(sub)
+            if (frame != null) interfaces.requestFrame(player, frame, tick)
+            return@act
+        }
+        if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
+            interfaces.closeModals(player)
+            player.logoutRequested = true
+            return@act
+        }
+        logger.info { "${player.username} clicked $interfaceId:$componentId sub $sub op $op (not handled)" }
     }
+
+    /** The client closed its modal: Esc, or a close button. */
+    fun onCloseModal(player: Player) = act(player) { interfaces.closeModals(player) }
+
+    fun interfaceExists(interfaceId: Int): Boolean = interfaceIds?.contains(interfaceId) ?: (interfaceId >= 0)
+
+    fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) = interfaces.openModal(player, slot, interfaceId)
 
     private fun move(player: Player) {
         val result = movement.process(player)
@@ -365,6 +389,22 @@ class World(
     }
 
     /**
+     * Sends the skills that changed this cycle, and the combat level over player info when it changes. Every skill is
+     * sent on the first cycle, as the client starts them all at 0.
+     */
+    private fun sendStats(player: Player) {
+        player.skills.flush { skill, currentLevel, xp ->
+            // Guessed: the invisible boost is the current level unless something hides a boost, which nothing does yet.
+            player.session.queue(UpdateStatV2(skill.id, currentLevel, currentLevel, xp))
+        }
+        val combatLevel = player.skills.combatLevel
+        if (combatLevel != player.sentCombatLevel) {
+            player.infos.playerInfo.avatar.extendedInfo.setCombatLevel(combatLevel)
+            player.sentCombatLevel = combatLevel
+        }
+    }
+
+    /**
      * Rebuilds the client's 104x104 build area around the player once they come within 16 tiles of its edge.
      * The 16-tile margin is inferred from the client's scene size, not measured on live.
      */
@@ -394,6 +434,14 @@ class World(
         // Live closes every tick with ServerTickEnd, and RuneLite fires its GameTick (and replays deferred events such
         // as VarbitChanged) only on it, so without it the client never sees a tick. A paused cycle is not a tick.
         if (tickEnd) session.queue(ServerTickEnd)
+        if (player.logoutRequested) {
+            // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
+            // the player is removed on the next tick by hand.
+            session.queue(Logout)
+            session.requestClose()
+            player.disconnected = true
+            return
+        }
         session.flush()
     }
 
@@ -407,7 +455,10 @@ class World(
     companion object {
         const val TICK_MILLIS = 600L
         const val MAX_PLAYERS = 2048
-        const val OVERLAY = 1
+
+        /** The logout tab and its "Click here to logout" button, logout:logout. */
+        const val LOGOUT_TAB = 182
+        const val LOGOUT_BUTTON = 8
 
         /** Guessed bound on clicks held per player while paused, so a long pause can't pile them up without end. */
         const val MAX_HELD_ACTIONS = 50

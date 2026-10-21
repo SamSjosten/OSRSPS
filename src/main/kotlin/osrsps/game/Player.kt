@@ -20,6 +20,28 @@ class Player(
     /** 1 = fixed, 2 = resizable, from the client's WindowStatus. */
     var windowMode: Int = 0
 
+    /** The top-level interface the client shows. */
+    var frame: GameFrame = GameFrame.RESIZABLE_CLASSIC
+
+    /** Varbit resizable_stone_arrangement: which resizable layout the player last chose. */
+    var stoneArrangement: Int
+        // Read from and written to the varp itself, so ::varp and ::varbit changes are seen here too.
+        get() = (vars[GameFrame.STONE_ARRANGEMENT_VARP] ushr GameFrame.STONE_ARRANGEMENT_BIT) and 1
+        set(value) {
+            val bit = 1 shl GameFrame.STONE_ARRANGEMENT_BIT
+            val varp = vars[GameFrame.STONE_ARRANGEMENT_VARP]
+            vars[GameFrame.STONE_ARRANGEMENT_VARP] = if (value == 0) varp and bit.inv() else varp or bit
+        }
+
+    /** A layout change waiting for its tick. */
+    var pendingFrameMove: FrameMove? = null
+
+    /** Open modal interfaces by where they are open. */
+    val modals = LinkedHashMap<FrameSlot, Int>()
+
+    /** Set by the logout button; the player is logged out at the end of the tick. */
+    var logoutRequested: Boolean = false
+
     /** Set from a Netty thread when the connection drops; the game thread does the cleanup. */
     @Volatile
     var disconnected: Boolean = false
@@ -36,6 +58,13 @@ class Player(
             vars[World.VARP_RUN] = if (value) 1 else 0
         }
 
+    val skills = PlayerSkills()
+
+    /** Current hitpoints, which are the Hitpoints skill's current level. */
+    var hitpoints: Int
+        get() = skills.currentLevel(Skill.HITPOINTS)
+        set(value) = skills.setCurrentLevel(Skill.HITPOINTS, value)
+
     /** Ctrl-click flips walk and run for the route it starts. */
     var invertRun: Boolean = false
 
@@ -45,6 +74,7 @@ class Player(
     /** What the client was last told, so changes are sent once. Varps are tracked by [vars]. */
     var sentRunEnabled: Boolean? = null
     var sentRunEnergy: Int = -1
+    var sentCombatLevel: Int = -1
 
     /** Moved by a teleport this tick; the client is told when the tick's movement is sent. */
     var teleported: Boolean = false
