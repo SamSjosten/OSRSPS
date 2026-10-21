@@ -26,6 +26,7 @@ import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
+import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
@@ -54,6 +55,7 @@ class World(
     private val interfaceIds: Set<Int>? = null,
     /** Every random roll in the game comes from here; see [GameRandom]. */
     val random: GameRandom = GameRandom(),
+    val objTypes: ObjTypes = ObjTypes.NONE,
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -68,6 +70,8 @@ class World(
 
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
+    private val inventoryTab = InventoryTab(objTypes, scripts, interfaces::closeModals)
+
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
         registerTickCommands(this@World)
@@ -75,6 +79,7 @@ class World(
         registerSkillCommands()
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
+        registerItemCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -184,6 +189,7 @@ class World(
             if (player == null) continue
             sendVars(player)
             sendStats(player)
+            inventoryTab.flush(player)
         }
         network.infoProtocols.update()
         for (player in players) {
@@ -280,6 +286,7 @@ class World(
         player.message(WELCOME_MESSAGE)
 
         interfaces.openGameFrame(player)
+        inventoryTab.open(player)
     }
 
     /**
@@ -329,7 +336,12 @@ class World(
     /** Public chat is game input like a click, so while paused it is held for the next tick. */
     fun onPublicChat(player: Player, message: MessagePublic) = act(player) { sayPublicChat(player, message) }
 
-    fun onButton(player: Player, interfaceId: Int, componentId: Int, sub: Int, op: Int) = act(player) {
+    /** A click on an interface component. [obj] is the item the client showed there, -1 if none. */
+    fun onButton(player: Player, interfaceId: Int, componentId: Int, sub: Int, op: Int, obj: Int = -1) = act(player) {
+        if (interfaceId == InventoryTab.INTERFACE && componentId == InventoryTab.ITEMS) {
+            inventoryTab.click(player, sub, obj, op)
+            return@act
+        }
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act
@@ -346,6 +358,26 @@ class World(
         }
         if (scripts.trigger(player, Op.button(interfaceId, componentId, op, sub))) return@act
         logger.info { "${player.username} clicked $interfaceId:$componentId sub $sub op $op (not handled)" }
+    }
+
+    /** The player dragged a component's item, from slot [fromSub] onto [toComponentId]'s slot [toSub]. */
+    fun onButtonDrag(player: Player, interfaceId: Int, componentId: Int, fromSub: Int, fromObj: Int, toInterfaceId: Int, toComponentId: Int, toSub: Int) = act(player) {
+        val inventory = interfaceId == InventoryTab.INTERFACE && componentId == InventoryTab.ITEMS
+        if (inventory && toInterfaceId == interfaceId && toComponentId == componentId) {
+            inventoryTab.drag(player, fromSub, fromObj, toSub)
+            return@act
+        }
+        logger.info { "${player.username} dragged $interfaceId:$componentId sub $fromSub onto $toInterfaceId:$toComponentId sub $toSub (not handled)" }
+    }
+
+    /** The player used one component's item on another's ("Use" then a click). */
+    fun onButtonTarget(player: Player, interfaceId: Int, componentId: Int, fromSub: Int, fromObj: Int, toInterfaceId: Int, toComponentId: Int, toSub: Int, toObj: Int) = act(player) {
+        val fromInventory = interfaceId == InventoryTab.INTERFACE && componentId == InventoryTab.ITEMS
+        if (fromInventory && toInterfaceId == interfaceId && toComponentId == componentId) {
+            inventoryTab.use(player, fromSub, fromObj, toSub, toObj)
+            return@act
+        }
+        logger.info { "${player.username} used $interfaceId:$componentId sub $fromSub on $toInterfaceId:$toComponentId sub $toSub (not handled)" }
     }
 
     /** The client closed its modal: Esc, or a close button. */
