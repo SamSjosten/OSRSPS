@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import osrsps.game.Facing
 import osrsps.game.Interaction
+import osrsps.game.Inventory
 import osrsps.game.Movement
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -81,14 +82,21 @@ class NpcInteractions(
     /** The player used the item [obj] in inventory slot [slot] on NPC [index]. */
     fun useObj(player: Player, index: Int, slot: Int, obj: Int, invertRun: Boolean) {
         val npc = clickable(player, index) ?: return
-        if (player.inventory[slot]?.id != obj) {
-            logger.debug { "${player.username} used slot $slot as $obj on $npc, but it holds ${player.inventory[slot]}" }
+        if (!holds(player, slot, obj)) {
+            logger.debug { "${player.username} used slot $slot as $obj on $npc, which it doesn't hold" }
             return
         }
         start(player, NpcInteraction(npc, 0, obj = obj, slot = slot), invertRun)
     }
 
-    /** The NPC at [index] if the player could have clicked it: there, on their level and in view. */
+    /** Whether [player]'s inventory slot [slot] holds [obj]. A slot out of range (a forged packet) holds nothing. */
+    private fun holds(player: Player, slot: Int, obj: Int): Boolean =
+        slot in 0 until Inventory.INV_CAPACITY && player.inventory[slot]?.id == obj
+
+    /**
+     * The NPC at [index] if the player could have clicked it: there, on their level, in view, and showing a type with a
+     * menu (for a multi-NPC, the type the player's vars show).
+     */
     private fun clickable(player: Player, index: Int): Npc? {
         val npc = npcs[index]
         // The client only sends NPCs it shows, so a miss is one that left before the click arrived, or a forged packet.
@@ -96,7 +104,8 @@ class NpcInteractions(
             logger.debug { "${player.username} clicked NPC $index, which isn't in view" }
             return null
         }
-        if (!npc.type.interactable) return null
+        val type = shownType(npc, player)
+        if (type == null || !type.interactable) return null
         return npc
     }
 
@@ -146,7 +155,7 @@ class NpcInteractions(
             stopFacing(player)
             return true
         }
-        if (interaction.usesObj && player.inventory[interaction.slot]?.id != interaction.obj) {
+        if (interaction.usesObj && !holds(player, interaction.slot, interaction.obj)) {
             // Guessed: the item left the slot on the way (dropped, used up); the player gives up.
             player.interaction = null
             return true
@@ -155,15 +164,23 @@ class NpcInteractions(
         if (!Reach.reachedEntity(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size)) return false
         player.interaction = null
         player.waypoints.clear()
+        val type = shownType(npc, player)
+        if (type == null) {
+            // A multi-NPC whose var changed on the way so it shows nothing: there is nothing left to use. Guessed.
+            stopFacing(player)
+            return true
+        }
         // Sent again on arrival, in case the client dropped the turn while the player walked.
         face(player, npc)
-        val type = shownType(npc, player) ?: npc.type
         val op = if (interaction.usesObj) {
             Op.objOnNpc(type.id, interaction.obj, interaction.slot, npc)
         } else {
             Op(OpTarget.NPC, type.id, interaction.option, interaction.sub, npc = npc)
         }
-        npcs.engage(npc, player, currentTick())
+        // An NPC already busy with another player stays with them until they're done. Guessed: live NPCs talk to
+        // several players at once, but which one they face isn't checked.
+        val engaged = npc.engagedWith
+        if (engaged == null || engaged === player || !scripts.busy(engaged)) npcs.engage(npc, player, currentTick())
         if (handlers.find(op) != null) {
             scripts.trigger(player, op)
         } else {

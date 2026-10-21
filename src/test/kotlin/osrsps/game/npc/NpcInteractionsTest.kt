@@ -11,6 +11,7 @@ import osrsps.game.Movement
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
+import osrsps.game.VarTypes
 import osrsps.game.loc.LocInteraction
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
@@ -275,6 +276,53 @@ class NpcInteractionsTest {
         assertNull(interactions.shownType(npc, player))
         interactions.click(player, npc.index, 1, -1, invertRun = false)
         assertNull(player.interaction)
+    }
+
+    @Test
+    fun `a forged slot out of range is ignored`() {
+        val npc = spawn(x = 3213)
+        interactions.useObj(player, npc.index, 99, BUCKET, invertRun = false)
+        interactions.useObj(player, npc.index, -1, BUCKET, invertRun = false)
+        assertNull(player.interaction)
+    }
+
+    @Test
+    fun `a multi-NPC is clickable by the type it shows`() {
+        val vars = VarTypes(varpCount = 200, varbits = emptyMap())
+        val shown = NpcType(SHOWN, "Hans", ops = listOf("Talk-to", null, null, null, null))
+        // The base type has no menu of its own; varp 0 = 1 shows the one that has.
+        val multi = NpcType(MULTI, "null", interactable = false, multiVarp = 0, multiNpcs = intArrayOf(-1, SHOWN, -1))
+        val interactions = NpcInteractions(npcs, NpcTypes.of(multi, shown), map, movement, handlers, scripts, { tick }, { _, _ -> }, { _, _ -> }, {})
+        val player = Player(2, "multi", 3212, 3210, 0, vars)
+        val npc = npcs.add(NpcSpawn(multi, 3216, 3210, source = "test"))!!
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        assertNull(player.interaction)
+        player.vars[0] = 1
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        assertTrue(player.interaction is NpcInteraction)
+
+        // It changes back while the player walks: on arrival there is nothing to use.
+        val used = mutableListOf<Op>()
+        handlers.onNpc(SHOWN, 1) { op -> used += op }
+        handlers.onNpc(MULTI, 1) { op -> used += op }
+        interactions.process(player) { movement.process(player) }
+        player.vars[0] = 0
+        repeat(4) { interactions.process(player) { movement.process(player) } }
+        assertEquals(emptyList(), used)
+        assertNull(player.interaction)
+    }
+
+    @Test
+    fun `an NPC busy with one player stays with them when another arrives`() {
+        val npc = spawn(x = 3213)
+        handlers.onNpc(HANS, 1) { delay(5) }
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        tick()
+        assertSame(player, npc.engagedWith)
+        val other = Player(2, "other", 3213, 3211, 0)
+        interactions.click(other, npc.index, 1, -1, invertRun = false)
+        interactions.process(other) { movement.process(other) }
+        assertSame(player, npc.engagedWith)
     }
 
     private companion object {
