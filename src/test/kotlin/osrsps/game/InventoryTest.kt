@@ -75,5 +75,8 @@ class InventoryTest {
         inv.resend(7)
         flush()
         assertEquals<Pair<Int, InvObj?>>(7 to null, partials[1].single())
+        inv.resendAll()
+        flush()
+        assertEquals(2, fulls.size, "a resend sends every slot again")
     }
 }

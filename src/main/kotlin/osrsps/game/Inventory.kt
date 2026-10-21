@@ -95,6 +95,11 @@ class Inventory(
         changed += checkSlot(slot)
     }
 
+    /** Makes the next [flush] send every slot again, as after a reconnect. */
+    fun resendAll() {
+        sentOnce = false
+    }
+
     /**
      * Hands what the client needs to [full] (every slot, the first time) or [partial] (the changed slots, after that).
      * Nothing is sent when nothing changed. When live picks full or partial updates isn't known; this is a guess.

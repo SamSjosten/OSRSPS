@@ -1,5 +1,7 @@
 package osrsps.game
 
+import java.util.BitSet
+
 /** A varbit: bits [startBit] to [endBit], inclusive, of varp [baseVar]. */
 data class VarbitType(val baseVar: Int, val startBit: Int, val endBit: Int) {
     init {
@@ -37,6 +39,9 @@ class PlayerVars(val types: VarTypes) {
     private val values = IntArray(types.varpCount)
     private val changed = LinkedHashSet<Int>()
 
+    /** Varps flushed at least once, which are the ones the client may hold a value other than 0 for. */
+    private val sent = BitSet(types.varpCount)
+
     operator fun get(varp: Int): Int = values[checkVarp(varp)]
 
     operator fun set(varp: Int, value: Int) {
@@ -62,8 +67,28 @@ class PlayerVars(val types: VarTypes) {
 
     /** Hands each varp changed since the last flush, and its value now, to [send]. */
     fun flush(send: (varp: Int, value: Int) -> Unit) {
-        for (varp in changed) send(varp, values[varp])
+        for (varp in changed) {
+            send(varp, values[varp])
+            sent.set(varp)
+        }
         changed.clear()
+    }
+
+    /** Hands each varp that isn't 0 to [action], lowest id first. */
+    fun forEachNonZero(action: (varp: Int, value: Int) -> Unit) {
+        for (varp in values.indices) {
+            if (values[varp] != 0) action(varp, values[varp])
+        }
+    }
+
+    /**
+     * Makes the next [flush] send every varp the client may have a stale value for: those that aren't 0, and those
+     * sent before, which covers a varp that went back to 0 while the client wasn't listening.
+     */
+    fun resendAll() {
+        for (varp in values.indices) {
+            if (values[varp] != 0 || sent[varp]) changed.add(varp)
+        }
     }
 
     private fun varbitType(id: Int): VarbitType = types.varbit(id) ?: throw IllegalArgumentException("No varbit $id in the cache")

@@ -100,4 +100,13 @@ class SkillsTest {
         assertFailsWith<IllegalArgumentException> { skills.addTenths(Skill.ATTACK, -1) }
         assertEquals(emptyList(), flushed())
     }
+
+    @Test
+    fun `resendAll sends every skill again`() {
+        skills.flush { _, _, _ -> }
+        skills.resendAll()
+        var count = 0
+        skills.flush { _, _, _ -> count++ }
+        assertEquals(Skill.COUNT, count)
+    }
 }
