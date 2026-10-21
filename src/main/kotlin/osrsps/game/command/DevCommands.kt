@@ -1,5 +1,6 @@
 package osrsps.game.command
 
+import osrsps.game.FrameSlot
 import osrsps.game.World
 
 /** Testing commands: where am I, put me there, and what tick is it. */
@@ -26,7 +27,22 @@ fun CommandRegistry.registerDevCommands(world: World) {
     }
 
     register("tick", "::tick") {
-        reply("Tick ${world.tick}")
+        reply("Tick ${world.tick}" + if (world.clock.paused) " (paused)" else "")
+    }
+
+    // Opens any interface bare, with none of the setup its content would send. Good enough to see it open,
+    // move with a layout change and close.
+    register("if", "::if id [side]") {
+        if (args.size !in 1..2) fail("Usage: ::if id [side]")
+        val id = args[0].toIntOrNull() ?: fail("Usage: ::if id [side] ('${args[0]}' is not a number)")
+        val slot = when (args.getOrNull(1)?.lowercase()) {
+            null, "main" -> FrameSlot.MAINMODAL
+            "side" -> FrameSlot.SIDEMODAL
+            else -> fail("Usage: ::if id [side]")
+        }
+        if (!world.interfaceExists(id)) fail("The cache has no interface $id")
+        world.openModal(player, slot, id)
+        reply("Opened interface $id. Walk or use its close button to close it.")
     }
 }
 

@@ -5,14 +5,15 @@ import net.rsprot.protocol.api.GameConnectionHandler
 import net.rsprot.protocol.api.NetworkService
 import net.rsprot.protocol.api.login.GameLoginResponseHandler
 import net.rsprot.protocol.common.client.OldSchoolClientType
+import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.outgoing.info.util.isEmpty
 import net.rsprot.protocol.game.outgoing.info.util.onFailure
 import net.rsprot.protocol.game.outgoing.info.util.onSuccess
 import net.rsprot.protocol.game.outgoing.info.util.safeReleaseOrThrow
-import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
-import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop
+import net.rsprot.protocol.game.outgoing.logout.Logout
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
+import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
@@ -26,6 +27,7 @@ import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerSkillCommands
+import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
@@ -36,23 +38,37 @@ import java.util.concurrent.TimeUnit
 private val logger = KotlinLogging.logger {}
 
 /**
- * The game world: a single thread that runs a 600 ms tick.
- * Logins arrive from RSProt's login threads and are completed at the start of the next tick.
+ * The game world: a single thread that runs a 600 ms cycle. Each cycle is a game tick in the [TickPhase] order unless
+ * [clock] is paused. Logins arrive from RSProt's login threads and are completed at the start of the next cycle.
  */
 class World(
     private val js5Crcs: IntArray,
     private val collision: CollisionMap,
     val varTypes: VarTypes = VarTypes.NONE,
+    /** Interface ids in the cache, or null when unknown (tests). */
+    private val interfaceIds: Set<Int>? = null,
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
     private val movement = Movement(collision)
+    private val interfaces = Interfaces()
+
+    // Before commands: the tick commands keep hold of it.
+    val clock = TickClock()
 
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
+        registerTickCommands(this@World)
         registerVarCommands()
         registerSkillCommands()
     }
+
+    /** The phase of the tick being run, or null between ticks and on paused cycles. */
+    var phase: TickPhase? = null
+        private set
+
+    /** Who to tell when the last tick of a ::step has run. */
+    private var stepper: Player? = null
 
     private val pendingLogins = ConcurrentLinkedQueue<PendingLogin>()
     private val players = arrayOfNulls<Player>(MAX_PLAYERS)
@@ -84,7 +100,7 @@ class World(
 
     fun start() {
         executor.execute { network.setCommunicationThread(Thread.currentThread(), true) }
-        executor.scheduleAtFixedRate(::safeTick, TICK_MILLIS, TICK_MILLIS, TimeUnit.MILLISECONDS)
+        executor.scheduleAtFixedRate(::safeCycle, TICK_MILLIS, TICK_MILLIS, TimeUnit.MILLISECONDS)
     }
 
     fun stop() {
@@ -92,31 +108,121 @@ class World(
         executor.awaitTermination(5, TimeUnit.SECONDS)
     }
 
-    private fun safeTick() {
+    private fun safeCycle() {
         try {
-            tick()
+            if (clock.advance()) tick() else pausedCycle()
         } catch (e: Throwable) {
             logger.error(e) { "Tick $tick failed" }
+        } finally {
+            phase = null
         }
     }
 
     private fun tick() {
         tick++
+        phase = TickPhase.INPUT
+        readInput(ticking = true)
+        phase = TickPhase.SCRIPTS
+        // Nothing runs here yet: queues, timers and handlers come with the scripting framework.
+        phase = TickPhase.MOVEMENT
+        for (player in players) {
+            if (player == null) continue
+            interfaces.processFrameMove(player, tick)
+            move(player)
+            player.infos.updateRootCoord(player.level, player.x, player.z)
+        }
+        phase = TickPhase.UPDATES
+        if (clock.paused && clock.stepsLeft == 0) finishStepping()
+        sendUpdates(tickEnd = true)
+    }
+
+    /**
+     * A cycle while paused: no game time passes, but logins, commands and the connection carry on. Clicks and buttons
+     * are held for the next tick.
+     */
+    private fun pausedCycle() {
+        readInput(ticking = false)
+        // Inferred, not measured: the client shows "Connection lost" after about 15 s with nothing from the server, so a
+        // frozen world still sends its unchanged player info every cycle. This also flushes command replies.
+        sendUpdates(tickEnd = false)
+    }
+
+    private fun readInput(ticking: Boolean) {
         acceptLogins()
         for (player in players) {
             if (player == null) continue
-            if (player.disconnected) remove(player) else player.session.processIncomingPackets(player)
+            if (player.disconnected) {
+                remove(player)
+                continue
+            }
+            if (ticking) runHeldActions(player)
+            player.session.processIncomingPackets(player)
         }
+    }
+
+    /** Sends every player this cycle's updates. [tickEnd] says whether the cycle was a game tick. */
+    private fun sendUpdates(tickEnd: Boolean) {
+        // Here rather than in the movement loop so a ::varp or ::setlevel typed while paused shows without waiting for a
+        // step.
         for (player in players) {
             if (player == null) continue
-            move(player)
             sendVars(player)
             sendStats(player)
-            player.infos.updateRootCoord(player.level, player.x, player.z)
         }
         network.infoProtocols.update()
         for (player in players) {
-            if (player != null) sendInfo(player)
+            if (player != null) sendInfo(player, tickEnd)
+        }
+    }
+
+    /** Pauses the clock once the current tick, if any, has finished. Returns the number of queued steps it dropped. */
+    fun pause(): Int {
+        stepper = null
+        return clock.pause()
+    }
+
+    fun resume() {
+        stepper = null
+        clock.resume()
+    }
+
+    /** Runs [ticks] more ticks while paused and tells [player] when they're done. */
+    fun step(player: Player, ticks: Int) {
+        clock.step(ticks)
+        stepper = player
+    }
+
+    private fun finishStepping() {
+        val player = stepper ?: return
+        stepper = null
+        if (players[player.index] === player) player.message("Paused after tick $tick")
+    }
+
+    /**
+     * Runs a game action from a client packet now during a tick's input phase. On a paused cycle the action is held
+     * and runs at the start of the next tick's input, before that tick's packets, as if the packet had arrived then.
+     */
+    private fun act(player: Player, action: () -> Unit) {
+        if (phase == TickPhase.INPUT) {
+            action()
+            return
+        }
+        if (player.heldActions.size >= MAX_HELD_ACTIONS) {
+            logger.info { "Dropping a held action for ${player.username}: $MAX_HELD_ACTIONS already waiting" }
+            return
+        }
+        player.heldActions.addLast(action)
+    }
+
+    internal fun runHeldActions(player: Player) {
+        while (true) {
+            val action = player.heldActions.removeFirstOrNull() ?: return
+            // One bad click shouldn't cost everyone the tick.
+            try {
+                action()
+            } catch (e: Exception) {
+                logger.error(e) { "A held action for ${player.username} failed" }
+            }
         }
     }
 
@@ -132,6 +238,7 @@ class World(
             val player = Player(index, login.block.username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
             player.session = login.responseHandler.writeSuccessfulResponse(ok, login.block)
             player.session.setDisconnectionHook { player.disconnected = true }
+            player.frame = GameFrame.forLogin(login.block.resizable, player.stoneArrangement)
             players[index] = player
             enterWorld(player)
             logger.info { "${player.username} logged in as player $index" }
@@ -153,26 +260,38 @@ class World(
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         appearance.setBaseAnimationSet(808, 823, 819, 820, 821, 822, 824)
         sendRunState(player)
+        allowChat(player)
+        player.message(WELCOME_MESSAGE)
 
-        session.queue(IfOpenTop(GameFrame.TOPLEVEL_RESIZABLE))
-        for ((interfaceId, component) in GameFrame.overlays) {
-            session.queue(IfOpenSub(GameFrame.TOPLEVEL_RESIZABLE, component, interfaceId, OVERLAY))
+        interfaces.openGameFrame(player)
+    }
+
+    /**
+     * Tells the client the account has a display name. Without it the chatbox refuses all typing, `::` commands
+     * included, with "You must set a name before you can chat". Inferred from the varbit's name and that message.
+     */
+    internal fun allowChat(player: Player) {
+        if (varTypes.varbit(VARBIT_HAS_DISPLAYNAME) == null) {
+            logger.warn { "No varbit $VARBIT_HAS_DISPLAYNAME in the cache; the client will not let ${player.username} chat" }
+            return
         }
+        player.vars.setVarbit(VARBIT_HAS_DISPLAYNAME, 1)
     }
 
     /** A click on the game view or minimap. [keyCombination] is 1 with ctrl held, 2 with ctrl and shift. */
-    fun onMoveClick(player: Player, x: Int, z: Int, keyCombination: Int) {
+    fun onMoveClick(player: Player, x: Int, z: Int, keyCombination: Int) = act(player) {
+        interfaces.closeModals(player)
         if (keyCombination == 2) {
             // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
             teleport(player, x, z, player.level)
-            return
+            return@act
         }
         val route = movement.request(player, x, z, invertRun = keyCombination == 1)
         // Guessed: with no route the client's flag would stay up forever, so clear it.
         if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)
     }
 
-    /** A `::` command typed in the chatbox, without the `::`. */
+    /** A `::` command typed in the chatbox, without the `::`. Commands run straight away, even while paused. */
     fun onCommand(player: Player, input: String) {
         commands.execute(player, input, player::message)
     }
@@ -189,13 +308,33 @@ class World(
     /** Whether the cache has terrain for the map square holding [x], [z]. */
     fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
 
-    fun onButton(player: Player, interfaceId: Int, componentId: Int, op: Int) {
+    /** Public chat is game input like a click, so while paused it is held for the next tick. */
+    fun onPublicChat(player: Player, message: MessagePublic) = act(player) { sayPublicChat(player, message) }
+
+    fun onButton(player: Player, interfaceId: Int, componentId: Int, sub: Int, op: Int) = act(player) {
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
-            return
+            return@act
         }
-        logger.info { "${player.username} clicked $interfaceId:$componentId op $op (not handled)" }
+        if (interfaceId == GameFrame.SETTINGS_SIDE && componentId == GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS) {
+            val frame = GameFrame.forLayoutOption(sub)
+            if (frame != null) interfaces.requestFrame(player, frame, tick)
+            return@act
+        }
+        if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
+            interfaces.closeModals(player)
+            player.logoutRequested = true
+            return@act
+        }
+        logger.info { "${player.username} clicked $interfaceId:$componentId sub $sub op $op (not handled)" }
     }
+
+    /** The client closed its modal: Esc, or a close button. */
+    fun onCloseModal(player: Player) = act(player) { interfaces.closeModals(player) }
+
+    fun interfaceExists(interfaceId: Int): Boolean = interfaceIds?.contains(interfaceId) ?: (interfaceId >= 0)
+
+    fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) = interfaces.openModal(player, slot, interfaceId)
 
     private fun move(player: Player) {
         val result = movement.process(player)
@@ -246,8 +385,8 @@ class World(
     }
 
     /**
-     * Sends the skills that changed this tick, and the combat level over player info when it changes. Every skill is
-     * sent on the first tick, as the client starts them all at 0.
+     * Sends the skills that changed this cycle, and the combat level over player info when it changes. Every skill is
+     * sent on the first cycle, as the client starts them all at 0.
      */
     private fun sendStats(player: Player) {
         player.skills.flush { skill, currentLevel, xp ->
@@ -279,7 +418,7 @@ class World(
         player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
     }
 
-    private fun sendInfo(player: Player) {
+    private fun sendInfo(player: Player, tickEnd: Boolean) {
         val session = player.session
         val packets = player.infos.getPackets().rootWorldInfoPackets
         session.queue(packets.activeWorld)
@@ -288,6 +427,17 @@ class World(
         packets.playerInfo.onSuccess(session::queue).onFailure { logger.error(it) { "Player info failed for ${player.username}" } }
         val npcInfo = packets.npcInfo
         if (npcInfo.isEmpty()) npcInfo.safeReleaseOrThrow() else npcInfo.onSuccess(session::queue)
+        // Live closes every tick with ServerTickEnd, and RuneLite fires its GameTick (and replays deferred events such
+        // as VarbitChanged) only on it, so without it the client never sees a tick. A paused cycle is not a tick.
+        if (tickEnd) session.queue(ServerTickEnd)
+        if (player.logoutRequested) {
+            // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
+            // the player is removed on the next tick by hand.
+            session.queue(Logout)
+            session.requestClose()
+            player.disconnected = true
+            return
+        }
         session.flush()
     }
 
@@ -301,7 +451,13 @@ class World(
     companion object {
         const val TICK_MILLIS = 600L
         const val MAX_PLAYERS = 2048
-        const val OVERLAY = 1
+
+        /** The logout tab and its "Click here to logout" button, logout:logout. */
+        const val LOGOUT_TAB = 182
+        const val LOGOUT_BUTTON = 8
+
+        /** Guessed bound on clicks held per player while paused, so a long pause can't pile them up without end. */
+        const val MAX_HELD_ACTIONS = 50
 
         const val MOVE_SPEED_WALK = 1
         const val MOVE_SPEED_RUN = 2
@@ -317,6 +473,12 @@ class World(
         const val SPAWN_X = 3222
         const val SPAWN_Z = 3218
         const val SPAWN_LEVEL = 0
+
+        /** has_displayname_transmitter in RuneLite's VarbitID. */
+        const val VARBIT_HAS_DISPLAYNAME = 8119
+
+        /** The first game message after login on live, from memory rather than a recording. */
+        const val WELCOME_MESSAGE = "Welcome to Old School RuneScape."
 
         private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }

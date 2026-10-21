@@ -20,6 +20,21 @@ class Player(
     /** 1 = fixed, 2 = resizable, from the client's WindowStatus. */
     var windowMode: Int = 0
 
+    /** The top-level interface the client shows. */
+    var frame: GameFrame = GameFrame.RESIZABLE_CLASSIC
+
+    /** Varbit resizable_stone_arrangement: which resizable layout the player last chose. */
+    var stoneArrangement: Int = 0
+
+    /** A layout change waiting for its tick. */
+    var pendingFrameMove: FrameMove? = null
+
+    /** Open modal interfaces by where they are open. */
+    val modals = LinkedHashMap<FrameSlot, Int>()
+
+    /** Set by the logout button; the player is logged out at the end of the tick. */
+    var logoutRequested: Boolean = false
+
     /** Set from a Netty thread when the connection drops; the game thread does the cleanup. */
     @Volatile
     var disconnected: Boolean = false
@@ -56,6 +71,9 @@ class Player(
 
     /** Moved by a teleport this tick; the client is told when the tick's movement is sent. */
     var teleported: Boolean = false
+
+    /** Clicks and buttons that arrived while the clock was paused, run at the start of the next tick. */
+    val heldActions = ArrayDeque<() -> Unit>()
 
     /** The zone the client's build area was last centred on. */
     var buildAreaZoneX: Int = x shr 3
