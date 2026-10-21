@@ -124,11 +124,28 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 |---------|--------------|
 | `::pos` | Your coordinates as `x, z, level`, plus the map region and your tile inside it |
 | `::tele x z [level]` | Teleports there; the level stays the same when left out. `::tele 3222, 3218, 0` also works, so `::pos` output pastes in |
-| `::tick` | The server's current tick number |
+| `::tick` | The server's current tick number, and whether the clock is paused |
+| `::pause` | Freezes the game once the current tick has finished |
+| `::step [n]` | While paused, runs n ticks (default 1, up to 1000), one every 600 ms, then says where it stopped |
+| `::resume` | Starts the clock again |
 | `::varp id [value]` | Shows a varp, or sets it. `::varp 173 1` turns the run orb on |
 | `::varbit id [value]` | Shows a varbit with the varp and bits it lives in, or sets it |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
 Varps and varbits are per player (`Player.vars`). Varbit layouts come from cache config 14 and the number of varps
-from config 16; a changed varp is sent once at the end of the tick, with its value then. The run orb is varp 173.
+from config 16; a changed varp is sent once at the end of the cycle, with its value then, so `::varp` also shows while
+paused. The run orb is varp 173.
+
+## Tick control
+
+Every 600 ms the game thread runs one tick, in fixed phases (`TickPhase`): input (logins, disconnects, client packets),
+scripts (empty until the scripting framework), movement, then updates (player info, flush). Each phase runs for every
+player before the next one starts; how live interleaves players and NPCs is not checked yet (guessed).
+
+While paused, no game time passes, but the server still reads packets and sends unchanged player info every 600 ms, so
+commands answer and the client stays connected. Clicks and buttons made while paused are held and run at the start of
+the next tick, as if they had arrived then. Commands run straight away, so `::tele` while paused moves you, and you see
+it on the next step.
+
+Check: `::pause`, click a tile and nothing moves; each `::step` then moves you one tile (two with run on).

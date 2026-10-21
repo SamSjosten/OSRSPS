@@ -49,6 +49,9 @@ class Player(
     /** Moved by a teleport this tick; the client is told when the tick's movement is sent. */
     var teleported: Boolean = false
 
+    /** Clicks and buttons that arrived while the clock was paused, run at the start of the next tick. */
+    val heldActions = ArrayDeque<() -> Unit>()
+
     /** The zone the client's build area was last centred on. */
     var buildAreaZoneX: Int = x shr 3
     var buildAreaZoneZ: Int = z shr 3
