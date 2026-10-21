@@ -26,6 +26,7 @@ import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
+import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.map.CollisionFlag
@@ -44,6 +45,8 @@ class World(
     private val js5Crcs: IntArray,
     private val collision: CollisionMap,
     val varTypes: VarTypes = VarTypes.NONE,
+    /** Every random roll in the game comes from here; see [GameRandom]. */
+    val random: GameRandom = GameRandom(),
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -56,6 +59,7 @@ class World(
         registerDevCommands(this@World)
         registerTickCommands(this@World)
         registerVarCommands()
+        registerSeedCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */

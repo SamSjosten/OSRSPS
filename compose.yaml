@@ -12,5 +12,7 @@ services:
     environment:
       # The address RuneLite reaches us on: the Proxmox host forwards both ports to this VM.
       OSRSPS_PUBLIC_HOST: 192.168.0.210
+      # Uncomment to make every random roll repeat from startup; unset, a new seed is picked and logged.
+      # OSRSPS_SEED: "1234"
     volumes:
       - ./data:/data

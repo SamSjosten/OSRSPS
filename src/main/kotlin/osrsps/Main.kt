@@ -52,7 +52,9 @@ private fun fetchCache() {
 }
 
 private fun serve(port: Int) {
-    val server = GameServer(dataDir, port, port + 1, publicHost)
+    // A fixed seed makes every random roll repeat from startup; leave it unset for a new one each start.
+    val seed = System.getenv("OSRSPS_SEED")?.let { it.toLongOrNull() ?: error("OSRSPS_SEED must be a whole number, was '$it'") }
+    val server = GameServer(dataDir, port, port + 1, publicHost, seed)
     server.start()
     Runtime.getRuntime().addShutdownHook(Thread(server::stop))
 }
