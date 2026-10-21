@@ -163,6 +163,9 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::jingle id` | Plays jingle `id` to you alone |
 | `::item id\|name [count]` | Puts items in your inventory, by id, menu name or gameval name: `::item 1351`, `::item bronze axe 2`, `::item coins 10k`. Adds what fits |
 | `::empty` | Empties your inventory |
+| `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
+| `::npcs [radius]` | Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range |
+| `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
@@ -236,6 +239,38 @@ The generator is xoshiro256\*\* seeded through SplitMix64, written out in the re
 JDK or Kotlin upgrades. It is not the generator live uses: only repeatability matters here. With more than one player,
 rolls are made in player index order within each tick phase, so the same seed also needs the same players in the same
 slots (inferred from the tick loop; nothing rolls yet).
+
+## NPCs
+
+NPC types come from cache config 9 at startup (`NpcTypeLoader`), with gameval names from index 24 archive 1. NPC
+spawns are not in the cache: they live in `src/main/resources/npc-spawns/`, one JSON file per area listed in
+`NpcSpawnFile.FILES`, and every spawn names its source. Examine texts are in `src/main/resources/npc-examines.json`
+by type id, also with sources. NPCs are sent through RSProt's NPC info; the tick moves every NPC (`World.npcs`, in
+`game/npc/`) before any player's scripts.
+
+`lumbridge.json` has Hans in the castle courtyard and the 21 cows and 8 calves of the Lumbridge cow field east of the
+river, on the wiki's tiles. The castle's own NPCs, and Hans's real lap, come with the Lumbridge Castle piece.
+
+| NPC behaviour | Source |
+|---------------|--------|
+| NPC type opcodes; all 16,631 rev 241 types decode | RuneLite's NpcLoader, checked against the 2026-10-14 cache |
+| Spawn tiles, ids and examine texts of Hans, cows and calves | OSRS Wiki pages Hans, Cow, Cow calf (2026-10-21) |
+| Which cow or calf type stands on which wiki tile | guessed: the wiki maps give tiles per name, so the types take turns |
+| Wander: pick a tile in the square of the wander radius around the spawn (even from outside it), walk there | OSRS Wiki, Wander radius |
+| NPCs walk naively: diagonally, then straight | OSRS Wiki, Pathfinding |
+| An idle NPC picks a new tile 1 tick in 8 | guessed, from the 2004Scape project's RS2 engine; not measured |
+| Every wander range is 5 | guessed until recorded |
+| A blocked diagonal tries the x step, then the z step; with neither it gives up on the tile | guessed |
+| NPCs don't walk into each other; players don't block them | inferred / guessed |
+| A 2x2 NPC moves as its four tiles would, so it can't straddle a fence | inferred from the one-tile rules |
+| NPCs move before players' scripts each tick | inferred from Mod Ash's descriptions; not recorded |
+| Examine answers with chat type 28 (NPC_EXAMINE) | RuneLite's ChatMessageType |
+| Hans faces south when he spawns, as does every NPC without a direction | guessed |
+
+Check: in the cow field east of the River Lum (`::tele 3253 3275`) the cows and calves wander inside the fences,
+`::npcs` lists them, and Examine on one gives its wiki text. Hans is in the castle courtyard and wanders. Same seed, same
+paths: start the server twice with the same `OSRSPS_SEED`, `::pause`, `::step` until `::tick` reads the same number
+(500, say) and `::npcs` lists the same tiles both times.
 
 ## Zone updates
 
