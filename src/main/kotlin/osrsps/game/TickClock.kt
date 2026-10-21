@@ -10,7 +10,7 @@ enum class TickPhase {
     /** Logins, disconnects, then each player's packets from the client. */
     INPUT,
 
-    /** Queues, timers and handlers. Nothing runs here until the scripting framework exists. */
+    /** Each player's delayed script, queues and timers; see [osrsps.game.script.ScriptRunner]. */
     SCRIPTS,
     MOVEMENT,
 
