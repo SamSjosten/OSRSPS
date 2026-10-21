@@ -109,6 +109,17 @@ class ScriptRunnerTest {
     }
 
     @Test
+    fun `a weak script queued during the phase doesn't run while a strong script waits in the queue`() {
+        queue("strong", QueueType.STRONG, delay = 3)
+        runner.queue(player, "queues more", QueueType.NORMAL, 0) {
+            queue("weak", QueueType.WEAK, script = record("weak"))
+            queue("strong 2", QueueType.STRONG, delay = 2, script = record("strong 2"))
+        }
+        ticks(4)
+        assertEquals(listOf("strong 2@3", "strong@4"), ran)
+    }
+
+    @Test
     fun `interrupting removes weak scripts and closes modals but keeps the rest`() {
         openModal()
         queue("weak", QueueType.WEAK)

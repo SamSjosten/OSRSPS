@@ -104,7 +104,11 @@ class ScriptRunner(
     fun process(player: Player) {
         resumeDelayed(player)
         val state = player.scripts
+        // A strong script in the queue closes modals and removes weak scripts before anything runs, and again before
+        // the weak queue if one is there by then, so a weak script queued during the phase doesn't slip through.
+        if (state.queue.any { it.type == QueueType.STRONG }) interrupt(player)
         processQueue(player, state.queue)
+        if (state.queue.any { it.type == QueueType.STRONG }) interrupt(player)
         processQueue(player, state.weakQueue)
         processTimers(player, TimerType.NORMAL)
         processTimers(player, TimerType.SOFT)
@@ -120,19 +124,11 @@ class ScriptRunner(
 
     private fun processQueue(player: Player, queue: MutableList<QueuedScript>) {
         val pass = ++passes
-        // A strong script anywhere in the queue closes modals and removes weak scripts before anything runs; one queued
-        // during the phase does so when the phase reaches it, before the weak queue runs.
-        var strongSeen = queue.any { it.type == QueueType.STRONG }
-        if (strongSeen) interrupt(player)
         var runs = 0
         var i = 0
         while (i < queue.size) {
             val entry = queue[i]
             entry.lastPass = pass
-            if (entry.type == QueueType.STRONG && !strongSeen) {
-                strongSeen = true
-                interrupt(player)
-            }
             val due = entry.delay-- <= 0
             if (!due || !canRun(player, entry.type)) {
                 i++
