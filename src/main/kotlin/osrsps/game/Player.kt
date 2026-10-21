@@ -116,6 +116,21 @@ class Player(
     /** The zones this client gets updates for. */
     val zoneView = ZoneView()
 
+    /** The animation, spotanims, sounds and jingle waiting to be sent at the end of the cycle. */
+    val effects = PlayerEffects()
+
+    /** Plays animation (seq) [id] on the player for everyone who can see them; -1 stops the one playing. */
+    fun anim(id: Int, delay: Int = 0) = effects.anim(id, delay)
+
+    /** Plays spotanim [id] on the player for everyone who can see them; -1 clears [slot]. [height] is above the ground. */
+    fun spotanim(id: Int, height: Int = 0, delay: Int = 0, slot: Int = 0) = effects.spotanim(slot, id, height, delay)
+
+    /** Plays sound effect (synth) [id] to this player alone. Sounds others hear go through [World.zones]. */
+    fun sound(id: Int, loops: Int = 1, delay: Int = 0) = effects.sound(id, loops, delay)
+
+    /** Plays jingle [id] to this player alone; the client pauses its music for it. */
+    fun jingle(id: Int) = effects.jingle(id)
+
     /** Shows [text] in the chatbox as a game message. */
     fun message(text: String) {
         session.queue(MessageGame(CHATTYPE_GAMEMESSAGE, text))

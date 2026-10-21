@@ -156,6 +156,11 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::groundobj id [count]` | Puts obj `id` on your tile for everyone, until `::cleartile` or a restart (no ground item timers yet) |
 | `::cleartile` | Removes every obj from your tile |
+| `::anim id [delay]` | Plays animation (seq) `id` on you, seen by everyone nearby; `-1` stops it. `::anim 866` dances |
+| `::spotanim id [height] [delay] [slot]` | Plays spotanim `id` on you rather than on your tile; `-1` clears the slot (0 to 255) |
+| `::sound [id] [loops] [delay]` | Plays sound effect `id` to you alone (default 3813, the town crier's bell) |
+| `::areasound id [radius] [loops]` | Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
+| `::jingle id` | Plays jingle `id` to you alone |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
@@ -233,8 +238,30 @@ player alone. Zone updates are sent on paused cycles too, so `::gfx` typed while
 | `::proj` flight values (heights, timing, arc) | guessed |
 
 Check with two clients logged in near each other: `::gfx 85` on one shows the graphic on both (any spotanim id works;
-85 should be the magic splash, from memory). `::groundobj 1351` shows a bronze axe to both; walk the second client 40
+85 is `failedspell_impact`, the magic splash, in the 241 cache's names). `::groundobj 1351` shows a bronze axe to both; walk the second client 40
 tiles away and back, or log it out and in, and the axe is still there.
+
+## Animations, spotanims and sounds
+
+Content plays these on a player with `Player.anim`, `Player.spotanim`, `Player.sound` and `Player.jingle`
+(`game/PlayerEffects.kt`). They are collected during the cycle and sent at its end: the animation and spotanims in the
+player's player info, so everyone who can see them sees them, the sound effects and jingle to that player alone. Like
+vars, they also go out on paused cycles, so `::anim` typed while paused plays straight away. Sounds others hear, and
+graphics on a tile, go through `World.zones` (`::areasound`, `::gfx`). Delays are in client cycles (20 ms).
+
+The commands only take ids the cache has: seqs from config 12, spotanims from config 13, sound effects (synths) from
+index 4 and jingles from index 11 (`cache/EffectIdLoader.kt`). The 241 cache has 14,514 seqs, 4,023 spotanims, 12,163
+synths and 315 jingles.
+
+| Effects behaviour | Source |
+|-------------------|--------|
+| Animation and spotanim (with slot, height and delay) in player info, sound and jingle packets | RSProt |
+| The last animation set in a cycle is the one sent; RS2 is thought to compare seq priorities instead | guessed, seq types are not decoded yet (comes with combat) |
+| One spotanim per slot per cycle, every sound effect in order, the last jingle | guessed from the packets' shape |
+| A jingle's length is sent as 0 | RSProt: the client no longer reads it |
+
+Check: `::anim 866` and you dance; a second client nearby sees it too. `::sound` plays a bell. `::spotanim 85` shows the
+splash on you and follows you as you walk, where `::gfx 85` stays on the tile.
 
 ## Chat
 
