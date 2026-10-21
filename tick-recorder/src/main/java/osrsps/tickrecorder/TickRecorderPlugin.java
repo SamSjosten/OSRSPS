@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -110,6 +111,8 @@ public class TickRecorderPlugin extends Plugin
 	static final String RECORDER_VERSION = "0.2.1";
 	/** A handler that keeps throwing gets this many error lines per recording; later ones are only counted. */
 	static final int ERROR_LINES_PER_HANDLER = 5;
+	/** A health line is written every this many ticks. */
+	static final int HEALTH_EVERY = 100;
 	private static final Logger log = LoggerFactory.getLogger(TickRecorderPlugin.class);
 
 	private static final DateTimeFormatter FILE_TIME =
@@ -153,6 +156,10 @@ public class TickRecorderPlugin extends Plugin
 	private Set<Integer> npcsInRange = new HashSet<>();
 	/** Exceptions caught per handler, by name, for this recording. */
 	private final Map<String, Integer> errors = new HashMap<>();
+	private int errorCount;
+	/** This plugin's own time on each of the last HEALTH_EVERY game ticks, in microseconds. */
+	private final int[] gameTickUs = new int[HEALTH_EVERY];
+	private int clientTickUsMax;
 
 	private final HotkeyListener hotkeyListener = new HotkeyListener(() -> config.toggleHotkey())
 	{
@@ -198,7 +205,7 @@ public class TickRecorderPlugin extends Plugin
 		RecordingWriter w = writer;
 		if (recording)
 		{
-			emit(stopLine("pluginStopped"));
+			emitLast(stopLine("pluginStopped"));
 			recording = false;
 		}
 		writer = null;
@@ -216,7 +223,7 @@ public class TickRecorderPlugin extends Plugin
 			RecordingWriter w = writer;
 			if (recording && w != null)
 			{
-				emit(stopLine("clientExit"));
+				emitLast(stopLine("clientExit"));
 				recording = false;
 				event.waitFor(w.close());
 			}
@@ -290,6 +297,9 @@ public class TickRecorderPlugin extends Plugin
 		w.open(name);
 		tick = 0;
 		errors.clear();
+		errorCount = 0;
+		Arrays.fill(gameTickUs, 0);
+		clientTickUsMax = 0;
 		seenProjectiles.clear();
 		npcsInRange = new HashSet<>();
 		recording = true;
@@ -312,10 +322,37 @@ public class TickRecorderPlugin extends Plugin
 
 	private void stopRecording()
 	{
-		emit(stopLine("stopped"));
+		emitLast(stopLine("stopped"));
 		recording = false;
 		writer.close();
 		chat("Tick Recorder: stopped after " + tick + " ticks");
+	}
+
+	/** Ends a recording the writer could not keep up with or could not write to; the stop line says which. */
+	private void stopFailed(RecordingWriter w, RecordingWriter.Failure failure)
+	{
+		recording = false;
+		configManager.setConfiguration(TickRecorderConfig.GROUP, TickRecorderConfig.RECORDING, false);
+		emitLast(stopLine(failure.code));
+		w.close();
+		chat("Tick Recorder stopped: " + failure.detail);
+	}
+
+	/** The recorder's own cost and backlog over the last HEALTH_EVERY ticks, so a file shows whether it kept up. */
+	private JsonObject healthLine(RecordingWriter w)
+	{
+		int[] sorted = gameTickUs.clone();
+		Arrays.sort(sorted);
+		JsonObject line = line("health");
+		line.addProperty("gameTickUsMax", sorted[sorted.length - 1]);
+		line.addProperty("gameTickUsP50", sorted[sorted.length / 2]);
+		line.addProperty("clientTickUsMax", clientTickUsMax);
+		line.addProperty("lines", w.lines());
+		line.addProperty("chars", w.chars());
+		line.addProperty("queueMax", w.takeQueueMax());
+		line.addProperty("errors", errorCount);
+		clientTickUsMax = 0;
+		return line;
 	}
 
 	private JsonObject stopLine(String reason)
@@ -465,18 +502,17 @@ public class TickRecorderPlugin extends Plugin
 	{
 		try
 		{
+			long started = System.nanoTime();
 			sceneLoading = false;
 			if (!recording)
 			{
 				return;
 			}
 			RecordingWriter w = writer;
-			String failure = w == null ? null : w.takeFailure();
+			RecordingWriter.Failure failure = w == null ? null : w.takeFailure();
 			if (failure != null)
 			{
-				recording = false;
-				configManager.setConfiguration(TickRecorderConfig.GROUP, TickRecorderConfig.RECORDING, false);
-				chat("Tick Recorder stopped: " + failure);
+				stopFailed(w, failure);
 				return;
 			}
 			Player self = client.getLocalPlayer();
@@ -537,6 +573,11 @@ public class TickRecorderPlugin extends Plugin
 			{
 				w.flush();
 			}
+			gameTickUs[tick % HEALTH_EVERY] = (int) ((System.nanoTime() - started) / 1000);
+			if (w != null && tick % HEALTH_EVERY == 0)
+			{
+				emit(healthLine(w));
+			}
 		}
 		catch (RuntimeException e)
 		{
@@ -554,6 +595,7 @@ public class TickRecorderPlugin extends Plugin
 			{
 				return;
 			}
+			long started = System.nanoTime();
 			for (Projectile projectile : client.getProjectiles())
 			{
 				if (!seenProjectiles.add(projectile))
@@ -589,6 +631,11 @@ public class TickRecorderPlugin extends Plugin
 				line.addProperty("slope", projectile.getSlope());
 				line.addProperty("startPos", projectile.getStartPos());
 				emit(line);
+			}
+			int us = (int) ((System.nanoTime() - started) / 1000);
+			if (us > clientTickUsMax)
+			{
+				clientTickUsMax = us;
 			}
 		}
 		catch (RuntimeException e)
@@ -1488,6 +1535,16 @@ public class TickRecorderPlugin extends Plugin
 		}
 	}
 
+	/** A stop line is queued past the writer's limit, so the reason a recording ended is always on file. */
+	private void emitLast(JsonObject line)
+	{
+		RecordingWriter w = writer;
+		if (w != null)
+		{
+			w.writeLast(json.toJson(line));
+		}
+	}
+
 	/**
 	 * Reports a handler that threw. RuneLite only logs such exceptions, so without this a reader could not
 	 * tell a quiet tick from a broken one. The first few per handler become error lines; the rest are counted.
@@ -1495,6 +1552,7 @@ public class TickRecorderPlugin extends Plugin
 	private void error(String where, RuntimeException e)
 	{
 		int count = errors.merge(where, 1, Integer::sum);
+		errorCount++;
 		if (count > ERROR_LINES_PER_HANDLER)
 		{
 			return;

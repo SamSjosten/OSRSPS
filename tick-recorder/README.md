@@ -98,7 +98,8 @@ world view is recorded.
 | `world` | you change world | `world`, `worldTypes` |
 | `config` | a setting changes while recording | `key`, `value` |
 | `error` | a recorder handler threw | `where` (handler name), `error` (exception class), `count`. The first five per handler per recording; later ones are only counted |
-| `stop` | recording ends | `reason` (`stopped`, `pluginStopped`, `clientExit`), `time` |
+| `health` | every 100 ticks | `gameTickUsMax`, `gameTickUsP50` (this plugin's own time on a game tick, microseconds, over the last 100 ticks), `clientTickUsMax`, `lines` and `chars` (written so far), `queueMax` (deepest write queue since the last health line), `errors` (handler errors so far) |
+| `stop` | recording ends | `reason` (`stopped`, `pluginStopped`, `clientExit`; `writerBehind` when the disk fell 20000 lines behind, `writeFailed` when the file could not be written), `time` |
 
 Lines written at the start of a recording carry `"baseline":true` (`items` for inventory and
 equipment, every `stat`, `varps`, and `object` and `groundItem` in range). Object and ground item
