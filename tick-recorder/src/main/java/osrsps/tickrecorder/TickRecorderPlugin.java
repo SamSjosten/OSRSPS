@@ -249,13 +249,20 @@ public class TickRecorderPlugin extends Plugin
 			}
 			clientThread.invokeLater(() ->
 			{
-				if (config.recording() && !recording)
+				try
 				{
-					startRecording();
+					if (config.recording() && !recording)
+					{
+						startRecording();
+					}
+					else if (!config.recording() && recording)
+					{
+						stopRecording();
+					}
 				}
-				else if (!config.recording() && recording)
+				catch (RuntimeException e)
 				{
-					stopRecording();
+					error("onConfigChanged", e);
 				}
 			});
 		}
