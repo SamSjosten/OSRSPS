@@ -137,6 +137,11 @@ Every 600 ms the game thread runs one tick, in fixed phases (`TickPhase`): input
 scripts (empty until the scripting framework), movement, then updates (player info, flush). Each phase runs for every
 player before the next one starts; how live interleaves players and NPCs is not checked yet (guessed).
 
+Every tick ends with the tick-end packet (`ServerTickEnd`), the one RuneLite waits for before it fires its game tick, so
+the Tick Recorder gets one tick line per server tick (check: record 60 s standing still, then
+`grep -c '"t":"tick"'` on the file gives about 100). A paused cycle is not a tick and sends no tick-end packet, so the
+client sees no ticks until the next `::step`.
+
 While paused, no game time passes, but the server still reads packets and sends unchanged player info every 600 ms, so
 commands answer and the client stays connected. Clicks and buttons made while paused are held and run at the start of
 the next tick, as if they had arrived then. Commands run straight away, so `::tele` while paused moves you, and you see

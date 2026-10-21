@@ -13,6 +13,7 @@ import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
+import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
 import net.rsprot.protocol.game.outgoing.varp.VarpSmall
@@ -118,7 +119,7 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
-        sendUpdates()
+        sendUpdates(tickEnd = true)
     }
 
     /**
@@ -129,7 +130,7 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
         readInput(ticking = false)
         // Inferred, not measured: the client shows "Connection lost" after about 15 s with nothing from the server, so a
         // frozen world still sends its unchanged player info every cycle. This also flushes command replies.
-        sendUpdates()
+        sendUpdates(tickEnd = false)
     }
 
     private fun readInput(ticking: Boolean) {
@@ -145,10 +146,11 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
         }
     }
 
-    private fun sendUpdates() {
+    /** Sends every player this cycle's updates. [tickEnd] says whether the cycle was a game tick. */
+    private fun sendUpdates(tickEnd: Boolean) {
         network.infoProtocols.update()
         for (player in players) {
-            if (player != null) sendInfo(player)
+            if (player != null) sendInfo(player, tickEnd)
         }
     }
 
@@ -337,7 +339,7 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
         player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
     }
 
-    private fun sendInfo(player: Player) {
+    private fun sendInfo(player: Player, tickEnd: Boolean) {
         val session = player.session
         val packets = player.infos.getPackets().rootWorldInfoPackets
         session.queue(packets.activeWorld)
@@ -346,6 +348,9 @@ class World(private val js5Crcs: IntArray, private val collision: CollisionMap) 
         packets.playerInfo.onSuccess(session::queue).onFailure { logger.error(it) { "Player info failed for ${player.username}" } }
         val npcInfo = packets.npcInfo
         if (npcInfo.isEmpty()) npcInfo.safeReleaseOrThrow() else npcInfo.onSuccess(session::queue)
+        // Live closes every tick with ServerTickEnd, and RuneLite fires its GameTick (and replays deferred events such
+        // as VarbitChanged) only on it, so without it the client never sees a tick. A paused cycle is not a tick.
+        if (tickEnd) session.queue(ServerTickEnd)
         session.flush()
     }
 
