@@ -36,6 +36,13 @@ class Player(
             vars[World.VARP_RUN] = if (value) 1 else 0
         }
 
+    val skills = PlayerSkills()
+
+    /** Current hitpoints, which are the Hitpoints skill's current level. */
+    var hitpoints: Int
+        get() = skills.currentLevel(Skill.HITPOINTS)
+        set(value) = skills.setCurrentLevel(Skill.HITPOINTS, value)
+
     /** Ctrl-click flips walk and run for the route it starts. */
     var invertRun: Boolean = false
 
@@ -45,6 +52,7 @@ class Player(
     /** What the client was last told, so changes are sent once. Varps are tracked by [vars]. */
     var sentRunEnabled: Boolean? = null
     var sentRunEnergy: Int = -1
+    var sentCombatLevel: Int = -1
 
     /** Moved by a teleport this tick; the client is told when the tick's movement is sent. */
     var teleported: Boolean = false
