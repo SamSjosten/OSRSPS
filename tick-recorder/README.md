@@ -18,7 +18,8 @@ Until it is on the Plugin Hub, run it only against our own server, never on Jage
   chatbox says why.
 
 Settings: radius around you (default 16 tiles), and switches for other players (off by default),
-objects and ground items, varps and varbits, your menu clicks and sounds.
+objects and ground items, varps and varbits, your menu clicks (off by default: turn it on when a piece needs the
+input timing) and sounds.
 
 ### In our test client
 
