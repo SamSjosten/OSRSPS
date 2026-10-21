@@ -2,6 +2,7 @@ package osrsps.cache
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import osrsps.game.EquipmentTab
 import osrsps.game.FrameSlot
 import osrsps.game.GameFrame
 
@@ -13,6 +14,7 @@ class GameFrameCheckTest {
             names[frame.interfaceId] = InterfaceNames(frame.cacheName, FrameSlot.entries.associate { frame.component(it) to it.cacheName })
         }
         for (overlay in GameFrame.overlays) names[overlay.interfaceId] = InterfaceNames(overlay.cacheName, emptyMap())
+        for ((id, expected) in EquipmentTab.CACHE_NAMES) names[id] = InterfaceNames(expected.first, expected.second)
         return names
     }
 

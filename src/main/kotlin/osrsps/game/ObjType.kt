@@ -20,7 +20,10 @@ class ObjType(
     val ops: List<String?> = DEFAULT_OPS,
     /** Inventory options iop1 to iop5 (index 0 to 4), null where there is none. */
     val iops: List<String?> = DEFAULT_IOPS,
-    /** Equipment slots the item takes, -1 for none. Task 15 (equipment) uses them. */
+    /**
+     * The equipment slot the item is worn in ([WearPos]), -1 if it can't be worn. [wearpos2] and [wearpos3] are slots
+     * the item covers on the player's model: a full helm hides the hair and jaw, a two-handed weapon the shield.
+     */
     val wearpos1: Int = -1,
     val wearpos2: Int = -1,
     val wearpos3: Int = -1,
@@ -37,6 +40,8 @@ class ObjType(
     val params: Map<Int, Any> = emptyMap(),
     /** The name in the cache's gameval index, e.g. `bronze_axe`; null when the cache has no gameval names. */
     val internalName: String? = null,
+    /** The item's category (opcode 94), which groups items such as axes or scimitars; -1 for none. */
+    val category: Int = -1,
 ) {
     val isCert: Boolean get() = certtemplate != -1
 
@@ -46,6 +51,13 @@ class ObjType(
     fun iop(option: Int): String? = iops.getOrNull(option - 1)
 
     fun intParam(id: Int, default: Int = 0): Int = params[id] as? Int ?: default
+
+    fun stringParam(id: Int): String? = params[id] as? String
+
+    val wearable: Boolean get() = wearpos1 in 0 until WearPos.COUNT
+
+    /** Takes both hands: a weapon that also covers the shield slot, as bows and 2h swords do in the cache. */
+    val twoHanded: Boolean get() = wearpos1 == WearPos.WEAPON && (wearpos2 == WearPos.SHIELD || wearpos3 == WearPos.SHIELD)
 
     /** High and low alchemy give 60% and 40% of the value, rounded down (wiki, from memory; not checked here). */
     val highAlch: Int get() = (cost.toLong() * 60 / 100).toInt()
