@@ -49,8 +49,9 @@ typealias Handler = suspend ScriptContext.(Op) -> Unit
  * Content handlers, by what was clicked and which option. A handler registered for [ANY_OPTION] catches every option
  * that has no handler of its own.
  *
- * Clicks on buttons reach handlers straight away; clicks on locs once the player has walked to them (see
- * [osrsps.game.loc.LocInteractions]). Items come with task 13 and NPCs with task 17.
+ * Clicks on buttons and on inventory items (iop1 to iop5, with the slot as [Op.sub]) reach handlers straight away;
+ * clicks on locs once the player has walked to them (see [osrsps.game.loc.LocInteractions]). NPCs come with task 17,
+ * also after walking to them.
  */
 class Handlers {
     private val handlers = HashMap<Key, Handler>()

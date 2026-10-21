@@ -88,6 +88,9 @@ class Player(
 
     val skills = PlayerSkills()
 
+    /** The 28-slot inventory, inv 93. Changes are sent at the end of the cycle. */
+    val inventory = Inventory(Inventory.INV, Inventory.INV_CAPACITY)
+
     /** Queues, timers and the current delay; run by [World.scripts]. */
     val scripts = PlayerScripts()
 

@@ -17,6 +17,8 @@ import net.rsprot.protocol.game.incoming.misc.client.NoTimeout
 import net.rsprot.protocol.game.incoming.misc.client.WindowStatus
 import net.rsprot.protocol.game.incoming.buttons.If1Button
 import net.rsprot.protocol.game.incoming.buttons.If3Button
+import net.rsprot.protocol.game.incoming.buttons.IfButtonD
+import net.rsprot.protocol.game.incoming.buttons.IfButtonT
 import net.rsprot.protocol.game.incoming.locs.OpLoc6
 import net.rsprot.protocol.game.incoming.locs.OpLocV2
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic
@@ -99,7 +101,19 @@ class NetworkFactory(
             world.onButton(player, message.interfaceId, message.componentId, -1, 1)
         })
         builder.addListener(If3Button::class.java, MessageConsumer { player, message ->
-            world.onButton(player, message.interfaceId, message.componentId, message.sub, message.op)
+            world.onButton(player, message.interfaceId, message.componentId, message.sub, message.op, message.obj)
+        })
+        builder.addListener(IfButtonD::class.java, MessageConsumer { player, message ->
+            world.onButtonDrag(
+                player, message.selectedInterfaceId, message.selectedComponentId, message.selectedSub, message.selectedObj,
+                message.targetInterfaceId, message.targetComponentId, message.targetSub,
+            )
+        })
+        builder.addListener(IfButtonT::class.java, MessageConsumer { player, message ->
+            world.onButtonTarget(
+                player, message.selectedInterfaceId, message.selectedComponentId, message.selectedSub, message.selectedObj,
+                message.targetInterfaceId, message.targetComponentId, message.targetSub, message.targetObj,
+            )
         })
         builder.addListener(OpLocV2::class.java, MessageConsumer { player, message ->
             world.onLocOp(player, message.id, message.x, message.z, message.op, message.controlKey)
