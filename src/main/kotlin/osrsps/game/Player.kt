@@ -4,9 +4,10 @@ import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import osrsps.game.script.PlayerScripts
+import osrsps.game.zone.ZoneView
 import osrsps.map.Tile
 
-/** A logged-in player. Only touched on the game thread, apart from [disconnected]. */
+/** A logged-in player. Only touched on the game thread, apart from [droppedSession]. */
 class Player(
     val index: Int,
     val username: String,
@@ -43,9 +44,31 @@ class Player(
     /** Set by the logout button; the player is logged out at the end of the tick. */
     var logoutRequested: Boolean = false
 
-    /** Set from a Netty thread when the connection drops; the game thread does the cleanup. */
+    /** Logged out by the button: removed at the start of the next cycle, with no wait for a reconnect. */
+    var loggedOut: Boolean = false
+
+    /** What the save file is named after; see [SaveStore.saveKey]. */
+    val saveKey: String = SaveStore.saveKey(username) ?: username
+
+    /** The ISAAC seed the client picked for this connection. A reconnect has to send it back. */
+    var loginSeed: IntArray = IntArray(0)
+
+    /**
+     * Set from a Netty thread to the session whose connection dropped. Kept as the session rather than a flag so a
+     * late drop of a session a reconnect has already replaced is ignored.
+     */
     @Volatile
-    var disconnected: Boolean = false
+    var droppedSession: Session<Player>? = null
+
+    /** Whether the connection is gone and the player waits in the world for the client to reconnect. */
+    val connectionLost: Boolean
+        get() {
+            val dropped = droppedSession
+            return dropped != null && dropped === session
+        }
+
+    /** The tick the lost connection was noticed on, or -1 while connected. */
+    var connectionLostTick: Long = -1
 
     /** Turning points of the current route, next one first. */
     val waypoints = ArrayDeque<Tile>()
@@ -89,6 +112,9 @@ class Player(
     /** The zone the client's build area was last centred on. */
     var buildAreaZoneX: Int = x shr 3
     var buildAreaZoneZ: Int = z shr 3
+
+    /** The zones this client gets updates for. */
+    val zoneView = ZoneView()
 
     /** Shows [text] in the chatbox as a game message. */
     fun message(text: String) {
