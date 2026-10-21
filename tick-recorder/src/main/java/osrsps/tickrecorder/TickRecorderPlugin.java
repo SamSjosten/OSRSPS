@@ -10,8 +10,10 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import javax.inject.Inject;
@@ -104,6 +106,10 @@ import org.slf4j.LoggerFactory;
 public class TickRecorderPlugin extends Plugin
 {
 	static final int FORMAT_VERSION = 2;
+	/** Which build of the recorder wrote a file; bumped with every change to what is written. */
+	static final String RECORDER_VERSION = "0.2.0";
+	/** A handler that keeps throwing gets this many error lines per recording; later ones are only counted. */
+	static final int ERROR_LINES_PER_HANDLER = 5;
 	private static final Logger log = LoggerFactory.getLogger(TickRecorderPlugin.class);
 
 	private static final DateTimeFormatter FILE_TIME =
@@ -145,6 +151,8 @@ public class TickRecorderPlugin extends Plugin
 	private boolean sceneLoading;
 	private final Set<Projectile> seenProjectiles = Collections.newSetFromMap(new WeakHashMap<>());
 	private Set<Integer> npcsInRange = new HashSet<>();
+	/** Exceptions caught per handler, by name, for this recording. */
+	private final Map<String, Integer> errors = new HashMap<>();
 
 	private final HotkeyListener hotkeyListener = new HotkeyListener(() -> config.toggleHotkey())
 	{
@@ -203,44 +211,58 @@ public class TickRecorderPlugin extends Plugin
 	@Subscribe
 	public void onClientShutdown(ClientShutdown event)
 	{
-		RecordingWriter w = writer;
-		if (recording && w != null)
+		try
 		{
-			emit(stopLine("clientExit"));
-			recording = false;
-			event.waitFor(w.close());
+			RecordingWriter w = writer;
+			if (recording && w != null)
+			{
+				emit(stopLine("clientExit"));
+				recording = false;
+				event.waitFor(w.close());
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onClientShutdown", e);
 		}
 	}
 
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event)
 	{
-		if (!TickRecorderConfig.GROUP.equals(event.getGroup()))
+		try
 		{
-			return;
+			if (!TickRecorderConfig.GROUP.equals(event.getGroup()))
+			{
+				return;
+			}
+			if (!TickRecorderConfig.RECORDING.equals(event.getKey()))
+			{
+				if (recording)
+				{
+					JsonObject line = line("config");
+					line.addProperty("key", event.getKey());
+					line.addProperty("value", event.getNewValue());
+					emit(line);
+				}
+				return;
+			}
+			clientThread.invokeLater(() ->
+			{
+				if (config.recording() && !recording)
+				{
+					startRecording();
+				}
+				else if (!config.recording() && recording)
+				{
+					stopRecording();
+				}
+			});
 		}
-		if (!TickRecorderConfig.RECORDING.equals(event.getKey()))
+		catch (RuntimeException e)
 		{
-			if (recording)
-			{
-				JsonObject line = line("config");
-				line.addProperty("key", event.getKey());
-				line.addProperty("value", event.getNewValue());
-				emit(line);
-			}
-			return;
+			error("onConfigChanged", e);
 		}
-		clientThread.invokeLater(() ->
-		{
-			if (config.recording() && !recording)
-			{
-				startRecording();
-			}
-			else if (!config.recording() && recording)
-			{
-				stopRecording();
-			}
-		});
 	}
 
 	private void startRecording()
@@ -260,12 +282,14 @@ public class TickRecorderPlugin extends Plugin
 		chat("Tick Recorder: recording to " + folder.join(name + ".jsonl"));
 		w.open(name);
 		tick = 0;
+		errors.clear();
 		seenProjectiles.clear();
 		npcsInRange = new HashSet<>();
 		recording = true;
 
 		JsonObject header = line("start");
 		header.addProperty("format", FORMAT_VERSION);
+		header.addProperty("recorder", RECORDER_VERSION);
 		header.addProperty("runelite", RuneLiteProperties.getVersion());
 		header.addProperty("revision", client.getRevision());
 		header.addProperty("time", Instant.now().toString());
@@ -422,77 +446,84 @@ public class TickRecorderPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		sceneLoading = false;
-		if (!recording)
+		try
 		{
-			return;
-		}
-		RecordingWriter w = writer;
-		String failure = w == null ? null : w.takeFailure();
-		if (failure != null)
-		{
-			recording = false;
-			configManager.setConfiguration(TickRecorderConfig.GROUP, TickRecorderConfig.RECORDING, false);
-			chat("Tick Recorder stopped: " + failure);
-			return;
-		}
-		Player self = client.getLocalPlayer();
-		if (self == null)
-		{
-			return;
-		}
-
-		Set<Integer> inRange = new HashSet<>();
-		JsonArray npcs = new JsonArray();
-		for (NPC npc : worldView().npcs())
-		{
-			if (!nearby(npc))
+			sceneLoading = false;
+			if (!recording)
 			{
-				continue;
+				return;
 			}
-			inRange.add(npc.getIndex());
-			if (!npcsInRange.contains(npc.getIndex()))
+			RecordingWriter w = writer;
+			String failure = w == null ? null : w.takeFailure();
+			if (failure != null)
 			{
-				emit(npcLine("npcSeen", npc));
+				recording = false;
+				configManager.setConfiguration(TickRecorderConfig.GROUP, TickRecorderConfig.RECORDING, false);
+				chat("Tick Recorder stopped: " + failure);
+				return;
 			}
-			JsonObject state = actorState(npc);
-			state.addProperty("size", size(npc));
-			npcs.add(state);
-		}
-		npcsInRange = inRange;
-
-		JsonObject snapshot = line("tick");
-		snapshot.addProperty("clientTick", client.getTickCount());
-		snapshot.addProperty("ms", System.currentTimeMillis());
-		JsonObject selfState = actorState(self);
-		selfState.addProperty("energy", client.getEnergy());
-		selfState.addProperty("weight", client.getWeight());
-		LocalPoint destination = client.getLocalDestinationLocation();
-		if (destination != null)
-		{
-			selfState.add("destination", location(WorldPoint.fromLocal(client, destination)));
-		}
-		snapshot.add("self", selfState);
-		snapshot.add("npcs", npcs);
-
-		if (config.otherPlayers())
-		{
-			JsonArray players = new JsonArray();
-			for (Player player : worldView().players())
+			Player self = client.getLocalPlayer();
+			if (self == null)
 			{
-				if (player != self && nearby(player))
+				return;
+			}
+
+			Set<Integer> inRange = new HashSet<>();
+			JsonArray npcs = new JsonArray();
+			for (NPC npc : worldView().npcs())
+			{
+				if (!nearby(npc))
 				{
-					players.add(actorState(player));
+					continue;
 				}
+				inRange.add(npc.getIndex());
+				if (!npcsInRange.contains(npc.getIndex()))
+				{
+					emit(npcLine("npcSeen", npc));
+				}
+				JsonObject state = actorState(npc);
+				state.addProperty("size", size(npc));
+				npcs.add(state);
 			}
-			snapshot.add("players", players);
-		}
+			npcsInRange = inRange;
 
-		tick++;
-		emit(snapshot);
-		if (w != null)
+			JsonObject snapshot = line("tick");
+			snapshot.addProperty("clientTick", client.getTickCount());
+			snapshot.addProperty("ms", System.currentTimeMillis());
+			JsonObject selfState = actorState(self);
+			selfState.addProperty("energy", client.getEnergy());
+			selfState.addProperty("weight", client.getWeight());
+			LocalPoint destination = client.getLocalDestinationLocation();
+			if (destination != null)
+			{
+				selfState.add("destination", location(WorldPoint.fromLocal(client, destination)));
+			}
+			snapshot.add("self", selfState);
+			snapshot.add("npcs", npcs);
+
+			if (config.otherPlayers())
+			{
+				JsonArray players = new JsonArray();
+				for (Player player : worldView().players())
+				{
+					if (player != self && nearby(player))
+					{
+						players.add(actorState(player));
+					}
+				}
+				snapshot.add("players", players);
+			}
+
+			tick++;
+			emit(snapshot);
+			if (w != null)
+			{
+				w.flush();
+			}
+		}
+		catch (RuntimeException e)
 		{
-			w.flush();
+			error("onGameTick", e);
 		}
 	}
 
@@ -500,45 +531,52 @@ public class TickRecorderPlugin extends Plugin
 	@Subscribe
 	public void onClientTick(ClientTick event)
 	{
-		if (!recording)
+		try
 		{
-			return;
+			if (!recording)
+			{
+				return;
+			}
+			for (Projectile projectile : client.getProjectiles())
+			{
+				if (!seenProjectiles.add(projectile))
+				{
+					continue;
+				}
+				Actor source = projectile.getSourceActor();
+				Actor target = projectile.getTargetActor();
+				if (isOtherPlayer(source) && !config.otherPlayers())
+				{
+					continue;
+				}
+				WorldPoint from = projectile.getSourcePoint();
+				WorldPoint to = projectile.getTargetPoint();
+				boolean relevant = (from != null && inRadius(from)) || (to != null && inRadius(to))
+					|| target == client.getLocalPlayer();
+				if (!relevant)
+				{
+					continue;
+				}
+				JsonObject line = line("projectile");
+				line.addProperty("id", projectile.getId());
+				line.add("from", location(from));
+				line.addProperty("sourceLevel", projectile.getSourceLevel());
+				addActor(line, "source", source);
+				line.add("to", location(to));
+				line.addProperty("targetLevel", projectile.getTargetLevel());
+				addActor(line, "target", target);
+				line.addProperty("startCycle", projectile.getStartCycle());
+				line.addProperty("endCycle", projectile.getEndCycle());
+				line.addProperty("startHeight", projectile.getStartHeight());
+				line.addProperty("endHeight", projectile.getEndHeight());
+				line.addProperty("slope", projectile.getSlope());
+				line.addProperty("startPos", projectile.getStartPos());
+				emit(line);
+			}
 		}
-		for (Projectile projectile : client.getProjectiles())
+		catch (RuntimeException e)
 		{
-			if (!seenProjectiles.add(projectile))
-			{
-				continue;
-			}
-			Actor source = projectile.getSourceActor();
-			Actor target = projectile.getTargetActor();
-			if (isOtherPlayer(source) && !config.otherPlayers())
-			{
-				continue;
-			}
-			WorldPoint from = projectile.getSourcePoint();
-			WorldPoint to = projectile.getTargetPoint();
-			boolean relevant = (from != null && inRadius(from)) || (to != null && inRadius(to))
-				|| target == client.getLocalPlayer();
-			if (!relevant)
-			{
-				continue;
-			}
-			JsonObject line = line("projectile");
-			line.addProperty("id", projectile.getId());
-			line.add("from", location(from));
-			line.addProperty("sourceLevel", projectile.getSourceLevel());
-			addActor(line, "source", source);
-			line.add("to", location(to));
-			line.addProperty("targetLevel", projectile.getTargetLevel());
-			addActor(line, "target", target);
-			line.addProperty("startCycle", projectile.getStartCycle());
-			line.addProperty("endCycle", projectile.getEndCycle());
-			line.addProperty("startHeight", projectile.getStartHeight());
-			line.addProperty("endHeight", projectile.getEndHeight());
-			line.addProperty("slope", projectile.getSlope());
-			line.addProperty("startPos", projectile.getStartPos());
-			emit(line);
+			error("onClientTick", e);
 		}
 	}
 
@@ -547,95 +585,151 @@ public class TickRecorderPlugin extends Plugin
 	@Subscribe
 	public void onAnimationChanged(AnimationChanged event)
 	{
-		Actor actor = event.getActor();
-		if (wanted(actor))
+		try
 		{
-			JsonObject line = actorLine("anim", actor);
-			line.addProperty("anim", actor.getAnimation());
-			line.addProperty("frame", actor.getAnimationFrame());
-			emit(line);
+			Actor actor = event.getActor();
+			if (wanted(actor))
+			{
+				JsonObject line = actorLine("anim", actor);
+				line.addProperty("anim", actor.getAnimation());
+				line.addProperty("frame", actor.getAnimationFrame());
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onAnimationChanged", e);
 		}
 	}
 
 	@Subscribe
 	public void onGraphicChanged(GraphicChanged event)
 	{
-		Actor actor = event.getActor();
-		if (wanted(actor))
+		try
 		{
-			JsonObject line = actorLine("spotanims", actor);
-			line.add("spotanims", spotAnims(actor));
-			emit(line);
+			Actor actor = event.getActor();
+			if (wanted(actor))
+			{
+				JsonObject line = actorLine("spotanims", actor);
+				line.add("spotanims", spotAnims(actor));
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onGraphicChanged", e);
 		}
 	}
 
 	@Subscribe
 	public void onHitsplatApplied(HitsplatApplied event)
 	{
-		Actor actor = event.getActor();
-		if (wanted(actor))
+		try
 		{
-			Hitsplat hitsplat = event.getHitsplat();
-			JsonObject line = actorLine("hitsplat", actor);
-			line.addProperty("type", hitsplat.getHitsplatType());
-			line.addProperty("amount", hitsplat.getAmount());
-			line.addProperty("mine", hitsplat.isMine());
-			line.addProperty("disappearsCycle", hitsplat.getDisappearsOnGameCycle());
-			emit(line);
+			Actor actor = event.getActor();
+			if (wanted(actor))
+			{
+				Hitsplat hitsplat = event.getHitsplat();
+				JsonObject line = actorLine("hitsplat", actor);
+				line.addProperty("type", hitsplat.getHitsplatType());
+				line.addProperty("amount", hitsplat.getAmount());
+				line.addProperty("mine", hitsplat.isMine());
+				line.addProperty("disappearsCycle", hitsplat.getDisappearsOnGameCycle());
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onHitsplatApplied", e);
 		}
 	}
 
 	@Subscribe
 	public void onInteractingChanged(InteractingChanged event)
 	{
-		Actor source = event.getSource();
-		if (wanted(source))
+		try
 		{
-			JsonObject line = actorLine("interact", source);
-			addActor(line, "target", event.getTarget());
-			emit(line);
+			Actor source = event.getSource();
+			if (wanted(source))
+			{
+				JsonObject line = actorLine("interact", source);
+				addActor(line, "target", event.getTarget());
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onInteractingChanged", e);
 		}
 	}
 
 	@Subscribe
 	public void onOverheadTextChanged(OverheadTextChanged event)
 	{
-		// NPC shouts only; other players' chat is never recorded.
-		if (event.getActor() instanceof NPC && wanted(event.getActor()))
+		try
 		{
-			JsonObject line = actorLine("say", event.getActor());
-			line.addProperty("text", scrub(event.getOverheadText()));
-			emit(line);
+			// NPC shouts only; other players' chat is never recorded.
+			if (event.getActor() instanceof NPC && wanted(event.getActor()))
+			{
+				JsonObject line = actorLine("say", event.getActor());
+				line.addProperty("text", scrub(event.getOverheadText()));
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onOverheadTextChanged", e);
 		}
 	}
 
 	@Subscribe
 	public void onNpcSpawned(NpcSpawned event)
 	{
-		if (wanted(event.getNpc()))
+		try
 		{
-			emit(npcLine("npcSpawn", event.getNpc()));
+			if (wanted(event.getNpc()))
+			{
+				emit(npcLine("npcSpawn", event.getNpc()));
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onNpcSpawned", e);
 		}
 	}
 
 	@Subscribe
 	public void onNpcDespawned(NpcDespawned event)
 	{
-		NPC npc = event.getNpc();
-		if (recording && npcsInRange.contains(npc.getIndex()))
+		try
 		{
-			emit(npcLine("npcDespawn", npc));
+			NPC npc = event.getNpc();
+			if (recording && npcsInRange.contains(npc.getIndex()))
+			{
+				emit(npcLine("npcDespawn", npc));
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onNpcDespawned", e);
 		}
 	}
 
 	@Subscribe
 	public void onNpcChanged(NpcChanged event)
 	{
-		if (wanted(event.getNpc()))
+		try
 		{
-			JsonObject line = npcLine("npcChange", event.getNpc());
-			line.addProperty("oldId", event.getOld().getId());
-			emit(line);
+			if (wanted(event.getNpc()))
+			{
+				JsonObject line = npcLine("npcChange", event.getNpc());
+				line.addProperty("oldId", event.getOld().getId());
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onNpcChanged", e);
 		}
 	}
 
@@ -644,69 +738,132 @@ public class TickRecorderPlugin extends Plugin
 	@Subscribe
 	public void onGraphicsObjectCreated(GraphicsObjectCreated event)
 	{
-		GraphicsObject object = event.getGraphicsObject();
-		LocalPoint point = object.getLocation();
-		if (!recording || point == null)
+		try
 		{
-			return;
+			GraphicsObject object = event.getGraphicsObject();
+			LocalPoint point = object.getLocation();
+			if (!recording || point == null)
+			{
+				return;
+			}
+			WorldPoint at = WorldPoint.fromLocal(worldView(), point.getX(), point.getY(), object.getLevel());
+			if (inRadius(at))
+			{
+				JsonObject line = line("spotanim");
+				line.addProperty("id", object.getId());
+				line.add("at", location(at));
+				line.addProperty("startCycle", object.getStartCycle());
+				emit(line);
+			}
 		}
-		WorldPoint at = WorldPoint.fromLocal(worldView(), point.getX(), point.getY(), object.getLevel());
-		if (inRadius(at))
+		catch (RuntimeException e)
 		{
-			JsonObject line = line("spotanim");
-			line.addProperty("id", object.getId());
-			line.add("at", location(at));
-			line.addProperty("startCycle", object.getStartCycle());
-			emit(line);
+			error("onGraphicsObjectCreated", e);
 		}
 	}
 
 	@Subscribe
 	public void onGameObjectSpawned(GameObjectSpawned event)
 	{
-		object("objectSpawn", event.getGameObject());
+		try
+		{
+			object("objectSpawn", event.getGameObject());
+		}
+		catch (RuntimeException e)
+		{
+			error("onGameObjectSpawned", e);
+		}
 	}
 
 	@Subscribe
 	public void onGameObjectDespawned(GameObjectDespawned event)
 	{
-		object("objectDespawn", event.getGameObject());
+		try
+		{
+			object("objectDespawn", event.getGameObject());
+		}
+		catch (RuntimeException e)
+		{
+			error("onGameObjectDespawned", e);
+		}
 	}
 
 	@Subscribe
 	public void onWallObjectSpawned(WallObjectSpawned event)
 	{
-		object("objectSpawn", event.getWallObject());
+		try
+		{
+			object("objectSpawn", event.getWallObject());
+		}
+		catch (RuntimeException e)
+		{
+			error("onWallObjectSpawned", e);
+		}
 	}
 
 	@Subscribe
 	public void onWallObjectDespawned(WallObjectDespawned event)
 	{
-		object("objectDespawn", event.getWallObject());
+		try
+		{
+			object("objectDespawn", event.getWallObject());
+		}
+		catch (RuntimeException e)
+		{
+			error("onWallObjectDespawned", e);
+		}
 	}
 
 	@Subscribe
 	public void onGroundObjectSpawned(GroundObjectSpawned event)
 	{
-		object("objectSpawn", event.getGroundObject());
+		try
+		{
+			object("objectSpawn", event.getGroundObject());
+		}
+		catch (RuntimeException e)
+		{
+			error("onGroundObjectSpawned", e);
+		}
 	}
 
 	@Subscribe
 	public void onGroundObjectDespawned(GroundObjectDespawned event)
 	{
-		object("objectDespawn", event.getGroundObject());
+		try
+		{
+			object("objectDespawn", event.getGroundObject());
+		}
+		catch (RuntimeException e)
+		{
+			error("onGroundObjectDespawned", e);
+		}
 	}
 
 	@Subscribe
 	public void onDecorativeObjectSpawned(DecorativeObjectSpawned event)
 	{
-		object("objectSpawn", event.getDecorativeObject());
+		try
+		{
+			object("objectSpawn", event.getDecorativeObject());
+		}
+		catch (RuntimeException e)
+		{
+			error("onDecorativeObjectSpawned", e);
+		}
 	}
 
 	@Subscribe
 	public void onDecorativeObjectDespawned(DecorativeObjectDespawned event)
 	{
-		object("objectDespawn", event.getDecorativeObject());
+		try
+		{
+			object("objectDespawn", event.getDecorativeObject());
+		}
+		catch (RuntimeException e)
+		{
+			error("onDecorativeObjectDespawned", e);
+		}
 	}
 
 	private void object(String type, TileObject object)
@@ -720,13 +877,27 @@ public class TickRecorderPlugin extends Plugin
 	@Subscribe
 	public void onItemSpawned(ItemSpawned event)
 	{
-		groundItem("groundItem", event.getTile(), event.getItem());
+		try
+		{
+			groundItem("groundItem", event.getTile(), event.getItem());
+		}
+		catch (RuntimeException e)
+		{
+			error("onItemSpawned", e);
+		}
 	}
 
 	@Subscribe
 	public void onItemDespawned(ItemDespawned event)
 	{
-		groundItem("groundItemGone", event.getTile(), event.getItem());
+		try
+		{
+			groundItem("groundItemGone", event.getTile(), event.getItem());
+		}
+		catch (RuntimeException e)
+		{
+			error("onItemDespawned", e);
+		}
 	}
 
 	private void groundItem(String type, Tile tile, TileItem item)
@@ -742,174 +913,251 @@ public class TickRecorderPlugin extends Plugin
 	@Subscribe
 	public void onChatMessage(ChatMessage event)
 	{
-		ChatMessageType type = event.getType();
-		// Text from the game itself only, never chat typed by players.
-		if (recording && (type == ChatMessageType.GAMEMESSAGE || type == ChatMessageType.SPAM
-			|| type == ChatMessageType.ENGINE || type == ChatMessageType.MESBOX || type == ChatMessageType.DIALOG))
+		try
 		{
-			JsonObject line = line("message");
-			line.addProperty("type", type.name());
-			line.addProperty("text", scrub(event.getMessage()));
-			emit(line);
+			ChatMessageType type = event.getType();
+			// Text from the game itself only, never chat typed by players.
+			if (recording && (type == ChatMessageType.GAMEMESSAGE || type == ChatMessageType.SPAM
+				|| type == ChatMessageType.ENGINE || type == ChatMessageType.MESBOX || type == ChatMessageType.DIALOG))
+			{
+				JsonObject line = line("message");
+				line.addProperty("type", type.name());
+				line.addProperty("text", scrub(event.getMessage()));
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onChatMessage", e);
 		}
 	}
 
 	@Subscribe
 	public void onStatChanged(StatChanged event)
 	{
-		if (recording)
+		try
 		{
-			JsonObject line = line("stat");
-			line.addProperty("skill", event.getSkill().getName());
-			line.addProperty("xp", event.getXp());
-			line.addProperty("level", event.getLevel());
-			line.addProperty("boosted", event.getBoostedLevel());
-			emit(line);
+			if (recording)
+			{
+				JsonObject line = line("stat");
+				line.addProperty("skill", event.getSkill().getName());
+				line.addProperty("xp", event.getXp());
+				line.addProperty("level", event.getLevel());
+				line.addProperty("boosted", event.getBoostedLevel());
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onStatChanged", e);
 		}
 	}
 
 	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
-		if (recording && (event.getContainerId() & OTHER_PARTY_CONTAINER) == 0)
+		try
 		{
-			emit(itemsLine(event.getContainerId(), event.getItemContainer()));
+			if (recording && (event.getContainerId() & OTHER_PARTY_CONTAINER) == 0)
+			{
+				emit(itemsLine(event.getContainerId(), event.getItemContainer()));
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onItemContainerChanged", e);
 		}
 	}
 
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{
-		if (recording && config.varbits())
+		try
 		{
-			JsonObject line = line("var");
-			line.addProperty("varp", event.getVarpId());
-			line.addProperty("varbit", event.getVarbitId());
-			line.addProperty("value", event.getVarbitId() == -1 ? event.getLongValue() : event.getValue());
-			emit(line);
+			if (recording && config.varbits())
+			{
+				JsonObject line = line("var");
+				line.addProperty("varp", event.getVarpId());
+				line.addProperty("varbit", event.getVarbitId());
+				line.addProperty("value", event.getVarbitId() == -1 ? event.getLongValue() : event.getValue());
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onVarbitChanged", e);
 		}
 	}
 
 	@Subscribe
 	public void onMenuOptionClicked(MenuOptionClicked event)
 	{
-		if (!recording || !config.menuClicks())
+		try
 		{
-			return;
-		}
-		MenuEntry entry = event.getMenuEntry();
-		boolean onPlayer = entry.getPlayer() != null || event.getMenuAction().name().contains("PLAYER");
-		JsonObject line = line("click");
-		line.addProperty("option", event.getMenuOption());
-		line.addProperty("action", event.getMenuAction().name());
-		line.addProperty("param0", event.getParam0());
-		line.addProperty("param1", event.getParam1());
-		line.addProperty("consumed", event.isConsumed());
-		if (onPlayer)
-		{
-			// The target and identifier name or index another player.
-			if (config.otherPlayers() && entry.getPlayer() != null)
+			if (!recording || !config.menuClicks())
 			{
-				line.add("player", actorRef(entry.getPlayer()));
+				return;
 			}
-		}
-		else
-		{
-			line.addProperty("target", scrub(Redactor.removeTags(event.getMenuTarget())));
-			line.addProperty("id", event.getId());
-			if (entry.getNpc() != null)
+			MenuEntry entry = event.getMenuEntry();
+			boolean onPlayer = entry.getPlayer() != null || event.getMenuAction().name().contains("PLAYER");
+			JsonObject line = line("click");
+			line.addProperty("option", event.getMenuOption());
+			line.addProperty("action", event.getMenuAction().name());
+			line.addProperty("param0", event.getParam0());
+			line.addProperty("param1", event.getParam1());
+			line.addProperty("consumed", event.isConsumed());
+			if (onPlayer)
 			{
-				line.add("npc", actorRef(entry.getNpc()));
+				// The target and identifier name or index another player.
+				if (config.otherPlayers() && entry.getPlayer() != null)
+				{
+					line.add("player", actorRef(entry.getPlayer()));
+				}
 			}
+			else
+			{
+				line.addProperty("target", scrub(Redactor.removeTags(event.getMenuTarget())));
+				line.addProperty("id", event.getId());
+				if (entry.getNpc() != null)
+				{
+					line.add("npc", actorRef(entry.getNpc()));
+				}
+			}
+			emit(line);
 		}
-		emit(line);
+		catch (RuntimeException e)
+		{
+			error("onMenuOptionClicked", e);
+		}
 	}
 
 	@Subscribe
 	public void onWidgetLoaded(WidgetLoaded event)
 	{
-		if (recording)
+		try
 		{
-			JsonObject line = line("widgetOpen");
-			line.addProperty("group", event.getGroupId());
-			emit(line);
+			if (recording)
+			{
+				JsonObject line = line("widgetOpen");
+				line.addProperty("group", event.getGroupId());
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onWidgetLoaded", e);
 		}
 	}
 
 	@Subscribe
 	public void onWidgetClosed(WidgetClosed event)
 	{
-		if (recording)
+		try
 		{
-			JsonObject line = line("widgetClose");
-			line.addProperty("group", event.getGroupId());
-			emit(line);
+			if (recording)
+			{
+				JsonObject line = line("widgetClose");
+				line.addProperty("group", event.getGroupId());
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onWidgetClosed", e);
 		}
 	}
 
 	@Subscribe
 	public void onSoundEffectPlayed(SoundEffectPlayed event)
 	{
-		if (recording && config.sounds() && !(isOtherPlayer(event.getSource()) && !config.otherPlayers()))
+		try
 		{
-			JsonObject line = line("sound");
-			line.addProperty("id", event.getSoundId());
-			line.addProperty("delay", event.getDelay());
-			addActor(line, "source", event.getSource());
-			emit(line);
+			if (recording && config.sounds() && !(isOtherPlayer(event.getSource()) && !config.otherPlayers()))
+			{
+				JsonObject line = line("sound");
+				line.addProperty("id", event.getSoundId());
+				line.addProperty("delay", event.getDelay());
+				addActor(line, "source", event.getSource());
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onSoundEffectPlayed", e);
 		}
 	}
 
 	@Subscribe
 	public void onAreaSoundEffectPlayed(AreaSoundEffectPlayed event)
 	{
-		if (!recording || !config.sounds() || (isOtherPlayer(event.getSource()) && !config.otherPlayers()))
+		try
 		{
-			return;
+			if (!recording || !config.sounds() || (isOtherPlayer(event.getSource()) && !config.otherPlayers()))
+			{
+				return;
+			}
+			WorldPoint at = WorldPoint.fromScene(worldView(), event.getSceneX(), event.getSceneY(), worldView().getPlane());
+			if (inRadius(at))
+			{
+				JsonObject line = line("areaSound");
+				line.addProperty("id", event.getSoundId());
+				line.addProperty("delay", event.getDelay());
+				line.addProperty("range", event.getRange());
+				line.add("at", location(at));
+				addActor(line, "source", event.getSource());
+				emit(line);
+			}
 		}
-		WorldPoint at = WorldPoint.fromScene(worldView(), event.getSceneX(), event.getSceneY(), worldView().getPlane());
-		if (inRadius(at))
+		catch (RuntimeException e)
 		{
-			JsonObject line = line("areaSound");
-			line.addProperty("id", event.getSoundId());
-			line.addProperty("delay", event.getDelay());
-			line.addProperty("range", event.getRange());
-			line.add("at", location(at));
-			addActor(line, "source", event.getSource());
-			emit(line);
+			error("onAreaSoundEffectPlayed", e);
 		}
 	}
 
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged event)
 	{
-		GameState state = event.getGameState();
-		if (state == GameState.LOADING)
+		try
 		{
-			sceneLoading = true;
+			GameState state = event.getGameState();
+			if (state == GameState.LOADING)
+			{
+				sceneLoading = true;
+			}
+			if (recording)
+			{
+				JsonObject line = line("gameState");
+				line.addProperty("state", state.name());
+				line.addProperty("ms", System.currentTimeMillis());
+				emit(line);
+			}
+			if (state == GameState.LOGIN_SCREEN || state == GameState.HOPPING)
+			{
+				seenProjectiles.clear();
+				npcsInRange = new HashSet<>();
+			}
 		}
-		if (recording)
+		catch (RuntimeException e)
 		{
-			JsonObject line = line("gameState");
-			line.addProperty("state", state.name());
-			line.addProperty("ms", System.currentTimeMillis());
-			emit(line);
-		}
-		if (state == GameState.LOGIN_SCREEN || state == GameState.HOPPING)
-		{
-			seenProjectiles.clear();
-			npcsInRange = new HashSet<>();
+			error("onGameStateChanged", e);
 		}
 	}
 
 	@Subscribe
 	public void onWorldChanged(WorldChanged event)
 	{
-		if (recording)
+		try
 		{
-			JsonObject line = line("world");
-			addWorld(line);
-			emit(line);
+			if (recording)
+			{
+				JsonObject line = line("world");
+				addWorld(line);
+				emit(line);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			error("onWorldChanged", e);
 		}
 	}
 
@@ -1220,6 +1468,28 @@ public class TickRecorderPlugin extends Plugin
 		if (w != null)
 		{
 			w.write(json.toJson(line));
+		}
+	}
+
+	/**
+	 * Reports a handler that threw. RuneLite only logs such exceptions, so without this a reader could not
+	 * tell a quiet tick from a broken one. The first few per handler become error lines; the rest are counted.
+	 */
+	private void error(String where, RuntimeException e)
+	{
+		int count = errors.merge(where, 1, Integer::sum);
+		if (count > ERROR_LINES_PER_HANDLER)
+		{
+			return;
+		}
+		log.warn("Tick Recorder: {} failed", where, e);
+		if (recording)
+		{
+			JsonObject line = line("error");
+			line.addProperty("where", where);
+			line.addProperty("error", e.getClass().getSimpleName());
+			line.addProperty("count", count);
+			emit(line);
 		}
 	}
 
