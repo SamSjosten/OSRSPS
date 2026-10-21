@@ -17,6 +17,8 @@ import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
+import net.rsprot.protocol.game.outgoing.sound.MidiJingle
+import net.rsprot.protocol.game.outgoing.sound.SynthSound
 import net.rsprot.protocol.game.outgoing.varp.VarpLarge
 import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.loginprot.incoming.util.AuthenticationType
@@ -26,6 +28,7 @@ import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
+import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
@@ -62,6 +65,8 @@ class World(
     /** Where players are saved on logout and every [AUTOSAVE_CYCLES]. */
     private val saves: SaveStore = MemorySaveStore(),
     val objTypes: ObjTypes = ObjTypes.NONE,
+    /** The animation, spotanim, sound and jingle ids the dev commands accept. */
+    val effectIds: EffectIds = EffectIds.UNKNOWN,
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -89,6 +94,7 @@ class World(
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World)
+        registerEffectCommands(this@World)
         registerItemCommands(this@World)
     }
 
@@ -229,6 +235,7 @@ class World(
             if (player == null) continue
             sendVars(player)
             sendStats(player)
+            sendEffects(player)
             inventoryTab.flush(player)
         }
         network.infoProtocols.update()
@@ -637,6 +644,22 @@ class World(
             player.infos.playerInfo.avatar.extendedInfo.setCombatLevel(combatLevel)
             player.sentCombatLevel = combatLevel
         }
+    }
+
+    /**
+     * Sends the animation, spotanims, sound effects and jingle set on [player] this cycle: the first two through player
+     * info for everyone who sees them, the rest to the player. Also on paused cycles, so a ::anim typed while paused
+     * plays straight away.
+     */
+    private fun sendEffects(player: Player) {
+        val extendedInfo = player.infos.playerInfo.avatar.extendedInfo
+        player.effects.flush(
+            anim = { extendedInfo.setSequence(it.id, it.delay) },
+            spotanim = { slot, spot -> extendedInfo.setSpotAnim(slot, spot.id, spot.delay, spot.height) },
+            sound = { player.session.queue(SynthSound(it.id, it.loops, it.delay)) },
+            // The length is no longer read by the client (RSProt's MidiJingle), so it is left at 0.
+            jingle = { player.session.queue(MidiJingle(it)) },
+        )
     }
 
     /**
