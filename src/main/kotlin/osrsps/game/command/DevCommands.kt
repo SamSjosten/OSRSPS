@@ -27,7 +27,7 @@ fun CommandRegistry.registerDevCommands(world: World) {
     }
 
     register("tick", "::tick") {
-        reply("Tick ${world.tick}")
+        reply("Tick ${world.tick}" + if (world.clock.paused) " (paused)" else "")
     }
 
     // Opens any interface bare, with none of the setup its content would send. Good enough to see it open,
