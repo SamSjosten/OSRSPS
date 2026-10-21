@@ -158,6 +158,11 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
 | `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
 | `::cleartile` | Removes every obj from your tile; item spawns there come back as if taken |
+| `::anim id [delay]` | Plays animation (seq) `id` on you, seen by everyone nearby; `-1` stops it. `::anim 866` dances |
+| `::spotanim id [height] [delay] [slot]` | Plays spotanim `id` on you rather than on your tile; `-1` clears the slot (0 to 255) |
+| `::sound [id] [loops] [delay]` | Plays sound effect `id` to you alone (default 3813, the town crier's bell) |
+| `::areasound id [radius] [loops]` | Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
+| `::jingle id` | Plays jingle `id` to you alone |
 | `::item id\|name [count]` | Puts items in your inventory, by id, menu name or gameval name: `::item 1351`, `::item bronze axe 2`, `::item coins 10k`. Adds what fits |
 | `::empty` | Empties your inventory |
 
@@ -298,8 +303,30 @@ player alone. Zone updates are sent on paused cycles too, so `::gfx` typed while
 | `::proj` flight values (heights, timing, arc) | guessed |
 
 Check with two clients logged in near each other: `::gfx 85` on one shows the graphic on both (any spotanim id works;
-85 should be the magic splash, from memory). `::groundobj 1351` shows a bronze axe to both at once; walk the second client 40
+85 is `failedspell_impact`, the magic splash, in the 241 cache's names). `::groundobj 1351` shows a bronze axe to both at once; walk the second client 40
 tiles away and back, or log it out and in, and the axe is still there.
+
+## Animations, spotanims and sounds
+
+Content plays these on a player with `Player.anim`, `Player.spotanim`, `Player.sound` and `Player.jingle`
+(`game/PlayerEffects.kt`). They are collected during the cycle and sent at its end: the animation and spotanims in the
+player's player info, so everyone who can see them sees them, the sound effects and jingle to that player alone. Like
+vars, they also go out on paused cycles, so `::anim` typed while paused plays straight away. Sounds others hear, and
+graphics on a tile, go through `World.zones` (`::areasound`, `::gfx`). Delays are in client cycles (20 ms).
+
+The commands only take ids the cache has: seqs from config 12, spotanims from config 13, sound effects (synths) from
+index 4 and jingles from index 11 (`cache/EffectIdLoader.kt`). The 241 cache has 14,514 seqs, 4,023 spotanims, 12,163
+synths and 315 jingles.
+
+| Effects behaviour | Source |
+|-------------------|--------|
+| Animation and spotanim (with slot, height and delay) in player info, sound and jingle packets | RSProt |
+| The last animation set in a cycle is the one sent; RS2 is thought to compare seq priorities instead | guessed, seq types are not decoded yet (comes with combat) |
+| One spotanim per slot per cycle, every sound effect in order, the last jingle | guessed from the packets' shape |
+| A jingle's length is sent as 0 | RSProt: the client no longer reads it |
+
+Check: `::anim 866` and you dance; a second client nearby sees it too. `::sound` plays a bell. `::spotanim 85` shows the
+splash on you and follows you as you walk, where `::gfx 85` stays on the tile.
 
 ## Chat
 
@@ -318,8 +345,8 @@ Anything typed without `::` is public chat: it shows over your head and in the c
 
 Each player is saved to `data/saves/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/saves/`, which is not backed up).
 Names ignore case and treat spaces as underscores, so `Test` and `test` share a save. A save holds position, run energy,
-every varp that isn't 0 (the run orb and the resizable layout among them) and each skill's XP and current level; items
-join it with the inventory. Code is in `src/main/kotlin/osrsps/game/PlayerSave.kt` and `SaveStore.kt`.
+every varp that isn't 0 (the run orb and the resizable layout among them), each skill's XP and current level, and the
+inventory's slots; equipment and the bank join it when they exist. Code is in `src/main/kotlin/osrsps/game/PlayerSave.kt` and `SaveStore.kt`.
 
 | Rule | Source |
 |------|--------|

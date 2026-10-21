@@ -28,6 +28,8 @@ class PlayerSaveTest {
         player.skills.setLevel(Skill.ATTACK, 99)
         player.skills.addTenths(Skill.COOKING, 175)
         player.skills.setCurrentLevel(Skill.STRENGTH, 5)
+        player.inventory[0] = InvObj(1351, 1)
+        player.inventory[27] = InvObj(995, 1_000_000)
         assertTrue(world.save(player))
 
         val loaded = world.loadPlayer(2, "test")
@@ -41,6 +43,15 @@ class PlayerSaveTest {
         assertEquals(5, loaded.skills.currentLevel(Skill.STRENGTH))
         assertEquals(10, loaded.skills.currentLevel(Skill.HITPOINTS))
         assertEquals(player.skills.combatLevel, loaded.skills.combatLevel)
+        assertEquals(listOf(0 to InvObj(1351, 1), 27 to InvObj(995, 1_000_000)), loaded.inventory.contents())
+    }
+
+    @Test
+    fun `a save from before the inventory loads with an empty one`() {
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        saves.write("test", text.replace(Regex(",\\s*\"inventory\": \\[\\s*]"), ""))
+        assertTrue("inventory" !in saves.saves.getValue("test"))
+        assertTrue(world.loadPlayer(1, "test").inventory.isEmpty())
     }
 
     @Test
@@ -94,6 +105,9 @@ class PlayerSaveTest {
             good.replace("\"skills\": {}", "\"skills\": {\"dancing\": {\"xpTenths\": 0, \"currentLevel\": 1}}"),
             good.replace("\"varps\": {}", "\"varps\": {\"abc\": 1}"),
             good.replace("\"position\"", "\"place\""),
+            good.replace("\"inventory\": []", "\"inventory\": [{\"slot\": 28, \"id\": 1351, \"count\": 1}]"),
+            good.replace("\"inventory\": []", "\"inventory\": [{\"slot\": 0, \"id\": 1351, \"count\": 0}]"),
+            good.replace("\"inventory\": []", "\"inventory\": [{\"slot\": 0, \"id\": 1, \"count\": 1}, {\"slot\": 0, \"id\": 2, \"count\": 1}]"),
         )
         for (text in bad) {
             saves.write("test", text)
