@@ -15,7 +15,7 @@ public interface TickRecorderConfig extends Config
 	@ConfigItem(
 		keyName = RECORDING,
 		name = "Recording",
-		description = "Write what the client sees each tick to the tick-recorder folder in RuneLite's settings folder. A new file starts each time this is turned on.",
+		description = "Write what the client sees each tick to this plugin's folder under RuneLite's plugin-data folder. A new file starts each time this is turned on.",
 		position = 0
 	)
 	default boolean recording()
