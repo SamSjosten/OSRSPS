@@ -128,8 +128,14 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::pause` | Freezes the game once the current tick has finished |
 | `::step [n]` | While paused, runs n ticks (default 1, up to 1000), one every 600 ms, then says where it stopped |
 | `::resume` | Starts the clock again |
+| `::varp id [value]` | Shows a varp, or sets it. `::varp 173 1` turns the run orb on |
+| `::varbit id [value]` | Shows a varbit with the varp and bits it lives in, or sets it |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
+
+Varps and varbits are per player (`Player.vars`). Varbit layouts come from cache config 14 and the number of varps
+from config 16; a changed varp is sent once at the end of the cycle, with its value then, so `::varp` also shows while
+paused. The run orb is varp 173.
 
 ## Tick control
 
