@@ -111,7 +111,7 @@ public class TickRecorderPlugin extends Plugin
 {
 	static final int FORMAT_VERSION = 2;
 	/** Which build of the recorder wrote a file; bumped with every change to what is written. */
-	static final String RECORDER_VERSION = "0.2.3";
+	static final String RECORDER_VERSION = "0.2.4";
 	/** A handler that keeps throwing gets this many error lines per recording; later ones are only counted. */
 	static final int ERROR_LINES_PER_HANDLER = 5;
 	/** A health line is written every this many ticks. */
@@ -152,7 +152,13 @@ public class TickRecorderPlugin extends Plugin
 	private volatile RecordingWriter writer;
 	private volatile boolean recording;
 	/** Tick lines written so far; events carry tick + 1, the number of the tick line that follows them. */
-	private int tick;
+	private volatile int tick;
+	/** The client's cycle as of the last line built on the client thread, for the few lines built elsewhere. */
+	private volatile int cycle;
+	/** True from a login until the first game tick after it writes the baseline. */
+	private boolean baselinePending;
+	/** True while the client logs in or hops, so the LOGGED_IN that follows is a login and not a scene load. */
+	private boolean loggingIn;
 	/** True from LOADING until the first tick after it: spawns in that window are the scene being built. */
 	private boolean sceneLoading;
 	private final Set<Projectile> seenProjectiles = Collections.newSetFromMap(new WeakHashMap<>());
@@ -320,7 +326,9 @@ public class TickRecorderPlugin extends Plugin
 		addWorld(header);
 		emit(header);
 
-		if (client.getGameState() == GameState.LOGGED_IN)
+		// Logged in, the server's state is at hand now; otherwise the first game tick after the login writes it.
+		baselinePending = client.getGameState() != GameState.LOGGED_IN;
+		if (!baselinePending)
 		{
 			emitBaseline();
 		}
@@ -529,6 +537,11 @@ public class TickRecorderPlugin extends Plugin
 			if (self == null)
 			{
 				return;
+			}
+			if (baselinePending)
+			{
+				baselinePending = false;
+				emitBaseline();
 			}
 
 			Set<Integer> inRange = new HashSet<>();
@@ -1198,6 +1211,16 @@ public class TickRecorderPlugin extends Plugin
 			{
 				sceneLoading = true;
 			}
+			if (state == GameState.LOGGING_IN || state == GameState.HOPPING)
+			{
+				loggingIn = true;
+			}
+			else if (state == GameState.LOGGED_IN && loggingIn)
+			{
+				// Every scene load ends in LOGGED_IN; only the one after a login gets a fresh baseline.
+				loggingIn = false;
+				baselinePending = recording;
+			}
 			if (recording)
 			{
 				JsonObject line = line("gameState");
@@ -1242,7 +1265,12 @@ public class TickRecorderPlugin extends Plugin
 		JsonObject line = new JsonObject();
 		line.addProperty("t", type);
 		line.addProperty("tick", tick + 1);
-		line.addProperty("cycle", client.getGameCycle());
+		// Client state is read on the client thread only; config and shutdown lines reuse the last cycle seen there.
+		if (client.isClientThread())
+		{
+			cycle = client.getGameCycle();
+		}
+		line.addProperty("cycle", cycle);
 		return line;
 	}
 
