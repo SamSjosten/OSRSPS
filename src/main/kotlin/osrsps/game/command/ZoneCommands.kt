@@ -2,11 +2,10 @@ package osrsps.game.command
 
 import osrsps.game.World
 import osrsps.game.zone.Projectile
-import osrsps.game.zone.ZoneObj
 import kotlin.math.abs
 import kotlin.math.max
 
-/** Testing commands for zone updates: everyone near you sees what these make. */
+/** Testing commands for zone updates: everyone near you sees what these make. Ground objs are in GroundObjCommands. */
 fun CommandRegistry.registerZoneCommands(world: World) {
     val zones = world.zones
 
@@ -54,31 +53,10 @@ fun CommandRegistry.registerZoneCommands(world: World) {
         )
         reply("Projectile $id from ${player.x}, ${player.z} to ${player.x + dx}, ${player.z + dz}")
     }
-
-    // Lasts until ::cleartile or a restart: ground item timers come with ground items.
-    register("groundobj", "::groundobj id [count]") {
-        if (args.size !in 1..2) fail("Usage: ::groundobj id [count]")
-        val id = args[0].toIntOrNull() ?: fail("Usage: ::groundobj id [count] ('${args[0]}' is not a number)")
-        val count = args.getOrNull(1)?.let { it.toIntOrNull() ?: fail("Usage: ::groundobj id [count] ('$it' is not a number)") } ?: 1
-        if (id !in 0..MAX_OBJ_ID) fail("Obj id must be 0 to $MAX_OBJ_ID")
-        if (count < 1) fail("Count must be at least 1")
-        zones.addObj(ZoneObj(id, count, player.x, player.z, player.level))
-        reply("Put obj $id x $count on ${player.x}, ${player.z}")
-    }
-
-    register("cleartile", "::cleartile") {
-        if (args.isNotEmpty()) fail("Usage: ::cleartile")
-        val objs = zones.objsAt(player.x, player.z, player.level)
-        objs.forEach(zones::removeObj)
-        reply("Removed ${objs.size} obj${if (objs.size == 1) "" else "s"} from ${player.x}, ${player.z}")
-    }
 }
 
 /** Spotanim ids and client-cycle delays go in two bytes. */
 private const val MAX_ID = 65535
-
-/** The client keeps only the low 15 bits of an obj id when deleting it, so bigger ids couldn't be cleared again. */
-private const val MAX_OBJ_ID = 32767
 
 private const val PROJ_DEFAULT_DISTANCE = 5
 private const val PROJ_MAX_DISTANCE = 20

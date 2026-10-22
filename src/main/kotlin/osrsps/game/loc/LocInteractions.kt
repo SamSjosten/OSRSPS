@@ -2,6 +2,8 @@ package osrsps.game.loc
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
+import osrsps.game.Interaction
+import osrsps.game.Interactions
 import osrsps.game.Movement
 import osrsps.game.Player
 import osrsps.game.script.Handlers
@@ -16,18 +18,16 @@ import osrsps.map.RouteTarget
 private val logger = KotlinLogging.logger {}
 
 /** A loc option the player clicked and is walking to. */
-data class LocInteraction(val loc: ZoneLoc, val option: Int)
+class LocInteraction internal constructor(val loc: ZoneLoc, val option: Int, private val owner: LocInteractions) : Interaction {
+    override fun tryInteract(player: Player) = owner.tryInteract(player, this)
+}
 
 /**
  * Clicks on locs: walk to the loc, then run its handler.
  *
- * A click routes the player to the nearest tile that reaches the loc (see [Reach]). Each tick's movement phase then
- * tries the option before the player moves and again after, so a loc next to the player is used on the tick the click
- * is read, and one further away on the tick the player arrives. That two-check order is the RS2 world cycle as the
- * 2004Scape project reconstructed it, assumed to carry over to OSRS; task 21 checks it against recordings.
- *
- * A loc with no handler for the option says "Nothing interesting happens.", and one the route can't reach says
- * "I can't reach that!" once the player stops; both are live's messages.
+ * A click routes the player to the nearest tile that reaches the loc (see [Reach]); [Interactions] then tries the option
+ * before and after each of the player's steps. A loc with no handler for the option says "Nothing interesting
+ * happens.", live's message.
  */
 class LocInteractions(
     private val locs: Locs,
@@ -56,32 +56,14 @@ class LocInteractions(
             return
         }
         scripts.interrupt(player)
-        player.interaction = LocInteraction(loc, option)
+        player.interaction = LocInteraction(loc, option, this)
         val route = movement.request(player, target(loc), invertRun)
         // Guessed, as for a walk: with no route to walk the client's flag would stay up.
         if (route.waypoints.isEmpty()) clearFlag(player)
     }
 
-    /**
-     * Runs [player]'s part of the movement phase: their interaction, if any, around [move], which walks them one tick.
-     * A delayed player's interaction waits for the delay to end.
-     */
-    fun process(player: Player, move: () -> Unit) {
-        val interaction = player.interaction
-        if (interaction == null || player.scripts.delayed || tryInteract(player, interaction)) {
-            move()
-            return
-        }
-        move()
-        if (player.interaction !== interaction || tryInteract(player, interaction)) return
-        if (player.waypoints.isEmpty()) {
-            player.interaction = null
-            message(player, CANT_REACH)
-        }
-    }
-
     /** Uses the loc if the player has reached it. Returns true once the interaction is over, used or gone. */
-    private fun tryInteract(player: Player, interaction: LocInteraction): Boolean {
+    internal fun tryInteract(player: Player, interaction: LocInteraction): Boolean {
         val loc = interaction.loc
         if (!locs.exists(loc)) {
             // Guessed: someone else changed it (opened the door first); the player gives up and finishes their walk.
@@ -112,7 +94,6 @@ class LocInteractions(
         private fun faceLoc(player: Player, target: RouteTarget) =
             player.infos.playerInfo.avatar.extendedInfo.setFaceLoc(target.x, target.z, target.width, target.length, instant = false, walkMode = 0)
 
-        const val CANT_REACH = "I can't reach that!"
         const val NOTHING_INTERESTING = "Nothing interesting happens."
     }
 }

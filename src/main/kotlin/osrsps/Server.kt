@@ -18,6 +18,7 @@ import osrsps.game.EffectIds
 import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
 import osrsps.game.NpcTypes
+import osrsps.game.ObjSpawnFiles
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.Quests
@@ -94,6 +95,7 @@ class GameServer(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
             npcSpawns, npcExamines, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
         )
+        loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()
         world.network = network
@@ -108,6 +110,18 @@ class GameServer(
             throw e
         }
         logger.info { "Listening on port $port. RSProx modulus: ${dataDir.resolve("rsa-modulus.txt").toAbsolutePath()}" }
+    }
+
+    /** Puts every item spawn from the resources' spawn files on the ground. A file that doesn't read stops the start. */
+    private fun loadObjSpawns(objTypes: ObjTypes) {
+        var count = 0
+        for ((name, text) in ObjSpawnFiles.resources()) {
+            for (spawn in ObjSpawnFiles.parse(text, objTypes, name)) {
+                world.groundObjs.addSpawn(spawn)
+                count++
+            }
+        }
+        logger.info { "Placed $count item spawn${if (count == 1) "" else "s"}" }
     }
 
     fun stop() {

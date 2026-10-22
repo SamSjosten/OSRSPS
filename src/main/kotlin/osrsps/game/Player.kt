@@ -3,7 +3,6 @@ package osrsps.game
 import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
-import osrsps.game.loc.LocInteraction
 import osrsps.game.script.PlayerScripts
 import osrsps.game.zone.ZoneView
 import osrsps.map.Tile
@@ -74,8 +73,8 @@ class Player(
     /** Turning points of the current route, next one first. */
     val waypoints = ArrayDeque<Tile>()
 
-    /** The loc option the player is walking to use, if any. Walking elsewhere or teleporting drops it. */
-    var interaction: LocInteraction? = null
+    /** What the player is walking to use, a loc or a ground obj, if anything. Walking elsewhere or teleporting drops it. */
+    var interaction: Interaction? = null
 
     val vars = PlayerVars(varTypes)
 

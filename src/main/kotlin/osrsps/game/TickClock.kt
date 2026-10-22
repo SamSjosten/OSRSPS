@@ -7,6 +7,9 @@ package osrsps.game
  * Tick Recorder recordings before relying on same-tick ordering between players.
  */
 enum class TickPhase {
+    /** The world's own timers: ground objs turning public, disappearing and respawning. */
+    WORLD,
+
     /** Logins, disconnects, then each player's packets from the client. */
     INPUT,
 
