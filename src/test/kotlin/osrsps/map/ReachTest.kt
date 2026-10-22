@@ -94,4 +94,33 @@ class ReachTest {
         assertEquals(setOf(0 to 0, -1 to 0, 0 to 1), reachedFrom(RouteTarget.loc(3210, 3210, 7, 0, 1, 1, 0)))
         assertEquals(setOf(0 to 0, 1 to 0, -1 to 0, 0 to 1, 0 to -1), reachedFrom(RouteTarget.loc(3210, 3210, 8, 0, 1, 1, 0)))
     }
+
+    @Test
+    fun `an NPC is reached from its sides, not its corners or from under it`() {
+        assertEquals(setOf(1 to 0, -1 to 0, 0 to 1, 0 to -1), reachedFrom(RouteTarget.entity(3210, 3210, 1)))
+        // A 2x2 cow: two tiles along each side.
+        assertEquals(
+            setOf(-1 to 0, -1 to 1, 2 to 0, 2 to 1, 0 to -1, 1 to -1, 0 to 2, 1 to 2),
+            reachedFrom(RouteTarget.entity(3210, 3210, 2)),
+        )
+    }
+
+    @Test
+    fun `a wall between the player and an NPC stops it being reached from that side`() {
+        // A wall on the east edge of the tile west of the NPC.
+        walls.addLoc(LocCollisionType(), 3209, 3210, 0, LocShape.WALL_STRAIGHT, 2)
+        assertEquals(setOf(1 to 0, 0 to 1, 0 to -1), reachedFrom(RouteTarget.entity(3210, 3210, 1)))
+    }
+
+    @Test
+    fun `a big mover reaches a player along a shared side`() {
+        // A 2x2 NPC at 3208, 3210 covers x 3208-3209: beside a player at 3210, 3211, not at 3210, 3212 (its corner).
+        assertTrue(Reach.reachedEntity(map, 0, 3208, 3210, 2, 3210, 3211, 1, 1))
+        assertFalse(Reach.reachedEntity(map, 0, 3208, 3210, 2, 3210, 3212, 1, 1))
+        // Overlapping is not reaching.
+        assertFalse(Reach.reachedEntity(map, 0, 3208, 3210, 2, 3209, 3211, 1, 1))
+        // A wall along only one of the two tile pairs leaves the side open.
+        walls.addLoc(LocCollisionType(), 3209, 3210, 0, LocShape.WALL_STRAIGHT, 2)
+        assertTrue(Reach.reachedEntity(map, 0, 3208, 3210, 2, 3210, 3210, 1, 2))
+    }
 }

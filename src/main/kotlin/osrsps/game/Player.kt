@@ -3,6 +3,7 @@ package osrsps.game
 import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
+import osrsps.game.npc.Npc
 import osrsps.game.script.PlayerScripts
 import osrsps.game.zone.ZoneView
 import osrsps.map.Tile
@@ -89,8 +90,11 @@ class Player(
     /** The player this one was last told to face, so a change is sent once. See [World]'s face updates. */
     var sentFacePlayer: Player? = null
 
-    /** What the player is walking to use, a loc or a ground obj, if anything. Walking elsewhere or teleporting drops it. */
+    /** What the player is walking to use, a loc, a ground obj or an NPC, if anything. Walking elsewhere or teleporting drops it. */
     var interaction: Interaction? = null
+
+    /** The NPC the client was told this player turns to, or null. */
+    var facingNpc: Npc? = null
 
     val vars = PlayerVars(varTypes)
 

@@ -1,14 +1,17 @@
 package osrsps.game.npc
 
 import osrsps.game.GameRandom
+import osrsps.game.Player
 import osrsps.map.CollisionMap
+import osrsps.map.Reach
 import osrsps.map.Steps
 import osrsps.map.Tile
 import kotlin.math.abs
 import kotlin.math.sign
 
 /**
- * Every NPC in the world, and how they move: wandering near their spawn, walking a patrol, one tile a tick.
+ * Every NPC in the world, and how they move: wandering near their spawn, walking a patrol, or following a player, one
+ * tile a tick. An NPC busy with a player ([Npc.engagedWith]) stands still.
  *
  * From the OSRS Wiki ("Wander radius", "Pathfinding"): an NPC picks a tile inside the square of its wander radius
  * around its spawn, then walks to it, and it does so even if something has taken it outside that square. NPCs walk
@@ -53,6 +56,79 @@ class Npcs(
         npcs[npc.index] = null
     }
 
+    /**
+     * Has [npc] follow [player] until [stopFollowing]: it walks after them and stops beside them, the way an NPC
+     * chases its target in combat. It walks naively, as NPCs do (OSRS Wiki, "Pathfinding"), so a wall between them can
+     * hold it up. It faces them while it follows. Pets trail a tile behind instead; that isn't modelled.
+     */
+    fun follow(npc: Npc, player: Player) {
+        npc.following = player
+        npc.destination = null
+        // Busy with someone, it keeps facing them; release turns it to the player it follows.
+        if (npc.engagedWith == null) npc.face(player)
+    }
+
+    fun stopFollowing(npc: Npc) {
+        if (npc.following == null) return
+        npc.following = null
+        if (npc.engagedWith == null) npc.resetFace()
+    }
+
+    /** Lets go of [player] everywhere: they left the world. NPCs following or busy with them go back to what they did. */
+    fun forget(player: Player, stillBusy: (Player) -> Boolean = { true }) {
+        for (npc in all) if (npc.following === player) stopFollowing(npc)
+        leave(player, stillBusy)
+    }
+
+    /**
+     * [player] turned to something else (walked off, clicked another NPC or a loc, teleported, left): NPCs busy with
+     * them pass to their next waiting player who is [stillBusy], or go back to what they did, and they stop waiting on
+     * any NPC.
+     */
+    fun leave(player: Player, stillBusy: (Player) -> Boolean = { true }) {
+        for (npc in all) {
+            npc.waiting.remove(player)
+            if (npc.engagedWith === player) handOver(npc, npc.engagedTick, stillBusy)
+        }
+    }
+
+    /** [npc] is busy with [player], from [tick]: it stops, faces them, and doesn't wander until [release]. */
+    fun engage(npc: Npc, player: Player, tick: Long) {
+        npc.waiting.remove(player)
+        npc.engagedWith = player
+        npc.engagedTick = tick
+        npc.destination = null
+        npc.face(player)
+    }
+
+    /** [player] used an option on [npc] while it was busy with someone else; it turns to them when that one is done. */
+    fun wait(npc: Npc, player: Player) {
+        if (npc.engagedWith !== player && player !in npc.waiting) npc.waiting += player
+    }
+
+    /**
+     * [npc]'s player is done with it: the oldest waiting player who is [stillBusy] with it takes over from [tick], or,
+     * with none, it goes back to what it was doing. Guessed, as live NPCs talk to several players at once.
+     */
+    fun handOver(npc: Npc, tick: Long, stillBusy: (Player) -> Boolean = { true }) {
+        while (npc.waiting.isNotEmpty()) {
+            val next = npc.waiting.removeAt(0)
+            if (stillBusy(next)) {
+                engage(npc, next, tick)
+                return
+            }
+        }
+        release(npc)
+    }
+
+    fun release(npc: Npc) {
+        npc.waiting.clear()
+        if (npc.engagedWith == null) return
+        npc.engagedWith = null
+        val following = npc.following
+        if (following != null) npc.face(following) else npc.resetFace()
+    }
+
     /** The NPCs on [level] whose south-west tile is within [radius] tiles of [x], [z] on both axes. */
     fun near(x: Int, z: Int, level: Int, radius: Int): List<Npc> =
         all.filter { it.level == level && abs(it.x - x) <= radius && abs(it.z - z) <= radius }.toList()
@@ -61,10 +137,59 @@ class Npcs(
     fun process() {
         for (npc in npcs) {
             if (npc == null) continue
-            if (npc.spawn.patrol.isNotEmpty()) patrol(npc) else wander(npc)
+            val following = npc.following
+            when {
+                // Guessed: an NPC busy with a player doesn't move, even if it follows someone.
+                npc.engagedWith != null -> continue
+                following != null -> chase(npc, following)
+                npc.spawn.patrol.isNotEmpty() -> patrol(npc)
+                else -> wander(npc)
+            }
             step(npc)
         }
     }
+
+    /**
+     * One step after [target]. Beside them it stays put. Under them it steps out, trying west, east, south, then north
+     * (guessed order). Otherwise it steps toward them, diagonally first, never onto their tile, so from a corner it
+     * slides along to their side. Guessed: it gives up when the target is on another level or more than
+     * [FOLLOW_RANGE] tiles away.
+     */
+    private fun chase(npc: Npc, target: Player) {
+        val size = npc.type.size
+        if (target.level != npc.level || abs(target.x - npc.x) > FOLLOW_RANGE || abs(target.z - npc.z) > FOLLOW_RANGE) {
+            stopFollowing(npc)
+            return
+        }
+        if (Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, target.x, target.z, 1, 1)) return
+        val (sx, sz) = if (npc.covers(target.x, target.z)) {
+            // The side that clears the target in the fewest steps; a 3x3 or bigger NPC can need several ticks.
+            STEP_OUT.sortedBy { (dx, dz) -> stepsToClear(npc, dx, dz, target) }.firstOrNull { (dx, dz) -> canStep(npc, dx, dz) }
+                ?: return
+        } else {
+            // Toward the target from the nearest edge of the NPC, so a big NPC lines up with them.
+            val dx = if (target.x < npc.x) -1 else if (target.x >= npc.x + size) 1 else 0
+            val dz = if (target.z < npc.z) -1 else if (target.z >= npc.z + size) 1 else 0
+            sequenceOf(dx to dz, dx to 0, 0 to dz)
+                .filter { (sx, sz) -> sx != 0 || sz != 0 }
+                .firstOrNull { (sx, sz) -> !overlaps(npc.x + sx, npc.z + sz, size, target.x, target.z) && canStep(npc, sx, sz) }
+                ?: return
+        }
+        move(npc, sx, sz)
+    }
+
+    /** Steps [npc] must take in direction [dx], [dz] (one of [STEP_OUT]) until it no longer covers [target]. */
+    private fun stepsToClear(npc: Npc, dx: Int, dz: Int, target: Player): Int {
+        val size = npc.type.size
+        return when {
+            dx < 0 -> npc.x + size - target.x
+            dx > 0 -> target.x - npc.x + 1
+            dz < 0 -> npc.z + size - target.z
+            else -> target.z - npc.z + 1
+        }
+    }
+
+    private fun overlaps(x: Int, z: Int, size: Int, tileX: Int, tileZ: Int) = tileX in x until x + size && tileZ in z until z + size
 
     private fun wander(npc: Npc) {
         val range = npc.spawn.wander
@@ -103,12 +228,16 @@ class Npcs(
                 npc.destination = null
                 return
             }
-        occupy(npc, -1)
-        npc.x += sx
-        npc.z += sz
-        occupy(npc, 1)
-        npc.avatar?.walk(sx, sz)
+        move(npc, sx, sz)
         if (npc.x == target.x && npc.z == target.z) npc.destination = null
+    }
+
+    private fun move(npc: Npc, dx: Int, dz: Int) {
+        occupy(npc, -1)
+        npc.x += dx
+        npc.z += dz
+        occupy(npc, 1)
+        npc.avatar?.walk(dx, dz)
     }
 
     /** Whether [npc] can take one step of [dx], [dz]: the map allows it and no other NPC stands in the way. */
@@ -144,5 +273,10 @@ class Npcs(
 
         /** An idle wandering NPC picks a tile with a chance of 1 in this, each tick. Guessed; see [wander]. */
         const val WANDER_CHANCE = 8
+
+        /** A following NPC gives up on a target further than this on either axis. Guessed; see [chase]. */
+        const val FOLLOW_RANGE = 32
+
+        private val STEP_OUT = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)
     }
 }

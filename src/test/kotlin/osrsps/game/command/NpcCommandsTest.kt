@@ -66,4 +66,24 @@ class NpcCommandsTest {
         assertEquals(listOf("Removed Hans #1.", "No NPC #1", "The radius must be 0 to 104"), replies)
         assertNull(world.npcs[1])
     }
+
+    @Test
+    fun `follow makes an NPC follow the player, and again stops it`() {
+        run("npc hans")
+        run("follow 1")
+        val npc = world.npcs[1]!!
+        assertEquals(player, npc.following)
+        run("follow 1")
+        assertNull(npc.following)
+        run("follow 9")
+        assertEquals(
+            listOf(
+                "Spawned Hans (3105) as #1 at 3222, 3218",
+                "Hans #1 follows you. ::follow 1 again to stop.",
+                "Hans #1 stopped following you.",
+                "No NPC #9",
+            ),
+            replies,
+        )
+    }
 }

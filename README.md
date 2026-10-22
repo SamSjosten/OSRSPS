@@ -172,6 +172,7 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
 | `::npcs [radius]` | Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
+| `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
 | `::reset` | Puts you back as you were before your first `::scenario` |
 
@@ -349,6 +350,37 @@ Check: in the cow field east of the River Lum (`::tele 3253 3275`) the cows and 
 paths: start the server twice with the same `OSRSPS_SEED`, `::pause`, `::step` until `::tick` reads the same number
 (500, say) and `::npcs` lists the same tiles both times.
 
+## NPC interaction
+
+Clicking an NPC option (Talk-to and op1 to op5) or using an inventory item on an NPC turns you to the NPC and walks you
+beside it: along one of its sides, never a corner and never under it (a click from under an NPC steps you out first).
+Its handler runs once you are there, from `World.handlers.onNpc(typeId, option) { op -> ... }` or, for items,
+`World.handlers.onObjOnNpc(typeId, objId) { op -> ... }`, with `op.npc` the NPC (and `op.obj`, `op.sub` the item and its
+slot). An NPC beside you is used on the tick the click is read; if it walks off you chase it, re-routing whenever it
+moves. When the option runs, the NPC turns to you and stands still while you are busy with it (the handler waits on a
+`delay`, or a dialogue is open), then goes back to wandering. A multi-NPC uses the type your vars show.
+
+Walking, clicking something else or a teleport drops the interaction; the NPC going away ends it quietly. With no
+handler you get "Nothing interesting happens.", and an NPC you can't get to says "I can't reach that!" once you stop.
+
+`World.npcs.follow(npc, player)` has an NPC follow a player and stop beside them, naively, as NPCs walk; it faces them
+while it follows (`::follow` tries it). Pets trail a tile behind instead, which isn't modelled yet.
+
+| Behaviour | Source |
+|-----------|--------|
+| Reached from a side, not a corner or from under it; a wall on that side blocks it | the client's entity reach check as open-source route finders give it (rsmod); not checked on live |
+| Option tried before and after the player's step; re-route each tick the NPC moved | 2004Scape's RS2 world cycle, as for locs; not checked on OSRS |
+| The player turns to the NPC on the click; the NPC turns to the player when the option runs | live, from memory; that every option turns the NPC is guessed |
+| Face-entity walk mode 0 (look where you walk, turn back on stopping) | RSProt's mapping of the old face-entity block; inferred |
+| The NPC stands still while you are busy with it, then is let go a tick later | guessed |
+| A following NPC steps out from under its target west, east, south, north; gives up beyond 32 tiles | guessed |
+| An NPC can be clicked within 15 tiles | RSProt's NPC info range |
+| The two messages | live, from memory |
+
+Check: Talk-to Hans (`::tele 3222 3218`, he is in the courtyard). You walk to beside him and he turns to face you, then
+"Nothing interesting happens." until his dialogue comes with task 18. Click Talk-to while he walks away and you follow
+him. `::npcs 5`, then `::follow` his index: he walks after you and stops beside you.
+
 ## Zone updates
 
 The map is split into zones of 8x8 tiles per level, and everything other players must see happen on the ground goes
@@ -451,6 +483,7 @@ Right-clicking another player offers Follow, Trade with and Report (`game/Player
 | The follower gets a new route only once their current one is down to its last waypoint and the follow tile has moved, at the orb's speed (a ctrl-click only flips the walk to where the target was) | RSMod; keeping a route that still fits is ours |
 | The follower takes a route to that tile, so a wall doesn't stop them; RSMod steps straight at it | ours, guessed |
 | The follower faces the target (walk mode 0: they look where they walk and turn back when they stop) | RSProt docs and RSMod, inferred |
+| Clicking an NPC while following turns the player to the NPC; clicking a player option while talking to an NPC lets the NPC go | ours, as for any other click |
 | A follow stops when the follower clicks elsewhere or teleports, or the target logs out, changes level or gets more than 15 tiles away; the follower then stops where they are | the 15 is how far players see each other; when live gives up is guessed |
 | Trade with and Report stop any walk or follow and say they aren't built yet | ours, not live |
 

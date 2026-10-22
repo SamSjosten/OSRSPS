@@ -107,7 +107,7 @@ public class TickRecorderPlugin extends Plugin
 {
 	static final int FORMAT_VERSION = 2;
 	/** Which build of the recorder wrote a file; bumped with every change to what is written. */
-	static final String RECORDER_VERSION = "0.2.0";
+	static final String RECORDER_VERSION = "0.2.1";
 	/** A handler that keeps throwing gets this many error lines per recording; later ones are only counted. */
 	static final int ERROR_LINES_PER_HANDLER = 5;
 	private static final Logger log = LoggerFactory.getLogger(TickRecorderPlugin.class);
@@ -380,12 +380,22 @@ public class TickRecorderPlugin extends Plugin
 		if (config.varbits())
 		{
 			JsonObject varps = new JsonObject();
-			long[] values = client.getServerVarpsLong();
-			for (int i = 0; i < values.length; i++)
+			// The client keeps int varps and long varps in separate arrays, and a varp id
+			// lives in exactly one of them. Both arrays are null before the first login.
+			int[] ints = client.getServerVarps();
+			for (int i = 0; ints != null && i < ints.length; i++)
 			{
-				if (values[i] != 0)
+				if (ints[i] != 0)
 				{
-					varps.addProperty(Integer.toString(i), values[i]);
+					varps.addProperty(Integer.toString(i), ints[i]);
+				}
+			}
+			long[] longs = client.getServerVarpsLong();
+			for (int i = 0; longs != null && i < longs.length; i++)
+			{
+				if (longs[i] != 0)
+				{
+					varps.addProperty(Integer.toString(i), longs[i]);
 				}
 			}
 			JsonObject line = line("varps");

@@ -7,10 +7,10 @@ import osrsps.map.CollisionFlag.WALL_SOUTH
 import osrsps.map.CollisionFlag.WALL_WEST
 
 /**
- * Where a route should end: on a tile, or anywhere a loc can be used from.
+ * Where a route should end: on a tile, anywhere a loc can be used from, or beside an NPC.
  *
  * [x] and [z] are the south-west tile. [width] and [length] are the footprint as placed, already turned by [angle].
- * [shape] is the loc's shape, or [TILE] for a plain tile. [accessBlock] is the sides the loc can't be used from, also
+ * [shape] is the loc's shape, [TILE] for a plain tile or [ENTITY] for an NPC. [accessBlock] is the sides the loc can't be used from, also
  * already turned: 1 north, 2 east, 4 south, 8 west.
  */
 data class RouteTarget(
@@ -25,7 +25,13 @@ data class RouteTarget(
     companion object {
         const val TILE = -1
 
+        /** Not a loc shape: something that moves, reached from beside it but not from under it. */
+        const val ENTITY = -2
+
         fun tile(x: Int, z: Int) = RouteTarget(x, z)
+
+        /** An NPC [size] tiles square whose south-west tile is [x], [z]. */
+        fun entity(x: Int, z: Int, size: Int) = RouteTarget(x, z, size, size, ENTITY)
 
         /**
          * A loc of [shape] and [angle] at [x], [z]. Ground locs and ground decorations (shapes 10, 11 and 22) use their
@@ -58,6 +64,8 @@ data class RouteTarget(
  *   the neighbours on their open sides.
  * - A ground loc or ground decoration is reached from inside its footprint or from any tile along one of its sides
  *   that the loc doesn't block access from, with no wall between.
+ * - An NPC ([RouteTarget.ENTITY]) is reached from any tile along one of its sides with no wall between, but not from
+ *   under it or from a corner; see [reachedEntity].
  * - Roofs and other shapes are reached only from their own tile.
  */
 object Reach {
@@ -70,6 +78,7 @@ object Reach {
         val shape = target.shape
         return when {
             shape == RouteTarget.TILE -> srcX == target.x && srcZ == target.z
+            shape == RouteTarget.ENTITY -> reachedEntity(collision, level, srcX, srcZ, 1, target.x, target.z, target.width, target.length)
             shape in LocShape.WALL_STRAIGHT..LocShape.WALL_SQUARE_CORNER || shape == LocShape.WALL_DIAGONAL ->
                 reachWall(collision[srcX, srcZ, level], srcX - target.x, srcZ - target.z, shape, target.angle)
             shape in 4..8 -> reachWallDecoration(collision[srcX, srcZ, level], srcX - target.x, srcZ - target.z, shape, target.angle)
@@ -139,5 +148,34 @@ object Reach {
             (srcX == eastX + 1 && alongZ && flags and WALL_WEST == 0 && access and ACCESS_EAST == 0) ||
             (srcZ == target.z - 1 && alongX && flags and WALL_NORTH == 0 && access and ACCESS_SOUTH == 0) ||
             (srcZ == northZ + 1 && alongX && flags and WALL_SOUTH == 0 && access and ACCESS_NORTH == 0)
+    }
+
+    /**
+     * Whether a mover [srcSize] tiles square at [srcX], [srcZ] is beside a [width] by [length] rectangle at [x], [z]:
+     * touching one of its sides, not its corners, with no wall between, and not overlapping it. This is how a player
+     * reaches an NPC to talk to it, and how an NPC chasing someone reaches them.
+     *
+     * For a 1x1 mover it is the client's rectangle check with the overlap excluded, as open-source route finders give
+     * it for entities (rsmod's "exclusive rectangle"), not checked against live. For a bigger mover the side counts as
+     * open if any tile pair across it has no wall; guessed.
+     */
+    fun reachedEntity(collision: CollisionMap, level: Int, srcX: Int, srcZ: Int, srcSize: Int, x: Int, z: Int, width: Int, length: Int): Boolean {
+        val srcEast = srcX + srcSize - 1
+        val srcNorth = srcZ + srcSize - 1
+        val eastX = x + width - 1
+        val northZ = z + length - 1
+        val overlapsX = srcX <= eastX && srcEast >= x
+        val overlapsZ = srcZ <= northZ && srcNorth >= z
+        if (overlapsX && overlapsZ) return false
+        // The mover's own tiles along the touching side, checked for a wall on that side.
+        fun openAlongZ(tileX: Int, wall: Int) = (maxOf(srcZ, z)..minOf(srcNorth, northZ)).any { collision[tileX, it, level] and wall == 0 }
+        fun openAlongX(tileZ: Int, wall: Int) = (maxOf(srcX, x)..minOf(srcEast, eastX)).any { collision[it, tileZ, level] and wall == 0 }
+        return when {
+            overlapsZ && srcEast == x - 1 -> openAlongZ(srcEast, WALL_EAST)
+            overlapsZ && srcX == eastX + 1 -> openAlongZ(srcX, WALL_WEST)
+            overlapsX && srcNorth == z - 1 -> openAlongX(srcNorth, WALL_NORTH)
+            overlapsX && srcZ == northZ + 1 -> openAlongX(srcZ, WALL_SOUTH)
+            else -> false
+        }
     }
 }

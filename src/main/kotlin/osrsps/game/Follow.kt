@@ -101,6 +101,18 @@ class Follows(
     }
 
     /**
+     * Turns [player] to whoever they follow, or stops turning them once they don't, when that changes: [face] gets the
+     * target, or null to reset. A follow ended by a click on an NPC is left alone, since the NPC's face already replaced
+     * it and a reset would undo that.
+     */
+    fun updateFace(player: Player, face: (Player?) -> Unit) {
+        val target = (player.interaction as? FollowInteraction)?.target
+        if (target === player.sentFacePlayer) return
+        if (target != null || player.facingNpc == null) face(target)
+        player.sentFacePlayer = target
+    }
+
+    /**
      * Whether [player] can carry on following [target]: the target is still in the world, and at [targetX], [targetZ] on
      * [targetLevel] (by default where they are now), on the player's level and within [RANGE] tiles. Guessed: live stops a follow when the target teleports away or logs out, but the distance it
      * gives up at isn't known; [RANGE] is how far players see each other.

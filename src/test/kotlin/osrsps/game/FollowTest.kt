@@ -7,6 +7,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcSpawn
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.Tile
@@ -182,6 +184,30 @@ class FollowTest {
         movement.request(bob, 3217, 3210, invertRun = false)
         movement.process(bob)
         assertEquals(Tile(3215, 3210), bob.lastStepFrom)
+    }
+
+    @Test
+    fun `the follower faces the target once, and stops facing them when the follow ends`() {
+        val faces = mutableListOf<Player?>()
+        follows.click(alice, bob, ctrl = false)
+        repeat(2) { follows.updateFace(alice, faces::add) }
+        assertEquals(listOf<Player?>(bob), faces)
+        alice.interaction = null
+        repeat(2) { follows.updateFace(alice, faces::add) }
+        assertEquals(listOf(bob, null), faces)
+    }
+
+    @Test
+    fun `a follow ended by a click on an NPC leaves the NPC's face alone`() {
+        val faces = mutableListOf<Player?>()
+        follows.click(alice, bob, ctrl = false)
+        follows.updateFace(alice, faces::add)
+        // What a click on an NPC does: a new interaction, and the player turns to the NPC.
+        alice.interaction = Interaction { false }
+        alice.facingNpc = Npc(1, NpcSpawn(NpcType(0, "Hans"), 3212, 3210, source = "test"))
+        follows.updateFace(alice, faces::add)
+        assertEquals(listOf<Player?>(bob), faces)
+        assertNull(alice.sentFacePlayer)
     }
 
     @Test
