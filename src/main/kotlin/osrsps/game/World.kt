@@ -601,7 +601,11 @@ class World(
     fun onGroundObjOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
         // Delayed players can't walk off, as for a move click.
         if (player.scripts.delayed) return@act
-        val interaction = groundObjs.click(player, id, x, z, option) ?: return@act
+        val interaction = groundObjs.click(player, id, x, z, option)
+        if (interaction == null) {
+            follows.clickedElsewhere(player)
+            return@act
+        }
         npcInteractions.leave(player)
         scripts.interrupt(player)
         player.interaction = interaction
@@ -664,6 +668,8 @@ class World(
         if (player.scripts.delayed) return@act
         npcInteractions.leave(player)
         locInteractions.click(player, id, x, z, option, ctrl)
+        // A loc that had gone by the time the click was read leaves any follow behind; the click still ends it.
+        follows.clickedElsewhere(player)
     }
 
     /**
@@ -674,6 +680,7 @@ class World(
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (player.scripts.delayed) return@act
         npcInteractions.click(player, index, option, sub, ctrl)
+        follows.clickedElsewhere(player)
     }
 
     /**
@@ -684,9 +691,11 @@ class World(
         if (player.scripts.delayed) return@act
         if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
             logger.info { "${player.username} used $interfaceId:$componentId sub $sub on NPC $index (not handled)" }
+            follows.clickedElsewhere(player)
             return@act
         }
         npcInteractions.useObj(player, index, sub, obj, ctrl)
+        follows.clickedElsewhere(player)
     }
 
     /**

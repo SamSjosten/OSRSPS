@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.message.OutgoingGameMessage
@@ -208,6 +209,28 @@ class FollowTest {
         follows.updateFace(alice, faces::add)
         assertEquals(listOf<Player?>(bob), faces)
         assertNull(alice.sentFacePlayer)
+    }
+
+    @Test
+    fun `a click on something that has gone still ends a follow`() {
+        follows.click(alice, bob, ctrl = false)
+        tick()
+        assertTrue(alice.waypoints.isNotEmpty())
+        follows.clickedElsewhere(alice)
+        assertNull(alice.interaction)
+        assertTrue(alice.waypoints.isEmpty())
+        assertEquals(listOf<Pair<Player, OutgoingGameMessage>>(alice to SetMapFlagV2.RESET), sent)
+    }
+
+    @Test
+    fun `a click that started something else is left alone`() {
+        val other = Interaction { false }
+        alice.interaction = other
+        movement.request(alice, 3212, 3210, invertRun = false)
+        follows.clickedElsewhere(alice)
+        assertSame(other, alice.interaction)
+        assertTrue(alice.waypoints.isNotEmpty())
+        assertTrue(sent.isEmpty())
     }
 
     @Test

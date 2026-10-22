@@ -53,6 +53,20 @@ class Follows(
     }
 
     /**
+     * [player] clicked something else in the world, a loc, an NPC or a ground obj, which didn't start an interaction
+     * because it had gone by the time the click was read (or the option wasn't there). A follow still ends: they clicked
+     * away from it. They stop where they stand; guessed, as for a target lost mid-follow.
+     */
+    fun clickedElsewhere(player: Player) {
+        if (player.interaction !is FollowInteraction) return
+        player.interaction = null
+        if (player.waypoints.isNotEmpty()) {
+            player.waypoints.clear()
+            send(player, SetMapFlagV2.RESET)
+        }
+    }
+
+    /**
      * Notes every player's follow tile before anyone moves this tick, so who moves first in the tick doesn't change
      * where a follower heads.
      */
