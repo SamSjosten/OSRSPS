@@ -97,12 +97,17 @@ class FollowTest {
     }
 
     @Test
-    fun `the follow stops when the target logs out`() {
+    fun `the follow stops when the target logs out, and the follower stops walking`() {
+        alice.x = 3200
         follows.click(alice, bob, ctrl = false)
         tick()
         online -= bob
         tick()
         assertNull(alice.interaction)
+        assertTrue(alice.waypoints.isEmpty())
+        val stoppedAt = alice.tile()
+        repeat(3) { tick() }
+        assertEquals(stoppedAt, alice.tile())
     }
 
     @Test

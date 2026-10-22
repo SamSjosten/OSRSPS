@@ -58,7 +58,9 @@ class Follows(
         val follow = player.interaction as? FollowInteraction ?: return other()
         val target = follow.target
         if (!canFollow(player, target)) {
+            // Guessed: the follower stops where they are rather than walking on to the target's last follow tile.
             player.interaction = null
+            player.waypoints.clear()
             move()
             return
         }
