@@ -90,7 +90,7 @@ world view is recorded.
 | `stat` | your skill changes | `skill`, `xp`, `level`, `boosted` |
 | `items` | an item container of yours changes | `container`, `items` as `[id, quantity]` per slot (`[-1, 0]` is empty) |
 | `var` | your varp or varbit changes | `varp`, `varbit` (-1 for a whole varp), `value`. Some varps are set by the client ahead of the server, on the click's tick |
-| `varps` | recording starts | `values`: every non-zero server varp by index, int and long varps alike (before 0.2.0 only the few long varps were read, so the line was nearly always empty) |
+| `varps` | recording starts | `values`: every non-zero server varp by index, int and long varps alike (before 0.2.1 only the few long varps were read, so the line was nearly always empty) |
 | `click` | you click a menu option | `option`, `action`, `param0`, `param1`, `consumed`; not on a player: `target`, `id`, `npc`; on a player: `player` (with Other players on) |
 | `widgetOpen` / `widgetClose` | interface opens or closes | `group` |
 | `sound` / `areaSound` | sound effect | `id`, `delay`, `source`; `areaSound` adds `at` and `range` |

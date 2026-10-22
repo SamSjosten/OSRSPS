@@ -107,7 +107,7 @@ public class TickRecorderPlugin extends Plugin
 {
 	static final int FORMAT_VERSION = 2;
 	/** Which build of the recorder wrote a file; bumped with every change to what is written. */
-	static final String RECORDER_VERSION = "0.2.0";
+	static final String RECORDER_VERSION = "0.2.1";
 	/** A handler that keeps throwing gets this many error lines per recording; later ones are only counted. */
 	static final int ERROR_LINES_PER_HANDLER = 5;
 	private static final Logger log = LoggerFactory.getLogger(TickRecorderPlugin.class);
