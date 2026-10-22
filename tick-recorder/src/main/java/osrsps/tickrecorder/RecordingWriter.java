@@ -11,6 +11,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import net.runelite.client.util.Filepath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,10 +136,27 @@ class RecordingWriter
 		}
 	}
 
-	/** Queues a line even past the limit: the stop line that says why a recording ended is always written. */
-	void writeLast(String line)
+	/**
+	 * Queues the stop line behind every pending write, past the queue limit so a file always ends with its
+	 * reason. The reason is decided on the writer thread once those writes are done, so a failure one of
+	 * them raises wins over the reason given. The future carries the reason used.
+	 */
+	Future<String> writeStop(String reason, Function<String, String> lineFor)
 	{
-		submit(() -> append(line));
+		try
+		{
+			return executor.submit(() ->
+			{
+				Failure pending = failure;
+				String why = pending == null ? reason : pending.code;
+				append(lineFor.apply(why));
+				return why;
+			});
+		}
+		catch (RejectedExecutionException e)
+		{
+			return CompletableFuture.completedFuture(reason);
+		}
 	}
 
 	/** Pushes buffered lines to disk; called once per tick so a crash loses at most one tick. */

@@ -174,15 +174,16 @@ public class RecordingWriterTest
 			writer.write("line " + i);
 		}
 
-		RecordingWriter.Failure failure = writer.takeFailure();
-		assertNotNull(failure);
-		assertEquals("writerBehind", failure.code);
 		assertEquals(RecordingWriter.QUEUE_LIMIT, writer.takeQueueMax());
-		writer.writeLast("stop");
+		Future<String> reason = writer.writeStop("stopped", why -> "stop");
 		Future<?> closed = writer.close();
 		gate.open();
 		closed.get();
 		writer.shutdown();
+		assertEquals("writerBehind", reason.get());
+		RecordingWriter.Failure failure = writer.takeFailure();
+		assertNotNull(failure);
+		assertEquals("writerBehind", failure.code);
 
 		List<String> lines = gate.lines();
 		assertEquals(RecordingWriter.QUEUE_LIMIT + 2, lines.size());
@@ -196,7 +197,6 @@ public class RecordingWriterTest
 	private static class Flaky extends Writer
 	{
 		private final StringWriter content = new StringWriter();
-		private final CountDownLatch refused = new CountDownLatch(1);
 		private boolean failed;
 
 		@Override
@@ -205,7 +205,6 @@ public class RecordingWriterTest
 			if (!failed && new String(buffer, offset, length).indexOf('!') >= 0)
 			{
 				failed = true;
-				refused.countDown();
 				throw new IOException("disk full");
 			}
 			content.write(buffer, offset, length);
@@ -237,27 +236,12 @@ public class RecordingWriterTest
 		writer.write("first");
 		writer.write("boom!");
 		writer.flush();
-		assertTrue("the disk never refused the write", flaky.refused.await(10, TimeUnit.SECONDS));
-		RecordingWriter.Failure failure = awaitFailure(writer);
-		assertEquals("writeFailed", failure.code);
-		writer.writeLast("stop");
+		Future<String> reason = writer.writeStop("stopped", why -> "stop");
 		writer.close().get();
 		writer.shutdown();
+		assertEquals("writeFailed", reason.get());
+		assertEquals("writeFailed", writer.takeFailure().code);
 		assertEquals(Arrays.asList("first", "boom!", "stop"), flaky.lines());
-	}
-
-	/** The failure is recorded on the writer thread just after the disk refuses the write; wait briefly for it. */
-	private static RecordingWriter.Failure awaitFailure(RecordingWriter writer)
-	{
-		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-		RecordingWriter.Failure failure = writer.takeFailure();
-		while (failure == null && System.nanoTime() < deadline)
-		{
-			Thread.yield();
-			failure = writer.takeFailure();
-		}
-		assertNotNull("the writer never reported the refused write", failure);
-		return failure;
 	}
 
 	@Test
