@@ -158,6 +158,12 @@ class World(
 
     private val pendingLogins = ConcurrentLinkedQueue<PendingLogin>()
     private val players = arrayOfNulls<Player>(MAX_PLAYERS)
+
+    /**
+     * Slots emptied this cycle, kept from logins until the cycle's packets are read, so a click on a player who just left
+     * can't land on someone new in their slot. How long live holds a slot isn't known.
+     */
+    private val freedSlots = HashSet<Int>()
     private val executor = Executors.newSingleThreadScheduledExecutor { Thread(it, "game") }
     var tick: Long = 0
         private set
@@ -296,6 +302,7 @@ class World(
             if (ticking) runHeldActions(player)
             player.session.processIncomingPackets(player)
         }
+        freedSlots.clear()
     }
 
     /** Sends every player this cycle's updates. [tickEnd] says whether the cycle was a game tick. */
@@ -408,7 +415,7 @@ class World(
             login.responseHandler.writeFailedResponse(LoginResponse.Duplicate)
             return
         }
-        val index = (1 until MAX_PLAYERS).firstOrNull { players[it] == null }
+        val index = (1 until MAX_PLAYERS).firstOrNull { players[it] == null && it !in freedSlots }
         if (index == null) {
             login.responseHandler.writeFailedResponse(LoginResponse.ServerFull)
             return
@@ -599,14 +606,21 @@ class World(
      * A click on option [option] (1 to 8) of the player at [index]. Only Follow does anything yet; see [PlayerOps]. [ctrl]
      * flips walk and run for the walk to them.
      */
-    fun onPlayerOp(player: Player, index: Int, option: Int, ctrl: Boolean) = act(player) {
+    fun onPlayerOp(player: Player, index: Int, option: Int, ctrl: Boolean) {
+        // Looked up as the packet is read, and checked again when it runs, so a click held while paused can't land on
+        // someone who took the slot meanwhile.
+        val clicked = players.getOrNull(index) ?: return
+        act(player) { playerOp(player, clicked, option, ctrl) }
+    }
+
+    private fun playerOp(player: Player, clicked: Player, option: Int, ctrl: Boolean) {
         // Inferred, as for a walk: a delayed player's clicks do nothing.
-        if (player.scripts.delayed) return@act
-        // The client was behind: they left, or the slot is someone else's now.
-        val target = players.getOrNull(index) ?: return@act
+        if (player.scripts.delayed) return
+        // The client was behind: they left.
+        val target = clicked.takeIf { players[it.index] === it } ?: return
         if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT) {
             logger.info { "${player.username} sent op $option on player ${target.username}, which has no such option" }
-            return@act
+            return
         }
         // Any of the options replaces what the player was doing, a follow included. Guessed for Trade with and Report,
         // which aren't built: they stop the player where they stand.
@@ -930,6 +944,7 @@ class World(
         network.infoProtocols.dealloc(player.infos)
         player.session.clear()
         players[player.index] = null
+        freedSlots += player.index
         logger.info { "${player.username} logged out" + if (player.loggedOut) "" else " (connection lost)" }
     }
 
