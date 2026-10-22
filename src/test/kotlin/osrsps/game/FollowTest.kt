@@ -142,12 +142,13 @@ class FollowTest {
     }
 
     @Test
-    fun `following yourself or someone out of sight does nothing`() {
+    fun `following yourself or someone out of sight does nothing but clear the flag`() {
         follows.click(alice, alice, ctrl = false)
         assertNull(alice.interaction)
         bob.x = alice.x - Follows.RANGE - 1
         follows.click(alice, bob, ctrl = false)
         assertNull(alice.interaction)
+        assertEquals(listOf<Pair<Player, OutgoingGameMessage>>(alice to SetMapFlagV2.RESET, alice to SetMapFlagV2.RESET), sent)
     }
 
     @Test
@@ -163,7 +164,12 @@ class FollowTest {
         alice.x = 3200
         follows.click(alice, bob, ctrl = true)
         assertTrue(alice.invertRun)
+        tick()
+        // The orb is off, so the ctrl-click runs her the whole way while Bob stays put.
+        assertEquals(3202, alice.x)
         repeat(20) { tick() }
+        assertEquals(Tile(3214, 3210), alice.tile())
+        assertTrue(alice.invertRun)
         movement.request(bob, 3220, 3210, invertRun = false)
         tick()
         tick()

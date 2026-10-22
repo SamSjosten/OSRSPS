@@ -448,7 +448,7 @@ Right-clicking another player offers Follow, Trade with and Report (`game/Player
 | Player options at login: slot 3 Follow, 4 Trade with, 8 Report, slots 2 and 5 cleared, none with priority over Walk here | RSMod's login script (rev 233), not checked against a live login |
 | Follow walks to the tile the target was on before their last step (the tile between a run's two steps), as it stood when the tick's movement began, so the follower ends one tile behind | RSMod (rev 233) |
 | A target who hasn't stepped since logging in or teleporting is followed to the tile west of them | RSMod |
-| The follower gets a new route only once their current one is down to its last waypoint, at the orb's speed (a ctrl-click only flips the walk to the target) | RSMod |
+| The follower gets a new route only once their current one is down to its last waypoint and the follow tile has moved, at the orb's speed (a ctrl-click only flips the walk to where the target was) | RSMod; keeping a route that still fits is ours |
 | The follower takes a route to that tile, so a wall doesn't stop them; RSMod steps straight at it | ours, guessed |
 | The follower faces the target (walk mode 0: they look where they walk and turn back when they stop) | RSProt docs and RSMod, inferred |
 | A follow stops when the follower clicks elsewhere or teleports, or the target logs out, changes level or gets more than 15 tiles away; the follower then stops where they are | the 15 is how far players see each other; when live gives up is guessed |

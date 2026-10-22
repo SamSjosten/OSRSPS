@@ -11,6 +11,9 @@ import kotlin.math.atan2
  * them. [Follows] runs it; it never ends by being reached, so [Interactions] never sees it.
  */
 class FollowInteraction(val target: Player) : Interaction {
+    /** The follow tile the player's current route leads to. */
+    internal var routedTo: Tile? = null
+
     // Follows.process handles a follow before Interactions would ask, so this is never called.
     override fun tryInteract(player: Player): Boolean = false
 }
@@ -35,9 +38,16 @@ class Follows(
 
     /** A click on Follow: [player] turns to [target] and walks toward the tile behind them. [ctrl] flips walk and run. */
     fun click(player: Player, target: Player, ctrl: Boolean) {
-        if (target === player || !canFollow(player, target)) return
-        player.interaction = FollowInteraction(target)
-        val route = followTile(target).let { movement.request(player, it.x, it.z, invertRun = ctrl) }
+        if (target === player || !canFollow(player, target)) {
+            // The client may have put a flag down for the walk to them; guessed, as for a blocked walk.
+            send(player, SetMapFlagV2.RESET)
+            return
+        }
+        val follow = FollowInteraction(target)
+        player.interaction = follow
+        val dest = followTile(target)
+        follow.routedTo = dest
+        val route = movement.request(player, dest.x, dest.z, invertRun = ctrl)
         // Guessed, as for a walk: with no route to walk the client's flag would stay up.
         if (route.waypoints.isEmpty()) send(player, SetMapFlagV2.RESET)
     }
@@ -75,11 +85,13 @@ class Follows(
             move()
             return
         }
-        // RSMod's rule: a new route only once the last one is down to its final waypoint. A delayed player keeps theirs.
-        if (!player.scripts.delayed && player.waypoints.size <= 1) {
-            val dest = target.followTile ?: followTile(target)
+        // RSMod's rule: a new route only once the last one is down to its final waypoint. Ours also keeps a route that
+        // still leads to the follow tile. A delayed player keeps theirs.
+        val dest = target.followTile ?: followTile(target)
+        if (!player.scripts.delayed && player.waypoints.size <= 1 && (player.waypoints.isEmpty() || follow.routedTo != dest)) {
+            follow.routedTo = dest
             if (player.x != dest.x || player.z != dest.z) {
-                // RSMod goes back to the orb's speed here, so a ctrl-click only changes the walk to the target.
+                // RSMod goes back to the orb's speed here, so a ctrl-click only changes the walk to where the target was.
                 movement.request(player, dest.x, dest.z, invertRun = false)
             } else {
                 player.waypoints.clear()
