@@ -904,7 +904,7 @@ class World(
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
-        npcs.forget(player)
+        npcs.forget(player, scripts::busy)
         save(player)
         network.infoProtocols.dealloc(player.infos)
         player.session.clear()

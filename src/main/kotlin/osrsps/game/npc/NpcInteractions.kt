@@ -125,7 +125,7 @@ class NpcInteractions(
     private fun start(player: Player, interaction: NpcInteraction, invertRun: Boolean) {
         scripts.interrupt(player)
         // The NPC the player was busy with, if any, is let go: whatever the new click opens is not about it.
-        npcs.leave(player)
+        npcs.leave(player, scripts::busy)
         player.interaction = interaction
         // The player turns to the NPC on the click, before walking: live's face-entity. Inferred, not from a recording.
         face(player, interaction.npc)
@@ -204,7 +204,7 @@ class NpcInteractions(
      */
     fun leave(player: Player) {
         stopFacing(player)
-        npcs.leave(player)
+        npcs.leave(player, scripts::busy)
     }
 
     /**
@@ -231,6 +231,8 @@ class NpcInteractions(
     fun releaseNpcs() {
         val tick = currentTick()
         for (npc in npcs.all) {
+            // Players whose own option on it has finished stop waiting, so none takes it over idle.
+            npc.waiting.removeAll { !scripts.busy(it) }
             val player = npc.engagedWith ?: continue
             if (tick > npc.engagedTick && !scripts.busy(player)) npcs.handOver(npc, tick, scripts::busy)
         }

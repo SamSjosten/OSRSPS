@@ -352,6 +352,21 @@ class NpcInteractionsTest {
     }
 
     @Test
+    fun `an NPC is not handed to a waiting player who is already done with it`() {
+        val npc = spawn(x = 3213)
+        // Only the first player's option opens a dialogue; the other's is over at once.
+        handlers.onNpc(HANS, 1) { this@NpcInteractionsTest.player.modals[FrameSlot.CHAT_CONTAINER] = DIALOGUE }
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        tick()
+        val other = Player(2, "other", 3213, 3211, 0)
+        interactions.click(other, npc.index, 1, -1, invertRun = false)
+        shared.process(other) { movement.process(other) }
+        assertSame(player, npc.engagedWith)
+        interactions.leave(player)
+        assertNull(npc.engagedWith)
+    }
+
+    @Test
     fun `an option shown by a conditional option can be clicked while its var is in range`() {
         val vars = VarTypes(varpCount = 200, varbits = emptyMap())
         val guard = NpcType(GUARD, "Guard", ops = listOf("Talk-to", null, null, null, null), conditionalOps = listOf(ConditionalOp(2, 7, -1, 1, 1, "Pay")))

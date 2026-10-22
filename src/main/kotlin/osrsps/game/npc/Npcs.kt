@@ -75,20 +75,20 @@ class Npcs(
     }
 
     /** Lets go of [player] everywhere: they left the world. NPCs following or busy with them go back to what they did. */
-    fun forget(player: Player) {
+    fun forget(player: Player, stillBusy: (Player) -> Boolean = { true }) {
         for (npc in all) if (npc.following === player) stopFollowing(npc)
-        leave(player)
+        leave(player, stillBusy)
     }
 
     /**
      * [player] turned to something else (walked off, clicked another NPC or a loc, teleported, left): NPCs busy with
-     * them pass to their next waiting player, or go back to what they did, and they stop waiting on any NPC. A waiting
-     * player taking over is checked the next tick (see [NpcInteractions.releaseNpcs]).
+     * them pass to their next waiting player who is [stillBusy], or go back to what they did, and they stop waiting on
+     * any NPC.
      */
-    fun leave(player: Player) {
+    fun leave(player: Player, stillBusy: (Player) -> Boolean = { true }) {
         for (npc in all) {
             npc.waiting.remove(player)
-            if (npc.engagedWith === player) handOver(npc, npc.engagedTick)
+            if (npc.engagedWith === player) handOver(npc, npc.engagedTick, stillBusy)
         }
     }
 
