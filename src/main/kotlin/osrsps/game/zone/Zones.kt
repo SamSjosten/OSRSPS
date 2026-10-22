@@ -12,22 +12,59 @@ import net.rsprot.protocol.game.outgoing.zone.payload.LocDel
 import net.rsprot.protocol.game.outgoing.zone.payload.MapAnim
 import net.rsprot.protocol.game.outgoing.zone.payload.MapProjAnimV2
 import net.rsprot.protocol.game.outgoing.zone.payload.ObjAdd
+import net.rsprot.protocol.game.outgoing.zone.payload.ObjCount
 import net.rsprot.protocol.game.outgoing.zone.payload.ObjDel
 import net.rsprot.protocol.game.outgoing.zone.payload.SoundArea
 import net.rsprot.protocol.message.OutgoingGameMessage
 import net.rsprot.protocol.message.ZoneProt
 import osrsps.game.Player
 
-/** A stack of objs on the ground. Only [owner] sees it while [owner] is set; nobody else is told about it. */
+/**
+ * A stack of objs on the ground. While [owner] is set only that player sees it. [droppedBy] is whose it was, which the
+ * client is told as its ownership (RuneLite's ground item ownership) and which stays once the obj turns public. Players
+ * are named by their save key.
+ *
+ * The timers count down in game ticks and are what the client is told when it is sent the obj; [osrsps.game.GroundObjs]
+ * runs them. A [Zones] keeps only the obj and its visibility.
+ */
 class ZoneObj(
     val id: Int,
-    val count: Int,
+    count: Int,
     val x: Int,
     val z: Int,
     val level: Int,
-    /** The username that alone can see it, or null when everyone can. */
-    val owner: String? = null,
-)
+    /** The save key of the player who alone can see it, or null when everyone can. */
+    owner: String? = null,
+    /** The save key of the player it was dropped by or for, or null for an obj the world put there. */
+    val droppedBy: String? = owner,
+    /** Ticks until it turns public, counted only while [owner] is set and it isn't [neverPublic]. */
+    var ticksUntilPublic: Int = 0,
+    /** Ticks until it disappears, or [NEVER]. */
+    var ticksUntilDespawn: Int = NEVER,
+    /** Stays private to [owner] until it disappears, as untradeable drops do. */
+    val neverPublic: Boolean = false,
+) {
+    init {
+        require(count >= 1) { "Bad ground obj $id x $count" }
+        require(owner != null || !neverPublic) { "A public obj can't be never-public" }
+    }
+
+    var count: Int = count
+        internal set
+
+    var owner: String? = owner
+        internal set
+
+    val isPrivate: Boolean get() = owner != null
+
+    fun visibleTo(observer: String): Boolean = owner == null || owner == observer
+
+    override fun toString(): String = "ZoneObj($id x $count at $x, $z, $level" + (owner?.let { ", private to $it" } ?: "") + ")"
+
+    companion object {
+        const val NEVER = -1
+    }
+}
 
 /** A loc placed where the cache has a different one, or none. */
 data class ZoneLoc(val id: Int, val shape: Int, val angle: Int, val x: Int, val z: Int, val level: Int) {
@@ -81,7 +118,8 @@ class ZoneView {
  * and sent in full, after an UpdateZoneFullFollows that wipes the client's copy, whenever a zone comes into a player's
  * view. Everything that happened in a zone this cycle (those same changes, plus graphics, projectiles and sounds) is
  * sent once to each player already watching the zone, in one UpdateZonePartialEnclosed whose payload is encoded once
- * and shared. Objs only one player can see go to that player alone, in a second UpdateZonePartialEnclosed of their own.
+ * and shared. Updates not everyone gets (private objs, an obj turning public for all but its owner) go to each player
+ * they reach in a second UpdateZonePartialEnclosed of their own.
  *
  * A player watches the zones within [VIEW_RADIUS] of their own on their level that fit in their build area. That
  * radius and the rest of this flow follow RSMod's and RSProt's reading of the client, not a recording of live.
@@ -102,8 +140,15 @@ class Zones {
 
     private class LocChange(val loc: ZoneLoc, val removed: Boolean)
 
-    /** One update in a zone this cycle. [onlyFor] is the username that alone sees it, or null for everyone. */
-    private class ZoneEvent(val prot: ZoneProt, val onlyFor: String?)
+    /**
+     * One update in a zone this cycle. [onlyFor] is the save key of the player who alone gets it; [except] is the one
+     * player who doesn't. With neither, everyone watching gets it.
+     */
+    private class ZoneEvent(val prot: ZoneProt, val onlyFor: String?, val except: String?) {
+        val shared: Boolean get() = onlyFor == null && except == null
+
+        fun reaches(observer: String): Boolean = if (onlyFor != null) onlyFor == observer else except != observer
+    }
 
     /** Plays spotanim [id] on a tile. [height] is above the ground; [delay] is in client cycles (20 ms). */
     fun mapAnim(x: Int, z: Int, level: Int, id: Int, height: Int = 0, delay: Int = 0) =
@@ -128,10 +173,20 @@ class Zones {
     fun locAnim(x: Int, z: Int, level: Int, shape: Int, angle: Int, anim: Int) =
         event(x, z, level, LocAnim(anim, x and 7, z and 7, shape, angle))
 
-    /** Puts [obj] on the ground. */
+    /** Puts [obj] on the ground. Merging stacks is the caller's business: see [setObjCount]. */
     fun addObj(obj: ZoneObj) {
         state(obj.x, obj.z, obj.level).objs += obj
-        event(obj.x, obj.z, obj.level, objAdd(obj), obj.owner)
+        val owner = obj.owner
+        val droppedBy = obj.droppedBy
+        when {
+            owner != null -> event(obj.x, obj.z, obj.level, objAdd(obj, owner), onlyFor = owner)
+            droppedBy == null -> event(obj.x, obj.z, obj.level, objAdd(obj, null))
+            else -> {
+                // Public from the start but someone's: the client is told whose it is, so its owner gets a packet of their own.
+                event(obj.x, obj.z, obj.level, objAdd(obj, droppedBy), onlyFor = droppedBy)
+                event(obj.x, obj.z, obj.level, objAdd(obj, null), except = droppedBy)
+            }
+        }
     }
 
     /** Takes [obj] off the ground. Returns false if it wasn't there. */
@@ -140,9 +195,32 @@ class Zones {
         val state = states[key] ?: return false
         if (!state.objs.removeIf { it === obj }) return false
         if (state.isEmpty) states.remove(key)
-        event(obj.x, obj.z, obj.level, ObjDel(obj.id, obj.count, obj.x and 7, obj.z and 7), obj.owner)
+        event(obj.x, obj.z, obj.level, ObjDel(obj.id, obj.count, obj.x and 7, obj.z and 7), onlyFor = obj.owner)
         return true
     }
+
+    /**
+     * Shows a private [obj] to everyone. Its owner already has it, and their client counts its own way down to public,
+     * so only the others are sent it (inferred from the packet's time-until-public field; RSMod does the same).
+     */
+    fun revealObj(obj: ZoneObj) {
+        val owner = obj.owner ?: return
+        if (!hasObj(obj)) return
+        obj.owner = null
+        event(obj.x, obj.z, obj.level, objAdd(obj, null), except = owner)
+    }
+
+    /** Changes the size of the stack [obj], for everyone who can see it, as when a drop lands on a stack of the same. */
+    fun setObjCount(obj: ZoneObj, count: Int) {
+        require(count >= 1) { "Bad count $count for $obj" }
+        if (!hasObj(obj) || obj.count == count) return
+        val old = obj.count
+        obj.count = count
+        event(obj.x, obj.z, obj.level, ObjCount(obj.id, old, count, obj.x and 7, obj.z and 7), onlyFor = obj.owner)
+    }
+
+    /** Whether [obj] is on the ground. */
+    fun hasObj(obj: ZoneObj): Boolean = states[ZoneKey.of(obj.x, obj.z, obj.level).packed]?.objs?.any { it === obj } == true
 
     /** The objs on a tile, oldest first, including ones only some players see. */
     fun objsAt(x: Int, z: Int, level: Int): List<ZoneObj> =
@@ -206,17 +284,17 @@ class Zones {
         val buildAreaZ = (player.buildAreaZoneZ - BUILD_AREA_ZONE_RADIUS) shl 3
         val updates = ArrayList<ZoneUpdate>()
         if (centre == view.centre) {
-            for (zone in view.visible) partial(player.username, ZoneKey(zone), buildAreaX, buildAreaZ)?.let(updates::add)
+            for (zone in view.visible) partial(player.saveKey, ZoneKey(zone), buildAreaX, buildAreaZ)?.let(updates::add)
             return updates
         }
         val inView = zonesInView(centre, buildAreaX, buildAreaZ)
         for (zone in inView) {
-            if (zone.packed !in view.visible) updates += full(player.username, zone, buildAreaX, buildAreaZ)
+            if (zone.packed !in view.visible) updates += full(player.saveKey, zone, buildAreaX, buildAreaZ)
         }
         // A zone that just came into view was sent in full, which already has this cycle's lasting changes. Its
         // graphics and sounds from this cycle are not sent, as RSMod does; live is not checked.
         for (zone in inView) {
-            if (zone.packed in view.visible) partial(player.username, zone, buildAreaX, buildAreaZ)?.let(updates::add)
+            if (zone.packed in view.visible) partial(player.saveKey, zone, buildAreaX, buildAreaZ)?.let(updates::add)
         }
         view.visible.clear()
         inView.mapTo(view.visible) { it.packed }
@@ -257,7 +335,7 @@ class Zones {
                 prots += if (change.removed) LocDel(loc.x and 7, loc.z and 7, loc.shape, loc.angle) else locAddChange(loc)
             }
             for (obj in state.objs) {
-                if (obj.owner == null || obj.owner == observer) prots += objAdd(obj)
+                if (obj.visibleTo(observer)) prots += objAdd(obj, observer)
             }
         }
         return ZoneUpdate(zone, zone.baseX - buildAreaX, zone.baseZ - buildAreaZ, full = true, shared = emptyList(), own = prots)
@@ -266,23 +344,40 @@ class Zones {
     /** This cycle's updates in a watched zone, or null if nothing [observer] can see happened there. */
     private fun partial(observer: String, zone: ZoneKey, buildAreaX: Int, buildAreaZ: Int): ZoneUpdate? {
         val events = pending[zone.packed] ?: return null
-        val shared = events.filter { it.onlyFor == null }.map { it.prot }
+        val shared = events.filter { it.shared }.map { it.prot }
         // Guessed: a player's private updates follow the shared ones, so their order against each other is lost.
-        val own = events.filter { it.onlyFor == observer }.map { it.prot }
+        val own = events.filter { !it.shared && it.reaches(observer) }.map { it.prot }
         if (shared.isEmpty() && own.isEmpty()) return null
         return ZoneUpdate(zone, zone.baseX - buildAreaX, zone.baseZ - buildAreaZ, full = false, shared, own)
     }
 
-    private fun event(x: Int, z: Int, level: Int, prot: ZoneProt, onlyFor: String? = null) {
-        pending.getOrPut(ZoneKey.of(x, z, level).packed, ::ArrayList) += ZoneEvent(prot, onlyFor)
+    private fun event(x: Int, z: Int, level: Int, prot: ZoneProt, onlyFor: String? = null, except: String? = null) {
+        pending.getOrPut(ZoneKey.of(x, z, level).packed, ::ArrayList) += ZoneEvent(prot, onlyFor, except)
     }
 
     private fun state(x: Int, z: Int, level: Int): ZoneState = states.getOrPut(ZoneKey.of(x, z, level).packed, ::ZoneState)
 
     private fun locSlot(x: Int, z: Int, layer: Int) = (x and 7) or ((z and 7) shl 3) or (layer shl 6)
 
-    // Guessed: every option shown, until item and loc types say otherwise.
-    private fun objAdd(obj: ZoneObj) = ObjAdd(obj.id, obj.count, obj.x and 7, obj.z and 7, OpFlags.ALL_SHOWN)
+    /**
+     * [obj] as [observer] (a save key, or null for anyone but its owner) is told about it: whose it is, and the ticks
+     * until it turns public and until it disappears, which RuneLite shows as ground item timers. Inferred: 0 means
+     * "never" for both times, and "already" for the public one. Guessed: every option shown, until item types say
+     * otherwise.
+     */
+    private fun objAdd(obj: ZoneObj, observer: String?): ObjAdd {
+        val ownership = when (obj.droppedBy) {
+            null -> OWNERSHIP_NONE
+            observer -> OWNERSHIP_SELF
+            else -> OWNERSHIP_OTHER
+        }
+        val untilPublic = if (obj.isPrivate && !obj.neverPublic) obj.ticksUntilPublic.coerceIn(0, MAX_TIME) else 0
+        val untilDespawn = if (obj.ticksUntilDespawn == ZoneObj.NEVER) 0 else obj.ticksUntilDespawn.coerceIn(0, MAX_TIME)
+        return ObjAdd(
+            obj.id, obj.count, obj.x and 7, obj.z and 7, OpFlags.ALL_SHOWN,
+            untilPublic, untilDespawn, ownership, obj.neverPublic,
+        )
+    }
 
     private fun locAddChange(loc: ZoneLoc) = LocAddChangeV2(loc.id, loc.x and 7, loc.z and 7, loc.shape, loc.angle, OpFlags.ALL_SHOWN)
 
@@ -293,6 +388,14 @@ class Zones {
         /** The client's build area is 13x13 zones, centred on the zone it was built around. */
         const val BUILD_AREA_ZONE_RADIUS = 6
         const val BUILD_AREA_SIZE = 104
+
+        /** ObjAdd's ownership types, as RSProt documents them: nobody's, the observer's own, another player's. */
+        const val OWNERSHIP_NONE = 0
+        const val OWNERSHIP_SELF = 1
+        const val OWNERSHIP_OTHER = 2
+
+        /** The obj times go in two bytes: about 11 hours. */
+        private const val MAX_TIME = 65535
 
         /** Zones per side of the map: 16,384 tiles. */
         private const val MAX_ZONE = 2048

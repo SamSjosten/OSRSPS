@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import osrsps.game.Interactions
 import osrsps.game.Movement
 import osrsps.game.Player
 import osrsps.game.script.Handlers
@@ -45,6 +46,7 @@ class LocInteractionsTest {
         faceLoc = { _, target -> faced += target },
         clearFlag = {},
     )
+    private val steps = Interactions(message = { _, text -> messages += text })
     private val player = Player(1, "test", 3212, 3210, 0)
 
     // A wall running north and south along the east edge of x 3215, with a closed door in it at z 3210.
@@ -70,7 +72,7 @@ class LocInteractionsTest {
         tick++
         scripts.process(player)
         locs.process()
-        interactions.process(player) { movement.process(player) }
+        steps.process(player) { movement.process(player) }
     }
 
     private fun walkTo(x: Int, z: Int) {
@@ -142,7 +144,7 @@ class LocInteractionsTest {
         for (angle in 0..3) walls.addLoc(types[WALL]!!.collision, 3220, 3220, 0, LocShape.WALL_STRAIGHT, angle)
         interactions.click(player, LADDER, 3210, 3214, 1, invertRun = false)
         tick()
-        assertEquals(listOf(LocInteractions.CANT_REACH), messages)
+        assertEquals(listOf(Interactions.CANT_REACH), messages)
         assertNull(player.interaction)
     }
 

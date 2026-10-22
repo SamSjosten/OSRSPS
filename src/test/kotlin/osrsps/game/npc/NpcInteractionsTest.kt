@@ -7,6 +7,7 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import osrsps.game.ConditionalOp
 import osrsps.game.GameRandom
+import osrsps.game.Interactions
 import osrsps.game.InvObj
 import osrsps.game.Movement
 import osrsps.game.NpcType
@@ -14,12 +15,10 @@ import osrsps.game.NpcTypes
 import osrsps.game.Player
 import osrsps.game.SubOp
 import osrsps.game.VarTypes
-import osrsps.game.loc.LocInteraction
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptRunner
-import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollision
 import osrsps.map.LocCollisionType
@@ -43,6 +42,7 @@ class NpcInteractionsTest {
         faceNpc = { _, npc -> faced += npc },
         clearFlag = {},
     )
+    private val shared = Interactions { _, text -> messages += text }
     private val player = Player(1, "test", 3212, 3210, 0)
 
     private fun spawn(type: NpcType = hans, x: Int = 3216, z: Int = 3210, wander: Int = 0) =
@@ -54,7 +54,7 @@ class NpcInteractionsTest {
         interactions.releaseNpcs()
         npcs.process()
         scripts.process(player)
-        interactions.process(player) { movement.process(player) }
+        shared.process(player) { movement.process(player) }
     }
 
     @Test
@@ -105,7 +105,7 @@ class NpcInteractionsTest {
         val under = Player(2, "under", 3220, 3220, 0)
         val other = spawn(x = 3220, z = 3220)
         interactions.click(under, other.index, 1, -1, invertRun = false)
-        interactions.process(under) { movement.process(under) }
+        shared.process(under) { movement.process(under) }
         assertTrue(!other.covers(under.x, under.z), "stepped out from under it")
     }
 
@@ -184,7 +184,7 @@ class NpcInteractionsTest {
         val npc = spawn(x = 3216)
         interactions.click(player, npc.index, 1, -1, invertRun = false)
         repeat(5) { tick() }
-        assertEquals(listOf(NpcInteractions.CANT_REACH), messages)
+        assertEquals(listOf(Interactions.CANT_REACH), messages)
         assertNull(player.interaction)
         assertNull(npc.engagedWith)
         // The player stops turning to the NPC they gave up on.
@@ -218,16 +218,6 @@ class NpcInteractionsTest {
         assertNull(npc.engagedWith)
         assertNull(faced.last())
         assertNull(player.facingNpc)
-    }
-
-    @Test
-    fun `a loc interaction is left to the loc code`() {
-        val loc = LocInteraction(ZoneLoc(1, LocShape.CENTREPIECE_STRAIGHT, 0, 3215, 3215, 0), 1)
-        player.interaction = loc
-        var moved = false
-        interactions.process(player) { moved = true }
-        assertTrue(moved)
-        assertSame(loc, player.interaction)
     }
 
     @Test
@@ -310,9 +300,9 @@ class NpcInteractionsTest {
         val used = mutableListOf<Op>()
         handlers.onNpc(SHOWN, 1) { op -> used += op }
         handlers.onNpc(MULTI, 1) { op -> used += op }
-        interactions.process(player) { movement.process(player) }
+        shared.process(player) { movement.process(player) }
         player.vars[0] = 0
-        repeat(4) { interactions.process(player) { movement.process(player) } }
+        repeat(4) { shared.process(player) { movement.process(player) } }
         assertEquals(emptyList(), used)
         assertNull(player.interaction)
     }
@@ -326,7 +316,7 @@ class NpcInteractionsTest {
         assertSame(player, npc.engagedWith)
         val other = Player(2, "other", 3213, 3211, 0)
         interactions.click(other, npc.index, 1, -1, invertRun = false)
-        interactions.process(other) { movement.process(other) }
+        shared.process(other) { movement.process(other) }
         assertSame(player, npc.engagedWith)
     }
 
@@ -346,7 +336,7 @@ class NpcInteractionsTest {
         var used = false
         handlers.onNpc(GUARD, 3) { used = true }
         player.vars[7] = 0
-        repeat(5) { interactions.process(player) { movement.process(player) } }
+        repeat(5) { shared.process(player) { movement.process(player) } }
         assertTrue(!used)
         assertNull(player.interaction)
     }
@@ -375,7 +365,7 @@ class NpcInteractionsTest {
         var used = false
         handlers.onNpc(GUARD, 1) { used = true }
         player.vars[7] = 0
-        repeat(5) { interactions.process(player) { movement.process(player) } }
+        repeat(5) { shared.process(player) { movement.process(player) } }
         assertTrue(!used)
         assertNull(player.interaction)
     }

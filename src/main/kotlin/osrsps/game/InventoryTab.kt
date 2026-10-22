@@ -25,6 +25,8 @@ class InventoryTab(
     /** Wears the item in a slot: what Wear, Wield and Equip do when no content handler takes them. */
     private val wear: (Player, Int) -> Unit = { _, _ -> },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
+    /** Drops the slot's stack on the ground; see [GroundObjs.drop]. */
+    private val onDrop: (Player, Int) -> Unit = { _, _ -> },
 ) {
     /** Lets the client send clicks, drags and "Use" on the 28 slots. Sent once the panel is open on login. */
     fun open(player: Player) {
@@ -63,6 +65,10 @@ class InventoryTab(
         if (scripts.trigger(player, Op(OpTarget.OBJ, type.id, option, slot))) return
         if (type.wearable && type.iop(option) in Equipment.WEAR_OPTIONS) {
             wear(player, slot)
+            return
+        }
+        if (type.iop(option).equals(DROP, ignoreCase = true)) {
+            onDrop(player, slot)
             return
         }
         logger.info { "${player.username} picked ${type.iop(option)} on $type in slot $slot (not handled)" }
@@ -132,6 +138,9 @@ class InventoryTab(
         const val ITEMS = 0
 
         const val EXAMINE_OP = 10
+
+        /** The inventory option that drops the item, unless a handler takes it. */
+        const val DROP = "Drop"
         const val EXAMINE_SCRIPT = 6003
         const val NOTHING_INTERESTING = "Nothing interesting happens."
         private const val CHATTYPE_GAMEMESSAGE = 0

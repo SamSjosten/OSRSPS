@@ -30,9 +30,11 @@ import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
+import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerLocCommands
 import osrsps.game.command.registerNpcCommands
+import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
@@ -87,6 +89,8 @@ class World(
     locTypes: LocTypes = LocTypes.NONE,
     /** The locs the cache's maps place. */
     staticLocs: StaticLocs = StaticLocs(),
+    /** What `::scenario` can start. */
+    val scenarios: Scenarios = Scenarios.NONE,
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -111,11 +115,20 @@ class World(
 
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
+    /** Items on the ground: drops, takes, their timers and item spawns. */
+    val groundObjs = GroundObjs(zones, objTypes, scripts, collision, { findPlayer(it) != null }, { players.count { it != null } })
+
     private val equipment = Equipment(objTypes)
 
-    private val inventoryTab: InventoryTab = InventoryTab(objTypes, scripts, interfaces::closeModals, wear = { player, slot -> equipmentTab.wear(player, slot) })
+    private val inventoryTab: InventoryTab = InventoryTab(
+        objTypes, scripts, interfaces::closeModals,
+        wear = { player, slot -> equipmentTab.wear(player, slot) },
+        onDrop = groundObjs::drop,
+    )
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal)
+
+    private val interactions = Interactions()
 
     private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors)
 
@@ -131,8 +144,10 @@ class World(
         registerZoneCommands(this@World)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
+        registerGroundObjCommands(this@World)
         registerLocCommands(this@World)
         registerNpcCommands(this@World)
+        registerScenarioCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -226,6 +241,8 @@ class World(
 
     private fun tick() {
         tick++
+        phase = TickPhase.WORLD
+        groundObjs.process()
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.NPCS
@@ -241,8 +258,8 @@ class World(
         for (player in players) {
             if (player == null) continue
             interfaces.processFrameMove(player, tick)
-            npcInteractions.process(player) { locInteractions.process(player) { move(player) } }
-            // A loc used after the player's step (a ladder on arrival) can teleport them once move() has run.
+            interactions.process(player) { move(player) }
+            // A loc or obj used after the player's step (a ladder on arrival) can teleport them once move() has run.
             if (player.teleported) {
                 finishTeleport(player)
                 rebuildIfNeeded(player)
@@ -505,6 +522,8 @@ class World(
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
         player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
+        // The ground items and loc changes it missed go again too, as after any rebuild.
+        player.zoneView.reset()
     }
 
     private fun enterWorld(player: Player) {
@@ -556,6 +575,29 @@ class World(
         val route = movement.request(player, x, z, invertRun = keyCombination == 1)
         // Guessed: with no route the client's flag would stay up forever, so clear it.
         if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)
+    }
+
+    /**
+     * A click on option [option] (1 to 5) of obj [id] on the ground. The player walks there and the option runs once
+     * they reach it; see [GroundObjs]. [ctrl] flips walk and run, as on a move click.
+     */
+    fun onGroundObjOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+        // Delayed players can't walk off, as for a move click.
+        if (player.scripts.delayed) return@act
+        val interaction = groundObjs.click(player, id, x, z, option) ?: return@act
+        npcInteractions.stopFacing(player)
+        scripts.interrupt(player)
+        player.interaction = interaction
+        val route = movement.request(player, interaction.target, invertRun = ctrl)
+        // Guessed, as for a walk: with no route to walk the client's flag would stay up.
+        if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)
+    }
+
+    /** Examine on obj [id] on the ground: the same examine as in the inventory. Guessed, not checked against live. */
+    fun onGroundObjExamine(player: Player, id: Int, x: Int, z: Int) = act(player) {
+        val obj = groundObjs.visibleAt(player, x, z, player.level).firstOrNull { it.id == id } ?: return@act
+        val type = objTypes[id] ?: return@act
+        inventoryTab.examine(player, type, obj.count)
     }
 
     /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */

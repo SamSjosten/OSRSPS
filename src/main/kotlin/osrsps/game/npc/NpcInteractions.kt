@@ -5,6 +5,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import osrsps.game.ConditionalOp
 import osrsps.game.Facing
 import osrsps.game.Interaction
+import osrsps.game.Interactions
 import osrsps.game.Inventory
 import osrsps.game.Movement
 import osrsps.game.NpcType
@@ -26,20 +27,31 @@ private val logger = KotlinLogging.logger {}
  * An NPC option the player clicked, or an item they used on an NPC ([obj] and its inventory [slot]), and are walking to.
  * [sub] is the option's sub-option, -1 for none.
  */
-class NpcInteraction(val npc: Npc, val option: Int, val sub: Int = -1, val obj: Int = -1, val slot: Int = -1) : Interaction {
+class NpcInteraction internal constructor(
+    val npc: Npc,
+    val option: Int,
+    private val owner: NpcInteractions,
+    val sub: Int = -1,
+    val obj: Int = -1,
+    val slot: Int = -1,
+) : Interaction {
     val usesObj: Boolean get() = obj >= 0
 
     /** Where the NPC stood when the player's route to it was last made. */
     internal var routedTo: Tile? = null
+
+    override fun tryInteract(player: Player) = owner.tryInteract(player, this)
+
+    override fun unreachable(player: Player) = owner.stopFacing(player)
 }
 
 /**
  * Clicks on NPCs, and items used on them: walk to the NPC, then run the handler.
  *
  * A click turns the player to the NPC and routes them to the nearest tile beside it (see [Reach.reachedEntity]): along
- * one of its sides, not a corner, and not under it. Each tick's movement phase tries the option before the player
- * moves and again after, as for locs. While the NPC walks the player chases it: the route is made again from where
- * the NPC now stands whenever it has moved. Players reach NPCs with the same route finder as tiles, which is how the
+ * one of its sides, not a corner, and not under it. [Interactions] tries the option before the player moves and again
+ * after, as for locs. While the NPC walks the player chases it: the route is made again from where the NPC now stands
+ * whenever it has moved. Players reach NPCs with the same route finder as tiles, which is how the
  * client's own route finder treats them; that live re-routes every tick the NPC moves is inferred from the RS2 world
  * cycle (2004Scape), not checked against a recording.
  *
@@ -49,8 +61,8 @@ class NpcInteraction(val npc: Npc, val option: Int, val sub: Int = -1, val obj: 
  *
  * Interrupted (inferred from live, where a new click replaces what you were doing): walking somewhere, clicking
  * another NPC or loc, or a teleport drops the interaction, and the NPC going away or changing level ends it quietly.
- * An option with no handler says "Nothing interesting happens.", and an NPC the route can't reach "I can't reach
- * that!" once the player stops; both are live's messages.
+ * An option with no handler says "Nothing interesting happens.", live's message; an NPC the route can't reach is left
+ * to [Interactions], which says "I can't reach that!".
  */
 class NpcInteractions(
     private val npcs: Npcs,
@@ -77,7 +89,7 @@ class NpcInteractions(
             logger.debug { "${player.username} clicked option $option (sub $sub) of $npc, which has no such option" }
             return
         }
-        start(player, NpcInteraction(npc, option, sub), invertRun)
+        start(player, NpcInteraction(npc, option, this, sub), invertRun)
     }
 
     /** The player used the item [obj] in inventory slot [slot] on NPC [index]. */
@@ -87,7 +99,7 @@ class NpcInteractions(
             logger.debug { "${player.username} used slot $slot as $obj on $npc, which it doesn't hold" }
             return
         }
-        start(player, NpcInteraction(npc, 0, obj = obj, slot = slot), invertRun)
+        start(player, NpcInteraction(npc, 0, this, obj = obj, slot = slot), invertRun)
     }
 
     /** Whether [player]'s inventory slot [slot] holds [obj]. A slot out of range (a forged packet) holds nothing. */
@@ -127,29 +139,11 @@ class NpcInteractions(
     }
 
     /**
-     * Runs [player]'s part of the movement phase: their NPC interaction, if any, around [move], which walks them one
-     * tick. A delayed player's interaction waits for the delay to end.
+     * Runs the option if the player has reached the NPC. Returns true once the interaction is over, run or gone. Called
+     * before the player's step and after; before it, an NPC that moved (in this tick's NPC phase, or an earlier one)
+     * gets a new route, which is the chase.
      */
-    fun process(player: Player, move: () -> Unit) {
-        val interaction = player.interaction as? NpcInteraction
-        if (interaction == null || player.scripts.delayed || tryInteract(player, interaction)) {
-            move()
-            return
-        }
-        // Chase: the NPC moved since the route was made (in this tick's NPC phase, or an earlier one).
-        val npc = interaction.npc
-        if (interaction.routedTo != Tile(npc.x, npc.z)) route(player, interaction)
-        move()
-        if (player.interaction !== interaction || tryInteract(player, interaction)) return
-        if (player.waypoints.isEmpty()) {
-            player.interaction = null
-            stopFacing(player)
-            message(player, CANT_REACH)
-        }
-    }
-
-    /** Runs the option if the player has reached the NPC. Returns true once the interaction is over, run or gone. */
-    private fun tryInteract(player: Player, interaction: NpcInteraction): Boolean {
+    internal fun tryInteract(player: Player, interaction: NpcInteraction): Boolean {
         val npc = interaction.npc
         if (npcs[npc.index] !== npc || npc.level != player.level) {
             // Guessed: the NPC went away (or up a ladder); the player stops turning to it and finishes their walk.
@@ -164,7 +158,10 @@ class NpcInteractions(
             return true
         }
         val size = npc.type.size
-        if (!Reach.reachedEntity(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size)) return false
+        if (!Reach.reachedEntity(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size)) {
+            if (interaction.routedTo != Tile(npc.x, npc.z)) route(player, interaction)
+            return false
+        }
         player.interaction = null
         player.waypoints.clear()
         val type = shownType(npc, player)
@@ -268,7 +265,6 @@ class NpcInteractions(
         /** How far away an NPC can be clicked: RSProt's NPC info sends NPCs within 15 tiles. */
         const val VIEW_RANGE = 15
 
-        const val CANT_REACH = "I can't reach that!"
         const val NOTHING_INTERESTING = "Nothing interesting happens."
 
         /**

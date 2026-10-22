@@ -104,7 +104,7 @@ class PlayerSkills {
 
     init {
         // A new account has 10 Hitpoints (1,154 XP) and level 1 everywhere else.
-        setLevel(Skill.HITPOINTS, 10)
+        setLevel(Skill.HITPOINTS, NEW_HITPOINTS)
     }
 
     /** XP in tenths: 175 is 17.5 XP. */
@@ -181,5 +181,11 @@ class PlayerSkills {
 
     companion object {
         const val MAX_CURRENT_LEVEL = 255
+
+        /** A new account's Hitpoints level; every other skill starts at 1. */
+        const val NEW_HITPOINTS = 10
+
+        /** The level [skill] starts at on a new account. */
+        fun newLevel(skill: Skill): Int = if (skill == Skill.HITPOINTS) NEW_HITPOINTS else 1
     }
 }

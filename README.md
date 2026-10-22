@@ -154,8 +154,10 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
-| `::groundobj id [count]` | Puts obj `id` on your tile for everyone, until `::cleartile` or a restart (no ground item timers yet) |
-| `::cleartile` | Removes every obj from your tile |
+| `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
+| `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
+| `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
+| `::cleartile` | Removes every obj from your tile; item spawns there come back as if taken |
 | `::anim id [delay]` | Plays animation (seq) `id` on you, seen by everyone nearby; `-1` stops it. Delay is 0 to 255 client cycles. `::anim 866` dances |
 | `::spotanim id [height] [delay] [slot]` | Plays spotanim `id` on you rather than on your tile; `-1` clears the slot (0 to 255) |
 | `::sound [id] [loops] [delay]` | Plays sound effect `id` to you alone (default 3813, the town crier's bell) |
@@ -171,6 +173,8 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::npcs [radius]` | Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
+| `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
+| `::reset` | Puts you back as you were before your first `::scenario` |
 
 Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`.
 
@@ -273,6 +277,47 @@ JDK or Kotlin upgrades. It is not the generator live uses: only repeatability ma
 rolls are made in player index order within each tick phase, so the same seed also needs the same players in the same
 slots (inferred from the tick loop; nothing rolls yet).
 
+## Ground items
+
+Everything on the ground goes through `World.groundObjs` (`game/GroundObjs.kt`): Drop in the inventory, walking to
+an item and taking it, the timers, and item spawns. The clients are sent it through the zone updates below. Each obj
+tells the client whose it is and the ticks until it turns public and until it disappears, which RuneLite's ground item
+plugins read.
+
+| Ground item behaviour | Source |
+|-----------------------|--------|
+| A drop is only the dropper's for 100 ticks (60 s) | OSRS Wiki, Drop and Dropped items |
+| A tradeable drop then turns public and disappears 300 ticks (3 minutes) after the drop | OSRS Wiki, Drop ("visible after 60 s, disappear after another 120 s"); the Dropped items page's 200 ticks is for monster drops |
+| An untradeable drop never turns public and disappears after 300 ticks; its timer stops while its owner is logged out | OSRS Wiki, Drop |
+| Spawn respawn time ⌊BaseRate × (4000 − players) / 4000⌋, counted when taken | OSRS Wiki, Item spawn; each spawn's BaseRate is content's, default 100 ticks guessed |
+| Timers run once a tick before players' input | guessed phase |
+| A stackable drop joins the dropper's private stack on that tile, which keeps its timers | RSMod merges; keeping the timers is guessed (the count update carries no times) |
+| Take is op3; the player walks onto the item and takes it the tick they arrive | the cache's default ground ops; tick from the RS2 world cycle, inferred |
+| An item on a tile you can't stand on (a table) is taken from the tile beside it, north/south/east/west with no wall between, a tick later, with animation 832 | RSMod and inferred |
+| Drop plays sound 2739, a take sound 2582 | RSMod's symbol names (put_down, pick2), not checked against the 241 cache |
+| "I can't reach that!", "Too late - it's gone!", "You don't have enough inventory space to hold that item." | RSMod (rev 233), not checked against live |
+| An item that vanished while you walked to it just ends the walk | guessed |
+| Ground Examine shows the inventory examine (script 6003) | guessed |
+| The obj times are in ticks and 0 means none | inferred from RSProt and RuneLite's TileItem |
+
+Not built yet: the warning before dropping an item worth 30,000 coins or more (needs dialogue, task 18), the Wilderness rules,
+items placed on tables, the 128-items-a-tile limit, and "Use" of an item on a ground item.
+
+Content adds item spawns in tab-separated files under `src/main/resources/obj-spawns/`, one per area:
+
+```
+obj	count	x	z	level	respawn	# source
+bronze_axe	1	3225	3218	0	100	# wiki item spawn list; respawn guessed
+```
+
+`obj` is a gameval name or id, `respawn` the BaseRate in ticks; the format is in `ObjSpawnFiles`. Content can also
+handle a ground option with `Handlers.onGroundObj(id, option)`, which gets the obj as `Op.groundObj`; one on op3
+replaces Take for that item.
+
+Check with two clients near each other: `::item bronze axe`, then Drop it on the first. `::grounditems` there shows it
+private, public in 100 ticks. The second client sees nothing until 60 s later, when the axe appears for it; take it
+with the second client. RuneLite's Ground Items plugin with its despawn timer on shows the times counting down.
+
 ## NPCs
 
 NPC types come from cache config 9 at startup (`NpcTypeLoader`), with gameval names from index 24 archive 1. NPC
@@ -359,7 +404,7 @@ player alone. Zone updates are sent on paused cycles too, so `::gfx` typed while
 | `::proj` flight values (heights, timing, arc) | guessed |
 
 Check with two clients logged in near each other: `::gfx 85` on one shows the graphic on both (any spotanim id works;
-85 is `failedspell_impact`, the magic splash, in the 241 cache's names). `::groundobj 1351` shows a bronze axe to both; walk the second client 40
+85 is `failedspell_impact`, the magic splash, in the 241 cache's names). `::groundobj 1351` shows a bronze axe to both at once; walk the second client 40
 tiles away and back, or log it out and in, and the axe is still there.
 
 ## Animations, spotanims and sounds
@@ -452,3 +497,27 @@ inventory's and equipment's slots; the bank joins it when it exists. Code is in 
 | A reconnect must send back the ISAAC seed of the connection it lost | RSProt / client protocol |
 | After a reconnect every varp and stat is sent again and the map is rebuilt; interfaces are left as the client has them | inferred, not checked against live |
 | All varps are saved; live keeps some only for the session, which ours doesn't know about yet | guessed |
+
+## Scenarios
+
+A scenario sets a player up for a test in one go: where they stand, their skills, inventory, equipment, run energy and
+any varps or varbits. Scenarios are JSON files in `src/main/resources/scenarios/`, named after the scenario and listed in
+`Scenarios.FILES`; the format is in `game/Scenario.kt`. They are testing tools, not live content.
+
+| Scenario behaviour | Source |
+|--------------------|--------|
+| What a scenario leaves out is reset: unnamed skills are a new account's, run energy is full, slots it doesn't fill are empty | ours, so a scenario always starts the same |
+| Varps and varbits it doesn't name, and the run orb unless it says, are kept | ours: they hold settings and quest states |
+| Starting one, or `::reset`, closes interfaces and drops queued scripts, timers, delays and clicks held while paused | ours |
+| Items are checked against the cache before anything changes; level requirements aren't checked | ours |
+
+`::reset` puts back the player as they were before their first `::scenario`: a second scenario still resets to before
+the first. The way back is kept in the save (`beforeScenario`), so a logout in the middle loses nothing. The server log
+warns at startup about any scenario naming an item the cache lacks.
+
+`lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
+Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a
+tinderbox and 100 coins, with run on.
+
+Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
+you were with your own stats and items.

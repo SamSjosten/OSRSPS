@@ -18,9 +18,11 @@ import osrsps.game.EffectIds
 import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
 import osrsps.game.NpcTypes
+import osrsps.game.ObjSpawnFiles
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.Quests
+import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.npc.NpcExamines
@@ -90,10 +92,22 @@ class GameServer(
         val npcSpawns = NpcSpawnFile.loadAll(npcTypes)
         val npcExamines = NpcExamines.load()
         logger.info { "Loaded ${npcSpawns.size} NPC spawns and ${npcExamines.size} NPC examine texts" }
+        val scenarios = Scenarios.load()
+        for (name in scenarios.names) {
+            // Checked again when started; warned about here so a bad item name shows in the deploy log.
+            try {
+                scenarios[name]!!.loadout(objTypes)
+            } catch (e: IllegalArgumentException) {
+                logger.warn { "Scenario $name can't start: ${e.message}" }
+            }
+        }
+        logger.info { "Loaded ${scenarios.names.size} scenarios: ${scenarios.names.joinToString()}" }
         world = World(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
             npcSpawns, npcExamines, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
+            scenarios = scenarios,
         )
+        loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
         network = factory.build()
         world.network = network
@@ -108,6 +122,18 @@ class GameServer(
             throw e
         }
         logger.info { "Listening on port $port. RSProx modulus: ${dataDir.resolve("rsa-modulus.txt").toAbsolutePath()}" }
+    }
+
+    /** Puts every item spawn from the resources' spawn files on the ground. A file that doesn't read stops the start. */
+    private fun loadObjSpawns(objTypes: ObjTypes) {
+        var count = 0
+        for ((name, text) in ObjSpawnFiles.resources()) {
+            for (spawn in ObjSpawnFiles.parse(text, objTypes, name)) {
+                world.groundObjs.addSpawn(spawn)
+                count++
+            }
+        }
+        logger.info { "Placed $count item spawn${if (count == 1) "" else "s"}" }
     }
 
     fun stop() {

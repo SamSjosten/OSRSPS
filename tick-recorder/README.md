@@ -72,7 +72,7 @@ world view is recorded.
 
 | `t` | When | Fields |
 | --- | --- | --- |
-| `start` | recording begins | `format`, `runelite`, `revision`, `world`, `worldTypes`, `time`, `settings` |
+| `start` | recording begins | `format`, `recorder` (plugin version), `runelite`, `revision`, `world`, `worldTypes`, `time`, `settings` |
 | `tick` | each game tick | `clientTick`, `ms`, `self`, `npcs[]`, `players[]` (with Other players on). Each actor: `at`, `orientation`, `anim`, `frame`, `pose`, `spotanims[]`, `healthRatio`, `healthScale`, `target`; NPCs add `size`; `self` adds `energy`, `weight`, `destination` |
 | `anim` | actor animation changes | `actor`, `anim`, `frame`. A repeat of the same animation fires no line; watch `frame` drop in tick lines |
 | `spotanims` | actor spotanims change | `actor`, `spotanims[]` of `{slot, id, height, startCycle, frame}`, all current ones |
@@ -97,6 +97,7 @@ world view is recorded.
 | `gameState` | login state changes | `state`, `ms` |
 | `world` | you change world | `world`, `worldTypes` |
 | `config` | a setting changes while recording | `key`, `value` |
+| `error` | a recorder handler threw | `where` (handler name), `error` (exception class), `count`. The first five per handler per recording; later ones are only counted |
 | `stop` | recording ends | `reason` (`stopped`, `pluginStopped`, `clientExit`), `time` |
 
 Lines written at the start of a recording carry `"baseline":true` (`items` for inventory and
@@ -107,8 +108,9 @@ the server adding them.
 A recording that ends in a crash has no `stop` line, and its last line may be cut short; skip a
 final line that doesn't parse.
 
-Version policy: new fields and line types keep the version; changing what an existing field means
-bumps it.
+Version policy: `format` is this table's version: new fields and line types keep it, changing what an
+existing field means bumps it. `recorder` is the plugin version, bumped with every change to what is
+written, so a reader knows which build made a file.
 
 ## Building
 
