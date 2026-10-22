@@ -33,6 +33,7 @@ import net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings
 import net.rsprot.protocol.game.incoming.npcs.OpNpc6
 import net.rsprot.protocol.game.incoming.npcs.OpNpcT
 import net.rsprot.protocol.game.incoming.npcs.OpNpcV2
+import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
 import net.rsprot.protocol.loginprot.incoming.pow.NopProofOfWorkProvider
@@ -143,6 +144,9 @@ class NetworkFactory(
         })
         builder.addListener(OpObj6::class.java, MessageConsumer { player, message ->
             world.onGroundObjExamine(player, message.id, message.x, message.z)
+        })
+        builder.addListener(ResumePauseButton::class.java, MessageConsumer { player, message ->
+            world.onResumePauseButton(player, message.interfaceId, message.componentId, message.sub)
         })
         builder.addListener(CloseModal::class.java, MessageConsumer { player, _ -> world.onCloseModal(player) })
         return DefaultGameMessageConsumerRepositoryProvider(builder.build())

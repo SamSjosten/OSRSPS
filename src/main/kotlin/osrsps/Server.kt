@@ -7,6 +7,7 @@ import net.rsprot.compression.HuffmanCodec
 import net.rsprot.compression.provider.DefaultHuffmanCodecProvider
 import net.rsprot.protocol.api.NetworkService
 import osrsps.cache.EffectIdLoader
+import osrsps.cache.FontLoader
 import osrsps.cache.GameFrameCheck
 import osrsps.cache.MapCollisionLoader
 import osrsps.cache.NpcTypeLoader
@@ -25,6 +26,7 @@ import osrsps.game.Quests
 import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.dialogue.ChatFont
 import osrsps.game.npc.NpcExamines
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.net.ClientConfig
@@ -62,6 +64,7 @@ class GameServer(
         val npcTypes: NpcTypes
         val quests: Quests
         val effectIds: EffectIds
+        val chatFont: ChatFont
         try {
             js5 = Js5Store.load(library)
             map = MapCollisionLoader.loadWorld(library)
@@ -70,12 +73,13 @@ class GameServer(
             npcTypes = NpcTypeLoader.load(library)
             quests = QuestLoader.load(library)
             effectIds = EffectIdLoader.load(library)
+            chatFont = FontLoader.loadDialogueFont(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
             val huffmanData = library.data(HUFFMAN_ARCHIVE, "huffman", 0) ?: error("No huffman group in the cache")
             huffman = HuffmanCodec.create(Unpooled.wrappedBuffer(huffmanData))
             val frameProblems = GameFrameCheck.check(library)
             if (frameProblems.isEmpty()) {
-                logger.info { "Game frame ids match the cache's names" }
+                logger.info { "Game frame, dialogue and chat animation ids match the cache's names" }
             } else {
                 frameProblems.forEach { logger.warn { "Game frame: $it" } }
             }
@@ -105,7 +109,7 @@ class GameServer(
         world = World(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
             npcSpawns, npcExamines, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
-            scenarios = scenarios,
+            scenarios = scenarios, chatFont = chatFont,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)

@@ -21,6 +21,19 @@ class PlayerScripts {
     /** A script has the player waiting out a delay. */
     val delayed: Boolean get() = suspended != null
 
+    /** The script waiting for a click on a dialogue's continue or one of its options, if any. */
+    internal var paused: PausedScript? = null
+
+    /** A script waits for the player to continue a dialogue or pick an option. */
+    val waitingForDialogue: Boolean get() = paused != null
+
+    /** Drops the script waiting for a dialogue click, which never carries on. Returns whether there was one. */
+    internal fun dropPaused(): Boolean {
+        val had = paused != null
+        paused = null
+        return had
+    }
+
     val queued: List<QueuedScript> get() = queue + weakQueue
     val activeTimers: Collection<ScriptTimer> get() = timers.values
 }
@@ -39,3 +52,9 @@ class ScriptTimer(val name: String, val type: TimerType, val interval: Int, inte
     var clock: Int = interval
         internal set
 }
+
+/**
+ * A script waiting for the client's resume_pausebutton on component [component] (packed), with a slot in [subs]: a
+ * dialogue's "Click here to continue" (slot -1) or a chat menu option (slots 1 up).
+ */
+class PausedScript(val component: Int, val subs: IntRange, internal val continuation: Continuation<Int>)

@@ -20,8 +20,11 @@ private val logger = KotlinLogging.logger {}
  * 2. The queue (normal, strong, soft), then the weak queue.
  * 3. Normal timers, then soft timers.
  *
- * The player is busy while delayed or with a modal open. Busy players don't run normal or weak scripts or normal
- * timers, and their clicks are ignored while delayed.
+ * The player is busy while delayed or with a modal open, a dialogue included. Busy players don't run normal or weak
+ * scripts or normal timers, and their clicks are ignored while delayed.
+ *
+ * A script can also wait for the player to continue a dialogue ([pauseButton]); it carries on as soon as the click
+ * arrives, in the input phase, as the 2004Scape project's engine runs a resumed script from the packet's handler.
  *
  * Only touched on the game thread. Scripts run on it straight away and are never resumed anywhere else.
  */
@@ -36,7 +39,7 @@ class ScriptRunner(
     /** Counts script phases, so a queue entry is counted down once a phase even if a script moves the queue about. */
     private var passes = 0L
 
-    fun busy(player: Player): Boolean = player.scripts.delayed || player.modals.isNotEmpty()
+    fun busy(player: Player): Boolean = player.scripts.delayed || player.modalOpen
 
     /** Runs [script] for [player] now, until it finishes or delays. */
     fun start(player: Player, script: Script) {
@@ -116,6 +119,20 @@ class ScriptRunner(
         state.timers.clear()
         state.suspended = null
         state.delayedUntil = 0
+        state.paused = null
+    }
+
+    /**
+     * The client sent a resume_pausebutton for component [component] (packed) slot [sub]. Carries on the script waiting
+     * for it, now, and returns true; returns false when no script waits for that click (an old or forged packet).
+     */
+    fun resumePauseButton(player: Player, component: Int, sub: Int): Boolean {
+        val state = player.scripts
+        val paused = state.paused ?: return false
+        if (paused.component != component || sub !in paused.subs) return false
+        state.paused = null
+        paused.continuation.resume(sub)
+        return true
     }
 
     /** Runs [player]'s part of this tick's script phase. */
@@ -152,7 +169,7 @@ class ScriptRunner(
             queue.removeAt(i)
             // Strong closing modals before it runs is from 2004Scape; soft doing the same is a guess. Closing a modal
             // removes weak scripts, but a soft script with none open leaves them alone.
-            val closesModals = entry.type == QueueType.STRONG || (entry.type == QueueType.SOFT && player.modals.isNotEmpty())
+            val closesModals = entry.type == QueueType.STRONG || (entry.type == QueueType.SOFT && player.modalOpen)
             if (closesModals) interrupt(player)
             start(player, entry.script)
             // Guessed: a script queued during the phase with delay 0 runs in it too. The bound is ours, so a script that
@@ -196,6 +213,13 @@ class ScriptRunner(
             state.suspended = continuation
             state.delayedUntil = tick + ticks
         }
+    }
+
+    internal suspend fun pauseButton(player: Player, component: Int, subs: IntRange): Int {
+        val state = player.scripts
+        // Only one dialogue shows at a time: a script that opens another drops the one waiting on the old.
+        if (state.paused != null) logger.debug { "Dropping ${player.username}'s script waiting on a dialogue for a new one" }
+        return suspendCoroutine { continuation -> state.paused = PausedScript(component, subs, continuation) }
     }
 
     /** Where a script ends up when it finishes or throws. One bad script shouldn't cost everyone the tick. */

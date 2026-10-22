@@ -56,6 +56,14 @@ class ScriptContext internal constructor(val player: Player, private val runner:
      */
     suspend fun delay(ticks: Int = 1) = runner.delay(player, ticks)
 
+    /**
+     * Stops the script until the player clicks component [componentId] of [interfaceId] with a resume_pausebutton (a
+     * dialogue's continue, a chat menu's options) on a slot in [subs], and returns that slot. The player isn't delayed
+     * meanwhile; anything that closes the dialogue drops the script. See [ScriptRunner.resumePauseButton].
+     */
+    suspend fun pauseButton(interfaceId: Int, componentId: Int, subs: IntRange = -1..-1): Int =
+        runner.pauseButton(player, Op.packButton(interfaceId, componentId), subs)
+
     /** Queues [script] for this player; see [ScriptRunner.queue]. */
     fun queue(name: String, type: QueueType = QueueType.NORMAL, delay: Int = 0, script: Script) =
         runner.queue(player, name, type, delay, script)
