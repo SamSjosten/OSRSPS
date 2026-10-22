@@ -452,7 +452,7 @@ Right-clicking another player offers Follow, Trade with and Report (`game/Player
 | The follower takes a route to that tile, so a wall doesn't stop them; RSMod steps straight at it | ours, guessed |
 | The follower faces the target (walk mode 0: they look where they walk and turn back when they stop) | RSProt docs and RSMod, inferred |
 | A follow stops when the follower clicks elsewhere or teleports, or the target logs out, changes level or gets more than 15 tiles away | the 15 is how far players see each other; when live gives up is guessed |
-| Trade with and Report say they aren't built yet | ours, not live |
+| Trade with and Report stop any walk or follow and say they aren't built yet | ours, not live |
 
 Not built yet: trading, reporting, Attack (Wilderness and PvP worlds), and a player hiding another by standing on them
 is the client's own business.

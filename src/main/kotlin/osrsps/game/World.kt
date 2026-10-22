@@ -601,15 +601,22 @@ class World(
         if (player.scripts.delayed) return@act
         // The client was behind: they left, or the slot is someone else's now.
         val target = players.getOrNull(index) ?: return@act
+        if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT) {
+            logger.info { "${player.username} sent op $option on player ${target.username}, which has no such option" }
+            return@act
+        }
+        // Any of the options replaces what the player was doing, a follow included. Guessed for Trade with and Report,
+        // which aren't built: they stop the player where they stand.
+        scripts.interrupt(player)
+        player.interaction = null
+        player.waypoints.clear()
         when (option) {
-            PlayerOps.FOLLOW -> {
-                scripts.interrupt(player)
-                player.interaction = null
-                follows.click(player, target, ctrl)
+            PlayerOps.FOLLOW -> follows.click(player, target, ctrl)
+            else -> {
+                // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
+                player.session.queue(SetMapFlagV2.RESET)
+                player.message(if (option == PlayerOps.TRADE) PlayerOps.TRADE_NOT_BUILT else PlayerOps.REPORT_NOT_BUILT)
             }
-            PlayerOps.TRADE -> player.message(PlayerOps.TRADE_NOT_BUILT)
-            PlayerOps.REPORT -> player.message(PlayerOps.REPORT_NOT_BUILT)
-            else -> logger.info { "${player.username} sent op $option on player ${target.username}, which has no such option" }
         }
     }
 
