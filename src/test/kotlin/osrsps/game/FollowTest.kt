@@ -68,6 +68,22 @@ class FollowTest {
     }
 
     @Test
+    fun `the range is measured from where the target stood before anyone moved`() {
+        for (order in listOf(listOf(alice, bob), listOf(bob, alice))) {
+            alice.x = 3200
+            bob.x = 3200 + Follows.RANGE
+            alice.runEnabled = true
+            bob.runEnabled = true
+            follows.click(alice, bob, ctrl = false)
+            movement.request(bob, 3250, 3210, invertRun = false)
+            repeat(5) {
+                tick(order)
+                assertIs<FollowInteraction>(alice.interaction, "order ${order.map { it.username }}, tick $it")
+            }
+        }
+    }
+
+    @Test
     fun `a running target is followed to the tile between their two steps`() {
         bob.runEnabled = true
         follows.click(alice, bob, ctrl = false)

@@ -47,7 +47,11 @@ class Follows(
      * where a follower heads.
      */
     fun startMovement(players: Iterable<Player>) {
-        for (player in players) player.followTile = followTile(player)
+        for (player in players) {
+            player.followTile = followTile(player)
+            player.movementStart = Tile(player.x, player.z)
+            player.movementStartLevel = player.level
+        }
     }
 
     /**
@@ -57,7 +61,10 @@ class Follows(
     fun process(player: Player, move: () -> Unit, other: () -> Unit) {
         val follow = player.interaction as? FollowInteraction ?: return other()
         val target = follow.target
-        if (!canFollow(player, target)) {
+        // Measured from where the target stood when movement began, so a target who moves first can't step out of range.
+        val from = target.movementStart ?: Tile(target.x, target.z)
+        val level = if (target.movementStart != null) target.movementStartLevel else target.level
+        if (!canFollow(player, target, from.x, from.z, level)) {
             // Guessed: the follower stops where they are rather than walking on to the target's last follow tile.
             player.interaction = null
             if (player.waypoints.isNotEmpty()) {
@@ -82,13 +89,13 @@ class Follows(
     }
 
     /**
-     * Whether [player] can carry on following [target]: the target is still in the world, on the same level and within
-     * [RANGE] tiles. Guessed: live stops a follow when the target teleports away or logs out, but the distance it
+     * Whether [player] can carry on following [target]: the target is still in the world, and at [targetX], [targetZ] on
+     * [targetLevel] (by default where they are now), on the player's level and within [RANGE] tiles. Guessed: live stops a follow when the target teleports away or logs out, but the distance it
      * gives up at isn't known; [RANGE] is how far players see each other.
      */
-    fun canFollow(player: Player, target: Player): Boolean =
-        inWorld(target) && target.level == player.level &&
-            abs(target.x - player.x) <= RANGE && abs(target.z - player.z) <= RANGE
+    fun canFollow(player: Player, target: Player, targetX: Int = target.x, targetZ: Int = target.z, targetLevel: Int = target.level): Boolean =
+        inWorld(target) && targetLevel == player.level &&
+            abs(targetX - player.x) <= RANGE && abs(targetZ - player.z) <= RANGE
 
     companion object {
         /** The distance players see each other at, RSProt's default for player info. */

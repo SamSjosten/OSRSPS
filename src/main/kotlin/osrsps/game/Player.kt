@@ -82,6 +82,10 @@ class Player(
     /** Where someone following this player heads this tick, noted before anyone moves. Null until the first tick. */
     var followTile: Tile? = null
 
+    /** Where the player stood when this tick's movement began, for followers to measure from. Null until the first tick. */
+    var movementStart: Tile? = null
+    var movementStartLevel: Int = level
+
     /** The player this one was last told to face, so a change is sent once. See [World]'s face updates. */
     var sentFacePlayer: Player? = null
 
