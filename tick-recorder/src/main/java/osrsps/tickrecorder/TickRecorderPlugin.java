@@ -108,7 +108,7 @@ public class TickRecorderPlugin extends Plugin
 {
 	static final int FORMAT_VERSION = 2;
 	/** Which build of the recorder wrote a file; bumped with every change to what is written. */
-	static final String RECORDER_VERSION = "0.2.1";
+	static final String RECORDER_VERSION = "0.2.2";
 	/** A handler that keeps throwing gets this many error lines per recording; later ones are only counted. */
 	static final int ERROR_LINES_PER_HANDLER = 5;
 	/** A health line is written every this many ticks. */
