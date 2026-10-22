@@ -223,6 +223,16 @@ class FollowTest {
     }
 
     @Test
+    fun `a click on something that has gone resets the flag even with the follow tile reached`() {
+        follows.click(alice, bob, ctrl = false)
+        repeat(6) { tick() }
+        assertTrue(alice.waypoints.isEmpty())
+        follows.clickedElsewhere(alice)
+        assertNull(alice.interaction)
+        assertEquals(listOf<Pair<Player, OutgoingGameMessage>>(alice to SetMapFlagV2.RESET), sent)
+    }
+
+    @Test
     fun `a click that started something else is left alone`() {
         val other = Interaction { false }
         alice.interaction = other

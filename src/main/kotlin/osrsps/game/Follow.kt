@@ -60,10 +60,9 @@ class Follows(
     fun clickedElsewhere(player: Player) {
         if (player.interaction !is FollowInteraction) return
         player.interaction = null
-        if (player.waypoints.isNotEmpty()) {
-            player.waypoints.clear()
-            send(player, SetMapFlagV2.RESET)
-        }
+        player.waypoints.clear()
+        // The click put the client's flag down even if the follow had no route left; guessed, as for a blocked walk.
+        send(player, SetMapFlagV2.RESET)
     }
 
     /**
