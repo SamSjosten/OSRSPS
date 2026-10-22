@@ -257,7 +257,11 @@ class World(
         for (player in players) {
             if (player == null) continue
             interfaces.processFrameMove(player, tick)
+            // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
+            // after them for a follow that ended in them.
+            sendFace(player)
             follows.process(player, move = { move(player) }) { interactions.process(player) { move(player) } }
+            sendFace(player)
             // A loc or obj used after the player's step (a ladder on arrival) can teleport them once move() has run.
             if (player.teleported) {
                 finishTeleport(player)
@@ -300,7 +304,6 @@ class World(
         // step.
         for (player in players) {
             if (player == null) continue
-            sendFace(player)
             sendVars(player)
             sendStats(player)
             sendEffects(player)
@@ -818,7 +821,7 @@ class World(
     /**
      * Turns the player to whoever they follow, and stops turning them once they don't, when that changes. Walk mode 0:
      * they look where they walk and turn back to the target once they stop. Inferred from RSProt's docs and RSMod, not
-     * checked against live.
+     * checked against live. Only in the movement phase: a face set later in the cycle (a loc's) must not be undone.
      */
     private fun sendFace(player: Player) {
         val target = (player.interaction as? FollowInteraction)?.target
