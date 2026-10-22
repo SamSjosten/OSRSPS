@@ -205,7 +205,7 @@ public class TickRecorderPlugin extends Plugin
 		RecordingWriter w = writer;
 		if (recording)
 		{
-			emitLast(stopLine("pluginStopped"));
+			emitLast(stopLine(pendingStopReason(w, "pluginStopped")));
 			recording = false;
 		}
 		writer = null;
@@ -223,7 +223,7 @@ public class TickRecorderPlugin extends Plugin
 			RecordingWriter w = writer;
 			if (recording && w != null)
 			{
-				emitLast(stopLine("clientExit"));
+				emitLast(stopLine(pendingStopReason(w, "clientExit")));
 				recording = false;
 				event.waitFor(w.close());
 			}
@@ -322,10 +322,19 @@ public class TickRecorderPlugin extends Plugin
 
 	private void stopRecording()
 	{
-		emitLast(stopLine("stopped"));
+		RecordingWriter w = writer;
+		RecordingWriter.Failure failure = w.takeFailure();
+		emitLast(stopLine(failure == null ? "stopped" : failure.code));
 		recording = false;
-		writer.close();
-		chat("Tick Recorder: stopped after " + tick + " ticks");
+		w.close();
+		chat(failure == null ? "Tick Recorder: stopped after " + tick + " ticks" : "Tick Recorder stopped: " + failure.detail);
+	}
+
+	/** A writer failure found since the last tick's check outranks the reason a stop would otherwise give. */
+	private String pendingStopReason(RecordingWriter w, String reason)
+	{
+		RecordingWriter.Failure failure = w == null ? null : w.takeFailure();
+		return failure == null ? reason : failure.code;
 	}
 
 	/** Ends a recording the writer could not keep up with or could not write to; the stop line says which. */

@@ -65,6 +65,8 @@ class RecordingWriter
 	private volatile long lines;
 	private volatile long chars;
 	private volatile int queueMax;
+	/** What newLine() writes: two characters on Windows. */
+	private static final int NEWLINE_CHARS = System.lineSeparator().length();
 
 	/** Writes into {@code dir}, the plugin's own folder from RuneLite, creating it when needed. */
 	RecordingWriter(Filepath dir)
@@ -243,7 +245,7 @@ class RecordingWriter
 			out.write(line);
 			out.newLine();
 			lines++;
-			chars += line.length() + 1;
+			chars += line.length() + NEWLINE_CHARS;
 		}
 		catch (IOException e)
 		{
