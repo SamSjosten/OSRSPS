@@ -5,9 +5,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import osrsps.game.GameRandom
 import osrsps.game.NpcType
+import osrsps.game.Player
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.Tile
@@ -174,5 +176,92 @@ class NpcsTest {
         npcs.add(NpcSpawn(man, 3231, 3230, level = 1, source = "test"))
         assertEquals(listOf(3230), npcs.near(3232, 3230, 0, 5).map { it.x })
         assertEquals(3, npcs.count)
+    }
+
+    @Test
+    fun `a following NPC walks after the player and stops beside them`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val npc = npcs.add(spawn(x = 3230, z = 3230, wander = 5))!!
+        val player = Player(1, "test", 3235, 3233, 0)
+        npcs.follow(npc, player)
+        assertSame(player, npc.facing)
+        repeat(10) { npcs.process() }
+        // Diagonally to 3233, 3233, then straight: stops at 3234, beside the player, not on them.
+        assertEquals(Tile(3234, 3233), Tile(npc.x, npc.z))
+        // The player walks off; it follows.
+        player.x = 3240
+        repeat(10) { npcs.process() }
+        assertEquals(Tile(3239, 3233), Tile(npc.x, npc.z))
+        npcs.stopFollowing(npc)
+        assertNull(npc.facing)
+    }
+
+    @Test
+    fun `a following NPC at the player's corner slides to their side, and steps out from under them`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val npc = npcs.add(spawn(x = 3231, z = 3231, wander = 0))!!
+        val player = Player(1, "test", 3230, 3230, 0)
+        npcs.follow(npc, player)
+        npcs.process()
+        // The diagonal step would land on the player, so it takes the x step.
+        assertEquals(Tile(3230, 3231), Tile(npc.x, npc.z))
+        player.z = 3231
+        npcs.process()
+        // Under the player now: it steps out west first.
+        assertEquals(Tile(3229, 3231), Tile(npc.x, npc.z))
+    }
+
+    @Test
+    fun `a big following NPC on top of the player steps out over several ticks`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val npc = npcs.add(spawn(NpcType(3, "Giant", size = 3), x = 3230, z = 3230, wander = 0))!!
+        // The player stands on the middle tile of the 3x3 NPC: no one step clears them.
+        val player = Player(1, "test", 3231, 3231, 0)
+        npcs.follow(npc, player)
+        npcs.process()
+        assertEquals(Tile(3229, 3230), Tile(npc.x, npc.z))
+        npcs.process()
+        assertEquals(Tile(3228, 3230), Tile(npc.x, npc.z))
+        // Beside the player now, so it stays.
+        npcs.process()
+        assertEquals(Tile(3228, 3230), Tile(npc.x, npc.z))
+    }
+
+    @Test
+    fun `a busy NPC stands still and is let go`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val npc = npcs.add(spawn(wander = 5))!!
+        val player = Player(1, "test", 3231, 3230, 0)
+        npcs.engage(npc, player, 0)
+        repeat(200) { npcs.process() }
+        assertEquals(Tile(3230, 3230), Tile(npc.x, npc.z))
+        assertSame(player, npc.facing)
+        npcs.forget(player)
+        assertNull(npc.engagedWith)
+        assertNull(npc.facing)
+    }
+
+    @Test
+    fun `a busy NPC told to follow someone else keeps facing its player until let go`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val npc = npcs.add(spawn(wander = 0))!!
+        val talker = Player(1, "talker", 3231, 3230, 0)
+        val other = Player(2, "other", 3229, 3230, 0)
+        npcs.engage(npc, talker, 0)
+        npcs.follow(npc, other)
+        assertSame(talker, npc.facing)
+        npcs.release(npc)
+        assertSame(other, npc.facing)
+    }
+
+    @Test
+    fun `a following NPC gives up on a player who goes far away`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val npc = npcs.add(spawn(wander = 0))!!
+        val player = Player(1, "test", 3231, 3230, 0)
+        npcs.follow(npc, player)
+        player.x = 3230 + Npcs.FOLLOW_RANGE + 1
+        npcs.process()
+        assertNull(npc.following)
     }
 }

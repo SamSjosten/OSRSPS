@@ -1,12 +1,15 @@
 package osrsps.game
 
-/** Something the player clicked and is walking to use: a loc's option, an obj on the ground. See [Interactions]. */
+/** Something the player clicked and is walking to use: a loc's option, an obj on the ground, an NPC. See [Interactions]. */
 fun interface Interaction {
     /**
      * Uses the target if the player has reached it. Returns true once the interaction is over: used, or gone. It may
      * set the player's interaction to a new one, which then stays.
      */
     fun tryInteract(player: Player): Boolean
+
+    /** The route ran out without reaching the target; called just before "I can't reach that!". */
+    fun unreachable(player: Player) {}
 }
 
 /**
@@ -34,6 +37,7 @@ class Interactions(
         if (player.interaction !== interaction || tryInteract(player, interaction)) return
         if (player.waypoints.isEmpty()) {
             player.interaction = null
+            interaction.unreachable(player)
             message(player, CANT_REACH)
         }
     }

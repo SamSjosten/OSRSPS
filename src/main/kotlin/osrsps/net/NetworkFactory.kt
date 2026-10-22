@@ -31,6 +31,8 @@ import net.rsprot.protocol.game.incoming.misc.user.MoveGameClick
 import net.rsprot.protocol.game.incoming.misc.user.MoveMinimapClick
 import net.rsprot.protocol.game.incoming.misc.user.SetChatFilterSettings
 import net.rsprot.protocol.game.incoming.npcs.OpNpc6
+import net.rsprot.protocol.game.incoming.npcs.OpNpcT
+import net.rsprot.protocol.game.incoming.npcs.OpNpcV2
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
 import net.rsprot.protocol.loginprot.incoming.pow.NopProofOfWorkProvider
@@ -121,12 +123,21 @@ class NetworkFactory(
                 message.targetInterfaceId, message.targetComponentId, message.targetSub, message.targetObj,
             )
         })
+        // RSProt gives a sub-option of 0 for none.
+        builder.addListener(OpNpcV2::class.java, MessageConsumer { player, message ->
+            world.onNpcOp(player, message.index, message.op, if (message.subop == 0) -1 else message.subop, message.controlKey)
+        })
+        builder.addListener(OpNpcT::class.java, MessageConsumer { player, message ->
+            world.onNpcTarget(
+                player, message.index, message.selectedInterfaceId, message.selectedComponentId, message.selectedSub,
+                message.selectedObj, message.controlKey,
+            )
+        })
+        builder.addListener(OpNpc6::class.java, MessageConsumer { player, message -> world.onNpcExamine(player, message.id) })
         builder.addListener(OpLocV2::class.java, MessageConsumer { player, message ->
             world.onLocOp(player, message.id, message.x, message.z, message.op, message.controlKey)
         })
         builder.addListener(OpLoc6::class.java, MessageConsumer { player, message -> world.onLocExamine(player, message.id) })
-        // The other NPC options (OpNpcV2) come with task 17, which walks the player to the NPC first.
-        builder.addListener(OpNpc6::class.java, MessageConsumer { player, message -> world.onNpcExamine(player, message.id) })
         builder.addListener(OpObjV2::class.java, MessageConsumer { player, message ->
             world.onGroundObjOp(player, message.id, message.x, message.z, message.op, message.controlKey)
         })

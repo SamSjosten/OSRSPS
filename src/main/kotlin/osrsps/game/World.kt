@@ -48,6 +48,7 @@ import osrsps.game.loc.Locs
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcExamines
+import osrsps.game.npc.NpcInteractions
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.script.Handlers
@@ -130,6 +131,8 @@ class World(
     private val interactions = Interactions()
 
     private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors)
+
+    val npcInteractions = NpcInteractions(npcs, npcTypes, collision, movement, handlers, scripts, { tick })
 
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
@@ -243,6 +246,7 @@ class World(
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.NPCS
+        npcInteractions.releaseNpcs()
         npcs.process()
         phase = TickPhase.SCRIPTS
         for (player in players) {
@@ -562,6 +566,7 @@ class World(
         if (player.scripts.delayed) return@act
         scripts.interrupt(player)
         player.interaction = null
+        npcInteractions.leave(player)
         if (keyCombination == 2) {
             // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
             teleport(player, x, z, player.level)
@@ -580,6 +585,7 @@ class World(
         // Delayed players can't walk off, as for a move click.
         if (player.scripts.delayed) return@act
         val interaction = groundObjs.click(player, id, x, z, option) ?: return@act
+        npcInteractions.leave(player)
         scripts.interrupt(player)
         player.interaction = interaction
         val route = movement.request(player, interaction.target, invertRun = ctrl)
@@ -598,7 +604,31 @@ class World(
     fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (player.scripts.delayed) return@act
+        npcInteractions.leave(player)
         locInteractions.click(player, id, x, z, option, ctrl)
+    }
+
+    /**
+     * A click on option [option] (1 to 5) of the NPC at [index]; [sub] is the sub-option, -1 for none. [ctrl] flips walk
+     * and run.
+     */
+    fun onNpcOp(player: Player, index: Int, option: Int, sub: Int, ctrl: Boolean) = act(player) {
+        // Inferred, as for a walk: a delayed player's clicks do nothing.
+        if (player.scripts.delayed) return@act
+        npcInteractions.click(player, index, option, sub, ctrl)
+    }
+
+    /**
+     * The player used something on the NPC at [index]: the item in slot [sub] of [interfaceId]:[componentId], or a spell.
+     * Only inventory items are handled; spells come with magic.
+     */
+    fun onNpcTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
+        if (player.scripts.delayed) return@act
+        if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
+            logger.info { "${player.username} used $interfaceId:$componentId sub $sub on NPC $index (not handled)" }
+            return@act
+        }
+        npcInteractions.useObj(player, index, sub, obj, ctrl)
     }
 
     /**
@@ -621,6 +651,7 @@ class World(
     fun teleport(player: Player, x: Int, z: Int, level: Int) {
         player.waypoints.clear()
         player.interaction = null
+        npcInteractions.leave(player)
         player.x = x
         player.z = z
         player.level = level
@@ -725,7 +756,9 @@ class World(
     }
 
     fun removeNpc(npc: Npc) {
+        // Players walking to it give up in their next movement phase; see NpcInteractions.
         npcs.remove(npc)
+        npcInteractions.removed(npc, players.asIterable())
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }
@@ -871,6 +904,7 @@ class World(
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
+        npcs.forget(player, scripts::busy)
         save(player)
         network.infoProtocols.dealloc(player.infos)
         player.session.clear()

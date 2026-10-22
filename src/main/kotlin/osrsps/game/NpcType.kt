@@ -27,9 +27,43 @@ class NpcType(
     val params: Map<Int, Any> = emptyMap(),
     /** The name in the cache's gameval index, e.g. `hans`; null when the cache has no gameval names. */
     val internalName: String? = null,
+    /** Options shown only while a var is in a range (cache opcode 252), in cache order. */
+    val conditionalOps: List<ConditionalOp> = emptyList(),
+    /** Sub-options (cache opcodes 251 and 253), in cache order. */
+    val subOps: List<SubOp> = emptyList(),
 ) {
-    /** The option [option] (1 to 5), or null if the NPC has none there. */
+    /** The option [option] (1 to 5), or null if the NPC has none there. Conditional options are not looked at. */
     fun op(option: Int): String? = ops.getOrNull(option - 1)
+
+    /**
+     * The option [option] (1 to 5) a player sees, with [value] reading a conditional option's var for them (null when
+     * it can't be read): the first conditional option for that slot whose var is in range, else the plain one.
+     * The slot index is 0-based like opcodes 30 to 34 (RuneLite's cache loader stores both the same way); that a matching
+     * conditional option replaces the plain one is inferred, not checked against the client.
+     */
+    fun op(option: Int, value: (ConditionalOp) -> Int?): String? {
+        for (conditional in conditionalOps) {
+            if (conditional.index != option - 1) continue
+            val current = value(conditional) ?: continue
+            if (current in conditional.min..conditional.max) return conditional.text
+        }
+        return op(option)
+    }
+
+    /**
+     * Sub-option [sub] of option [option] (1 to 5) as a player sees it, with [value] reading a conditional sub-option's
+     * var as for [op]; null when there is none. A conditional sub-option whose var is in range wins over a plain one,
+     * as for options (inferred).
+     */
+    fun subOp(option: Int, sub: Int, value: (ConditionalOp) -> Int?): String? {
+        val forSlot = subOps.filter { it.index == option - 1 && it.sub == sub }
+        for (subOp in forSlot) {
+            val condition = subOp.condition ?: continue
+            val current = value(condition) ?: continue
+            if (current in condition.min..condition.max) return subOp.text
+        }
+        return forSlot.firstOrNull { it.condition == null }?.text
+    }
 
     override fun toString(): String = "$name ($id)"
 
@@ -38,6 +72,18 @@ class NpcType(
         val DEFAULT_OPS: List<String?> = listOf(null, null, null, null, null)
     }
 }
+
+/**
+ * An option at slot [index] (0 to 4) shown while varbit [varbit], or varp [varp] when [varbit] is -1, is in [min] to
+ * [max]. [text] is null for "Hidden".
+ */
+class ConditionalOp(val index: Int, val varp: Int, val varbit: Int, val min: Int, val max: Int, val text: String?)
+
+/**
+ * Sub-option [sub] of the option at slot [index] (0 to 4). [text] is null for "Hidden". [condition] is null for a plain
+ * sub-option (opcode 251), else the var range it is shown in (opcode 253).
+ */
+class SubOp(val index: Int, val sub: Int, val text: String?, val condition: ConditionalOp? = null)
 
 /** Every NPC type in the cache, by id. */
 class NpcTypes(private val types: Array<NpcType?>) {
