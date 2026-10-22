@@ -314,10 +314,21 @@ class NpcInteractionsTest {
         interactions.click(player, npc.index, 1, -1, invertRun = false)
         tick()
         assertSame(player, npc.engagedWith)
+        tick()
         val other = Player(2, "other", 3213, 3211, 0)
         interactions.click(other, npc.index, 1, -1, invertRun = false)
         shared.process(other) { movement.process(other) }
         assertSame(player, npc.engagedWith)
+        // The first player finishes first; the NPC turns to the second, who is still busy with it, then lets go.
+        fun both() {
+            tick()
+            scripts.process(other)
+        }
+        while (scripts.busy(player)) both()
+        both()
+        assertSame(other, npc.engagedWith)
+        repeat(3) { both() }
+        assertNull(npc.engagedWith)
     }
 
     @Test

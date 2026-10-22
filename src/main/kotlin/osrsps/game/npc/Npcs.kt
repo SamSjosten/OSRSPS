@@ -78,19 +78,42 @@ class Npcs(
     fun forget(player: Player) {
         for (npc in all) {
             if (npc.following === player) stopFollowing(npc)
-            if (npc.engagedWith === player) release(npc)
+            npc.waiting.remove(player)
+            if (npc.engagedWith === player) handOver(npc, npc.engagedTick)
         }
     }
 
     /** [npc] is busy with [player], from [tick]: it stops, faces them, and doesn't wander until [release]. */
     fun engage(npc: Npc, player: Player, tick: Long) {
+        npc.waiting.remove(player)
         npc.engagedWith = player
         npc.engagedTick = tick
         npc.destination = null
         npc.face(player)
     }
 
+    /** [player] used an option on [npc] while it was busy with someone else; it turns to them when that one is done. */
+    fun wait(npc: Npc, player: Player) {
+        if (npc.engagedWith !== player && player !in npc.waiting) npc.waiting += player
+    }
+
+    /**
+     * [npc]'s player is done with it: the oldest waiting player who is [stillBusy] with it takes over from [tick], or,
+     * with none, it goes back to what it was doing. Guessed, as live NPCs talk to several players at once.
+     */
+    fun handOver(npc: Npc, tick: Long, stillBusy: (Player) -> Boolean = { true }) {
+        while (npc.waiting.isNotEmpty()) {
+            val next = npc.waiting.removeAt(0)
+            if (stillBusy(next)) {
+                engage(npc, next, tick)
+                return
+            }
+        }
+        release(npc)
+    }
+
     fun release(npc: Npc) {
+        npc.waiting.clear()
         if (npc.engagedWith == null) return
         npc.engagedWith = null
         val following = npc.following

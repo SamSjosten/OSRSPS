@@ -177,10 +177,11 @@ class NpcInteractions(
         } else {
             Op(OpTarget.NPC, type.id, interaction.option, interaction.sub, npc = npc)
         }
-        // An NPC already busy with another player stays with them until they're done. Guessed: live NPCs talk to
-        // several players at once, but which one they face isn't checked.
+        // An NPC already busy with another player stays with them until they're done, then turns to this one if they
+        // are still busy with it. Guessed: live NPCs talk to several players at once, but which one they face isn't
+        // checked.
         val engaged = npc.engagedWith
-        if (engaged == null || engaged === player || !scripts.busy(engaged)) npcs.engage(npc, player, currentTick())
+        if (engaged == null || engaged === player || !scripts.busy(engaged)) npcs.engage(npc, player, currentTick()) else npcs.wait(npc, player)
         if (handlers.find(op) != null) {
             scripts.trigger(player, op)
         } else {
@@ -220,7 +221,7 @@ class NpcInteractions(
         val tick = currentTick()
         for (npc in npcs.all) {
             val player = npc.engagedWith ?: continue
-            if (tick > npc.engagedTick && !scripts.busy(player)) npcs.release(npc)
+            if (tick > npc.engagedTick && !scripts.busy(player)) npcs.handOver(npc, tick, scripts::busy)
         }
     }
 

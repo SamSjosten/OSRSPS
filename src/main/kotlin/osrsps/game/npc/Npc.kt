@@ -90,6 +90,9 @@ class Npc(
     /** The tick it became [engagedWith] that player. */
     internal var engagedTick: Long = 0
 
+    /** Players who used an option on it while it was busy with someone else, oldest first; see [Npcs.handOver]. */
+    internal val waiting = ArrayList<Player>()
+
     /** The player it follows, stopping beside them; see [Npcs.follow]. */
     var following: Player? = null
         internal set
