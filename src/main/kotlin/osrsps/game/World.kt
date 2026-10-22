@@ -611,15 +611,16 @@ class World(
     fun onPlayerOp(player: Player, index: Int, option: Int, ctrl: Boolean) {
         // Looked up as the packet is read, and checked again when it runs, so a click held while paused can't land on
         // someone who took the slot meanwhile.
-        val clicked = players.getOrNull(index) ?: return
+        val clicked = players.getOrNull(index)
         act(player) { playerOp(player, clicked, option, ctrl) }
     }
 
-    private fun playerOp(player: Player, clicked: Player, option: Int, ctrl: Boolean) {
+    /** [clicked] is who held the slot when the packet was read, null if nobody did. */
+    private fun playerOp(player: Player, clicked: Player?, option: Int, ctrl: Boolean) {
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (player.scripts.delayed) return
         if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT) {
-            logger.info { "${player.username} sent op $option on player ${clicked.username}, which has no such option" }
+            logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
         }
         // Any of the options replaces what the player was doing, a follow included. Guessed for Trade with and Report,
@@ -628,7 +629,7 @@ class World(
         player.interaction = null
         player.waypoints.clear()
         // The client was behind: they left.
-        val target = clicked.takeIf { players[it.index] === it }
+        val target = clicked?.takeIf { players[it.index] === it }
         if (target == null) {
             player.session.queue(SetMapFlagV2.RESET)
             return
