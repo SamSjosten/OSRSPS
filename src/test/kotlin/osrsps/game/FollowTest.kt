@@ -105,6 +105,7 @@ class FollowTest {
         tick()
         assertNull(alice.interaction)
         assertTrue(alice.waypoints.isEmpty())
+        assertEquals(listOf<Pair<Player, OutgoingGameMessage>>(alice to SetMapFlagV2.RESET), sent)
         val stoppedAt = alice.tile()
         repeat(3) { tick() }
         assertEquals(stoppedAt, alice.tile())

@@ -60,7 +60,11 @@ class Follows(
         if (!canFollow(player, target)) {
             // Guessed: the follower stops where they are rather than walking on to the target's last follow tile.
             player.interaction = null
-            player.waypoints.clear()
+            if (player.waypoints.isNotEmpty()) {
+                player.waypoints.clear()
+                // The client may still show the flag from the walk to the target; guessed, as for a blocked walk.
+                send(player, SetMapFlagV2.RESET)
+            }
             move()
             return
         }
