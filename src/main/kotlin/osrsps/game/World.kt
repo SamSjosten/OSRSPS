@@ -566,7 +566,7 @@ class World(
         if (player.scripts.delayed) return@act
         scripts.interrupt(player)
         player.interaction = null
-        npcInteractions.stopFacing(player)
+        npcInteractions.leave(player)
         if (keyCombination == 2) {
             // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
             teleport(player, x, z, player.level)
@@ -585,7 +585,7 @@ class World(
         // Delayed players can't walk off, as for a move click.
         if (player.scripts.delayed) return@act
         val interaction = groundObjs.click(player, id, x, z, option) ?: return@act
-        npcInteractions.stopFacing(player)
+        npcInteractions.leave(player)
         scripts.interrupt(player)
         player.interaction = interaction
         val route = movement.request(player, interaction.target, invertRun = ctrl)
@@ -604,7 +604,7 @@ class World(
     fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (player.scripts.delayed) return@act
-        npcInteractions.stopFacing(player)
+        npcInteractions.leave(player)
         locInteractions.click(player, id, x, z, option, ctrl)
     }
 
@@ -651,7 +651,7 @@ class World(
     fun teleport(player: Player, x: Int, z: Int, level: Int) {
         player.waypoints.clear()
         player.interaction = null
-        npcInteractions.stopFacing(player)
+        npcInteractions.leave(player)
         player.x = x
         player.z = z
         player.level = level

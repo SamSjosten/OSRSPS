@@ -6,6 +6,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import osrsps.game.ConditionalOp
+import osrsps.game.FrameSlot
 import osrsps.game.GameRandom
 import osrsps.game.Interactions
 import osrsps.game.InvObj
@@ -332,6 +333,25 @@ class NpcInteractionsTest {
     }
 
     @Test
+    fun `an NPC is let go when its player clicks another NPC or walks off`() {
+        val first = spawn(x = 3213)
+        val second = spawn(x = 3212, z = 3212)
+        // Each NPC's option opens a dialogue, as task 18's will.
+        handlers.onNpc(HANS, 1) { this@NpcInteractionsTest.player.modals[FrameSlot.CHAT_CONTAINER] = DIALOGUE }
+        interactions.click(player, first.index, 1, -1, invertRun = false)
+        tick()
+        assertSame(player, first.engagedWith)
+        // The click closes the first dialogue and the second NPC opens its own, which says nothing about the first.
+        interactions.click(player, second.index, 1, -1, invertRun = false)
+        assertNull(first.engagedWith)
+        repeat(3) { tick() }
+        assertSame(player, second.engagedWith)
+        interactions.leave(player)
+        assertNull(second.engagedWith)
+        assertNull(player.facingNpc)
+    }
+
+    @Test
     fun `an option shown by a conditional option can be clicked while its var is in range`() {
         val vars = VarTypes(varpCount = 200, varbits = emptyMap())
         val guard = NpcType(GUARD, "Guard", ops = listOf("Talk-to", null, null, null, null), conditionalOps = listOf(ConditionalOp(2, 7, -1, 1, 1, "Pay")))
@@ -411,5 +431,6 @@ class NpcInteractionsTest {
         const val MULTI = 50
         const val SHOWN = 51
         const val GUARD = 52
+        const val DIALOGUE = 231
     }
 }

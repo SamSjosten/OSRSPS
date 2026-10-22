@@ -124,6 +124,8 @@ class NpcInteractions(
 
     private fun start(player: Player, interaction: NpcInteraction, invertRun: Boolean) {
         scripts.interrupt(player)
+        // The NPC the player was busy with, if any, is let go: whatever the new click opens is not about it.
+        npcs.leave(player)
         player.interaction = interaction
         // The player turns to the NPC on the click, before walking: live's face-entity. Inferred, not from a recording.
         face(player, interaction.npc)
@@ -194,6 +196,15 @@ class NpcInteractions(
     private fun face(player: Player, npc: Npc?) {
         player.facingNpc = npc
         faceNpc(player, npc)
+    }
+
+    /**
+     * [player] turned to something else: walked off, clicked a loc or an obj, or teleported. They stop facing their
+     * NPC, and NPCs busy with them are let go; see [Npcs.leave].
+     */
+    fun leave(player: Player) {
+        stopFacing(player)
+        npcs.leave(player)
     }
 
     /**
