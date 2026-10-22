@@ -436,6 +436,31 @@ Check after a redeploy: `::tele 3222 3214` puts you in the castle courtyard, fou
 then Close it from there: it shuts, and clicking 3225, 3214 no longer takes you through it. `::locs 2` next to it lists
 the door, back at 3226, 3214 and no longer marked changed.
 
+## Other players
+
+What one player sees of another goes through RSProt's player info: walking, running and teleports, appearance and worn
+items, combat level, public chat, animations and spotanims. Ground items follow the visibility rules under Ground items.
+Right-clicking another player offers Follow, Trade with and Report (`game/PlayerOps.kt`); only Follow works yet
+(`game/Follow.kt`).
+
+| Rule | Source |
+|------|--------|
+| Player options at login: slot 3 Follow, 4 Trade with, 8 Report, slots 2 and 5 cleared, none with priority over Walk here | RSMod's login script (rev 233), not checked against a live login |
+| Follow walks to the tile the target was on before their last step (the tile between a run's two steps), as it stood when the tick's movement began, so the follower ends one tile behind | RSMod (rev 233) |
+| A target who hasn't stepped since logging in or teleporting is followed to the tile west of them | RSMod |
+| The follower gets a new route only once their current one is down to its last waypoint, at the orb's speed (a ctrl-click only flips the walk to the target) | RSMod |
+| The follower takes a route to that tile, so a wall doesn't stop them; RSMod steps straight at it | ours, guessed |
+| The follower faces the target (walk mode 0: they look where they walk and turn back when they stop) | RSProt docs and RSMod, inferred |
+| A follow stops when the follower clicks elsewhere or teleports, or the target logs out, changes level or gets more than 15 tiles away | the 15 is how far players see each other; when live gives up is guessed |
+| Trade with and Report say they aren't built yet | ours, not live |
+
+Not built yet: trading, reporting, Attack (Wilderness and PvP worlds), and a player hiding another by standing on them
+is the client's own business.
+
+Check with two clients, logged in as two different names: walk, run (orb on), type in the chatbox, `::anim 866` and
+`::spotanim 85` on one and watch them on the other. Right-click the second player on the first and Follow: the first walks
+up behind them and keeps one tile behind as the second walks and runs, turning to face them whenever they stop.
+
 ## Chat
 
 Anything typed without `::` is public chat: it shows over your head and in the chatbox of every player who can see you, yourself included. Colour and effect prefixes (`red:`, `wave:`, `pattern...`) work. Code is in `src/main/kotlin/osrsps/game/PublicChat.kt`.

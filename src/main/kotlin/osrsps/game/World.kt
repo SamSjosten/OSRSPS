@@ -129,6 +129,8 @@ class World(
 
     private val interactions = Interactions()
 
+    private val follows = Follows(movement, { players[it.index] === it })
+
     private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors)
 
     val commands = CommandRegistry().apply {
@@ -251,10 +253,11 @@ class World(
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
         locs.process()
+        follows.startMovement(players.filterNotNull())
         for (player in players) {
             if (player == null) continue
             interfaces.processFrameMove(player, tick)
-            interactions.process(player) { move(player) }
+            follows.process(player, move = { move(player) }) { interactions.process(player) { move(player) } }
             // A loc or obj used after the player's step (a ladder on arrival) can teleport them once move() has run.
             if (player.teleported) {
                 finishTeleport(player)
@@ -297,6 +300,7 @@ class World(
         // step.
         for (player in players) {
             if (player == null) continue
+            sendFace(player)
             sendVars(player)
             sendStats(player)
             sendEffects(player)
@@ -536,6 +540,7 @@ class World(
         DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         sendRunState(player)
+        PlayerOps.send(player.session::queue)
         allowChat(player)
         quests.completeAll(player.vars)
         player.message(WELCOME_MESSAGE)
@@ -587,6 +592,27 @@ class World(
         if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)
     }
 
+    /**
+     * A click on option [option] (1 to 8) of the player at [index]. Only Follow does anything yet; see [PlayerOps]. [ctrl]
+     * flips walk and run for the walk to them.
+     */
+    fun onPlayerOp(player: Player, index: Int, option: Int, ctrl: Boolean) = act(player) {
+        // Inferred, as for a walk: a delayed player's clicks do nothing.
+        if (player.scripts.delayed) return@act
+        // The client was behind: they left, or the slot is someone else's now.
+        val target = players.getOrNull(index) ?: return@act
+        when (option) {
+            PlayerOps.FOLLOW -> {
+                scripts.interrupt(player)
+                player.interaction = null
+                follows.click(player, target, ctrl)
+            }
+            PlayerOps.TRADE -> player.message(PlayerOps.TRADE_NOT_BUILT)
+            PlayerOps.REPORT -> player.message(PlayerOps.REPORT_NOT_BUILT)
+            else -> logger.info { "${player.username} sent op $option on player ${target.username}, which has no such option" }
+        }
+    }
+
     /** Examine on obj [id] on the ground: the same examine as in the inventory. Guessed, not checked against live. */
     fun onGroundObjExamine(player: Player, id: Int, x: Int, z: Int) = act(player) {
         val obj = groundObjs.visibleAt(player, x, z, player.level).firstOrNull { it.id == id } ?: return@act
@@ -624,6 +650,8 @@ class World(
         player.x = x
         player.z = z
         player.level = level
+        // Anyone following them heads for the tile west of where they land, as after a login (RSMod).
+        player.lastStepFrom = null
         player.teleported = true
     }
 
@@ -778,6 +806,23 @@ class World(
             player.session.queue(UpdateRunEnergy(player.runEnergy))
             player.sentRunEnergy = player.runEnergy
         }
+    }
+
+    /**
+     * Turns the player to whoever they follow, and stops turning them once they don't, when that changes. Walk mode 0:
+     * they look where they walk and turn back to the target once they stop. Inferred from RSProt's docs and RSMod, not
+     * checked against live.
+     */
+    private fun sendFace(player: Player) {
+        val target = (player.interaction as? FollowInteraction)?.target
+        if (target === player.sentFacePlayer) return
+        val extendedInfo = player.infos.playerInfo.avatar.extendedInfo
+        if (target == null) {
+            extendedInfo.resetFacing()
+        } else {
+            extendedInfo.setFacePlayer(target.index, false, 0, Follows.angle(player.x, player.z, target.x, target.z))
+        }
+        player.sentFacePlayer = target
     }
 
     /**

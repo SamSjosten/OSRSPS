@@ -5,6 +5,7 @@ import osrsps.map.Route
 import osrsps.map.RouteFinder
 import osrsps.map.RouteTarget
 import osrsps.map.Steps
+import osrsps.map.Tile
 import kotlin.math.sign
 
 /** What a player's movement did this tick. */
@@ -58,6 +59,7 @@ class Movement(private val collision: CollisionMap) {
             player.waypoints.clear()
             return false
         }
+        player.lastStepFrom = Tile(player.x, player.z)
         player.x += dx
         player.z += dz
         if (player.x == target.x && player.z == target.z) player.waypoints.removeFirst()
