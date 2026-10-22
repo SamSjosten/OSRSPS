@@ -34,6 +34,7 @@ import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerLocCommands
 import osrsps.game.command.registerNpcCommands
+import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
@@ -87,6 +88,8 @@ class World(
     locTypes: LocTypes = LocTypes.NONE,
     /** The locs the cache's maps place. */
     staticLocs: StaticLocs = StaticLocs(),
+    /** What `::scenario` can start. */
+    val scenarios: Scenarios = Scenarios.NONE,
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -141,6 +144,7 @@ class World(
         registerGroundObjCommands(this@World)
         registerLocCommands(this@World)
         registerNpcCommands(this@World)
+        registerScenarioCommands(this@World)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */

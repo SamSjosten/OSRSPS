@@ -1,0 +1,23 @@
+{
+  "about": "Lumbridge cow field in iron, with 20 Attack, Strength, Defence and Hitpoints.",
+  "notes": "Baseline task 19's check. The tile is picked from the cow spawns in npc-spawns/lumbridge.json, not taken from live; the loadout is ours.",
+  "position": { "x": 3259, "z": 3263, "level": 0 },
+  "skills": { "attack": 20, "strength": 20, "defence": 20, "hitpoints": 20 },
+  "run": true,
+  "inventory": [
+    { "item": "lobster", "count": 5 },
+    { "item": "bronze_axe" },
+    { "item": "tinderbox" },
+    { "item": "coins", "count": 100 }
+  ],
+  "equipment": [
+    { "item": "iron_full_helm" },
+    { "item": "amulet_of_strength" },
+    { "item": "iron_scimitar" },
+    { "item": "iron_platebody" },
+    { "item": "iron_kiteshield" },
+    { "item": "iron_platelegs" },
+    { "item": "leather_gloves" },
+    { "item": "leather_boots" }
+  ]
+}
