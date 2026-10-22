@@ -391,8 +391,8 @@ Content shows chat dialogues from a handler with `World.dialogues.start(this, np
 
 Each opens in the chatbox's chatmodal (162:568) and the script waits for "Click here to continue" or an option
 (resume_pausebutton), then carries on at once; if it shows nothing more, the dialogue closes. While a dialogue is open
-you count as busy, so the NPC you talk to stays turned to you. Walking, clicking anything else, Esc, a strong script or
-a teleport closes the dialogue and drops the script. Text is wrapped with the cache's dialogue font (497) to count its
+you count as busy, so the NPC you talk to stays turned to you. Walking, clicking anything else, Esc, a strong script,
+`::tele`, ctrl+shift-click, `::scenario` or `::reset` closes the dialogue and drops the script. Text is wrapped with the cache's dialogue font (497) to count its
 lines: that picks the chathead animation (`chatneu1` to `chatneu4` and so on) and the line spacing, and text past four
 lines goes onto another page. Every dialogue page also goes to the chat history as a game message of type 114 (dialogue)
 or 115 (message box), which RuneLite plugins see as `ChatMessageType.DIALOG` and `MESBOX`.

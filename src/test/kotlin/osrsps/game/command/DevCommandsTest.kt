@@ -6,6 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import osrsps.game.Player
 import osrsps.game.World
+import osrsps.game.script.QueueType
 import osrsps.map.CollisionMap
 import osrsps.map.Tile
 
@@ -68,6 +69,14 @@ class DevCommandsTest {
     fun `tick shows the world's tick`() {
         run("tick")
         assertEquals(listOf("Tick 0"), replies)
+    }
+
+    @Test
+    fun `tele interrupts the player as a click does`() {
+        // No client here to see modals close, so the interrupt shows as the weak queue going.
+        world.scripts.queue(player, "weak", QueueType.WEAK, 5) {}
+        run("tele 3210 3270")
+        assertTrue(player.scripts.queued.isEmpty())
     }
 
     @Test

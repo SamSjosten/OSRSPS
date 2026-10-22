@@ -26,8 +26,9 @@ import osrsps.game.script.ScriptRunner
  * ```
  *
  * Each page shows until the player continues; the script then carries on straight away, and if it shows nothing else
- * the dialogue closes (as RSMod's captures of live have it). Walking, clicking something else, Esc, a strong script or a
- * teleport closes the dialogue and drops the script. Text longer than four lines goes onto more pages.
+ * the dialogue closes (as RSMod's captures of live have it). Walking, clicking something else, Esc, a strong script, `::tele`
+ * or ctrl+shift-click closes the dialogue and drops the script. [osrsps.game.World.teleport] itself doesn't, so content can
+ * move the player in the middle of a conversation. Text longer than four lines goes onto more pages.
  *
  * The packets for each kind of box, their order, and the line spacings follow RSMod's captures of live (rev 233), checked
  * against the 241 cache's interfaces and scripts by name and argument count. Not yet compared with our own recording.
