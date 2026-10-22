@@ -90,6 +90,7 @@ class RecordingWriter
 	void open(String name)
 	{
 		failure = null;
+		queueMax = 0; // tracked on this thread by accept(), so a new file does not inherit the last one's backlog
 		submit(() ->
 		{
 			closeQuietly();
@@ -265,9 +266,13 @@ class RecordingWriter
 
 	private void fail(String reason, IOException e)
 	{
+		if (failure != null)
+		{
+			return;
+		}
 		log.warn("Tick Recorder: {}", reason, e);
 		failure = new Failure("writeFailed", reason);
-		closeQuietly();
+		// The file stays open: the plugin still queues its stop line, a best effort, and then closes.
 	}
 
 	private void closeQuietly()

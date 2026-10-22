@@ -192,6 +192,74 @@ public class RecordingWriterTest
 		assertEquals(RecordingWriter.QUEUE_LIMIT + 2, writer.lines());
 	}
 
+	/** A file whose disk refuses one write: the first chunk holding '!' fails, everything after goes through. */
+	private static class Flaky extends Writer
+	{
+		private final StringWriter content = new StringWriter();
+		private final CountDownLatch refused = new CountDownLatch(1);
+		private boolean failed;
+
+		@Override
+		public void write(char[] buffer, int offset, int length) throws IOException
+		{
+			if (!failed && new String(buffer, offset, length).indexOf('!') >= 0)
+			{
+				failed = true;
+				refused.countDown();
+				throw new IOException("disk full");
+			}
+			content.write(buffer, offset, length);
+		}
+
+		@Override
+		public void flush()
+		{
+		}
+
+		@Override
+		public void close()
+		{
+		}
+
+		List<String> lines()
+		{
+			String text = content.toString();
+			return text.isEmpty() ? Collections.emptyList() : Arrays.asList(text.split("\n"));
+		}
+	}
+
+	@Test
+	public void writesTheStopLineAfterAWriteFailure() throws Exception
+	{
+		Flaky flaky = new Flaky();
+		RecordingWriter writer = new RecordingWriter("the test folder", name -> new BufferedWriter(flaky));
+		writer.open("r");
+		writer.write("first");
+		writer.write("boom!");
+		writer.flush();
+		assertTrue("the disk never refused the write", flaky.refused.await(10, TimeUnit.SECONDS));
+		RecordingWriter.Failure failure = awaitFailure(writer);
+		assertEquals("writeFailed", failure.code);
+		writer.writeLast("stop");
+		writer.close().get();
+		writer.shutdown();
+		assertEquals(Arrays.asList("first", "boom!", "stop"), flaky.lines());
+	}
+
+	/** The failure is recorded on the writer thread just after the disk refuses the write; wait briefly for it. */
+	private static RecordingWriter.Failure awaitFailure(RecordingWriter writer)
+	{
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+		RecordingWriter.Failure failure = writer.takeFailure();
+		while (failure == null && System.nanoTime() < deadline)
+		{
+			Thread.yield();
+			failure = writer.takeFailure();
+		}
+		assertNotNull("the writer never reported the refused write", failure);
+		return failure;
+	}
+
 	@Test
 	public void ignoresWritesAfterShutdown()
 	{
