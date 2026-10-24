@@ -142,11 +142,15 @@ class HeadlessClient private constructor(
         return await("message $description", timeoutMillis) { messages.drop(from).firstOrNull { predicate(it.text) } }
     }
 
-    /** Sends a command and returns the first game message after it, for commands that answer with one line. */
-    fun commandReply(text: String, timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS): String {
+    /**
+     * Sends a command and returns the first game message after it that [isReply] accepts. Messages carry no link to
+     * the command that caused them, and others (the welcome message, content) can arrive in between, so the caller
+     * says what the reply looks like.
+     */
+    fun commandReply(text: String, timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS, isReply: (String) -> Boolean): String {
         val from = lock.withLock { messages.size }
         command(text)
-        return await("a reply to ::$text", timeoutMillis) { messages.getOrNull(from)?.text }
+        return await("a reply to ::$text", timeoutMillis) { messages.drop(from).firstOrNull { isReply(it.text) }?.text }
     }
 
     /** Disconnects. Throws if reading the server's packets failed at any point, so a decode error can't go unseen. */

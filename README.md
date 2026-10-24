@@ -596,7 +596,7 @@ TestServer(tempDir).use { server ->
     server.login("bob").use { client ->
         client.walk(3226, 3218)
         client.await("arriving") { client.position?.takeIf { it.x == 3226 } }
-        client.commandReply("pos") // "3226, 3218, 0 (region 12850, ...)"
+        client.commandReply("pos") { it.contains("(region") } // "3226, 3218, 0 (region 12850, ...)"
     }
 }
 ```

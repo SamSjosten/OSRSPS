@@ -35,7 +35,8 @@ class HeadlessClientTest {
                 assertEquals((1..4).map { Coord(spawn.x + it, spawn.z, spawn.level) }, moves.map { it.move.to })
                 assertTrue(moves.all { it.move.type == MoveType.WALK }, "$moves")
                 assertEquals(listOf(1, 1, 1), moves.zipWithNext { a, b -> b.tick - a.tick }, "one step each tick: $moves")
-                assertTrue(client.commandReply("pos").startsWith("${target.x}, ${target.z}, ${target.level} "))
+                val pos = client.commandReply("pos") { POS_REPLY.matches(it) }
+                assertTrue(pos.startsWith("${target.x}, ${target.z}, ${target.level} "), pos)
             }
         }
     }
@@ -66,5 +67,10 @@ class HeadlessClientTest {
                 assertEquals(Coord(spawn.x - 10, spawn.z + 3, spawn.level), client.position)
             }
         }
+    }
+
+    private companion object {
+        /** What `::pos` answers: "x, z, level (region r, local lx, lz)". */
+        val POS_REPLY = Regex("""\d+, \d+, \d \(region \d+, local \d+, \d+\)""")
     }
 }
