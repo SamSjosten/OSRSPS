@@ -1,0 +1,343 @@
+package osrsps.testrunner;
+
+import com.google.gson.Gson;
+import com.google.inject.Provides;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.inject.Inject;
+import net.runelite.api.ChatMessageType;
+import net.runelite.api.Client;
+import net.runelite.api.GameState;
+import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.ClientTick;
+import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
+import net.runelite.client.RuneLite;
+import net.runelite.client.callback.ClientThread;
+import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.plugins.Plugin;
+import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.DrawManager;
+import net.runelite.client.util.ImageUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Runs test scripts from {@code <RuneLite folder>\tests} against our own server and writes a result per script to
+ * {@code <RuneLite folder>\test-results}. A script runs when it is dropped into (or changed in) the tests folder, or
+ * after each login when it says "runOnLogin". See README.md.
+ *
+ * It clicks for you, so it is never for the Plugin Hub or Jagex's worlds: it is sideloaded into our test client only,
+ * and a script only runs on an account in the Test accounts setting.
+ */
+@PluginDescriptor(
+	name = "OSRSPS Test Runner",
+	description = "Runs scripted tests against the OSRSPS test server and writes pass/fail results",
+	tags = {"test", "osrsps", "automation"},
+	enabledByDefault = true
+)
+public class TestRunnerPlugin extends Plugin
+{
+	/** Written into every result, bumped with every change to how scripts run. */
+	static final String RUNNER_VERSION = "0.1.0";
+	private static final Logger log = LoggerFactory.getLogger(TestRunnerPlugin.class);
+	/** How long a failure waits for a frame to screenshot before writing its result without one. */
+	private static final long SCREENSHOT_WAIT_MS = 3_000;
+
+	@Inject
+	private Client client;
+
+	@Inject
+	private ClientThread clientThread;
+
+	@Inject
+	private TestRunnerConfig config;
+
+	@Inject
+	private ScheduledExecutorService executor;
+
+	@Inject
+	private DrawManager drawManager;
+
+	@Inject
+	private Gson gson;
+
+	private ScriptFolder folder;
+	private ResultWriter writer;
+	private Runner runner;
+	private ScheduledFuture<?> scanTask;
+	/** Scripts read and checked on the executor, waiting for the client thread to run them in order. */
+	private final Queue<Pending> pending = new ConcurrentLinkedQueue<>();
+	/** True between a login and the next login screen: LOGGED_IN also follows every region load. */
+	private boolean loggedIn;
+
+	private static final class Pending
+	{
+		final String id;
+		final String trigger;
+		final Script script;
+		/** Why the file could not be run, when {@link #script} is null. */
+		final String error;
+
+		Pending(String id, String trigger, Script script, String error)
+		{
+			this.id = id;
+			this.trigger = trigger;
+			this.script = script;
+			this.error = error;
+		}
+	}
+
+	@Provides
+	TestRunnerConfig provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(TestRunnerConfig.class);
+	}
+
+	@Override
+	protected void startUp()
+	{
+		Path base = RuneLite.RUNELITE_DIR.toPath();
+		folder = new ScriptFolder(base.resolve("tests"));
+		writer = new ResultWriter(base.resolve("test-results"), gson.newBuilder().setPrettyPrinting().disableHtmlEscaping().create(), RUNNER_VERSION);
+		runner = new Runner(new ClientGame(client), System::currentTimeMillis, this::accounts);
+		loggedIn = client.getGameState() == GameState.LOGGED_IN;
+		scanTask = executor.scheduleWithFixedDelay(this::scan, 0, 1, TimeUnit.SECONDS);
+		log.info("Test runner: watching {}", folder.dir());
+	}
+
+	@Override
+	protected void shutDown()
+	{
+		if (scanTask != null)
+		{
+			scanTask.cancel(false);
+			scanTask = null;
+		}
+		pending.clear();
+		Result r = runner.abort("the plugin was turned off");
+		if (r != null)
+		{
+			finished(r);
+		}
+	}
+
+	private List<String> accounts()
+	{
+		List<String> out = new ArrayList<>();
+		for (String a : config.accounts().split(","))
+		{
+			if (!a.trim().isEmpty())
+			{
+				out.add(a.trim());
+			}
+		}
+		return out;
+	}
+
+	/** On the executor: queues scripts that are new or changed in the tests folder. */
+	private void scan()
+	{
+		try
+		{
+			Files.createDirectories(folder.dir());
+			List<Path> due = folder.scan(System.currentTimeMillis());
+			// ClientTick only comes while logged in; this keeps a script that waits for a login moving.
+			if (client.getGameState() != GameState.LOGGED_IN)
+			{
+				clientThread.invokeLater(this::pump);
+			}
+			if (config.watchFolder())
+			{
+				for (Path p : due)
+				{
+					queue(p, "file", false);
+				}
+			}
+		}
+		catch (IOException | RuntimeException e)
+		{
+			log.warn("Test runner: cannot scan {}", folder.dir(), e);
+		}
+	}
+
+	/** On the executor: queues the scripts marked runOnLogin. */
+	private void queueLoginScripts()
+	{
+		try
+		{
+			for (Path p : folder.scripts())
+			{
+				queue(p, "login", true);
+			}
+		}
+		catch (IOException | RuntimeException e)
+		{
+			log.warn("Test runner: cannot read {}", folder.dir(), e);
+		}
+	}
+
+	private void queue(Path file, String trigger, boolean onlyRunOnLogin)
+	{
+		String name = file.getFileName().toString();
+		String id = Script.idFor(name);
+		try
+		{
+			Script s = Script.parse(name, new String(Files.readAllBytes(file), StandardCharsets.UTF_8));
+			if (!onlyRunOnLogin || s.runOnLogin)
+			{
+				pending.add(new Pending(id, trigger, s, null));
+			}
+		}
+		catch (Script.Invalid e)
+		{
+			// A broken file still gets a result, so whoever dropped it learns why nothing ran.
+			if (!onlyRunOnLogin)
+			{
+				pending.add(new Pending(id, trigger, null, e.getMessage()));
+			}
+		}
+		catch (IOException e)
+		{
+			pending.add(new Pending(id, trigger, null, "cannot read " + file + ": " + e));
+		}
+	}
+
+	@Subscribe
+	public void onGameStateChanged(GameStateChanged event)
+	{
+		GameState state = event.getGameState();
+		if (state == GameState.LOGIN_SCREEN)
+		{
+			loggedIn = false;
+		}
+		else if (state == GameState.LOGGED_IN && !loggedIn)
+		{
+			loggedIn = true;
+			if (config.runOnLogin())
+			{
+				executor.execute(this::queueLoginScripts);
+			}
+		}
+	}
+
+	@Subscribe
+	public void onGameTick(GameTick event)
+	{
+		runner.gameTick();
+	}
+
+	@Subscribe
+	public void onChatMessage(ChatMessage event)
+	{
+		// Console lines are this plugin's own (and other plugins'); the game's messages are what scripts assert on.
+		if (event.getType() != ChatMessageType.CONSOLE)
+		{
+			runner.message(event.getMessage());
+		}
+	}
+
+	@Subscribe
+	public void onClientTick(ClientTick event)
+	{
+		pump();
+	}
+
+	/** Starts the next queued script when none is running, and advances the running one. Client thread only. */
+	private void pump()
+	{
+		try
+		{
+			if (!runner.busy())
+			{
+				Pending next = pending.poll();
+				if (next == null)
+				{
+					return;
+				}
+				if (next.script == null)
+				{
+					finished(Result.error(next.id, next.trigger, next.error, System.currentTimeMillis()));
+					return;
+				}
+				say("running " + next.script.name);
+				runner.start(next.script, next.trigger);
+			}
+			Result r = runner.poll();
+			if (r != null)
+			{
+				finished(r);
+			}
+		}
+		catch (RuntimeException e)
+		{
+			log.warn("Test runner: script {} threw", runner.running(), e);
+			Result r = runner.abort("the runner threw " + e);
+			if (r != null)
+			{
+				finished(r);
+			}
+		}
+	}
+
+	private void finished(Result r)
+	{
+		say(r.summary());
+		log.info("Test runner: {}", r.summary());
+		if (!r.passed() && !Result.ERROR.equals(r.result) && config.screenshotOnFailure())
+		{
+			AtomicBoolean written = new AtomicBoolean();
+			drawManager.requestNextFrameListener(image ->
+			{
+				BufferedImage shot = ImageUtil.bufferedImageFromImage(image);
+				executor.execute(() ->
+				{
+					if (written.compareAndSet(false, true))
+					{
+						write(r, shot);
+					}
+				});
+			});
+			// A minimised client draws no frames: write the result without a screenshot rather than not at all.
+			executor.schedule(() ->
+			{
+				if (written.compareAndSet(false, true))
+				{
+					write(r, null);
+				}
+			}, SCREENSHOT_WAIT_MS, TimeUnit.MILLISECONDS);
+			return;
+		}
+		executor.execute(() -> write(r, null));
+	}
+
+	private void write(Result r, BufferedImage screenshot)
+	{
+		try
+		{
+			Path out = writer.write(r, screenshot);
+			log.info("Test runner: wrote {}", out);
+		}
+		catch (IOException | RuntimeException e)
+		{
+			log.warn("Test runner: cannot write the result of {}", r.id, e);
+		}
+	}
+
+	private void say(String message)
+	{
+		client.addChatMessage(ChatMessageType.CONSOLE, "", "[Test runner] " + message, null);
+	}
+}
