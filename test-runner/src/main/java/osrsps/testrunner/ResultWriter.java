@@ -11,6 +11,8 @@ import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import javax.imageio.ImageIO;
 
 /**
@@ -26,6 +28,8 @@ final class ResultWriter
 	private final Path dir;
 	private final Gson gson;
 	private final String version;
+	/** Per script, the start of the newest run written, so a late write of an older run can't replace it. */
+	private final Map<String, Long> newest = new HashMap<>();
 
 	ResultWriter(Path dir, Gson gson, String version)
 	{
@@ -34,10 +38,20 @@ final class ResultWriter
 		this.version = version;
 	}
 
-	/** Writes the screenshot (when there is one) and the result; returns the result file. */
-	Path write(Result r, BufferedImage screenshot) throws IOException
+	/**
+	 * Writes the result to history, and with its screenshot (when there is one) as the script's latest result unless a
+	 * newer run of it has been written already (a failure waiting for its screenshot can finish after the next run).
+	 * Returns the file written for this run.
+	 */
+	synchronized Path write(Result r, BufferedImage screenshot) throws IOException
 	{
 		Files.createDirectories(dir.resolve("history"));
+		Long newer = newest.get(r.id);
+		if (newer != null && newer > r.startedAtMs)
+		{
+			return writeHistory(r);
+		}
+		newest.put(r.id, r.startedAtMs);
 		Path png = dir.resolve(r.id + ".png");
 		if (screenshot != null)
 		{
@@ -50,6 +64,18 @@ final class ResultWriter
 		{
 			Files.deleteIfExists(png);
 		}
+		writeHistory(r);
+		String text = gson.toJson(r.toJson(version)) + "\n";
+		// Written whole and then moved, so a reader polling for the file never sees half of it.
+		Path out = dir.resolve(r.id + ".json");
+		Path tmp = dir.resolve(r.id + ".json.tmp");
+		Files.write(tmp, text.getBytes(StandardCharsets.UTF_8));
+		Files.move(tmp, out, StandardCopyOption.REPLACE_EXISTING);
+		return out;
+	}
+
+	private Path writeHistory(Result r) throws IOException
+	{
 		String text = gson.toJson(r.toJson(version)) + "\n";
 		// Two runs can still start in the same millisecond (a login script also dropped as a file): never overwrite one.
 		String stem = FILE_TIME.format(Instant.ofEpochMilli(r.startedAtMs)) + "_" + r.id;
@@ -59,11 +85,6 @@ final class ResultWriter
 			history = dir.resolve("history").resolve(stem + "_" + n + ".json");
 		}
 		Files.write(history, text.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE_NEW);
-		// Written whole and then moved, so a reader polling for the file never sees half of it.
-		Path out = dir.resolve(r.id + ".json");
-		Path tmp = dir.resolve(r.id + ".json.tmp");
-		Files.write(tmp, text.getBytes(StandardCharsets.UTF_8));
-		Files.move(tmp, out, StandardCopyOption.REPLACE_EXISTING);
-		return out;
+		return history;
 	}
 }

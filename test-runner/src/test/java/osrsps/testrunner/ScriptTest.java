@@ -44,7 +44,10 @@ public class ScriptTest
 	@Test
 	public void idIsASafeFileName()
 	{
-		assertEquals("my_test", Script.idFor("my test.json"));
+		assertEquals("my%20test", Script.idFor("my test.json"));
+		assertEquals("my_test", Script.idFor("my_test.json"));
+		assertEquals("100%25", Script.idFor("100%.json"));
+		assertEquals("h%C3%A4ns", Script.idFor("h\u00e4ns.json"));
 		assertEquals("a.b-c", Script.idFor("a.b-c.JSON"));
 	}
 

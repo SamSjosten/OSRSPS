@@ -79,6 +79,25 @@ public class FilesTest
 	}
 
 	@Test
+	public void aLateOlderRunDoesNotReplaceTheLatestResult() throws Exception
+	{
+		Path dir = tmp.getRoot().toPath().resolve("test-results");
+		ResultWriter w = new ResultWriter(dir, new Gson(), "0.1.0");
+		Result older = new Result("demo", "Demo", "file", Result.FAIL, "step 1 (x): no", 1_000, 5, 1, List.of());
+		Result newer = new Result("demo", "Demo", "file", Result.PASS, null, 2_000, 5, 1, List.of());
+		w.write(newer, null);
+		// The older failure's screenshot arrived late.
+		w.write(older, new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB));
+		JsonObject o = new JsonParser().parse(new String(Files.readAllBytes(dir.resolve("demo.json")), StandardCharsets.UTF_8)).getAsJsonObject();
+		assertEquals("pass", o.get("result").getAsString());
+		assertFalse(Files.exists(dir.resolve("demo.png")));
+		try (var history = Files.list(dir.resolve("history")))
+		{
+			assertEquals("the older run is still in history", 2, history.count());
+		}
+	}
+
+	@Test
 	public void cleanReadsWidgetTextAsShown()
 	{
 		assertEquals("Hello. What are you doing here?", Dialogue.clean("Hello. What are<br>you doing here?"));

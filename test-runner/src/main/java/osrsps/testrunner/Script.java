@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -43,11 +44,27 @@ final class Script
 		}
 	}
 
-	/** The id a script file's results are written under: its name without .json, made safe for a file name. */
+	/**
+	 * The id a script file's results are written under: its name without .json. Any other character than letters,
+	 * digits, '.', '_' and '-' becomes %XX of its UTF-8 bytes, so two file names never share an id.
+	 */
 	static String idFor(String fileName)
 	{
 		String base = fileName.toLowerCase().endsWith(".json") ? fileName.substring(0, fileName.length() - 5) : fileName;
-		return base.replaceAll("[^A-Za-z0-9._-]", "_");
+		StringBuilder id = new StringBuilder();
+		for (byte b : base.getBytes(StandardCharsets.UTF_8))
+		{
+			char c = (char) (b & 0xff);
+			if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '_' || c == '-')
+			{
+				id.append(c);
+			}
+			else
+			{
+				id.append(String.format("%%%02X", b & 0xff));
+			}
+		}
+		return id.toString();
 	}
 
 	static Script parse(String fileName, String json) throws Invalid

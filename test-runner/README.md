@@ -51,7 +51,7 @@ Results go to `C:\RSPS\.rlcustom\test-results\`:
   it, so a png is always the picture of the result next to it.
 - `history\<UTC time>_<script>.json`: every run (time to the millisecond).
 
-`<script>` is the file name without `.json`.
+`<script>` is the file name without `.json`, with any character but letters, digits, `.`, `_` and `-` written as `%XX` (so `my test.json` gives `my%20test`). If a failure's screenshot comes in after a newer run of the same script has finished, the older result only goes to `history`.
 
 ```json
 {
