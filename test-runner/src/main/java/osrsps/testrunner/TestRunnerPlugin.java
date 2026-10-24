@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 public class TestRunnerPlugin extends Plugin
 {
 	/** Written into every result, bumped with every change to how scripts run. */
-	static final String RUNNER_VERSION = "0.1.1";
+	static final String RUNNER_VERSION = "0.2.0";
 	private static final Logger log = LoggerFactory.getLogger(TestRunnerPlugin.class);
 	/** How long a failure waits for a frame to screenshot before writing its result without one. */
 	private static final long SCREENSHOT_WAIT_MS = 3_000;
@@ -75,6 +75,7 @@ public class TestRunnerPlugin extends Plugin
 	@Inject
 	private Gson gson;
 
+	private final AutoLogin autoLogin = new AutoLogin();
 	private ScriptFolder folder;
 	private ResultWriter writer;
 	private Runner runner;
@@ -118,11 +119,16 @@ public class TestRunnerPlugin extends Plugin
 	protected void startUp()
 	{
 		capturing.set(null);
+		autoLogin.reset();
 		Path base = RuneLite.RUNELITE_DIR.toPath();
 		folder = new ScriptFolder(base.resolve("tests"));
 		writer = new ResultWriter(base.resolve("test-results"), gson.newBuilder().setPrettyPrinting().disableHtmlEscaping().create(), RUNNER_VERSION);
 		runner = new Runner(new ClientGame(client), System::currentTimeMillis, this::accounts);
 		loggedIn = client.getGameState() == GameState.LOGGED_IN;
+		if (client.getGameState() == GameState.LOGIN_SCREEN)
+		{
+			autoLogin.loginScreen(System.currentTimeMillis());
+		}
 		scanTask = executor.scheduleWithFixedDelay(this::scan, 0, 1, TimeUnit.SECONDS);
 		log.info("Test runner: watching {}", folder.dir());
 	}
@@ -140,6 +146,44 @@ public class TestRunnerPlugin extends Plugin
 		if (r != null)
 		{
 			finished(r);
+		}
+	}
+
+	/**
+	 * Client thread: fills in the auto login account and starts the login, as pressing Login would. Only for an account
+	 * on the test account list. Starting it by setting the game state to LOGGING_IN is how RuneLite's own developer
+	 * tools log in; not yet tried against our server.
+	 */
+	private void logIn()
+	{
+		long now = System.currentTimeMillis();
+		if (client.getGameState() != GameState.LOGIN_SCREEN || !autoLogin.due(now))
+		{
+			return;
+		}
+		String account = config.autoLoginAccount().trim();
+		if (account.isEmpty())
+		{
+			return;
+		}
+		boolean allowed = false;
+		for (String a : accounts())
+		{
+			allowed |= Runner.normalise(a).equals(Runner.normalise(account));
+		}
+		autoLogin.tried(now);
+		if (!allowed)
+		{
+			log.warn("Test runner: auto login account \"{}\" is not in the test accounts {}", account, accounts());
+			return;
+		}
+		log.info("Test runner: logging in as {}", account);
+		client.setUsername(account);
+		client.setPassword(config.autoLoginPassword());
+		client.setGameState(GameState.LOGGING_IN);
+		if (autoLogin.gaveUp())
+		{
+			log.warn("Test runner: auto login gave up after {} tries; log in by hand or restart the plugin", AutoLogin.MAX_TRIES);
 		}
 	}
 
@@ -167,6 +211,10 @@ public class TestRunnerPlugin extends Plugin
 			if (client.getGameState() != GameState.LOGGED_IN)
 			{
 				clientThread.invokeLater(this::pump);
+			}
+			if (autoLogin.due(System.currentTimeMillis()))
+			{
+				clientThread.invokeLater(this::logIn);
 			}
 			if (config.watchFolder())
 			{
@@ -231,10 +279,16 @@ public class TestRunnerPlugin extends Plugin
 		if (state == GameState.LOGIN_SCREEN)
 		{
 			loggedIn = false;
+			autoLogin.loginScreen(System.currentTimeMillis());
 		}
-		else if (state == GameState.LOGGED_IN && !loggedIn)
+		else
+		{
+			autoLogin.leftLoginScreen();
+		}
+		if (state == GameState.LOGGED_IN && !loggedIn)
 		{
 			loggedIn = true;
+			autoLogin.loggedIn();
 			if (config.runOnLogin())
 			{
 				executor.execute(this::queueLoginScripts);
