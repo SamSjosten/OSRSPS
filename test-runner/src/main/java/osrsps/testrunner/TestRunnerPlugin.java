@@ -15,6 +15,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -51,7 +52,7 @@ import org.slf4j.LoggerFactory;
 public class TestRunnerPlugin extends Plugin
 {
 	/** Written into every result, bumped with every change to how scripts run. */
-	static final String RUNNER_VERSION = "0.1.0";
+	static final String RUNNER_VERSION = "0.1.1";
 	private static final Logger log = LoggerFactory.getLogger(TestRunnerPlugin.class);
 	/** How long a failure waits for a frame to screenshot before writing its result without one. */
 	private static final long SCREENSHOT_WAIT_MS = 3_000;
@@ -80,6 +81,13 @@ public class TestRunnerPlugin extends Plugin
 	private ScheduledFuture<?> scanTask;
 	/** Scripts read and checked on the executor, waiting for the client thread to run them in order. */
 	private final Queue<Pending> pending = new ConcurrentLinkedQueue<>();
+	/**
+	 * True while a failed run waits for its screenshot. The next script waits too, or a late frame (a minimised
+	 * client restored) could show the next script's state as this one's failure. Holds that run's own token, and only
+	 * the holder of the current token clears it, so a stale capture (an older run, or one from before a plugin
+	 * restart) can never release a newer one.
+	 */
+	private final AtomicReference<AtomicBoolean> capturing = new AtomicReference<>();
 	/** True between a login and the next login screen: LOGGED_IN also follows every region load. */
 	private boolean loggedIn;
 
@@ -109,6 +117,7 @@ public class TestRunnerPlugin extends Plugin
 	@Override
 	protected void startUp()
 	{
+		capturing.set(null);
 		Path base = RuneLite.RUNELITE_DIR.toPath();
 		folder = new ScriptFolder(base.resolve("tests"));
 		writer = new ResultWriter(base.resolve("test-results"), gson.newBuilder().setPrettyPrinting().disableHtmlEscaping().create(), RUNNER_VERSION);
@@ -262,6 +271,10 @@ public class TestRunnerPlugin extends Plugin
 		{
 			if (!runner.busy())
 			{
+				if (capturing.get() != null)
+				{
+					return;
+				}
 				Pending next = pending.poll();
 				if (next == null)
 				{
@@ -299,22 +312,24 @@ public class TestRunnerPlugin extends Plugin
 		if (!r.passed() && !Result.ERROR.equals(r.result) && config.screenshotOnFailure())
 		{
 			AtomicBoolean written = new AtomicBoolean();
+			capturing.set(written);
 			drawManager.requestNextFrameListener(image ->
 			{
-				BufferedImage shot = ImageUtil.bufferedImageFromImage(image);
-				executor.execute(() ->
+				// Only the side that claims the write releases the queue: a frame arriving after the fallback must not
+				// clear the guard a later failed run has set.
+				if (written.compareAndSet(false, true))
 				{
-					if (written.compareAndSet(false, true))
-					{
-						write(r, shot);
-					}
-				});
+					BufferedImage shot = ImageUtil.bufferedImageFromImage(image);
+					capturing.compareAndSet(written, null);
+					executor.execute(() -> write(r, shot));
+				}
 			});
 			// A minimised client draws no frames: write the result without a screenshot rather than not at all.
 			executor.schedule(() ->
 			{
 				if (written.compareAndSet(false, true))
 				{
+					capturing.compareAndSet(written, null);
 					write(r, null);
 				}
 			}, SCREENSHOT_WAIT_MS, TimeUnit.MILLISECONDS);
