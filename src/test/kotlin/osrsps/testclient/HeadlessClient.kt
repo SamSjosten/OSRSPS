@@ -30,6 +30,15 @@ data class GameMessage(val type: Int, val text: String, val name: String? = null
 /** A move of the local player, with the number of ticks the client had seen end before it. */
 data class TickMove(val tick: Int, val move: PlayerMove)
 
+/** One inventory slot's item. */
+data class InvObj(val id: Int, val count: Int)
+
+/**
+ * A skill as UPDATE_STAT_V2 sends it: the level shown (with boosts), the XP, and the "invisible boosted" level the
+ * client keeps for hidden checks. The base level isn't sent; the client works it out from the XP.
+ */
+data class Stat(val level: Int, val xp: Int, val invisibleLevel: Int)
+
 /** A client script the server ran (RUNCLIENTSCRIPT), with its arguments in the script's order. */
 data class ClientScript(val id: Int, val args: List<Any>)
 
@@ -78,6 +87,10 @@ class HeadlessClient private constructor(
     private val texts = HashMap<Int, String>()
     private val scripts = ArrayList<ClientScript>()
     private var dialogue: DialogueView? = null
+    private val invs = HashMap<Int, MutableList<InvObj?>>()
+    private val stats = HashMap<Int, Stat>()
+    private val varps = HashMap<Int, Int>()
+    private var runEnergy = -1
 
     /** Counts changes of [dialogue]; [dialogueMark] is its value when the last packet was sent. */
     private var dialogueGeneration = 0
@@ -122,6 +135,21 @@ class HeadlessClient private constructor(
     fun text(interfaceId: Int, componentId: Int): String? = lock.withLock { texts[(interfaceId shl 16) or componentId] }
 
     fun clientScripts(): List<ClientScript> = lock.withLock { scripts.toList() }
+
+    /**
+     * Inventory [inventoryId]'s slots (93 is the backpack, 94 worn items), null for an empty slot; empty if never sent.
+     * Only as long as the server sent it: our server's full update stops at the last filled slot.
+     */
+    fun inventory(inventoryId: Int): List<InvObj?> = lock.withLock { invs[inventoryId]?.toList().orEmpty() }
+
+    /** Skill [skill] (0 Attack, 1 Defence, 2 Strength, 3 Hitpoints...), or null if the server hasn't sent it. */
+    fun stat(skill: Int): Stat? = lock.withLock { stats[skill] }
+
+    /** Varp [id] as the server last set it; 0, as in the client, if it never has. */
+    fun varp(id: Int): Int = lock.withLock { varps[id] ?: 0 }
+
+    /** Run energy in hundredths of a percent (10000 is full), or -1 before the server sends it. */
+    val runEnergyHundredths: Int get() = lock.withLock { runEnergy }
 
     /**
      * What the chatbox dialogue showed at the end of the last server tick, or null if none was open. Read at tick ends
@@ -347,6 +375,49 @@ class HeadlessClient private constructor(
                 texts[component] = buf.gjstr()
             }
             GameServerProt.RUNCLIENTSCRIPT -> scripts += readClientScript(buf)
+            GameServerProt.UPDATE_INV_FULL -> {
+                buf.g4() // the interface component it is shown on, or -1
+                val inventoryId = buf.g2()
+                invs[inventoryId] = MutableList(buf.g2()) {
+                    val id = buf.g2Alt1() - 1
+                    var count = buf.g1Alt3()
+                    if (count == 0xFF) count = buf.g4Alt2()
+                    if (id < 0) null else InvObj(id, count)
+                }
+            }
+            GameServerProt.UPDATE_INV_PARTIAL -> {
+                buf.g4()
+                val slots = invs.getOrPut(buf.g2()) { ArrayList() }
+                while (buf.isReadable) {
+                    val slot = buf.gSmart1or2()
+                    val id = buf.g2() - 1
+                    val obj = if (id < 0) {
+                        null
+                    } else {
+                        var count = buf.g1()
+                        if (count == 0xFF) count = buf.g4()
+                        InvObj(id, count)
+                    }
+                    while (slots.size <= slot) slots += null
+                    slots[slot] = obj
+                }
+            }
+            GameServerProt.UPDATE_STAT_V2 -> {
+                val xp = buf.g4Alt1()
+                val invisibleLevel = buf.g1Alt1()
+                val skill = buf.g1Alt2()
+                stats[skill] = Stat(buf.g1Alt2(), xp, invisibleLevel)
+            }
+            GameServerProt.VARP_SMALL -> {
+                val value = buf.g1sAlt3()
+                varps[buf.g2Alt1()] = value
+            }
+            GameServerProt.VARP_LARGE -> {
+                val id = buf.g2Alt3()
+                varps[id] = buf.g4Alt3()
+            }
+            GameServerProt.VARP_RESET -> varps.clear()
+            GameServerProt.UPDATE_RUNENERGY -> runEnergy = buf.g2()
             GameServerProt.SERVER_TICK_END -> {
                 ticks++
                 val view = readDialogue()

@@ -586,7 +586,8 @@ you were with your own stats and items.
 RuneLite. It speaks the real protocol over a socket: it fetches the cache CRCs over JS5, logs in with the RSA and
 XTEA login block, and decodes ISAAC opcodes. It reads player info (positions and moves of every player in view), NPC
 info (each NPC's index, type and tile), game messages, interface opens, moves and closes, component text and client
-scripts, and from those the chatbox dialogue showing at the end of each tick. It sends walks, `::` commands, NPC and
+scripts, and from those the chatbox dialogue showing at the end of each tick. It also keeps inventories, stats (level
+and XP), varps and run energy as the server sends them. It sends walks, `::` commands, NPC and
 loc ops 1-5, and dialogue continues and menu picks. Every other packet is kept raw. It only ever connects to our own
 server.
 
@@ -608,6 +609,10 @@ TestServer(tempDir).use { server ->
         client.continueDialogue()
         client.awaitDialogue("the menu") { it is DialogueView.Menu }
         client.chooseOption(3)
+
+        client.command("item 995 100")
+        client.await("coins") { client.inventory(93).firstOrNull() } // InvObj(995, 100)
+        client.stat(3) // Stat(level = 10, xp = 1154, ...)
     }
 }
 ```
