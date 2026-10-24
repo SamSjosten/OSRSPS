@@ -584,8 +584,11 @@ you were with your own stats and items.
 
 `src/test/kotlin/osrsps/testclient/` holds a scripted game client for tests, so features can be checked without
 RuneLite. It speaks the real protocol over a socket: it fetches the cache CRCs over JS5, logs in with the RSA and
-XTEA login block, decodes ISAAC opcodes and reads player info (positions and moves of every player in view) and game
-messages. Every other packet is kept raw. It only ever connects to our own server.
+XTEA login block, and decodes ISAAC opcodes. It reads player info (positions and moves of every player in view), NPC
+info (each NPC's index, type and tile), game messages, interface opens, moves and closes, component text and client
+scripts, and from those the chatbox dialogue showing at the end of each tick. It sends walks, `::` commands, NPC and
+loc ops 1-5, and dialogue continues and menu picks. Every other packet is kept raw. It only ever connects to our own
+server.
 
 `TestServer` starts our network stack and `World` on a free local port with no cache: an empty generated JS5 store and
 open ground in Lumbridge's map square, with 100 ms cycles so tests run fast (the tick logic is the same as live's
@@ -597,13 +600,23 @@ TestServer(tempDir).use { server ->
         client.walk(3226, 3218)
         client.await("arriving") { client.position?.takeIf { it.x == 3226 } }
         client.commandReply("pos") { it.contains("(region") } // "3226, 3218, 0 (region 12850, ...)"
+
+        // With a world builder that spawns Hans; see HeadlessInteractionTest.
+        val hans = client.await("Hans") { client.npcs().firstOrNull { it.id == Hans.ID } }
+        client.npcOp(hans.index, Hans.TALK_TO)
+        client.awaitDialogue("the greeting") // Chat(231, "Hans", "Hello. What are you doing here?")
+        client.continueDialogue()
+        client.awaitDialogue("the menu") { it is DialogueView.Menu }
+        client.chooseOption(3)
     }
 }
 ```
 
-Not read yet: NPC info, extended info (appearance, chat, animations), interfaces, inventories and zone updates.
+Not read yet: extended info (appearance, chat, animations, NPC faces), inventories, varps, stats and zone updates
+(ground items, loc changes).
 `RSProt` has only the server's side of each packet, so each one the client reads is written here from RSProt's encoder.
 
-Check (bash or PowerShell): `./gradlew test --tests 'osrsps.testclient.*'` passes four tests: login at the spawn
-with the welcome message, a four-tile walk one tile a tick, a second player seen walking, and a `::tele` that arrives
-as a teleport.
+Check (bash or PowerShell): `./gradlew test --tests 'osrsps.testclient.*'` passes eight tests: login at the spawn
+with the welcome message, a four-tile walk one tile a tick, a second player seen walking, a `::tele` that arrives as a
+teleport, NPCs seen with their type and tile and one walking its patrol, a whole Hans dialogue through the menu, and
+each of the five NPC and loc ops reaching its handler.

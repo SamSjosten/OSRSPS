@@ -219,6 +219,8 @@ internal class BitReader(private val bytes: ByteArray) {
         return value
     }
 
+    fun remaining(): Int = bytes.size * 8 - position
+
     fun align() {
         position = (position + 7) and 7.inv()
     }

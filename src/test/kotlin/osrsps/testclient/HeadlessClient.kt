@@ -17,6 +17,7 @@ import net.rsprot.crypto.cipher.IsaacRandom
 import net.rsprot.protocol.Prot
 import net.rsprot.protocol.game.incoming.prot.GameClientProt
 import net.rsprot.protocol.game.outgoing.prot.GameServerProt
+import osrsps.game.dialogue.Chatbox
 
 /** One packet from the server, with its payload as sent. */
 class ServerPacket(val prot: GameServerProt, val payload: ByteArray) {
@@ -28,6 +29,24 @@ data class GameMessage(val type: Int, val text: String, val name: String? = null
 
 /** A move of the local player, with the number of ticks the client had seen end before it. */
 data class TickMove(val tick: Int, val move: PlayerMove)
+
+/** A client script the server ran (RUNCLIENTSCRIPT), with its arguments in the script's order. */
+data class ClientScript(val id: Int, val args: List<Any>)
+
+/** What the chatbox dialogue shows. */
+sealed interface DialogueView {
+    /** An NPC (chat_left) or the player (chat_right) talking. */
+    data class Chat(val interfaceId: Int, val name: String, val text: String) : DialogueView
+
+    /** Select an option: the options in order, option 1 first. */
+    data class Menu(val title: String, val options: List<String>) : DialogueView
+
+    /** Plain text with no head. */
+    data class Message(val text: String) : DialogueView
+
+    /** Some other interface in the chatbox, by id. */
+    data class Other(val interfaceId: Int) : DialogueView
+}
 
 class LoginFailedException(val code: Int) : Exception("Login refused with response code $code")
 
@@ -51,6 +70,14 @@ class HeadlessClient private constructor(
     private val lock = ReentrantLock()
     private val changed = lock.newCondition()
     private val playerInfo = PlayerInfoReader(index)
+    private val npcInfo = NpcInfoReader()
+
+    /** Each open sub-interface by the component it is open in (interface id shl 16 or component), plus the top level. */
+    private val subs = HashMap<Int, Int>()
+    private var topLevel = -1
+    private val texts = HashMap<Int, String>()
+    private val scripts = ArrayList<ClientScript>()
+    private var dialogue: DialogueView? = null
     private var rebuilt = false
 
     private val packets = ArrayList<ServerPacket>()
@@ -80,6 +107,77 @@ class HeadlessClient private constructor(
 
     /** The other players in view and where they are. */
     fun otherPlayers(): Map<Int, Coord> = lock.withLock { playerInfo.others() }
+
+    /** The NPCs in view, in the order the server keeps them. */
+    fun npcs(): List<NpcView> = lock.withLock { npcInfo.npcs() }
+
+    /** The top-level interface and every interface open in another's component. */
+    fun openInterfaces(): Set<Int> = lock.withLock { subs.values.toSet() + topLevel }
+
+    /** The text last set on a component (IF_SETTEXT), or null if none has been. */
+    fun text(interfaceId: Int, componentId: Int): String? = lock.withLock { texts[(interfaceId shl 16) or componentId] }
+
+    fun clientScripts(): List<ClientScript> = lock.withLock { scripts.toList() }
+
+    /**
+     * What the chatbox dialogue showed at the end of the last server tick, or null if none was open. Read at tick ends
+     * so a page is never seen half-sent (opened, but its text not set yet).
+     */
+    val dialogueView: DialogueView? get() = lock.withLock { dialogue }
+
+    /** Op [op] (1-5) on the NPC at [index], as the menu's OPNPC1-5. */
+    fun npcOp(index: Int, op: Int, ctrl: Boolean = false, subop: Int = 0) {
+        val key = if (ctrl) 1 else 0
+        when (op) {
+            1 -> send(GameClientProt.OPNPC1_V2) { p1Alt1(subop); p2Alt3(index); p1Alt2(key) }
+            2 -> send(GameClientProt.OPNPC2_V2) { p1Alt1(key); p1Alt3(subop); p2Alt3(index) }
+            3 -> send(GameClientProt.OPNPC3_V2) { p2Alt1(index); p1(subop); p1Alt1(key) }
+            4 -> send(GameClientProt.OPNPC4_V2) { p1Alt3(key); p1Alt3(subop); p2Alt1(index) }
+            5 -> send(GameClientProt.OPNPC5_V2) { p2Alt2(index); p1Alt1(key); p1Alt2(subop) }
+            else -> throw IllegalArgumentException("NPC ops are 1-5, not $op")
+        }
+    }
+
+    /** Op [op] (1-5) on loc [id] whose south-west tile is [x], [z], as OPLOC1-5. */
+    fun locOp(id: Int, x: Int, z: Int, op: Int, ctrl: Boolean = false, subop: Int = 0) {
+        val key = if (ctrl) 1 else 0
+        when (op) {
+            1 -> send(GameClientProt.OPLOC1_V2) { p2Alt1(z); p2Alt3(id); p1(subop); p2(x); p1Alt3(key) }
+            2 -> send(GameClientProt.OPLOC2_V2) { p1Alt3(key); p2(z); p2Alt2(id); p1Alt2(subop); p2(x) }
+            3 -> send(GameClientProt.OPLOC3_V2) { p2Alt1(z); p2Alt1(x); p1Alt2(subop); p2Alt3(id); p1Alt1(key) }
+            4 -> send(GameClientProt.OPLOC4_V2) { p2Alt2(id); p1Alt1(subop); p1Alt3(key); p2Alt1(x); p2Alt1(z) }
+            5 -> send(GameClientProt.OPLOC5_V2) { p2Alt3(z); p2Alt1(id); p1(subop); p1Alt1(key); p2Alt2(x) }
+            else -> throw IllegalArgumentException("Loc ops are 1-5, not $op")
+        }
+    }
+
+    /** A click on a pause button (RESUME_PAUSEBUTTON): a dialogue's continue, or a menu option as [sub]. */
+    fun resumePause(interfaceId: Int, componentId: Int, sub: Int = -1) = send(GameClientProt.RESUME_PAUSEBUTTON) {
+        p2Alt1(sub and 0xFFFF)
+        p4Alt1((interfaceId shl 16) or componentId)
+    }
+
+    /** Clicks "Click here to continue" on the dialogue showing now. */
+    fun continueDialogue() {
+        when (val view = dialogueView) {
+            is DialogueView.Chat -> resumePause(view.interfaceId, Chatbox.CHAT_CONTINUE)
+            is DialogueView.Message -> resumePause(Chatbox.MESSAGEBOX, Chatbox.MESSAGEBOX_CONTINUE)
+            else -> throw IllegalStateException("No dialogue page to continue: $view")
+        }
+    }
+
+    /** Picks option [option] (1 for the first) of the menu showing now. */
+    fun chooseOption(option: Int) {
+        val view = dialogueView
+        check(view is DialogueView.Menu && option in 1..view.options.size) { "No option $option to pick in $view" }
+        resumePause(Chatbox.CHATMENU, Chatbox.CHATMENU_OPTIONS, option)
+    }
+
+    /** Waits for a dialogue view matching [predicate] that differs from the one showing when this is called. */
+    fun awaitDialogue(description: String, timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS, predicate: (DialogueView) -> Boolean = { true }): DialogueView {
+        val before = dialogueView
+        return await("dialogue $description", timeoutMillis) { dialogue?.takeIf { it != before && predicate(it) } }
+    }
 
     /** A click on the game view at [x], [z], as MOVE_GAMECLICK. [keyCombination] 1 is ctrl, 2 ctrl and shift. */
     fun walk(x: Int, z: Int, keyCombination: Int = 0) = send(GameClientProt.MOVE_GAMECLICK) {
@@ -218,8 +316,62 @@ class HeadlessClient private constructor(
                 val name = if (buf.g1() == 1) buf.gjstr() else null
                 messages += GameMessage(type, buf.gjstr(), name)
             }
-            GameServerProt.SERVER_TICK_END -> ticks++
+            GameServerProt.NPC_INFO_SMALL_V6, GameServerProt.NPC_INFO_LARGE_V6 -> npcInfo.read(
+                packet.payload,
+                large = packet.prot == GameServerProt.NPC_INFO_LARGE_V6,
+                local = playerInfo.coord(index) ?: error("NPC info before the login rebuild"),
+            )
+            GameServerProt.IF_OPENTOP -> topLevel = buf.g2Alt2()
+            GameServerProt.IF_OPENSUB -> {
+                val destination = buf.g4Alt3()
+                subs[destination] = buf.g2Alt2()
+            }
+            GameServerProt.IF_CLOSESUB -> subs.remove(buf.g4())
+            GameServerProt.IF_MOVESUB -> {
+                val from = buf.g4Alt1()
+                val to = buf.g4Alt1()
+                subs.remove(from)?.let { subs[to] = it }
+            }
+            GameServerProt.IF_SETTEXT -> {
+                val component = buf.g4()
+                texts[component] = buf.gjstr()
+            }
+            GameServerProt.RUNCLIENTSCRIPT -> scripts += readClientScript(buf)
+            GameServerProt.SERVER_TICK_END -> {
+                ticks++
+                dialogue = readDialogue()
+            }
             else -> {}
+        }
+    }
+
+    private fun readClientScript(buf: JagByteBuf): ClientScript {
+        val types = buf.gjstr()
+        val args = arrayOfNulls<Any>(types.length)
+        for (i in types.indices.reversed()) {
+            args[i] = when (types[i]) {
+                's' -> buf.gjstr()
+                'Ï' -> buf.g8()
+                'W' -> IntArray(buf.gVarInt2()) { buf.gVarInt2s() }.toList()
+                'X' -> List(buf.gVarInt2()) { buf.gjstr() }
+                else -> buf.g4()
+            }
+        }
+        return ClientScript(buf.g4(), args.map { it!! })
+    }
+
+    private fun readDialogue(): DialogueView? {
+        val open = subs[(Chatbox.CHATBOX shl 16) or Chatbox.CHATMODAL] ?: return null
+        fun text(component: Int) = texts[(open shl 16) or component].orEmpty()
+        return when (open) {
+            Chatbox.CHAT_LEFT, Chatbox.CHAT_RIGHT -> DialogueView.Chat(open, text(Chatbox.CHAT_NAME), text(Chatbox.CHAT_TEXT))
+            Chatbox.MESSAGEBOX -> DialogueView.Message(text(Chatbox.MESSAGEBOX_TEXT))
+            Chatbox.CHATMENU -> {
+                val init = scripts.lastOrNull { it.id == Chatbox.MULTI_INIT_SCRIPT }
+                    ?: return DialogueView.Other(open)
+                DialogueView.Menu(init.args[0] as String, (init.args[1] as String).split('|'))
+            }
+            else -> DialogueView.Other(open)
         }
     }
 
