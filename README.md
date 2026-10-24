@@ -586,7 +586,8 @@ you were with your own stats and items.
 RuneLite. It speaks the real protocol over a socket: it fetches the cache CRCs over JS5, logs in with the RSA and
 XTEA login block, and decodes ISAAC opcodes. It reads player info (positions and moves of every player in view), NPC
 info (each NPC's index, type and tile), game messages, interface opens, moves and closes, component text and client
-scripts, and from those the chatbox dialogue showing at the end of each tick. It sends walks, `::` commands, NPC and
+scripts, and from those the chatbox dialogue showing at the end of each tick. It also keeps inventories, stats (level
+and XP), varps and run energy as the server sends them. It sends walks, `::` commands, NPC and
 loc ops 1-5, and dialogue continues and menu picks. Every other packet is kept raw. It only ever connects to our own
 server.
 
@@ -608,15 +609,19 @@ TestServer(tempDir).use { server ->
         client.continueDialogue()
         client.awaitDialogue("the menu") { it is DialogueView.Menu }
         client.chooseOption(3)
+
+        client.command("item 995 100")
+        client.await("coins") { client.inventory(93).firstOrNull() } // InvObj(995, 100)
+        client.stat(3) // Stat(level = 10, xp = 1154, ...)
     }
 }
 ```
 
-Not read yet: extended info (appearance, chat, animations, NPC faces), inventories, varps, stats and zone updates
-(ground items, loc changes).
+Not read yet: extended info (appearance, chat, animations, NPC faces) and zone updates (ground items, loc changes).
 `RSProt` has only the server's side of each packet, so each one the client reads is written here from RSProt's encoder.
 
-Check (bash or PowerShell): `./gradlew test --tests 'osrsps.testclient.*'` passes eight tests: login at the spawn
+Check (bash or PowerShell): `./gradlew test --tests 'osrsps.testclient.*'` passes eleven tests: login at the spawn
 with the welcome message, a four-tile walk one tile a tick, a second player seen walking, a `::tele` that arrives as a
 teleport, NPCs seen with their type and tile and one walking its patrol, a whole Hans dialogue through the menu, and
-each of the five NPC and loc ops reaching its handler.
+each of the five NPC and loc ops reaching its handler, a new account's stats and run energy, `::item` filling the
+backpack (a 100000 coin stack too), and `::setlevel` and `::varp` reaching the client.
