@@ -15,6 +15,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -82,9 +83,11 @@ public class TestRunnerPlugin extends Plugin
 	private final Queue<Pending> pending = new ConcurrentLinkedQueue<>();
 	/**
 	 * True while a failed run waits for its screenshot. The next script waits too, or a late frame (a minimised
-	 * client restored) could show the next script's state as this one's failure.
+	 * client restored) could show the next script's state as this one's failure. Holds that run's own token, and only
+	 * the holder of the current token clears it, so a stale capture (an older run, or one from before a plugin
+	 * restart) can never release a newer one.
 	 */
-	private volatile boolean capturing;
+	private final AtomicReference<AtomicBoolean> capturing = new AtomicReference<>();
 	/** True between a login and the next login screen: LOGGED_IN also follows every region load. */
 	private boolean loggedIn;
 
@@ -114,6 +117,7 @@ public class TestRunnerPlugin extends Plugin
 	@Override
 	protected void startUp()
 	{
+		capturing.set(null);
 		Path base = RuneLite.RUNELITE_DIR.toPath();
 		folder = new ScriptFolder(base.resolve("tests"));
 		writer = new ResultWriter(base.resolve("test-results"), gson.newBuilder().setPrettyPrinting().disableHtmlEscaping().create(), RUNNER_VERSION);
@@ -267,7 +271,7 @@ public class TestRunnerPlugin extends Plugin
 		{
 			if (!runner.busy())
 			{
-				if (capturing)
+				if (capturing.get() != null)
 				{
 					return;
 				}
@@ -308,7 +312,7 @@ public class TestRunnerPlugin extends Plugin
 		if (!r.passed() && !Result.ERROR.equals(r.result) && config.screenshotOnFailure())
 		{
 			AtomicBoolean written = new AtomicBoolean();
-			capturing = true;
+			capturing.set(written);
 			drawManager.requestNextFrameListener(image ->
 			{
 				// Only the side that claims the write releases the queue: a frame arriving after the fallback must not
@@ -316,7 +320,7 @@ public class TestRunnerPlugin extends Plugin
 				if (written.compareAndSet(false, true))
 				{
 					BufferedImage shot = ImageUtil.bufferedImageFromImage(image);
-					capturing = false;
+					capturing.compareAndSet(written, null);
 					executor.execute(() -> write(r, shot));
 				}
 			});
@@ -325,7 +329,7 @@ public class TestRunnerPlugin extends Plugin
 			{
 				if (written.compareAndSet(false, true))
 				{
-					capturing = false;
+					capturing.compareAndSet(written, null);
 					write(r, null);
 				}
 			}, SCREENSHOT_WAIT_MS, TimeUnit.MILLISECONDS);
