@@ -276,7 +276,7 @@ final class Script
 		int integer(String key, int fallback) throws Invalid
 		{
 			Long n = number(key);
-			return n == null ? fallback : n.intValue();
+			return n == null ? fallback : toInt(key, n);
 		}
 
 		int requiredInt(String key) throws Invalid
@@ -286,7 +286,17 @@ final class Script
 			{
 				throw new Invalid(where + " needs \"" + key + "\"");
 			}
-			return n.intValue();
+			return toInt(key, n);
+		}
+
+		/** Narrowing would wrap a number too big for an int round to another, valid looking one. */
+		private int toInt(String key, long n) throws Invalid
+		{
+			if (n < Integer.MIN_VALUE || n > Integer.MAX_VALUE)
+			{
+				throw new Invalid(where + ": \"" + key + "\" is out of range");
+			}
+			return (int) n;
 		}
 
 		long positiveLong(String key, long fallback) throws Invalid
