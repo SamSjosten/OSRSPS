@@ -60,7 +60,7 @@ public class FilesTest
 			new Result.StepResult(1, "assertNoDialogue", "assert no dialogue", "fail", "no", 5, 1)));
 		w.write(fail, new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB));
 		assertTrue(Files.exists(dir.resolve("demo.png")));
-		JsonObject o = JsonParser.parseString(new String(Files.readAllBytes(dir.resolve("demo.json")), StandardCharsets.UTF_8)).getAsJsonObject();
+		JsonObject o = new JsonParser().parse(new String(Files.readAllBytes(dir.resolve("demo.json")), StandardCharsets.UTF_8)).getAsJsonObject();
 		assertEquals("fail", o.get("result").getAsString());
 		assertEquals("demo.png", o.get("screenshot").getAsString());
 		assertEquals("1970-01-01T00:00:00Z", o.get("startedAt").getAsString());
@@ -69,7 +69,7 @@ public class FilesTest
 		Result pass = new Result("demo", "Demo", "file", Result.PASS, null, 1_000, 5, 1, List.of());
 		w.write(pass, null);
 		assertFalse("a stale screenshot would look like this run's", Files.exists(dir.resolve("demo.png")));
-		o = JsonParser.parseString(new String(Files.readAllBytes(dir.resolve("demo.json")), StandardCharsets.UTF_8)).getAsJsonObject();
+		o = new JsonParser().parse(new String(Files.readAllBytes(dir.resolve("demo.json")), StandardCharsets.UTF_8)).getAsJsonObject();
 		assertEquals("pass", o.get("result").getAsString());
 		assertFalse(o.has("screenshot"));
 		try (var history = Files.list(dir.resolve("history")))

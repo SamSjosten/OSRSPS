@@ -55,7 +55,7 @@ final class Script
 		JsonObject root;
 		try
 		{
-			JsonElement e = JsonParser.parseString(json);
+			JsonElement e = new JsonParser().parse(json);
 			if (!e.isJsonObject())
 			{
 				throw new Invalid("the file must hold one JSON object");
