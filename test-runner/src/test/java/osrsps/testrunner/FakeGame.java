@@ -13,6 +13,8 @@ class FakeGame implements Game
 	final List<String> actions = new ArrayList<>();
 	/** When set, npcOption fails with this until cleared. */
 	String npcError;
+	/** How many walk clicks to refuse first, as when the tile is not on screen yet. */
+	int walkRefusals;
 	/** What chatPending answers. */
 	boolean chatPending;
 
@@ -51,6 +53,11 @@ class FakeGame implements Game
 	public String walk(int x, int y)
 	{
 		actions.add("walk " + x + " " + y);
+		if (walkRefusals > 0)
+		{
+			walkRefusals--;
+			return "tile " + x + ", " + y + " is not on screen";
+		}
 		return null;
 	}
 

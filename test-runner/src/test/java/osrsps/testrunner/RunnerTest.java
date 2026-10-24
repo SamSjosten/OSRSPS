@@ -77,6 +77,37 @@ public class RunnerTest
 	}
 
 	@Test
+	public void walkRetriesUntilTheTileIsOnScreen() throws Exception
+	{
+		// Right after a teleport the camera may not show the tile yet.
+		game.walkRefusals = 2;
+		runner.start(script("{\"step\":\"walk\",\"x\":3200,\"y\":3202}"), "file");
+		assertNull(cycle());
+		assertNull(cycle());
+		assertNull(cycle());
+		assertEquals(List.of("walk 3200 3202", "walk 3200 3202", "walk 3200 3202"), game.actions);
+		// Sent: no more clicks while the player walks.
+		assertNull(cycle());
+		assertEquals(3, game.actions.size());
+		game.location = new Tile(3200, 3202, 0);
+		assertEquals(Result.PASS, cycle().result);
+	}
+
+	@Test
+	public void walkTimesOutWithWhyItCouldNotClick() throws Exception
+	{
+		game.walkRefusals = Integer.MAX_VALUE;
+		runner.start(script("{\"step\":\"walk\",\"x\":3200,\"y\":3202,\"timeoutMs\":100}"), "file");
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertNotNull(r);
+		assertEquals("step 1 (walk to 3200, 3202): timed out after 100 ms: tile 3200, 3202 is not on screen", r.failure);
+	}
+
+	@Test
 	public void timesOutWithWhatItSaw() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertLocation\",\"x\":3222,\"y\":3218,\"timeoutMs\":100},{\"step\":\"assertNoDialogue\"}"), "file");

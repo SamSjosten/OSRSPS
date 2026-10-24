@@ -147,11 +147,13 @@ final class Steps
 			}
 			if (!sent)
 			{
+				// Right after a teleport the tile can be off the viewport until the camera catches up, so a refused click
+				// is retried to the timeout rather than failing the step.
 				run.markAction();
 				String error = run.game.walk(x, y);
 				if (error != null)
 				{
-					return Poll.fail(error);
+					return Poll.waiting(error);
 				}
 				sent = true;
 			}
