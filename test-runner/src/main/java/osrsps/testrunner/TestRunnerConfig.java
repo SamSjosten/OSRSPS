@@ -52,4 +52,27 @@ public interface TestRunnerConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "autoLoginAccount",
+		name = "Auto login account",
+		description = "Logs this account in from the login screen without anyone typing. Must be one of the Test accounts; empty turns auto login off.",
+		position = 4
+	)
+	default String autoLoginAccount()
+	{
+		return "test";
+	}
+
+	@ConfigItem(
+		keyName = "autoLoginPassword",
+		name = "Auto login password",
+		description = "Our server takes any password for a test account; this is a throwaway, never a real one",
+		secret = true,
+		position = 5
+	)
+	default String autoLoginPassword()
+	{
+		return "test";
+	}
 }

@@ -26,6 +26,17 @@ jar in `sideloaded-plugins` at startup.
 2. Copy `test-runner-<version>.jar` to `C:\RSPS\.rlcustom\sideloaded-plugins\` (remove an older test-runner jar).
 3. Start `C:\RSPS\RSProx.cmd`. **OSRSPS Test Runner** is on by default; its folders are created on first start.
 
+## Logging in
+
+Nobody needs to type a password. While the client is on the login screen, the plugin logs in the **Auto login
+account** (default `test`, empty turns it off) with the **Auto login password** (default `test`; our server takes any
+password for a test account, so this is never a real one). The account must be one of the **Test accounts**. It
+waits 3 s after the login screen shows, retries every 15 s, and stops after 5 tries in a row until a login succeeds or
+the plugin restarts.
+
+So starting `C:\RSPS\RSProx.cmd` (or its scheduled task) is enough: the client logs in, runs every `runOnLogin`
+script, and then any script dropped into the tests folder.
+
 ## Running a script
 
 Scripts are `*.json` files in `C:\RSPS\.rlcustom\tests\`. A script runs:
@@ -122,7 +133,8 @@ Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (opti
 - Chat is sent by putting the text in the chat input and sending an Enter key to the client's canvas. If a key
   remapping plugin is on, it may swallow the Enter.
 - `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles.
-- Logging in is not scripted yet: a script waits for whoever logs in, which must be its account.
+- Auto login starts the login by setting the client's game state to LOGGING_IN, as RuneLite's developer tools do.
+  If it doesn't log in, the plugin log (`C:\RSPS\.runelite\logs\client.log`) says what it tried.
 
 ## Building
 
