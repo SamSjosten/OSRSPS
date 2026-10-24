@@ -13,6 +13,8 @@ class FakeGame implements Game
 	final List<String> actions = new ArrayList<>();
 	/** When set, npcOption fails with this until cleared. */
 	String npcError;
+	/** What chatPending answers. */
+	boolean chatPending;
 
 	@Override
 	public boolean loggedIn()
@@ -37,6 +39,12 @@ class FakeGame implements Game
 	{
 		actions.add("chat " + text);
 		return null;
+	}
+
+	@Override
+	public boolean chatPending()
+	{
+		return chatPending;
 	}
 
 	@Override

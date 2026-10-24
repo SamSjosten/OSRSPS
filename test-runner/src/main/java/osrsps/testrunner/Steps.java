@@ -63,6 +63,10 @@ final class Steps
 				}
 				sent = true;
 			}
+			if (run.game.chatPending())
+			{
+				return Poll.waiting("the chat input still holds the text: the client has not taken the Enter key");
+			}
 			if (expectMessage == null)
 			{
 				return Poll.pass("sent");

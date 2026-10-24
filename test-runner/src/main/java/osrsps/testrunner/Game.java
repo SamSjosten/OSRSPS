@@ -17,6 +17,12 @@ interface Game
 	/** Puts the text in the chat input and presses Enter, as typing it would. */
 	String sendChat(String text);
 
+	/**
+	 * True until the last {@link #sendChat} has gone: its Enter key has been delivered and the client has taken the
+	 * text out of the chat input. Until then a second line would overwrite the first.
+	 */
+	boolean chatPending();
+
 	/** Clicks "Walk here" on a tile in the loaded scene. */
 	String walk(int x, int y);
 

@@ -45,7 +45,8 @@ import org.slf4j.LoggerFactory;
 @PluginDescriptor(
 	name = "OSRSPS Test Runner",
 	description = "Runs scripted tests against the OSRSPS test server and writes pass/fail results",
-	tags = {"test", "osrsps", "automation"}
+	tags = {"test", "osrsps", "automation"},
+	enabledByDefault = true
 )
 public class TestRunnerPlugin extends Plugin
 {

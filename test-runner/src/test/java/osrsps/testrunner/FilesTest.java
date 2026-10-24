@@ -66,7 +66,7 @@ public class FilesTest
 		assertEquals("1970-01-01T00:00:00Z", o.get("startedAt").getAsString());
 		assertEquals(1, o.getAsJsonArray("steps").size());
 
-		Result pass = new Result("demo", "Demo", "file", Result.PASS, null, 1_000, 5, 1, List.of());
+		Result pass = new Result("demo", "Demo", "file", Result.PASS, null, 0, 5, 1, List.of());
 		w.write(pass, null);
 		assertFalse("a stale screenshot would look like this run's", Files.exists(dir.resolve("demo.png")));
 		o = new JsonParser().parse(new String(Files.readAllBytes(dir.resolve("demo.json")), StandardCharsets.UTF_8)).getAsJsonObject();
@@ -74,7 +74,7 @@ public class FilesTest
 		assertFalse(o.has("screenshot"));
 		try (var history = Files.list(dir.resolve("history")))
 		{
-			assertEquals(2, history.count());
+			assertEquals("both runs kept, though they started in the same millisecond", 2, history.count());
 		}
 	}
 

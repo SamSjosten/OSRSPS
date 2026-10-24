@@ -49,7 +49,7 @@ Results go to `C:\RSPS\.rlcustom\test-results\`:
 - `<script>.json`: the last run, replaced by each run (written whole, then moved into place).
 - `<script>.png`: the client's picture when that run failed (setting **Screenshot on failure**). A passing run deletes
   it, so a png is always the picture of the result next to it.
-- `history\<UTC time>_<script>.json`: every run.
+- `history\<UTC time>_<script>.json`: every run (time to the millisecond).
 
 `<script>` is the file name without `.json`.
 

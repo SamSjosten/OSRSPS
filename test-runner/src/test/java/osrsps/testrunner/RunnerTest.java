@@ -113,6 +113,20 @@ public class RunnerTest
 	}
 
 	@Test
+	public void chatWaitsUntilTheLineHasGone() throws Exception
+	{
+		game.chatPending = true;
+		runner.start(script("{\"step\":\"chat\",\"text\":\"one\"},{\"step\":\"chat\",\"text\":\"two\"}"), "file");
+		assertNull(cycle());
+		assertNull(cycle());
+		// The second line must not overwrite the first while it is still in the chat input.
+		assertEquals(List.of("chat one"), game.actions);
+		game.chatPending = false;
+		assertEquals(Result.PASS, cycle().result);
+		assertEquals(List.of("chat one", "chat two"), game.actions);
+	}
+
+	@Test
 	public void refusesAnotherAccount() throws Exception
 	{
 		game.name = "Zezima";

@@ -36,6 +36,10 @@ final class ClientGame implements Game
 	};
 
 	private final Client client;
+	/** The line {@link #sendChat} last put in the chat input, until the client has sent it. */
+	private String chatLine;
+	/** Set on the Swing thread once the Enter key events for {@link #chatLine} have gone to the canvas. */
+	private volatile boolean enterDelivered;
 
 	ClientGame(Client client)
 	{
@@ -77,14 +81,33 @@ final class ClientGame implements Game
 		}
 		// The chatbox keeps what has been typed in this varc; Enter then sends it, "::" lines as a command.
 		client.setVarcStrValue(VarClientID.CHATINPUT, text);
+		chatLine = text;
+		enterDelivered = false;
 		SwingUtilities.invokeLater(() ->
 		{
 			long now = System.currentTimeMillis();
 			canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_PRESSED, now, 0, KeyEvent.VK_ENTER, '\n'));
 			canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_TYPED, now, 0, KeyEvent.VK_UNDEFINED, '\n'));
 			canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_RELEASED, now, 0, KeyEvent.VK_ENTER, '\n'));
+			enterDelivered = true;
 		});
 		return null;
+	}
+
+	@Override
+	public boolean chatPending()
+	{
+		if (chatLine == null)
+		{
+			return false;
+		}
+		// Sending a line empties the chat input, so the line is gone once the input no longer holds it.
+		if (!enterDelivered || chatLine.equals(client.getVarcStrValue(VarClientID.CHATINPUT)))
+		{
+			return true;
+		}
+		chatLine = null;
+		return false;
 	}
 
 	@Override
