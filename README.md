@@ -587,8 +587,9 @@ RuneLite. It speaks the real protocol over a socket: it fetches the cache CRCs o
 XTEA login block, and decodes ISAAC opcodes. It reads player info (positions and moves of every player in view), NPC
 info (each NPC's index, type and tile), game messages, interface opens, moves and closes, component text and client
 scripts, and from those the chatbox dialogue showing at the end of each tick. It also keeps inventories, stats (level
-and XP), varps and run energy as the server sends them. It sends walks, `::` commands, NPC and
-loc ops 1-5, and dialogue continues and menu picks. Every other packet is kept raw. It only ever connects to our own
+and XP), varps and run energy as the server sends them, and from zone updates the ground objs and loc changes (an
+opened door, say) in the build area. It sends walks, `::` commands, NPC and
+loc ops 1-5, ground obj ops 1-5 (3 is Take), and dialogue continues and menu picks. Every other packet is kept raw. It only ever connects to our own
 server.
 
 `TestServer` starts our network stack and `World` on a free local port with no cache: an empty generated JS5 store and
@@ -617,11 +618,12 @@ TestServer(tempDir).use { server ->
 }
 ```
 
-Not read yet: extended info (appearance, chat, animations, NPC faces) and zone updates (ground items, loc changes).
+Not read yet: extended info (appearance, chat, animations, NPC faces).
 `RSProt` has only the server's side of each packet, so each one the client reads is written here from RSProt's encoder.
 
-Check (bash or PowerShell): `./gradlew test --tests 'osrsps.testclient.*'` passes eleven tests: login at the spawn
+Check (bash or PowerShell): `./gradlew test --tests 'osrsps.testclient.*'` passes fourteen tests: login at the spawn
 with the welcome message, a four-tile walk one tile a tick, a second player seen walking, a `::tele` that arrives as a
 teleport, NPCs seen with their type and tile and one walking its patrol, a whole Hans dialogue through the menu, and
 each of the five NPC and loc ops reaching its handler, a new account's stats and run energy, `::item` filling the
-backpack (a 100000 coin stack too), and `::setlevel` and `::varp` reaching the client.
+backpack (a 100000 coin stack too), `::setlevel` and `::varp` reaching the client, a ground stack seen by a later login and gone once taken, a
+rebuild resending the zones still in view, and an opened door seen as moved, by a later login too.
