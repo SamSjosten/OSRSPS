@@ -78,6 +78,10 @@ class HeadlessClient private constructor(
     private val texts = HashMap<Int, String>()
     private val scripts = ArrayList<ClientScript>()
     private var dialogue: DialogueView? = null
+
+    /** Counts changes of [dialogue]; [dialogueMark] is its value when the last packet was sent. */
+    private var dialogueGeneration = 0
+    private var dialogueMark = 0
     private var rebuilt = false
 
     private val packets = ArrayList<ServerPacket>()
@@ -173,10 +177,15 @@ class HeadlessClient private constructor(
         resumePause(Chatbox.CHATMENU, Chatbox.CHATMENU_OPTIONS, option)
     }
 
-    /** Waits for a dialogue view matching [predicate] that differs from the one showing when this is called. */
+    /**
+     * Waits for the dialogue to change after the last packet this client sent (a click, a continue, a pick) and match
+     * [predicate]. A change that arrived before this is called still counts, as long as it came after the send.
+     */
     fun awaitDialogue(description: String, timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS, predicate: (DialogueView) -> Boolean = { true }): DialogueView {
-        val before = dialogueView
-        return await("dialogue $description", timeoutMillis) { dialogue?.takeIf { it != before && predicate(it) } }
+        val mark = lock.withLock { dialogueMark }
+        return await("dialogue $description", timeoutMillis) {
+            dialogue?.takeIf { dialogueGeneration > mark && predicate(it) }
+        }
     }
 
     /** A click on the game view at [x], [z], as MOVE_GAMECLICK. [keyCombination] 1 is ctrl, 2 ctrl and shift. */
@@ -201,6 +210,7 @@ class HeadlessClient private constructor(
             else -> require(body.size == prot.size) { "$prot takes ${prot.size} bytes, got ${body.size}" }
         }
         synchronized(output) {
+            lock.withLock { dialogueMark = dialogueGeneration }
             output.writeByte((prot.opcode + encoder.nextInt()) and 0xFF)
             when (prot.size) {
                 Prot.VAR_BYTE -> output.writeByte(body.size)
@@ -339,7 +349,11 @@ class HeadlessClient private constructor(
             GameServerProt.RUNCLIENTSCRIPT -> scripts += readClientScript(buf)
             GameServerProt.SERVER_TICK_END -> {
                 ticks++
-                dialogue = readDialogue()
+                val view = readDialogue()
+                if (view != dialogue) {
+                    dialogue = view
+                    dialogueGeneration++
+                }
             }
             else -> {}
         }
