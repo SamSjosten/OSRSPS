@@ -96,6 +96,8 @@ class World(
     val scenarios: Scenarios = Scenarios.NONE,
     /** The dialogue font's widths, for counting a dialogue's lines; see [ChatFont]. */
     chatFont: ChatFont = ChatFont.APPROXIMATE,
+    /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
+    private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -232,7 +234,7 @@ class World(
             // On the game thread: RSProt hands out NPC avatars only there.
             spawnNpcs()
         }
-        executor.scheduleAtFixedRate(::safeCycle, TICK_MILLIS, TICK_MILLIS, TimeUnit.MILLISECONDS)
+        executor.scheduleAtFixedRate(::safeCycle, cycleMillis, cycleMillis, TimeUnit.MILLISECONDS)
     }
 
     /** Stops the cycle and saves everyone still in the world. */
