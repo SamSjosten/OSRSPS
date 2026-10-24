@@ -579,3 +579,31 @@ tinderbox and 100 coins, with run on.
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.
+
+## Headless test client
+
+`src/test/kotlin/osrsps/testclient/` holds a scripted game client for tests, so features can be checked without
+RuneLite. It speaks the real protocol over a socket: it fetches the cache CRCs over JS5, logs in with the RSA and
+XTEA login block, decodes ISAAC opcodes and reads player info (positions and moves of every player in view) and game
+messages. Every other packet is kept raw. It only ever connects to our own server.
+
+`TestServer` starts our network stack and `World` on a free local port with no cache: an empty generated JS5 store and
+open ground in Lumbridge's map square, with 100 ms cycles so tests run fast (the tick logic is the same as live's
+600 ms). Pass a `world` builder to give it NPCs, locs, scenarios and so on.
+
+```kotlin
+TestServer(tempDir).use { server ->
+    server.login("bob").use { client ->
+        client.walk(3226, 3218)
+        client.await("arriving") { client.position?.takeIf { it.x == 3226 } }
+        client.commandReply("pos") { it.contains("(region") } // "3226, 3218, 0 (region 12850, ...)"
+    }
+}
+```
+
+Not read yet: NPC info, extended info (appearance, chat, animations), interfaces, inventories and zone updates.
+`RSProt` has only the server's side of each packet, so each one the client reads is written here from RSProt's encoder.
+
+Check (bash or PowerShell): `./gradlew test --tests 'osrsps.testclient.*'` passes four tests: login at the spawn
+with the welcome message, a four-tile walk one tile a tick, a second player seen walking, and a `::tele` that arrives
+as a teleport.

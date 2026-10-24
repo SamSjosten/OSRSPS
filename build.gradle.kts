@@ -18,6 +18,8 @@ dependencies {
     implementation(libs.kotlin.logging)
     runtimeOnly(libs.logback.classic)
 
+    // The opcode and size tables, for the headless test client. Already on the runtime classpath through rsprot-api.
+    testImplementation(libs.rsprot.desktop)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testImplementation(kotlin("test-junit5"))
