@@ -80,6 +80,11 @@ public class TestRunnerPlugin extends Plugin
 	private ScheduledFuture<?> scanTask;
 	/** Scripts read and checked on the executor, waiting for the client thread to run them in order. */
 	private final Queue<Pending> pending = new ConcurrentLinkedQueue<>();
+	/**
+	 * True while a failed run waits for its screenshot. The next script waits too, or a late frame (a minimised
+	 * client restored) could show the next script's state as this one's failure.
+	 */
+	private volatile boolean capturing;
 	/** True between a login and the next login screen: LOGGED_IN also follows every region load. */
 	private boolean loggedIn;
 
@@ -262,6 +267,10 @@ public class TestRunnerPlugin extends Plugin
 		{
 			if (!runner.busy())
 			{
+				if (capturing)
+				{
+					return;
+				}
 				Pending next = pending.poll();
 				if (next == null)
 				{
@@ -299,9 +308,11 @@ public class TestRunnerPlugin extends Plugin
 		if (!r.passed() && !Result.ERROR.equals(r.result) && config.screenshotOnFailure())
 		{
 			AtomicBoolean written = new AtomicBoolean();
+			capturing = true;
 			drawManager.requestNextFrameListener(image ->
 			{
 				BufferedImage shot = ImageUtil.bufferedImageFromImage(image);
+				capturing = false;
 				executor.execute(() ->
 				{
 					if (written.compareAndSet(false, true))
@@ -315,6 +326,7 @@ public class TestRunnerPlugin extends Plugin
 			{
 				if (written.compareAndSet(false, true))
 				{
+					capturing = false;
 					write(r, null);
 				}
 			}, SCREENSHOT_WAIT_MS, TimeUnit.MILLISECONDS);

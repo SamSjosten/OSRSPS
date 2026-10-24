@@ -66,6 +66,7 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"npcOption\",\"option\":\"Talk-to\"}]}", "needs \"npc\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"waitForLogin\",\"timeoutMs\":0}]}", "more than 0");
 		invalid("{\"account\":\"test\",\"stepz\":[]}", "needs \"steps\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"walk\",\"x\":4294970518,\"y\":3218}]}", "\"x\" is out of range");
 	}
 
 	private static void invalid(String json, String reason)
