@@ -4,20 +4,23 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.StandardOpenOption;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import net.runelite.client.util.Filepath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Appends JSON lines to one recording file. Lines are queued from the client thread and written
- * on a single background thread, so disk I/O never stalls the game. Failures are reported through
- * {@link #takeFailure()} so the plugin can stop recording and say why.
+ * on a single background thread, so disk I/O never stalls the game. The queue is bounded: when the
+ * disk falls too far behind, the recording stops with a reason instead of leaving a silent hole.
+ * Failures are reported through {@link #takeFailure()} so the plugin can stop recording and say why.
  */
 class RecordingWriter
 {
@@ -27,11 +30,30 @@ class RecordingWriter
 		BufferedWriter open(String fileName) throws IOException;
 	}
 
+	/** Why writing stopped: a short code for the stop line and a sentence for the chatbox. */
+	static final class Failure
+	{
+		final String code;
+		final String detail;
+
+		Failure(String code, String detail)
+		{
+			this.code = code;
+			this.detail = detail;
+		}
+	}
+
+	/** Lines that may wait for the disk; past this the recording stops rather than pile up without end. */
+	static final int QUEUE_LIMIT = 20000;
+	/** Room past the limit for the stop line and the close that end a recording. */
+	private static final int RESERVED = 2;
+
 	private static final Logger log = LoggerFactory.getLogger(RecordingWriter.class);
 
 	private final String where;
 	private final Opener opener;
-	private final ExecutorService executor = Executors.newSingleThreadExecutor(r ->
+	private final ArrayBlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_LIMIT + RESERVED);
+	private final ExecutorService executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, queue, r ->
 	{
 		Thread thread = new Thread(r, "tick-recorder-writer");
 		thread.setDaemon(true);
@@ -40,7 +62,12 @@ class RecordingWriter
 
 	private BufferedWriter out;
 	private volatile String file;
-	private volatile String failure;
+	private volatile Failure failure;
+	private volatile long lines;
+	private volatile long chars;
+	private volatile int queueMax;
+	/** What newLine() writes: two characters on Windows. */
+	private static final int NEWLINE_CHARS = System.lineSeparator().length();
 
 	/** Writes into {@code dir}, the plugin's own folder from RuneLite, creating it when needed. */
 	RecordingWriter(Filepath dir)
@@ -65,10 +92,16 @@ class RecordingWriter
 	 */
 	void open(String name)
 	{
+		failure = null;
+		queueMax = 0; // tracked on this thread by accept(), so a new file does not inherit the last one's backlog
 		submit(() ->
 		{
 			closeQuietly();
+			// Cleared again here, behind any failure the previous file's last lines may still raise.
+			failure = null;
 			file = null;
+			lines = 0;
+			chars = 0;
 			try
 			{
 				for (int attempt = 0; out == null; attempt++)
@@ -97,27 +130,42 @@ class RecordingWriter
 
 	void write(String line)
 	{
-		submit(() ->
+		if (accept())
 		{
-			if (out == null)
+			submit(() -> append(line));
+		}
+	}
+
+	/**
+	 * Queues the stop line behind every pending write, past the queue limit so a file always ends with its
+	 * reason. The reason is decided on the writer thread once those writes are done, so a failure one of
+	 * them raises wins over the reason given. The future carries the reason used.
+	 */
+	Future<String> writeStop(String reason, Function<String, String> lineFor)
+	{
+		try
+		{
+			return executor.submit(() ->
 			{
-				return;
-			}
-			try
-			{
-				out.write(line);
-				out.newLine();
-			}
-			catch (IOException e)
-			{
-				fail("cannot write " + file + " in " + where, e);
-			}
-		});
+				Failure pending = failure;
+				String why = pending == null ? reason : pending.code;
+				append(lineFor.apply(why));
+				return why;
+			});
+		}
+		catch (RejectedExecutionException e)
+		{
+			return CompletableFuture.completedFuture(reason);
+		}
 	}
 
 	/** Pushes buffered lines to disk; called once per tick so a crash loses at most one tick. */
 	void flush()
 	{
+		if (!accept())
+		{
+			return;
+		}
 		submit(() ->
 		{
 			if (out == null)
@@ -142,11 +190,31 @@ class RecordingWriter
 	}
 
 	/** Returns and clears the reason writing stopped, or null when all is well. */
-	String takeFailure()
+	Failure takeFailure()
 	{
-		String reason = failure;
+		Failure reason = failure;
 		failure = null;
 		return reason;
+	}
+
+	/** Lines written to the file so far. */
+	long lines()
+	{
+		return lines;
+	}
+
+	/** Characters written so far, newlines included. */
+	long chars()
+	{
+		return chars;
+	}
+
+	/** The deepest the queue has been since this was last called. */
+	int takeQueueMax()
+	{
+		int max = queueMax;
+		queueMax = 0;
+		return max;
 	}
 
 	/** Closes the file and stops the writer thread, waiting briefly for queued lines. */
@@ -164,6 +232,45 @@ class RecordingWriter
 		}
 	}
 
+	/** Whether an ordinary line may be queued now. Notices the disk falling behind and records the backlog. */
+	private boolean accept()
+	{
+		if (failure != null)
+		{
+			return false;
+		}
+		int depth = queue.size();
+		if (depth > queueMax)
+		{
+			queueMax = depth;
+		}
+		if (depth >= QUEUE_LIMIT)
+		{
+			failure = new Failure("writerBehind", "the disk fell " + QUEUE_LIMIT + " lines behind");
+			return false;
+		}
+		return true;
+	}
+
+	private void append(String line)
+	{
+		if (out == null)
+		{
+			return;
+		}
+		try
+		{
+			out.write(line);
+			out.newLine();
+			lines++;
+			chars += line.length() + NEWLINE_CHARS;
+		}
+		catch (IOException e)
+		{
+			fail("cannot write " + file + " in " + where, e);
+		}
+	}
+
 	private Future<?> submit(Runnable task)
 	{
 		try
@@ -172,16 +279,20 @@ class RecordingWriter
 		}
 		catch (RejectedExecutionException e)
 		{
-			// Shut down while the client thread was still emitting; the recording is already closed.
+			// Shut down while the client thread was still emitting, or the reserved room is already taken.
 			return CompletableFuture.completedFuture(null);
 		}
 	}
 
 	private void fail(String reason, IOException e)
 	{
+		if (failure != null)
+		{
+			return;
+		}
 		log.warn("Tick Recorder: {}", reason, e);
-		failure = reason;
-		closeQuietly();
+		failure = new Failure("writeFailed", reason);
+		// The file stays open: the plugin still queues its stop line, a best effort, and then closes.
 	}
 
 	private void closeQuietly()

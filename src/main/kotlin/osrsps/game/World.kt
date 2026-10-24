@@ -135,6 +135,8 @@ class World(
 
     private val interactions = Interactions()
 
+    private val follows = Follows(movement, { players[it.index] === it })
+
     private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors)
 
     val npcInteractions = NpcInteractions(npcs, npcTypes, collision, movement, handlers, scripts, { tick })
@@ -171,6 +173,13 @@ class World(
 
     private val pendingLogins = ConcurrentLinkedQueue<PendingLogin>()
     private val players = arrayOfNulls<Player>(MAX_PLAYERS)
+
+    /**
+     * Slots emptied in the last [SLOT_HOLD_CYCLES] cycles, by the cycle they were emptied on. A login takes one only when
+     * no other slot is free, so a click on a player who just left, even one that arrives late, can't land on someone new
+     * in their slot. How long live holds a slot isn't known.
+     */
+    private val freedSlots = HashMap<Int, Long>()
     private val executor = Executors.newSingleThreadScheduledExecutor { Thread(it, "game") }
     var tick: Long = 0
         private set
@@ -269,10 +278,15 @@ class World(
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
         locs.process()
+        follows.startMovement(players.filterNotNull())
         for (player in players) {
             if (player == null) continue
             interfaces.processFrameMove(player, tick)
-            interactions.process(player) { move(player) }
+            // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
+            // after them for a follow that ended in them.
+            sendFace(player)
+            follows.process(player, move = { move(player) }) { interactions.process(player) { move(player) } }
+            sendFace(player)
             // A loc or obj used after the player's step (a ladder on arrival) can teleport them once move() has run.
             if (player.teleported) {
                 finishTeleport(player)
@@ -307,6 +321,7 @@ class World(
             if (ticking) runHeldActions(player)
             player.session.processIncomingPackets(player)
         }
+        freedSlots.values.removeIf { cycles - it >= SLOT_HOLD_CYCLES }
     }
 
     /** Sends every player this cycle's updates. [tickEnd] says whether the cycle was a game tick. */
@@ -419,7 +434,8 @@ class World(
             login.responseHandler.writeFailedResponse(LoginResponse.Duplicate)
             return
         }
-        val index = (1 until MAX_PLAYERS).firstOrNull { players[it] == null }
+        val index = (1 until MAX_PLAYERS).firstOrNull { players[it] == null && it !in freedSlots }
+            ?: (1 until MAX_PLAYERS).firstOrNull { players[it] == null }
         if (index == null) {
             login.responseHandler.writeFailedResponse(LoginResponse.ServerFull)
             return
@@ -554,6 +570,7 @@ class World(
         DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         sendRunState(player)
+        PlayerOps.send(player.session::queue)
         allowChat(player)
         quests.completeAll(player.vars)
         player.message(WELCOME_MESSAGE)
@@ -598,13 +615,58 @@ class World(
     fun onGroundObjOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
         // Delayed players can't walk off, as for a move click.
         if (player.scripts.delayed) return@act
-        val interaction = groundObjs.click(player, id, x, z, option) ?: return@act
+        val interaction = groundObjs.click(player, id, x, z, option)
+        if (interaction == null) {
+            follows.clickedElsewhere(player)
+            return@act
+        }
         npcInteractions.leave(player)
         scripts.interrupt(player)
         player.interaction = interaction
         val route = movement.request(player, interaction.target, invertRun = ctrl)
         // Guessed, as for a walk: with no route to walk the client's flag would stay up.
         if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)
+    }
+
+    /**
+     * A click on option [option] (1 to 8) of the player at [index]. Only Follow does anything yet; see [PlayerOps]. [ctrl]
+     * flips walk and run for the walk to them.
+     */
+    fun onPlayerOp(player: Player, index: Int, option: Int, ctrl: Boolean) {
+        // Looked up as the packet is read, and checked again when it runs, so a click held while paused can't land on
+        // someone who took the slot meanwhile.
+        val clicked = players.getOrNull(index)
+        act(player) { playerOp(player, clicked, option, ctrl) }
+    }
+
+    /** [clicked] is who held the slot when the packet was read, null if nobody did. */
+    private fun playerOp(player: Player, clicked: Player?, option: Int, ctrl: Boolean) {
+        // Inferred, as for a walk: a delayed player's clicks do nothing.
+        if (player.scripts.delayed) return
+        if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT) {
+            logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
+            return
+        }
+        // Any of the options replaces what the player was doing, a follow included. Guessed for Trade with and Report,
+        // which aren't built, and for a player who has left: they stop the player where they stand.
+        scripts.interrupt(player)
+        player.interaction = null
+        npcInteractions.leave(player)
+        player.waypoints.clear()
+        // The client was behind: they left.
+        val target = clicked?.takeIf { players[it.index] === it }
+        if (target == null) {
+            player.session.queue(SetMapFlagV2.RESET)
+            return
+        }
+        when (option) {
+            PlayerOps.FOLLOW -> follows.click(player, target, ctrl)
+            else -> {
+                // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
+                player.session.queue(SetMapFlagV2.RESET)
+                player.message(if (option == PlayerOps.TRADE) PlayerOps.TRADE_NOT_BUILT else PlayerOps.REPORT_NOT_BUILT)
+            }
+        }
     }
 
     /** Examine on obj [id] on the ground: the same examine as in the inventory. Guessed, not checked against live. */
@@ -620,6 +682,8 @@ class World(
         if (player.scripts.delayed) return@act
         npcInteractions.leave(player)
         locInteractions.click(player, id, x, z, option, ctrl)
+        // A loc that had gone by the time the click was read leaves any follow behind; the click still ends it.
+        follows.clickedElsewhere(player)
     }
 
     /**
@@ -630,6 +694,7 @@ class World(
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (player.scripts.delayed) return@act
         npcInteractions.click(player, index, option, sub, ctrl)
+        follows.clickedElsewhere(player)
     }
 
     /**
@@ -640,9 +705,11 @@ class World(
         if (player.scripts.delayed) return@act
         if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
             logger.info { "${player.username} used $interfaceId:$componentId sub $sub on NPC $index (not handled)" }
+            follows.clickedElsewhere(player)
             return@act
         }
         npcInteractions.useObj(player, index, sub, obj, ctrl)
+        follows.clickedElsewhere(player)
     }
 
     /**
@@ -669,6 +736,8 @@ class World(
         player.x = x
         player.z = z
         player.level = level
+        // Anyone following them heads for the tile west of where they land, as after a login (RSMod).
+        player.lastStepFrom = null
         player.teleported = true
     }
 
@@ -839,6 +908,20 @@ class World(
     }
 
     /**
+     * Turns the player to whoever they follow, and stops turning them once they don't, when that changes. Walk mode 0:
+     * they look where they walk and turn back to the target once they stop. Inferred from RSProt's docs and RSMod, not
+     * checked against live. Only in the movement phase: a face set later in the cycle (a loc's) must not be undone.
+     */
+    private fun sendFace(player: Player) = follows.updateFace(player) { target ->
+        val extendedInfo = player.infos.playerInfo.avatar.extendedInfo
+        if (target == null) {
+            extendedInfo.resetFacing()
+        } else {
+            extendedInfo.setFacePlayer(target.index, false, 0, Follows.angle(player.x, player.z, target.x, target.z))
+        }
+    }
+
+    /**
      * Sends the varps that changed this tick. Varps start at 0 on both sides at login, so only changes are sent; live
      * may also send zeros at login, which isn't checked.
      */
@@ -934,6 +1017,7 @@ class World(
         network.infoProtocols.dealloc(player.infos)
         player.session.clear()
         players[player.index] = null
+        freedSlots[player.index] = cycles
         logger.info { "${player.username} logged out" + if (player.loggedOut) "" else " (connection lost)" }
     }
 
@@ -954,6 +1038,9 @@ class World(
 
         /** 3 minutes of cycles. */
         const val AUTOSAVE_CYCLES = 300L
+
+        /** How long an emptied slot is kept from logins while others are free: 10 cycles (6 s). Guessed. */
+        const val SLOT_HOLD_CYCLES = 10L
 
         /** Guessed bound on clicks held per player while paused, so a long pause can't pile them up without end. */
         const val MAX_HELD_ACTIONS = 50

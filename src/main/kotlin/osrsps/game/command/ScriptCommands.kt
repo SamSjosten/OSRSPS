@@ -58,7 +58,7 @@ fun CommandRegistry.registerScriptCommands(world: World) {
     register("scripts", "::scripts") {
         val state = player.scripts
         val delay = if (state.delayed) "delayed until tick ${state.delayedUntil}" else "not delayed"
-        val modals = if (player.modals.isEmpty()) "no modal" else "modal open"
+        val modals = if (player.modalOpen) "modal open" else "no modal"
         val queued = state.queued.joinToString { "${it.name} (${it.type.label}, delay ${it.delay.coerceAtLeast(0)})" }
             .ifEmpty { "none" }
         val timers = state.activeTimers
