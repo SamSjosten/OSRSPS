@@ -80,6 +80,7 @@ class HeadlessClient private constructor(
     private val changed = lock.newCondition()
     private val playerInfo = PlayerInfoReader(index)
     private val npcInfo = NpcInfoReader()
+    private val zones = ZoneReader()
 
     /** Each open sub-interface by the component it is open in (interface id shl 16 or component), plus the top level. */
     private val subs = HashMap<Int, Int>()
@@ -148,6 +149,12 @@ class HeadlessClient private constructor(
     /** Varp [id] as the server last set it; 0, as in the client, if it never has. */
     fun varp(id: Int): Int = lock.withLock { varps[id] ?: 0 }
 
+    /** The ground objs in the build area, from zone updates. */
+    fun groundObjs(): List<GroundObjView> = lock.withLock { zones.groundObjs() }
+
+    /** Locs the server added, changed or removed in the build area; the cache's own locs aren't known here. */
+    fun locChanges(): List<LocChange> = lock.withLock { zones.locChanges() }
+
     /** Run energy in hundredths of a percent (10000 is full), or -1 before the server sends it. */
     val runEnergyHundredths: Int get() = lock.withLock { runEnergy }
 
@@ -180,6 +187,19 @@ class HeadlessClient private constructor(
             4 -> send(GameClientProt.OPLOC4_V2) { p2Alt2(id); p1Alt1(subop); p1Alt3(key); p2Alt1(x); p2Alt1(z) }
             5 -> send(GameClientProt.OPLOC5_V2) { p2Alt3(z); p2Alt1(id); p1(subop); p1Alt1(key); p2Alt2(x) }
             else -> throw IllegalArgumentException("Loc ops are 1-5, not $op")
+        }
+    }
+
+    /** Op [op] (1-5; 3 is Take) on ground obj [id] at [x], [z] (OPOBJ1_V2 to OPOBJ5_V2). */
+    fun objOp(id: Int, x: Int, z: Int, op: Int, ctrl: Boolean = false, subop: Int = 0) {
+        val key = if (ctrl) 1 else 0
+        when (op) {
+            1 -> send(GameClientProt.OPOBJ1_V2) { p1(subop); p2(x); p2(id); p1(key); p2Alt3(z) }
+            2 -> send(GameClientProt.OPOBJ2_V2) { p2Alt2(x); p2(id); p1Alt2(subop); p2Alt2(z); p1Alt1(key) }
+            3 -> send(GameClientProt.OPOBJ3_V2) { p1(subop); p2(x); p2(id); p2Alt1(z); p1Alt3(key) }
+            4 -> send(GameClientProt.OPOBJ4_V2) { p2Alt1(z); p2(x); p1Alt2(key); p1Alt1(subop); p2Alt2(id) }
+            5 -> send(GameClientProt.OPOBJ5_V2) { p2Alt3(id); p2Alt1(z); p1Alt3(key); p2Alt2(x); p1Alt3(subop) }
+            else -> throw IllegalArgumentException("Obj ops are 1-5, not $op")
         }
     }
 
@@ -340,9 +360,13 @@ class HeadlessClient private constructor(
         val buf = Unpooled.wrappedBuffer(packet.payload).toJagByteBuf()
         when (packet.prot) {
             // RSProt sends REBUILD_LOGIN under REBUILD_NORMAL's opcode, with the player info init block in front.
-            GameServerProt.REBUILD_NORMAL_V2 -> if (!rebuilt) {
-                playerInfo.init(packet.payload)
-                rebuilt = true
+            GameServerProt.REBUILD_NORMAL_V2 -> {
+                if (!rebuilt) {
+                    buf.skipRead(playerInfo.init(packet.payload))
+                    rebuilt = true
+                }
+                val zoneZ = buf.g2()
+                zones.rebuild(centreX = buf.g2Alt1(), centreZ = zoneZ)
             }
             GameServerProt.PLAYER_INFO -> {
                 for (move in playerInfo.read(packet.payload)) {
@@ -426,7 +450,7 @@ class HeadlessClient private constructor(
                     dialogueGeneration++
                 }
             }
-            else -> {}
+            else -> zones.read(packet.prot, packet.payload)
         }
     }
 
