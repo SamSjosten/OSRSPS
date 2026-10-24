@@ -617,11 +617,11 @@ TestServer(tempDir).use { server ->
 }
 ```
 
-Not read yet: extended info (appearance, chat, animations, NPC faces), inventories, varps, stats and zone updates
-(ground items, loc changes).
+Not read yet: extended info (appearance, chat, animations, NPC faces) and zone updates (ground items, loc changes).
 `RSProt` has only the server's side of each packet, so each one the client reads is written here from RSProt's encoder.
 
-Check (bash or PowerShell): `./gradlew test --tests 'osrsps.testclient.*'` passes eight tests: login at the spawn
+Check (bash or PowerShell): `./gradlew test --tests 'osrsps.testclient.*'` passes eleven tests: login at the spawn
 with the welcome message, a four-tile walk one tile a tick, a second player seen walking, a `::tele` that arrives as a
 teleport, NPCs seen with their type and tile and one walking its patrol, a whole Hans dialogue through the menu, and
-each of the five NPC and loc ops reaching its handler.
+each of the five NPC and loc ops reaching its handler, a new account's stats and run energy, `::item` filling the
+backpack (a 100000 coin stack too), and `::setlevel` and `::varp` reaching the client.
