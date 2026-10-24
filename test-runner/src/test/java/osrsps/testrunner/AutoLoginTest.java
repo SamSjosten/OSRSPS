@@ -44,4 +44,21 @@ public class AutoLoginTest
 		a.loginScreen(1_000_000);
 		assertTrue(a.due(1_000_000 + AutoLogin.SETTLE_MS));
 	}
+
+	@Test
+	public void aResetStartsTheCountAgain()
+	{
+		AutoLogin a = new AutoLogin();
+		a.loginScreen(0);
+		for (int i = 0; i < AutoLogin.MAX_TRIES; i++)
+		{
+			a.tried(i * AutoLogin.RETRY_MS);
+		}
+		assertTrue(a.gaveUp());
+		a.reset();
+		assertFalse(a.gaveUp());
+		assertFalse("off the login screen until told otherwise", a.due(1_000_000));
+		a.loginScreen(1_000_000);
+		assertTrue(a.due(1_000_000 + AutoLogin.SETTLE_MS));
+	}
 }

@@ -15,6 +15,14 @@ final class AutoLogin
 	private long nextTryAt;
 	private int tries;
 
+	/** Forgets every try, as a plugin restart should: the plugin object, and so this one, outlives a restart. */
+	synchronized void reset()
+	{
+		onLoginScreen = false;
+		tries = 0;
+		nextTryAt = 0;
+	}
+
 	synchronized void loginScreen(long nowMs)
 	{
 		if (!onLoginScreen)

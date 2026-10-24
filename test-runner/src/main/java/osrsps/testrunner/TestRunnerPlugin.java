@@ -119,6 +119,7 @@ public class TestRunnerPlugin extends Plugin
 	protected void startUp()
 	{
 		capturing.set(null);
+		autoLogin.reset();
 		Path base = RuneLite.RUNELITE_DIR.toPath();
 		folder = new ScriptFolder(base.resolve("tests"));
 		writer = new ResultWriter(base.resolve("test-results"), gson.newBuilder().setPrettyPrinting().disableHtmlEscaping().create(), RUNNER_VERSION);
