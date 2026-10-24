@@ -311,15 +311,14 @@ public class TestRunnerPlugin extends Plugin
 			capturing = true;
 			drawManager.requestNextFrameListener(image ->
 			{
-				BufferedImage shot = ImageUtil.bufferedImageFromImage(image);
-				capturing = false;
-				executor.execute(() ->
+				// Only the side that claims the write releases the queue: a frame arriving after the fallback must not
+				// clear the guard a later failed run has set.
+				if (written.compareAndSet(false, true))
 				{
-					if (written.compareAndSet(false, true))
-					{
-						write(r, shot);
-					}
-				});
+					BufferedImage shot = ImageUtil.bufferedImageFromImage(image);
+					capturing = false;
+					executor.execute(() -> write(r, shot));
+				}
 			});
 			// A minimised client draws no frames: write the result without a screenshot rather than not at all.
 			executor.schedule(() ->
