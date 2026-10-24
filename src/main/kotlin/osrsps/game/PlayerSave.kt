@@ -11,6 +11,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -38,6 +39,10 @@ class PlayerSave(
     val scenario: String? = null,
     /** The player as they were before their first `::scenario`, which `::reset` puts back; kept over a logout. */
     val beforeScenario: PlayerSave? = null,
+    /** When the account was made, in ms since 1970; null in saves written before it was kept. */
+    val createdAt: Long? = null,
+    /** Game ticks spent logged in. */
+    val playedTicks: Long = 0,
 ) {
     class SkillSave(val tenths: Int, val currentLevel: Int)
 
@@ -50,6 +55,9 @@ class PlayerSave(
         player.buildAreaZoneZ = z shr 3
         player.scenario = scenario
         player.beforeScenario = beforeScenario
+        // A save from before account ages were kept counts the account as made now.
+        if (createdAt != null) player.createdAt = createdAt
+        player.playedTicks = playedTicks
         applyState(player)
     }
 
@@ -96,6 +104,9 @@ class PlayerSave(
             put("version", VERSION)
             // For whoever opens the file; the file name is what finds it.
             put("username", username)
+            // Not part of the state ::reset puts back: time played and account age go on through scenarios.
+            if (createdAt != null) put("createdAt", createdAt)
+            put("playedTicks", playedTicks)
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -140,7 +151,7 @@ class PlayerSave(
             val equipment = player.equipment.contents().toMap()
             return PlayerSave(
                 player.x, player.z, player.level, player.runEnergy, varps, skills, inventory, equipment,
-                player.scenario, player.beforeScenario,
+                player.scenario, player.beforeScenario, player.createdAt, player.playedTicks,
             )
         }
 
@@ -157,7 +168,15 @@ class PlayerSave(
                 // Optional: saves written before scenarios existed have neither.
                 val scenario = root["scenario"]?.jsonPrimitive?.contentOrNull
                 val beforeScenario = root["beforeScenario"]?.jsonObject?.let { readState(it, null, null) }
-                return readState(root, scenario, beforeScenario)
+                // Optional too: saves written before Hans could tell your age have neither.
+                val createdAt = root["createdAt"]?.jsonPrimitive?.long
+                val playedTicks = root["playedTicks"]?.jsonPrimitive?.long ?: 0
+                require(playedTicks >= 0) { "Played ticks $playedTicks is negative" }
+                val state = readState(root, scenario, beforeScenario)
+                return PlayerSave(
+                    state.x, state.z, state.level, state.runEnergy, state.varps, state.skills, state.inventory, state.equipment,
+                    scenario, beforeScenario, createdAt, playedTicks,
+                )
             } catch (e: IllegalArgumentException) {
                 throw e
             } catch (e: Exception) {

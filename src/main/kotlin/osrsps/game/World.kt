@@ -41,6 +41,9 @@ import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
+import osrsps.game.content.registerHans
+import osrsps.game.dialogue.ChatFont
+import osrsps.game.dialogue.Dialogues
 import osrsps.game.loc.Doors
 import osrsps.game.loc.LocInteractions
 import osrsps.game.loc.LocTypes
@@ -91,6 +94,8 @@ class World(
     staticLocs: StaticLocs = StaticLocs(),
     /** What `::scenario` can start. */
     val scenarios: Scenarios = Scenarios.NONE,
+    /** The dialogue font's widths, for counting a dialogue's lines; see [ChatFont]. */
+    chatFont: ChatFont = ChatFont.APPROXIMATE,
 ) : GameConnectionHandler<Player> {
     lateinit var network: NetworkService<Player>
 
@@ -136,6 +141,9 @@ class World(
 
     val npcInteractions = NpcInteractions(npcs, npcTypes, collision, movement, handlers, scripts, { tick })
 
+    /** Chat dialogues for content scripts. */
+    val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType)
+
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
         registerTickCommands(this@World)
@@ -150,6 +158,10 @@ class World(
         registerLocCommands(this@World)
         registerNpcCommands(this@World)
         registerScenarioCommands(this@World)
+    }
+
+    init {
+        registerHans(this)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -259,7 +271,9 @@ class World(
         npcs.process()
         phase = TickPhase.SCRIPTS
         for (player in players) {
-            if (player != null) scripts.process(player)
+            if (player == null) continue
+            player.playedTicks++
+            scripts.process(player)
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
@@ -830,6 +844,17 @@ class World(
         npcInteractions.removed(npc, players.asIterable())
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
+    }
+
+    /**
+     * The player clicked a dialogue's "Click here to continue" or a chat menu option: [sub] is -1, or the option from 1.
+     * See [Dialogues.resume]. A click while delayed is dropped, as other clicks are.
+     */
+    fun onResumePauseButton(player: Player, interfaceId: Int, componentId: Int, sub: Int) = act(player) {
+        if (player.scripts.delayed) return@act
+        if (!dialogues.resume(player, interfaceId, componentId, sub)) {
+            logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
+        }
     }
 
     /** The client closed its modal: Esc, or a close button. */

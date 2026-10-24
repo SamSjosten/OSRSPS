@@ -42,6 +42,17 @@ class Player(
     /** Open modal interfaces by where they are open. */
     val modals = LinkedHashMap<FrameSlot, Int>()
 
+    /** The dialogue (or other modal) open in the chatbox's chatmodal, -1 for none. See [Interfaces.openChatModal]. */
+    var chatModal: Int = -1
+        internal set
+
+    /** Counts chatbox modals opened, so a continued dialogue can tell whether its script opened the next one. */
+    var chatModalOpens: Int = 0
+        internal set
+
+    /** Whether any modal is open, in the game frame or the chatbox. */
+    val modalOpen: Boolean get() = modals.isNotEmpty() || chatModal >= 0
+
     /** Set by the logout button; the player is logged out at the end of the tick. */
     var logoutRequested: Boolean = false
 
@@ -118,6 +129,12 @@ class Player(
 
     /** What `::reset` puts back: the player before their first `::scenario` since the last reset. Saved. */
     var beforeScenario: PlayerSave? = null
+
+    /** When the account was made, in milliseconds since 1970; Hans counts its age from this. Saved. */
+    var createdAt: Long = System.currentTimeMillis()
+
+    /** Game ticks spent logged in, which Hans reports as time played. Paused cycles don't count. Saved. */
+    var playedTicks: Long = 0
 
     /** Queues, timers and the current delay; run by [World.scripts]. */
     val scripts = PlayerScripts()

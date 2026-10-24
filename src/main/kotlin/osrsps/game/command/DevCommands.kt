@@ -22,6 +22,8 @@ fun CommandRegistry.registerDevCommands(world: World) {
         if (x !in 0 until MAX_COORD || z !in 0 until MAX_COORD) fail("x and z must be 0 to ${MAX_COORD - 1}")
         if (level !in 0..3) fail("Level must be 0 to 3")
         if (!world.hasMap(x, z)) fail("No map at $x, $z: the cache has no terrain there")
+        // As a click does: whatever the player had open, a dialogue included, closes and its script is dropped.
+        world.scripts.interrupt(player)
         world.teleport(player, x, z, level)
         reply("Teleported to $x, $z, $level")
     }

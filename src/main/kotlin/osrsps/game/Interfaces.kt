@@ -6,15 +6,18 @@ import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
+import net.rsprot.protocol.game.outgoing.misc.player.TriggerOnDialogAbort
 import net.rsprot.protocol.game.outgoing.varp.VarpLarge
 import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.dialogue.Chatbox
 
 /**
  * Opens, moves and closes interfaces in a player's game frame.
  *
  * Modals (the bank, a shop) are kept by [FrameSlot], so they follow the player through a frame change and close
- * on walking or when the client asks. Overlays (the side panels, chatbox, orbs) stay open for the whole session.
+ * on walking or when the client asks. Dialogues are modals too, opened into the chatbox's chatmodal, which moves with
+ * the chatbox. Overlays (the side panels, chatbox, orbs) stay open for the whole session.
  *
  * The frame change sequence copies RSMod's, which it emulates from live packet captures. None of it has been
  * checked against live by us.
@@ -107,7 +110,6 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         send(player, IfOpenSub(frame.interfaceId, frame.component(FrameSlot.ORBS), GameFrame.ORBS, OVERLAY))
     }
 
-    /** Opens [interfaceId] as a modal in [slot], replacing whatever modal was there. */
     /**
      * Shows [tab] inside the quest tab. The sub-interface sits in side_journal, not the top-level, so it moves with
      * side_journal on a frame change and is only opened at login and when the player picks another tab.
@@ -121,18 +123,60 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     private fun journalTabVarbit(player: Player): Int? =
         JournalTab.VARBIT_SIDE_JOURNAL_TAB.takeIf { player.vars.types.varbit(it) != null }
 
+    /** Opens [interfaceId] as a modal in [slot], replacing whatever modal was there. */
     fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) {
         player.modals[slot] = interfaceId
         val frame = player.frame
         send(player, IfOpenSub(frame.interfaceId, frame.component(slot), interfaceId, MODAL))
     }
 
-    /** Closes every open modal. Walking, the client's close (Esc or a close button) and logging out do this. */
+    /**
+     * Opens [interfaceId] in the chatbox's chatmodal, replacing the dialogue there, as RSMod's captures of live have it:
+     * varbit chatmodal_unclamp set to [unclamp], the background reset script, then the sub. A null [unclamp] opens the
+     * sub alone, which RSMod does for a messagebox.
+     */
+    fun openChatModal(player: Player, interfaceId: Int, unclamp: Int?) {
+        if (unclamp != null) {
+            val varbit = player.vars.types.varbit(Chatbox.VARBIT_CHATMODAL_UNCLAMP)
+            if (varbit != null) {
+                player.vars.setVarbit(Chatbox.VARBIT_CHATMODAL_UNCLAMP, unclamp)
+                // Sent now, ahead of the sub, rather than with the end-of-cycle flush, which then resends it.
+                sendVarp(player, varbit.baseVar, player.vars[varbit.baseVar])
+            }
+            send(player, RunClientScript(Chatbox.RESET_BACKGROUND_SCRIPT, emptyList()))
+        }
+        player.chatModal = interfaceId
+        player.chatModalOpens++
+        send(player, IfOpenSub(Chatbox.CHATBOX, Chatbox.CHATMODAL, interfaceId, MODAL))
+    }
+
+    /** Closes the dialogue in the chatbox, if any; a script waiting on it is dropped. */
+    fun closeChatModal(player: Player) {
+        if (player.chatModal >= 0) {
+            send(player, IfCloseSub(Chatbox.CHATBOX, Chatbox.CHATMODAL))
+            player.chatModal = -1
+        }
+        dropDialogueScript(player)
+    }
+
+    /**
+     * Closes every open modal, a dialogue included. Walking, the client's close (Esc or a close button) and logging out
+     * do this.
+     */
     fun closeModals(player: Player) {
+        closeChatModal(player)
         if (player.modals.isEmpty()) return
         val frame = player.frame
         for (slot in player.modals.keys) send(player, IfCloseSub(frame.interfaceId, frame.component(slot)))
         player.modals.clear()
+    }
+
+    /**
+     * A dialogue closed before the player answered it: its script never carries on. RSMod tells the client with
+     * trigger_ondialogabort, which runs the chatbox's dialogue-abort hooks; inferred from RSMod, not seen on live by us.
+     */
+    private fun dropDialogueScript(player: Player) {
+        if (player.scripts.dropPaused()) send(player, TriggerOnDialogAbort)
     }
 
     private fun sendVarp(player: Player, id: Int, value: Int) {

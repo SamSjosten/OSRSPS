@@ -4,16 +4,19 @@ import com.displee.cache.CacheLibrary
 import osrsps.game.EquipmentTab
 import osrsps.game.FrameSlot
 import osrsps.game.GameFrame
+import osrsps.game.dialogue.ChatAnim
+import osrsps.game.dialogue.Chatbox
 import java.nio.charset.Charset
 
 /**
- * Checks [GameFrame]'s and [EquipmentTab]'s interface and component ids against the names in the cache's gameval
- * index, which Jagex ships with the cache from about rev 230. A mismatch means a revision moved something and the
- * frame will show a missing or wrong panel.
+ * Checks [GameFrame]'s, [EquipmentTab]'s and [Chatbox]'s interface and component ids, and [ChatAnim]'s seqs, against
+ * the names in the cache's gameval index, which Jagex ships with the cache from about rev 230. A mismatch means a
+ * revision moved something and the frame will show a missing or wrong panel, or a dialogue a wrong head animation.
  */
 object GameFrameCheck {
     private const val GAMEVAL_INDEX = 24
     private const val GAMEVAL_INTERFACES = 14
+    private const val GAMEVAL_SEQS = 7
     private val CP1252: Charset = Charset.forName("windows-1252")
 
     /** The problems found, empty when every id matches. [names] looks up an interface's gameval entry by id. */
@@ -37,7 +40,7 @@ object GameFrameCheck {
             val actual = names(overlay.interfaceId)?.name
             if (actual != overlay.cacheName) problems += "interface ${overlay.interfaceId} should be ${overlay.cacheName} but is $actual"
         }
-        for ((interfaceId, expected) in EquipmentTab.CACHE_NAMES) {
+        for ((interfaceId, expected) in EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES) {
             val (name, components) = expected
             val interfaceNames = names(interfaceId)
             if (interfaceNames == null || interfaceNames.name != name) {
@@ -52,9 +55,29 @@ object GameFrameCheck {
         return problems
     }
 
+    /** The problems with [ChatAnim]'s seqs, empty when every one matches. [names] looks up a seq's gameval name by id. */
+    fun checkSeqs(names: (Int) -> String?): List<String> {
+        val problems = mutableListOf<String>()
+        for (anim in ChatAnim.entries) {
+            for (lines in 1..ChatAnim.MAX_LINES) {
+                val seq = anim.seq(lines)
+                val actual = names(seq)
+                if (actual != "${anim.cacheName}$lines") problems += "seq $seq should be ${anim.cacheName}$lines but is $actual"
+            }
+        }
+        return problems
+    }
+
     fun check(library: CacheLibrary): List<String> {
         if (library.index(GAMEVAL_INDEX) == null) return listOf("the cache has no gameval index ($GAMEVAL_INDEX) to check against")
-        return check { id -> library.data(GAMEVAL_INDEX, GAMEVAL_INTERFACES, id)?.let(::decode) }
+        return check { id -> library.data(GAMEVAL_INDEX, GAMEVAL_INTERFACES, id)?.let(::decode) } +
+            checkSeqs { id -> library.data(GAMEVAL_INDEX, GAMEVAL_SEQS, id)?.let(::decodeName) }
+    }
+
+    /** A gameval entry that is only a name, as seqs' are: the string up to the first 0. */
+    fun decodeName(data: ByteArray): String {
+        val end = data.indexOf(0).let { if (it < 0) data.size else it }
+        return String(data, 0, end, CP1252)
     }
 
     /** One interface's gameval entry: its name, then (u16 component, string) pairs ending with 0xFFFF. */

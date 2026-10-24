@@ -378,8 +378,40 @@ while it follows (`::follow` tries it). Pets trail a tile behind instead, which 
 | The two messages | live, from memory |
 
 Check: Talk-to Hans (`::tele 3222 3218`, he is in the courtyard). You walk to beside him and he turns to face you, then
-"Nothing interesting happens." until his dialogue comes with task 18. Click Talk-to while he walks away and you follow
-him. `::npcs 5`, then `::follow` his index: he walks after you and stops beside you.
+his dialogue opens (see Dialogue below). Click Talk-to while he walks away and you follow him. `::npcs 5`, then `::follow` his index: he walks after you and stops beside you.
+
+## Dialogue
+
+Content shows chat dialogues from a handler with `World.dialogues.start(this, npc) { ... }`, whose block calls:
+
+- `chatNpc(ChatAnim.NEUTRAL, "text")`: the NPC talks, its head on the left (chat_left, 231)
+- `chatPlayer(ChatAnim.HAPPY, "text")`: you talk, your head on the right (chat_right, 217)
+- `choice("Option one", "Option two", ...)`: "Select an option" with up to five options (chatmenu, 219); returns the one picked, from 1
+- `mesbox("text")`, `objbox(obj, "text")`, `doubleobjbox(obj1, obj2, "text")`: messagebox (229) and the objectboxes (193, 11)
+
+Each opens in the chatbox's chatmodal (162:568) and the script waits for "Click here to continue" or an option
+(resume_pausebutton), then carries on at once; if it shows nothing more, the dialogue closes. While a dialogue is open
+you count as busy, so the NPC you talk to stays turned to you. Walking, clicking anything else, Esc, a strong script,
+`::tele`, ctrl+shift-click, `::scenario` or `::reset` closes the dialogue and drops the script. Text is wrapped with the cache's dialogue font (497) to count its
+lines: that picks the chathead animation (`chatneu1` to `chatneu4` and so on) and the line spacing, and text past four
+lines goes onto another page. Every dialogue page also goes to the chat history as a game message of type 114 (dialogue)
+or 115 (message box), which RuneLite plugins see as `ChatMessageType.DIALOG` and `MESBOX`.
+
+Hans (`game/content/Hans.kt`) is the example: Talk-to and Age, with the OSRS Wiki's transcript. Your time played (game
+ticks logged in) and account age are now saved, for his answer.
+
+| Behaviour | Source |
+|-----------|--------|
+| Interface, component, varbit and seq ids | the 241 cache's gameval names, checked again on every start |
+| Packets for each box and their order, line spacings, the chat history copy, closing once the script ends | RSMod's captures of live (rev 233); client script argument counts checked against the 241 cache; not compared with our own recording |
+| Where lines break | inferred from the client's behaviour, with the cache's font widths |
+| The script carries on in the input phase, as soon as the click arrives | 2004Scape's engine |
+| `trigger_ondialogabort` when a dialogue is closed before it is answered | RSMod; inferred |
+| Hans's words | OSRS Wiki, Transcript:Hans |
+| Hans's expressions, Age giving the time-played lines alone, where he runs when threatened | guessed |
+
+Check: Talk-to Hans. He says "Hello. What are you doing here?"; continue, pick each option in turn (talk to him again
+for each), and walk away mid-dialogue to see it close. Right-click him, Age, for your time played.
 
 ## Zone updates
 

@@ -50,6 +50,25 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `account age and time played are kept, and saves from before them still load`() {
+        val player = world.loadPlayer(1, "Test")
+        player.createdAt = 1_700_000_000_000
+        player.playedTicks = 123_456
+        assertTrue(world.save(player))
+        val loaded = world.loadPlayer(2, "test")
+        assertEquals(1_700_000_000_000, loaded.createdAt)
+        assertEquals(123_456, loaded.playedTicks)
+
+        val old = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("old")
+        saves.write("old", old.replace(Regex("\\s*\"playedTicks\": 0,"), ""))
+        assertTrue("playedTicks" !in saves.saves.getValue("old"))
+        val before = System.currentTimeMillis()
+        val fromOld = world.loadPlayer(3, "old")
+        assertEquals(0, fromOld.playedTicks)
+        assertTrue(fromOld.createdAt >= before)
+    }
+
+    @Test
     fun `a save from before equipment loads with nothing worn`() {
         val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
         saves.write("test", text.replace(Regex(",\\s*\"equipment\": \\[\\s*]"), ""))
