@@ -8,6 +8,8 @@ import osrsps.game.World
 import osrsps.game.content.Bankers.banker
 import osrsps.game.content.Bankers.tutor
 import osrsps.game.content.CraftingTutor.talk
+import osrsps.game.content.Doomsayer.talk
+import osrsps.game.content.Hatius.talk
 import osrsps.game.content.Perdu.talk
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -134,9 +136,47 @@ class CastleTalkTest {
     }
 
     @Test
+    fun `the Doomsayer explains himself to a player with every warning on`() {
+        h.talk { with(Doomsayer) { talk() } }
+        h.expect(
+            "doomsayer.doom", "doomsayer.where", "doomsayer.everywhere", "doomsayer.stop_it", "doomsayer.my_role", "doomsayer.title",
+            "doomsayer.patrol", "doomsayer.disable", "doomsayer.danger_areas", "doomsayer.see_again", "doomsayer.waiting",
+            "doomsayer.re_enable", "doomsayer.remember", "doomsayer.welcome",
+        )
+        h.ends()
+    }
+
+    @Test
+    fun `Hatius opens with a menu and comes back to it after saying who he is`() {
+        h.talk { with(Hatius) { talk() } }
+        h.menu("hatius.who_are_you", "hatius.my_diary", "hatius.farewell")
+        h.pick(1)
+        h.expect("hatius.who_are_you", "hatius.taskmaster", "hatius.what_diary", "hatius.explain", "hatius.explore", "hatius.side_panel")
+        h.menu("hatius.who_are_you", "hatius.my_diary", "hatius.farewell")
+        h.pick(3)
+        h.expect("hatius.farewell", "hatius.goodbye")
+        h.ends()
+    }
+
+    @Test
+    fun `Hatius tells a tier's rewards and the talk ends`() {
+        h.talk { with(Hatius) { talk() } }
+        h.menu("hatius.who_are_you", "hatius.my_diary", "hatius.farewell")
+        h.pick(2)
+        h.expect("hatius.my_diary")
+        h.menu("hatius.what_diary", "hatius.rewards", "hatius.claim", "hatius.farewell")
+        h.pick(2)
+        h.expect("hatius.rewards", "hatius.four_tiers", "hatius.which_tier")
+        h.menu("hatius.easy", "hatius.medium", "hatius.hard", "hatius.elite")
+        h.pick(3)
+        h.expect("hatius.hard", "hatius.hard_rewards", "hatius.thanks")
+        h.ends()
+    }
+
+    @Test
     fun `every castle NPC with lines has Talk-to`() {
         val world = World(IntArray(0), CollisionMap())
-        for (id in listOf(Cook.ID, DukeHoracio.ID, Perdu.ID, CraftingTutor.ID, Bankers.BANKER, Bankers.BANKER_TUTOR) + Townsfolk.MEN + Townsfolk.WOMEN) {
+        for (id in listOf(Cook.ID, DukeHoracio.ID, Perdu.ID, CraftingTutor.ID, Bankers.BANKER, Bankers.BANKER_TUTOR, Doomsayer.ID, Hatius.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertTrue(world.handlers.find(Op(OpTarget.NPC, id, 1)) != null, "NPC $id")
         }
     }

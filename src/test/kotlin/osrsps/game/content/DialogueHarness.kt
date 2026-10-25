@@ -35,10 +35,11 @@ class DialogueHarness(npcName: String = "Someone") {
     /** The interface of the page showing now, to continue it. */
     private var page = -1
 
-    /** Whether an option was just picked, so a menu can follow with no page to continue. */
+    /** Whether the talk just started or an option was just picked, so a menu can follow with no page to continue. */
     private var picked = false
 
     fun talk(block: suspend Dialogue.() -> Unit) {
+        picked = true
         scripts.start(player) { dialogues.start(this, npc) { block() } }
     }
 
