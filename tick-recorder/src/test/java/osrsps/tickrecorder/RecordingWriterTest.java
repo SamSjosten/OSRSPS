@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 
 public class RecordingWriterTest
@@ -58,7 +59,7 @@ public class RecordingWriterTest
 		writer.shutdown();
 
 		assertEquals(Arrays.asList("{\"t\":\"start\"}", "{\"t\":\"tick\",\"tick\":1}"), folder.lines("rec.jsonl"));
-		assertNull(writer.takeFailure());
+		assertNull(writer.failure());
 	}
 
 	@Test
@@ -89,7 +90,7 @@ public class RecordingWriterTest
 		writer.write("lost");
 		writer.close().get();
 
-		assertNotNull(writer.takeFailure());
+		assertNotNull(writer.failure());
 		writer.shutdown();
 	}
 
@@ -104,8 +105,7 @@ public class RecordingWriterTest
 		writer.write("lost");
 		writer.close().get();
 
-		assertEquals("writeFailed", writer.takeFailure().code);
-		assertNull(writer.takeFailure());
+		assertEquals("writeFailed", writer.failure().code);
 		writer.shutdown();
 	}
 
@@ -160,30 +160,37 @@ public class RecordingWriterTest
 		}
 	}
 
+	/** A one-character buffer, so the first line reaches the gate at once and blocks the writer thread there. */
+	private static BufferedWriter behind(Gate gate)
+	{
+		return new BufferedWriter(gate, 1);
+	}
+
+	/** The per-tick flush between lines is not a line: it never brings the limit closer. */
 	@Test
 	public void stopsWithAReasonWhenTheDiskFallsBehind() throws Exception
 	{
 		Gate gate = new Gate();
-		// A one-character buffer, so the first line reaches the gate at once and blocks the writer thread there.
-		RecordingWriter writer = new RecordingWriter("memory", fileName -> new BufferedWriter(gate, 1));
+		RecordingWriter writer = new RecordingWriter("memory", fileName -> behind(gate));
 		writer.open("rec");
 		writer.write("first");
 		gate.awaitFirstWrite();
-		for (int i = 1; i <= RecordingWriter.QUEUE_LIMIT + 1; i++)
+		for (int i = 1; i <= RecordingWriter.QUEUE_LIMIT; i++)
 		{
 			writer.write("line " + i);
+			writer.flush();
 		}
+		assertNull(writer.failure());
+		writer.write("line " + (RecordingWriter.QUEUE_LIMIT + 1));
 
 		assertEquals(RecordingWriter.QUEUE_LIMIT, writer.takeQueueMax());
-		Future<String> reason = writer.writeStop("stopped", why -> "stop");
+		Future<RecordingWriter.Failure> stopped = writer.writeStop("stopped", why -> "stop");
 		Future<?> closed = writer.close();
 		gate.open();
 		closed.get();
 		writer.shutdown();
-		assertEquals("writerBehind", reason.get());
-		RecordingWriter.Failure failure = writer.takeFailure();
-		assertNotNull(failure);
-		assertEquals("writerBehind", failure.code);
+		assertEquals("writerBehind", stopped.get().code);
+		assertEquals("writerBehind", writer.failure().code);
 
 		List<String> lines = gate.lines();
 		assertEquals(RecordingWriter.QUEUE_LIMIT + 2, lines.size());
@@ -191,6 +198,40 @@ public class RecordingWriterTest
 		assertEquals("line " + RecordingWriter.QUEUE_LIMIT, lines.get(lines.size() - 2));
 		assertEquals("stop", lines.get(lines.size() - 1));
 		assertEquals(RecordingWriter.QUEUE_LIMIT + 2, writer.lines());
+	}
+
+	/** A recording started while the last one's lines still wait is behind from its first line, and stays so. */
+	@Test
+	public void keepsAFailureRaisedBeforeItsOpenRuns() throws Exception
+	{
+		Gate gate = new Gate();
+		StringWriter second = new StringWriter();
+		AtomicInteger opens = new AtomicInteger();
+		RecordingWriter writer = new RecordingWriter("memory", fileName ->
+			opens.getAndIncrement() == 0 ? behind(gate) : new BufferedWriter(second));
+		writer.open("rec");
+		writer.write("first");
+		gate.awaitFirstWrite();
+		for (int i = 1; i <= RecordingWriter.QUEUE_LIMIT + 1; i++)
+		{
+			writer.write("line " + i);
+		}
+		Future<RecordingWriter.Failure> stopped = writer.writeStop("stopped", why -> "stop");
+		writer.close();
+
+		// The new file is queued behind every line of the old one, and its own first line finds the disk still behind.
+		writer.open("rec");
+		writer.write("late");
+		assertEquals("writerBehind", writer.failure().code);
+
+		gate.open();
+		writer.close().get();
+		writer.shutdown();
+		assertEquals("writerBehind", stopped.get().code);
+		assertEquals("writerBehind", writer.failure().code);
+		assertEquals(0, writer.lines());
+		assertEquals("stop", gate.lines().get(gate.lines().size() - 1));
+		assertEquals("", second.toString());
 	}
 
 	/** A file whose disk refuses one write: the first chunk holding '!' fails, everything after goes through. */
@@ -236,12 +277,40 @@ public class RecordingWriterTest
 		writer.write("first");
 		writer.write("boom!");
 		writer.flush();
-		Future<String> reason = writer.writeStop("stopped", why -> "stop");
+		Future<RecordingWriter.Failure> stopped = writer.writeStop("stopped", why -> "stop");
 		writer.close().get();
 		writer.shutdown();
-		assertEquals("writeFailed", reason.get());
-		assertEquals("writeFailed", writer.takeFailure().code);
+		assertEquals("writeFailed", stopped.get().code);
+		assertEquals("writeFailed", writer.failure().code);
 		assertEquals(Arrays.asList("first", "boom!", "stop"), flaky.lines());
+	}
+
+	/** What the next file runs into is its own: the stop of the one before still reports a clean stop. */
+	@Test
+	public void keepsEachRecordingsFailureToItself() throws Exception
+	{
+		Folder folder = new Folder();
+		AtomicInteger opens = new AtomicInteger();
+		RecordingWriter writer = new RecordingWriter("memory", fileName ->
+		{
+			if (opens.getAndIncrement() == 0)
+			{
+				return folder.open(fileName);
+			}
+			throw new IOException("read only");
+		});
+		writer.open("good");
+		writer.write("one");
+		Future<RecordingWriter.Failure> stopped = writer.writeStop("stopped", why -> "stop");
+		writer.close();
+		writer.open("bad");
+		writer.write("lost");
+		writer.close().get();
+		writer.shutdown();
+
+		assertNull(stopped.get());
+		assertEquals("writeFailed", writer.failure().code);
+		assertEquals(Arrays.asList("one", "stop"), folder.lines("good.jsonl"));
 	}
 
 	@Test
