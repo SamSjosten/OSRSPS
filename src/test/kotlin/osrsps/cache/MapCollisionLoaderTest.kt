@@ -66,8 +66,9 @@ class MapCollisionLoaderTest {
         repeat(6) { library.createIndex(named = true) }
         // Loc 5: a solid 2x1 table. Opcodes 14 (width) and 2 (name) then end.
         library.put(2, 6, 5, byteArrayOf(14, 2, 2, 'T'.code.toByte(), 0, 0))
-        // Square 50_50: blocked floor at 3, 4 on level 0; a bridge column at 10, 10 with blocked floor on level 1.
-        val settings = mapOf(Triple(0, 3, 4) to 1, Triple(1, 10, 10) to 3)
+        // Square 50_50: blocked floor at 3, 4 on level 0; a bridge column at 10, 10 with blocked floor on level 1; a
+        // roof over 6, 7 on level 0 and over 12, 12 on the bridge's level 1.
+        val settings = mapOf(Triple(0, 3, 4) to 1, Triple(1, 10, 10) to 3, Triple(0, 6, 7) to 4, Triple(1, 12, 12) to 6)
         library.put(5, "m50_50", terrain(settings))
         library.put(5, "l50_50", locs(5, 20, 20, 0, 10, 0))
         library.update()
@@ -77,6 +78,8 @@ class MapCollisionLoaderTest {
         assertEquals(CollisionFlag.FLOOR, map[3203, 3204, 0])
         assertEquals(CollisionFlag.FLOOR, map[3210, 3210, 0], "bridge floor drops to level 0")
         assertEquals(0, map[3210, 3210, 1])
+        assertEquals(CollisionFlag.ROOF, map[3206, 3207, 0], "a roof walks like open ground")
+        assertEquals(CollisionFlag.ROOF, map[3212, 3212, 0], "a bridge roof drops to level 0 too")
         assertEquals(CollisionFlag.LOC or CollisionFlag.LOC_PROJ, map[3220, 3220, 0])
         assertEquals(CollisionFlag.LOC or CollisionFlag.LOC_PROJ, map[3221, 3220, 0])
         assertEquals(0, map[3222, 3220, 0])

@@ -13,11 +13,11 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.npc.PatrolStop
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
-import osrsps.map.Tile
 
 /** NPCs, loc and NPC clicks, and a whole dialogue, through the headless client and the real network stack. */
 class HeadlessInteractionTest {
@@ -25,7 +25,7 @@ class HeadlessInteractionTest {
 
     /** Has all five ops; each answers with its number, so a test can tell a misencoded op from the right one. */
     private val statue = NpcType(STATUE, "Statue", ops = listOf("One", "Two", "Three", "Four", "Five"))
-    private val guard = NpcSpawn(NpcType(GUARD, "Guard"), 3226, 3214, patrol = listOf(Tile(3226, 3214), Tile(3229, 3214)), source = "test")
+    private val guard = NpcSpawn(NpcType(GUARD, "Guard"), 3226, 3214, patrol = listOf(PatrolStop(3226, 3214), PatrolStop(3229, 3214)), source = "test")
 
     private fun server(dir: Path, vararg npcs: NpcSpawn, locs: List<ZoneLoc> = emptyList()) = TestServer(dir) { crcs, millis ->
         val crate = LocType(CRATE, "Crate", ops = listOf("One", "Two", "Three", "Four", "Five"), collision = LocCollisionType(width = 1, length = 1))

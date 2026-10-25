@@ -1,0 +1,33 @@
+{
+  "about": "Lumbridge Castle's NPCs: inside the outer wall (the keep, its floors, the towers and courtyard) and the three just outside the gate. Tiles are RSMod's Lumbridge spawn data (rev 233); 2004Scape's RS2 map (m50_50) agrees where marked. Types are the 241 cache's gameval names; Perdu, the banker and the Doomsayer are multi-NPCs and the client shows the form their varbit picks. Wander 5 is RS2's default (2004Scape) for NPCs with no setting of their own; every wander range is guessed until recorded. Left out: Sigmund (hidden once The Lost Tribe is done, which every account has), Aris (only during Recipe for Disaster), the Deadman guards (Deadman worlds only) and the cellar spiders (cellar combat is out of scope).",
+  "spawns": [
+    {"npc": "hans", "x": 3207, "z": 3233, "restrict": "outdoors", "patrol": [[3207, 3233], [3211, 3230], [3219, 3230], [3219, 3222, 10], [3221, 3222], [3221, 3212], [3218, 3209], [3214, 3205], [3202, 3205], [3202, 3232]], "source": "Patrol stops and the 10-tick wait in the courtyard from 2004Scape's hans config (RS2), same in RSMod, as is outdoors; walks clockwise around the keep inside the outer wall, about 94 ticks a lap (the wiki says about a minute)"},
+    {"npc": "cook", "x": 3208, "z": 3215, "restrict": "indoors", "wander": 5, "source": "Kitchen. RSMod rev 233 Lumbridge spawns (2004Scape: 3209, 3215); indoors from 2004Scape and RSMod"},
+    {"npc": "lost_property_merchant_standard", "x": 3230, "z": 3215, "direction": "W", "wander": 0, "source": "Perdu, south gate tower: varbit 5401 = 0 shows him. RSMod rev 233 Lumbridge spawns, wander 0 facing west"},
+    {"npc": "man", "x": 3207, "z": 3227, "wander": 5, "source": "RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "man", "x": 3216, "z": 3219, "wander": 5, "source": "RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "man3", "x": 3221, "z": 3219, "wander": 5, "source": "RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "woman", "x": 3217, "z": 3205, "wander": 5, "source": "South of the keep. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "imp", "x": 3217, "z": 3226, "wander": 5, "source": "Courtyard. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "rat", "x": 3205, "z": 3203, "wander": 5, "source": "South of the keep. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "rat", "x": 3205, "z": 3204, "wander": 5, "source": "South of the keep. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "rat", "x": 3206, "z": 3202, "wander": 5, "source": "South of the keep. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "rat", "x": 3206, "z": 3204, "wander": 5, "source": "South of the keep. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "rat", "x": 3207, "z": 3202, "wander": 5, "source": "South of the keep. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "rat", "x": 3207, "z": 3203, "wander": 5, "source": "South of the keep. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "rat", "x": 3205, "z": 3209, "wander": 5, "source": "South-west tower. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "rat", "x": 3206, "z": 3209, "wander": 5, "source": "South-west tower. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "rat", "x": 3222, "z": 3215, "wander": 5, "source": "Courtyard. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "rat", "x": 3229, "z": 3223, "wander": 5, "source": "North gate tower. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "duke_of_lumbridge", "x": 3210, "z": 3224, "level": 1, "wander": 5, "source": "His room. RSMod rev 233 Lumbridge spawns (2004Scape: 3212, 3220)"},
+    {"npc": "aide_tutor_crafting", "x": 3210, "z": 3212, "level": 1, "wander": 5, "source": "Crafting tutor, next to the Duke's room (wiki). RSMod rev 233 Lumbridge spawns"},
+    {"npc": "man", "x": 3206, "z": 3219, "level": 1, "wander": 5, "source": "RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
+    {"npc": "man3", "x": 3209, "z": 3215, "level": 1, "wander": 5, "source": "RSMod rev 233 Lumbridge spawns"},
+    {"npc": "woman", "x": 3211, "z": 3213, "level": 1, "wander": 5, "source": "RSMod rev 233 Lumbridge spawns"},
+    {"npc": "deadman_banker_blue_south", "x": 3209, "z": 3222, "level": 2, "wander": 0, "source": "Banker: varbit 4153 = 0 (not Deadman) shows the ordinary banker. RSMod rev 233 Lumbridge spawns; wander 0 as 2004Scape's bankers"},
+    {"npc": "aide_tutor_banker", "x": 3208, "z": 3222, "level": 2, "wander": 0, "source": "Bank tutor. RSMod rev 233 Lumbridge spawns; wander 0 guessed, as the bankers"},
+    {"npc": "lumbridge_guide", "x": 3238, "z": 3220, "direction": "W", "wander": 0, "source": "Outside the gate. RSMod rev 233 Lumbridge spawns, wander 0 facing west"},
+    {"npc": "cws_doomsayer", "x": 3232, "z": 3223, "direction": "E", "wander": 0, "source": "Outside the gate: varbit 4153 = 0 shows the ordinary Doomsayer. RSMod rev 233 Lumbridge spawns, wander 0 facing east"},
+    {"npc": "hatius_lumbridge_diary", "x": 3234, "z": 3214, "wander": 5, "source": "Hatius Cosaintus, outside the gate. RSMod rev 233 Lumbridge spawns"}
+  ]
+}

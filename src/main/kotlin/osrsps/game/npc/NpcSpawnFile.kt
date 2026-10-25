@@ -12,7 +12,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import osrsps.game.NpcTypes
-import osrsps.map.Tile
 
 private val logger = KotlinLogging.logger {}
 
@@ -23,18 +22,20 @@ private val logger = KotlinLogging.logger {}
  * ```
  * { "spawns": [
  *   { "npc": "cow", "x": 3254, "z": 3255, "wander": 5, "source": "OSRS Wiki, Cow, Lumbridge cow field" },
- *   { "npc": 3105, "x": 3221, "z": 3219, "level": 0, "direction": "S", "patrol": [[3221, 3219], [3221, 3228]],
+ *   { "npc": 3105, "x": 3221, "z": 3219, "level": 0, "direction": "S", "patrol": [[3221, 3219], [3221, 3228, 10]],
  *     "source": "..." }
  * ] }
  * ```
  *
  * `npc` is a type id, a gameval name (`cow2_calf`) or a menu name. `level` defaults to 0, `direction` to south and
- * `wander` to 0 (standing still). `patrol` lists tiles walked to in turn instead of wandering. `source` is required.
+ * `wander` to 0 (standing still). `patrol` lists stops walked to in turn instead of wandering: `[x, z]`, or
+ * `[x, z, wait]` to stand `wait` ticks there on arriving. `restrict` is `indoors` or `outdoors` (see [MoveRestrict]).
+ * `source` is required.
  * Other keys, such as a file-level `about`, are ignored.
  */
 object NpcSpawnFile {
     /** The spawn files the server loads, in this order. Add an area's file here. */
-    val FILES = listOf("lumbridge.json")
+    val FILES = listOf("lumbridge.json", "lumbridge-castle.json")
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */
     class Result(val spawns: List<NpcSpawn>, val unknown: List<String>)
@@ -78,7 +79,11 @@ object NpcSpawnFile {
                         Direction.parse(text) ?: throw IllegalArgumentException("unknown direction '$text'")
                     } ?: Direction.SOUTH,
                     wander = entry["wander"]?.jsonPrimitive?.int ?: 0,
-                    patrol = entry["patrol"]?.jsonArray?.map(::tile).orEmpty(),
+                    patrol = entry["patrol"]?.jsonArray?.map(::stop).orEmpty(),
+                    restrict = entry["restrict"]?.jsonPrimitive?.content?.let { text ->
+                        MoveRestrict.entries.firstOrNull { it.name.equals(text, ignoreCase = true) }
+                            ?: throw IllegalArgumentException("unknown restrict '$text'")
+                    } ?: MoveRestrict.NORMAL,
                     source = entry.required("source").jsonPrimitive.content.ifBlank {
                         throw IllegalArgumentException("blank source")
                     },
@@ -92,9 +97,11 @@ object NpcSpawnFile {
 
     private fun JsonObject.required(key: String): JsonElement = get(key) ?: throw IllegalArgumentException("no \"$key\"")
 
-    private fun tile(element: JsonElement): Tile {
-        val pair = (element as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.intOrNull }
-        require(pair != null && pair.size == 2) { "a patrol tile must be [x, z], not $element" }
-        return Tile(pair[0], pair[1])
+    private fun stop(element: JsonElement): PatrolStop {
+        val numbers = (element as? JsonArray)?.map { (it as? JsonPrimitive)?.intOrNull }
+        require(numbers != null && numbers.size in 2..3 && numbers.all { it != null }) {
+            "a patrol stop must be [x, z] or [x, z, wait], not $element"
+        }
+        return PatrolStop(numbers[0]!!, numbers[1]!!, numbers.getOrNull(2) ?: 0)
     }
 }

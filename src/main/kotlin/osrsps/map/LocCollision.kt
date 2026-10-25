@@ -42,6 +42,8 @@ object LocShape {
 class LocCollision(private val map: CollisionMap) {
     fun addFloor(x: Int, z: Int, level: Int) = map.add(x, z, level, FLOOR)
 
+    fun addRoof(x: Int, z: Int, level: Int) = map.add(x, z, level, CollisionFlag.ROOF)
+
     fun addLoc(type: LocCollisionType, x: Int, z: Int, level: Int, shape: Int, rotation: Int) =
         changeLoc(type, x, z, level, shape, rotation, map::add)
 
