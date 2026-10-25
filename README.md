@@ -632,6 +632,22 @@ inventory's and equipment's slots; the bank joins it when it exists. Code is in 
 | After a reconnect every varp and stat is sent again and the map is rebuilt; interfaces are left as the client has them | inferred, not checked against live |
 | All varps are saved; live keeps some only for the session, which ours doesn't know about yet | guessed |
 
+### Accounts
+
+The first login as a name claims it with the password typed; after that the name only logs in with that password, and
+anything else gets the client's "Invalid username or password". Names match the way saves do, so `Sam` and `sam ` are
+one account. This is our own rule for a shared test server, not live's: live accounts come from Jagex's login servers.
+Launcher (token) logins are refused, as only Jagex can check a token.
+
+Each account is `data/accounts/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/accounts/`), holding a salted
+PBKDF2-HMAC-SHA256 hash (600,000 rounds), never the password. Checking takes a fraction of a second, so it runs on its
+own login thread, not the game thread. A save with no account file (every save from before accounts) is claimed by its
+next login. To reset a forgotten password, delete that name's file on the VM; the next login claims it again:
+
+```bash
+rm /srv/rsps/OSRSPS/data/accounts/<name>.json
+```
+
 ## Scenarios
 
 A scenario sets a player up for a test in one go: where they stand, their skills, inventory, equipment, run energy and

@@ -56,7 +56,8 @@ class TestServer(
     }
 
     /** Logs a [HeadlessClient] in as [username]. */
-    fun login(username: String): HeadlessClient = HeadlessClient.login("127.0.0.1", port, rsaModulus, rsaExponent, username)
+    fun login(username: String, password: String = "test"): HeadlessClient =
+        HeadlessClient.login("127.0.0.1", port, rsaModulus, rsaExponent, username, password)
 
     override fun close() {
         world.stop()

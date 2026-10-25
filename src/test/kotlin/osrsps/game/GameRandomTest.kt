@@ -87,7 +87,8 @@ class GameRandomTest {
 
     @Test
     fun `game code draws only from GameRandom`() {
-        val allowed = setOf("osrsps/game/GameRandom.kt")
+        // Accounts draws password salts, which must not repeat between runs and never touch the game.
+        val allowed = setOf("osrsps/game/GameRandom.kt", "osrsps/game/Accounts.kt")
         val root = Path.of("src/main/kotlin")
         val offenders = Files.walk(root).use { paths ->
             paths.filter { it.extension == "kt" }

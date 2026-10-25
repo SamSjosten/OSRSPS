@@ -87,6 +87,8 @@ class World(
     val quests: Quests = Quests.NONE,
     /** Where players are saved on logout and every [AUTOSAVE_CYCLES]. */
     private val saves: SaveStore = MemorySaveStore(),
+    /** Whose name is whose; see [Accounts]. The default, kept in memory with a cheap hash, is for tests. */
+    private val accounts: Accounts = Accounts(MemorySaveStore(), iterations = 1_000),
     val objTypes: ObjTypes = ObjTypes.NONE,
     val npcTypes: NpcTypes = NpcTypes.NONE,
     /** The NPCs put in the world when it starts. */
@@ -211,6 +213,12 @@ class World(
      */
     private val freedSlots = HashMap<Int, Long>()
     private val executor = Executors.newSingleThreadScheduledExecutor { Thread(it, "game") }
+
+    /**
+     * Checks login passwords, off the game thread as a hash takes tens of milliseconds. One thread, so two first logins
+     * as one name can't both claim it.
+     */
+    private val authExecutor = Executors.newSingleThreadExecutor { Thread(it, "login-auth").apply { isDaemon = true } }
     var tick: Long = 0
         private set
 
@@ -225,6 +233,8 @@ class World(
     )
 
     override fun onLogin(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<AuthenticationType>) {
+        // A copy for the check below, so the login block's own copy can be wiped now.
+        val password = (block.authentication as? AuthenticationType.PasswordAuthentication)?.password?.asCharArray()
         block.authentication.clear()
         // RSProt's per-address limit; without it one host could queue logins without bound.
         if (!responseHandler.validateNewConnection()) {
@@ -235,7 +245,37 @@ class World(
         if (!block.crc.validate(js5Crcs)) {
             logger.info { "Rejecting ${block.username}: client cache CRCs do not match ours" }
             responseHandler.writeFailedResponse(LoginResponse.OutOfDateReload)
+            password?.fill('\u0000')
             return
+        }
+        if (password == null) {
+            // A Jagex launcher token: only Jagex can check one, and our accounts have passwords.
+            logger.info { "Rejecting ${block.username}: logged in with a token, not a password" }
+            responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
+            return
+        }
+        authExecutor.execute { checkPassword(responseHandler, block, password) }
+    }
+
+    /** On the login-auth thread: queues the login if [password] is right for its name, or claims the name for it. */
+    private fun checkPassword(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<AuthenticationType>, password: CharArray) {
+        val check = try {
+            accounts.check(block.username, password)
+        } catch (e: Exception) {
+            logger.error(e) { "Rejecting ${block.username}: their account can't be read or written" }
+            responseHandler.writeFailedResponse(LoginResponse.ConnectFail)
+            return
+        } finally {
+            password.fill('\u0000')
+        }
+        when (check) {
+            Accounts.Check.WRONG_PASSWORD -> {
+                logger.info { "Rejecting ${block.username}: wrong password" }
+                responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
+                return
+            }
+            Accounts.Check.CLAIMED -> logger.info { "${block.username} claimed their name" }
+            Accounts.Check.MATCHED, Accounts.Check.NO_SUCH_NAME -> {}
         }
         pendingLogins.add(PendingLogin(responseHandler, block))
     }
@@ -267,6 +307,7 @@ class World(
 
     /** Stops the cycle and saves everyone still in the world. */
     fun stop() {
+        authExecutor.shutdownNow()
         executor.shutdown()
         if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
             // Saving now would race the game thread for the players and the save files; the last autosave stands.

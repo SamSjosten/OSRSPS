@@ -16,6 +16,7 @@ import osrsps.cache.QuestLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
 import osrsps.game.EffectIds
+import osrsps.game.Accounts
 import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
 import osrsps.game.NpcTypes
@@ -93,6 +94,8 @@ class GameServer(
         logger.info { "Random seed ${random.seed}" + if (seed == null) " (picked at startup; set OSRSPS_SEED to fix it)" else " (from OSRSPS_SEED)" }
         val saveDir = dataDir.resolve("saves")
         logger.info { "Player saves in ${saveDir.toAbsolutePath()}" }
+        val accountDir = dataDir.resolve("accounts")
+        logger.info { "Accounts in ${accountDir.toAbsolutePath()}" }
         val npcSpawns = NpcSpawnFile.loadAll(npcTypes)
         logger.info { "Loaded ${npcSpawns.size} NPC spawns" }
         val scenarios = Scenarios.load()
@@ -106,8 +109,8 @@ class GameServer(
         }
         logger.info { "Loaded ${scenarios.names.size} scenarios: ${scenarios.names.joinToString()}" }
         world = World(
-            js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
-            npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
+            js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir),
+            Accounts(FileSaveStore(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
         )
         loadObjSpawns(objTypes)
