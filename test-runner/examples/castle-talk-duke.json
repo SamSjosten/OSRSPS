@@ -1,0 +1,86 @@
+{
+ "name": "Lumbridge Castle: Talk-to Duke Horacio (keys show while data/dialogue.txt has no words)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 3223 1",
+   "expectMessage": "Teleported to 3209, 3223, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3209,
+   "y": 3223,
+   "plane": 1
+  },
+  {
+   "step": "npcOption",
+   "npc": "Duke Horacio",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[duke.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[duke.money]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[duke.money]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[duke.smithing]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Duke Horacio",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[duke.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[duke.quests]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[duke.quests]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[duke.all_well]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}

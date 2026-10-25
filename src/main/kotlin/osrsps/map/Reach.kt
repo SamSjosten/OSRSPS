@@ -43,10 +43,13 @@ data class RouteTarget(
                 return RouteTarget(x, z, 1, 1, shape, angle)
             }
             val turned = angle and 1 == 1
-            // The client turns the four side bits left by the angle, so north becomes east after a quarter turn. Its
-            // sum, `(flags << angle & 15) + (flags >> 4 - angle)`, doesn't mask off the bits above the fourth first, so
-            // they can fall back in and carry (29, a common value, has bit 16 set); kept as the client has it.
-            val access = if (angle == 0) accessBlock else ((accessBlock shl angle) and 0xF) + (accessBlock shr (4 - angle))
+            // The four side bits turn left by the angle, so north becomes east after a quarter turn. Only those four
+            // count: bits above them (29, a common value, has 16 set) are dropped before turning. Turning them in as
+            // well, as a sum `(flags << angle & 15) + (flags >> 4 - angle)` would, carries into the side bits and shuts
+            // the open side of Lumbridge Castle's drawers (29, turned twice: 11, open only to the south, where the
+            // floor is blocked); found on rl-client 2026-10-25. Inferred: furniture facing into a room can be used.
+            val sides = accessBlock and 0xF
+            val access = if (angle == 0) sides else ((sides shl angle) and 0xF) or (sides shr (4 - angle))
             return RouteTarget(x, z, if (turned) length else width, if (turned) width else length, shape, angle, access)
         }
     }

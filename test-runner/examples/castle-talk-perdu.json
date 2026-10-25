@@ -1,0 +1,50 @@
+{
+ "name": "Lumbridge Castle: Talk-to Perdu (keys show while data/dialogue.txt has no words)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3229 3215 0",
+   "expectMessage": "Teleported to 3229, 3215, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3229,
+   "y": 3215,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Perdu",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[perdu.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[perdu.why_pay]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[perdu.no_thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[perdu.no_thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}

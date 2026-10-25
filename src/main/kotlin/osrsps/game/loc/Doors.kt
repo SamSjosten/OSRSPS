@@ -10,7 +10,8 @@ private val logger = KotlinLogging.logger {}
  * Single doors: "Open" swaps a closed door for its open type, swung onto the next tile; "Close" swings it back.
  *
  * Which type a door opens into isn't in the loc types themselves, but Jagex's gameval names pair most doors: a closed
- * door `poordoor` (with an Open option) opens into `poordooropen` or `poordoor_open` (with a Close option). Doors
+ * door `poordoor` (with an Open option) opens into `poordooropen` or `poordoor_open` (with a Close option), and
+ * `poordoor_m` into `poordooropen_m` (see [openNames]). Doors
  * whose names don't pair, such as Lumbridge Castle's kitchen door `hundred_lumbridge_door`, wait for content to
  * [register] them, or to [addClosedType] when they open into a type another door already pairs with. Double doors
  * (another closed door beside this one in the same wall) open only once content has given their types to
@@ -42,11 +43,27 @@ class Doors(private val locs: Locs) {
         for (closed in types.all) {
             val name = closed.internalName ?: continue
             if (closed.op(OPEN) == 0) continue
-            val open = (types.byInternalName(name + "open") ?: types.byInternalName(name + "_open")) ?: continue
+            val open = openNames(name).firstNotNullOfOrNull { types.byInternalName(it) } ?: continue
             if (open.op(CLOSE) == 0) continue
             register(closed.id, open.id)
         }
         if (openTypes.isNotEmpty()) logger.info { "Paired ${openTypes.size} door types by their gameval names" }
+    }
+
+    /**
+     * The names [closed]'s open type may have: `open` or `_open` after the name, or after its last "door" when
+     * something follows (`poordoor_m` opens into `poordooropen_m`, north of Lumbridge Castle). Trapdoors aren't wall
+     * doors, so the second form leaves them out.
+     */
+    private fun openNames(closed: String): List<String> {
+        val names = mutableListOf(closed + "open", closed + "_open")
+        val door = closed.lastIndexOf("door")
+        val end = door + "door".length
+        if (door >= 0 && end < closed.length && !closed.contains("trapdoor")) {
+            names += closed.substring(0, end) + "open" + closed.substring(end)
+            names += closed.substring(0, end) + "_open" + closed.substring(end)
+        }
+        return names
     }
 
     /** Makes [closed] open into [open] and [open] close into [closed], replacing any pairing either had. */

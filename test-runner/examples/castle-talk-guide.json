@@ -1,0 +1,78 @@
+{
+ "name": "Lumbridge Castle: Talk-to the Lumbridge Guide (keys show while data/dialogue.txt has no words)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3237 3220 0",
+   "expectMessage": "Teleported to 3237, 3220, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3237,
+   "y": 3220,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Lumbridge Guide",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.quest]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.quest]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.no_more_quests]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.quest_icon]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.anything_else]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.no_thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.no_thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}

@@ -1,0 +1,50 @@
+{
+ "name": "Lumbridge Castle: Talk-to Hatius Cosaintus (keys show while data/dialogue.txt has no words)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3234 3215 0",
+   "expectMessage": "Teleported to 3234, 3215, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3234,
+   "y": 3215,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Hatius Cosaintus",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hatius.who_are_you]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[hatius.farewell]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hatius.farewell]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hatius.goodbye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}

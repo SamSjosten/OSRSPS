@@ -1,0 +1,60 @@
+{
+ "name": "Lumbridge Castle: Talk-to the Crafting tutor (keys show while data/dialogue.txt has no words)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3210 3213 1",
+   "expectMessage": "Teleported to 3210, 3213, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3210,
+   "y": 3213,
+   "plane": 1
+  },
+  {
+   "step": "npcOption",
+   "npc": "Crafting tutor",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[crafting_tutor.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[crafting_tutor.offer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[crafting_tutor.no_thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[crafting_tutor.no_thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[crafting_tutor.come_back]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}

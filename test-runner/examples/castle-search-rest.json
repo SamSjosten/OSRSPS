@@ -1,0 +1,207 @@
+{
+ "name": "Lumbridge Castle: every other crate and sack, including the cellar's",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3228 3204 0",
+   "expectMessage": "Teleported to 3228, 3204, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3204,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Crate",
+   "option": "Search",
+   "x": 3228,
+   "y": 3205
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You search the crate but find nothing."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3208 3227 1",
+   "expectMessage": "Teleported to 3208, 3227, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3208,
+   "y": 3227,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Crate",
+   "option": "Search",
+   "x": 3208,
+   "y": 3228
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You search the crate but find nothing."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3211 3210 1",
+   "expectMessage": "Teleported to 3211, 3210, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3211,
+   "y": 3210,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Crate",
+   "option": "Search",
+   "x": 3211,
+   "y": 3209
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You search the crate but find nothing."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3227 3212 1",
+   "expectMessage": "Teleported to 3227, 3212, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3227,
+   "y": 3212,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Crate",
+   "option": "Search",
+   "x": 3228,
+   "y": 3212
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You search the crate but find nothing."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3228 3221 1",
+   "expectMessage": "Teleported to 3228, 3221, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3221,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Crate",
+   "option": "Search",
+   "x": 3229,
+   "y": 3221
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You search the crate but find nothing."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3206 3222 2",
+   "expectMessage": "Teleported to 3206, 3222, 2"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3222,
+   "plane": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Sacks",
+   "option": "Search",
+   "x": 3205,
+   "y": 3222
+  },
+  {
+   "step": "assertMessage",
+   "contains": "There is nothing interesting in these sacks."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3201 3217 0",
+   "expectMessage": "Teleported to 3201, 3217, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3201,
+   "y": 3217,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Sacks",
+   "option": "Search",
+   "x": 3200,
+   "y": 3217
+  },
+  {
+   "step": "assertMessage",
+   "contains": "There is nothing interesting in these sacks."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3218 9617 0",
+   "expectMessage": "Teleported to 3218, 9617, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3218,
+   "y": 9617,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Crate",
+   "option": "Search",
+   "x": 3219,
+   "y": 9617
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You search the crate but find nothing."
+  },
+  {
+   "step": "locOption",
+   "loc": "Sacks",
+   "option": "Search",
+   "x": 3217,
+   "y": 9619
+  },
+  {
+   "step": "assertMessage",
+   "contains": "There is nothing interesting in these sacks."
+  },
+  {
+   "step": "locOption",
+   "loc": "Sacks",
+   "option": "Search",
+   "x": 3216,
+   "y": 9618
+  },
+  {
+   "step": "assertMessage",
+   "contains": "There is nothing interesting in these sacks."
+  }
+ ]
+}

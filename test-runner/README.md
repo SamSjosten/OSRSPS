@@ -56,9 +56,15 @@ Get-Content C:\RSPS\.rlcustom\test-results\hans-demo.json
 `hans-demo.json` checks Hans's words, so it passes only once the server's `data/dialogue.txt` has his lines (see the main
 README's Dialogue words); without them he says his keys, such as `[hans.greeting]`.
 
-`examples\` also has the Lumbridge Castle checks: `lumbridge-castle-doors.json` (the smallest, run it first),
-`lumbridge-castle-travel.json` (stairs, ladders, cellar) and `lumbridge-castle-search.json` (crate, chest, drawers,
-sacks). They need runner 0.3.0 or later for `locOption`.
+`examples\` also has the Lumbridge Castle checks. They need runner 0.3.0 or later for `locOption`.
+
+- `lumbridge-castle-doors.json` (the smallest, run it first) and `castle-doors-rest.json`: every door.
+- `lumbridge-castle-travel.json`, `castle-stairs-all.json` and `castle-ladders-all.json`: every option on the stairs,
+  ladders, trapdoor and cellar ladder.
+- `lumbridge-castle-search.json`, `castle-search-rest.json` and `castle-drawers.json`: every crate, sack, chest and
+  drawers.
+- `castle-talk-*.json`: Talk-to on each castle NPC. They expect each line's `[key]`, which is what the server shows
+  while `data/dialogue.txt` has no words for it, so they fail once the words are filled in.
 
 ## Results
 

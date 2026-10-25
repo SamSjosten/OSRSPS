@@ -1,0 +1,53 @@
+{
+ "name": "Lumbridge Castle: Talk-to the Cook (keys show while data/dialogue.txt has no words)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 3215 0",
+   "expectMessage": "Teleported to 3209, 3215, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3209,
+   "y": 3215,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Cook",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[cook.dying]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.dying]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.come_back]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}

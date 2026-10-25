@@ -1,0 +1,93 @@
+{
+ "name": "Lumbridge Castle: Talk-to the banker and the bank tutor (keys show while data/dialogue.txt has no words)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 3220 2",
+   "expectMessage": "Teleported to 3209, 3220, 2"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3209,
+   "y": 3220,
+   "plane": 2
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[banker.what_place]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker.what_place]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker.this_branch]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker.your_job]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker.safekeeping]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker tutor",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker_tutor.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[banker_tutor.buy_slots]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker_tutor.buy_slots]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}

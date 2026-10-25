@@ -1,0 +1,329 @@
+{
+ "name": "Lumbridge Castle: every other door opens and closes (east wing, Duke's floor, north outside)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3226 3214 0",
+   "expectMessage": "Teleported to 3226, 3214, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3226,
+   "y": 3214,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3226,
+   "y": 3214
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3227,
+   "y": 3214
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3226,
+   "y": 3214,
+   "comment": "shut again"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3227,
+   "y": 3214
+  },
+  {
+   "step": "command",
+   "text": "::tele 3226 3223 0",
+   "expectMessage": "Teleported to 3226, 3223, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3226,
+   "y": 3223,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3226,
+   "y": 3223
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3227,
+   "y": 3223
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3226,
+   "y": 3223,
+   "comment": "shut again"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3227,
+   "y": 3223
+  },
+  {
+   "step": "command",
+   "text": "::tele 3207 3210 1",
+   "expectMessage": "Teleported to 3207, 3210, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3207,
+   "y": 3210,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3210
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3210
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3210,
+   "comment": "shut again"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3210
+  },
+  {
+   "step": "command",
+   "text": "::tele 3207 3214 1",
+   "expectMessage": "Teleported to 3207, 3214, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3207,
+   "y": 3214,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3214
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3214
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3214,
+   "comment": "shut again"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3214
+  },
+  {
+   "step": "command",
+   "text": "::tele 3207 3222 1",
+   "expectMessage": "Teleported to 3207, 3222, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3207,
+   "y": 3222,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3222
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3222
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3222,
+   "comment": "shut again"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3222
+  },
+  {
+   "step": "command",
+   "text": "::tele 3207 3227 1",
+   "expectMessage": "Teleported to 3207, 3227, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3207,
+   "y": 3227,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3227
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3227
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3227,
+   "comment": "shut again"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3227
+  },
+  {
+   "step": "command",
+   "text": "::tele 3225 3240 0",
+   "expectMessage": "Teleported to 3225, 3240, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3225,
+   "y": 3240,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3225,
+   "y": 3240
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3226,
+   "y": 3240
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3225,
+   "y": 3240,
+   "comment": "shut again"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3226,
+   "y": 3240
+  },
+  {
+   "step": "command",
+   "text": "::tele 3230 3235 0",
+   "expectMessage": "Teleported to 3230, 3235, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3230,
+   "y": 3235,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3230,
+   "y": 3235
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3230,
+   "y": 3236
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3230,
+   "y": 3235,
+   "comment": "shut again"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3230,
+   "y": 3236
+  }
+ ]
+}
