@@ -211,6 +211,8 @@ class Dialogue internal constructor(val context: ScriptContext, private val dial
 
     suspend fun mesbox(line: Line, vararg values: Pair<String, Any>) = mesbox(text(line, *values))
 
+    suspend fun objbox(obj: Int, line: Line, zoom: Int = DEFAULT_ZOOM) = objbox(obj, text(line), zoom)
+
     suspend fun objbox(obj: Int, text: String, zoom: Int = DEFAULT_ZOOM) = dialogues.objbox(context, obj, text, zoom)
 
     suspend fun doubleobjbox(obj1: Int, obj2: Int, text: String, zoom1: Int = DEFAULT_ZOOM, zoom2: Int = DEFAULT_ZOOM) =

@@ -426,6 +426,15 @@ Hans (`game/content/Hans.kt`) is the example: Talk-to and Age, as the OSRS Wiki'
 | Hans's conversation: its lines, options and order | OSRS Wiki, Transcript:Hans |
 | Hans's expressions, Age giving the time-played lines alone, where he runs when threatened | guessed |
 
+Lumbridge Castle's Cook (`Cook.kt`) and Duke Horacio (`DukeHoracio.kt`) talk as they do once every quest is done,
+since every account here has done them all. The Duke gives an anti-dragon shield to a player carrying or wearing none.
+
+| Castle NPC behaviour | Source |
+|----------------------|--------|
+| The Cook's and the Duke's conversations: lines, options, order, when the shield is offered | OSRS Wiki, Transcript:Cook (Lumbridge) and Transcript:Duke Horacio |
+| The Cook's answer to "other quests" after Recipe for Disaster on a members' world (the free-to-play answer, with no line from the player) | guessed: the Wiki leaves it out |
+| The Duke's first menu's order; skipping the "which dragon" menu once only one option is left; the shield landing at your feet with a full inventory; every expression | guessed |
+
 Check: Talk-to Hans. He greets you; continue, pick each option in turn (talk to him again for each), and walk away
 mid-dialogue to see it close. Right-click him, Age, for your time played. With no words in the dialogue file, each line
 shows its key, such as `[hans.greeting]`.
