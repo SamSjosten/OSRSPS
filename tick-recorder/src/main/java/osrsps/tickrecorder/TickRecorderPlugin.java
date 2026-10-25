@@ -538,7 +538,9 @@ public class TickRecorderPlugin extends Plugin
 			{
 				return;
 			}
-			if (baselinePending)
+			// A tick can arrive while a scene still loads; the baseline waits for one with the client logged in,
+			// so it sees the whole scene and not the part built so far.
+			if (baselinePending && client.getGameState() == GameState.LOGGED_IN)
 			{
 				baselinePending = false;
 				emitBaseline();
