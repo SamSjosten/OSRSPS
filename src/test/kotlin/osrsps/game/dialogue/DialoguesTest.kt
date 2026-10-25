@@ -54,16 +54,16 @@ class DialoguesTest {
 
     @Test
     fun `an NPC's line opens chat_left with its head, name, text and continue button, then waits`() {
-        talk { chatNpc(ChatAnim.NEUTRAL, "Hello. What are you doing here?") }
+        talk { chatNpc(ChatAnim.NEUTRAL, "Hello there, adventurer.") }
         assertEquals(
             listOf(
-                "MessageGame 114 Hans|Hello. What are you doing here?",
+                "MessageGame 114 Hans|Hello there, adventurer.",
                 "RunClientScript 2379 []",
                 "IfOpenSub 162:568 231 modal",
                 "IfSetNpcHead 231:2 3105",
                 "IfSetAnim 231:2 588",
                 "IfSetText 231:4 Hans",
-                "IfSetText 231:6 Hello. What are you doing here?",
+                "IfSetText 231:6 Hello there, adventurer.",
                 "RunClientScript 600 [1, 1, 16, ${(231 shl 16) or 6}]",
                 "IfSetEventsV2 231:5 65535..65535 1",
                 "IfSetText 231:5 Click here to continue",

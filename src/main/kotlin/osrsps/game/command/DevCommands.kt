@@ -3,7 +3,7 @@ package osrsps.game.command
 import osrsps.game.FrameSlot
 import osrsps.game.World
 
-/** Testing commands: where am I, put me there, and what tick is it. */
+/** Testing commands: where am I, put me there, what tick is it, and read the dialogue file again. */
 fun CommandRegistry.registerDevCommands(world: World) {
     register("pos", "::pos") {
         val p = player
@@ -28,6 +28,13 @@ fun CommandRegistry.registerDevCommands(world: World) {
         reply("Teleported to $x, $z, $level")
     }
 
+    // For filling the dialogue file: save it, then this, and the next line said has the new words.
+    register("dialogue", "::dialogue") {
+        val read = world.loadDialogue()
+        read.take(MAX_DIALOGUE_REPLIES).forEach { reply(it) }
+        if (read.size > MAX_DIALOGUE_REPLIES) reply("... and ${read.size - MAX_DIALOGUE_REPLIES} more in the server log")
+    }
+
     register("tick", "::tick") {
         reply("Tick ${world.tick}" + if (world.clock.paused) " (paused)" else "")
     }
@@ -49,6 +56,9 @@ fun CommandRegistry.registerDevCommands(world: World) {
 }
 
 private val COORD_SEPARATORS = Regex("[\\s,]+")
+
+/** How many lines `::dialogue` puts in the chatbox: the summary and the first problems. */
+private const val MAX_DIALOGUE_REPLIES = 6
 
 /** Coordinates are 14 bits in the client's coord grid. */
 private const val MAX_COORD = 1 shl 14

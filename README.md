@@ -7,8 +7,8 @@ Target revision: **241** (see `src/main/kotlin/osrsps/Revision.kt`).
 
 ## Never commit Jagex files
 
-The game cache, the client, XTEA keys, RSA keys and gameplay recordings stay out of this repo.
-They live under `data/` (git-ignored) on the machine that runs the server.
+The game cache, the client, XTEA keys, RSA keys and gameplay recordings stay out of this repo, and so do the words
+NPCs say (see [Dialogue words](#dialogue-words)). They live under `data/` (git-ignored) on the machine that runs the server.
 
 ## Build and run
 
@@ -147,6 +147,7 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::resume` | Starts the clock again |
 | `::varp id [value]` | Shows a varp, or sets it. `::varp 173 1` turns the run orb on |
 | `::varbit id [value]` | Shows a varbit with the varp and bits it lives in, or sets it |
+| `::dialogue` | Reads `data/dialogue.txt` again, so new words show from the next line said, and says how many lines have words and what is wrong with the file |
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too |
@@ -409,8 +410,11 @@ lines: that picks the chathead animation (`chatneu1` to `chatneu4` and so on) an
 lines goes onto another page. Every dialogue page also goes to the chat history as a game message of type 114 (dialogue)
 or 115 (message box), which RuneLite plugins see as `ChatMessageType.DIALOG` and `MESBOX`.
 
-Hans (`game/content/Hans.kt`) is the example: Talk-to and Age, with the OSRS Wiki's transcript. Your time played (game
-ticks logged in) and account age are now saved, for his answer.
+Content passes a line's key, not its words: `chatNpc(ChatAnim.NEUTRAL, HansLines.GREETING)`, `choice(IN_CHARGE, KILL, ...)`,
+`chatNpc(anim, TIME_PLAYED, "days" to 2, ...)`. The words come from the dialogue file (below).
+
+Hans (`game/content/Hans.kt`) is the example: Talk-to and Age, as the OSRS Wiki's transcript has them. Your time played
+(game ticks logged in) and account age are saved, for his answer.
 
 | Behaviour | Source |
 |-----------|--------|
@@ -419,11 +423,45 @@ ticks logged in) and account age are now saved, for his answer.
 | Where lines break | inferred from the client's behaviour, with the cache's font widths |
 | The script carries on in the input phase, as soon as the click arrives | 2004Scape's engine |
 | `trigger_ondialogabort` when a dialogue is closed before it is answered | RSMod; inferred |
-| Hans's words | OSRS Wiki, Transcript:Hans |
+| Hans's conversation: its lines, options and order | OSRS Wiki, Transcript:Hans |
 | Hans's expressions, Age giving the time-played lines alone, where he runs when threatened | guessed |
 
-Check: Talk-to Hans. He says "Hello. What are you doing here?"; continue, pick each option in turn (talk to him again
-for each), and walk away mid-dialogue to see it close. Right-click him, Age, for your time played.
+Check: Talk-to Hans. He greets you; continue, pick each option in turn (talk to him again for each), and walk away
+mid-dialogue to see it close. Right-click him, Age, for your time played. With no words in the dialogue file, each line
+shows its key, such as `[hans.greeting]`.
+
+### Dialogue words
+
+The Wiki's transcripts are Jagex's text, so the repo has each conversation's tree and a key for every line, and the words
+are in `data/dialogue.txt` on the machine that runs the server, outside git. A line with no words there shows its key
+in brackets, with any amounts after it (`[hans.time_played days=2 hours=3 minutes=7 days_ago=10]`), so every
+conversation runs, and is tested, without them.
+
+```
+# Talk-to: Hans's first line
+hans.greeting = <his words, from the Wiki>
+```
+
+One line per key, `key = words`, in UTF-8; blank lines and lines starting with `#` are notes. `{days}` and the like
+are filled in by the server: the note above a line lists the ones it has. A key with nothing after `=` has no words yet;
+words for it further down the file count too.
+
+Each conversation declares its lines in a `Lines` object (`object HansLines : Lines("hans", "Transcript:Hans")`), with
+where on the Wiki page each line is, and is listed in `DialogueLines.ALL`. To get a file with every key in it:
+
+```bash
+docker compose run --rm osrsps dialogue-keys   # on 214; or ./gradlew run --args=dialogue-keys
+```
+
+It writes `data/dialogue.txt` with each conversation's Wiki address and each key under where its words are, keeping
+the words already there (the old file is kept as `dialogue.txt.bak`). Rerun it after an update that adds dialogue: new
+keys go in their place, and words for keys the server no longer has move to the end. It stops without writing if a line
+can't be read. Notes you add to the file aren't kept. The container writes the file as root, so on 214 run
+`sudo chown sam data/dialogue.txt` once to edit it as yourself.
+
+The server reads the file when it starts, and `::dialogue` reads it again while it runs. Both log how many lines have
+words and anything wrong: a line that isn't `key = words`, a key the server doesn't have, or a `{placeholder}` the line
+doesn't fill.
 
 ## Zone updates
 
@@ -618,7 +656,7 @@ TestServer(tempDir).use { server ->
         // With a world builder that spawns Hans; see HeadlessInteractionTest.
         val hans = client.await("Hans") { client.npcs().firstOrNull { it.id == Hans.ID } }
         client.npcOp(hans.index, Hans.TALK_TO)
-        client.awaitDialogue("the greeting") // Chat(231, "Hans", "Hello. What are you doing here?")
+        client.awaitDialogue("the greeting") // Chat(231, "Hans", "[hans.greeting]") with no dialogue file
         client.continueDialogue()
         client.awaitDialogue("the menu") { it is DialogueView.Menu }
         client.chooseOption(3)

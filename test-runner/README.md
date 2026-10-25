@@ -53,6 +53,9 @@ Copy-Item .\test-runner\examples\hans-demo.json C:\RSPS\.rlcustom\tests\
 Get-Content C:\RSPS\.rlcustom\test-results\hans-demo.json
 ```
 
+`hans-demo.json` checks Hans's words, so it passes only once the server's `data/dialogue.txt` has his lines (see the main
+README's Dialogue words); without them he says his keys, such as `[hans.greeting]`.
+
 `examples\` also has the Lumbridge Castle checks: `lumbridge-castle-doors.json` (the smallest, run it first),
 `lumbridge-castle-travel.json` (stairs, ladders, cellar) and `lumbridge-castle-search.json` (crate, chest, drawers,
 sacks). They need runner 0.3.0 or later for `locOption`.
