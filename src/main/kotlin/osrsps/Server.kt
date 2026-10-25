@@ -53,7 +53,7 @@ class GameServer(
     private val admins: Admins = Admins.EVERYONE,
 ) {
     private lateinit var world: World
-    private val clientConfig = ClientConfig(publicHost, httpPort)
+    private val clientConfig = ClientConfig(publicHost, httpPort, gamePort = port)
     private lateinit var factory: NetworkFactory
     private lateinit var network: NetworkService<Player>
 
@@ -93,6 +93,7 @@ class GameServer(
         logger.info { "Loaded ${js5.size} JS5 responses for ${js5.crcs.size} archives" }
 
         val rsa = RsaKeys.loadOrCreate(dataDir)
+        clientConfig.modulusHex = rsa.modulus.toString(16)
         val random = GameRandom(seed ?: GameRandom.newSeed())
         logger.info { "Random seed ${random.seed}" + if (seed == null) " (picked at startup; set OSRSPS_SEED to fix it)" else " (from OSRSPS_SEED)" }
         val saveDir = dataDir.resolve("saves")
