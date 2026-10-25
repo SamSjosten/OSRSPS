@@ -42,6 +42,7 @@ import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
 import osrsps.game.content.DialogueLines
+import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerLumbridgeCastle
 import osrsps.game.dialogue.ChatFont
@@ -54,7 +55,6 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.Locs
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
-import osrsps.game.npc.NpcExamines
 import osrsps.game.npc.NpcInteractions
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
@@ -91,7 +91,6 @@ class World(
     val npcTypes: NpcTypes = NpcTypes.NONE,
     /** The NPCs put in the world when it starts. */
     private val npcSpawns: List<NpcSpawn> = emptyList(),
-    private val npcExamines: NpcExamines = NpcExamines.NONE,
     /** The animation, spotanim, sound and jingle ids the dev commands accept. */
     val effectIds: EffectIds = EffectIds.UNKNOWN,
     locTypes: LocTypes = LocTypes.NONE,
@@ -742,10 +741,15 @@ class World(
 
     /**
      * Examine on loc [id], the type the player sees (after any multiloc change). Sent as an object-examine chat message,
-     * type 29 in RuneLite's ChatMessageType. Live's examine texts aren't in the cache, so until content has them the
-     * message says what the loc is.
+     * type 29 in RuneLite's ChatMessageType. Live's examine texts aren't in the cache: the words are in the dialogue
+     * file (see [Examines]), and for a loc not listed there yet the message says what the loc is.
      */
     fun onLocExamine(player: Player, id: Int) = act(player) {
+        val line = Examines.loc(id)
+        if (line != null) {
+            player.session.queue(MessageGame(CHATTYPE_OBJEXAMINE, dialogueText[line]))
+            return@act
+        }
         val type = locs.types[id]
         val name = type?.internalName?.let { " $it" }.orEmpty()
         player.session.queue(MessageGame(CHATTYPE_OBJEXAMINE, "${type?.name ?: "Loc"} (loc $id$name): no examine text yet."))
@@ -830,16 +834,16 @@ class World(
     }
 
     /**
-     * Examine on an NPC of type [id]. Inferred: live answers with a game message of chat type 28, which RuneLite's
-     * ChatMessageType calls NPC_EXAMINE; not checked against a recording.
+     * Examine on an NPC of type [id], its words from the dialogue file (see [Examines]). Inferred: live answers with a
+     * game message of chat type 28, which RuneLite's ChatMessageType calls NPC_EXAMINE; not checked against a recording.
      */
     fun onNpcExamine(player: Player, id: Int) = act(player) {
-        val text = npcExamines[id]
-        if (text != null) {
-            player.session.queue(MessageGame(CHATTYPE_NPC_EXAMINE, text))
+        val line = Examines.npc(id)
+        if (line != null) {
+            player.session.queue(MessageGame(CHATTYPE_NPC_EXAMINE, dialogueText[line]))
             return@act
         }
-        // Not live behaviour: tells the tester the text is missing from npc-examines.json.
+        // Not live behaviour: tells the tester the NPC isn't in examines.json.
         val name = npcTypes[id]?.name ?: "NPC"
         player.message("No examine text for $name ($id) yet.")
     }
