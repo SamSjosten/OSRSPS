@@ -10,6 +10,9 @@ import net.runelite.api.Client;
 import net.runelite.api.EntityOps;
 import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
+import net.runelite.api.Item;
+import net.runelite.api.ItemComposition;
+import net.runelite.api.ItemContainer;
 import net.runelite.api.MenuAction;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
@@ -18,11 +21,13 @@ import net.runelite.api.Perspective;
 import net.runelite.api.Player;
 import net.runelite.api.Point;
 import net.runelite.api.Scene;
+import net.runelite.api.TileItem;
 import net.runelite.api.TileObject;
 import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.widgets.Widget;
 
@@ -48,6 +53,9 @@ final class ClientGame implements Game
 		MenuAction.GAME_OBJECT_FOURTH_OPTION,
 		MenuAction.GAME_OBJECT_FIFTH_OPTION,
 	};
+
+	private static final String EXAMINE = "Examine";
+	private static final String TAKE = "Take";
 
 	private final Client client;
 	/** The line {@link #sendChat} last put in the chat input, until the client has sent it. */
@@ -160,6 +168,7 @@ final class ClientGame implements Game
 			return "no local player";
 		}
 		WorldPoint here = me.getWorldLocation();
+		boolean examine = isExamine(option);
 		NPC best = null;
 		int bestDistance = Integer.MAX_VALUE;
 		boolean nameSeen = false;
@@ -176,7 +185,7 @@ final class ClientGame implements Game
 			}
 			nameSeen = true;
 			int d = npc.getWorldLocation().distanceTo(here);
-			if (d < bestDistance && opIndex(npc, option) >= 0)
+			if (d < bestDistance && (examine || opIndex(npc, option) >= 0))
 			{
 				best = npc;
 				bestDistance = d;
@@ -187,9 +196,21 @@ final class ClientGame implements Game
 		{
 			return nameSeen ? "NPC " + who + " has no option \"" + option + "\"" : "no NPC " + who + " in view";
 		}
+		if (examine)
+		{
+			// The client adds Examine to every NPC's menu itself and sends the NPC's type with it.
+			client.menuAction(0, 0, MenuAction.EXAMINE_NPC, best.getIndex(), -1, EXAMINE, best.getName());
+			return null;
+		}
 		int op = opIndex(best, option);
 		client.menuAction(0, 0, NPC_OPS[op], best.getIndex(), -1, composition(best).getOps().getOp(op), best.getName());
 		return null;
+	}
+
+	/** Examine isn't one of an NPC's or loc's own options: the client adds it to every menu. */
+	private static boolean isExamine(String option)
+	{
+		return EXAMINE.equalsIgnoreCase(option);
 	}
 
 	private static NPCComposition composition(NPC npc)
@@ -242,6 +263,7 @@ final class ClientGame implements Game
 			return "tile " + at.x + ", " + at.y + " is not in the loaded scene";
 		}
 		WorldPoint here = me.getWorldLocation();
+		boolean examine = isExamine(option);
 		TileObject best = null;
 		int bestOp = -1;
 		int bestDistance = Integer.MAX_VALUE;
@@ -267,7 +289,8 @@ final class ClientGame implements Game
 						continue;
 					}
 					nameSeen = true;
-					int op = locOpIndex(o.getId(), option);
+					// A hidden multiloc (no composition) has no menu, Examine included.
+					int op = examine ? (locComposition(o.getId()) != null ? 0 : -1) : locOpIndex(o.getId(), option);
 					int d = o.getWorldLocation().distanceTo(here);
 					if (op >= 0 && d < bestDistance)
 					{
@@ -288,6 +311,12 @@ final class ClientGame implements Game
 		// click back; not yet tried in the client.
 		Point p = best instanceof GameObject ? ((GameObject) best).getSceneMinLocation() : sceneTile(best);
 		ObjectComposition c = locComposition(best.getId());
+		if (examine)
+		{
+			// Examine is of what the loc is now, so its current form's id. Guessed from the client's menu, as above.
+			client.menuAction(p.getX(), p.getY(), MenuAction.EXAMINE_OBJECT, c.getId(), -1, EXAMINE, c.getName());
+			return null;
+		}
 		client.menuAction(p.getX(), p.getY(), LOC_OPS[bestOp], best.getId(), -1, c.getOps().getOp(bestOp), c.getName());
 		return null;
 	}
@@ -336,6 +365,87 @@ final class ClientGame implements Game
 	{
 		ObjectComposition c = locComposition(id);
 		return c == null ? -1 : opSlot(c.getOps(), option);
+	}
+
+	@Override
+	public String takeItem(String name, int id, osrsps.testrunner.Tile at)
+	{
+		Player me = client.getLocalPlayer();
+		if (me == null)
+		{
+			return "no local player";
+		}
+		WorldView wv = client.getTopLevelWorldView();
+		WorldPoint here = me.getWorldLocation();
+		net.runelite.api.Tile bestTile = null;
+		TileItem best = null;
+		int bestDistance = Integer.MAX_VALUE;
+		for (net.runelite.api.Tile[] column : wv.getScene().getTiles()[wv.getPlane()])
+		{
+			for (net.runelite.api.Tile tile : column)
+			{
+				List<TileItem> items = tile == null ? null : tile.getGroundItems();
+				if (items == null)
+				{
+					continue;
+				}
+				WorldPoint where = tile.getWorldLocation();
+				if (at != null && (where.getX() != at.x || where.getY() != at.y))
+				{
+					continue;
+				}
+				for (TileItem item : items)
+				{
+					int d = where.distanceTo(here);
+					if (item != null && itemMatches(item.getId(), name, id) && d < bestDistance)
+					{
+						bestTile = tile;
+						best = item;
+						bestDistance = d;
+					}
+				}
+			}
+		}
+		if (best == null)
+		{
+			String what = (name != null ? "\"" + name + "\"" : "id " + id) + (at == null ? "" : " at " + at.x + ", " + at.y);
+			return "no item " + what + " on the ground in the scene";
+		}
+		// The menu entry a click on Take makes: the item's scene tile and its id. Take is the third ground option, as
+		// the cache's default ground options have it and the server reads it.
+		Point p = bestTile.getSceneLocation();
+		client.menuAction(p.getX(), p.getY(), MenuAction.GROUND_ITEM_THIRD_OPTION, best.getId(), -1, TAKE,
+			client.getItemDefinition(best.getId()).getName());
+		return null;
+	}
+
+	@Override
+	public int inventoryCount(String name, int id)
+	{
+		ItemContainer inventory = client.getItemContainer(InventoryID.INV);
+		if (inventory == null)
+		{
+			return -1;
+		}
+		int held = 0;
+		for (Item item : inventory.getItems())
+		{
+			if (item.getId() >= 0 && item.getQuantity() > 0 && itemMatches(item.getId(), name, id))
+			{
+				held += item.getQuantity();
+			}
+		}
+		return held;
+	}
+
+	private boolean itemMatches(int itemId, String name, int id)
+	{
+		if (name == null)
+		{
+			return itemId == id;
+		}
+		ItemComposition c = client.getItemDefinition(itemId);
+		return c != null && name.equalsIgnoreCase(Dialogue.clean(c.getName()));
 	}
 
 	@Override

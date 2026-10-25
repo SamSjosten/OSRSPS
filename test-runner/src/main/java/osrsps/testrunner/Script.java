@@ -186,6 +186,47 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "loc", "locId", "option", "x", "y", "comment");
 				return new Steps.LocOption(timeout, loc, id, option, x < 0 ? null : new Tile(x, y, -1));
 			}
+			case "takeItem":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String item = f.string("item", null);
+				int id = f.integer("itemId", -1);
+				if (item == null && id < 0)
+				{
+					throw new Invalid(f.where + " needs \"item\" (a name) or \"itemId\"");
+				}
+				int x = f.integer("x", -1);
+				int y = f.integer("y", -1);
+				if ((x < 0) != (y < 0))
+				{
+					throw new Invalid(f.where + " needs both \"x\" and \"y\", or neither");
+				}
+				f.rejectUnknown("step", "timeoutMs", "item", "itemId", "x", "y", "comment");
+				return new Steps.TakeItem(timeout, item, id, x < 0 ? null : new Tile(x, y, -1));
+			}
+			case "assertInventory":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String item = f.string("item", null);
+				int id = f.integer("itemId", -1);
+				if (item == null && id < 0)
+				{
+					throw new Invalid(f.where + " needs \"item\" (a name) or \"itemId\"");
+				}
+				int count = f.integer("count", -1);
+				if (f.o.has("count") && count < 0)
+				{
+					throw new Invalid(f.where + ": \"count\" must be 0 or more");
+				}
+				f.rejectUnknown("step", "timeoutMs", "item", "itemId", "count", "comment");
+				return new Steps.AssertInventory(timeout, item, id, count);
+			}
+			case "finishDialogue":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				f.rejectUnknown("step", "timeoutMs", "comment");
+				return new Steps.FinishDialogue(timeout);
+			}
 			case "assertDialogue":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

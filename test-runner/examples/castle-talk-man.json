@@ -38,9 +38,11 @@
    "contains": "[man."
   },
   {
-   "step": "waitTicks",
-   "ticks": 1,
-   "comment": "which talk follows is random, so the script ends here, the dialogue left open"
+   "step": "finishDialogue",
+   "comment": "which talk follows is random: click through it (the first option on a menu) so the chatbox is free for the next script"
+  },
+  {
+   "step": "assertNoDialogue"
   }
  ]
 }

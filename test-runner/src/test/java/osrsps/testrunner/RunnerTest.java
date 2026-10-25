@@ -125,6 +125,104 @@ public class RunnerTest
 	}
 
 	@Test
+	public void takeItemRetriesUntilTheItemIsThereThenTheInventoryShowsIt() throws Exception
+	{
+		game.takeError = "no item \"Knife\" at 3205, 3212 on the ground in the scene";
+		runner.start(script("{\"step\":\"takeItem\",\"item\":\"Knife\",\"x\":3205,\"y\":3212},"
+			+ "{\"step\":\"assertInventory\",\"item\":\"Knife\",\"count\":1}"), "file");
+		assertNull(cycle());
+		assertTrue(game.actions.isEmpty());
+		game.takeError = null;
+		assertNull(cycle());
+		assertEquals(List.of("Take Knife at 3205 3212"), game.actions);
+		// Not yet: the server hasn't answered.
+		assertNull(cycle());
+		game.inventory.put("Knife", 1);
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("take Knife at 3205, 3212", r.steps.get(0).description);
+		assertEquals("1 in the inventory", r.steps.get(1).detail);
+	}
+
+	@Test
+	public void assertInventoryWantsTheExactCountOrAnyWithoutOne() throws Exception
+	{
+		game.inventory = null;
+		runner.start(script("{\"step\":\"assertInventory\",\"itemId\":1511,\"timeoutMs\":40}"), "file");
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals("step 1 (assert inventory has some item 1511): timed out after 40 ms: no inventory yet", r.failure);
+
+		game.inventory = new java.util.HashMap<>();
+		game.inventory.put("item 1511", 3);
+		runner.start(script("{\"step\":\"assertInventory\",\"itemId\":1511}"), "file");
+		assertEquals(Result.PASS, cycle().result);
+		runner.start(script("{\"step\":\"assertInventory\",\"itemId\":1511,\"count\":2,\"timeoutMs\":40}"), "file");
+		r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals("step 1 (assert inventory has 2 x item 1511): timed out after 40 ms: 3 in the inventory", r.failure);
+		runner.start(script("{\"step\":\"assertInventory\",\"item\":\"Knife\",\"count\":0}"), "file");
+		assertEquals(Result.PASS, cycle().result);
+	}
+
+	@Test
+	public void finishDialogueClicksThroughWhateverIsOpen() throws Exception
+	{
+		runner.start(script("{\"step\":\"finishDialogue\"}"), "file");
+		// Nothing open: done at once.
+		assertEquals("no dialogue open", cycle().steps.get(0).detail);
+
+		game.dialogue = npc("[man.help]");
+		runner.start(script("{\"step\":\"finishDialogue\"}"), "file");
+		assertNull(cycle());
+		assertEquals(List.of("continue"), game.actions);
+		// Waits for the server rather than clicking the same page again.
+		assertNull(cycle());
+		assertEquals(1, game.actions.size());
+		game.dialogue = new Dialogue(Dialogue.Kind.OPTIONS, "Select an option", "...", List.of(
+			new Dialogue.Option(1, "[man.trade]"),
+			new Dialogue.Option(2, "[man.quest]")));
+		assertNull(cycle());
+		assertEquals("option 1", game.actions.get(1));
+		game.dialogue = new Dialogue(Dialogue.Kind.PLAYER, "test", "[man.trade]", null);
+		assertNull(cycle());
+		assertEquals("continue", game.actions.get(2));
+		game.dialogue = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("closed after 3 clicks", r.steps.get(0).detail);
+	}
+
+	@Test
+	public void finishDialogueClicksAgainWhenTheNextPageLooksTheSame() throws Exception
+	{
+		game.dialogue = npc("[man.help]");
+		runner.start(script("{\"step\":\"finishDialogue\"}"), "file");
+		assertNull(cycle());
+		assertEquals(1, game.actions.size());
+		// The server's next page has the same text; until a few ticks pass it could still be the clicked one.
+		for (int i = 1; i < Steps.FinishDialogue.SAME_PAGE_TICKS; i++)
+		{
+			runner.gameTick();
+			assertNull(cycle());
+			assertEquals(1, game.actions.size());
+		}
+		runner.gameTick();
+		assertNull(cycle());
+		assertEquals(List.of("continue", "continue"), game.actions);
+		game.dialogue = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("closed after 2 clicks", r.steps.get(0).detail);
+	}
+
+	@Test
 	public void timesOutWithWhatItSaw() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertLocation\",\"x\":3222,\"y\":3218,\"timeoutMs\":100},{\"step\":\"assertNoDialogue\"}"), "file");

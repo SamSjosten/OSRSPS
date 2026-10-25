@@ -1,0 +1,302 @@
+{
+ "name": "Lumbridge Castle: Examine the NPCs and some locs (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 3215 0",
+   "expectMessage": "Teleported to 3209, 3215, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3209,
+   "y": 3215,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Cook",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_4626]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Cooking range",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_114]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Sacks",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_365]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3216 3219 0",
+   "expectMessage": "Teleported to 3216, 3219, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3216,
+   "y": 3219,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Man",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_310"
+  },
+  {
+   "step": "locOption",
+   "loc": "Throne",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_1097]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3217 3206 0",
+   "expectMessage": "Teleported to 3217, 3206, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3217,
+   "y": 3206,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Woman",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3111]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3222,
+   "y": 3218,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Hans",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3105]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Fountain",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_879]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3229 3215 0",
+   "expectMessage": "Teleported to 3229, 3215, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3229,
+   "y": 3215,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Perdu",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_7456]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3233 3223 0",
+   "expectMessage": "Teleported to 3233, 3223, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3233,
+   "y": 3223,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Doomsayer",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_6773]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3234 3215 0",
+   "expectMessage": "Teleported to 3234, 3215, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3234,
+   "y": 3215,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Hatius Cosaintus",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_5523]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3237 3220 0",
+   "expectMessage": "Teleported to 3237, 3220, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3237,
+   "y": 3220,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Lumbridge Guide",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_306]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 3223 1",
+   "expectMessage": "Teleported to 3209, 3223, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3209,
+   "y": 3223,
+   "plane": 1
+  },
+  {
+   "step": "npcOption",
+   "npc": "Duke Horacio",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_815]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3210 3213 1",
+   "expectMessage": "Teleported to 3210, 3213, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3210,
+   "y": 3213,
+   "plane": 1
+  },
+  {
+   "step": "npcOption",
+   "npc": "Crafting tutor",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3220]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Spinning wheel",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_14889]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 3220 2",
+   "expectMessage": "Teleported to 3209, 3220, 2"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3209,
+   "y": 3220,
+   "plane": 2
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_2897]"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker tutor",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3227]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank booth",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_18491]"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  }
+ ]
+}

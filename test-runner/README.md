@@ -48,6 +48,17 @@ Scripts are `*.json` files in `C:\RSPS\.rlcustom\tests\`. A script runs:
 Scripts run one at a time, in the order they were found. A script waits for a login before any step but
 `waitForLogin`. The chatbox says when a script starts and how it ended.
 
+To run many and get one table of results, `run-scripts.ps1` writes them into the tests folder one at a time, each once
+the last one's result is in, and prints each script's result, steps passed, time and failure:
+
+```powershell
+.\test-runner\run-scripts.ps1 .\test-runner\examples          # every example, by file name
+.\test-runner\run-scripts.ps1 .\test-runner\examples\castle-talk-cook.json .\test-runner\examples\hans-demo.json
+```
+
+It exits with 0 only when every script passed. Where Windows won't run scripts, start it with
+`powershell -ExecutionPolicy Bypass -File .\test-runner\run-scripts.ps1 ...`, which allows it for that one run only.
+
 ```powershell
 Copy-Item .\test-runner\examples\hans-demo.json C:\RSPS\.rlcustom\tests\
 Get-Content C:\RSPS\.rlcustom\test-results\hans-demo.json
@@ -57,7 +68,8 @@ Get-Content C:\RSPS\.rlcustom\test-results\hans-demo.json
 server's `data/dialogue.txt`, and the script passes whether or not that file has his words. Scripts in git check keys,
 never words: the words are Jagex's and stay out of git (see the main README's Dialogue words).
 
-`examples\` also has the Lumbridge Castle checks. They need runner 0.3.0 or later for `locOption`.
+`examples\` also has the Lumbridge Castle checks. They need runner 0.4.0 or later (`locOption` came in 0.3.0;
+`takeItem`, `assertInventory`, `finishDialogue` and Examine in 0.4.0).
 
 - `lumbridge-castle-doors.json` (the smallest, run it first) and `castle-doors-rest.json`: every door.
 - `lumbridge-castle-travel.json`, `castle-stairs-all.json` and `castle-ladders-all.json`: every option on the stairs,
@@ -65,7 +77,12 @@ never words: the words are Jagex's and stay out of git (see the main README's Di
 - `lumbridge-castle-search.json`, `castle-search-rest.json` and `castle-drawers.json`: every crate, sack, chest and
   drawers.
 - `castle-talk-*.json`: Talk-to on each castle NPC. Like `hans-demo.json` they turn `::keys on` and expect each
-  line's `[key]`, so they pass with or without words in `data/dialogue.txt`.
+  line's `[key]`, so they pass with or without words in `data/dialogue.txt`. The man's and woman's talks go a random
+  way after the first line, so those two click through the rest with `finishDialogue`.
+- `castle-examine.json`: Examine on every castle NPC and some locs, with `::keys on` (each answer is its
+  `[examine....]` key).
+- `castle-take-items.json`: empties the inventory, takes every castle item spawn and checks the inventory after each.
+  An item taken less than 100 ticks before is not back yet, so each Take waits up to 70 s.
 
 ## Results
 
@@ -83,7 +100,7 @@ Results go to `C:\RSPS\.rlcustom\test-results\`:
   "script": "hans-demo",
   "name": "Teleport, walk and talk to Hans",
   "result": "fail",
-  "failure": "step 6 (assert dialogue from Hans contains \"Hello. What are you doing here?\"): timed out after 20000 ms: no dialogue open",
+  "failure": "step 7 (assert dialogue from Hans contains \"[hans.greeting]\"): timed out after 20000 ms: no dialogue open",
   "startedAt": "2026-10-24T20:00:00Z",
   "ms": 23140,
   "ticks": 38,
@@ -92,8 +109,8 @@ Results go to `C:\RSPS\.rlcustom\test-results\`:
   "screenshot": "hans-demo.png",
   "steps": [
     {"n": 1, "step": "waitForLogin", "does": "wait for login", "result": "pass", "detail": "logged in as test", "ms": 0, "ticks": 0},
-    {"n": 6, "step": "assertDialogue", "does": "...", "result": "fail", "detail": "timed out after 20000 ms: no dialogue open", "ms": 20000, "ticks": 33},
-    {"n": 7, "step": "continueDialogue", "does": "continue dialogue", "result": "skipped"}
+    {"n": 7, "step": "assertDialogue", "does": "...", "result": "fail", "detail": "timed out after 20000 ms: no dialogue open", "ms": 20000, "ticks": 33},
+    {"n": 8, "step": "continueDialogue", "does": "continue dialogue", "result": "skipped"}
   ]
 }
 ```
@@ -132,12 +149,15 @@ server's answer instead of failing on what was there before.
 | `chat` | `text`, `expectMessage` | Same, without adding `::`. |
 | `assertLocation` | `x`, `y`, `plane` | Waits until the player stands on the tile. Without `plane`, any plane. |
 | `walk` | `x`, `y` | Clicks Walk here on the tile, then waits until the player stands on it. The tile must be on screen; until it is (right after a teleport the scene can lag a moment), it keeps trying. Default timeout 30 s. |
-| `npcOption` | `npc` (name) or `npcId`, `option` | Clicks the option (such as `Talk-to`) on the nearest such NPC, retrying until one is in view. Doesn't wait for the result: follow it with an assert. |
-| `locOption` | `loc` (name) or `locId`, `option`, `x`+`y` | Clicks the option (such as `Open`, `Climb-up`, `Search`) on the nearest such loc on the player's plane, retrying until one is in the scene. With `x` and `y`, only a loc on that tile (a big loc on any tile it covers). A loc that changes with a varbit is matched by what it is now. Doesn't wait for the result: follow it with an assert. |
+| `npcOption` | `npc` (name) or `npcId`, `option` | Clicks the option (such as `Talk-to`, or `Examine`, which every NPC has) on the nearest such NPC, retrying until one is in view. Doesn't wait for the result: follow it with an assert. |
+| `locOption` | `loc` (name) or `locId`, `option`, `x`+`y` | Clicks the option (such as `Open`, `Climb-up`, `Search`, or `Examine`, which every loc has) on the nearest such loc on the player's plane, retrying until one is in the scene. With `x` and `y`, only a loc on that tile (a big loc on any tile it covers). A loc that changes with a varbit is matched, and examined, by what it is now. Doesn't wait for the result: follow it with an assert. |
+| `takeItem` | `item` (name) or `itemId`, `x`+`y` | Clicks Take on the nearest such item on the ground on the player's plane, retrying until one is in the scene. With `x` and `y`, only an item on that tile. Take is the third ground option, as the server has it. Doesn't wait for the result: follow it with `assertInventory`. |
+| `assertInventory` | `item` (name) or `itemId`, `count` | Waits until the inventory holds exactly `count` of the item (all stacks added up), or any at all without `count`. `count` 0 waits until there are none. |
 | `assertDialogue` | `contains`, `speaker` | Waits until an open dialogue's text contains `contains` and its name is `speaker` (both optional). Colour tags and line breaks are removed first. |
 | `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. |
 | `chooseOption` | `text` | Waits for an option menu, clicks the option equal to `text` (else the first containing it), and waits until the menu has gone. |
 | `assertNoDialogue` | | Waits until no dialogue is open. |
+| `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. |
 | `assertMessage` | `contains` | Waits for a chat message containing `contains`, counting only messages since the last step that acted. |
 | `waitTicks` | `ticks` | Waits that many game ticks. |
 

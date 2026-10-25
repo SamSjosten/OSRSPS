@@ -26,14 +26,23 @@ interface Game
 	/** Clicks "Walk here" on a tile in the loaded scene. */
 	String walk(int x, int y);
 
-	/** Clicks an option on the nearest NPC with this name (or id, when the name is null). */
+	/** Clicks an option on the nearest NPC with this name (or id, when the name is null). Examine works on any NPC. */
 	String npcOption(String name, int id, String option);
 
 	/**
 	 * Clicks an option on the nearest loc (a door, stairs, a bookcase) with this name (or id, when the name is null) on
-	 * the player's plane. With a tile, only a loc on that tile counts.
+	 * the player's plane. With a tile, only a loc on that tile counts. Examine works on any loc.
 	 */
 	String locOption(String name, int id, String option, Tile at);
+
+	/**
+	 * Clicks Take on the nearest item on the ground with this name (or id, when the name is null) on the player's plane.
+	 * With a tile, only an item on that tile counts.
+	 */
+	String takeItem(String name, int id, Tile at);
+
+	/** How many of the item (by name, or id when the name is null) the inventory holds; -1 while the client has none. */
+	int inventoryCount(String name, int id);
 
 	/** The dialogue open in the chatbox, or null when none is. */
 	Dialogue dialogue();
