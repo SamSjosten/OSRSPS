@@ -24,10 +24,24 @@ $files = foreach ($s in $Scripts)
 	else { Get-Item -LiteralPath $s }
 }
 $utf8 = New-Object System.Text.UTF8Encoding $false
+
+# The id the plugin gives a script, and names its result file after (Script.idFor): the file name without .json, with
+# each UTF-8 byte other than A-Z a-z 0-9 . _ - written as %XX.
+function Get-ScriptId([string] $fileName)
+{
+	$base = if ($fileName.ToLowerInvariant().EndsWith('.json')) { $fileName.Substring(0, $fileName.Length - 5) } else { $fileName }
+	$id = New-Object System.Text.StringBuilder
+	foreach ($b in $utf8.GetBytes($base))
+	{
+		$c = [char] $b
+		if (($c -cmatch '[A-Za-z0-9._-]') -and $b -lt 128) { [void] $id.Append($c) }
+		else { [void] $id.Append(('%{0:X2}' -f $b)) }
+	}
+	$id.ToString()
+}
 $rows = foreach ($f in $files)
 {
-	# The plugin names a result after the script's file name; a name with other characters than these gets %XX in it.
-	$id = [IO.Path]::GetFileNameWithoutExtension($f.Name)
+	$id = Get-ScriptId $f.Name
 	$result = Join-Path $Results "$id.json"
 	$before = if (Test-Path -LiteralPath $result) { (Get-Item -LiteralPath $result).LastWriteTimeUtc } else { [DateTime]::MinValue }
 	# Written fresh, with no BOM, so the plugin sees a change even when the script is the same as last time.

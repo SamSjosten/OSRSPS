@@ -200,6 +200,29 @@ public class RunnerTest
 	}
 
 	@Test
+	public void finishDialogueClicksAgainWhenTheNextPageLooksTheSame() throws Exception
+	{
+		game.dialogue = npc("[man.help]");
+		runner.start(script("{\"step\":\"finishDialogue\"}"), "file");
+		assertNull(cycle());
+		assertEquals(1, game.actions.size());
+		// The server's next page has the same text; until a few ticks pass it could still be the clicked one.
+		for (int i = 1; i < Steps.FinishDialogue.SAME_PAGE_TICKS; i++)
+		{
+			runner.gameTick();
+			assertNull(cycle());
+			assertEquals(1, game.actions.size());
+		}
+		runner.gameTick();
+		assertNull(cycle());
+		assertEquals(List.of("continue", "continue"), game.actions);
+		game.dialogue = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("closed after 2 clicks", r.steps.get(0).detail);
+	}
+
+	@Test
 	public void timesOutWithWhatItSaw() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertLocation\",\"x\":3222,\"y\":3218,\"timeoutMs\":100},{\"step\":\"assertNoDialogue\"}"), "file");

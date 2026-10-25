@@ -398,7 +398,14 @@ final class Steps
 	 */
 	static final class FinishDialogue extends Step
 	{
+		/**
+		 * Game ticks to wait for the page to change after a click. The server answers a click on the next tick, so a page
+		 * still shown after this many is a new page with the same text, and gets clicked again.
+		 */
+		static final int SAME_PAGE_TICKS = 3;
+
 		private String clicked;
+		private int clickedTick;
 		private int clicks;
 
 		FinishDialogue(long timeoutMs)
@@ -410,7 +417,7 @@ final class Steps
 		Poll poll(Run run)
 		{
 			Dialogue d = run.game.dialogue();
-			if (clicked != null && d != null && d.toString().equals(clicked))
+			if (clicked != null && d != null && d.toString().equals(clicked) && run.gameTicks() - clickedTick < SAME_PAGE_TICKS)
 			{
 				return Poll.waiting("clicked, " + clicked + " still open");
 			}
@@ -433,6 +440,7 @@ final class Steps
 				return Poll.fail(error);
 			}
 			clicked = d.toString();
+			clickedTick = run.gameTicks();
 			clicks++;
 			return Poll.waiting("clicked, " + clicked + " still open");
 		}

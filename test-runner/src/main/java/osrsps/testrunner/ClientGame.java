@@ -289,7 +289,8 @@ final class ClientGame implements Game
 						continue;
 					}
 					nameSeen = true;
-					int op = examine ? 0 : locOpIndex(o.getId(), option);
+					// A hidden multiloc (no composition) has no menu, Examine included.
+					int op = examine ? (locComposition(o.getId()) != null ? 0 : -1) : locOpIndex(o.getId(), option);
 					int d = o.getWorldLocation().distanceTo(here);
 					if (op >= 0 && d < bestDistance)
 					{
