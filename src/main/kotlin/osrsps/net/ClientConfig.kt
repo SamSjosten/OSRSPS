@@ -10,7 +10,8 @@ import java.net.InetSocketAddress
 private val logger = KotlinLogging.logger {}
 
 /**
- * Serves the two files a client launcher needs to find this server: `jav_config.ws` and `world_list.ws`.
+ * Serves the two files a client launcher needs to find this server, `jav_config.ws` and `world_list.ws`, and
+ * `proxy-targets.yaml`, an RSProx target for this server that RSProx's "+" button imports from a URL.
  *
  * RSProx reads the jav_config's `codebase` host, looks for a world with that host in the world list,
  * and connects to it on the game port. So [publicHost] must be the address the player's PC can reach:
@@ -20,8 +21,14 @@ class ClientConfig(
     private val publicHost: String,
     private val httpPort: Int,
     private val worldId: Int = WORLD_ID,
+    /** Where the game listens; RSProx assumes 43594 unless its target says otherwise. */
+    private val gamePort: Int = httpPort - 1,
 ) {
     private var server: HttpServer? = null
+
+    /** The login RSA key's modulus in hex, once loaded; until then there is no RSProx target to hand out. */
+    @Volatile
+    var modulusHex: String? = null
 
     val javConfig: String
         get() = buildString {
@@ -86,6 +93,24 @@ class ClientConfig(
     val worldList: ByteArray
         get() = encodeWorldList(listOf(World(worldId, WORLD_PROPERTIES, publicHost, "OSRSPS test world", 0, 1)))
 
+    /**
+     * The RSProx target for this server, in the format of RSProx's `proxy-targets.yaml`, or null before [modulusHex]
+     * is known. The name is the one our own setup has always used, so RSProx keeps its client cache for it. The `.1`
+     * subrevision is the one RSProx's README calls the safe pick: every revision has it.
+     */
+    val proxyTargets: String?
+        get() {
+            val modulus = modulusHex ?: return null
+            return buildString {
+                appendLine("config:")
+                appendLine("  - name: $TARGET_NAME")
+                appendLine("    jav_config_url: http://$publicHost:$httpPort/jav_config.ws")
+                appendLine("    revision: ${Revision.MAJOR}.1")
+                appendLine("    modulus: $modulus")
+                if (gamePort != DEFAULT_GAME_PORT) appendLine("    game_server_port: $gamePort")
+            }
+        }
+
     fun start() {
         val http = HttpServer.create(InetSocketAddress(httpPort), 0)
         http.createContext("/jav_config.ws") { exchange ->
@@ -93,6 +118,11 @@ class ClientConfig(
         }
         http.createContext("/world_list.ws") { exchange ->
             exchange.respond("application/octet-stream", worldList)
+        }
+        http.createContext("/proxy-targets.yaml") { exchange ->
+            val yaml = proxyTargets
+            if (yaml == null) exchange.respond("text/plain", ByteArray(0), 503)
+            else exchange.respond("text/yaml; charset=UTF-8", yaml.toByteArray(Charsets.UTF_8))
         }
         http.createContext("/") { exchange -> exchange.respond("text/plain", ByteArray(0), 404) }
         http.start()
@@ -109,6 +139,8 @@ class ClientConfig(
 
     companion object {
         const val WORLD_ID = 301
+        const val TARGET_NAME = "OSRSPS"
+        const val DEFAULT_GAME_PORT = 43594
 
         /** Members world. */
         const val WORLD_PROPERTIES = 1

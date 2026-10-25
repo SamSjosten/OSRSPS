@@ -33,6 +33,29 @@ class ClientConfigTest {
         assertEquals(0, input.available())
     }
 
+    @Test
+    fun `the RSProx target points at the jav config with the login modulus`() {
+        assertEquals(null, config.proxyTargets)
+        config.modulusHex = "abc123"
+        assertEquals(
+            """
+            config:
+              - name: OSRSPS
+                jav_config_url: http://192.168.0.210:43595/jav_config.ws
+                revision: 241.1
+                modulus: abc123
+
+            """.trimIndent(),
+            config.proxyTargets,
+        )
+    }
+
+    @Test
+    fun `the RSProx target names the game port when it isn't 43594`() {
+        val other = ClientConfig("10.0.0.5", 50001, gamePort = 50000).apply { modulusHex = "ff" }
+        assertContains(other.proxyTargets!!.lines(), "    game_server_port: 50000")
+    }
+
     private fun DataInputStream.readJagexString(): String {
         val bytes = generateSequence { readUnsignedByte().takeIf { it != 0 } }.map { it.toByte() }.toList().toByteArray()
         return String(bytes, Charsets.ISO_8859_1)

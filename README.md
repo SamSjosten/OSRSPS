@@ -90,7 +90,26 @@ config:
     # game_server_port: 50000   # only when the server runs on a port other than 43594
 ```
 
-Launch RuneLite from RSProx with that target and log in with any username and password.
+Or let RSProx write it: the server also serves that target, modulus filled in, at
+`http://<public host>:43595/proxy-targets.yaml`. In RSProx press **+** next to the proxy target selector, choose
+**From URL…**, paste that address, and restart RSProx.
+
+Launch RuneLite from RSProx with that target. The first login as a name claims it with the password you type; after
+that it needs the same password (see Accounts).
+
+### Letting friends test
+
+Friends need a route to the server's two ports and RSProx; there is nothing of ours to install. The route belongs to the
+Home Lab project (the plan is Tailscale limited to TCP 43594-43595); keep the server off the internet. Then each friend:
+
+1. Installs RSProx from its [releases](https://github.com/blurite/rsprox/releases). The installer brings its own Java
+   and keeps RSProx up to date. Windows or Linux only: RSProx's custom targets don't work on macOS.
+2. Imports `http://192.168.0.210:43595/proxy-targets.yaml` with **+** → **From URL…**, restarts RSProx, picks
+   **OSRSPS** and launches RuneLite.
+3. Logs in with a name and password of their own, never their Jagex login.
+
+RSProx downloads RuneLite and the game client itself, so we hand out no Jagex files. Its RuneLite keeps settings in the
+friend's own `.runelite` folder, shared with a normal RuneLite install, in developer mode.
 
 ## Walking
 
