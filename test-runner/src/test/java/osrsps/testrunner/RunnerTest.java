@@ -97,6 +97,29 @@ public class RunnerTest
 	}
 
 	@Test
+	public void walkClicksAgainWhenThePlayerStopsShortOfTheTile() throws Exception
+	{
+		runner.start(script("{\"step\":\"walk\",\"x\":3200,\"y\":3202}"), "file");
+		assertNull(cycle());
+		assertEquals(1, game.actions.size());
+		// The click landed on another tile: the player walks there and stops.
+		game.location = new Tile(3200, 3190, 0);
+		runner.gameTick();
+		assertNull(cycle());
+		for (int i = 1; i < Steps.Walk.STILL_TICKS; i++)
+		{
+			runner.gameTick();
+			assertNull(cycle());
+			assertEquals(1, game.actions.size());
+		}
+		runner.gameTick();
+		assertNull(cycle());
+		assertEquals(List.of("walk 3200 3202", "walk 3200 3202"), game.actions);
+		game.location = new Tile(3200, 3202, 0);
+		assertEquals(Result.PASS, cycle().result);
+	}
+
+	@Test
 	public void walkTimesOutWithWhyItCouldNotClick() throws Exception
 	{
 		game.walkRefusals = Integer.MAX_VALUE;
