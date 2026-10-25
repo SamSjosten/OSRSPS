@@ -428,11 +428,13 @@ Hans (`game/content/Hans.kt`) is the example: Talk-to and Age, as the OSRS Wiki'
 
 Lumbridge Castle's Cook (`Cook.kt`), Duke Horacio (`DukeHoracio.kt`), men and women (`Townsfolk.kt`), Perdu
 (`Perdu.kt`), the Crafting tutor (`CraftingTutor.kt`), the bankers (`Bankers.kt`), and outside the gate the Doomsayer
-(`Doomsayer.kt`) and Hatius Cosaintus (`Hatius.kt`) talk as they do once every quest is done, since every account here
-has done them all. The Lumbridge Guide doesn't talk yet. The Duke gives an anti-dragon shield to a player carrying or
-wearing none, and one talk with a man or woman in 128 hands over a flier. Not built yet, so their options end the talk
-or do nothing: the bank, PIN settings, collection box and bank space; Perdu's Lost Property Shop; the Doomsayer's warnings
-(Toggle warnings); achievement diaries; Attack and Pickpocket.
+(`Doomsayer.kt`), Hatius Cosaintus (`Hatius.kt`) and the Lumbridge Guide (`LumbridgeGuide.kt`) talk as they do once
+every quest is done, since every account here has done them all. The Duke gives an anti-dragon shield to a player
+carrying or wearing none, one talk with a man or woman in 128 hands over a flier, and the Guide gives a security book to
+a player carrying none. Not built yet, so their options end the talk or do nothing: the bank, PIN settings, collection
+box and bank space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings); achievement diaries; Attack
+and Pickpocket; the Guide opening the account management tab's links, and his lost amulet, locket, clue and random
+event talks.
 
 | Castle NPC behaviour | Source |
 |----------------------|--------|
@@ -441,6 +443,8 @@ or do nothing: the bank, PIN settings, collection box and bank space; Perdu's Lo
 | Men's and women's 23 conversations, the 1 in 128 flier | OSRS Wiki, Transcript:Man, Transcript:Woman, Flier |
 | Perdu's, the Crafting tutor's, the banker's, the Banker tutor's, the Doomsayer's and Hatius's conversations | OSRS Wiki, their transcripts |
 | Hatius leaving out "another ring" for a player with no diary done | guessed: the Wiki lists it with no condition |
+| The Lumbridge Guide's conversation: lines, menus, where each option leads, the icon boxes | OSRS Wiki, Transcript:Lumbridge Guide; icon items are the 241 cache's `*_icon_dummy` objs |
+| The levels the Guide's answers change at (combat 20, Smithing 20, Fishing 20); the quest box's icon; the money menu's smithing and monsters options skipping straight to those answers; "has a weapon" meaning worn or carried in the weapon slot | guessed: the Wiki has "X" and "same as above" |
 | The Duke's first menu's order; skipping the "which dragon" menu once only one option is left; an item handed over landing at your feet with a full inventory; the other 22 townsfolk talks being equally likely; where the tutors' menus lead after a topic; every expression | guessed |
 
 Check: Talk-to Hans. He greets you; continue, pick each option in turn (talk to him again for each), and walk away

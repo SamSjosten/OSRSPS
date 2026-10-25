@@ -6,6 +6,6 @@ import osrsps.game.dialogue.Lines
 object DialogueLines {
     val ALL: List<Lines> = listOf(
         HansLines, CookLines, DukeLines, ManLines, WomanLines, PerduLines, CraftingTutorLines, BankerLines, BankerTutorLines,
-        DoomsayerLines, HatiusLines,
+        DoomsayerLines, HatiusLines, LumbridgeGuideLines,
     )
 }
