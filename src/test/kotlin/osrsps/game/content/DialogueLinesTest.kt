@@ -22,6 +22,6 @@ class DialogueLinesTest {
     }
 
     private companion object {
-        val DECLARATION = Regex("""object (\w+) : Lines\(""")
+        val DECLARATION = Regex("""object (\w+) : \w*Lines\(""")
     }
 }

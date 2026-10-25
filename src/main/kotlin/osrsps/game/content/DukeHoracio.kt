@@ -1,7 +1,6 @@
 package osrsps.game.content
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import osrsps.game.GroundObjs
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
@@ -71,12 +70,7 @@ object DukeHoracio {
         player.inventory.count(ANTI_DRAGON_SHIELD) > 0 || player.equipment.count(ANTI_DRAGON_SHIELD) > 0
 
     private fun giveShield(world: World, player: Player) {
-        val type = world.objTypes[ANTI_DRAGON_SHIELD] ?: return logger.warn { "No anti-dragon shield in the cache" }
-        if (player.inventory.add(type, 1) == 1) return
-        world.groundObjs.addPrivate(
-            type, 1, player.x, player.z, player.level, player.saveKey,
-            GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS,
-        )
+        world.objTypes[ANTI_DRAGON_SHIELD]?.let { world.groundObjs.give(player, it, 1) } ?: logger.warn { "No anti-dragon shield in the cache" }
     }
 }
 

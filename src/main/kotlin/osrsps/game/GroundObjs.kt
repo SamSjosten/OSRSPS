@@ -95,6 +95,17 @@ class GroundObjs(
     }
 
     /**
+     * Puts [count] of [type] in [player]'s inventory, and what doesn't fit on their tile as if they had dropped it: for
+     * items content hands over. Guessed: what live does with a full inventory differs from one NPC to the next.
+     */
+    fun give(player: Player, type: ObjType, count: Int) {
+        val added = player.inventory.add(type, count)
+        if (added < count) {
+            addPrivate(type, count - added, player.x, player.z, player.level, player.saveKey, DROP_PRIVATE_TICKS, DROP_DESPAWN_TICKS)
+        }
+    }
+
+    /**
      * Puts [count] of [type] down for [owner] (a save key) alone, turning public after [privateTicks] unless
      * [neverPublic], and gone after [despawnTicks] (or never, with [ZoneObj.NEVER]). Drops, and later NPC loot, come
      * through here.
