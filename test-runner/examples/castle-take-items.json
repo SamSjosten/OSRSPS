@@ -1,0 +1,519 @@
+{
+ "name": "Lumbridge Castle: Take every item spawn",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3206 3209 0",
+   "expectMessage": "Teleported to 3206, 3209, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3209,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 558,
+   "x": 3206,
+   "y": 3208,
+   "timeoutMs": 70000,
+   "comment": "Mind rune; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 558,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3206 3227 0",
+   "expectMessage": "Teleported to 3206, 3227, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3227,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 882,
+   "x": 3205,
+   "y": 3227,
+   "timeoutMs": 70000,
+   "comment": "Bronze arrow; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 882,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3205 3214 0",
+   "expectMessage": "Teleported to 3205, 3214, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3205,
+   "y": 3214,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 946,
+   "x": 3205,
+   "y": 3212,
+   "timeoutMs": 70000,
+   "comment": "Knife; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 946,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3207 3213 0",
+   "expectMessage": "Teleported to 3207, 3213, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3207,
+   "y": 3213,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1923,
+   "x": 3208,
+   "y": 3214,
+   "timeoutMs": 70000,
+   "comment": "Bowl; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1923,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3208 3212 0",
+   "expectMessage": "Teleported to 3208, 3212, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3208,
+   "y": 3212,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1931,
+   "x": 3209,
+   "y": 3214,
+   "timeoutMs": 70000,
+   "comment": "Pot; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1931,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3211 3214 0",
+   "expectMessage": "Teleported to 3211, 3214, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3211,
+   "y": 3214,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1935,
+   "x": 3211,
+   "y": 3212,
+   "timeoutMs": 70000,
+   "comment": "Jug; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1935,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3223 3201 0",
+   "expectMessage": "Teleported to 3223, 3201, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3223,
+   "y": 3201,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 946,
+   "x": 3224,
+   "y": 3202,
+   "timeoutMs": 70000,
+   "comment": "Knife; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 946,
+   "count": 2,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3211 3216 1",
+   "expectMessage": "Teleported to 3211, 3216, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3211,
+   "y": 3216,
+   "plane": 1
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1205,
+   "x": 3213,
+   "y": 3216,
+   "timeoutMs": 70000,
+   "comment": "Bronze dagger; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1205,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3206 3223 2",
+   "expectMessage": "Teleported to 3206, 3223, 2"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3223,
+   "plane": 2
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1511,
+   "x": 3205,
+   "y": 3224,
+   "timeoutMs": 70000,
+   "comment": "Logs; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1511,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3206 3227 2",
+   "expectMessage": "Teleported to 3206, 3227, 2"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3227,
+   "plane": 2
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1511,
+   "x": 3205,
+   "y": 3226,
+   "timeoutMs": 70000,
+   "comment": "Logs; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1511,
+   "count": 2,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3207 3224 2",
+   "expectMessage": "Teleported to 3207, 3224, 2"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3207,
+   "y": 3224,
+   "plane": 2
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1511,
+   "x": 3208,
+   "y": 3225,
+   "timeoutMs": 70000,
+   "comment": "Logs; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1511,
+   "count": 3,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3210 3224 2",
+   "expectMessage": "Teleported to 3210, 3224, 2"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3210,
+   "y": 3224,
+   "plane": 2
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1511,
+   "x": 3209,
+   "y": 3224,
+   "timeoutMs": 70000,
+   "comment": "Logs; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1511,
+   "count": 4,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3228 3214 2",
+   "expectMessage": "Teleported to 3228, 3214, 2"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3214,
+   "plane": 2
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1265,
+   "x": 3229,
+   "y": 3215,
+   "timeoutMs": 70000,
+   "comment": "Bronze pickaxe; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1265,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3228 3222 2",
+   "expectMessage": "Teleported to 3228, 3222, 2"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3222,
+   "plane": 2
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1265,
+   "x": 3229,
+   "y": 3223,
+   "timeoutMs": 70000,
+   "comment": "Bronze pickaxe; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1265,
+   "count": 2,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3213 9624 0",
+   "expectMessage": "Teleported to 3213, 9624, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3213,
+   "y": 9624,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 946,
+   "x": 3215,
+   "y": 9625,
+   "timeoutMs": 70000,
+   "comment": "Knife; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 946,
+   "count": 3,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3216 9623 0",
+   "expectMessage": "Teleported to 3216, 9623, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3216,
+   "y": 9623,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1925,
+   "x": 3216,
+   "y": 9625,
+   "timeoutMs": 70000,
+   "comment": "Bucket; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1925,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 9620 0",
+   "expectMessage": "Teleported to 3209, 9620, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3209,
+   "y": 9620,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1061,
+   "x": 3208,
+   "y": 9620,
+   "timeoutMs": 70000,
+   "comment": "Leather boots; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1061,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 9615 0",
+   "expectMessage": "Teleported to 3209, 9615, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3209,
+   "y": 9615,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1061,
+   "x": 3210,
+   "y": 9615,
+   "timeoutMs": 70000,
+   "comment": "Leather boots; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1061,
+   "count": 2,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3212 9623 0",
+   "expectMessage": "Teleported to 3212, 9623, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3212,
+   "y": 9623,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1935,
+   "x": 3211,
+   "y": 9625,
+   "timeoutMs": 70000,
+   "comment": "Jug; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1935,
+   "count": 2,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3217 9620 0",
+   "expectMessage": "Teleported to 3217, 9620, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3217,
+   "y": 9620,
+   "plane": 0
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1965,
+   "x": 3217,
+   "y": 9622,
+   "timeoutMs": 70000,
+   "comment": "Cabbage; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1965,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied."
+  }
+ ]
+}

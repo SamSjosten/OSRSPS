@@ -232,6 +232,73 @@ final class Steps
 		}
 	}
 
+	/** Clicks Take on an item on the ground. Waits (to the timeout) for one to be in the scene; does not wait for the result. */
+	static final class TakeItem extends Step
+	{
+		final String item;
+		final int itemId;
+		/** Only an item on this tile counts, when set. Its plane is ignored: items are looked for on the player's plane. */
+		final Tile at;
+
+		TakeItem(long timeoutMs, String item, int itemId, Tile at)
+		{
+			super("takeItem", timeoutMs, false);
+			this.item = item;
+			this.itemId = itemId;
+			this.at = at;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.takeItem(item, itemId, at);
+			// The scene may still be loading after a teleport, or an item taken a moment ago not be back yet: keep trying.
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "take " + (item != null ? item : "item " + itemId) + (at == null ? "" : " at " + at.x + ", " + at.y);
+		}
+	}
+
+	/** Passes when the inventory holds exactly that many of an item, or any at all when no count is given. */
+	static final class AssertInventory extends Step
+	{
+		final String item;
+		final int itemId;
+		/** -1 for any number but none. */
+		final int count;
+
+		AssertInventory(long timeoutMs, String item, int itemId, int count)
+		{
+			super("assertInventory", timeoutMs, false);
+			this.item = item;
+			this.itemId = itemId;
+			this.count = count;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int held = run.game.inventoryCount(item, itemId);
+			if (held < 0)
+			{
+				return Poll.waiting("no inventory yet");
+			}
+			boolean ok = count < 0 ? held > 0 : held == count;
+			return ok ? Poll.pass(held + " in the inventory") : Poll.waiting(held + " in the inventory");
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert inventory has " + (count < 0 ? "some " : count + " x ") + (item != null ? item : "item " + itemId);
+		}
+	}
+
 	static final class AssertDialogue extends Step
 	{
 		final String contains;
@@ -321,6 +388,59 @@ final class Steps
 		String describe()
 		{
 			return "continue dialogue";
+		}
+	}
+
+	/**
+	 * Clicks through whatever dialogue is open until none is: Click here to continue on each page, the first option on a
+	 * menu. Passes at once when none is open. For talks that go a random way, so a script can end them and the next
+	 * script starts with the chatbox free.
+	 */
+	static final class FinishDialogue extends Step
+	{
+		private String clicked;
+		private int clicks;
+
+		FinishDialogue(long timeoutMs)
+		{
+			super("finishDialogue", timeoutMs, false);
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			Dialogue d = run.game.dialogue();
+			if (clicked != null && d != null && d.toString().equals(clicked))
+			{
+				return Poll.waiting("clicked, " + clicked + " still open");
+			}
+			if (d == null)
+			{
+				return Poll.pass(clicks == 0 ? "no dialogue open" : "closed after " + clicks + " clicks");
+			}
+			run.markAction();
+			String error;
+			if (d.kind == Dialogue.Kind.OPTIONS)
+			{
+				error = d.options.isEmpty() ? "the menu has no options: " + d : run.game.chooseOption(d.options.get(0).slot);
+			}
+			else
+			{
+				error = run.game.continueDialogue();
+			}
+			if (error != null)
+			{
+				return Poll.fail(error);
+			}
+			clicked = d.toString();
+			clicks++;
+			return Poll.waiting("clicked, " + clicked + " still open");
+		}
+
+		@Override
+		String describe()
+		{
+			return "finish dialogue";
 		}
 	}
 

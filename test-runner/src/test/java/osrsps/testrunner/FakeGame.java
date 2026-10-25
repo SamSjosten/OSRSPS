@@ -1,7 +1,9 @@
 package osrsps.testrunner;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /** A scripted stand-in for the client: tests set what it shows and read what was clicked. */
 class FakeGame implements Game
@@ -14,6 +16,9 @@ class FakeGame implements Game
 	/** When set, npcOption fails with this until cleared. */
 	String npcError;
 	String locError;
+	String takeError;
+	/** What inventoryCount answers, by item name; null for no inventory yet. */
+	Map<String, Integer> inventory = new HashMap<>();
 	/** How many walk clicks to refuse first, as when the tile is not on screen yet. */
 	int walkRefusals;
 	/** What chatPending answers. */
@@ -82,6 +87,23 @@ class FakeGame implements Game
 		}
 		actions.add(option + " " + name);
 		return null;
+	}
+
+	@Override
+	public String takeItem(String name, int id, Tile at)
+	{
+		if (takeError != null)
+		{
+			return takeError;
+		}
+		actions.add("Take " + (name != null ? name : "item " + id) + (at == null ? "" : " at " + at.x + " " + at.y));
+		return null;
+	}
+
+	@Override
+	public int inventoryCount(String name, int id)
+	{
+		return inventory == null ? -1 : inventory.getOrDefault(name != null ? name : "item " + id, 0);
 	}
 
 	@Override

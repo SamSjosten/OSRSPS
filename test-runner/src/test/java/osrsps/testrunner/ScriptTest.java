@@ -86,6 +86,11 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"waitForLogin\",\"timeoutMs\":0}]}", "more than 0");
 		invalid("{\"account\":\"test\",\"stepz\":[]}", "needs \"steps\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"walk\",\"x\":4294970518,\"y\":3218}]}", "\"x\" is out of range");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"takeItem\"}]}", "needs \"item\" (a name) or \"itemId\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"takeItem\",\"item\":\"Logs\",\"y\":3224}]}", "both \"x\" and \"y\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertInventory\",\"count\":1}]}", "needs \"item\" (a name) or \"itemId\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertInventory\",\"item\":\"Logs\",\"count\":-1}]}", "\"count\" must be 0 or more");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"finishDialogue\",\"text\":\"x\"}]}", "unknown field \"text\"");
 	}
 
 	private static void invalid(String json, String reason)
