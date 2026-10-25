@@ -243,6 +243,7 @@ class World(
         if (!responseHandler.validateNewConnection()) {
             logger.info { "Rejecting ${block.username}: too many connections from one address" }
             responseHandler.writeFailedResponse(LoginResponse.IPLimit)
+            password?.fill('\u0000')
             return
         }
         if (!block.crc.validate(js5Crcs)) {
