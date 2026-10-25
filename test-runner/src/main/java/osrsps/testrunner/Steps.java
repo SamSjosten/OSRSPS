@@ -122,9 +122,18 @@ final class Steps
 	/** Clicks Walk here on a tile and waits until the player stands on it. */
 	static final class Walk extends Step
 	{
+		/**
+		 * Game ticks the player may stand still away from the tile after a click before it is clicked again. The click
+		 * names a spot on screen, not a tile, so one sent while the camera still moves (right after a teleport) can
+		 * land on another tile.
+		 */
+		static final int STILL_TICKS = 3;
+
 		final int x;
 		final int y;
 		private boolean sent;
+		private Tile lastAt;
+		private int stillSince;
 
 		Walk(long timeoutMs, int x, int y)
 		{
@@ -145,6 +154,15 @@ final class Steps
 			{
 				return Poll.pass("at " + at);
 			}
+			if (!at.equals(lastAt))
+			{
+				lastAt = at;
+				stillSince = run.gameTicks();
+			}
+			if (sent && run.gameTicks() - stillSince >= STILL_TICKS)
+			{
+				sent = false;
+			}
 			if (!sent)
 			{
 				// Right after a teleport the tile can be off the viewport until the camera catches up, so a refused click
@@ -156,6 +174,7 @@ final class Steps
 					return Poll.waiting(error);
 				}
 				sent = true;
+				stillSince = run.gameTicks();
 			}
 			return Poll.waiting("at " + at);
 		}
