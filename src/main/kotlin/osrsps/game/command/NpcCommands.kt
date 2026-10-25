@@ -5,7 +5,7 @@ import osrsps.game.npc.NpcSpawn
 
 /** Spawn, list and remove NPCs: testing tools, not live commands. */
 fun CommandRegistry.registerNpcCommands(world: World) {
-    register("npc", "::npc id|name [wander]") {
+    register("npc", "::npc id|name [wander]", admin = true) {
         if (args.isEmpty()) fail("Usage: ::npc id|name [wander]")
         // A last word that reads as a number is the wander range when there is more than one word, so names can
         // have spaces: ::npc cow calf 3.
@@ -38,7 +38,7 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         if (near.size > MAX_LISTED) reply("...and ${near.size - MAX_LISTED} more.")
     }
 
-    register("follow", "::follow index") {
+    register("follow", "::follow index", admin = true) {
         val index = args.singleOrNull()?.toIntOrNull() ?: fail("Usage: ::follow index (from ::npcs); again to stop")
         val npc = world.npcs[index] ?: fail("No NPC #$index")
         if (npc.following === player) {
@@ -51,7 +51,7 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         reply("${npc.type.name} #$index follows you. ::follow $index again to stop.")
     }
 
-    register("delnpc", "::delnpc index") {
+    register("delnpc", "::delnpc index", admin = true) {
         val index = args.singleOrNull()?.toIntOrNull() ?: fail("Usage: ::delnpc index (from ::npcs)")
         val npc = world.npcs[index] ?: fail("No NPC #$index")
         world.removeNpc(npc)

@@ -11,7 +11,7 @@ fun CommandRegistry.registerGroundObjCommands(world: World) {
     val ground = world.groundObjs
 
     // Public and permanent, so a second client sees it at once: for testing what clients are sent, not live behaviour.
-    register("groundobj", "::groundobj id|name [count]") {
+    register("groundobj", "::groundobj id|name [count]", admin = true) {
         val (type, numbers) = itemAndNumbers(world, "::groundobj id|name [count]", maxNumbers = 1)
         val count = numbers.getOrElse(0) { 1 }
         if (!type.stackable && count > GroundObjs.MAX_SPLIT) fail("${type.name} doesn't stack: at most ${GroundObjs.MAX_SPLIT} at once")
@@ -19,7 +19,7 @@ fun CommandRegistry.registerGroundObjCommands(world: World) {
         reply("Put ${type.name} (${type.id}) x $count on ${player.x}, ${player.z}")
     }
 
-    register("objspawn", "::objspawn id|name [count [respawn ticks]]") {
+    register("objspawn", "::objspawn id|name [count [respawn ticks]]", admin = true) {
         val (type, numbers) = itemAndNumbers(world, "::objspawn id|name [count [respawn ticks]]", maxNumbers = 2)
         val count = numbers.getOrElse(0) { 1 }
         val respawn = numbers.getOrElse(1) { GroundObjs.DEFAULT_RESPAWN_TICKS }
@@ -38,7 +38,7 @@ fun CommandRegistry.registerGroundObjCommands(world: World) {
         for (obj in objs) reply(describe(world, obj))
     }
 
-    register("cleartile", "::cleartile") {
+    register("cleartile", "::cleartile", admin = true) {
         if (args.isNotEmpty()) fail("Usage: ::cleartile")
         val removed = ground.clear(player.x, player.z, player.level)
         reply("Removed $removed obj${if (removed == 1) "" else "s"} from ${player.x}, ${player.z}")

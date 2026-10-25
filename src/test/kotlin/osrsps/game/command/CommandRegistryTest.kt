@@ -54,6 +54,31 @@ class CommandRegistryTest {
     }
 
     @Test
+    fun `an admin command refuses someone who isn't one and leaves it off their list`() {
+        val admins = Admins.parse("Sam")
+        val guarded = CommandRegistry(admins::isAdmin).apply {
+            register("pos", "::pos") { reply("here") }
+            register("pause", "::pause", admin = true) { reply("paused") }
+        }
+        val sam = Player(2, "sam", 3222, 3218, 0)
+        guarded.execute(player, "pause", replies::add)
+        guarded.execute(player, "pos", replies::add)
+        guarded.execute(player, "nope", replies::add)
+        guarded.execute(sam, "pause", replies::add)
+        guarded.execute(sam, "nope", replies::add)
+        assertEquals(
+            listOf(
+                "::pause changes the world for everyone, so only admins can use it here.",
+                "here",
+                "Unknown command ::nope. Commands: ::pos",
+                "paused",
+                "Unknown command ::nope. Commands: ::pause, ::pos",
+            ),
+            replies,
+        )
+    }
+
+    @Test
     fun `names are unique`() {
         assertFailsWith<IllegalArgumentException> { registry.register("Echo", "::Echo") {} }
     }

@@ -26,7 +26,7 @@ fun CommandRegistry.registerLocCommands(world: World) {
         if (found.size > MAX_LISTED) reply("... and ${found.size - MAX_LISTED} more; try a smaller radius")
     }
 
-    register("addloc", "::addloc id [shape] [angle]") {
+    register("addloc", "::addloc id [shape] [angle]", admin = true) {
         if (args.size !in 1..3) fail("Usage: ::addloc id [shape] [angle]")
         val values = args.map { it.toIntOrNull() ?: fail("Usage: ::addloc id [shape] [angle] ('$it' is not a number)") }
         val id = values[0]
@@ -39,14 +39,14 @@ fun CommandRegistry.registerLocCommands(world: World) {
         reply("Added loc $id shape $shape angle $angle on ${player.x}, ${player.z}")
     }
 
-    register("delloc", "::delloc") {
+    register("delloc", "::delloc", admin = true) {
         if (args.isNotEmpty()) fail("Usage: ::delloc")
         val here = locs.at(player.x, player.z, player.level)
         here.forEach { locs.remove(it) }
         reply("Removed ${here.size} loc${if (here.size == 1) "" else "s"} from ${player.x}, ${player.z}")
     }
 
-    register("resetlocs", "::resetlocs [radius]") {
+    register("resetlocs", "::resetlocs [radius]", admin = true) {
         if (args.size > 1) fail("Usage: ::resetlocs [radius]")
         val radius = args.getOrNull(0)?.let { it.toIntOrNull() ?: fail("Usage: ::resetlocs [radius] ('$it' is not a number)") } ?: 0
         if (radius !in 0..MAX_RADIUS) fail("Radius must be 0 to $MAX_RADIUS")

@@ -46,7 +46,7 @@ fun CommandRegistry.registerEffectCommands(world: World) {
         reply("Sound $id")
     }
 
-    register("areasound", "::areasound id [radius] [loops]") {
+    register("areasound", "::areasound id [radius] [loops]", admin = true) {
         if (args.size !in 1..3) fail("Usage: ::areasound id [radius] [loops]")
         val values = numbers("::areasound id [radius] [loops]")
         val id = values[0]
