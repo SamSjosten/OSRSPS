@@ -28,7 +28,6 @@ import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
-import osrsps.game.npc.NpcExamines
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
@@ -95,8 +94,7 @@ class GameServer(
         val saveDir = dataDir.resolve("saves")
         logger.info { "Player saves in ${saveDir.toAbsolutePath()}" }
         val npcSpawns = NpcSpawnFile.loadAll(npcTypes)
-        val npcExamines = NpcExamines.load()
-        logger.info { "Loaded ${npcSpawns.size} NPC spawns and ${npcExamines.size} NPC examine texts" }
+        logger.info { "Loaded ${npcSpawns.size} NPC spawns" }
         val scenarios = Scenarios.load()
         for (name in scenarios.names) {
             // Checked again when started; warned about here so a bad item name shows in the deploy log.
@@ -109,7 +107,7 @@ class GameServer(
         logger.info { "Loaded ${scenarios.names.size} scenarios: ${scenarios.names.joinToString()}" }
         world = World(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
-            npcSpawns, npcExamines, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
+            npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
         )
         loadObjSpawns(objTypes)

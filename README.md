@@ -323,8 +323,9 @@ with the second client. RuneLite's Ground Items plugin with its despawn timer on
 
 NPC types come from cache config 9 at startup (`NpcTypeLoader`), with gameval names from index 24 archive 1. NPC
 spawns are not in the cache: they live in `src/main/resources/npc-spawns/`, one JSON file per area listed in
-`NpcSpawnFile.FILES`, and every spawn names its source. Examine texts are in `src/main/resources/npc-examines.json`
-by type id, also with sources. NPCs are sent through RSProt's NPC info; the tick moves every NPC (`World.npcs`, in
+`NpcSpawnFile.FILES`, and every spawn names its source. Examine texts, like dialogue, are Jagex's words and live in the
+dialogue file (see [Dialogue words](#dialogue-words)); `src/main/resources/examines.json` lists which NPC and loc types
+have one, by type id. NPCs are sent through RSProt's NPC info; the tick moves every NPC (`World.npcs`, in
 `game/npc/`) before any player's scripts.
 
 `lumbridge.json` has the 21 cows and 8 calves of the Lumbridge cow field east of the river, on the wiki's tiles.
@@ -340,7 +341,7 @@ setting 4), which covers the castle's keep and towers.
 | NPC behaviour | Source |
 |---------------|--------|
 | NPC type opcodes; all 16,631 rev 241 types decode | RuneLite's NpcLoader, checked against the 2026-10-14 cache |
-| Spawn tiles, ids and examine texts of Hans, cows and calves | OSRS Wiki pages Hans, Cow, Cow calf (2026-10-21) |
+| Spawn tiles and ids of Hans, cows and calves; where their examine texts are | OSRS Wiki pages Hans, Cow, Cow calf (2026-10-21) |
 | Which cow or calf type stands on which wiki tile | guessed: the wiki maps give tiles per name, so the types take turns |
 | Wander: pick a tile in the square of the wander radius around the spawn (even from outside it), walk there | OSRS Wiki, Wander radius |
 | NPCs walk naively: diagonally, then straight | OSRS Wiki, Pathfinding |
@@ -358,7 +359,8 @@ setting 4), which covers the castle's keep and towers.
 | The Cook keeps under the roof; Hans keeps out from under it | the 2004Scape project's moverestrict; which tiles count as roofed is inferred from the map |
 
 Check: in the cow field east of the River Lum (`::tele 3253 3275`) the cows and calves wander inside the fences,
-`::npcs` lists them, and Examine on one gives its wiki text. Hans walks his lap round the castle's keep (`::tele 3219
+`::npcs` lists them, and Examine on one gives its text from the dialogue file (its key, such as `[examine.npc_2790]`,
+until the file has words for it). Hans walks his lap round the castle's keep (`::tele 3219
 3226` is on it; he passes about once a minute), and the Cook stays under the castle's roof (`::tele 3209 3214`). Same seed, same
 paths: start the server twice with the same `OSRSPS_SEED`, `::pause`, `::step` until `::tick` reads the same number
 (500, say) and `::npcs` lists the same tiles both times.
@@ -468,7 +470,9 @@ are filled in by the server: the note above a line lists the ones it has. A key 
 words for it further down the file count too.
 
 Each conversation declares its lines in a `Lines` object (`object HansLines : Lines("hans", "Transcript:Hans")`), with
-where on the Wiki page each line is, and is listed in `DialogueLines.ALL`. To get a file with every key in it:
+where on the Wiki page each line is, and is listed in `DialogueLines.ALL`. Examine texts of NPCs and locs are in the same
+file, `examine.npc_<id>` and `examine.loc_<id>` (the `Examines` object, from `src/main/resources/examines.json`), each
+with its name and where on the Wiki its text is. To get a file with every key in it:
 
 ```bash
 docker compose run --rm osrsps dialogue-keys   # on 214; or ./gradlew run --args=dialogue-keys
@@ -563,7 +567,7 @@ content, which can pair a door with `World.doors.register(closed, open)`.
 | Door pairs by gameval name | the 241 cache's own names |
 | Where an opened door goes (a quarter turn clockwise, onto the next tile) | RS2 engine rule; 151 of the 191 open doors the 241 maps place line up with it, 19 with the opposite turn (mostly double-door leaves) |
 | Doors stay open until closed, with no sound yet | guessed; the door sound ids aren't known yet (a recording will give them) |
-| Examine shows the loc's name and id, as type 29 (object examine) chat | live's examine texts are not in the cache |
+| Examine shows the loc's text from the dialogue file, as type 29 (object examine) chat; a loc not in `examines.json` shows its name and id | live's examine texts are not in the cache |
 | Timed loc changes run out at the start of the movement phase | guessed |
 
 Check after a redeploy: `::tele 3222 3214` puts you in the castle courtyard, four tiles west of the door at 3226,

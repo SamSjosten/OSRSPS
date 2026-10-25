@@ -183,6 +183,12 @@ class HeadlessClient private constructor(
         }
     }
 
+    /** Examine on NPC type [id], as OPNPC6. */
+    fun examineNpc(id: Int) = send(GameClientProt.OPNPC6) { p2(id) }
+
+    /** Examine on loc type [id], as OPLOC6. */
+    fun examineLoc(id: Int) = send(GameClientProt.OPLOC6) { p2Alt3(id) }
+
     /** Op [op] (1-5) on loc [id] whose south-west tile is [x], [z], as OPLOC1-5. */
     fun locOp(id: Int, x: Int, z: Int, op: Int, ctrl: Boolean = false, subop: Int = 0) {
         val key = if (ctrl) 1 else 0
