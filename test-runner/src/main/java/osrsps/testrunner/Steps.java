@@ -198,6 +198,40 @@ final class Steps
 		}
 	}
 
+	/** Clicks a loc option. Waits (to the timeout) for such a loc to be in the scene; does not wait for the result. */
+	static final class LocOption extends Step
+	{
+		final String loc;
+		final int locId;
+		final String option;
+		/** Only a loc on this tile counts, when set. Its plane is ignored: locs are looked for on the player's plane. */
+		final Tile at;
+
+		LocOption(long timeoutMs, String loc, int locId, String option, Tile at)
+		{
+			super("locOption", timeoutMs, false);
+			this.loc = loc;
+			this.locId = locId;
+			this.option = option;
+			this.at = at;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.locOption(loc, locId, option, at);
+			// The scene may still be loading after a teleport: keep trying until the timeout.
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return option + " on " + (loc != null ? loc : "loc " + locId) + (at == null ? "" : " at " + at.x + ", " + at.y);
+		}
+	}
+
 	static final class AssertDialogue extends Step
 	{
 		final String contains;

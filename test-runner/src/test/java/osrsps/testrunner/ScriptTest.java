@@ -60,6 +60,8 @@ public class ScriptTest
 		invalid("{\"account\":\"test\"}", "needs \"steps\"");
 		invalid("{\"account\":\"test\",\"steps\":[]}", "\"steps\" is empty");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"fly\"}]}", "step 1: unknown step \"fly\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"locOption\",\"option\":\"Open\"}]}", "needs \"loc\" (a name) or \"locId\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"locOption\",\"loc\":\"Door\",\"option\":\"Open\",\"x\":3207}]}", "both \"x\" and \"y\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"walk\",\"x\":1}]}", "step 1 needs \"y\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"walk\",\"x\":1,\"y\":2,\"plan\":0}]}", "unknown field \"plan\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"walk\",\"x\":1.5,\"y\":2}]}", "whole number");

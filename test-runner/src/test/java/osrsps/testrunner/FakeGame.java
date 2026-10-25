@@ -13,6 +13,7 @@ class FakeGame implements Game
 	final List<String> actions = new ArrayList<>();
 	/** When set, npcOption fails with this until cleared. */
 	String npcError;
+	String locError;
 	/** How many walk clicks to refuse first, as when the tile is not on screen yet. */
 	int walkRefusals;
 	/** What chatPending answers. */
@@ -58,6 +59,17 @@ class FakeGame implements Game
 			walkRefusals--;
 			return "tile " + x + ", " + y + " is not on screen";
 		}
+		return null;
+	}
+
+	@Override
+	public String locOption(String name, int id, String option, Tile at)
+	{
+		if (locError != null)
+		{
+			return locError;
+		}
+		actions.add(option + " " + (name != null ? name : "loc " + id) + (at == null ? "" : " at " + at.x + " " + at.y));
 		return null;
 	}
 
