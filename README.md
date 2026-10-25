@@ -91,7 +91,7 @@ config:
 ```
 
 Or let RSProx write it: the server also serves that target, modulus filled in, at
-`http://<public host>:43595/proxy-targets.yaml`. In RSProx press **+** next to the proxy target selector, choose
+`http://<public host>:<HTTP port>/proxy-targets.yaml` (the HTTP port is the game port + 1, so 43595 by default). In RSProx press **+** next to the proxy target selector, choose
 **From URL…**, paste that address, and restart RSProx.
 
 Launch RuneLite from RSProx with that target. The first login as a name claims it with the password you type; after
