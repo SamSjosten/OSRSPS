@@ -45,6 +45,30 @@ class ObjSpawnFilesTest {
     }
 
     @Test
+    fun `Lumbridge Castle's spawn file reads, with the 241 cache's ids for its names`() {
+        // Names and ids as the 241 cache's gameval index has them (checked 2026-10-25).
+        val castle = ObjTypes.of(
+            ObjType(558, "Mind rune", stackable = true, internalName = "mindrune"),
+            ObjType(882, "Bronze arrow", stackable = true, internalName = "bronze_arrow"),
+            ObjType(946, "Knife", internalName = "knife"),
+            ObjType(1061, "Leather boots", internalName = "leather_boots"),
+            ObjType(1205, "Bronze dagger", internalName = "bronze_dagger"),
+            ObjType(1265, "Bronze pickaxe", internalName = "bronze_pickaxe"),
+            ObjType(1511, "Logs", internalName = "logs"),
+            ObjType(1923, "Bowl", internalName = "bowl_empty"),
+            ObjType(1925, "Bucket", internalName = "bucket_empty"),
+            ObjType(1931, "Pot", internalName = "pot_empty"),
+            ObjType(1935, "Jug", internalName = "jug_empty"),
+            ObjType(1965, "Cabbage", internalName = "cabbage"),
+        )
+        val text = ObjSpawnFiles.resources().toMap().getValue("lumbridge-castle.tsv")
+        val spawns = ObjSpawnFiles.parse(text, castle, "lumbridge-castle.tsv")
+        assertEquals(20, spawns.size)
+        assertEquals(4, spawns.count { it.id == 1511 && it.level == 2 }, "the top floor's four logs")
+        assertEquals(6, spawns.count { it.z > 6400 }, "the cellar's")
+    }
+
+    @Test
     fun `finds the spawn files in a folder and in a jar`() {
         val dir = createTempDirectory("obj-spawns")
         val spawns = dir.resolve(ObjSpawnFiles.RESOURCE_DIR).createDirectories()

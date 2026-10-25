@@ -128,8 +128,15 @@ class GameServer(
         logger.info { "Listening on port $port. RSProx modulus: ${dataDir.resolve("rsa-modulus.txt").toAbsolutePath()}" }
     }
 
-    /** Puts every item spawn from the resources' spawn files on the ground. A file that doesn't read stops the start. */
+    /**
+     * Puts every item spawn from the resources' spawn files on the ground. A file that doesn't read stops the start,
+     * unless the cache has no item types at all (the tests' tiny caches): then no spawn could be placed anyway.
+     */
     private fun loadObjSpawns(objTypes: ObjTypes) {
+        if (objTypes.size == 0) {
+            logger.warn { "No item types in the cache; placing no item spawns" }
+            return
+        }
         var count = 0
         for ((name, text) in ObjSpawnFiles.resources()) {
             for (spawn in ObjSpawnFiles.parse(text, objTypes, name)) {
