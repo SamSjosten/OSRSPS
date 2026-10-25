@@ -29,6 +29,12 @@ interface Game
 	/** Clicks an option on the nearest NPC with this name (or id, when the name is null). */
 	String npcOption(String name, int id, String option);
 
+	/**
+	 * Clicks an option on the nearest loc (a door, stairs, a bookcase) with this name (or id, when the name is null) on
+	 * the player's plane. With a tile, only a loc on that tile counts.
+	 */
+	String locOption(String name, int id, String option, Tile at);
+
 	/** The dialogue open in the chatbox, or null when none is. */
 	Dialogue dialogue();
 

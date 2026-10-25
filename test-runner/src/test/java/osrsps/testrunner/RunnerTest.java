@@ -108,6 +108,20 @@ public class RunnerTest
 	}
 
 	@Test
+	public void locOptionRetriesUntilTheLocIsInTheScene() throws Exception
+	{
+		game.locError = "no loc \"Staircase\" in the scene";
+		runner.start(script("{\"step\":\"locOption\",\"loc\":\"Staircase\",\"option\":\"Climb-up\",\"x\":3205,\"y\":3208}"), "file");
+		assertNull(cycle());
+		assertTrue(game.actions.isEmpty());
+		game.locError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("Climb-up Staircase at 3205 3208"), game.actions);
+		assertEquals("Climb-up on Staircase at 3205, 3208", r.steps.get(0).description);
+	}
+
+	@Test
 	public void timesOutWithWhatItSaw() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertLocation\",\"x\":3222,\"y\":3218,\"timeoutMs\":100},{\"step\":\"assertNoDialogue\"}"), "file");

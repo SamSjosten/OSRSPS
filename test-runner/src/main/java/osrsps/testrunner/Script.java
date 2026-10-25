@@ -167,6 +167,25 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "npc", "npcId", "option", "comment");
 				return new Steps.NpcOption(timeout, npc, id, option);
 			}
+			case "locOption":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String loc = f.string("loc", null);
+				int id = f.integer("locId", -1);
+				if (loc == null && id < 0)
+				{
+					throw new Invalid(f.where + " needs \"loc\" (a name) or \"locId\"");
+				}
+				String option = f.requiredString("option");
+				int x = f.integer("x", -1);
+				int y = f.integer("y", -1);
+				if ((x < 0) != (y < 0))
+				{
+					throw new Invalid(f.where + " needs both \"x\" and \"y\", or neither");
+				}
+				f.rejectUnknown("step", "timeoutMs", "loc", "locId", "option", "x", "y", "comment");
+				return new Steps.LocOption(timeout, loc, id, option, x < 0 ? null : new Tile(x, y, -1));
+			}
 			case "assertDialogue":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

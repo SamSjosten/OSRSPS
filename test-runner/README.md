@@ -119,6 +119,7 @@ server's answer instead of failing on what was there before.
 | `assertLocation` | `x`, `y`, `plane` | Waits until the player stands on the tile. Without `plane`, any plane. |
 | `walk` | `x`, `y` | Clicks Walk here on the tile, then waits until the player stands on it. The tile must be on screen; until it is (right after a teleport the scene can lag a moment), it keeps trying. Default timeout 30 s. |
 | `npcOption` | `npc` (name) or `npcId`, `option` | Clicks the option (such as `Talk-to`) on the nearest such NPC, retrying until one is in view. Doesn't wait for the result: follow it with an assert. |
+| `locOption` | `loc` (name) or `locId`, `option`, `x`+`y` | Clicks the option (such as `Open`, `Climb-up`, `Search`) on the nearest such loc on the player's plane, retrying until one is in the scene. With `x` and `y`, only a loc on that tile (a big loc on any tile it covers). A loc that changes with a varbit is matched by what it is now. Doesn't wait for the result: follow it with an assert. |
 | `assertDialogue` | `contains`, `speaker` | Waits until an open dialogue's text contains `contains` and its name is `speaker` (both optional). Colour tags and line breaks are removed first. |
 | `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. |
 | `chooseOption` | `text` | Waits for an option menu, clicks the option equal to `text` (else the first containing it), and waits until the menu has gone. |

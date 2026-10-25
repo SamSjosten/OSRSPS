@@ -3,16 +3,21 @@ package osrsps.testrunner;
 import java.awt.Canvas;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import net.runelite.api.Client;
+import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
 import net.runelite.api.MenuAction;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
+import net.runelite.api.ObjectComposition;
 import net.runelite.api.Perspective;
 import net.runelite.api.Player;
 import net.runelite.api.Point;
+import net.runelite.api.Scene;
+import net.runelite.api.TileObject;
 import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
@@ -33,6 +38,14 @@ final class ClientGame implements Game
 		MenuAction.NPC_THIRD_OPTION,
 		MenuAction.NPC_FOURTH_OPTION,
 		MenuAction.NPC_FIFTH_OPTION,
+	};
+
+	private static final MenuAction[] LOC_OPS = {
+		MenuAction.GAME_OBJECT_FIRST_OPTION,
+		MenuAction.GAME_OBJECT_SECOND_OPTION,
+		MenuAction.GAME_OBJECT_THIRD_OPTION,
+		MenuAction.GAME_OBJECT_FOURTH_OPTION,
+		MenuAction.GAME_OBJECT_FIFTH_OPTION,
 	};
 
 	private final Client client;
@@ -193,6 +206,136 @@ final class ClientGame implements Game
 			return -1;
 		}
 		for (int i = 0; i < actions.length && i < NPC_OPS.length; i++)
+		{
+			if (actions[i] != null && Dialogue.clean(actions[i]).equalsIgnoreCase(option))
+			{
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	@Override
+	public String locOption(String name, int id, String option, osrsps.testrunner.Tile at)
+	{
+		Player me = client.getLocalPlayer();
+		if (me == null)
+		{
+			return "no local player";
+		}
+		WorldView wv = client.getTopLevelWorldView();
+		Scene scene = wv.getScene();
+		int plane = wv.getPlane();
+		LocalPoint target = at == null ? null : LocalPoint.fromWorld(wv, at.x, at.y);
+		if (at != null && target == null)
+		{
+			return "tile " + at.x + ", " + at.y + " is not in the loaded scene";
+		}
+		WorldPoint here = me.getWorldLocation();
+		TileObject best = null;
+		int bestOp = -1;
+		int bestDistance = Integer.MAX_VALUE;
+		boolean nameSeen = false;
+		for (net.runelite.api.Tile[] column : scene.getTiles()[plane])
+		{
+			for (net.runelite.api.Tile tile : column)
+			{
+				if (tile == null)
+				{
+					continue;
+				}
+				List<TileObject> objects = new ArrayList<>();
+				// A big loc is listed on every tile it covers; seeing it more than once does no harm.
+				objects.addAll(Arrays.asList(tile.getGameObjects()));
+				objects.add(tile.getWallObject());
+				objects.add(tile.getDecorativeObject());
+				objects.add(tile.getGroundObject());
+				for (TileObject o : objects)
+				{
+					if (o == null || !locMatches(o, name, id) || (target != null && !covers(o, tile, target)))
+					{
+						continue;
+					}
+					nameSeen = true;
+					int op = locOpIndex(o.getId(), option);
+					int d = o.getWorldLocation().distanceTo(here);
+					if (op >= 0 && d < bestDistance)
+					{
+						best = o;
+						bestOp = op;
+						bestDistance = d;
+					}
+				}
+			}
+		}
+		String what = (name != null ? "\"" + name + "\"" : "id " + id) + (at == null ? "" : " at " + at.x + ", " + at.y);
+		if (best == null)
+		{
+			return nameSeen ? "loc " + what + " has no option \"" + option + "\"" : "no loc " + what + " in the scene";
+		}
+		// The menu entry a click makes: the loc's scene tile (a big loc's south-west tile) and its base id, which the
+		// server turns into whatever the loc currently is. Guessed from how RuneLite's interact highlight reads a loc
+		// click back; not yet tried in the client.
+		Point p = best instanceof GameObject ? ((GameObject) best).getSceneMinLocation() : sceneTile(best);
+		ObjectComposition c = locComposition(best.getId());
+		client.menuAction(p.getX(), p.getY(), LOC_OPS[bestOp], best.getId(), -1, c.getActions()[bestOp], c.getName());
+		return null;
+	}
+
+	private static Point sceneTile(TileObject o)
+	{
+		LocalPoint lp = o.getLocalLocation();
+		return new Point(lp.getSceneX(), lp.getSceneY());
+	}
+
+	/** True when the loc stands on the target tile; a big loc counts on every tile it covers. */
+	private static boolean covers(TileObject o, net.runelite.api.Tile tile, LocalPoint target)
+	{
+		if (o instanceof GameObject)
+		{
+			Point min = ((GameObject) o).getSceneMinLocation();
+			Point max = ((GameObject) o).getSceneMaxLocation();
+			return target.getSceneX() >= min.getX() && target.getSceneX() <= max.getX()
+				&& target.getSceneY() >= min.getY() && target.getSceneY() <= max.getY();
+		}
+		Point t = tile.getSceneLocation();
+		return t.getX() == target.getSceneX() && t.getY() == target.getSceneY();
+	}
+
+	/** What the loc is now: a loc that changes with a varbit (a door some quests open) is its impostor. */
+	private ObjectComposition locComposition(int id)
+	{
+		ObjectComposition c = client.getObjectDefinition(id);
+		if (c != null && c.getImpostorIds() != null)
+		{
+			ObjectComposition now = c.getImpostor();
+			if (now != null)
+			{
+				return now;
+			}
+		}
+		return c;
+	}
+
+	private boolean locMatches(TileObject o, String name, int id)
+	{
+		ObjectComposition c = locComposition(o.getId());
+		if (name != null)
+		{
+			return c != null && name.equalsIgnoreCase(Dialogue.clean(c.getName()));
+		}
+		return o.getId() == id || (c != null && c.getId() == id);
+	}
+
+	private int locOpIndex(int id, String option)
+	{
+		ObjectComposition c = locComposition(id);
+		String[] actions = c == null ? null : c.getActions();
+		if (actions == null)
+		{
+			return -1;
+		}
+		for (int i = 0; i < actions.length && i < LOC_OPS.length; i++)
 		{
 			if (actions[i] != null && Dialogue.clean(actions[i]).equalsIgnoreCase(option))
 			{
