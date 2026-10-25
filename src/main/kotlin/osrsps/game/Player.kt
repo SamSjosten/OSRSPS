@@ -91,6 +91,12 @@ class Player(
      */
     var lastStepFrom: Tile? = null
 
+    /**
+     * The last tick the player took a step on, -1 before their first. A ladder walked to waits a tick when the player
+     * arrived on this one; see [osrsps.game.content.arriveDelay].
+     */
+    var lastMoveTick: Long = -1
+
     /** Where someone following this player heads this tick, noted before anyone moves. Null until the first tick. */
     var followTile: Tile? = null
 

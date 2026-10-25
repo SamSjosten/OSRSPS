@@ -42,6 +42,7 @@ import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
 import osrsps.game.content.registerHans
+import osrsps.game.content.registerLumbridgeCastle
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.Dialogues
 import osrsps.game.loc.Doors
@@ -164,6 +165,7 @@ class World(
 
     init {
         registerHans(this)
+        registerLumbridgeCastle(this)
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */
@@ -868,6 +870,7 @@ class World(
 
     private fun move(player: Player) {
         val result = movement.process(player)
+        if (result != MoveResult.NONE) player.lastMoveTick = tick
         val extendedInfo = player.infos.playerInfo.avatar.extendedInfo
         val speed = when (result) {
             MoveResult.NONE -> null
