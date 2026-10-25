@@ -15,7 +15,8 @@ services:
       # Uncomment to make every random roll repeat from startup; unset, a new seed is picked and logged.
       # OSRSPS_SEED: "1234"
       # Names, comma separated, who may run the world-changing commands (::pause, ::npc, ::addloc...); unset, everyone
-      # may. Sam's main account and the test runner's accounts.
+      # may. Sam's main account and the test runner's accounts, whose passwords are kept private (not the runner's
+      # default "test"), since an admin's password is all that guards these commands.
       OSRSPS_ADMINS: "Swaggy,test,test2"
     volumes:
       - ./data:/data

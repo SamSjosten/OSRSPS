@@ -67,7 +67,7 @@ public interface TestRunnerConfig extends Config
 	@ConfigItem(
 		keyName = "autoLoginPassword",
 		name = "Auto login password",
-		description = "Our server takes any password for a test account; this is a throwaway, never a real one",
+		description = "The first login claims a name with its password, and test accounts are admins on 214, so keep this private (not the default) and never a real one",
 		secret = true,
 		position = 5
 	)
