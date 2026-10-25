@@ -6,7 +6,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Test;
 
@@ -25,6 +27,21 @@ public class ScriptTest
 		assertEquals(Script.LOGIN_TIMEOUT_MS, s.steps.get(0).timeoutMs);
 		assertEquals(20_000, s.steps.get(5).timeoutMs);
 		assertEquals(Script.DEFAULT_TIMEOUT_MS, s.steps.get(6).timeoutMs);
+	}
+
+	@Test
+	public void everyExampleIsAValidScript() throws Exception
+	{
+		int read = 0;
+		try (DirectoryStream<Path> examples = Files.newDirectoryStream(Paths.get("examples"), "*.json"))
+		{
+			for (Path p : examples)
+			{
+				Script.parse(p.getFileName().toString(), new String(Files.readAllBytes(p), StandardCharsets.UTF_8));
+				read++;
+			}
+		}
+		assertTrue("no examples found", read > 1);
 	}
 
 	@Test

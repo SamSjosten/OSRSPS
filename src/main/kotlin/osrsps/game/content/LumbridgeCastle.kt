@@ -15,6 +15,9 @@ import osrsps.game.World
  * no open types of their own. Each has exactly the models, recolours and retextures of an ordinary door (`elfdoor`,
  * `castledoubledoorl`, `castledoubledoorr`, checked in the 241 cache), so they are taken to open into that door's open
  * type. Inferred, not seen on live.
+ *
+ * Searching: the crates, sacks, chest and drawers (see [Searching]). Not done yet, for want of a source: the Lost Tribe
+ * chest (`lost_tribe_chest` 6910, next to the Duke's room) after the quest, and the winch on the top floor.
  */
 object LumbridgeCastle {
     /** spiralstairsbottom_3, 2x2: Climb-up, and Top-floor straight to the top. */
@@ -55,6 +58,22 @@ object LumbridgeCastle {
     const val LARGE_DOOR_LEFT_OPEN = 1522
     const val LARGE_DOOR_RIGHT_OPEN = 1525
 
+    /** crate, crate2_old and crate3_old: Search. */
+    const val CRATE = 366
+    const val CRATE_2 = 357
+    const val CRATE_3 = 358
+
+    /** sacks: Search. */
+    const val SACKS = 365
+
+    /** chestclosed (the Duke's floor) and chestopen: Open, then Search and Shut. */
+    const val CHEST = 375
+    const val CHEST_OPEN = 378
+
+    /** drawers4 (the Duke's floor) and drawers4open: Open, then Search and Shut. */
+    const val DRAWERS = 5618
+    const val DRAWERS_OPEN = 5619
+
     const val CLIMB = 1
     const val CLIMB_UP = 2
     const val CLIMB_DOWN = 3
@@ -63,9 +82,14 @@ object LumbridgeCastle {
     const val SKIP_FLOOR = 2
 }
 
-/** Lumbridge Castle's stairs, ladders, trapdoor, cellar ladder and doors. */
+/** Lumbridge Castle's stairs, ladders, trapdoor, cellar ladder, doors and searchable furniture. */
 fun registerLumbridgeCastle(world: World) {
     with(LumbridgeCastle) {
+        for (crate in listOf(CRATE, CRATE_2, CRATE_3)) registerSearch(world, crate, 1, Searching.CRATE_EMPTY)
+        registerSearch(world, SACKS, 1, Searching.SACKS_EMPTY)
+        registerOpenable(world, CHEST, CHEST_OPEN, Searching.CHEST_EMPTY)
+        registerOpenable(world, DRAWERS, DRAWERS_OPEN, Searching.DRAWERS_EMPTY)
+
         world.doors.addClosedType(KITCHEN_DOOR, DOOR_OPEN)
         world.doors.registerDouble(LARGE_DOOR_LEFT, LARGE_DOOR_LEFT_OPEN, LARGE_DOOR_RIGHT, LARGE_DOOR_RIGHT_OPEN)
 

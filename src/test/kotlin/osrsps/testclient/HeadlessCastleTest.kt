@@ -7,6 +7,11 @@ import org.junit.jupiter.api.io.TempDir
 import osrsps.game.World
 import osrsps.game.content.Climbing
 import osrsps.game.content.LumbridgeCastle.CELLAR_LADDER
+import osrsps.game.content.LumbridgeCastle.CHEST
+import osrsps.game.content.LumbridgeCastle.CHEST_OPEN
+import osrsps.game.content.LumbridgeCastle.CRATE
+import osrsps.game.content.LumbridgeCastle.DRAWERS
+import osrsps.game.content.LumbridgeCastle.DRAWERS_OPEN
 import osrsps.game.content.LumbridgeCastle.CLIMB
 import osrsps.game.content.LumbridgeCastle.CLIMB_DOWN
 import osrsps.game.content.LumbridgeCastle.DOOR_OPEN
@@ -19,10 +24,12 @@ import osrsps.game.content.LumbridgeCastle.LARGE_DOOR_RIGHT_OPEN
 import osrsps.game.content.LumbridgeCastle.LADDER_BOTTOM
 import osrsps.game.content.LumbridgeCastle.LADDER_MIDDLE
 import osrsps.game.content.LumbridgeCastle.LADDER_TOP
+import osrsps.game.content.LumbridgeCastle.SACKS
 import osrsps.game.content.LumbridgeCastle.SKIP_FLOOR
 import osrsps.game.content.LumbridgeCastle.STAIRS_BOTTOM
 import osrsps.game.content.LumbridgeCastle.STAIRS_MIDDLE
 import osrsps.game.content.LumbridgeCastle.STAIRS_TOP
+import osrsps.game.content.Searching
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -32,8 +39,8 @@ import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 
 /**
- * Getting about Lumbridge Castle through the headless client: its stairs, ladders, kitchen trapdoor, cellar ladder and
- * doors, placed as the 241 cache has them (types, sizes and options too), on open ground.
+ * Lumbridge Castle through the headless client: its stairs, ladders, kitchen trapdoor, cellar ladder, doors and
+ * searchable furniture, placed as the 241 cache has them (types, sizes and options too), on open ground.
  */
 class HeadlessCastleTest {
     private fun type(id: Int, name: String, size: Int, vararg ops: String) =
@@ -55,6 +62,12 @@ class HeadlessCastleTest {
             type(LARGE_DOOR_LEFT_OPEN, "Large door", 1, "Close"),
             type(LARGE_DOOR_RIGHT, "Large door", 1, "Open"),
             type(LARGE_DOOR_RIGHT_OPEN, "Large door", 1, "Close"),
+            type(CRATE, "Crate", 1, "Search"),
+            type(SACKS, "Sacks", 1, "Search"),
+            type(CHEST, "Closed chest", 1, "Open"),
+            LocType(CHEST_OPEN, "Open chest", ops = listOf(null, "Search", "Shut", null, null), collision = LocCollisionType()),
+            type(DRAWERS, "Drawers", 1, "Open"),
+            LocType(DRAWERS_OPEN, "Drawers", ops = listOf(null, "Search", "Shut", null, null), collision = LocCollisionType()),
         ).associateBy { it.id },
     )
 
@@ -70,6 +83,10 @@ class HeadlessCastleTest {
         ZoneLoc(KITCHEN_DOOR, LocShape.WALL_STRAIGHT, 1, 3207, 3217, 0),
         ZoneLoc(LARGE_DOOR_LEFT, LocShape.WALL_STRAIGHT, 0, 3213, 3221, 0),
         ZoneLoc(LARGE_DOOR_RIGHT, LocShape.WALL_STRAIGHT, 0, 3213, 3222, 0),
+        ZoneLoc(CHEST, LocShape.CENTREPIECE_STRAIGHT, 0, 3209, 3218, 1),
+        ZoneLoc(CRATE, LocShape.CENTREPIECE_STRAIGHT, 0, 3210, 3218, 1),
+        ZoneLoc(DRAWERS, LocShape.CENTREPIECE_STRAIGHT, 2, 3213, 3216, 1),
+        ZoneLoc(SACKS, LocShape.CENTREPIECE_STRAIGHT, 0, 3205, 3218, 2),
     )
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
@@ -88,11 +105,21 @@ class HeadlessCastleTest {
     private fun HeadlessClient.awaitAt(x: Int, z: Int, level: Int) =
         assertEquals(Coord(x, z, level), await("$x, $z, $level") { position?.takeIf { it == Coord(x, z, level) } })
 
-    /** Runs one tick of a paused world and waits for its updates. */
+    /**
+     * Runs one tick of a paused world and waits for all of its updates. The tick ends with "Paused after tick n" and
+     * then its tick end; waiting on the message, not just a tick end, keeps a late tick end from the tick that paused
+     * the world from passing for this one.
+     */
     private fun HeadlessClient.step() {
-        val seen = ticksSeen
+        val from = messages().size
         command("step")
-        await("the tick after $seen") { if (ticksSeen > seen) Unit else null }
+        val done = await("the step to finish") { messages().drop(from).firstOrNull { it.text.matches(STEPPED) } }
+        await("the stepped tick's end") { if (ticksSeen > done.tick) Unit else null }
+    }
+
+    private companion object {
+        /** What a finished ::step says; the ::pause reply has more after the number. */
+        val STEPPED = Regex("Paused after tick \\d+")
     }
 
     @Test
@@ -175,6 +202,37 @@ class HeadlessCastleTest {
                 client.await("both large doors open") { client.locChanges().takeIf { it.containsAll(listOf(leftOpen, rightOpen)) } }
                 client.locOp(LARGE_DOOR_RIGHT_OPEN, 3212, 3222, 1)
                 client.await("both large doors shut") { client.locChanges().takeIf { leftOpen !in it && rightOpen !in it } }
+            }
+        }
+    }
+
+    @Test
+    fun `crates and sacks are empty, and the chest and drawers open, are empty and shut`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3208, 3218, 1)
+                client.locOp(CRATE, 3210, 3218, 1)
+                client.awaitMessage("the crate searched") { it == Searching.CRATE_EMPTY }
+
+                val chestOpen = LocChange(CHEST_OPEN, LocShape.CENTREPIECE_STRAIGHT, 0, Coord(3209, 3218, 1))
+                client.locOp(CHEST, 3209, 3218, 1)
+                client.await("the chest open") { client.locChanges().takeIf { chestOpen in it } }
+                client.locOp(CHEST_OPEN, 3209, 3218, Searching.SEARCH)
+                client.awaitMessage("the chest searched") { it == Searching.CHEST_EMPTY }
+                client.locOp(CHEST_OPEN, 3209, 3218, Searching.SHUT)
+                client.await("the chest shut") { client.locChanges().takeIf { chestOpen !in it } }
+
+                client.tele(3212, 3216, 1)
+                val drawersOpen = LocChange(DRAWERS_OPEN, LocShape.CENTREPIECE_STRAIGHT, 2, Coord(3213, 3216, 1))
+                client.locOp(DRAWERS, 3213, 3216, 1)
+                client.await("the drawers open") { client.locChanges().takeIf { drawersOpen in it } }
+                client.locOp(DRAWERS_OPEN, 3213, 3216, Searching.SEARCH)
+                client.awaitMessage("the drawers searched") { it == Searching.DRAWERS_EMPTY }
+
+                client.tele(3206, 3218, 2)
+                client.locOp(SACKS, 3205, 3218, 1)
+                client.awaitMessage("the sacks searched") { it == Searching.SACKS_EMPTY }
             }
         }
     }

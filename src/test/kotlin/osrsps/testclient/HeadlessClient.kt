@@ -25,7 +25,13 @@ class ServerPacket(val prot: GameServerProt, val payload: ByteArray) {
 }
 
 /** A game message the server sent (MESSAGE_GAME): the chatbox line and its type, 0 for a plain game message. */
-data class GameMessage(val type: Int, val text: String, val name: String? = null)
+data class GameMessage(
+    val type: Int,
+    val text: String,
+    val name: String? = null,
+    /** How many SERVER_TICK_END packets had arrived before it: the tick it came in ends with tick end [tick] + 1. */
+    val tick: Int = 0,
+)
 
 /** A move of the local player, with the number of ticks the client had seen end before it. */
 data class TickMove(val tick: Int, val move: PlayerMove)
@@ -376,7 +382,7 @@ class HeadlessClient private constructor(
             GameServerProt.MESSAGE_GAME -> {
                 val type = buf.gSmart1or2()
                 val name = if (buf.g1() == 1) buf.gjstr() else null
-                messages += GameMessage(type, buf.gjstr(), name)
+                messages += GameMessage(type, buf.gjstr(), name, ticks)
             }
             GameServerProt.NPC_INFO_SMALL_V6, GameServerProt.NPC_INFO_LARGE_V6 -> npcInfo.read(
                 packet.payload,
