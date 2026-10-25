@@ -6,7 +6,7 @@ import osrsps.game.World
 fun CommandRegistry.registerTickCommands(world: World) {
     val clock = world.clock
 
-    register("pause", "::pause") {
+    register("pause", "::pause", admin = true) {
         when {
             !clock.paused -> {
                 world.pause()
@@ -20,7 +20,7 @@ fun CommandRegistry.registerTickCommands(world: World) {
         }
     }
 
-    register("step", "::step [n]") {
+    register("step", "::step [n]", admin = true) {
         if (!clock.paused) fail("The clock is running: ::pause first")
         if (args.size > 1) fail("Usage: ::step [n]")
         val n = args.firstOrNull()?.let { it.toIntOrNull() ?: fail("Usage: ::step [n] ('$it' is not a number)") } ?: 1
@@ -30,7 +30,7 @@ fun CommandRegistry.registerTickCommands(world: World) {
         reply("Stepping $n ${ticks(n)}" + if (total > n) " ($total to go)" else "")
     }
 
-    register("resume", "::resume") {
+    register("resume", "::resume", admin = true) {
         if (!clock.paused) fail("Not paused (tick ${world.tick})")
         world.resume()
         reply("Resumed after tick ${world.tick}")

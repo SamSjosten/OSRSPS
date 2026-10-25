@@ -29,7 +29,7 @@ fun CommandRegistry.registerDevCommands(world: World) {
     }
 
     // For filling the dialogue file: save it, then this, and the next line said has the new words.
-    register("dialogue", "::dialogue") {
+    register("dialogue", "::dialogue", admin = true) {
         val read = world.loadDialogue()
         read.take(MAX_DIALOGUE_REPLIES).forEach { reply(it) }
         if (read.size > MAX_DIALOGUE_REPLIES) reply("... and ${read.size - MAX_DIALOGUE_REPLIES} more in the server log")

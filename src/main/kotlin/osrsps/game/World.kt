@@ -27,6 +27,7 @@ import net.rsprot.protocol.loginprot.incoming.util.LoginBlock
 import net.rsprot.crypto.xtea.XteaKey
 import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
+import osrsps.game.command.Admins
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
@@ -104,6 +105,8 @@ class World(
     chatFont: ChatFont = ChatFont.APPROXIMATE,
     /** The dialogue file, read at start and again by `::dialogue`; null for none, so every line shows its key. */
     private val dialogueFile: Path? = null,
+    /** Who may run the commands that change the world for everyone. */
+    val admins: Admins = Admins.EVERYONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -161,7 +164,7 @@ class World(
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
-    val commands = CommandRegistry().apply {
+    val commands = CommandRegistry(admins::isAdmin).apply {
         registerDevCommands(this@World)
         registerTickCommands(this@World)
         registerVarCommands()

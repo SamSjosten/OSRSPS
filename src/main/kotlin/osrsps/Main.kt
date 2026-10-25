@@ -6,6 +6,7 @@ import osrsps.cache.CacheInfo
 import osrsps.cache.MapCollisionLoader
 import osrsps.map.CollisionPrinter
 import osrsps.cache.OpenRs2Archive
+import osrsps.game.command.Admins
 import osrsps.game.content.DialogueLines
 import osrsps.game.dialogue.DialogueFile
 import java.nio.file.Files
@@ -57,7 +58,9 @@ private fun fetchCache() {
 private fun serve(port: Int) {
     // A fixed seed makes every random roll repeat from startup; leave it unset for a new one each start.
     val seed = System.getenv("OSRSPS_SEED")?.let { it.toLongOrNull() ?: error("OSRSPS_SEED must be a whole number, was '$it'") }
-    val server = GameServer(dataDir, port, port + 1, publicHost, seed)
+    // Names, comma separated, who may run the commands that change the world for everyone; unset, everyone may.
+    val admins = Admins.parse(System.getenv("OSRSPS_ADMINS"))
+    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins)
     server.start()
     Runtime.getRuntime().addShutdownHook(Thread(server::stop))
 }

@@ -17,6 +17,7 @@ import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
 import osrsps.game.EffectIds
 import osrsps.game.Accounts
+import osrsps.game.command.Admins
 import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
 import osrsps.game.NpcTypes
@@ -48,6 +49,8 @@ class GameServer(
     private val publicHost: String = "127.0.0.1",
     /** The game's random seed; null picks one, which is logged so the run can be repeated. */
     private val seed: Long? = null,
+    /** Who may run the world-changing commands; see [Admins]. */
+    private val admins: Admins = Admins.EVERYONE,
 ) {
     private lateinit var world: World
     private val clientConfig = ClientConfig(publicHost, httpPort)
@@ -96,6 +99,8 @@ class GameServer(
         logger.info { "Player saves in ${saveDir.toAbsolutePath()}" }
         val accountDir = dataDir.resolve("accounts")
         logger.info { "Accounts in ${accountDir.toAbsolutePath()}" }
+        if (admins.everyone) logger.warn { "Every player is an admin; set OSRSPS_ADMINS to the names that should be" }
+        else logger.info { "Admins: $admins" }
         val npcSpawns = NpcSpawnFile.loadAll(npcTypes)
         logger.info { "Loaded ${npcSpawns.size} NPC spawns" }
         val scenarios = Scenarios.load()
@@ -111,7 +116,7 @@ class GameServer(
         world = World(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir),
             Accounts(FileSaveStore(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
-            scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
+            scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)

@@ -6,7 +6,7 @@ import osrsps.game.World
 fun CommandRegistry.registerSeedCommands(world: World) {
     val random = world.random
 
-    register("seed", "::seed [n]") {
+    register("seed", "::seed [n]", admin = true) {
         if (args.size > 1) fail("Usage: ::seed [n]")
         if (args.isEmpty()) {
             reply("Seed ${random.seed}, ${random.draws} ${draws(random.draws)} since it was set")

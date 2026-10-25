@@ -9,7 +9,7 @@ import kotlin.math.max
 fun CommandRegistry.registerZoneCommands(world: World) {
     val zones = world.zones
 
-    register("gfx", "::gfx id [height] [delay]") {
+    register("gfx", "::gfx id [height] [delay]", admin = true) {
         if (args.size !in 1..3) fail("Usage: ::gfx id [height] [delay]")
         val values = args.map { it.toIntOrNull() ?: fail("Usage: ::gfx id [height] [delay] ('$it' is not a number)") }
         val id = values[0]
@@ -22,7 +22,7 @@ fun CommandRegistry.registerZoneCommands(world: World) {
         reply("Spotanim $id on ${player.x}, ${player.z}")
     }
 
-    register("proj", "::proj id [dx dz]") {
+    register("proj", "::proj id [dx dz]", admin = true) {
         if (args.size != 1 && args.size != 3) fail("Usage: ::proj id [dx dz]")
         val values = args.map { it.toIntOrNull() ?: fail("Usage: ::proj id [dx dz] ('$it' is not a number)") }
         val id = values[0]

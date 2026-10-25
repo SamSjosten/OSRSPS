@@ -135,46 +135,51 @@ a modal's close button close it; the logout tab's button logs out. Every interfa
 
 ## Developer commands
 
-Type these in the chatbox; the answer shows as a game message. Every player can use them.
+Type these in the chatbox; the answer shows as a game message. Commands that only touch you (your position, stats,
+items, vars, scenario) are for every player. The ones marked **admin** change the world for everyone (the clock, the
+random seed, NPCs, locs, ground items, effects others see, the dialogue file), so only the names in `OSRSPS_ADMINS`
+(comma separated, matched like save names) can run them; anyone else is told so, and the list an unknown command
+prints leaves them out. With `OSRSPS_ADMINS` unset, everyone is an admin, as before, and the server log warns. Names
+are claimed with a password at first login (see Accounts), so log in as each admin name before anyone else joins.
 
 | Command | What it does |
 |---------|--------------|
 | `::pos` | Your coordinates as `x, z, level`, plus the map region and your tile inside it |
 | `::tele x z [level]` | Teleports there; the level stays the same when left out. `::tele 3222, 3218, 0` also works, so `::pos` output pastes in |
 | `::tick` | The server's current tick number, and whether the clock is paused |
-| `::pause` | Freezes the game once the current tick has finished |
-| `::step [n]` | While paused, runs n ticks (default 1, up to 1000), one every 600 ms, then says where it stopped |
-| `::resume` | Starts the clock again |
+| `::pause` | **admin.** Freezes the game once the current tick has finished |
+| `::step [n]` | **admin.** While paused, runs n ticks (default 1, up to 1000), one every 600 ms, then says where it stopped |
+| `::resume` | **admin.** Starts the clock again |
 | `::varp id [value]` | Shows a varp, or sets it. `::varp 173 1` turns the run orb on |
 | `::varbit id [value]` | Shows a varbit with the varp and bits it lives in, or sets it |
-| `::dialogue` | Reads `data/dialogue.txt` again, so new words show from the next line said, and says how many lines have words and what is wrong with the file |
+| `::dialogue` | **admin.** Reads `data/dialogue.txt` again, so new words show from the next line said, and says how many lines have words and what is wrong with the file |
 | `::keys [on\|off]` | Your dialogue and examine lines show their keys (`[cook.greeting]`) instead of the file's words, until off or logout; no argument flips it. Test scripts in git turn it on, so they pass with or without words |
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too |
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
-| `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
-| `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
-| `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
-| `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
-| `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
+| `::seed [n]` | **admin.** Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
+| `::gfx id [height] [delay]` | **admin.** Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
+| `::proj id [dx dz]` | **admin.** Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
+| `::groundobj id\|name [count]` | **admin.** Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
+| `::objspawn id\|name [count [respawn]]` | **admin.** Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
 | `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
-| `::cleartile` | Removes every obj from your tile; item spawns there come back as if taken |
+| `::cleartile` | **admin.** Removes every obj from your tile; item spawns there come back as if taken |
 | `::anim id [delay]` | Plays animation (seq) `id` on you, seen by everyone nearby; `-1` stops it. Delay is 0 to 255 client cycles. `::anim 866` dances |
 | `::spotanim id [height] [delay] [slot]` | Plays spotanim `id` on you rather than on your tile; `-1` clears the slot (0 to 255) |
 | `::sound [id] [loops] [delay]` | Plays sound effect `id` to you alone (default 3813, the town crier's bell) |
-| `::areasound id [radius] [loops]` | Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
+| `::areasound id [radius] [loops]` | **admin.** Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
 | `::jingle id` | Plays jingle `id` to you alone |
 | `::item id\|name [count]` | Puts items in your inventory, by id, menu name or gameval name: `::item 1351`, `::item bronze axe 2`, `::item coins 10k`. Adds what fits |
 | `::empty` | Empties your inventory |
 | `::locs [radius]` | Lists the locs within radius tiles of you (default 1): id, name, tile, shape and angle, and whether they differ from the cache |
-| `::addloc id [shape] [angle]` | Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
-| `::delloc` | Removes every loc on your tile |
-| `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
-| `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
+| `::addloc id [shape] [angle]` | **admin.** Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
+| `::delloc` | **admin.** Removes every loc on your tile |
+| `::resetlocs [radius]` | **admin.** Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
+| `::npc id\|name [wander]` | **admin.** Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
 | `::npcs [radius]` | Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range |
-| `::delnpc index` | Removes NPC `index` (from `::npcs`) |
-| `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
+| `::delnpc index` | **admin.** Removes NPC `index` (from `::npcs`) |
+| `::follow index` | **admin.** NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
 | `::reset` | Puts you back as you were before your first `::scenario` |
 
