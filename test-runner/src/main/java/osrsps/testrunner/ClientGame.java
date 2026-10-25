@@ -381,14 +381,19 @@ final class ClientGame implements Game
 		{
 			if (o != null && locMatches(o, name, id))
 			{
-				if (option == null || locOpIndex(o.getId(), option) >= 0)
+				// A hidden loc (no current form) matches by its id but isn't there to see.
+				if (option == null ? locComposition(o.getId()) != null : locOpIndex(o.getId(), option) >= 0)
 				{
 					return null;
 				}
 				seen = true;
 			}
 		}
-		return seen ? "loc " + what + " has no option \"" + option + "\"" : "no loc " + what;
+		if (!seen)
+		{
+			return "no loc " + what;
+		}
+		return option == null ? "loc " + what + " is hidden" : "loc " + what + " has no option \"" + option + "\"";
 	}
 
 	/** True when the loc stands on the target tile; a big loc counts on every tile it covers. */
