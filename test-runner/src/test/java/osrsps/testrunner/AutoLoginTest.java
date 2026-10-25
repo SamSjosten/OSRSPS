@@ -46,6 +46,25 @@ public class AutoLoginTest
 	}
 
 	@Test
+	public void anotherNameTypedOverTheAccountStopsItUntilAReset()
+	{
+		AutoLogin a = new AutoLogin();
+		a.loginScreen(0);
+		assertFalse("a remembered name before the first try doesn't count", a.takenOver("test2", "test"));
+		a.tried(AutoLogin.SETTLE_MS);
+		assertFalse("the account it typed", a.takenOver("Test", "test"));
+		assertFalse("a box cleared to type in", a.takenOver("", "test"));
+		assertTrue(a.takenOver("test2", "test"));
+		assertFalse(a.due(1_000_000));
+		a.loggedIn();
+		a.loginScreen(2_000_000);
+		assertFalse("still theirs after their login and logout", a.due(3_000_000));
+		a.reset();
+		a.loginScreen(4_000_000);
+		assertTrue(a.due(4_000_000 + AutoLogin.SETTLE_MS));
+	}
+
+	@Test
 	public void aResetStartsTheCountAgain()
 	{
 		AutoLogin a = new AutoLogin();

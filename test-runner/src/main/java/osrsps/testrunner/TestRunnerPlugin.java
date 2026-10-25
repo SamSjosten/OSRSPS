@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 public class TestRunnerPlugin extends Plugin
 {
 	/** Written into every result, bumped with every change to how scripts run. */
-	static final String RUNNER_VERSION = "0.4.3";
+	static final String RUNNER_VERSION = "0.4.4";
 	private static final Logger log = LoggerFactory.getLogger(TestRunnerPlugin.class);
 	/** How long a failure waits for a frame to screenshot before writing its result without one. */
 	private static final long SCREENSHOT_WAIT_MS = 3_000;
@@ -164,6 +164,11 @@ public class TestRunnerPlugin extends Plugin
 		String account = config.autoLoginAccount().trim();
 		if (account.isEmpty())
 		{
+			return;
+		}
+		if (autoLogin.takenOver(client.getUsername(), account))
+		{
+			log.info("Test runner: someone typed {} over {}; auto login is off until the plugin restarts", client.getUsername(), account);
 			return;
 		}
 		boolean allowed = false;
