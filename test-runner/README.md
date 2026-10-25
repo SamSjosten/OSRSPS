@@ -117,7 +117,7 @@ server's answer instead of failing on what was there before.
 | `command` | `text`, `expectMessage` | Puts `text` in the chat input and presses Enter. `::` is added if missing. With `expectMessage`, waits for a chat message containing it. |
 | `chat` | `text`, `expectMessage` | Same, without adding `::`. |
 | `assertLocation` | `x`, `y`, `plane` | Waits until the player stands on the tile. Without `plane`, any plane. |
-| `walk` | `x`, `y` | Clicks Walk here on the tile, then waits until the player stands on it. The tile must be on screen. Default timeout 30 s. |
+| `walk` | `x`, `y` | Clicks Walk here on the tile, then waits until the player stands on it. The tile must be on screen; until it is (right after a teleport the scene can lag a moment), it keeps trying. Default timeout 30 s. |
 | `npcOption` | `npc` (name) or `npcId`, `option` | Clicks the option (such as `Talk-to`) on the nearest such NPC, retrying until one is in view. Doesn't wait for the result: follow it with an assert. |
 | `assertDialogue` | `contains`, `speaker` | Waits until an open dialogue's text contains `contains` and its name is `speaker` (both optional). Colour tags and line breaks are removed first. |
 | `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. |
