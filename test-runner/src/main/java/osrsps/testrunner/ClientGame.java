@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import net.runelite.api.Client;
+import net.runelite.api.EntityOps;
 import net.runelite.api.GameObject;
 import net.runelite.api.GameState;
 import net.runelite.api.MenuAction;
@@ -187,7 +188,7 @@ final class ClientGame implements Game
 			return nameSeen ? "NPC " + who + " has no option \"" + option + "\"" : "no NPC " + who + " in view";
 		}
 		int op = opIndex(best, option);
-		client.menuAction(0, 0, NPC_OPS[op], best.getIndex(), -1, composition(best).getActions()[op], best.getName());
+		client.menuAction(0, 0, NPC_OPS[op], best.getIndex(), -1, composition(best).getOps().getOp(op), best.getName());
 		return null;
 	}
 
@@ -200,14 +201,23 @@ final class ClientGame implements Game
 	private static int opIndex(NPC npc, String option)
 	{
 		NPCComposition c = composition(npc);
-		String[] actions = c == null ? null : c.getActions();
-		if (actions == null)
+		return c == null ? -1 : opSlot(c.getOps(), option);
+	}
+
+	/**
+	 * The menu op slot (0 for the first option to 4 for the fifth) whose text is the option, or -1. Read from the ops,
+	 * not getActions(): since RuneLite 1.13 that array is sparse (the second option at index 2, and so on).
+	 */
+	private static int opSlot(EntityOps ops, String option)
+	{
+		if (ops == null)
 		{
 			return -1;
 		}
-		for (int i = 0; i < actions.length && i < NPC_OPS.length; i++)
+		for (int i = 0; i < EntityOps.MAX_OPS; i++)
 		{
-			if (actions[i] != null && Dialogue.clean(actions[i]).equalsIgnoreCase(option))
+			String op = ops.getOp(i);
+			if (op != null && Dialogue.clean(op).equalsIgnoreCase(option))
 			{
 				return i;
 			}
@@ -278,7 +288,7 @@ final class ClientGame implements Game
 		// click back; not yet tried in the client.
 		Point p = best instanceof GameObject ? ((GameObject) best).getSceneMinLocation() : sceneTile(best);
 		ObjectComposition c = locComposition(best.getId());
-		client.menuAction(p.getX(), p.getY(), LOC_OPS[bestOp], best.getId(), -1, c.getActions()[bestOp], c.getName());
+		client.menuAction(p.getX(), p.getY(), LOC_OPS[bestOp], best.getId(), -1, c.getOps().getOp(bestOp), c.getName());
 		return null;
 	}
 
@@ -330,19 +340,7 @@ final class ClientGame implements Game
 	private int locOpIndex(int id, String option)
 	{
 		ObjectComposition c = locComposition(id);
-		String[] actions = c == null ? null : c.getActions();
-		if (actions == null)
-		{
-			return -1;
-		}
-		for (int i = 0; i < actions.length && i < LOC_OPS.length; i++)
-		{
-			if (actions[i] != null && Dialogue.clean(actions[i]).equalsIgnoreCase(option))
-			{
-				return i;
-			}
-		}
-		return -1;
+		return c == null ? -1 : opSlot(c.getOps(), option);
 	}
 
 	@Override
