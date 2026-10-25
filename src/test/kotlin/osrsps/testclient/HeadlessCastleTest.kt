@@ -9,7 +9,13 @@ import osrsps.game.content.Climbing
 import osrsps.game.content.LumbridgeCastle.CELLAR_LADDER
 import osrsps.game.content.LumbridgeCastle.CLIMB
 import osrsps.game.content.LumbridgeCastle.CLIMB_DOWN
+import osrsps.game.content.LumbridgeCastle.DOOR_OPEN
+import osrsps.game.content.LumbridgeCastle.KITCHEN_DOOR
 import osrsps.game.content.LumbridgeCastle.KITCHEN_TRAPDOOR
+import osrsps.game.content.LumbridgeCastle.LARGE_DOOR_LEFT
+import osrsps.game.content.LumbridgeCastle.LARGE_DOOR_LEFT_OPEN
+import osrsps.game.content.LumbridgeCastle.LARGE_DOOR_RIGHT
+import osrsps.game.content.LumbridgeCastle.LARGE_DOOR_RIGHT_OPEN
 import osrsps.game.content.LumbridgeCastle.LADDER_BOTTOM
 import osrsps.game.content.LumbridgeCastle.LADDER_MIDDLE
 import osrsps.game.content.LumbridgeCastle.LADDER_TOP
@@ -26,8 +32,8 @@ import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 
 /**
- * Getting about Lumbridge Castle through the headless client: its stairs, ladders, kitchen trapdoor and cellar ladder,
- * placed as the 241 cache has them (types, sizes and options too), on open ground.
+ * Getting about Lumbridge Castle through the headless client: its stairs, ladders, kitchen trapdoor, cellar ladder and
+ * doors, placed as the 241 cache has them (types, sizes and options too), on open ground.
  */
 class HeadlessCastleTest {
     private fun type(id: Int, name: String, size: Int, vararg ops: String) =
@@ -43,6 +49,12 @@ class HeadlessCastleTest {
             type(LADDER_TOP, "Ladder", 1, "Climb-down"),
             type(KITCHEN_TRAPDOOR, "Trapdoor", 1, "Climb-down"),
             type(CELLAR_LADDER, "Ladder", 1, "Climb-up"),
+            type(KITCHEN_DOOR, "Door", 1, "Open"),
+            type(DOOR_OPEN, "Door", 1, "Close"),
+            type(LARGE_DOOR_LEFT, "Large door", 1, "Open"),
+            type(LARGE_DOOR_LEFT_OPEN, "Large door", 1, "Close"),
+            type(LARGE_DOOR_RIGHT, "Large door", 1, "Open"),
+            type(LARGE_DOOR_RIGHT_OPEN, "Large door", 1, "Close"),
         ).associateBy { it.id },
     )
 
@@ -55,6 +67,9 @@ class HeadlessCastleTest {
         ZoneLoc(LADDER_TOP, LocShape.CENTREPIECE_STRAIGHT, 0, 3229, 3213, 2),
         ZoneLoc(KITCHEN_TRAPDOOR, LocShape.GROUND_DECOR, 0, 3209, 3216, 0),
         ZoneLoc(CELLAR_LADDER, LocShape.CENTREPIECE_STRAIGHT, 3, 3209, 9616, 0),
+        ZoneLoc(KITCHEN_DOOR, LocShape.WALL_STRAIGHT, 1, 3207, 3217, 0),
+        ZoneLoc(LARGE_DOOR_LEFT, LocShape.WALL_STRAIGHT, 0, 3213, 3221, 0),
+        ZoneLoc(LARGE_DOOR_RIGHT, LocShape.WALL_STRAIGHT, 0, 3213, 3222, 0),
     )
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
@@ -137,6 +152,29 @@ class HeadlessCastleTest {
                 client.awaitAt(3209, 3217 + Climbing.DUNGEON_OFFSET, 0)
                 client.locOp(CELLAR_LADDER, 3209, 9616, 1)
                 client.awaitAt(3209, 3217, 0)
+            }
+        }
+    }
+
+    @Test
+    fun `the kitchen door and both leaves of the large doors open and close`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3207, 3218, 0)
+                client.locOp(KITCHEN_DOOR, 3207, 3217, 1)
+                val kitchenOpen = LocChange(DOOR_OPEN, LocShape.WALL_STRAIGHT, 2, Coord(3207, 3218))
+                client.await("the kitchen door open") { client.locChanges().takeIf { kitchenOpen in it } }
+                client.locOp(DOOR_OPEN, 3207, 3218, 1)
+                client.await("the kitchen door shut") { client.locChanges().takeIf { kitchenOpen !in it } }
+
+                client.tele(3214, 3221, 0)
+                client.locOp(LARGE_DOOR_LEFT, 3213, 3221, 1)
+                val leftOpen = LocChange(LARGE_DOOR_LEFT_OPEN, LocShape.WALL_STRAIGHT, 3, Coord(3212, 3221))
+                val rightOpen = LocChange(LARGE_DOOR_RIGHT_OPEN, LocShape.WALL_STRAIGHT, 1, Coord(3212, 3222))
+                client.await("both large doors open") { client.locChanges().takeIf { it.containsAll(listOf(leftOpen, rightOpen)) } }
+                client.locOp(LARGE_DOOR_RIGHT_OPEN, 3212, 3222, 1)
+                client.await("both large doors shut") { client.locChanges().takeIf { leftOpen !in it && rightOpen !in it } }
             }
         }
     }
