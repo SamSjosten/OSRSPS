@@ -88,11 +88,21 @@ class HeadlessCastleTest {
     private fun HeadlessClient.awaitAt(x: Int, z: Int, level: Int) =
         assertEquals(Coord(x, z, level), await("$x, $z, $level") { position?.takeIf { it == Coord(x, z, level) } })
 
-    /** Runs one tick of a paused world and waits for its updates. */
+    /**
+     * Runs one tick of a paused world and waits for all of its updates. The tick ends with "Paused after tick n" and
+     * then its tick end; waiting on the message, not just a tick end, keeps a late tick end from the tick that paused
+     * the world from passing for this one.
+     */
     private fun HeadlessClient.step() {
-        val seen = ticksSeen
+        val from = messages().size
         command("step")
-        await("the tick after $seen") { if (ticksSeen > seen) Unit else null }
+        val done = await("the step to finish") { messages().drop(from).firstOrNull { it.text.matches(STEPPED) } }
+        await("the stepped tick's end") { if (ticksSeen > done.tick) Unit else null }
+    }
+
+    private companion object {
+        /** What a finished ::step says; the ::pause reply has more after the number. */
+        val STEPPED = Regex("Paused after tick \\d+")
     }
 
     @Test
