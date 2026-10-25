@@ -1,0 +1,28 @@
+# Lumbridge Castle's item spawns, inside the castle, its south-east storeroom and the cellar. Tiles from RSMod's
+# Lumbridge spawn data (rev 233); items, floors and counts checked against the OSRS Wiki where it lists them (read
+# 2026-10-25). Every respawn is RSMod's default of 100 ticks: the wiki gives no respawn times, so all are guessed.
+obj	count	x	z	level	respawn
+# Ground floor
+mindrune	1	3206	3208	0	100	# by the south stairs (wiki: Lumbridge Castle, one mind rune)
+bronze_arrow	1	3205	3227	0	100	# by the north stairs; not checked on the wiki
+knife	1	3205	3212	0	100	# kitchen; not checked on the wiki
+bowl_empty	1	3208	3214	0	100	# kitchen; not checked on the wiki
+pot_empty	1	3209	3214	0	100	# kitchen; not checked on the wiki
+jug_empty	1	3211	3212	0	100	# kitchen; not checked on the wiki
+knife	1	3224	3202	0	100	# south-east storeroom; not checked on the wiki
+# First floor (the Duke's)
+bronze_dagger	1	3213	3216	1	100	# on the drawers (wiki: Lumbridge Castle 1st floor, 1)
+# Top floor
+logs	1	3205	3224	2	100	# wiki: four logs on the top floor
+logs	1	3205	3226	2	100	# wiki: four logs on the top floor
+logs	1	3208	3225	2	100	# wiki: four logs on the top floor
+logs	1	3209	3224	2	100	# wiki: four logs on the top floor
+bronze_pickaxe	1	3229	3215	2	100	# wiki: Lumbridge Castle gatehouse top floor, 2
+bronze_pickaxe	1	3229	3223	2	100	# wiki: Lumbridge Castle gatehouse top floor, 2
+# Cellar (all quests complete: the wiki gives no quest condition for these spawns)
+knife	1	3215	9625	0	100	# wiki: knife in the cellar
+bucket_empty	1	3216	9625	0	100	# wiki: bucket in the cellar
+leather_boots	1	3208	9620	0	100	# wiki: Lumbridge Castle cellar, 2
+leather_boots	1	3210	9615	0	100	# wiki: Lumbridge Castle cellar, 2
+jug_empty	1	3211	9625	0	100	# wiki: jug in the cellar
+cabbage	1	3217	9622	0	100	# wiki: Lumbridge Castle cellar, 1
