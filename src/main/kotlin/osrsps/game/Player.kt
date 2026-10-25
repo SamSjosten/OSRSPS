@@ -142,6 +142,12 @@ class Player(
     /** Game ticks spent logged in, which Hans reports as time played. Paused cycles don't count. Saved. */
     var playedTicks: Long = 0
 
+    /**
+     * Dialogue and examine texts show their keys, not the dialogue file's words (`::keys`), so a test script asserts
+     * the same thing whether or not the file has words yet. Not saved.
+     */
+    var showDialogueKeys: Boolean = false
+
     /** Queues, timers and the current delay; run by [World.scripts]. */
     val scripts = PlayerScripts()
 

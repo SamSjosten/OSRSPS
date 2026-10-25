@@ -3,7 +3,7 @@ package osrsps.game.command
 import osrsps.game.FrameSlot
 import osrsps.game.World
 
-/** Testing commands: where am I, put me there, what tick is it, and read the dialogue file again. */
+/** Testing commands: where am I, put me there, what tick is it, read the dialogue file again and show its keys. */
 fun CommandRegistry.registerDevCommands(world: World) {
     register("pos", "::pos") {
         val p = player
@@ -33,6 +33,17 @@ fun CommandRegistry.registerDevCommands(world: World) {
         val read = world.loadDialogue()
         read.take(MAX_DIALOGUE_REPLIES).forEach { reply(it) }
         if (read.size > MAX_DIALOGUE_REPLIES) reply("... and ${read.size - MAX_DIALOGUE_REPLIES} more in the server log")
+    }
+
+    // For test scripts: with keys on, every dialogue and examine line shows its key whatever the dialogue file holds.
+    register("keys", "::keys [on|off]") {
+        player.showDialogueKeys = when (args.singleOrNull()?.lowercase()) {
+            null -> !player.showDialogueKeys
+            "on" -> true
+            "off" -> false
+            else -> fail("Usage: ::keys [on|off]")
+        }
+        reply(if (player.showDialogueKeys) "Dialogue shows keys" else "Dialogue shows words")
     }
 
     register("tick", "::tick") {

@@ -1,9 +1,14 @@
 {
- "name": "Lumbridge Castle: Talk-to Duke Horacio (keys show while data/dialogue.txt has no words)",
+ "name": "Lumbridge Castle: Talk-to Duke Horacio (::keys on, so keys show whatever data/dialogue.txt holds)",
  "account": "test",
  "steps": [
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
   },
   {
    "step": "command",

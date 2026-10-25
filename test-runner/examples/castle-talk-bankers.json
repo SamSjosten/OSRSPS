@@ -1,9 +1,14 @@
 {
- "name": "Lumbridge Castle: Talk-to the banker and the bank tutor (keys show while data/dialogue.txt has no words)",
+ "name": "Lumbridge Castle: Talk-to the banker and the bank tutor (::keys on, so keys show whatever data/dialogue.txt holds)",
  "account": "test",
  "steps": [
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
   },
   {
    "step": "command",

@@ -202,8 +202,12 @@ class Dialogue internal constructor(val context: ScriptContext, private val dial
 
     suspend fun mesbox(text: String) = dialogues.mesbox(context, text)
 
-    /** [line]'s words, each `{arg}` filled from [values]; its key in brackets while the dialogue file has no words for it. */
-    fun text(line: Line, vararg values: Pair<String, Any>): String = dialogues.words().get(line, *values)
+    /**
+     * [line]'s words, each `{arg}` filled from [values]; its key in brackets while the dialogue file has no words for it,
+     * or while the player has `::keys` on.
+     */
+    fun text(line: Line, vararg values: Pair<String, Any>): String =
+        (if (player.showDialogueKeys) DialogueText.NONE else dialogues.words()).get(line, *values)
 
     suspend fun chatNpc(anim: ChatAnim?, line: Line, vararg values: Pair<String, Any>) = chatNpc(anim, text(line, *values))
 

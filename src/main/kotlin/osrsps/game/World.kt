@@ -153,6 +153,9 @@ class World(
     var dialogueText: DialogueText = DialogueText.NONE
         private set
 
+    /** The words [player] sees: none, so every line shows its key, while they have `::keys` on. */
+    fun textFor(player: Player): DialogueText = if (player.showDialogueKeys) DialogueText.NONE else dialogueText
+
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
@@ -747,7 +750,7 @@ class World(
     fun onLocExamine(player: Player, id: Int) = act(player) {
         val line = Examines.loc(id)
         if (line != null) {
-            player.session.queue(MessageGame(CHATTYPE_OBJEXAMINE, dialogueText[line]))
+            player.session.queue(MessageGame(CHATTYPE_OBJEXAMINE, textFor(player)[line]))
             return@act
         }
         val type = locs.types[id]
@@ -840,7 +843,7 @@ class World(
     fun onNpcExamine(player: Player, id: Int) = act(player) {
         val line = Examines.npc(id)
         if (line != null) {
-            player.session.queue(MessageGame(CHATTYPE_NPC_EXAMINE, dialogueText[line]))
+            player.session.queue(MessageGame(CHATTYPE_NPC_EXAMINE, textFor(player)[line]))
             return@act
         }
         // Not live behaviour: tells the tester the NPC isn't in examines.json.
