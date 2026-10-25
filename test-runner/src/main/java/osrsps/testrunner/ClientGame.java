@@ -381,8 +381,10 @@ final class ClientGame implements Game
 		{
 			if (o != null && locMatches(o, name, id))
 			{
-				// A hidden loc (no current form) matches by its id but isn't there to see.
-				if (option == null ? locComposition(o.getId()) != null : locOpIndex(o.getId(), option) >= 0)
+				// A hidden loc (no current form) matches by its id but isn't there to see. Examine is the client's own
+				// entry, on every loc that is there, not one of its ops.
+				boolean anyForm = option == null || isExamine(option);
+				if (anyForm ? locComposition(o.getId()) != null : locOpIndex(o.getId(), option) >= 0)
 				{
 					return null;
 				}
