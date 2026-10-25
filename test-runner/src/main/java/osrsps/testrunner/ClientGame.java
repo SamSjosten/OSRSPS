@@ -312,19 +312,14 @@ final class ClientGame implements Game
 		return t.getX() == target.getSceneX() && t.getY() == target.getSceneY();
 	}
 
-	/** What the loc is now: a loc that changes with a varbit (a door some quests open) is its impostor. */
+	/**
+	 * What the loc is now: a loc that changes with a varbit (a door some quests open) is its impostor. Null when it has
+	 * no current form (hidden), so it is never clicked.
+	 */
 	private ObjectComposition locComposition(int id)
 	{
 		ObjectComposition c = client.getObjectDefinition(id);
-		if (c != null && c.getImpostorIds() != null)
-		{
-			ObjectComposition now = c.getImpostor();
-			if (now != null)
-			{
-				return now;
-			}
-		}
-		return c;
+		return c != null && c.getImpostorIds() != null ? c.getImpostor() : c;
 	}
 
 	private boolean locMatches(TileObject o, String name, int id)
