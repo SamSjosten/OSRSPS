@@ -426,6 +426,23 @@ Hans (`game/content/Hans.kt`) is the example: Talk-to and Age, as the OSRS Wiki'
 | Hans's conversation: its lines, options and order | OSRS Wiki, Transcript:Hans |
 | Hans's expressions, Age giving the time-played lines alone, where he runs when threatened | guessed |
 
+Lumbridge Castle's Cook (`Cook.kt`), Duke Horacio (`DukeHoracio.kt`), men and women (`Townsfolk.kt`), Perdu
+(`Perdu.kt`), the Crafting tutor (`CraftingTutor.kt`), the bankers (`Bankers.kt`), and outside the gate the Doomsayer
+(`Doomsayer.kt`) and Hatius Cosaintus (`Hatius.kt`) talk as they do once every quest is done, since every account here
+has done them all. The Lumbridge Guide doesn't talk yet. The Duke gives an anti-dragon shield to a player carrying or
+wearing none, and one talk with a man or woman in 128 hands over a flier. Not built yet, so their options end the talk
+or do nothing: the bank, PIN settings, collection box and bank space; Perdu's Lost Property Shop; the Doomsayer's warnings
+(Toggle warnings); achievement diaries; Attack and Pickpocket.
+
+| Castle NPC behaviour | Source |
+|----------------------|--------|
+| The Cook's and the Duke's conversations: lines, options, order, when the shield is offered | OSRS Wiki, Transcript:Cook (Lumbridge) and Transcript:Duke Horacio |
+| The Cook's answer to "other quests" after Recipe for Disaster on a members' world (the free-to-play answer, with no line from the player) | guessed: the Wiki leaves it out |
+| Men's and women's 23 conversations, the 1 in 128 flier | OSRS Wiki, Transcript:Man, Transcript:Woman, Flier |
+| Perdu's, the Crafting tutor's, the banker's, the Banker tutor's, the Doomsayer's and Hatius's conversations | OSRS Wiki, their transcripts |
+| Hatius leaving out "another ring" for a player with no diary done | guessed: the Wiki lists it with no condition |
+| The Duke's first menu's order; skipping the "which dragon" menu once only one option is left; an item handed over landing at your feet with a full inventory; the other 22 townsfolk talks being equally likely; where the tutors' menus lead after a topic; every expression | guessed |
+
 Check: Talk-to Hans. He greets you; continue, pick each option in turn (talk to him again for each), and walk away
 mid-dialogue to see it close. Right-click him, Age, for your time played. With no words in the dialogue file, each line
 shows its key, such as `[hans.greeting]`.

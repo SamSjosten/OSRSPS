@@ -16,6 +16,11 @@ import osrsps.game.World
  * `castledoubledoorl`, `castledoubledoorr`, checked in the 241 cache), so they are taken to open into that door's open
  * type. Inferred, not seen on live.
  *
+ * NPCs: Hans (see [Hans]), the Cook ([Cook]), Duke Horacio ([DukeHoracio]), the men and women ([Townsfolk]), Perdu
+ * ([Perdu]), the Crafting tutor ([CraftingTutor]), the bankers ([Bankers]), and outside the gate the Doomsayer
+ * ([Doomsayer]) and Hatius Cosaintus ([Hatius]) talk, as they do once every quest is done. The Lumbridge Guide, also
+ * outside the gate, doesn't talk yet.
+ *
  * Searching: the crates, sacks, chest and drawers (see [Searching]). Not done yet, for want of a source: the Lost Tribe
  * chest (`lost_tribe_chest` 6910, next to the Duke's room) after the quest, and the winch on the top floor.
  */
@@ -82,8 +87,16 @@ object LumbridgeCastle {
     const val SKIP_FLOOR = 2
 }
 
-/** Lumbridge Castle's stairs, ladders, trapdoor, cellar ladder, doors and searchable furniture. */
+/** Lumbridge Castle's stairs, ladders, trapdoor, cellar ladder, doors, searchable furniture and NPCs' options. */
 fun registerLumbridgeCastle(world: World) {
+    registerCook(world)
+    registerDukeHoracio(world)
+    registerTownsfolk(world)
+    registerPerdu(world)
+    registerCraftingTutor(world)
+    registerBankers(world)
+    registerDoomsayer(world)
+    registerHatius(world)
     with(LumbridgeCastle) {
         for (crate in listOf(CRATE, CRATE_2, CRATE_3)) registerSearch(world, crate, 1, Searching.CRATE_EMPTY)
         registerSearch(world, SACKS, 1, Searching.SACKS_EMPTY)
