@@ -1,0 +1,216 @@
+{
+ "name": "Lumbridge Castle: every option on the south-west and north-west stairs",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3206 3208 0",
+   "expectMessage": "Teleported to 3206, 3208, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3208,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Top-floor",
+   "x": 3204,
+   "y": 3207
+  },
+  {
+   "step": "assertLocation",
+   "x": 3205,
+   "y": 3209,
+   "plane": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3205,
+   "y": 3208
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3208,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3204,
+   "y": 3207
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3208,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3204,
+   "y": 3207
+  },
+  {
+   "step": "assertLocation",
+   "x": 3205,
+   "y": 3209,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb",
+   "x": 3204,
+   "y": 3207
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "Climb up or down the stairs?"
+  },
+  {
+   "step": "chooseOption",
+   "text": "Climb down the stairs."
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3208,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3205 3228 0",
+   "expectMessage": "Teleported to 3205, 3228, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3205,
+   "y": 3228,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3204,
+   "y": 3229
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3229,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3204,
+   "y": 3229
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3229,
+   "plane": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3205,
+   "y": 3229
+  },
+  {
+   "step": "assertLocation",
+   "x": 3205,
+   "y": 3228,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb",
+   "x": 3204,
+   "y": 3229
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "Climb up or down the stairs?"
+  },
+  {
+   "step": "chooseOption",
+   "text": "Climb up the stairs."
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3229,
+   "plane": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Bottom-floor",
+   "x": 3205,
+   "y": 3229
+  },
+  {
+   "step": "assertLocation",
+   "x": 3205,
+   "y": 3228,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Top-floor",
+   "x": 3204,
+   "y": 3229
+  },
+  {
+   "step": "assertLocation",
+   "x": 3206,
+   "y": 3229,
+   "plane": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3205,
+   "y": 3229
+  },
+  {
+   "step": "assertLocation",
+   "x": 3205,
+   "y": 3228,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3204,
+   "y": 3229
+  },
+  {
+   "step": "assertLocation",
+   "x": 3205,
+   "y": 3228,
+   "plane": 0
+  }
+ ]
+}

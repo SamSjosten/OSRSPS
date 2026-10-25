@@ -1,0 +1,41 @@
+{
+ "name": "Lumbridge Castle: Talk-to a woman (keys show while data/dialogue.txt has no words)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3217 3206 0",
+   "expectMessage": "Teleported to 3217, 3206, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3217,
+   "y": 3206,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Woman",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[woman.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[woman."
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "which talk follows is random, so the script ends here, the dialogue left open"
+  }
+ ]
+}

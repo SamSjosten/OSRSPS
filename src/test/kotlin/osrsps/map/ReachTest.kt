@@ -72,9 +72,12 @@ class ReachTest {
     }
 
     @Test
-    fun `turning keeps the client's quirk of letting high access bits fall back in`() {
-        // 29 is 16 + 8 + 4 + 1. Turned once, the client gets (29 shl 1 and 15) + (29 shr 3) = 10 + 3 = 13.
-        assertEquals(13, RouteTarget.loc(0, 0, LocShape.CENTREPIECE_STRAIGHT, 1, 1, 1, 29).accessBlock)
+    fun `turning uses only the four side bits`() {
+        // 29 is 16 + 8 + 4 + 1: north, south and west blocked. Turned once: east, west and north; twice: north, east and
+        // south (Lumbridge Castle's drawers, used from the west).
+        assertEquals(11, RouteTarget.loc(0, 0, LocShape.CENTREPIECE_STRAIGHT, 1, 1, 1, 29).accessBlock)
+        assertEquals(7, RouteTarget.loc(0, 0, LocShape.CENTREPIECE_STRAIGHT, 2, 1, 1, 29).accessBlock)
+        assertEquals(13, RouteTarget.loc(0, 0, LocShape.CENTREPIECE_STRAIGHT, 0, 1, 1, 29).accessBlock)
     }
 
     @Test

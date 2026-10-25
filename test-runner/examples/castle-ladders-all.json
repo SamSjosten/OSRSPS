@@ -1,0 +1,112 @@
+{
+ "name": "Lumbridge Castle: the north ladder's options and the south ladder's Climb-down from its menu",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3228 3224 0",
+   "expectMessage": "Teleported to 3228, 3224, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3224,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3229,
+   "y": 3224
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3224,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3229,
+   "y": 3224
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3224,
+   "plane": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-down",
+   "x": 3229,
+   "y": 3224
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3224,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb",
+   "x": 3229,
+   "y": 3224
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "Climb up or down the ladder?"
+  },
+  {
+   "step": "chooseOption",
+   "text": "Climb-down"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3224,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3228 3213 1",
+   "expectMessage": "Teleported to 3228, 3213, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3213,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb",
+   "x": 3229,
+   "y": 3213
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "Climb up or down the ladder?"
+  },
+  {
+   "step": "chooseOption",
+   "text": "Climb-down"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3228,
+   "y": 3213,
+   "plane": 0
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+{
+ "name": "Lumbridge Castle: the Duke's floor drawers open, have nothing in them, and shut",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3212 3216 1",
+   "expectMessage": "Teleported to 3212, 3216, 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3212,
+   "y": 3216,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Drawers",
+   "option": "Open",
+   "x": 3213,
+   "y": 3216
+  },
+  {
+   "step": "locOption",
+   "loc": "Drawers",
+   "option": "Search",
+   "x": 3213,
+   "y": 3216,
+   "comment": "only there once the drawers have opened"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "The drawers are empty."
+  },
+  {
+   "step": "locOption",
+   "loc": "Drawers",
+   "option": "Shut",
+   "x": 3213,
+   "y": 3216
+  }
+ ]
+}

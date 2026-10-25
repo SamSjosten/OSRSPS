@@ -17,6 +17,10 @@ class DoorsTest {
             LocType(DOOR, "Door", ops = listOf("Open", null, null, null, null), internalName = "elfdoor"),
             LocType(DOOR_OPEN, "Door", ops = listOf("Close", null, null, null, null), internalName = "elfdooropen"),
             LocType(OTHER_DOOR, "Door", ops = listOf("Open", null, null, null, null), internalName = "otherdoor"),
+            LocType(DOOR_M, "Door", ops = listOf("Open", null, null, null, null), internalName = "poordoor_m"),
+            LocType(DOOR_M_OPEN, "Door", ops = listOf("Close", null, null, null, null), internalName = "poordooropen_m"),
+            LocType(TRAPDOOR, "Trapdoor", ops = listOf("Open", null, null, null, null), internalName = "trapdoor_level1"),
+            LocType(TRAPDOOR_OPEN, "Trapdoor", ops = listOf("Close", null, null, null, null), internalName = "trapdoor_open_level1"),
             LocType(LEFT, "Large door", ops = listOf("Open", null, null, null, null)),
             LocType(LEFT_OPEN, "Large door", ops = listOf("Close", null, null, null, null)),
             LocType(RIGHT, "Large door", ops = listOf("Open", null, null, null, null)),
@@ -91,6 +95,14 @@ class DoorsTest {
         assertEquals(DOOR_OPEN, doors.openType(DOOR))
     }
 
+    @Test
+    fun `a door with something after door in its name pairs with open put after door`() {
+        assertEquals(DOOR_M_OPEN, doors.openType(DOOR_M))
+        assertEquals(DOOR_M, doors.closedType(DOOR_M_OPEN))
+        // Trapdoors aren't wall doors.
+        assertNull(doors.openType(TRAPDOOR))
+    }
+
     private companion object {
         const val DOOR = 1543
         const val DOOR_OPEN = 1544
@@ -99,5 +111,9 @@ class DoorsTest {
         const val LEFT_OPEN = 1522
         const val RIGHT = 12350
         const val RIGHT_OPEN = 1525
+        const val DOOR_M = 56376
+        const val DOOR_M_OPEN = 56377
+        const val TRAPDOOR = 1580
+        const val TRAPDOOR_OPEN = 1582
     }
 }

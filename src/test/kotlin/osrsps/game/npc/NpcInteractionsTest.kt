@@ -194,6 +194,39 @@ class NpcInteractionsTest {
     }
 
     @Test
+    fun `an NPC registered for it is used from across a counter, others not`() {
+        // A row of bank booths (block walking, not projectiles) along z 3211 the width of the map square; the NPC behind
+        // the one at 3212, 3211, on a blocked floor as Lumbridge's banker stands.
+        for (x in 3200..3263) LocCollision(map).addLoc(LocCollisionType(blocksProjectile = false), x, 3211, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        map.add(3212, 3212, 0, osrsps.map.CollisionFlag.FLOOR)
+        val npc = spawn(x = 3212, z = 3212)
+        val used = mutableListOf<Long>()
+        handlers.onNpc(HANS, 1) { used += tick }
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        repeat(3) { tick() }
+        assertEquals(emptyList(), used)
+        assertEquals(listOf(Interactions.CANT_REACH), messages)
+
+        interactions.reachOverCounter(HANS)
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        tick()
+        assertEquals(listOf(1L + 3), used)
+        assertEquals(3212 to 3210, player.x to player.z)
+    }
+
+    @Test
+    fun `a counter that blocks projectiles stops the reach across it`() {
+        interactions.reachOverCounter(HANS)
+        for (x in 3200..3263) LocCollision(map).addLoc(LocCollisionType(), x, 3211, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        map.add(3212, 3212, 0, osrsps.map.CollisionFlag.FLOOR)
+        val npc = spawn(x = 3212, z = 3212)
+        handlers.onNpc(HANS, 1) { error("used") }
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        repeat(3) { tick() }
+        assertEquals(listOf(Interactions.CANT_REACH), messages)
+    }
+
+    @Test
     fun `the NPC going away ends the interaction quietly`() {
         val npc = spawn()
         interactions.click(player, npc.index, 1, -1, invertRun = false)

@@ -139,8 +139,10 @@ object Bankers {
     }
 }
 
-/** The bankers' Talk-to. Bank and Collect do nothing yet. */
+/** The bankers' Talk-to, from across their booths. Bank and Collect do nothing yet. */
 fun registerBankers(world: World) {
+    world.npcInteractions.reachOverCounter(Bankers.BANKER)
+    world.npcInteractions.reachOverCounter(Bankers.BANKER_TUTOR)
     world.handlers.onNpc(Bankers.BANKER, Bankers.TALK_TO) { op ->
         world.dialogues.start(this, op.npc) { with(Bankers) { banker() } }
     }

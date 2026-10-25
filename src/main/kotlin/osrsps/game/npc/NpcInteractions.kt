@@ -15,6 +15,7 @@ import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptRunner
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.Reach
 import osrsps.map.RouteTarget
@@ -160,7 +161,7 @@ class NpcInteractions(
             return true
         }
         val size = npc.type.size
-        if (!Reach.reachedEntity(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size)) {
+        if (!Reach.reachedEntity(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size) && !overCounter(player, npc)) {
             if (interaction.routedTo != Tile(npc.x, npc.z)) route(player, interaction)
             return false
         }
@@ -191,6 +192,41 @@ class NpcInteractions(
             message(player, NOTHING_INTERESTING)
         }
         return true
+    }
+
+    /** NPC types used from across a counter; see [reachOverCounter]. */
+    private val overCounter = HashSet<Int>()
+
+    /**
+     * Lets players use NPC type [id] (the type they see, for a multi-NPC) from across a counter, such as a banker behind
+     * a bank booth: from two tiles away in a straight line, with a loc between that blocks walking but not projectiles,
+     * and no wall. Live talks to bankers across their booths; the rule's shape (the RS2 engine's approach range of 2,
+     * as 2004Scape has it for bankers) is inferred, not from a recording.
+     */
+    fun reachOverCounter(id: Int) {
+        overCounter += id
+    }
+
+    private fun overCounter(player: Player, npc: Npc): Boolean {
+        if (npc.type.size != 1) return false
+        if (npc.type.id !in overCounter && shownType(npc, player)?.id !in overCounter) return false
+        val dx = npc.x - player.x
+        val dz = npc.z - player.z
+        if (!((dx == 0 && abs(dz) == 2) || (dz == 0 && abs(dx) == 2))) return false
+        val midX = player.x + dx / 2
+        val midZ = player.z + dz / 2
+        val level = player.level
+        val counter = collision[midX, midZ, level]
+        if (counter and CollisionFlag.LOC == 0 || counter and CollisionFlag.LOC_PROJ != 0) return false
+        // The wall flags on each side of each tile crossed, going from the player towards the NPC.
+        val (leaving, entering) = when {
+            dz > 0 -> CollisionFlag.WALL_NORTH to CollisionFlag.WALL_SOUTH
+            dz < 0 -> CollisionFlag.WALL_SOUTH to CollisionFlag.WALL_NORTH
+            dx > 0 -> CollisionFlag.WALL_EAST to CollisionFlag.WALL_WEST
+            else -> CollisionFlag.WALL_WEST to CollisionFlag.WALL_EAST
+        }
+        return collision[player.x, player.z, level] and leaving == 0 && counter and (leaving or entering) == 0 &&
+            collision[npc.x, npc.z, level] and entering == 0
     }
 
     private fun face(player: Player, npc: Npc?) {
