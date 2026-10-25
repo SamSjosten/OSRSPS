@@ -27,6 +27,7 @@ import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.dialogue.ChatFont
+import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcExamines
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.net.ClientConfig
@@ -109,7 +110,7 @@ class GameServer(
         world = World(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir), objTypes, npcTypes,
             npcSpawns, npcExamines, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
-            scenarios = scenarios, chatFont = chatFont,
+            scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)

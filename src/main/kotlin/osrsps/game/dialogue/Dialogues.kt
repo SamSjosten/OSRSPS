@@ -25,6 +25,9 @@ import osrsps.game.script.ScriptRunner
  * world.handlers.onNpc(HANS, 1) { op -> world.dialogues.start(this, op.npc) { chatNpc(ChatAnim.NEUTRAL, "Hello.") } }
  * ```
  *
+ * Content passes a [Line] rather than words wherever the words are Jagex's: its words are read from the dialogue file
+ * outside git (see [DialogueText]).
+ *
  * Each page shows until the player continues; the script then carries on straight away, and if it shows nothing else
  * the dialogue closes (as RSMod's captures of live have it). Walking, clicking something else, Esc, a strong script, `::tele`
  * or ctrl+shift-click closes the dialogue and drops the script. [osrsps.game.World.teleport] itself doesn't, so content can
@@ -40,6 +43,8 @@ class Dialogues(
     /** The NPC type [Player] sees for an NPC (a multi-NPC shows one by their vars), null for none. */
     private val shownType: (Npc, Player) -> NpcType?,
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
+    /** The words of each [Line] now; the dialogue file can be read again while the server runs. */
+    internal val words: () -> DialogueText = { DialogueText.NONE },
 ) {
     /** Runs [block] as a dialogue in [context]'s script, about [npc] if it has one. */
     suspend fun start(context: ScriptContext, npc: Npc? = null, block: suspend Dialogue.() -> Unit) {
@@ -197,6 +202,15 @@ class Dialogue internal constructor(val context: ScriptContext, private val dial
 
     suspend fun mesbox(text: String) = dialogues.mesbox(context, text)
 
+    /** [line]'s words, each `{arg}` filled from [values]; its key in brackets while the dialogue file has no words for it. */
+    fun text(line: Line, vararg values: Pair<String, Any>): String = dialogues.words().get(line, *values)
+
+    suspend fun chatNpc(anim: ChatAnim?, line: Line, vararg values: Pair<String, Any>) = chatNpc(anim, text(line, *values))
+
+    suspend fun chatPlayer(anim: ChatAnim?, line: Line, vararg values: Pair<String, Any>) = chatPlayer(anim, text(line, *values))
+
+    suspend fun mesbox(line: Line, vararg values: Pair<String, Any>) = mesbox(text(line, *values))
+
     suspend fun objbox(obj: Int, text: String, zoom: Int = DEFAULT_ZOOM) = dialogues.objbox(context, obj, text, zoom)
 
     suspend fun doubleobjbox(obj1: Int, obj2: Int, text: String, zoom1: Int = DEFAULT_ZOOM, zoom2: Int = DEFAULT_ZOOM) =
@@ -205,6 +219,10 @@ class Dialogue internal constructor(val context: ScriptContext, private val dial
     /** Shows [options] under [title] and returns the one picked, from 1. */
     suspend fun choice(vararg options: String, title: String = Chatbox.SELECT_AN_OPTION): Int =
         dialogues.choice(context, title, options.toList())
+
+    /** Shows [options]' words and returns the one picked, from 1. */
+    suspend fun choice(vararg options: Line, title: String = Chatbox.SELECT_AN_OPTION): Int =
+        dialogues.choice(context, title, options.map { text(it) })
 
     suspend fun delay(ticks: Int = 1) = context.delay(ticks)
 

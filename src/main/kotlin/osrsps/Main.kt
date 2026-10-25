@@ -6,6 +6,8 @@ import osrsps.cache.CacheInfo
 import osrsps.cache.MapCollisionLoader
 import osrsps.map.CollisionPrinter
 import osrsps.cache.OpenRs2Archive
+import osrsps.game.content.DialogueLines
+import osrsps.game.dialogue.DialogueFile
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.exitProcess
@@ -28,8 +30,9 @@ fun main(args: Array<String>) {
         "cache-info" -> cacheInfo()
         "serve" -> serve(args.getOrNull(1)?.toInt() ?: DEFAULT_PORT)
         "collision" -> printCollision(args.getOrNull(1)?.toInt() ?: 3222, args.getOrNull(2)?.toInt() ?: 3218, args.getOrNull(3)?.toInt() ?: 0)
+        "dialogue-keys" -> writeDialogueKeys()
         else -> {
-            System.err.println("Usage: osrsps [fetch-cache | cache-info | serve [port] | collision [x z [level]]]  (HTTP config on port+1)")
+            System.err.println("Usage: osrsps [fetch-cache | cache-info | serve [port] | collision [x z [level]] | dialogue-keys]  (HTTP config on port+1)")
             exitProcess(2)
         }
     }
@@ -63,6 +66,27 @@ private fun cacheInfo() {
     val summary = CacheInfo.read(cacheDir)
     summary.indices.forEach { logger.info { "index ${it.id}: ${it.groups} groups, revision ${it.revision}, crc ${it.crc}" } }
     logger.info { "Cache at ${cacheDir.toAbsolutePath()} has ${summary.indices.size} indices" }
+}
+
+/**
+ * Writes the dialogue file with every key the server has, each under the Wiki section its words come from, keeping the
+ * words already in it. The old file is kept as dialogue.txt.bak. A line it can't read stops it, so nothing is lost.
+ */
+private fun writeDialogueKeys() {
+    val file = dataDir.resolve(DialogueFile.NAME)
+    val old = if (Files.exists(file)) Files.readString(file) else null
+    val read = old?.let(DialogueFile::parse)
+    if (read != null && read.problems.isNotEmpty()) {
+        read.problems.forEach { logger.error { "${file.fileName}: $it" } }
+        logger.error { "Not rewriting ${file.toAbsolutePath()}: fix the lines above first" }
+        exitProcess(1)
+    }
+    Files.createDirectories(dataDir)
+    if (old != null) Files.writeString(dataDir.resolve(DialogueFile.NAME + ".bak"), old)
+    Files.writeString(file, DialogueFile.render(DialogueLines.ALL, read?.words.orEmpty()))
+    val loaded = DialogueFile.load(file, DialogueLines.ALL)
+    logger.info { "Wrote ${file.toAbsolutePath()}: ${loaded.summary}" }
+    loaded.problems.forEach { logger.warn { "${file.fileName}: $it" } }
 }
 
 /** Prints the collision 15 tiles around a tile, north up, so it can be compared with the game. */

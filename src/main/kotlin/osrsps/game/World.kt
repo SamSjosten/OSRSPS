@@ -41,9 +41,12 @@ import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
+import osrsps.game.content.DialogueLines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerLumbridgeCastle
 import osrsps.game.dialogue.ChatFont
+import osrsps.game.dialogue.DialogueFile
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
 import osrsps.game.loc.Doors
 import osrsps.game.loc.LocInteractions
@@ -61,6 +64,7 @@ import osrsps.game.script.ScriptRunner
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
+import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -97,6 +101,8 @@ class World(
     val scenarios: Scenarios = Scenarios.NONE,
     /** The dialogue font's widths, for counting a dialogue's lines; see [ChatFont]. */
     chatFont: ChatFont = ChatFont.APPROXIMATE,
+    /** The dialogue file, read at start and again by `::dialogue`; null for none, so every line shows its key. */
+    private val dialogueFile: Path? = null,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -144,8 +150,12 @@ class World(
 
     val npcInteractions = NpcInteractions(npcs, npcTypes, collision, movement, handlers, scripts, { tick })
 
+    /** The words of every dialogue line now; see [loadDialogue]. */
+    var dialogueText: DialogueText = DialogueText.NONE
+        private set
+
     /** Chat dialogues for content scripts. */
-    val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType)
+    val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
     val commands = CommandRegistry().apply {
         registerDevCommands(this@World)
@@ -166,6 +176,20 @@ class World(
     init {
         registerHans(this)
         registerLumbridgeCastle(this)
+        loadDialogue()
+    }
+
+    /**
+     * Reads the dialogue file again, so new words show from the next line said. Returns what was read and what was
+     * wrong with it, which is logged too.
+     */
+    fun loadDialogue(): List<String> {
+        val file = dialogueFile ?: return listOf("No dialogue file: every line shows its key").onEach { logger.info { it } }
+        val loaded = DialogueFile.load(file, DialogueLines.ALL)
+        dialogueText = loaded.text
+        logger.info { loaded.summary }
+        loaded.problems.forEach { logger.warn { "${file.fileName}: $it" } }
+        return listOf(loaded.summary) + loaded.problems
     }
 
     /** The phase of the tick being run, or null between ticks and on paused cycles. */

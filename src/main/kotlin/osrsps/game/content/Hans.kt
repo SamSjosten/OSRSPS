@@ -4,13 +4,32 @@ import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
+import osrsps.game.dialogue.Lines
 import osrsps.map.Tile
 import kotlin.math.sign
 
+/** Hans's lines; the words are in the dialogue file, from the Wiki's Transcript:Hans (read 2026-10-22). */
+object HansLines : Lines("hans", "Transcript:Hans") {
+    val GREETING = line("greeting", "Talk-to: Hans's first line")
+    val IN_CHARGE = line("in_charge", "Talk-to: option 1, which the player then says")
+    val KILL = line("kill", "Talk-to: option 2, which the player then says")
+    val LOST = line("lost", "Talk-to: option 3, which the player then says")
+    val HOW_LONG = line("how_long", "Talk-to: option 4, which the player then says")
+    val NOTHING = line("nothing", "Talk-to: option 5, which the player then says")
+    val DUKE = line("duke", "Talk-to: Hans's answer to option 1")
+    val HELP = line("help", "Talk-to: Hans's answer to option 2")
+    val WHERE = line("where", "Talk-to: Hans's answer to option 3")
+    val NEWCOMERS = line("newcomers", "Age (and option 4): Hans's first line")
+    val TIME_PLAYED = line(
+        "time_played", "Age (and option 4): Hans's second line, each [amount] written as its placeholder",
+        "days", "hours", "minutes", "days_ago",
+    )
+}
+
 /**
- * Hans (NPC 3105) in Lumbridge Castle's courtyard: Talk-to and Age. The words are the OSRS Wiki's transcript
- * (Transcript:Hans, read 2026-10-22). Not from the wiki, so guessed: every chathead expression, that Age gives the
- * time-played lines on their own, and how far and where Hans runs when threatened.
+ * Hans (NPC 3105) in Lumbridge Castle's courtyard: Talk-to and Age, as the OSRS Wiki's transcript has them. Not from the
+ * wiki, so guessed: every chathead expression, that Age gives the time-played lines on their own, and how far and where
+ * Hans runs when threatened.
  */
 object Hans {
     const val ID = 3105
@@ -20,61 +39,44 @@ object Hans {
     /** How far Hans runs from a player who threatens him, in tiles along each axis. Guessed. */
     const val FLEE_DISTANCE = 4
 
-    internal suspend fun Dialogue.talk(nowMillis: Long) {
-        chatNpc(ChatAnim.NEUTRAL, "Hello. What are you doing here?")
-        when (
-            choice(
-                "I'm looking for whoever is in charge of this place.",
-                "I have come to kill everyone in this castle!",
-                "I don't know. I'm lost. Where am I?",
-                "Can you tell me how long I've been here?",
-                "Nothing.",
-            )
-        ) {
+    internal suspend fun Dialogue.talk(nowMillis: Long) = with(HansLines) {
+        chatNpc(ChatAnim.NEUTRAL, GREETING)
+        when (choice(IN_CHARGE, KILL, LOST, HOW_LONG, NOTHING)) {
             1 -> {
-                chatPlayer(ChatAnim.NEUTRAL, "I'm looking for whoever is in charge of this place.")
-                chatNpc(ChatAnim.NEUTRAL, "Who, the Duke? He's in his study, on the first floor.")
+                chatPlayer(ChatAnim.NEUTRAL, IN_CHARGE)
+                chatNpc(ChatAnim.NEUTRAL, DUKE)
             }
             2 -> {
-                chatPlayer(ChatAnim.ANGRY, "I have come to kill everyone in this castle!")
+                chatPlayer(ChatAnim.ANGRY, KILL)
                 flee()
-                chatNpc(ChatAnim.SCARED, "Help! Help!")
+                chatNpc(ChatAnim.SCARED, HELP)
             }
             3 -> {
-                chatPlayer(ChatAnim.CONFUSED, "I don't know. I'm lost. Where am I?")
-                chatNpc(
-                    ChatAnim.NEUTRAL,
-                    "You are in Lumbridge Castle, in the Kingdom of Misthalin. Across the river, the road leads north to " +
-                        "Varrock, and to the west lies Draynor Village.",
-                )
+                chatPlayer(ChatAnim.CONFUSED, LOST)
+                chatNpc(ChatAnim.NEUTRAL, WHERE)
             }
             4 -> {
-                chatPlayer(ChatAnim.QUIZ, "Can you tell me how long I've been here?")
+                chatPlayer(ChatAnim.QUIZ, HOW_LONG)
                 age(nowMillis)
             }
-            else -> chatPlayer(ChatAnim.NEUTRAL, "Nothing.")
+            else -> chatPlayer(ChatAnim.NEUTRAL, NOTHING)
         }
     }
 
     internal suspend fun Dialogue.age(nowMillis: Long) {
-        chatNpc(
-            ChatAnim.NEUTRAL,
-            "Ahh, I see all the newcomers arriving in Lumbridge, fresh-faced and eager for adventure. I remember you...",
-        )
-        chatNpc(ChatAnim.NEUTRAL, timePlayed(player, nowMillis))
+        chatNpc(ChatAnim.NEUTRAL, HansLines.NEWCOMERS)
+        chatNpc(ChatAnim.NEUTRAL, HansLines.TIME_PLAYED, *timePlayed(player, nowMillis))
     }
 
     /**
-     * The wiki's "You've spent [amount] days, [amount] hours, [amount] minutes in the world since you arrived [amount]
-     * days ago." Time played counts game ticks logged in (0.6 s each); whether live counts the same way, and how it
+     * The four amounts in the wiki's time-played line: days, hours and minutes played, and how many days ago the account
+     * was made. Time played counts game ticks logged in (0.6 s each); whether live counts the same way, and how it
      * words a count of 1, isn't known.
      */
-    fun timePlayed(player: Player, nowMillis: Long): String {
+    fun timePlayed(player: Player, nowMillis: Long): Array<Pair<String, Any>> {
         val minutes = player.playedTicks * World.TICK_MILLIS / 60_000
-        val days = minutes / (24 * 60)
-        val hours = minutes / 60 % 24
         val daysAgo = ((nowMillis - player.createdAt) / (24 * 60 * 60 * 1000L)).coerceAtLeast(0)
-        return "You've spent $days days, $hours hours, ${minutes % 60} minutes in the world since you arrived $daysAgo days ago."
+        return arrayOf("days" to minutes / (24 * 60), "hours" to minutes / 60 % 24, "minutes" to minutes % 60, "days_ago" to daysAgo)
     }
 
     /**

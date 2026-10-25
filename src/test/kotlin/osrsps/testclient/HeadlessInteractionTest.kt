@@ -1,5 +1,6 @@
 package osrsps.testclient
 
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,11 +29,14 @@ class HeadlessInteractionTest {
     private val guard = NpcSpawn(NpcType(GUARD, "Guard"), 3226, 3214, patrol = listOf(PatrolStop(3226, 3214), PatrolStop(3229, 3214)), source = "test")
 
     private fun server(dir: Path, vararg npcs: NpcSpawn, locs: List<ZoneLoc> = emptyList()) = TestServer(dir) { crcs, millis ->
+        // Our own words for two of Hans's lines, read the way the server reads data/dialogue.txt; the rest show keys.
+        val dialogue = dir.resolve("dialogue.txt")
+        Files.writeString(dialogue, "# test words\nhans.lost = Where am I?\nhans.where = In the castle.\n")
         val crate = LocType(CRATE, "Crate", ops = listOf("One", "Two", "Three", "Four", "Five"), collision = LocCollisionType(width = 1, length = 1))
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, npcSpawns = npcs.toList(),
             locTypes = LocTypes(mapOf(CRATE to crate)), staticLocs = StaticLocs().apply { locs.forEach(::add) },
-            cycleMillis = millis,
+            cycleMillis = millis, dialogueFile = dialogue,
         ).apply {
             for (op in 1..5) {
                 handlers.onNpc(STATUE, op) { player.message("npc op $op") }
@@ -62,24 +66,24 @@ class HeadlessInteractionTest {
                 client.npcOp(npc.index, Hans.TALK_TO)
 
                 assertEquals(
-                    DialogueView.Chat(Chatbox.CHAT_LEFT, "Hans", "Hello. What are you doing here?"),
+                    DialogueView.Chat(Chatbox.CHAT_LEFT, "Hans", "[hans.greeting]"),
                     client.awaitDialogue("Hans's greeting"),
                 )
                 client.continueDialogue()
                 val menu = client.awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu
                 assertEquals(5, menu.options.size)
-                assertEquals("I don't know. I'm lost. Where am I?", menu.options[2])
+                assertEquals(listOf("[hans.in_charge]", "[hans.kill]", "Where am I?", "[hans.how_long]", "[hans.nothing]"), menu.options)
                 client.chooseOption(3)
 
                 val asked = client.awaitDialogue("the player asking") as DialogueView.Chat
                 assertEquals(Chatbox.CHAT_RIGHT, asked.interfaceId)
                 assertEquals("bob", asked.name)
-                assertEquals("I don't know. I'm lost. Where am I?", asked.text)
+                assertEquals("Where am I?", asked.text)
                 client.continueDialogue()
 
                 val answer = client.awaitDialogue("Hans's answer") as DialogueView.Chat
                 assertEquals("Hans", answer.name)
-                assertEquals(true, answer.text.startsWith("You are in Lumbridge Castle"), answer.text)
+                assertEquals("In the castle.", answer.text)
                 client.continueDialogue()
                 client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
                 assertNull(client.dialogueView)
