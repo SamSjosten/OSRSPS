@@ -251,6 +251,42 @@ final class Steps
 		}
 	}
 
+	/**
+	 * Waits for a loc to be on a tile, with an option when one is given: a door shut again (its Open option back) before
+	 * the script teleports away, since a teleport cancels a click the server hasn't carried out yet.
+	 */
+	static final class AssertLoc extends Step
+	{
+		final String loc;
+		final int locId;
+		/** Null for any. */
+		final String option;
+		/** Its plane is ignored: locs are looked for on the player's plane. */
+		final Tile at;
+
+		AssertLoc(long timeoutMs, String loc, int locId, String option, Tile at)
+		{
+			super("assertLoc", timeoutMs, false);
+			this.loc = loc;
+			this.locId = locId;
+			this.option = option;
+			this.at = at;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			String error = run.game.locAt(loc, locId, option, at);
+			return error == null ? Poll.pass("there") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert " + (loc != null ? loc : "loc " + locId) + (option == null ? "" : " with " + option) + " at " + at.x + ", " + at.y;
+		}
+	}
+
 	/** Clicks Take on an item on the ground. Waits (to the timeout) for one to be in the scene; does not wait for the result. */
 	static final class TakeItem extends Step
 	{

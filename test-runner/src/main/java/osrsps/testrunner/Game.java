@@ -36,6 +36,12 @@ interface Game
 	String locOption(String name, int id, String option, Tile at);
 
 	/**
+	 * Null when a loc with this name (or id, when the name is null) is on the tile, on the player's plane, and has the
+	 * option when one is given; otherwise what is there instead.
+	 */
+	String locAt(String name, int id, String option, Tile at);
+
+	/**
 	 * Clicks Take on the nearest item on the ground with this name (or id, when the name is null) on the player's plane.
 	 * With a tile, only an item on that tile counts.
 	 */

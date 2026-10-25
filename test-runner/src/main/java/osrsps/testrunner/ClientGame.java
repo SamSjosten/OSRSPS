@@ -54,6 +54,11 @@ final class ClientGame implements Game
 		MenuAction.GAME_OBJECT_FIFTH_OPTION,
 	};
 
+	/**
+	 * The steepest camera pitch the client allows without its pitch relaxer: looking down at the player. Camera angles are
+	 * JAU14 (2π/16384 a unit); this is the old 11-bit 383 scaled up.
+	 */
+	private static final int CAMERA_PITCH_DOWN = 383 << 3;
 	private static final String EXAMINE = "Examine";
 	private static final String TAKE = "Take";
 
@@ -150,6 +155,7 @@ final class ClientGame implements Game
 		int vy = client.getViewportYOffset();
 		if (p == null || p.getX() < vx || p.getY() < vy || p.getX() >= vx + client.getViewportWidth() || p.getY() >= vy + client.getViewportHeight())
 		{
+			faceCamera(lp);
 			return "tile " + x + ", " + y + " is not on screen; walk somewhere closer first";
 		}
 		// Walk here points at the tile under a spot in the 3D view, as a click does; the client then picks the tile there
@@ -157,6 +163,29 @@ final class ClientGame implements Game
 		// viewport, not the canvas (a few pixels' difference in fixed mode, none in resizable).
 		client.menuAction(p.getX() - vx, p.getY() - vy, MenuAction.WALK, 0, -1, "Walk here", "");
 		return null;
+	}
+
+	/**
+	 * Turns the camera toward the target and tilts it down to the usual steepest angle, so a tile near the player comes
+	 * into view however the camera was left (a fresh client can face a wall). The camera eases there over the next
+	 * frames; the caller tries again. The angle is from Perspective's projection: yaw 0 looks north and a quarter turn
+	 * (4096 JAU14) looks west. Not yet tried in the client.
+	 */
+	private void faceCamera(LocalPoint target)
+	{
+		Player me = client.getLocalPlayer();
+		if (me == null)
+		{
+			return;
+		}
+		LocalPoint here = me.getLocalLocation();
+		int dx = target.getX() - here.getX();
+		int dy = target.getY() - here.getY();
+		if (dx != 0 || dy != 0)
+		{
+			client.setCameraYawTarget((int) Math.round(Math.atan2(-dx, dy) / Perspective.UNIT14) & 0x3fff);
+		}
+		client.setCameraPitchTarget(CAMERA_PITCH_DOWN);
 	}
 
 	@Override
@@ -325,6 +354,46 @@ final class ClientGame implements Game
 	{
 		LocalPoint lp = o.getLocalLocation();
 		return new Point(lp.getSceneX(), lp.getSceneY());
+	}
+
+	@Override
+	public String locAt(String name, int id, String option, osrsps.testrunner.Tile at)
+	{
+		WorldView wv = client.getTopLevelWorldView();
+		LocalPoint target = LocalPoint.fromWorld(wv, at.x, at.y);
+		if (target == null)
+		{
+			return "tile " + at.x + ", " + at.y + " is not in the loaded scene";
+		}
+		String what = (name != null ? "\"" + name + "\"" : "id " + id) + " at " + at.x + ", " + at.y;
+		net.runelite.api.Tile tile = wv.getScene().getTiles()[wv.getPlane()][target.getSceneX()][target.getSceneY()];
+		if (tile == null)
+		{
+			return "no loc " + what;
+		}
+		// A big loc is listed on every tile it covers, so the tile's own lists are enough.
+		List<TileObject> objects = new ArrayList<>(Arrays.asList(tile.getGameObjects()));
+		objects.add(tile.getWallObject());
+		objects.add(tile.getDecorativeObject());
+		objects.add(tile.getGroundObject());
+		boolean seen = false;
+		for (TileObject o : objects)
+		{
+			if (o != null && locMatches(o, name, id))
+			{
+				// A hidden loc (no current form) matches by its id but isn't there to see.
+				if (option == null ? locComposition(o.getId()) != null : locOpIndex(o.getId(), option) >= 0)
+				{
+					return null;
+				}
+				seen = true;
+			}
+		}
+		if (!seen)
+		{
+			return "no loc " + what;
+		}
+		return option == null ? "loc " + what + " is hidden" : "loc " + what + " has no option \"" + option + "\"";
 	}
 
 	/** True when the loc stands on the target tile; a big loc counts on every tile it covers. */

@@ -91,6 +91,8 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertInventory\",\"count\":1}]}", "needs \"item\" (a name) or \"itemId\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertInventory\",\"item\":\"Logs\",\"count\":-1}]}", "\"count\" must be 0 or more");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"finishDialogue\",\"text\":\"x\"}]}", "unknown field \"text\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertLoc\",\"x\":3207,\"y\":3217}]}", "needs \"loc\" (a name) or \"locId\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertLoc\",\"loc\":\"Door\",\"x\":3207}]}", "needs \"x\" and \"y\"");
 	}
 
 	private static void invalid(String json, String reason)

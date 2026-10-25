@@ -68,8 +68,8 @@ Get-Content C:\RSPS\.rlcustom\test-results\hans-demo.json
 server's `data/dialogue.txt`, and the script passes whether or not that file has his words. Scripts in git check keys,
 never words: the words are Jagex's and stay out of git (see the main README's Dialogue words).
 
-`examples\` also has the Lumbridge Castle checks. They need runner 0.4.0 or later (`locOption` came in 0.3.0;
-`takeItem`, `assertInventory`, `finishDialogue` and Examine in 0.4.0).
+`examples\` also has the Lumbridge Castle checks. They need runner 0.4.2 or later (`locOption` came in 0.3.0;
+`takeItem`, `assertInventory`, `finishDialogue` and Examine in 0.4.0; `assertLoc` in 0.4.2).
 
 - `lumbridge-castle-doors.json` (the smallest, run it first) and `castle-doors-rest.json`: every door.
 - `lumbridge-castle-travel.json`, `castle-stairs-all.json` and `castle-ladders-all.json`: every option on the stairs,
@@ -148,9 +148,10 @@ server's answer instead of failing on what was there before.
 | `command` | `text`, `expectMessage` | Puts `text` in the chat input and presses Enter. `::` is added if missing. With `expectMessage`, waits for a chat message containing it. |
 | `chat` | `text`, `expectMessage` | Same, without adding `::`. |
 | `assertLocation` | `x`, `y`, `plane` | Waits until the player stands on the tile. Without `plane`, any plane. |
-| `walk` | `x`, `y` | Clicks Walk here on the tile, then waits until the player stands on it. The tile must be on screen; until it is (right after a teleport the scene can lag a moment), it keeps trying. If the player stops on another tile for 3 game ticks, it clicks again. Default timeout 30 s. |
+| `walk` | `x`, `y` | Clicks Walk here on the tile, then waits until the player stands on it. The tile must be on screen; until it is (right after a teleport the scene can lag a moment), it keeps trying, turning the camera toward the tile and tilting it down. If the player stops on another tile for 3 game ticks, it clicks again. Default timeout 30 s. |
 | `npcOption` | `npc` (name) or `npcId`, `option` | Clicks the option (such as `Talk-to`, or `Examine`, which every NPC has) on the nearest such NPC, retrying until one is in view. Doesn't wait for the result: follow it with an assert. |
 | `locOption` | `loc` (name) or `locId`, `option`, `x`+`y` | Clicks the option (such as `Open`, `Climb-up`, `Search`, or `Examine`, which every loc has) on the nearest such loc on the player's plane, retrying until one is in the scene. With `x` and `y`, only a loc on that tile (a big loc on any tile it covers). A loc that changes with a varbit is matched, and examined, by what it is now. Doesn't wait for the result: follow it with an assert. |
+| `assertLoc` | `loc` (name) or `locId`, `x`, `y`, `option` | Waits until such a loc is on the tile on the player's plane (a big loc on any tile it covers), with `option` when given: a door's `Open` once it has shut. Put one after a last Close before a teleport: a teleport cancels a click the server hasn't carried out yet, and the door would stay open for the next run. |
 | `takeItem` | `item` (name) or `itemId`, `x`+`y` | Clicks Take on the nearest such item on the ground on the player's plane, retrying until one is in the scene. With `x` and `y`, only an item on that tile. Take is the third ground option, as the server has it. Doesn't wait for the result: follow it with `assertInventory`. |
 | `assertInventory` | `item` (name) or `itemId`, `count` | Waits until the inventory holds exactly `count` of the item (all stacks added up), or any at all without `count`. `count` 0 waits until there are none. |
 | `assertDialogue` | `contains`, `speaker` | Waits until an open dialogue's text contains `contains` and its name is `speaker` (both optional). Colour tags and line breaks are removed first. |
@@ -167,7 +168,8 @@ Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (opti
 
 - Chat is sent by putting the text in the chat input and sending an Enter key to the client's canvas. If a key
   remapping plugin is on, it may swallow the Enter.
-- `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles.
+- `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles. When the tile
+  is off screen it turns the camera toward it, so a script can leave the camera however it finds it.
 - Auto login starts the login by setting the client's game state to LOGGING_IN, as RuneLite's developer tools do.
   If it doesn't log in, the plugin log (`C:\RSPS\.runelite\logs\client.log`) says what it tried.
 

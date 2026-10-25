@@ -10,11 +10,14 @@
     {"step": "locOption", "loc": "Door", "option": "Close", "x": 3207, "y": 3218, "comment": "only there once the door has opened"},
     {"step": "locOption", "loc": "Door", "option": "Open", "x": 3207, "y": 3217, "comment": "only there once it has shut again"},
     {"step": "locOption", "loc": "Door", "option": "Close", "x": 3207, "y": 3218},
+    {"step": "assertLoc", "loc": "Door", "option": "Open", "x": 3207, "y": 3217, "comment": "shut before the teleport, which cancels a click the server hasn't carried out yet"},
     {"step": "command", "text": "::tele 3214 3221 0", "expectMessage": "Teleported to 3214, 3221, 0"},
     {"step": "assertLocation", "x": 3214, "y": 3221, "plane": 0},
     {"step": "locOption", "loc": "Large door", "option": "Open", "x": 3213, "y": 3221, "comment": "the left leaf"},
     {"step": "locOption", "loc": "Large door", "option": "Close", "x": 3212, "y": 3222, "comment": "the right leaf, so both opened"},
     {"step": "locOption", "loc": "Large door", "option": "Open", "x": 3213, "y": 3222, "comment": "the right leaf, so both shut"},
-    {"step": "locOption", "loc": "Large door", "option": "Close", "x": 3212, "y": 3221, "comment": "leave them shut"}
+    {"step": "locOption", "loc": "Large door", "option": "Close", "x": 3212, "y": 3221, "comment": "leave them shut"},
+    {"step": "assertLoc", "loc": "Large door", "option": "Open", "x": 3213, "y": 3221, "comment": "both leaves shut again"},
+    {"step": "assertLoc", "loc": "Large door", "option": "Open", "x": 3213, "y": 3222}
   ]
 }

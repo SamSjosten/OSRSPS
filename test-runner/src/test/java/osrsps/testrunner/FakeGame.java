@@ -17,6 +17,8 @@ class FakeGame implements Game
 	String npcError;
 	String locError;
 	String takeError;
+	/** The locs locAt finds, as "name at x y" or "name with option at x y". */
+	final List<String> locs = new ArrayList<>();
 	/** What inventoryCount answers, by item name; null for no inventory yet. */
 	Map<String, Integer> inventory = new HashMap<>();
 	/** How many walk clicks to refuse first, as when the tile is not on screen yet. */
@@ -87,6 +89,13 @@ class FakeGame implements Game
 		}
 		actions.add(option + " " + name);
 		return null;
+	}
+
+	@Override
+	public String locAt(String name, int id, String option, Tile at)
+	{
+		String what = (name != null ? name : "loc " + id) + (option == null ? "" : " with " + option) + " at " + at.x + " " + at.y;
+		return locs.contains(what) ? null : "no " + what;
 	}
 
 	@Override

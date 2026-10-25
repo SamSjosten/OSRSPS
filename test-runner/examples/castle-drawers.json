@@ -41,6 +41,14 @@
    "option": "Shut",
    "x": 3213,
    "y": 3216
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Drawers",
+   "option": "Open",
+   "x": 3213,
+   "y": 3216,
+   "comment": "shut again"
   }
  ]
 }
