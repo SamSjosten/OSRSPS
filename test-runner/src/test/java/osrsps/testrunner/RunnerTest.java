@@ -120,6 +120,21 @@ public class RunnerTest
 	}
 
 	@Test
+	public void assertLocWaitsForTheLocWithItsOption() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertLoc\",\"loc\":\"Door\",\"option\":\"Open\",\"x\":3207,\"y\":3217}"), "file");
+		assertNull(cycle());
+		game.locs.add("Door at 3207 3217");
+		// A door there, but not a shut one.
+		assertNull(cycle());
+		game.locs.add("Door with Open at 3207 3217");
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("there", r.steps.get(0).detail);
+		assertTrue(game.actions.isEmpty());
+	}
+
+	@Test
 	public void walkTimesOutWithWhyItCouldNotClick() throws Exception
 	{
 		game.walkRefusals = Integer.MAX_VALUE;

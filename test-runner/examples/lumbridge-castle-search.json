@@ -69,6 +69,14 @@
    "y": 3218
   },
   {
+   "step": "assertLoc",
+   "loc": "Closed chest",
+   "option": "Open",
+   "x": 3209,
+   "y": 3218,
+   "comment": "shut before the teleport, which cancels a click the server hasn't carried out yet"
+  },
+  {
    "step": "command",
    "text": "::tele 3206 3218 2",
    "expectMessage": "Teleported to 3206, 3218, 2"

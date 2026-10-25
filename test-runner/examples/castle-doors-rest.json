@@ -46,6 +46,14 @@
    "y": 3214
   },
   {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3226,
+   "y": 3214,
+   "comment": "shut before the teleport, which cancels a click the server hasn't carried out yet"
+  },
+  {
    "step": "command",
    "text": "::tele 3226 3223 0",
    "expectMessage": "Teleported to 3226, 3223, 0"
@@ -84,6 +92,14 @@
    "option": "Close",
    "x": 3227,
    "y": 3223
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3226,
+   "y": 3223,
+   "comment": "shut before the teleport, which cancels a click the server hasn't carried out yet"
   },
   {
    "step": "command",
@@ -126,6 +142,14 @@
    "y": 3210
   },
   {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3210,
+   "comment": "shut before the teleport, which cancels a click the server hasn't carried out yet"
+  },
+  {
    "step": "command",
    "text": "::tele 3207 3214 1",
    "expectMessage": "Teleported to 3207, 3214, 1"
@@ -164,6 +188,14 @@
    "option": "Close",
    "x": 3208,
    "y": 3214
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3214,
+   "comment": "shut before the teleport, which cancels a click the server hasn't carried out yet"
   },
   {
    "step": "command",
@@ -206,6 +238,14 @@
    "y": 3222
   },
   {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3222,
+   "comment": "shut before the teleport, which cancels a click the server hasn't carried out yet"
+  },
+  {
    "step": "command",
    "text": "::tele 3207 3227 1",
    "expectMessage": "Teleported to 3207, 3227, 1"
@@ -244,6 +284,14 @@
    "option": "Close",
    "x": 3208,
    "y": 3227
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3227,
+   "comment": "shut before the teleport, which cancels a click the server hasn't carried out yet"
   },
   {
    "step": "command",
@@ -286,6 +334,14 @@
    "y": 3240
   },
   {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3225,
+   "y": 3240,
+   "comment": "shut before the teleport, which cancels a click the server hasn't carried out yet"
+  },
+  {
    "step": "command",
    "text": "::tele 3230 3235 0",
    "expectMessage": "Teleported to 3230, 3235, 0"
@@ -324,6 +380,14 @@
    "option": "Close",
    "x": 3230,
    "y": 3236
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3230,
+   "y": 3235,
+   "comment": "shut again"
   }
  ]
 }

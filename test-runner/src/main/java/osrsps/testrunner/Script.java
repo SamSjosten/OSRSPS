@@ -186,6 +186,25 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "loc", "locId", "option", "x", "y", "comment");
 				return new Steps.LocOption(timeout, loc, id, option, x < 0 ? null : new Tile(x, y, -1));
 			}
+			case "assertLoc":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String loc = f.string("loc", null);
+				int id = f.integer("locId", -1);
+				if (loc == null && id < 0)
+				{
+					throw new Invalid(f.where + " needs \"loc\" (a name) or \"locId\"");
+				}
+				String option = f.string("option", null);
+				int x = f.integer("x", -1);
+				int y = f.integer("y", -1);
+				if (x < 0 || y < 0)
+				{
+					throw new Invalid(f.where + " needs \"x\" and \"y\"");
+				}
+				f.rejectUnknown("step", "timeoutMs", "loc", "locId", "option", "x", "y", "comment");
+				return new Steps.AssertLoc(timeout, loc, id, option, new Tile(x, y, -1));
+			}
 			case "takeItem":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
