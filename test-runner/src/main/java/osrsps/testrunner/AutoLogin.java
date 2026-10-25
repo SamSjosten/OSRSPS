@@ -3,8 +3,8 @@ package osrsps.testrunner;
 /**
  * When to log the test account in from the login screen: a few seconds after the screen shows (so the client has
  * finished loading), then again every {@link #RETRY_MS} while it stays there, up to {@link #MAX_TRIES} tries in a row.
- * A login resets the count. Someone typing another name over the one it typed takes the client over until the plugin
- * restarts, so a second client on the same machine can log in another account. Called from the client thread and the
+ * A login resets the count. Someone typing another name over the one it typed, or logging in under another name, takes
+ * the client over until the plugin restarts, so a second client on the same machine can log in another account. Called from the client thread and the
  * plugin's executor, so every method is synchronized.
  */
 final class AutoLogin
@@ -42,8 +42,16 @@ final class AutoLogin
 		onLoginScreen = false;
 	}
 
-	synchronized void loggedIn()
+	/**
+	 * A login, under {@code name}. The count starts again. Auto login only ever logs the account in, so a login under
+	 * another name was a person's, who keeps the client as if they had typed over the account.
+	 */
+	synchronized void loggedIn(String name, String account)
 	{
+		if (differs(name, account))
+		{
+			manual = true;
+		}
 		onLoginScreen = false;
 		tries = 0;
 		nextTryAt = 0;
@@ -61,12 +69,18 @@ final class AutoLogin
 	 */
 	synchronized boolean takenOver(String typed, String account)
 	{
-		if (!manual && tries > 0 && typed != null && !typed.trim().isEmpty()
-			&& !Runner.normalise(typed).equals(Runner.normalise(account)))
+		if (tries > 0 && differs(typed, account))
 		{
 			manual = true;
 		}
 		return manual;
+	}
+
+	/** A name, and an auto login account to compare it with, that aren't the same account. */
+	private static boolean differs(String name, String account)
+	{
+		return name != null && !name.trim().isEmpty() && account != null && !account.trim().isEmpty()
+			&& !Runner.normalise(name).equals(Runner.normalise(account));
 	}
 
 	synchronized void tried(long nowMs)

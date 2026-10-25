@@ -39,7 +39,7 @@ public class AutoLoginTest
 			a.tried(i * AutoLogin.RETRY_MS);
 		}
 		assertTrue(a.gaveUp());
-		a.loggedIn();
+		a.loggedIn("test", "test");
 		assertFalse(a.gaveUp());
 		a.loginScreen(1_000_000);
 		assertTrue(a.due(1_000_000 + AutoLogin.SETTLE_MS));
@@ -56,12 +56,27 @@ public class AutoLoginTest
 		assertFalse("a box cleared to type in", a.takenOver("", "test"));
 		assertTrue(a.takenOver("test2", "test"));
 		assertFalse(a.due(1_000_000));
-		a.loggedIn();
+		a.loggedIn("test", "test");
 		a.loginScreen(2_000_000);
 		assertFalse("still theirs after their login and logout", a.due(3_000_000));
 		a.reset();
 		a.loginScreen(4_000_000);
 		assertTrue(a.due(4_000_000 + AutoLogin.SETTLE_MS));
+	}
+
+	@Test
+	public void aLoginUnderAnotherNameKeepsTheClientOffAutoLogin()
+	{
+		AutoLogin a = new AutoLogin();
+		a.loginScreen(0);
+		a.tried(AutoLogin.SETTLE_MS);
+		// Typed and logged in before the next try came round, so no try saw the name.
+		a.loggedIn("test2", "test");
+		a.loginScreen(1_000_000);
+		assertFalse(a.due(2_000_000));
+		a.reset();
+		a.loginScreen(3_000_000);
+		assertTrue(a.due(3_000_000 + AutoLogin.SETTLE_MS));
 	}
 
 	@Test

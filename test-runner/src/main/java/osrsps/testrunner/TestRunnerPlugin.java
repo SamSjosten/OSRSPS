@@ -293,7 +293,7 @@ public class TestRunnerPlugin extends Plugin
 		if (state == GameState.LOGGED_IN && !loggedIn)
 		{
 			loggedIn = true;
-			autoLogin.loggedIn();
+			autoLogin.loggedIn(client.getUsername(), config.autoLoginAccount());
 			if (config.runOnLogin())
 			{
 				executor.execute(this::queueLoginScripts);
