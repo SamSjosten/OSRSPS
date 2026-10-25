@@ -54,8 +54,11 @@ final class ClientGame implements Game
 		MenuAction.GAME_OBJECT_FIFTH_OPTION,
 	};
 
-	/** The steepest camera pitch the client allows without its pitch relaxer: looking down at the player. */
-	private static final int CAMERA_PITCH_DOWN = 383;
+	/**
+	 * The steepest camera pitch the client allows without its pitch relaxer: looking down at the player. Camera angles are
+	 * JAU14 (2π/16384 a unit); this is the old 11-bit 383 scaled up.
+	 */
+	private static final int CAMERA_PITCH_DOWN = 383 << 3;
 	private static final String EXAMINE = "Examine";
 	private static final String TAKE = "Take";
 
@@ -166,7 +169,7 @@ final class ClientGame implements Game
 	 * Turns the camera toward the target and tilts it down to the usual steepest angle, so a tile near the player comes
 	 * into view however the camera was left (a fresh client can face a wall). The camera eases there over the next
 	 * frames; the caller tries again. The angle is from Perspective's projection: yaw 0 looks north and a quarter turn
-	 * (512) looks west. Not yet tried in the client.
+	 * (4096 JAU14) looks west. Not yet tried in the client.
 	 */
 	private void faceCamera(LocalPoint target)
 	{
@@ -180,7 +183,7 @@ final class ClientGame implements Game
 		int dy = target.getY() - here.getY();
 		if (dx != 0 || dy != 0)
 		{
-			client.setCameraYawTarget((int) Math.round(Math.atan2(-dx, dy) / Perspective.UNIT) & 2047);
+			client.setCameraYawTarget((int) Math.round(Math.atan2(-dx, dy) / Perspective.UNIT14) & 0x3fff);
 		}
 		client.setCameraPitchTarget(CAMERA_PITCH_DOWN);
 	}
