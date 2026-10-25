@@ -157,7 +157,7 @@ public class TickRecorderPlugin extends Plugin
 	private volatile int cycle;
 	/** True from a login until the first game tick after it writes the baseline. */
 	private boolean baselinePending;
-	/** True while the client logs in or hops, so the LOGGED_IN that follows is a login and not a scene load. */
+	/** True while the client logs in, hops or reconnects, so the LOGGED_IN that follows is a login and not a scene load. */
 	private boolean loggingIn;
 	/** True from LOADING until the first tick after it: spawns in that window are the scene being built. */
 	private boolean sceneLoading;
@@ -1213,7 +1213,8 @@ public class TickRecorderPlugin extends Plugin
 			{
 				sceneLoading = true;
 			}
-			if (state == GameState.LOGGING_IN || state == GameState.HOPPING)
+			// A reconnect after a lost connection goes straight to LOADING, so it counts as a login too.
+			if (state == GameState.LOGGING_IN || state == GameState.HOPPING || state == GameState.CONNECTION_LOST)
 			{
 				loggingIn = true;
 			}
