@@ -50,12 +50,12 @@ public class AutoLoginTest
 	{
 		AutoLogin a = new AutoLogin();
 		a.loginScreen(0);
-		assertFalse("a remembered name before the first try doesn't count", a.takenOver("test2", "test"));
+		assertFalse("a remembered name before the first try doesn't count", a.takenOver("test2"));
 		a.tried(AutoLogin.SETTLE_MS);
-		a.typedAccount();
-		assertFalse("the account it typed", a.takenOver("Test", "test"));
-		assertFalse("a box cleared to type in", a.takenOver("", "test"));
-		assertTrue(a.takenOver("test2", "test"));
+		a.typed("test");
+		assertFalse("the account it typed", a.takenOver("Test"));
+		assertFalse("a box cleared to type in", a.takenOver(""));
+		assertTrue(a.takenOver("test2"));
 		assertFalse(a.due(1_000_000));
 		a.loggedIn("test", "test");
 		a.loginScreen(2_000_000);
@@ -71,11 +71,29 @@ public class AutoLoginTest
 		AutoLogin a = new AutoLogin();
 		a.loginScreen(0);
 		a.tried(AutoLogin.SETTLE_MS);
-		a.typedAccount();
+		a.typed("test");
 		a.loggedIn("test", "test");
 		a.loginScreen(1_000_000);
-		assertTrue(a.takenOver("test2", "test"));
+		assertTrue(a.takenOver("test2"));
 		assertFalse(a.due(1_000_000 + AutoLogin.SETTLE_MS));
+	}
+
+	@Test
+	public void aChangeOfAccountIsNotATakeOver()
+	{
+		AutoLogin a = new AutoLogin();
+		a.loginScreen(0);
+		a.tried(AutoLogin.SETTLE_MS);
+		a.typed("test");
+		// The account setting is now test2; the box still holds the test the plugin typed.
+		assertFalse(a.takenOver("test"));
+		assertTrue(a.due(AutoLogin.SETTLE_MS + AutoLogin.RETRY_MS));
+		a.tried(AutoLogin.SETTLE_MS + AutoLogin.RETRY_MS);
+		a.typed("test2");
+		a.loggedIn("test2", "test2");
+		a.loginScreen(1_000_000);
+		assertFalse(a.takenOver("test2"));
+		assertTrue(a.due(1_000_000 + AutoLogin.SETTLE_MS));
 	}
 
 	@Test

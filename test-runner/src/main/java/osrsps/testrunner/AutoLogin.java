@@ -16,7 +16,7 @@ final class AutoLogin
 	private boolean onLoginScreen;
 	private long nextTryAt;
 	private int tries;
-	private boolean typedAccount;
+	private String typedName;
 	private boolean manual;
 
 	/** Forgets every try, as a plugin restart should: the plugin object, and so this one, outlives a restart. */
@@ -25,7 +25,7 @@ final class AutoLogin
 		onLoginScreen = false;
 		tries = 0;
 		nextTryAt = 0;
-		typedAccount = false;
+		typedName = null;
 		manual = false;
 	}
 
@@ -45,12 +45,13 @@ final class AutoLogin
 	}
 
 	/**
-	 * A login, under {@code name}. The count starts again. Auto login only ever logs the account in, so a login under
-	 * another name was a person's, who keeps the client as if they had typed over the account.
+	 * A login, under {@code name}. The count starts again. Auto login only ever logs in the name it typed (or, before
+	 * it has typed one, would type: {@code account}), so a login under another name was a person's, who keeps the client
+	 * as if they had typed over it.
 	 */
 	synchronized void loggedIn(String name, String account)
 	{
-		if (differs(name, account))
+		if (differs(name, typedName != null ? typedName : account))
 		{
 			manual = true;
 		}
@@ -64,27 +65,28 @@ final class AutoLogin
 		return !manual && onLoginScreen && tries < MAX_TRIES && nowMs >= nextTryAt;
 	}
 
-	/** The account went into the login box. From then on another name there was typed by someone. */
-	synchronized void typedAccount()
+	/** Auto login put {@code name} in the login box. From then on another name there was typed by someone. */
+	synchronized void typed(String name)
 	{
-		typedAccount = true;
+		typedName = name;
 	}
 
 	/**
-	 * True, and from then on never due again until {@link #reset}, when the login box holds a name other than the
-	 * account after auto login has put the account there (on any login screen since, a logout included): someone has
-	 * typed over it. Before that the box can hold any name the client remembered, so it doesn't count.
+	 * True, and from then on never due again until {@link #reset}, when the login box holds a name other than the one
+	 * auto login last put there (on any login screen since, a logout included): someone has typed over it. Before auto
+	 * login has typed a name the box can hold any name the client remembered, so it doesn't count. Comparing with the
+	 * name typed, not the configured account, lets a change of account take effect.
 	 */
-	synchronized boolean takenOver(String typed, String account)
+	synchronized boolean takenOver(String box)
 	{
-		if (typedAccount && differs(typed, account))
+		if (typedName != null && differs(box, typedName))
 		{
 			manual = true;
 		}
 		return manual;
 	}
 
-	/** A name, and an auto login account to compare it with, that aren't the same account. */
+	/** Two names, neither empty, that aren't the same account. */
 	private static boolean differs(String name, String account)
 	{
 		return name != null && !name.trim().isEmpty() && account != null && !account.trim().isEmpty()

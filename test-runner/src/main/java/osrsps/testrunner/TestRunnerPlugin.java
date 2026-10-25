@@ -166,9 +166,9 @@ public class TestRunnerPlugin extends Plugin
 		{
 			return;
 		}
-		if (autoLogin.takenOver(client.getUsername(), account))
+		if (autoLogin.takenOver(client.getUsername()))
 		{
-			log.info("Test runner: someone typed {} over {}; auto login is off until the plugin restarts", client.getUsername(), account);
+			log.info("Test runner: someone typed {} in the login box; auto login is off until the plugin restarts", client.getUsername());
 			return;
 		}
 		boolean allowed = false;
@@ -185,7 +185,7 @@ public class TestRunnerPlugin extends Plugin
 		log.info("Test runner: logging in as {}", account);
 		client.setUsername(account);
 		client.setPassword(config.autoLoginPassword());
-		autoLogin.typedAccount();
+		autoLogin.typed(account);
 		client.setGameState(GameState.LOGGING_IN);
 		if (autoLogin.gaveUp())
 		{
