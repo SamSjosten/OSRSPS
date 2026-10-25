@@ -53,8 +53,9 @@ Copy-Item .\test-runner\examples\hans-demo.json C:\RSPS\.rlcustom\tests\
 Get-Content C:\RSPS\.rlcustom\test-results\hans-demo.json
 ```
 
-`hans-demo.json` checks Hans's words, so it passes only once the server's `data/dialogue.txt` has his lines (see the main
-README's Dialogue words); without them he says his keys, such as `[hans.greeting]`.
+`hans-demo.json` first sends `::keys on`, so Hans says each line's key (`[hans.greeting]`) instead of the words in the
+server's `data/dialogue.txt`, and the script passes whether or not that file has his words. Scripts in git check keys,
+never words: the words are Jagex's and stay out of git (see the main README's Dialogue words).
 
 `examples\` also has the Lumbridge Castle checks. They need runner 0.3.0 or later for `locOption`.
 
@@ -63,8 +64,8 @@ README's Dialogue words); without them he says his keys, such as `[hans.greeting
   ladders, trapdoor and cellar ladder.
 - `lumbridge-castle-search.json`, `castle-search-rest.json` and `castle-drawers.json`: every crate, sack, chest and
   drawers.
-- `castle-talk-*.json`: Talk-to on each castle NPC. They expect each line's `[key]`, which is what the server shows
-  while `data/dialogue.txt` has no words for it, so they fail once the words are filled in.
+- `castle-talk-*.json`: Talk-to on each castle NPC. Like `hans-demo.json` they turn `::keys on` and expect each
+  line's `[key]`, so they pass with or without words in `data/dialogue.txt`.
 
 ## Results
 

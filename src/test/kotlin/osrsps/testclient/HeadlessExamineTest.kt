@@ -8,7 +8,7 @@ import osrsps.game.World
 import osrsps.game.content.Cook
 import osrsps.map.CollisionMap
 
-/** NPC and loc examines through the headless client: words from the dialogue file, or the key without them. */
+/** NPC and loc examines through the headless client: words from the dialogue file, or the key without them or with `::keys on`. */
 class HeadlessExamineTest {
     @Test
     fun `examines come from the dialogue file`(@TempDir dir: Path) {
@@ -23,6 +23,10 @@ class HeadlessExamineTest {
                 client.await("the Cook's examine") { client.messages().firstOrNull { it.type == NPC_EXAMINE && it.text == "Our own words for the Cook." } }
                 client.examineLoc(SACKS)
                 client.await("the sacks' examine") { client.messages().firstOrNull { it.type == OBJ_EXAMINE && it.text == "[examine.loc_$SACKS]" } }
+                // As test scripts do: with keys on, the Cook's examine shows its key though the file has words for it.
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.examineNpc(Cook.ID)
+                client.await("the Cook's examine key") { client.messages().firstOrNull { it.type == NPC_EXAMINE && it.text == "[examine.npc_${Cook.ID}]" } }
             }
         }
     }

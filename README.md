@@ -148,6 +148,7 @@ Type these in the chatbox; the answer shows as a game message. Every player can 
 | `::varp id [value]` | Shows a varp, or sets it. `::varp 173 1` turns the run orb on |
 | `::varbit id [value]` | Shows a varbit with the varp and bits it lives in, or sets it |
 | `::dialogue` | Reads `data/dialogue.txt` again, so new words show from the next line said, and says how many lines have words and what is wrong with the file |
+| `::keys [on\|off]` | Your dialogue and examine lines show their keys (`[cook.greeting]`) instead of the file's words, until off or logout; no argument flips it. Test scripts in git turn it on, so they pass with or without words |
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too |

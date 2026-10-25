@@ -22,11 +22,11 @@ public class ScriptTest
 		assertEquals("hans-demo", s.id);
 		assertEquals("test", s.account);
 		assertFalse(s.runOnLogin);
-		assertEquals(11, s.steps.size());
+		assertEquals(12, s.steps.size());
 		assertEquals("waitForLogin", s.steps.get(0).type);
 		assertEquals(Script.LOGIN_TIMEOUT_MS, s.steps.get(0).timeoutMs);
-		assertEquals(20_000, s.steps.get(5).timeoutMs);
-		assertEquals(Script.DEFAULT_TIMEOUT_MS, s.steps.get(6).timeoutMs);
+		assertEquals(20_000, s.steps.get(6).timeoutMs);
+		assertEquals(Script.DEFAULT_TIMEOUT_MS, s.steps.get(7).timeoutMs);
 	}
 
 	@Test

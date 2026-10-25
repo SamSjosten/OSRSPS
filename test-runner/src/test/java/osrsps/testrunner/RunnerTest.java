@@ -43,37 +43,40 @@ public class RunnerTest
 		String json = new String(Files.readAllBytes(Paths.get("examples/hans-demo.json")), StandardCharsets.UTF_8);
 		runner.start(Script.parse("hans-demo.json", json), "file");
 
-		// The command is sent at once and waits for the server's answer.
+		// Each command is sent at once and waits for the server's answer.
 		assertNull(cycle());
-		assertEquals(List.of("chat ::tele 3222 3218"), game.actions);
+		assertEquals(List.of("chat ::keys on"), game.actions);
+		runner.message("Dialogue shows keys");
+		assertNull(cycle());
+		assertEquals("chat ::tele 3222 3218", game.actions.get(1));
 		runner.message("Teleported to 3222, 3218, 0");
 		game.location = new Tile(3222, 3218, 0);
 		assertNull(cycle());
-		assertEquals("walk 3222 3220", game.actions.get(1));
+		assertEquals("walk 3222 3220", game.actions.get(2));
 		game.location = new Tile(3222, 3220, 0);
 		assertNull(cycle());
-		assertEquals("Talk-to Hans", game.actions.get(2));
-		game.dialogue = npc("Hello. What are you doing here?");
+		assertEquals("Talk-to Hans", game.actions.get(3));
+		game.dialogue = npc("[hans.greeting]");
 		assertNull(cycle());
-		assertEquals("continue", game.actions.get(3));
+		assertEquals("continue", game.actions.get(4));
 		// The old dialogue is still up until the server answers: the runner waits rather than clicking again.
 		assertNull(cycle());
-		assertEquals(4, game.actions.size());
+		assertEquals(5, game.actions.size());
 		game.dialogue = new Dialogue(Dialogue.Kind.OPTIONS, "Select an option", "...", List.of(
-			new Dialogue.Option(1, "I'm looking for whoever is in charge of this place."),
-			new Dialogue.Option(5, "Nothing.")));
+			new Dialogue.Option(1, "[hans.in_charge]"),
+			new Dialogue.Option(5, "[hans.nothing]")));
 		assertNull(cycle());
-		assertEquals("option 5", game.actions.get(4));
-		game.dialogue = new Dialogue(Dialogue.Kind.PLAYER, "test", "Nothing.", null);
+		assertEquals("option 5", game.actions.get(5));
+		game.dialogue = new Dialogue(Dialogue.Kind.PLAYER, "test", "[hans.nothing]", null);
 		assertNull(cycle());
-		assertEquals("continue", game.actions.get(5));
+		assertEquals("continue", game.actions.get(6));
 		game.dialogue = null;
 		Result r = cycle();
 		assertNotNull(r);
 		assertEquals(Result.PASS, r.result);
-		assertEquals(11, r.steps.size());
+		assertEquals(12, r.steps.size());
 		assertEquals("file", r.trigger);
-		assertTrue(r.summary(), r.summary().startsWith("Teleport, walk and talk to Hans: pass, 11 steps"));
+		assertTrue(r.summary(), r.summary().startsWith("Teleport, walk and talk to Hans: pass, 12 steps"));
 	}
 
 	@Test

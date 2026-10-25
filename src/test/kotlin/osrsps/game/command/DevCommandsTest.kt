@@ -66,6 +66,23 @@ class DevCommandsTest {
     }
 
     @Test
+    fun `keys turns showing dialogue keys on and off, and flips it with no argument`() {
+        run("keys on")
+        assertTrue(player.showDialogueKeys)
+        run("keys off")
+        assertFalse(player.showDialogueKeys)
+        run("keys")
+        assertTrue(player.showDialogueKeys)
+        run("keys maybe")
+        run("keys off extra")
+        assertTrue(player.showDialogueKeys)
+        assertEquals(
+            listOf("Dialogue shows keys", "Dialogue shows words", "Dialogue shows keys", "Usage: ::keys [on|off]", "Usage: ::keys [on|off]"),
+            replies,
+        )
+    }
+
+    @Test
     fun `tick shows the world's tick`() {
         run("tick")
         assertEquals(listOf("Tick 0"), replies)

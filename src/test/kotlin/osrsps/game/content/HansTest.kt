@@ -72,6 +72,17 @@ class HansTest {
     }
 
     @Test
+    fun `with keys on, a line that has words shows its key`() {
+        player.showDialogueKeys = true
+        startTalk()
+        next(Chatbox.CHAT_LEFT)
+        pick(3)
+        assertEquals(listOf("[hans.lost]"), shown())
+        next(Chatbox.CHAT_RIGHT)
+        assertEquals(listOf("[hans.where]"), shown())
+    }
+
+    @Test
     fun `being in charge sends you to the Duke`() {
         startTalk()
         next(Chatbox.CHAT_LEFT)

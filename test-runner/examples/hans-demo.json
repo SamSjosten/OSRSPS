@@ -4,14 +4,15 @@
   "runOnLogin": false,
   "steps": [
     {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
     {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
     {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0},
     {"step": "walk", "x": 3222, "y": 3220},
     {"step": "npcOption", "npc": "Hans", "option": "Talk-to"},
-    {"step": "assertDialogue", "speaker": "Hans", "contains": "Hello. What are you doing here?", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Hans", "contains": "[hans.greeting]", "timeoutMs": 20000},
     {"step": "continueDialogue"},
-    {"step": "chooseOption", "text": "Nothing."},
-    {"step": "assertDialogue", "contains": "Nothing."},
+    {"step": "chooseOption", "text": "[hans.nothing]"},
+    {"step": "assertDialogue", "contains": "[hans.nothing]"},
     {"step": "continueDialogue"},
     {"step": "assertNoDialogue"}
   ]
