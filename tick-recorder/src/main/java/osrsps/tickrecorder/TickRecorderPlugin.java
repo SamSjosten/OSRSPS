@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import javax.inject.Inject;
@@ -110,7 +111,7 @@ public class TickRecorderPlugin extends Plugin
 {
 	static final int FORMAT_VERSION = 2;
 	/** Which build of the recorder wrote a file; bumped with every change to what is written. */
-	static final String RECORDER_VERSION = "0.2.2";
+	static final String RECORDER_VERSION = "0.2.3";
 	/** A handler that keeps throwing gets this many error lines per recording; later ones are only counted. */
 	static final int ERROR_LINES_PER_HANDLER = 5;
 	/** A health line is written every this many ticks. */
@@ -329,7 +330,7 @@ public class TickRecorderPlugin extends Plugin
 	{
 		RecordingWriter w = writer;
 		recording = false;
-		w.writeStop("stopped", stopLineFor());
+		CompletableFuture<RecordingWriter.Failure> stopped = w.writeStop("stopped", stopLineFor());
 		Future<?> closed = w.close();
 		int ticks = tick;
 		clientThread.invokeLater(() ->
@@ -338,7 +339,8 @@ public class TickRecorderPlugin extends Plugin
 			{
 				return false;
 			}
-			RecordingWriter.Failure failure = w.takeFailure();
+			// This recording's own result, settled with its stop line: the writer may already be on the next file.
+			RecordingWriter.Failure failure = stopped.getNow(null);
 			chat(failure == null ? "Tick Recorder: stopped after " + ticks + " ticks" : "Tick Recorder stopped: " + failure.detail);
 			return true;
 		});
@@ -517,7 +519,7 @@ public class TickRecorderPlugin extends Plugin
 				return;
 			}
 			RecordingWriter w = writer;
-			RecordingWriter.Failure failure = w == null ? null : w.takeFailure();
+			RecordingWriter.Failure failure = w == null ? null : w.failure();
 			if (failure != null)
 			{
 				stopFailed(w, failure);
