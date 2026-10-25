@@ -1,0 +1,20 @@
+{
+  "name": "Lumbridge Castle: the kitchen door and the large doors open and close",
+  "comment": "Run this one first: it is the smallest check that loc clicks reach the server. Each Close/Open waits for the door to be on that tile with that option, so it also checks the step before it.",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::tele 3207 3218 0", "expectMessage": "Teleported to 3207, 3218, 0"},
+    {"step": "assertLocation", "x": 3207, "y": 3218, "plane": 0},
+    {"step": "locOption", "loc": "Door", "option": "Open", "x": 3207, "y": 3217},
+    {"step": "locOption", "loc": "Door", "option": "Close", "x": 3207, "y": 3218, "comment": "only there once the door has opened"},
+    {"step": "locOption", "loc": "Door", "option": "Open", "x": 3207, "y": 3217, "comment": "only there once it has shut again"},
+    {"step": "locOption", "loc": "Door", "option": "Close", "x": 3207, "y": 3218},
+    {"step": "command", "text": "::tele 3214 3221 0", "expectMessage": "Teleported to 3214, 3221, 0"},
+    {"step": "assertLocation", "x": 3214, "y": 3221, "plane": 0},
+    {"step": "locOption", "loc": "Large door", "option": "Open", "x": 3213, "y": 3221, "comment": "the left leaf"},
+    {"step": "locOption", "loc": "Large door", "option": "Close", "x": 3212, "y": 3222, "comment": "the right leaf, so both opened"},
+    {"step": "locOption", "loc": "Large door", "option": "Open", "x": 3213, "y": 3222, "comment": "the right leaf, so both shut"},
+    {"step": "locOption", "loc": "Large door", "option": "Close", "x": 3212, "y": 3221, "comment": "leave them shut"}
+  ]
+}

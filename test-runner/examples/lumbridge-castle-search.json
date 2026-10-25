@@ -1,0 +1,25 @@
+{
+  "name": "Lumbridge Castle: the crate, chest, drawers and sacks are empty",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::tele 3208 3218 1", "expectMessage": "Teleported to 3208, 3218, 1"},
+    {"step": "assertLocation", "x": 3208, "y": 3218, "plane": 1},
+    {"step": "locOption", "loc": "Crate", "option": "Search", "x": 3210, "y": 3218},
+    {"step": "assertMessage", "contains": "You search the crate but find nothing."},
+    {"step": "locOption", "loc": "Closed chest", "option": "Open", "x": 3209, "y": 3218},
+    {"step": "locOption", "loc": "Open chest", "option": "Search", "x": 3209, "y": 3218, "comment": "only there once the chest has opened"},
+    {"step": "assertMessage", "contains": "You search the chest but find nothing."},
+    {"step": "locOption", "loc": "Open chest", "option": "Shut", "x": 3209, "y": 3218},
+    {"step": "locOption", "loc": "Drawers", "option": "Open", "x": 3213, "y": 3216},
+    {"step": "locOption", "loc": "Drawers", "option": "Search", "x": 3213, "y": 3216, "comment": "only there once the drawers have opened"},
+    {"step": "assertMessage", "contains": "The drawers are empty."},
+    {"step": "locOption", "loc": "Drawers", "option": "Shut", "x": 3213, "y": 3216},
+    {"step": "locOption", "loc": "Closed chest", "option": "Open", "x": 3209, "y": 3218, "comment": "only there once the chest has shut"},
+    {"step": "locOption", "loc": "Open chest", "option": "Shut", "x": 3209, "y": 3218},
+    {"step": "command", "text": "::tele 3206 3218 2", "expectMessage": "Teleported to 3206, 3218, 2"},
+    {"step": "assertLocation", "x": 3206, "y": 3218, "plane": 2},
+    {"step": "locOption", "loc": "Sacks", "option": "Search", "x": 3205, "y": 3218},
+    {"step": "assertMessage", "contains": "There is nothing interesting in these sacks."}
+  ]
+}

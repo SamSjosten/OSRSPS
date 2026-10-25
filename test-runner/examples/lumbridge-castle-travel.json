@@ -1,0 +1,37 @@
+{
+  "name": "Lumbridge Castle: the south-west stairs, the east ladder and the cellar",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::tele 3206 3208 0", "expectMessage": "Teleported to 3206, 3208, 0"},
+    {"step": "assertLocation", "x": 3206, "y": 3208, "plane": 0},
+    {"step": "locOption", "loc": "Staircase", "option": "Climb-up", "x": 3204, "y": 3207},
+    {"step": "assertLocation", "x": 3205, "y": 3209, "plane": 1},
+    {"step": "locOption", "loc": "Staircase", "option": "Climb", "x": 3204, "y": 3207},
+    {"step": "assertDialogue", "contains": "Climb up or down the stairs?"},
+    {"step": "chooseOption", "text": "Climb up the stairs."},
+    {"step": "assertLocation", "x": 3205, "y": 3209, "plane": 2},
+    {"step": "locOption", "loc": "Staircase", "option": "Bottom-floor", "x": 3205, "y": 3208},
+    {"step": "assertLocation", "x": 3206, "y": 3208, "plane": 0},
+
+    {"step": "command", "text": "::tele 3228 3213 0", "expectMessage": "Teleported to 3228, 3213, 0"},
+    {"step": "assertLocation", "x": 3228, "y": 3213, "plane": 0},
+    {"step": "locOption", "loc": "Ladder", "option": "Climb-up", "x": 3229, "y": 3213},
+    {"step": "assertLocation", "x": 3228, "y": 3213, "plane": 1},
+    {"step": "locOption", "loc": "Ladder", "option": "Climb", "x": 3229, "y": 3213},
+    {"step": "assertDialogue", "contains": "Climb up or down the ladder?"},
+    {"step": "chooseOption", "text": "Climb-up"},
+    {"step": "assertLocation", "x": 3228, "y": 3213, "plane": 2},
+    {"step": "locOption", "loc": "Ladder", "option": "Climb-down", "x": 3229, "y": 3213},
+    {"step": "assertLocation", "x": 3228, "y": 3213, "plane": 1},
+    {"step": "locOption", "loc": "Ladder", "option": "Climb-down", "x": 3229, "y": 3213},
+    {"step": "assertLocation", "x": 3228, "y": 3213, "plane": 0},
+
+    {"step": "command", "text": "::tele 3209 3217 0", "expectMessage": "Teleported to 3209, 3217, 0"},
+    {"step": "assertLocation", "x": 3209, "y": 3217, "plane": 0},
+    {"step": "locOption", "loc": "Trapdoor", "option": "Climb-down", "x": 3209, "y": 3216},
+    {"step": "assertLocation", "x": 3209, "y": 9617, "plane": 0},
+    {"step": "locOption", "loc": "Ladder", "option": "Climb-up", "x": 3209, "y": 9616},
+    {"step": "assertLocation", "x": 3209, "y": 3217, "plane": 0}
+  ]
+}
