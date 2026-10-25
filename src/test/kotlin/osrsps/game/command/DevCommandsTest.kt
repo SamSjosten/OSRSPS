@@ -74,8 +74,12 @@ class DevCommandsTest {
         run("keys")
         assertTrue(player.showDialogueKeys)
         run("keys maybe")
+        run("keys off extra")
         assertTrue(player.showDialogueKeys)
-        assertEquals(listOf("Dialogue shows keys", "Dialogue shows words", "Dialogue shows keys", "Usage: ::keys [on|off]"), replies)
+        assertEquals(
+            listOf("Dialogue shows keys", "Dialogue shows words", "Dialogue shows keys", "Usage: ::keys [on|off]", "Usage: ::keys [on|off]"),
+            replies,
+        )
     }
 
     @Test

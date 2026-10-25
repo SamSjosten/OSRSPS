@@ -37,6 +37,7 @@ fun CommandRegistry.registerDevCommands(world: World) {
 
     // For test scripts: with keys on, every dialogue and examine line shows its key whatever the dialogue file holds.
     register("keys", "::keys [on|off]") {
+        if (args.size > 1) fail("Usage: ::keys [on|off]")
         player.showDialogueKeys = when (args.singleOrNull()?.lowercase()) {
             null -> !player.showDialogueKeys
             "on" -> true
