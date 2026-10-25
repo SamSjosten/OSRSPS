@@ -2,6 +2,7 @@ package osrsps.game.content
 
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import net.rsprot.protocol.game.outgoing.interfaces.IfSetObject
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
 import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.message.OutgoingGameMessage
@@ -38,6 +39,9 @@ class DialogueHarness(npcName: String = "Someone") {
     /** Whether the talk just started or an option was just picked, so a menu can follow with no page to continue. */
     private var picked = false
 
+    /** The item shown in each item box so far, in order. */
+    val boxObjs = mutableListOf<Int>()
+
     fun talk(block: suspend Dialogue.() -> Unit) {
         picked = true
         scripts.start(player) { dialogues.start(this, npc) { block() } }
@@ -47,16 +51,27 @@ class DialogueHarness(npcName: String = "Someone") {
     fun expect(vararg keys: String) {
         for ((i, key) in keys.withIndex()) {
             if (i > 0) next()
-            val texts = sent.filterIsInstance<IfSetText>().filter { it.componentId == Chatbox.CHAT_TEXT || (it.interfaceId == Chatbox.MESSAGEBOX && it.componentId == Chatbox.MESSAGEBOX_TEXT) }
+            val texts = sent.filterIsInstance<IfSetText>().filter {
+                it.componentId == Chatbox.CHAT_TEXT ||
+                    (it.interfaceId == Chatbox.MESSAGEBOX && it.componentId == Chatbox.MESSAGEBOX_TEXT) ||
+                    (it.interfaceId == Chatbox.OBJECTBOX && it.componentId == Chatbox.OBJECTBOX_TEXT)
+            }
             assertEquals(listOf("[$key]"), texts.filter { it.interfaceId != Chatbox.CHATMENU }.map { it.text }, "page ${i + 1}")
             page = texts.last().interfaceId
+            boxObjs += sent.filterIsInstance<IfSetObject>().filter { it.interfaceId == Chatbox.OBJECTBOX }.map { it.obj }
             sent.clear()
         }
         picked = false
     }
 
     /** Continues the page showing. */
-    fun next() = assertTrue(dialogues.resume(player, page, if (page == Chatbox.MESSAGEBOX) Chatbox.MESSAGEBOX_CONTINUE else Chatbox.CHAT_CONTINUE, -1))
+    fun next() = assertTrue(
+        when (page) {
+            Chatbox.MESSAGEBOX -> dialogues.resume(player, page, Chatbox.MESSAGEBOX_CONTINUE, -1)
+            Chatbox.OBJECTBOX -> dialogues.resume(player, page, Chatbox.OBJECTBOX_UNIVERSE, 0)
+            else -> dialogues.resume(player, page, Chatbox.CHAT_CONTINUE, -1)
+        },
+    )
 
     /** Continues the page showing (unless an option was just picked) and checks the menu that follows has [keys]. */
     fun menu(vararg keys: String) {

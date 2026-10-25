@@ -10,6 +10,7 @@ import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.game.content.Cook
 import osrsps.game.content.DukeHoracio
+import osrsps.game.content.LumbridgeGuide
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.npc.NpcSpawn
 import osrsps.map.CollisionMap
@@ -18,9 +19,11 @@ import osrsps.map.CollisionMap
 class HeadlessCastleNpcTest {
     private val cook = NpcSpawn(NpcType(Cook.ID, "Cook", ops = listOf("Talk-to", null, null, null, null)), 3221, 3220, source = "test")
     private val duke = NpcSpawn(NpcType(DukeHoracio.ID, "Duke Horacio", ops = listOf("Talk-to", null, null, null, null)), 3221, 3220, source = "test")
+    private val guide = NpcSpawn(NpcType(LumbridgeGuide.ID, "Lumbridge Guide", ops = listOf("Talk-to", null, null, null, null)), 3221, 3220, source = "test")
 
     private fun server(dir: Path, npc: NpcSpawn) = TestServer(dir) { crcs, millis ->
-        val types = arrayOfNulls<ObjType>(DukeHoracio.ANTI_DRAGON_SHIELD + 1)
+        val types = arrayOfNulls<ObjType>(LumbridgeGuide.SECURITY_BOOK_OBJ + 1)
+        types[LumbridgeGuide.SECURITY_BOOK_OBJ] = ObjType(LumbridgeGuide.SECURITY_BOOK_OBJ, "Security book")
         types[DukeHoracio.ANTI_DRAGON_SHIELD] = ObjType(DukeHoracio.ANTI_DRAGON_SHIELD, "Anti-dragon shield")
         types[BRONZE_AXE] = ObjType(BRONZE_AXE, "Bronze axe")
         World(
@@ -128,6 +131,49 @@ class HeadlessCastleNpcTest {
                 )
                 val obj = client.await("the shield on the ground") { client.groundObjs().firstOrNull { it.id == DukeHoracio.ANTI_DRAGON_SHIELD } }
                 assertEquals(client.position, obj.coord)
+            }
+        }
+    }
+
+    @Test
+    fun `the Lumbridge Guide hands over a security book from his security menu`(@TempDir dir: Path) {
+        server(dir, guide).use { server ->
+            server.login("erin").use { client ->
+                client.talkTo(LumbridgeGuide.ID)
+                client.says("Lumbridge Guide" to "[lumbridge_guide.greeting]")
+                client.menu(
+                    "[lumbridge_guide.quest]", "[lumbridge_guide.monsters]", "[lumbridge_guide.money]", "[lumbridge_guide.info]",
+                    "[lumbridge_guide.more_options]",
+                )
+                client.chooseOption(5)
+                client.menu("[lumbridge_guide.security]", "[lumbridge_guide.bank]", "[lumbridge_guide.no_help]", "[lumbridge_guide.previous]")
+                client.chooseOption(1)
+                client.says(
+                    "erin" to "[lumbridge_guide.security]",
+                    "Lumbridge Guide" to "[lumbridge_guide.security_1]",
+                    "Lumbridge Guide" to "[lumbridge_guide.security_topics_1]",
+                    "Lumbridge Guide" to "[lumbridge_guide.security_topics_2]",
+                )
+                client.awaitDialogue("the security menu") { it is DialogueView.Menu }
+                client.chooseOption(4)
+                client.says(
+                    "erin" to "[lumbridge_guide.stronghold]",
+                    "Lumbridge Guide" to "[lumbridge_guide.stronghold_1]",
+                    "erin" to "[lumbridge_guide.fell_on_head]",
+                    "Lumbridge Guide" to "[lumbridge_guide.stronghold_2]",
+                    "erin" to "[lumbridge_guide.how_so]",
+                    "Lumbridge Guide" to "[lumbridge_guide.stronghold_3]",
+                    "erin" to "[lumbridge_guide.where_explorer]",
+                    "Lumbridge Guide" to "[lumbridge_guide.stronghold_4]",
+                )
+                assertEquals(DialogueView.Other(Chatbox.OBJECTBOX), client.awaitDialogue("the book") { it is DialogueView.Other })
+                assertEquals(listOf(InvObj(LumbridgeGuide.SECURITY_BOOK_OBJ, 1)), client.inventory(BACKPACK).filterNotNull())
+                client.resumePause(Chatbox.OBJECTBOX, Chatbox.OBJECTBOX_UNIVERSE, 0)
+                client.says("Lumbridge Guide" to "[lumbridge_guide.anything_else]")
+                client.menu("[lumbridge_guide.more_security]", "[lumbridge_guide.something_else]", "[lumbridge_guide.no_thanks]")
+                client.chooseOption(3)
+                client.says("erin" to "[lumbridge_guide.no_thanks]")
+                client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
             }
         }
     }
