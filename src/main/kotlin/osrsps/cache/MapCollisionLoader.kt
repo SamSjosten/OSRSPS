@@ -38,6 +38,9 @@ object MapCollisionLoader {
     /** Bit 2 on level 1: a bridge. Everything on this column belongs one level lower. */
     private const val SETTING_BRIDGE = 0x2
 
+    /** Bit 3: the tile is under a roof. Checked against the 241 cache: set over Lumbridge Castle's keep and towers. */
+    private const val SETTING_ROOF = 0x4
+
     fun load(library: CacheLibrary): CollisionMap = loadWorld(library).collision
 
     fun loadWorld(library: CacheLibrary): WorldMap {
@@ -156,9 +159,12 @@ object MapCollisionLoader {
         for (level in 0 until 4) {
             for (x in 0 until 64) {
                 for (z in 0 until 64) {
-                    if (settings[level][x][z].toInt() and SETTING_BLOCKED == 0) continue
+                    val setting = settings[level][x][z].toInt()
+                    if (setting and (SETTING_BLOCKED or SETTING_ROOF) == 0) continue
                     val target = adjustedLevel(settings, level, x, z)
-                    if (target >= 0) collision.addFloor(baseX + x, baseZ + z, target)
+                    if (target < 0) continue
+                    if (setting and SETTING_BLOCKED != 0) collision.addFloor(baseX + x, baseZ + z, target)
+                    if (setting and SETTING_ROOF != 0) collision.addRoof(baseX + x, baseZ + z, target)
                 }
             }
         }

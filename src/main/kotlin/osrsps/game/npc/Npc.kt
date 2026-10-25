@@ -45,13 +45,33 @@ class NpcSpawn(
      * the wiki's "wander radius".
      */
     val wander: Int = 0,
-    /** Tiles walked to in turn, over and over, instead of wandering. Empty for a wandering or still NPC. */
-    val patrol: List<Tile> = emptyList(),
+    /** Stops walked to in turn, over and over, instead of wandering. Empty for a wandering or still NPC. */
+    val patrol: List<PatrolStop> = emptyList(),
+    /** Whether it keeps under a roof or out from under one wherever it walks. */
+    val restrict: MoveRestrict = MoveRestrict.NORMAL,
     val source: String,
 ) {
     init {
         require(level in 0..3) { "Bad level $level" }
         require(wander >= 0) { "Bad wander range $wander" }
+    }
+}
+
+/**
+ * RS2's NPC move restrictions (the 2004Scape project's `moverestrict`) for the two kinds that read the map: an
+ * [INDOORS] NPC only steps onto roofed tiles and an [OUTDOORS] one only onto open sky. The Lumbridge cook keeps to the
+ * castle this way.
+ */
+enum class MoveRestrict {
+    NORMAL,
+    INDOORS,
+    OUTDOORS,
+}
+
+/** A tile on an NPC's patrol, and how many ticks it stands there on arriving before it walks to the next. */
+data class PatrolStop(val x: Int, val z: Int, val wait: Int = 0) {
+    init {
+        require(wait >= 0) { "Bad patrol wait $wait" }
     }
 }
 
@@ -76,6 +96,9 @@ class Npc(
 
     /** The next entry of [NpcSpawn.patrol] to walk to. */
     internal var patrolIndex: Int = 0
+
+    /** Ticks left to stand at the patrol stop it last walked to. */
+    internal var patrolWait: Int = 0
 
     /** What the client is told it does through NPC info; null until the world gives it one (and in tests). */
     var avatar: NpcAvatar? = null

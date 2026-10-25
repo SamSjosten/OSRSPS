@@ -1,7 +1,6 @@
 {
-  "about": "Lumbridge NPCs. Tiles are the OSRS Wiki's location maps (checked 2026-10-21), which give the tile but not which of a name's types stands there: cows take cow, cow2 and cow3 (ids 2790, 2791, 2793) in turn and calves cow2_calf and cow3_calf (2792, 2794), guessed. Every wander range is guessed (5) until recorded. The castle's own NPCs belong to the Lumbridge Castle piece; Hans is here for task 16's check.",
+  "about": "Lumbridge NPCs. Tiles are the OSRS Wiki's location maps (checked 2026-10-21), which give the tile but not which of a name's types stands there: cows take cow, cow2 and cow3 (ids 2790, 2791, 2793) in turn and calves cow2_calf and cow3_calf (2792, 2794), guessed. Every wander range is guessed (5) until recorded. The castle's NPCs, Hans among them, are in lumbridge-castle.json.",
   "spawns": [
-    {"npc": "hans", "x": 3221, "z": 3219, "wander": 5, "source": "OSRS Wiki, Hans: id 3105, walks around the castle courtyard. Tile and wander range guessed; his clockwise lap comes with the Lumbridge Castle piece"},
     {"npc": "cow", "x": 3254, "z": 3255, "wander": 5, "source": "OSRS Wiki, Cow, Locations: Lumbridge cow field"},
     {"npc": "cow2", "x": 3254, "z": 3258, "wander": 5, "source": "OSRS Wiki, Cow, Locations: Lumbridge cow field"},
     {"npc": "cow3", "x": 3254, "z": 3262, "wander": 5, "source": "OSRS Wiki, Cow, Locations: Lumbridge cow field"},

@@ -326,8 +326,15 @@ spawns are not in the cache: they live in `src/main/resources/npc-spawns/`, one 
 by type id, also with sources. NPCs are sent through RSProt's NPC info; the tick moves every NPC (`World.npcs`, in
 `game/npc/`) before any player's scripts.
 
-`lumbridge.json` has Hans in the castle courtyard and the 21 cows and 8 calves of the Lumbridge cow field east of the
-river, on the wiki's tiles. The castle's own NPCs, and Hans's real lap, come with the Lumbridge Castle piece.
+`lumbridge.json` has the 21 cows and 8 calves of the Lumbridge cow field east of the river, on the wiki's tiles.
+`lumbridge-castle.json` has 28 NPCs, Lumbridge Castle's and the three just outside its gate: Hans walking his lap round
+the keep, the Cook, Duke Horacio, the tutors, the bankers, Perdu, men, women, an imp and ten rats (no combat yet, so they
+can't be fought).
+
+A spawn can walk a `patrol`, a list of tiles it walks to in turn, each `[x, z]` or `[x, z, wait]` with the ticks it
+stands there; and `restrict` keeps it `indoors` (on tiles with a roof) or `outdoors` (on tiles without one), as the
+2004Scape project's RS2 engine does with its NPCs' `moverestrict`. A tile counts as roofed when the map marks it so (tile
+setting 4), which covers the castle's keep and towers.
 
 | NPC behaviour | Source |
 |---------------|--------|
@@ -344,9 +351,14 @@ river, on the wiki's tiles. The castle's own NPCs, and Hans's real lap, come wit
 | NPCs move before players' scripts each tick | inferred from Mod Ash's descriptions; not recorded |
 | Examine answers with chat type 28 (NPC_EXAMINE) | RuneLite's ChatMessageType |
 | Hans faces south when he spawns, as does every NPC without a direction | guessed |
+| The castle NPCs' tiles | RSMod's Lumbridge spawns (rev 233) and the 2004Scape project's map, checked against the Wiki's maps |
+| Hans's lap: clockwise round the keep inside the outer wall, waiting 10 ticks in the courtyard, 94 ticks a lap | the 2004Scape project's patrol for Hans; walked on our 241 map in a test; "about a minute" a lap on the Wiki |
+| A patrol stop's wait: arrive on tick t, stand t+1 to t+wait, leave on the next | the 2004Scape project's engine |
+| The Cook keeps under the roof; Hans keeps out from under it | the 2004Scape project's moverestrict; which tiles count as roofed is inferred from the map |
 
 Check: in the cow field east of the River Lum (`::tele 3253 3275`) the cows and calves wander inside the fences,
-`::npcs` lists them, and Examine on one gives its wiki text. Hans is in the castle courtyard and wanders. Same seed, same
+`::npcs` lists them, and Examine on one gives its wiki text. Hans walks his lap round the castle's keep (`::tele 3219
+3226` is on it; he passes about once a minute), and the Cook stays under the castle's roof (`::tele 3209 3214`). Same seed, same
 paths: start the server twice with the same `OSRSPS_SEED`, `::pause`, `::step` until `::tick` reads the same number
 (500, say) and `::npcs` lists the same tiles both times.
 

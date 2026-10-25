@@ -20,7 +20,7 @@ class NpcsTest {
 
     private fun map() = CollisionMap().apply { markLoaded(3200 shr 6, 3200 shr 6) }
 
-    private fun spawn(type: NpcType = man, x: Int = 3230, z: Int = 3230, wander: Int = 5, patrol: List<Tile> = emptyList()) =
+    private fun spawn(type: NpcType = man, x: Int = 3230, z: Int = 3230, wander: Int = 5, patrol: List<PatrolStop> = emptyList()) =
         NpcSpawn(type, x, z, wander = wander, patrol = patrol, source = "test")
 
     /** Where every NPC stands after each of [ticks] ticks. */
@@ -152,7 +152,7 @@ class NpcsTest {
     @Test
     fun `a patrol walks its tiles in turn, over and over`() {
         val npcs = Npcs(map(), GameRandom(1))
-        val patrol = listOf(Tile(3232, 3230), Tile(3232, 3232), Tile(3230, 3230))
+        val patrol = listOf(PatrolStop(3232, 3230), PatrolStop(3232, 3232), PatrolStop(3230, 3230))
         val npc = npcs.add(spawn(wander = 5, patrol = patrol))!!
         val seen = (1..12).map { npcs.process(); Tile(npc.x, npc.z) }
         assertEquals(
@@ -166,6 +166,41 @@ class NpcsTest {
             ),
             seen,
         )
+    }
+
+    @Test
+    fun `a patrol stop with a wait holds the NPC there that many ticks`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val patrol = listOf(PatrolStop(3230, 3230), PatrolStop(3232, 3230, wait = 3))
+        val npc = npcs.add(spawn(patrol = patrol))!!
+        val seen = (1..9).map { npcs.process(); Tile(npc.x, npc.z) }
+        assertEquals(
+            listOf(
+                Tile(3230, 3230), Tile(3231, 3230), Tile(3232, 3230),
+                // Arrived on tick 3: stands on ticks 4 to 6, steps off on 7.
+                Tile(3232, 3230), Tile(3232, 3230), Tile(3232, 3230),
+                Tile(3231, 3230), Tile(3230, 3230), Tile(3231, 3230),
+            ),
+            seen,
+        )
+    }
+
+    @Test
+    fun `an indoors NPC keeps under the roof and an outdoors one out from under it`() {
+        // A roof over x 3228 to 3232; open sky either side.
+        val map = map().apply { for (x in 3228..3232) for (z in 3220..3240) add(x, z, 0, CollisionFlag.ROOF) }
+        val npcs = Npcs(map, GameRandom(3))
+        val inside = npcs.add(NpcSpawn(man, 3230, 3230, wander = 6, restrict = MoveRestrict.INDOORS, source = "test"))!!
+        val outside = npcs.add(NpcSpawn(man, 3226, 3230, wander = 6, restrict = MoveRestrict.OUTDOORS, source = "test"))!!
+        val insideXs = HashSet<Int>()
+        val outsideXs = HashSet<Int>()
+        repeat(2_000) {
+            npcs.process()
+            insideXs += inside.x
+            outsideXs += outside.x
+        }
+        assertEquals((3228..3232).toSet(), insideXs)
+        assertEquals((3220..3227).toSet(), outsideXs)
     }
 
     @Test

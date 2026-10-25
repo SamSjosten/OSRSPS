@@ -32,6 +32,12 @@ object CollisionFlag {
     /** Set by the client for tiles it has no map for. */
     const val UNLOADED = 0x1000000
 
+    /**
+     * The tile is under a roof (bit 4 of its map settings). Ours only: the client keeps roofs out of its collision map.
+     * NPCs restricted to indoors or outdoors read it; walking ignores it.
+     */
+    const val ROOF = 0x4000000
+
     /** Any of these on a tile stops a player standing on it. */
     const val BLOCK_WALK = LOC or FLOOR_DECORATION or FLOOR or UNLOADED
 }

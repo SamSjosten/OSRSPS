@@ -2,6 +2,7 @@ package osrsps.game.npc
 
 import osrsps.game.GameRandom
 import osrsps.game.Player
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.Reach
 import osrsps.map.Steps
@@ -202,11 +203,21 @@ class Npcs(
         if (x != npc.x || z != npc.z) npc.destination = Tile(x, z)
     }
 
-    /** Guessed: the next patrol tile is set as soon as the last one is reached or given up on. */
+    /**
+     * The next stop is set once the last one is reached and its wait has passed: an NPC that arrives on tick t with a
+     * wait of n stands from t + 1 to t + n and steps off on t + n + 1, as in RS2 (the 2004Scape project). Guessed: a
+     * stop it gives up on, blocked, counts as reached, so it waits where it stopped and then heads for the next one.
+     */
     private fun patrol(npc: Npc) {
         if (npc.destination != null) return
+        if (npc.patrolWait > 0) {
+            npc.patrolWait--
+            return
+        }
         val patrol = npc.spawn.patrol
-        npc.destination = patrol[npc.patrolIndex]
+        val stop = patrol[npc.patrolIndex]
+        npc.destination = Tile(stop.x, stop.z)
+        npc.patrolWait = stop.wait
         npc.patrolIndex = (npc.patrolIndex + 1) % patrol.size
     }
 
@@ -240,15 +251,41 @@ class Npcs(
         npc.avatar?.walk(dx, dz)
     }
 
-    /** Whether [npc] can take one step of [dx], [dz]: the map allows it and no other NPC stands in the way. */
+    /**
+     * Whether [npc] can take one step of [dx], [dz]: the map allows it, its [MoveRestrict] does, and no other NPC stands
+     * in the way.
+     */
     fun canStep(npc: Npc, dx: Int, dz: Int): Boolean {
         val size = npc.type.size
         if (!Steps.canStep(collision, npc.level, npc.x, npc.z, dx, dz, size)) return false
+        if (!restrictAllows(npc, dx, dz)) return false
         // Inferred from live, where NPCs don't stack: tiles the NPC steps onto must be free of others. Players don't
         // block NPCs here; that isn't checked.
         for (tx in npc.x + dx until npc.x + dx + size) {
             for (tz in npc.z + dz until npc.z + dz + size) {
                 if (!npc.covers(tx, tz) && (occupied[tileKey(tx, tz, npc.level)] ?: 0) > 0) return false
+            }
+        }
+        return true
+    }
+
+    /**
+     * An indoors NPC needs a roof over every tile the step crosses, an outdoors one open sky: the tiles it moves onto
+     * and, for a diagonal, both tiles beside the corner, as RS2's step checks read each of them (the 2004Scape
+     * project's route finder). Inferred, not seen on live.
+     */
+    private fun restrictAllows(npc: Npc, dx: Int, dz: Int): Boolean {
+        val restrict = npc.spawn.restrict
+        if (restrict == MoveRestrict.NORMAL) return true
+        val size = npc.type.size
+        val offsets = if (dx != 0 && dz != 0) listOf(dx to 0, 0 to dz, dx to dz) else listOf(dx to dz)
+        for ((ox, oz) in offsets) {
+            for (tx in npc.x + ox until npc.x + ox + size) {
+                for (tz in npc.z + oz until npc.z + oz + size) {
+                    if (npc.covers(tx, tz)) continue
+                    val roofed = collision[tx, tz, npc.level] and CollisionFlag.ROOF != 0
+                    if (roofed != (restrict == MoveRestrict.INDOORS)) return false
+                }
             }
         }
         return true
