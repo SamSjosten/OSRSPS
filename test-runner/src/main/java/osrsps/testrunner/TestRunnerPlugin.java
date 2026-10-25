@@ -185,6 +185,7 @@ public class TestRunnerPlugin extends Plugin
 		log.info("Test runner: logging in as {}", account);
 		client.setUsername(account);
 		client.setPassword(config.autoLoginPassword());
+		autoLogin.typedAccount();
 		client.setGameState(GameState.LOGGING_IN);
 		if (autoLogin.gaveUp())
 		{
