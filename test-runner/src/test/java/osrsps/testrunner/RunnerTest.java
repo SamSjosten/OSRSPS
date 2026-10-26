@@ -160,6 +160,23 @@ public class RunnerTest
 	}
 
 	@Test
+	public void walkSaysWhereTheClickSentThePlayer() throws Exception
+	{
+		runner.start(script("{\"step\":\"walk\",\"x\":3200,\"y\":3202,\"timeoutMs\":100}"), "file");
+		assertNull(cycle());
+		assertEquals(List.of("walk 3200 3202"), game.actions);
+		// The client's flag went to another tile than the one clicked.
+		game.destination = new Tile(3192, 3210, 0);
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertNotNull(r);
+		assertEquals("step 1 (walk to 3200, 3202): timed out after 100 ms: at 3200, 3200, 0, heading for 3192, 3210, 0", r.failure);
+	}
+
+	@Test
 	public void assertLocWaitsForTheLocWithItsOption() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertLoc\",\"loc\":\"Door\",\"option\":\"Open\",\"x\":3207,\"y\":3217}"), "file");

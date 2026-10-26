@@ -2,6 +2,7 @@ package osrsps.testrunner;
 
 import java.awt.Canvas;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -14,6 +15,7 @@ import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.MenuAction;
+import net.runelite.api.MenuEntry;
 import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.ObjectComposition;
@@ -33,8 +35,9 @@ import net.runelite.api.widgets.Widget;
 
 /**
  * {@link Game} over RuneLite's client API. Every action is the menu entry a click would have made, sent with
- * {@link Client#menuAction}, so the client sends the same packet a player's click sends. Chat is the one place keys are
- * used: the text goes in the chat input and an Enter key event goes to the canvas.
+ * {@link Client#menuAction}, so the client sends the same packet a player's click sends. Chat and walking are the places
+ * input events are used: for chat the text goes in the chat input and an Enter key event goes to the canvas; for a walk
+ * the mouse is moved over the tile first.
  */
 final class ClientGame implements Game
 {
@@ -61,12 +64,16 @@ final class ClientGame implements Game
 	private static final int CAMERA_PITCH_DOWN = 383 << 3;
 	private static final String EXAMINE = "Examine";
 	private static final String TAKE = "Take";
+	/** How far, in pixels, the mouse may be from a walk's spot: the spot drifts while the camera eases. */
+	private static final int MOUSE_SLACK = 2;
 
 	private final Client client;
 	/** The line {@link #sendChat} last put in the chat input, until the client has sent it. */
 	private String chatLine;
 	/** Set on the Swing thread once the Enter key events for {@link #chatLine} have gone to the canvas. */
 	private volatile boolean enterDelivered;
+	/** Walk calls in a row that found the mouse on the walk's spot. */
+	private int mouseFrames;
 
 	ClientGame(Client client)
 	{
@@ -173,11 +180,65 @@ final class ClientGame implements Game
 			faceCamera(lp);
 			return "tile " + x + ", " + y + " is not on screen; walk somewhere closer first (" + cameraState(lp, p) + ")";
 		}
-		// Walk here points at the tile under a spot in the 3D view, as a click does; the client then picks the tile there
-		// while drawing the next frame. Guessed from the client's own Walk here entries: the spot is relative to the
-		// viewport, not the canvas (a few pixels' difference in fixed mode, none in resizable).
-		client.menuAction(p.getX() - vx, p.getY() - vy, MenuAction.WALK, 0, -1, "Walk here", "");
+		// Walk here goes to the tile under the mouse, as a click does; the client picks it while drawing the next frame.
+		// Sending Walk here with the spot as its params (0.4.4 and before) walked the player 8 to 16 tiles off on the
+		// VM, so the mouse may be what counts: it goes over the tile first, and once the client has drawn a frame with it
+		// there, the Walk here entry the client built for that spot is used, as a right-click and Walk here would.
+		Point mouse = client.getMouseCanvasPosition();
+		if (mouse == null || Math.abs(mouse.getX() - p.getX()) > MOUSE_SLACK || Math.abs(mouse.getY() - p.getY()) > MOUSE_SLACK)
+		{
+			mouseFrames = 0;
+			moveMouse(p);
+			return "pointing the mouse at tile " + x + ", " + y;
+		}
+		if (++mouseFrames < 2)
+		{
+			return "pointing the mouse at tile " + x + ", " + y;
+		}
+		MenuEntry walkHere = null;
+		for (MenuEntry e : client.getMenu().getMenuEntries())
+		{
+			if (e.getType() == MenuAction.WALK)
+			{
+				walkHere = e;
+			}
+		}
+		if (walkHere == null)
+		{
+			return "no Walk here in the menu at " + p.getX() + ", " + p.getY();
+		}
+		mouseFrames = 0;
+		client.menuAction(walkHere.getParam0(), walkHere.getParam1(), MenuAction.WALK, walkHere.getIdentifier(),
+			walkHere.getItemId(), walkHere.getOption(), walkHere.getTarget());
 		return null;
+	}
+
+	/**
+	 * Moves the mouse over a canvas spot, as a person would before clicking. The event goes to the canvas on the AWT
+	 * thread, like chat's Enter key. Assumes stretched mode is off, so canvas and game coordinates are the same.
+	 */
+	private void moveMouse(Point p)
+	{
+		Canvas canvas = client.getCanvas();
+		if (canvas == null)
+		{
+			return;
+		}
+		SwingUtilities.invokeLater(() -> canvas.dispatchEvent(
+			new MouseEvent(canvas, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, p.getX(), p.getY(), 0, false)));
+	}
+
+	@Override
+	public Tile walkDestination()
+	{
+		LocalPoint d = client.getLocalDestinationLocation();
+		if (d == null)
+		{
+			return null;
+		}
+		WorldView wv = client.getTopLevelWorldView();
+		WorldPoint w = WorldPoint.fromLocal(wv, d.getX(), d.getY(), wv.getPlane());
+		return new Tile(w.getX(), w.getY(), w.getPlane());
 	}
 
 	/**

@@ -32,6 +32,9 @@ interface Game
 	/** Clicks "Walk here" on a tile in the loaded scene. */
 	String walk(int x, int y);
 
+	/** The tile the client's walk flag marks, where the player is heading, or null when there is none. */
+	Tile walkDestination();
+
 	/** Clicks an option on the nearest NPC with this name (or id, when the name is null). Examine works on any NPC. */
 	String npcOption(String name, int id, String option);
 
