@@ -75,7 +75,9 @@ server's `data/dialogue.txt`, and the script passes whether or not that file has
 never words: the words are Jagex's and stay out of git (see the main README's Dialogue words).
 
 `examples\` also has the Lumbridge Castle checks. They need runner 0.4.2 or later (`locOption` came in 0.3.0;
-`takeItem`, `assertInventory`, `finishDialogue` and Examine in 0.4.0; `assertLoc` in 0.4.2).
+`takeItem`, `assertInventory`, `finishDialogue` and Examine in 0.4.0; `assertLoc` in 0.4.2). The combat checks
+(`combat-attack-man.json`) need 0.5.0, which brought `assertHitsplat`, `assertNpcHealth`, `assertStat`,
+`assertGroundItem` and `assertAnimation`.
 
 - `lumbridge-castle-doors.json` (the smallest, run it first) and `castle-doors-rest.json`: every door.
 - `lumbridge-castle-travel.json`, `castle-stairs-all.json` and `castle-ladders-all.json`: every option on the stairs,
@@ -167,6 +169,11 @@ server's answer instead of failing on what was there before.
 | `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. |
 | `assertMessage` | `contains` | Waits for a chat message containing `contains`, counting only messages since the last step that acted. |
 | `waitTicks` | `ticks` | Waits that many game ticks. |
+| `assertHitsplat` | `npc` (name) or `self: true`, `amount` | Waits for a hitsplat on the nearest NPC of that name, or on the player, counting only hitsplats since the last step that acted. With `amount`, one showing exactly that; a miss shows 0. |
+| `assertNpcHealth` | `npc` (name) or `npcId`, `min`, `max` | Waits until the nearest such NPC's health bar is within the bounds, in percent (`max: 99` is "hurt"). The client is only told an NPC's health once it is hit, so this also waits for the first hit to show, and says `no health bar` until then. |
+| `assertStat` | `skill`, `level`, `xp` | Waits until the player's real (unboosted) level and experience in the skill are at least those given. `skill` is a name as the stats tab shows it, such as `Attack`. |
+| `assertGroundItem` | `item` (name) or `itemId`, `x`+`y`, `absent` | Waits until such an item lies on the ground in the scene on the player's plane (on the tile, with `x` and `y`), or, with `absent: true`, until none does. |
+| `assertAnimation` | `id`, `npc` (name) | Waits until the player, or the nearest NPC of that name, has started animation `id` (a cache sequence id, such as 422 for a punch), counting only animations since the last step that acted. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox and objectbox.
 

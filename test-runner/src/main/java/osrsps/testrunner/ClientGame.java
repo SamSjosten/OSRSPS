@@ -23,6 +23,7 @@ import net.runelite.api.Perspective;
 import net.runelite.api.Player;
 import net.runelite.api.Point;
 import net.runelite.api.Scene;
+import net.runelite.api.Skill;
 import net.runelite.api.TileItem;
 import net.runelite.api.TileObject;
 import net.runelite.api.WorldView;
@@ -533,15 +534,57 @@ final class ClientGame implements Game
 	@Override
 	public String takeItem(String name, int id, osrsps.testrunner.Tile at)
 	{
-		Player me = client.getLocalPlayer();
-		if (me == null)
+		if (client.getLocalPlayer() == null)
 		{
 			return "no local player";
 		}
+		GroundItem best = nearestGroundItem(name, id, at);
+		if (best == null)
+		{
+			return groundItemMissing(name, id, at);
+		}
+		// The menu entry a click on Take makes: the item's scene tile and its id. Take is the third ground option, as
+		// the cache's default ground options have it and the server reads it.
+		Point p = best.tile.getSceneLocation();
+		client.menuAction(p.getX(), p.getY(), MenuAction.GROUND_ITEM_THIRD_OPTION, best.item.getId(), -1, TAKE,
+			client.getItemDefinition(best.item.getId()).getName());
+		return null;
+	}
+
+	@Override
+	public String groundItem(String name, int id, osrsps.testrunner.Tile at)
+	{
+		if (client.getLocalPlayer() == null)
+		{
+			return "no local player";
+		}
+		return nearestGroundItem(name, id, at) == null ? groundItemMissing(name, id, at) : null;
+	}
+
+	private static String groundItemMissing(String name, int id, osrsps.testrunner.Tile at)
+	{
+		String what = (name != null ? "\"" + name + "\"" : "id " + id) + (at == null ? "" : " at " + at.x + ", " + at.y);
+		return "no item " + what + " on the ground in the scene";
+	}
+
+	private static final class GroundItem
+	{
+		final net.runelite.api.Tile tile;
+		final TileItem item;
+
+		GroundItem(net.runelite.api.Tile tile, TileItem item)
+		{
+			this.tile = tile;
+			this.item = item;
+		}
+	}
+
+	/** The nearest item on the ground on the player's plane with the name (or id), on the tile when given; else null. */
+	private GroundItem nearestGroundItem(String name, int id, osrsps.testrunner.Tile at)
+	{
 		WorldView wv = client.getTopLevelWorldView();
-		WorldPoint here = me.getWorldLocation();
-		net.runelite.api.Tile bestTile = null;
-		TileItem best = null;
+		WorldPoint here = client.getLocalPlayer().getWorldLocation();
+		GroundItem best = null;
 		int bestDistance = Integer.MAX_VALUE;
 		for (net.runelite.api.Tile[] column : wv.getScene().getTiles()[wv.getPlane()])
 		{
@@ -562,24 +605,13 @@ final class ClientGame implements Game
 					int d = where.distanceTo(here);
 					if (item != null && itemMatches(item.getId(), name, id) && d < bestDistance)
 					{
-						bestTile = tile;
-						best = item;
+						best = new GroundItem(tile, item);
 						bestDistance = d;
 					}
 				}
 			}
 		}
-		if (best == null)
-		{
-			String what = (name != null ? "\"" + name + "\"" : "id " + id) + (at == null ? "" : " at " + at.x + ", " + at.y);
-			return "no item " + what + " on the ground in the scene";
-		}
-		// The menu entry a click on Take makes: the item's scene tile and its id. Take is the third ground option, as
-		// the cache's default ground options have it and the server reads it.
-		Point p = bestTile.getSceneLocation();
-		client.menuAction(p.getX(), p.getY(), MenuAction.GROUND_ITEM_THIRD_OPTION, best.getId(), -1, TAKE,
-			client.getItemDefinition(best.getId()).getName());
-		return null;
+		return best;
 	}
 
 	@Override
@@ -609,6 +641,68 @@ final class ClientGame implements Game
 		}
 		ItemComposition c = client.getItemDefinition(itemId);
 		return c != null && name.equalsIgnoreCase(Dialogue.clean(c.getName()));
+	}
+
+	@Override
+	public Health npcHealth(String name, int id)
+	{
+		NPC npc = nearestNpc(name, id);
+		return npc == null ? null : new Health(npc.getHealthRatio(), npc.getHealthScale());
+	}
+
+	/** The nearest NPC on the player's plane with the name (or id when the name is null), or null. */
+	private NPC nearestNpc(String name, int id)
+	{
+		Player me = client.getLocalPlayer();
+		if (me == null)
+		{
+			return null;
+		}
+		WorldPoint here = me.getWorldLocation();
+		NPC best = null;
+		int bestDistance = Integer.MAX_VALUE;
+		for (NPC npc : client.getTopLevelWorldView().npcs())
+		{
+			if (npc == null || npc.getWorldLocation().getPlane() != here.getPlane())
+			{
+				continue;
+			}
+			boolean match = name != null ? name.equalsIgnoreCase(Dialogue.clean(npc.getName())) : npc.getId() == id;
+			int d = npc.getWorldLocation().distanceTo(here);
+			if (match && d < bestDistance)
+			{
+				best = npc;
+				bestDistance = d;
+			}
+		}
+		return best;
+	}
+
+	@Override
+	public int skillLevel(String skill)
+	{
+		Skill s = skill(skill);
+		return s == null || !loggedIn() ? -1 : client.getRealSkillLevel(s);
+	}
+
+	@Override
+	public int skillXp(String skill)
+	{
+		Skill s = skill(skill);
+		return s == null || !loggedIn() ? -1 : client.getSkillExperience(s);
+	}
+
+	/** The client's skill of that name (as the stats tab shows it), or null. */
+	private static Skill skill(String name)
+	{
+		for (Skill s : Skill.values())
+		{
+			if (s.getName().equalsIgnoreCase(name))
+			{
+				return s;
+			}
+		}
+		return null;
 	}
 
 	@Override

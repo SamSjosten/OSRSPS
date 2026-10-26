@@ -29,6 +29,13 @@ class FakeGame implements Game
 	Tile destination;
 	/** What chatPending answers. */
 	boolean chatPending;
+	/** What npcHealth answers for any NPC; null for none in view. */
+	Health npcHealth;
+	/** What skillLevel and skillXp answer, by skill name; a missing skill is -1. */
+	final Map<String, Integer> levels = new HashMap<>();
+	final Map<String, Integer> xps = new HashMap<>();
+	/** The items groundItem finds, as "name" or "name at x y". */
+	final List<String> groundItems = new ArrayList<>();
 
 	@Override
 	public boolean loggedIn()
@@ -149,5 +156,30 @@ class FakeGame implements Game
 	{
 		actions.add("option " + slot);
 		return null;
+	}
+
+	@Override
+	public Health npcHealth(String name, int id)
+	{
+		return npcHealth;
+	}
+
+	@Override
+	public int skillLevel(String skill)
+	{
+		return levels.getOrDefault(skill, -1);
+	}
+
+	@Override
+	public int skillXp(String skill)
+	{
+		return xps.getOrDefault(skill, -1);
+	}
+
+	@Override
+	public String groundItem(String name, int id, Tile at)
+	{
+		String what = (name != null ? name : "item " + id) + (at == null ? "" : " at " + at.x + " " + at.y);
+		return groundItems.contains(what) ? null : "no " + what + " on the ground";
 	}
 }

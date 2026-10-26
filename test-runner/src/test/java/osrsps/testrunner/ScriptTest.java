@@ -93,6 +93,17 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"finishDialogue\",\"text\":\"x\"}]}", "unknown field \"text\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertLoc\",\"x\":3207,\"y\":3217}]}", "needs \"loc\" (a name) or \"locId\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertLoc\",\"loc\":\"Door\",\"x\":3207}]}", "needs \"x\" and \"y\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\"}]}", "needs \"npc\" (a name) or \"self\": true");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\",\"npc\":\"Man\",\"self\":true}]}", "not both");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\",\"self\":true,\"amount\":-1}]}", "\"amount\" must be 0 or more");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertNpcHealth\",\"npc\":\"Man\"}]}", "needs \"min\" or \"max\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertNpcHealth\",\"npc\":\"Man\",\"max\":101}]}", "0 to 100");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertStat\",\"skill\":\"Luck\",\"xp\":1}]}", "no skill \"Luck\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertStat\",\"skill\":\"Attack\"}]}", "needs \"level\" or \"xp\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertGroundItem\",\"x\":1,\"y\":2}]}", "needs \"item\" (a name) or \"itemId\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertGroundItem\",\"item\":\"Bones\",\"x\":1}]}", "both \"x\" and \"y\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertAnimation\"}]}", "step 1 needs \"id\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertAnimation\",\"id\":-2}]}", "\"id\" must be 0 or more");
 	}
 
 	private static void invalid(String json, String reason)

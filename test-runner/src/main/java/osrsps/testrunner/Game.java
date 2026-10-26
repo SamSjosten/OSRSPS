@@ -67,4 +67,48 @@ interface Game
 
 	/** Clicks an option of the open option menu, by the slot {@link Dialogue#options} gives. */
 	String chooseOption(int slot);
+
+	/**
+	 * The health bar of the nearest NPC with this name (or id, when the name is null) on the player's plane, or null
+	 * when no such NPC is in view.
+	 */
+	Health npcHealth(String name, int id);
+
+	/** What the client shows of an actor's health: a bar of {@link #scale} units with {@link #ratio} filled, or none. */
+	final class Health
+	{
+		/** -1 while the NPC shows no bar (the client is not told its health until it is hit). */
+		final int ratio;
+		final int scale;
+
+		Health(int ratio, int scale)
+		{
+			this.ratio = ratio;
+			this.scale = scale;
+		}
+
+		/** The bar as a percentage, or -1 without one. */
+		int percent()
+		{
+			return ratio < 0 || scale <= 0 ? -1 : ratio * 100 / scale;
+		}
+
+		@Override
+		public String toString()
+		{
+			return ratio < 0 ? "no health bar" : percent() + "% (" + ratio + "/" + scale + ")";
+		}
+	}
+
+	/** The player's real (unboosted) level in the skill, as the stats tab shows it; -1 for a skill the client doesn't know. */
+	int skillLevel(String skill);
+
+	/** The player's experience in the skill; -1 for a skill the client doesn't know. */
+	int skillXp(String skill);
+
+	/**
+	 * Null when an item with this name (or id, when the name is null) lies on the ground in the scene on the player's
+	 * plane, on the tile when one is given; otherwise what is missing.
+	 */
+	String groundItem(String name, int id, Tile at);
 }

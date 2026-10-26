@@ -18,13 +18,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
+import net.runelite.api.Actor;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.NPC;
+import net.runelite.api.events.AnimationChanged;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
+import net.runelite.api.events.HitsplatApplied;
 import net.runelite.client.RuneLite;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -55,7 +59,7 @@ import org.slf4j.LoggerFactory;
 public class TestRunnerPlugin extends Plugin
 {
 	/** Written into every result, bumped with every change to how scripts run. */
-	static final String RUNNER_VERSION = "0.4.5";
+	static final String RUNNER_VERSION = "0.5.0";
 	private static final Logger log = LoggerFactory.getLogger(TestRunnerPlugin.class);
 	/** How long a failure waits for a frame to screenshot before writing its result without one. */
 	private static final long SCREENSHOT_WAIT_MS = 3_000;
@@ -352,6 +356,26 @@ public class TestRunnerPlugin extends Plugin
 		{
 			runner.message(event.getMessage());
 		}
+	}
+
+	@Subscribe
+	public void onHitsplatApplied(HitsplatApplied event)
+	{
+		Actor actor = event.getActor();
+		runner.hitsplat(actor == client.getLocalPlayer(), npcName(actor), event.getHitsplat().getHitsplatType(), event.getHitsplat().getAmount());
+	}
+
+	@Subscribe
+	public void onAnimationChanged(AnimationChanged event)
+	{
+		Actor actor = event.getActor();
+		runner.animation(actor == client.getLocalPlayer(), npcName(actor), actor.getAnimation());
+	}
+
+	/** The actor's name when it is an NPC, as scripts name NPCs; null for a player. */
+	private static String npcName(Actor actor)
+	{
+		return actor instanceof NPC ? Dialogue.clean(actor.getName()) : null;
 	}
 
 	@Subscribe

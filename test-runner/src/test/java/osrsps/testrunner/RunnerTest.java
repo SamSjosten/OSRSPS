@@ -454,4 +454,109 @@ public class RunnerTest
 		assertEquals("step 1 (assert no dialogue): the plugin was turned off", r.failure);
 		assertNull(runner.abort("again"));
 	}
+
+	@Test
+	public void hitsplatsCountOnlyAfterTheLastActionAndMatchWhoAndHowMuch() throws Exception
+	{
+		runner.start(script("{\"step\":\"npcOption\",\"npc\":\"Man\",\"option\":\"Attack\"},"
+			+ "{\"step\":\"assertHitsplat\",\"npc\":\"Man\",\"amount\":1},"
+			+ "{\"step\":\"assertHitsplat\",\"self\":true}"), "file");
+		// A splat from before the click doesn't count, nor one on someone else, nor a miss when 1 is wanted.
+		runner.hitsplat(false, "Man", 16, 1);
+		assertNull(cycle());
+		assertEquals(List.of("Attack Man"), game.actions);
+		runner.hitsplat(false, "Woman", 16, 1);
+		runner.hitsplat(false, "Man", 12, 0);
+		assertNull(cycle());
+		runner.hitsplat(false, "man", 16, 1);
+		assertNull(cycle());
+		runner.hitsplat(true, null, 16, 2);
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("assert hitsplat of 1 on Man", r.steps.get(1).description);
+		assertEquals("hitsplat 1 on man (type 16)", r.steps.get(1).detail);
+		assertEquals("assert hitsplat on you", r.steps.get(2).description);
+		assertEquals("hitsplat 2 on you (type 16)", r.steps.get(2).detail);
+	}
+
+	@Test
+	public void npcHealthWaitsForTheBarThenChecksTheBounds() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertNpcHealth\",\"npc\":\"Man\",\"max\":99,\"timeoutMs\":100}"), "file");
+		assertNull(cycle());
+		game.npcHealth = new Game.Health(-1, -1);
+		assertNull(cycle());
+		game.npcHealth = new Game.Health(30, 30);
+		assertNull(cycle());
+		game.npcHealth = new Game.Health(21, 30);
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("assert Man health at most 99%", r.steps.get(0).description);
+		assertEquals("Man at 70% (21/30)", r.steps.get(0).detail);
+
+		runner.start(script("{\"step\":\"assertNpcHealth\",\"npcId\":3106,\"min\":80,\"max\":100,\"timeoutMs\":40}"), "file");
+		r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals("step 1 (assert NPC 3106 health 80-100%): timed out after 40 ms: NPC 3106 at 70% (21/30)", r.failure);
+	}
+
+	@Test
+	public void statWantsAtLeastTheLevelAndXp() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertStat\",\"skill\":\"attack\",\"xp\":28},"
+			+ "{\"step\":\"assertStat\",\"skill\":\"Hitpoints\",\"level\":10,\"xp\":1154}"), "file");
+		assertNull(cycle());
+		game.levels.put("Attack", 1);
+		game.xps.put("Attack", 24);
+		assertNull(cycle());
+		game.xps.put("Attack", 28);
+		game.levels.put("Hitpoints", 10);
+		game.xps.put("Hitpoints", 1163);
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("assert Attack xp 28+", r.steps.get(0).description);
+		assertEquals("Attack level 1, 28 xp", r.steps.get(0).detail);
+		assertEquals("assert Hitpoints level 10+ xp 1154+", r.steps.get(1).description);
+	}
+
+	@Test
+	public void groundItemWaitsForTheItemOrForItToGo() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertGroundItem\",\"item\":\"Bones\",\"x\":3213,\"y\":3210},"
+			+ "{\"step\":\"assertGroundItem\",\"itemId\":526,\"absent\":true}"), "file");
+		assertNull(cycle());
+		game.groundItems.add("Bones at 3213 3210");
+		game.groundItems.add("item 526");
+		assertNull(cycle());
+		game.groundItems.remove("item 526");
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("assert Bones at 3213, 3210 on the ground", r.steps.get(0).description);
+		assertEquals("Bones at 3213, 3210 is on the ground", r.steps.get(0).detail);
+		assertEquals("assert no item 526 on the ground", r.steps.get(1).description);
+		assertEquals("no item 526 on the ground", r.steps.get(1).detail);
+	}
+
+	@Test
+	public void animationCountsOnlyAfterTheLastActionOnTheRightActor() throws Exception
+	{
+		runner.start(script("{\"step\":\"npcOption\",\"npc\":\"Man\",\"option\":\"Attack\"},"
+			+ "{\"step\":\"assertAnimation\",\"id\":422},"
+			+ "{\"step\":\"assertAnimation\",\"id\":424,\"npc\":\"Man\"}"), "file");
+		runner.animation(true, null, 422);
+		assertNull(cycle());
+		runner.animation(false, "Man", 422);
+		assertNull(cycle());
+		runner.animation(true, null, 422);
+		assertNull(cycle());
+		runner.animation(false, "Man", 424);
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("assert animation 422 on you", r.steps.get(1).description);
+		assertEquals("animation 422 on you", r.steps.get(1).detail);
+		assertEquals("animation 424 on Man", r.steps.get(2).detail);
+	}
 }

@@ -8,7 +8,8 @@ import java.util.function.Supplier;
 
 /**
  * Runs one script at a time, a step per poll. The plugin calls {@link #poll} every client cycle, {@link #gameTick}
- * on each game tick and {@link #message} for each chat message, all on the client thread.
+ * on each game tick, {@link #message} for each chat message, {@link #hitsplat} for each hitsplat and
+ * {@link #animation} for each animation an actor starts, all on the client thread.
  */
 final class Runner
 {
@@ -67,6 +68,24 @@ final class Runner
 		if (run != null)
 		{
 			run.message(text);
+		}
+	}
+
+	/** A hitsplat shown on the player (self) or on an NPC by name. */
+	void hitsplat(boolean self, String npc, int type, int amount)
+	{
+		if (run != null)
+		{
+			run.hitsplat(self, npc, type, amount);
+		}
+	}
+
+	/** An animation the player (self) or an NPC by name started. */
+	void animation(boolean self, String npc, int id)
+	{
+		if (run != null)
+		{
+			run.animation(self, npc, id);
 		}
 	}
 
