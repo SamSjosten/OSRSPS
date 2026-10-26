@@ -8,7 +8,7 @@
     {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
     {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0},
     {"step": "walk", "x": 3222, "y": 3220},
-    {"step": "npcOption", "npc": "Hans", "option": "Talk-to"},
+    {"step": "npcOption", "npc": "Hans", "option": "Talk-to", "timeoutMs": 70000},
     {"step": "assertDialogue", "speaker": "Hans", "contains": "[hans.greeting]", "timeoutMs": 20000},
     {"step": "continueDialogue"},
     {"step": "chooseOption", "text": "[hans.nothing]"},

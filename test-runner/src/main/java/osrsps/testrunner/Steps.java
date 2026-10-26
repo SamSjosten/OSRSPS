@@ -105,11 +105,17 @@ final class Steps
 			{
 				return Poll.waiting("no local player");
 			}
-			if (at.x == x && at.y == y && (plane < 0 || at.plane == plane))
+			if (!(at.x == x && at.y == y && (plane < 0 || at.plane == plane)))
 			{
-				return Poll.pass("at " + at);
+				return Poll.waiting("at " + at);
 			}
-			return Poll.waiting("at " + at);
+			// The client has to show the player there too: after a teleport it should draw them there at once.
+			Tile drawn = run.game.drawnLocation();
+			if (!at.equals(drawn))
+			{
+				return Poll.waiting(drawnElsewhere(at, drawn));
+			}
+			return Poll.pass("at " + at);
 		}
 
 		@Override
@@ -117,6 +123,12 @@ final class Steps
 		{
 			return "assert location " + x + ", " + y + (plane < 0 ? "" : ", " + plane);
 		}
+	}
+
+	/** Why a step waits when the client draws the player on another tile than the server has them on. */
+	private static String drawnElsewhere(Tile at, Tile drawn)
+	{
+		return "at " + at + ", but the client draws the player at " + drawn;
 	}
 
 	/** Clicks Walk here on a tile and waits until the player stands on it. */
@@ -150,9 +162,11 @@ final class Steps
 			{
 				return Poll.waiting("no local player");
 			}
+			Tile drawn = run.game.drawnLocation();
 			if (at.x == x && at.y == y)
 			{
-				return Poll.pass("at " + at);
+				// The client draws the player a step behind while they walk, so this waits for them to arrive on screen.
+				return at.equals(drawn) ? Poll.pass("at " + at) : Poll.waiting(drawnElsewhere(at, drawn));
 			}
 			if (!at.equals(lastAt))
 			{
@@ -162,6 +176,12 @@ final class Steps
 			if (sent && run.gameTicks() - stillSince >= STILL_TICKS)
 			{
 				sent = false;
+			}
+			if (!sent && !at.equals(drawn))
+			{
+				// Standing still, the client should draw the player on their tile. A click picks the tile under a spot
+				// on screen, and the camera follows the drawn player, so a click now would go somewhere else.
+				return Poll.waiting(drawnElsewhere(at, drawn));
 			}
 			if (!sent)
 			{

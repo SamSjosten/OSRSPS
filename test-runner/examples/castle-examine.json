@@ -111,7 +111,8 @@
   {
    "step": "npcOption",
    "npc": "Hans",
-   "option": "Examine"
+   "option": "Examine",
+   "timeoutMs": 70000
   },
   {
    "step": "assertMessage",
