@@ -22,6 +22,7 @@ class CombatTest {
     private val man = NpcType(3106, "Man", combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
     private val hans = NpcType(3105, "Hans", internalName = "hans")
     private val npcTypes = NpcTypes.of(man, hans)
+    private val shortbow = ObjType(841, "Shortbow", wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, params = mapOf(14 to 5), internalName = "shortbow", category = 64)
     private val sword = ObjType(1277, "Bronze sword", wearpos1 = WearPos.WEAPON, params = mapOf(0 to 4, 1 to 3, 10 to 5, 14 to 4), internalName = "bronze_sword", category = 25)
     private val styles = AttackStyles.fromRows(
         listOf(
@@ -29,6 +30,11 @@ class CombatTest {
                 0, "Punch", "(Accurate)<br>(Crush)<br>(Attack XP)", 0,
                 1, "Kick", "(Aggressive)<br>(Crush)<br>(Strength XP)", 0,
                 3, "Block", "(Defensive)<br>(Crush)<br>(Defence XP)", 0,
+            ),
+            listOf<Any>(3) to listOf<Any>(
+                0, "Accurate", "(Accurate)<br>(Standard)<br>(Ranged XP)", 0,
+                1, "Rapid", "(Rapid)<br>(Standard)<br>(Ranged XP)", 0,
+                3, "Longrange", "(Longrange)<br>(Standard)<br>(Ranged XP)", 0,
             ),
             // Stab swords (weapon category 17), as the 241 cache has them.
             listOf<Any>(17) to listOf<Any>(
@@ -47,7 +53,7 @@ class CombatTest {
         npcTypes, SeqNames.NONE,
     )
     private val world = World(
-        IntArray(0), CollisionMap(), objTypes = ObjTypes.of(sword), npcTypes = npcTypes, attackStyles = styles, npcCombat = npcCombat,
+        IntArray(0), CollisionMap(), objTypes = ObjTypes.of(sword, shortbow), npcTypes = npcTypes, attackStyles = styles, npcCombat = npcCombat,
     )
     private val player = Player(1, "test", 3222, 3218, 0)
     private val replies = mutableListOf<String>()
@@ -85,6 +91,23 @@ class CombatTest {
         player.equipment[WearPos.WEAPON] = null
         player.vars[EquipmentTab.VARP_COM_MODE] = 2
         assertEquals("Punch", world.combat.style(player).name)
+    }
+
+    @Test
+    fun `a ranged or magic style has no melee matchup, a style with no type hits as crush`() {
+        val npc = world.spawnNpc(NpcSpawn(man, 3223, 3218, 0, source = "test"))!!
+        val bow = AttackStyle(0, "Accurate", AttackStance.ACCURATE, AttackType.RANGED, listOf(Skill.RANGED))
+        val block = AttackStyle(3, "Block", AttackStance.OTHER, AttackType.NONE, emptyList())
+        assertNull(world.combat.meleeType(bow))
+        assertNull(world.combat.meleeType(AttackStyle(0, "Spell", AttackStance.OTHER, AttackType.MAGIC, listOf(Skill.MAGIC))))
+        assertEquals(AttackType.CRUSH, world.combat.meleeType(block))
+        assertEquals(AttackType.SLASH, world.combat.meleeType(AttackStyle(2, "Slash", AttackStance.AGGRESSIVE, AttackType.SLASH, listOf(Skill.STRENGTH))))
+        // Shortbow, category 3 in the 241 cache: its styles are ranged.
+        world.spawnNpc(NpcSpawn(man, 3225, 3218, 0, source = "test"))
+        player.equipment[WearPos.WEAPON] = InvObj(841, 1)
+        assertNull(world.combat.matchup(player, npc))
+        run("combat man")
+        assertEquals(listOf("Accurate is a ranged style; only melee is in so far"), replies)
     }
 
     @Test

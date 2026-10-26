@@ -78,9 +78,13 @@ object CombatMath {
     /**
      * XP in tenths for [damage] dealt with a melee style that trains [skills]: 4 XP a point to one skill, or 4/3 to each
      * of three for a shared style (OSRS Wiki, Combat). Hitpoints gets 4/3 a point too; see [hitpointsXpTenths].
-     * Inferred: the thirds are rounded down in tenths, so 1 damage gives 1.3 XP.
+     * Inferred: the thirds are rounded down in tenths, so 1 damage gives 1.3 XP. A style that trains nothing gives none.
      */
-    fun styleXpTenths(damage: Int, skills: Int): Int = if (skills <= 1) damage * 40 else damage * 40 / 3
+    fun styleXpTenths(damage: Int, skills: Int): Int = when {
+        skills <= 0 -> 0
+        skills == 1 -> damage * 40
+        else -> damage * 40 / 3
+    }
 
     /** Hitpoints XP in tenths for [damage]: 1.33 a point (OSRS Wiki, Combat), rounded down in tenths (inferred). */
     fun hitpointsXpTenths(damage: Int): Int = damage * 40 / 3

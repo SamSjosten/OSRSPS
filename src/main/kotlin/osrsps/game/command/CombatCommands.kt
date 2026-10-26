@@ -21,8 +21,9 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             }
         }
         val type = target.type
+        val style = combat.style(player)
+        if (combat.meleeType(style) == null) fail("${style.name} is a ${style.type.name.lowercase()} style; only melee is in so far")
         val m = combat.matchup(player, target) ?: fail("${type.name} #${target.index} can't be fought")
-        val style = m.style
         val stance = style.stance.name.lowercase()
         val attackType = style.type.name.lowercase()
         reply("${style.name} ($stance, $attackType), speed ${combat.attackSpeed(player)}: attack roll ${m.attackRoll}, max hit ${m.maxHit}")
