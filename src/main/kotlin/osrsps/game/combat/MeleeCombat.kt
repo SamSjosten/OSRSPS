@@ -39,7 +39,7 @@ class MeleeInteraction internal constructor(val npc: Npc, private val owner: Mel
  * and gives XP by the attack style (OSRS Wiki, Combat). The NPC turns to its attacker and stands still while fought.
  *
  * From the Wiki: melee damage lands on the tick it is rolled; an NPC with no hitpoints left dies and comes back at its
- * spawn after its respawn time; in a single-way area like Lumbridge an NPC fighting another player says "Someone else
+ * spawn after its respawn time (never before its body has gone); in a single-way area like Lumbridge an NPC fighting another player says "Someone else
  * is fighting that." Guessed and marked below: how long an NPC counts as fighting after its last hit, how long its
  * body stays, and that the respawn time counts from the killing blow. NPCs hitting back is the next step of the combat
  * piece, so for now they only take it.
@@ -171,8 +171,10 @@ class MeleeCombat(
     private fun die(npc: Npc, def: NpcCombatDef, tick: Long) {
         npc.dead = true
         if (def.anims.death >= 0) npc.effects.anim(def.anims.death)
-        dying += Dying(npc, tick + DEATH_TICKS, tick + def.respawnTicks)
-        logger.debug { "$npc died; back on tick ${tick + def.respawnTicks}" }
+        // The body goes before the replacement comes, however short the respawn time (a rat's is 2 ticks).
+        val respawnTick = tick + maxOf(def.respawnTicks, DEATH_TICKS)
+        dying += Dying(npc, tick + DEATH_TICKS, respawnTick)
+        logger.debug { "$npc died; back on tick $respawnTick" }
     }
 
     /** Takes out the NPCs whose death is over and puts back those whose respawn time is up. Run in the NPC phase. */
@@ -183,6 +185,8 @@ class MeleeCombat(
             val entry = iterator.next()
             if (tick >= entry.removeTick && npcs[entry.npc.index] === entry.npc) removeNpc(entry.npc)
             if (tick >= entry.respawnTick) {
+                // Never before the body has gone: a respawn no shorter than DEATH_TICKS and the removal above see to it.
+                check(npcs[entry.npc.index] !== entry.npc) { "$entry.npc respawning with its body still there" }
                 iterator.remove()
                 spawnNpc(entry.npc.spawn)
             }

@@ -34,7 +34,8 @@ class MeleeCombatTest {
     private var tick = 0L
     private val man = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", "Pickpocket", null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
     private val hans = NpcType(3105, "Hans", ops = listOf("Talk-to", null, "Attack", null, null), internalName = "hans")
-    private val npcTypes = NpcTypes.of(man, hans)
+    private val rat = NpcType(2854, "Rat", ops = listOf(null, "Attack", null, null, null), combatLevel = 1, internalName = "rat", stats = NpcStats(hitpoints = 2))
+    private val npcTypes = NpcTypes.of(man, hans, rat)
     private val shortbow = ObjType(841, "Shortbow", wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, params = mapOf(14 to 5), internalName = "shortbow", category = 64)
     private val styles = AttackStyles.fromRows(
         listOf(
@@ -50,7 +51,10 @@ class MeleeCombatTest {
         """{ "npcs": [ { "npcs": ["man"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0,
             "strengthBonus": 0,
             "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
-            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" } ] }""",
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" },
+            { "npcs": ["rat"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+            "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 2, "source": "test" } ] }""",
         npcTypes, SeqNames(mapOf("punch" to 422, "block" to 424, "death" to 836)),
     )
     private val map = CollisionMap().apply { markLoaded(50, 50) }
@@ -210,6 +214,38 @@ class MeleeCombatTest {
         tick()
         assertEquals(listOf(npc.spawn), respawned)
         assertEquals(0, melee.respawning)
+    }
+
+    @Test
+    fun `a respawn shorter than the death waits for the body to go`() {
+        val npc = spawn(rat)
+        tick = 10
+        melee.hit(npc, alice, 100, tick)
+        repeat(3) { tick() }
+        assertTrue(removed.isEmpty())
+        assertTrue(respawned.isEmpty())
+        tick()
+        assertEquals(listOf(npc), removed)
+        assertEquals(listOf(npc.spawn), respawned)
+        assertEquals(0, melee.respawning)
+    }
+
+    @Test
+    fun `an NPC left alone forgets its attacker and stops facing them once the hold is over`() {
+        val npc = spawn()
+        attack(alice, npc)
+        tick()
+        alice.interaction = null
+        repeat(MeleeCombat.IN_COMBAT_TICKS) { tick() }
+        assertEquals(alice, npc.attacker)
+        assertEquals(alice, npc.facing)
+        tick()
+        assertNull(npc.attacker)
+        assertNull(npc.facing)
+        // Free to be fought by anyone again.
+        attack(bob, npc)
+        tick(bob)
+        assertIs<MeleeInteraction>(bob.interaction)
     }
 
     @Test
