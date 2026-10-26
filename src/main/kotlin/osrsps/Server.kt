@@ -6,6 +6,7 @@ import io.netty.buffer.Unpooled
 import net.rsprot.compression.HuffmanCodec
 import net.rsprot.compression.provider.DefaultHuffmanCodecProvider
 import net.rsprot.protocol.api.NetworkService
+import osrsps.cache.CombatLoader
 import osrsps.cache.EffectIdLoader
 import osrsps.cache.FontLoader
 import osrsps.cache.GameFrameCheck
@@ -28,6 +29,9 @@ import osrsps.game.Quests
 import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.SeqNames
+import osrsps.game.combat.AttackStyles
+import osrsps.game.combat.NpcCombat
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
@@ -69,6 +73,8 @@ class GameServer(
         val quests: Quests
         val effectIds: EffectIds
         val chatFont: ChatFont
+        val attackStyles: AttackStyles
+        val seqNames: SeqNames
         try {
             js5 = Js5Store.load(library)
             map = MapCollisionLoader.loadWorld(library)
@@ -78,6 +84,8 @@ class GameServer(
             quests = QuestLoader.load(library)
             effectIds = EffectIdLoader.load(library)
             chatFont = FontLoader.loadDialogueFont(library)
+            attackStyles = CombatLoader.attackStyles(library)
+            seqNames = CombatLoader.seqNames(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
             val huffmanData = library.data(HUFFMAN_ARCHIVE, "huffman", 0) ?: error("No huffman group in the cache")
             huffman = HuffmanCodec.create(Unpooled.wrappedBuffer(huffmanData))
@@ -104,6 +112,8 @@ class GameServer(
         else logger.info { "Admins: $admins" }
         val npcSpawns = NpcSpawnFile.loadAll(npcTypes)
         logger.info { "Loaded ${npcSpawns.size} NPC spawns" }
+        val npcCombat = NpcCombat.load(npcTypes, seqNames)
+        logger.info { "Loaded the combat of ${npcCombat.size} NPC types" }
         val scenarios = Scenarios.load()
         for (name in scenarios.names) {
             // Checked again when started; warned about here so a bad item name shows in the deploy log.
@@ -118,6 +128,7 @@ class GameServer(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir),
             Accounts(FileSaveStore(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
+            attackStyles = attackStyles, npcCombat = npcCombat,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)

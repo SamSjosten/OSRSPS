@@ -5,6 +5,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import osrsps.game.ConditionalOp
+import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SubOp
@@ -67,6 +68,7 @@ object NpcTypeLoader {
         var params: Map<Int, Any> = emptyMap()
         val conditionalOps = ArrayList<ConditionalOp>()
         val subOps = ArrayList<SubOp>()
+        val stats = IntArray(6) { 1 }
         while (true) {
             when (val opcode = buf.readUnsignedByte().toInt()) {
                 0 -> break
@@ -84,7 +86,7 @@ object NpcTypeLoader {
                 40, 41 -> buf.skipBytes(buf.readUnsignedByte() * 4)
                 42 -> buf.skipBytes(2)
                 61, 62 -> buf.skipBytes(buf.readUnsignedByte() * 4)
-                in 74..79 -> buf.skipBytes(2)
+                in 74..79 -> stats[opcode - 74] = buf.readUnsignedShort()
                 93, 99, 109, 111, 122, 123, 129, 130, 145, 147 -> {}
                 95 -> combatLevel = buf.readUnsignedShort()
                 97, 98, 103, 124, 126, 146 -> buf.skipBytes(2)
@@ -144,7 +146,7 @@ object NpcTypeLoader {
         check(!buf.isReadable) { "${buf.readableBytes()} bytes left after the end of NPC $id" }
         return NpcType(
             id, name, size, ops, combatLevel, standAnim, walkAnim, multiVarbit, multiVarp, multiNpcs, interactable,
-            params, internalName, conditionalOps, subOps,
+            params, internalName, conditionalOps, subOps, NpcStats.of(stats),
         )
     }
 

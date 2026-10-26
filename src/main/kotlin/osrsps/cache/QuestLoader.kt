@@ -2,7 +2,6 @@ package osrsps.cache
 
 import com.displee.cache.CacheLibrary
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import osrsps.game.Quest
 import osrsps.game.QuestVar
@@ -18,8 +17,6 @@ private val logger = KotlinLogging.logger {}
  * Checked by decoding both from the live 241 cache on 2026-10-21: Cook's Assistant is varp 29 (cookquest), end 2.
  */
 object QuestLoader {
-    private const val CONFIG_INDEX = 2
-    private const val DBROW_GROUP = 38
     private const val CLIENTSCRIPT_INDEX = 12
     private const val PROGRESS_SCRIPT = 4024
 
@@ -42,12 +39,7 @@ object QuestLoader {
             return Quests.NONE
         }
         val progressVars = decodeProgressSwitch(script)
-        val rows = HashMap<Int, DbRow>()
-        for (file in library.index(CONFIG_INDEX)?.archive(DBROW_GROUP)?.files().orEmpty()) {
-            val row = decodeDbRow(file.data ?: continue)
-            if (row.table == QUEST_TABLE) rows[file.id] = row
-        }
-        return Quests(buildQuests(rows, progressVars))
+        return Quests(buildQuests(DbRows.load(library, QUEST_TABLE), progressVars))
     }
 
     internal fun buildQuests(rows: Map<Int, DbRow>, progressVars: Map<Int, QuestVar>): List<Quest> {
@@ -69,36 +61,8 @@ object QuestLoader {
         return quests
     }
 
-    /** A db row: its table and each column's values, tuples flattened. */
-    data class DbRow(val table: Int, val columns: Map<Int, List<Any>>)
-
     /** As RuneLite's cache DBRowLoader reads it. */
-    fun decodeDbRow(data: ByteArray): DbRow {
-        val buf = Unpooled.wrappedBuffer(data)
-        var table = -1
-        val columns = HashMap<Int, List<Any>>()
-        while (true) {
-            when (val opcode = buf.readUnsignedByte().toInt()) {
-                0 -> break
-                3 -> {
-                    buf.skipBytes(1) // column count
-                    while (true) {
-                        val column = buf.readUnsignedByte().toInt()
-                        if (column == 255) break
-                        val types = IntArray(buf.readUnsignedByte().toInt()) { buf.readUnsignedSmart() }
-                        val values = ArrayList<Any>()
-                        repeat(buf.readUnsignedSmart()) {
-                            for (type in types) values += if (type == TYPE_STRING) buf.readString() else buf.readInt()
-                        }
-                        columns[column] = values
-                    }
-                }
-                4 -> table = buf.readVarInt()
-                else -> error("Unknown db row opcode $opcode")
-            }
-        }
-        return DbRow(table, columns)
-    }
+    fun decodeDbRow(data: ByteArray): DbRow = DbRows.decode(data)
 
     /**
      * Reads script 4024's switch: each case is `get_varp n` or `get_varbit n` then `return`. Anything else in a case
@@ -120,29 +84,6 @@ object QuestLoader {
             check(script.opcodes[at + 1] == ClientScript.RETURN) { "Script $PROGRESS_SCRIPT case $key does more than return its var" }
         }
         return result
-    }
-
-    private const val TYPE_STRING = 36
-
-    private fun ByteBuf.readUnsignedSmart(): Int =
-        if (getUnsignedByte(readerIndex()) < 128) readUnsignedByte().toInt() else readUnsignedShort() - 0x8000
-
-    private fun ByteBuf.readVarInt(): Int {
-        var b = readUnsignedByte().toInt()
-        var value = b and 0x7F
-        while (b and 0x80 != 0) {
-            b = readUnsignedByte().toInt()
-            value = (value shl 7) or (b and 0x7F)
-        }
-        return value
-    }
-
-    private fun ByteBuf.readString(): String {
-        val end = indexOf(readerIndex(), writerIndex(), 0)
-        check(end >= 0) { "Unterminated string" }
-        val s = toString(readerIndex(), end - readerIndex(), Charsets.ISO_8859_1)
-        readerIndex(end + 1)
-        return s
     }
 }
 

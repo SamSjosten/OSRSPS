@@ -1,0 +1,53 @@
+{
+  "about": "What NPCs fight with beyond the levels in their cache types. Speeds, max hits, attack styles, bonuses and respawn times are the OSRS Wiki infoboxes' (read 2026-10-26), cross-checked with the Wiki's DPS calculator data (weirdgloop/osrs-dps-calc monsters.json). Animations are gameval names: attack and death are the NPC's own by name; which of an NPC's block or def animations it defends with is guessed.",
+  "npcs": [
+    {
+      "npcs": ["man", "man2", "man3", "man4"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Man (ids 3106 to 3109 share the infobox)"
+    },
+    {
+      "npcs": ["woman", "woman2", "woman3"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 24,
+      "source": "OSRS Wiki, Woman (3112 and 3113 are taken to match 3111: the cache gives all three the same levels and bonuses)"
+    },
+    {
+      "npcs": ["rat"],
+      "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": -47, "strengthBonus": -53,
+      "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
+      "anims": { "attack": "mouse_attack", "defend": "mouse_defend", "death": "mouse_death" },
+      "respawnTicks": 2,
+      "source": "OSRS Wiki, Rat (ids 2854, 2855); it stands and walks with mouse_ready and mouse_walk, so it fights with the mouse animations"
+    },
+    {
+      "npcs": ["imp"],
+      "attackSpeed": 4, "maxHit": 0, "attackType": "stab", "attackBonus": -42, "strengthBonus": -37,
+      "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
+      "anims": { "attack": "imp_attack", "defend": "imp_block", "death": "imp_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Imp (id 5007)"
+    },
+    {
+      "npcs": ["cow", "cow2", "cow3"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": -15, "strengthBonus": -15,
+      "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+      "anims": { "attack": "cow_update_attack", "defend": "cow_update_defend", "death": "cow_update_death" },
+      "respawnTicks": 45,
+      "source": "OSRS Wiki, Cow (ids 2790, 2791, 2793); they stand and walk with the cow_update animations"
+    },
+    {
+      "npcs": ["cow2_calf", "cow3_calf", "calf"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": -20, "strengthBonus": -20,
+      "defence": { "stab": -26, "slash": -26, "crush": -26, "magic": -26, "light": -26, "standard": -26, "heavy": -26 },
+      "anims": { "attack": "cow_update_attack", "defend": "cow_update_defend", "death": "cow_update_death" },
+      "respawnTicks": 45,
+      "source": "OSRS Wiki, Cow calf (ids 2792, 2794, 2801); calves stand with cow_just_ready_update and have no attack animation of their own by name, so the cow's are guessed"
+    }
+  ]
+}
