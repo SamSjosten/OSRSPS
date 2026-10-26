@@ -25,6 +25,8 @@ class FakeGame implements Game
 	Map<String, Integer> inventory = new HashMap<>();
 	/** How many walk clicks to refuse first, as when the tile is not on screen yet. */
 	int walkRefusals;
+	/** What walkDestination answers. */
+	Tile destination;
 	/** What chatPending answers. */
 	boolean chatPending;
 
@@ -75,6 +77,12 @@ class FakeGame implements Game
 			return "tile " + x + ", " + y + " is not on screen";
 		}
 		return null;
+	}
+
+	@Override
+	public Tile walkDestination()
+	{
+		return destination;
 	}
 
 	@Override

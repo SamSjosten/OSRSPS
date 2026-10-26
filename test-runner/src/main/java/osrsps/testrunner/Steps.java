@@ -196,6 +196,12 @@ final class Steps
 				sent = true;
 				stillSince = run.gameTicks();
 			}
+			// Where the client's flag went shows which tile the click picked.
+			Tile flag = run.game.walkDestination();
+			if (flag != null && !(flag.x == x && flag.y == y))
+			{
+				return Poll.waiting("at " + at + ", heading for " + flag);
+			}
 			return Poll.waiting("at " + at);
 		}
 
