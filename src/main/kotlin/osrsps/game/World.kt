@@ -29,6 +29,7 @@ import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import osrsps.game.command.Admins
 import osrsps.game.command.CommandRegistry
+import osrsps.game.command.registerCombatCommands
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
@@ -42,6 +43,9 @@ import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
+import osrsps.game.combat.AttackStyles
+import osrsps.game.combat.Combat
+import osrsps.game.combat.NpcCombat
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
@@ -107,6 +111,10 @@ class World(
     private val dialogueFile: Path? = null,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
+    /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
+    attackStyles: AttackStyles = AttackStyles.DEFAULT,
+    /** What each NPC fights with; an NPC with none can't be attacked. */
+    npcCombat: NpcCombat = NpcCombat.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -137,6 +145,9 @@ class World(
     val groundObjs = GroundObjs(zones, objTypes, scripts, collision, { findPlayer(it) != null }, { players.count { it != null } })
 
     private val equipment = Equipment(objTypes)
+
+    /** Melee combat with NPCs; see [Combat]. */
+    val combat = Combat(equipment, attackStyles, npcCombat)
 
     private val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
@@ -178,6 +189,7 @@ class World(
         registerLocCommands(this@World)
         registerNpcCommands(this@World)
         registerScenarioCommands(this@World)
+        registerCombatCommands(this@World)
     }
 
     init {

@@ -31,6 +31,8 @@ class NpcType(
     val conditionalOps: List<ConditionalOp> = emptyList(),
     /** Sub-options (cache opcodes 251 and 253), in cache order. */
     val subOps: List<SubOp> = emptyList(),
+    /** Combat levels, cache opcodes 74 to 79. */
+    val stats: NpcStats = NpcStats.DEFAULT,
 ) {
     /** The option [option] (1 to 5), or null if the NPC has none there. Conditional options are not looked at. */
     fun op(option: Int): String? = ops.getOrNull(option - 1)
@@ -70,6 +72,27 @@ class NpcType(
     companion object {
         const val DEFAULT_NAME = "null"
         val DEFAULT_OPS: List<String?> = listOf(null, null, null, null, null)
+    }
+}
+
+/**
+ * An NPC's combat levels, as the cache gives them: opcodes 74 to 79 in this order (RuneLite's NpcLoader). Checked against
+ * the OSRS Wiki's stats for 2,611 of 2,894 monsters in the 241 cache (the rest are Wiki versions the cache doesn't tell
+ * apart); a man is 1/1/1/7/1/1 on both.
+ */
+data class NpcStats(
+    val attack: Int = 1,
+    val defence: Int = 1,
+    val strength: Int = 1,
+    val hitpoints: Int = 1,
+    val ranged: Int = 1,
+    val magic: Int = 1,
+) {
+    companion object {
+        val DEFAULT = NpcStats()
+
+        /** From the six levels in opcode order (74 attack to 79 magic). */
+        fun of(levels: IntArray): NpcStats = NpcStats(levels[0], levels[1], levels[2], levels[3], levels[4], levels[5])
     }
 }
 

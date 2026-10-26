@@ -7,6 +7,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import osrsps.game.NpcStats
 import osrsps.game.NpcType
 
 class NpcTypeLoaderTest {
@@ -63,6 +64,7 @@ class NpcTypeLoaderTest {
         assertEquals(2, type.size)
         assertEquals(listOf(null, "Attack", null, null, null), type.ops)
         assertEquals(2, type.combatLevel)
+        assertEquals(NpcStats(attack = 1, hitpoints = 8), type.stats)
         assertEquals(5852, type.standAnim)
         // Opcode 17 sets the walk animation again, after 14.
         assertEquals(1, type.walkAnim)
@@ -77,6 +79,7 @@ class NpcTypeLoaderTest {
         assertEquals(NpcType.DEFAULT_NAME, type.name)
         assertEquals(1, type.size)
         assertEquals(-1, type.combatLevel)
+        assertEquals(NpcStats.DEFAULT, type.stats)
         assertEquals(NpcType.DEFAULT_OPS, type.ops)
     }
 

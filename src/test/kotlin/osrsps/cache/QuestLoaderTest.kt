@@ -44,7 +44,7 @@ class QuestLoaderTest {
 
     @Test
     fun `skips unreleased quests and quests with no progress var`() {
-        fun row(name: String, releaseType: Int?, end: Int, points: Int) = QuestLoader.DbRow(
+        fun row(name: String, releaseType: Int?, end: Int, points: Int) = DbRow(
             QuestLoader.QUEST_TABLE,
             buildMap {
                 put(2, listOf(name))
