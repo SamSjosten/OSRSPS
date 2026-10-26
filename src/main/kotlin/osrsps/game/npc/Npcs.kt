@@ -139,6 +139,11 @@ class Npcs(
         for (npc in npcs) {
             if (npc == null) continue
             val following = npc.following
+            if (npc.holdTicks > 0) {
+                // Being fought, it stands and faces its attacker; see MeleeCombat. Guessed, as live NPCs fight back.
+                npc.holdTicks--
+                continue
+            }
             when {
                 // Guessed: an NPC busy with a player doesn't move, even if it follows someone.
                 npc.engagedWith != null -> continue

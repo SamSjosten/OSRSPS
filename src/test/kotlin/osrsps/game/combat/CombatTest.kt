@@ -111,6 +111,36 @@ class CombatTest {
     }
 
     @Test
+    fun `fight, hit and kill`() {
+        world.spawnNpc(NpcSpawn(hans, 3222, 3219, 0, source = "test"))
+        val npc = world.spawnNpc(NpcSpawn(man, 3225, 3218, 0, source = "test"))!!
+        run("fight")
+        run("hit 3")
+        run("hit 2 hans")
+        run("hit x")
+        run("kill man")
+        run("kill 2")
+        assertEquals(
+            listOf(
+                "You are not fighting anything.",
+                "Hit Man #2 for 3: 4/7 hp",
+                "Hans #1 can't be fought",
+                "Usage: ::hit damage [index|name]",
+                "Killed Man #2.",
+                "Man #2 is already dead",
+            ),
+            replies,
+        )
+        assertEquals(0, npc.hitpoints)
+        assertEquals(1, world.meleeCombat.respawning)
+        replies.clear()
+        player.interaction = MeleeInteraction(npc, world.meleeCombat)
+        player.nextAttackTick = 3
+        run("fight")
+        assertEquals(listOf("You are fighting Man #2 (0/7 hp); next swing in 3 ticks."), replies)
+    }
+
+    @Test
     fun `an NPC with no combat can't be fought`() {
         val npc = world.spawnNpc(NpcSpawn(hans, 3223, 3218, 0, source = "test"))!!
         assertNull(world.combat.matchup(player, npc))
