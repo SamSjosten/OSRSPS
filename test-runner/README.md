@@ -29,8 +29,9 @@ jar in `sideloaded-plugins` at startup.
 ## Logging in
 
 Nobody needs to type a password. While the client is on the login screen, the plugin logs in the **Auto login
-account** (default `test`, empty turns it off) with the **Auto login password** (default `test`; our server takes any
-password for a test account, so this is never a real one). The account must be one of the **Test accounts**. It
+account** (default `test`, empty turns it off) with the **Auto login password** (default `test`). The server's first login
+claims a name with its password, and on 214 the test accounts are admins, so set a private password here (never a real
+one) before anyone else can reach the server. The account must be one of the **Test accounts**. It
 waits 3 s after the login screen shows, retries every 15 s, and stops after 5 tries in a row until a login succeeds or
 the plugin restarts.
 
