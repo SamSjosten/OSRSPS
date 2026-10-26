@@ -69,6 +69,7 @@ class CombatMathTest {
 
     @Test
     fun `xp in tenths`() {
+        assertEquals(0, CombatMath.styleXpTenths(5, 0))
         assertEquals(40, CombatMath.styleXpTenths(1, 1))
         assertEquals(13, CombatMath.styleXpTenths(1, 3))
         assertEquals(40, CombatMath.styleXpTenths(3, 3))

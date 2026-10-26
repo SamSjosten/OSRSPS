@@ -48,15 +48,28 @@ class Combat(
     /** Ticks between the player's attacks: the weapon's speed, 4 unarmed. */
     fun attackSpeed(player: Player): Int = bonuses(player).attackSpeed
 
-    /** The player's melee numbers against [npc], or null when it has no combat definition (it can't be attacked). */
+    /**
+     * The melee attack type the player's style hits with: its own for a melee style, crush for a style with none (a
+     * bulwark's block; those weapons come later), and null for a ranged or magic style, which this piece doesn't fight
+     * with.
+     */
+    fun meleeType(style: AttackStyle): AttackType? = when (style.type) {
+        AttackType.STAB, AttackType.SLASH, AttackType.CRUSH -> style.type
+        AttackType.NONE -> AttackType.CRUSH
+        AttackType.RANGED, AttackType.MAGIC -> null
+    }
+
+    /**
+     * The player's melee numbers against [npc], or null when it has no combat definition (it can't be attacked) or the
+     * player's style isn't melee (see [meleeType]).
+     */
     fun matchup(player: Player, npc: Npc): MeleeMatchup? {
         val def = npcCombat[npc.type] ?: return null
         val stats = npc.type.stats
         val style = style(player)
+        val type = meleeType(style) ?: return null
         val bonuses = bonuses(player)
         val skills = player.skills
-        // A style with no melee type (a bulwark's block) is taken as crush; those weapons come later.
-        val type = if (style.type.melee) style.type else AttackType.CRUSH
         val attackRoll = CombatMath.playerAttackRoll(skills.currentLevel(Skill.ATTACK), style.stance, attackBonus(bonuses, type))
         val defenceRoll = CombatMath.npcDefenceRoll(stats.defence, def.defence.against(type))
         val npcAttackRoll = CombatMath.npcAttackRoll(stats.attack, def.attackBonus)
