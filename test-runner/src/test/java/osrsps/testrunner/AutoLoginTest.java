@@ -79,6 +79,19 @@ public class AutoLoginTest
 	}
 
 	@Test
+	public void aKeyOnTheLoginScreenStopsItBeforeTheFirstTry()
+	{
+		AutoLogin a = new AutoLogin();
+		a.loginScreen(0);
+		assertTrue("the first key", a.keyPressed());
+		assertFalse("only the first", a.keyPressed());
+		assertFalse(a.due(AutoLogin.SETTLE_MS));
+		a.reset();
+		a.loginScreen(1_000_000);
+		assertTrue(a.due(1_000_000 + AutoLogin.SETTLE_MS));
+	}
+
+	@Test
 	public void aChangeOfAccountIsNotATakeOver()
 	{
 		AutoLogin a = new AutoLogin();

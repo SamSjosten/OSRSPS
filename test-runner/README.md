@@ -34,10 +34,10 @@ password for a test account, so this is never a real one). The account must be o
 waits 3 s after the login screen shows, retries every 15 s, and stops after 5 tries in a row until a login succeeds or
 the plugin restarts.
 
-A second client on the same machine runs the plugin too, and its first try fails because the account is already
-logged in. Type another name over it: once the login box holds a name other than the account after auto login has put
-the account there (a logout since included), or a login under another name goes through, auto login leaves that client
-alone until the plugin restarts.
+A second client on the same machine runs the plugin too. To log another account in on it, just start typing: a key
+pressed on the login screen, a name other than the one auto login typed found in the login box (a logout since
+included), or a login under another name tells the plugin a person is at that client, and auto login leaves it alone
+until the plugin restarts.
 
 So starting `C:\RSPS\RSProx.cmd` (or its scheduled task) is enough: the client logs in, runs every `runOnLogin`
 script, and then any script dropped into the tests folder.

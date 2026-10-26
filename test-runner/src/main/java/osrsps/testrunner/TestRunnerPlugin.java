@@ -2,6 +2,7 @@ package osrsps.testrunner;
 
 import com.google.gson.Gson;
 import com.google.inject.Provides;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +29,8 @@ import net.runelite.client.RuneLite;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.input.KeyListener;
+import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.DrawManager;
@@ -75,7 +78,38 @@ public class TestRunnerPlugin extends Plugin
 	@Inject
 	private Gson gson;
 
+	@Inject
+	private KeyManager keyManager;
+
 	private final AutoLogin autoLogin = new AutoLogin();
+	/** A key on the login screen means a person is at this client, so auto login leaves it to them. */
+	private final KeyListener personAtLogin = new KeyListener()
+	{
+		@Override
+		public boolean isEnabledOnLoginScreen()
+		{
+			return true;
+		}
+
+		@Override
+		public void keyPressed(KeyEvent e)
+		{
+			if (client.getGameState() == GameState.LOGIN_SCREEN && autoLogin.keyPressed())
+			{
+				log.info("Test runner: a key was pressed on the login screen; auto login is off until the plugin restarts");
+			}
+		}
+
+		@Override
+		public void keyTyped(KeyEvent e)
+		{
+		}
+
+		@Override
+		public void keyReleased(KeyEvent e)
+		{
+		}
+	};
 	private ScriptFolder folder;
 	private ResultWriter writer;
 	private Runner runner;
@@ -129,6 +163,7 @@ public class TestRunnerPlugin extends Plugin
 		{
 			autoLogin.loginScreen(System.currentTimeMillis());
 		}
+		keyManager.registerKeyListener(personAtLogin);
 		scanTask = executor.scheduleWithFixedDelay(this::scan, 0, 1, TimeUnit.SECONDS);
 		log.info("Test runner: watching {}", folder.dir());
 	}
@@ -136,6 +171,7 @@ public class TestRunnerPlugin extends Plugin
 	@Override
 	protected void shutDown()
 	{
+		keyManager.unregisterKeyListener(personAtLogin);
 		if (scanTask != null)
 		{
 			scanTask.cancel(false);

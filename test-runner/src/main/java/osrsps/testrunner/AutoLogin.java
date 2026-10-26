@@ -3,9 +3,10 @@ package osrsps.testrunner;
 /**
  * When to log the test account in from the login screen: a few seconds after the screen shows (so the client has
  * finished loading), then again every {@link #RETRY_MS} while it stays there, up to {@link #MAX_TRIES} tries in a row.
- * A login resets the count. Someone typing another name over the one it typed, or logging in under another name, takes
- * the client over until the plugin restarts, so a second client on the same machine can log in another account. Called
- * from the client thread and the plugin's executor, so every method is synchronized.
+ * A login resets the count. A person at the client (a key pressed on the login screen, another name typed over the one
+ * it typed, or a login under another name) takes the client over until the plugin restarts, so a second client on the
+ * same machine can log in another account. Called from the client thread, the AWT thread and the plugin's executor, so
+ * every method is synchronized.
  */
 final class AutoLogin
 {
@@ -63,6 +64,17 @@ final class AutoLogin
 	synchronized boolean due(long nowMs)
 	{
 		return !manual && onLoginScreen && tries < MAX_TRIES && nowMs >= nextTryAt;
+	}
+
+	/**
+	 * A key was pressed on the login screen. Auto login never presses keys there, so a person is at this client: they
+	 * keep it, even before the first try. True the first time.
+	 */
+	synchronized boolean keyPressed()
+	{
+		boolean first = !manual;
+		manual = true;
+		return first;
 	}
 
 	/** Auto login put {@code name} in the login box. From then on another name there was typed by someone. */
