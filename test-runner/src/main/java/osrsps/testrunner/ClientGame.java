@@ -99,6 +99,21 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public Tile drawnLocation()
+	{
+		Player p = client.getLocalPlayer();
+		if (p == null)
+		{
+			return null;
+		}
+		// getWorldLocation is the tile the server last sent; the local location is where the client draws the player.
+		WorldView wv = client.getTopLevelWorldView();
+		LocalPoint lp = p.getLocalLocation();
+		WorldPoint w = WorldPoint.fromLocal(wv, lp.getX(), lp.getY(), wv.getPlane());
+		return new Tile(w.getX(), w.getY(), w.getPlane());
+	}
+
+	@Override
 	public String sendChat(String text)
 	{
 		Canvas canvas = client.getCanvas();
@@ -156,7 +171,7 @@ final class ClientGame implements Game
 		if (p == null || p.getX() < vx || p.getY() < vy || p.getX() >= vx + client.getViewportWidth() || p.getY() >= vy + client.getViewportHeight())
 		{
 			faceCamera(lp);
-			return "tile " + x + ", " + y + " is not on screen; walk somewhere closer first";
+			return "tile " + x + ", " + y + " is not on screen; walk somewhere closer first (" + cameraState(lp, p) + ")";
 		}
 		// Walk here points at the tile under a spot in the 3D view, as a click does; the client then picks the tile there
 		// while drawing the next frame. Guessed from the client's own Walk here entries: the spot is relative to the
@@ -186,6 +201,22 @@ final class ClientGame implements Game
 			client.setCameraYawTarget((int) Math.round(Math.atan2(-dx, dy) / Perspective.UNIT14) & 0x3fff);
 		}
 		client.setCameraPitchTarget(CAMERA_PITCH_DOWN);
+	}
+
+	/** Where the target landed and what the camera was doing, for a walk that can't find its tile on screen. */
+	private String cameraState(LocalPoint target, Point p)
+	{
+		Player me = client.getLocalPlayer();
+		LocalPoint here = me != null ? me.getLocalLocation() : null;
+		return String.format("projected to %s, viewport %d,%d %dx%d; camera yaw %d target %d, pitch %d target %d, mode %d, scale %d,"
+				+ " at %.0f,%.0f,%.0f, focus %.0f,%.0f; player %s, tile %d,%d",
+			p == null ? "nothing" : p.getX() + "," + p.getY(),
+			client.getViewportXOffset(), client.getViewportYOffset(), client.getViewportWidth(), client.getViewportHeight(),
+			client.getCameraYaw(), client.getCameraYawTarget(), client.getCameraPitch(), client.getCameraPitchTarget(),
+			client.getCameraMode(), client.getScale(),
+			client.getCameraFpX(), client.getCameraFpY(), client.getCameraFpZ(),
+			client.getCameraFocalPointX(), client.getCameraFocalPointY(),
+			here == null ? "none" : here.getX() + "," + here.getY(), target.getX(), target.getY());
 	}
 
 	@Override

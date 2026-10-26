@@ -14,6 +14,12 @@ interface Game
 	/** The player's tile, or null when there is no player. */
 	Tile location();
 
+	/**
+	 * The tile the client draws the player on, or null when there is no player. It trails {@link #location} while the
+	 * player walks; any other difference means the client shows the player somewhere the server doesn't have them.
+	 */
+	Tile drawnLocation();
+
 	/** Puts the text in the chat input and presses Enter, as typing it would. */
 	String sendChat(String text);
 

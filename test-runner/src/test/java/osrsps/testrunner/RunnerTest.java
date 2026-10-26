@@ -120,6 +120,46 @@ public class RunnerTest
 	}
 
 	@Test
+	public void assertLocationWaitsUntilTheClientDrawsThePlayerThere() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertLocation\",\"x\":3222,\"y\":3218,\"timeoutMs\":100}"), "file");
+		// The server has them on the tile, but the client still draws them where they were.
+		game.location = new Tile(3222, 3218, 0);
+		game.drawn = new Tile(3205, 3228, 0);
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertNotNull(r);
+		assertEquals("step 1 (assert location 3222, 3218): timed out after 100 ms: at 3222, 3218, 0, but the client draws the player at 3205, 3228, 0", r.failure);
+
+		runner.start(script("{\"step\":\"assertLocation\",\"x\":3222,\"y\":3218}"), "file");
+		assertNull(cycle());
+		game.drawn = null;
+		assertEquals(Result.PASS, cycle().result);
+	}
+
+	@Test
+	public void walkWaitsForTheClientToDrawThePlayerOnTheirTile() throws Exception
+	{
+		game.drawn = new Tile(3205, 3228, 0);
+		runner.start(script("{\"step\":\"walk\",\"x\":3200,\"y\":3202}"), "file");
+		assertNull(cycle());
+		// The camera follows the drawn player, so a click now would land somewhere else: no click yet.
+		assertTrue(game.actions.isEmpty());
+		game.drawn = null;
+		assertNull(cycle());
+		assertEquals(List.of("walk 3200 3202"), game.actions);
+		// The server has them there before the client has walked them over.
+		game.location = new Tile(3200, 3202, 0);
+		game.drawn = new Tile(3200, 3201, 0);
+		assertNull(cycle());
+		game.drawn = null;
+		assertEquals(Result.PASS, cycle().result);
+	}
+
+	@Test
 	public void assertLocWaitsForTheLocWithItsOption() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertLoc\",\"loc\":\"Door\",\"option\":\"Open\",\"x\":3207,\"y\":3217}"), "file");

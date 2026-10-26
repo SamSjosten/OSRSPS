@@ -11,6 +11,8 @@ class FakeGame implements Game
 	boolean loggedIn = true;
 	String name = "test";
 	Tile location = new Tile(3200, 3200, 0);
+	/** Where the client draws the player; null for the tile in {@link #location}. */
+	Tile drawn;
 	Dialogue dialogue;
 	final List<String> actions = new ArrayList<>();
 	/** When set, npcOption fails with this until cleared. */
@@ -42,6 +44,12 @@ class FakeGame implements Game
 	public Tile location()
 	{
 		return loggedIn ? location : null;
+	}
+
+	@Override
+	public Tile drawnLocation()
+	{
+		return loggedIn ? (drawn != null ? drawn : location) : null;
 	}
 
 	@Override
