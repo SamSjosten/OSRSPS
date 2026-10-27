@@ -124,6 +124,25 @@ class Npc(
     var facing: Player? = null
         private set
 
+    /** Current hitpoints; [osrsps.game.NpcStats.hitpoints] at its spawn. */
+    var hitpoints: Int = spawn.type.stats.hitpoints
+
+    /** True from the hit that killed it until it is taken out of the world; it can't be attacked meanwhile. */
+    var dead: Boolean = false
+        internal set
+
+    /** The player who hit it last, and the tick they did; see [osrsps.game.combat.MeleeCombat]. */
+    var attacker: Player? = null
+        internal set
+    var attackedTick: Long = -1
+        internal set
+
+    /** Ticks it still stands where it is because it is being fought; see [Npcs.process]. */
+    internal var holdTicks: Int = 0
+
+    /** The animation, hitsplats and health bars given this cycle; see [NpcEffects]. */
+    val effects = NpcEffects()
+
     /** Whether it covers [tileX], [tileZ] on its level. */
     fun covers(tileX: Int, tileZ: Int): Boolean = tileX in x until x + type.size && tileZ in z until z + type.size
 

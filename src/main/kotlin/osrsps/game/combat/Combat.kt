@@ -45,6 +45,9 @@ class Combat(
 
     fun bonuses(player: Player): EquipmentBonuses = equipment.bonuses(player)
 
+    /** The animations the player swings and blocks with: their weapon's category's. */
+    fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
+
     /** Ticks between the player's attacks: the weapon's speed, 4 unarmed. */
     fun attackSpeed(player: Player): Int = bonuses(player).attackSpeed
 

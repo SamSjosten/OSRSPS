@@ -45,6 +45,7 @@ import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
+import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.NpcCombat
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
@@ -60,6 +61,7 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.Locs
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcEffects
 import osrsps.game.npc.NpcInteractions
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
@@ -163,7 +165,13 @@ class World(
 
     private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors)
 
-    val npcInteractions = NpcInteractions(npcs, npcTypes, collision, movement, handlers, scripts, { tick })
+    val npcInteractions: NpcInteractions = NpcInteractions(npcs, npcTypes, collision, movement, handlers, scripts, { tick }, attack = { player, npc -> meleeCombat.attack(player, npc) })
+
+    /** Players fighting NPCs; see [MeleeCombat]. */
+    val meleeCombat: MeleeCombat = MeleeCombat(
+        npcs, collision, movement, combat, random, { tick }, removeNpc = ::removeNpc, spawnNpc = { spawnNpc(it) },
+        face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
+    )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
     var dialogueText: DialogueText = DialogueText.NONE
@@ -355,6 +363,7 @@ class World(
         readInput(ticking = true)
         phase = TickPhase.NPCS
         npcInteractions.releaseNpcs()
+        meleeCombat.process()
         npcs.process()
         phase = TickPhase.SCRIPTS
         for (player in players) {
@@ -423,6 +432,7 @@ class World(
             inventoryTab.flush(player)
             equipmentTab.flush(player)
         }
+        for (npc in npcs.all) sendNpcEffects(npc)
         network.infoProtocols.update()
         try {
             for (player in players) {
@@ -1054,6 +1064,16 @@ class World(
             sound = { player.session.queue(SynthSound(it.id, it.loops, it.delay)) },
             // The length is no longer read by the client (RSProt's MidiJingle), so it is left at 0.
             jingle = { player.session.queue(MidiJingle(it)) },
+        )
+    }
+
+    /** Sends an NPC's animation, hitsplats and health bars through its avatar; see [NpcEffects]. */
+    private fun sendNpcEffects(npc: Npc) {
+        val extendedInfo = npc.avatar?.extendedInfo
+        npc.effects.flush(
+            anim = { extendedInfo?.setSequence(it.id, it.delay) },
+            hit = { extendedInfo?.addHitMark(it.source, it.selfType, it.otherType, it.value, it.delay) },
+            headBar = { extendedInfo?.addHeadBar(it.source, it.type, it.type, it.fill) },
         )
     }
 

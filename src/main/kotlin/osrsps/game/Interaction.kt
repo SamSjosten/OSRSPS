@@ -10,6 +10,12 @@ fun interface Interaction {
 
     /** The route ran out without reaching the target; called just before "I can't reach that!". */
     fun unreachable(player: Player) {}
+
+    /**
+     * Whether the player is at the target and the interaction goes on from there (a fight), so an empty route is not
+     * "I can't reach that!".
+     */
+    fun holding(player: Player): Boolean = false
 }
 
 /**
@@ -35,7 +41,7 @@ class Interactions(
         }
         move()
         if (player.interaction !== interaction || tryInteract(player, interaction)) return
-        if (player.waypoints.isEmpty()) {
+        if (player.waypoints.isEmpty() && !interaction.holding(player)) {
             player.interaction = null
             interaction.unreachable(player)
             message(player, CANT_REACH)

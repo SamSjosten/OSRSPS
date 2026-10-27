@@ -77,6 +77,8 @@ class NpcInteractions(
     private val message: (Player, String) -> Unit = Player::message,
     private val faceNpc: (Player, Npc?) -> Unit = ::sendFaceNpc,
     private val clearFlag: (Player) -> Unit = { it.session.queue(SetMapFlagV2.RESET) },
+    /** Takes an Attack option once the player is beside the NPC; false leaves the click to the handlers. */
+    private val attack: (Player, Npc) -> Boolean = { _, _ -> false },
 ) {
     /**
      * The player clicked option [option] (1 to 5) of NPC [index], with sub-option [sub] (-1 for none). [invertRun] is the
@@ -175,6 +177,7 @@ class NpcInteractions(
         }
         // Sent again on arrival, in case the client dropped the turn while the player walked.
         face(player, npc)
+        if (!interaction.usesObj && type.op(interaction.option) { readVar(player, it) } == ATTACK && attack(player, npc)) return true
         val op = if (interaction.usesObj) {
             Op.objOnNpc(type.id, interaction.obj, interaction.slot, npc)
         } else {
@@ -229,7 +232,7 @@ class NpcInteractions(
             collision[npc.x, npc.z, level] and entering == 0
     }
 
-    private fun face(player: Player, npc: Npc?) {
+    internal fun face(player: Player, npc: Npc?) {
         player.facingNpc = npc
         faceNpc(player, npc)
     }
@@ -316,6 +319,9 @@ class NpcInteractions(
         const val VIEW_RANGE = 15
 
         const val NOTHING_INTERESTING = "Nothing interesting happens."
+
+        /** The option that starts a fight, as the cache names it on every fightable NPC. */
+        const val ATTACK = "Attack"
 
         /**
          * Turns the player to [npc], or stops turning when null. walkMode 0 is the old face-entity behaviour as RSProt

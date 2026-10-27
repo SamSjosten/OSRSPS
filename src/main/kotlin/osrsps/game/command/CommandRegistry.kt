@@ -27,7 +27,7 @@ class CommandContext(
     fun fail(message: String): Nothing = throw CommandFailure(message)
 }
 
-private class CommandFailure(message: String) : RuntimeException(message)
+internal class CommandFailure(message: String) : RuntimeException(message)
 
 /**
  * The `::` commands, by name. The client sends what follows `::` as a ClientCheat packet; names are matched

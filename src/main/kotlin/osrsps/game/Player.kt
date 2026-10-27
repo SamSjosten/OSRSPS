@@ -159,6 +159,9 @@ class Player(
     /** Ctrl-click flips walk and run for the route it starts. */
     var invertRun: Boolean = false
 
+    /** The first tick they may swing again; see [osrsps.game.combat.MeleeCombat]. */
+    var nextAttackTick: Long = 0
+
     /** 0 to 10,000; 100 units show as 1% on the orb. */
     var runEnergy: Int = Movement.MAX_ENERGY
 
