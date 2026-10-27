@@ -170,7 +170,9 @@ class World(
     /** Players fighting NPCs; see [MeleeCombat]. */
     val meleeCombat: MeleeCombat = MeleeCombat(
         npcs, collision, movement, combat, random, { tick }, removeNpc = ::removeNpc, spawnNpc = { spawnNpc(it) },
+        players = { players.asSequence().filterNotNull() },
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
+        respawn = { teleport(it, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) },
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -1064,6 +1066,8 @@ class World(
             sound = { player.session.queue(SynthSound(it.id, it.loops, it.delay)) },
             // The length is no longer read by the client (RSProt's MidiJingle), so it is left at 0.
             jingle = { player.session.queue(MidiJingle(it)) },
+            hit = { extendedInfo.addHitMark(it.source, it.selfType, it.sourceType, it.otherType, it.value, it.delay) },
+            headBar = { extendedInfo.addHeadBar(it.source, it.type, it.type, it.fill) },
         )
     }
 

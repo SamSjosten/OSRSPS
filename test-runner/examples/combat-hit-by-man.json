@@ -1,0 +1,26 @@
+{
+ "name": "Combat step 4: let a castle man hit you with auto retaliate off, then on; ::god and ::heal",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "command", "text": "::heal", "expectMessage": "Healed to "},
+  {"step": "command", "text": "::varp 172 1", "expectMessage": "Varp 172:", "comment": "auto retaliate off"},
+  {"step": "npcOption", "npc": "Man", "option": "Attack"},
+  {"step": "waitTicks", "ticks": 6, "comment": "walk up and punch once or twice; he turns on you"},
+  {"step": "command", "text": "::fight", "expectMessage": "You are fighting Man #"},
+  {"step": "walk", "x": 3214, "y": 3219, "comment": "walk off; he follows and keeps hitting"},
+  {"step": "waitTicks", "ticks": 10},
+  {"step": "command", "text": "::fight", "expectMessage": "You are not fighting anything."},
+  {"step": "command", "text": "::hp", "expectMessage": "under attack by Man #"},
+  {"step": "command", "text": "::varp 172 0", "expectMessage": "Varp 172: 1 -> 0", "comment": "auto retaliate on: his next hit starts your fight"},
+  {"step": "waitTicks", "ticks": 6},
+  {"step": "command", "text": "::fight", "expectMessage": "You are fighting Man #"},
+  {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now"},
+  {"step": "command", "text": "::heal", "expectMessage": "Healed to "},
+  {"step": "waitTicks", "ticks": 10},
+  {"step": "command", "text": "::hp", "expectMessage": "; ::god is on."},
+  {"step": "command", "text": "::god", "expectMessage": "You can be hurt again."},
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "end the fight so the next script starts clean"}
+ ]
+}

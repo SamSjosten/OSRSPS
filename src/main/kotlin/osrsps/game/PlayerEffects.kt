@@ -3,12 +3,22 @@ package osrsps.game
 import java.util.TreeMap
 
 /**
- * The animation, spotanims, sound effects and jingle a player was given this cycle, sent at the end of it by [World]:
- * the animation and spotanims through player info, so everyone who can see the player sees them, the sound effects and
- * jingle to the player alone. Delays are in client cycles (20 ms) after the client gets the update.
+ * The animation, spotanims, hitsplats, health bars, sound effects and jingle a player was given this cycle, sent at
+ * the end of it by [World]: the animation, spotanims, hitsplats and health bars through player info, so everyone who
+ * can see the player sees them, the sound effects and jingle to the player alone. Delays are in client cycles (20 ms)
+ * after the client gets the update.
  */
 class PlayerEffects {
     class Anim(val id: Int, val delay: Int)
+
+    /**
+     * A hitsplat from [source] (an NPC's index, a player's plus [osrsps.game.npc.NpcEffects.PLAYER_SOURCE], -1 for
+     * none) showing [value]: [selfType] to this player, [sourceType] to the source, [otherType] to everyone else.
+     */
+    class Hit(val source: Int, val selfType: Int, val sourceType: Int, val otherType: Int, val value: Int, val delay: Int)
+
+    /** Health bar [type] from [source] (as for [Hit]) filled to [fill] of its width. */
+    class HeadBar(val source: Int, val type: Int, val fill: Int)
 
     class SpotAnim(val id: Int, val height: Int, val delay: Int)
 
@@ -22,9 +32,25 @@ class PlayerEffects {
     private val spotanims = TreeMap<Int, SpotAnim>()
 
     private val sounds = ArrayList<Sound>()
+    private val hits = ArrayList<Hit>()
+    private val headBars = ArrayList<HeadBar>()
 
     var jingle: Int? = null
         private set
+
+    fun hit(source: Int, selfType: Int, sourceType: Int, otherType: Int, value: Int, delay: Int = 0) {
+        hits += Hit(source, selfType, sourceType, otherType, value, delay)
+    }
+
+    fun headBar(source: Int, type: Int, fill: Int) {
+        headBars += HeadBar(source, type, fill)
+    }
+
+    /** The hitsplats to send, for tests. */
+    val pendingHits: List<Hit> get() = hits
+
+    /** The health bars to send, for tests. */
+    val pendingHeadBars: List<HeadBar> get() = headBars
 
     /**
      * Guessed: the last animation set in a cycle is the one sent. RS2's engine is thought to compare the seq types'
@@ -72,20 +98,28 @@ class PlayerEffects {
         spotanim: (slot: Int, SpotAnim) -> Unit,
         sound: (Sound) -> Unit,
         jingle: (Int) -> Unit,
+        hit: (Hit) -> Unit = {},
+        headBar: (HeadBar) -> Unit = {},
     ) {
         // Forgotten before sending, so a failed send can't repeat them next cycle.
         val sendAnim = this.anim
         val sendSpots = spotanims.toList()
         val sendSounds = sounds.toList()
         val sendJingle = this.jingle
+        val sendHits = hits.toList()
+        val sendBars = headBars.toList()
         this.anim = null
         spotanims.clear()
         sounds.clear()
         this.jingle = null
+        hits.clear()
+        headBars.clear()
         sendAnim?.let(anim)
         for ((slot, spot) in sendSpots) spotanim(slot, spot)
         sendSounds.forEach(sound)
         sendJingle?.let(jingle)
+        sendHits.forEach(hit)
+        sendBars.forEach(headBar)
     }
 
     // Checked here rather than when sent, so a bad value fails the script that set it, not the whole cycle's updates.

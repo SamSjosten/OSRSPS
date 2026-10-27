@@ -140,11 +140,10 @@ class Npcs(
             if (npc == null) continue
             val following = npc.following
             if (npc.holdTicks > 0) {
-                // Being fought, it stands and faces its attacker; see MeleeCombat. Guessed, as live NPCs fight back.
+                // Being fought, it stands and faces its attacker, unless it fights back: then it chases them. Guessed.
                 npc.holdTicks--
-                continue
-            }
-            if (npc.attacker != null) {
+                if (following == null) continue
+            } else if (npc.attacker != null && npc.target == null) {
                 // The fight is over for it: nobody's any more, and it looks where it did before (guessed).
                 npc.attacker = null
                 if (npc.engagedWith == null) {
@@ -188,6 +187,9 @@ class Npcs(
                 .firstOrNull { (sx, sz) -> !overlaps(npc.x + sx, npc.z + sz, size, target.x, target.z) && canStep(npc, sx, sz) }
                 ?: return
         }
+        // Fighting, it keeps within its max range of its spawn (OSRS Wiki, Retreat: almost always 7 tiles), standing
+        // at the edge rather than stepping past it. Guessed that this is the same range a chasing NPC keeps to.
+        if (npc.target != null && (abs(npc.x + sx - npc.spawn.x) > MAX_RANGE || abs(npc.z + sz - npc.spawn.z) > MAX_RANGE)) return
         move(npc, sx, sz)
     }
 
@@ -325,6 +327,9 @@ class Npcs(
 
         /** A following NPC gives up on a target further than this on either axis. Guessed; see [chase]. */
         const val FOLLOW_RANGE = 32
+
+        /** How far from its spawn, on either axis, an NPC walks after a player it fights; see [chase]. */
+        const val MAX_RANGE = 7
 
         private val STEP_OUT = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)
     }

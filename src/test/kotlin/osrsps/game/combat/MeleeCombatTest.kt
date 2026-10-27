@@ -7,6 +7,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.Equipment
+import osrsps.game.EquipmentTab
 import osrsps.game.GameRandom
 import osrsps.game.Interactions
 import osrsps.game.InvObj
@@ -67,6 +68,7 @@ class MeleeCombatTest {
     private val faced = mutableListOf<Pair<Player, Npc?>>()
     private val removed = mutableListOf<Npc>()
     private val respawned = mutableListOf<NpcSpawn>()
+    private val respawnedPlayers = mutableListOf<Player>()
     private val combat = Combat(Equipment(ObjTypes.of(shortbow)), styles, npcCombat)
     private lateinit var melee: MeleeCombat
     private val interactions = NpcInteractions(
@@ -84,7 +86,9 @@ class MeleeCombatTest {
         melee = MeleeCombat(
             npcs, map, movement, combat, random, { tick }, removeNpc = { npcs.remove(it); removed += it }, spawnNpc = { respawned += it },
             message = { player, text -> messages += player to text },
+            players = { sequenceOf(alice, bob) },
             face = { player, npc -> faced += player to npc }, stopFacing = { player -> faced += player to null },
+            respawn = { respawnedPlayers += it },
         )
     }
 
@@ -105,9 +109,18 @@ class MeleeCombatTest {
     private fun attack(player: Player, npc: Npc) = interactions.click(player, npc.index, 2, -1, invertRun = false)
 
     /** The hits a fresh [GameRandom] of the same seed gives, as the engine draws them: accuracy, then damage. */
-    private fun expectedHits(count: Int, attackRoll: Int = 768, defenceRoll: Int = 430, maxHit: Int = 1): List<Int> {
+    private fun expectedHits(count: Int, attackRoll: Int = 768, defenceRoll: Int = 430, maxHit: Int = 1): List<Int> =
+        replayHits(listOf(Rolls(attackRoll, defenceRoll, maxHit)), count)
+
+    private class Rolls(val attackRoll: Int, val defenceRoll: Int, val maxHit: Int)
+
+    /** [count] hits as the engine draws them from a fresh seed, the swings taking turns through [rolls]. */
+    private fun replayHits(rolls: List<Rolls>, count: Int): List<Int> {
         val replay = GameRandom(SEED)
-        return (1..count).map { if (CombatMath.rollHits(replay, attackRoll, defenceRoll)) CombatMath.rollDamage(replay, maxHit) else 0 }
+        return (0 until count).map {
+            val roll = rolls[it % rolls.size]
+            if (CombatMath.rollHits(replay, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(replay, roll.maxHit) else 0
+        }
     }
 
     @Test
@@ -122,8 +135,10 @@ class MeleeCombatTest {
             if (hit != null) hits += hit.value
             npc.effects.flush({}, {}, {})
         }
-        // Ticks 1, 5 and 9.
-        assertEquals(expectedHits(3), hits)
+        // Ticks 1, 5 and 9; the man's swings back on 2, 6 and 10 take their draws in between.
+        val roll = combat.npcAttack(npc, alice)!!
+        val exchange = replayHits(listOf(Rolls(768, 430, 1), Rolls(roll.attackRoll, roll.defenceRoll, roll.maxHit)), 6)
+        assertEquals(listOf(exchange[0], exchange[2], exchange[4]), hits)
         assertEquals(7 - hits.sum(), npc.hitpoints)
         assertEquals(13L, alice.nextAttackTick)
         assertIs<MeleeInteraction>(alice.interaction)
@@ -170,6 +185,8 @@ class MeleeCombatTest {
 
     @Test
     fun `an NPC someone else is fighting can't be attacked until they stop`() {
+        // Bob doesn't hit back when the man turns on him, or his fight would never end.
+        bob.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
         val npc = spawn()
         attack(bob, npc)
         tick(bob)
@@ -186,6 +203,9 @@ class MeleeCombatTest {
         attack(alice, npc)
         tick(alice)
         assertIs<MeleeInteraction>(alice.interaction)
+        // The man was still hitting Bob; now it turns on her.
+        tick(alice)
+        assertEquals(alice, npc.target)
     }
 
     @Test
@@ -235,13 +255,15 @@ class MeleeCombatTest {
         val npc = spawn()
         attack(alice, npc)
         tick()
+        // She goes far away, so the man gives up the chase.
         alice.interaction = null
+        alice.x = 3240
         repeat(MeleeCombat.IN_COMBAT_TICKS) { tick() }
+        assertNull(npc.target)
+        assertNull(npc.facing)
         assertEquals(alice, npc.attacker)
-        assertEquals(alice, npc.facing)
         tick()
         assertNull(npc.attacker)
-        assertNull(npc.facing)
         // Free to be fought by anyone again.
         attack(bob, npc)
         tick(bob)
@@ -263,6 +285,218 @@ class MeleeCombatTest {
         tick()
         assertEquals(listOf(alice to NpcInteractions.NOTHING_INTERESTING), messages)
         assertFalse(melee.attack(alice, other))
+    }
+
+    @Test
+    fun `a hit NPC strikes back from the next tick and every four after, and its hits show on the player`() {
+        val npc = spawn()
+        attack(alice, npc)
+        tick()
+        assertEquals(alice, npc.target)
+        assertEquals(alice, npc.following)
+        assertEquals(2L, npc.nextAttackTick)
+        assertTrue(alice.effects.pendingHits.isEmpty())
+        alice.effects.flush({}, { _, _ -> }, {}, {})
+        npc.effects.flush({}, {}, {})
+        val roll = combat.npcAttack(npc, alice)!!
+        val taken = ArrayList<Int>()
+        for (t in 2..10) {
+            tick()
+            val hit = alice.effects.pendingHits.singleOrNull()
+            if (hit != null) {
+                taken += hit.value
+                assertEquals(npc.index, hit.source)
+                if (hit.value > 0) assertEquals(listOf(HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER), listOf(hit.selfType, hit.sourceType, hit.otherType))
+                else assertEquals(listOf(HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER), listOf(hit.selfType, hit.sourceType, hit.otherType))
+                val bar = alice.effects.pendingHeadBars.single()
+                assertEquals(npc.index to MeleeCombat.HEALTH_BAR, bar.source to bar.type)
+                assertEquals(MeleeCombat.healthBarFill(alice.hitpoints, 10), bar.fill)
+                // She blocks on the NPC's ticks, which are never her own swing's.
+                assertEquals(424, alice.effects.anim?.id)
+                assertEquals(422, npc.effects.anim?.id)
+                assertEquals(npc, alice.attackedBy)
+                assertEquals(tick, alice.attackedTick)
+                assertTrue(t in listOf(2, 6, 10), "hit on tick $t")
+            }
+            alice.effects.flush({}, { _, _ -> }, {}, {})
+            npc.effects.flush({}, {}, {})
+        }
+        // Her swings on 1, 5 and 9 and its on 2, 6 and 10 share the dice, each drawing accuracy then damage.
+        val exchange = replayHits(listOf(Rolls(768, 430, 1), Rolls(roll.attackRoll, roll.defenceRoll, roll.maxHit)), 6)
+        assertEquals(listOf(exchange[1], exchange[3], exchange[5]), taken)
+        assertEquals(10 - taken.sum(), alice.hitpoints)
+        assertEquals(14L, npc.nextAttackTick)
+        assertIs<MeleeInteraction>(alice.interaction)
+    }
+
+    @Test
+    fun `auto retaliate turns a hit player on the NPC with half their weapon's delay`() {
+        val npc = spawn()
+        attack(alice, npc)
+        tick()
+        // She clicks away after one punch; the man comes after her all the same.
+        alice.interaction = null
+        alice.effects.flush({}, { _, _ -> }, {}, {})
+        tick()
+        assertEquals(1, alice.effects.pendingHits.size)
+        val fight = assertIs<MeleeInteraction>(alice.interaction)
+        assertEquals(npc, fight.npc)
+        // Speed 4 halves to 2: her swing comes on tick 4, not the 5 her last punch set.
+        assertEquals(4L, alice.nextAttackTick)
+        tick()
+        assertTrue(npc.effects.pendingHits.size == 1, "no swing on tick 3")
+        npc.effects.flush({}, {}, {})
+        tick()
+        assertEquals(1, npc.effects.pendingHits.size)
+        assertEquals(8L, alice.nextAttackTick)
+    }
+
+    @Test
+    fun `with auto retaliate off a hit player stands there`() {
+        alice.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
+        val npc = spawn()
+        attack(alice, npc)
+        tick()
+        alice.interaction = null
+        alice.effects.flush({}, { _, _ -> }, {}, {})
+        val taken = ArrayList<Int>()
+        repeat(9) {
+            tick()
+            alice.effects.pendingHits.singleOrNull()?.let { taken += it.value }
+            alice.effects.flush({}, { _, _ -> }, {}, {})
+            assertNull(alice.interaction)
+        }
+        assertEquals(3, taken.size)
+        assertEquals(10 - taken.sum(), alice.hitpoints)
+        assertEquals(npc, alice.attackedBy)
+        assertEquals(alice, npc.target)
+        // Nor does a modal open over the hit, or a bow in hand, start a fight.
+        alice.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 0
+        alice.chatModal = 1
+        melee.hitPlayer(alice, npc, 0, tick)
+        assertNull(alice.interaction)
+        alice.chatModal = -1
+        alice.equipment[WearPos.WEAPON] = InvObj(841, 1)
+        melee.hitPlayer(alice, npc, 0, tick)
+        assertNull(alice.interaction)
+        alice.equipment[WearPos.WEAPON] = null
+        melee.hitPlayer(alice, npc, 0, tick)
+        assertIs<MeleeInteraction>(alice.interaction)
+    }
+
+    @Test
+    fun `a player one NPC is hitting can't attack another until that fight is over`() {
+        val first = spawn()
+        val second = spawn(x = 3211)
+        attack(alice, first)
+        tick()
+        tick()
+        assertEquals(first, alice.attackedBy)
+        attack(alice, second)
+        tick()
+        assertNull(alice.interaction)
+        assertEquals(listOf(alice to MeleeCombat.ALREADY_UNDER_ATTACK), messages)
+        assertNull(second.target)
+        // The first man dies; the second is fair game.
+        melee.hit(first, alice, 100, tick)
+        assertNull(first.target)
+        attack(alice, second)
+        repeat(2) { tick() }
+        assertEquals(second, assertIs<MeleeInteraction>(alice.interaction).npc)
+        assertEquals(alice, second.target)
+    }
+
+    @Test
+    fun `an NPC chases its attacker no further than seven tiles from its spawn and gives up past eighteen`() {
+        val npc = spawn()
+        attack(alice, npc)
+        tick()
+        alice.interaction = null
+        alice.x = 3225
+        alice.effects.flush({}, { _, _ -> }, {}, {})
+        repeat(7) { tick() }
+        assertEquals(3220 to 3210, npc.x to npc.z)
+        assertEquals(alice, npc.target)
+        repeat(3) { tick() }
+        assertEquals(3220 to 3210, npc.x to npc.z)
+        assertTrue(alice.effects.pendingHits.isEmpty())
+        // Back in reach, it hits her; beyond its chase range, it lets her go.
+        alice.x = 3221
+        tick()
+        assertEquals(1, alice.effects.pendingHits.size)
+        alice.x = 3232
+        tick()
+        assertNull(npc.target)
+        assertNull(npc.following)
+        assertEquals(3220 to 3210, npc.x to npc.z)
+    }
+
+    @Test
+    fun `an NPC gives up on an attacker who logs out or leaves the level`() {
+        val npc = spawn()
+        attack(alice, npc)
+        tick()
+        alice.level = 1
+        tick()
+        assertNull(npc.target)
+        alice.level = 0
+        attack(alice, npc)
+        repeat(3) { tick() }
+        assertEquals(alice, npc.target)
+        alice.loggedOut = true
+        tick()
+        assertNull(npc.target)
+    }
+
+    @Test
+    fun `hitpoints come back one a minute for the hurt`() {
+        val npc = spawn()
+        val other = spawn(hans, x = 3211)
+        alice.hitpoints = 5
+        bob.hitpoints = 10
+        npc.hitpoints = 3
+        tick = MeleeCombat.REGEN_TICKS - 2L
+        tick()
+        assertEquals(5, alice.hitpoints)
+        tick()
+        assertEquals(6, alice.hitpoints)
+        assertEquals(10, bob.hitpoints)
+        assertEquals(4, npc.hitpoints)
+        assertEquals(other.type.stats.hitpoints, other.hitpoints)
+        tick = 2L * MeleeCombat.REGEN_TICKS - 1
+        tick()
+        assertEquals(7, alice.hitpoints)
+        assertEquals(5, npc.hitpoints)
+    }
+
+    @Test
+    fun `god takes no damage and still shows the block`() {
+        val npc = spawn()
+        alice.god = true
+        assertEquals(0, melee.hitPlayer(alice, npc, 5, 1))
+        assertEquals(10, alice.hitpoints)
+        val hit = alice.effects.pendingHits.single()
+        assertEquals(HitsplatType.BLOCK_ME to 0, hit.selfType to hit.value)
+        assertEquals(MeleeCombat.HEALTH_BAR_WIDTH, alice.effects.pendingHeadBars.single().fill)
+        assertEquals(npc, alice.attackedBy)
+    }
+
+    @Test
+    fun `a player out of hitpoints is told, put back whole, and let go of`() {
+        val npc = spawn()
+        attack(alice, npc)
+        tick()
+        alice.hitpoints = 1
+        assertEquals(1, melee.hitPlayer(alice, npc, 5, tick))
+        assertEquals(listOf(alice to MeleeCombat.DEAD), messages)
+        assertEquals(listOf(alice), respawnedPlayers)
+        assertEquals(10, alice.hitpoints)
+        assertNull(alice.interaction)
+        assertNull(alice.attackedBy)
+        assertNull(npc.target)
+        assertNull(npc.following)
+        assertEquals(alice to null, faced.last())
+        assertEquals(0, alice.effects.pendingHeadBars.single().fill)
     }
 
     @Test

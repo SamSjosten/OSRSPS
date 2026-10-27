@@ -21,10 +21,10 @@ data class MeleeMatchup(
     val npcHitChance: Double,
 )
 
-/**
- * Melee combat between players and NPCs: the numbers for now ([matchup]); attacking, retaliation and death come in the
- * next steps of the combat piece.
- */
+/** What an NPC rolls against a player: its attack roll, the player's defence roll against its attack type, its max hit. */
+data class NpcAttack(val attackRoll: Int, val defenceRoll: Int, val maxHit: Int)
+
+/** Melee combat between players and NPCs: the numbers ([matchup], [npcAttack]); the fighting is [MeleeCombat]. */
 class Combat(
     private val equipment: Equipment,
     val attackStyles: AttackStyles,
@@ -87,6 +87,17 @@ class Combat(
             playerDefenceRoll = playerDefenceRoll,
             npcMaxHit = def.maxHit,
             npcHitChance = CombatMath.hitChance(npcAttackRoll, playerDefenceRoll),
+        )
+    }
+
+    /** [npc]'s melee numbers against [player], or null when it has no combat definition. */
+    fun npcAttack(npc: Npc, player: Player): NpcAttack? {
+        val def = npcCombat[npc.type] ?: return null
+        val style = style(player)
+        return NpcAttack(
+            attackRoll = CombatMath.npcAttackRoll(npc.type.stats.attack, def.attackBonus),
+            defenceRoll = CombatMath.playerDefenceRoll(player.skills.currentLevel(Skill.DEFENCE), style.stance, defenceBonus(bonuses(player), def.attackType)),
+            maxHit = def.maxHit,
         )
     }
 
