@@ -456,25 +456,28 @@ public class RunnerTest
 	}
 
 	@Test
-	public void hitsplatsCountOnlyAfterTheLastActionAndMatchWhoAndHowMuch() throws Exception
+	public void hitsplatsCountOnlyAfterTheLastActionAndOnTheRightActor() throws Exception
 	{
 		runner.start(script("{\"step\":\"npcOption\",\"npc\":\"Man\",\"option\":\"Attack\"},"
 			+ "{\"step\":\"assertHitsplat\",\"npc\":\"Man\",\"amount\":1},"
 			+ "{\"step\":\"assertHitsplat\",\"self\":true}"), "file");
-		// A splat from before the click doesn't count, nor one on someone else, nor a miss when 1 is wanted.
-		runner.hitsplat(false, "Man", 16, 1);
+		// A splat from before the click doesn't count.
+		runner.hitsplat(7, "Man", 16, 1);
 		assertNull(cycle());
 		assertEquals(List.of("Attack Man"), game.actions);
-		runner.hitsplat(false, "Woman", 16, 1);
-		runner.hitsplat(false, "Man", 12, 0);
+		// Nor one on another man (another player's fight), nor a miss when 1 is wanted; and the man has to be in view.
+		runner.hitsplat(9, "Man", 16, 1);
+		runner.hitsplat(7, "Man", 12, 0);
 		assertNull(cycle());
-		runner.hitsplat(false, "man", 16, 1);
+		game.npcIndexes.put("Man", 7);
 		assertNull(cycle());
-		runner.hitsplat(true, null, 16, 2);
+		runner.hitsplat(7, "Man", 16, 1);
+		assertNull(cycle());
+		runner.hitsplat(Run.SELF, null, 16, 2);
 		Result r = cycle();
 		assertEquals(Result.PASS, r.result);
 		assertEquals("assert hitsplat of 1 on Man", r.steps.get(1).description);
-		assertEquals("hitsplat 1 on man (type 16)", r.steps.get(1).detail);
+		assertEquals("hitsplat 1 on Man #7 (type 16)", r.steps.get(1).detail);
 		assertEquals("assert hitsplat on you", r.steps.get(2).description);
 		assertEquals("hitsplat 2 on you (type 16)", r.steps.get(2).detail);
 	}
@@ -483,8 +486,9 @@ public class RunnerTest
 	public void npcHealthWaitsForTheBarThenChecksTheBounds() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertNpcHealth\",\"npc\":\"Man\",\"max\":99,\"timeoutMs\":100}"), "file");
-		assertNull(cycle());
 		game.npcHealth = new Game.Health(-1, -1);
+		assertNull(cycle());
+		game.npcIndexes.put("Man", 7);
 		assertNull(cycle());
 		game.npcHealth = new Game.Health(30, 30);
 		assertNull(cycle());
@@ -494,6 +498,7 @@ public class RunnerTest
 		assertEquals("assert Man health at most 99%", r.steps.get(0).description);
 		assertEquals("Man at 70% (21/30)", r.steps.get(0).detail);
 
+		game.npcIndexes.put("npc 3106", 8);
 		runner.start(script("{\"step\":\"assertNpcHealth\",\"npcId\":3106,\"min\":80,\"max\":100,\"timeoutMs\":40}"), "file");
 		r = null;
 		for (int i = 0; i < 10 && r == null; i++)
@@ -541,22 +546,42 @@ public class RunnerTest
 	}
 
 	@Test
+	public void groundItemAbsenceNeedsTheTileInTheScene() throws Exception
+	{
+		game.tileLoaded = false;
+		runner.start(script("{\"step\":\"assertGroundItem\",\"item\":\"Bones\",\"x\":3213,\"y\":3210,\"absent\":true,\"timeoutMs\":40}"), "file");
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals("step 1 (assert no Bones at 3213, 3210 on the ground): timed out after 40 ms: tile 3213, 3210 is not in the loaded scene", r.failure);
+		game.tileLoaded = true;
+		runner.start(script("{\"step\":\"assertGroundItem\",\"item\":\"Bones\",\"x\":3213,\"y\":3210,\"absent\":true}"), "file");
+		assertEquals(Result.PASS, cycle().result);
+	}
+
+	@Test
 	public void animationCountsOnlyAfterTheLastActionOnTheRightActor() throws Exception
 	{
 		runner.start(script("{\"step\":\"npcOption\",\"npc\":\"Man\",\"option\":\"Attack\"},"
 			+ "{\"step\":\"assertAnimation\",\"id\":422},"
 			+ "{\"step\":\"assertAnimation\",\"id\":424,\"npc\":\"Man\"}"), "file");
-		runner.animation(true, null, 422);
+		game.npcIndexes.put("Man", 7);
+		runner.animation(Run.SELF, null, 422);
 		assertNull(cycle());
-		runner.animation(false, "Man", 422);
+		runner.animation(7, "Man", 422);
 		assertNull(cycle());
-		runner.animation(true, null, 422);
+		runner.animation(Run.SELF, null, 422);
 		assertNull(cycle());
-		runner.animation(false, "Man", 424);
+		// Another man's block doesn't count; the one the player fights does.
+		runner.animation(9, "Man", 424);
+		assertNull(cycle());
+		runner.animation(7, "Man", 424);
 		Result r = cycle();
 		assertEquals(Result.PASS, r.result);
 		assertEquals("assert animation 422 on you", r.steps.get(1).description);
 		assertEquals("animation 422 on you", r.steps.get(1).detail);
-		assertEquals("animation 424 on Man", r.steps.get(2).detail);
+		assertEquals("animation 424 on Man #7", r.steps.get(2).detail);
 	}
 }

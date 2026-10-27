@@ -71,21 +71,21 @@ final class Runner
 		}
 	}
 
-	/** A hitsplat shown on the player (self) or on an NPC by name. */
-	void hitsplat(boolean self, String npc, int type, int amount)
+	/** A hitsplat shown on the player ({@code index} {@link Run#SELF}) or on an NPC by index and name. */
+	void hitsplat(int index, String npc, int type, int amount)
 	{
 		if (run != null)
 		{
-			run.hitsplat(self, npc, type, amount);
+			run.hitsplat(index, npc, type, amount);
 		}
 	}
 
-	/** An animation the player (self) or an NPC by name started. */
-	void animation(boolean self, String npc, int id)
+	/** An animation the player ({@code index} {@link Run#SELF}) or an NPC by index and name started. */
+	void animation(int index, String npc, int id)
 	{
 		if (run != null)
 		{
-			run.animation(self, npc, id);
+			run.animation(index, npc, id);
 		}
 	}
 

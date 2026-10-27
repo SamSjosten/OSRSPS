@@ -69,9 +69,13 @@ interface Game
 	String chooseOption(int slot);
 
 	/**
-	 * The health bar of the nearest NPC with this name (or id, when the name is null) on the player's plane, or null
-	 * when no such NPC is in view.
+	 * The NPC an assert means by a name (or id, when the name is null): the one the player is interacting with (fighting
+	 * or talking to) when it matches, else the nearest matching one on the player's plane. Its index, or -1 when none is
+	 * in view.
 	 */
+	int npcIndex(String name, int id);
+
+	/** The health bar of the NPC {@link #npcIndex} would pick, or null when no such NPC is in view. */
 	Health npcHealth(String name, int id);
 
 	/** What the client shows of an actor's health: a bar of {@link #scale} units with {@link #ratio} filled, or none. */
@@ -111,4 +115,7 @@ interface Game
 	 * plane, on the tile when one is given; otherwise what is missing.
 	 */
 	String groundItem(String name, int id, Tile at);
+
+	/** Whether the tile is in the loaded scene, so the client can see what lies on it. */
+	boolean tileLoaded(Tile at);
 }

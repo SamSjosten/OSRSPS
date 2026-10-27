@@ -362,14 +362,24 @@ public class TestRunnerPlugin extends Plugin
 	public void onHitsplatApplied(HitsplatApplied event)
 	{
 		Actor actor = event.getActor();
-		runner.hitsplat(actor == client.getLocalPlayer(), npcName(actor), event.getHitsplat().getHitsplatType(), event.getHitsplat().getAmount());
+		runner.hitsplat(actorIndex(actor), npcName(actor), event.getHitsplat().getHitsplatType(), event.getHitsplat().getAmount());
 	}
 
 	@Subscribe
 	public void onAnimationChanged(AnimationChanged event)
 	{
 		Actor actor = event.getActor();
-		runner.animation(actor == client.getLocalPlayer(), npcName(actor), actor.getAnimation());
+		runner.animation(actorIndex(actor), npcName(actor), actor.getAnimation());
+	}
+
+	/** An NPC's index; {@link Run#SELF} for the local player; -2 for another player, which no step asks about. */
+	private int actorIndex(Actor actor)
+	{
+		if (actor instanceof NPC)
+		{
+			return ((NPC) actor).getIndex();
+		}
+		return actor == client.getLocalPlayer() ? Run.SELF : -2;
 	}
 
 	/** The actor's name when it is an NPC, as scripts name NPCs; null for a player. */

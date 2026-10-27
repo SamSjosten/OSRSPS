@@ -655,8 +655,9 @@ final class Steps
 	}
 
 	/**
-	 * Passes when a hitsplat has shown on the player, or on an NPC of the given name, since the last step that acted;
-	 * with an amount, one showing exactly that (0 is a miss's blue splat).
+	 * Passes when a hitsplat has shown on the player, or on the NPC of the given name ({@link Game#npcIndex}: the one
+	 * the player is fighting, else the nearest), since the last step that acted; with an amount, one showing exactly
+	 * that (0 is a miss's blue splat).
 	 */
 	static final class AssertHitsplat extends Step
 	{
@@ -675,7 +676,12 @@ final class Steps
 		@Override
 		Poll poll(Run run)
 		{
-			Run.Hitsplat seen = run.hitsplatSinceAction(npc, amount);
+			int index = npc == null ? Run.SELF : run.game.npcIndex(npc, -1);
+			if (index < 0 && npc != null)
+			{
+				return Poll.waiting("no NPC \"" + npc + "\" in view");
+			}
+			Run.Hitsplat seen = run.hitsplatSinceAction(index, amount);
 			return seen != null ? Poll.pass("hitsplat " + seen) : Poll.waiting("no hitsplat " + what() + " since the last action");
 		}
 
@@ -692,8 +698,9 @@ final class Steps
 	}
 
 	/**
-	 * Passes when the nearest NPC of the name shows a health bar within the given bounds, as a percentage. The client
-	 * is only told an NPC's health once it is hit, so this also waits for the first hit to show.
+	 * Passes when the NPC of the name ({@link Game#npcIndex}: the one the player is fighting, else the nearest) shows a
+	 * health bar within the given bounds, as a percentage. The client is only told an NPC's health once it is hit, so
+	 * this also waits for the first hit to show.
 	 */
 	static final class AssertNpcHealth extends Step
 	{
@@ -805,6 +812,18 @@ final class Steps
 		@Override
 		Poll poll(Run run)
 		{
+			if (absent)
+			{
+				// Absence can only be seen on a tile the client has loaded, with a player to see it.
+				if (run.game.location() == null)
+				{
+					return Poll.waiting("no local player");
+				}
+				if (at != null && !run.game.tileLoaded(at))
+				{
+					return Poll.waiting("tile " + at.x + ", " + at.y + " is not in the loaded scene");
+				}
+			}
 			String missing = run.game.groundItem(item, itemId, at);
 			if (absent)
 			{
@@ -825,7 +844,10 @@ final class Steps
 		}
 	}
 
-	/** Passes when the player, or an NPC of the given name, has started the animation since the last step that acted. */
+	/**
+	 * Passes when the player, or the NPC of the given name ({@link Game#npcIndex}), has started the animation since the
+	 * last step that acted.
+	 */
 	static final class AssertAnimation extends Step
 	{
 		/** The NPC's name; null for the player. */
@@ -842,7 +864,12 @@ final class Steps
 		@Override
 		Poll poll(Run run)
 		{
-			Run.Animation seen = run.animationSinceAction(npc, id);
+			int index = npc == null ? Run.SELF : run.game.npcIndex(npc, -1);
+			if (index < 0 && npc != null)
+			{
+				return Poll.waiting("no NPC \"" + npc + "\" in view");
+			}
+			Run.Animation seen = run.animationSinceAction(index, id);
 			return seen != null ? Poll.pass(seen.toString()) : Poll.waiting("no animation " + id + " on " + who() + " since the last action");
 		}
 

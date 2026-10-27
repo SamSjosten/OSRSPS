@@ -29,8 +29,12 @@ class FakeGame implements Game
 	Tile destination;
 	/** What chatPending answers. */
 	boolean chatPending;
-	/** What npcHealth answers for any NPC; null for none in view. */
+	/** The index npcIndex answers by NPC name (or "npc <id>"); a missing name is not in view. */
+	final Map<String, Integer> npcIndexes = new HashMap<>();
+	/** What npcHealth answers for an NPC in view; null for no bar yet. */
 	Health npcHealth;
+	/** What tileLoaded answers. */
+	boolean tileLoaded = true;
 	/** What skillLevel and skillXp answer, by skill name; a missing skill is -1. */
 	final Map<String, Integer> levels = new HashMap<>();
 	final Map<String, Integer> xps = new HashMap<>();
@@ -159,9 +163,21 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public int npcIndex(String name, int id)
+	{
+		return npcIndexes.getOrDefault(name != null ? name : "npc " + id, -1);
+	}
+
+	@Override
 	public Health npcHealth(String name, int id)
 	{
-		return npcHealth;
+		return npcIndex(name, id) < 0 ? null : npcHealth;
+	}
+
+	@Override
+	public boolean tileLoaded(Tile at)
+	{
+		return tileLoaded;
 	}
 
 	@Override

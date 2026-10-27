@@ -9,18 +9,21 @@ import java.util.List;
  */
 final class Run
 {
-	/** A hitsplat the client showed: on the player ({@link #self}) or on an NPC by name. */
+	/** The actor index that stands for the player in {@link #hitsplat} and {@link #animation}. */
+	static final int SELF = -1;
+
+	/** A hitsplat the client showed: on the player ({@link #index} {@link #SELF}) or on an NPC by index. */
 	static final class Hitsplat
 	{
-		final boolean self;
+		final int index;
 		/** The NPC's name, null for the player. */
 		final String npc;
 		final int type;
 		final int amount;
 
-		Hitsplat(boolean self, String npc, int type, int amount)
+		Hitsplat(int index, String npc, int type, int amount)
 		{
-			this.self = self;
+			this.index = index;
 			this.npc = npc;
 			this.type = type;
 			this.amount = amount;
@@ -29,20 +32,20 @@ final class Run
 		@Override
 		public String toString()
 		{
-			return amount + " on " + (self ? "you" : npc) + " (type " + type + ")";
+			return amount + " on " + (index == SELF ? "you" : npc + " #" + index) + " (type " + type + ")";
 		}
 	}
 
-	/** An animation an actor started: the player ({@link #self}) or an NPC by name. */
+	/** An animation an actor started: the player ({@link #index} {@link #SELF}) or an NPC by index. */
 	static final class Animation
 	{
-		final boolean self;
+		final int index;
 		final String npc;
 		final int id;
 
-		Animation(boolean self, String npc, int id)
+		Animation(int index, String npc, int id)
 		{
-			this.self = self;
+			this.index = index;
 			this.npc = npc;
 			this.id = id;
 		}
@@ -50,7 +53,7 @@ final class Run
 		@Override
 		public String toString()
 		{
-			return "animation " + id + " on " + (self ? "you" : npc);
+			return "animation " + id + " on " + (index == SELF ? "you" : npc + " #" + index);
 		}
 	}
 
@@ -95,22 +98,22 @@ final class Run
 		messages.add(Dialogue.clean(text));
 	}
 
-	void hitsplat(boolean self, String npc, int type, int amount)
+	/** A hitsplat on the player ({@code index} {@link #SELF}) or on the NPC with that index and name. */
+	void hitsplat(int index, String npc, int type, int amount)
 	{
-		hitsplats.add(new Hitsplat(self, npc, type, amount));
+		hitsplats.add(new Hitsplat(index, npc, type, amount));
 	}
 
 	/**
-	 * The first hitsplat since the last action on the player (npc null) or on an NPC of that name, showing
+	 * The first hitsplat since the last action on the actor with that index ({@link #SELF} for the player), showing
 	 * {@code amount} when that is 0 or more; else null.
 	 */
-	Hitsplat hitsplatSinceAction(String npc, int amount)
+	Hitsplat hitsplatSinceAction(int index, int amount)
 	{
 		for (int i = hitsplatMark; i < hitsplats.size(); i++)
 		{
 			Hitsplat h = hitsplats.get(i);
-			boolean who = npc == null ? h.self : !h.self && npc.equalsIgnoreCase(h.npc);
-			if (who && (amount < 0 || h.amount == amount))
+			if (h.index == index && (amount < 0 || h.amount == amount))
 			{
 				return h;
 			}
@@ -118,19 +121,19 @@ final class Run
 		return null;
 	}
 
-	void animation(boolean self, String npc, int id)
+	/** An animation the player ({@code index} {@link #SELF}) or the NPC with that index and name started. */
+	void animation(int index, String npc, int id)
 	{
-		animations.add(new Animation(self, npc, id));
+		animations.add(new Animation(index, npc, id));
 	}
 
-	/** The first animation since the last action with that id on the player (npc null) or on an NPC of that name. */
-	Animation animationSinceAction(String npc, int id)
+	/** The first animation since the last action with that id on the actor with that index ({@link #SELF} for the player). */
+	Animation animationSinceAction(int index, int id)
 	{
 		for (int i = animationMark; i < animations.size(); i++)
 		{
 			Animation a = animations.get(i);
-			boolean who = npc == null ? a.self : !a.self && npc.equalsIgnoreCase(a.npc);
-			if (who && a.id == id)
+			if (a.index == index && a.id == id)
 			{
 				return a;
 			}

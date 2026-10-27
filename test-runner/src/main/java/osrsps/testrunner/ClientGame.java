@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import javax.swing.SwingUtilities;
+import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.EntityOps;
 import net.runelite.api.GameObject;
@@ -644,19 +645,35 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public int npcIndex(String name, int id)
+	{
+		NPC npc = theNpc(name, id);
+		return npc == null ? -1 : npc.getIndex();
+	}
+
+	@Override
 	public Health npcHealth(String name, int id)
 	{
-		NPC npc = nearestNpc(name, id);
+		NPC npc = theNpc(name, id);
 		return npc == null ? null : new Health(npc.getHealthRatio(), npc.getHealthScale());
 	}
 
-	/** The nearest NPC on the player's plane with the name (or id when the name is null), or null. */
-	private NPC nearestNpc(String name, int id)
+	/**
+	 * The NPC with the name (or id when the name is null) that the player is interacting with, else the nearest such
+	 * NPC on the player's plane, else null. Several castle NPCs share a name (Man), so the one the player is fighting
+	 * comes first.
+	 */
+	private NPC theNpc(String name, int id)
 	{
 		Player me = client.getLocalPlayer();
 		if (me == null)
 		{
 			return null;
+		}
+		Actor target = me.getInteracting();
+		if (target instanceof NPC && npcMatches((NPC) target, name, id))
+		{
+			return (NPC) target;
 		}
 		WorldPoint here = me.getWorldLocation();
 		NPC best = null;
@@ -667,15 +684,25 @@ final class ClientGame implements Game
 			{
 				continue;
 			}
-			boolean match = name != null ? name.equalsIgnoreCase(Dialogue.clean(npc.getName())) : npc.getId() == id;
 			int d = npc.getWorldLocation().distanceTo(here);
-			if (match && d < bestDistance)
+			if (npcMatches(npc, name, id) && d < bestDistance)
 			{
 				best = npc;
 				bestDistance = d;
 			}
 		}
 		return best;
+	}
+
+	private static boolean npcMatches(NPC npc, String name, int id)
+	{
+		return name != null ? name.equalsIgnoreCase(Dialogue.clean(npc.getName())) : npc.getId() == id;
+	}
+
+	@Override
+	public boolean tileLoaded(osrsps.testrunner.Tile at)
+	{
+		return LocalPoint.fromWorld(client.getTopLevelWorldView(), at.x, at.y) != null;
 	}
 
 	@Override
