@@ -140,6 +140,13 @@ class Npc(
     /** Ticks it still stands where it is because it is being fought; see [Npcs.process]. */
     internal var holdTicks: Int = 0
 
+    /** The player it fights back against, chasing and hitting them; null for none. See [osrsps.game.combat.MeleeCombat]. */
+    var target: Player? = null
+        internal set
+
+    /** The first tick it may swing at its target again. */
+    internal var nextAttackTick: Long = 0
+
     /** The animation, hitsplats and health bars given this cycle; see [NpcEffects]. */
     val effects = NpcEffects()
 

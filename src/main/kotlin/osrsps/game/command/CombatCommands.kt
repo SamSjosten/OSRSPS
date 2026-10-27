@@ -1,7 +1,9 @@
 package osrsps.game.command
 
 import osrsps.game.Player
+import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
 import osrsps.game.npc.Npc
 import java.util.Locale
@@ -9,8 +11,8 @@ import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Combat testing tools: `::combat` and `::fight` only read, so anyone may run them; `::hit` and `::kill` change the
- * world, so admins only.
+ * Combat testing tools: `::combat`, `::fight` and `::hp` only read, so anyone may run them; `::hit`, `::kill`, `::god`
+ * and `::heal` change the world, so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
     register("combat", "::combat [index|name]") {
@@ -32,6 +34,28 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         val npc = fight.npc
         val wait = (player.nextAttackTick - world.tick).coerceAtLeast(0)
         reply("You are fighting ${npc.type.name} #${npc.index} (${npc.hitpoints}/${npc.type.stats.hitpoints} hp); next swing in $wait tick${if (wait == 1L) "" else "s"}.")
+    }
+
+    register("hp", "::hp") {
+        val max = player.skills.baseLevel(Skill.HITPOINTS)
+        val attacker = player.attackedBy
+        val ago = world.tick - player.attackedTick
+        val attacked = if (attacker != null && attacker.target === player && ago <= MeleeCombat.IN_COMBAT_TICKS) {
+            "; under attack by ${attacker.type.name} #${attacker.index}, hit $ago tick${if (ago == 1L) "" else "s"} ago"
+        } else {
+            ""
+        }
+        reply("You have ${player.hitpoints}/$max hitpoints$attacked" + (if (player.god) "; ::god is on" else "") + ".")
+    }
+
+    register("god", "::god", admin = true) {
+        player.god = !player.god
+        reply(if (player.god) "You can't be hurt now (::god again to turn it off)." else "You can be hurt again.")
+    }
+
+    register("heal", "::heal", admin = true) {
+        player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
+        reply("Healed to ${player.hitpoints} hitpoints.")
     }
 
     register("hit", "::hit damage [index|name]", admin = true) {

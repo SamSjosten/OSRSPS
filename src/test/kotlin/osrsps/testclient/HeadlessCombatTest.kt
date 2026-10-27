@@ -52,6 +52,8 @@ class HeadlessCombatTest {
             server.login("bob").use { client ->
                 val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
                 client.await("the login rebuild") { client.position }
+                // He hits back now, and the dice depend on when the clicks land: ::god keeps the fight hers to win.
+                assertEquals("You can't be hurt now (::god again to turn it off).", client.commandReply("god") { it.startsWith("You can") })
                 client.npcOp(npc.index, 2)
                 // Two tiles away: a step, then the first swing.
                 client.awaitTicks(3)
@@ -63,6 +65,42 @@ class HeadlessCombatTest {
                 assertEquals(1_154 + 9, client.stat(HITPOINTS)!!.xp)
                 client.await("the man's return", timeoutMillis = 10_000) { client.npcs().firstOrNull { it.id == man.id } }
                 assertEquals("You are not fighting anything.", client.commandReply("fight") { it.startsWith("You are") })
+            }
+        }
+    }
+
+    @Test
+    fun `a man hits back, with auto retaliate off you take it, with it on you fight, and god and heal shrug it off`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
+                client.await("the login rebuild") { client.position }
+                assertEquals("Varp 172: 0 -> 1", client.commandReply("varp 172 1") { it.startsWith("Varp 172") })
+                client.npcOp(npc.index, 2)
+                client.awaitTicks(3)
+                // One punch, then she walks off west; the man comes after her and she does nothing about it.
+                client.walk(3220, 3218)
+                client.await("the man's first hit on her", timeoutMillis = 60_000) {
+                    client.commandReply("hp") { it.startsWith("You have") }.takeIf { it.contains("under attack by Man #${npc.index}") }
+                }
+                assertEquals("You are not fighting anything.", client.commandReply("fight") { it.startsWith("You are") })
+                // Every hit is 0 or 1 and about half land, so a point goes within a minute however the dice fall.
+                client.await("a hitpoint lost", timeoutMillis = 60_000) { client.stat(HITPOINTS)?.takeIf { it.level < 10 } }
+                assertEquals("You are not fighting anything.", client.commandReply("fight") { it.startsWith("You are") })
+                // Auto retaliate back on: his next hit starts her fight.
+                assertEquals("Varp 172: 1 -> 0", client.commandReply("varp 172 0") { it.startsWith("Varp 172") })
+                val fighting = client.await("her retaliation", timeoutMillis = 15_000) {
+                    client.commandReply("fight") { it.startsWith("You are") }.takeIf { it.startsWith("You are fighting") }
+                }
+                assertTrue(fighting.startsWith("You are fighting Man #${npc.index} ("), fighting)
+                // God: no more damage; heal: back to full.
+                assertEquals("You can't be hurt now (::god again to turn it off).", client.commandReply("god") { it.startsWith("You can") })
+                assertEquals("Healed to 10 hitpoints.", client.commandReply("heal") { it.startsWith("Healed") })
+                client.await("full hitpoints", timeoutMillis = 5_000) { client.stat(HITPOINTS)?.takeIf { it.level == 10 } }
+                client.awaitTicks(12)
+                assertEquals(10, client.stat(HITPOINTS)!!.level)
+                val hp = client.commandReply("hp") { it.startsWith("You have") }
+                assertTrue(hp.startsWith("You have 10/10 hitpoints; under attack by Man #${npc.index}, hit ") && hp.endsWith("; ::god is on."), hp)
             }
         }
     }
