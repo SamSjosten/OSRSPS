@@ -407,6 +407,38 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `an NPC that lands a hit before your first swing at another stops that attack`() {
+        val first = spawn()
+        val second = spawn(x = 3211)
+        attack(alice, first)
+        tick()
+        // The first man has turned on her; he swings on tick 3, after her click on the second but before her swing on 5.
+        first.nextAttackTick = 3
+        attack(alice, second)
+        tick()
+        assertEquals(second, assertIs<MeleeInteraction>(alice.interaction).npc)
+        assertTrue(messages.isEmpty(), messages.toString())
+        tick()
+        assertEquals(first, alice.attackedBy)
+        assertNull(alice.interaction)
+        assertEquals(listOf(alice to MeleeCombat.ALREADY_UNDER_ATTACK), messages)
+        repeat(2) { tick() }
+        assertTrue(second.effects.pendingHits.isEmpty())
+        assertNull(second.target)
+        // Once she is fighting the second man, a newcomer's hit doesn't stop her.
+        melee.hit(first, alice, 100, tick)
+        attack(alice, second)
+        tick()
+        assertEquals(1, second.effects.pendingHits.size)
+        val third = spawn(x = 3209)
+        melee.hit(third, alice, 0, tick)
+        melee.hitPlayer(alice, third, 1, tick)
+        repeat(4) { tick() }
+        assertEquals(second, assertIs<MeleeInteraction>(alice.interaction).npc)
+        assertEquals(alice, second.target)
+    }
+
+    @Test
     fun `an NPC chases its attacker no further than seven tiles from its spawn and gives up past eighteen`() {
         val npc = spawn()
         attack(alice, npc)

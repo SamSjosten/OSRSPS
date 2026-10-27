@@ -26,6 +26,9 @@ class MeleeInteraction internal constructor(val npc: Npc, private val owner: Mel
     /** Whether the player stood in reach of the NPC when last tried. */
     internal var inReach = false
 
+    /** Whether the player has swung at the NPC yet; until then the fight can still be refused on arrival. */
+    internal var swung = false
+
     override fun tryInteract(player: Player) = owner.tryInteract(player, this)
 
     override fun unreachable(player: Player) = owner.unreachable(player)
@@ -127,8 +130,17 @@ class MeleeCombat(
             stopFacing(player)
             return true
         }
+        // Another NPC may have caught them on the way; once the fight is on, a newcomer's hits don't stop it.
+        if (!interaction.swung && underAttackByAnother(player, npc)) {
+            message(player, ALREADY_UNDER_ATTACK)
+            stopFacing(player)
+            return true
+        }
         val tick = currentTick()
-        if (tick >= player.nextAttackTick) swing(player, npc, tick)
+        if (tick >= player.nextAttackTick) {
+            swing(player, npc, tick)
+            interaction.swung = true
+        }
         return false
     }
 
