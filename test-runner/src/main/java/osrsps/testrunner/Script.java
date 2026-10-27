@@ -292,6 +292,105 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "ticks", "comment");
 				return new Steps.WaitTicks(timeout, ticks);
 			}
+			case "assertHitsplat":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String npc = f.string("npc", null);
+				boolean self = f.bool("self", false);
+				if ((npc == null) == !self)
+				{
+					throw new Invalid(f.where + " needs \"npc\" (a name) or \"self\": true, not both");
+				}
+				int amount = f.integer("amount", -1);
+				if (f.o.has("amount") && amount < 0)
+				{
+					throw new Invalid(f.where + ": \"amount\" must be 0 or more");
+				}
+				f.rejectUnknown("step", "timeoutMs", "npc", "self", "amount", "comment");
+				return new Steps.AssertHitsplat(timeout, npc, amount);
+			}
+			case "assertNpcHealth":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String npc = f.string("npc", null);
+				int id = f.integer("npcId", -1);
+				if (npc == null && id < 0)
+				{
+					throw new Invalid(f.where + " needs \"npc\" (a name) or \"npcId\"");
+				}
+				int min = f.integer("min", -1);
+				int max = f.integer("max", -1);
+				if (min < 0 && max < 0)
+				{
+					throw new Invalid(f.where + " needs \"min\" or \"max\", a percentage");
+				}
+				if (min > 100 || max > 100 || (f.o.has("min") && min < 0) || (f.o.has("max") && max < 0))
+				{
+					throw new Invalid(f.where + ": \"min\" and \"max\" are percentages, 0 to 100");
+				}
+				f.rejectUnknown("step", "timeoutMs", "npc", "npcId", "min", "max", "comment");
+				return new Steps.AssertNpcHealth(timeout, npc, id, min, max);
+			}
+			case "assertStat":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String skill = f.requiredString("skill");
+				String known = null;
+				for (String name : Steps.AssertStat.SKILLS)
+				{
+					if (name.equalsIgnoreCase(skill))
+					{
+						known = name;
+					}
+				}
+				if (known == null)
+				{
+					throw new Invalid(f.where + ": no skill \"" + skill + "\"; one of " + Steps.AssertStat.SKILLS);
+				}
+				int level = f.integer("level", -1);
+				int xp = f.integer("xp", -1);
+				if (level < 0 && xp < 0)
+				{
+					throw new Invalid(f.where + " needs \"level\" or \"xp\", the least to expect");
+				}
+				if ((f.o.has("level") && level < 0) || (f.o.has("xp") && xp < 0))
+				{
+					throw new Invalid(f.where + ": \"level\" and \"xp\" must be 0 or more");
+				}
+				f.rejectUnknown("step", "timeoutMs", "skill", "level", "xp", "comment");
+				return new Steps.AssertStat(timeout, known, level, xp);
+			}
+			case "assertGroundItem":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String item = f.string("item", null);
+				int id = f.integer("itemId", -1);
+				if (item == null && id < 0)
+				{
+					throw new Invalid(f.where + " needs \"item\" (a name) or \"itemId\"");
+				}
+				int x = f.integer("x", -1);
+				int y = f.integer("y", -1);
+				if ((x < 0) != (y < 0))
+				{
+					throw new Invalid(f.where + " needs both \"x\" and \"y\", or neither");
+				}
+				boolean absent = f.bool("absent", false);
+				f.rejectUnknown("step", "timeoutMs", "item", "itemId", "x", "y", "absent", "comment");
+				return new Steps.AssertGroundItem(timeout, item, id, x < 0 ? null : new Tile(x, y, -1), absent);
+			}
+			case "assertAnimation":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int id = f.requiredInt("id");
+				if (id < 0)
+				{
+					throw new Invalid(f.where + ": \"id\" must be 0 or more");
+				}
+				String npc = f.string("npc", null);
+				f.rejectUnknown("step", "timeoutMs", "id", "npc", "comment");
+				return new Steps.AssertAnimation(timeout, npc, id);
+			}
 			default:
 				throw new Invalid(f.where + ": unknown step \"" + type + "\"");
 		}

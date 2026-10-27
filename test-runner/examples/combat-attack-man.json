@@ -1,0 +1,21 @@
+{
+ "name": "Combat: attack a castle man, see the swing, splat, health bar and XP, kill him and see him come back",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "assertLocation", "x": 3216, "y": 3219, "plane": 0},
+  {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000, "comment": "the nearest man; he may be a few tiles off"},
+  {"step": "assertAnimation", "id": 422, "timeoutMs": 20000, "comment": "human_unarmedpunch on the first swing, after the walk up"},
+  {"step": "assertHitsplat", "npc": "Man", "timeoutMs": 20000, "comment": "a hit or a miss (0)"},
+  {"step": "assertNpcHealth", "npc": "Man", "min": 1, "max": 100, "comment": "the bar shows once he is hit; 7 hp, so one hit of 1 leaves 85%"},
+  {"step": "command", "text": "::fight", "expectMessage": "You are fighting Man #"},
+  {"step": "assertStat", "skill": "Hitpoints", "level": 10, "xp": 1154, "comment": "a new account's Hitpoints; attack XP depends on the dice"},
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #"},
+  {"step": "assertAnimation", "id": 836, "npc": "Man", "comment": "human_death"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::fight", "expectMessage": "You are not fighting anything."},
+  {"step": "waitTicks", "ticks": 30, "comment": "4 ticks of death animation, respawn 25 ticks after the killing blow"},
+  {"step": "command", "text": "::combat man", "expectMessage": "vs Man #"}
+ ]
+}

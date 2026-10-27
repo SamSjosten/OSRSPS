@@ -653,4 +653,235 @@ final class Steps
 			return "wait " + ticks + " ticks";
 		}
 	}
+
+	/**
+	 * Passes when a hitsplat has shown on the player, or on the NPC of the given name ({@link Game#npcIndex}: the one
+	 * the player is fighting, else the nearest), since the last step that acted; with an amount, one showing exactly
+	 * that (0 is a miss's blue splat).
+	 */
+	static final class AssertHitsplat extends Step
+	{
+		/** The NPC's name; null for the player. */
+		final String npc;
+		/** -1 for any. */
+		final int amount;
+
+		AssertHitsplat(long timeoutMs, String npc, int amount)
+		{
+			super("assertHitsplat", timeoutMs, false);
+			this.npc = npc;
+			this.amount = amount;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int index = npc == null ? Run.SELF : run.game.npcIndex(npc, -1);
+			if (index < 0 && npc != null)
+			{
+				return Poll.waiting("no NPC \"" + npc + "\" in view");
+			}
+			Run.Hitsplat seen = run.hitsplatSinceAction(index, amount);
+			return seen != null ? Poll.pass("hitsplat " + seen) : Poll.waiting("no hitsplat " + what() + " since the last action");
+		}
+
+		private String what()
+		{
+			return (amount < 0 ? "" : "of " + amount + " ") + "on " + (npc == null ? "you" : npc);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert hitsplat " + what();
+		}
+	}
+
+	/**
+	 * Passes when the NPC of the name ({@link Game#npcIndex}: the one the player is fighting, else the nearest) shows a
+	 * health bar within the given bounds, as a percentage. The client is only told an NPC's health once it is hit, so
+	 * this also waits for the first hit to show.
+	 */
+	static final class AssertNpcHealth extends Step
+	{
+		final String npc;
+		final int npcId;
+		/** Percentages; -1 for no bound. */
+		final int min;
+		final int max;
+
+		AssertNpcHealth(long timeoutMs, String npc, int npcId, int min, int max)
+		{
+			super("assertNpcHealth", timeoutMs, false);
+			this.npc = npc;
+			this.npcId = npcId;
+			this.min = min;
+			this.max = max;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			Game.Health h = run.game.npcHealth(npc, npcId);
+			if (h == null)
+			{
+				return Poll.waiting("no NPC " + who() + " in view");
+			}
+			int percent = h.percent();
+			if (percent < 0)
+			{
+				return Poll.waiting(who() + " shows no health bar");
+			}
+			boolean ok = (min < 0 || percent >= min) && (max < 0 || percent <= max);
+			return ok ? Poll.pass(who() + " at " + h) : Poll.waiting(who() + " at " + h);
+		}
+
+		private String who()
+		{
+			return npc != null ? npc : "NPC " + npcId;
+		}
+
+		@Override
+		String describe()
+		{
+			String bounds = min < 0 ? "at most " + max + "%" : max < 0 ? "at least " + min + "%" : min + "-" + max + "%";
+			return "assert " + who() + " health " + bounds;
+		}
+	}
+
+	/** Passes when the player's level and experience in a skill are at least the given ones. */
+	static final class AssertStat extends Step
+	{
+		/** The skills a script may name, as the stats tab does. */
+		static final List<String> SKILLS = List.of("Attack", "Defence", "Strength", "Hitpoints", "Ranged", "Prayer", "Magic",
+			"Cooking", "Woodcutting", "Fletching", "Fishing", "Firemaking", "Crafting", "Smithing", "Mining", "Herblore",
+			"Agility", "Thieving", "Slayer", "Farming", "Runecraft", "Hunter", "Construction", "Sailing");
+
+		final String skill;
+		/** -1 for no bound. */
+		final int level;
+		final int xp;
+
+		AssertStat(long timeoutMs, String skill, int level, int xp)
+		{
+			super("assertStat", timeoutMs, false);
+			this.skill = skill;
+			this.level = level;
+			this.xp = xp;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int haveLevel = run.game.skillLevel(skill);
+			int haveXp = run.game.skillXp(skill);
+			if (haveLevel < 0 || haveXp < 0)
+			{
+				return Poll.waiting("the client has no " + skill + " stat");
+			}
+			String have = skill + " level " + haveLevel + ", " + haveXp + " xp";
+			boolean ok = (level < 0 || haveLevel >= level) && (xp < 0 || haveXp >= xp);
+			return ok ? Poll.pass(have) : Poll.waiting(have);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert " + skill + (level < 0 ? "" : " level " + level + "+") + (xp < 0 ? "" : " xp " + xp + "+");
+		}
+	}
+
+	/** Passes when an item lies on the ground in the scene, or, with absent, when none does. */
+	static final class AssertGroundItem extends Step
+	{
+		final String item;
+		final int itemId;
+		/** Only an item on this tile counts, when set. Its plane is ignored: items are looked for on the player's plane. */
+		final Tile at;
+		final boolean absent;
+
+		AssertGroundItem(long timeoutMs, String item, int itemId, Tile at, boolean absent)
+		{
+			super("assertGroundItem", timeoutMs, false);
+			this.item = item;
+			this.itemId = itemId;
+			this.at = at;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			if (absent)
+			{
+				// Absence can only be seen on a tile the client has loaded, with a player to see it.
+				if (run.game.location() == null)
+				{
+					return Poll.waiting("no local player");
+				}
+				if (at != null && !run.game.tileLoaded(at))
+				{
+					return Poll.waiting("tile " + at.x + ", " + at.y + " is not in the loaded scene");
+				}
+			}
+			String missing = run.game.groundItem(item, itemId, at);
+			if (absent)
+			{
+				return missing != null ? Poll.pass(missing) : Poll.waiting(what() + " is on the ground");
+			}
+			return missing == null ? Poll.pass(what() + " is on the ground") : Poll.waiting(missing);
+		}
+
+		private String what()
+		{
+			return (item != null ? item : "item " + itemId) + (at == null ? "" : " at " + at.x + ", " + at.y);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert " + (absent ? "no " : "") + what() + " on the ground";
+		}
+	}
+
+	/**
+	 * Passes when the player, or the NPC of the given name ({@link Game#npcIndex}), has started the animation since the
+	 * last step that acted.
+	 */
+	static final class AssertAnimation extends Step
+	{
+		/** The NPC's name; null for the player. */
+		final String npc;
+		final int id;
+
+		AssertAnimation(long timeoutMs, String npc, int id)
+		{
+			super("assertAnimation", timeoutMs, false);
+			this.npc = npc;
+			this.id = id;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int index = npc == null ? Run.SELF : run.game.npcIndex(npc, -1);
+			if (index < 0 && npc != null)
+			{
+				return Poll.waiting("no NPC \"" + npc + "\" in view");
+			}
+			Run.Animation seen = run.animationSinceAction(index, id);
+			return seen != null ? Poll.pass(seen.toString()) : Poll.waiting("no animation " + id + " on " + who() + " since the last action");
+		}
+
+		private String who()
+		{
+			return npc == null ? "you" : npc;
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert animation " + id + " on " + who();
+		}
+	}
 }
