@@ -131,30 +131,6 @@ class EquipmentTabTest {
     }
 
     @Test
-    fun `a backpack change while the stats screen is open sends its side inventory's events again the next cycle`() {
-        // As after the login's first flush, so this one sends no appearance (the test player has no info protocols).
-        sendInventory(player, player.equipment, send)
-        player.sentStance = Weapons.HUMAN
-        tab.openStats(player)
-        sent.clear()
-        player.inventory.add(axe, 1)
-        tab.flush(player, backpackChanged = true)
-        assertTrue(sent.none { it is IfSetEventsV2 }, "not before the client has rebuilt the slots")
-        tab.flush(player)
-        val events = sent.filterIsInstance<IfSetEventsV2>().single()
-        assertEquals(EquipmentTab.STATS_SIDE, events.interfaceId)
-        assertEquals(0b10_0000_0001, events.events2)
-        sent.clear()
-        tab.flush(player)
-        assertTrue(sent.none { it is IfSetEventsV2 }, "once per change")
-
-        player.modals.clear()
-        tab.flush(player, backpackChanged = true)
-        tab.flush(player)
-        assertTrue(sent.none { it is IfSetEventsV2 }, "not with the screen closed")
-    }
-
-    @Test
     fun `the category varbit is set before the worn inventory goes, so both reach the client in one cycle`() {
         sendInventory(player, player.equipment, send)
         player.sentStance = Weapons.HUMAN
