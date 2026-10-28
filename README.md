@@ -97,6 +97,7 @@ config:
     jav_config_url: http://192.168.0.210:43595/jav_config.ws
     revision: 241.1
     modulus: <contents of data/rsa-modulus.txt>
+    runelite_bootstrap_commithash: 1e634e64717418713898b06061a189ec1cdf948d   # RuneLite 1.13.4, see below
     # game_server_port: 50000   # only when the server runs on a port other than 43594
 ```
 
@@ -109,17 +110,24 @@ that it needs the same password (see Accounts).
 
 ### Letting friends test
 
-Friends need a route to the server's two ports and RSProx; there is nothing of ours to install. The route belongs to the
-Home Lab project (the plan is Tailscale limited to TCP 43594-43595); keep the server off the internet. Then each friend:
+Friends reach the server at `odinsgate.net`, a VPS that relays TCP 43594 and 43595 (and nothing else) to it; the Home
+Lab project runs the relay. Friends need only RSProx; there is nothing of ours to install. Each friend:
 
 1. Installs RSProx from its [releases](https://github.com/blurite/rsprox/releases). The installer brings its own Java
    and keeps RSProx up to date. Windows or Linux only: RSProx's custom targets don't work on macOS.
-2. Imports `http://192.168.0.210:43595/proxy-targets.yaml` with **+** → **From URL…**, restarts RSProx, picks
-   **OSRSPS** and launches RuneLite.
+2. Imports `http://odinsgate.net:43595/proxy-targets.yaml` with **+** → **From URL…**, restarts RSProx, picks
+   **OSRSPS** and launches RuneLite. RSProx reads that address again each time it starts, so a change to the target
+   reaches friends on their next RSProx start.
 3. Logs in with a name and password of their own, never their Jagex login.
 
 RSProx downloads RuneLite and the game client itself, so we hand out no Jagex files. Its RuneLite keeps settings in the
 friend's own `.runelite` folder, shared with a normal RuneLite install, in developer mode.
+
+The target also names the RuneLite build that plays the server's revision, as a commit of RuneLite's
+[static.runelite.net history](https://github.com/runelite/static.runelite.net/commits/gh-pages/bootstrap.json), from
+`src/main/resources/runelite-pins.json`. RuneLite moves to each new revision within hours of live, and our server turns
+a client of another revision away. RSProx's own table picks the same build for 241 today; the pin keeps friends on it
+if that table changes. A revision bump adds the build for the new revision to that file; a test fails until it does.
 
 ## Walking
 

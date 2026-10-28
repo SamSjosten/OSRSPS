@@ -31,8 +31,9 @@ private val logger = KotlinLogging.logger {}
 
 /**
  * Serves the two files a client launcher needs to find this server, `jav_config.ws` and `world_list.ws`,
- * `proxy-targets.yaml`, an RSProx target for this server that RSProx's "+" button imports from a URL, and `version`,
- * the git commit this server was built from, so a script can wait for a deploy to be up.
+ * `proxy-targets.yaml`, an RSProx target for this server that RSProx's "+" button imports from a URL, `version`,
+ * the git commit this server was built from, so a script can wait for a deploy to be up, and `status`, that commit
+ * with what the server started from and how many JS5 connections it has let in.
  *
  * RSProx reads the jav_config's `codebase` host, looks for a world with that host in the world list,
  * and connects to it on the game port. So the host in them must be one the player's PC can reach. Each file is written
@@ -53,6 +54,8 @@ class ClientConfig(
     private val version: String = UNKNOWN_VERSION,
     /** Who may put a PROXY header in front of a request; see [ProxyProtocol]. */
     private val proxy: ProxyProtocol = ProxyProtocol.OFF,
+    /** The RuneLite build for each revision; the RSProx target names the one for [Revision.MAJOR]. */
+    private val runelitePins: RuneLitePins = RuneLitePins.NONE,
 ) {
     private var group: EventLoopGroup? = null
     private var server: Channel? = null
@@ -63,6 +66,10 @@ class ClientConfig(
      */
     @Volatile
     var status: List<String> = emptyList()
+
+    /** Lines worked out again for each /status request, after [status]: how many JS5 connections have come in. */
+    @Volatile
+    var liveStatus: () -> List<String> = { emptyList() }
 
     /** The login RSA key's modulus in hex, once loaded; until then there is no RSProx target to hand out. */
     @Volatile
@@ -134,7 +141,10 @@ class ClientConfig(
     /**
      * The RSProx target for this server, in the format of RSProx's `proxy-targets.yaml`, or null before [modulusHex]
      * is known. The name is the one our own setup has always used, so RSProx keeps its client cache for it. The `.1`
-     * subrevision is the one RSProx's README calls the safe pick: every revision has it.
+     * subrevision is the one RSProx's README calls the safe pick: every revision has it. When [runelitePins] has a
+     * build for [Revision.MAJOR], the target names its commit, so RSProx keeps launching that RuneLite after live and
+     * RuneLite move to the next revision, which our server would turn away. RSProx's own table picks the same build
+     * today; the line holds it there if that table changes.
      */
     fun proxyTargets(host: String = publicHost): String? {
         val modulus = modulusHex ?: return null
@@ -144,6 +154,7 @@ class ClientConfig(
             appendLine("    jav_config_url: http://$host:$httpPort/jav_config.ws")
             appendLine("    revision: ${Revision.MAJOR}.1")
             appendLine("    modulus: $modulus")
+            runelitePins[Revision.MAJOR]?.let { appendLine("    runelite_bootstrap_commithash: ${it.commit}") }
             if (gamePort != DEFAULT_GAME_PORT) appendLine("    game_server_port: $gamePort")
         }
     }
@@ -155,7 +166,7 @@ class ClientConfig(
         "/proxy-targets.yaml" -> proxyTargets(host)?.let { Response("text/yaml; charset=UTF-8", it.toByteArray(Charsets.UTF_8)) }
             ?: Response("text/plain", ByteArray(0), HttpResponseStatus.SERVICE_UNAVAILABLE)
         "/version" -> Response("text/plain; charset=UTF-8", "$version\n".toByteArray(Charsets.UTF_8))
-        "/status" -> Response("text/plain; charset=UTF-8", (listOf("commit $version") + status).joinToString("") { "$it\n" }.toByteArray(Charsets.UTF_8))
+        "/status" -> Response("text/plain; charset=UTF-8", (listOf("commit $version") + status + liveStatus()).joinToString("") { "$it\n" }.toByteArray(Charsets.UTF_8))
         else -> null
     }
 
@@ -177,6 +188,9 @@ class ClientConfig(
         }
         this.group = group
         logger.info { "Client config at http://$publicHost:$httpPort/jav_config.ws (world $worldId on $publicHost)" }
+        val pin = runelitePins[Revision.MAJOR]
+        if (pin == null) logger.warn { "No RuneLite build pinned for revision ${Revision.MAJOR} in ${RuneLitePins.RESOURCE}; RSProx picks its own" }
+        else logger.info { "The RSProx target pins RuneLite ${pin.runelite} (static.runelite.net commit ${pin.commit})" }
     }
 
     @ChannelHandler.Sharable

@@ -47,6 +47,7 @@ import net.rsprot.protocol.message.codec.incoming.provider.GameMessageConsumerRe
 import osrsps.game.Player
 import osrsps.game.World
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicLong
 import java.util.function.Consumer
 
 /** Wires our cache, keys and login handling into RSProt's network service. */
@@ -61,6 +62,8 @@ class NetworkFactory(
     private val relays: Set<String> = emptySet(),
     /** Who may say whose a connection really is; see [ProxyProtocol]. */
     private val proxy: ProxyProtocol = ProxyProtocol.OFF,
+    /** Counts the JS5 connections let in, for /status; see [RelayAwareValidator]. */
+    private val js5Connections: AtomicLong = AtomicLong(),
 ) : AbstractNetworkServiceFactory<Player>() {
     override val ports: List<Int> get() = listOf(port)
 
@@ -85,7 +88,7 @@ class NetworkFactory(
 
     override fun getGameConnectionHandler(): GameConnectionHandler<Player> = world
 
-    override fun getINetAddressHandlers(): INetAddressHandlers = INetAddressHandlers(RelayAwareValidator(relays))
+    override fun getINetAddressHandlers(): INetAddressHandlers = INetAddressHandlers(RelayAwareValidator(relays, js5Connections = js5Connections))
 
     // Proof of work only slows down logins on a private test server.
     override fun getLoginHandlers(): LoginHandlers = LoginHandlers(proofOfWorkProvider = NopProofOfWorkProvider)
@@ -189,11 +192,16 @@ private class ServerChannelTracker : ChannelInboundHandlerAdapter() {
  * header arrives from the relay's address, so the usual limit would let only a handful of them in at once. One with a
  * header is counted by the player's own address like anyone else's (see [ProxyProtocol]). Logins through a relay are
  * also slowed by name (osrsps.game.LoginGuard).
+ *
+ * Each JS5 connection let in is counted in [js5Connections]. RSProt asks about one only after its revision checked out,
+ * so the count going up means a client of the server's revision reached us and started loading: the test VM reads it
+ * from /status to see that a client which can't log in by itself still got that far.
  */
 class RelayAwareValidator(
     private val relays: Set<String>,
     private val limit: Int = LIMIT,
     private val relayLimit: Int = RELAY_LIMIT,
+    private val js5Connections: AtomicLong = AtomicLong(),
 ) : InetAddressValidator {
     private fun limitFor(address: String) = if (address in relays) relayLimit else limit
 
@@ -201,7 +209,7 @@ class RelayAwareValidator(
         activeGameConnections < limitFor(address)
 
     override fun acceptJs5Connection(address: String, activeJs5Connections: Int, seed: IntArray): Boolean =
-        activeJs5Connections < limitFor(address)
+        (activeJs5Connections < limitFor(address)).also { if (it) js5Connections.incrementAndGet() }
 
     companion object {
         /** RSProt's own default. */

@@ -15,7 +15,9 @@
   Write the build as OpenRS2's caches.json lists it, which is what `data/cache-source.txt` records: it lists the
   2026-10-20 cache (the one the game calls 241.4) as plain `241`, with no minor build.
 - `http://192.168.0.210:43595/status` answers with the commit, the cache's source line and the game frame check
-  (`Game frame: ...` lines), so the test VM can check a swap without a shell here.
+  (`Game frame: ...` lines), so the test VM can check a swap without a shell here. Its last line, `js5 connections N`,
+  counts the cache (JS5) connections let in since the server started; only a client of the server's revision gets
+  that far.
 - A deploy that fails (build error, or a checkout that can't fast-forward) is written to `.deploy/failed` and is not
   retried every minute. The next commit on main tries again, or `deploy/auto-deploy.sh --force` by hand.
 - Log: `.deploy/log` with the crontab line, `journalctl -u osrsps-deploy -n 50` with the timer. State: `.deploy/deployed`,
