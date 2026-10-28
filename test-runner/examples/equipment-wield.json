@@ -11,6 +11,7 @@
   {"step": "assertEquipment", "slot": "weapon", "item": "Bronze axe", "comment": "in the worn inventory and in the player's hand on the model"},
   {"step": "assertInventory", "item": "Bronze axe", "count": 0},
   {"step": "assertWidgetText", "interfaceId": 593, "component": 5, "contains": "Axe", "comment": "combat_interface:category, which the server sets with IF_SETTEXT"},
+  {"step": "clickWidget", "interfaceId": 548, "component": 64, "comment": "toplevel:stone0, the combat tab, in the fixed frame the VM's client uses: the client's own script (420, hooked to varp 843) updates the style buttons only while the tab shows"},
   {"step": "assertWidgetText", "interfaceId": 593, "contains": "Chop", "comment": "an axe's first style button"},
   {"step": "assertPose", "idle": 808, "comment": "human_ready: an axe keeps the plain stance"},
   {"step": "clickWidget", "interfaceId": 387, "component": 1, "comment": "View equipment stats"},
