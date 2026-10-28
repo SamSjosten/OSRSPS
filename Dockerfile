@@ -8,7 +8,11 @@ COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY gradle ./gradle
 RUN ./gradlew --no-daemon --version
 COPY src ./src
-RUN ./gradlew --no-daemon -Dorg.gradle.workers.max=1 -Pkotlin.compiler.execution.strategy=in-process \
+# If memory runs out anyway, the kernel should kill this step rather than the server. Build steps seem to keep the Docker
+# daemon's low OOM score (on 2026-10-28 the kernel killed the 300-440 MB server four times and spared a 1.4 GB build), so
+# the step first raises its own score, and the JVMs it starts inherit it.
+RUN echo 1000 >/proc/$$/oom_score_adj || true; \
+    ./gradlew --no-daemon -Dorg.gradle.workers.max=1 -Pkotlin.compiler.execution.strategy=in-process \
     "-Dorg.gradle.jvmargs=-Xmx448m -XX:MaxMetaspaceSize=256m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:ReservedCodeCacheSize=64m" \
     installDist
 

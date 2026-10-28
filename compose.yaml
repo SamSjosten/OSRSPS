@@ -7,9 +7,9 @@ services:
   osrsps:
     build: .
     restart: unless-stopped
-    # The image build for the next deploy runs next to this container on a VM that can be ballooned down to 2 GB. If
-    # memory runs out anyway, the kernel kills something else first (the build fails and the deploy is retried with the
-    # next commit) rather than the live server.
+    # VM 214 builds the next deploy's image next to this container and can be ballooned down to 2 GB. If memory runs out
+    # anyway, the kernel kills the build first (it raises its own score; the deploy is retried with the next commit) and
+    # every process with the default score before the live server.
     oom_score_adj: -500
     ports:
       - "43594:43594"

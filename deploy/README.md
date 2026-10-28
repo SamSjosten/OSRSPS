@@ -20,8 +20,10 @@
   that far.
 - The image is built on 214 next to the live server, and Proxmox can balloon the VM down to 2 GB. With Gradle's
   defaults the build peaked at 1.4 GB, and on 2026-10-28 the kernel OOM-killed the running server four times during a
-  16-minute build. So the Dockerfile keeps the build to one JVM with a 448 MB heap (about 800 MB at its peak),
-  compose fixes the server's heap at 512 MB, and `oom_score_adj` makes the kernel kill the build before the server.
+  16-minute build and spared the build (build steps seem to keep the Docker daemon's low OOM score). So the Dockerfile
+  keeps the build to one JVM with a 448 MB heap (about 800 MB at its peak) and raises that step's OOM score to the top,
+  and compose fixes the server's heap at 512 MB and lowers its score to -500: if memory runs out anyway, the kernel
+  kills the build first and every process with the default score before the server.
 - A deploy that fails (build error, or a checkout that can't fast-forward) is written to `.deploy/failed` and is not
   retried every minute. The next commit on main tries again, or `deploy/auto-deploy.sh --force` by hand.
 - Log: `.deploy/log` with the crontab line, `journalctl -u osrsps-deploy -n 50` with the timer. State: `.deploy/deployed`,
