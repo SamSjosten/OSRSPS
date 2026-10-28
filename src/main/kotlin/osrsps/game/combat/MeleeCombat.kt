@@ -348,11 +348,16 @@ class MeleeCombat(
     /** "Oh dear, you are dead!": every fight with the player ends, and [Deaths] has them from here. */
     private fun died(player: Player) {
         message(player, DEAD)
+        endFights(player)
+        onDeath(player)
+    }
+
+    /** Every fight with [player] ends: theirs, and those of the NPCs fighting them. */
+    fun endFights(player: Player) {
         player.interaction = null
         stopFacing(player)
         for (npc in npcs.all) if (npc.target === player) giveUp(npc)
         player.attackedBy = null
-        onDeath(player)
     }
 
     /** A hitpoint back for every hurt player and NPC; OSRS Wiki, Hitpoints: one a minute. Guessed for NPCs. */
