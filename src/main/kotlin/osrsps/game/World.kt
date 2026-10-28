@@ -362,7 +362,11 @@ class World(
                 responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
                 return
             }
-            Accounts.Check.CLAIMED -> logger.info { "${block.username} claimed their name" }
+            Accounts.Check.CLAIMED -> {
+                // Strikes against a name whose file was deleted for a reset don't carry over to its new password.
+                loginGuard.rightPassword(key!!)
+                logger.info { "${block.username} claimed their name" }
+            }
             Accounts.Check.MATCHED -> loginGuard.rightPassword(key!!)
             Accounts.Check.NO_SUCH_NAME -> {}
         }
