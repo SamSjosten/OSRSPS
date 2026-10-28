@@ -77,6 +77,8 @@ class MeleeCombat(
     private val onDeath: (Player) -> Unit = {},
     /** Puts a dead NPC's drops on the floor for its killer (null for none) once its body has gone. */
     private val loot: (Npc, Player?) -> Unit = { _, _ -> },
+    /** A fight with a style melee doesn't fight with, or null for none: [RangedCombat.fight]. */
+    private val ranged: (Player, Npc) -> Interaction? = { _, _ -> null },
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -86,11 +88,23 @@ class MeleeCombat(
 
     /**
      * The player used Attack on [npc]. Returns false when the NPC has no combat definition, so the click falls through
-     * to whatever else handles it. With a ranged or magic style the player is told melee is all there is for now.
+     * to whatever else handles it. With a style nothing fights with yet (magic, thrown weapons) the player is told so.
      */
-    fun attack(player: Player, npc: Npc): Boolean {
+    fun attack(player: Player, npc: Npc): Boolean = start(player, npc, now = true)
+
+    /**
+     * The player used Attack on [npc] with a style that doesn't walk up to it first (ranged, or one nothing fights with
+     * yet, which is refused straight away). The fight starts in the movement phase, as one handed over on arrival does.
+     * False for melee, which [attack] takes on arrival.
+     */
+    fun attackFromAfar(player: Player, npc: Npc): Boolean =
+        combat.meleeType(combat.style(player)) == null && start(player, npc, now = false)
+
+    /** Starts a fight with [npc], tried at once when [now]. False when the NPC can't be fought; see [attack]. */
+    private fun start(player: Player, npc: Npc, now: Boolean): Boolean {
         combat.npcCombat[npc.type] ?: return false
-        if (combat.meleeType(combat.style(player)) == null) {
+        val fight = fight(player, npc)
+        if (fight == null) {
             message(player, MELEE_ONLY)
             return true
         }
@@ -102,12 +116,15 @@ class MeleeCombat(
             message(player, SOMEONE_ELSE)
             return true
         }
-        val fight = MeleeInteraction(npc, this)
         player.interaction = fight
-        // Beside it already (the click is handed over on arrival), so the first swing is this tick's.
-        if (tryInteract(player, fight)) player.interaction = null
+        // Beside it already: the click is handed over on arrival, so the first swing is this tick's.
+        if (now && fight.tryInteract(player) && player.interaction === fight) player.interaction = null
         return true
     }
+
+    /** A fight with [npc] in the player's style: melee here, ranged from [ranged]; null when nothing fights with it. */
+    fun fight(player: Player, npc: Npc): Interaction? =
+        if (combat.meleeType(combat.style(player)) != null) MeleeInteraction(npc, this) else ranged(player, npc)
 
     internal fun tryInteract(player: Player, interaction: MeleeInteraction): Boolean {
         val npc = interaction.npc
@@ -150,13 +167,13 @@ class MeleeCombat(
      * Whether another player hit [npc] within the last [IN_COMBAT_TICKS] ticks and is still here. Guessed: the Wiki
      * says a single-way NPC stays someone's for a while after their last hit, but not how long.
      */
-    private fun foughtByAnother(player: Player, npc: Npc): Boolean {
+    internal fun foughtByAnother(player: Player, npc: Npc): Boolean {
         val other = npc.attacker ?: return false
         return other !== player && currentTick() - npc.attackedTick <= IN_COMBAT_TICKS && !other.loggedOut
     }
 
     /** Whether an NPC other than [npc] is fighting [player] and hit them within the last [IN_COMBAT_TICKS] ticks. */
-    private fun underAttackByAnother(player: Player, npc: Npc): Boolean {
+    internal fun underAttackByAnother(player: Player, npc: Npc): Boolean {
         val other = player.attackedBy ?: return false
         return other !== npc && other.target === player && !other.dead && currentTick() - player.attackedTick <= IN_COMBAT_TICKS
     }
@@ -164,10 +181,13 @@ class MeleeCombat(
     private fun swing(player: Player, npc: Npc, tick: Long) {
         val style = combat.style(player)
         val matchup = combat.matchup(player, npc) ?: run {
-            // The style changed to ranged or magic on the way (the combat tab is open while walking).
-            message(player, MELEE_ONLY)
-            player.interaction = null
-            stopFacing(player)
+            // The style changed on the way (the combat tab is open while walking): a bow carries on as a ranged fight.
+            val next = ranged(player, npc)
+            if (next == null) {
+                message(player, MELEE_ONLY)
+                stopFacing(player)
+            }
+            player.interaction = next
             return
         }
         player.nextAttackTick = tick + combat.attackSpeed(player)
@@ -320,8 +340,8 @@ class MeleeCombat(
      * whatever it was. The fight starts now and the first swing comes with that delay.
      */
     private fun retaliate(player: Player, npc: Npc, tick: Long) {
-        if (combat.meleeType(combat.style(player)) == null || foughtByAnother(player, npc)) return
-        player.interaction = MeleeInteraction(npc, this)
+        if (foughtByAnother(player, npc)) return
+        player.interaction = fight(player, npc) ?: return
         player.nextAttackTick = tick + (combat.attackSpeed(player) + 1) / 2
     }
 
@@ -354,8 +374,8 @@ class MeleeCombat(
         const val ALREADY_UNDER_ATTACK = "I'm already under attack."
         const val DEAD = "Oh dear, you are dead!"
 
-        /** Not a live message: ranged and magic come with later pieces. */
-        const val MELEE_ONLY = "Only melee is in so far; ranged and magic come later."
+        /** Not a live message: magic and the other ranged weapons come with later pieces. */
+        const val MELEE_ONLY = "Only melee, bows and crossbows are in so far; the rest comes later."
 
         /**
          * Ticks an NPC counts as fighting its last attacker, and stands still, after their last hit; also how long a

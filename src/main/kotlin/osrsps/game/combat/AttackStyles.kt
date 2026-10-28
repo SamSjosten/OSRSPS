@@ -17,6 +17,16 @@ enum class AttackType {
     val melee: Boolean get() = this == STAB || this == SLASH || this == CRUSH
 }
 
+/**
+ * The weight a ranged style's tooltip names, which picks the target's ranged defence bonus: light for thrown weapons,
+ * standard for bows, heavy for crossbows, as the 241 cache's tooltips have them.
+ */
+enum class RangedWeight {
+    LIGHT,
+    STANDARD,
+    HEAVY,
+}
+
 /** The combat tab's word for a style: what it adds to the player's effective levels. */
 enum class AttackStance {
     ACCURATE,
@@ -32,9 +42,16 @@ enum class AttackStance {
 
 /**
  * One button of the combat tab for one weapon category: [button] is the value of varp 43 (com_mode) that picks it.
- * [xp] lists the skills its damage trains, Hitpoints aside.
+ * [xp] lists the skills its damage trains, Hitpoints aside. A ranged style also has its [weight].
  */
-data class AttackStyle(val button: Int, val name: String, val stance: AttackStance, val type: AttackType, val xp: List<Skill>)
+data class AttackStyle(
+    val button: Int,
+    val name: String,
+    val stance: AttackStance,
+    val type: AttackType,
+    val xp: List<Skill>,
+    val weight: RangedWeight? = null,
+)
 
 /**
  * The combat tab's attack styles for every weapon category, from the cache's dbtable 78 (combat_interface_weapon_category):
@@ -92,7 +109,8 @@ class AttackStyles(private val byCategory: Map<Int, List<AttackStyle>>) {
             val stance = words.firstNotNullOfOrNull { STANCES[it] } ?: AttackStance.OTHER
             val type = words.firstNotNullOfOrNull { TYPES[it] } ?: AttackType.NONE
             val xp = words.flatMap { XP[it].orEmpty() }
-            return AttackStyle(button, name, stance, type, xp)
+            val weight = words.firstNotNullOfOrNull { WEIGHTS[it] }
+            return AttackStyle(button, name, stance, type, xp, weight)
         }
 
         private const val TUPLE = 4
@@ -119,6 +137,8 @@ class AttackStyles(private val byCategory: Map<Int, List<AttackStyle>>) {
             "heavy" to AttackType.RANGED,
             "magic" to AttackType.MAGIC,
         )
+
+        private val WEIGHTS = mapOf("light" to RangedWeight.LIGHT, "standard" to RangedWeight.STANDARD, "heavy" to RangedWeight.HEAVY)
 
         private val XP = mapOf(
             "attack xp" to listOf(Skill.ATTACK),

@@ -3,14 +3,19 @@ package osrsps.cache
 import com.displee.cache.CacheLibrary
 import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.SeqNames
+import osrsps.game.SpotanimNames
 import osrsps.game.combat.AttackStyles
 
 private val logger = KotlinLogging.logger {}
 
-/** Reads what combat takes from the cache: the combat tab's attack styles, and animation names for the data files. */
+/**
+ * Reads what combat takes from the cache: the combat tab's attack styles, and animation and spotanim names for the
+ * data files.
+ */
 object CombatLoader {
     private const val GAMEVAL_INDEX = 24
     private const val GAMEVAL_SEQS = 7
+    private const val GAMEVAL_SPOTANIMS = 8
 
     /** dbtable combat_interface_weapon_category, which the combat tab reads its buttons from. */
     const val WEAPON_CATEGORY_TABLE = 78
@@ -32,13 +37,18 @@ object CombatLoader {
     }
 
     /** Every seq's gameval name, or [SeqNames.NONE] when the cache has no gameval index. */
-    fun seqNames(library: CacheLibrary): SeqNames {
-        val archive = library.index(GAMEVAL_INDEX)?.archive(GAMEVAL_SEQS) ?: return SeqNames.NONE
+    fun seqNames(library: CacheLibrary): SeqNames = SeqNames(names(library, GAMEVAL_SEQS))
+
+    /** Every spotanim's gameval name, or [SpotanimNames.NONE] when the cache has no gameval index. */
+    fun spotanimNames(library: CacheLibrary): SpotanimNames = SpotanimNames(names(library, GAMEVAL_SPOTANIMS))
+
+    private fun names(library: CacheLibrary, group: Int): Map<String, Int> {
+        val archive = library.index(GAMEVAL_INDEX)?.archive(group) ?: return emptyMap()
         val ids = HashMap<String, Int>()
         for (file in archive.files()) {
             val data = file.data ?: continue
             ids[GameFrameCheck.decodeName(data)] = file.id
         }
-        return SeqNames(ids)
+        return ids
     }
 }

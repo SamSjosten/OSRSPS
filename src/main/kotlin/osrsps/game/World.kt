@@ -49,6 +49,8 @@ import osrsps.game.combat.Deaths
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
+import osrsps.game.combat.RangedCombat
+import osrsps.game.combat.RangedWeapons
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
@@ -121,6 +123,8 @@ class World(
     npcCombat: NpcCombat = NpcCombat.NONE,
     /** What each NPC drops when it dies; see [NpcDrops]. */
     val npcDrops: NpcDrops = NpcDrops.NONE,
+    /** The bows, crossbows and ammunition [RangedCombat] fires; tests that shoot pass their own. */
+    rangedWeapons: RangedWeapons = RangedWeapons.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -169,7 +173,11 @@ class World(
 
     private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors)
 
-    val npcInteractions: NpcInteractions = NpcInteractions(npcs, npcTypes, collision, movement, handlers, scripts, { tick }, attack = { player, npc -> meleeCombat.attack(player, npc) })
+    val npcInteractions: NpcInteractions = NpcInteractions(
+        npcs, npcTypes, collision, movement, handlers, scripts, { tick },
+        attack = { player, npc -> meleeCombat.attack(player, npc) },
+        attackFromAfar = { player, npc -> meleeCombat.attackFromAfar(player, npc) },
+    )
 
     /** Players fighting NPCs; see [MeleeCombat]. */
     val meleeCombat: MeleeCombat = MeleeCombat(
@@ -178,6 +186,14 @@ class World(
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
         onDeath = { deaths.die(it) },
         loot = ::dropLoot,
+        ranged = { player, npc -> rangedCombat.fight(player, npc) },
+    )
+
+    /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
+    val rangedCombat: RangedCombat = RangedCombat(
+        npcs, collision, movement, combat, objTypes, rangedWeapons, meleeCombat, random, { tick },
+        projectile = zones::projectile, dropAmmo = ::dropAmmo,
+        face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
     )
 
     /** Player death and gravestones; see [Deaths]. */
@@ -384,6 +400,8 @@ class World(
         readInput(ticking = true)
         phase = TickPhase.NPCS
         npcInteractions.releaseNpcs()
+        // Shots land before NPCs fight, as melee hits from the last tick are already in; a shot NPC strikes from the next.
+        rangedCombat.process()
         meleeCombat.process()
         deaths.process()
         npcs.process()
@@ -988,6 +1006,19 @@ class World(
             } else {
                 groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, GroundObjs.LOOT_DESPAWN_TICKS)
             }
+        }
+    }
+
+    /**
+     * Puts a fired arrow or bolt down under its target for [owner] alone for [GroundObjs.DROP_PRIVATE_TICKS], gone after
+     * [GroundObjs.DROP_DESPAWN_TICKS]; everyone's from the start when they have left. Guessed: the Wiki gives no timers
+     * for fired ammunition, so these are a drop's.
+     */
+    private fun dropAmmo(type: ObjType, x: Int, z: Int, level: Int, owner: Player) {
+        if (owner.loggedOut) {
+            groundObjs.addPublic(type, 1, x, z, level, GroundObjs.DROP_DESPAWN_TICKS)
+        } else {
+            groundObjs.addPrivate(type, 1, x, z, level, owner.saveKey, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
         }
     }
 

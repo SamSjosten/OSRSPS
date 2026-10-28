@@ -30,9 +30,11 @@ import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.SeqNames
+import osrsps.game.SpotanimNames
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
+import osrsps.game.combat.RangedWeapons
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
@@ -78,6 +80,7 @@ class GameServer(
         val chatFont: ChatFont
         val attackStyles: AttackStyles
         val seqNames: SeqNames
+        val spotanimNames: SpotanimNames
         try {
             js5 = Js5Store.load(library)
             map = MapCollisionLoader.loadWorld(library)
@@ -89,6 +92,7 @@ class GameServer(
             chatFont = FontLoader.loadDialogueFont(library)
             attackStyles = CombatLoader.attackStyles(library)
             seqNames = CombatLoader.seqNames(library)
+            spotanimNames = CombatLoader.spotanimNames(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
             val huffmanData = library.data(HUFFMAN_ARCHIVE, "huffman", 0) ?: error("No huffman group in the cache")
             huffman = HuffmanCodec.create(Unpooled.wrappedBuffer(huffmanData))
@@ -122,6 +126,8 @@ class GameServer(
         logger.info { "Loaded the combat of ${npcCombat.size} NPC types" }
         val npcDrops = NpcDrops.load(npcTypes, objTypes)
         logger.info { "Loaded the drops of ${npcDrops.size} NPC types" }
+        val rangedWeapons = RangedWeapons.load(objTypes, seqNames, spotanimNames)
+        logger.info { "Loaded ${rangedWeapons.weaponCount} bows and crossbows and ${rangedWeapons.ammoCount} kinds of ammunition" }
         val scenarios = Scenarios.load()
         for (name in scenarios.names) {
             // Checked again when started; warned about here so a bad item name shows in the deploy log.
@@ -136,7 +142,7 @@ class GameServer(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir),
             Accounts(FileSaveStore(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
-            attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops,
+            attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)

@@ -1,0 +1,28 @@
+{
+ "name": "Ranged: wield a shortbow and bronze arrows, shoot a castle man from range, run the quiver dry, and wrong ammo",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::item shortbow", "expectMessage": "Added 1 x Shortbow"},
+  {"step": "itemOption", "item": "Shortbow", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "item": "Shortbow"},
+  {"step": "command", "text": "::item bronze arrow 3", "expectMessage": "Added 3 x Bronze arrow"},
+  {"step": "itemOption", "item": "Bronze arrow", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "ammo", "item": "Bronze arrow"},
+  {"step": "command", "text": "::combat man", "expectMessage": "Accurate (accurate, ranged standard), speed 4", "comment": "the nearest man"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000, "comment": "the nearest man; in range and in sight there is no walk"},
+  {"step": "assertAnimation", "id": 426, "timeoutMs": 20000, "comment": "human_bow on the first shot"},
+  {"step": "assertHitsplat", "npc": "Man", "timeoutMs": 20000, "comment": "a hit or a miss (0), two or three ticks after the shot"},
+  {"step": "command", "text": "::fight", "expectMessage": "You are fighting Man #"},
+  {"step": "assertMessage", "contains": "There is no ammo left in your quiver.", "timeoutMs": 30000, "comment": "three arrows, one every 4 ticks, then the empty quiver"},
+  {"step": "assertEquipment", "slot": "ammo", "empty": true},
+  {"step": "command", "text": "::item steel arrow 5", "expectMessage": "Added 5 x Steel arrow"},
+  {"step": "itemOption", "item": "Steel arrow", "option": "Wield"},
+  {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "You can't use that ammo with your bow.", "timeoutMs": 20000, "comment": "a plain shortbow fires bronze and iron arrows only; guessed wording"},
+  {"step": "assertEquipment", "slot": "ammo", "item": "Steel arrow"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

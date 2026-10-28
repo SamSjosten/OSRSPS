@@ -79,6 +79,11 @@ class NpcInteractions(
     private val clearFlag: (Player) -> Unit = { it.session.queue(SetMapFlagV2.RESET) },
     /** Takes an Attack option once the player is beside the NPC; false leaves the click to the handlers. */
     private val attack: (Player, Npc) -> Boolean = { _, _ -> false },
+    /**
+     * Takes an Attack option on the click, for a player who fights from where they are (a bow); false walks them up
+     * to the NPC first, as for any option.
+     */
+    private val attackFromAfar: (Player, Npc) -> Boolean = { _, _ -> false },
 ) {
     /**
      * The player clicked option [option] (1 to 5) of NPC [index], with sub-option [sub] (-1 for none). [invertRun] is the
@@ -91,6 +96,15 @@ class NpcInteractions(
         if (option !in 1..Handlers.MAX_OPTION || type == null || !offers(type, option, sub, player)) {
             logger.debug { "${player.username} clicked option $option (sub $sub) of $npc, which has no such option" }
             return
+        }
+        if (type.op(option) { readVar(player, it) } == ATTACK) {
+            scripts.interrupt(player)
+            npcs.leave(player, scripts::busy)
+            player.interaction = null
+            // The click's ctrl key, for the route the fight makes towards the NPC, as a route made here would keep it.
+            player.invertRun = invertRun
+            face(player, npc)
+            if (attackFromAfar(player, npc)) return
         }
         start(player, NpcInteraction(npc, option, this, sub), invertRun)
     }

@@ -564,6 +564,33 @@ distance. `::los` prints all three from where you stand.
 Check: `::los 3 0` from 3222, 3218 is clear; from 3215, 3221 `::los -4 0` goes through the castle's shut large door and
 is blocked (`test-runner/examples/los-castle.json`).
 
+## Ranged combat
+
+Bows and crossbows fire at NPCs (`game/combat/RangedCombat.kt`). Attack with a ranged style walks you only until the
+NPC is in range and in sight, then you shoot every weapon-speed ticks. Which weapons fire which ammunition, their ranges
+and graphics are in `src/main/resources/ranged-weapons.json` (items, animations and spotanims by gameval name; every
+name there is in both 241 caches). `::combat` shows your ranged numbers with a bow; `::fight` covers ranged fights.
+Not in yet: thrown weapons, crystal bows, the twisted bow, the dragon hunter crossbow, ballistas, enchanted bolts, Ava's
+devices and special attacks.
+
+| Ranged behaviour | Source |
+|------------------|--------|
+| Ranges: shortbows and crossbows 7, longbows and the dark bow 10, Armadyl and zaryte crossbows 8; longrange +2 up to 10 | Wiki, Attack range |
+| Each weapon fires its own tier and lower ("up to and including iron bolts") | Wiki, each weapon's page |
+| Attack roll (Ranged + 3 on accurate + 8) × (ranged attack + 64); max hit ((Ranged + 3 on accurate + 8) × (ranged strength + 64) + 320) / 640 | Wiki, Ranged and Damage per second/Ranged |
+| The NPC defends with its light, standard or heavy bonus, as the style's tooltip names it (bows standard, crossbows heavy) | Wiki; 241 cache dbtable 78 |
+| Rapid fires a tick sooner; longrange gives 2 XP a point to Ranged and Defence each, the others 4 to Ranged; Hitpoints 1.33 | Wiki, Ranged and Combat |
+| XP is given as the shot is fired; the hit lands 1 + (3 + d) / 6 ticks later, plus one on an NPC | Wiki, Hit delay |
+| One ammunition a shot, two for the dark bow (one when one is left); 1 in 5 breaks, the rest falls to the floor | Wiki, Ava's accumulator (20% broken without a device) and Dark bow |
+| "There is no ammo left in your quiver." | Wiki, Ammunition |
+| Fired ammunition lands under the NPC, yours for 100 ticks and gone after 300, as a drop | guessed |
+| "You can't use that ammo with your bow." / "... crossbow." | guessed wording |
+| Projectile heights, start, arc and the second dark bow arrow leaving 10 cycles later; the crossbow animation (xbows_human_fire_and_reload_pvn) | guessed |
+| No or wrong ammunition ends the fight when you would fire, not on the click | guessed |
+
+Check: `./gradlew test --tests 'osrsps.game.combat.Ranged*' --tests 'osrsps.testclient.HeadlessRangedTest'`, and in
+RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
+
 ## Animations, spotanims and sounds
 
 Content plays these on a player with `Player.anim`, `Player.spotanim`, `Player.sound` and `Player.jingle`

@@ -3,9 +3,12 @@ package osrsps.game.command
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.combat.AttackStance
+import osrsps.game.combat.CombatMath
 import osrsps.game.combat.DropItem
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
+import osrsps.game.combat.RangedInteraction
 import osrsps.game.npc.Npc
 import java.util.Locale
 import kotlin.math.abs
@@ -21,7 +24,18 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         val target = target(world, player, args, "::combat")
         val type = target.type
         val style = combat.style(player)
-        if (combat.meleeType(style) == null) fail("${style.name} is a ${style.type.name.lowercase()} style; only melee is in so far")
+        combat.npcCombat[type] ?: fail("${type.name} #${target.index} can't be fought")
+        val ranged = combat.rangedMatchup(player, target)
+        if (ranged != null) {
+            val weight = style.weight?.name?.lowercase() ?: "standard"
+            val it = combat.npcAttack(target, player)!!
+            val speed = combat.attackSpeed(player) - if (style.stance == AttackStance.RAPID) 1 else 0
+            reply("${style.name} (${style.stance.name.lowercase()}, ranged $weight), speed $speed: attack roll ${ranged.attackRoll}, max hit ${ranged.maxHit}")
+            reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${type.stats.hitpoints} hp): defence roll ${ranged.defenceRoll}, you hit ${percent(ranged.hitChance)}")
+            reply("It: attack roll ${it.attackRoll} vs your ${it.defenceRoll}, hits ${percent(CombatMath.hitChance(it.attackRoll, it.defenceRoll))}, max hit ${it.maxHit}")
+            return@register
+        }
+        if (combat.meleeType(style) == null) fail("${style.name} is a ${style.type.name.lowercase()} style; only melee and ranged are in so far")
         val m = combat.matchup(player, target) ?: fail("${type.name} #${target.index} can't be fought")
         val stance = style.stance.name.lowercase()
         val attackType = style.type.name.lowercase()
@@ -31,8 +45,11 @@ fun CommandRegistry.registerCombatCommands(world: World) {
     }
 
     register("fight", "::fight") {
-        val fight = player.interaction as? MeleeInteraction ?: fail("You are not fighting anything.")
-        val npc = fight.npc
+        val npc = when (val fight = player.interaction) {
+            is MeleeInteraction -> fight.npc
+            is RangedInteraction -> fight.npc
+            else -> fail("You are not fighting anything.")
+        }
         val wait = (player.nextAttackTick - world.tick).coerceAtLeast(0)
         reply("You are fighting ${npc.type.name} #${npc.index} (${npc.hitpoints}/${npc.type.stats.hitpoints} hp); next swing in $wait tick${if (wait == 1L) "" else "s"}.")
     }

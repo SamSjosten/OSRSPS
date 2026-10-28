@@ -21,10 +21,16 @@ data class MeleeMatchup(
     val npcHitChance: Double,
 )
 
+/** A player's ranged numbers against one NPC with the ammunition they have; see [Combat.rangedMatchup]. */
+data class RangedMatchup(val style: AttackStyle, val attackRoll: Int, val defenceRoll: Int, val maxHit: Int, val hitChance: Double)
+
 /** What an NPC rolls against a player: its attack roll, the player's defence roll against its attack type, its max hit. */
 data class NpcAttack(val attackRoll: Int, val defenceRoll: Int, val maxHit: Int)
 
-/** Melee combat between players and NPCs: the numbers ([matchup], [npcAttack]); the fighting is [MeleeCombat]. */
+/**
+ * Combat between players and NPCs: the numbers ([matchup], [rangedMatchup], [npcAttack]); the fighting is [MeleeCombat]
+ * and [RangedCombat].
+ */
 class Combat(
     private val equipment: Equipment,
     val attackStyles: AttackStyles,
@@ -87,6 +93,29 @@ class Combat(
             playerDefenceRoll = playerDefenceRoll,
             npcMaxHit = def.maxHit,
             npcHitChance = CombatMath.hitChance(npcAttackRoll, playerDefenceRoll),
+        )
+    }
+
+    /**
+     * The player's ranged numbers against [npc], or null when it has no combat definition or the player's style isn't
+     * ranged. Everything worn counts, the ammunition's ranged strength included (OSRS Wiki, Ranged): the weapons here
+     * all fire what is in the ammo slot, and [RangedCombat] won't fire ammunition the weapon can't use. The NPC defends
+     * with its bonus for the style's weight (light, standard or heavy).
+     */
+    fun rangedMatchup(player: Player, npc: Npc): RangedMatchup? {
+        val def = npcCombat[npc.type] ?: return null
+        val style = style(player)
+        if (style.type != AttackType.RANGED) return null
+        val bonuses = bonuses(player)
+        val ranged = player.skills.currentLevel(Skill.RANGED)
+        val attackRoll = CombatMath.playerRangedAttackRoll(ranged, style.stance, bonuses.rangedAttack)
+        val defenceRoll = CombatMath.npcDefenceRoll(npc.type.stats.defence, def.defence.against(AttackType.RANGED, style.weight))
+        return RangedMatchup(
+            style = style,
+            attackRoll = attackRoll,
+            defenceRoll = defenceRoll,
+            maxHit = CombatMath.playerRangedMaxHit(ranged, style.stance, bonuses.rangedStrength),
+            hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
     }
 
