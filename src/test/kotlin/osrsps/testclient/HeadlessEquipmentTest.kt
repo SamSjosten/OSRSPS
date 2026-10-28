@@ -49,21 +49,29 @@ class HeadlessEquipmentTest {
     private fun HeadlessClient.awaitText(component: Int, text: String) =
         await("\"$text\" on the stats screen") { text(STATS, component)?.takeIf { it == text } }
 
+    /** Waits for the combat tab's weapon name and category line, which the server sets as IF_SETTEXT. */
+    private fun HeadlessClient.awaitCombatTab(title: String, category: String) {
+        await("\"$title\" on the combat tab") { text(COMBAT, COMBAT_TITLE)?.takeIf { it == title } }
+        await("\"$category\" on the combat tab") { text(COMBAT, COMBAT_CATEGORY)?.takeIf { it == category } }
+    }
+
     private fun HeadlessClient.worn(wearpos: Int): Int? = inventory(WORN).getOrNull(wearpos)?.id
 
     private fun HeadlessClient.awaitWorn(wearpos: Int, id: Int?) =
         await("${id ?: "nothing"} in worn slot $wearpos") { if (worn(wearpos) == id) Unit else null }
 
     @Test
-    fun `Wield puts the axe in the weapon slot, the combat tab gets its category and the stats screen its bonuses`(@TempDir dir: Path) {
+    fun `Wield puts the axe in the weapon slot, the combat tab gets its name and category and the stats screen its bonuses`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
+                client.awaitCombatTab("Unarmed", "Category: Unarmed")
                 client.command("item $AXE")
                 client.itemOp(AXE, WIELD)
                 client.awaitWorn(WearPos.WEAPON, AXE)
                 client.await("the axe out of the backpack") { if (client.inventory(BACKPACK).none { it?.id == AXE }) Unit else null }
                 client.await("the axe category") { if (client.varp(VARP_WEAPON_CATEGORY) and 0x3F == AXE_CATEGORY) Unit else null }
+                client.awaitCombatTab("Bronze axe", "Category: Axe")
 
                 client.ifButton(WORNITEMS, WORNITEMS_VIEW_STATS, 1)
                 client.awaitText(SLASH_ATT, "Slash: +4")
@@ -75,6 +83,7 @@ class HeadlessEquipmentTest {
                 client.awaitWorn(WearPos.WEAPON, null)
                 client.await("the axe back in the backpack") { client.inventory(BACKPACK).firstOrNull { it?.id == AXE } }
                 client.await("unarmed again") { if (client.varp(VARP_WEAPON_CATEGORY) and 0x3F == 0) Unit else null }
+                client.awaitCombatTab("Unarmed", "Category: Unarmed")
             }
         }
     }
@@ -164,6 +173,9 @@ class HeadlessEquipmentTest {
         const val STAB_DEF = EquipmentTab.STAB_DEF
         const val MELEE_STRENGTH = EquipmentTab.MELEE_STRENGTH
         const val SPEED_BASE = EquipmentTab.SPEED_BASE
+        const val COMBAT = EquipmentTab.COMBAT
+        const val COMBAT_TITLE = EquipmentTab.COMBAT_TITLE
+        const val COMBAT_CATEGORY = EquipmentTab.COMBAT_CATEGORY
 
         const val VARBIT_WEAPON_CATEGORY = 357
         const val VARP_WEAPON_CATEGORY = 843
