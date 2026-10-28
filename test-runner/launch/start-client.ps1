@@ -154,9 +154,13 @@ else
 			Start-Sleep -Seconds 1
 		}
 		$left = @((Get-ClientJvms).RuneLite)
-		if ($left.Count -gt 0)
+		foreach ($p in $left)
 		{
-			Step "RuneLite (pid $($left.ProcessId -join ', ')) did not close its window in $CloseSeconds s (its Exit warning popup?); killing it"
+			# CloseMainWindow finds windows only on this session's desktop: run from another session (ssh, a service),
+			# it finds none.
+			$why = if ($asked -contains $p.ProcessId) { "did not close in $CloseSeconds s (its Exit warning popup?)" }
+				else { 'has no window on this desktop to close' }
+			Step "RuneLite (pid $($p.ProcessId)) $why; killing it"
 		}
 		Reset-Deadline
 		foreach ($p in @((Get-ClientJvms).RSProx) + $left) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
