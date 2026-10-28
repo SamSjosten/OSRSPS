@@ -7,10 +7,16 @@ services:
   osrsps:
     build: .
     restart: unless-stopped
+    # The image build for the next deploy runs next to this container on a VM that can be ballooned down to 2 GB. If
+    # memory runs out anyway, the kernel kills something else first (the build fails and the deploy is retried with the
+    # next commit) rather than the live server.
+    oom_score_adj: -500
     ports:
       - "43594:43594"
       - "43595:43595"
     environment:
+      # The heap the server had by default when VM 214 was at 2 GB, fixed so it can't grow while the VM shrinks.
+      JAVA_OPTS: -Xmx512m
       # The address RuneLite reaches us on: the Proxmox host forwards both ports to this VM.
       # Only a fallback since the client files answer with whatever host the client asked by (odinsgate.net or this).
       OSRSPS_PUBLIC_HOST: 192.168.0.210
