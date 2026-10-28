@@ -137,6 +137,26 @@ class BlowpipeTest {
     }
 
     @Test
+    fun `darts loaded into the empty blowpipe come back when it is dismantled, and a full inventory stops it`() {
+        alice.inventory.add(empty, 1)
+        alice.inventory.add(dragonDart, 40)
+        use(dragonDart.id, Blowpipe.EMPTY)
+        assertEquals(40, alice.charges[Blowpipe.DARTS])
+        // The blowpipe's slot takes the scales, but the darts would need another.
+        val filler = ObjType(4151, "Abyssal whip", internalName = "abyssal_whip")
+        while (alice.inventory.freeSlots > 0) alice.inventory.add(filler, 1)
+        option(Blowpipe.EMPTY, 3)
+        assertEquals(Blowpipe.NO_ROOM, messages.last())
+        assertEquals(1L, alice.inventory.count(Blowpipe.EMPTY))
+        alice.inventory.remove(slotOf(filler.id))
+        option(Blowpipe.EMPTY, 3)
+        assertEquals(0L, alice.inventory.count(Blowpipe.EMPTY))
+        assertEquals(Blowpipe.DISMANTLE_SCALES.toLong(), alice.inventory.count(Blowpipe.SCALE))
+        assertEquals(40L, alice.inventory.count(dragonDart.id))
+        assertTrue(alice.charges.contents().isEmpty(), alice.charges.contents().toString())
+    }
+
+    @Test
     fun `a shot takes a dart and two scales in three, and the last scale leaves the worn blowpipe empty`() {
         alice.equipment[WearPos.WEAPON] = InvObj(Blowpipe.LOADED, 1)
         alice.charges[Blowpipe.DART_TYPE] = dragonDart.id

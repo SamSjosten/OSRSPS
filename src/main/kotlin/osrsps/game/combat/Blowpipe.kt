@@ -153,20 +153,26 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
         }
     }
 
+    /** The empty blowpipe into its scales, and any darts loaded into it back too (guessed), only when all of them fit. */
     private fun dismantle(player: Player, slot: Int, message: (Player, String) -> Unit) {
         val scale = objTypes[SCALE] ?: return
         if (player.inventory[slot]?.id != EMPTY) return
-        val stack = player.inventory.contents().firstOrNull { it.second.id == SCALE }
-        if (stack != null && stack.second.count.toLong() + DISMANTLE_SCALES > Inventory.MAX_STACK) {
+        val dart = dart(player)
+        // The blowpipe's own slot is free once it is gone.
+        if (!fits(player, listOfNotNull(scale to DISMANTLE_SCALES, dart?.let { it to player.charges[DARTS] }), freed = 1)) {
             message(player, NO_ROOM)
             return
         }
         player.inventory[slot] = null
         player.inventory.add(scale, DISMANTLE_SCALES)
+        if (dart != null) takeDarts(player, player.inventory.add(dart, player.charges[DARTS]))
     }
 
-    /** Whether all of [items] go in at once: onto their stacks without passing [Inventory.MAX_STACK], else a free slot each. */
-    private fun fits(player: Player, items: List<Pair<ObjType, Int>>): Boolean {
+    /**
+     * Whether all of [items] go in at once: onto their stacks without passing [Inventory.MAX_STACK], else a free slot
+     * each, with [freed] more slots free than now.
+     */
+    private fun fits(player: Player, items: List<Pair<ObjType, Int>>, freed: Int = 0): Boolean {
         var slots = 0
         for ((type, count) in items) {
             val stack = player.inventory.contents().firstOrNull { it.second.id == type.id }?.second
@@ -176,7 +182,7 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
                 stack.count.toLong() + count > Inventory.MAX_STACK -> return false
             }
         }
-        return player.inventory.freeSlots >= slots
+        return player.inventory.freeSlots + freed >= slots
     }
 
     private fun takeDarts(player: Player, count: Int) {
