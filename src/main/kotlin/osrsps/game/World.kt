@@ -47,6 +47,7 @@ import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.NpcDrops
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
@@ -117,6 +118,8 @@ class World(
     attackStyles: AttackStyles = AttackStyles.DEFAULT,
     /** What each NPC fights with; an NPC with none can't be attacked. */
     npcCombat: NpcCombat = NpcCombat.NONE,
+    /** What each NPC drops when it dies; see [NpcDrops]. */
+    val npcDrops: NpcDrops = NpcDrops.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -173,6 +176,7 @@ class World(
         players = { players.asSequence().filterNotNull() },
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
         respawn = { teleport(it, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) },
+        loot = ::dropLoot,
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -940,6 +944,23 @@ class World(
             npc.avatar = network.npcAvatarFactory.alloc(npc.index, spawn.type.id, npc.level, npc.x, npc.z, direction = spawn.direction.id)
         }
         return npc
+    }
+
+    /**
+     * Rolls [npc]'s drops and puts them on its tile: the killer's alone for [GroundObjs.DROP_PRIVATE_TICKS], then
+     * everyone's, gone after [GroundObjs.LOOT_DESPAWN_TICKS] (OSRS Wiki, Drop). With no killer, or one who has left,
+     * they are everyone's from the start (guessed).
+     */
+    fun dropLoot(npc: Npc, killer: Player?) {
+        val def = npcDrops[npc.type] ?: return
+        val owner = killer?.takeIf { !it.loggedOut }?.saveKey
+        for (drop in def.roll(random)) {
+            if (owner != null) {
+                groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
+            } else {
+                groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, GroundObjs.LOOT_DESPAWN_TICKS)
+            }
+        }
     }
 
     fun removeNpc(npc: Npc) {

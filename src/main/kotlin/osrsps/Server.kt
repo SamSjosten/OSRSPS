@@ -32,6 +32,7 @@ import osrsps.game.World
 import osrsps.game.SeqNames
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.NpcDrops
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
@@ -114,6 +115,8 @@ class GameServer(
         logger.info { "Loaded ${npcSpawns.size} NPC spawns" }
         val npcCombat = NpcCombat.load(npcTypes, seqNames)
         logger.info { "Loaded the combat of ${npcCombat.size} NPC types" }
+        val npcDrops = NpcDrops.load(npcTypes, objTypes)
+        logger.info { "Loaded the drops of ${npcDrops.size} NPC types" }
         val scenarios = Scenarios.load()
         for (name in scenarios.names) {
             // Checked again when started; warned about here so a bad item name shows in the deploy log.
@@ -128,7 +131,7 @@ class GameServer(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir),
             Accounts(FileSaveStore(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
-            attackStyles = attackStyles, npcCombat = npcCombat,
+            attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)

@@ -1,0 +1,116 @@
+{
+  "about": "What NPCs drop when they die, as the OSRS Wiki lists it (read 2026-10-28): every always item, one roll on the main table (a line's weight out of the slots, as in 3/128), then each tertiary drop on its own. The world counts as a members world, so members-only lines are in and the free-to-play-only ones (Coins x10 23/128, Nothing 30/128) are out. Items are ids with their cache names beside them; the loader warns when a name doesn't match. Clue scrolls drop as plain items until clues are their own piece.",
+  "tables": {
+    "herbs": {
+      "slots": 128,
+      "lines": [
+        {"item": 199, "name": "Grimy guam leaf", "weight": 32},
+        {"item": 201, "name": "Grimy marrentill", "weight": 24},
+        {"item": 203, "name": "Grimy tarromin", "weight": 18},
+        {"item": 205, "name": "Grimy harralander", "weight": 14},
+        {"item": 207, "name": "Grimy ranarr weed", "weight": 11},
+        {"item": 209, "name": "Grimy irit leaf", "weight": 8},
+        {"item": 211, "name": "Grimy avantoe", "weight": 6},
+        {"item": 213, "name": "Grimy kwuarm", "weight": 5},
+        {"item": 215, "name": "Grimy cadantine", "weight": 4},
+        {"item": 2485, "name": "Grimy lantadyme", "weight": 3},
+        {"item": 217, "name": "Grimy dwarf weed", "weight": 3}
+      ],
+      "source": "OSRS Wiki, Herb drop table: the Man page's 1/22.3 for guam is 23/128 of the table times 32/128 of this, and so on down"
+    }
+  },
+  "npcs": [
+    {
+      "npcs": ["man", "man2", "man3", "man4", "woman", "woman2", "woman3"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 1139, "name": "Bronze med helm", "weight": 2},
+          {"item": 1203, "name": "Iron dagger", "weight": 1},
+          {"item": 877, "name": "Bronze bolts", "min": 2, "max": 12, "weight": 22},
+          {"item": 882, "name": "Bronze arrow", "count": 7, "weight": 3},
+          {"item": 557, "name": "Earth rune", "count": 4, "weight": 2},
+          {"item": 554, "name": "Fire rune", "count": 6, "weight": 2},
+          {"item": 558, "name": "Mind rune", "count": 9, "weight": 2},
+          {"item": 562, "name": "Chaos rune", "count": 2, "weight": 1},
+          {"table": "herbs", "weight": 23},
+          {"item": 995, "name": "Coins", "count": 3, "weight": 38},
+          {"item": 995, "name": "Coins", "count": 15, "weight": 4},
+          {"item": 995, "name": "Coins", "count": 25, "weight": 1},
+          {"item": 3010, "name": "Energy potion(3)", "weight": 9},
+          {"nothing": true, "weight": 8},
+          {"item": 313, "name": "Fishing bait", "weight": 5},
+          {"item": 436, "name": "Copper ore", "weight": 2},
+          {"item": 1440, "name": "Earth talisman", "weight": 2},
+          {"item": 1965, "name": "Cabbage", "weight": 1}
+        ]
+      },
+      "tertiary": [
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"},
+        {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}
+      ],
+      "source": "OSRS Wiki, Man and Woman (the same table; the Wilderness looting bag and the clue-step key are left out)"
+    },
+    {
+      "npcs": ["imp"],
+      "always": [{"item": 25766, "name": "Fiendish ashes"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 1474, "name": "Black bead", "weight": 5},
+          {"item": 1470, "name": "Red bead", "weight": 5},
+          {"item": 1476, "name": "White bead", "weight": 5},
+          {"item": 1472, "name": "Yellow bead", "weight": 5},
+          {"item": 877, "name": "Bronze bolts", "weight": 8},
+          {"item": 579, "name": "Blue wizard hat", "weight": 8},
+          {"item": 1944, "name": "Egg", "weight": 5},
+          {"item": 2138, "name": "Raw chicken", "weight": 5},
+          {"item": 2311, "name": "Burnt bread", "weight": 4},
+          {"item": 2146, "name": "Burnt meat", "weight": 4},
+          {"item": 1965, "name": "Cabbage", "weight": 2},
+          {"item": 2307, "name": "Bread dough", "weight": 2},
+          {"item": 2309, "name": "Bread", "weight": 1},
+          {"item": 2142, "name": "Cooked meat", "weight": 1},
+          {"item": 2347, "name": "Hammer", "weight": 8},
+          {"item": 590, "name": "Tinderbox", "weight": 5},
+          {"item": 1735, "name": "Shears", "weight": 4},
+          {"item": 1925, "name": "Bucket", "weight": 4},
+          {"item": 1929, "name": "Bucket of water", "weight": 2},
+          {"item": 1935, "name": "Jug", "weight": 2},
+          {"item": 1937, "name": "Jug of water", "weight": 2},
+          {"item": 1931, "name": "Pot", "weight": 2},
+          {"item": 1933, "name": "Pot of flour", "weight": 2},
+          {"item": 1759, "name": "Ball of wool", "weight": 8},
+          {"item": 1448, "name": "Mind talisman", "weight": 7},
+          {"item": 592, "name": "Ashes", "weight": 6},
+          {"item": 434, "name": "Clay", "weight": 4},
+          {"item": 753, "name": "Cadava berries", "weight": 4},
+          {"item": 1947, "name": "Grain", "weight": 3},
+          {"item": 1949, "name": "Chef's hat", "weight": 2},
+          {"item": 956, "name": "Flyer", "weight": 2},
+          {"item": 195, "name": "Potion", "weight": 1}
+        ]
+      },
+      "tertiary": [
+        {"item": 13453, "name": "Ensouled imp head", "chance": "1/25"},
+        {"item": 6803, "name": "Imp champion scroll", "chance": "1/5000"}
+      ],
+      "source": "OSRS Wiki, Imp (the Wilderness looting bag and ecumenical key are left out)"
+    },
+    {
+      "npcs": ["cow", "cow2", "cow3", "cow2_calf", "cow3_calf", "calf"],
+      "always": [
+        {"item": 1739, "name": "Cowhide"},
+        {"item": 2132, "name": "Raw beef"},
+        {"item": 526, "name": "Bones"}
+      ],
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Cow and Cow calf"
+    },
+    {
+      "npcs": ["rat"],
+      "source": "OSRS Wiki, Rat: no drops outside quests, the Wilderness and the Stronghold of Security"
+    }
+  ]
+}

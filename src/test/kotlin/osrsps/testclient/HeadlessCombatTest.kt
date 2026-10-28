@@ -11,7 +11,9 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
 import osrsps.game.World
+import osrsps.game.combat.DropTestItems
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.NpcDrops
 import osrsps.game.npc.NpcSpawn
 import osrsps.map.CollisionMap
 
@@ -21,10 +23,11 @@ class HeadlessCombatTest {
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val types = NpcTypes.of(man)
+        val objTypes = DropTestItems.objTypes()
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), npcTypes = types,
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
             npcSpawns = listOf(NpcSpawn(man, 3224, 3218, source = "test")), npcCombat = NpcCombat.load(types, SeqNames.NONE),
-            cycleMillis = millis,
+            npcDrops = NpcDrops.load(types, objTypes), cycleMillis = millis,
         )
     }
 
@@ -105,9 +108,36 @@ class HeadlessCombatTest {
         }
     }
 
+    @Test
+    fun `a killed man drops his bones for his killer alone, who takes them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
+                client.await("the login rebuild") { client.position }
+                assertEquals("Man always drops: Bones", client.commandReply("drops man") { it.startsWith("Man always") })
+                client.seen("Also: Clue scroll (beginner) 1/90, Clue scroll (easy) 1/128")
+                assertEquals("Killed Man #${npc.index}.", client.commandReply("kill man") { it.startsWith("Killed") })
+                // The drops show as the body goes, four ticks on: the bones always, the rest as the dice fall.
+                val bones = client.await("the bones on the floor", timeoutMillis = 10_000) { client.groundObjs().firstOrNull { it.id == BONES } }
+                assertEquals(1, bones.count)
+                server.login("erin").use { other ->
+                    other.await("the login rebuild") { other.position }
+                    other.awaitTicks(2)
+                    assertTrue(other.groundObjs().none { it.id == BONES }, "the bones are the killer's for a minute")
+                }
+                client.objOp(BONES, bones.coord.x, bones.coord.z, TAKE)
+                client.await("the bones in the backpack", timeoutMillis = 10_000) { client.inventory(BACKPACK).firstOrNull { it?.id == BONES } }
+                client.await("the bones off the floor") { if (client.groundObjs().none { it.id == BONES }) Unit else null }
+            }
+        }
+    }
+
     companion object {
         /** Skill ids as the stat packet carries them. */
         private const val ATTACK = 0
         private const val HITPOINTS = 3
+        private const val BONES = 526
+        private const val BACKPACK = 93
+        private const val TAKE = 3
     }
 }

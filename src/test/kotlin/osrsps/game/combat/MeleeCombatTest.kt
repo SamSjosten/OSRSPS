@@ -69,6 +69,7 @@ class MeleeCombatTest {
     private val removed = mutableListOf<Npc>()
     private val respawned = mutableListOf<NpcSpawn>()
     private val respawnedPlayers = mutableListOf<Player>()
+    private val looted = mutableListOf<Pair<Npc, Player?>>()
     private val combat = Combat(Equipment(ObjTypes.of(shortbow)), styles, npcCombat)
     private lateinit var melee: MeleeCombat
     private val interactions = NpcInteractions(
@@ -89,6 +90,7 @@ class MeleeCombatTest {
             players = { sequenceOf(alice, bob) },
             face = { player, npc -> faced += player to npc }, stopFacing = { player -> faced += player to null },
             respawn = { respawnedPlayers += it },
+            loot = { npc, killer -> looted += npc to killer },
         )
     }
 
@@ -225,9 +227,13 @@ class MeleeCombatTest {
         // The fight is over for Alice; her next click on it finds nothing.
         assertNull(alice.interaction)
         assertEquals(1, melee.respawning)
-        repeat(3) { tick() }
+        repeat(2) { tick() }
+        assertTrue(looted.isEmpty())
+        tick()
         assertEquals(listOf(npc), removed)
         assertNull(npcs[npc.index])
+        // The drops go down for the killer as the body goes.
+        assertEquals(listOf<Pair<Npc, Player?>>(npc to alice), looted)
         assertTrue(respawned.isEmpty())
         repeat(20) { tick() }
         assertTrue(respawned.isEmpty())
@@ -240,12 +246,14 @@ class MeleeCombatTest {
     fun `a respawn shorter than the death waits for the body to go`() {
         val npc = spawn(rat)
         tick = 10
-        melee.hit(npc, alice, 100, tick)
+        // Killed by nobody, as ::hit with no player would: the drops are everyone's.
+        melee.hit(npc, null, 100, tick)
         repeat(3) { tick() }
         assertTrue(removed.isEmpty())
         assertTrue(respawned.isEmpty())
         tick()
         assertEquals(listOf(npc), removed)
+        assertEquals(listOf<Pair<Npc, Player?>>(npc to null), looted)
         assertEquals(listOf(npc.spawn), respawned)
         assertEquals(0, melee.respawning)
     }
