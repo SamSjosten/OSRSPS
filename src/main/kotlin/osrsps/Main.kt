@@ -9,6 +9,7 @@ import osrsps.cache.OpenRs2Archive
 import osrsps.game.command.Admins
 import osrsps.game.content.DialogueLines
 import osrsps.game.dialogue.DialogueFile
+import osrsps.net.ClientConfig
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.exitProcess
@@ -60,7 +61,9 @@ private fun serve(port: Int) {
     val seed = System.getenv("OSRSPS_SEED")?.let { it.toLongOrNull() ?: error("OSRSPS_SEED must be a whole number, was '$it'") }
     // Names, comma separated, who may run the commands that change the world for everyone; unset, everyone may.
     val admins = Admins.parse(System.getenv("OSRSPS_ADMINS"))
-    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins)
+    // The git commit deploy/auto-deploy.sh built this from, served at /version so scripts can wait for a deploy.
+    val version = System.getenv("OSRSPS_COMMIT")?.takeIf { it.isNotBlank() } ?: ClientConfig.UNKNOWN_VERSION
+    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins, version)
     server.start()
     Runtime.getRuntime().addShutdownHook(Thread(server::stop))
 }

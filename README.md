@@ -63,6 +63,9 @@ docker compose logs -f         # follow the log
 docker compose down            # stop
 ```
 
+After the one-time setup in [`deploy/`](deploy/README.md), the VM redeploys itself: a timer checks `main` every
+minute and rebuilds when it moved, and `http://<public host>:43595/version` says which commit is up.
+
 ## Connect RuneLite through RSProx
 
 The server also hosts the launcher files on the HTTP port (game port + 1): `jav_config.ws` and `world_list.ws`,

@@ -56,9 +56,11 @@ class GameServer(
     private val seed: Long? = null,
     /** Who may run the world-changing commands; see [Admins]. */
     private val admins: Admins = Admins.EVERYONE,
+    /** The git commit this server was built from, served at /version; see [ClientConfig]. */
+    version: String = ClientConfig.UNKNOWN_VERSION,
 ) {
     private lateinit var world: World
-    private val clientConfig = ClientConfig(publicHost, httpPort, gamePort = port)
+    private val clientConfig = ClientConfig(publicHost, httpPort, gamePort = port, version = version)
     private lateinit var factory: NetworkFactory
     private lateinit var network: NetworkService<Player>
 
