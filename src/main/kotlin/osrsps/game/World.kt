@@ -208,7 +208,7 @@ class World(
         registerSkillCommands()
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
-        registerZoneCommands(this@World)
+        registerZoneCommands(this@World, collision)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
         registerGroundObjCommands(this@World)

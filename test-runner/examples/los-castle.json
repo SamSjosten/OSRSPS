@@ -1,0 +1,12 @@
+{
+ "name": "Line of sight: open across the courtyard, blocked by the castle's large doors",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0"},
+  {"step": "command", "text": "::los 3 0", "expectMessage": "3225, 3218: distance 3, line of sight clear", "comment": "open courtyard to the east"},
+  {"step": "command", "text": "::tele 3215 3221 0", "expectMessage": "Teleported to 3215, 3221, 0"},
+  {"step": "command", "text": "::los -4 0", "expectMessage": "3211, 3221: distance 4, line of sight blocked", "comment": "through the closed large door on the west side of 3213, 3221; the door must be shut"},
+  {"step": "command", "text": "::los 0 -3", "expectMessage": "3215, 3218: distance 3, line of sight clear", "comment": "along the wall outside, not through it"}
+ ]
+}

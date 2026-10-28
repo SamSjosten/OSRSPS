@@ -186,6 +186,7 @@ are claimed with a password at first login (see Accounts), so log in as each adm
 | `::seed [n]` | **admin.** Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | **admin.** Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | **admin.** Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
+| `::los npcIndex` / `::los dx dz` | Distance, line of sight and hit delays from you to an NPC or a tile (see Line of sight) |
 | `::groundobj id\|name [count]` | **admin.** Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
 | `::objspawn id\|name [count [respawn]]` | **admin.** Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
 | `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
@@ -544,6 +545,23 @@ player alone. Zone updates are sent on paused cycles too, so `::gfx` typed while
 Check with two clients logged in near each other: `::gfx 85` on one shows the graphic on both (any spotanim id works;
 85 is `failedspell_impact`, the magic splash, in the 241 cache's names). `::groundobj 1351` shows a bronze axe to both at once; walk the second client 40
 tiles away and back, or log it out and in, and the axe is still there.
+
+## Line of sight
+
+Ranged and magic attacks need the target in line of sight and within the weapon's range (OSRS Wiki, Line of sight).
+`map/LineOfSight.kt` answers both, and `game/combat/HitDelay.kt` gives the ticks from an attack to its hitsplat by
+distance. `::los` prints all three from where you stand.
+
+| Line of sight behaviour | Source |
+|-------------------------|--------|
+| Distance is Chebyshev, edge to edge | Wiki, Attack range and Hit delay |
+| A big target is seen through its closest tile | Wiki, Line of sight |
+| The line: one step at a time along the longer axis, the other axis in 16.16 fixed point from the tile's middle; a tile blocks when it has a projectile wall on the side the line comes in by, or a projectile-blocking loc | RuneLite's `WorldArea.hasLineOfSightTo` (the client's trace); inferred that the server traces the same line |
+| A big source (an NPC shooting) starts the line at its closest tile | inferred |
+| Hit delays: bows and crossbows 1 + (3 + d) / 6, thrown 1 + d / 6, magic 1 + (1 + d) / 3 | Wiki, Hit delay (magic: its "likely" formula) |
+
+Check: `::los 3 0` from 3222, 3218 is clear; from 3215, 3221 `::los -4 0` goes through the castle's shut large door and
+is blocked (`test-runner/examples/los-castle.json`).
 
 ## Animations, spotanims and sounds
 
