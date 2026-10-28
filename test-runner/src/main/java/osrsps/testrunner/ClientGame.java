@@ -748,6 +748,14 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public boolean interfaceOpen(int interfaceId)
+	{
+		Widget root = client.getWidget(interfaceId, 0);
+		return root != null && !root.isHidden();
+	}
+
+
+	@Override
 	public int skillLevel(String skill)
 	{
 		Skill s = skill(skill);

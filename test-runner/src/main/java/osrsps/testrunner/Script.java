@@ -392,6 +392,14 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "id", "npc", "comment");
 				return new Steps.AssertAnimation(timeout, npc, id);
 			}
+			case "assertInterface":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int id = f.requiredInt("interfaceId");
+				boolean absent = f.bool("absent", false);
+				f.rejectUnknown("step", "timeoutMs", "interfaceId", "absent", "comment");
+				return new Steps.AssertInterface(timeout, id, absent);
+			}
 			case "itemOption":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

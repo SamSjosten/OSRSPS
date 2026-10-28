@@ -456,6 +456,37 @@ public class RunnerTest
 	}
 
 	@Test
+	public void assertInterfaceWaitsForTheInterfaceToOpenAndThenToClose() throws Exception
+	{
+		runner.start(script(
+			"{\"step\":\"assertInterface\",\"interfaceId\":672,\"timeoutMs\":1000},"
+				+ "{\"step\":\"clickWidget\",\"interfaceId\":672,\"component\":8,\"timeoutMs\":1000},"
+				+ "{\"step\":\"assertInterface\",\"interfaceId\":672,\"absent\":true,\"timeoutMs\":1000}"), "file");
+		assertNull(cycle());
+		assertNull(cycle());
+		game.openInterfaces.add(672);
+		assertNull(cycle());
+		assertNull(cycle());
+		assertNull(cycle());
+		assertEquals(List.of("click 672:8 op 1"), game.actions);
+		game.openInterfaces.clear();
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("assert interface 672 closed", r.steps.get(2).description);
+	}
+
+	@Test
+	public void assertInterfaceTimesOutSayingTheInterfaceIsShut() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertInterface\",\"interfaceId\":672,\"timeoutMs\":40}"), "file");
+		assertNull(cycle());
+		assertNull(cycle());
+		Result r = cycle();
+		assertEquals(Result.FAIL, r.result);
+		assertTrue(r.steps.get(0).detail, r.steps.get(0).detail.contains("interface 672 is not open"));
+	}
+
+	@Test
 	public void chooseOptionFailsWhenTheOptionIsMissing() throws Exception
 	{
 		game.dialogue = new Dialogue(Dialogue.Kind.OPTIONS, "Select an option", "Select an option / Yes", List.of(new Dialogue.Option(1, "Yes")));

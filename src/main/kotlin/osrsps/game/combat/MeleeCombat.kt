@@ -54,8 +54,8 @@ class MeleeInteraction internal constructor(val npc: Npc, private val owner: Mel
  * spawn after its respawn time. Guessed and marked below: how long an NPC counts as fighting after its last hit, how
  * long its body stays, that the respawn time counts from the killing blow, that an NPC strikes back from the tick
  * after it is hit, that the Wiki's retreat ranges are also the chase ranges, and which animation wins when a swing and
- * a block land on one tick (the swing). A player with no hitpoints left is put back at the spawn with full hitpoints
- * for now; the player death step replaces that.
+ * a block land on one tick (the swing). A player with no hitpoints left dies: every fight with them ends here and
+ * [Deaths] takes it from there.
  */
 class MeleeCombat(
     private val npcs: Npcs,
@@ -73,8 +73,8 @@ class MeleeCombat(
     private val message: (Player, String) -> Unit = Player::message,
     private val face: (Player, Npc) -> Unit = { _, _ -> },
     private val stopFacing: (Player) -> Unit = {},
-    /** Puts a player with no hitpoints left back at the spawn; a stand-in until the player death step. */
-    private val respawn: (Player) -> Unit = {},
+    /** Told of a player with no hitpoints left; see [Deaths.die]. */
+    private val onDeath: (Player) -> Unit = {},
     /** Puts a dead NPC's drops on the floor for its killer (null for none) once its body has gone. */
     private val loot: (Npc, Player?) -> Unit = { _, _ -> },
 ) {
@@ -293,7 +293,7 @@ class MeleeCombat(
      * At no hitpoints they die; see the class note. Returns the damage dealt.
      */
     fun hitPlayer(player: Player, source: Npc?, damage: Int, tick: Long): Int {
-        if (player.hitpoints <= 0) return 0
+        if (player.hitpoints <= 0 || player.dead) return 0
         val dealt = if (player.god) 0 else damage.coerceIn(0, player.hitpoints)
         player.hitpoints -= dealt
         val from = source?.index ?: -1
@@ -325,15 +325,14 @@ class MeleeCombat(
         player.nextAttackTick = tick + (combat.attackSpeed(player) + 1) / 2
     }
 
-    /** Stand-in for the player death step: "Oh dear, you are dead!", every fight with them ends, and they respawn whole. */
+    /** "Oh dear, you are dead!": every fight with the player ends, and [Deaths] has them from here. */
     private fun died(player: Player) {
         message(player, DEAD)
         player.interaction = null
         stopFacing(player)
         for (npc in npcs.all) if (npc.target === player) giveUp(npc)
         player.attackedBy = null
-        player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
-        respawn(player)
+        onDeath(player)
     }
 
     /** A hitpoint back for every hurt player and NPC; OSRS Wiki, Hitpoints: one a minute. Guessed for NPCs. */

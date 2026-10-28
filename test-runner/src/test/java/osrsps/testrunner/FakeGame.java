@@ -40,6 +40,8 @@ class FakeGame implements Game
 	final Map<String, Integer> xps = new HashMap<>();
 	/** The items groundItem finds, as "name" or "name at x y". */
 	final List<String> groundItems = new ArrayList<>();
+	/** The interfaces interfaceOpen says are open. */
+	final List<Integer> openInterfaces = new ArrayList<>();
 	/** When set, itemOption, wornOption and clickWidget fail with this until cleared. */
 	String clickError;
 	/** What wornId answers by wearpos (empty when missing); null for no worn inventory yet. */
@@ -212,6 +214,13 @@ class FakeGame implements Game
 	{
 		return xps.getOrDefault(skill, -1);
 	}
+
+	@Override
+	public boolean interfaceOpen(int interfaceId)
+	{
+		return openInterfaces.contains(interfaceId);
+	}
+
 
 	@Override
 	public String groundItem(String name, int id, Tile at)

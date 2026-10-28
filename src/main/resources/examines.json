@@ -2,6 +2,7 @@
   "about": "The NPCs and locs that have an examine text, by type id. The texts are Jagex's words, so they aren't here: each gets a key in the dialogue file (examine.npc_<id>, examine.loc_<id>), which Sam fills from the Wiki (2026-10-25). wiki says where on the Wiki the text is, when not the infobox of the page named after it; also lists other ids that show as this NPC (multi-NPCs, which the client may send either way). NPCs: those spawned in npc-spawns. Locs: every named loc type in Lumbridge Castle and its cellar (the 241 cache, map squares 50,50 and 50,150).",
   "npcs": [
     {"npc": 3105, "name": "Hans"},
+    {"npc": 9856, "name": "Grave", "also": [9857], "wiki": "Gravestone page, infobox (the player's grave)"},
     {"npc": 4626, "name": "Cook", "wiki": "Cook (Lumbridge) page, infobox"},
     {"npc": 815, "name": "Duke Horacio"},
     {"npc": 3106, "name": "Man"},

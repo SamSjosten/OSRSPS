@@ -12,8 +12,8 @@ import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`,
- * `::kill`, `::god` and `::heal` change the world, so admins only.
+ * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`
+ * (an NPC, or yourself with `me`), `::kill`, `::god` and `::heal` change the world, so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
     register("combat", "::combat [index|name]") {
@@ -59,8 +59,14 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("Healed to ${player.hitpoints} hitpoints.")
     }
 
-    register("hit", "::hit damage [index|name]", admin = true) {
-        val damage = args.firstOrNull()?.toIntOrNull()?.takeIf { it >= 0 } ?: fail("Usage: ::hit damage [index|name]")
+    register("hit", "::hit damage [index|name|me]", admin = true) {
+        val damage = args.firstOrNull()?.toIntOrNull()?.takeIf { it >= 0 } ?: fail("Usage: ::hit damage [index|name|me]")
+        if (args.getOrNull(1).equals("me", ignoreCase = true)) {
+            if (player.dead) fail("You are already dead")
+            val dealt = world.meleeCombat.hitPlayer(player, null, damage, world.tick)
+            reply("Hit yourself for $dealt: ${player.hitpoints}/${player.skills.baseLevel(Skill.HITPOINTS)} hp" + if (player.dead) ", dead" else "")
+            return@register
+        }
         val target = target(world, player, args.drop(1), "::hit $damage")
         if (target.dead) fail("${target.type.name} #${target.index} is already dead")
         if (world.combat.npcCombat[target.type] == null) fail("${target.type.name} #${target.index} can't be fought")

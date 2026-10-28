@@ -125,7 +125,7 @@ class CombatTest {
                 "You are not fighting anything.",
                 "Hit Man #2 for 3: 4/7 hp",
                 "Hans #1 can't be fought",
-                "Usage: ::hit damage [index|name]",
+                "Usage: ::hit damage [index|name|me]",
                 "Killed Man #2.",
                 "Man #2 is already dead",
             ),

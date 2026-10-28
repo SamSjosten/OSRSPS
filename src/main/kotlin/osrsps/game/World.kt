@@ -45,6 +45,7 @@ import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
+import osrsps.game.combat.Deaths
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
@@ -175,8 +176,19 @@ class World(
         npcs, collision, movement, combat, random, { tick }, removeNpc = ::removeNpc, spawnNpc = { spawnNpc(it) },
         players = { players.asSequence().filterNotNull() },
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        respawn = { teleport(it, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) },
+        onDeath = { deaths.die(it) },
         loot = ::dropLoot,
+    )
+
+    /** Player death and gravestones; see [Deaths]. */
+    val deaths: Deaths = Deaths(
+        objTypes, graveType = npcTypes[Deaths.GRAVE], currentTick = { tick },
+        players = { players.asSequence().filterNotNull() }, findPlayer = ::findPlayer,
+        spawnNpc = ::spawnNpc, removeNpc = ::removeNpc,
+        teleportToSpawn = { teleport(it, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) },
+        openModal = { player, id -> interfaces.openModal(player, FrameSlot.MAINMODAL, id) },
+        closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
+        examine = inventoryTab::examine,
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -207,6 +219,7 @@ class World(
     }
 
     init {
+        deaths.register(handlers)
         registerHans(this)
         registerLumbridgeCastle(this)
         loadDialogue()
@@ -344,7 +357,9 @@ class World(
             logger.error { "The game thread didn't stop in 5 s; not saving on shutdown" }
             return
         }
-        // Once the executor has stopped this thread is the only one touching the players.
+        // Once the executor has stopped this thread is the only one touching the players. Nobody is saved dead: a
+        // death the stop cut short finishes now, grave and all (the grave is lost with the restart).
+        for (player in players) if (player?.dead == true) deaths.respawn(player)
         saveAll()
     }
 
@@ -370,6 +385,7 @@ class World(
         phase = TickPhase.NPCS
         npcInteractions.releaseNpcs()
         meleeCombat.process()
+        deaths.process()
         npcs.process()
         phase = TickPhase.SCRIPTS
         for (player in players) {
@@ -479,7 +495,7 @@ class World(
      */
     private fun act(player: Player, action: () -> Unit) {
         if (phase == TickPhase.INPUT) {
-            action()
+            guarded(player, action)
             return
         }
         if (player.heldActions.size >= MAX_HELD_ACTIONS) {
@@ -489,12 +505,21 @@ class World(
         player.heldActions.addLast(action)
     }
 
+    /** A dead player's clicks, buttons and chat do nothing until they respawn; see [Deaths]. */
+    private fun guarded(player: Player, action: () -> Unit) {
+        if (player.dead) {
+            logger.debug { "Dropping input from ${player.username}: dead" }
+            return
+        }
+        action()
+    }
+
     internal fun runHeldActions(player: Player) {
         while (true) {
             val action = player.heldActions.removeFirstOrNull() ?: return
             // One bad click shouldn't cost everyone the tick.
             try {
-                action()
+                guarded(player, action)
             } catch (e: Exception) {
                 logger.error(e) { "A held action for ${player.username} failed" }
             }
@@ -569,6 +594,9 @@ class World(
         val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
         val text = saves.read(player.saveKey) ?: return player
         PlayerSave.fromJson(text).applyTo(player)
+        // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
+        // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
+        if (player.hitpoints <= 0) player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
         return player
     }
 
@@ -1150,6 +1178,8 @@ class World(
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
+        // Nobody is saved dead: a leaver's death finishes now, grave and all.
+        if (player.dead) deaths.respawn(player)
         npcs.forget(player, scripts::busy)
         save(player)
         network.infoProtocols.dealloc(player.infos)

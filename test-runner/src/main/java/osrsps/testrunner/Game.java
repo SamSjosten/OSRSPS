@@ -125,6 +125,9 @@ interface Game
 	/** Whether the tile is in the loaded scene, so the client can see what lies on it. */
 	boolean tileLoaded(Tile at);
 
+	/** Whether the interface (by its id) is open and shown anywhere in the client's frame. */
+	boolean interfaceOpen(int interfaceId);
+
 	/**
 	 * Clicks an option (such as Wield, Wear, Eat or Drop, or Examine) on the first item in the inventory with this name
 	 * (or id, when the name is null).

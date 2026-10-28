@@ -179,6 +179,16 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         if (player.scripts.dropPaused()) send(player, TriggerOnDialogAbort)
     }
 
+    /**
+     * Sets varbit [id] and sends its varp now, ahead of the end-of-cycle flush (which resends it), for an interface
+     * opening in the same cycle that reads it as it loads. Does nothing when the cache has no such varbit (tests).
+     */
+    fun setVarbitNow(player: Player, id: Int, value: Int) {
+        val varbit = player.vars.types.varbit(id) ?: return
+        player.vars.setVarbit(id, value)
+        sendVarp(player, varbit.baseVar, player.vars[varbit.baseVar])
+    }
+
     private fun sendVarp(player: Player, id: Int, value: Int) {
         send(player, if (value in Byte.MIN_VALUE..Byte.MAX_VALUE) VarpSmall(id, value) else VarpLarge(id, value))
     }
