@@ -12,6 +12,8 @@
   keeps the old cache in `data/cache.previous`. While OpenRS2 doesn't list that build as the newest, `fetch-cache`
   changes nothing and the script tries again every 30 minutes (`.deploy/cache-wait`). Rolling back is by hand (see the
   top README's "Get the cache"); put the old build in `cache-build.txt` too, or the next run fetches the new one again.
+  Write the build as OpenRS2's caches.json lists it, which is what `data/cache-source.txt` records: it lists the
+  2026-10-20 cache (the one the game calls 241.4) as plain `241`, with no minor build.
 - `http://192.168.0.210:43595/status` answers with the commit, the cache's source line and the game frame check
   (`Game frame: ...` lines), so the test VM can check a swap without a shell here.
 - A deploy that fails (build error, or a checkout that can't fast-forward) is written to `.deploy/failed` and is not
