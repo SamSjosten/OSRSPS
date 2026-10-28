@@ -345,6 +345,10 @@ class RangedCombatTest {
         repeat(9) { tick() }
         assertEquals(0, ammoLeft(alice))
         assertEquals(3, projectiles.size)
+        // Out of arrows, she stops; once the last lands, every shot's damage reserved as it was fired is given back.
+        repeat(3) { tick() }
+        assertEquals(0, ranged.shotsInFlight)
+        assertEquals(0, npc.incoming)
         assertEquals(19, alice.effects.pendingSpotanims[0]?.id)
     }
 

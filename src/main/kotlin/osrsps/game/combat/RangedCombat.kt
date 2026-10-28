@@ -174,9 +174,9 @@ class RangedCombat(
             if (ammo.travel >= 0) projectile(flight(player, npc, ammo.travel, landTick - tick, shot))
             // Accuracy first, then damage, as for melee; a shot's random draws are always these two.
             val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)) CombatMath.rollDamage(random, matchup.maxHit) else 0
-            // XP for what the shot can still deal: what the NPC has left after the shots already on their way.
-            val left = (npc.hitpoints - inFlight.filter { it.npc === npc }.sumOf { it.damage }).coerceAtLeast(0)
-            val damage = minOf(rolled, left)
+            // XP for what the shot can still deal: what the NPC has left after the shots and swings already on their way.
+            val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
+            npc.incoming += damage
             for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
             player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
             inFlight += Shot(player, npc, damage, landTick, ammoType)
@@ -197,6 +197,7 @@ class RangedCombat(
             if (tick < shot.landTick) continue
             iterator.remove()
             val npc = shot.npc
+            npc.incoming -= shot.damage
             if (npcs[npc.index] === npc && !npc.dead) melee.hit(npc, shot.player, shot.damage, tick)
             // Guessed: under the NPC's south-west tile, where its drops go too.
             if (!random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) dropAmmo(shot.ammo, npc.x, npc.z, npc.level, shot.player)

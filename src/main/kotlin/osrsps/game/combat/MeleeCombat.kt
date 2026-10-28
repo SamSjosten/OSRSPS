@@ -50,8 +50,10 @@ class MeleeInteraction internal constructor(val npc: Npc, private val owner: Mel
  * "Someone else is fighting that.", and a player another NPC is hitting can't attack a second one ("I'm already under
  * attack."). Hitpoints come back one a minute (Wiki, Hitpoints) for players and NPCs alike.
  *
- * From the Wiki: melee damage lands on the tick it is rolled; an NPC with no hitpoints left dies and comes back at its
- * spawn after its respawn time. Guessed and marked below: how long an NPC counts as fighting after its last hit, how
+ * From the Wiki (Hit delay): melee has no delay of its own, but NPCs are processed before players, so a player's swing
+ * on an NPC lands in the next tick's NPC phase ([HitDelay.ON_NPC]); the XP comes with the swing, for the damage it can
+ * still deal. An NPC's swing on a player lands on its own tick. An NPC with no hitpoints left dies and comes back at
+ * its spawn after its respawn time. Guessed and marked below: how long an NPC counts as fighting after its last hit, how
  * long its body stays, that the respawn time counts from the killing blow, that an NPC strikes back from the tick
  * after it is hit, that the Wiki's retreat ranges are also the chase ranges, and which animation wins when a swing and
  * a block land on one tick (the swing). A player with no hitpoints left dies: every fight with them ends here and
@@ -194,11 +196,37 @@ class MeleeCombat(
         player.effects.anim(combat.anims(player).attack(style), 0)
         face(player, npc)
         // Accuracy first, then damage, as the Wiki describes a hit; the attack's random draws are always these two.
-        val damage = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)) CombatMath.rollDamage(random, matchup.maxHit) else 0
-        val dealt = hit(npc, player, damage, tick)
-        // XP for the damage actually dealt, which a nearly dead NPC caps.
-        for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(dealt, style.xp.size))
-        player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(dealt))
+        val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)) CombatMath.rollDamage(random, matchup.maxHit) else 0
+        // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way.
+        val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
+        npc.incoming += damage
+        for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
+        player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
+        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC)
+    }
+
+    /** A player's swing on its way to an NPC: it lands on [landTick]. */
+    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long)
+
+    private val landing = ArrayList<Swing>()
+
+    /** Swings rolled and not landed yet, for tests. */
+    val swingsLanding: Int get() = landing.size
+
+    /**
+     * The swings whose tick has come land, as [RangedCombat]'s shots do, whatever happened to the swinger since; one
+     * whose NPC died or went does nothing.
+     */
+    private fun land(tick: Long) {
+        val iterator = landing.iterator()
+        while (iterator.hasNext()) {
+            val swing = iterator.next()
+            if (tick < swing.landTick) continue
+            iterator.remove()
+            val npc = swing.npc
+            npc.incoming -= swing.damage
+            if (npcs[npc.index] === npc && !npc.dead) hit(npc, swing.player, swing.damage, tick)
+        }
     }
 
     /**
@@ -255,12 +283,13 @@ class MeleeCombat(
     }
 
     /**
-     * The NPC phase's combat: every fighting NPC chases and hits its target or gives up, the NPCs whose death is over
-     * are taken out with their drops put down, those whose respawn time is up put back, and once a minute everyone
-     * heals a point.
+     * The NPC phase's combat: last tick's player swings land, every fighting NPC chases and hits its target or gives
+     * up, the NPCs whose death is over are taken out with their drops put down, those whose respawn time is up put
+     * back, and once a minute everyone heals a point.
      */
     fun process() {
         val tick = currentTick()
+        land(tick)
         val iterator = dying.iterator()
         while (iterator.hasNext()) {
             val entry = iterator.next()
