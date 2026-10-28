@@ -24,14 +24,17 @@ data class NpcDefence(
     val standard: Int,
     val heavy: Int,
 ) {
-    /** The bonus that defends against a melee [type]. */
-    fun against(type: AttackType): Int = when (type) {
+    /** The bonus that defends against an attack of [type]; for ranged, the one for [weight] (standard when not given). */
+    fun against(type: AttackType, weight: RangedWeight? = null): Int = when (type) {
         AttackType.STAB -> stab
         AttackType.SLASH -> slash
         AttackType.CRUSH -> crush
         AttackType.MAGIC -> magic
-        // Ranged picks light, standard or heavy by the ammunition; that comes with ranged.
-        AttackType.RANGED -> standard
+        AttackType.RANGED -> when (weight) {
+            RangedWeight.LIGHT -> light
+            RangedWeight.HEAVY -> heavy
+            RangedWeight.STANDARD, null -> standard
+        }
         AttackType.NONE -> 0
     }
 }

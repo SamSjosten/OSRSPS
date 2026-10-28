@@ -17,6 +17,13 @@ class AttackStylesTest {
             AttackStyles.parse(2, "Lunge", "(Controlled)<br>(Stab)<br>(Shared XP)"),
         )
         assertEquals(AttackType.RANGED, AttackStyles.parse(1, "Rapid", "(Rapid)<br>(Standard)<br>(Ranged XP)").type)
+        // The 241 cache's crossbow longrange: heavy, and XP to Ranged and Defence.
+        assertEquals(
+            AttackStyle(3, "Longrange", AttackStance.LONGRANGE, AttackType.RANGED, listOf(Skill.RANGED, Skill.DEFENCE), RangedWeight.HEAVY),
+            AttackStyles.parse(3, "Longrange", "(Longrange)<br>(Heavy)<br>(Ranged XP)<br>(Defence XP)"),
+        )
+        assertEquals(RangedWeight.LIGHT, AttackStyles.parse(0, "Accurate", "(Accurate)<br>(Light)<br>(Ranged XP)").weight)
+        assertNull(AttackStyles.parse(0, "Punch", "(Accurate)<br>(Crush)<br>(Attack XP)").weight)
         assertEquals(
             AttackStyle(3, "Block", AttackStance.OTHER, AttackType.NONE, emptyList()),
             AttackStyles.parse(3, "Block", "(Block)<br>(No XP)"),

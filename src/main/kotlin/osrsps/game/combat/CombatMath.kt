@@ -3,7 +3,7 @@ package osrsps.game.combat
 import osrsps.game.GameRandom
 
 /**
- * The melee formulas, from the OSRS Wiki's "Damage per second/Melee" and the Wiki's DPS calculator (weirdgloop's
+ * The melee and ranged formulas, from the OSRS Wiki's "Damage per second/Melee" and "/Ranged" and the Wiki's DPS calculator (weirdgloop's
  * osrs-dps-calc, PlayerVsNPCCalc and NPCVsPlayerCalc), which the Wiki keeps in line with Jagex's answers. Prayers,
  * potions' boosts aside from the current level, void and target-specific gear come with the pieces that add them.
  *
@@ -31,6 +31,17 @@ object CombatMath {
         AttackStance.CONTROLLED -> 1
         else -> 0
     }
+
+    /** The style bonus to effective Ranged, for accuracy and damage alike: +3 accurate (OSRS Wiki, Ranged). */
+    fun rangedStanceBonus(stance: AttackStance): Int = if (stance == AttackStance.ACCURATE) 3 else 0
+
+    /** A player's ranged attack roll: (Ranged + style bonus + 8) * (ranged attack bonus + 64). */
+    fun playerRangedAttackRoll(rangedLevel: Int, stance: AttackStance, rangedAttackBonus: Int): Int =
+        (rangedLevel + rangedStanceBonus(stance) + 8) * (rangedAttackBonus + 64)
+
+    /** A player's ranged max hit: ((Ranged + style bonus + 8) * (ranged strength + 64) + 320) / 640, rounded down. */
+    fun playerRangedMaxHit(rangedLevel: Int, stance: AttackStance, rangedStrength: Int): Int =
+        ((rangedLevel + rangedStanceBonus(stance) + 8) * (rangedStrength + 64) + 320) / 640
 
     /** A player's melee attack roll: (Attack + style bonus + 8) * (attack bonus + 64). [attackLevel] is the current level. */
     fun playerAttackRoll(attackLevel: Int, stance: AttackStance, attackBonus: Int): Int =
@@ -76,13 +87,15 @@ object CombatMath {
     fun rollDamage(random: GameRandom, maxHit: Int): Int = random.between(0, maxHit.coerceAtLeast(0))
 
     /**
-     * XP in tenths for [damage] dealt with a melee style that trains [skills]: 4 XP a point to one skill, or 4/3 to each
-     * of three for a shared style (OSRS Wiki, Combat). Hitpoints gets 4/3 a point too; see [hitpointsXpTenths].
-     * Inferred: the thirds are rounded down in tenths, so 1 damage gives 1.3 XP. A style that trains nothing gives none.
+     * XP in tenths for [damage] dealt with a style that trains [skills]: 4 XP a point to one skill, 2 to each of two
+     * (ranged and magic longrange: Ranged or Magic, and Defence), or 4/3 to each of three for a shared melee style (OSRS
+     * Wiki, Combat). Hitpoints gets 4/3 a point too; see [hitpointsXpTenths]. Inferred: the thirds are rounded down in
+     * tenths, so 1 damage gives 1.3 XP. A style that trains nothing gives none.
      */
     fun styleXpTenths(damage: Int, skills: Int): Int = when {
         skills <= 0 -> 0
         skills == 1 -> damage * 40
+        skills == 2 -> damage * 20
         else -> damage * 40 / 3
     }
 

@@ -73,7 +73,21 @@ class CombatMathTest {
         assertEquals(40, CombatMath.styleXpTenths(1, 1))
         assertEquals(13, CombatMath.styleXpTenths(1, 3))
         assertEquals(40, CombatMath.styleXpTenths(3, 3))
+        // Longrange: 2 a point each to Ranged and Defence.
+        assertEquals(60, CombatMath.styleXpTenths(3, 2))
         assertEquals(13, CombatMath.hitpointsXpTenths(1))
         assertEquals(133, CombatMath.hitpointsXpTenths(10))
+    }
+
+    @Test
+    fun `ranged rolls and max hits, accurate adding 3 to both`() {
+        // Level 1 with a shortbow (+8) and bronze arrows (7): (1 + 3 + 8) * 72 and (12 * 71 + 320) / 640.
+        assertEquals(864, CombatMath.playerRangedAttackRoll(1, AttackStance.ACCURATE, 8))
+        assertEquals(1, CombatMath.playerRangedMaxHit(1, AttackStance.ACCURATE, 7))
+        assertEquals(9 * 72, CombatMath.playerRangedAttackRoll(1, AttackStance.RAPID, 8))
+        // 99 Ranged, rune crossbow (+90) and runite bolts (115) on rapid: (99 + 8) * 179 / 640 rounded is 30.
+        assertEquals(107 * 154, CombatMath.playerRangedAttackRoll(99, AttackStance.RAPID, 90))
+        assertEquals(30, CombatMath.playerRangedMaxHit(99, AttackStance.RAPID, 115))
+        assertEquals(0, CombatMath.rangedStanceBonus(AttackStance.LONGRANGE))
     }
 }

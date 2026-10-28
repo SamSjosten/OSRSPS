@@ -3,6 +3,7 @@ package osrsps.game.combat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import osrsps.game.EquipmentTab
 import osrsps.game.InvObj
 import osrsps.game.NpcStats
@@ -106,8 +107,11 @@ class CombatTest {
         world.spawnNpc(NpcSpawn(man, 3225, 3218, 0, source = "test"))
         player.equipment[WearPos.WEAPON] = InvObj(841, 1)
         assertNull(world.combat.matchup(player, npc))
+        // ::combat shows the ranged numbers instead: no ranged bonus, so (1 + 3 + 8) * 64 against the man's standard -21.
         run("combat man")
-        assertEquals(listOf("Accurate is a ranged style; only melee is in so far"), replies)
+        assertEquals("Accurate (accurate, ranged standard), speed 5: attack roll 768, max hit 1", replies[0])
+        assertTrue(replies[1].startsWith("vs Man #") && replies[1].endsWith("defence roll 430, you hit 71.9%"), replies[1])
+        assertEquals(3, replies.size)
     }
 
     @Test
