@@ -73,8 +73,10 @@ minute and rebuilds when it moved, and `http://<public host>:43595/version` says
 ## Connect RuneLite through RSProx
 
 The server also hosts the launcher files on the HTTP port (game port + 1): `jav_config.ws` and `world_list.ws`,
-both pointing at `OSRSPS_PUBLIC_HOST` (default `127.0.0.1`). RSProx reads them to find the world and connects to that
-host on the game port.
+both pointing at the host the client fetched them from (its HTTP Host header), or at `OSRSPS_PUBLIC_HOST` (default
+`127.0.0.1`) when a request has no usable one. RSProx reads them to find the world and connects to that host on the game
+port, so players on the LAN and players coming in through a VPN or relay at another address each get their own. The
+relay must forward the game and HTTP ports unchanged (43594 and 43595 by default).
 
 **Over the LAN** (once the Proxmox host forwards 43594 and 43595 to the VM; the compose file sets
 `OSRSPS_PUBLIC_HOST=192.168.0.210`): nothing needs to run on your PC.

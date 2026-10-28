@@ -11,7 +11,7 @@ class ClientConfigTest {
 
     @Test
     fun `jav config points the launcher at the public host`() {
-        val lines = config.javConfig.lines()
+        val lines = config.javConfig().lines()
         assertContains(lines, "codebase=http://192.168.0.210/")
         assertContains(lines, "param=17=http://192.168.0.210:43595/world_list.ws")
         assertContains(lines, "param=25=241")
@@ -20,9 +20,9 @@ class ClientConfigTest {
 
     @Test
     fun `world list decodes back to one world on the public host`() {
-        val input = DataInputStream(ByteArrayInputStream(config.worldList))
+        val input = DataInputStream(ByteArrayInputStream(config.worldList()))
         val payloadSize = input.readInt()
-        assertEquals(config.worldList.size - 4, payloadSize)
+        assertEquals(config.worldList().size - 4, payloadSize)
         assertEquals(1, input.readUnsignedShort())
         assertEquals(ClientConfig.WORLD_ID, input.readUnsignedShort())
         assertEquals(ClientConfig.WORLD_PROPERTIES, input.readInt())
@@ -35,7 +35,7 @@ class ClientConfigTest {
 
     @Test
     fun `the RSProx target points at the jav config with the login modulus`() {
-        assertEquals(null, config.proxyTargets)
+        assertEquals(null, config.proxyTargets())
         config.modulusHex = "abc123"
         assertEquals(
             """
@@ -46,14 +46,14 @@ class ClientConfigTest {
                 modulus: abc123
 
             """.trimIndent(),
-            config.proxyTargets,
+            config.proxyTargets(),
         )
     }
 
     @Test
     fun `the RSProx target names the game port when it isn't 43594`() {
         val other = ClientConfig("10.0.0.5", 50001, gamePort = 50000).apply { modulusHex = "ff" }
-        assertContains(other.proxyTargets!!.lines(), "    game_server_port: 50000")
+        assertContains(other.proxyTargets()!!.lines(), "    game_server_port: 50000")
     }
 
     @Test
@@ -82,6 +82,32 @@ class ClientConfigTest {
         } finally {
             http.stop()
         }
+    }
+
+    @Test
+    fun `each file points at the host the client asked by`() {
+        config.modulusHex = "ff"
+        val lines = config.javConfig("osrsps.example.net").lines()
+        assertContains(lines, "codebase=http://osrsps.example.net/")
+        assertContains(lines, "param=17=http://osrsps.example.net:43595/world_list.ws")
+        assertContains(config.proxyTargets("203.0.113.7")!!.lines(), "    jav_config_url: http://203.0.113.7:43595/jav_config.ws")
+        val input = DataInputStream(ByteArrayInputStream(config.worldList("203.0.113.7")))
+        input.readInt()
+        input.readUnsignedShort()
+        input.readUnsignedShort()
+        input.readInt()
+        assertEquals("203.0.113.7", input.readJagexString())
+    }
+
+    @Test
+    fun `a Host header is used only when it is a plain host`() {
+        assertEquals("192.168.0.210", ClientConfig.hostOf("192.168.0.210:43595"))
+        assertEquals("osrsps.example.net", ClientConfig.hostOf(" osrsps.example.net "))
+        assertEquals(null, ClientConfig.hostOf(null))
+        assertEquals(null, ClientConfig.hostOf(""))
+        assertEquals(null, ClientConfig.hostOf("evil\ncodebase=http://x/"))
+        assertEquals(null, ClientConfig.hostOf("a b"))
+        assertEquals(null, ClientConfig.hostOf("[::1]:43595"))
     }
 
     private fun DataInputStream.readJagexString(): String {
