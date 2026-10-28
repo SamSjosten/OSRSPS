@@ -76,7 +76,8 @@ The server also hosts the launcher files on the HTTP port (game port + 1): `jav_
 both pointing at the host the client fetched them from (its HTTP Host header), or at `OSRSPS_PUBLIC_HOST` (default
 `127.0.0.1`) when a request has no usable one. RSProx reads them to find the world and connects to that host on the game
 port, so players on the LAN and players coming in through a VPN or relay at another address each get their own. The
-relay must forward the game and HTTP ports unchanged (43594 and 43595 by default).
+relay must forward the game and HTTP ports unchanged (43594 and 43595 by default), and may put a PROXY protocol header
+in front of each connection so the server knows the player's own address (see Real addresses and IP bans).
 
 **Over the LAN** (once the Proxmox host forwards 43594 and 43595 to the VM; the compose file sets
 `OSRSPS_PUBLIC_HOST=192.168.0.210`): nothing needs to run on your PC.
@@ -181,6 +182,10 @@ are claimed with a password at first login (see Accounts), so log in as each adm
 | `::varp id [value]` | Shows a varp, or sets it. `::varp 173 1` turns the run orb on |
 | `::varbit id [value]` | Shows a varbit with the varp and bits it lives in, or sets it |
 | `::dialogue` | **admin.** Reads `data/dialogue.txt` again, so new words show from the next line said, and says how many lines have words and what is wrong with the file |
+| `::ip [name]` | **admin.** The address a player connects from (their own, behind the relay), or everyone's with no name |
+| `::ipban name\|address [note]` | **admin.** Bans that address from logging in, for good (see Real addresses and IP bans), and logs out anyone on it |
+| `::ipunban address` | **admin.** Lifts a ban |
+| `::ipbans` | **admin.** Lists the banned addresses and their notes |
 | `::keys [on\|off]` | Your dialogue and examine lines show their keys (`[cook.greeting]`) instead of the file's words, until off or logout; no argument flips it. Test scripts in git turn it on, so they pass with or without words |
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
@@ -727,11 +732,43 @@ next login. To reset a forgotten password, delete that name's file on the VM; th
 rm /srv/rsps/OSRSPS/data/accounts/<name>.json
 ```
 
-Guessing is slowed by name, since every player from the internet arrives from the one VPS relay address: 5 wrong
-passwords in a row lock that name for 5 minutes (the client says "Too many login attempts"), and at most 32 logins wait
-on a password check at once. A lock only lives in memory, so a restart clears it. The relay addresses in
-`OSRSPS_RELAYS` (comma separated) are exempt from RSProt's limit of 10 connections per address; every other address
-keeps it.
+Guessing is slowed by name: 5 wrong passwords in a row lock that name for 5 minutes (the client says "Too many login
+attempts"), and at most 32 logins wait on a password check at once. A lock only lives in memory, so a restart clears it.
+A relay connection that comes without a PROXY header carries the relay's address (see below), so the relay addresses
+in `OSRSPS_RELAYS` (comma separated) are exempt from RSProt's limit of 10 connections per address; every other address,
+a player's own address from a header included, keeps it.
+
+### Real addresses and IP bans
+
+Internet players come in through the VPS relay (HAProxy, then a WireGuard tunnel and NAT), so their connections arrive
+from the relay's address, 192.168.0.216. HAProxy's `send-proxy-v2` starts each connection with a PROXY protocol header
+naming the player's own address and port, which passes the tunnel and NAT unchanged. The server reads one (v1 or v2) on
+both ports, the game and JS5 on 43594 and the client files on 43595, and from then on knows the connection by that
+address: in the login log (`alice logged in from 203.0.113.7 as player 1 ...`), the connection limit, `::ip` and the
+bans below.
+
+Only the addresses in `OSRSPS_RELAYS` may send a header: a connection from anyone else that starts with one is dropped,
+or anyone could claim any address. Everyone else (the LAN, the test VM) is a plain client known by their own address.
+`OSRSPS_PROXY_PROTOCOL` says what a relay must do:
+
+| `OSRSPS_PROXY_PROTOCOL` | A relay's connection |
+|-------------------------|----------------------|
+| `optional` (the default) | With or without a header; one without counts as the relay's own address. Lets HAProxy be switched over with nobody locked out |
+| `required` | Must start with a header, or it is dropped |
+| `off` | May not send one; nor may anyone else |
+
+The server logs the setting at startup, e.g. `proxy protocol: optional from relays [192.168.0.216]`, and logs every
+connection it drops for a header with the reason.
+
+An admin bans an address with `::ipban <name or address> [note]`: a name bans the address that player is on now. Anyone
+already on that address is logged out, and logins from it are refused with login response 26 (RSProt's `IPBlocked`, the
+client's address-blocked message). Bans are kept
+in `data/ip-bans.txt` (on the VM, `/srv/rsps/OSRSPS/data/ip-bans.txt`), one address and its note per line, so they last
+across restarts; the file may be edited by hand while the server is down. `::ipunban <address>` lifts one and `::ipbans`
+lists them. A relay's own address can't be banned, since every headerless internet player shares it.
+
+Check: with the server up, `::ip` lists everyone online with their address; a player through the relay shows their own
+public address once HAProxy sends the header, and a LAN player shows the LAN side's address.
 
 ## Scenarios
 

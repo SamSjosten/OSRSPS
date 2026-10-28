@@ -1,11 +1,31 @@
 package osrsps.net
 
-import com.sun.net.httpserver.HttpServer
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.netty.bootstrap.ServerBootstrap
+import io.netty.buffer.Unpooled
+import io.netty.channel.Channel
+import io.netty.channel.ChannelFutureListener
+import io.netty.channel.ChannelHandler
+import io.netty.channel.ChannelHandlerContext
+import io.netty.channel.ChannelInitializer
+import io.netty.channel.EventLoopGroup
+import io.netty.channel.MultiThreadIoEventLoopGroup
+import io.netty.channel.SimpleChannelInboundHandler
+import io.netty.channel.nio.NioIoHandler
+import io.netty.channel.socket.nio.NioServerSocketChannel
+import io.netty.handler.codec.http.DefaultFullHttpResponse
+import io.netty.handler.codec.http.FullHttpRequest
+import io.netty.handler.codec.http.HttpHeaderNames
+import io.netty.handler.codec.http.HttpObjectAggregator
+import io.netty.handler.codec.http.HttpResponseStatus
+import io.netty.handler.codec.http.HttpServerCodec
+import io.netty.handler.codec.http.HttpUtil
+import io.netty.handler.codec.http.QueryStringDecoder
 import osrsps.Revision
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.net.InetSocketAddress
+import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
 
@@ -19,6 +39,9 @@ private val logger = KotlinLogging.logger {}
  * for the host the client asked for it by (its HTTP Host header), so players on the LAN and players coming in through
  * a VPN or relay at another address are each sent their own. [publicHost] is the fallback, for a request with no
  * usable Host header: 127.0.0.1 through an SSH tunnel, or the Proxmox host's LAN address.
+ *
+ * Served with Netty rather than the JDK's HTTP server so that, like the game port, it reads a relay's PROXY header
+ * ([proxy]): the VPS's HAProxy puts one in front of both ports or neither.
  */
 class ClientConfig(
     private val publicHost: String,
@@ -28,8 +51,11 @@ class ClientConfig(
     private val gamePort: Int = httpPort - 1,
     /** The git commit the server was built from (OSRSPS_COMMIT, set by deploy/auto-deploy.sh), or "unknown". */
     private val version: String = UNKNOWN_VERSION,
+    /** Who may put a PROXY header in front of a request; see [ProxyProtocol]. */
+    private val proxy: ProxyProtocol = ProxyProtocol.OFF,
 ) {
-    private var server: HttpServer? = null
+    private var group: EventLoopGroup? = null
+    private var server: Channel? = null
 
     /**
      * What the server started from, served at /status after the commit: the cache's source line and the game frame
@@ -122,47 +148,76 @@ class ClientConfig(
         }
     }
 
+    /** The body and content type for a GET of [path] by a client that reached us at [host]; null for a 404. */
+    internal fun respond(path: String, host: String): Response? = when (path) {
+        "/jav_config.ws" -> Response("text/plain; charset=ISO-8859-1", javConfig(host).toByteArray(Charsets.ISO_8859_1))
+        "/world_list.ws" -> Response("application/octet-stream", worldList(host))
+        "/proxy-targets.yaml" -> proxyTargets(host)?.let { Response("text/yaml; charset=UTF-8", it.toByteArray(Charsets.UTF_8)) }
+            ?: Response("text/plain", ByteArray(0), HttpResponseStatus.SERVICE_UNAVAILABLE)
+        "/version" -> Response("text/plain; charset=UTF-8", "$version\n".toByteArray(Charsets.UTF_8))
+        "/status" -> Response("text/plain; charset=UTF-8", (listOf("commit $version") + status).joinToString("") { "$it\n" }.toByteArray(Charsets.UTF_8))
+        else -> null
+    }
+
+    internal class Response(val contentType: String, val body: ByteArray, val status: HttpResponseStatus = HttpResponseStatus.OK)
+
+    /** Starts serving; throws (a BindException) when the port can't be bound, leaving nothing running. */
     fun start() {
-        val http = HttpServer.create(InetSocketAddress(httpPort), 0)
-        http.createContext("/jav_config.ws") { exchange ->
-            exchange.respond("text/plain; charset=ISO-8859-1", javConfig(requestHost(exchange)).toByteArray(Charsets.ISO_8859_1))
+        val group = MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory())
+        try {
+            val bootstrap = ServerBootstrap()
+                .group(group)
+                .channel(NioServerSocketChannel::class.java)
+                .handler(proxy.acceptor)
+                .childHandler(HttpInitializer())
+            server = bootstrap.bind(httpPort).sync().channel()
+        } catch (e: Exception) {
+            group.shutdownGracefully(0, 0, TimeUnit.SECONDS)
+            throw e
         }
-        http.createContext("/world_list.ws") { exchange ->
-            exchange.respond("application/octet-stream", worldList(requestHost(exchange)))
-        }
-        http.createContext("/proxy-targets.yaml") { exchange ->
-            val yaml = proxyTargets(requestHost(exchange))
-            if (yaml == null) exchange.respond("text/plain", ByteArray(0), 503)
-            else exchange.respond("text/yaml; charset=UTF-8", yaml.toByteArray(Charsets.UTF_8))
-        }
-        http.createContext("/version") { exchange ->
-            exchange.respond("text/plain; charset=UTF-8", "$version\n".toByteArray(Charsets.UTF_8))
-        }
-        http.createContext("/status") { exchange ->
-            val body = (listOf("commit $version") + status).joinToString("") { "$it\n" }
-            exchange.respond("text/plain; charset=UTF-8", body.toByteArray(Charsets.UTF_8))
-        }
-        http.createContext("/") { exchange -> exchange.respond("text/plain", ByteArray(0), 404) }
-        http.start()
-        server = http
+        this.group = group
         logger.info { "Client config at http://$publicHost:$httpPort/jav_config.ws (world $worldId on $publicHost)" }
     }
 
-    /**
-     * The host [exchange] was addressed to, without its port, or [publicHost] when its Host header is missing or isn't a
-     * plain host name or IPv4 address. Checked because it is written into the files: a line break or odd character
-     * there could change what the client reads.
-     */
-    private fun requestHost(exchange: com.sun.net.httpserver.HttpExchange): String =
-        hostOf(exchange.requestHeaders.getFirst("Host")) ?: publicHost
+    @ChannelHandler.Sharable
+    private inner class HttpInitializer : ChannelInitializer<Channel>() {
+        override fun initChannel(ch: Channel) {
+            ch.pipeline().addLast(HttpServerCodec(), HttpObjectAggregator(MAX_REQUEST_BYTES), RequestHandler())
+        }
+    }
+
+    private inner class RequestHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
+        override fun channelRead0(ctx: ChannelHandlerContext, request: FullHttpRequest) {
+            val response = if (request.decoderResult().isSuccess) {
+                respond(QueryStringDecoder(request.uri()).path(), hostOf(request.headers().get(HttpHeaderNames.HOST)) ?: publicHost)
+                    ?: Response("text/plain", ByteArray(0), HttpResponseStatus.NOT_FOUND)
+            } else {
+                Response("text/plain", ByteArray(0), HttpResponseStatus.BAD_REQUEST)
+            }
+            val reply = DefaultFullHttpResponse(request.protocolVersion(), response.status, Unpooled.wrappedBuffer(response.body))
+            reply.headers().set(HttpHeaderNames.CONTENT_TYPE, response.contentType)
+            HttpUtil.setContentLength(reply, response.body.size.toLong())
+            val keepAlive = HttpUtil.isKeepAlive(request) && request.decoderResult().isSuccess
+            HttpUtil.setKeepAlive(reply, keepAlive)
+            val write = ctx.writeAndFlush(reply)
+            if (!keepAlive) write.addListener(ChannelFutureListener.CLOSE)
+        }
+
+        override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
+            logger.debug(cause) { "Client config connection from ${ctx.channel().remoteAddress()} failed" }
+            ctx.close()
+        }
+    }
 
     /** The port the HTTP server listens on once started (differs from httpPort only when that was 0). */
     internal val boundPort: Int
-        get() = server?.address?.port ?: httpPort
+        get() = (server?.localAddress() as? InetSocketAddress)?.port ?: httpPort
 
     fun stop() {
-        server?.stop(0)
+        server?.close()?.syncUninterruptibly()
         server = null
+        group?.shutdownGracefully(0, 5, TimeUnit.SECONDS)?.syncUninterruptibly()
+        group = null
     }
 
     data class World(val id: Int, val properties: Int, val host: String, val activity: String, val location: Int, val population: Int)
@@ -180,6 +235,9 @@ class ClientConfig(
         const val TARGET_NAME = "OSRSPS"
         const val DEFAULT_GAME_PORT = 43594
         const val UNKNOWN_VERSION = "unknown"
+
+        /** Requests are bodiless GETs; anything bigger is refused. */
+        private const val MAX_REQUEST_BYTES = 8192
 
         /** Members world. */
         const val WORLD_PROPERTIES = 1
@@ -209,12 +267,6 @@ class ClientConfig(
         private fun DataOutputStream.writeJagexString(value: String) {
             write(value.toByteArray(Charsets.ISO_8859_1))
             writeByte(0)
-        }
-
-        private fun com.sun.net.httpserver.HttpExchange.respond(contentType: String, body: ByteArray, status: Int = 200) {
-            responseHeaders.add("Content-Type", contentType)
-            sendResponseHeaders(status, if (body.isEmpty()) -1 else body.size.toLong())
-            responseBody.use { if (body.isNotEmpty()) it.write(body) }
         }
     }
 }

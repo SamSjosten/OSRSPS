@@ -27,12 +27,14 @@ import net.rsprot.protocol.loginprot.incoming.util.LoginBlock
 import net.rsprot.crypto.xtea.XteaKey
 import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
+import net.rsprot.protocol.channel.hostAddress
 import osrsps.game.command.Admins
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerCombatCommands
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
+import osrsps.game.command.registerIpCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerLocCommands
 import osrsps.game.command.registerNpcCommands
@@ -129,6 +131,8 @@ class World(
     rangedWeapons: RangedWeapons = RangedWeapons.NONE,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
+    /** Addresses that may not log in; see [IpBans]. */
+    val ipBans: IpBans = IpBans(),
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -236,6 +240,7 @@ class World(
         registerNpcCommands(this@World)
         registerScenarioCommands(this@World)
         registerCombatCommands(this@World)
+        registerIpCommands(this@World)
     }
 
     init {
@@ -302,9 +307,16 @@ class World(
         // A copy for the check below, so the login block's own copy can be wiped now.
         val password = (block.authentication as? AuthenticationType.PasswordAuthentication)?.password?.asCharArray()
         block.authentication.clear()
+        val address = responseHandler.address
+        if (ipBans.isBanned(address)) {
+            logger.info { "Rejecting ${block.username} from $address: that address is banned" }
+            responseHandler.writeFailedResponse(LoginResponse.IPBlocked)
+            password?.fill('\u0000')
+            return
+        }
         // RSProt's per-address limit; without it one host could queue logins without bound.
         if (!responseHandler.validateNewConnection()) {
-            logger.info { "Rejecting ${block.username}: too many connections from one address" }
+            logger.info { "Rejecting ${block.username} from $address: too many connections from one address" }
             responseHandler.writeFailedResponse(LoginResponse.IPLimit)
             password?.fill('\u0000')
             return
@@ -344,7 +356,7 @@ class World(
         // Checked before hashing, so guesses at a locked name cost nothing. The client says to wait a few minutes.
         if (key != null && loginGuard.locked(key)) {
             password.fill('\u0000')
-            logger.info { "Rejecting ${block.username}: locked after ${LoginGuard.MAX_WRONG} wrong passwords" }
+            logger.info { "Rejecting ${block.username} from ${responseHandler.address}: locked after ${LoginGuard.MAX_WRONG} wrong passwords" }
             responseHandler.writeFailedResponse(LoginResponse.TooManyAttempts)
             return
         }
@@ -360,7 +372,7 @@ class World(
         when (check) {
             Accounts.Check.WRONG_PASSWORD -> {
                 loginGuard.wrongPassword(key!!)
-                logger.info { "Rejecting ${block.username}: wrong password" }
+                logger.info { "Rejecting ${block.username} from ${responseHandler.address}: wrong password" }
                 responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
                 return
             }
@@ -376,10 +388,16 @@ class World(
     }
 
     override fun onReconnect(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<XteaKey>) {
+        val address = responseHandler.address
+        if (ipBans.isBanned(address)) {
+            logger.info { "Rejecting a reconnect for ${block.username} from $address: that address is banned" }
+            responseHandler.writeFailedResponse(LoginResponse.IPBlocked)
+            return
+        }
         // The same per-address limit as a login, so reconnects can't queue without bound either. The old connection may
         // still count against it until it times out, which the limit of 10 leaves room for.
         if (!responseHandler.validateNewConnection()) {
-            logger.info { "Rejecting a reconnect for ${block.username}: too many connections from one address" }
+            logger.info { "Rejecting a reconnect for ${block.username} from $address: too many connections from one address" }
             responseHandler.writeFailedResponse(LoginResponse.IPLimit)
             return
         }
@@ -638,7 +656,7 @@ class World(
         player.frame = GameFrame.forLogin(login.block.resizable, player.stoneArrangement)
         players[index] = player
         enterWorld(player)
-        logger.info { "${player.username} logged in as player $index at ${player.x}, ${player.z}, ${player.level}" }
+        logger.info { "${player.username} logged in from ${player.address} as player $index at ${player.x}, ${player.z}, ${player.level}" }
     }
 
     /**
@@ -674,6 +692,12 @@ class World(
 
     private fun findPlayer(saveKey: String): Player? = players.firstOrNull { it?.saveKey == saveKey }
 
+    /** The player in the world under [name], matched the way save names are, or null. */
+    fun playerNamed(name: String): Player? = SaveStore.saveKey(name)?.let(::findPlayer)
+
+    /** Everyone in the world, a dropped connection waiting for a reconnect included. */
+    val onlinePlayers: List<Player> get() = players.filterNotNull()
+
     /**
      * Puts a reconnecting client back on its player, who is still in the world. The client proves it is the same one
      * by sending back the ISAAC seed of the connection it lost.
@@ -702,7 +726,7 @@ class World(
         player.connectionLostTick = -1
         watchConnection(player)
         resync(player)
-        logger.info { "${player.username} reconnected as player ${player.index}" }
+        logger.info { "${player.username} reconnected from ${player.address} as player ${player.index}" }
     }
 
     /** The player a reconnect as [username] with [seed] goes back to, or null if there is none. */
@@ -1316,3 +1340,6 @@ class World(
         private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }
 }
+
+/** The player's real address: with a relay's PROXY header, the one it names, else the connection's own. */
+private val GameLoginResponseHandler<*>.address: String get() = ctx.hostAddress()

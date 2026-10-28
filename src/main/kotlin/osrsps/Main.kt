@@ -10,6 +10,7 @@ import osrsps.game.command.Admins
 import osrsps.game.content.DialogueLines
 import osrsps.game.dialogue.DialogueFile
 import osrsps.net.ClientConfig
+import osrsps.net.ProxyProtocol
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.exitProcess
@@ -84,7 +85,11 @@ private fun serve(port: Int) {
     // Addresses, comma separated, that forward many players (the VPS relay); each may hold more than 10 connections.
     val relays = System.getenv("OSRSPS_RELAYS").orEmpty().split(',').map(String::trim).filter(String::isNotEmpty).toSet()
     if (relays.isNotEmpty()) logger.info { "Relays: ${relays.joinToString()}" }
-    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins, version, relays)
+    // Whether the relays put a PROXY header in front of each player's connection, naming the player's own address:
+    // off, optional (the default: with or without one) or required.
+    val proxy = ProxyProtocol.parse(System.getenv("OSRSPS_PROXY_PROTOCOL"), relays)
+    logger.info { proxy.toString() }
+    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins, version, relays, proxy)
     server.start()
     Runtime.getRuntime().addShutdownHook(Thread(server::stop))
 }
