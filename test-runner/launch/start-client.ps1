@@ -15,7 +15,8 @@ Starts the test client with nobody at the screen and waits until it is logged in
    started, auto login has logged in and the next scripts dropped there will run. Rewritten every 20 s, because the
    runner ignores scripts that were there before it started watching the folder; the script gives up after 15 s, so
    the copies never pile up. Stops at once when the client's log says auto login is off (a key pressed or a name
-   typed on the login screen, or 5 failed tries): then nothing will log in by itself.
+   typed on the login screen): then nothing will log in by itself. After "gave up" (its 5th try) it waits for one more
+   failed check first, since that last try may still get in.
 
 Each stage may take -TimeoutSeconds (600 by default). Exits with 0 when the client is logged in, 1 otherwise.
 #>
@@ -42,10 +43,10 @@ function Reset-Deadline { $script:deadline = (Get-Date).AddSeconds($TimeoutSecon
 # Where the client's log ends now: lines after it are this run's.
 $logStart = if (Test-Path -LiteralPath $ClientLog) { (Get-Item -LiteralPath $ClientLog).Length } else { 0 }
 
-# The test runner's line saying auto login is off, logged since this script started, or null.
-function Get-AutoLoginOff
+# The test runner's lines saying auto login is off or gave up, logged since this script started.
+function Get-AutoLoginLines
 {
-	if (-not (Test-Path -LiteralPath $ClientLog)) { return $null }
+	if (-not (Test-Path -LiteralPath $ClientLog)) { return @() }
 	$stream = [IO.File]::Open($ClientLog, 'Open', 'Read', 'ReadWrite')
 	try
 	{
@@ -55,7 +56,7 @@ function Get-AutoLoginOff
 		$text = (New-Object IO.StreamReader($stream)).ReadToEnd()
 	}
 	finally { $stream.Dispose() }
-	$text -split "`r?`n" | Where-Object { $_ -match 'Test runner: .*(auto login is off|auto login gave up)' } | Select-Object -First 1
+	@($text -split "`r?`n" | Where-Object { $_ -match 'Test runner: .*(auto login is off|auto login gave up)' })
 }
 
 function Step([string] $text) { Write-Host ("[{0:HH:mm:ss}] {1}" -f (Get-Date), $text) }
@@ -183,6 +184,7 @@ Reset-Deadline
 Step "Waiting for $Account to be logged in and the test runner to run $id.json"
 $written = [DateTime]::MinValue
 $lastFailure = 'the test runner never ran it (is the plugin on?)'
+$gaveUpSeen = $null
 while ($true)
 {
 	if ((Test-Path -LiteralPath $result) -and (Get-Item -LiteralPath $result).LastWriteTimeUtc -gt $before)
@@ -192,9 +194,21 @@ while ($true)
 		# Not logged in within the script's 15 s: the next rewrite tries again.
 		$lastFailure = "$($r.result): $($r.failure)"
 		$before = (Get-Item -LiteralPath $result).LastWriteTimeUtc
+		# A whole 15 s check that began after the last try was logged, and still no login: that try failed too.
+		if ($gaveUpSeen -and $before -gt $gaveUpSeen.ToUniversalTime().AddSeconds(15))
+		{
+			Fail "auto login gave up, so $Account won't log in by itself. Log in by hand or run with -Restart. Client log: $gaveUpLine"
+		}
 	}
-	$off = Get-AutoLoginOff
+	$lines = @(Get-AutoLoginLines)
+	$off = $lines | Where-Object { $_ -match 'auto login is off' } | Select-Object -First 1
 	if ($off) { Fail "auto login is off, so $Account won't log in by itself. Log in by hand or run with -Restart. Client log: $off" }
+	if ($lines.Count -gt 0 -and -not $gaveUpSeen)
+	{
+		# Logged as the 5th try starts, which may still succeed.
+		$gaveUpSeen = Get-Date
+		$gaveUpLine = $lines[0]
+	}
 	if ((Get-Date) -gt $deadline) { Fail "$Account was not logged in within $TimeoutSeconds s (last check: $lastFailure)" }
 	if (((Get-Date) - $written).TotalSeconds -ge 20)
 	{
