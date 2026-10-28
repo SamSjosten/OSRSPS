@@ -22,11 +22,30 @@ enum class AmmoKind {
     BOLTS,
 }
 
+/** How a weapon's accuracy and damage grow with what it is fired at. */
+enum class RangedScaling {
+    /** The twisted bow's: on the target's Magic ([CombatMath.twistedBowAccuracy], [CombatMath.twistedBowDamage]). */
+    TWISTED_BOW,
+}
+
 /**
  * A bow or crossbow: it fires [kind] of [tier] or lower ([RangedAmmo.tier]), [shots] at a time, from up to [range]
- * tiles on accurate and rapid, with the [anim] animation (-1 for none).
+ * tiles on accurate and rapid, with the [anim] animation (-1 for none). [scaling] changes its numbers by target,
+ * [bounces] is how many more NPCs each shot can go on to in multi-way combat (the Venator bow's), and [launch] and
+ * [travel] are graphics of its own that replace the ammunition's (-1 for the ammunition's).
  */
-data class RangedWeapon(val kind: AmmoKind, val tier: Int, val range: Int, val shots: Int, val anim: Int, val source: String) {
+data class RangedWeapon(
+    val kind: AmmoKind,
+    val tier: Int,
+    val range: Int,
+    val shots: Int,
+    val anim: Int,
+    val source: String,
+    val scaling: RangedScaling? = null,
+    val bounces: Int = 0,
+    val launch: Int = -1,
+    val travel: Int = -1,
+) {
     fun fires(ammo: RangedAmmo): Boolean = ammo.kind == kind && ammo.tier <= tier
 }
 
@@ -72,7 +91,8 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
          *               "doubleLaunch": "double_bronze_arrow_launch", "travel": "bronze_arrow_travel" } ] }
          * ```
          *
-         * Items are gameval names. `shots`, `launch` and `doubleLaunch` may be left out (1, none, none). Animations and
+         * Items are gameval names. `shots`, `launch` and `doubleLaunch` may be left out (1, none, none). A weapon may
+         * also have `"scaling": "twisted_bow"`, `"bounces"` (0 to 2) and its own `launch` and `travel`. Animations and
          * spotanims are gameval names too; one [seqs] or [spotanims] doesn't know fails the file, unless it knows no
          * names at all (a cache with no gameval index), when they are all left out. An item the cache doesn't have is
          * skipped with a warning.
@@ -117,6 +137,13 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
                     shots = entry["shots"]?.jsonPrimitive?.int?.also { require(it in 1..2) { "shots $it" } } ?: 1,
                     anim = if (seqs.isEmpty) -1 else seqs[anim] ?: throw IllegalArgumentException("no animation called $anim"),
                     source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
+                    scaling = entry["scaling"]?.jsonPrimitive?.content?.let { text ->
+                        RangedScaling.entries.firstOrNull { it.name.equals(text, ignoreCase = true) }
+                            ?: throw IllegalArgumentException("unknown scaling '$text'")
+                    },
+                    bounces = entry["bounces"]?.jsonPrimitive?.int?.also { require(it in 0..MAX_BOUNCES) { "bounces $it" } } ?: 0,
+                    launch = spotanim(entry, "launch"),
+                    travel = spotanim(entry, "travel"),
                 )
             }
             val ammo = read("ammo") { entry ->
@@ -145,6 +172,9 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
 
         /** The Wiki's longest attack range; longrange's +2 stops here too. */
         const val MAX_RANGE = 10
+
+        /** The Venator bow's: a shot goes on to up to two more targets (OSRS Wiki, Venator bow). */
+        const val MAX_BOUNCES = 2
 
         private fun kind(entry: JsonObject): AmmoKind {
             val text = entry.required("ammo").jsonPrimitive.content

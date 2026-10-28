@@ -16,7 +16,7 @@ import kotlin.math.max
 
 /**
  * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`
- * (an NPC, or yourself with `me`), `::kill`, `::god` and `::heal` change the world, so admins only.
+ * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal` and `::multi` change the world, so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
     register("combat", "::combat [index|name]") {
@@ -64,6 +64,19 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             ""
         }
         reply("You have ${player.hitpoints}/$max hitpoints$attacked" + (if (player.god) "; ::god is on" else "") + ".")
+    }
+
+    register("multi", "::multi [on|off]", admin = true) {
+        val multi = world.multiCombat
+        val on = when (args.firstOrNull()?.lowercase()) {
+            null -> !multi.at(player.level, player.x, player.z)
+            "on" -> true
+            "off" -> false
+            else -> fail("Usage: ::multi [on|off]")
+        }
+        multi.set(player.level, player.x, player.z, on)
+        val zone = "the 8x8 zone from ${player.x and 7.inv()}, ${player.z and 7.inv()}"
+        reply(if (on) "Combat is multi-way in $zone until the server restarts." else "Combat is single-way in $zone again.")
     }
 
     register("god", "::god", admin = true) {
