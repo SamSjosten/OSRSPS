@@ -580,7 +580,8 @@ devices and special attacks.
 | Attack roll (Ranged + 3 on accurate + 8) × (ranged attack + 64); max hit ((Ranged + 3 on accurate + 8) × (ranged strength + 64) + 320) / 640 | Wiki, Ranged and Damage per second/Ranged |
 | The NPC defends with its light, standard or heavy bonus, as the style's tooltip names it (bows standard, crossbows heavy) | Wiki; 241 cache dbtable 78 |
 | Rapid fires a tick sooner; longrange gives 2 XP a point to Ranged and Defence each, the others 4 to Ranged; Hitpoints 1.33 | Wiki, Ranged and Combat |
-| XP is given as the shot is fired; the hit lands 1 + (3 + d) / 6 ticks later, plus one on an NPC | Wiki, Hit delay |
+| The hit lands 1 + (3 + d) / 6 ticks later, plus one on an NPC | Wiki, Hit delay |
+| XP is given as the shot is fired, for the damage rolled, even if less lands (another player's hit first) | inferred: RuneLite's XP drop "predicted hit" relies on the drop coming before the hitsplat; not recorded |
 | One ammunition a shot, two for the dark bow (one when one is left); 1 in 5 breaks, the rest falls to the floor | Wiki, Ava's accumulator (20% broken without a device) and Dark bow |
 | "There is no ammo left in your quiver." | Wiki, Ammunition |
 | Fired ammunition lands under the NPC, yours for 100 ticks and gone after 300, as a drop | guessed |
