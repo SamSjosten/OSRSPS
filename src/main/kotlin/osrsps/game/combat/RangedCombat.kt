@@ -45,12 +45,15 @@ class RangedInteraction internal constructor(val npc: Npc, private val owner: Ra
  * - Range is the weapon's (Attack range), 2 more on longrange up to 10; rapid fires a tick sooner (Ranged).
  * - Accuracy and damage are the ranged formulas ([CombatMath.playerRangedAttackRoll], [CombatMath.playerRangedMaxHit])
  *   against the NPC's defence for the style's weight ([Combat.rangedMatchup]).
- * - XP is given as the shot is fired, 4 a point of damage to Ranged, or 2 to Ranged and 2 to Defence on longrange, and
- *   1.33 to Hitpoints (Combat).
+ * - XP is 4 a point of damage to Ranged, or 2 to Ranged and 2 to Defence on longrange, and 1.33 to Hitpoints (Combat).
  * - The hit lands [HitDelay.BOW] ticks after firing, a tick later on an NPC ([HitDelay.ON_NPC]).
  * - Each shot uses one piece of ammunition; without an Ava's device a fifth of it breaks and the rest falls to the
  *   floor (Ava's accumulator: 72% back, 8% on the floor, 20% broken). The dark bow fires two at once.
  * - "There is no ammo left in your quiver." with nothing in the ammo slot (Ammunition).
+ *
+ * Inferred, not from the Wiki: that the XP is given as the shot is fired, for the damage rolled (capped at what the NPC
+ * has left after the shots already on their way), even if the hit then lands for less or not at all. RuneLite's XP drop
+ * "predicted hit" works from that: the drop comes before the hitsplat. Not checked against a recording.
  *
  * Guessed and marked below: that the ammunition lands under the NPC as the hit does, private to the shooter as a drop
  * is, the message for ammunition the weapon can't fire, the projectile's heights, start and arc, which crossbow
