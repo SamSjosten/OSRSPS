@@ -4,6 +4,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.EquipmentTab
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
@@ -150,18 +151,19 @@ class HeadlessEquipmentTest {
 
         const val INVENTORY = 149
         const val INVENTORY_ITEMS = 0
-        const val WORNITEMS = 387
-        const val WORNITEMS_VIEW_STATS = 1
+        // The server's own component ids: the stats screen's moved with cache 241.4 (#80).
+        const val WORNITEMS = EquipmentTab.WORNITEMS
+        const val WORNITEMS_VIEW_STATS = EquipmentTab.WORNITEMS_VIEW_STATS
         /** wornitems:slot3, the weapon. */
         const val WORNITEMS_WEAPON = 18
         const val REMOVE = 1
-        const val STATS = 84
-        const val STATS_SIDE = 85
-        const val STATS_SIDE_ITEMS = 0
-        const val SLASH_ATT = 25
-        const val STAB_DEF = 30
-        const val MELEE_STRENGTH = 36
-        const val SPEED_BASE = 53
+        const val STATS = EquipmentTab.STATS
+        const val STATS_SIDE = EquipmentTab.STATS_SIDE
+        const val STATS_SIDE_ITEMS = EquipmentTab.STATS_SIDE_ITEMS
+        const val SLASH_ATT = EquipmentTab.SLASH_ATT
+        const val STAB_DEF = EquipmentTab.STAB_DEF
+        const val MELEE_STRENGTH = EquipmentTab.MELEE_STRENGTH
+        const val SPEED_BASE = EquipmentTab.SPEED_BASE
 
         const val VARBIT_WEAPON_CATEGORY = 357
         const val VARP_WEAPON_CATEGORY = 843
