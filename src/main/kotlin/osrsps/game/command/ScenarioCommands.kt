@@ -73,6 +73,8 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     for ((slot, obj) in loadout.inventory) player.inventory[slot] = obj
     player.equipment.clear()
     for ((slot, obj) in loadout.equipment) player.equipment[slot] = obj
+    // A scenario's charged items start empty.
+    player.charges.clear()
     for ((varp, value) in scenario.varps) vars[varp] = value
     for ((id, value) in scenario.varbits) vars.setVarbit(id, value)
     world.teleport(player, scenario.x, scenario.z, scenario.level)

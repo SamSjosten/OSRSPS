@@ -51,19 +51,22 @@ class RangedCombatTest {
     private val runeCrossbow = ObjType(9185, "Rune crossbow", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 90, 14 to 6), internalName = "xbows_crossbow_runite", category = 37)
     private val twistedBow = ObjType(20997, "Twisted bow", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 70, 12 to 20, 14 to 6), internalName = "twisted_bow", category = 64)
     private val venator = ObjType(27610, "Venator bow", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 90, 12 to 25, 14 to 5), internalName = "venator_bow", category = 64)
+    private val blowpipe = ObjType(Blowpipe.LOADED, "Toxic blowpipe", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 30, 12 to 20, 14 to 3), internalName = "toxic_blowpipe_loaded", category = 24)
+    private val emptyBlowpipe = ObjType(Blowpipe.EMPTY, "Toxic blowpipe (empty)", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 30, 14 to 3), internalName = "toxic_blowpipe", category = 24)
+    private val dragonDart = ObjType(11230, "Dragon dart", stackable = true, params = mapOf(12 to 35), internalName = "dragon_dart")
     private val sword = ObjType(1277, "Bronze sword", wearpos1 = WearPos.WEAPON, params = mapOf(0 to 4, 14 to 4), internalName = "bronze_sword", category = 25)
     private val bronzeArrow = ObjType(882, "Bronze arrow", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
     private val steelArrow = ObjType(886, "Steel arrow", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 16), internalName = "steel_arrow")
     private val runiteBolts = ObjType(9144, "Runite bolts", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 115), internalName = "xbows_crossbow_bolts_runite")
     private val dragonBolts = ObjType(21905, "Dragon bolts", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 122), internalName = "dragon_bolts")
-    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, twistedBow, venator, sword, bronzeArrow, steelArrow, runiteBolts, dragonBolts)
+    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, twistedBow, venator, blowpipe, emptyBlowpipe, dragonDart, sword, bronzeArrow, steelArrow, runiteBolts, dragonBolts)
 
     private val spotanims = SpotanimNames(
         mapOf(
             "bronze_arrow_launch" to 19, "double_bronze_arrow_launch" to 1104, "bronze_arrow_travel" to 10,
             "steel_arrow_launch" to 20, "double_steel_arrow_launch" to 1106, "steel_arrow_travel" to 11,
             "crossbowbolt_travel" to 27, "dragon_crossbowbolt_travel" to 1468,
-            "arrow_venator01_launch01" to 2289, "arrow_venator01_travel01" to 2291,
+            "arrow_venator01_launch01" to 2289, "arrow_venator01_travel01" to 2291, "ii_dragon_dart_projanim" to 1122,
         ),
     )
     private val weapons = RangedWeapons.parse(
@@ -73,13 +76,16 @@ class RangedCombatTest {
             { "items": ["twisted_bow"], "ammo": "arrows", "tier": 7, "range": 10, "anim": "human_bow", "scaling": "twisted_bow", "source": "test" },
             { "items": ["venator_bow"], "ammo": "arrows", "tier": 7, "range": 6, "anim": "human_weapon_bow_venator01_shoot", "bounces": 2,
               "launch": "arrow_venator01_launch01", "travel": "arrow_venator01_travel01", "source": "test" },
+            { "items": ["toxic_blowpipe_loaded", "toxic_blowpipe"], "ammo": "darts", "tier": 7, "range": 5, "anim": "snakeboss_blowpipe_attack",
+              "loaded": true, "delay": "thrown", "source": "test" },
             { "items": ["xbows_crossbow_runite"], "ammo": "bolts", "tier": 7, "range": 7, "anim": "xbows_human_fire_and_reload_pvn", "source": "test" } ],
           "ammo": [
             { "items": ["bronze_arrow"], "ammo": "arrows", "tier": 1, "launch": "bronze_arrow_launch", "doubleLaunch": "double_bronze_arrow_launch", "travel": "bronze_arrow_travel" },
             { "items": ["steel_arrow"], "ammo": "arrows", "tier": 2, "launch": "steel_arrow_launch", "doubleLaunch": "double_steel_arrow_launch", "travel": "steel_arrow_travel" },
             { "items": ["xbows_crossbow_bolts_runite"], "ammo": "bolts", "tier": 7, "travel": "crossbowbolt_travel" },
-            { "items": ["dragon_bolts"], "ammo": "bolts", "tier": 8, "travel": "dragon_crossbowbolt_travel" } ] }""",
-        objTypes, SeqNames(mapOf("human_bow" to 426, "xbows_human_fire_and_reload_pvn" to 7552, "human_weapon_bow_venator01_shoot" to 9858)), spotanims,
+            { "items": ["dragon_bolts"], "ammo": "bolts", "tier": 8, "travel": "dragon_crossbowbolt_travel" },
+            { "items": ["dragon_dart"], "ammo": "darts", "tier": 7, "travel": "ii_dragon_dart_projanim" } ] }""",
+        objTypes, SeqNames(mapOf("human_bow" to 426, "xbows_human_fire_and_reload_pvn" to 7552, "human_weapon_bow_venator01_shoot" to 9858, "snakeboss_blowpipe_attack" to 5061)), spotanims,
     )
 
     // The bow (3) and crossbow (5) rows as the 241 cache has them.
@@ -91,6 +97,11 @@ class RangedCombatTest {
                 3, "Block", "(Defensive)<br>(Crush)<br>(Defence XP)", 0,
             ),
             listOf<Any>(3) to listOf<Any>(
+                0, "Accurate", "(Accurate)<br>(Standard)<br>(Ranged XP)", 0,
+                1, "Rapid", "(Rapid)<br>(Standard)<br>(Ranged XP)", 0,
+                3, "Longrange", "(Longrange)<br>(Standard)<br>(Ranged XP)<br>(Defence XP)", 0,
+            ),
+            listOf<Any>(19) to listOf<Any>(
                 0, "Accurate", "(Accurate)<br>(Standard)<br>(Ranged XP)", 0,
                 1, "Rapid", "(Rapid)<br>(Standard)<br>(Ranged XP)", 0,
                 3, "Longrange", "(Longrange)<br>(Standard)<br>(Ranged XP)<br>(Defence XP)", 0,
@@ -480,6 +491,72 @@ class RangedCombatTest {
         assertTrue(projectiles.all { (_, flight) -> flight.sourceIndex == -(alice.index + 1) })
         assertEquals(10_000, second.hitpoints)
         assertNull(second.attacker)
+    }
+
+    private fun loadBlowpipe(darts: Int, scales: Int) {
+        wield(alice, blowpipe, bronzeArrow, 50)
+        alice.charges[Blowpipe.DART_TYPE] = dragonDart.id
+        alice.charges[Blowpipe.DARTS] = darts
+        alice.charges[Blowpipe.SCALES] = scales
+    }
+
+    @Test
+    fun `the blowpipe fires its darts every 3 ticks at the thrown delay, uses two scales in three, and leaves the quiver alone`() {
+        alice.god = true
+        loadBlowpipe(darts = 200, scales = 300)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        tick()
+        assertEquals(5061, alice.effects.anim?.id)
+        assertEquals(1122, projectiles.single().second.id)
+        assertEquals(4L, alice.nextAttackTick)
+        // Distance 4 thrown: 1 + 4 / 6 = 1 tick, and one on an NPC: tick 3.
+        assertEquals(1 + HitDelay.THROWN.ticks(4) + HitDelay.ON_NPC, 3)
+        tick()
+        assertTrue(npc.effects.pendingHits.isEmpty())
+        tick()
+        assertEquals(1, npc.effects.pendingHits.size)
+        repeat(297) { tick() }
+        val shots = projectiles.size
+        assertEquals(100, shots)
+        assertEquals(200 - shots, alice.charges[Blowpipe.DARTS])
+        val scalesUsed = 300 - alice.charges[Blowpipe.SCALES]
+        assertTrue(scalesUsed in 50..85, "$scalesUsed scales for $shots shots")
+        assertEquals(50, ammoLeft(alice))
+        assertTrue(dropped.isEmpty(), dropped.toString())
+    }
+
+    @Test
+    fun `the blowpipe's strength is its dart's, not the ammo slot's`() {
+        alice.skills.setLevel(Skill.RANGED, 99)
+        loadBlowpipe(darts = 10, scales = 10)
+        val npc = spawn(type = dummy)
+        // On accurate: ((99 + 3 + 8) * (20 + 35 + 64) + 320) / 640 = 20; with the bronze arrows' 7 as well it would be 22.
+        assertEquals(20, combat.rangedMatchup(alice, npc)!!.maxHit)
+        alice.charges[Blowpipe.DARTS] = 0
+        assertEquals((110 * 84 + 320) / 640, combat.rangedMatchup(alice, npc)!!.maxHit)
+    }
+
+    @Test
+    fun `out of scales the worn blowpipe goes empty and won't fire, and with no darts it says so`() {
+        alice.god = true
+        // Off, so the dummy hitting back doesn't start the fight again.
+        alice.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
+        loadBlowpipe(darts = 50, scales = 1)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        repeat(30) { tick() }
+        assertEquals(blowpipe.id - 2, alice.equipment[WearPos.WEAPON]?.id)
+        assertTrue(alice to Blowpipe.RAN_OUT in messages, messages.toString())
+        assertTrue(alice to Blowpipe.NO_SCALES in messages, messages.toString())
+        assertNull(alice.interaction)
+
+        messages.clear()
+        loadBlowpipe(darts = 0, scales = 10)
+        attack(alice, npc)
+        tick()
+        assertEquals(listOf(alice to Blowpipe.NO_DARTS), messages)
+        assertNull(alice.interaction)
     }
 
     companion object {

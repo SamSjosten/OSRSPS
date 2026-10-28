@@ -129,7 +129,7 @@ class World(
     /** What each NPC drops when it dies; see [NpcDrops]. */
     val npcDrops: NpcDrops = NpcDrops.NONE,
     /** The bows, crossbows and ammunition [RangedCombat] fires; tests that shoot pass their own. */
-    rangedWeapons: RangedWeapons = RangedWeapons.NONE,
+    val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -251,6 +251,7 @@ class World(
 
     init {
         deaths.register(handlers)
+        rangedCombat.blowpipe.register(handlers, Player::message)
         registerHans(this)
         registerLumbridgeCastle(this)
         registerCombatTutors(this)

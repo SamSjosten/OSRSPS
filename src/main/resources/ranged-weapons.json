@@ -25,7 +25,8 @@
     { "items": ["xbows_crossbow_runite"], "ammo": "bolts", "tier": 7, "range": 7, "anim": "xbows_human_fire_and_reload_pvn", "source": "OSRS Wiki, Rune crossbow" },
     { "items": ["xbows_crossbow_dragon"], "ammo": "bolts", "tier": 8, "range": 7, "anim": "xbows_human_fire_and_reload_pvn", "source": "OSRS Wiki, Dragon crossbow" },
     { "items": ["acb"], "ammo": "bolts", "tier": 8, "range": 8, "anim": "xbows_human_fire_and_reload_pvn", "source": "OSRS Wiki, Armadyl crossbow" },
-    { "items": ["zaryte_xbow"], "ammo": "bolts", "tier": 8, "range": 8, "anim": "zcb_attack_pvn", "source": "OSRS Wiki, Zaryte crossbow" }
+    { "items": ["zaryte_xbow"], "ammo": "bolts", "tier": 8, "range": 8, "anim": "zcb_attack_pvn", "source": "OSRS Wiki, Zaryte crossbow" },
+    { "items": ["toxic_blowpipe_loaded", "toxic_blowpipe"], "ammo": "darts", "tier": 7, "range": 5, "anim": "snakeboss_blowpipe_attack", "loaded": true, "delay": "thrown", "source": "OSRS Wiki, Toxic blowpipe (fires the darts it holds; the empty one only says it needs scales)" }
   ],
   "ammo": [
     { "items": ["bronze_arrow"], "ammo": "arrows", "tier": 1, "launch": "bronze_arrow_launch", "doubleLaunch": "double_bronze_arrow_launch", "travel": "bronze_arrow_travel" },
@@ -43,6 +44,15 @@
     { "items": ["xbows_crossbow_bolts_mithril"], "ammo": "bolts", "tier": 5, "travel": "crossbowbolt_travel" },
     { "items": ["xbows_crossbow_bolts_adamantite"], "ammo": "bolts", "tier": 6, "travel": "crossbowbolt_travel" },
     { "items": ["xbows_crossbow_bolts_runite"], "ammo": "bolts", "tier": 7, "travel": "crossbowbolt_travel" },
-    { "items": ["dragon_bolts"], "ammo": "bolts", "tier": 8, "travel": "dragon_crossbowbolt_travel" }
+    { "items": ["dragon_bolts"], "ammo": "bolts", "tier": 8, "travel": "dragon_crossbowbolt_travel" },
+    { "items": ["bronze_dart"], "ammo": "darts", "tier": 1, "travel": "bronze_dart_travel" },
+    { "items": ["iron_dart"], "ammo": "darts", "tier": 1, "travel": "iron_dart_travel" },
+    { "items": ["steel_dart"], "ammo": "darts", "tier": 2, "travel": "steel_dart_travel" },
+    { "items": ["black_dart"], "ammo": "darts", "tier": 2, "travel": "black_dart_travel" },
+    { "items": ["mithril_dart"], "ammo": "darts", "tier": 3, "travel": "mithril_dart_travel" },
+    { "items": ["adamant_dart"], "ammo": "darts", "tier": 4, "travel": "adamant_dart_travel" },
+    { "items": ["rune_dart"], "ammo": "darts", "tier": 5, "travel": "rune_dart_travel" },
+    { "items": ["amethyst_dart"], "ammo": "darts", "tier": 6, "travel": "amethyst_dart_travel" },
+    { "items": ["dragon_dart"], "ammo": "darts", "tier": 7, "travel": "ii_dragon_dart_projanim" }
   ]
 }

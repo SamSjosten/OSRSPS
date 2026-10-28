@@ -3,7 +3,9 @@ package osrsps.game.command
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.combat.AmmoKind
 import osrsps.game.combat.AttackStance
+import osrsps.game.combat.Blowpipe
 import osrsps.game.combat.CombatMath
 import osrsps.game.combat.DropItem
 import osrsps.game.combat.MeleeCombat
@@ -16,7 +18,8 @@ import kotlin.math.max
 
 /**
  * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`
- * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal` and `::multi` change the world, so admins only.
+ * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::multi` and `::blowpipe` change the world, so admins
+ * only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
     register("combat", "::combat [index|name]") {
@@ -64,6 +67,24 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             ""
         }
         reply("You have ${player.hitpoints}/$max hitpoints$attacked" + (if (player.god) "; ::god is on" else "") + ".")
+    }
+
+    register("blowpipe", "::blowpipe [dart darts scales]", admin = true) {
+        val blowpipe = world.rangedCombat.blowpipe
+        if (args.isNotEmpty()) {
+            // Charges it as the bank's Configure-Charges would, which isn't in: ::blowpipe dragon dart 500 16383.
+            val numbers = args.takeLast(2).map { parseCount(it) }
+            val darts = numbers.getOrNull(0)?.takeIf { args.size >= 3 && it in 0..Blowpipe.MAX_DARTS }
+            val scales = numbers.getOrNull(1)?.takeIf { it in 0..Blowpipe.MAX_SCALES }
+            if (darts == null || scales == null) fail("Usage: ::blowpipe dart darts scales (each 0 to ${Blowpipe.MAX_DARTS})")
+            val text = args.dropLast(2).joinToString(" ")
+            val dart = findItem(world, text) ?: fail("No item '$text'")
+            if (dart.id !in world.rangedWeapons.ammoOfKind(AmmoKind.DARTS)) fail("${dart.name} isn't a dart the blowpipe fires")
+            player.charges[Blowpipe.DART_TYPE] = if (darts > 0) dart.id else 0
+            player.charges[Blowpipe.DARTS] = darts
+            player.charges[Blowpipe.SCALES] = scales
+        }
+        reply(blowpipe.check(player))
     }
 
     register("multi", "::multi [on|off]", admin = true) {

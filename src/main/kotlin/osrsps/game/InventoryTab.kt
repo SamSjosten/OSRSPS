@@ -90,12 +90,13 @@ class InventoryTab(
         player.inventory.swap(from, to)
     }
 
-    /** The player used one inventory item on another. Nothing handles that yet. */
+    /** The player used one inventory item on another: a content handler's ([Handlers.onObjOnObj]), or nothing. */
     fun use(player: Player, from: Int, fromObj: Int, to: Int, toObj: Int) {
-        if (held(player, from, fromObj) == null || held(player, to, toObj) == null) return
+        if (from == to || held(player, from, fromObj) == null || held(player, to, toObj) == null) return
         // Ignored while delayed, like other clicks.
         if (player.scripts.delayed) return
         closeModals(player)
+        if (scripts.trigger(player, Op.objOnObj(fromObj, from, toObj, to))) return
         logger.info { "${player.username} used $fromObj on $toObj (not handled)" }
         nothingInteresting(player)
     }

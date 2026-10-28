@@ -101,6 +101,9 @@ class RangedCombat(
 
     private val inFlight = ArrayList<Shot>()
 
+    /** The blowpipe's darts and scales; World registers its item options. */
+    val blowpipe = Blowpipe(objTypes, weapons)
+
     /** A ranged fight with [npc], or null when the player's style isn't ranged or their weapon isn't one this fires. */
     fun fight(player: Player, npc: Npc): RangedInteraction? {
         if (combat.style(player).type != AttackType.RANGED) return null
@@ -164,6 +167,7 @@ class RangedCombat(
 
     /** Fires at [npc] on [tick]; false when there is nothing to fire, and the player has been told. */
     private fun fire(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
+        if (weapon.loaded) return fireLoaded(player, npc, weapon, tick)
         val worn = player.equipment[WearPos.AMMO]
         if (worn == null) {
             message(player, NO_AMMO)
@@ -176,31 +180,58 @@ class RangedCombat(
             return false
         }
         val matchup = combat.rangedMatchup(player, npc) ?: return false
-        val style = matchup.style
-        player.nextAttackTick = tick + speed(player, style)
         // The dark bow fires one arrow when only one is left (OSRS Wiki, Dark bow).
         val shots = minOf(weapon.shots, worn.count)
         player.equipment.remove(WearPos.AMMO, shots)
+        release(player, npc, weapon, ammo, ammoType, matchup, shots, tick)
+        return true
+    }
+
+    /**
+     * A blowpipe's shot: its dart, a scale two times in three ([Blowpipe.use]), and nothing to the floor, since no Ava's
+     * device is in yet.
+     */
+    private fun fireLoaded(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
+        val ammo = weapons.ammo(blowpipe.dart(player))
+        val matchup = combat.rangedMatchup(player, npc) ?: return false
+        if (!blowpipe.use(player, { message(player, it) }, { random.chance(SCALE_KEPT_NUMERATOR, SCALE_KEPT_DENOMINATOR) })) return false
+        release(player, npc, weapon, ammo, null, matchup, 1, tick)
+        return true
+    }
+
+    /** The shots leave: the animation, graphics and projectiles, and each one's roll and XP. [dropped] falls where they land. */
+    private fun release(
+        player: Player,
+        npc: Npc,
+        weapon: RangedWeapon,
+        ammo: RangedAmmo?,
+        dropped: ObjType?,
+        matchup: RangedMatchup,
+        shots: Int,
+        tick: Long,
+    ) {
+        val style = matchup.style
+        player.nextAttackTick = tick + speed(player, style)
         if (weapon.anim >= 0) player.effects.anim(weapon.anim, 0)
         val launch = when {
             weapon.launch >= 0 -> weapon.launch
+            ammo == null -> -1
             shots > 1 && ammo.doubleLaunch >= 0 -> ammo.doubleLaunch
             else -> ammo.launch
         }
-        val travel = if (weapon.travel >= 0) weapon.travel else ammo.travel
+        val travel = if (weapon.travel >= 0) weapon.travel else ammo?.travel ?: -1
         if (launch >= 0) player.effects.spotanim(0, launch, LAUNCH_HEIGHT, 0)
         face(player, npc)
         val size = npc.type.size
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
-        val landTick = tick + HitDelay.BOW.ticks(distance) + HitDelay.ON_NPC
+        val landTick = tick + weapon.delay.ticks(distance) + HitDelay.ON_NPC
         repeat(shots) { shot ->
             if (travel >= 0) projectile(flight(player, npc, travel, landTick - tick, shot))
             // Accuracy first, then damage, as for melee; a shot's random draws are always these two.
             val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)) CombatMath.rollDamage(random, matchup.maxHit) else 0
             val damage = reserve(player, npc, style, rolled)
-            inFlight += Shot(player, npc, damage, landTick, ammoType, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel)
+            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel)
         }
-        return true
     }
 
     /**
@@ -351,6 +382,10 @@ class RangedCombat(
         /** One in five shots breaks its ammunition (OSRS Wiki, Ava's accumulator: 20% broken without one). */
         const val AMMO_BROKEN_NUMERATOR = 1
         const val AMMO_BROKEN_DENOMINATOR = 5
+
+        /** A blowpipe shot keeps its scale one time in three (OSRS Wiki, Toxic blowpipe). */
+        const val SCALE_KEPT_NUMERATOR = 1
+        const val SCALE_KEPT_DENOMINATOR = 3
 
         /** Guessed: the launch graphic's height, about the hands. */
         const val LAUNCH_HEIGHT = 96

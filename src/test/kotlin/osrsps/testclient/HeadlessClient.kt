@@ -226,6 +226,20 @@ class HeadlessClient private constructor(
         p1(op)
     }
 
+    /**
+     * One component's item used on another's (IF_BUTTONT): inventory item on inventory item. Laid out as RSProt's 241
+     * IfButtonTDecoder reads it.
+     */
+    fun ifButtonT(fromInterface: Int, fromComponent: Int, fromSub: Int, fromObj: Int, toInterface: Int, toComponent: Int, toSub: Int, toObj: Int) =
+        send(GameClientProt.IF_BUTTONT) {
+            p4Alt1((toInterface shl 16) or toComponent)
+            p2Alt3(fromObj and 0xFFFF)
+            p4Alt2((fromInterface shl 16) or fromComponent)
+            p2Alt3(toObj and 0xFFFF)
+            p2(toSub and 0xFFFF)
+            p2Alt3(fromSub and 0xFFFF)
+        }
+
     /** A click on a pause button (RESUME_PAUSEBUTTON): a dialogue's continue, or a menu option as [sub]. */
     fun resumePause(interfaceId: Int, componentId: Int, sub: Int = -1) = send(GameClientProt.RESUME_PAUSEBUTTON) {
         p2Alt1(sub and 0xFFFF)

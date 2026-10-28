@@ -16,10 +16,11 @@ import osrsps.game.Weapons
 
 private val logger = KotlinLogging.logger {}
 
-/** What a ranged weapon fires: arrows from bows, bolts from crossbows. */
+/** What a ranged weapon fires: arrows from bows, bolts from crossbows, darts from the blowpipe. */
 enum class AmmoKind {
     ARROWS,
     BOLTS,
+    DARTS,
 }
 
 /** How a weapon's accuracy and damage grow with what it is fired at. */
@@ -45,6 +46,10 @@ data class RangedWeapon(
     val bounces: Int = 0,
     val launch: Int = -1,
     val travel: Int = -1,
+    /** Whether it fires what it holds ([Blowpipe]) rather than what is in the ammo slot. */
+    val loaded: Boolean = false,
+    /** How long its hits take to land: [HitDelay.BOW], or [HitDelay.THROWN] for the blowpipe. */
+    val delay: HitDelay = HitDelay.BOW,
 ) {
     fun fires(ammo: RangedAmmo): Boolean = ammo.kind == kind && ammo.tier <= tier
 }
@@ -65,6 +70,9 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
     fun weapon(type: ObjType?): RangedWeapon? = type?.let { weapons[it.id] }
 
     fun ammo(type: ObjType?): RangedAmmo? = type?.let { ammo[it.id] }
+
+    /** The item ids of every ammunition of [kind]. */
+    fun ammoOfKind(kind: AmmoKind): List<Int> = ammo.filterValues { it.kind == kind }.keys.sorted()
 
     val weaponCount: Int get() = weapons.size
 
@@ -144,6 +152,11 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
                     bounces = entry["bounces"]?.jsonPrimitive?.int?.also { require(it in 0..MAX_BOUNCES) { "bounces $it" } } ?: 0,
                     launch = spotanim(entry, "launch"),
                     travel = spotanim(entry, "travel"),
+                    loaded = entry["loaded"]?.jsonPrimitive?.content?.toBooleanStrict() ?: false,
+                    delay = entry["delay"]?.jsonPrimitive?.content?.let { text ->
+                        HitDelay.entries.firstOrNull { it.name.equals(text, ignoreCase = true) }
+                            ?: throw IllegalArgumentException("unknown delay '$text'")
+                    } ?: HitDelay.BOW,
                 )
             }
             val ammo = read("ammo") { entry ->
@@ -166,7 +179,11 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
         private fun check(type: ObjType, value: Any?) {
             if (value !is RangedWeapon) return
             val category = Weapons.category(type)
-            val expected = if (value.kind == AmmoKind.ARROWS) Weapons.BOW else Weapons.CROSSBOW
+            val expected = when (value.kind) {
+                AmmoKind.ARROWS -> Weapons.BOW
+                AmmoKind.BOLTS -> Weapons.CROSSBOW
+                AmmoKind.DARTS -> Weapons.THROWN
+            }
             if (category != expected) logger.warn { "${type.name} (${type.id}) has weapon category $category, not $expected; it won't fire" }
         }
 

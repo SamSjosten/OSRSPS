@@ -42,7 +42,7 @@ sealed interface EquipResult {
  * Wearing and removing items: moving them between the inventory and the worn inventory with the slot, level and
  * two-handed rules. Telling the player and updating their model is left to the caller ([EquipmentTab]).
  */
-class Equipment(private val objTypes: ObjTypes) {
+class Equipment(val objTypes: ObjTypes) {
     /**
      * Wears the item in inventory [slot]. What it replaces goes into the inventory slot it leaves; a two-handed weapon
      * worn over both a weapon and a shield needs one more free slot for the shield. Levels are checked against base

@@ -14,7 +14,7 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         val text = words.joinToString(" ")
         if (wander != null && wander !in 0..MAX_WANDER) fail("The wander range must be 0 to $MAX_WANDER")
         val type = world.npcTypes.lookup(text) ?: fail("No NPC '$text'. Try its id, its name, or its gameval name like cow2_calf")
-        val spawn = NpcSpawn(type, player.x, player.z, player.level, wander = wander ?: 0, source = "::npc by ${player.username}", respawns = false)
+        val spawn = NpcSpawn(type, player.x, player.z, player.level, wander = wander ?: 0, source = spawnSource(player.username), respawns = false)
         val npc = world.spawnNpc(spawn) ?: fail("No free NPC slot")
         reply("Spawned ${type.name} (${type.id}) as #${npc.index} at ${npc.x}, ${npc.z}" + if (spawn.wander > 0) ", wander ${spawn.wander}" else "")
     }
@@ -51,13 +51,22 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         reply("${npc.type.name} #$index follows you. ::follow $index again to stop.")
     }
 
-    register("delnpc", "::delnpc index", admin = true) {
-        val index = args.singleOrNull()?.toIntOrNull() ?: fail("Usage: ::delnpc index (from ::npcs)")
+    register("delnpc", "::delnpc index|mine", admin = true) {
+        if (args.singleOrNull() == "mine") {
+            // Every NPC you put in with ::npc, so a test script can clean up whatever happened to them.
+            val mine = world.npcs.all.filter { it.spawn.source == spawnSource(player.username) }.toList()
+            for (npc in mine) world.removeNpc(npc)
+            reply("Removed ${mine.size} NPC${if (mine.size == 1) "" else "s"} you put in.")
+            return@register
+        }
+        val index = args.singleOrNull()?.toIntOrNull() ?: fail("Usage: ::delnpc index|mine (from ::npcs)")
         val npc = world.npcs[index] ?: fail("No NPC #$index")
         world.removeNpc(npc)
         reply("Removed ${npc.type.name} #$index.")
     }
 }
+
+private fun spawnSource(username: String) = "::npc by $username"
 
 private const val MAX_WANDER = 64
 private const val DEFAULT_LIST_RADIUS = 15
