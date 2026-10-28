@@ -11,11 +11,14 @@ Starts the test client with nobody at the screen and waits until it is logged in
    Launch Session). With RuneLite already running and no -Restart, it only does step 4.
 3. Runs the RSProx scheduled task, whose RSProx.cmd starts RSProx and presses Launch Session on the OSRSPS target
    (RsproxAutoLaunch.java). Waits for its line in C:\RSPS\.rsprox\logs\autolaunch.txt and for the RuneLite JVM.
-4. Writes a one-step waitForLogin script into the tests folder until the test runner has run it, so the plugin has
+4. Writes a one-step waitForLogin script into the tests folder until the test runner has passed it, so the plugin has
    started, auto login has logged in and the next scripts dropped there will run. Rewritten every 20 s, because the
-   runner ignores scripts that were there before it started watching the folder.
+   runner ignores scripts that were there before it started watching the folder; the script gives up after 15 s, so
+   the copies never pile up. Stops when the client's log says auto login is off (a key pressed or a name typed on the
+   login screen) or gave up (logged as its 5th try starts) and a check started after that line still fails: then
+   nothing will log in by itself.
 
-Exits with 0 when the client is logged in, 1 otherwise.
+Each stage may take -TimeoutSeconds (600 by default). Exits with 0 when the client is logged in, 1 otherwise.
 #>
 param(
 	[switch] $Restart,
@@ -27,10 +30,42 @@ param(
 	[string] $Tests = 'C:\RSPS\.rlcustom\tests',
 	[string] $Results = 'C:\RSPS\.rlcustom\test-results',
 	[string] $AutoLaunchStatus = 'C:\RSPS\.rsprox\logs\autolaunch.txt',
+	[string] $ClientLog = 'C:\RSPS\.runelite\logs\client.log',
+	# Only JVMs whose command line names this folder belong to the test client.
+	[string] $ClientHome = 'C:\RSPS',
+	# How long each stage (server, closing the old client, RSProx and RuneLite starting, login) may take.
 	[int] $TimeoutSeconds = 600
 )
 $ErrorActionPreference = 'Stop'
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+function Reset-Deadline { $script:deadline = (Get-Date).AddSeconds($TimeoutSeconds) }
+
+# Where to read the client's log from: the whole of it while a running client is kept (its auto login may have been
+# turned off before this script started), its end once an old client is closed.
+function Get-LogEnd { if (Test-Path -LiteralPath $ClientLog) { (Get-Item -LiteralPath $ClientLog).Length } else { 0 } }
+$logStart = 0
+
+# The test runner's lines saying auto login is off or gave up, logged by the plugin that runs now: only lines after
+# the log's last RuneLite start or test runner start ("watching <folder>", which resets auto login) count.
+function Get-AutoLoginLines
+{
+	if (-not (Test-Path -LiteralPath $ClientLog)) { return @() }
+	$stream = [IO.File]::Open($ClientLog, 'Open', 'Read', 'ReadWrite')
+	try
+	{
+		# A client started since then may have begun a new log.
+		$from = if ($stream.Length -ge $logStart) { $logStart } else { 0 }
+		[void] $stream.Seek($from, 'Begin')
+		$text = (New-Object IO.StreamReader($stream)).ReadToEnd()
+	}
+	finally { $stream.Dispose() }
+	$lines = $text -split "`r?`n"
+	for ($i = $lines.Count - 1; $i -ge 0; $i--)
+	{
+		if ($lines[$i] -match 'RuneLite .* starting up|Test runner: watching ') { $lines = $lines[$i..($lines.Count - 1)]; break }
+	}
+	@($lines | Where-Object { $_ -match 'Test runner: .*(auto login is off|auto login gave up)' })
+}
 
 function Step([string] $text) { Write-Host ("[{0:HH:mm:ss}] {1}" -f (Get-Date), $text) }
 function Fail([string] $text) { Step "FAILED: $text"; exit 1 }
@@ -44,10 +79,11 @@ function Test-Port([string] $hostName, [int] $port)
 }
 
 # RSProx's GUI (started by its launcher or by RsproxAutoLaunch.java) and the RuneLite it launches, told apart by their
-# command lines. Only JVMs that belong to the C:\RSPS client setup.
+# command lines. Only JVMs of the client in $ClientHome: another RuneLite on this PC is left alone.
 function Get-ClientJvms
 {
-	$all = Get-CimInstance Win32_Process -Filter "Name = 'java.exe' or Name = 'javaw.exe'"
+	$all = @(Get-CimInstance Win32_Process -Filter "Name = 'java.exe' or Name = 'javaw.exe'" |
+		Where-Object { $_.CommandLine -and $_.CommandLine.IndexOf($ClientHome, [StringComparison]::OrdinalIgnoreCase) -ge 0 })
 	[pscustomobject]@{
 		RSProx   = @($all | Where-Object { $_.CommandLine -match 'net\.rsprox\.gui\.ProxyToolGuiKt|RsproxAutoLaunch|rsprox-launcher\.jar' })
 		RuneLite = @($all | Where-Object { $_.CommandLine -match 'net\.runelite\.|--socket_id=' })
@@ -67,18 +103,20 @@ while ($true)
 		try
 		{
 			$up = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 $javConfig).StatusCode -eq 200
-			if ($up -and $Commit)
-			{
-				$running = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 $versionUrl).Content.Trim()
-				$up = $running.StartsWith($Commit, [StringComparison]::OrdinalIgnoreCase)
-			}
 		}
 		catch { $up = $false }
+		if ($up -and $Commit)
+		{
+			# A server from before /version answers 404, which Invoke-WebRequest throws.
+			try { $running = "$((Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 $versionUrl).Content)".Trim() }
+			catch { $running = "no /version ($($_.Exception.Message))" }
+			$up = $running.StartsWith($Commit, [StringComparison]::OrdinalIgnoreCase)
+		}
 	}
 	if ($up) { break }
 	if ((Get-Date) -gt $deadline)
 	{
-		if ($running) { Fail "the server still runs $running, not $Commit, after $TimeoutSeconds s" }
+		if ($running) { Fail "after $TimeoutSeconds s the server runs $running, not $Commit" }
 		Fail "the server did not answer within $TimeoutSeconds s"
 	}
 	Start-Sleep -Seconds 3
@@ -97,6 +135,7 @@ else
 	if ($stop.Count -gt 0)
 	{
 		Step "Closing RSProx/RuneLite (pid $($stop.ProcessId -join ', '))"
+		Reset-Deadline
 		foreach ($p in $stop) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
 		while ((Get-ClientJvms).RSProx.Count + (Get-ClientJvms).RuneLite.Count -gt 0)
 		{
@@ -105,8 +144,12 @@ else
 		}
 	}
 
+	# What a closed client logged doesn't count: the new one's auto login starts afresh.
+	$logStart = Get-LogEnd
+
 	# 3. RSProx, which launches RuneLite by itself. The task ignores a run while its last run still counts as running,
 	# which lasts a moment after its JVM is gone.
+	Reset-Deadline
 	while ((schtasks /query /tn $Task /fo CSV /nh | ConvertFrom-Csv -Header Name, Next, Status).Status -eq 'Running')
 	{
 		if ((Get-Date) -gt $deadline) { Fail "scheduled task $Task still counts as running" }
@@ -145,22 +188,42 @@ $script = Join-Path $Tests "$id.json"
 $result = Join-Path $Results "$id.json"
 $before = if (Test-Path -LiteralPath $result) { (Get-Item -LiteralPath $result).LastWriteTimeUtc } else { [DateTime]::MinValue }
 $utf8 = New-Object System.Text.UTF8Encoding $false
-$body = @{ name = 'The test client is logged in'; account = $Account; steps = @(@{ step = 'waitForLogin' }) } | ConvertTo-Json -Depth 4
+$body = @{ name = 'The test client is logged in'; account = $Account; steps = @(@{ step = 'waitForLogin'; timeoutMs = 15000 }) } |
+	ConvertTo-Json -Depth 4
 New-Item -ItemType Directory -Force -Path $Tests | Out-Null
+Reset-Deadline
 Step "Waiting for $Account to be logged in and the test runner to run $id.json"
 $written = [DateTime]::MinValue
+$lastFailure = 'the test runner never ran it (is the plugin on?)'
+$offSeen = $null
+$logRead = [DateTime]::MinValue
 while ($true)
 {
 	if ((Test-Path -LiteralPath $result) -and (Get-Item -LiteralPath $result).LastWriteTimeUtc -gt $before)
 	{
 		$r = Get-Content -LiteralPath $result -Raw -Encoding UTF8 | ConvertFrom-Json
 		if ($r.result -eq 'pass') { Step "Logged in as $Account; the client is ready"; exit 0 }
-		# A finished run that did not pass (e.g. auto login gave up): try once more by rewriting the script.
-		Step "The login check ended with $($r.result): $($r.failure)"
+		# Not logged in within the script's 15 s: the next rewrite tries again.
+		$lastFailure = "$($r.result): $($r.failure)"
 		$before = (Get-Item -LiteralPath $result).LastWriteTimeUtc
-		$written = [DateTime]::MinValue
+		# A whole 15 s check that began after the line was seen, and still no login: nothing more will try. (A client
+		# logged in by hand since passes its check instead; a 5th try still under way gets its 15 s.)
+		if ($offSeen -and $before -gt $offSeen.ToUniversalTime().AddSeconds(15))
+		{
+			Fail "auto login is off or gave up, so $Account won't log in by itself. Log in by hand or run with -Restart. Client log: $offLine"
+		}
 	}
-	if ((Get-Date) -gt $deadline) { Fail "$Account was not logged in within $TimeoutSeconds s" }
+	if (-not $offSeen -and ((Get-Date) - $logRead).TotalSeconds -ge 5)
+	{
+		$logRead = Get-Date
+		$lines = @(Get-AutoLoginLines)
+		if ($lines.Count -gt 0)
+		{
+			$offSeen = Get-Date
+			$offLine = $lines[-1]
+		}
+	}
+	if ((Get-Date) -gt $deadline) { Fail "$Account was not logged in within $TimeoutSeconds s (last check: $lastFailure)" }
 	if (((Get-Date) - $written).TotalSeconds -ge 20)
 	{
 		# Written fresh each time, so the runner sees a change once it watches the folder.
