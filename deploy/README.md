@@ -11,6 +11,9 @@ to ssh in after a merge.
   retried every minute. The next commit on main tries again, or `deploy/auto-deploy.sh --force` by hand.
 - Log: `journalctl -u osrsps-deploy -n 50`. State: `.deploy/deployed` and `.deploy/failed` in the checkout.
 - By hand, as `sam` in `/srv/rsps/OSRSPS`: `deploy/auto-deploy.sh` (deploys main if new) or `--force` (rebuilds now).
+- Other work on the checkout or the container (a cache swap, `fetch-cache`, a hand-made `git pull`) should hold the
+  same lock so a timed deploy can't start in the middle: `flock .deploy/lock docker compose run --rm osrsps fetch-cache`,
+  or `sudo systemctl stop osrsps-deploy.timer` first and `start` it after.
 
 ## Installing (once, as root on VM 214)
 
