@@ -159,8 +159,10 @@ class MeleeCombatTest {
         assertEquals(dealt * 40 / 3, alice.skills.tenths(Skill.HITPOINTS) - NEW_HITPOINTS_TENTHS)
         assertTrue(npc.effects.pendingHits.isEmpty())
         assertEquals(1, melee.swingsLanding)
+        assertEquals(dealt, npc.incoming)
         tick()
         assertEquals(0, melee.swingsLanding)
+        assertEquals(0, npc.incoming)
         val hit = npc.effects.pendingHits.single()
         assertEquals(NpcEffects.PLAYER_SOURCE + alice.index, hit.source)
         assertEquals(dealt, hit.value)
@@ -175,6 +177,21 @@ class MeleeCombatTest {
         // Held still by the fight: eight ticks with no wandering, however the dice fall.
         repeat(7) { tick() }
         assertEquals(3213 to 3210, npc.x to npc.z)
+    }
+
+    @Test
+    fun `a swing pays no XP for the hitpoints a shot on its way already has`() {
+        val npc = spawn()
+        npc.hitpoints = 1
+        // As RangedCombat leaves it with an arrow for 1 in the air.
+        npc.incoming = 1
+        attack(alice, npc)
+        tick()
+        assertEquals(0, alice.skills.tenths(Skill.ATTACK))
+        assertEquals(NEW_HITPOINTS_TENTHS, alice.skills.tenths(Skill.HITPOINTS))
+        tick()
+        assertEquals(HitsplatType.BLOCK_ME, npc.effects.pendingHits.single().selfType)
+        assertEquals(1, npc.incoming)
     }
 
     @Test

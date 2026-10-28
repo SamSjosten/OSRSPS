@@ -197,9 +197,9 @@ class MeleeCombat(
         face(player, npc)
         // Accuracy first, then damage, as the Wiki describes a hit; the attack's random draws are always these two.
         val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)) CombatMath.rollDamage(random, matchup.maxHit) else 0
-        // XP for what the swing can still deal: what the NPC has left after the swings already on their way.
-        val left = (npc.hitpoints - landing.filter { it.npc === npc }.sumOf { it.damage }).coerceAtLeast(0)
-        val damage = minOf(rolled, left)
+        // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way.
+        val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
+        npc.incoming += damage
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
         landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC)
@@ -224,6 +224,7 @@ class MeleeCombat(
             if (tick < swing.landTick) continue
             iterator.remove()
             val npc = swing.npc
+            npc.incoming -= swing.damage
             if (npcs[npc.index] === npc && !npc.dead) hit(npc, swing.player, swing.damage, tick)
         }
     }

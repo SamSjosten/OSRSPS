@@ -127,6 +127,13 @@ class Npc(
     /** Current hitpoints; [osrsps.game.NpcStats.hitpoints] at its spawn. */
     var hitpoints: Int = spawn.type.stats.hitpoints
 
+    /**
+     * Damage on its way, melee swings and ranged shots rolled and not landed yet, so two attacks can't both pay XP for
+     * the same hitpoints; see [osrsps.game.combat.MeleeCombat].
+     */
+    var incoming: Int = 0
+        internal set
+
     /** True from the hit that killed it until it is taken out of the world; it can't be attacked meanwhile. */
     var dead: Boolean = false
         internal set
