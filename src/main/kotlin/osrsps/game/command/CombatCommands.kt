@@ -71,7 +71,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
     register("drops", "::drops [index|name]") {
         val target = target(world, player, args, "::drops")
         val type = target.type
-        val def = world.npcDrops[type] ?: fail("${type.name} drops nothing")
+        val def = world.npcDrops[type]?.takeIf { !it.isEmpty } ?: fail("${type.name} drops nothing")
         fun item(item: DropItem) = item.type.name + (if (item.max > 1) " x${if (item.min == item.max) item.min else "${item.min}-${item.max}"}" else "")
         if (def.always.isNotEmpty()) reply("${type.name} always drops: ${def.always.joinToString { item(it) }}")
         val table = def.table

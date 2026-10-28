@@ -37,7 +37,8 @@ class NpcDropsTest {
         assertEquals("Fiendish ashes", drops[imp]!!.always.single().type.name)
         // A rat drops nothing at all.
         val nothing = drops[rat]!!
-        assertTrue(nothing.always.isEmpty() && nothing.table == null && nothing.tertiary.isEmpty())
+        assertTrue(nothing.isEmpty)
+        assertTrue(!def.isEmpty && !drops[cow]!!.isEmpty)
         assertEquals(emptyList(), nothing.roll(GameRandom(1)))
     }
 

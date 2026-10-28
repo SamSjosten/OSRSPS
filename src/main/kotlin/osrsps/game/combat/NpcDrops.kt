@@ -71,6 +71,9 @@ class TertiaryDrop(val item: DropItem, val denominator: Int) {
  * rolled once), and each [tertiary] drop on its own.
  */
 class NpcDropsDef(val always: List<DropItem>, val table: DropTable?, val tertiary: List<TertiaryDrop>, val source: String) {
+    /** Whether a kill can give nothing at all, as a rat's does. */
+    val isEmpty: Boolean get() = always.isEmpty() && table == null && tertiary.isEmpty()
+
     /**
      * The items one kill gives, in the order they are rolled, so a test can replay the draws: the main table's
      * draw, then a ranged count's, then each tertiary's. Items of no count (a nothing line) are left out.
