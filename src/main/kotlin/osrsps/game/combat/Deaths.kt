@@ -131,6 +131,10 @@ class Deaths(
         if (lost.isNotEmpty()) bury(player, lost)
         for (skill in Skill.entries) player.skills.setCurrentLevel(skill, player.skills.baseLevel(skill))
         player.runEnergy = Movement.MAX_ENERGY
+        // The death seq's last frame lasts 20,000 client cycles (seq 836 in the 241 cache), so the client holds the
+        // dead pose, and holds back the player's steps, until the animation is stopped. Stopping it on respawn is
+        // inferred from that; live never shows the pose after the respawn.
+        player.anim(-1)
         teleportToSpawn(player)
     }
 
