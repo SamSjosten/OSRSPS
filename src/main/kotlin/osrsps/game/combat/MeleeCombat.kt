@@ -75,8 +75,10 @@ class MeleeCombat(
     private val stopFacing: (Player) -> Unit = {},
     /** Puts a player with no hitpoints left back at the spawn; a stand-in until the player death step. */
     private val respawn: (Player) -> Unit = {},
+    /** Puts a dead NPC's drops on the floor for its killer (null for none) once its body has gone. */
+    private val loot: (Npc, Player?) -> Unit = { _, _ -> },
 ) {
-    private class Dying(val npc: Npc, val removeTick: Long, val respawnTick: Long)
+    private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
     internal fun unreachable(player: Player) = stopFacing(player)
 
@@ -202,7 +204,7 @@ class MeleeCombat(
             if (def.anims.defend >= 0 && npc.effects.anim == null) npc.effects.anim(def.anims.defend)
             if (source != null) retaliate(npc, source, tick)
         } else {
-            die(npc, def, tick)
+            die(npc, def, source, tick)
         }
         return dealt
     }
@@ -215,13 +217,13 @@ class MeleeCombat(
         npcs.follow(npc, player)
     }
 
-    private fun die(npc: Npc, def: NpcCombatDef, tick: Long) {
+    private fun die(npc: Npc, def: NpcCombatDef, killer: Player?, tick: Long) {
         npc.dead = true
         giveUp(npc)
         if (def.anims.death >= 0) npc.effects.anim(def.anims.death)
         // The body goes before the replacement comes, however short the respawn time (a rat's is 2 ticks).
         val respawnTick = tick + maxOf(def.respawnTicks, DEATH_TICKS)
-        dying += Dying(npc, tick + DEATH_TICKS, respawnTick)
+        dying += Dying(npc, killer, tick + DEATH_TICKS, respawnTick)
         logger.debug { "$npc died; back on tick $respawnTick" }
     }
 
@@ -234,14 +236,19 @@ class MeleeCombat(
 
     /**
      * The NPC phase's combat: every fighting NPC chases and hits its target or gives up, the NPCs whose death is over
-     * are taken out and those whose respawn time is up put back, and once a minute everyone heals a point.
+     * are taken out with their drops put down, those whose respawn time is up put back, and once a minute everyone
+     * heals a point.
      */
     fun process() {
         val tick = currentTick()
         val iterator = dying.iterator()
         while (iterator.hasNext()) {
             val entry = iterator.next()
-            if (tick >= entry.removeTick && npcs[entry.npc.index] === entry.npc) removeNpc(entry.npc)
+            if (tick >= entry.removeTick && npcs[entry.npc.index] === entry.npc) {
+                removeNpc(entry.npc)
+                // The drops show as the body goes (OSRS Wiki, Drop: loot appears when the monster's death animation ends).
+                loot(entry.npc, entry.killer)
+            }
             if (tick >= entry.respawnTick) {
                 // Never before the body has gone: a respawn no shorter than DEATH_TICKS and the removal above see to it.
                 check(npcs[entry.npc.index] !== entry.npc) { "${entry.npc} respawning with its body still there" }

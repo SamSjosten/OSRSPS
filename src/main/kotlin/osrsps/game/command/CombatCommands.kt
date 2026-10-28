@@ -3,6 +3,7 @@ package osrsps.game.command
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.combat.DropItem
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
 import osrsps.game.npc.Npc
@@ -11,8 +12,8 @@ import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Combat testing tools: `::combat`, `::fight` and `::hp` only read, so anyone may run them; `::hit`, `::kill`, `::god`
- * and `::heal` change the world, so admins only.
+ * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`,
+ * `::kill`, `::god` and `::heal` change the world, so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
     register("combat", "::combat [index|name]") {
@@ -65,6 +66,23 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         if (world.combat.npcCombat[target.type] == null) fail("${target.type.name} #${target.index} can't be fought")
         val dealt = world.meleeCombat.hit(target, player, damage, world.tick)
         reply("Hit ${target.type.name} #${target.index} for $dealt: ${target.hitpoints}/${target.type.stats.hitpoints} hp" + if (target.dead) ", dead" else "")
+    }
+
+    register("drops", "::drops [index|name]") {
+        val target = target(world, player, args, "::drops")
+        val type = target.type
+        val def = world.npcDrops[type]?.takeIf { !it.isEmpty } ?: fail("${type.name} drops nothing")
+        fun item(item: DropItem) = item.type.name + (if (item.max > 1) " x${if (item.min == item.max) item.min else "${item.min}-${item.max}"}" else "")
+        if (def.always.isNotEmpty()) reply("${type.name} always drops: ${def.always.joinToString { item(it) }}")
+        val table = def.table
+        if (table != null) {
+            val lines = table.lines.sortedByDescending { it.weight }.joinToString { line ->
+                val what = line.item?.let(::item) ?: if (line.table != null) "a herb" else "nothing"
+                "$what ${line.weight}/${table.slots}"
+            }
+            reply("One of: $lines")
+        }
+        if (def.tertiary.isNotEmpty()) reply("Also: ${def.tertiary.joinToString { "${item(it.item)} 1/${it.denominator}" }}")
     }
 
     register("kill", "::kill [index|name]", admin = true) {

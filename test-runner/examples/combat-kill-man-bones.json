@@ -1,0 +1,17 @@
+{
+ "name": "Combat step 5: kill a castle man, see his bones on the floor and take them",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "command", "text": "::drops man", "expectMessage": "Man always drops: Bones"},
+  {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertHitsplat", "npc": "Man", "timeoutMs": 20000, "comment": "beside him and swinging"},
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #"},
+  {"step": "assertAnimation", "id": 836, "npc": "Man", "comment": "human_death"},
+  {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 15000, "comment": "on his tile as the body goes, yours alone for a minute"},
+  {"step": "takeItem", "item": "Bones"},
+  {"step": "assertInventory", "item": "Bones"},
+  {"step": "assertGroundItem", "item": "Bones", "absent": true, "timeoutMs": 15000, "comment": "taken; the man's other drop, if any, may still lie there"}
+ ]
+}
