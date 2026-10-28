@@ -35,6 +35,7 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 
 ```bash
 ./gradlew run --args=fetch-cache   # download, then print a summary
+./gradlew run --args="fetch-cache 241.4"   # only if 241.4 is OpenRS2's newest build; else exit 3, nothing changed
 ./gradlew run --args=cache-info    # summarise an existing download
 ```
 

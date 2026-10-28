@@ -98,6 +98,9 @@ class GameServer(
             } else {
                 frameProblems.forEach { logger.warn { "Game frame: $it" } }
             }
+            val source = dataDir.resolve("cache-source.txt").toFile().takeIf { it.exists() }?.readText()?.trim()
+            clientConfig.status = listOf("cache ${source ?: "of unknown source (no cache-source.txt)"}") +
+                frameProblems.ifEmpty { listOf("ids match the cache's names") }.map { "Game frame: $it" }
         } finally {
             library.close()
         }

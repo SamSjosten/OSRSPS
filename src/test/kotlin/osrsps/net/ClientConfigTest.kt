@@ -68,6 +68,22 @@ class ClientConfigTest {
         }
     }
 
+    @Test
+    fun `status answers with the commit and what the server started from`() {
+        val http = ClientConfig("127.0.0.1", 0, gamePort = 43594, version = "3c1b194").also { it.start() }
+        try {
+            val url = java.net.URI("http://127.0.0.1:${http.boundPort}/status").toURL()
+            assertEquals("commit 3c1b194\n", url.readText())
+            http.status = listOf("cache openrs2 runescape/2740 build 241.3 2026-10-14", "Game frame: ids match the cache's names")
+            assertEquals(
+                "commit 3c1b194\ncache openrs2 runescape/2740 build 241.3 2026-10-14\nGame frame: ids match the cache's names\n",
+                url.readText(),
+            )
+        } finally {
+            http.stop()
+        }
+    }
+
     private fun DataInputStream.readJagexString(): String {
         val bytes = generateSequence { readUnsignedByte().takeIf { it != 0 } }.map { it.toByte() }.toList().toByteArray()
         return String(bytes, Charsets.ISO_8859_1)
