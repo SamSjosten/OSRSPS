@@ -187,9 +187,6 @@ class Player(
     /** The stance last put in the player's appearance; null until the first is sent. */
     var sentStance: Stance? = null
 
-    /** The stats screen's side inventory needs its click events again this cycle; see [EquipmentTab.flush]. */
-    var statsSideEventsDue: Boolean = false
-
     /** Moved by a teleport this tick; the client is told when the tick's movement is sent. */
     var teleported: Boolean = false
 
