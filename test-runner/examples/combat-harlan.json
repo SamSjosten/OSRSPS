@@ -1,0 +1,167 @@
+{
+ "name": "Combat step 7: Harlan, the melee combat tutor, hands over a training sword and shield once (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3219 3236 0",
+   "expectMessage": "Teleported to 3219, 3236, 0"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3219,
+   "y": 3236,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Melee combat tutor",
+   "option": "Examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3216]"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Melee combat tutor",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[harlan.greeting]",
+   "speaker": "Melee combat tutor"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[harlan.training_kit]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[harlan.training_kit]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Training sword",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Training shield",
+   "count": 1
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[harlan.gives_both]",
+   "comment": "the box with both items"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[harlan.there_you_go]",
+   "speaker": "Melee combat tutor"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[harlan.kit_anything_else]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[harlan.training_kit]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[harlan.training_kit]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[harlan.has_both]",
+   "speaker": "Melee combat tutor"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[harlan.kit_anything_else]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[harlan.goodbye]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[harlan.goodbye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Training sword",
+   "count": 1,
+   "comment": "the second ask gave nothing more"
+  },
+  {
+   "step": "itemOption",
+   "item": "Training sword",
+   "option": "Wield"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "item": "Training sword"
+  },
+  {
+   "step": "itemOption",
+   "item": "Training shield",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "shield",
+   "item": "Training shield"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were before ::scenario lumbridge-bare."
+  }
+ ]
+}

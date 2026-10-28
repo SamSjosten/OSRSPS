@@ -54,11 +54,13 @@ class DialogueHarness(npcName: String = "Someone") {
             val texts = sent.filterIsInstance<IfSetText>().filter {
                 it.componentId == Chatbox.CHAT_TEXT ||
                     (it.interfaceId == Chatbox.MESSAGEBOX && it.componentId == Chatbox.MESSAGEBOX_TEXT) ||
-                    (it.interfaceId == Chatbox.OBJECTBOX && it.componentId == Chatbox.OBJECTBOX_TEXT)
+                    (it.interfaceId == Chatbox.OBJECTBOX && it.componentId == Chatbox.OBJECTBOX_TEXT) ||
+                    (it.interfaceId == Chatbox.OBJECTBOX_DOUBLE && it.componentId == Chatbox.OBJECTBOX_DOUBLE_TEXT)
             }
             assertEquals(listOf("[$key]"), texts.filter { it.interfaceId != Chatbox.CHATMENU }.map { it.text }, "page ${i + 1}")
             page = texts.last().interfaceId
-            boxObjs += sent.filterIsInstance<IfSetObject>().filter { it.interfaceId == Chatbox.OBJECTBOX }.map { it.obj }
+            boxObjs += sent.filterIsInstance<IfSetObject>()
+                .filter { it.interfaceId == Chatbox.OBJECTBOX || it.interfaceId == Chatbox.OBJECTBOX_DOUBLE }.map { it.obj }
             sent.clear()
         }
         picked = false
@@ -69,6 +71,7 @@ class DialogueHarness(npcName: String = "Someone") {
         when (page) {
             Chatbox.MESSAGEBOX -> dialogues.resume(player, page, Chatbox.MESSAGEBOX_CONTINUE, -1)
             Chatbox.OBJECTBOX -> dialogues.resume(player, page, Chatbox.OBJECTBOX_UNIVERSE, 0)
+            Chatbox.OBJECTBOX_DOUBLE -> dialogues.resume(player, page, Chatbox.OBJECTBOX_DOUBLE_PAUSEBUTTON, -1)
             else -> dialogues.resume(player, page, Chatbox.CHAT_CONTINUE, -1)
         },
     )

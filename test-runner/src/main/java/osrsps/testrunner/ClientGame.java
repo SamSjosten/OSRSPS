@@ -831,6 +831,10 @@ final class ClientGame implements Game
 			return new Dialogue(Dialogue.Kind.MESSAGE, "", Dialogue.clean(text.getText()), null);
 		}
 		text = visible(InterfaceID.Objectbox.TEXT);
+		if (text == null)
+		{
+			text = visible(InterfaceID.ObjectboxDouble.TEXT);
+		}
 		if (text != null)
 		{
 			return new Dialogue(Dialogue.Kind.OBJECT, "", Dialogue.clean(text.getText()), null);
@@ -860,6 +864,11 @@ final class ClientGame implements Game
 			// Guessed: the objectbox's continue is slot 0 of its universe component (our server's Chatbox.OBJECTBOX notes).
 			component = InterfaceID.Objectbox.UNIVERSE;
 			sub = 0;
+		}
+		else if (visible(InterfaceID.ObjectboxDouble.TEXT) != null)
+		{
+			// Two items beside the text: its continue is a pausebutton of its own, as our server's Chatbox.OBJECTBOX_DOUBLE.
+			component = InterfaceID.ObjectboxDouble.PAUSEBUTTON;
 		}
 		else
 		{
