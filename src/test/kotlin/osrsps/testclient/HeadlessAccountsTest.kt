@@ -1,6 +1,10 @@
 package osrsps.testclient
 
 import java.nio.file.Path
+import osrsps.game.Accounts
+import osrsps.game.MemorySaveStore
+import osrsps.game.World
+import osrsps.map.CollisionMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -46,6 +50,28 @@ class HeadlessAccountsTest {
             assertEquals(TOO_MANY_ATTEMPTS, locked.code)
             // Another name isn't touched.
             server.login("dave", "his").close()
+        }
+    }
+
+    @Test
+    fun `reclaiming a reset name clears its wrong passwords`(@TempDir dir: Path) {
+        val store = MemorySaveStore()
+        val world = { crcs: IntArray, millis: Long ->
+            World(crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, accounts = Accounts(store, iterations = 1_000), cycleMillis = millis)
+        }
+        TestServer(dir, world = world).use { server ->
+            server.login("erin", "old").close()
+            repeat(4) { assertFailsWith<LoginFailedException> { server.login("erin", "guess$it") } }
+            // A reset deletes the account file; the next login claims the name again. Each login above has had its
+            // answer, so the login thread isn't using the store.
+            store.saves.remove("erin")
+            // Claimed with the new password, then refused only because erin's last session still lingers.
+            assertEquals(ALREADY_LOGGED_IN, assertFailsWith<LoginFailedException> { server.login("erin", "new") }.code)
+            val wrong = assertFailsWith<LoginFailedException> { server.login("erin", "typo") }
+            assertEquals(INVALID_USERNAME_OR_PASSWORD, wrong.code)
+            // Not locked: the new password gets past the check, to "already logged in" as erin still lingers.
+            val right = assertFailsWith<LoginFailedException> { server.login("erin", "new") }
+            assertEquals(ALREADY_LOGGED_IN, right.code)
         }
     }
 
