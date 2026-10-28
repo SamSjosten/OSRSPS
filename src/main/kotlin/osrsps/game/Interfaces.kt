@@ -123,6 +123,11 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     private fun journalTabVarbit(player: Player): Int? =
         JournalTab.VARBIT_SIDE_JOURNAL_TAB.takeIf { player.vars.types.varbit(it) != null }
 
+    /** Shows side panel tab [tab] ([GameFrame.SIDE_TAB_COMBAT] and so on), as a click on its stone does. */
+    fun switchSideTab(player: Player, tab: Int) {
+        send(player, RunClientScript(GameFrame.SIDEBUTTON_SWITCH_SCRIPT, listOf<Any>(tab)))
+    }
+
     /** Opens [interfaceId] as a modal in [slot], replacing whatever modal was there. */
     fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) {
         player.modals[slot] = interfaceId

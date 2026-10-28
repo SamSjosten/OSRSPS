@@ -15,6 +15,9 @@ class NpcSpawnFileTest {
         NpcType(2793, "Cow", size = 2, internalName = "cow3"),
         NpcType(2792, "Cow calf", size = 2, internalName = "cow2_calf"),
         NpcType(2794, "Cow calf", size = 2, internalName = "cow3_calf"),
+        NpcType(3216, "Melee combat tutor", internalName = "aide_tutor_melee"),
+        NpcType(3217, "Ranged combat tutor", internalName = "aide_tutor_ranging"),
+        NpcType(3218, "Magic combat tutor", internalName = "aide_tutor_magic"),
     )
 
     private fun file(name: String) = NpcSpawnFile::class.java.getResource("/npc-spawns/$name")!!.readText()
@@ -28,6 +31,15 @@ class NpcSpawnFileTest {
         // The River Lum runs north from Lumbridge at about x 3240; the field is east of it.
         assertTrue(cows.all { it.x > 3240 && it.z in 3250..3300 })
         assertTrue(spawns.all { it.source.isNotBlank() && it.wander > 0 })
+    }
+
+    @Test
+    fun `the three combat tutors stand together on the hill north of the castle`() {
+        val result = NpcSpawnFile.parse(file("lumbridge.json"), types)
+        assertEquals(emptyList(), result.unknown)
+        val tutors = result.spawns.filter { it.type.id in 3216..3218 }
+        assertEquals(listOf(3216, 3217, 3218), tutors.map { it.type.id }.sorted())
+        assertTrue(tutors.all { it.x in 3217..3219 && it.z in 3238..3239 && it.level == 0 })
     }
 
     @Test

@@ -52,6 +52,15 @@ enum class GameFrame(
         /** Client script that sets the scroll-wheel zoom limits to their defaults (128 to 896). No arguments in 241. */
         const val ZOOM_LIMITS_DEFAULT_SCRIPT = 626
 
+        /**
+         * Client script toplevel_sidebutton_switch: shows side panel tab n (0 combat options, 4 worn equipment), as
+         * when its stone is clicked. Script 915 and its one int argument are from RuneStar's 2021 cs2 dump; that the
+         * 241 cache keeps both is inferred.
+         */
+        const val SIDEBUTTON_SWITCH_SCRIPT = 915
+        const val SIDE_TAB_COMBAT = 0
+        const val SIDE_TAB_WORN = 4
+
         /** Varbit resizable_stone_arrangement (4607) is bit 8 of this varp in the 241 cache. */
         const val STONE_ARRANGEMENT_VARP = 1055
         const val STONE_ARRANGEMENT_BIT = 8

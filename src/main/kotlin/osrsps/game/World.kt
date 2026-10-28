@@ -54,6 +54,7 @@ import osrsps.game.combat.RangedWeapons
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
+import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
@@ -134,7 +135,7 @@ class World(
     lateinit var network: NetworkService<Player>
 
     private val movement = Movement(collision)
-    private val interfaces = Interfaces()
+    internal val interfaces = Interfaces()
 
     // Before commands: the tick commands keep hold of it.
     val clock = TickClock()
@@ -241,6 +242,7 @@ class World(
         deaths.register(handlers)
         registerHans(this)
         registerLumbridgeCastle(this)
+        registerCombatTutors(this)
         loadDialogue()
     }
 

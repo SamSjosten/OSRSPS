@@ -80,7 +80,7 @@ never words: the words are Jagex's and stay out of git (see the main README's Di
 `examples\` also has the Lumbridge Castle checks. They need runner 0.4.2 or later (`locOption` came in 0.3.0;
 `takeItem`, `assertInventory`, `finishDialogue` and Examine in 0.4.0; `assertLoc` in 0.4.2). The combat checks
 (`combat-attack-man.json`) need 0.5.0, which brought `assertHitsplat`, `assertNpcHealth`, `assertStat`,
-`assertGroundItem` and `assertAnimation`; `combat-die-grave.json` needs 0.6.1 (`assertInterface`, and `clickWidget` from 0.6.0).
+`assertGroundItem` and `assertAnimation`; `combat-die-grave.json` needs 0.6.1 (`assertInterface`, and `clickWidget` from 0.6.0). `combat-harlan.json` needs 0.6.3, which reads and continues the two-item box (objectbox_double).
 
 - `lumbridge-castle-doors.json` (the smallest, run it first) and `castle-doors-rest.json`: every door.
 - `lumbridge-castle-travel.json`, `castle-stairs-all.json` and `castle-ladders-all.json`: every option on the stairs,
@@ -196,7 +196,8 @@ server's answer instead of failing on what was there before.
 | `logout` | | Clicks Click here to logout and waits until the client is logged out. Auto login logs the account back in; follow it with `waitForLogin`. |
 | `assertInterface` | `interfaceId`, `absent` | Waits until the interface (by id, such as 672 for the gravestone) is open, or, with `absent: true`, until it is not. |
 
-Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox and objectbox.
+Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)
+objectbox_double, the box with two items.
 
 ## Known limits
 

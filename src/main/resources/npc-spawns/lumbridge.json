@@ -1,5 +1,5 @@
 {
-  "about": "Lumbridge NPCs. Tiles are the OSRS Wiki's location maps (checked 2026-10-21), which give the tile but not which of a name's types stands there: cows take cow, cow2 and cow3 (ids 2790, 2791, 2793) in turn and calves cow2_calf and cow3_calf (2792, 2794), guessed. Every wander range is guessed (5) until recorded. The castle's NPCs, Hans among them, are in lumbridge-castle.json.",
+  "about": "Lumbridge NPCs. Tiles are the OSRS Wiki's location maps (checked 2026-10-21), which give the tile but not which of a name's types stands there: cows take cow, cow2 and cow3 (ids 2790, 2791, 2793) in turn and calves cow2_calf and cow3_calf (2792, 2794), guessed. Every wander range is guessed (5; the combat tutors 2, as they keep to their hill) until recorded. The combat tutors' tiles are RSMod's rev 233 Lumbridge spawns (the Wiki gives no map for them). The castle's NPCs, Hans among them, are in lumbridge-castle.json.",
   "spawns": [
     {"npc": "cow", "x": 3254, "z": 3255, "wander": 5, "source": "OSRS Wiki, Cow, Locations: Lumbridge cow field"},
     {"npc": "cow2", "x": 3254, "z": 3258, "wander": 5, "source": "OSRS Wiki, Cow, Locations: Lumbridge cow field"},
@@ -29,6 +29,9 @@
     {"npc": "cow2_calf", "x": 3257, "z": 3280, "wander": 5, "source": "OSRS Wiki, Cow calf, Locations: Lumbridge cow field"},
     {"npc": "cow3_calf", "x": 3261, "z": 3273, "wander": 5, "source": "OSRS Wiki, Cow calf, Locations: Lumbridge cow field"},
     {"npc": "cow2_calf", "x": 3261, "z": 3289, "wander": 5, "source": "OSRS Wiki, Cow calf, Locations: Lumbridge cow field"},
-    {"npc": "cow3_calf", "x": 3262, "z": 3287, "wander": 5, "source": "OSRS Wiki, Cow calf, Locations: Lumbridge cow field"}
+    {"npc": "cow3_calf", "x": 3262, "z": 3287, "wander": 5, "source": "OSRS Wiki, Cow calf, Locations: Lumbridge cow field"},
+    {"npc": "aide_tutor_melee", "x": 3219, "z": 3238, "wander": 2, "source": "Harlan, the melee combat tutor, on the hill north of the castle. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "aide_tutor_ranging", "x": 3218, "z": 3239, "wander": 2, "source": "Nemarti, the ranged combat tutor. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "aide_tutor_magic", "x": 3217, "z": 3238, "wander": 2, "source": "Mikasi, the magic combat tutor. RSMod rev 233 Lumbridge spawns"}
   ]
 }
