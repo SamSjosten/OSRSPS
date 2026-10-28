@@ -19,7 +19,8 @@ class EquipmentTabTest {
     private val bow = ObjType(841, "Shortbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, params = mapOf(4 to 8, 14 to 4), category = 64)
     private val whip = ObjType(4151, "Abyssal whip", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(434 to 0, 436 to 70), category = 150)
     private val ring = ObjType(2552, "Ring of dueling(8)", wearpos1 = WearPos.RING, params = mapOf(451 to "Emir's Arena", 452 to "Castle Wars"))
-    private val types = ObjTypes.of(axe, bow, whip, ring)
+    private val chinchompa = ObjType(11959, "Black chinchompa", stackable = true, iops = listOf(null, "Wield", null, null, "Release"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 80, 12 to 30, 14 to 4), category = 572)
+    private val types = ObjTypes.of(axe, bow, whip, ring, chinchompa)
     private val handlers = Handlers()
     private val sent = mutableListOf<OutgoingGameMessage>()
     private val opened = mutableListOf<Pair<FrameSlot, Int>>()
@@ -171,6 +172,16 @@ class EquipmentTabTest {
     @Test
     fun `rapid takes a tick off a bow's actual speed`() {
         player.equipment[WearPos.WEAPON] = InvObj(841, 1)
+        tab.clickCombatTab(player, 10)
+        tab.sendStats(player)
+        assertEquals("Base: 2.4s", texts()[EquipmentTab.SPEED_BASE])
+        assertEquals("Actual: 1.8s", texts()[EquipmentTab.SPEED_ACTUAL])
+    }
+
+    @Test
+    fun `medium fuse takes a tick off a chinchompa's actual speed`() {
+        player.equipment[WearPos.WEAPON] = InvObj(11959, 50)
+        tab.updateCombatTab(player)
         tab.clickCombatTab(player, 10)
         tab.sendStats(player)
         assertEquals("Base: 2.4s", texts()[EquipmentTab.SPEED_BASE])
