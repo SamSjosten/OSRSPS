@@ -466,6 +466,7 @@ class World(
         // step.
         for (player in players) {
             if (player == null) continue
+            equipmentTab.updateVars(player)
             sendVars(player)
             sendStats(player)
             sendEffects(player)
