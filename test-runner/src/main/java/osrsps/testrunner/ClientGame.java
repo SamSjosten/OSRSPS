@@ -133,16 +133,41 @@ final class ClientGame implements Game
 		// The chatbox keeps what has been typed in this varc; Enter then sends it, "::" lines as a command.
 		client.setVarcStrValue(VarClientID.CHATINPUT, text);
 		chatLine = text;
+		pressEnter(canvas);
+		return null;
+	}
+
+	@Override
+	public String pressEnterAgain()
+	{
+		Canvas canvas = client.getCanvas();
+		if (canvas == null)
+		{
+			return "the client has no canvas";
+		}
+		// A 0.5.0 run left "::combat man" in the input after a 30-tick wait, the Enter never taken, while the same
+		// run's earlier commands went fine. Whether the canvas had lost keyboard focus is unknown; the note says.
+		boolean focused = canvas.isFocusOwner();
+		pressEnter(canvas);
+		return focused ? "the canvas has keyboard focus" : "the canvas had no keyboard focus, asked for it";
+	}
+
+	/** Sends the Enter key to the canvas on the Swing thread, as a key press does, taking keyboard focus first. */
+	private void pressEnter(Canvas canvas)
+	{
 		enterDelivered = false;
 		SwingUtilities.invokeLater(() ->
 		{
+			if (!canvas.isFocusOwner())
+			{
+				canvas.requestFocusInWindow();
+			}
 			long now = System.currentTimeMillis();
 			canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_PRESSED, now, 0, KeyEvent.VK_ENTER, '\n'));
 			canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_TYPED, now, 0, KeyEvent.VK_UNDEFINED, '\n'));
 			canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_RELEASED, now, 0, KeyEvent.VK_ENTER, '\n'));
 			enterDelivered = true;
 		});
-		return null;
 	}
 
 	@Override

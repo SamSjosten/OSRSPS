@@ -368,6 +368,41 @@ public class RunnerTest
 	}
 
 	@Test
+	public void chatPressesEnterAgainWhenTheLineStays() throws Exception
+	{
+		game.chatPending = true;
+		runner.start(script("{\"step\":\"chat\",\"text\":\"one\",\"timeoutMs\":100000}"), "file");
+		assertNull(cycle());
+		runner.gameTick();
+		assertNull(cycle());
+		// One tick is too soon; the second tick brings another Enter.
+		assertEquals(List.of("chat one"), game.actions);
+		runner.gameTick();
+		assertNull(cycle());
+		assertEquals(List.of("chat one", "enter again"), game.actions);
+		for (int i = 0; i < 20; i++)
+		{
+			runner.gameTick();
+			assertNull(cycle());
+		}
+		// Five presses after the first, then the step only waits for its timeout.
+		assertEquals(6, game.actions.size());
+		game.chatPending = false;
+		assertEquals(Result.PASS, cycle().result);
+
+		game.chatPending = true;
+		runner.start(script("{\"step\":\"chat\",\"text\":\"two\",\"timeoutMs\":40}"), "file");
+		assertNull(cycle());
+		runner.gameTick();
+		runner.gameTick();
+		assertNull(cycle());
+		now.addAndGet(100);
+		Result r = cycle();
+		assertEquals(Result.FAIL, r.result);
+		assertEquals("timed out after 40 ms: the chat input still holds the text: the client has not taken the Enter key after 2 presses (fake focus)", r.steps.get(0).detail);
+	}
+
+	@Test
 	public void refusesAnotherAccount() throws Exception
 	{
 		game.name = "Zezima";

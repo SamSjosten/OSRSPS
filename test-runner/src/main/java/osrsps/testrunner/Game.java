@@ -29,6 +29,12 @@ interface Game
 	 */
 	boolean chatPending();
 
+	/**
+	 * Presses Enter once more for a line the client has left in its chat input, asking for the canvas's keyboard focus
+	 * first when it lacks it. Returns a note on the focus for the result file.
+	 */
+	String pressEnterAgain();
+
 	/** Clicks "Walk here" on a tile in the loaded scene. */
 	String walk(int x, int y);
 
