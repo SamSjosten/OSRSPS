@@ -3,7 +3,7 @@
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
-  {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied."},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare", "comment": "nothing worn or carried, whatever earlier scripts left on the account"},
   {"step": "command", "text": "::heal", "expectMessage": "Healed to "},
   {"step": "command", "text": "::item lobster", "expectMessage": "Added 1 x Lobster"},
   {"step": "command", "text": "::item bronze sword", "expectMessage": "Added 1 x Bronze sword"},
@@ -30,6 +30,7 @@
   {"step": "clickWidget", "interfaceId": 672, "component": 8, "comment": "Take-All"},
   {"step": "assertInventory", "item": "Coins", "count": 10},
   {"step": "assertInventory", "item": "Bones", "count": 2},
-  {"step": "assertInterface", "interfaceId": 672, "absent": true, "comment": "an emptied grave closes and goes"}
+  {"step": "assertInterface", "interfaceId": 672, "absent": true, "comment": "an emptied grave closes and goes"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were before ::scenario lumbridge-bare."}
  ]
 }
