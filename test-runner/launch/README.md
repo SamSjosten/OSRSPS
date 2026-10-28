@@ -16,7 +16,10 @@ script, for example after a test-runner jar swap.
 - `start-client.ps1` waits for our server to answer, closes RSProx and RuneLite (with `-Restart`, or when RSProx is
   open without a client), runs the `RSProx` scheduled task, waits for RuneLite, and then waits until the test runner
   has logged in and run a one-step `waitForLogin` script. After it exits with 0, scripts dropped into the tests folder
-  run.
+  run. It closes RuneLite by its window, so plugins see the client exit (the Tick Recorder's `stop` line with reason
+  `clientExit`), and kills it only if it is still running 20 s later. So that the close needs no click, it sets
+  RuneLite's Exit warning to Never in each profile under `C:\RSPS\.rlcustom\profiles2` while the client is closed.
+  The first restart after installing this version still kills the client, because the warning is still on then.
 
 ## Installing on the test VM
 

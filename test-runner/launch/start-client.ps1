@@ -8,7 +8,10 @@ Starts the test client with nobody at the screen and waits until it is logged in
 1. Waits for our server to answer on its game port and jav_config (after a redeploy the server takes a while). With
    -Commit, also until its /version (the commit deploy/auto-deploy.sh built it from) starts with that commit.
 2. Closes RSProx's and RuneLite's JVMs when -Restart is given, or when RSProx is open without a RuneLite (nobody pressed
-   Launch Session). With RuneLite already running and no -Restart, it only does step 4.
+   Launch Session). With RuneLite already running and no -Restart, it only does step 4. RuneLite is asked to close its
+   window first, so plugins see the client exit (the Tick Recorder writes its stop line); one still running after
+   -CloseSeconds is killed. Then each RuneLite profile in -Profiles gets Exit warning set to Never, as the warning
+   popup would keep the next close from finishing.
 3. Runs the RSProx scheduled task, whose RSProx.cmd starts RSProx and presses Launch Session on the OSRSPS target
    (RsproxAutoLaunch.java). Waits for its line in C:\RSPS\.rsprox\logs\autolaunch.txt and for the RuneLite JVM.
 4. Writes a one-step waitForLogin script into the tests folder until the test runner has passed it, so the plugin has
@@ -33,6 +36,9 @@ param(
 	[string] $ClientLog = 'C:\RSPS\.runelite\logs\client.log',
 	# Only JVMs whose command line names this folder belong to the test client.
 	[string] $ClientHome = 'C:\RSPS',
+	[string] $Profiles = 'C:\RSPS\.rlcustom\profiles2',
+	# How long RuneLite may take to close its window before it is killed.
+	[int] $CloseSeconds = 20,
 	# How long each stage (server, closing the old client, RSProx and RuneLite starting, login) may take.
 	[int] $TimeoutSeconds = 600
 )
@@ -135,13 +141,46 @@ else
 	if ($stop.Count -gt 0)
 	{
 		Step "Closing RSProx/RuneLite (pid $($stop.ProcessId -join ', '))"
+		# RuneLite first, by its window: a kill skips its shutdown, so plugins never hear the client exit.
+		$asked = @(foreach ($p in $jvms.RuneLite)
+		{
+			$process = Get-Process -Id $p.ProcessId -ErrorAction SilentlyContinue
+			if ($process -and $process.CloseMainWindow()) { $p.ProcessId }
+		})
+		$closeBy = (Get-Date).AddSeconds($CloseSeconds)
+		while ($asked.Count -gt 0 -and (Get-Date) -lt $closeBy -and
+			@((Get-ClientJvms).RuneLite | Where-Object { $asked -contains $_.ProcessId }).Count -gt 0)
+		{
+			Start-Sleep -Seconds 1
+		}
+		$left = @((Get-ClientJvms).RuneLite)
+		foreach ($p in $left)
+		{
+			# CloseMainWindow finds windows only on this session's desktop: run from another session (ssh, a service),
+			# it finds none.
+			$why = if ($asked -contains $p.ProcessId) { "did not close in $CloseSeconds s (its Exit warning popup?)" }
+				else { 'has no window on this desktop to close' }
+			Step "RuneLite (pid $($p.ProcessId)) $why; killing it"
+		}
 		Reset-Deadline
-		foreach ($p in $stop) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
+		foreach ($p in @((Get-ClientJvms).RSProx) + $left) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
 		while ((Get-ClientJvms).RSProx.Count + (Get-ClientJvms).RuneLite.Count -gt 0)
 		{
 			if ((Get-Date) -gt $deadline) { Fail 'RSProx/RuneLite did not close' }
 			Start-Sleep -Seconds 1
 		}
+	}
+
+	# No exit warning popup, so the next close by window finishes. RuneLite writes its profile while it runs, so only
+	# now. Latin-1 maps every byte to one char and back, so the rest of the file is written back unchanged.
+	$latin1 = [Text.Encoding]::GetEncoding(28591)
+	foreach ($file in @(Get-ChildItem -LiteralPath $Profiles -Filter '*.properties' -ErrorAction SilentlyContinue))
+	{
+		$lines = @([IO.File]::ReadAllLines($file.FullName, $latin1))
+		if ($lines -contains 'runelite.warningOnExit=NEVER') { continue }
+		$lines = @($lines | Where-Object { $_ -notmatch '^runelite\.warningOnExit=' }) + 'runelite.warningOnExit=NEVER'
+		[IO.File]::WriteAllLines($file.FullName, [string[]] $lines, $latin1)
+		Step "Set RuneLite's Exit warning to Never in $($file.Name)"
 	}
 
 	# What a closed client logged doesn't count: the new one's auto login starts afresh.
