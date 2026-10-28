@@ -114,17 +114,21 @@ class NpcDrops(private val byType: Map<Int, NpcDropsDef>, /** What the loader wa
          * each `npcs` entry gives `always` items, a `table` of `slots` and `lines` (each an `item` with `count` or
          * `min`/`max`, a `table` name, or `nothing`), and `tertiary` drops with a `chance` such as "1/128". `npcs`
          * takes type ids, gameval names or menu names, as spawn files do; an NPC the cache doesn't have is skipped
-         * with a warning. An item is an id plus its `name`: a name the cache doesn't agree with is warned about.
+         * with a warning. An item is an id plus its `name`: a name the cache doesn't agree with is warned about, and
+         * an item the cache doesn't have at all leaves its NPCs without drops, with a warning, rather than stopping
+         * the server (a test cache has few items).
          */
         fun parse(text: String, types: NpcTypes, objTypes: ObjTypes, fileName: String = RESOURCE): NpcDrops {
             val root = Json.parseToJsonElement(text).jsonObject
             val shared = HashMap<String, DropTable>()
-            val mismatched = ArrayList<String>()
+            val warnings = ArrayList<String>()
+            // The names of the tables and entries whose items the cache lacks; what uses them is skipped.
+            val missingItems = ArrayList<String>()
             fun item(entry: JsonObject): DropItem {
                 val id = entry.required("item").jsonPrimitive.int
                 val name = entry.required("name").jsonPrimitive.content
-                val type = objTypes[id] ?: throw IllegalArgumentException("no item $id ($name) in the cache")
-                if (!type.name.equals(name, ignoreCase = true)) mismatched += "$id is ${type.name}, not $name"
+                val type = objTypes[id] ?: throw MissingItem("no item $id ($name) in the cache")
+                if (!type.name.equals(name, ignoreCase = true)) warnings += "$id is ${type.name}, not $name"
                 val min = entry["min"]?.jsonPrimitive?.int ?: entry["count"]?.jsonPrimitive?.int ?: 1
                 val max = entry["max"]?.jsonPrimitive?.int ?: min
                 return DropItem(type, min, max)
@@ -138,10 +142,13 @@ class NpcDrops(private val byType: Map<Int, NpcDropsDef>, /** What the loader wa
                             line["nothing"]?.jsonPrimitive?.booleanOrNull == true -> DropSlot(weight)
                             line["table"] != null -> {
                                 val name = line["table"]!!.jsonPrimitive.content
+                                if (name in missingItems) throw MissingItem("table $name has items the cache lacks")
                                 DropSlot(weight, table = shared[name] ?: throw IllegalArgumentException("no table called $name"))
                             }
                             else -> DropSlot(weight, item = item(line))
                         }
+                    } catch (e: MissingItem) {
+                        throw MissingItem("line ${i + 1}: ${e.message}")
                     } catch (e: IllegalArgumentException) {
                         throw IllegalArgumentException("line ${i + 1}: ${e.message}", e)
                     }
@@ -151,6 +158,9 @@ class NpcDrops(private val byType: Map<Int, NpcDropsDef>, /** What the loader wa
             root["tables"]?.jsonObject?.forEach { (name, element) ->
                 try {
                     shared[name] = table(element.jsonObject)
+                } catch (e: MissingItem) {
+                    missingItems += name
+                    warnings += "table $name: ${e.message}"
                 } catch (e: IllegalArgumentException) {
                     throw IllegalArgumentException("$fileName: table $name: ${e.message}", e)
                 }
@@ -161,13 +171,19 @@ class NpcDrops(private val byType: Map<Int, NpcDropsDef>, /** What the loader wa
             entries.forEachIndexed { i, element ->
                 try {
                     val entry = element.jsonObject
-                    val def = NpcDropsDef(
-                        always = entry["always"]?.jsonArray?.map { item(it.jsonObject) } ?: emptyList(),
-                        table = entry["table"]?.let { table(it.jsonObject) },
-                        tertiary = entry["tertiary"]?.jsonArray?.map { tertiary(it.jsonObject, ::item) } ?: emptyList(),
-                        source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
-                    )
-                    for (name in entry.required("npcs").jsonArray.map { it.jsonPrimitive.content }) {
+                    val names = entry.required("npcs").jsonArray.map { it.jsonPrimitive.content }
+                    val def = try {
+                        NpcDropsDef(
+                            always = entry["always"]?.jsonArray?.map { item(it.jsonObject) } ?: emptyList(),
+                            table = entry["table"]?.let { table(it.jsonObject) },
+                            tertiary = entry["tertiary"]?.jsonArray?.map { tertiary(it.jsonObject, ::item) } ?: emptyList(),
+                            source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
+                        )
+                    } catch (e: MissingItem) {
+                        warnings += "${names.joinToString()} drop nothing: ${e.message}"
+                        return@forEachIndexed
+                    }
+                    for (name in names) {
                         val type = types.lookup(name)
                         if (type == null) {
                             unknown += name
@@ -181,8 +197,8 @@ class NpcDrops(private val byType: Map<Int, NpcDropsDef>, /** What the loader wa
                 }
             }
             if (unknown.isNotEmpty()) logger.warn { "$fileName: skipped NPCs the cache doesn't have: ${unknown.joinToString()}" }
-            if (mismatched.isNotEmpty()) logger.warn { "$fileName: item names the cache doesn't agree with: ${mismatched.joinToString("; ")}" }
-            return NpcDrops(byType, unknown.map { "no NPC called $it" } + mismatched)
+            for (warning in warnings) logger.warn { "$fileName: $warning" }
+            return NpcDrops(byType, unknown.map { "no NPC called $it" } + warnings)
         }
 
         private fun tertiary(entry: JsonObject, item: (JsonObject) -> DropItem): TertiaryDrop {
@@ -194,5 +210,8 @@ class NpcDrops(private val byType: Map<Int, NpcDropsDef>, /** What the loader wa
         }
 
         private fun JsonObject.required(key: String): JsonElement = get(key) ?: throw IllegalArgumentException("no \"$key\"")
+
+        /** An item the cache lacks: the entry is skipped, not the whole file. */
+        private class MissingItem(message: String) : RuntimeException(message)
     }
 }

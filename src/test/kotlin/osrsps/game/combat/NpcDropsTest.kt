@@ -102,8 +102,19 @@ class NpcDropsTest {
         assertTrue(assertFailsWith<IllegalArgumentException> { NpcDrops.parse(short, types, objTypes) }.message!!.contains("100, not the table's 128"))
         val badChance = """{"npcs": [{"npcs": ["man"], "tertiary": [{"item": 526, "name": "Bones", "chance": "3/128"}], "source": "test"}]}"""
         assertTrue(assertFailsWith<IllegalArgumentException> { NpcDrops.parse(badChance, types, objTypes) }.message!!.contains("\"1/N\""))
+        // An item the cache lacks leaves its NPCs without drops rather than stopping the server (a test cache is small).
         val noItem = good.replace("526", "99999")
-        assertTrue(assertFailsWith<IllegalArgumentException> { NpcDrops.parse(noItem, types, objTypes) }.message!!.contains("no item 99999"))
+        val without = NpcDrops.parse(noItem, types, objTypes)
+        assertEquals(0, without.size)
+        assertEquals(listOf("man drop nothing: line 1: no item 99999 (Bones) in the cache"), without.warnings)
+        val noHerb = NpcDrops.parse(
+            """{"tables": {"herbs": {"slots": 1, "lines": [{"item": 99999, "name": "Herb", "weight": 1}]}},
+               "npcs": [{"npcs": ["man"], "table": {"slots": 1, "lines": [{"table": "herbs", "weight": 1}]}, "source": "test"},
+                        {"npcs": ["cow"], "always": [{"item": 526, "name": "Bones"}], "source": "test"}]}""",
+            types, objTypes,
+        )
+        assertEquals(1, noHerb.size)
+        assertEquals(listOf("table herbs: line 1: no item 99999 (Herb) in the cache", "man drop nothing: line 1: table herbs has items the cache lacks"), noHerb.warnings)
         val noTable = """{"npcs": [{"npcs": ["man"], "table": {"slots": 1, "lines": [{"table": "gems", "weight": 1}]}, "source": "test"}]}"""
         assertTrue(assertFailsWith<IllegalArgumentException> { NpcDrops.parse(noTable, types, objTypes) }.message!!.contains("no table called gems"))
         // A wrong name is only warned about: the id rules.
