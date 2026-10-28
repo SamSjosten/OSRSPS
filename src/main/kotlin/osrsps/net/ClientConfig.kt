@@ -29,6 +29,13 @@ class ClientConfig(
 ) {
     private var server: HttpServer? = null
 
+    /**
+     * What the server started from, served at /status after the commit: the cache's source line and the game frame
+     * check's findings, set once the cache is loaded. Lets the test VM see a cache swap without a shell on the server.
+     */
+    @Volatile
+    var status: List<String> = emptyList()
+
     /** The login RSA key's modulus in hex, once loaded; until then there is no RSProx target to hand out. */
     @Volatile
     var modulusHex: String? = null
@@ -129,6 +136,10 @@ class ClientConfig(
         }
         http.createContext("/version") { exchange ->
             exchange.respond("text/plain; charset=UTF-8", "$version\n".toByteArray(Charsets.UTF_8))
+        }
+        http.createContext("/status") { exchange ->
+            val body = (listOf("commit $version") + status).joinToString("") { "$it\n" }
+            exchange.respond("text/plain; charset=UTF-8", body.toByteArray(Charsets.UTF_8))
         }
         http.createContext("/") { exchange -> exchange.respond("text/plain", ByteArray(0), 404) }
         http.start()

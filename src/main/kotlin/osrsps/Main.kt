@@ -20,6 +20,9 @@ private val logger = KotlinLogging.logger {}
 private val dataDir: Path = Path.of(System.getenv("OSRSPS_DATA") ?: "data")
 private val cacheDir: Path = dataDir.resolve("cache")
 
+/** fetch-cache's exit code when OpenRS2 doesn't list the asked-for build as the newest yet. */
+private const val EXIT_BUILD_NOT_LISTED = 3
+
 private const val DEFAULT_PORT = 43594
 
 /** The address players' PCs reach the server on: 127.0.0.1 through a tunnel, or the LAN address that forwards to it. */
@@ -28,22 +31,30 @@ private val publicHost: String = System.getenv("OSRSPS_PUBLIC_HOST") ?: "127.0.0
 fun main(args: Array<String>) {
     when (args.firstOrNull()) {
         null -> logger.info { "OSRSPS server skeleton, revision ${Revision.MAJOR}, Java ${Runtime.version()}" }
-        "fetch-cache" -> fetchCache()
+        "fetch-cache" -> fetchCache(args.getOrNull(1))
         "cache-info" -> cacheInfo()
         "serve" -> serve(args.getOrNull(1)?.toInt() ?: DEFAULT_PORT)
         "collision" -> printCollision(args.getOrNull(1)?.toInt() ?: 3222, args.getOrNull(2)?.toInt() ?: 3218, args.getOrNull(3)?.toInt() ?: 0)
         "dialogue-keys" -> writeDialogueKeys()
         else -> {
-            System.err.println("Usage: osrsps [fetch-cache | cache-info | serve [port] | collision [x z [level]] | dialogue-keys]  (HTTP config on port+1)")
+            System.err.println("Usage: osrsps [fetch-cache [build] | cache-info | serve [port] | collision [x z [level]] | dialogue-keys]  (HTTP config on port+1)")
             exitProcess(2)
         }
     }
 }
 
-private fun fetchCache() {
+/**
+ * Downloads OpenRS2's newest cache for our revision. With [build] (e.g. `241.4`) only when that is the newest build:
+ * otherwise nothing changes and it exits with [EXIT_BUILD_NOT_LISTED], so deploy/auto-deploy.sh can try again later.
+ */
+private fun fetchCache(build: String?) {
     val archive = OpenRs2Archive()
     val entry = OpenRs2Archive.selectLatest(archive.listCaches(), Revision.MAJOR)
         ?: error("OpenRS2 lists no live oldschool cache for revision ${Revision.MAJOR}")
+    if (build != null && entry.build != build) {
+        logger.warn { "OpenRS2's newest cache for revision ${Revision.MAJOR} is build ${entry.build}, not $build; not fetching" }
+        exitProcess(EXIT_BUILD_NOT_LISTED)
+    }
     logger.info { "Selected OpenRS2 cache ${entry.id}: build ${entry.build}, ${entry.timestamp}" }
     // Download and check into a sibling folder so a failed fetch leaves the current cache untouched.
     val staging = dataDir.resolve("cache.download")
