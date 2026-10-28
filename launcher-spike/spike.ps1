@@ -719,6 +719,21 @@ function Invoke-Normal
 	}
 }
 
+# Up to three tries, so that a dropped connection isn't taken for a missing file.
+function Invoke-Tries([scriptblock] $action)
+{
+	for ($try = 1; ; $try++)
+	{
+		try { return (& $action) }
+		catch
+		{
+			if ($try -ge 3) { throw }
+			Start-Sleep -Seconds (2 * $try)
+		}
+	}
+}
+
+# One of the plan's pass checks: the launcher's pin table needs older RuneLite builds to stay downloadable.
 function Invoke-Head
 {
 	foreach ($revision in $oldPins.Keys)
@@ -726,22 +741,22 @@ function Invoke-Head
 		$commit = $oldPins[$revision]
 		try
 		{
-			$old = Get-Text "https://raw.githubusercontent.com/runelite/static.runelite.net/$commit/bootstrap.json" | ConvertFrom-Json
+			$old = Invoke-Tries { Get-Text "https://raw.githubusercontent.com/runelite/static.runelite.net/$commit/bootstrap.json" } | ConvertFrom-Json
 			$artifacts = Select-WindowsX64 $old
 			$gone = @(foreach ($a in $artifacts)
 			{
 				try
 				{
-					$r = Invoke-WebRequest -UseBasicParsing -Method Head -TimeoutSec 30 -Uri $a.path
+					$r = Invoke-Tries { Invoke-WebRequest -UseBasicParsing -Method Head -TimeoutSec 30 -Uri $a.path }
 					$length = if ($r.Headers.ContainsKey('Content-Length')) { $r.Headers['Content-Length'] } else { $null }
 					if ($r.StatusCode -ne 200 -or ($length -and [long] $length -ne [long] $a.size)) { "$($a.name) ($($r.StatusCode), $length bytes)" }
 				}
 				catch { "$($a.name) ($($_.Exception.Message))" }
 			})
 			if ($gone.Count -eq 0) { Check "head.$revision" 'pass' "RuneLite $($old.version) (static.runelite.net $($commit.Substring(0, 7))): all $($artifacts.Count) Windows x64 jars still on RuneLite's repository" }
-			else { Check "head.$revision" 'warn' "RuneLite $($old.version): $($gone.Count) of $($artifacts.Count) jars not there: $($gone -join ', ')" }
+			else { Check "head.$revision" 'fail' "RuneLite $($old.version): $($gone.Count) of $($artifacts.Count) jars not there: $($gone -join ', ')" }
 		}
-		catch { Check "head.$revision" 'warn' "no bootstrap.json for $($commit.Substring(0, 7)): $($_.Exception.Message)" }
+		catch { Check "head.$revision" 'fail' "no bootstrap.json for $($commit.Substring(0, 7)): $($_.Exception.Message)" }
 	}
 }
 
