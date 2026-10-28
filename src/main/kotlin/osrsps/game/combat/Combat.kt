@@ -119,7 +119,7 @@ class Combat(
             attackRoll = attackRoll * CombatMath.twistedBowAccuracy(magic) / 100
             maxHit = maxHit * CombatMath.twistedBowDamage(magic) / 100
         }
-        val defenceRoll = CombatMath.npcDefenceRoll(npc.type.stats.defence, def.defence.against(AttackType.RANGED, style.weight))
+        val defenceRoll = rangedDefenceRoll(npc, style)!!
         return RangedMatchup(
             style = style,
             attackRoll = attackRoll,
@@ -127,6 +127,12 @@ class Combat(
             maxHit = maxHit,
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
+    }
+
+    /** [npc]'s defence roll against a ranged [style], or null when it has no combat definition. */
+    fun rangedDefenceRoll(npc: Npc, style: AttackStyle): Int? {
+        val def = npcCombat[npc.type] ?: return null
+        return CombatMath.npcDefenceRoll(npc.type.stats.defence, def.defence.against(AttackType.RANGED, style.weight))
     }
 
     /** [npc]'s melee numbers against [player], or null when it has no combat definition. */

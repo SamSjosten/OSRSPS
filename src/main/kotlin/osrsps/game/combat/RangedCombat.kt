@@ -83,7 +83,8 @@ class RangedCombat(
 ) {
     /**
      * A shot on its way to [npc]. [ammo] falls when it lands (null for a bounce, which fires nothing); [bounces] is how
-     * many more NPCs it can go on to, each hit for up to two thirds of [maxHit], the first shot's, in [travel].
+     * many more NPCs it can go on to, each rolled with [attackRoll] and [style], the first shot's, for up to two thirds
+     * of [maxHit], in [travel]. What the player wears or picks once it has left doesn't change them.
      */
     private class Shot(
         val player: Player,
@@ -92,6 +93,8 @@ class RangedCombat(
         val landTick: Long,
         val ammo: ObjType?,
         val bounces: Int = 0,
+        val style: AttackStyle? = null,
+        val attackRoll: Int = 0,
         val maxHit: Int = 0,
         val travel: Int = -1,
     )
@@ -195,7 +198,7 @@ class RangedCombat(
             // Accuracy first, then damage, as for melee; a shot's random draws are always these two.
             val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)) CombatMath.rollDamage(random, matchup.maxHit) else 0
             val damage = reserve(player, npc, style, rolled)
-            inFlight += Shot(player, npc, damage, landTick, ammoType, weapon.bounces, matchup.maxHit, travel)
+            inFlight += Shot(player, npc, damage, landTick, ammoType, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel)
         }
         return true
     }
@@ -215,8 +218,9 @@ class RangedCombat(
     /**
      * A Venator bow's shot that landed on [from] in a multi-way area goes on to another NPC within [BOUNCE_RANGE] of it
      * (OSRS Wiki, Venator bow): one picked at random that can be fought, possibly the first target again but never the
-     * one it just hit, whether the last hit missed or killed. Its accuracy is rolled on its own, against that NPC, and
-     * its max hit is two thirds of the first shot's, rounded down. Null when there is nowhere to go.
+     * one it just hit, whether the last hit missed or killed. Its accuracy is rolled on its own, the first shot's attack
+     * roll against that NPC's defence, and its max hit is two thirds of the first shot's, rounded down. Null when there
+     * is nowhere to go.
      *
      * Guessed: that the range is counted edge to edge as attack range is, that the NPC it goes to must be in a
      * multi-way area too, that no line of sight is needed, that it lands [BOUNCE_TICKS] after the hit before it, and
@@ -233,11 +237,12 @@ class RangedCombat(
         }.toList()
         if (targets.isEmpty()) return null
         val next = random.pick(targets)
-        val matchup = combat.rangedMatchup(shot.player, next) ?: return null
-        val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0
-        val damage = reserve(shot.player, next, matchup.style, rolled)
+        val style = shot.style ?: return null
+        val defenceRoll = combat.rangedDefenceRoll(next, style) ?: return null
+        val rolled = if (CombatMath.rollHits(random, shot.attackRoll, defenceRoll)) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0
+        val damage = reserve(shot.player, next, style, rolled)
         if (shot.travel >= 0) projectile(bounceFlight(from, next, shot.travel))
-        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, shot.maxHit, shot.travel)
+        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel)
     }
 
     /**
@@ -255,12 +260,14 @@ class RangedCombat(
             iterator.remove()
             val npc = shot.npc
             npc.incoming -= shot.damage
-            if (npcs[npc.index] === npc && !npc.dead) melee.hit(npc, shot.player, shot.damage, tick)
+            // A shot whose NPC is still there hits it, and bounces on even if that hit kills it.
+            val landed = npcs[npc.index] === npc && !npc.dead
+            if (landed) melee.hit(npc, shot.player, shot.damage, tick)
             // Guessed: under the NPC's south-west tile, where its drops go too.
             if (shot.ammo != null && !random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) {
                 dropAmmo(shot.ammo, npc.x, npc.z, npc.level, shot.player)
             }
-            if (shot.bounces > 0) bounce(shot, tick)?.let { bounced += it }
+            if (landed && shot.bounces > 0) bounce(shot, tick)?.let { bounced += it }
         }
         inFlight += bounced
     }

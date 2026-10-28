@@ -436,6 +436,39 @@ class RangedCombatTest {
     }
 
     @Test
+    fun `a Venator shot in the air bounces with what it was fired with`() {
+        alice.god = true
+        wield(alice, venator, steelArrow, 100)
+        val first = spawn(type = dummy, x = 3214)
+        val second = spawn(type = dummy, x = 3214, z = 3212)
+        multi.set(0, 3214, 3210, true)
+        attack(alice, first)
+        tick()
+        // A sword now, and no fight: the arrow on its way still bounces.
+        wield(alice, sword)
+        alice.interaction = null
+        repeat(4) { tick() }
+        assertEquals(2, projectiles.count { (_, flight) -> flight.sourceIndex > 0 }, projectiles.toString())
+    }
+
+    @Test
+    fun `a Venator shot doesn't bounce off an NPC that died before it landed`() {
+        wield(alice, venator, steelArrow, 100)
+        val first = spawn(type = dummy, x = 3214)
+        val second = spawn(type = dummy, x = 3214, z = 3212)
+        multi.set(0, 3214, 3210, true)
+        val left = second.hitpoints
+        attack(alice, first)
+        tick()
+        assertEquals(1, ranged.shotsInFlight)
+        // Gone before the arrow gets there: nothing to bounce off.
+        melee.hit(first, null, 10_000, tick)
+        repeat(4) { tick() }
+        assertTrue(projectiles.none { (_, flight) -> flight.sourceIndex > 0 }, projectiles.toString())
+        assertEquals(left, second.hitpoints)
+    }
+
+    @Test
     fun `in single-way combat the Venator bow's shot doesn't bounce`() {
         alice.god = true
         wield(alice, venator, steelArrow, 100)
