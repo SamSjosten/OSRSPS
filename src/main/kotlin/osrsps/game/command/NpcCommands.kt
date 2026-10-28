@@ -14,7 +14,7 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         val text = words.joinToString(" ")
         if (wander != null && wander !in 0..MAX_WANDER) fail("The wander range must be 0 to $MAX_WANDER")
         val type = world.npcTypes.lookup(text) ?: fail("No NPC '$text'. Try its id, its name, or its gameval name like cow2_calf")
-        val spawn = NpcSpawn(type, player.x, player.z, player.level, wander = wander ?: 0, source = "::npc by ${player.username}")
+        val spawn = NpcSpawn(type, player.x, player.z, player.level, wander = wander ?: 0, source = "::npc by ${player.username}", respawns = false)
         val npc = world.spawnNpc(spawn) ?: fail("No free NPC slot")
         reply("Spawned ${type.name} (${type.id}) as #${npc.index} at ${npc.x}, ${npc.z}" + if (spawn.wander > 0) ", wander ${spawn.wander}" else "")
     }

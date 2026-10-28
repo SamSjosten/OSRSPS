@@ -81,6 +81,8 @@ class MeleeCombat(
     private val loot: (Npc, Player?) -> Unit = { _, _ -> },
     /** A fight with a style melee doesn't fight with, or null for none: [RangedCombat.fight]. */
     private val ranged: (Player, Npc) -> Interaction? = { _, _ -> null },
+    /** Where the single-way rules below don't hold. */
+    private val multi: MultiCombat = MultiCombat(),
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -167,15 +169,21 @@ class MeleeCombat(
 
     /**
      * Whether another player hit [npc] within the last [IN_COMBAT_TICKS] ticks and is still here. Guessed: the Wiki
-     * says a single-way NPC stays someone's for a while after their last hit, but not how long.
+     * says a single-way NPC stays someone's for a while after their last hit, but not how long. Never for an NPC standing
+     * in a multi-way area (guessed: by the NPC's tile, not the player's).
      */
     internal fun foughtByAnother(player: Player, npc: Npc): Boolean {
+        if (multi.at(npc.level, npc.x, npc.z)) return false
         val other = npc.attacker ?: return false
         return other !== player && currentTick() - npc.attackedTick <= IN_COMBAT_TICKS && !other.loggedOut
     }
 
-    /** Whether an NPC other than [npc] is fighting [player] and hit them within the last [IN_COMBAT_TICKS] ticks. */
+    /**
+     * Whether an NPC other than [npc] is fighting [player] and hit them within the last [IN_COMBAT_TICKS] ticks. Never
+     * for a player standing in a multi-way area (guessed: by the player's tile).
+     */
     internal fun underAttackByAnother(player: Player, npc: Npc): Boolean {
+        if (multi.at(player.level, player.x, player.z)) return false
         val other = player.attackedBy ?: return false
         return other !== npc && other.target === player && !other.dead && currentTick() - player.attackedTick <= IN_COMBAT_TICKS
     }
@@ -302,7 +310,7 @@ class MeleeCombat(
                 // Never before the body has gone: a respawn no shorter than DEATH_TICKS and the removal above see to it.
                 check(npcs[entry.npc.index] !== entry.npc) { "${entry.npc} respawning with its body still there" }
                 iterator.remove()
-                spawnNpc(entry.npc.spawn)
+                if (entry.npc.spawn.respawns) spawnNpc(entry.npc.spawn)
             }
         }
         for (npc in npcs.all) {

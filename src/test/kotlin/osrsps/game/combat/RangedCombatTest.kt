@@ -41,37 +41,45 @@ class RangedCombatTest {
 
     /** Stands for anything with a lot of hitpoints, for counting shots. */
     private val dummy = NpcType(2668, "Dummy", ops = listOf(null, "Attack", null, null, null), internalName = "dummy", stats = NpcStats(hitpoints = 10_000))
-    private val npcTypes = NpcTypes.of(man, dummy)
+    /** A mage with 200 Magic, for the twisted bow. */
+    private val mage = NpcType(3257, "Mage", ops = listOf(null, "Attack", null, null, null), internalName = "mage", stats = NpcStats(hitpoints = 10_000, magic = 200))
+    private val npcTypes = NpcTypes.of(man, dummy, mage)
 
     // Bonuses as the 241 cache has them: param 4 ranged attack, 12 ranged strength, 14 attack speed.
     private val shortbow = ObjType(841, "Shortbow", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 8, 14 to 4), internalName = "shortbow", category = 64)
     private val darkbow = ObjType(11235, "Dark bow", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 95, 14 to 9), internalName = "darkbow", category = 64)
     private val runeCrossbow = ObjType(9185, "Rune crossbow", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 90, 14 to 6), internalName = "xbows_crossbow_runite", category = 37)
+    private val twistedBow = ObjType(20997, "Twisted bow", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 70, 12 to 20, 14 to 6), internalName = "twisted_bow", category = 64)
+    private val venator = ObjType(27610, "Venator bow", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 90, 12 to 25, 14 to 5), internalName = "venator_bow", category = 64)
     private val sword = ObjType(1277, "Bronze sword", wearpos1 = WearPos.WEAPON, params = mapOf(0 to 4, 14 to 4), internalName = "bronze_sword", category = 25)
     private val bronzeArrow = ObjType(882, "Bronze arrow", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
     private val steelArrow = ObjType(886, "Steel arrow", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 16), internalName = "steel_arrow")
     private val runiteBolts = ObjType(9144, "Runite bolts", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 115), internalName = "xbows_crossbow_bolts_runite")
     private val dragonBolts = ObjType(21905, "Dragon bolts", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 122), internalName = "dragon_bolts")
-    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, sword, bronzeArrow, steelArrow, runiteBolts, dragonBolts)
+    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, twistedBow, venator, sword, bronzeArrow, steelArrow, runiteBolts, dragonBolts)
 
     private val spotanims = SpotanimNames(
         mapOf(
             "bronze_arrow_launch" to 19, "double_bronze_arrow_launch" to 1104, "bronze_arrow_travel" to 10,
             "steel_arrow_launch" to 20, "double_steel_arrow_launch" to 1106, "steel_arrow_travel" to 11,
             "crossbowbolt_travel" to 27, "dragon_crossbowbolt_travel" to 1468,
+            "arrow_venator01_launch01" to 2289, "arrow_venator01_travel01" to 2291,
         ),
     )
     private val weapons = RangedWeapons.parse(
         """{ "weapons": [
             { "items": ["shortbow"], "ammo": "arrows", "tier": 1, "range": 7, "anim": "human_bow", "source": "test" },
             { "items": ["darkbow"], "ammo": "arrows", "tier": 7, "range": 10, "shots": 2, "anim": "human_bow", "source": "test" },
+            { "items": ["twisted_bow"], "ammo": "arrows", "tier": 7, "range": 10, "anim": "human_bow", "scaling": "twisted_bow", "source": "test" },
+            { "items": ["venator_bow"], "ammo": "arrows", "tier": 7, "range": 6, "anim": "human_weapon_bow_venator01_shoot", "bounces": 2,
+              "launch": "arrow_venator01_launch01", "travel": "arrow_venator01_travel01", "source": "test" },
             { "items": ["xbows_crossbow_runite"], "ammo": "bolts", "tier": 7, "range": 7, "anim": "xbows_human_fire_and_reload_pvn", "source": "test" } ],
           "ammo": [
             { "items": ["bronze_arrow"], "ammo": "arrows", "tier": 1, "launch": "bronze_arrow_launch", "doubleLaunch": "double_bronze_arrow_launch", "travel": "bronze_arrow_travel" },
             { "items": ["steel_arrow"], "ammo": "arrows", "tier": 2, "launch": "steel_arrow_launch", "doubleLaunch": "double_steel_arrow_launch", "travel": "steel_arrow_travel" },
             { "items": ["xbows_crossbow_bolts_runite"], "ammo": "bolts", "tier": 7, "travel": "crossbowbolt_travel" },
             { "items": ["dragon_bolts"], "ammo": "bolts", "tier": 8, "travel": "dragon_crossbowbolt_travel" } ] }""",
-        objTypes, SeqNames(mapOf("human_bow" to 426, "xbows_human_fire_and_reload_pvn" to 7552)), spotanims,
+        objTypes, SeqNames(mapOf("human_bow" to 426, "xbows_human_fire_and_reload_pvn" to 7552, "human_weapon_bow_venator01_shoot" to 9858)), spotanims,
     )
 
     // The bow (3) and crossbow (5) rows as the 241 cache has them.
@@ -101,7 +109,7 @@ class RangedCombatTest {
         ),
     )
     private val npcCombat = NpcCombat.parse(
-        """{ "npcs": [ { "npcs": ["man", "dummy"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0,
+        """{ "npcs": [ { "npcs": ["man", "dummy", "mage"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0,
             "strengthBonus": 0,
             "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": 10, "standard": 0, "heavy": -10 },
             "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" } ] }""",
@@ -116,7 +124,8 @@ class RangedCombatTest {
     private val messages = mutableListOf<Pair<Player, String>>()
     private val projectiles = mutableListOf<Pair<Long, Projectile>>()
     private val dropped = mutableListOf<Triple<ObjType, Pair<Int, Int>, Player>>()
-    private val combat = Combat(Equipment(objTypes), styles, npcCombat)
+    private val combat = Combat(Equipment(objTypes), styles, npcCombat, weapons)
+    private val multi = MultiCombat()
     private lateinit var melee: MeleeCombat
     private lateinit var ranged: RangedCombat
     private val interactions = NpcInteractions(
@@ -137,12 +146,14 @@ class RangedCombatTest {
             message = { player, text -> messages += player to text },
             players = { sequenceOf(alice, bob) },
             ranged = { player, npc -> ranged.fight(player, npc) },
+            multi = multi,
         )
         ranged = RangedCombat(
             npcs, map, movement, combat, objTypes, weapons, melee, random, { tick },
             projectile = { projectiles += tick to it },
             dropAmmo = { type, x, z, _, owner -> dropped += Triple(type, x to z, owner) },
             message = { player, text -> messages += player to text },
+            multi = multi,
         )
         wield(alice, shortbow, bronzeArrow, 100)
     }
@@ -375,6 +386,100 @@ class RangedCombatTest {
         tick(bob, alice)
         assertNull(alice.interaction)
         assertTrue(alice to MeleeCombat.SOMEONE_ELSE in messages, messages.toString())
+    }
+
+    @Test
+    fun `the twisted bow's roll and max hit grow with the NPC's Magic`() {
+        alice.skills.setLevel(Skill.RANGED, 99)
+        wield(alice, twistedBow, steelArrow, 100)
+        val low = combat.rangedMatchup(alice, spawn(type = dummy))!!
+        val high = combat.rangedMatchup(alice, spawn(type = mage, x = 3212))!!
+        // On accurate, (99 + 3 + 8) * (70 + 64) and ((99 + 3 + 8) * (20 + 16 + 64) + 320) / 640 = 17, then the bow's percentages.
+        val roll = 110 * 134
+        assertEquals(roll * CombatMath.twistedBowAccuracy(1) / 100, low.attackRoll)
+        assertEquals(17 * CombatMath.twistedBowDamage(1) / 100, low.maxHit)
+        assertEquals(roll * CombatMath.twistedBowAccuracy(200) / 100, high.attackRoll)
+        assertEquals(17 * CombatMath.twistedBowDamage(200) / 100, high.maxHit)
+        assertTrue(high.maxHit > 17 && low.maxHit < 17, "${low.maxHit} and ${high.maxHit}")
+    }
+
+    @Test
+    fun `the Venator bow's shot bounces to two more NPCs nearby in multi-way combat`() {
+        alice.god = true
+        wield(alice, venator, steelArrow, 100)
+        val first = spawn(type = dummy, x = 3214)
+        val second = spawn(type = dummy, x = 3214, z = 3212)
+        // Further than two tiles from either: never bounced to.
+        val far = spawn(type = dummy, x = 3214, z = 3215)
+        multi.set(0, 3214, 3210, true)
+        assertTrue(multi.at(0, far.x, far.z) && multi.at(0, alice.x, alice.z), "the same zone")
+        attack(alice, first)
+        tick()
+        assertEquals(2291, projectiles.single().second.id)
+        assertEquals(2289, alice.effects.pendingSpotanims[0]?.id)
+        // The shot lands on tick 4 (distance 4: 2 ticks, and one on an NPC), then a bounce on each of the next two ticks.
+        repeat(4) { tick() }
+        val bounces = projectiles.filter { (_, flight) -> flight.sourceIndex > 0 }
+        assertEquals(listOf(4L, 5L), bounces.map { it.first }, projectiles.toString())
+        assertEquals(first.index + 1 to second.index + 1, bounces[0].second.sourceIndex to bounces[0].second.targetIndex)
+        // The only NPC within two tiles of the second is the first again.
+        assertEquals(second.index + 1 to first.index + 1, bounces[1].second.sourceIndex to bounces[1].second.targetIndex)
+        assertEquals(2291, bounces[0].second.id)
+        assertEquals(10_000, far.hitpoints)
+        assertTrue(second.attacker === alice)
+        // Bounces fire no ammunition: one arrow for the one shot.
+        assertEquals(99, ammoLeft(alice))
+        alice.interaction = null
+        repeat(2) { tick() }
+        assertEquals(0, ranged.shotsInFlight)
+        assertEquals(0, first.incoming + second.incoming)
+    }
+
+    @Test
+    fun `a Venator shot in the air bounces with what it was fired with`() {
+        alice.god = true
+        wield(alice, venator, steelArrow, 100)
+        val first = spawn(type = dummy, x = 3214)
+        val second = spawn(type = dummy, x = 3214, z = 3212)
+        multi.set(0, 3214, 3210, true)
+        attack(alice, first)
+        tick()
+        // A sword now, and no fight: the arrow on its way still bounces.
+        wield(alice, sword)
+        alice.interaction = null
+        repeat(4) { tick() }
+        assertEquals(2, projectiles.count { (_, flight) -> flight.sourceIndex > 0 }, projectiles.toString())
+    }
+
+    @Test
+    fun `a Venator shot doesn't bounce off an NPC that died before it landed`() {
+        wield(alice, venator, steelArrow, 100)
+        val first = spawn(type = dummy, x = 3214)
+        val second = spawn(type = dummy, x = 3214, z = 3212)
+        multi.set(0, 3214, 3210, true)
+        val left = second.hitpoints
+        attack(alice, first)
+        tick()
+        assertEquals(1, ranged.shotsInFlight)
+        // Gone before the arrow gets there: nothing to bounce off.
+        melee.hit(first, null, 10_000, tick)
+        repeat(4) { tick() }
+        assertTrue(projectiles.none { (_, flight) -> flight.sourceIndex > 0 }, projectiles.toString())
+        assertEquals(left, second.hitpoints)
+    }
+
+    @Test
+    fun `in single-way combat the Venator bow's shot doesn't bounce`() {
+        alice.god = true
+        wield(alice, venator, steelArrow, 100)
+        val first = spawn(type = dummy, x = 3214)
+        val second = spawn(type = dummy, x = 3214, z = 3212)
+        attack(alice, first)
+        repeat(8) { tick() }
+        assertEquals(2, projectiles.size)
+        assertTrue(projectiles.all { (_, flight) -> flight.sourceIndex == -(alice.index + 1) })
+        assertEquals(10_000, second.hitpoints)
+        assertNull(second.attacker)
     }
 
     companion object {

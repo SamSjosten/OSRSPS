@@ -42,7 +42,7 @@ class RangedWeaponsTest {
     @Test
     fun `the file lists every bow, crossbow and ammunition it names`() {
         assertEquals(names.size, weapons.weaponCount + weapons.ammoCount)
-        assertEquals(25, weapons.weaponCount)
+        assertEquals(28, weapons.weaponCount)
         assertEquals(16, weapons.ammoCount)
     }
 
@@ -72,6 +72,24 @@ class RangedWeaponsTest {
         assertEquals(8, weapons.weapon(type("zaryte_xbow"))!!.range)
         assertEquals(2, weapons.weapon(type("darkbow"))!!.shots)
         assertEquals(1, weapons.weapon(type("shortbow"))!!.shots)
+    }
+
+    @Test
+    fun `the twisted bow scales, the Venator bow bounces twice with its own graphics, the uncharged one doesn't`() {
+        val twisted = weapons.weapon(type("twisted_bow"))!!
+        assertEquals(RangedScaling.TWISTED_BOW, twisted.scaling)
+        assertEquals(10, twisted.range)
+        assertTrue(fires("twisted_bow", "dragon_arrow"))
+        assertEquals(-1, twisted.travel)
+        val venator = weapons.weapon(type("venator_bow"))!!
+        assertEquals(2, venator.bounces)
+        assertEquals(6, venator.range)
+        assertTrue(venator.launch > 0 && venator.travel > 0)
+        assertNull(venator.scaling)
+        val uncharged = weapons.weapon(type("venator_bow_uncharged"))!!
+        assertEquals(0, uncharged.bounces)
+        assertTrue(uncharged.travel > 0 && uncharged.travel != venator.travel)
+        assertEquals(0, weapons.weapon(type("shortbow"))!!.bounces)
     }
 
     @Test
