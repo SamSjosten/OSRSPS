@@ -100,7 +100,8 @@ class RangedCombat(
         val travel: Int = -1,
         /** Whether its accuracy roll passed, which decides a chinchompa's blast too. */
         val hit: Boolean = false,
-        val splash: Boolean = false,
+        /** How many NPCs its blast can hit, its target among them; 1 for no blast. */
+        val targets: Int = 1,
     )
 
     private val inFlight = ArrayList<Shot>()
@@ -249,7 +250,7 @@ class RangedCombat(
             val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)
             val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
             val damage = reserve(player, npc, style, rolled)
-            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.splash)
+            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets)
         }
     }
 
@@ -298,12 +299,14 @@ class RangedCombat(
     /**
      * A chinchompa landing on [shot]'s NPC in a multi-way area blows up the 3x3 around it, centred on its south-west tile
      * (OSRS Wiki, Multicombat area: its "true tile"): every other NPC there that is in a multi-way area too is hit if the
-     * target was, and missed if it was missed (OSRS Wiki, Chinchompa (weapon)). In single-way combat only the target is
-     * hit (OSRS Wiki, Multicombat area).
+     * target was, and missed if it was missed (OSRS Wiki, Chinchompa (weapon)), up to the weapon's cap: 11 NPCs, or 12
+     * for black chinchompas (OSRS Wiki, Chinchompa, Black chinchompa). In single-way combat only the target is hit (OSRS
+     * Wiki, Multicombat area).
      *
-     * Guessed: that each NPC's damage is rolled on its own, 0 to the throw's max hit; that there is no cap on how many
-     * are hit; that an NPC is in the area when its south-west tile is; and that their XP comes as the blast lands. The
-     * explosion graphic isn't shown yet: NPCs have no spotanims here.
+     * Guessed: that each NPC's damage is rolled on its own, 0 to the throw's max hit; that the cap counts the target;
+     * which NPCs the cap leaves out (here the ones last in the NPC list); that an NPC is in the area when its south-west
+     * tile is; and that their XP comes as the blast lands. The explosion graphic isn't shown yet: NPCs have no spotanims
+     * here.
      */
     private fun splash(shot: Shot, tick: Long) {
         val from = shot.npc
@@ -312,7 +315,7 @@ class RangedCombat(
         val around = npcs.all.filter { npc ->
             npc !== from && !npc.dead && npc.level == from.level && combat.npcCombat[npc.type] != null &&
                 abs(npc.x - from.x) <= SPLASH_RADIUS && abs(npc.z - from.z) <= SPLASH_RADIUS && multi.at(npc.level, npc.x, npc.z)
-        }.toList()
+        }.take(shot.targets - 1).toList()
         for (npc in around) {
             val rolled = if (shot.hit) CombatMath.rollDamage(random, shot.maxHit) else 0
             val damage = reserve(shot.player, npc, style, rolled)
@@ -344,7 +347,7 @@ class RangedCombat(
                 dropAmmo(shot.ammo, npc.x, npc.z, npc.level, shot.player)
             }
             if (landed && shot.bounces > 0) bounce(shot, tick)?.let { bounced += it }
-            if (landed && shot.splash) splash(shot, tick)
+            if (landed && shot.targets > 1) splash(shot, tick)
         }
         inFlight += bounced
     }

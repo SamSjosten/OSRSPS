@@ -80,7 +80,7 @@ class RangedCombatTest {
               "launch": "arrow_venator01_launch01", "travel": "arrow_venator01_travel01", "source": "test" },
             { "items": ["toxic_blowpipe_loaded", "toxic_blowpipe"], "ammo": "darts", "tier": 7, "range": 5, "anim": "snakeboss_blowpipe_attack",
               "loaded": true, "delay": "thrown", "source": "test" },
-            { "items": ["chinchompa_black"], "ammo": "chinchompas", "tier": 1, "range": 9, "anim": "human_chinchompa_attack_pvn",
+            { "items": ["chinchompa_black"], "ammo": "chinchompas", "tier": 1, "range": 9, "targets": 3, "anim": "human_chinchompa_attack_pvn",
               "travel": "black_chinchompa_grenade", "thrown": true, "delay": "thrown", "source": "test" },
             { "items": ["xbows_crossbow_runite"], "ammo": "bolts", "tier": 7, "range": 7, "anim": "xbows_human_fire_and_reload_pvn", "source": "test" } ],
           "ammo": [
@@ -661,6 +661,22 @@ class RangedCombatTest {
         val dealt = listOf(target, beside, corner).sumOf { 10_000 - it.hitpoints }
         assertEquals(dealt * 40, alice.skills.tenths(Skill.RANGED) - before)
         assertTrue(dealt > 10_000 - target.hitpoints)
+    }
+
+    @Test
+    fun `a blast hits no more NPCs than the chinchompa's cap, its target among them`() {
+        alice.god = true
+        alice.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
+        wield(alice, chinchompa)
+        val target = spawn(type = dummy, x = 3214, z = 3211)
+        // Three more around it; the test file's cap of 3 leaves room for two.
+        val around = listOf(spawn(type = dummy, x = 3215, z = 3212), spawn(type = dummy, x = 3213, z = 3210), spawn(type = dummy, x = 3215, z = 3210))
+        multi.set(0, 3214, 3211, true)
+        attack(alice, target)
+        repeat(4) { tick() }
+        assertEquals(1, projectiles.size)
+        assertEquals(2, around.count { it.attacker === alice }, around.map { it.attacker }.toString())
+        assertTrue(target.attacker === alice)
     }
 
     @Test

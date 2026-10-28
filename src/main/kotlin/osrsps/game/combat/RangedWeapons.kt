@@ -22,7 +22,7 @@ enum class AmmoKind {
     BOLTS,
     DARTS,
 
-    /** Thrown from the weapon slot ([RangedWeapon.thrown]), and blowing up in a 3x3 area ([RangedWeapon.splash]). */
+    /** Thrown from the weapon slot ([RangedWeapon.thrown]), and blowing up in a 3x3 area ([RangedWeapon.targets]). */
     CHINCHOMPAS,
 }
 
@@ -55,11 +55,16 @@ data class RangedWeapon(
     val delay: HitDelay = HitDelay.BOW,
     /** Whether it is its own ammunition: each throw takes one from the stack in the weapon slot. */
     val thrown: Boolean = false,
+    /**
+     * How many NPCs one throw can hit in multi-way combat, its target among them (guessed: the Wiki doesn't say): more
+     * than 1 for chinchompas, which hit those around their target too.
+     */
+    val targets: Int = 1,
 ) {
     fun fires(ammo: RangedAmmo): Boolean = ammo.kind == kind && ammo.tier <= tier
 
-    /** Whether it hits everything around its target in multi-way combat, as chinchompas do. */
-    val splash: Boolean get() = kind == AmmoKind.CHINCHOMPAS
+    /** Whether it hits the NPCs around its target in multi-way combat, as chinchompas do. */
+    val splash: Boolean get() = targets > 1
 }
 
 /**
@@ -109,7 +114,8 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
          *
          * Items are gameval names. `shots`, `launch` and `doubleLaunch` may be left out (1, none, none). A weapon may
          * also have `"scaling": "twisted_bow"`, `"bounces"` (0 to 2), its own `launch` and `travel`, `"loaded": true`
-         * (the blowpipe), `"thrown": true` (chinchompas, which must be) and a `"delay"` other than the bow's. Animations and
+         * (the blowpipe), `"thrown": true` (chinchompas, which must be), `"targets"` (chinchompas' cap, which they must have)
+         * and a `"delay"` other than the bow's. Animations and
          * spotanims are gameval names too; one [seqs] or [spotanims] doesn't know fails the file, unless it knows no
          * names at all (a cache with no gameval index), when they are all left out. An item the cache doesn't have is
          * skipped with a warning.
@@ -167,7 +173,11 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
                             ?: throw IllegalArgumentException("unknown delay '$text'")
                     } ?: HitDelay.BOW,
                     thrown = entry["thrown"]?.jsonPrimitive?.content?.toBooleanStrict() ?: false,
-                ).also { require(it.kind != AmmoKind.CHINCHOMPAS || it.thrown) { "chinchompas are thrown" } }
+                    targets = entry["targets"]?.jsonPrimitive?.int?.also { require(it in 1..MAX_TARGETS) { "targets $it" } } ?: 1,
+                ).also {
+                    require(it.kind != AmmoKind.CHINCHOMPAS || it.thrown) { "chinchompas are thrown" }
+                    require((it.kind == AmmoKind.CHINCHOMPAS) == it.splash) { "only chinchompas have \"targets\", and they must" }
+                }
             }
             val ammo = read("ammo") { entry ->
                 RangedAmmo(
@@ -200,6 +210,9 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
 
         /** The Wiki's longest attack range; longrange's +2 stops here too. */
         const val MAX_RANGE = 10
+
+        /** Black chinchompas': 12 in PvM (OSRS Wiki, Black chinchompa). */
+        const val MAX_TARGETS = 12
 
         /** The Venator bow's: a shot goes on to up to two more targets (OSRS Wiki, Venator bow). */
         const val MAX_BOUNCES = 2
