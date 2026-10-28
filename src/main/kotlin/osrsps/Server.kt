@@ -43,8 +43,10 @@ import osrsps.net.Js5Store
 import osrsps.net.RelayAwareValidator
 import osrsps.net.NetworkFactory
 import osrsps.net.RsaKeys
+import osrsps.net.RuneLitePins
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 private val logger = KotlinLogging.logger {}
 
@@ -65,7 +67,8 @@ class GameServer(
     private val relays: Set<String> = emptySet(),
 ) {
     private lateinit var world: World
-    private val clientConfig = ClientConfig(publicHost, httpPort, gamePort = port, version = version)
+    private val clientConfig = ClientConfig(publicHost, httpPort, gamePort = port, version = version, runelitePins = RuneLitePins.load())
+    private val js5Connections = AtomicLong()
     private lateinit var factory: NetworkFactory
     private lateinit var network: NetworkService<Player>
 
@@ -148,7 +151,8 @@ class GameServer(
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
         )
         loadObjSpawns(objTypes)
-        factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays)
+        factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, js5Connections)
+        clientConfig.liveStatus = { listOf("js5 connections ${js5Connections.get()}") }
         network = factory.build()
         world.network = network
         network.start()

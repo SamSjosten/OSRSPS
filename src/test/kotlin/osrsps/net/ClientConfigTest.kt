@@ -1,10 +1,12 @@
 package osrsps.net
 
+import osrsps.Revision
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class ClientConfigTest {
     private val config = ClientConfig("192.168.0.210", 43595)
@@ -51,6 +53,18 @@ class ClientConfigTest {
     }
 
     @Test
+    fun `the RSProx target pins the RuneLite build for the server's revision`() {
+        val pin = RuneLitePin(Revision.MAJOR, "1.13.4", "1e634e64717418713898b06061a189ec1cdf948d", "25f22ff874ddf8c4016c8d03150c24920cdaa536ae7ad44aed36173c826c0b2a")
+        val pinned = ClientConfig("192.168.0.210", 43595, runelitePins = RuneLitePins(mapOf(pin.revision to pin))).apply { modulusHex = "ff" }
+        assertContains(pinned.proxyTargets()!!.lines(), "    runelite_bootstrap_commithash: 1e634e64717418713898b06061a189ec1cdf948d")
+
+        // A build for another revision isn't one RSProx should launch for this server.
+        val other = pin.copy(revision = Revision.MAJOR - 1)
+        val unpinned = ClientConfig("192.168.0.210", 43595, runelitePins = RuneLitePins(mapOf(other.revision to other))).apply { modulusHex = "ff" }
+        assertFalse(unpinned.proxyTargets()!!.contains("runelite_bootstrap_commithash"))
+    }
+
+    @Test
     fun `the RSProx target names the game port when it isn't 43594`() {
         val other = ClientConfig("10.0.0.5", 50001, gamePort = 50000).apply { modulusHex = "ff" }
         assertContains(other.proxyTargets()!!.lines(), "    game_server_port: 50000")
@@ -79,6 +93,11 @@ class ClientConfigTest {
                 "commit 3c1b194\ncache openrs2 runescape/2740 build 241.3 2026-10-14\nGame frame: ids match the cache's names\n",
                 url.readText(),
             )
+            var js5 = 0
+            http.liveStatus = { listOf("js5 connections $js5") }
+            assertEquals("js5 connections 0", url.readText().lines().dropLast(1).last())
+            js5 = 3
+            assertEquals("js5 connections 3", url.readText().lines().dropLast(1).last())
         } finally {
             http.stop()
         }
