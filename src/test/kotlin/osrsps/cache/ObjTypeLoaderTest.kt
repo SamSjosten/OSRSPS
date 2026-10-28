@@ -49,6 +49,7 @@ class ObjTypeLoaderTest {
         writeByte(251)
         writeByte(15)
         writeByte(160)
+        writeByte(161); writeShort(2); writeShort(15_118); writeShort(15_119)
         writeByte(40); writeByte(1); writeShort(61); writeShort(5652)
         writeByte(43); writeByte(1); writeByte(1); write("Sub".toByteArray()); writeByte(0); writeByte(0)
         string(2, "Test axe")
