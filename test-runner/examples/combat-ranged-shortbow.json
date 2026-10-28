@@ -23,6 +23,7 @@
   {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000},
   {"step": "assertMessage", "contains": "You can't use that ammo with your bow.", "timeoutMs": 20000, "comment": "a plain shortbow fires bronze and iron arrows only; guessed wording"},
   {"step": "assertEquipment", "slot": "ammo", "item": "Steel arrow"},
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "the man fights back once shot; kill him (::kill picks the man attacking you) so the next script finds no fight going on"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }
