@@ -81,7 +81,10 @@ private fun serve(port: Int) {
     val admins = Admins.parse(System.getenv("OSRSPS_ADMINS"))
     // The git commit deploy/auto-deploy.sh built this from, served at /version so scripts can wait for a deploy.
     val version = System.getenv("OSRSPS_COMMIT")?.takeIf { it.isNotBlank() } ?: ClientConfig.UNKNOWN_VERSION
-    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins, version)
+    // Addresses, comma separated, that forward many players (the VPS relay); each may hold more than 10 connections.
+    val relays = System.getenv("OSRSPS_RELAYS").orEmpty().split(',').map(String::trim).filter(String::isNotEmpty).toSet()
+    if (relays.isNotEmpty()) logger.info { "Relays: ${relays.joinToString()}" }
+    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins, version, relays)
     server.start()
     Runtime.getRuntime().addShutdownHook(Thread(server::stop))
 }

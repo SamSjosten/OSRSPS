@@ -40,6 +40,7 @@ import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
+import osrsps.net.RelayAwareValidator
 import osrsps.net.NetworkFactory
 import osrsps.net.RsaKeys
 import java.nio.file.Path
@@ -60,6 +61,8 @@ class GameServer(
     private val admins: Admins = Admins.EVERYONE,
     /** The git commit this server was built from, served at /version; see [ClientConfig]. */
     version: String = ClientConfig.UNKNOWN_VERSION,
+    /** Addresses that forward many players, exempt from the per-address connection limit; see [RelayAwareValidator]. */
+    private val relays: Set<String> = emptySet(),
 ) {
     private lateinit var world: World
     private val clientConfig = ClientConfig(publicHost, httpPort, gamePort = port, version = version)
@@ -145,7 +148,7 @@ class GameServer(
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
         )
         loadObjSpawns(objTypes)
-        factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world)
+        factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays)
         network = factory.build()
         world.network = network
         network.start()

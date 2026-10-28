@@ -727,6 +727,12 @@ next login. To reset a forgotten password, delete that name's file on the VM; th
 rm /srv/rsps/OSRSPS/data/accounts/<name>.json
 ```
 
+Guessing is slowed by name, since every player from the internet arrives from the one VPS relay address: 5 wrong
+passwords in a row lock that name for 5 minutes (the client says "Too many login attempts"), and at most 32 logins wait
+on a password check at once. A lock only lives in memory, so a restart clears it. The relay addresses in
+`OSRSPS_RELAYS` (comma separated) are exempt from RSProt's limit of 10 connections per address; every other address
+keeps it.
+
 ## Scenarios
 
 A scenario sets a player up for a test in one go: where they stand, their skills, inventory, equipment, run energy and

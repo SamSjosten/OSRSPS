@@ -34,11 +34,29 @@ class HeadlessAccountsTest {
         }
     }
 
+    @Test
+    fun `five wrong passwords lock the name, even against the right one`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            server.login("carol", "mine").close()
+            repeat(5) {
+                val wrong = assertFailsWith<LoginFailedException> { server.login("carol", "guess$it") }
+                assertEquals(INVALID_USERNAME_OR_PASSWORD, wrong.code)
+            }
+            val locked = assertFailsWith<LoginFailedException> { server.login("carol", "mine") }
+            assertEquals(TOO_MANY_ATTEMPTS, locked.code)
+            // Another name isn't touched.
+            server.login("dave", "his").close()
+        }
+    }
+
     private companion object {
         /** The client's login response for "Invalid username or password". */
         const val INVALID_USERNAME_OR_PASSWORD = 3
 
         /** "Your account is already logged in." */
         const val ALREADY_LOGGED_IN = 5
+
+        /** "Too many login attempts. Please wait a few minutes before trying again." */
+        const val TOO_MANY_ATTEMPTS = 16
     }
 }

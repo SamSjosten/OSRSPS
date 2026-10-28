@@ -8,6 +8,8 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import net.rsprot.protocol.api.GameConnectionHandler
 import net.rsprot.protocol.api.bootstrap.BootstrapBuilder
+import net.rsprot.protocol.api.InetAddressValidator
+import net.rsprot.protocol.api.handlers.INetAddressHandlers
 import net.rsprot.protocol.api.handlers.LoginHandlers
 import net.rsprot.protocol.api.js5.Js5GroupProvider
 import net.rsprot.protocol.common.client.OldSchoolClientType
@@ -55,6 +57,8 @@ class NetworkFactory(
     private val huffman: HuffmanCodecProvider,
     private val js5: Js5GroupProvider,
     private val world: World,
+    /** Addresses that relay many players' connections, such as a forwarding VPS; see [RelayAwareValidator]. */
+    private val relays: Set<String> = emptySet(),
 ) : AbstractNetworkServiceFactory<Player>() {
     override val ports: List<Int> get() = listOf(port)
 
@@ -77,6 +81,8 @@ class NetworkFactory(
     override fun getJs5GroupProvider(): Js5GroupProvider = js5
 
     override fun getGameConnectionHandler(): GameConnectionHandler<Player> = world
+
+    override fun getINetAddressHandlers(): INetAddressHandlers = INetAddressHandlers(RelayAwareValidator(relays))
 
     // Proof of work only slows down logins on a private test server.
     override fun getLoginHandlers(): LoginHandlers = LoginHandlers(proofOfWorkProvider = NopProofOfWorkProvider)
@@ -172,5 +178,32 @@ private class ServerChannelTracker : ChannelInboundHandlerAdapter() {
     fun closeAll() {
         for (channel in channels) channel.close().syncUninterruptibly()
         channels.clear()
+    }
+}
+
+/**
+ * RSProt's per-address connection limit, game and JS5 each, except for [relays]: everyone a relay forwards arrives from
+ * its address, so the usual limit would let only a handful of them in at once. Logins through a relay are slowed by
+ * name instead (osrsps.game.LoginGuard), and the relay limits each player's own address.
+ */
+class RelayAwareValidator(
+    private val relays: Set<String>,
+    private val limit: Int = LIMIT,
+    private val relayLimit: Int = RELAY_LIMIT,
+) : InetAddressValidator {
+    private fun limitFor(address: String) = if (address in relays) relayLimit else limit
+
+    override fun acceptGameConnection(address: String, activeGameConnections: Int): Boolean =
+        activeGameConnections < limitFor(address)
+
+    override fun acceptJs5Connection(address: String, activeJs5Connections: Int, seed: IntArray): Boolean =
+        activeJs5Connections < limitFor(address)
+
+    companion object {
+        /** RSProt's own default. */
+        const val LIMIT = 10
+
+        /** Room for a full world, as each player holds a game connection and, while loading, a JS5 one. */
+        const val RELAY_LIMIT = 2 * World.MAX_PLAYERS
     }
 }

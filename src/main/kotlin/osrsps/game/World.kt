@@ -79,6 +79,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 private val logger = KotlinLogging.logger {}
 
@@ -125,6 +126,8 @@ class World(
     val npcDrops: NpcDrops = NpcDrops.NONE,
     /** The bows, crossbows and ammunition [RangedCombat] fires; tests that shoot pass their own. */
     rangedWeapons: RangedWeapons = RangedWeapons.NONE,
+    /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
+    private val loginGuard: LoginGuard = LoginGuard(),
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -277,6 +280,9 @@ class World(
      * as one name can't both claim it.
      */
     private val authExecutor = Executors.newSingleThreadExecutor { Thread(it, "login-auth").apply { isDaemon = true } }
+
+    /** Logins queued for or in a password check, held to [MAX_AUTH_WAITING] so a flood can't queue hashes without end. */
+    private val authWaiting = AtomicInteger()
     var tick: Long = 0
         private set
 
@@ -313,11 +319,33 @@ class World(
             responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
             return
         }
-        authExecutor.execute { checkPassword(responseHandler, block, password) }
+        // The relay puts every internet player behind one address, so the address limit above can't stop a flood.
+        if (authWaiting.incrementAndGet() > MAX_AUTH_WAITING) {
+            authWaiting.decrementAndGet()
+            logger.info { "Rejecting ${block.username}: $MAX_AUTH_WAITING logins are already waiting on a password check" }
+            responseHandler.writeFailedResponse(LoginResponse.TooManyAttempts)
+            password.fill('\u0000')
+            return
+        }
+        authExecutor.execute {
+            try {
+                checkPassword(responseHandler, block, password)
+            } finally {
+                authWaiting.decrementAndGet()
+            }
+        }
     }
 
     /** On the login-auth thread: queues the login if [password] is right for its name, or claims the name for it. */
     private fun checkPassword(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<AuthenticationType>, password: CharArray) {
+        val key = SaveStore.saveKey(block.username)
+        // Checked before hashing, so guesses at a locked name cost nothing. The client says to wait a few minutes.
+        if (key != null && loginGuard.locked(key)) {
+            password.fill('\u0000')
+            logger.info { "Rejecting ${block.username}: locked after ${LoginGuard.MAX_WRONG} wrong passwords" }
+            responseHandler.writeFailedResponse(LoginResponse.TooManyAttempts)
+            return
+        }
         val check = try {
             accounts.check(block.username, password)
         } catch (e: Exception) {
@@ -329,12 +357,14 @@ class World(
         }
         when (check) {
             Accounts.Check.WRONG_PASSWORD -> {
+                loginGuard.wrongPassword(key!!)
                 logger.info { "Rejecting ${block.username}: wrong password" }
                 responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
                 return
             }
             Accounts.Check.CLAIMED -> logger.info { "${block.username} claimed their name" }
-            Accounts.Check.MATCHED, Accounts.Check.NO_SUCH_NAME -> {}
+            Accounts.Check.MATCHED -> loginGuard.rightPassword(key!!)
+            Accounts.Check.NO_SUCH_NAME -> {}
         }
         pendingLogins.add(PendingLogin(responseHandler, block))
     }
@@ -1242,6 +1272,12 @@ class World(
 
         /** How long an emptied slot is kept from logins while others are free: 10 cycles (6 s). Guessed. */
         const val SLOT_HOLD_CYCLES = 10L
+
+        /**
+         * Logins at most waiting on a password check; more are refused with "too many login attempts". At tens of ms a
+         * hash, 32 is a second or two of work. Our own figure.
+         */
+        const val MAX_AUTH_WAITING = 32
 
         /** Guessed bound on clicks held per player while paused, so a long pause can't pile them up without end. */
         const val MAX_HELD_ACTIONS = 50
