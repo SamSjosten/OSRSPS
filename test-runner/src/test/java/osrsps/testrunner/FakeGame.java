@@ -79,6 +79,13 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public String pressEnterAgain()
+	{
+		actions.add("enter again");
+		return "fake focus";
+	}
+
+	@Override
 	public String walk(int x, int y)
 	{
 		actions.add("walk " + x + " " + y);

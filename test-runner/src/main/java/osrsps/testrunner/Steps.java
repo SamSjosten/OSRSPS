@@ -39,9 +39,17 @@ final class Steps
 	/** Sends a chat line, normally a ::command, and optionally waits for a chat message the server answers with. */
 	static final class Chat extends Step
 	{
+		/** Game ticks between Enter presses while the client leaves the line in its input, and how many to press. */
+		static final int ENTER_RETRY_TICKS = 2;
+		static final int ENTER_RETRIES = 5;
+
 		final String text;
 		final String expectMessage;
 		private boolean sent;
+		/** The game tick of the last Enter press, and how many presses came after the first. */
+		private int enterTick;
+		private int retries;
+		private String focusNote;
 
 		Chat(String type, long timeoutMs, String text, String expectMessage)
 		{
@@ -62,10 +70,20 @@ final class Steps
 					return Poll.fail(error);
 				}
 				sent = true;
+				enterTick = run.gameTicks();
 			}
 			if (run.game.chatPending())
 			{
-				return Poll.waiting("the chat input still holds the text: the client has not taken the Enter key");
+				// The client sometimes leaves the line in its input (seen once after a 30-tick wait): press Enter again
+				// a few times, a tick or two apart, before giving the step's timeout up.
+				if (retries < ENTER_RETRIES && run.gameTicks() - enterTick >= ENTER_RETRY_TICKS)
+				{
+					retries++;
+					enterTick = run.gameTicks();
+					focusNote = run.game.pressEnterAgain();
+				}
+				return Poll.waiting("the chat input still holds the text: the client has not taken the Enter key"
+					+ (retries == 0 ? "" : " after " + (retries + 1) + " presses (" + focusNote + ")"));
 			}
 			if (expectMessage == null)
 			{

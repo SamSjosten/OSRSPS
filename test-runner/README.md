@@ -180,7 +180,9 @@ Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (opti
 ## Known limits
 
 - Chat is sent by putting the text in the chat input and sending an Enter key to the client's canvas. If a key
-  remapping plugin is on, it may swallow the Enter.
+  remapping plugin is on, it may swallow the Enter. When the client leaves the line in the input, the runner asks for
+  the canvas's keyboard focus and presses Enter again, up to five times two ticks apart (0.5.1); the result says
+  whether the canvas had focus.
 - `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles. When the tile
   is off screen it turns the camera toward it, so a script can leave the camera however it finds it.
 - Auto login starts the login by setting the client's game state to LOGGING_IN, as RuneLite's developer tools do.
