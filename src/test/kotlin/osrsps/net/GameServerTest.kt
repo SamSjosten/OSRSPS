@@ -75,6 +75,9 @@ class GameServerTest {
             assertEquals(256, Files.readString(dataDir.resolve("rsa-modulus.txt")).trim().length)
             val javConfig = URI("http://127.0.0.1:$httpPort/jav_config.ws").toURL().readText()
             assertTrue(javConfig.lines().contains("codebase=http://127.0.0.1/"), javConfig)
+            // Asked by another name for this machine, the files follow the name used rather than the configured host.
+            val byName = URI("http://localhost:$httpPort/jav_config.ws").toURL().readText()
+            assertTrue(byName.lines().contains("codebase=http://localhost/"), byName)
             val modulus = Files.readString(dataDir.resolve("rsa-modulus.txt")).trim()
             val targets = URI("http://127.0.0.1:$httpPort/proxy-targets.yaml").toURL().readText().lines()
             assertTrue("    modulus: $modulus" in targets, targets.joinToString("\n"))

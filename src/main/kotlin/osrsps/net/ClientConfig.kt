@@ -15,8 +15,10 @@ private val logger = KotlinLogging.logger {}
  * the git commit this server was built from, so a script can wait for a deploy to be up.
  *
  * RSProx reads the jav_config's `codebase` host, looks for a world with that host in the world list,
- * and connects to it on the game port. So [publicHost] must be the address the player's PC can reach:
- * 127.0.0.1 through an SSH tunnel, or the Proxmox host's LAN address once it forwards the ports.
+ * and connects to it on the game port. So the host in them must be one the player's PC can reach. Each file is written
+ * for the host the client asked for it by (its HTTP Host header), so players on the LAN and players coming in through
+ * a VPN or relay at another address are each sent their own. [publicHost] is the fallback, for a request with no
+ * usable Host header: 127.0.0.1 through an SSH tunnel, or the Proxmox host's LAN address.
  */
 class ClientConfig(
     private val publicHost: String,
@@ -40,97 +42,96 @@ class ClientConfig(
     @Volatile
     var modulusHex: String? = null
 
-    val javConfig: String
-        get() = buildString {
-            appendLine("title=OSRSPS")
-            appendLine("adverturl=http://$publicHost:$httpPort/advert.ws")
-            appendLine("codebase=http://$publicHost/")
-            appendLine("cachedir=osrsps")
-            appendLine("storebase=0")
-            appendLine("initial_jar=gamepack.jar")
-            appendLine("initial_class=client.class")
-            appendLine("termsurl=http://$publicHost:$httpPort/terms.ws")
-            appendLine("privacyurl=http://$publicHost:$httpPort/privacy.ws")
-            appendLine("viewerversion=124")
-            appendLine("win_sub_version=1")
-            appendLine("mac_sub_version=2")
-            appendLine("other_sub_version=2")
-            appendLine("download=0")
-            appendLine("window_preferredwidth=800")
-            appendLine("window_preferredheight=600")
-            appendLine("advert_height=96")
-            appendLine("applet_minwidth=765")
-            appendLine("applet_minheight=503")
-            appendLine("applet_maxwidth=5760")
-            appendLine("applet_maxheight=2160")
-            appendLine("msg=lang0=English")
-            appendLine("msg=ok=OK")
-            appendLine("msg=cancel=Cancel")
-            appendLine("msg=message=Message")
-            appendLine("msg=information=Information")
-            appendLine("msg=options=Options")
-            appendLine("msg=language=Language")
-            appendLine("msg=loading_app=Loading application")
-            appendLine("msg=loading_app_resources=Loading application resources")
-            appendLine("msg=new_version=Update available")
-            // Parameters as the live 241 client uses them, with the world list, world and auth hosts pointed at us.
-            appendLine("param=2=http://$publicHost:$httpPort/")
-            appendLine("param=3=true")
-            appendLine("param=4=1")
-            appendLine("param=5=$WORLD_PROPERTIES")
-            appendLine("param=7=0")
-            appendLine("param=8=true")
-            appendLine("param=9=ElZAIrq5NpKN6D3mDdihco3oPeYN2KFy2DCquj7JMmECPmLrDP3Bnw")
-            appendLine("param=10=5")
-            appendLine("param=11=http://$publicHost:$httpPort/")
-            appendLine("param=12=$worldId")
-            appendLine("param=13=.runescape.com")
-            appendLine("param=14=0")
-            appendLine("param=15=0")
-            appendLine("param=16=false")
-            appendLine("param=17=http://$publicHost:$httpPort/world_list.ws")
-            appendLine("param=18=")
-            appendLine("param=19=")
-            appendLine("param=20=http://$publicHost:$httpPort/")
-            appendLine("param=21=0")
-            appendLine("param=22=http://$publicHost:$httpPort/")
-            appendLine("param=25=${Revision.MAJOR}")
-            appendLine("param=28=http://$publicHost:$httpPort/")
-            appendLine("param=29=1")
-        }
+    /** The jav_config for a client that reached us at [host]. */
+    fun javConfig(host: String = publicHost): String = buildString {
+        appendLine("title=OSRSPS")
+        appendLine("adverturl=http://$host:$httpPort/advert.ws")
+        appendLine("codebase=http://$host/")
+        appendLine("cachedir=osrsps")
+        appendLine("storebase=0")
+        appendLine("initial_jar=gamepack.jar")
+        appendLine("initial_class=client.class")
+        appendLine("termsurl=http://$host:$httpPort/terms.ws")
+        appendLine("privacyurl=http://$host:$httpPort/privacy.ws")
+        appendLine("viewerversion=124")
+        appendLine("win_sub_version=1")
+        appendLine("mac_sub_version=2")
+        appendLine("other_sub_version=2")
+        appendLine("download=0")
+        appendLine("window_preferredwidth=800")
+        appendLine("window_preferredheight=600")
+        appendLine("advert_height=96")
+        appendLine("applet_minwidth=765")
+        appendLine("applet_minheight=503")
+        appendLine("applet_maxwidth=5760")
+        appendLine("applet_maxheight=2160")
+        appendLine("msg=lang0=English")
+        appendLine("msg=ok=OK")
+        appendLine("msg=cancel=Cancel")
+        appendLine("msg=message=Message")
+        appendLine("msg=information=Information")
+        appendLine("msg=options=Options")
+        appendLine("msg=language=Language")
+        appendLine("msg=loading_app=Loading application")
+        appendLine("msg=loading_app_resources=Loading application resources")
+        appendLine("msg=new_version=Update available")
+        // Parameters as the live 241 client uses them, with the world list, world and auth hosts pointed at us.
+        appendLine("param=2=http://$host:$httpPort/")
+        appendLine("param=3=true")
+        appendLine("param=4=1")
+        appendLine("param=5=$WORLD_PROPERTIES")
+        appendLine("param=7=0")
+        appendLine("param=8=true")
+        appendLine("param=9=ElZAIrq5NpKN6D3mDdihco3oPeYN2KFy2DCquj7JMmECPmLrDP3Bnw")
+        appendLine("param=10=5")
+        appendLine("param=11=http://$host:$httpPort/")
+        appendLine("param=12=$worldId")
+        appendLine("param=13=.runescape.com")
+        appendLine("param=14=0")
+        appendLine("param=15=0")
+        appendLine("param=16=false")
+        appendLine("param=17=http://$host:$httpPort/world_list.ws")
+        appendLine("param=18=")
+        appendLine("param=19=")
+        appendLine("param=20=http://$host:$httpPort/")
+        appendLine("param=21=0")
+        appendLine("param=22=http://$host:$httpPort/")
+        appendLine("param=25=${Revision.MAJOR}")
+        appendLine("param=28=http://$host:$httpPort/")
+        appendLine("param=29=1")
+    }
 
-    /** The binary world list: one members world at [publicHost]. */
-    val worldList: ByteArray
-        get() = encodeWorldList(listOf(World(worldId, WORLD_PROPERTIES, publicHost, "OSRSPS test world", 0, 1)))
+    /** The binary world list for a client that reached us at [host]: one members world there. */
+    fun worldList(host: String = publicHost): ByteArray =
+        encodeWorldList(listOf(World(worldId, WORLD_PROPERTIES, host, "OSRSPS test world", 0, 1)))
 
     /**
      * The RSProx target for this server, in the format of RSProx's `proxy-targets.yaml`, or null before [modulusHex]
      * is known. The name is the one our own setup has always used, so RSProx keeps its client cache for it. The `.1`
      * subrevision is the one RSProx's README calls the safe pick: every revision has it.
      */
-    val proxyTargets: String?
-        get() {
-            val modulus = modulusHex ?: return null
-            return buildString {
-                appendLine("config:")
-                appendLine("  - name: $TARGET_NAME")
-                appendLine("    jav_config_url: http://$publicHost:$httpPort/jav_config.ws")
-                appendLine("    revision: ${Revision.MAJOR}.1")
-                appendLine("    modulus: $modulus")
-                if (gamePort != DEFAULT_GAME_PORT) appendLine("    game_server_port: $gamePort")
-            }
+    fun proxyTargets(host: String = publicHost): String? {
+        val modulus = modulusHex ?: return null
+        return buildString {
+            appendLine("config:")
+            appendLine("  - name: $TARGET_NAME")
+            appendLine("    jav_config_url: http://$host:$httpPort/jav_config.ws")
+            appendLine("    revision: ${Revision.MAJOR}.1")
+            appendLine("    modulus: $modulus")
+            if (gamePort != DEFAULT_GAME_PORT) appendLine("    game_server_port: $gamePort")
         }
+    }
 
     fun start() {
         val http = HttpServer.create(InetSocketAddress(httpPort), 0)
         http.createContext("/jav_config.ws") { exchange ->
-            exchange.respond("text/plain; charset=ISO-8859-1", javConfig.toByteArray(Charsets.ISO_8859_1))
+            exchange.respond("text/plain; charset=ISO-8859-1", javConfig(requestHost(exchange)).toByteArray(Charsets.ISO_8859_1))
         }
         http.createContext("/world_list.ws") { exchange ->
-            exchange.respond("application/octet-stream", worldList)
+            exchange.respond("application/octet-stream", worldList(requestHost(exchange)))
         }
         http.createContext("/proxy-targets.yaml") { exchange ->
-            val yaml = proxyTargets
+            val yaml = proxyTargets(requestHost(exchange))
             if (yaml == null) exchange.respond("text/plain", ByteArray(0), 503)
             else exchange.respond("text/yaml; charset=UTF-8", yaml.toByteArray(Charsets.UTF_8))
         }
@@ -147,6 +148,14 @@ class ClientConfig(
         logger.info { "Client config at http://$publicHost:$httpPort/jav_config.ws (world $worldId on $publicHost)" }
     }
 
+    /**
+     * The host [exchange] was addressed to, without its port, or [publicHost] when its Host header is missing or isn't a
+     * plain host name or IPv4 address. Checked because it is written into the files: a line break or odd character
+     * there could change what the client reads.
+     */
+    private fun requestHost(exchange: com.sun.net.httpserver.HttpExchange): String =
+        hostOf(exchange.requestHeaders.getFirst("Host")) ?: publicHost
+
     /** The port the HTTP server listens on once started (differs from httpPort only when that was 0). */
     internal val boundPort: Int
         get() = server?.address?.port ?: httpPort
@@ -160,6 +169,14 @@ class ClientConfig(
 
     companion object {
         const val WORLD_ID = 301
+
+        private val HOST_NAME = Regex("[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?")
+
+        /** The host part of a Host header ("example.com:43595" gives "example.com"), or null if it isn't a usable one. */
+        fun hostOf(header: String?): String? {
+            val host = header?.trim()?.substringBefore(':') ?: return null
+            return host.takeIf { HOST_NAME.matches(it) }
+        }
         const val TARGET_NAME = "OSRSPS"
         const val DEFAULT_GAME_PORT = 43594
         const val UNKNOWN_VERSION = "unknown"
