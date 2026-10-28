@@ -10,7 +10,8 @@ import osrsps.game.World
 /**
  * Jump into a testing scenario and back out. `::scenario name` remembers the player as they were the first time, so a
  * second scenario still resets to before the first; `::reset` puts that back and forgets it. Both are kept in the save,
- * so a logout in the middle loses nothing.
+ * so a logout in the middle loses nothing. Both end every fight the player is in, so a test script starts and leaves
+ * with no NPC still hitting them.
  */
 fun CommandRegistry.registerScenarioCommands(world: World) {
     register("scenario", "::scenario [name]") {
@@ -31,6 +32,7 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         val before = player.beforeScenario ?: fail("Nothing to reset: you haven't started a ::scenario since the last ::reset.")
         val name = player.scenario
         world.scripts.clearAll(player)
+        world.meleeCombat.endFights(player)
         before.restoreTo(player)
         world.teleport(player, before.x, before.z, before.level)
         player.scenario = null
@@ -58,6 +60,7 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
 
     if (player.beforeScenario == null) player.beforeScenario = PlayerSave.of(player)
     world.scripts.clearAll(player)
+    world.meleeCombat.endFights(player)
     for (skill in Skill.entries) {
         val set = scenario.skills[skill]
         val level = set?.level ?: PlayerSkills.newLevel(skill)

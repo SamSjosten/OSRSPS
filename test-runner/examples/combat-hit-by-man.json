@@ -3,6 +3,7 @@
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried, and no fight going on; ::reset at the end puts the account back"},
   {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
   {"step": "command", "text": "::heal", "expectMessage": "Healed to "},
   {"step": "command", "text": "::varp 172 1", "expectMessage": "Varp 172:", "comment": "auto retaliate off"},
@@ -21,6 +22,7 @@
   {"step": "waitTicks", "ticks": 10},
   {"step": "command", "text": "::hp", "expectMessage": "; ::god is on."},
   {"step": "command", "text": "::god", "expectMessage": "You can be hurt again."},
-  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "end the fight so the next script starts clean"}
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "end the fight so the next script starts clean"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

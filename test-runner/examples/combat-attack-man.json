@@ -3,6 +3,7 @@
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried, and no fight going on; ::reset at the end puts the account back"},
   {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
   {"step": "assertLocation", "x": 3216, "y": 3219, "plane": 0},
   {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000, "comment": "the nearest man; he may be a few tiles off"},
@@ -16,6 +17,7 @@
   {"step": "waitTicks", "ticks": 2},
   {"step": "command", "text": "::fight", "expectMessage": "You are not fighting anything."},
   {"step": "waitTicks", "ticks": 30, "comment": "4 ticks of death animation, respawn 25 ticks after the killing blow"},
-  {"step": "command", "text": "::combat man", "expectMessage": "vs Man #"}
+  {"step": "command", "text": "::combat man", "expectMessage": "vs Man #"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

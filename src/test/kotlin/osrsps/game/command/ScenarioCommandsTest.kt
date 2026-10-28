@@ -7,6 +7,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.InvObj
+import osrsps.game.NpcType
 import osrsps.game.MemorySaveStore
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
@@ -19,6 +20,8 @@ import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.combat.MeleeInteraction
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.script.QueueType
 import osrsps.game.script.TimerType
 import osrsps.map.CollisionMap
@@ -141,6 +144,27 @@ class ScenarioCommandsTest {
         world.scripts.queue(player, "later", QueueType.WEAK, 5) {}
         run("reset")
         assertTrue(player.scripts.queued.isEmpty())
+    }
+
+    @Test
+    fun `scenario and reset end every fight the player is in`() {
+        val man = NpcType(3106, "Man", internalName = "man")
+        val npc = world.spawnNpc(NpcSpawn(man, 3225, 3218, 0, source = "test"))!!
+        fun fight() {
+            player.interaction = MeleeInteraction(npc, world.meleeCombat)
+            npc.target = player
+            player.attackedBy = npc
+        }
+        fight()
+        run("scenario cows")
+        assertNull(player.interaction)
+        assertNull(npc.target)
+        assertNull(player.attackedBy)
+        fight()
+        run("reset")
+        assertNull(player.interaction)
+        assertNull(npc.target)
+        assertNull(player.attackedBy)
     }
 
     @Test
