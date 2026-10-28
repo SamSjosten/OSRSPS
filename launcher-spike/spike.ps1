@@ -496,6 +496,27 @@ function Save-ClientLog([string] $name, [long] $from)
 	Check "$name.log" $(if ($errors.Count -eq 0) { 'pass' } else { 'warn' }) $detail
 }
 
+# The plan's "no gamepack download". RuneLite's released client.jar can fetch Jagex's gamepack itself (the spike makes that
+# method return at once); a download from our jav_config's codebase would go to port 80 and fail the network check. This
+# also looks for one in RuneLite's log, and for any jar or gamepack file written under the client's home during the run.
+function Test-Gamepack([string] $name, [long] $from, [datetime] $since)
+{
+	$text = (Read-Shared $ClientLog $from) + "`n" + (Read-Shared (Join-Path $runDir "$name-out.txt"))
+	# SpikeLoader's own lines name updateVanilla when it patches it.
+	$lines = @($text -split "`r?`n" | Where-Object { $_ -match '(?i)gamepack|vanilla' -and $_ -notmatch '^\[(spike|scan)\] ' } |
+		Select-Object -First 5)
+	$written = @(Get-ChildItem -LiteralPath $userHome -Recurse -File -Force -ErrorAction SilentlyContinue |
+		Where-Object { $_.LastWriteTimeUtc -ge $since -and $_.Name -match '(?i)\.jar$|gamepack|vanilla|patched' -and
+			-not $_.FullName.StartsWith($Work, [StringComparison]::OrdinalIgnoreCase) } |
+		Select-Object -First 5 | ForEach-Object { $_.FullName })
+	if ($written.Count -gt 0) { Check "$name.gamepack" 'fail' ('written during the run: ' + ($written -join ', ')) }
+	if ($lines.Count -gt 0) { Check "$name.gamepack" 'warn' ('log lines: ' + ($lines -join ' | ')) }
+	if ($written.Count -eq 0 -and $lines.Count -eq 0)
+	{
+		Check "$name.gamepack" 'pass' "no gamepack or vanilla client in client.log or $name-out.txt, and no jar written under $userHome"
+	}
+}
+
 function Test-ApiLog([string] $name)
 {
 	$file = Join-Path $runDir "$name-api.txt"
@@ -554,6 +575,7 @@ function Invoke-Dev
 	Stop-TestClient
 	$dnsBefore = Get-DnsNames
 	$logFrom = Get-LogEnd
+	$since = (Get-Date).ToUniversalTime()
 	$watch = Start-NetWatch (Join-Path $runDir 'dev-net.txt')
 	try
 	{
@@ -577,6 +599,7 @@ function Invoke-Dev
 		Test-Patched 'dev'
 		Test-ApiLog 'dev'
 		Save-ClientLog 'dev' $logFrom
+		Test-Gamepack 'dev' $logFrom $since
 	}
 }
 
@@ -630,6 +653,7 @@ function Invoke-Normal
 	$js5Before = Get-Js5Count
 	$dnsBefore = Get-DnsNames
 	$logFrom = Get-LogEnd
+	$since = (Get-Date).ToUniversalTime()
 	$watch = Start-NetWatch (Join-Path $runDir 'normal-net.txt')
 	try
 	{
@@ -659,6 +683,7 @@ function Invoke-Normal
 		Test-Patched 'normal'
 		Test-ApiLog 'normal'
 		Save-ClientLog 'normal' $logFrom
+		Test-Gamepack 'normal' $logFrom $since
 	}
 }
 

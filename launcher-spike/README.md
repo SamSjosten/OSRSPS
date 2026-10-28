@@ -59,7 +59,8 @@ scheduled task (on the signed-in desktop, like RSProx's):
    screenshot shows the login screen.
 
 During both runs it records every TCP connection the client opens (only our server's two ports and 127.0.0.1 may
-appear) and the Jagex, RuneLite and Wiki names Windows looks up, and checks which planned patches were made. It also
+appear) and the Jagex, RuneLite and Wiki names Windows looks up, and checks which planned patches were made. It looks
+for a gamepack download in RuneLite's log and for any jar written under the client's home. It also
 checks that the jars of RSProx's older pins (revisions 223 and 236) are still on RuneLite's repository, which the
 launcher's pin table depends on. At the end it starts RSProx's client again (`start-client.ps1 -Restart`).
 
