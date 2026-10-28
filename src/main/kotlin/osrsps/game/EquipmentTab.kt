@@ -182,9 +182,13 @@ class EquipmentTab(
      * choice there is guessed, not checked.
      */
     internal fun updateCombatTab(player: Player) {
-        val category = Weapons.category(equipment.weapon(player))
+        val weapon = equipment.weapon(player)
+        val category = Weapons.category(weapon)
         if (player.vars.types.varbit(VARBIT_WEAPON_CATEGORY) != null) player.vars.setVarbit(VARBIT_WEAPON_CATEGORY, category)
         if (player.vars[VARP_COM_MODE] !in Weapons.styleButtons(category)) player.vars[VARP_COM_MODE] = 0
+        // No client script writes these two; live sends them. "Unarmed" as the title with no weapon is guessed.
+        send(player, IfSetText(COMBAT, COMBAT_TITLE, weapon?.name ?: Weapons.categoryName(Weapons.UNARMED)))
+        send(player, IfSetText(COMBAT, COMBAT_CATEGORY, "Category: ${Weapons.categoryName(category)}"))
     }
 
     /** A click on the combat tab: an attack style button or Auto retaliate. */
@@ -260,8 +264,10 @@ class EquipmentTab(
         /** interface_inv_init in RSMod's names: builds an inventory grid of items with the given options. */
         const val INV_INIT_SCRIPT = 149
 
-        /** combat_interface's style buttons 0 to 3 and auto retaliate. */
+        /** combat_interface's weapon name, its category line, style buttons 0 to 3 and auto retaliate. */
         const val COMBAT = 593
+        const val COMBAT_TITLE = 3
+        const val COMBAT_CATEGORY = 5
         val STYLE_BUTTONS = intArrayOf(6, 10, 14, 18)
         const val COMBAT_RETALIATE = 32
 
@@ -301,6 +307,8 @@ class EquipmentTab(
             }),
             STATS_SIDE to ("equipment_side" to mapOf(STATS_SIDE_ITEMS to "items")),
             COMBAT to ("combat_interface" to buildMap {
+                put(COMBAT_TITLE, "title")
+                put(COMBAT_CATEGORY, "category")
                 STYLE_BUTTONS.forEachIndexed { button, component -> put(component, "$button") }
                 put(COMBAT_RETALIATE, "retaliate")
             }),

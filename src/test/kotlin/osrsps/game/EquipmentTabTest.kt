@@ -138,6 +138,8 @@ class EquipmentTabTest {
         tab.updateCombatTab(player)
         assertEquals(Weapons.AXE, player.vars.getVarbit(357))
         assertEquals(2, player.vars[EquipmentTab.VARP_COM_MODE])
+        assertEquals("Bronze axe", texts()[EquipmentTab.COMBAT_TITLE])
+        assertEquals("Category: Axe", texts()[EquipmentTab.COMBAT_CATEGORY])
 
         player.equipment[WearPos.WEAPON] = InvObj(841, 1)
         tab.updateCombatTab(player)
@@ -145,6 +147,12 @@ class EquipmentTabTest {
         assertEquals(0, player.vars[EquipmentTab.VARP_COM_MODE], "bows have no button 2")
         tab.clickCombatTab(player, 14)
         assertEquals(0, player.vars[EquipmentTab.VARP_COM_MODE], "a button the weapon lacks does nothing")
+        assertEquals("Category: Bow", texts()[EquipmentTab.COMBAT_CATEGORY])
+
+        player.equipment[WearPos.WEAPON] = null
+        tab.updateCombatTab(player)
+        assertEquals("Unarmed", texts()[EquipmentTab.COMBAT_TITLE])
+        assertEquals("Category: Unarmed", texts()[EquipmentTab.COMBAT_CATEGORY])
     }
 
     @Test

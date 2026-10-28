@@ -98,6 +98,20 @@ object Weapons {
         1588 to PARTISAN,
     )
 
+    /**
+     * What the combat tab shows after "Category:", by weapon category. The words are the OSRS Wiki's weapon type names
+     * (Weapons/Types, read 2026-10-28), matched to the categories by their dbtable 78 row names. Guessed: 22 (spellblade
+     * staff), 26 (chargespear), 29 (self-powering wand) and 33 (sailing cannon), which the Wiki doesn't name apart.
+     */
+    private val CATEGORY_NAMES = listOf(
+        "Unarmed", "Axe", "Blunt", "Bow", "Claw", "Crossbow", "Salamander", "Chinchompa", "Gun", "Slash sword",
+        "2h sword", "Pickaxe", "Polearm", "Polestaff", "Scythe", "Spear", "Spiked", "Stab sword", "Staff", "Thrown",
+        "Whip", "Bladed staff", "Bladed staff", "2h sword", "Powered Staff", "Banner", "Polearm", "Bludgeon", "Bulwark",
+        "Powered Staff", "Partisan", "Multi-style", "Egg", "Blaster", "Multi-melee", "Flail",
+    )
+
+    fun categoryName(category: Int): String = CATEGORY_NAMES.getOrElse(category) { CATEGORY_NAMES[UNARMED] }
+
     fun category(weapon: ObjType?): Int {
         if (weapon == null) return UNARMED
         if (weapon.internalName == "abyssal_bludgeon") return BLUNT_BLUDGEON
