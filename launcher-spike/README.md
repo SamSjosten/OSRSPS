@@ -12,9 +12,11 @@ The patched client is only ever pointed at our server, never at Jagex's.
 - `SpikeLoader.java`: one file, ASM 9.11 its only library.
   - `scan` reads RuneLite's real jars and reports every patch point it needs, without starting anything.
   - `run` scans the same way, refuses to start when a patch point is missing, and then starts RuneLite through a
-    patching class loader (parent: the platform class loader, so RuneLite can't see the spike's own classes).
+    patching class loader (parent: the platform class loader, so RuneLite can't see the spike's own classes). It
+    logs every place Java is asked to connect to as `[spike] connect <scheme>://<host>:<port><path>`: plain sockets,
+    URL connections and OkHttp all ask the default `ProxySelector` first, which SpikeLoader replaces.
 - `SelfTest.java`: builds a fake RuneLite and a fake injected client with javac, then runs SpikeLoader on them in a
-  JVM of its own (35 checks, no network). `java SelfTest.java launcher-spike <path to the two ASM jars>`.
+  JVM of its own (37 checks, loopback only). `java SelfTest.java launcher-spike <path to the two ASM jars>`.
 - `spike.ps1`: the run on the test VM, below.
 
 ## What gets patched
@@ -58,9 +60,11 @@ scheduled task (on the signed-in desktop, like RSProx's):
 2. Without developer mode, as a friend runs it: the server's `/status` must count a new cache (JS5) connection, and a
    screenshot shows the login screen.
 
-During both runs it records every TCP connection the client opens (only our server's two ports and 127.0.0.1 may
-appear) and the Jagex, RuneLite and Wiki names Windows looks up, and checks which planned patches were made. It looks
-for a gamepack download in RuneLite's log and for any jar written under the client's home. It also
+During both runs only our server's two ports and 127.0.0.1 may appear among the places SpikeLoader logged a connection
+to, and among the TCP connections Windows lists for the client (sampled twice a second, for anything that bypasses
+Java's `ProxySelector`). It also records the Jagex, RuneLite and Wiki names Windows looks up, and checks which planned
+patches were made. A gamepack download fails the run: a jar in the connection log, a gamepack or vanilla client line in
+RuneLite's log, or a jar written under the client's home while it ran. It also
 checks that the jars of RSProx's older pins (revisions 223 and 236) are still on RuneLite's repository, which the
 launcher's pin table depends on. At the end it starts RSProx's client again (`start-client.ps1 -Restart`).
 
@@ -72,4 +76,4 @@ Results go to `C:\RSPS\spike\results\<UTC time>\`: `summary.txt` (one line per c
 - Mac. Nothing here is Windows-only except `spike.ps1`; RuneLite's own launcher starts it the same way there.
 - The launcher itself: its download and update manifest, signing, the jlink runtime, the installer.
 - Blocking Jagex hosts inside the client. RuneLite's own block list (`runelite.jagex.domainblock`) only applies
-  outside Jagex's live environment and can't be set from outside; for now the connection watch is the check.
+  outside Jagex's live environment and can't be set from outside; for now the connection log and watch are the check.

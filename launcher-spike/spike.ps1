@@ -395,7 +395,9 @@ function Start-SpikeClient([string] $name, [switch] $Developer)
 }
 
 # Every remote end the spike client's TCP connections had, sampled twice a second from before it starts until the stop
-# file appears. OkHttp keeps an idle connection open for 5 minutes, so an HTTP call to anywhere shows up here too.
+# file appears. OkHttp keeps an idle connection open for 5 minutes, so an HTTP call to anywhere shows up here too; a
+# connection shorter than a sample is in SpikeLoader's connect log instead (Test-Connects), unless it skipped Java's
+# ProxySelector.
 function Start-NetWatch([string] $file)
 {
 	$stopFile = "$file.stop"
@@ -496,24 +498,52 @@ function Save-ClientLog([string] $name, [long] $from)
 	Check "$name.log" $(if ($errors.Count -eq 0) { 'pass' } else { 'warn' }) $detail
 }
 
+# What SpikeLoader logged as "[spike] connect <scheme>://<host>:<port><path>": each target Java was asked to connect to,
+# once, however short the connection was.
+function Get-Connects([string] $name)
+{
+	$text = Read-Shared (Join-Path $runDir "$name-out.txt")
+	@([regex]::Matches($text, '(?m)^\[spike\] connect (\S+)') | ForEach-Object { $_.Groups[1].Value })
+}
+
+# Only our server's two ports and loopback may appear.
+function Test-Connects([string] $name)
+{
+	$targets = Get-Connects $name
+	$ours = @("${Server}:$GamePort", "${Server}:$($GamePort + 1)")
+	$foreign = @($targets | Where-Object {
+		$m = [regex]::Match($_, '^[a-z]+://(\[[^\]]+\]|[^/:]+)(?::(-?\d+))?')
+		-not ($m.Groups[1].Value -match '^(127\.0\.0\.1|localhost|\[::1\])$' -or $ours -contains "$($m.Groups[1].Value):$($m.Groups[2].Value)")
+	})
+	$ends = @($targets | ForEach-Object { $_ -replace '^([a-z]+://[^/]+).*$', '$1' } | Group-Object |
+		ForEach-Object { if ($_.Count -gt 1) { "$($_.Name) ($($_.Count) paths)" } else { $_.Name } })
+	if ($targets.Count -eq 0) { Check "$name.connects" 'warn' "no connection logged through Java's ProxySelector, so only the connection watch checked this run" }
+	elseif ($foreign.Count -eq 0) { Check "$name.connects" 'pass' ('every target Java was asked for is our server or loopback: ' + ($ends -join ', ')) }
+	else { Check "$name.connects" 'fail' ('beyond our server and loopback: ' + (@($foreign | Select-Object -First 10) -join ', ')) }
+}
+
 # The plan's "no gamepack download". RuneLite's released client.jar can fetch Jagex's gamepack itself (the spike makes that
-# method return at once); a download from our jav_config's codebase would go to port 80 and fail the network check. This
-# also looks for one in RuneLite's log, and for any jar or gamepack file written under the client's home during the run.
+# method return at once). A download asks Java for the jar's URL first, so the connect log names it. This also fails on a
+# gamepack or vanilla client line in RuneLite's log (the released jar's own messages aren't in RuneLite's public source,
+# so the match is broad and the summary quotes the line), and on any jar or gamepack file written under the client's
+# home while it ran.
 function Test-Gamepack([string] $name, [long] $from, [datetime] $since)
 {
+	$fetched = @(Get-Connects $name | Where-Object { $_ -match '(?i)^https?://[^/]+/' -and ($_ -match '(?i)\.jar$' -or $_ -match '(?i)gamepack') })
 	$text = (Read-Shared $ClientLog $from) + "`n" + (Read-Shared (Join-Path $runDir "$name-out.txt"))
 	# SpikeLoader's own lines name updateVanilla when it patches it.
 	$lines = @($text -split "`r?`n" | Where-Object { $_ -match '(?i)gamepack|vanilla' -and $_ -notmatch '^\[(spike|scan)\] ' } |
 		Select-Object -First 5)
+	# $since is taken just before the client starts, so the jars setup downloaded don't count.
 	$written = @(Get-ChildItem -LiteralPath $userHome -Recurse -File -Force -ErrorAction SilentlyContinue |
-		Where-Object { $_.LastWriteTimeUtc -ge $since -and $_.Name -match '(?i)\.jar$|gamepack|vanilla|patched' -and
-			-not $_.FullName.StartsWith($Work, [StringComparison]::OrdinalIgnoreCase) } |
+		Where-Object { $_.LastWriteTimeUtc -ge $since -and $_.Name -match '(?i)\.jar$|gamepack|vanilla|patched' } |
 		Select-Object -First 5 | ForEach-Object { $_.FullName })
+	if ($fetched.Count -gt 0) { Check "$name.gamepack" 'fail' ('asked Java for: ' + ($fetched -join ', ')) }
 	if ($written.Count -gt 0) { Check "$name.gamepack" 'fail' ('written during the run: ' + ($written -join ', ')) }
-	if ($lines.Count -gt 0) { Check "$name.gamepack" 'warn' ('log lines: ' + ($lines -join ' | ')) }
-	if ($written.Count -eq 0 -and $lines.Count -eq 0)
+	if ($lines.Count -gt 0) { Check "$name.gamepack" 'fail' ('log lines: ' + ($lines -join ' | ')) }
+	if ($fetched.Count -eq 0 -and $written.Count -eq 0 -and $lines.Count -eq 0)
 	{
-		Check "$name.gamepack" 'pass' "no gamepack or vanilla client in client.log or $name-out.txt, and no jar written under $userHome"
+		Check "$name.gamepack" 'pass' "no jar asked for, no gamepack or vanilla client in client.log or $name-out.txt, no jar written under $userHome"
 	}
 }
 
@@ -595,6 +625,7 @@ function Invoke-Dev
 	{
 		Stop-TestClient
 		Stop-NetWatch $watch 'dev'
+		Test-Connects 'dev'
 		Test-Dns 'dev' $dnsBefore
 		Test-Patched 'dev'
 		Test-ApiLog 'dev'
@@ -679,6 +710,7 @@ function Invoke-Normal
 	{
 		Stop-TestClient
 		Stop-NetWatch $watch 'normal'
+		Test-Connects 'normal'
 		Test-Dns 'normal' $dnsBefore
 		Test-Patched 'normal'
 		Test-ApiLog 'normal'

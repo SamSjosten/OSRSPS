@@ -24,6 +24,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.tools.JavaCompiler;
 import javax.tools.ToolProvider;
@@ -54,6 +55,7 @@ public class SelfTest
 
 				import java.io.File;
 				import java.io.InputStream;
+				import java.net.Socket;
 				import java.net.URI;
 				import java.util.Arrays;
 				import java.util.function.Supplier;
@@ -75,9 +77,15 @@ public class SelfTest
 						System.out.println("FAKE spikeVisible=" + visible("SpikeLoader"));
 						System.out.println("FAKE developerMode=" + "developer-mode".length());
 						net.runelite.client.rs.ClientLoader.check();
-						try (InputStream in = URI.create(System.getProperty("runelite.http-service.url") + "worlds.js").toURL().openStream())
+						URI api = URI.create(System.getProperty("runelite.http-service.url"));
+						try (InputStream in = api.resolve("worlds.js").toURL().openStream())
 						{
 							System.out.println("FAKE worlds=" + new String(in.readAllBytes(), "UTF-8"));
+						}
+						// The client's game connection is a plain socket.
+						try (Socket socket = new Socket(api.getHost(), api.getPort()))
+						{
+							System.out.println("FAKE socket=" + socket.isConnected());
 						}
 						Object client = RuneLite.class.getClassLoader().loadClass("client").getDeclaredConstructor().newInstance();
 						System.out.println("FAKE client=" + ((Supplier<?>) client).get());
@@ -251,6 +259,10 @@ public class SelfTest
 			< run.indexOf("[spike] starting ") && run.contains("[spike] will patch net.runelite.client.RuneLite: folder .rlcustom x1"));
 		String stub = Files.exists(stubLog) ? Files.readString(stubLog) : "";
 		check("the stub logs the worlds.js call", stub.contains("GET /api/worlds.js -> 200"));
+		check("a URL connection is logged before it connects", Pattern.compile("(?m)^\\[spike\\] connect http://127\\.0\\.0\\.1:\\d+/api/worlds\\.js$").matcher(run).find()
+			&& run.indexOf("[spike] connect http://") < run.indexOf("FAKE worlds="));
+		check("a plain socket is logged", run.contains("FAKE socket=true")
+			&& Pattern.compile("(?m)^\\[spike\\] connect socket://127\\.0\\.0\\.1:\\d+$").matcher(run).find());
 
 		String plain = spike(spike, asm, work, List.of("run", classpath.toString(), ours, "--world", "192.168.0.210", "--"), 0);
 		check("without --rlcustom the folder stays .runelite", plain.contains("FAKE dir=.runelite"));

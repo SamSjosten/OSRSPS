@@ -16,7 +16,7 @@
  * "scan" reports every patch point it finds and exits 0 only when each required one is there. "run" scans the same way
  * and refuses to start when one is missing. Then it starts RuneLite through PatchingClassLoader, the way RuneLite's own
  * launcher runs it on a Mac, with a stub on 127.0.0.1 for RuneLite's web API: worlds.js answers with our world, every
- * other call is logged and answered 404.
+ * other call is logged and answered 404. Each place Java is asked to connect to is logged as "[spike] connect ...".
  *
  * What it patches (RSProx's recipe, rsprox/runelite-launcher RuneLitePatcher.kt and ClientLoaderPatcher.kt, redone with
  * ASM on classes as they load):
@@ -42,6 +42,10 @@ import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
@@ -57,10 +61,12 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -157,6 +163,11 @@ public class SpikeLoader
 		{
 			System.out.println("[spike] " + property + "=" + System.getProperty(property));
 		}
+
+		// Plain sockets, URL connections and OkHttp all ask the default ProxySelector before they connect, so this logs
+		// every place RuneLite and the client connect to, however short the connection; the test VM's connection watch
+		// only sees one that is still open at its next sample. NIO channels don't ask it, and the watch covers those.
+		ProxySelector.setDefault(new ConnectLog(ProxySelector.getDefault(), System.out));
 
 		// Each is patched as it loads, so a class RuneLite never loads is never patched.
 		scan.patches.values().forEach(patch -> System.out.println("[spike] will patch " + patch.className.replace('/', '.') + ": " + patch.summary()));
@@ -744,6 +755,52 @@ public class SpikeLoader
 			}
 		}
 		return counts;
+	}
+
+	/** Logs each scheme, host, port and path Java is asked to connect to, once, and never a query; then asks [next]. */
+	static final class ConnectLog extends ProxySelector
+	{
+		private final ProxySelector next;
+		private final PrintStream log;
+		private final Set<String> seen = ConcurrentHashMap.newKeySet();
+
+		ConnectLog(ProxySelector next, PrintStream log)
+		{
+			this.next = next;
+			this.log = log;
+		}
+
+		@Override
+		public List<Proxy> select(URI uri)
+		{
+			if (uri == null)
+			{
+				throw new IllegalArgumentException("URI can't be null");
+			}
+			String scheme = String.valueOf(uri.getScheme()).toLowerCase(Locale.ROOT);
+			int port = uri.getPort() != -1 ? uri.getPort() : switch (scheme)
+			{
+				case "http", "ws" -> 80;
+				case "https", "wss" -> 443;
+				default -> -1;
+			};
+			String where = uri.getHost() != null ? uri.getHost() + ":" + port : uri.getRawAuthority();
+			String target = scheme + "://" + where + (uri.getRawPath() == null ? "" : uri.getRawPath());
+			if (seen.add(target))
+			{
+				log.println("[spike] connect " + target);
+			}
+			return next != null ? next.select(uri) : List.of(Proxy.NO_PROXY);
+		}
+
+		@Override
+		public void connectFailed(URI uri, SocketAddress address, IOException e)
+		{
+			if (next != null)
+			{
+				next.connectFailed(uri, address, e);
+			}
+		}
 	}
 
 	/**
