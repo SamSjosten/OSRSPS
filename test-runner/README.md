@@ -43,6 +43,9 @@ until the plugin restarts.
 So starting `C:\RSPS\RSProx.cmd` (or its scheduled task) is enough: the client logs in, runs every `runOnLogin`
 script, and then any script dropped into the tests folder.
 
+RSProx itself still waits for a click on **Launch Session**. [`launch\`](launch/README.md) has an `RSProx.cmd` that
+clicks it, and `start-client.ps1`, which (re)starts the client and waits until it is logged in.
+
 ## Running a script
 
 Scripts are `*.json` files in `C:\RSPS\.rlcustom\tests\`. A script runs:
