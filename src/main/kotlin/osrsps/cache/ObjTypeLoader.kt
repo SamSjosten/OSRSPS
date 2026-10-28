@@ -14,12 +14,15 @@ private val logger = KotlinLogging.logger {}
  * Reads item types (config archive 10) and their gameval names (index 24, archive 0).
  *
  * The opcode layouts follow RuneLite's cache ItemLoader and RSMod's ObjTypeDecoder (rev 233), plus what the rev 241
- * cache needed beyond them, found by decoding all 34,646 items in the 2026-10-14 cache until every one ended exactly
+ * cache needed beyond them, found by decoding all 34,646 items in the 2026-10-14 cache (and 34,732 in the 2026-10-20 one) until every one ended exactly
  * on its 0 opcode:
  * - 44 is the inventory model and 45 to 54 the worn and head models as 4-byte ints, replacing 1, 23 to 26, 78, 79 and
  *   90 to 93 (none of which the 241 cache uses). 45 and 48 carry the offset byte as 23 and 25 did. Which model each
  *   one is is inferred from the old opcodes' order; only the sizes are checked.
  * - 15, 160 and 251 carry no data. 251 is on exactly the items with 65 (tradeable). What they mean is unknown.
+ * - 161 is a list of 2-byte values with a 2-byte count, read from the 241.4 cache (2026-10-20), where only the
+ *   Fractured Archive's Obligator and Zorya's tome (charged and uncharged) have it, each with 14 values near 15,100.
+ *   What the values are is unknown; a 1-byte 0 then a 1-byte count would read the same on those four items.
  * - 94 is the item's category, as in RuneLite's ItemLoader. It groups weapons by kind (every axe and battleaxe is
  *   35), which [osrsps.game.Weapons] maps to the combat tab's weapon categories.
  * Every other opcode has to be known too, so an unknown one fails loudly instead of misreading the rest.
@@ -159,6 +162,7 @@ object ObjTypeLoader {
                 110, 111, 112 -> buf.skipBytes(2)
                 113, 114, 115 -> buf.skipBytes(1)
                 139, 140 -> buf.skipBytes(2)
+                161 -> buf.skipBytes(buf.readUnsignedShort() * 2)
                 148 -> placeholderlink = buf.readUnsignedShort()
                 149 -> placeholdertemplate = buf.readUnsignedShort()
                 249 -> params = buf.readParams()
