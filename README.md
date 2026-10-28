@@ -38,7 +38,8 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 ./gradlew run --args=cache-info    # summarise an existing download
 ```
 
-`data/cache-source.txt` records which OpenRS2 cache was used.
+`data/cache-source.txt` records which OpenRS2 cache was used. A fetch keeps the cache it replaces in `data/cache.previous`
+(its source in `data/cache.previous-source.txt`); to roll back, stop the server and swap the two folders back.
 
 ## Run the server
 

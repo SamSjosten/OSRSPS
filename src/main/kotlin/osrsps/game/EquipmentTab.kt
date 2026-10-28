@@ -246,8 +246,9 @@ class EquipmentTab(
         const val PRAYER = 39
         const val TYPE_MULTIPLIER = 41
         const val SLAYER_MULTIPLIER = 42
-        const val SPEED_BASE = 53
-        const val SPEED_ACTUAL = 54
+        // 241.4 (2026-10-20) moved these up one, from 53 and 54, when it dropped a component before them.
+        const val SPEED_BASE = 52
+        const val SPEED_ACTUAL = 53
 
         /** equipment_side and its items component. */
         const val STATS_SIDE = 85
