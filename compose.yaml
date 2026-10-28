@@ -12,7 +12,11 @@ services:
       - "43595:43595"
     environment:
       # The address RuneLite reaches us on: the Proxmox host forwards both ports to this VM.
+      # Only a fallback since the client files answer with whatever host the client asked by (odinsgate.net or this).
       OSRSPS_PUBLIC_HOST: 192.168.0.210
+      # The VPS relay's address on the LAN: every internet player's connection arrives from it, so it is exempt from the
+      # 10-connections-per-address limit. Logins are limited by name instead (5 wrong passwords lock a name 5 minutes).
+      OSRSPS_RELAYS: 192.168.0.216
       # Uncomment to make every random roll repeat from startup; unset, a new seed is picked and logged.
       # OSRSPS_SEED: "1234"
       # Names, comma separated, who may run the world-changing commands (::pause, ::npc, ::addloc...); unset, everyone
