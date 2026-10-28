@@ -3,6 +3,7 @@ package osrsps.game.combat
 import java.util.Locale
 import osrsps.game.EquipmentTab
 import osrsps.game.InvObj
+import osrsps.game.Inventory
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
@@ -138,8 +139,8 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
     private fun uncharge(player: Player, slot: Int, message: (Player, String) -> Unit) {
         val dart = dart(player)
         val scale = objTypes[SCALE] ?: return
-        val needed = listOfNotNull(dart, scale.takeIf { player.charges[SCALES] > 0 }).count { player.inventory.count(it.id) == 0L }
-        if (player.inventory.freeSlots < needed) {
+        val back = listOfNotNull(dart?.let { it to player.charges[DARTS] }, (scale to player.charges[SCALES]).takeIf { it.second > 0 })
+        if (!fits(player, back)) {
             message(player, NO_ROOM)
             return
         }
@@ -156,12 +157,26 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
         val scale = objTypes[SCALE] ?: return
         if (player.inventory[slot]?.id != EMPTY) return
         val stack = player.inventory.contents().firstOrNull { it.second.id == SCALE }
-        if (stack != null && stack.second.count.toLong() + DISMANTLE_SCALES > Int.MAX_VALUE) {
+        if (stack != null && stack.second.count.toLong() + DISMANTLE_SCALES > Inventory.MAX_STACK) {
             message(player, NO_ROOM)
             return
         }
         player.inventory[slot] = null
         player.inventory.add(scale, DISMANTLE_SCALES)
+    }
+
+    /** Whether all of [items] go in at once: onto their stacks without passing [Inventory.MAX_STACK], else a free slot each. */
+    private fun fits(player: Player, items: List<Pair<ObjType, Int>>): Boolean {
+        var slots = 0
+        for ((type, count) in items) {
+            val stack = player.inventory.contents().firstOrNull { it.second.id == type.id }?.second
+            when {
+                !type.stackable -> slots += count
+                stack == null -> slots++
+                stack.count.toLong() + count > Inventory.MAX_STACK -> return false
+            }
+        }
+        return player.inventory.freeSlots >= slots
     }
 
     private fun takeDarts(player: Player, count: Int) {

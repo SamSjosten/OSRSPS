@@ -6,6 +6,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.EquipmentTab
 import osrsps.game.InvObj
+import osrsps.game.Inventory
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
@@ -118,6 +119,21 @@ class BlowpipeTest {
         assertEquals(5L, alice.inventory.count(runeDart.id))
         assertEquals(50L, alice.inventory.count(Blowpipe.SCALE))
         assertEquals(InvObj(Blowpipe.EMPTY, 1), alice.equipment[WearPos.WEAPON])
+    }
+
+    @Test
+    fun `Uncharge changes nothing when a stack has no room for all the scales`() {
+        alice.inventory.add(loaded, 1)
+        alice.inventory.add(scales, Inventory.MAX_STACK - 10)
+        alice.charges[Blowpipe.DART_TYPE] = dragonDart.id
+        alice.charges[Blowpipe.DARTS] = 30
+        alice.charges[Blowpipe.SCALES] = 1_000
+        option(Blowpipe.LOADED, 5)
+        assertEquals(Blowpipe.NO_ROOM, messages.last())
+        assertEquals(0L, alice.inventory.count(dragonDart.id))
+        assertEquals((Inventory.MAX_STACK - 10).toLong(), alice.inventory.count(Blowpipe.SCALE))
+        assertEquals(1L, alice.inventory.count(Blowpipe.LOADED))
+        assertEquals(30 to 1_000, alice.charges[Blowpipe.DARTS] to alice.charges[Blowpipe.SCALES])
     }
 
     @Test
