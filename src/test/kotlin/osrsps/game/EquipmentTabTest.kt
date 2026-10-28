@@ -155,6 +155,19 @@ class EquipmentTabTest {
     }
 
     @Test
+    fun `the category varbit is set before the worn inventory goes, so both reach the client in one cycle`() {
+        sendInventory(player, player.equipment, send)
+        player.sentStance = Weapons.HUMAN
+        player.equipment[WearPos.WEAPON] = InvObj(1351, 1)
+        tab.updateVars(player)
+        assertEquals(Weapons.AXE, player.vars.getVarbit(357), "set ahead of the cycle's varps")
+        sendInventory(player, player.equipment, send) // the worn inventory goes, as in flush
+        player.vars.setVarbit(357, 0)
+        tab.updateVars(player)
+        assertEquals(0, player.vars.getVarbit(357), "nothing changed since, so left alone")
+    }
+
+    @Test
     fun `the combat tab shows the weapon's category and keeps only styles it has`() {
         player.equipment[WearPos.WEAPON] = InvObj(1351, 1)
         assertTrue(tab.clickCombatTab(player, 14))

@@ -149,8 +149,8 @@ class EquipmentTab(
     }
 
     /**
-     * Brings the client in line with the equipment after it changed: the worn inventory, the model, the stance, the
-     * combat tab's category and an open stats screen. Run at the end of every cycle, after the backpack is sent;
+     * Brings the client in line with the equipment after it changed: the worn inventory, the model, the stance and an
+     * open stats screen ([updateVars] does the combat tab). Run at the end of every cycle, after the backpack is sent;
      * [backpackChanged] says whether it was. Does nothing when nothing changed.
      */
     fun flush(player: Player, backpackChanged: Boolean = false) {
@@ -159,8 +159,16 @@ class EquipmentTab(
         sendInventory(player, player.equipment, send)
         if (!changed && player.sentStance != null) return
         updateAppearance(player)
-        updateCombatTab(player)
         if (player.modals[FrameSlot.MAINMODAL] == STATS) sendStats(player)
+    }
+
+    /**
+     * Sets the combat tab's weapon category when the equipment changed, before the cycle's varps are sent, so the
+     * varbit reaches the client in the same cycle as the worn inventory. On the test VM (2026-10-28) the varbit a
+     * cycle behind left the style buttons unarmed (Punch, Kick, Block) under an axe. Run before [flush].
+     */
+    fun updateVars(player: Player) {
+        if (player.equipment.hasChanges || player.sentStance == null) updateCombatTab(player)
     }
 
     /**
