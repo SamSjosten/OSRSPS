@@ -26,7 +26,10 @@
     { "items": ["xbows_crossbow_dragon"], "ammo": "bolts", "tier": 8, "range": 7, "anim": "xbows_human_fire_and_reload_pvn", "source": "OSRS Wiki, Dragon crossbow" },
     { "items": ["acb"], "ammo": "bolts", "tier": 8, "range": 8, "anim": "xbows_human_fire_and_reload_pvn", "source": "OSRS Wiki, Armadyl crossbow" },
     { "items": ["zaryte_xbow"], "ammo": "bolts", "tier": 8, "range": 8, "anim": "zcb_attack_pvn", "source": "OSRS Wiki, Zaryte crossbow" },
-    { "items": ["toxic_blowpipe_loaded", "toxic_blowpipe"], "ammo": "darts", "tier": 7, "range": 5, "anim": "snakeboss_blowpipe_attack", "loaded": true, "delay": "thrown", "source": "OSRS Wiki, Toxic blowpipe (fires the darts it holds; the empty one only says it needs scales)" }
+    { "items": ["toxic_blowpipe_loaded", "toxic_blowpipe"], "ammo": "darts", "tier": 7, "range": 5, "anim": "snakeboss_blowpipe_attack", "loaded": true, "delay": "thrown", "source": "OSRS Wiki, Toxic blowpipe (fires the darts it holds; the empty one only says it needs scales)" },
+    { "items": ["chinchompa_captured"], "ammo": "chinchompas", "tier": 1, "range": 9, "anim": "human_chinchompa_attack_pvn", "travel": "chinchompa_grenade", "thrown": true, "delay": "thrown", "source": "OSRS Wiki, Chinchompa (weapon)" },
+    { "items": ["chinchompa_big_captured"], "ammo": "chinchompas", "tier": 1, "range": 9, "anim": "human_chinchompa_attack_pvn", "travel": "big_chinchompa_grenade", "thrown": true, "delay": "thrown", "source": "OSRS Wiki, Red chinchompa" },
+    { "items": ["chinchompa_black"], "ammo": "chinchompas", "tier": 1, "range": 9, "anim": "human_chinchompa_attack_pvn", "travel": "black_chinchompa_grenade", "thrown": true, "delay": "thrown", "source": "OSRS Wiki, Black chinchompa" }
   ],
   "ammo": [
     { "items": ["bronze_arrow"], "ammo": "arrows", "tier": 1, "launch": "bronze_arrow_launch", "doubleLaunch": "double_bronze_arrow_launch", "travel": "bronze_arrow_travel" },

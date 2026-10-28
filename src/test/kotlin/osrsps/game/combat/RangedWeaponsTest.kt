@@ -42,7 +42,7 @@ class RangedWeaponsTest {
     @Test
     fun `the file lists every bow, crossbow and ammunition it names`() {
         assertEquals(names.size, weapons.weaponCount + weapons.ammoCount)
-        assertEquals(30, weapons.weaponCount)
+        assertEquals(33, weapons.weaponCount)
         assertEquals(25, weapons.ammoCount)
     }
 
@@ -90,6 +90,26 @@ class RangedWeaponsTest {
         assertEquals(0, uncharged.bounces)
         assertTrue(uncharged.travel > 0 && uncharged.travel != venator.travel)
         assertEquals(0, weapons.weapon(type("shortbow"))!!.bounces)
+    }
+
+    @Test
+    fun `chinchompas are thrown, splash, reach 9 tiles and land at the thrown delay, and must say they are thrown`() {
+        for (name in listOf("chinchompa_captured", "chinchompa_big_captured", "chinchompa_black")) {
+            val chinchompa = weapons.weapon(type(name))!!
+            assertEquals(AmmoKind.CHINCHOMPAS, chinchompa.kind)
+            assertTrue(chinchompa.thrown && chinchompa.splash, name)
+            assertEquals(9, chinchompa.range)
+            assertEquals(HitDelay.THROWN, chinchompa.delay)
+            assertTrue(chinchompa.travel > 0, name)
+        }
+        assertFalse(weapons.weapon(type("shortbow"))!!.splash || weapons.weapon(type("shortbow"))!!.thrown)
+        val error = assertFailsWith<IllegalArgumentException> {
+            RangedWeapons.parse(
+                """{ "weapons": [ { "items": ["chinchompa_captured"], "ammo": "chinchompas", "tier": 1, "range": 9, "anim": "x", "source": "test" } ], "ammo": [] }""",
+                objTypes, SeqNames.NONE, SpotanimNames.NONE,
+            )
+        }
+        assertTrue("chinchompas are thrown" in error.message!!, error.message)
     }
 
     @Test

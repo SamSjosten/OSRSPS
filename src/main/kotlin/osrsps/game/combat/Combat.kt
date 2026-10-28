@@ -9,6 +9,7 @@ import osrsps.game.Skill
 import osrsps.game.Weapons
 import osrsps.game.WearPos
 import osrsps.game.npc.Npc
+import osrsps.map.LineOfSight
 
 /** A player's melee numbers against one NPC, and the NPC's against them. */
 data class MeleeMatchup(
@@ -123,12 +124,20 @@ class Combat(
             val slot = player.equipment[WearPos.AMMO]?.let { equipment.objTypes[it.id] }
             val dart = if (player.charges[Blowpipe.DARTS] > 0) equipment.objTypes[player.charges[Blowpipe.DART_TYPE]] else null
             strength += rangedStrength(dart) - rangedStrength(slot)
+        } else if (weapon?.thrown == true) {
+            // Guessed: a thrown weapon is its own ammunition, so what is in the ammo slot adds nothing.
+            strength -= rangedStrength(player.equipment[WearPos.AMMO]?.let { equipment.objTypes[it.id] })
         }
         var maxHit = CombatMath.playerRangedMaxHit(ranged, style.stance, strength)
         if (weapon?.scaling == RangedScaling.TWISTED_BOW) {
             val magic = maxOf(npc.type.stats.magic, def.magicAttack)
             attackRoll = attackRoll * CombatMath.twistedBowAccuracy(magic) / 100
             maxHit = maxHit * CombatMath.twistedBowDamage(magic) / 100
+        }
+        if (weapon?.kind == AmmoKind.CHINCHOMPAS) {
+            val size = npc.type.size
+            val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
+            attackRoll = attackRoll * CombatMath.chinchompaAccuracy(style.stance, distance) / 100
         }
         val defenceRoll = rangedDefenceRoll(npc, style)!!
         return RangedMatchup(

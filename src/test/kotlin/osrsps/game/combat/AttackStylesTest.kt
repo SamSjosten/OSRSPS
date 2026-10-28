@@ -24,6 +24,16 @@ class AttackStylesTest {
         )
         assertEquals(RangedWeight.LIGHT, AttackStyles.parse(0, "Accurate", "(Accurate)<br>(Light)<br>(Ranged XP)").weight)
         assertNull(AttackStyles.parse(0, "Punch", "(Accurate)<br>(Crush)<br>(Attack XP)").weight)
+        // The 241 cache's chinchompa fuses are accurate, rapid and longrange.
+        assertEquals(
+            AttackStyle(0, "Short fuse", AttackStance.ACCURATE, AttackType.RANGED, listOf(Skill.RANGED), RangedWeight.HEAVY),
+            AttackStyles.parse(0, "Short fuse", "(Short fuse)<br>(Heavy)<br>(Ranged XP)"),
+        )
+        assertEquals(AttackStance.RAPID, AttackStyles.parse(1, "Medium fuse", "(Medium fuse)<br>(Heavy)<br>(Ranged XP)").stance)
+        assertEquals(
+            AttackStyle(3, "Long fuse", AttackStance.LONGRANGE, AttackType.RANGED, listOf(Skill.RANGED, Skill.DEFENCE), RangedWeight.HEAVY),
+            AttackStyles.parse(3, "Long fuse", "(Long fuse)<br>(Heavy)<br>(Ranged XP)<br>(Defence XP)"),
+        )
         assertEquals(
             AttackStyle(3, "Block", AttackStance.OTHER, AttackType.NONE, emptyList()),
             AttackStyles.parse(3, "Block", "(Block)<br>(No XP)"),

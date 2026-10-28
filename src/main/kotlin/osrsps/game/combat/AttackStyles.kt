@@ -36,7 +36,7 @@ enum class AttackStance {
     RAPID,
     LONGRANGE,
 
-    /** Anything else: chinchompa fuses, "Aim and Fire". */
+    /** Anything else: a bulwark's block, "Aim and Fire". */
     OTHER,
 }
 
@@ -124,6 +124,11 @@ class AttackStyles(private val byCategory: Map<Int, List<AttackStyle>>) {
             "controlled" to AttackStance.CONTROLLED,
             "rapid" to AttackStance.RAPID,
             "longrange" to AttackStance.LONGRANGE,
+            // Chinchompas' fuses are the accurate, rapid and longrange styles under other names (OSRS Wiki, Chinchompa
+            // (weapon): their speeds, ranges and XP are those styles').
+            "short fuse" to AttackStance.ACCURATE,
+            "medium fuse" to AttackStance.RAPID,
+            "long fuse" to AttackStance.LONGRANGE,
         )
 
         /** Ranged styles name their ammunition's weight (light, standard, heavy) instead of "Ranged". */

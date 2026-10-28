@@ -62,6 +62,31 @@ object CombatMath {
         return (250 + (3 * m - 14) / 100 - (tenth - 140) * (tenth - 140) / 100).coerceIn(0, 250)
     }
 
+    /**
+     * A chinchompa's accuracy, in percent of the attack roll, by its fuse and how far it is thrown (OSRS Wiki, Chinchompa
+     * (weapon)): at 0 to 3, 4 to 6, and 7 or more tiles, 100, 75 and 50 on short fuse ([AttackStance.ACCURATE]), 75, 100
+     * and 75 on medium ([AttackStance.RAPID]), and 50, 75 and 100 on long ([AttackStance.LONGRANGE]). Guessed: that the
+     * distance is counted edge to edge, as attack range is, and that the percentage comes off the whole attack roll as
+     * the twisted bow's does.
+     */
+    fun chinchompaAccuracy(stance: AttackStance, distance: Int): Int {
+        val band = when {
+            distance <= 3 -> 0
+            distance <= 6 -> 1
+            else -> 2
+        }
+        val row = when (stance) {
+            AttackStance.RAPID -> MEDIUM_FUSE
+            AttackStance.LONGRANGE -> LONG_FUSE
+            else -> SHORT_FUSE
+        }
+        return row[band]
+    }
+
+    private val SHORT_FUSE = intArrayOf(100, 75, 50)
+    private val MEDIUM_FUSE = intArrayOf(75, 100, 75)
+    private val LONG_FUSE = intArrayOf(50, 75, 100)
+
     /** Outside the Chambers of Xeric (350 there; OSRS Wiki, Twisted bow). */
     const val TWISTED_BOW_MAGIC_CAP = 250
 

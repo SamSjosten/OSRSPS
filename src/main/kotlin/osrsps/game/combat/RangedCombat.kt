@@ -1,5 +1,6 @@
 package osrsps.game.combat
 
+import kotlin.math.abs
 import osrsps.game.GameRandom
 import osrsps.game.Interaction
 import osrsps.game.Movement
@@ -16,7 +17,7 @@ import osrsps.map.LineOfSight
 import osrsps.map.RouteTarget
 import osrsps.map.Tile
 
-/** A player shooting [npc] with a bow or crossbow: they walk until it is in range and in sight, then fire. See [RangedCombat]. */
+/** A player shooting [npc] with a ranged weapon: they walk until it is in range and in sight, then fire. See [RangedCombat]. */
 class RangedInteraction internal constructor(val npc: Npc, private val owner: RangedCombat) : Interaction {
     /** Where the NPC stood when the player's route to it was last made; null once they have stood in range. */
     internal var routedTo: Tile? = null
@@ -35,7 +36,7 @@ class RangedInteraction internal constructor(val npc: Npc, private val owner: Ra
 }
 
 /**
- * Bows and crossbows against NPCs ([RangedWeapons] lists them). An Attack option with a ranged style becomes a
+ * Bows, crossbows, the blowpipe and chinchompas against NPCs ([RangedWeapons] lists them). An Attack option with a ranged style becomes a
  * [RangedInteraction] (see [MeleeCombat.fight]): the player walks towards the NPC until it is within the weapon's range
  * and in line of sight ([LineOfSight.inRange]), stops there and fires every weapon-speed ticks. Single-way combat works
  * as for melee ([MeleeCombat.foughtByAnother], [MeleeCombat.underAttackByAnother]), and an NPC that is shot fights back
@@ -97,6 +98,9 @@ class RangedCombat(
         val attackRoll: Int = 0,
         val maxHit: Int = 0,
         val travel: Int = -1,
+        /** Whether its accuracy roll passed, which decides a chinchompa's blast too. */
+        val hit: Boolean = false,
+        val splash: Boolean = false,
     )
 
     private val inFlight = ArrayList<Shot>()
@@ -161,6 +165,8 @@ class RangedCombat(
                 return true
             }
             interaction.fired = true
+            // The last chinchompa thrown: the fight ends rather than going on bare-handed (guessed).
+            if (weapon.thrown && player.equipment[WearPos.WEAPON] == null) return true
         }
         return false
     }
@@ -168,6 +174,7 @@ class RangedCombat(
     /** Fires at [npc] on [tick]; false when there is nothing to fire, and the player has been told. */
     private fun fire(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
         if (weapon.loaded) return fireLoaded(player, npc, weapon, tick)
+        if (weapon.thrown) return fireThrown(player, npc, weapon, tick)
         val worn = player.equipment[WearPos.AMMO]
         if (worn == null) {
             message(player, NO_AMMO)
@@ -196,6 +203,17 @@ class RangedCombat(
         val matchup = combat.rangedMatchup(player, npc) ?: return false
         if (!blowpipe.use(player, { message(player, it) }, { random.chance(SCALE_KEPT_NUMERATOR, SCALE_KEPT_DENOMINATOR) })) return false
         release(player, npc, weapon, ammo, null, matchup, 1, tick)
+        return true
+    }
+
+    /**
+     * A throw: one from the stack in the weapon slot, the numbers taken while it was still there, and nothing to the
+     * floor. Chinchompas can't be picked up again, even when they do no damage (OSRS Wiki, Chinchompa (weapon)).
+     */
+    private fun fireThrown(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
+        val matchup = combat.rangedMatchup(player, npc) ?: return false
+        player.equipment.remove(WearPos.WEAPON, 1)
+        release(player, npc, weapon, null, null, matchup, 1, tick)
         return true
     }
 
@@ -228,9 +246,10 @@ class RangedCombat(
         repeat(shots) { shot ->
             if (travel >= 0) projectile(flight(player, npc, travel, landTick - tick, shot))
             // Accuracy first, then damage, as for melee; a shot's random draws are always these two.
-            val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)) CombatMath.rollDamage(random, matchup.maxHit) else 0
+            val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)
+            val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
             val damage = reserve(player, npc, style, rolled)
-            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel)
+            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.splash)
         }
     }
 
@@ -277,6 +296,32 @@ class RangedCombat(
     }
 
     /**
+     * A chinchompa landing on [shot]'s NPC in a multi-way area blows up the 3x3 around it, centred on its south-west tile
+     * (OSRS Wiki, Multicombat area: its "true tile"): every other NPC there that is in a multi-way area too is hit if the
+     * target was, and missed if it was missed (OSRS Wiki, Chinchompa (weapon)). In single-way combat only the target is
+     * hit (OSRS Wiki, Multicombat area).
+     *
+     * Guessed: that each NPC's damage is rolled on its own, 0 to the throw's max hit; that there is no cap on how many
+     * are hit; that an NPC is in the area when its south-west tile is; and that their XP comes as the blast lands. The
+     * explosion graphic isn't shown yet: NPCs have no spotanims here.
+     */
+    private fun splash(shot: Shot, tick: Long) {
+        val from = shot.npc
+        if (!multi.at(from.level, from.x, from.z)) return
+        val style = shot.style ?: return
+        val around = npcs.all.filter { npc ->
+            npc !== from && !npc.dead && npc.level == from.level && combat.npcCombat[npc.type] != null &&
+                abs(npc.x - from.x) <= SPLASH_RADIUS && abs(npc.z - from.z) <= SPLASH_RADIUS && multi.at(npc.level, npc.x, npc.z)
+        }.toList()
+        for (npc in around) {
+            val rolled = if (shot.hit) CombatMath.rollDamage(random, shot.maxHit) else 0
+            val damage = reserve(shot.player, npc, style, rolled)
+            npc.incoming -= damage
+            melee.hit(npc, shot.player, damage, tick)
+        }
+    }
+
+    /**
      * The NPC phase's part: shots whose time has come land, each its hitsplat (see [MeleeCombat.hit]) and its
      * ammunition on the floor four times in five. A shot lands whatever happened to its shooter since; one whose NPC
      * died or went in the meantime does nothing but drop its ammunition.
@@ -299,6 +344,7 @@ class RangedCombat(
                 dropAmmo(shot.ammo, npc.x, npc.z, npc.level, shot.player)
             }
             if (landed && shot.bounces > 0) bounce(shot, tick)?.let { bounced += it }
+            if (landed && shot.splash) splash(shot, tick)
         }
         inFlight += bounced
     }
@@ -366,6 +412,9 @@ class RangedCombat(
     companion object {
         /** How far a bounce reaches from the NPC it hit (OSRS Wiki, Venator bow: within 2 tiles). */
         const val BOUNCE_RANGE = 2
+
+        /** A chinchompa's blast reaches one tile round its target: 3x3 (OSRS Wiki, Chinchompa (weapon)). */
+        const val SPLASH_RADIUS = 1
 
         /** Guessed: the Wiki doesn't say how long a bounce takes. */
         const val BOUNCE_TICKS = 1L

@@ -1,0 +1,28 @@
+{
+ "name": "Chinchompas: the short fuse's numbers, a throw at a man, and the blast catching the man beside him in a zone ::multi makes multi-way",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel ranged 99", "expectMessage": "99", "comment": "black chinchompas need 65 Ranged"},
+  {"step": "command", "text": "::item black chinchompa 50", "expectMessage": "Added 50 x Black chinchompa"},
+  {"step": "itemOption", "item": "Black chinchompa", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "item": "Black chinchompa"},
+  {"step": "command", "text": "::combat man", "expectMessage": "Short fuse (accurate, ranged heavy), speed 4", "comment": "the fuses are accurate, rapid and longrange; chinchompas are heavy"},
+  {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now", "comment": "two men will fight back"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle; the zone 3232-3239, 3216-3223"},
+  {"step": "command", "text": "::npc man", "expectMessage": "Spawned Man"},
+  {"step": "command", "text": "::tele 3237 3221 0", "expectMessage": "Teleported to 3237, 3221, 0"},
+  {"step": "command", "text": "::npc man", "expectMessage": "Spawned Man", "comment": "diagonally beside the first: in its blast"},
+  {"step": "command", "text": "::tele 3236 3216 0", "expectMessage": "Teleported to 3236, 3216, 0"},
+  {"step": "command", "text": "::multi on", "expectMessage": "Combat is multi-way"},
+  {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000, "comment": "the nearer man, four tiles north"},
+  {"step": "assertAnimation", "id": 7618, "timeoutMs": 20000, "comment": "human_chinchompa_attack_pvn"},
+  {"step": "assertHitsplat", "npc": "Man", "timeoutMs": 20000},
+  {"step": "waitTicks", "ticks": 10, "comment": "watch the second man take hitsplats from the blasts too"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in.", "comment": "both men, whether the blasts killed them or not (::npc men don't come back)"},
+  {"step": "command", "text": "::multi off", "expectMessage": "Combat is single-way"},
+  {"step": "command", "text": "::god", "expectMessage": "You can be hurt again."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
