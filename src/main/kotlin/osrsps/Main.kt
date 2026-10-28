@@ -50,7 +50,14 @@ private fun fetchCache() {
     staging.toFile().deleteRecursively()
     archive.download(entry, staging)
     CacheInfo.read(staging)
-    cacheDir.toFile().deleteRecursively()
+    // Keep the cache being replaced (and what it came from) so a bad build can be rolled back by swapping the folders.
+    val previous = dataDir.resolve("cache.previous")
+    if (Files.exists(cacheDir)) {
+        previous.toFile().deleteRecursively()
+        Files.move(cacheDir, previous)
+        dataDir.resolve("cache-source.txt").toFile().takeIf { it.exists() }
+            ?.copyTo(dataDir.resolve("cache.previous-source.txt").toFile(), overwrite = true)
+    }
     Files.move(staging, cacheDir)
     Files.writeString(dataDir.resolve("cache-source.txt"), "openrs2 ${entry.scope}/${entry.id} build ${entry.build} ${entry.timestamp}\n")
     cacheInfo()

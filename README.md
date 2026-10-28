@@ -38,7 +38,10 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 ./gradlew run --args=cache-info    # summarise an existing download
 ```
 
-`data/cache-source.txt` records which OpenRS2 cache was used.
+`data/cache-source.txt` records which OpenRS2 cache was used. A fetch keeps the cache it replaces in `data/cache.previous`
+(its source in `data/cache.previous-source.txt`). To roll back, stop the server and swap `data/cache` with
+`data/cache.previous`, and `data/cache-source.txt` with `data/cache.previous-source.txt`, so the source line names the
+cache that is running.
 
 ## Run the server
 
@@ -695,6 +698,9 @@ warns at startup about any scenario naming an item the cache lacks.
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a
 tinderbox and 100 coins, with run on.
+
+`lumbridge-bare` stands you on the Lumbridge spawn (3222, 3218) with a new account's stats and nothing worn or carried:
+the clean start the equipment test scripts use.
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.

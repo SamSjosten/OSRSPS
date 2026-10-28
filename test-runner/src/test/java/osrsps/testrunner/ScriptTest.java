@@ -104,6 +104,17 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertGroundItem\",\"item\":\"Bones\",\"x\":1}]}", "both \"x\" and \"y\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertAnimation\"}]}", "step 1 needs \"id\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertAnimation\",\"id\":-2}]}", "\"id\" must be 0 or more");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"itemOption\",\"item\":\"Bronze axe\"}]}", "needs \"option\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"itemOption\",\"option\":\"Wield\"}]}", "needs \"item\" (a name) or \"itemId\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"wornOption\",\"slot\":\"tail\",\"option\":\"Remove\"}]}", "must be one of head, cape, neck, weapon");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertEquipment\",\"slot\":\"weapon\"}]}", "or \"empty\": true");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertEquipment\",\"slot\":\"weapon\",\"itemId\":1,\"empty\":true}]}", "or \"empty\": true");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"clickWidget\",\"interfaceId\":387}]}", "needs \"component\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"clickWidget\",\"interfaceId\":387,\"component\":1,\"op\":11}]}", "1 to 10");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertWidgetText\",\"interfaceId\":70000,\"contains\":\"x\"}]}", "0 to 65535");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertWidgetText\",\"interfaceId\":84}]}", "needs \"contains\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertPose\"}]}", "needs \"idle\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"logout\",\"now\":true}]}", "unknown field \"now\"");
 	}
 
 	private static void invalid(String json, String reason)

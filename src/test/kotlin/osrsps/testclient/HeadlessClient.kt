@@ -215,6 +215,17 @@ class HeadlessClient private constructor(
         }
     }
 
+    /**
+     * Op [op] (1-10) on component [componentId] of [interfaceId], or on its slot [sub], as IF_BUTTONX: an inventory
+     * item's Wield is op 3 on its slot of inventory:items (149:0), with [obj] the item the slot shows.
+     */
+    fun ifButton(interfaceId: Int, componentId: Int, op: Int, sub: Int = -1, obj: Int = -1) = send(GameClientProt.IF_BUTTONX) {
+        p4((interfaceId shl 16) or componentId)
+        p2(sub and 0xFFFF)
+        p2(obj and 0xFFFF)
+        p1(op)
+    }
+
     /** A click on a pause button (RESUME_PAUSEBUTTON): a dialogue's continue, or a menu option as [sub]. */
     fun resumePause(interfaceId: Int, componentId: Int, sub: Int = -1) = send(GameClientProt.RESUME_PAUSEBUTTON) {
         p2Alt1(sub and 0xFFFF)

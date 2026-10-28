@@ -22,6 +22,7 @@ import net.runelite.api.NPCComposition;
 import net.runelite.api.ObjectComposition;
 import net.runelite.api.Perspective;
 import net.runelite.api.Player;
+import net.runelite.api.PlayerComposition;
 import net.runelite.api.Point;
 import net.runelite.api.Scene;
 import net.runelite.api.Skill;
@@ -33,6 +34,7 @@ import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.VarClientID;
+import net.runelite.api.kit.KitType;
 import net.runelite.api.widgets.Widget;
 
 /**
@@ -66,6 +68,21 @@ final class ClientGame implements Game
 	private static final int CAMERA_PITCH_DOWN = 383 << 3;
 	private static final String EXAMINE = "Examine";
 	private static final String TAKE = "Take";
+	private static final String REMOVE = "Remove";
+	private static final int EXAMINE_OP = 10;
+
+	/**
+	 * The button op our server reads as an item's iop1 to iop5 in the inventory (InventoryTab.IOP_BY_BUTTON_OP, after
+	 * RSMod), for when the slot's component has no ops of its own to read.
+	 */
+	private static final int[] INVENTORY_IOP_BUTTON_OPS = {2, 3, 4, 6, 7};
+
+	/** The equipment tab's slot components by wearpos (0 head to 13 ammo); 0 where no slot is shown. */
+	private static final int[] WORN_SLOT_COMPONENTS = {
+		InterfaceID.Wornitems.SLOT0, InterfaceID.Wornitems.SLOT1, InterfaceID.Wornitems.SLOT2, InterfaceID.Wornitems.SLOT3,
+		InterfaceID.Wornitems.SLOT4, InterfaceID.Wornitems.SLOT5, 0, InterfaceID.Wornitems.SLOT7, 0,
+		InterfaceID.Wornitems.SLOT9, InterfaceID.Wornitems.SLOT10, 0, InterfaceID.Wornitems.SLOT12, InterfaceID.Wornitems.SLOT13,
+	};
 	/** How far, in pixels, the mouse may be from a walk's spot: the spot drifts while the camera eases. */
 	private static final int MOUSE_SLACK = 2;
 
@@ -865,5 +882,245 @@ final class ClientGame implements Game
 	{
 		Widget w = visible(component);
 		return w == null ? "" : Dialogue.clean(w.getText());
+	}
+
+	@Override
+	public String itemOption(String name, int id, String option)
+	{
+		ItemContainer inventory = client.getItemContainer(InventoryID.INV);
+		if (inventory == null)
+		{
+			return "no inventory yet";
+		}
+		Item[] items = inventory.getItems();
+		int slot = -1;
+		for (int i = 0; i < items.length; i++)
+		{
+			if (items[i].getId() >= 0 && items[i].getQuantity() > 0 && itemMatches(items[i].getId(), name, id))
+			{
+				slot = i;
+				break;
+			}
+		}
+		String what = name != null ? "\"" + name + "\"" : "item " + id;
+		if (slot < 0)
+		{
+			return "no " + what + " in the inventory";
+		}
+		Widget panel = client.getWidget(InterfaceID.Inventory.ITEMS);
+		if (panel == null)
+		{
+			return "the inventory panel is not open";
+		}
+		int itemId = items[slot].getId();
+		ItemComposition c = client.getItemDefinition(itemId);
+		int op = -1;
+		if (isExamine(option))
+		{
+			op = EXAMINE_OP;
+		}
+		else
+		{
+			// The slot's own ops, as the client builds its menu from them: action i is op i + 1. Not yet seen in the
+			// client: whether the inventory's slots carry the item's ops; if not, the item's iops as our server maps them.
+			Widget child = panel.getChild(slot);
+			op = actionOp(child == null ? null : child.getActions(), option);
+			String[] iops = c.getInventoryActions();
+			for (int i = 0; op < 0 && iops != null && i < iops.length && i < INVENTORY_IOP_BUTTON_OPS.length; i++)
+			{
+				if (iops[i] != null && Dialogue.clean(iops[i]).equalsIgnoreCase(option))
+				{
+					op = INVENTORY_IOP_BUTTON_OPS[i];
+				}
+			}
+		}
+		if (op < 0)
+		{
+			return what + " has no option \"" + option + "\"";
+		}
+		client.menuAction(slot, InterfaceID.Inventory.ITEMS, ccOp(op), op, itemId, option, c.getName());
+		return null;
+	}
+
+	/** Op i + 1 for the action i whose text is the option, or -1. */
+	private static int actionOp(String[] actions, String option)
+	{
+		for (int i = 0; actions != null && i < actions.length; i++)
+		{
+			if (actions[i] != null && Dialogue.clean(actions[i]).equalsIgnoreCase(option))
+			{
+				return i + 1;
+			}
+		}
+		return -1;
+	}
+
+	/** Ops 6 and up sort under the others in a component's menu, as RuneLite's menu entry swapper has them. */
+	private static MenuAction ccOp(int op)
+	{
+		return op >= 6 ? MenuAction.CC_OP_LOW_PRIORITY : MenuAction.CC_OP;
+	}
+
+	@Override
+	public int wornId(int wearpos)
+	{
+		ItemContainer worn = client.getItemContainer(InventoryID.WORN);
+		if (worn == null)
+		{
+			return NO_INVENTORY;
+		}
+		Item item = worn.getItem(wearpos);
+		return item == null || item.getId() < 0 || item.getQuantity() <= 0 ? -1 : item.getId();
+	}
+
+	@Override
+	public int modelWornId(int wearpos)
+	{
+		if (wearpos < 0 || wearpos >= KitType.values().length)
+		{
+			return NOT_ON_MODEL;
+		}
+		Player me = client.getLocalPlayer();
+		PlayerComposition c = me == null ? null : me.getPlayerComposition();
+		return c == null ? -1 : c.getEquipmentId(KitType.values()[wearpos]);
+	}
+
+	@Override
+	public String itemName(int id)
+	{
+		ItemComposition c = id < 0 ? null : client.getItemDefinition(id);
+		return c == null ? null : Dialogue.clean(c.getName());
+	}
+
+	@Override
+	public String wornOption(int wearpos, String option)
+	{
+		int component = wearpos >= 0 && wearpos < WORN_SLOT_COMPONENTS.length ? WORN_SLOT_COMPONENTS[wearpos] : 0;
+		if (component == 0)
+		{
+			return "the equipment tab shows no slot " + wearpos;
+		}
+		Widget slot = client.getWidget(component);
+		if (slot == null)
+		{
+			return "the equipment tab is not open";
+		}
+		int itemId = wornId(wearpos);
+		if (itemId < 0)
+		{
+			return "nothing worn in slot " + wearpos;
+		}
+		// Op 1 is Remove and 10 Examine; the item's own worn options are ops 2 to 9 (its params 451 to 458), as
+		// RuneLite's menu entry swapper and our server have them, and the slot's actions say which is which.
+		int op = REMOVE.equalsIgnoreCase(option) ? 1 : isExamine(option) ? EXAMINE_OP : actionOp(slot.getActions(), option);
+		if (op < 0)
+		{
+			return "the item in slot " + wearpos + " has no option \"" + option + "\"";
+		}
+		client.menuAction(-1, component, ccOp(op), op, itemId, option, client.getItemDefinition(itemId).getName());
+		return null;
+	}
+
+	@Override
+	public String clickWidget(int interfaceId, int component, int sub, int op)
+	{
+		int packed = interfaceId << 16 | component;
+		Widget w = client.getWidget(packed);
+		if (w == null)
+		{
+			return "interface " + interfaceId + ":" + component + " is not open";
+		}
+		int itemId = w.getItemId();
+		if (sub >= 0)
+		{
+			Widget child = w.getChild(sub);
+			if (child == null)
+			{
+				return "interface " + interfaceId + ":" + component + " has no slot " + sub;
+			}
+			itemId = child.getItemId();
+		}
+		String[] actions = (sub >= 0 ? w.getChild(sub) : w).getActions();
+		String option = actions != null && op - 1 < actions.length && actions[op - 1] != null ? actions[op - 1] : "";
+		client.menuAction(sub, packed, ccOp(op), op, itemId, option, "");
+		return null;
+	}
+
+	@Override
+	public String widgetText(int interfaceId, int component)
+	{
+		List<String> texts = new ArrayList<>();
+		if (component >= 0)
+		{
+			Widget w = client.getWidget(interfaceId << 16 | component);
+			if (w == null)
+			{
+				return null;
+			}
+			collectText(w, texts, true);
+		}
+		else
+		{
+			// Every component of the interface in turn; their static children are components too, so only the
+			// dynamic and nested ones are walked into. Component ids are numbered from 0 without gaps.
+			if (client.getWidget(interfaceId << 16) == null)
+			{
+				return null;
+			}
+			for (int c = 0; c < 0x10000; c++)
+			{
+				Widget w = client.getWidget(interfaceId << 16 | c);
+				if (w == null)
+				{
+					break;
+				}
+				collectText(w, texts, false);
+			}
+		}
+		return String.join(" / ", texts);
+	}
+
+	private static void collectText(Widget w, List<String> texts, boolean staticChildren)
+	{
+		String t = w.getText() == null ? "" : Dialogue.clean(w.getText());
+		if (!t.isEmpty())
+		{
+			texts.add(t);
+		}
+		List<Widget[]> groups = new ArrayList<>();
+		if (staticChildren)
+		{
+			groups.add(w.getStaticChildren());
+		}
+		groups.add(w.getDynamicChildren());
+		groups.add(w.getNestedChildren());
+		for (Widget[] group : groups)
+		{
+			for (int i = 0; group != null && i < group.length; i++)
+			{
+				if (group[i] != null)
+				{
+					collectText(group[i], texts, true);
+				}
+			}
+		}
+	}
+
+	@Override
+	public int idlePose()
+	{
+		Player me = client.getLocalPlayer();
+		return me == null ? -1 : me.getIdlePoseAnimation();
+	}
+
+	@Override
+	public String logout()
+	{
+		if (client.getWidget(InterfaceID.Logout.LOGOUT) == null)
+		{
+			return "the logout tab is not open";
+		}
+		client.menuAction(-1, InterfaceID.Logout.LOGOUT, MenuAction.CC_OP, 1, -1, "Logout", "");
+		return null;
 	}
 }

@@ -120,5 +120,7 @@ class ScenarioTest {
         // The cow field, by the cows in npc-spawns/lumbridge.json.
         assertTrue(cows.x in 3253..3265 && cows.z in 3255..3298 && cows.level == 0)
         assertTrue(cows.equipment.isNotEmpty() && cows.inventory.isNotEmpty())
+        val bare = scenarios["lumbridge-bare"]!!
+        assertTrue(bare.equipment.isEmpty() && bare.inventory.isEmpty() && bare.skills.isEmpty())
     }
 }
