@@ -19,6 +19,7 @@
   {"step": "assertWidgetText", "interfaceId": 84, "component": 36, "contains": "Melee strength: +5"},
   {"step": "assertWidgetText", "interfaceId": 84, "component": 52, "contains": "Base: 3.0s", "comment": "equipment:attackspeedbase, 52 since cache 241.4"},
   {"step": "command", "text": "::item wooden shield", "expectMessage": "Added 1 x Wooden shield"},
+  {"step": "waitTicks", "ticks": 2, "comment": "the client fills the side inventory's new slot with its own script after the update; a click before that goes out on an empty slot and is dropped (seen on the VM 2026-10-28)"},
   {"step": "clickWidget", "interfaceId": 85, "component": 0, "slot": 0, "op": 1, "comment": "Equip on the stats screen's own inventory, where the shield is the only item"},
   {"step": "assertEquipment", "slot": "shield", "item": "Wooden shield"},
   {"step": "assertWidgetText", "interfaceId": 84, "component": 25, "contains": "Slash: +4", "comment": "the stats screen is still open"},
