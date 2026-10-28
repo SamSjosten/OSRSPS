@@ -45,8 +45,8 @@ function Reset-Deadline { $script:deadline = (Get-Date).AddSeconds($TimeoutSecon
 function Get-LogEnd { if (Test-Path -LiteralPath $ClientLog) { (Get-Item -LiteralPath $ClientLog).Length } else { 0 } }
 $logStart = 0
 
-# The test runner's lines saying auto login is off or gave up, logged by the client that runs now: only lines after
-# the log's last RuneLite start count.
+# The test runner's lines saying auto login is off or gave up, logged by the plugin that runs now: only lines after
+# the log's last RuneLite start or test runner start ("watching <folder>", which resets auto login) count.
 function Get-AutoLoginLines
 {
 	if (-not (Test-Path -LiteralPath $ClientLog)) { return @() }
@@ -62,7 +62,7 @@ function Get-AutoLoginLines
 	$lines = $text -split "`r?`n"
 	for ($i = $lines.Count - 1; $i -ge 0; $i--)
 	{
-		if ($lines[$i] -match 'RuneLite .* starting up') { $lines = $lines[$i..($lines.Count - 1)]; break }
+		if ($lines[$i] -match 'RuneLite .* starting up|Test runner: watching ') { $lines = $lines[$i..($lines.Count - 1)]; break }
 	}
 	@($lines | Where-Object { $_ -match 'Test runner: .*(auto login is off|auto login gave up)' })
 }
