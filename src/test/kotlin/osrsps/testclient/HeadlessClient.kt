@@ -533,7 +533,8 @@ class HeadlessClient private constructor(
 
         /**
          * Logs in as [username] and returns once the server has accepted the login. The JS5 CRCs are fetched from the
-         * same port first. [rsaModulus] and [rsaExponent] are the server's public key.
+         * same port first. [rsaModulus] and [rsaExponent] are the server's public key. [header] goes in front of both
+         * connections, as a relay's PROXY header would.
          */
         fun login(
             host: String,
@@ -543,14 +544,16 @@ class HeadlessClient private constructor(
             username: String,
             password: String = "test",
             timeoutMillis: Int = DEFAULT_TIMEOUT_MILLIS.toInt(),
+            header: ByteArray = ByteArray(0),
         ): HeadlessClient {
-            val crcs = Js5Crcs.fetch(host, port, timeoutMillis)
+            val crcs = Js5Crcs.fetch(host, port, timeoutMillis, header)
             val socket = Socket()
             try {
                 socket.connect(InetSocketAddress(host, port), timeoutMillis)
                 socket.soTimeout = timeoutMillis
                 val out = DataOutputStream(socket.getOutputStream())
                 val input = DataInputStream(socket.getInputStream())
+                out.write(header)
                 out.writeByte(INIT_GAME_CONNECTION)
                 out.flush()
                 val status = input.readUnsignedByte()

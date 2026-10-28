@@ -43,6 +43,7 @@ class AdminsTest {
             setOf(
                 "pause", "step", "resume", "seed", "addloc", "delloc", "resetlocs", "gfx", "proj", "areasound",
                 "dialogue", "groundobj", "objspawn", "cleartile", "npc", "follow", "delnpc", "hit", "kill", "god", "heal", "multi", "blowpipe",
+                "ip", "ipban", "ipunban", "ipbans",
             ),
             adminOnly,
         )

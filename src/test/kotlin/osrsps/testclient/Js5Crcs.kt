@@ -18,11 +18,13 @@ object Js5Crcs {
     /** JS5 responses are cut into 512-byte blocks; every block after the first starts with 0xFF. */
     private const val BLOCK_LENGTH = 512
 
-    fun fetch(host: String, port: Int, timeoutMillis: Int = 5000): IntArray = Socket().use { socket ->
+    /** [header] is sent first, as a relay's PROXY header would be. */
+    fun fetch(host: String, port: Int, timeoutMillis: Int = 5000, header: ByteArray = ByteArray(0)): IntArray = Socket().use { socket ->
         socket.connect(InetSocketAddress(host, port), timeoutMillis)
         socket.soTimeout = timeoutMillis
         val out = DataOutputStream(socket.getOutputStream())
         val input = DataInputStream(socket.getInputStream())
+        out.write(header)
         out.writeByte(INIT_JS5REMOTE_CONNECTION)
         out.writeInt(Revision.MAJOR)
         repeat(4) { out.writeInt(0) }
