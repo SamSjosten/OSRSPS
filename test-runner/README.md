@@ -92,6 +92,16 @@ never words: the words are Jagex's and stay out of git (see the main README's Di
 - `castle-take-items.json`: empties the inventory, takes every castle item spawn and checks the inventory after each.
   An item taken less than 100 ticks before is not back yet, so each Take waits up to 70 s.
 
+The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `clickWidget`, `assertEquipment`,
+`assertWidgetText`, `assertPose`, `logout`) and start from `::scenario lumbridge-bare`, ending with `::reset`:
+
+- `equipment-wield.json`: Wield a bronze axe (worn, on the model, the combat tab says Axe), the stats screen's
+  bonuses, Equip a shield from the stats screen, a two-handed sword taking the shield off, the whip's 70 Attack, the
+  whip still worn after a logout, and Remove.
+- `ground-drop-take.json`: drop an axe, see it on the ground, take it back.
+- `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
+  which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
+
 ## Results
 
 Results go to `C:\RSPS\.rlcustom\test-results\`:
@@ -174,6 +184,13 @@ server's answer instead of failing on what was there before.
 | `assertStat` | `skill`, `level`, `xp` | Waits until the player's real (unboosted) level and experience in the skill are at least those given. `skill` is a name as the stats tab shows it, such as `Attack`. |
 | `assertGroundItem` | `item` (name) or `itemId`, `x`+`y`, `absent` | Waits until such an item lies on the ground in the scene on the player's plane (on the tile, with `x` and `y`), or, with `absent: true`, until none does; absence on a tile counts only once that tile is in the loaded scene. |
 | `assertAnimation` | `id`, `npc` (name) | Waits until the player, or the NPC of that name (chosen as for `assertHitsplat`), has started animation `id` (a cache sequence id, such as 422 for a punch), counting only animations since the last step that acted. |
+| `itemOption` | `item` (name) or `itemId`, `option` | Clicks the option (such as `Wield`, `Wear`, `Eat`, `Drop`, or `Examine`) on the first such item in the inventory, retrying until there is one. Doesn't wait for the result: follow it with an assert. |
+| `wornOption` | `slot`, `option` | Clicks the option (`Remove`, `Examine`, or one of the item's own) on a slot of the equipment tab. `slot` is one of `head`, `cape`, `neck`, `weapon`, `body`, `shield`, `legs`, `hands`, `feet`, `ring`, `ammo`. |
+| `clickWidget` | `interfaceId`, `component`, `slot`, `op` | Clicks op `op` (default 1) on an interface component, or on its slot `slot` (an item in an interface's inventory), as that menu entry would; retries until the interface is open. The equipment tab's View equipment stats is 387:1. |
+| `assertEquipment` | `slot`, `item` (name) or `itemId`, `empty` | Waits until the slot of the worn inventory holds the item, or with `empty: true` nothing, and the player's model shows the same (rings and ammo aren't on the model). |
+| `assertWidgetText` | `interfaceId`, `component`, `contains` | Waits until the component's text, with everything inside it, contains `contains`; without `component`, any text in the interface. Colour tags are removed first. The interface must be open (for a side tab, loaded; it needn't be the tab showing). |
+| `assertPose` | `idle` | Waits until the player stands in that animation: the ready pose of their weapon's stance (808 is human_ready). |
+| `logout` | | Clicks Click here to logout and waits until the client is logged out. Auto login logs the account back in; follow it with `waitForLogin`. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox and objectbox.
 

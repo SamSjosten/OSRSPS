@@ -124,4 +124,49 @@ interface Game
 
 	/** Whether the tile is in the loaded scene, so the client can see what lies on it. */
 	boolean tileLoaded(Tile at);
+
+	/**
+	 * Clicks an option (such as Wield, Wear, Eat or Drop, or Examine) on the first item in the inventory with this name
+	 * (or id, when the name is null).
+	 */
+	String itemOption(String name, int id, String option);
+
+	/**
+	 * The item worn in a slot (a wearpos, 0 for the head to 13 for ammo), as the worn inventory has it: its id, -1 when the
+	 * slot is empty, or {@link #NO_INVENTORY} while the client has no worn inventory.
+	 */
+	int wornId(int wearpos);
+
+	/**
+	 * The item the player's model shows in a slot: its id, -1 for none, or {@link #NOT_ON_MODEL} for a slot the model
+	 * doesn't show (ring, ammo).
+	 */
+	int modelWornId(int wearpos);
+
+	int NO_INVENTORY = -2;
+	int NOT_ON_MODEL = -3;
+
+	/** The item's name, as the client has it, or null for an unknown id. */
+	String itemName(int id);
+
+	/** Clicks an option (Remove, Examine or one of the item's own) on the item worn in a slot of the equipment tab. */
+	String wornOption(int wearpos, String option);
+
+	/**
+	 * Clicks op {@code op} (1 to 10) on an interface component, or on slot {@code sub} of it when {@code sub} is 0 or more,
+	 * as a click on a menu entry of that component would.
+	 */
+	String clickWidget(int interfaceId, int component, int sub, int op);
+
+	/**
+	 * The text of a component and everything inside it, or of the whole interface when {@code component} is -1, with
+	 * colour tags removed and the pieces joined by " / "; null while the interface isn't open (loaded) in the client.
+	 */
+	String widgetText(int interfaceId, int component);
+
+	/** The animation the player stands in (the stance's ready pose), or -1 without a player. */
+	int idlePose();
+
+	/** Clicks "Click here to logout" in the logout tab. */
+	String logout();
 }

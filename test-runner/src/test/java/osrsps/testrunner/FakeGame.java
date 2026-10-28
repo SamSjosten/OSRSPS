@@ -40,6 +40,20 @@ class FakeGame implements Game
 	final Map<String, Integer> xps = new HashMap<>();
 	/** The items groundItem finds, as "name" or "name at x y". */
 	final List<String> groundItems = new ArrayList<>();
+	/** When set, itemOption, wornOption and clickWidget fail with this until cleared. */
+	String clickError;
+	/** What wornId answers by wearpos (empty when missing); null for no worn inventory yet. */
+	Map<Integer, Integer> worn = new HashMap<>();
+	/** What modelWornId answers by wearpos; a missing slot shows the same as {@link #worn}. */
+	final Map<Integer, Integer> model = new HashMap<>();
+	/** Item names by id, for itemName. */
+	final Map<Integer, String> itemNames = new HashMap<>();
+	/** What widgetText answers, by "interface:component" or "interface"; a missing key is an interface not open. */
+	final Map<String, String> widgetTexts = new HashMap<>();
+	/** What idlePose answers. */
+	int idlePose = 808;
+	/** Whether logout logs out at once. */
+	boolean logoutWorks = true;
 
 	@Override
 	public boolean loggedIn()
@@ -204,5 +218,83 @@ class FakeGame implements Game
 	{
 		String what = (name != null ? name : "item " + id) + (at == null ? "" : " at " + at.x + " " + at.y);
 		return groundItems.contains(what) ? null : "no " + what + " on the ground";
+	}
+
+	@Override
+	public String itemOption(String name, int id, String option)
+	{
+		if (clickError != null)
+		{
+			return clickError;
+		}
+		actions.add(option + " " + (name != null ? name : "item " + id) + " in the inventory");
+		return null;
+	}
+
+	@Override
+	public int wornId(int wearpos)
+	{
+		return worn == null ? NO_INVENTORY : worn.getOrDefault(wearpos, -1);
+	}
+
+	@Override
+	public int modelWornId(int wearpos)
+	{
+		if (wearpos >= 12)
+		{
+			return NOT_ON_MODEL;
+		}
+		return model.containsKey(wearpos) ? model.get(wearpos) : Math.max(wornId(wearpos), -1);
+	}
+
+	@Override
+	public String itemName(int id)
+	{
+		return itemNames.get(id);
+	}
+
+	@Override
+	public String wornOption(int wearpos, String option)
+	{
+		if (clickError != null)
+		{
+			return clickError;
+		}
+		actions.add(option + " slot " + wearpos);
+		return null;
+	}
+
+	@Override
+	public String clickWidget(int interfaceId, int component, int sub, int op)
+	{
+		if (clickError != null)
+		{
+			return clickError;
+		}
+		actions.add("click " + interfaceId + ":" + component + (sub < 0 ? "" : " slot " + sub) + " op " + op);
+		return null;
+	}
+
+	@Override
+	public String widgetText(int interfaceId, int component)
+	{
+		return widgetTexts.get(component < 0 ? String.valueOf(interfaceId) : interfaceId + ":" + component);
+	}
+
+	@Override
+	public int idlePose()
+	{
+		return loggedIn ? idlePose : -1;
+	}
+
+	@Override
+	public String logout()
+	{
+		actions.add("logout");
+		if (logoutWorks)
+		{
+			loggedIn = false;
+		}
+		return null;
 	}
 }

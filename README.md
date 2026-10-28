@@ -693,6 +693,9 @@ warns at startup about any scenario naming an item the cache lacks.
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a
 tinderbox and 100 coins, with run on.
 
+`lumbridge-bare` stands you on the Lumbridge spawn (3222, 3218) with a new account's stats and nothing worn or carried:
+the clean start the equipment test scripts use.
+
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.
 

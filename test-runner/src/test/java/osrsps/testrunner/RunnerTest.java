@@ -619,4 +619,110 @@ public class RunnerTest
 		assertEquals("animation 422 on you", r.steps.get(1).detail);
 		assertEquals("animation 424 on Man #7", r.steps.get(2).detail);
 	}
+
+	@Test
+	public void itemOptionRetriesUntilTheItemIsThereThenTheSlotShowsIt() throws Exception
+	{
+		game.clickError = "no \"Bronze axe\" in the inventory";
+		runner.start(script("{\"step\":\"itemOption\",\"item\":\"Bronze axe\",\"option\":\"Wield\"},"
+			+ "{\"step\":\"assertEquipment\",\"slot\":\"weapon\",\"item\":\"Bronze axe\"},"
+			+ "{\"step\":\"assertEquipment\",\"slot\":\"shield\",\"empty\":true}"), "file");
+		assertNull(cycle());
+		assertTrue(game.actions.isEmpty());
+		game.clickError = null;
+		assertNull(cycle());
+		assertEquals(List.of("Wield Bronze axe in the inventory"), game.actions);
+		game.itemNames.put(1351, "Bronze axe");
+		game.worn.put(3, 1351);
+		// Worn, but the model doesn't show it yet.
+		game.model.put(3, -1);
+		assertNull(cycle());
+		game.model.remove(3);
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("Wield Bronze axe in the inventory", r.steps.get(0).description);
+		assertEquals("assert weapon slot holds Bronze axe", r.steps.get(1).description);
+		assertEquals("worn Bronze axe (1351), model shows Bronze axe (1351)", r.steps.get(1).detail);
+		assertEquals("assert shield slot is empty", r.steps.get(2).description);
+		assertEquals("worn nothing, model shows nothing", r.steps.get(2).detail);
+	}
+
+	@Test
+	public void equipmentWaitsForTheWornInventoryAndSaysWhatIsWorn() throws Exception
+	{
+		game.worn = null;
+		runner.start(script("{\"step\":\"assertEquipment\",\"slot\":\"ammo\",\"itemId\":882,\"timeoutMs\":40}"), "file");
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals("step 1 (assert ammo slot holds item 882): timed out after 40 ms: no worn inventory yet", r.failure);
+		game.worn = new java.util.HashMap<>();
+		game.worn.put(13, 884);
+		game.itemNames.put(884, "Iron arrow");
+		runner.start(script("{\"step\":\"assertEquipment\",\"slot\":\"ammo\",\"itemId\":882,\"timeoutMs\":40}"), "file");
+		r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		// Ammo isn't on the model, so only the worn inventory is said.
+		assertEquals("step 1 (assert ammo slot holds item 882): timed out after 40 ms: worn Iron arrow (884)", r.failure);
+	}
+
+	@Test
+	public void wornOptionAndClickWidgetRetryUntilTheyCanClick() throws Exception
+	{
+		game.clickError = "the equipment tab is not open";
+		runner.start(script("{\"step\":\"wornOption\",\"slot\":\"Weapon\",\"option\":\"Remove\"},"
+			+ "{\"step\":\"clickWidget\",\"interfaceId\":387,\"component\":1},"
+			+ "{\"step\":\"clickWidget\",\"interfaceId\":85,\"component\":0,\"slot\":4,\"op\":1}"), "file");
+		assertNull(cycle());
+		game.clickError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("Remove slot 3", "click 387:1 op 1", "click 85:0 slot 4 op 1"), game.actions);
+		assertEquals("Remove on the weapon slot", r.steps.get(0).description);
+		assertEquals("click op 1 on 387:1", r.steps.get(1).description);
+		assertEquals("click op 1 on 85:0 slot 4", r.steps.get(2).description);
+	}
+
+	@Test
+	public void widgetTextWaitsForTheInterfaceAndTheText() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertWidgetText\",\"interfaceId\":84,\"component\":25,\"contains\":\"Slash: +4\"},"
+			+ "{\"step\":\"assertWidgetText\",\"interfaceId\":593,\"contains\":\"Axe\",\"timeoutMs\":40}"), "file");
+		assertNull(cycle());
+		game.widgetTexts.put("84:25", "Slash: +0");
+		assertNull(cycle());
+		game.widgetTexts.put("84:25", "Slash: +4");
+		game.widgetTexts.put("593", "Bronze axe / Combat Lvl: 3 / Category: Unarmed");
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals("\"Slash: +4\"", r.steps.get(0).detail);
+		assertEquals("assert 84:25 says \"Slash: +4\"", r.steps.get(0).description);
+		assertEquals("step 2 (assert 593 says \"Axe\"): timed out after 40 ms: text is \"Bronze axe / Combat Lvl: 3 / Category: Unarmed\"", r.failure);
+	}
+
+	@Test
+	public void poseAndLogout() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertPose\",\"idle\":2561},"
+			+ "{\"step\":\"logout\"},"
+			+ "{\"step\":\"waitForLogin\"},"
+			+ "{\"step\":\"assertPose\",\"idle\":2561}"), "file");
+		assertNull(cycle());
+		game.idlePose = 2561;
+		assertNull(cycle());
+		assertEquals(List.of("logout"), game.actions);
+		game.loggedIn = true;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("stands in 2561", r.steps.get(0).detail);
+		assertEquals("logged out", r.steps.get(1).detail);
+	}
 }
