@@ -109,9 +109,12 @@ class EquipmentTab(
         // Guessed arguments, after RSMod: the component, inv 93, 4 columns by 7 rows, no dragging, one option.
         val items = (STATS_SIDE shl 16) or STATS_SIDE_ITEMS
         send(player, RunClientScript(INV_INIT_SCRIPT, listOf(items, Inventory.INV, 4, 7, 0, -1, "Equip", "", "", "", "")))
-        send(player, IfSetEventsV2(STATS_SIDE, STATS_SIDE_ITEMS, 0, Inventory.INV_CAPACITY - 1, 0, STATS_SIDE_EVENTS))
+        sendStatsSideEvents(player)
         sendStats(player)
     }
+
+    private fun sendStatsSideEvents(player: Player) =
+        send(player, IfSetEventsV2(STATS_SIDE, STATS_SIDE_ITEMS, 0, Inventory.INV_CAPACITY - 1, 0, STATS_SIDE_EVENTS))
 
     /** Fills in the stats screen's bonuses. The text of each line is from memory of live, not checked. */
     fun sendStats(player: Player) {
@@ -147,15 +150,29 @@ class EquipmentTab(
 
     /**
      * Brings the client in line with the equipment after it changed: the worn inventory, the model, the stance, the
-     * combat tab's category and an open stats screen. Run at the end of every cycle; does nothing when nothing changed.
+     * combat tab's category and an open stats screen. Run at the end of every cycle, after the backpack is sent;
+     * [backpackChanged] says whether it was. Does nothing when nothing changed.
      */
-    fun flush(player: Player) {
+    fun flush(player: Player, backpackChanged: Boolean = false) {
+        resendStatsSideEvents(player, backpackChanged)
         val changed = player.equipment.hasChanges
         sendInventory(player, player.equipment, send)
         if (!changed && player.sentStance != null) return
         updateAppearance(player)
         updateCombatTab(player)
         if (player.modals[FrameSlot.MAINMODAL] == STATS) sendStats(player)
+    }
+
+    /**
+     * The client builds the stats screen's side inventory again on every change to the backpack (script 151, which
+     * script 149 hooks to inv 93, deletes and recreates every slot). On the test VM (2026-10-28) a slot rebuilt after
+     * the IF_SETEVENTS took no Equip click, while one built before it did; so the events go again the cycle after a
+     * backpack change, once the client has rebuilt. Inferred from that run, not seen on live.
+     */
+    private fun resendStatsSideEvents(player: Player, backpackChanged: Boolean) {
+        val open = player.modals[FrameSlot.SIDEMODAL] == STATS_SIDE
+        if (player.statsSideEventsDue && open) sendStatsSideEvents(player)
+        player.statsSideEventsDue = backpackChanged && open
     }
 
     private fun updateAppearance(player: Player) {

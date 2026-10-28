@@ -469,8 +469,9 @@ class World(
             sendVars(player)
             sendStats(player)
             sendEffects(player)
+            val backpackChanged = player.inventory.hasChanges
             inventoryTab.flush(player)
-            equipmentTab.flush(player)
+            equipmentTab.flush(player, backpackChanged)
         }
         for (npc in npcs.all) sendNpcEffects(npc)
         network.infoProtocols.update()
