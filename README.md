@@ -39,7 +39,9 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 ```
 
 `data/cache-source.txt` records which OpenRS2 cache was used. A fetch keeps the cache it replaces in `data/cache.previous`
-(its source in `data/cache.previous-source.txt`); to roll back, stop the server and swap the two folders back.
+(its source in `data/cache.previous-source.txt`). To roll back, stop the server and swap `data/cache` with
+`data/cache.previous`, and `data/cache-source.txt` with `data/cache.previous-source.txt`, so the source line names the
+cache that is running.
 
 ## Run the server
 
