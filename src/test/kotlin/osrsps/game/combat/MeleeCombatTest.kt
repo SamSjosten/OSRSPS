@@ -68,7 +68,7 @@ class MeleeCombatTest {
     private val faced = mutableListOf<Pair<Player, Npc?>>()
     private val removed = mutableListOf<Npc>()
     private val respawned = mutableListOf<NpcSpawn>()
-    private val respawnedPlayers = mutableListOf<Player>()
+    private val deadPlayers = mutableListOf<Player>()
     private val looted = mutableListOf<Pair<Npc, Player?>>()
     private val combat = Combat(Equipment(ObjTypes.of(shortbow)), styles, npcCombat)
     private lateinit var melee: MeleeCombat
@@ -89,7 +89,7 @@ class MeleeCombatTest {
             message = { player, text -> messages += player to text },
             players = { sequenceOf(alice, bob) },
             face = { player, npc -> faced += player to npc }, stopFacing = { player -> faced += player to null },
-            respawn = { respawnedPlayers += it },
+            onDeath = { deadPlayers += it },
             loot = { npc, killer -> looted += npc to killer },
         )
     }
@@ -522,15 +522,18 @@ class MeleeCombatTest {
     }
 
     @Test
-    fun `a player out of hitpoints is told, put back whole, and let go of`() {
+    fun `a player out of hitpoints is told, handed to the deaths, and let go of`() {
         val npc = spawn()
         attack(alice, npc)
         tick()
         alice.hitpoints = 1
         assertEquals(1, melee.hitPlayer(alice, npc, 5, tick))
         assertEquals(listOf(alice to MeleeCombat.DEAD), messages)
-        assertEquals(listOf(alice), respawnedPlayers)
-        assertEquals(10, alice.hitpoints)
+        assertEquals(listOf(alice), deadPlayers)
+        assertEquals(0, alice.hitpoints)
+        // Lying dead, nothing more lands on them.
+        assertEquals(0, melee.hitPlayer(alice, npc, 5, tick))
+        assertEquals(listOf(alice), deadPlayers)
         assertNull(alice.interaction)
         assertNull(alice.attackedBy)
         assertNull(npc.target)

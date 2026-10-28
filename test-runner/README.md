@@ -77,7 +77,7 @@ never words: the words are Jagex's and stay out of git (see the main README's Di
 `examples\` also has the Lumbridge Castle checks. They need runner 0.4.2 or later (`locOption` came in 0.3.0;
 `takeItem`, `assertInventory`, `finishDialogue` and Examine in 0.4.0; `assertLoc` in 0.4.2). The combat checks
 (`combat-attack-man.json`) need 0.5.0, which brought `assertHitsplat`, `assertNpcHealth`, `assertStat`,
-`assertGroundItem` and `assertAnimation`.
+`assertGroundItem` and `assertAnimation`; `combat-die-grave.json` needs 0.6.0 (`assertInterface`, `clickButton`).
 
 - `lumbridge-castle-doors.json` (the smallest, run it first) and `castle-doors-rest.json`: every door.
 - `lumbridge-castle-travel.json`, `castle-stairs-all.json` and `castle-ladders-all.json`: every option on the stairs,
@@ -174,6 +174,8 @@ server's answer instead of failing on what was there before.
 | `assertStat` | `skill`, `level`, `xp` | Waits until the player's real (unboosted) level and experience in the skill are at least those given. `skill` is a name as the stats tab shows it, such as `Attack`. |
 | `assertGroundItem` | `item` (name) or `itemId`, `x`+`y`, `absent` | Waits until such an item lies on the ground in the scene on the player's plane (on the tile, with `x` and `y`), or, with `absent: true`, until none does; absence on a tile counts only once that tile is in the loaded scene. |
 | `assertAnimation` | `id`, `npc` (name) | Waits until the player, or the NPC of that name (chosen as for `assertHitsplat`), has started animation `id` (a cache sequence id, such as 422 for a punch), counting only animations since the last step that acted. |
+| `assertInterface` | `interfaceId`, `absent` | Waits until the interface (by id, such as 672 for the gravestone) is open, or, with `absent: true`, until it is not. |
+| `clickButton` | `interfaceId`, `componentId`, `slot`, `op` | Clicks option `op` (1, the first, unless given) of the component, as a click on it would (a `CC_OP` menu entry, so the client sends `IF_BUTTONX`): with `slot`, the entry of a component the client fills from a list, such as an item in the gravestone's list. Retries until the interface is open. Doesn't wait for the result: follow it with an assert. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox and objectbox.
 

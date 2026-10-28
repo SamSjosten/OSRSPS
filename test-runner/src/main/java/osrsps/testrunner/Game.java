@@ -124,4 +124,14 @@ interface Game
 
 	/** Whether the tile is in the loaded scene, so the client can see what lies on it. */
 	boolean tileLoaded(Tile at);
+
+	/** Whether the interface (by its id) is open and shown anywhere in the client's frame. */
+	boolean interfaceOpen(int interfaceId);
+
+	/**
+	 * Clicks option {@code op} (1 to 10) of component {@code interfaceId}:{@code componentId}, as a click on it would:
+	 * {@code slot} is the entry clicked in a component the client fills from a list (an item in a shop or a grave), -1
+	 * for the component itself. Null when sent, or why it could not be (the interface isn't open, the slot is empty).
+	 */
+	String clickButton(int interfaceId, int componentId, int slot, int op);
 }

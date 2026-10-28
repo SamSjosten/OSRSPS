@@ -391,6 +391,28 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "id", "npc", "comment");
 				return new Steps.AssertAnimation(timeout, npc, id);
 			}
+			case "assertInterface":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int id = f.requiredInt("interfaceId");
+				boolean absent = f.bool("absent", false);
+				f.rejectUnknown("step", "timeoutMs", "interfaceId", "absent", "comment");
+				return new Steps.AssertInterface(timeout, id, absent);
+			}
+			case "clickButton":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int id = f.requiredInt("interfaceId");
+				int component = f.requiredInt("componentId");
+				int slot = f.integer("slot", -1);
+				int op = f.integer("op", 1);
+				if (op < 1 || op > 10)
+				{
+					throw new Invalid(f.where + ": \"op\" is 1 to 10");
+				}
+				f.rejectUnknown("step", "timeoutMs", "interfaceId", "componentId", "slot", "op", "comment");
+				return new Steps.ClickButton(timeout, id, component, slot, op);
+			}
 			default:
 				throw new Invalid(f.where + ": unknown step \"" + type + "\"");
 		}

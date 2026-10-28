@@ -731,6 +731,42 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public boolean interfaceOpen(int interfaceId)
+	{
+		Widget root = client.getWidget(interfaceId, 0);
+		return root != null && !root.isHidden();
+	}
+
+	@Override
+	public String clickButton(int interfaceId, int componentId, int slot, int op)
+	{
+		if (!interfaceOpen(interfaceId))
+		{
+			return "interface " + interfaceId + " is not open";
+		}
+		Widget component = client.getWidget(interfaceId, componentId);
+		if (component == null)
+		{
+			return "no component " + interfaceId + ":" + componentId;
+		}
+		int itemId = -1;
+		if (slot >= 0)
+		{
+			Widget child = component.getChild(slot);
+			if (child == null || child.isHidden())
+			{
+				return "nothing in slot " + slot + " of " + interfaceId + ":" + componentId;
+			}
+			itemId = child.getItemId();
+		}
+		// A component's own option is a CC_OP entry: param0 the slot (-1 for the component itself), param1 the component,
+		// the identifier the option's number; ops 6 to 10 are the low priority kind. The client then sends IF_BUTTONX.
+		MenuAction action = op <= 5 ? MenuAction.CC_OP : MenuAction.CC_OP_LOW_PRIORITY;
+		client.menuAction(slot, (interfaceId << 16) | componentId, action, op, itemId, "", "");
+		return null;
+	}
+
+	@Override
 	public int skillLevel(String skill)
 	{
 		Skill s = skill(skill);

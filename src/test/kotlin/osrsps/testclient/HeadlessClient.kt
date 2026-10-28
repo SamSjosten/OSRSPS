@@ -215,6 +215,17 @@ class HeadlessClient private constructor(
         }
     }
 
+    /**
+     * A click on option [op] (1 to 10) of component [interfaceId]:[componentId], as IF_BUTTONX: [sub] is the slot (an
+     * inventory slot, a script-made child), -1 for none, and [obj] the item the client shows there, -1 for none.
+     */
+    fun button(interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, op: Int = 1) = send(GameClientProt.IF_BUTTONX) {
+        p4((interfaceId shl 16) or componentId)
+        p2(sub and 0xFFFF)
+        p2(obj and 0xFFFF)
+        p1(op)
+    }
+
     /** A click on a pause button (RESUME_PAUSEBUTTON): a dialogue's continue, or a menu option as [sub]. */
     fun resumePause(interfaceId: Int, componentId: Int, sub: Int = -1) = send(GameClientProt.RESUME_PAUSEBUTTON) {
         p2Alt1(sub and 0xFFFF)

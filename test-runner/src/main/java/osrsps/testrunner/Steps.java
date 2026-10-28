@@ -398,6 +398,67 @@ final class Steps
 		}
 	}
 
+	/** Passes once an interface is open, or, with {@code absent}, once it is not. */
+	static final class AssertInterface extends Step
+	{
+		final int interfaceId;
+		final boolean absent;
+
+		AssertInterface(long timeoutMs, int interfaceId, boolean absent)
+		{
+			super("assertInterface", timeoutMs, false);
+			this.interfaceId = interfaceId;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			boolean open = run.game.interfaceOpen(interfaceId);
+			String seen = "interface " + interfaceId + (open ? " is open" : " is not open");
+			return open != absent ? Poll.pass(seen) : Poll.waiting(seen);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert interface " + interfaceId + (absent ? " closed" : " open");
+		}
+	}
+
+	/** Clicks a component's option. Waits (to the timeout) for its interface to be open; does not wait for the result. */
+	static final class ClickButton extends Step
+	{
+		final int interfaceId;
+		final int componentId;
+		final int slot;
+		final int op;
+
+		ClickButton(long timeoutMs, int interfaceId, int componentId, int slot, int op)
+		{
+			super("clickButton", timeoutMs, false);
+			this.interfaceId = interfaceId;
+			this.componentId = componentId;
+			this.slot = slot;
+			this.op = op;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.clickButton(interfaceId, componentId, slot, op);
+			// The server's open may land a tick after the click that asked for it: keep trying until the timeout.
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "click " + interfaceId + ":" + componentId + (slot >= 0 ? " slot " + slot : "") + (op == 1 ? "" : " op " + op);
+		}
+	}
+
 	static final class AssertDialogue extends Step
 	{
 		final String contains;

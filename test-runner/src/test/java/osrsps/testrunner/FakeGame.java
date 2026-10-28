@@ -40,6 +40,8 @@ class FakeGame implements Game
 	final Map<String, Integer> xps = new HashMap<>();
 	/** The items groundItem finds, as "name" or "name at x y". */
 	final List<String> groundItems = new ArrayList<>();
+	/** The interfaces interfaceOpen says are open. */
+	final List<Integer> openInterfaces = new ArrayList<>();
 
 	@Override
 	public boolean loggedIn()
@@ -197,6 +199,23 @@ class FakeGame implements Game
 	public int skillXp(String skill)
 	{
 		return xps.getOrDefault(skill, -1);
+	}
+
+	@Override
+	public boolean interfaceOpen(int interfaceId)
+	{
+		return openInterfaces.contains(interfaceId);
+	}
+
+	@Override
+	public String clickButton(int interfaceId, int componentId, int slot, int op)
+	{
+		if (!openInterfaces.contains(interfaceId))
+		{
+			return "interface " + interfaceId + " is not open";
+		}
+		actions.add("click " + interfaceId + ":" + componentId + " slot " + slot + " op " + op);
+		return null;
 	}
 
 	@Override

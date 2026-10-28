@@ -169,6 +169,10 @@ class Player(
     /** `::god`: NPC hits do them no damage. Not saved. */
     var god: Boolean = false
 
+    /** The tick they died on, -1 while alive: they lie dead, taking no input, until [osrsps.game.combat.Deaths] respawns them. Not saved. */
+    var deathTick: Long = -1
+    val dead: Boolean get() = deathTick >= 0
+
     /** Auto retaliate from the combat tab: on unless varp 172 (option_nodef) is 1. */
     val autoRetaliate: Boolean get() = vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] == 0
 
