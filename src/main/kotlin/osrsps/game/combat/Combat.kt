@@ -117,8 +117,14 @@ class Combat(
         if (style.type != AttackType.RANGED) return null
         val bonuses = bonuses(player)
         val ranged = player.skills.currentLevel(Skill.RANGED)
-        var attackRoll = CombatMath.playerRangedAttackRoll(ranged, style.stance, bonuses.rangedAttack)
         val weapon = rangedWeapons.weapon(equipment.weapon(player))
+        var attackBonus = bonuses.rangedAttack
+        if (weapon?.kind == AmmoKind.CHINCHOMPAS) {
+            val size = npc.type.size
+            val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
+            attackBonus = attackBonus * CombatMath.chinchompaAccuracy(style.stance, distance) / 100
+        }
+        var attackRoll = CombatMath.playerRangedAttackRoll(ranged, style.stance, attackBonus)
         var strength = bonuses.rangedStrength
         if (weapon?.loaded == true) {
             val slot = player.equipment[WearPos.AMMO]?.let { equipment.objTypes[it.id] }
@@ -133,11 +139,6 @@ class Combat(
             val magic = maxOf(npc.type.stats.magic, def.magicAttack)
             attackRoll = attackRoll * CombatMath.twistedBowAccuracy(magic) / 100
             maxHit = maxHit * CombatMath.twistedBowDamage(magic) / 100
-        }
-        if (weapon?.kind == AmmoKind.CHINCHOMPAS) {
-            val size = npc.type.size
-            val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
-            attackRoll = attackRoll * CombatMath.chinchompaAccuracy(style.stance, distance) / 100
         }
         val defenceRoll = rangedDefenceRoll(npc, style)!!
         return RangedMatchup(

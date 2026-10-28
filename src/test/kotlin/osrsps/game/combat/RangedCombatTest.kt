@@ -144,6 +144,7 @@ class RangedCombatTest {
     private val messages = mutableListOf<Pair<Player, String>>()
     private val projectiles = mutableListOf<Pair<Long, Projectile>>()
     private val dropped = mutableListOf<Triple<ObjType, Pair<Int, Int>, Player>>()
+    private val stopped = mutableListOf<Player>()
     private val combat = Combat(Equipment(objTypes), styles, npcCombat, weapons)
     private val multi = MultiCombat()
     private lateinit var melee: MeleeCombat
@@ -173,6 +174,7 @@ class RangedCombatTest {
             projectile = { projectiles += tick to it },
             dropAmmo = { type, x, z, _, owner -> dropped += Triple(type, x to z, owner) },
             message = { player, text -> messages += player to text },
+            stopFacing = { stopped += it },
             multi = multi,
         )
         wield(alice, shortbow, bronzeArrow, 100)
@@ -608,6 +610,7 @@ class RangedCombatTest {
         tick()
         assertNull(alice.equipment[WearPos.WEAPON])
         assertNull(alice.interaction)
+        assertTrue(stopped.any { it === alice }, "she stopped facing the dummy")
         assertEquals(2, projectiles.size)
         repeat(4) { tick() }
         assertEquals(0, ranged.shotsInFlight)
@@ -619,13 +622,13 @@ class RangedCombatTest {
         alice.skills.setLevel(Skill.RANGED, 99)
         wield(alice, chinchompa, bronzeArrow, 50)
         // Short fuse is accurate: (99 + 3 + 8) * (80 + 64), and ((99 + 3 + 8) * (30 + 64) + 320) / 640 = 16, without the arrows' 7.
-        val roll = 110 * 144
         val near = combat.rangedMatchup(alice, spawn(type = dummy, x = 3212))!!
-        assertEquals(roll, near.attackRoll)
+        assertEquals(110 * (80 + 64), near.attackRoll)
         assertEquals(16, near.maxHit)
-        assertEquals(roll * 75 / 100, combat.rangedMatchup(alice, spawn(type = dummy, x = 3215))!!.attackRoll)
+        // The percentage comes off the +80, not the +64: 75% is +60, 50% is +40.
+        assertEquals(110 * (60 + 64), combat.rangedMatchup(alice, spawn(type = dummy, x = 3215))!!.attackRoll)
         val far = spawn(type = dummy, x = 3219)
-        assertEquals(roll * 50 / 100, combat.rangedMatchup(alice, far)!!.attackRoll)
+        assertEquals(110 * (40 + 64), combat.rangedMatchup(alice, far)!!.attackRoll)
         // Long fuse: no +3, and best at 7 or more.
         alice.vars[EquipmentTab.VARP_COM_MODE] = 3
         assertEquals(107 * 144, combat.rangedMatchup(alice, far)!!.attackRoll)

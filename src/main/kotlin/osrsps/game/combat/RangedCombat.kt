@@ -167,7 +167,10 @@ class RangedCombat(
             }
             interaction.fired = true
             // The last chinchompa thrown: the fight ends rather than going on bare-handed (guessed).
-            if (weapon.thrown && player.equipment[WearPos.WEAPON] == null) return true
+            if (weapon.thrown && player.equipment[WearPos.WEAPON] == null) {
+                stopFacing(player)
+                return true
+            }
         }
         return false
     }

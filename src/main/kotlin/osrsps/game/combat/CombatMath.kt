@@ -63,11 +63,13 @@ object CombatMath {
     }
 
     /**
-     * A chinchompa's accuracy, in percent of the attack roll, by its fuse and how far it is thrown (OSRS Wiki, Chinchompa
-     * (weapon)): at 0 to 3, 4 to 6, and 7 or more tiles, 100, 75 and 50 on short fuse ([AttackStance.ACCURATE]), 75, 100
-     * and 75 on medium ([AttackStance.RAPID]), and 50, 75 and 100 on long ([AttackStance.LONGRANGE]). Guessed: that the
-     * distance is counted edge to edge, as attack range is, and that the percentage comes off the whole attack roll as
-     * the twisted bow's does.
+     * A chinchompa's accuracy, in percent of the player's ranged attack bonus, by its fuse and how far it is thrown (OSRS
+     * Wiki, Chinchompa (weapon)): at 0 to 3, 4 to 6, and 7 or more tiles, 100, 75 and 50 on short fuse
+     * ([AttackStance.ACCURATE]), 75, 100 and 75 on medium ([AttackStance.RAPID]), and 50, 75 and 100 on long
+     * ([AttackStance.LONGRANGE]). The Wiki's example has +100 Ranged attack become +50 on long fuse one tile away, so it
+     * comes off the bonus before the +64; Mod Ash's "applied to the accuracy/defence roll ... like armour bonuses are"
+     * fits that too. Guessed: that the distance is counted edge to edge, as attack range is, and that the bonus is
+     * rounded down.
      */
     fun chinchompaAccuracy(stance: AttackStance, distance: Int): Int {
         val band = when {
