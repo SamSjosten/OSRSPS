@@ -679,21 +679,12 @@ public class RunnerTest
 	}
 
 	@Test
-	public void equipmentWaitsForTheWornInventoryAndSaysWhatIsWorn() throws Exception
+	public void equipmentSaysWhatIsWorn() throws Exception
 	{
-		game.worn = null;
-		runner.start(script("{\"step\":\"assertEquipment\",\"slot\":\"ammo\",\"itemId\":882,\"timeoutMs\":40}"), "file");
-		Result r = null;
-		for (int i = 0; i < 10 && r == null; i++)
-		{
-			r = cycle();
-		}
-		assertEquals("step 1 (assert ammo slot holds item 882): timed out after 40 ms: no worn inventory yet", r.failure);
-		game.worn = new java.util.HashMap<>();
 		game.worn.put(13, 884);
 		game.itemNames.put(884, "Iron arrow");
 		runner.start(script("{\"step\":\"assertEquipment\",\"slot\":\"ammo\",\"itemId\":882,\"timeoutMs\":40}"), "file");
-		r = null;
+		Result r = null;
 		for (int i = 0; i < 10 && r == null; i++)
 		{
 			r = cycle();

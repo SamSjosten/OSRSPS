@@ -1097,10 +1097,6 @@ final class Steps
 		{
 			Game g = run.game;
 			int worn = g.wornId(wearpos);
-			if (worn == Game.NO_INVENTORY)
-			{
-				return Poll.waiting("no worn inventory yet");
-			}
 			int model = g.modelWornId(wearpos);
 			String seen = "worn " + name(g, worn) + (model == Game.NOT_ON_MODEL ? "" : ", model shows " + name(g, model));
 			boolean wornOk = empty() ? worn < 0 : matches(g, worn);

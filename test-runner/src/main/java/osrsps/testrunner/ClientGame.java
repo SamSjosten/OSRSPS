@@ -975,7 +975,9 @@ final class ClientGame implements Game
 		ItemContainer worn = client.getItemContainer(InventoryID.WORN);
 		if (worn == null)
 		{
-			return NO_INVENTORY;
+			// Seen on the VM (runner 0.6.1): after a login with nothing worn the client has no worn inventory, though
+			// the server sends it, empty, at login. The client only makes an inventory once an item is put in it.
+			return -1;
 		}
 		Item item = worn.getItem(wearpos);
 		return item == null || item.getId() < 0 || item.getQuantity() <= 0 ? -1 : item.getId();

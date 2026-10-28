@@ -44,8 +44,8 @@ class FakeGame implements Game
 	final List<Integer> openInterfaces = new ArrayList<>();
 	/** When set, itemOption, wornOption and clickWidget fail with this until cleared. */
 	String clickError;
-	/** What wornId answers by wearpos (empty when missing); null for no worn inventory yet. */
-	Map<Integer, Integer> worn = new HashMap<>();
+	/** What wornId answers by wearpos; a missing slot is empty. */
+	final Map<Integer, Integer> worn = new HashMap<>();
 	/** What modelWornId answers by wearpos; a missing slot shows the same as {@link #worn}. */
 	final Map<Integer, Integer> model = new HashMap<>();
 	/** Item names by id, for itemName. */
@@ -243,7 +243,7 @@ class FakeGame implements Game
 	@Override
 	public int wornId(int wearpos)
 	{
-		return worn == null ? NO_INVENTORY : worn.getOrDefault(wearpos, -1);
+		return worn.getOrDefault(wearpos, -1);
 	}
 
 	@Override
