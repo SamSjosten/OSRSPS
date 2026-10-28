@@ -16,7 +16,7 @@
   {"step": "clickWidget", "interfaceId": 387, "component": 1, "comment": "View equipment stats"},
   {"step": "assertWidgetText", "interfaceId": 84, "component": 25, "contains": "Slash: +4"},
   {"step": "assertWidgetText", "interfaceId": 84, "component": 36, "contains": "Melee strength: +5"},
-  {"step": "assertWidgetText", "interfaceId": 84, "component": 53, "contains": "Base: 3.0s"},
+  {"step": "assertWidgetText", "interfaceId": 84, "component": 52, "contains": "Base: 3.0s", "comment": "equipment:attackspeedbase, 52 since cache 241.4"},
   {"step": "command", "text": "::item wooden shield", "expectMessage": "Added 1 x Wooden shield"},
   {"step": "clickWidget", "interfaceId": 85, "component": 0, "slot": 0, "op": 1, "comment": "Equip on the stats screen's own inventory, where the shield is the only item"},
   {"step": "assertEquipment", "slot": "shield", "item": "Wooden shield"},
