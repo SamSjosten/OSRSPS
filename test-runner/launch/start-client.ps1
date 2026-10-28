@@ -87,7 +87,13 @@ else
 		}
 	}
 
-	# 3. RSProx, which launches RuneLite by itself.
+	# 3. RSProx, which launches RuneLite by itself. The task ignores a run while its last run still counts as running,
+	# which lasts a moment after its JVM is gone.
+	while ((schtasks /query /tn $Task /fo CSV /nh | ConvertFrom-Csv -Header Name, Next, Status).Status -eq 'Running')
+	{
+		if ((Get-Date) -gt $deadline) { Fail "scheduled task $Task still counts as running" }
+		Start-Sleep -Seconds 1
+	}
 	$launchedAfter = Get-Date
 	Step "Running scheduled task $Task"
 	schtasks /run /tn $Task | Out-Null
