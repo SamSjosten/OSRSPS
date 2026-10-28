@@ -111,6 +111,8 @@ class DeathsTest {
         assertEquals(listOf(alice), teleported)
         assertEquals(10, alice.hitpoints)
         assertEquals(Movement.MAX_ENERGY, alice.runEnergy)
+        // The death pose is stopped, or the client would keep her lying there and hold back her steps.
+        assertEquals(-1, alice.effects.anim?.id)
         assertEquals(InvObj(sword.id, 1), alice.equipment[WearPos.WEAPON])
         assertEquals(listOf(0 to InvObj(lobster.id, 1), 3 to InvObj(shield.id, 1)), alice.inventory.contents())
         val npc = grave()
