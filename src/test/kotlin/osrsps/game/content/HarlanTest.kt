@@ -41,8 +41,8 @@ class HarlanTest {
         harness.menu("harlan.human", *root.drop(1).toTypedArray())
         harness.pick(1)
         harness.expect(
-            "harlan.human", "harlan.human_1", "harlan.human_2", "harlan.capture_the_flag", "harlan.human_3", "harlan.human_4",
-            "harlan.human_5", "harlan.human_6", "harlan.human_7", "harlan.human_8", "harlan.human_9", "harlan.human_reply",
+            "harlan.human", "harlan.human_1", "harlan.human_2", "harlan.human_teams", "harlan.capture_the_flag", "harlan.human_3",
+            "harlan.human_4", "harlan.human_5", "harlan.human_6", "harlan.human_7", "harlan.human_8", "harlan.human_9",
             "harlan.human_anything_else",
         )
         harness.menu(*root)
@@ -105,7 +105,7 @@ class HarlanTest {
         harness.expect("harlan.master_1", "harlan.master_2")
         harness.menu("harlan.buy_cape", "harlan.master_weapon_types")
         harness.pick(1)
-        harness.expect("harlan.buy_cape", "harlan.price")
+        harness.expect("harlan.buy_cape_ask", "harlan.price")
         harness.menu("harlan.too_expensive", "harlan.have_money")
         harness.pick(2)
         harness.expect("harlan.have_money", "harlan.sold")
@@ -122,7 +122,7 @@ class HarlanTest {
         harness.expect("harlan.master_1", "harlan.master_2")
         harness.menu("harlan.buy_cape", "harlan.master_weapon_types")
         harness.pick(1)
-        harness.expect("harlan.buy_cape", "harlan.price")
+        harness.expect("harlan.buy_cape_ask", "harlan.price")
         harness.menu("harlan.too_expensive", "harlan.have_money")
         harness.pick(2)
         harness.expect("harlan.have_money", "harlan.no_money", "harlan.no_money_reply")
@@ -135,7 +135,7 @@ class HarlanTest {
         harness.expect("harlan.master_1", "harlan.master_2")
         harness.menu("harlan.buy_cape", "harlan.master_weapon_types")
         harness.pick(1)
-        harness.expect("harlan.buy_cape", "harlan.price")
+        harness.expect("harlan.buy_cape_ask", "harlan.price")
         harness.menu("harlan.too_expensive", "harlan.have_money")
         harness.pick(2)
         // Exactly 99,000 coins free their slot, which with the one free slot is room for both.

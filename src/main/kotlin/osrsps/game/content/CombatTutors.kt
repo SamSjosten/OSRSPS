@@ -41,6 +41,7 @@ object HarlanLines : Lines("harlan", "Transcript:Melee combat tutor") {
 
     val HUMAN_1 = line("human_1", "more human: first line, places to fight")
     val HUMAN_2 = line("human_2", "more human: second line, Castle Wars")
+    val HUMAN_TEAMS = line("human_teams", "more human: third line, how the two teams play Castle Wars")
     val CAPTURE_THE_FLAG = line("capture_the_flag", "more human: the player's remark after Castle Wars")
     val HUMAN_3 = line("human_3", "more human: third line, Clan Wars (the Grouping tab opens after it)")
     val HUMAN_4 = line("human_4", "more human: fourth line, safe minigames")
@@ -49,7 +50,6 @@ object HarlanLines : Lines("harlan", "Transcript:Melee combat tutor") {
     val HUMAN_7 = line("human_7", "more human: seventh line, looting")
     val HUMAN_8 = line("human_8", "more human: eighth line, the Wilderness level")
     val HUMAN_9 = line("human_9", "more human: ninth line, combat levels you can attack")
-    val HUMAN_REPLY = line("human_reply", "more human: the player's second line")
     val HUMAN_ANYTHING_ELSE = line("human_anything_else", "more human: the tutor asking if there's anything else")
 
     val WEAPONS_1 = line("weapons_1", "weapon types: first line, the types")
@@ -71,7 +71,8 @@ object HarlanLines : Lines("harlan", "Transcript:Melee combat tutor") {
 
     val MASTER_1 = line("master_1", "99 Defence: the tutor's first line")
     val MASTER_2 = line("master_2", "99 Defence: second line, the skillcape on offer")
-    val BUY_CAPE = line("buy_cape", "99 Defence menu, option 1: buying the skillcape, which the player then says")
+    val BUY_CAPE = line("buy_cape", "99 Defence menu, option 1: buying the skillcape")
+    val BUY_CAPE_ASK = line("buy_cape_ask", "buying the skillcape: what the player says after choosing it")
     val MASTER_WEAPON_TYPES = line("master_weapon_types", "99 Defence menu, option 2: weapon types, which the player then says")
     val PRICE = line("price", "buying the skillcape: the tutor's price")
     val TOO_EXPENSIVE = line("too_expensive", "price menu, option 1: much too expensive, which the player then says")
@@ -81,7 +82,6 @@ object HarlanLines : Lines("harlan", "Transcript:Melee combat tutor") {
     val NO_MONEY_REPLY = line("no_money_reply", "the money is here, under 99,000 coins: the tutor's answer")
     val NO_SPACE = line("no_space", "the money is here, no room for the hood: the tutor's line")
     val SOLD = line("sold", "the money is here, sold: the tutor's line")
-    val CAPE_RECEIVED = line("cape_received", "the money is here, sold: the game message for the cape and hood")
 
     val RETURN_SWORD = line("return_sword", "Training sword used on the tutor: the player's line")
     val RETURN_SWORD_REPLY = line("return_sword_reply", "Training sword used on the tutor: the tutor's answer")
@@ -186,9 +186,9 @@ object Harlan {
     private suspend fun Dialogue.human() = with(HarlanLines) {
         chatNpc(ChatAnim.NEUTRAL, HUMAN_1)
         chatNpc(ChatAnim.NEUTRAL, HUMAN_2)
+        chatNpc(ChatAnim.NEUTRAL, HUMAN_TEAMS)
         chatPlayer(ChatAnim.HAPPY, CAPTURE_THE_FLAG)
         for (line in listOf(HUMAN_3, HUMAN_4, HUMAN_5, HUMAN_6, HUMAN_7, HUMAN_8, HUMAN_9)) chatNpc(ChatAnim.NEUTRAL, line)
-        chatPlayer(ChatAnim.NEUTRAL, HUMAN_REPLY)
         chatNpc(ChatAnim.HAPPY, HUMAN_ANYTHING_ELSE)
     }
 
@@ -216,7 +216,7 @@ object Harlan {
     }
 
     private suspend fun Dialogue.buyCape(tutor: Tutor) = with(HarlanLines) {
-        chatPlayer(ChatAnim.QUIZ, BUY_CAPE)
+        chatPlayer(ChatAnim.QUIZ, BUY_CAPE_ASK)
         chatNpc(ChatAnim.NEUTRAL, PRICE)
         if (choice(TOO_EXPENSIVE, HAVE_MONEY) == 1) {
             chatPlayer(ChatAnim.SHOCKED, TOO_EXPENSIVE)
@@ -235,8 +235,8 @@ object Harlan {
                 removeCount(player.inventory, COINS, CAPE_PRICE)
                 tutor.give(player, if (otherMaxedSkill(player)) DEFENCE_CAPE_TRIMMED else DEFENCE_CAPE)
                 tutor.give(player, DEFENCE_HOOD)
+                // The Wiki's transcript has the cape and hood handed over with no game message.
                 chatNpc(ChatAnim.HAPPY, SOLD)
-                player.message(text(CAPE_RECEIVED))
             }
         }
     }
