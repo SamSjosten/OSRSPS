@@ -3,9 +3,11 @@ package osrsps.game.combat
 import osrsps.game.Equipment
 import osrsps.game.EquipmentBonuses
 import osrsps.game.EquipmentTab
+import osrsps.game.ObjType
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.Weapons
+import osrsps.game.WearPos
 import osrsps.game.npc.Npc
 
 /** A player's melee numbers against one NPC, and the NPC's against them. */
@@ -104,7 +106,9 @@ class Combat(
      * all fire what is in the ammo slot, and [RangedCombat] won't fire ammunition the weapon can't use. The NPC defends
      * with its bonus for the style's weight (light, standard or heavy). A twisted bow multiplies the attack roll and the
      * max hit by its percentages for the higher of the NPC's Magic level and magic attack bonus (OSRS Wiki, Twisted bow;
-     * that the max hit is rounded down after the multiply is inferred, as for other percentage bonuses).
+     * that the max hit is rounded down after the multiply is inferred, as for other percentage bonuses). A blowpipe's
+     * strength is its own and its dart's (OSRS Wiki, Toxic blowpipe); the ammo slot's doesn't count (inferred: it
+     * fires nothing from there).
      */
     fun rangedMatchup(player: Player, npc: Npc): RangedMatchup? {
         val def = npcCombat[npc.type] ?: return null
@@ -113,8 +117,15 @@ class Combat(
         val bonuses = bonuses(player)
         val ranged = player.skills.currentLevel(Skill.RANGED)
         var attackRoll = CombatMath.playerRangedAttackRoll(ranged, style.stance, bonuses.rangedAttack)
-        var maxHit = CombatMath.playerRangedMaxHit(ranged, style.stance, bonuses.rangedStrength)
-        if (rangedWeapons.weapon(equipment.weapon(player))?.scaling == RangedScaling.TWISTED_BOW) {
+        val weapon = rangedWeapons.weapon(equipment.weapon(player))
+        var strength = bonuses.rangedStrength
+        if (weapon?.loaded == true) {
+            val slot = player.equipment[WearPos.AMMO]?.let { equipment.objTypes[it.id] }
+            val dart = if (player.charges[Blowpipe.DARTS] > 0) equipment.objTypes[player.charges[Blowpipe.DART_TYPE]] else null
+            strength += rangedStrength(dart) - rangedStrength(slot)
+        }
+        var maxHit = CombatMath.playerRangedMaxHit(ranged, style.stance, strength)
+        if (weapon?.scaling == RangedScaling.TWISTED_BOW) {
             val magic = maxOf(npc.type.stats.magic, def.magicAttack)
             attackRoll = attackRoll * CombatMath.twistedBowAccuracy(magic) / 100
             maxHit = maxHit * CombatMath.twistedBowDamage(magic) / 100
@@ -147,6 +158,9 @@ class Combat(
     }
 
     companion object {
+        private fun rangedStrength(type: ObjType?): Int =
+            type?.intParam(EquipmentBonuses.PARAMS[EquipmentBonuses.RANGED_STRENGTH]) ?: 0
+
         fun attackBonus(bonuses: EquipmentBonuses, type: AttackType): Int = when (type) {
             AttackType.STAB -> bonuses.stabAttack
             AttackType.SLASH -> bonuses.slashAttack

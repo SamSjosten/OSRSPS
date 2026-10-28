@@ -34,8 +34,7 @@
   {"step": "assertAnimation", "id": 9858, "timeoutMs": 20000, "comment": "human_weapon_bow_venator01_shoot"},
   {"step": "assertHitsplat", "npc": "Man", "timeoutMs": 20000},
   {"step": "waitTicks", "ticks": 10, "comment": "watch for the bounce arrows going man to man"},
-  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #"},
-  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "the other one, which a bounce hit and which came for us"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in.", "comment": "both men, whether the shots and bounces killed them or not (::npc men don't come back)"},
   {"step": "command", "text": "::multi off", "expectMessage": "Combat is single-way"},
   {"step": "command", "text": "::god", "expectMessage": "You can be hurt again."},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}

@@ -69,6 +69,18 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `charges are saved, and a save without them loads with none`() {
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), charges = mapOf("blowpipe_scales" to 500)).toJson("test")
+        assertEquals(mapOf("blowpipe_scales" to 500), PlayerSave.fromJson(text).charges)
+        saves.write("test", text)
+        assertEquals(500, world.loadPlayer(1, "test").charges["blowpipe_scales"])
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("charges" !in none)
+        assertTrue(PlayerSave.fromJson(none).charges.isEmpty())
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(text.replace("500", "-1")) }
+    }
+
+    @Test
     fun `a save from before equipment loads with nothing worn`() {
         val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
         saves.write("test", text.replace(Regex(",\\s*\"equipment\": \\[\\s*]"), ""))

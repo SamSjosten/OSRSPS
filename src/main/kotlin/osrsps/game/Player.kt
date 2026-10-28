@@ -130,6 +130,9 @@ class Player(
     /** What the player wears, inv 94, one slot per [WearPos]. Changes are sent at the end of the cycle. */
     val equipment = Inventory(Inventory.WORN, WearPos.COUNT)
 
+    /** What the player's charged items hold, such as a blowpipe's darts and scales; see [Charges]. */
+    val charges = Charges()
+
     /** The `::scenario` the player last started, null when they aren't in one. Saved. */
     var scenario: String? = null
 

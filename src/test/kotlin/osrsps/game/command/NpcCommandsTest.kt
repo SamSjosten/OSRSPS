@@ -68,6 +68,18 @@ class NpcCommandsTest {
     }
 
     @Test
+    fun `delnpc mine removes every NPC you put in, and no others`() {
+        run("npc hans")
+        run("npc hans")
+        val spawned = world.spawnNpc(osrsps.game.npc.NpcSpawn(world.npcTypes.lookup("hans")!!, 3220, 3218, source = "test"))!!
+        replies.clear()
+        run("delnpc mine")
+        run("delnpc mine")
+        assertEquals(listOf("Removed 2 NPCs you put in.", "Removed 0 NPCs you put in."), replies)
+        assertEquals(listOf(spawned), world.npcs.all.toList())
+    }
+
+    @Test
     fun `follow makes an NPC follow the player, and again stops it`() {
         run("npc hans")
         run("follow 1")

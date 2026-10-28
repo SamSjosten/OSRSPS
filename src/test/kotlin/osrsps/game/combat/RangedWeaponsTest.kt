@@ -42,8 +42,8 @@ class RangedWeaponsTest {
     @Test
     fun `the file lists every bow, crossbow and ammunition it names`() {
         assertEquals(names.size, weapons.weaponCount + weapons.ammoCount)
-        assertEquals(28, weapons.weaponCount)
-        assertEquals(16, weapons.ammoCount)
+        assertEquals(30, weapons.weaponCount)
+        assertEquals(25, weapons.ammoCount)
     }
 
     @Test

@@ -1,0 +1,28 @@
+{
+ "name": "Blowpipe: charged with ::blowpipe, Check, wield, shoot a man with its darts, then Uncharge worn gives the darts and scales back",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried, no charges; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel ranged 99", "expectMessage": "99", "comment": "the blowpipe needs 75 Ranged"},
+  {"step": "command", "text": "::item toxic_blowpipe_loaded", "expectMessage": "Added 1 x Toxic blowpipe"},
+  {"step": "command", "text": "::blowpipe dragon dart 100 1000", "expectMessage": "Darts: Dragon dart x 100. Scales: 1,000 (6.1%).", "comment": "loading by using darts and scales on it needs a use-on step the runner doesn't have yet; the headless test covers it"},
+  {"step": "itemOption", "item": "Toxic blowpipe", "option": "Check"},
+  {"step": "assertMessage", "contains": "Darts: Dragon dart x 100.", "timeoutMs": 10000},
+  {"step": "itemOption", "item": "Toxic blowpipe", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "itemId": 12926},
+  {"step": "command", "text": "::combat man", "expectMessage": "Accurate (accurate, ranged standard), speed 3", "comment": "the blowpipe's speed is 3 in PvM"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertAnimation", "id": 5061, "timeoutMs": 20000, "comment": "snakeboss_blowpipe_attack"},
+  {"step": "assertHitsplat", "npc": "Man", "timeoutMs": 20000},
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "the man fights back once shot; ::kill picks the one being fought"},
+  {"step": "command", "text": "::blowpipe", "expectMessage": "Darts: Dragon dart x", "comment": "fewer than 100 now; one a shot"},
+  {"step": "wornOption", "slot": "weapon", "option": "Uncharge"},
+  {"step": "assertInventory", "item": "Dragon dart"},
+  {"step": "assertInventory", "itemId": 12934, "comment": "Zulrah's scales"},
+  {"step": "assertEquipment", "slot": "weapon", "itemId": 12924, "comment": "the empty blowpipe stays worn"},
+  {"step": "command", "text": "::blowpipe", "expectMessage": "Darts: None. Scales: 0 (0.0%)."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
