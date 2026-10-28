@@ -56,10 +56,10 @@ class HeadlessDeathTest {
                 client.npcOp(npc.index, Deaths.LOOT)
                 client.await("the gravestone open", timeoutMillis = 10_000) { if (Deaths.GRAVESTONE in client.openInterfaces()) Unit else null }
                 assertEquals(listOf(InvObj(coins.id, 9), InvObj(bones.id, 1), InvObj(bones.id, 1)), client.inventory(Deaths.GRAVE_INV))
-                client.button(Deaths.GRAVESTONE, Deaths.FREEITEMS, sub = 1, obj = bones.id, op = 1)
+                client.ifButton(Deaths.GRAVESTONE, Deaths.FREEITEMS, op = 1, sub = 1, obj = bones.id)
                 client.await("the bones taken") { client.inventory(93).getOrNull(3)?.takeIf { it == InvObj(bones.id, 1) } }
                 assertEquals(listOf(InvObj(coins.id, 9), null, InvObj(bones.id, 1)), client.inventory(Deaths.GRAVE_INV))
-                client.button(Deaths.GRAVESTONE, Deaths.FREEBUTTON, op = 1)
+                client.ifButton(Deaths.GRAVESTONE, Deaths.FREEBUTTON, op = 1)
                 client.await("the grave emptied and gone") { if (client.npcs().none { it.id == Deaths.GRAVE }) Unit else null }
                 assertEquals(listOf(InvObj(lobster.id, 1), InvObj(sword.id, 1), InvObj(coins.id, 10), InvObj(bones.id, 1), InvObj(bones.id, 1)), client.inventory(93).take(5))
                 assertFalse(Deaths.GRAVESTONE in client.openInterfaces())

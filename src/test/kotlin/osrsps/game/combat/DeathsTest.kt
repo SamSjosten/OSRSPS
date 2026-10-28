@@ -54,6 +54,7 @@ class DeathsTest {
         openModal = { player, id -> player.modals[FrameSlot.MAINMODAL] = id },
         closeModals = { it.modals.clear() },
         setVarbitNow = { player, id, value -> varbits += Triple(player, id, value) },
+        cancelScripts = { scripts.clearAll(it) },
         send = { player, message -> sent += player to message },
         message = { player, text -> messages += player to text },
     )
@@ -118,6 +119,21 @@ class DeathsTest {
         assertEquals(npc, grave.npc)
         assertEquals(listOf(0 to InvObj(coins.id, 10), 1 to InvObj(bones.id, 1)), grave.items.contents())
         assertEquals(Deaths.GRAVE_TICKS, grave.ticksLeft)
+    }
+
+    @Test
+    fun `dying drops a delayed script, so a climb half done never finishes`() {
+        handlers.onLoc(1, 1) {
+            delay(1)
+            player.x = 3300
+        }
+        scripts.trigger(alice, Op(OpTarget.LOC, 1, 1))
+        assertTrue(alice.scripts.delayed)
+        deaths.die(alice)
+        assertFalse(alice.scripts.delayed)
+        tick(Deaths.DEATH_TICKS)
+        scripts.process(alice)
+        assertEquals(3222, alice.x)
     }
 
     @Test

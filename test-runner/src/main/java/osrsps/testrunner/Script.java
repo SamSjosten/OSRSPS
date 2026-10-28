@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /** A test script as read from a JSON file in the tests folder. README.md documents the format. */
@@ -399,23 +400,108 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "interfaceId", "absent", "comment");
 				return new Steps.AssertInterface(timeout, id, absent);
 			}
-			case "clickButton":
+			case "itemOption":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
-				int id = f.requiredInt("interfaceId");
-				int component = f.requiredInt("componentId");
-				int slot = f.integer("slot", -1);
+				String item = f.string("item", null);
+				int id = f.integer("itemId", -1);
+				if (item == null && id < 0)
+				{
+					throw new Invalid(f.where + " needs \"item\" (a name) or \"itemId\"");
+				}
+				String option = f.requiredString("option");
+				f.rejectUnknown("step", "timeoutMs", "item", "itemId", "option", "comment");
+				return new Steps.ItemOption(timeout, item, id, option);
+			}
+			case "wornOption":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int wearpos = wornSlot(f);
+				String option = f.requiredString("option");
+				f.rejectUnknown("step", "timeoutMs", "slot", "option", "comment");
+				return new Steps.WornOption(timeout, wearpos, option);
+			}
+			case "assertEquipment":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int wearpos = wornSlot(f);
+				String item = f.string("item", null);
+				int id = f.integer("itemId", -1);
+				boolean empty = f.bool("empty", false);
+				if (empty == (item != null || id >= 0))
+				{
+					throw new Invalid(f.where + " needs \"item\" (a name) or \"itemId\", or \"empty\": true");
+				}
+				f.rejectUnknown("step", "timeoutMs", "slot", "item", "itemId", "empty", "comment");
+				return new Steps.AssertEquipment(timeout, wearpos, item, id);
+			}
+			case "clickWidget":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int interfaceId = f.requiredInt("interfaceId");
+				int component = f.requiredInt("component");
+				int sub = f.integer("slot", -1);
 				int op = f.integer("op", 1);
+				if (interfaceId < 0 || interfaceId > 0xffff || component < 0 || component > 0xffff)
+				{
+					throw new Invalid(f.where + ": \"interfaceId\" and \"component\" must be 0 to 65535");
+				}
+				if (f.o.has("slot") && sub < 0)
+				{
+					throw new Invalid(f.where + ": \"slot\" must be 0 or more");
+				}
 				if (op < 1 || op > 10)
 				{
-					throw new Invalid(f.where + ": \"op\" is 1 to 10");
+					throw new Invalid(f.where + ": \"op\" must be 1 to 10");
 				}
-				f.rejectUnknown("step", "timeoutMs", "interfaceId", "componentId", "slot", "op", "comment");
-				return new Steps.ClickButton(timeout, id, component, slot, op);
+				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "slot", "op", "comment");
+				return new Steps.ClickWidget(timeout, interfaceId, component, sub, op);
+			}
+			case "assertWidgetText":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int interfaceId = f.requiredInt("interfaceId");
+				int component = f.integer("component", -1);
+				if (interfaceId < 0 || interfaceId > 0xffff || (f.o.has("component") && (component < 0 || component > 0xffff)))
+				{
+					throw new Invalid(f.where + ": \"interfaceId\" and \"component\" must be 0 to 65535");
+				}
+				String contains = f.requiredString("contains");
+				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "contains", "comment");
+				return new Steps.AssertWidgetText(timeout, interfaceId, component, contains);
+			}
+			case "assertPose":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int idle = f.requiredInt("idle");
+				if (idle < 0)
+				{
+					throw new Invalid(f.where + ": \"idle\" must be 0 or more");
+				}
+				f.rejectUnknown("step", "timeoutMs", "idle", "comment");
+				return new Steps.AssertPose(timeout, idle);
+			}
+			case "logout":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				f.rejectUnknown("step", "timeoutMs", "comment");
+				return new Steps.Logout(timeout);
 			}
 			default:
 				throw new Invalid(f.where + ": unknown step \"" + type + "\"");
 		}
+	}
+
+	/** The step's "slot", an equipment slot name such as "weapon", as its wearpos. */
+	private static int wornSlot(Fields f) throws Invalid
+	{
+		String slot = f.requiredString("slot");
+		Integer wearpos = Steps.WORN_SLOTS.get(slot.toLowerCase(Locale.ROOT));
+		if (wearpos == null)
+		{
+			throw new Invalid(f.where + ": \"slot\" must be one of " + String.join(", ", Steps.WORN_SLOTS.keySet()));
+		}
+		return wearpos;
 	}
 
 	/** Reads one JSON object's fields with error messages that say where the problem is. */

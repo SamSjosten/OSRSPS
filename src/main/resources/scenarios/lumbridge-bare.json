@@ -1,0 +1,5 @@
+{
+  "about": "A new account's stats in Lumbridge, at the spawn, with nothing worn or carried.",
+  "notes": "The clean start for the equipment and ground item test scripts (test-runner/examples): what a script wears or picks up comes from its own commands.",
+  "position": { "x": 3222, "z": 3218, "level": 0 }
+}

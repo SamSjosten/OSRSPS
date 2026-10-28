@@ -1,0 +1,17 @@
+{
+ "name": "Ground items (task 14): drop an axe, see it on the ground, take it back",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "on 3222, 3218 with nothing carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::cleartile"},
+  {"step": "command", "text": "::item bronze axe", "expectMessage": "Added 1 x Bronze axe"},
+  {"step": "itemOption", "item": "Bronze axe", "option": "Drop"},
+  {"step": "assertInventory", "item": "Bronze axe", "count": 0},
+  {"step": "assertGroundItem", "item": "Bronze axe", "x": 3222, "y": 3218, "comment": "yours alone for 100 ticks; that another player sees it only then is HeadlessZoneTest's check"},
+  {"step": "takeItem", "item": "Bronze axe", "x": 3222, "y": 3218},
+  {"step": "assertInventory", "item": "Bronze axe", "count": 1},
+  {"step": "assertGroundItem", "item": "Bronze axe", "x": 3222, "y": 3218, "absent": true},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

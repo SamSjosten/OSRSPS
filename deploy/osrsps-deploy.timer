@@ -1,0 +1,10 @@
+# Checks for a new commit on main every minute (a minute after the last check ended, so runs never overlap).
+[Unit]
+Description=Check every minute whether the OSRSPS server needs a redeploy
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=1min
+
+[Install]
+WantedBy=timers.target

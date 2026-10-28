@@ -1,7 +1,10 @@
 package osrsps.testrunner;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /** The step types a script can use. README.md lists them with their fields. */
 final class Steps
@@ -423,39 +426,6 @@ final class Steps
 		String describe()
 		{
 			return "assert interface " + interfaceId + (absent ? " closed" : " open");
-		}
-	}
-
-	/** Clicks a component's option. Waits (to the timeout) for its interface to be open; does not wait for the result. */
-	static final class ClickButton extends Step
-	{
-		final int interfaceId;
-		final int componentId;
-		final int slot;
-		final int op;
-
-		ClickButton(long timeoutMs, int interfaceId, int componentId, int slot, int op)
-		{
-			super("clickButton", timeoutMs, false);
-			this.interfaceId = interfaceId;
-			this.componentId = componentId;
-			this.slot = slot;
-			this.op = op;
-		}
-
-		@Override
-		Poll poll(Run run)
-		{
-			run.markAction();
-			String error = run.game.clickButton(interfaceId, componentId, slot, op);
-			// The server's open may land a tick after the click that asked for it: keep trying until the timeout.
-			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
-		}
-
-		@Override
-		String describe()
-		{
-			return "click " + interfaceId + ":" + componentId + (slot >= 0 ? " slot " + slot : "") + (op == 1 ? "" : " op " + op);
 		}
 	}
 
@@ -961,6 +931,302 @@ final class Steps
 		String describe()
 		{
 			return "assert animation " + id + " on " + who();
+		}
+	}
+
+	/** Clicks an option on the first such item in the inventory, retrying until there is one. */
+	static final class ItemOption extends Step
+	{
+		final String item;
+		final int itemId;
+		final String option;
+
+		ItemOption(long timeoutMs, String item, int itemId, String option)
+		{
+			super("itemOption", timeoutMs, false);
+			this.item = item;
+			this.itemId = itemId;
+			this.option = option;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.itemOption(item, itemId, option);
+			// An item the last command gave may not be in the client's inventory yet: keep trying.
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return option + " " + (item != null ? item : "item " + itemId) + " in the inventory";
+		}
+	}
+
+	/** The equipment slots a script may name, by wearpos: the worn inventory's slot numbers. */
+	static final Map<String, Integer> WORN_SLOTS = wornSlots();
+
+	private static Map<String, Integer> wornSlots()
+	{
+		Map<String, Integer> m = new LinkedHashMap<>();
+		m.put("head", 0);
+		m.put("cape", 1);
+		m.put("neck", 2);
+		m.put("weapon", 3);
+		m.put("body", 4);
+		m.put("shield", 5);
+		m.put("legs", 7);
+		m.put("hands", 9);
+		m.put("feet", 10);
+		m.put("ring", 12);
+		m.put("ammo", 13);
+		return Collections.unmodifiableMap(m);
+	}
+
+	static String slotName(int wearpos)
+	{
+		for (Map.Entry<String, Integer> e : WORN_SLOTS.entrySet())
+		{
+			if (e.getValue() == wearpos)
+			{
+				return e.getKey();
+			}
+		}
+		return "slot " + wearpos;
+	}
+
+	/** Clicks an option (Remove, Examine, or one of the item's own) on a slot of the equipment tab. */
+	static final class WornOption extends Step
+	{
+		final int wearpos;
+		final String option;
+
+		WornOption(long timeoutMs, int wearpos, String option)
+		{
+			super("wornOption", timeoutMs, false);
+			this.wearpos = wearpos;
+			this.option = option;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.wornOption(wearpos, option);
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return option + " on the " + slotName(wearpos) + " slot";
+		}
+	}
+
+	/** Clicks an op on an interface component (or one slot of it), as its menu entry would. */
+	static final class ClickWidget extends Step
+	{
+		final int interfaceId;
+		final int component;
+		/** -1 for the component itself. */
+		final int sub;
+		final int op;
+
+		ClickWidget(long timeoutMs, int interfaceId, int component, int sub, int op)
+		{
+			super("clickWidget", timeoutMs, false);
+			this.interfaceId = interfaceId;
+			this.component = component;
+			this.sub = sub;
+			this.op = op;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.clickWidget(interfaceId, component, sub, op);
+			// An interface the server has just been asked for may not be open yet: keep trying.
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "click op " + op + " on " + interfaceId + ":" + component + (sub < 0 ? "" : " slot " + sub);
+		}
+	}
+
+	/**
+	 * Passes when a slot of the worn inventory holds the item (or is empty), and the player's model shows the same, for
+	 * the slots the model shows.
+	 */
+	static final class AssertEquipment extends Step
+	{
+		final int wearpos;
+		/** Both unset (null, -1) for an empty slot. */
+		final String item;
+		final int itemId;
+
+		AssertEquipment(long timeoutMs, int wearpos, String item, int itemId)
+		{
+			super("assertEquipment", timeoutMs, false);
+			this.wearpos = wearpos;
+			this.item = item;
+			this.itemId = itemId;
+		}
+
+		private boolean empty()
+		{
+			return item == null && itemId < 0;
+		}
+
+		private boolean matches(Game g, int id)
+		{
+			if (id < 0)
+			{
+				return false;
+			}
+			return item == null ? id == itemId : item.equalsIgnoreCase(g.itemName(id));
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			Game g = run.game;
+			int worn = g.wornId(wearpos);
+			if (worn == Game.NO_INVENTORY)
+			{
+				return Poll.waiting("no worn inventory yet");
+			}
+			int model = g.modelWornId(wearpos);
+			String seen = "worn " + name(g, worn) + (model == Game.NOT_ON_MODEL ? "" : ", model shows " + name(g, model));
+			boolean wornOk = empty() ? worn < 0 : matches(g, worn);
+			boolean modelOk = model == Game.NOT_ON_MODEL || (empty() ? model < 0 : matches(g, model));
+			return wornOk && modelOk ? Poll.pass(seen) : Poll.waiting(seen);
+		}
+
+		private static String name(Game g, int id)
+		{
+			if (id < 0)
+			{
+				return "nothing";
+			}
+			String n = g.itemName(id);
+			return (n == null ? "item" : n) + " (" + id + ")";
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert " + slotName(wearpos) + " slot " + (empty() ? "is empty" : "holds " + (item != null ? item : "item " + itemId));
+		}
+	}
+
+	/** Passes when the text of an interface component (or the whole interface) contains the given text. */
+	static final class AssertWidgetText extends Step
+	{
+		/** Results quote at most this much of a component's text. */
+		static final int QUOTE_LIMIT = 300;
+
+		final int interfaceId;
+		/** -1 for the whole interface. */
+		final int component;
+		final String contains;
+
+		AssertWidgetText(long timeoutMs, int interfaceId, int component, String contains)
+		{
+			super("assertWidgetText", timeoutMs, false);
+			this.interfaceId = interfaceId;
+			this.component = component;
+			this.contains = contains;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			String text = run.game.widgetText(interfaceId, component);
+			if (text == null)
+			{
+				return Poll.waiting("interface " + where() + " is not open");
+			}
+			String quoted = "\"" + (text.length() > QUOTE_LIMIT ? text.substring(0, QUOTE_LIMIT) + "..." : text) + "\"";
+			return text.contains(contains) ? Poll.pass(quoted) : Poll.waiting("text is " + quoted);
+		}
+
+		private String where()
+		{
+			return interfaceId + (component < 0 ? "" : ":" + component);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert " + where() + " says \"" + contains + "\"";
+		}
+	}
+
+	/** Passes when the player stands in the given ready animation: the stance their weapon gives. */
+	static final class AssertPose extends Step
+	{
+		final int idle;
+
+		AssertPose(long timeoutMs, int idle)
+		{
+			super("assertPose", timeoutMs, false);
+			this.idle = idle;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int pose = run.game.idlePose();
+			return pose == idle ? Poll.pass("stands in " + pose) : Poll.waiting("stands in " + pose);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert you stand in animation " + idle;
+		}
+	}
+
+	/** Clicks the logout button, then waits until the client is logged out. Auto login then logs back in. */
+	static final class Logout extends Step
+	{
+		private boolean clicked;
+
+		Logout(long timeoutMs)
+		{
+			super("logout", timeoutMs, true);
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			if (!clicked)
+			{
+				if (!run.game.loggedIn())
+				{
+					return Poll.waiting("not logged in yet");
+				}
+				run.markAction();
+				String error = run.game.logout();
+				if (error != null)
+				{
+					return Poll.waiting(error);
+				}
+				clicked = true;
+			}
+			return run.game.loggedIn() ? Poll.waiting("clicked logout, still logged in") : Poll.pass("logged out");
+		}
+
+		@Override
+		String describe()
+		{
+			return "log out";
 		}
 	}
 }

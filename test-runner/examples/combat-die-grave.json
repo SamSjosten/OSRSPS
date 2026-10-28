@@ -25,9 +25,9 @@
   {"step": "assertMessage", "contains": "Your grave will stand for 15 more minutes."},
   {"step": "npcOption", "npc": "Grave", "option": "Loot"},
   {"step": "assertInterface", "interfaceId": 672, "timeoutMs": 10000, "comment": "the gravestone, with 9 coins and 2 bones free to reclaim"},
-  {"step": "clickButton", "interfaceId": 672, "componentId": 6, "slot": 1, "comment": "Take on the first bones (grave slot 1; the coins are slot 0)"},
+  {"step": "clickWidget", "interfaceId": 672, "component": 6, "slot": 1, "comment": "Take on the first bones (grave slot 1; the coins are slot 0)"},
   {"step": "assertInventory", "item": "Bones", "count": 1},
-  {"step": "clickButton", "interfaceId": 672, "componentId": 8, "comment": "Take-All"},
+  {"step": "clickWidget", "interfaceId": 672, "component": 8, "comment": "Take-All"},
   {"step": "assertInventory", "item": "Coins", "count": 10},
   {"step": "assertInventory", "item": "Bones", "count": 2},
   {"step": "assertInterface", "interfaceId": 672, "absent": true, "comment": "an emptied grave closes and goes"}

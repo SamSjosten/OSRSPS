@@ -1,5 +1,6 @@
 # Runs the server on the sandbox VM and keeps it up across crashes and reboots.
 #   docker compose up -d --build     start (or rebuild after a git pull)
+#   deploy/auto-deploy.sh            pull main and rebuild if main moved (osrsps-deploy.timer runs it every minute)
 #   docker compose logs -f           follow the log
 #   docker compose run --rm osrsps fetch-cache    download the cache into ./data
 services:
@@ -18,5 +19,8 @@ services:
       # may. Sam's main account and the test runner's accounts, whose passwords are kept private (not the runner's
       # default "test"), since an admin's password is all that guards these commands.
       OSRSPS_ADMINS: "Swaggy,test,test2"
+      # The commit served at http://<host>:43595/version. deploy/auto-deploy.sh sets it; a plain `docker compose up`
+      # leaves it "unknown".
+      OSRSPS_COMMIT: ${OSRSPS_COMMIT:-unknown}
     volumes:
       - ./data:/data

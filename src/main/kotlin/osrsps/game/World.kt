@@ -187,7 +187,7 @@ class World(
         spawnNpc = ::spawnNpc, removeNpc = ::removeNpc,
         teleportToSpawn = { teleport(it, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) },
         openModal = { player, id -> interfaces.openModal(player, FrameSlot.MAINMODAL, id) },
-        closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow,
+        closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
         examine = inventoryTab::examine,
     )
 
@@ -357,7 +357,9 @@ class World(
             logger.error { "The game thread didn't stop in 5 s; not saving on shutdown" }
             return
         }
-        // Once the executor has stopped this thread is the only one touching the players.
+        // Once the executor has stopped this thread is the only one touching the players. Nobody is saved dead: a
+        // death the stop cut short finishes now, grave and all (the grave is lost with the restart).
+        for (player in players) if (player?.dead == true) deaths.respawn(player)
         saveAll()
     }
 
@@ -592,6 +594,9 @@ class World(
         val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
         val text = saves.read(player.saveKey) ?: return player
         PlayerSave.fromJson(text).applyTo(player)
+        // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
+        // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
+        if (player.hitpoints <= 0) player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
         return player
     }
 

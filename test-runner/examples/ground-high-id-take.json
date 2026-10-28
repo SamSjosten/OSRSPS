@@ -1,0 +1,15 @@
+{
+ "name": "Ground items: an item with an id above 32767 disappears for the client when taken",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied."},
+  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0"},
+  {"step": "command", "text": "::cleartile"},
+  {"step": "command", "text": "::groundobj 32910", "expectMessage": "(32910) x 1 on 3222, 3218", "comment": "rosewood_logs, an ordinary tradeable item with an id above 32767"},
+  {"step": "assertGroundItem", "itemId": 32910, "x": 3222, "y": 3218, "timeoutMs": 5000},
+  {"step": "takeItem", "itemId": 32910, "x": 3222, "y": 3218},
+  {"step": "assertInventory", "itemId": 32910},
+  {"step": "assertGroundItem", "itemId": 32910, "x": 3222, "y": 3218, "absent": true, "timeoutMs": 5000, "comment": "the real check: if the client keeps only 15 bits of ObjDel's id, the logs stay on the ground here"}
+ ]
+}

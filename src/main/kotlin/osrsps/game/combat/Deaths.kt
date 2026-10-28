@@ -69,6 +69,8 @@ class Deaths(
     private val closeModals: (Player) -> Unit,
     /** Sets a varbit and sends it ahead of the queue, so an interface opening now reads it. */
     private val setVarbitNow: (Player, Int, Int) -> Unit,
+    /** Drops the player's scripts: a delayed one (a ladder half climbed) must not carry on once they are dead. */
+    private val cancelScripts: (Player) -> Unit = {},
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
     private val message: (Player, String) -> Unit = Player::message,
     /** Examine on a grave item: the inventory's examine. */
@@ -97,6 +99,8 @@ class Deaths(
         if (player.dead) return
         player.deathTick = currentTick()
         closeModals(player)
+        // Guessed: live's death clears the player's queue too, so a climb or a search in progress never finishes.
+        cancelScripts(player)
         player.interaction = null
         player.waypoints.clear()
         player.anim(DEATH_ANIM)
