@@ -126,18 +126,18 @@ class MeleeCombatTest {
     }
 
     @Test
-    fun `a punch lands on the tick of the click and every four ticks after`() {
+    fun `a punch thrown on the tick of the click lands the tick after, and so every four ticks`() {
         val npc = spawn()
         attack(alice, npc)
         val hits = ArrayList<Int>()
-        repeat(9) {
+        repeat(10) {
             tick()
             if (it == 0) assertIs<MeleeInteraction>(alice.interaction)
             val hit = npc.effects.pendingHits.singleOrNull()
             if (hit != null) hits += hit.value
             npc.effects.flush({}, {}, {})
         }
-        // Ticks 1, 5 and 9; the man's swings back on 2, 6 and 10 take their draws in between.
+        // Thrown on ticks 1, 5 and 9, landing on 2, 6 and 10; the man's swings back on 3 and 7 take their draws in between.
         val roll = combat.npcAttack(npc, alice)!!
         val exchange = replayHits(listOf(Rolls(768, 430, 1), Rolls(roll.attackRoll, roll.defenceRoll, roll.maxHit)), 6)
         assertEquals(listOf(exchange[0], exchange[2], exchange[4]), hits)
@@ -153,9 +153,16 @@ class MeleeCombatTest {
         attack(alice, npc)
         tick()
         assertEquals(422, alice.effects.anim?.id)
+        val dealt = expectedHits(1).single()
+        // The XP comes with the swing; the hit lands in the next tick's NPC phase (OSRS Wiki, Hit delay).
+        assertEquals(dealt * 40, alice.skills.tenths(Skill.ATTACK) - 0)
+        assertEquals(dealt * 40 / 3, alice.skills.tenths(Skill.HITPOINTS) - NEW_HITPOINTS_TENTHS)
+        assertTrue(npc.effects.pendingHits.isEmpty())
+        assertEquals(1, melee.swingsLanding)
+        tick()
+        assertEquals(0, melee.swingsLanding)
         val hit = npc.effects.pendingHits.single()
         assertEquals(NpcEffects.PLAYER_SOURCE + alice.index, hit.source)
-        val dealt = expectedHits(1).single()
         assertEquals(dealt, hit.value)
         if (dealt > 0) assertEquals(HitsplatType.DAMAGE_ME to HitsplatType.DAMAGE_OTHER, hit.selfType to hit.otherType)
         else assertEquals(HitsplatType.BLOCK_ME to HitsplatType.BLOCK_OTHER, hit.selfType to hit.otherType)
@@ -165,8 +172,6 @@ class MeleeCombatTest {
         assertEquals(424, npc.effects.anim?.id)
         assertEquals(alice, npc.attacker)
         assertEquals(alice, npc.facing)
-        assertEquals(dealt * 40, alice.skills.tenths(Skill.ATTACK) - 0)
-        assertEquals(dealt * 40 / 3, alice.skills.tenths(Skill.HITPOINTS) - NEW_HITPOINTS_TENTHS)
         // Held still by the fight: eight ticks with no wandering, however the dice fall.
         repeat(7) { tick() }
         assertEquals(3213 to 3210, npc.x to npc.z)
@@ -181,8 +186,9 @@ class MeleeCombatTest {
         assertTrue(npc.effects.pendingHits.isEmpty())
         tick()
         assertEquals(3216 to 3210, alice.x to alice.z)
-        assertEquals(1, npc.effects.pendingHits.size)
         assertEquals(4L + 4, alice.nextAttackTick)
+        tick()
+        assertEquals(1, npc.effects.pendingHits.size)
     }
 
     @Test
@@ -196,9 +202,9 @@ class MeleeCombatTest {
         tick(alice)
         assertNull(alice.interaction)
         assertEquals(listOf(alice to MeleeCombat.SOMEONE_ELSE), messages)
-        // Bob stops; eight ticks after his last hit, Alice may.
+        // Bob stops; eight ticks after his last hit landed, on tick 2, Alice may.
         bob.interaction = null
-        repeat(MeleeCombat.IN_COMBAT_TICKS - 2) { tick(bob) }
+        repeat(MeleeCombat.IN_COMBAT_TICKS - 1) { tick(bob) }
         attack(alice, npc)
         tick(alice)
         assertNull(alice.interaction)
@@ -214,7 +220,7 @@ class MeleeCombatTest {
     fun `the killing blow plays the death, the body goes after four ticks and the NPC is back after its respawn time`() {
         val npc = spawn()
         attack(alice, npc)
-        tick()
+        repeat(2) { tick() }
         tick = 10
         assertEquals(7 - expectedHits(1).single(), npc.hitpoints)
         assertEquals(npc.hitpoints, melee.hit(npc, alice, 100, tick))
@@ -299,16 +305,16 @@ class MeleeCombatTest {
     fun `a hit NPC strikes back from the next tick and every four after, and its hits show on the player`() {
         val npc = spawn()
         attack(alice, npc)
-        tick()
+        repeat(2) { tick() }
         assertEquals(alice, npc.target)
         assertEquals(alice, npc.following)
-        assertEquals(2L, npc.nextAttackTick)
+        assertEquals(3L, npc.nextAttackTick)
         assertTrue(alice.effects.pendingHits.isEmpty())
         alice.effects.flush({}, { _, _ -> }, {}, {})
         npc.effects.flush({}, {}, {})
         val roll = combat.npcAttack(npc, alice)!!
         val taken = ArrayList<Int>()
-        for (t in 2..10) {
+        for (t in 3..11) {
             tick()
             val hit = alice.effects.pendingHits.singleOrNull()
             if (hit != null) {
@@ -324,16 +330,16 @@ class MeleeCombatTest {
                 assertEquals(422, npc.effects.anim?.id)
                 assertEquals(npc, alice.attackedBy)
                 assertEquals(tick, alice.attackedTick)
-                assertTrue(t in listOf(2, 6, 10), "hit on tick $t")
+                assertTrue(t in listOf(3, 7, 11), "hit on tick $t")
             }
             alice.effects.flush({}, { _, _ -> }, {}, {})
             npc.effects.flush({}, {}, {})
         }
-        // Her swings on 1, 5 and 9 and its on 2, 6 and 10 share the dice, each drawing accuracy then damage.
+        // Her swings on 1, 5 and 9 and its on 3, 7 and 11 share the dice, each drawing accuracy then damage.
         val exchange = replayHits(listOf(Rolls(768, 430, 1), Rolls(roll.attackRoll, roll.defenceRoll, roll.maxHit)), 6)
         assertEquals(listOf(exchange[1], exchange[3], exchange[5]), taken)
         assertEquals(10 - taken.sum(), alice.hitpoints)
-        assertEquals(14L, npc.nextAttackTick)
+        assertEquals(15L, npc.nextAttackTick)
         assertIs<MeleeInteraction>(alice.interaction)
     }
 
@@ -342,21 +348,23 @@ class MeleeCombatTest {
         val npc = spawn()
         attack(alice, npc)
         tick()
-        // She clicks away after one punch; the man comes after her all the same.
+        // She clicks away after one punch; it lands on tick 2 and the man comes after her all the same, hitting on 3.
         alice.interaction = null
         alice.effects.flush({}, { _, _ -> }, {}, {})
-        tick()
+        repeat(2) { tick() }
         assertEquals(1, alice.effects.pendingHits.size)
         val fight = assertIs<MeleeInteraction>(alice.interaction)
         assertEquals(npc, fight.npc)
-        // Speed 4 halves to 2: her swing comes on tick 4, not the 5 her last punch set.
-        assertEquals(4L, alice.nextAttackTick)
-        tick()
-        assertTrue(npc.effects.pendingHits.size == 1, "no swing on tick 3")
+        // Speed 4 halves to 2: her swing comes on tick 5, two after the hit.
+        assertEquals(5L, alice.nextAttackTick)
         npc.effects.flush({}, {}, {})
         tick()
+        assertEquals(0, melee.swingsLanding, "no swing on tick 4")
+        tick()
+        assertEquals(1, melee.swingsLanding)
+        assertEquals(9L, alice.nextAttackTick)
+        tick()
         assertEquals(1, npc.effects.pendingHits.size)
-        assertEquals(8L, alice.nextAttackTick)
     }
 
     @Test
@@ -368,7 +376,7 @@ class MeleeCombatTest {
         alice.interaction = null
         alice.effects.flush({}, { _, _ -> }, {}, {})
         val taken = ArrayList<Int>()
-        repeat(9) {
+        repeat(10) {
             tick()
             alice.effects.pendingHits.singleOrNull()?.let { taken += it.value }
             alice.effects.flush({}, { _, _ -> }, {}, {})
@@ -397,8 +405,7 @@ class MeleeCombatTest {
         val first = spawn()
         val second = spawn(x = 3211)
         attack(alice, first)
-        tick()
-        tick()
+        repeat(3) { tick() }
         assertEquals(first, alice.attackedBy)
         attack(alice, second)
         tick()
@@ -420,8 +427,8 @@ class MeleeCombatTest {
         val second = spawn(x = 3211)
         attack(alice, first)
         tick()
-        // The first man has turned on her; he swings on tick 3, after her click on the second but before her swing on 5.
-        first.nextAttackTick = 3
+        // Her punch lands on tick 2 and the first man turns on her; he swings on tick 3, after her click on the second
+        // but before her swing on 5.
         attack(alice, second)
         tick()
         assertEquals(second, assertIs<MeleeInteraction>(alice.interaction).npc)
@@ -436,14 +443,15 @@ class MeleeCombatTest {
         // Once she is fighting the second man, a newcomer's hit doesn't stop her.
         melee.hit(first, alice, 100, tick)
         attack(alice, second)
-        tick()
+        repeat(2) { tick() }
         assertEquals(1, second.effects.pendingHits.size)
         val third = spawn(x = 3209)
         melee.hit(third, alice, 0, tick)
         melee.hitPlayer(alice, third, 1, tick)
-        repeat(4) { tick() }
+        // She keeps punching the second man: the swing on 10 lands on 11.
+        repeat(5) { tick() }
         assertEquals(second, assertIs<MeleeInteraction>(alice.interaction).npc)
-        assertEquals(alice, second.target)
+        assertEquals(2, second.effects.pendingHits.size)
     }
 
     @Test
@@ -481,7 +489,7 @@ class MeleeCombatTest {
         assertNull(npc.target)
         alice.level = 0
         attack(alice, npc)
-        repeat(3) { tick() }
+        repeat(4) { tick() }
         assertEquals(alice, npc.target)
         alice.loggedOut = true
         tick()
