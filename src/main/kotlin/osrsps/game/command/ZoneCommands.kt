@@ -1,12 +1,18 @@
 package osrsps.game.command
 
 import osrsps.game.World
+import osrsps.game.combat.HitDelay
 import osrsps.game.zone.Projectile
+import osrsps.map.CollisionMap
+import osrsps.map.LineOfSight
 import kotlin.math.abs
 import kotlin.math.max
 
-/** Testing commands for zone updates: everyone near you sees what these make. Ground objs are in GroundObjCommands. */
-fun CommandRegistry.registerZoneCommands(world: World) {
+/**
+ * Testing commands for zone updates: everyone near you sees what these make. Ground objs are in GroundObjCommands.
+ * `::los` only answers you.
+ */
+fun CommandRegistry.registerZoneCommands(world: World, collision: CollisionMap) {
     val zones = world.zones
 
     register("gfx", "::gfx id [height] [delay]", admin = true) {
@@ -53,6 +59,36 @@ fun CommandRegistry.registerZoneCommands(world: World) {
         )
         reply("Projectile $id from ${player.x}, ${player.z} to ${player.x + dx}, ${player.z + dz}")
     }
+
+    register("los", "::los npcIndex | ::los dx dz") {
+        if (args.size !in 1..2) fail("Usage: ::los npcIndex | ::los dx dz")
+        val values = args.map { it.toIntOrNull() ?: fail("Usage: ::los npcIndex | ::los dx dz ('$it' is not a number)") }
+        val name: String
+        val x: Int
+        val z: Int
+        val size: Int
+        if (values.size == 1) {
+            val npc = world.npcs[values[0]] ?: fail("No NPC ${values[0]}")
+            if (npc.level != player.level) fail("${npc.type.name} (${npc.index}) is on another level")
+            name = "${npc.type.name} (${npc.index})"
+            x = npc.x
+            z = npc.z
+            size = npc.type.size
+        } else {
+            if (values.any { it !in -LOS_MAX_DISTANCE..LOS_MAX_DISTANCE }) fail("dx and dz must be within $LOS_MAX_DISTANCE")
+            x = player.x + values[0]
+            z = player.z + values[1]
+            name = "$x, $z"
+            size = 1
+        }
+        val distance = LineOfSight.distance(player.x, player.z, 1, x, z, size, size)
+        val clear = LineOfSight.clear(collision, player.level, player.x, player.z, 1, x, z, size, size)
+        reply(
+            "$name: distance $distance, line of sight " + (if (clear) "clear" else "blocked") +
+                "; hit delay in ticks: bow ${HitDelay.BOW.ticks(distance)}, thrown ${HitDelay.THROWN.ticks(distance)}, " +
+                "magic ${HitDelay.MAGIC.ticks(distance)}",
+        )
+    }
 }
 
 /** Spotanim ids and client-cycle delays go in two bytes. */
@@ -60,3 +96,4 @@ private const val MAX_ID = 65535
 
 private const val PROJ_DEFAULT_DISTANCE = 5
 private const val PROJ_MAX_DISTANCE = 20
+private const val LOS_MAX_DISTANCE = 32

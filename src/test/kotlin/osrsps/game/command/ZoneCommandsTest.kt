@@ -73,4 +73,23 @@ class ZoneCommandsTest {
         assertEquals(listOf("Projectile 91 from 3222, 3218 to 3222, 3223"), replies)
         assertTrue(cycle(other).single() is UpdateZonePartialEnclosed)
     }
+
+    @Test
+    fun `los reports distance, line of sight and hit delays`() {
+        run("los 7 0")
+        run("los 2 1")
+        run("los 40 0")
+        run("los")
+        run("los 0")
+        assertEquals(
+            listOf(
+                "3229, 3218: distance 7, line of sight clear; hit delay in ticks: bow 2, thrown 2, magic 3",
+                "3224, 3219: distance 2, line of sight clear; hit delay in ticks: bow 1, thrown 1, magic 2",
+                "dx and dz must be within 32",
+                "Usage: ::los npcIndex | ::los dx dz",
+                "No NPC 0",
+            ),
+            replies,
+        )
+    }
 }
