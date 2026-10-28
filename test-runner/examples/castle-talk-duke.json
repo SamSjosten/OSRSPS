@@ -12,6 +12,57 @@
   },
   {
    "step": "command",
+   "text": "::tele 3207 3222 1",
+   "expectMessage": "Teleported to 3207, 3222, 1",
+   "comment": "The Duke wanders 5 tiles, so he can go out through a door another script opened and be shut out of his room; with both doors on his west wall open he can be reached wherever he is"
+  },
+  {
+   "step": "command",
+   "text": "::resetlocs 1",
+   "expectMessage": "Put the locs within 1 of"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3222
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3222,
+   "comment": "open before the teleport, which cancels a click the server hasn't carried out yet"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3207 3227 1",
+   "expectMessage": "Teleported to 3207, 3227, 1"
+  },
+  {
+   "step": "command",
+   "text": "::resetlocs 1",
+   "expectMessage": "Put the locs within 1 of"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3227
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3227,
+   "comment": "open before the teleport, which cancels a click the server hasn't carried out yet"
+  },
+  {
+   "step": "command",
    "text": "::tele 3209 3223 1",
    "expectMessage": "Teleported to 3209, 3223, 1"
   },
@@ -86,6 +137,46 @@
   },
   {
    "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3207 3222 1",
+   "expectMessage": "Teleported to 3207, 3222, 1"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3222
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3222,
+   "comment": "shut again, as the cache has it"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3207 3227 1",
+   "expectMessage": "Teleported to 3207, 3227, 1"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3208,
+   "y": 3227
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3207,
+   "y": 3227,
+   "comment": "shut again, as the cache has it"
   }
  ]
 }

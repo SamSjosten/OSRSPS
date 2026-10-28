@@ -78,8 +78,26 @@ class RangedCombat(
     private val message: (Player, String) -> Unit = Player::message,
     private val face: (Player, Npc) -> Unit = { _, _ -> },
     private val stopFacing: (Player) -> Unit = {},
+    /** Where shots bounce and the single-way rules don't hold. */
+    private val multi: MultiCombat = MultiCombat(),
 ) {
-    private class Shot(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val ammo: ObjType)
+    /**
+     * A shot on its way to [npc]. [ammo] falls when it lands (null for a bounce, which fires nothing); [bounces] is how
+     * many more NPCs it can go on to, each rolled with [attackRoll] and [style], the first shot's, for up to two thirds
+     * of [maxHit], in [travel]. What the player wears or picks once it has left doesn't change them.
+     */
+    private class Shot(
+        val player: Player,
+        val npc: Npc,
+        val damage: Int,
+        val landTick: Long,
+        val ammo: ObjType?,
+        val bounces: Int = 0,
+        val style: AttackStyle? = null,
+        val attackRoll: Int = 0,
+        val maxHit: Int = 0,
+        val travel: Int = -1,
+    )
 
     private val inFlight = ArrayList<Shot>()
 
@@ -164,24 +182,67 @@ class RangedCombat(
         val shots = minOf(weapon.shots, worn.count)
         player.equipment.remove(WearPos.AMMO, shots)
         if (weapon.anim >= 0) player.effects.anim(weapon.anim, 0)
-        val launch = if (shots > 1 && ammo.doubleLaunch >= 0) ammo.doubleLaunch else ammo.launch
+        val launch = when {
+            weapon.launch >= 0 -> weapon.launch
+            shots > 1 && ammo.doubleLaunch >= 0 -> ammo.doubleLaunch
+            else -> ammo.launch
+        }
+        val travel = if (weapon.travel >= 0) weapon.travel else ammo.travel
         if (launch >= 0) player.effects.spotanim(0, launch, LAUNCH_HEIGHT, 0)
         face(player, npc)
         val size = npc.type.size
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
         val landTick = tick + HitDelay.BOW.ticks(distance) + HitDelay.ON_NPC
         repeat(shots) { shot ->
-            if (ammo.travel >= 0) projectile(flight(player, npc, ammo.travel, landTick - tick, shot))
+            if (travel >= 0) projectile(flight(player, npc, travel, landTick - tick, shot))
             // Accuracy first, then damage, as for melee; a shot's random draws are always these two.
             val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)) CombatMath.rollDamage(random, matchup.maxHit) else 0
-            // XP for what the shot can still deal: what the NPC has left after the shots and swings already on their way.
-            val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
-            npc.incoming += damage
-            for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
-            player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
-            inFlight += Shot(player, npc, damage, landTick, ammoType)
+            val damage = reserve(player, npc, style, rolled)
+            inFlight += Shot(player, npc, damage, landTick, ammoType, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel)
         }
         return true
+    }
+
+    /**
+     * The part of [rolled] that [npc] can still take, what it has left after the shots and swings already on their way,
+     * kept for it and given as XP now.
+     */
+    private fun reserve(player: Player, npc: Npc, style: AttackStyle, rolled: Int): Int {
+        val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
+        npc.incoming += damage
+        for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
+        player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
+        return damage
+    }
+
+    /**
+     * A Venator bow's shot that landed on [from] in a multi-way area goes on to another NPC within [BOUNCE_RANGE] of it
+     * (OSRS Wiki, Venator bow): one picked at random that can be fought, possibly the first target again but never the
+     * one it just hit, whether the last hit missed or killed. Its accuracy is rolled on its own, the first shot's attack
+     * roll against that NPC's defence, and its max hit is two thirds of the first shot's, rounded down. Null when there
+     * is nowhere to go.
+     *
+     * Guessed: that the range is counted edge to edge as attack range is, that the NPC it goes to must be in a
+     * multi-way area too, that no line of sight is needed, that it lands [BOUNCE_TICKS] after the hit before it, and
+     * that the XP comes as it is rolled, as a shot's does.
+     */
+    private fun bounce(shot: Shot, tick: Long): Shot? {
+        val from = shot.npc
+        if (!multi.at(from.level, from.x, from.z)) return null
+        val size = from.type.size
+        val targets = npcs.all.filter { npc ->
+            npc !== from && !npc.dead && npc.level == from.level && combat.npcCombat[npc.type] != null &&
+                multi.at(npc.level, npc.x, npc.z) &&
+                LineOfSight.distance(from.x, from.z, size, npc.x, npc.z, npc.type.size, npc.type.size) <= BOUNCE_RANGE
+        }.toList()
+        if (targets.isEmpty()) return null
+        val next = random.pick(targets)
+        val style = shot.style ?: return null
+        val defenceRoll = combat.rangedDefenceRoll(next, style) ?: return null
+        val rolled = if (CombatMath.rollHits(random, shot.attackRoll, defenceRoll)) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0
+        val damage = reserve(shot.player, next, style, rolled)
+        if (shot.travel >= 0) projectile(bounceFlight(from, next, shot.travel))
+        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel)
     }
 
     /**
@@ -191,6 +252,7 @@ class RangedCombat(
      */
     fun process() {
         val tick = currentTick()
+        val bounced = ArrayList<Shot>()
         val iterator = inFlight.iterator()
         while (iterator.hasNext()) {
             val shot = iterator.next()
@@ -198,10 +260,16 @@ class RangedCombat(
             iterator.remove()
             val npc = shot.npc
             npc.incoming -= shot.damage
-            if (npcs[npc.index] === npc && !npc.dead) melee.hit(npc, shot.player, shot.damage, tick)
+            // A shot whose NPC is still there hits it, and bounces on even if that hit kills it.
+            val landed = npcs[npc.index] === npc && !npc.dead
+            if (landed) melee.hit(npc, shot.player, shot.damage, tick)
             // Guessed: under the NPC's south-west tile, where its drops go too.
-            if (!random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) dropAmmo(shot.ammo, npc.x, npc.z, npc.level, shot.player)
+            if (shot.ammo != null && !random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) {
+                dropAmmo(shot.ammo, npc.x, npc.z, npc.level, shot.player)
+            }
+            if (landed && shot.bounces > 0) bounce(shot, tick)?.let { bounced += it }
         }
+        inFlight += bounced
     }
 
     /** Shots fired and not landed yet, for tests and commands. */
@@ -246,7 +314,31 @@ class RangedCombat(
         )
     }
 
+    /** A bounce's projectile, from the NPC the shot hit to the next; guessed the same heights and arc as a shot's. */
+    private fun bounceFlight(from: Npc, to: Npc, id: Int): Projectile = Projectile(
+        id = id,
+        fromX = from.x,
+        fromZ = from.z,
+        level = from.level,
+        toX = to.x,
+        toZ = to.z,
+        startHeight = PROJECTILE_END_HEIGHT,
+        endHeight = PROJECTILE_END_HEIGHT,
+        startTime = 0,
+        endTime = (BOUNCE_TICKS * CYCLES_PER_TICK).toInt(),
+        angle = PROJECTILE_ANGLE,
+        progress = PROJECTILE_PROGRESS,
+        sourceIndex = from.index + 1,
+        targetIndex = to.index + 1,
+    )
+
     companion object {
+        /** How far a bounce reaches from the NPC it hit (OSRS Wiki, Venator bow: within 2 tiles). */
+        const val BOUNCE_RANGE = 2
+
+        /** Guessed: the Wiki doesn't say how long a bounce takes. */
+        const val BOUNCE_TICKS = 1L
+
         /** The live message for an empty ammo slot (OSRS Wiki, Ammunition). */
         const val NO_AMMO = "There is no ammo left in your quiver."
 

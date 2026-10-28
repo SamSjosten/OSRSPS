@@ -90,4 +90,19 @@ class CombatMathTest {
         assertEquals(30, CombatMath.playerRangedMaxHit(99, AttackStance.RAPID, 115))
         assertEquals(0, CombatMath.rangedStanceBonus(AttackStance.LONGRANGE))
     }
+
+    @Test
+    fun `the twisted bow's percentages follow the Wiki's chart`() {
+        // The chart's points: 39.9% and 53.86% at 0, 93.9% and 131.86% at 100, 140% and 215.11% at 250.
+        assertEquals(40, CombatMath.twistedBowAccuracy(0))
+        assertEquals(54, CombatMath.twistedBowDamage(0))
+        assertEquals(93, CombatMath.twistedBowAccuracy(100))
+        assertEquals(131, CombatMath.twistedBowDamage(100))
+        assertEquals(140, CombatMath.twistedBowAccuracy(250))
+        assertEquals(215, CombatMath.twistedBowDamage(250))
+        // Magic past the cap counts as the cap, and accuracy never goes over 140.
+        assertEquals(CombatMath.twistedBowDamage(250), CombatMath.twistedBowDamage(400))
+        assertTrue((0..400).all { CombatMath.twistedBowAccuracy(it) in 0..140 && CombatMath.twistedBowDamage(it) in 0..250 })
+        assertTrue((1..250).all { CombatMath.twistedBowDamage(it) >= CombatMath.twistedBowDamage(it - 1) })
+    }
 }

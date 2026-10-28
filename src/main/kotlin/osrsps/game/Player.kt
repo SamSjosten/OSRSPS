@@ -18,6 +18,12 @@ class Player(
     varTypes: VarTypes = VarTypes.NONE,
 ) {
     lateinit var session: Session<Player>
+
+    /**
+     * Where the player connects from: the address a relay's PROXY header named, or the connection's own (see
+     * osrsps.net.ProxyProtocol). "none" before a connection is set.
+     */
+    val address: String get() = if (::session.isInitialized) session.inetAddress else "none"
     lateinit var infos: Infos
 
     /** 1 = fixed, 2 = resizable, from the client's WindowStatus. */

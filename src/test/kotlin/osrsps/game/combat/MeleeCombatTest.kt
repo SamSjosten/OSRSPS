@@ -266,6 +266,17 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `an NPC put in with the npc command stays dead`() {
+        val npc = npcs.add(NpcSpawn(man, 3213, 3210, source = "::npc by alice", respawns = false))!!
+        tick = 10
+        melee.hit(npc, alice, 100, tick)
+        repeat(30) { tick() }
+        assertEquals(listOf(npc), removed)
+        assertTrue(respawned.isEmpty())
+        assertEquals(0, melee.respawning)
+    }
+
+    @Test
     fun `a respawn shorter than the death waits for the body to go`() {
         val npc = spawn(rat)
         tick = 10
