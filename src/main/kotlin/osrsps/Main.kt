@@ -6,6 +6,7 @@ import osrsps.cache.CacheInfo
 import osrsps.cache.MapCollisionLoader
 import osrsps.map.CollisionPrinter
 import osrsps.cache.OpenRs2Archive
+import osrsps.game.IpBans
 import osrsps.game.command.Admins
 import osrsps.game.content.DialogueLines
 import osrsps.game.dialogue.DialogueFile
@@ -83,7 +84,10 @@ private fun serve(port: Int) {
     // The git commit deploy/auto-deploy.sh built this from, served at /version so scripts can wait for a deploy.
     val version = System.getenv("OSRSPS_COMMIT")?.takeIf { it.isNotBlank() } ?: ClientConfig.UNKNOWN_VERSION
     // Addresses, comma separated, that forward many players (the VPS relay); each may hold more than 10 connections.
-    val relays = System.getenv("OSRSPS_RELAYS").orEmpty().split(',').map(String::trim).filter(String::isNotEmpty).toSet()
+    // Plain IP addresses only, written the way connections report them: the connection limit, the PROXY header rule and
+    // the bans all match a relay by its exact address.
+    val relays = System.getenv("OSRSPS_RELAYS").orEmpty().split(',').map(String::trim).filter(String::isNotEmpty)
+        .map { IpBans.normalize(it) ?: error("OSRSPS_RELAYS must list IP addresses, was '$it'") }.toSet()
     if (relays.isNotEmpty()) logger.info { "Relays: ${relays.joinToString()}" }
     // Whether the relays put a PROXY header in front of each player's connection, naming the player's own address:
     // off, optional (the default: with or without one) or required.

@@ -42,7 +42,7 @@ class ProxyProtocol(relays: Set<String>, mode: Mode) {
 
     val relays: Set<String> = if (this.mode == Mode.OFF) emptySet() else relays
 
-    /** Whether a TCP peer is one of [relays] (IP addresses, or CIDR ranges such as `10.0.0.0/8`). */
+    /** Whether a TCP peer is one of [relays] (IP addresses; Main refuses anything else). */
     private val trust: HAProxyTrustPredicate =
         if (this.relays.isEmpty()) HAProxyTrustPredicate { false } else HAProxyTrustPredicate.ofCidrs(*this.relays.toTypedArray())
 

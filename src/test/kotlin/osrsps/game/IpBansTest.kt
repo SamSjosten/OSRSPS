@@ -38,6 +38,15 @@ class IpBansTest {
     }
 
     @Test
+    fun `a relay in the file is skipped, as it can't be banned`(@TempDir dir: Path) {
+        val file = dir.resolve(IpBans.FILE_NAME)
+        Files.writeString(file, "192.168.0.216 hand-added\n198.51.100.4\n")
+        val bans = IpBans(file, relays = setOf("192.168.0.216"))
+        assertFalse(bans.isBanned("192.168.0.216"))
+        assertTrue(bans.isBanned("198.51.100.4"))
+    }
+
+    @Test
     fun `only IP addresses can be banned, and never a relay`() {
         val bans = IpBans(relays = setOf("192.168.0.216"))
         assertEquals(IpBans.Result.RELAY, bans.ban("192.168.0.216"))

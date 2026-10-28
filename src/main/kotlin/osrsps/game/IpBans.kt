@@ -34,6 +34,10 @@ class IpBans(private val file: Path? = null, relays: Set<String> = emptySet()) {
                     logger.warn { "${file.fileName} line ${i + 1}: '$line' isn't an IP address; skipped" }
                     return@forEachIndexed
                 }
+                if (address in this.relays) {
+                    logger.warn { "${file.fileName} line ${i + 1}: $address is a relay, which can't be banned; skipped" }
+                    return@forEachIndexed
+                }
                 bans[address] = line.substring(line.indexOfFirst(Char::isWhitespace).takeIf { it >= 0 } ?: line.length).trim()
             }
         }

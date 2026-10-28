@@ -621,6 +621,7 @@ class World(
 
     private fun login(login: PendingLogin) {
         val username = login.block.username
+        if (refusedForBan(login)) return
         val key = SaveStore.saveKey(username)
         if (key == null) {
             logger.info { "Rejecting '$username': not a name a save can be kept under" }
@@ -690,6 +691,18 @@ class World(
         if (count > 0) logger.info { "Saved $count player${if (count == 1) "" else "s"}" }
     }
 
+    /**
+     * Checked again as a login is accepted, on the game thread: an `::ipban` typed while the login waited on its password
+     * check would otherwise let it in, as the ban only logs out players already in the world.
+     */
+    private fun refusedForBan(login: PendingLogin): Boolean {
+        val address = login.responseHandler.address
+        if (!ipBans.isBanned(address)) return false
+        logger.info { "Rejecting ${login.block.username} from $address: that address is banned" }
+        login.responseHandler.writeFailedResponse(LoginResponse.IPBlocked)
+        return true
+    }
+
     private fun findPlayer(saveKey: String): Player? = players.firstOrNull { it?.saveKey == saveKey }
 
     /** The player in the world under [name], matched the way save names are, or null. */
@@ -704,6 +717,7 @@ class World(
      */
     private fun reconnect(login: PendingLogin, seed: IntArray) {
         val username = login.block.username
+        if (refusedForBan(login)) return
         val player = reconnectTarget(username, seed)
         if (player == null) {
             // Inferred: with nobody to reconnect to, live sends the client back to the login screen.

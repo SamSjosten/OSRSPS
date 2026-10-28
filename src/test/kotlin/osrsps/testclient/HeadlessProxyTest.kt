@@ -156,6 +156,28 @@ class HeadlessProxyTest {
         }
     }
 
+    @Test
+    fun `a name with a space can be looked up and banned`(@TempDir dir: Path) {
+        TestServer(dir, proxy = relayIsUs).use { server ->
+            server.login("erin", header = ProxyHeaders.v2("198.51.100.9", 1)).use { erin ->
+                server.login("iron man", header = ProxyHeaders.v2("198.51.100.11", 1)).use { iron ->
+                    assertEquals("iron man is on 198.51.100.11", erin.commandReply("::ip iron man") { it.startsWith("iron man") })
+                    // The longest run of words naming a player is the name, the rest the note.
+                    assertEquals(
+                        "Banned 198.51.100.11; logging out iron man",
+                        erin.commandReply("::ipban iron man bot") { it.startsWith("Banned") },
+                    )
+                    iron.await("iron man's logout") { iron.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+                }
+                assertEquals(listOf("198.51.100.11 by erin (iron man) bot"), bans(erin))
+            }
+        }
+    }
+
+    /** `::ipbans`, split into its bans. */
+    private fun bans(client: HeadlessClient): List<String> =
+        client.commandReply("::ipbans") { it.startsWith("198.") || it.startsWith("203.") || it.startsWith("No ") }.split("; ")
+
     private fun js5Init(): ByteArray {
         val bytes = java.io.ByteArrayOutputStream()
         DataOutputStream(bytes).use { out ->

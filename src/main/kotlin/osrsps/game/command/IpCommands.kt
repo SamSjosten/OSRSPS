@@ -8,20 +8,22 @@ fun CommandRegistry.registerIpCommands(world: World) {
     val bans = world.ipBans
 
     register("ip", "::ip [name]", admin = true) {
-        if (args.size > 1) fail("Usage: ::ip [name]")
         if (args.isEmpty()) {
             reply(world.onlinePlayers.joinToString { "${it.username} ${it.address}" })
             return@register
         }
-        val target = world.playerNamed(args[0]) ?: fail("Nobody called ${args[0]} is in the world")
+        val name = args.joinToString(" ")
+        val target = world.playerNamed(name) ?: fail("Nobody called $name is in the world")
         reply("${target.username} is on ${target.address}")
     }
 
     register("ipban", "::ipban name|address [note]", admin = true) {
         if (args.isEmpty()) fail("Usage: ::ipban name|address [note]")
-        val target = world.playerNamed(args[0])
+        // Names can have spaces ("Iron Man"), so the longest run of words naming a player in the world is the name.
+        val named = (args.size downTo 1).firstNotNullOfOrNull { n -> world.playerNamed(args.take(n).joinToString(" "))?.let { it to n } }
+        val target = named?.first
         val address = target?.address ?: args[0]
-        val note = (listOf("by ${player.username}") + listOfNotNull(target?.let { "(${it.username})" }) + args.drop(1)).joinToString(" ")
+        val note = (listOf("by ${player.username}") + listOfNotNull(target?.let { "(${it.username})" }) + args.drop(named?.second ?: 1)).joinToString(" ")
         when (bans.ban(address, note)) {
             IpBans.Result.NOT_AN_ADDRESS -> fail("${args[0]} is neither a player in the world nor an IP address")
             IpBans.Result.RELAY -> fail("$address is the relay every internet player comes through; ban the player once they connect with their own address")
