@@ -217,6 +217,21 @@ class RangedCombatTest {
     }
 
     @Test
+    fun `ctrl on the click runs the walk into range, and a plain click after it walks again`() {
+        val npc = spawn(x = 3220)
+        alice.runEnabled = false
+        interactions.click(alice, npc.index, 2, -1, invertRun = true)
+        tick()
+        assertEquals(3212, alice.x)
+        alice.interaction = null
+        alice.x = 3210
+        alice.waypoints.clear()
+        attack(alice, npc)
+        tick()
+        assertEquals(3211, alice.x)
+    }
+
+    @Test
     fun `a loc that blocks projectiles makes the player find a tile with a clear line`() {
         LocCollision(map).addLoc(LocCollisionType(blocksProjectile = true), 3212, 3210, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
         val npc = spawn(x = 3214)

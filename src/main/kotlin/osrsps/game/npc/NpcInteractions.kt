@@ -101,6 +101,8 @@ class NpcInteractions(
             scripts.interrupt(player)
             npcs.leave(player, scripts::busy)
             player.interaction = null
+            // The click's ctrl key, for the route the fight makes towards the NPC, as a route made here would keep it.
+            player.invertRun = invertRun
             face(player, npc)
             if (attackFromAfar(player, npc)) return
         }
