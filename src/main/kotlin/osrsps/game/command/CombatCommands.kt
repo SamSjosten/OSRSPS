@@ -117,15 +117,31 @@ fun CommandRegistry.registerCombatCommands(world: World) {
     }
 }
 
-/** The NPC [args] names: none for the nearest that can be fought, an index from ::npcs, or a name. */
-private fun target(world: World, player: Player, args: List<String>, usage: String): Npc = when {
-    args.isEmpty() -> nearest(world, player.x, player.z, player.level) { world.combat.npcCombat[it.type] != null && !it.dead }
-        ?: throw CommandFailure("No NPC you can fight within $SEARCH_RADIUS tiles. Try $usage index|name")
-    args.size == 1 && args[0].toIntOrNull() != null -> world.npcs[args[0].toInt()] ?: throw CommandFailure("No NPC #${args[0]}")
-    else -> {
-        val text = args.joinToString(" ")
-        nearest(world, player.x, player.z, player.level) { !it.dead && (it.type.name.equals(text, true) || it.type.internalName.equals(text, true)) }
-            ?: throw CommandFailure("No NPC called '$text' within $SEARCH_RADIUS tiles")
+/**
+ * The NPC [args] names: none for one that can be fought, an index from ::npcs, or a name. With none or a name, the NPC
+ * the player is fighting, or else the one attacking them, comes first when it fits; then the nearest that does. So
+ * `::kill man` in a fight kills that man, not another one standing closer.
+ */
+private fun target(world: World, player: Player, args: List<String>, usage: String): Npc {
+    fun pick(filter: (Npc) -> Boolean): Npc? {
+        val fought = when (val fight = player.interaction) {
+            is MeleeInteraction -> fight.npc
+            is RangedInteraction -> fight.npc
+            else -> null
+        }
+        val attacker = player.attackedBy?.takeIf { it.target === player }
+        return listOfNotNull(fought, attacker).firstOrNull { !it.dead && filter(it) }
+            ?: nearest(world, player.x, player.z, player.level) { !it.dead && filter(it) }
+    }
+    return when {
+        args.isEmpty() -> pick { world.combat.npcCombat[it.type] != null }
+            ?: throw CommandFailure("No NPC you can fight within $SEARCH_RADIUS tiles. Try $usage index|name")
+        args.size == 1 && args[0].toIntOrNull() != null -> world.npcs[args[0].toInt()] ?: throw CommandFailure("No NPC #${args[0]}")
+        else -> {
+            val text = args.joinToString(" ")
+            pick { it.type.name.equals(text, true) || it.type.internalName.equals(text, true) }
+                ?: throw CommandFailure("No NPC called '$text' within $SEARCH_RADIUS tiles")
+        }
     }
 }
 

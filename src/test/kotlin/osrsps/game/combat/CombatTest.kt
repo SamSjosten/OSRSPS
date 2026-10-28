@@ -145,6 +145,26 @@ class CombatTest {
     }
 
     @Test
+    fun `kill and hit go for the NPC you're fighting, or the one attacking you, before a nearer one`() {
+        world.spawnNpc(NpcSpawn(man, 3223, 3218, 0, source = "test"))
+        val fought = world.spawnNpc(NpcSpawn(man, 3227, 3218, 0, source = "test"))!!
+        val attacker = world.spawnNpc(NpcSpawn(man, 3229, 3218, 0, source = "test"))!!
+        player.interaction = MeleeInteraction(fought, world.meleeCombat)
+        attacker.target = player
+        player.attackedBy = attacker
+        run("kill man")
+        // Out of the fight, the man attacking you comes next; with neither, the nearest.
+        player.interaction = null
+        run("hit 1")
+        attacker.target = null
+        run("hit 1 man")
+        assertEquals(
+            listOf("Killed Man #2.", "Hit Man #3 for 1: 6/7 hp", "Hit Man #1 for 1: 6/7 hp"),
+            replies,
+        )
+    }
+
+    @Test
     fun `an NPC with no combat can't be fought`() {
         val npc = world.spawnNpc(NpcSpawn(hans, 3223, 3218, 0, source = "test"))!!
         assertNull(world.combat.matchup(player, npc))
