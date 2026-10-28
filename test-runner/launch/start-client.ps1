@@ -40,8 +40,9 @@ $ErrorActionPreference = 'Stop'
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 function Reset-Deadline { $script:deadline = (Get-Date).AddSeconds($TimeoutSeconds) }
 
-# Where the client's log ends now: lines after it are this run's.
-$logStart = if (Test-Path -LiteralPath $ClientLog) { (Get-Item -LiteralPath $ClientLog).Length } else { 0 }
+# Where the client's log ends now: lines after it are this run's. Taken again once an old client is closed.
+function Get-LogEnd { if (Test-Path -LiteralPath $ClientLog) { (Get-Item -LiteralPath $ClientLog).Length } else { 0 } }
+$logStart = Get-LogEnd
 
 # The test runner's lines saying auto login is off or gave up, logged since this script started.
 function Get-AutoLoginLines
@@ -135,6 +136,9 @@ else
 			Start-Sleep -Seconds 1
 		}
 	}
+
+	# What a closed client logged doesn't count: the new one's auto login starts afresh.
+	$logStart = Get-LogEnd
 
 	# 3. RSProx, which launches RuneLite by itself. The task ignores a run while its last run still counts as running,
 	# which lasts a moment after its JVM is gone.
