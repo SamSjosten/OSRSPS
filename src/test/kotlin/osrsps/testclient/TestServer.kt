@@ -17,6 +17,7 @@ import osrsps.game.World
 import osrsps.map.CollisionMap
 import osrsps.net.Js5Store
 import osrsps.net.NetworkFactory
+import osrsps.net.ProxyProtocol
 import osrsps.net.RsaKeys
 
 /**
@@ -29,6 +30,8 @@ class TestServer(
     dataDir: Path,
     /** Real time between game cycles. Shorter than live's 600 ms so tests run fast; the tick logic is the same. */
     cycleMillis: Long = 100,
+    /** Who may send a PROXY header; to test one from a relay, make 127.0.0.1 the relay. */
+    proxy: ProxyProtocol = ProxyProtocol.OFF,
     /** Builds the world from the CRCs and the cycle length; the default is Lumbridge's map square, open ground. */
     world: (crcs: IntArray, cycleMillis: Long) -> World = { crcs, millis ->
         World(crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, cycleMillis = millis)
@@ -48,7 +51,7 @@ class TestServer(
         this.world = world(js5.crcs, cycleMillis)
         // 256 eight-bit codewords: a valid Huffman table, enough for chat to encode.
         val huffman = HuffmanCodec.create(Unpooled.wrappedBuffer(ByteArray(256) { 8 }))
-        factory = NetworkFactory(port, RsaKeyPair(key.privateExponent, key.modulus), DefaultHuffmanCodecProvider(huffman), js5, this.world)
+        factory = NetworkFactory(port, RsaKeyPair(key.privateExponent, key.modulus), DefaultHuffmanCodecProvider(huffman), js5, this.world, proxy.relays, proxy)
         network = factory.build()
         this.world.network = network
         network.start()
@@ -56,8 +59,8 @@ class TestServer(
     }
 
     /** Logs a [HeadlessClient] in as [username]. */
-    fun login(username: String, password: String = "test"): HeadlessClient =
-        HeadlessClient.login("127.0.0.1", port, rsaModulus, rsaExponent, username, password)
+    fun login(username: String, password: String = "test", header: ByteArray = ByteArray(0)): HeadlessClient =
+        HeadlessClient.login("127.0.0.1", port, rsaModulus, rsaExponent, username, password, header = header)
 
     override fun close() {
         world.stop()

@@ -59,15 +59,18 @@ class NetworkFactory(
     private val world: World,
     /** Addresses that relay many players' connections, such as a forwarding VPS; see [RelayAwareValidator]. */
     private val relays: Set<String> = emptySet(),
+    /** Who may say whose a connection really is; see [ProxyProtocol]. */
+    private val proxy: ProxyProtocol = ProxyProtocol.OFF,
 ) : AbstractNetworkServiceFactory<Player>() {
     override val ports: List<Int> get() = listOf(port)
 
     private val listeners = ServerChannelTracker()
 
     // RSProt's shutdown only stops the event loops (Netty 4.2 leaves the listening sockets open), so we
-    // keep hold of the server channels ourselves and close them in [closeListeners].
+    // keep hold of the server channels ourselves and close them in [closeListeners]. The proxy acceptor reads a relay's
+    // PROXY header in front of RSProt's handlers, so RSProt knows each connection by the player's own address.
     override fun getBootstrapBuilder(): BootstrapBuilder =
-        super.getBootstrapBuilder().configureBootstrapExtra(Consumer { it.handler(listeners) })
+        super.getBootstrapBuilder().configureBootstrapExtra(Consumer { it.handler(serverHandlers(listeners, proxy.acceptor)) })
 
     /** Closes the listening sockets; call before shutting the network service down. */
     fun closeListeners() = listeners.closeAll()
@@ -182,9 +185,10 @@ private class ServerChannelTracker : ChannelInboundHandlerAdapter() {
 }
 
 /**
- * RSProt's per-address connection limit, game and JS5 each, except for [relays]: everyone a relay forwards arrives from
- * its address, so the usual limit would let only a handful of them in at once. Logins through a relay are slowed by
- * name instead (osrsps.game.LoginGuard), and the relay limits each player's own address.
+ * RSProt's per-address connection limit, game and JS5 each, except for [relays]: a relay connection without a PROXY
+ * header arrives from the relay's address, so the usual limit would let only a handful of them in at once. One with a
+ * header is counted by the player's own address like anyone else's (see [ProxyProtocol]). Logins through a relay are
+ * also slowed by name (osrsps.game.LoginGuard).
  */
 class RelayAwareValidator(
     private val relays: Set<String>,

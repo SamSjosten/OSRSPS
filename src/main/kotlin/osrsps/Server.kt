@@ -18,6 +18,7 @@ import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
 import osrsps.game.EffectIds
 import osrsps.game.Accounts
+import osrsps.game.IpBans
 import osrsps.game.command.Admins
 import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
@@ -42,6 +43,7 @@ import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
 import osrsps.net.RelayAwareValidator
 import osrsps.net.NetworkFactory
+import osrsps.net.ProxyProtocol
 import osrsps.net.RsaKeys
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -63,9 +65,11 @@ class GameServer(
     version: String = ClientConfig.UNKNOWN_VERSION,
     /** Addresses that forward many players, exempt from the per-address connection limit; see [RelayAwareValidator]. */
     private val relays: Set<String> = emptySet(),
+    /** Who may put a PROXY header in front of a connection on either port; see [ProxyProtocol]. */
+    private val proxy: ProxyProtocol = ProxyProtocol.OFF,
 ) {
     private lateinit var world: World
-    private val clientConfig = ClientConfig(publicHost, httpPort, gamePort = port, version = version)
+    private val clientConfig = ClientConfig(publicHost, httpPort, gamePort = port, version = version, proxy = proxy)
     private lateinit var factory: NetworkFactory
     private lateinit var network: NetworkService<Player>
 
@@ -121,6 +125,8 @@ class GameServer(
         logger.info { "Player saves in ${saveDir.toAbsolutePath()}" }
         val accountDir = dataDir.resolve("accounts")
         logger.info { "Accounts in ${accountDir.toAbsolutePath()}" }
+        val ipBans = IpBans(dataDir.resolve(IpBans.FILE_NAME), relays)
+        logger.info { "IP bans: ${ipBans.size} in ${dataDir.resolve(IpBans.FILE_NAME).toAbsolutePath()}" }
         if (admins.everyone) logger.warn { "Every player is an admin; set OSRSPS_ADMINS to the names that should be" }
         else logger.info { "Admins: $admins" }
         val npcSpawns = NpcSpawnFile.loadAll(npcTypes)
@@ -146,9 +152,10 @@ class GameServer(
             Accounts(FileSaveStore(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
+            ipBans = ipBans,
         )
         loadObjSpawns(objTypes)
-        factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays)
+        factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy)
         network = factory.build()
         world.network = network
         network.start()
