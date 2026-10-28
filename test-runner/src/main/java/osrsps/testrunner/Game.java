@@ -135,8 +135,9 @@ interface Game
 	String itemOption(String name, int id, String option);
 
 	/**
-	 * The item worn in a slot (a wearpos, 0 for the head to 13 for ammo), as the worn inventory has it: its id, -1 when the
-	 * slot is empty, or {@link #NO_INVENTORY} while the client has no worn inventory.
+	 * The item worn in a slot (a wearpos, 0 for the head to 13 for ammo), as the worn inventory has it: its id, or -1 when
+	 * the slot is empty. A client that has had nothing worn since login has no worn inventory at all (the client makes
+	 * one only once an item is in it), which is every slot empty.
 	 */
 	int wornId(int wearpos);
 
@@ -146,7 +147,6 @@ interface Game
 	 */
 	int modelWornId(int wearpos);
 
-	int NO_INVENTORY = -2;
 	int NOT_ON_MODEL = -3;
 
 	/** The item's name, as the client has it, or null for an unknown id. */
