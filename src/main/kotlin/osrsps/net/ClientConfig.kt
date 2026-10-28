@@ -10,8 +10,9 @@ import java.net.InetSocketAddress
 private val logger = KotlinLogging.logger {}
 
 /**
- * Serves the two files a client launcher needs to find this server, `jav_config.ws` and `world_list.ws`, and
- * `proxy-targets.yaml`, an RSProx target for this server that RSProx's "+" button imports from a URL.
+ * Serves the two files a client launcher needs to find this server, `jav_config.ws` and `world_list.ws`,
+ * `proxy-targets.yaml`, an RSProx target for this server that RSProx's "+" button imports from a URL, and `version`,
+ * the git commit this server was built from, so a script can wait for a deploy to be up.
  *
  * RSProx reads the jav_config's `codebase` host, looks for a world with that host in the world list,
  * and connects to it on the game port. So [publicHost] must be the address the player's PC can reach:
@@ -23,6 +24,8 @@ class ClientConfig(
     private val worldId: Int = WORLD_ID,
     /** Where the game listens; RSProx assumes 43594 unless its target says otherwise. */
     private val gamePort: Int = httpPort - 1,
+    /** The git commit the server was built from (OSRSPS_COMMIT, set by deploy/auto-deploy.sh), or "unknown". */
+    private val version: String = UNKNOWN_VERSION,
 ) {
     private var server: HttpServer? = null
 
@@ -124,11 +127,18 @@ class ClientConfig(
             if (yaml == null) exchange.respond("text/plain", ByteArray(0), 503)
             else exchange.respond("text/yaml; charset=UTF-8", yaml.toByteArray(Charsets.UTF_8))
         }
+        http.createContext("/version") { exchange ->
+            exchange.respond("text/plain; charset=UTF-8", "$version\n".toByteArray(Charsets.UTF_8))
+        }
         http.createContext("/") { exchange -> exchange.respond("text/plain", ByteArray(0), 404) }
         http.start()
         server = http
         logger.info { "Client config at http://$publicHost:$httpPort/jav_config.ws (world $worldId on $publicHost)" }
     }
+
+    /** The port the HTTP server listens on once started (differs from httpPort only when that was 0). */
+    internal val boundPort: Int
+        get() = server?.address?.port ?: httpPort
 
     fun stop() {
         server?.stop(0)
@@ -141,6 +151,7 @@ class ClientConfig(
         const val WORLD_ID = 301
         const val TARGET_NAME = "OSRSPS"
         const val DEFAULT_GAME_PORT = 43594
+        const val UNKNOWN_VERSION = "unknown"
 
         /** Members world. */
         const val WORLD_PROPERTIES = 1

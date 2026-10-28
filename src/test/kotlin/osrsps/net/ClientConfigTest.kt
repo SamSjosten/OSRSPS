@@ -56,6 +56,18 @@ class ClientConfigTest {
         assertContains(other.proxyTargets!!.lines(), "    game_server_port: 50000")
     }
 
+    @Test
+    fun `version answers with the commit the server was built from`() {
+        val http = ClientConfig("127.0.0.1", 0, gamePort = 43594, version = "3c1b194").also { it.start() }
+        try {
+            val port = http.boundPort
+            val body = java.net.URI("http://127.0.0.1:$port/version").toURL().readText()
+            assertEquals("3c1b194\n", body)
+        } finally {
+            http.stop()
+        }
+    }
+
     private fun DataInputStream.readJagexString(): String {
         val bytes = generateSequence { readUnsignedByte().takeIf { it != 0 } }.map { it.toByte() }.toList().toByteArray()
         return String(bytes, Charsets.ISO_8859_1)

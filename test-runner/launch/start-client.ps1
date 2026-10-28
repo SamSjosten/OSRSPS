@@ -3,8 +3,10 @@ Starts the test client with nobody at the screen and waits until it is logged in
 
   .\test-runner\launch\start-client.ps1             # start it unless RuneLite already runs
   .\test-runner\launch\start-client.ps1 -Restart    # close RSProx and RuneLite first, e.g. after a plugin jar swap
+  .\test-runner\launch\start-client.ps1 -Commit 3c1b194   # first wait until the server runs that commit
 
-1. Waits for our server to answer on its game port and jav_config (after a redeploy the server takes a while).
+1. Waits for our server to answer on its game port and jav_config (after a redeploy the server takes a while). With
+   -Commit, also until its /version (the commit deploy/auto-deploy.sh built it from) starts with that commit.
 2. Closes RSProx's and RuneLite's JVMs when -Restart is given, or when RSProx is open without a RuneLite (nobody pressed
    Launch Session). With RuneLite already running and no -Restart, it only does step 4.
 3. Runs the RSProx scheduled task, whose RSProx.cmd starts RSProx and presses Launch Session on the OSRSPS target
@@ -17,6 +19,7 @@ Exits with 0 when the client is logged in, 1 otherwise.
 #>
 param(
 	[switch] $Restart,
+	[string] $Commit,
 	[string] $Server = '192.168.0.210',
 	[int] $GamePort = 43594,
 	[string] $Task = 'RSProx',
@@ -53,19 +56,34 @@ function Get-ClientJvms
 
 # 1. The server.
 $javConfig = "http://${Server}:$($GamePort + 1)/jav_config.ws"
-Step "Waiting for the server at ${Server}:$GamePort and $javConfig"
+$versionUrl = "http://${Server}:$($GamePort + 1)/version"
+Step ("Waiting for the server at ${Server}:$GamePort and $javConfig" + $(if ($Commit) { ", running $Commit" } else { '' }))
 while ($true)
 {
 	$up = $false
+	$running = ''
 	if (Test-Port $Server $GamePort)
 	{
-		try { $up = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 $javConfig).StatusCode -eq 200 } catch { }
+		try
+		{
+			$up = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 $javConfig).StatusCode -eq 200
+			if ($up -and $Commit)
+			{
+				$running = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 $versionUrl).Content.Trim()
+				$up = $running.StartsWith($Commit, [StringComparison]::OrdinalIgnoreCase)
+			}
+		}
+		catch { $up = $false }
 	}
 	if ($up) { break }
-	if ((Get-Date) -gt $deadline) { Fail "the server did not answer within $TimeoutSeconds s" }
+	if ((Get-Date) -gt $deadline)
+	{
+		if ($running) { Fail "the server still runs $running, not $Commit, after $TimeoutSeconds s" }
+		Fail "the server did not answer within $TimeoutSeconds s"
+	}
 	Start-Sleep -Seconds 3
 }
-Step 'Server is up'
+Step ('Server is up' + $(if ($Commit) { " and runs $running" } else { '' }))
 
 # 2. What is running already.
 $jvms = Get-ClientJvms
