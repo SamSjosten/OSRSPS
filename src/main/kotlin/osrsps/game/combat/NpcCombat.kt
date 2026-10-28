@@ -62,6 +62,8 @@ data class NpcCombatDef(
     /** Ticks from its death until it is back at its spawn. */
     val respawnTicks: Int,
     val source: String,
+    /** The Wiki's magic attack bonus, which the twisted bow scales on when it beats the Magic level. */
+    val magicAttack: Int = 0,
 )
 
 /** NPC combat definitions by NPC type id. An NPC with none can't be attacked. */
@@ -148,6 +150,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 anims = if (seqs.isEmpty) NpcCombatAnims.NONE else NpcCombatAnims(anim("attack"), anim("defend"), anim("death")),
                 respawnTicks = entry.required("respawnTicks").jsonPrimitive.int.also { require(it > 0) { "respawn $it" } },
                 source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
+                magicAttack = entry["magicAttack"]?.jsonPrimitive?.int ?: 0,
             )
         }
 

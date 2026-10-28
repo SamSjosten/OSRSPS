@@ -47,6 +47,7 @@ import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.MeleeCombat
+import osrsps.game.combat.MultiCombat
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.RangedCombat
@@ -161,7 +162,7 @@ class World(
     private val equipment = Equipment(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
-    val combat = Combat(equipment, attackStyles, npcCombat)
+    val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons)
 
     private val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
@@ -183,6 +184,9 @@ class World(
         attackFromAfar = { player, npc -> meleeCombat.attackFromAfar(player, npc) },
     )
 
+    /** Where combat is multi-way; see [MultiCombat]. */
+    val multiCombat = MultiCombat()
+
     /** Players fighting NPCs; see [MeleeCombat]. */
     val meleeCombat: MeleeCombat = MeleeCombat(
         npcs, collision, movement, combat, random, { tick }, removeNpc = ::removeNpc, spawnNpc = { spawnNpc(it) },
@@ -191,6 +195,7 @@ class World(
         onDeath = { deaths.die(it) },
         loot = ::dropLoot,
         ranged = { player, npc -> rangedCombat.fight(player, npc) },
+        multi = multiCombat,
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -198,6 +203,7 @@ class World(
         npcs, collision, movement, combat, objTypes, rangedWeapons, meleeCombat, random, { tick },
         projectile = zones::projectile, dropAmmo = ::dropAmmo,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
+        multi = multiCombat,
     )
 
     /** Player death and gravestones; see [Deaths]. */

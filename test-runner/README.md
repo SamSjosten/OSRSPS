@@ -80,7 +80,8 @@ never words: the words are Jagex's and stay out of git (see the main README's Di
 `examples\` also has the Lumbridge Castle checks. They need runner 0.4.2 or later (`locOption` came in 0.3.0;
 `takeItem`, `assertInventory`, `finishDialogue` and Examine in 0.4.0; `assertLoc` in 0.4.2). The combat checks
 (`combat-attack-man.json`) need 0.5.0, which brought `assertHitsplat`, `assertNpcHealth`, `assertStat`,
-`assertGroundItem` and `assertAnimation`; `combat-die-grave.json` needs 0.6.1 (`assertInterface`, and `clickWidget` from 0.6.0). `combat-harlan.json` needs 0.6.3, which reads and continues the two-item box (objectbox_double).
+`assertGroundItem` and `assertAnimation`; `combat-die-grave.json` needs 0.6.1 (`assertInterface`, and `clickWidget` from 0.6.0). `combat-harlan.json` needs 0.6.3, which reads and continues the two-item box (objectbox_double). `combat-raid-bows.json`
+(the twisted bow, and the Venator bow's bounce in a zone `::multi` makes multi-way) needs 0.5.0.
 
 - `lumbridge-castle-doors.json` (the smallest, run it first) and `castle-doors-rest.json`: every door.
 - `lumbridge-castle-travel.json`, `castle-stairs-all.json` and `castle-ladders-all.json`: every option on the stairs,

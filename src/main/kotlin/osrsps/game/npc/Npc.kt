@@ -50,6 +50,8 @@ class NpcSpawn(
     /** Whether it keeps under a roof or out from under one wherever it walks. */
     val restrict: MoveRestrict = MoveRestrict.NORMAL,
     val source: String,
+    /** Whether it comes back after it is killed; one put in with `::npc` doesn't, so tests can clean up after it. */
+    val respawns: Boolean = true,
 ) {
     init {
         require(level in 0..3) { "Bad level $level" }

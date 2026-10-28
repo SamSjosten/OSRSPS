@@ -43,6 +43,28 @@ object CombatMath {
     fun playerRangedMaxHit(rangedLevel: Int, stance: AttackStance, rangedStrength: Int): Int =
         ((rangedLevel + rangedStanceBonus(stance) + 8) * (rangedStrength + 64) + 320) / 640
 
+    /**
+     * The twisted bow's accuracy, in percent of the attack roll, against a target whose Magic is [magic] (the higher of
+     * its Magic level and magic attack bonus, at most [TWISTED_BOW_MAGIC_CAP]): 140 + (3M - 10) / 100 - (3M / 10 - 100)²
+     * / 100, from 0 to 140 (OSRS Wiki, Twisted bow). Where the game rounds down is inferred; the Wiki's chart (39.9% at
+     * 0, 93.9% at 100, 140% from 244) is the unrounded curve, which this follows to within a point.
+     */
+    fun twistedBowAccuracy(magic: Int): Int {
+        val m = magic.coerceIn(0, TWISTED_BOW_MAGIC_CAP)
+        val tenth = 3 * m / 10
+        return (140 + (3 * m - 10) / 100 - (tenth - 100) * (tenth - 100) / 100).coerceIn(0, 140)
+    }
+
+    /** The twisted bow's damage, in percent of the max hit: 250 + (3M - 14) / 100 - (3M / 10 - 140)² / 100, 0 to 250. */
+    fun twistedBowDamage(magic: Int): Int {
+        val m = magic.coerceIn(0, TWISTED_BOW_MAGIC_CAP)
+        val tenth = 3 * m / 10
+        return (250 + (3 * m - 14) / 100 - (tenth - 140) * (tenth - 140) / 100).coerceIn(0, 250)
+    }
+
+    /** Outside the Chambers of Xeric (350 there; OSRS Wiki, Twisted bow). */
+    const val TWISTED_BOW_MAGIC_CAP = 250
+
     /** A player's melee attack roll: (Attack + style bonus + 8) * (attack bonus + 64). [attackLevel] is the current level. */
     fun playerAttackRoll(attackLevel: Int, stance: AttackStance, attackBonus: Int): Int =
         (attackLevel + attackStanceBonus(stance) + 8) * (attackBonus + 64)

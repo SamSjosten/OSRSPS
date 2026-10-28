@@ -35,6 +35,8 @@ class Combat(
     private val equipment: Equipment,
     val attackStyles: AttackStyles,
     val npcCombat: NpcCombat,
+    /** The bows and crossbows, for a weapon whose numbers scale with its target (the twisted bow). */
+    private val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
 ) {
     /**
      * The attack style the player fights with: their weapon's category and the button picked on the combat tab (varp 43).
@@ -100,7 +102,9 @@ class Combat(
      * The player's ranged numbers against [npc], or null when it has no combat definition or the player's style isn't
      * ranged. Everything worn counts, the ammunition's ranged strength included (OSRS Wiki, Ranged): the weapons here
      * all fire what is in the ammo slot, and [RangedCombat] won't fire ammunition the weapon can't use. The NPC defends
-     * with its bonus for the style's weight (light, standard or heavy).
+     * with its bonus for the style's weight (light, standard or heavy). A twisted bow multiplies the attack roll and the
+     * max hit by its percentages for the higher of the NPC's Magic level and magic attack bonus (OSRS Wiki, Twisted bow;
+     * that the max hit is rounded down after the multiply is inferred, as for other percentage bonuses).
      */
     fun rangedMatchup(player: Player, npc: Npc): RangedMatchup? {
         val def = npcCombat[npc.type] ?: return null
@@ -108,13 +112,19 @@ class Combat(
         if (style.type != AttackType.RANGED) return null
         val bonuses = bonuses(player)
         val ranged = player.skills.currentLevel(Skill.RANGED)
-        val attackRoll = CombatMath.playerRangedAttackRoll(ranged, style.stance, bonuses.rangedAttack)
+        var attackRoll = CombatMath.playerRangedAttackRoll(ranged, style.stance, bonuses.rangedAttack)
+        var maxHit = CombatMath.playerRangedMaxHit(ranged, style.stance, bonuses.rangedStrength)
+        if (rangedWeapons.weapon(equipment.weapon(player))?.scaling == RangedScaling.TWISTED_BOW) {
+            val magic = maxOf(npc.type.stats.magic, def.magicAttack)
+            attackRoll = attackRoll * CombatMath.twistedBowAccuracy(magic) / 100
+            maxHit = maxHit * CombatMath.twistedBowDamage(magic) / 100
+        }
         val defenceRoll = CombatMath.npcDefenceRoll(npc.type.stats.defence, def.defence.against(AttackType.RANGED, style.weight))
         return RangedMatchup(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = CombatMath.playerRangedMaxHit(ranged, style.stance, bonuses.rangedStrength),
+            maxHit = maxHit,
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
     }
