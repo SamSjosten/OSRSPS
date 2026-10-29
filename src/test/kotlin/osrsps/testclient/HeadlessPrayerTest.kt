@@ -3,7 +3,10 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.GameFrame
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -157,6 +160,39 @@ class HeadlessPrayerTest {
                 client.commandReply("hit 90 me") { it == "Hit yourself for 90: 33/99 hp" }
                 client.await("every prayer off") { if (client.prayers() == 0) Unit else null }
                 client.await("no points") { client.points()?.takeIf { it == 0 } }
+            }
+        }
+    }
+
+    @Test
+    fun `quick prayers picked in the orb's setup, turned on and off from the orb`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                for (skill in listOf("defence", "prayer")) client.commandReply("setlevel $skill 99") { it.contains("set to level 99") }
+                client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 1)
+                client.awaitMessage("nothing picked") { it == Prayers.NO_QUICK_PRAYERS }
+
+                // Setup: the quick prayer setup in the prayer book's place, its prayers clickable by bit.
+                client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 2)
+                client.await("the setup open") { if (Prayers.QUICKPRAYER in client.openInterfaces()) Unit else null }
+                assertFalse(Prayers.PRAYERBOOK in client.openInterfaces())
+                assertTrue(client.opEnabled(Prayers.QUICKPRAYER, Prayers.QUICKPRAYER_BUTTONS, 26, 1))
+                client.ifButton(Prayers.QUICKPRAYER, Prayers.QUICKPRAYER_BUTTONS, 1, sub = 26)
+                client.ifButton(Prayers.QUICKPRAYER, Prayers.QUICKPRAYER_BUTTONS, 1, sub = 14)
+                val picked = 1 shl 26 or (1 shl 14)
+                client.await("Piety and Protect from Melee picked") { if (client.varp(Prayers.VARP_QUICK_PRAYERS) == picked) Unit else null }
+                assertEquals(0, client.prayers())
+                client.ifButton(Prayers.QUICKPRAYER, Prayers.QUICKPRAYER_CLOSE, 1)
+                client.await("the prayer book back") { if (Prayers.PRAYERBOOK in client.openInterfaces()) Unit else null }
+                assertFalse(Prayers.QUICKPRAYER in client.openInterfaces())
+
+                client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 1)
+                client.await("both on") { if (client.prayers() == picked) Unit else null }
+                assertEquals(1, client.varp(Prayers.VARP_QUICK_ACTIVE))
+                client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 1)
+                client.await("every prayer off") { if (client.prayers() == 0) Unit else null }
+                assertEquals(0, client.varp(Prayers.VARP_QUICK_ACTIVE))
             }
         }
     }

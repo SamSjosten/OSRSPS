@@ -96,7 +96,8 @@ class ItemAudit(private val objs: ObjTypes, private val equipment: List<WikiEqui
             val versioned = wiki.version.isNotEmpty()
             count("Bonuses")
             for ((index, param) in EquipmentBonuses.PARAMS.withIndex()) {
-                val ours = obj.intParam(param)
+                // Ranged strength is read from two params, as the server does.
+                val ours = if (index == EquipmentBonuses.RANGED_STRENGTH) EquipmentBonuses.rangedStrength(obj) else obj.intParam(param)
                 if (ours != wiki.bonuses[index]) find("Bonus: ${BONUS_NAMES[index]}", obj, name, ours, wiki.bonuses[index], versioned)
             }
             count("Slot")

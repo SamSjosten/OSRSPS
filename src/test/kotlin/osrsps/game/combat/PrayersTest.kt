@@ -197,4 +197,93 @@ class PrayersTest {
         click("Rapid Heal")
         assertEquals(MeleeCombat.REGEN_TICKS, alice.hitpointsRegenTicks)
     }
+
+    private fun pick(name: String) = assertTrue(prayers.selectQuick(alice, prayer(name).bit))
+
+    private fun picked(): List<String> = prayers.all.filter { prayers.quickSelected(alice) and it.mask != 0 }.map { it.name }
+
+    @Test
+    fun `quick prayers picked in the setup drop the ones they can't be on with, and the levels are checked`() {
+        pick("Thick Skin")
+        pick("Burst of Strength")
+        pick("Protect from Melee")
+        assertEquals(listOf("Thick Skin", "Burst of Strength", "Protect from Melee"), picked())
+        // Piety shares all three of its groups with the first two, Protect from Magic the overhead one.
+        pick("Piety")
+        pick("Protect from Magic")
+        assertEquals(listOf("Protect from Magic", "Piety"), picked())
+        // Clicked again, a prayer is dropped.
+        pick("Protect from Magic")
+        assertEquals(listOf("Piety"), picked())
+        // Picking isn't turning on.
+        assertEquals(emptyList(), on())
+        // Rock Skin drops Piety, which at 69 Prayer can't come back.
+        pick("Rock Skin")
+        alice.skills.setLevel(Skill.PRAYER, 69)
+        pick("Piety")
+        assertEquals(listOf("You need a Prayer level of 70 to use Piety."), messages)
+        assertEquals(listOf("Rock Skin"), picked())
+        assertFalse(prayers.selectQuick(alice, 29))
+    }
+
+    @Test
+    fun `the quick prayer orb turns the picked prayers on in place of the ones on, and off turns every prayer off`() {
+        pick("Piety")
+        pick("Protect from Melee")
+        click("Protect from Magic")
+        click("Rapid Heal")
+        sounds.clear()
+        prayers.toggleQuick(alice)
+        assertTrue(prayers.quickActive(alice))
+        assertEquals(listOf("Protect from Melee", "Piety"), on())
+        assertEquals(listOf(2676, 3825), sounds)
+        // Turned on this tick, they don't drain until the next.
+        prayers.drain(alice)
+        assertEquals(0, alice.prayerDrainCounter)
+        prayers.startTick(alice)
+        assertTrue(prayers.inEffect(alice, prayer("Piety")))
+        click("Rapid Heal")
+        prayers.toggleQuick(alice)
+        assertFalse(prayers.quickActive(alice))
+        assertEquals(emptyList(), on())
+        assertEquals(Prayers.DEACTIVATE_SOUND, sounds.last())
+    }
+
+    @Test
+    fun `every prayer going off, by hand or by the drain, turns the quick prayer orb off`() {
+        pick("Thick Skin")
+        prayers.toggleQuick(alice)
+        click("Burst of Strength")
+        click("Thick Skin")
+        assertTrue(prayers.quickActive(alice), "a prayer is still on")
+        click("Burst of Strength")
+        assertFalse(prayers.quickActive(alice))
+        prayers.toggleQuick(alice)
+        assertTrue(prayers.quickActive(alice))
+        alice.skills.setCurrentLevel(Skill.PRAYER, 1)
+        prayers.startTick(alice)
+        // Thick Skin's 1 a tick passes the resistance of 60 on the 61st.
+        repeat(61) { prayers.drain(alice) }
+        assertEquals(0, alice.skills.currentLevel(Skill.PRAYER))
+        assertFalse(prayers.quickActive(alice))
+    }
+
+    @Test
+    fun `the quick prayer orb is refused with nothing picked, no points, or levels too low for all of it`() {
+        prayers.toggleQuick(alice)
+        assertFalse(prayers.quickActive(alice))
+        assertEquals(listOf(Prayers.NO_QUICK_PRAYERS), messages)
+        pick("Piety")
+        alice.skills.setCurrentLevel(Skill.PRAYER, 0)
+        prayers.toggleQuick(alice)
+        assertEquals(Prayers.QUICK_OUT_OF_POINTS, messages.last())
+        assertFalse(prayers.quickActive(alice))
+        // Picked at 99, then too low a level: the orb turns on only what the levels allow, and nothing is nothing.
+        alice.skills.setLevel(Skill.PRAYER, 50)
+        messages.clear()
+        prayers.toggleQuick(alice)
+        assertFalse(prayers.quickActive(alice))
+        assertEquals(emptyList(), messages)
+        assertEquals(emptyList(), on())
+    }
 }
