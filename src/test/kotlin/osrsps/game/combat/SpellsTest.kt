@@ -110,11 +110,28 @@ class SpellsTest {
     }
 
     @Test
+    fun `a spell's book comes from its obj, an area spell says so, and one may have no casting graphic`() {
+        val barrage = ObjType(4651, "Ice Barrage", internalName = "94_ice_barrage", params = mapOf(
+            Spells.PARAM_NAME to "Ice Barrage", Spells.PARAM_LEVEL to 94, Spells.PARAM_COMPONENT to ((Spells.SPELLBOOK shl 16) or 87),
+            Spells.PARAM_SPELLBOOK to Spellbook.ANCIENT, Spells.PARAM_RUNES[0].first to MIND, Spells.PARAM_RUNES[0].second to 4,
+        ))
+        val types = ObjTypes.of(barrage, *runes.toTypedArray())
+        val entry = """{ "spell": "94_ice_barrage", "freeze": 32, "maxHit": 30, "xp": 52, "area": true, "anim": "human_caststrike",
+            "staffAnim": "human_caststrike_staff", "travel": "firestrike_travel", "impact": "firestrike_impact" }"""
+        val spell = Spells.parse(file(entry, staves = ""), types, seqs, spotanims).spell(87)!!
+        assertEquals(listOf(Spellbook.ANCIENT, -1, 30, 32), listOf(spell.spellbook, spell.casting, spell.maxHit, spell.freezeTicks))
+        assertTrue(spell.area)
+        // The standard spells say 0, or nothing.
+        assertEquals(Spellbook.STANDARD, Spells.parse(file(), objTypes, seqs, spotanims).spell(19)!!.spellbook)
+    }
+
+    @Test
     fun `the real file names only what the 241 cache has, and every spell in it`() {
         // Every name was checked against the cache's gameval dumps when the file was written; here the file must at
-        // least parse with nothing known, and list the twenty standard combat spells.
+        // least parse with nothing known, and list the twenty standard combat spells, the three hold spells and the
+        // four ice spells.
         val text = Spells::class.java.getResource(Spells.RESOURCE)!!.readText()
-        assertEquals(23, Regex("\"spell\":").findAll(text).count())
+        assertEquals(27, Regex("\"spell\":").findAll(text).count())
         // Enum 1986's keys for the twenty: 1 to 16 the strikes to waves, 48 to 51 the surges.
         assertEquals((1..16).toList() + (48..51).toList(), Regex("\"autocast\": (\\d+)").findAll(text).map { it.groupValues[1].toInt() }.toList())
         // Each spell's element is the one in its name, wind for air.
@@ -125,6 +142,9 @@ class SpellsTest {
         assertEquals(20, Regex("\"element\":").findAll(text).count())
         // Bind, Snare and Entangle hold for 8, 16 and 24 ticks (OSRS Wiki, Freeze).
         assertEquals(listOf(8, 16, 24), Regex("\"hold\": (\\d+)").findAll(text).map { it.groupValues[1].toInt() }.toList())
+        // Ice Rush to Ice Barrage freeze for 8, 16, 24 and 32 (each spell's page); Burst and Barrage hit an area.
+        assertEquals(listOf(8, 16, 24, 32), Regex("\"freeze\": (\\d+)").findAll(text).map { it.groupValues[1].toInt() }.toList())
+        assertEquals(listOf("70_ice_burst", "94_ice_barrage"), Regex("\"spell\": \"(\\w+)\"[^}]*\"area\": true").findAll(text).map { it.groupValues[1] }.toList())
         assertEquals(0, Spells.parse(text, ObjTypes.of(), SeqNames.NONE, SpotanimNames.NONE).size)
     }
 

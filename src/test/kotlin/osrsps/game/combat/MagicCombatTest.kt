@@ -49,6 +49,9 @@ class MagicCombatTest {
     // As in the cache, the hold spells have no max hit param; their runes here are stand-ins.
     private val bind = spellObj(3283, "20_bind", "Bind", 20, BIND, -1, MIND to 2, AIR to 3, FIRE to 3)
     private val snare = spellObj(3300, "50_snare", "Snare", 50, SNARE, -1, MIND to 3, AIR to 4, FIRE to 4)
+    // Ancient Magicks (param 336 is 1); their runes here are stand-ins too.
+    private val iceRush = spellObj(4633, "58_ice_rush", "Ice Rush", 58, ICE_RUSH, -1, MIND to 2, AIR to 2, book = Spellbook.ANCIENT)
+    private val iceBarrage = spellObj(4651, "94_ice_barrage", "Ice Barrage", 94, ICE_BARRAGE, -1, MIND to 4, AIR to 6, FIRE to 2, book = Spellbook.ANCIENT)
     private val runes = listOf(AIR to "airrune", FIRE to "firerune", MIND to "mindrune").map { (id, name) ->
         ObjType(id, name.removeSuffix("rune").replaceFirstChar { it.uppercase() } + " rune", stackable = true, internalName = name)
     }
@@ -56,7 +59,7 @@ class MagicCombatTest {
     // Obj category 1 is the staves (weapon category 18), as Weapons maps it; param 3 magic attack, 14 attack speed.
     private val staffOfFire = ObjType(1387, "Staff of fire", wearpos1 = WearPos.WEAPON, params = mapOf(3 to 10, 14 to 5), internalName = "staff_of_fire", category = 1)
     private val occult = ObjType(12002, "Occult necklace", wearpos1 = WearPos.NECK, params = mapOf(3 to 12, 299 to 50), internalName = "occult_necklace")
-    private val objTypes = ObjTypes.of(fireStrike, bind, snare, staffOfFire, occult, *runes.toTypedArray())
+    private val objTypes = ObjTypes.of(fireStrike, bind, snare, iceRush, iceBarrage, staffOfFire, occult, *runes.toTypedArray())
 
     private val spells = Spells.parse(
         """{ "splash": "failedspell_impact", "spells": [ { "spell": "13_fire_strike", "autocast": 4, "element": "fire", "xp": 11.5, "anim": "human_caststrike",
@@ -64,7 +67,11 @@ class MagicCombatTest {
           { "spell": "20_bind", "hold": 8, "maxHit": 0, "xp": 31, "splashXp": 30, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
             "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" },
           { "spell": "50_snare", "hold": 16, "maxHit": 2, "xp": 61, "splashXp": 60, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
-            "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" } ],
+            "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" },
+          { "spell": "58_ice_rush", "freeze": 8, "maxHit": 16, "xp": 34, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
+            "travel": "firestrike_travel", "impact": "firestrike_impact" },
+          { "spell": "94_ice_barrage", "freeze": 32, "maxHit": 30, "xp": 52, "area": true, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
+            "travel": "firestrike_travel", "impact": "firestrike_impact" } ],
           "staves": [ { "items": ["staff_of_fire"], "runes": ["firerune"] } ] }""",
         objTypes, SeqNames(mapOf("human_caststrike" to 711, "human_caststrike_staff" to 1162)),
         SpotanimNames(mapOf("firestrike_casting" to 99, "firestrike_travel" to 100, "firestrike_impact" to 101, "failedspell_impact" to 85)),
@@ -118,11 +125,13 @@ class MagicCombatTest {
         )
     }
 
+    private val multi = MultiCombat()
     private val magic = MagicCombat(
         npcs, map, movement, combat, objTypes, spells, melee, random, { tick },
         projectile = { projectiles += tick to it },
         message = { player, text -> messages += player to text },
         stopFacing = { stopped += it },
+        multi = multi,
     )
 
     init {
@@ -530,11 +539,71 @@ class MagicCombatTest {
         assertTrue(afterFirst - xpBefore >= 610)
     }
 
+    @Test
+    fun `an Ancient spell casts only from the Ancient book, and Ice Rush freezes what it hits, a frozen target taking it without a new freeze`() {
+        alice.skills.setLevel(Skill.MAGIC, 58)
+        alice.sureHits = true
+        val npc = spawn(dummy, x = 3212)
+        cast(alice, npc, ICE_RUSH)
+        tick()
+        assertEquals(0, magic.castsInFlight)
+        assertEquals(100, count(alice, MIND))
+
+        Spellbook.set(alice, Spellbook.ANCIENT)
+        cast(alice, npc, ICE_RUSH)
+        tick()
+        assertEquals(98, count(alice, MIND))
+        // Cast on tick 2, 2 tiles away: it lands on tick 5.
+        while (tick < 5) tick()
+        assertTrue(npc.effects.pendingHits.single().value in 0..16)
+        assertEquals(8, npc.freezeTicks)
+        while (tick < 7) tick()
+        cast(alice, npc, ICE_RUSH)
+        tick()
+        while (tick < 11) tick()
+        assertEquals(2, npc.effects.pendingHits.size, "the second cast's hit with the first's")
+        assertEquals(2, npc.freezeTicks, "the first freeze running on")
+    }
+
+    @Test
+    fun `Ice Barrage in multi-way combat hits each NPC in the 3x3 around its target, with the base XP once, and single-way only its target`() {
+        alice.skills.setLevel(Skill.MAGIC, 94)
+        alice.sureHits = true
+        Spellbook.set(alice, Spellbook.ANCIENT)
+        val target = spawn(dummy, x = 3213, z = 3211)
+        val inside = listOf(spawn(dummy, x = 3212, z = 3210), spawn(dummy, x = 3214, z = 3212), spawn(dummy, x = 3212, z = 3212))
+        val outside = spawn(dummy, x = 3215, z = 3211)
+        multi.set(0, 3213, 3211, true)
+        val xpBefore = alice.skills.tenths(Skill.MAGIC)
+        cast(alice, target, ICE_BARRAGE)
+        tick()
+        assertEquals(4, magic.castsInFlight)
+        assertEquals(listOf(96, 298, 194), listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR)), "the runes once")
+        // 3 tiles away: it lands on tick 4 on all four.
+        while (tick < 4) tick()
+        val hit = listOf(target) + inside
+        for (npc in hit) {
+            assertEquals(1, npc.effects.pendingHits.size, "$npc")
+            assertEquals(32, npc.freezeTicks, "$npc")
+        }
+        assertTrue(outside.effects.pendingHits.isEmpty())
+        assertEquals(0, outside.freezeTicks)
+        val damage = hit.sumOf { it.effects.pendingHits.single().value }
+        assertEquals(520 + damage * 20, alice.skills.tenths(Skill.MAGIC) - xpBefore)
+
+        multi.set(0, 3213, 3211, false)
+        alice.nextAttackTick = 0
+        cast(alice, outside, ICE_BARRAGE)
+        tick()
+        assertEquals(1, magic.castsInFlight)
+    }
+
     /** Magic XP in tenths at level 13, where every test starts. */
     private val xpAt13 = alice.skills.tenths(Skill.MAGIC)
 
-    private fun spellObj(id: Int, internalName: String, name: String, level: Int, component: Int, maxHit: Int, vararg runes: Pair<Int, Int>): ObjType {
+    private fun spellObj(id: Int, internalName: String, name: String, level: Int, component: Int, maxHit: Int, vararg runes: Pair<Int, Int>, book: Int = Spellbook.STANDARD): ObjType {
         val params = HashMap<Int, Any>()
+        params[Spells.PARAM_SPELLBOOK] = book
         params[Spells.PARAM_NAME] = name
         params[Spells.PARAM_LEVEL] = level
         params[Spells.PARAM_COMPONENT] = (Spells.SPELLBOOK shl 16) or component
@@ -552,6 +621,8 @@ class MagicCombatTest {
         const val FIRE_STRIKE = 19
         const val BIND = 23
         const val SNARE = 42
+        const val ICE_RUSH = 84
+        const val ICE_BARRAGE = 87
         const val AIR = 556
         const val FIRE = 554
         const val MIND = 558

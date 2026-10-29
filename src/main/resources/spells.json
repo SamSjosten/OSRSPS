@@ -1,5 +1,5 @@
 {
-  "source": "XP: OSRS Wiki, each spell's page. Autocast: the spell's key in the cache's enum 1986, which the autocast menu and combat tab read. Element: the spell's, which a monster's elemental weakness is to (OSRS Wiki, Elemental weakness). Hold (ticks), maxHit and splashXp of Bind, Snare and Entangle: OSRS Wiki, each spell's page and Freeze. Guessed: that the three share Entangle's casting animation, casting graphic and projectile, the cache naming only theirs; each has its own impact. Staves: OSRS Wiki, Elemental staves and Combination staves. Levels, runes, max hits and spellbook components come from the cache.",
+  "source": "XP: OSRS Wiki, each spell's page. Autocast: the spell's key in the cache's enum 1986, which the autocast menu and combat tab read. Element: the spell's, which a monster's elemental weakness is to (OSRS Wiki, Elemental weakness). Hold (ticks), maxHit and splashXp of Bind, Snare and Entangle: OSRS Wiki, each spell's page and Freeze. Guessed: that the three share Entangle's casting animation, casting graphic and projectile, the cache naming only theirs; each has its own impact. Ice Rush to Ice Barrage: freeze (ticks), maxHit and xp from the OSRS Wiki, each spell's page; area for Burst and Barrage, which hit up to 9 targets in the 3x3 around theirs (Ancient Magicks). Guessed: Rush and Blitz cast with zaros_casting and Burst and Barrage with zaros_vertical_casting, the same with a staff, with no graphic on the caster, each spell flying as its own *_travel spotanim (the cache's names); no element, and no autocast until the weapons that autocast Ancient Magicks come. Staves: OSRS Wiki, Elemental staves and Combination staves. Levels, runes, max hits and spellbook components come from the cache.",
   "splash": "failedspell_impact",
   "spells": [
     { "spell": "01_wind_strike", "autocast": 1, "element": "air", "xp": 5.5, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
@@ -47,7 +47,15 @@
     { "spell": "50_snare", "hold": 16, "maxHit": 2, "xp": 61, "splashXp": 60, "anim": "human_castentangle", "staffAnim": "human_castentangle_staff",
       "casting": "entangle_casting", "travel": "entangle_travel", "impact": "snare_impact" },
     { "spell": "79_entangle", "hold": 24, "maxHit": 5, "xp": 89, "splashXp": 70, "anim": "human_castentangle", "staffAnim": "human_castentangle_staff",
-      "casting": "entangle_casting", "travel": "entangle_travel", "impact": "entangle_impact" }
+      "casting": "entangle_casting", "travel": "entangle_travel", "impact": "entangle_impact" },
+    { "spell": "58_ice_rush", "freeze": 8, "maxHit": 16, "xp": 34, "anim": "zaros_casting", "staffAnim": "zaros_casting",
+      "travel": "ice_rush_travel", "impact": "ice_rush_impact" },
+    { "spell": "70_ice_burst", "freeze": 16, "maxHit": 22, "xp": 40, "area": true, "anim": "zaros_vertical_casting", "staffAnim": "zaros_vertical_casting",
+      "travel": "ice_burst_travel", "impact": "ice_burst_impact" },
+    { "spell": "82_ice_blitz", "freeze": 24, "maxHit": 26, "xp": 46, "anim": "zaros_casting", "staffAnim": "zaros_casting",
+      "travel": "ice_blitz_travel", "impact": "ice_blitz_impact" },
+    { "spell": "94_ice_barrage", "freeze": 32, "maxHit": 30, "xp": 52, "area": true, "anim": "zaros_vertical_casting", "staffAnim": "zaros_vertical_casting",
+      "travel": "ice_barrage_travel", "impact": "ice_barrage_impact" }
   ],
   "staves": [
     { "items": ["staff_of_air", "air_battlestaff", "mystic_air_staff"], "runes": ["airrune"] },
