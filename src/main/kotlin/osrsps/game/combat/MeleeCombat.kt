@@ -79,7 +79,7 @@ class MeleeCombat(
     private val onDeath: (Player) -> Unit = {},
     /** Puts a dead NPC's drops on the floor for its killer (null for none) once its body has gone. */
     private val loot: (Npc, Player?) -> Unit = { _, _ -> },
-    /** A fight with a style melee doesn't fight with, or null for none: [RangedCombat.fight]. */
+    /** A fight with a style melee doesn't fight with, or null for none: [MagicCombat.fight] or [RangedCombat.fight]. */
     private val ranged: (Player, Npc) -> Interaction? = { _, _ -> null },
     /** Where the single-way rules below don't hold. */
     private val multi: MultiCombat = MultiCombat(),
@@ -126,7 +126,7 @@ class MeleeCombat(
         return true
     }
 
-    /** A fight with [npc] in the player's style: melee here, ranged from [ranged]; null when nothing fights with it. */
+    /** A fight with [npc] in the player's style: melee here, magic or ranged from [ranged]; null when nothing fights with it. */
     fun fight(player: Player, npc: Npc): Interaction? =
         if (combat.meleeType(combat.style(player)) != null) MeleeInteraction(npc, this) else ranged(player, npc)
 

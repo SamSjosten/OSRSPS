@@ -4,11 +4,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.combat.Autocast
+import osrsps.game.combat.CombatSpell
+import osrsps.game.combat.RuneCost
+import osrsps.game.combat.Spells
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -20,7 +25,10 @@ class EquipmentTabTest {
     private val whip = ObjType(4151, "Abyssal whip", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(434 to 0, 436 to 70), category = 150)
     private val ring = ObjType(2552, "Ring of dueling(8)", wearpos1 = WearPos.RING, params = mapOf(451 to "Emir's Arena", 452 to "Castle Wars"))
     private val chinchompa = ObjType(11959, "Black chinchompa", stackable = true, iops = listOf(null, "Wield", null, null, "Release"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 80, 12 to 30, 14 to 4), category = 572)
-    private val types = ObjTypes.of(axe, bow, whip, ring, chinchompa)
+    // Obj category 1 is the staves.
+    private val staff = ObjType(1387, "Staff of fire", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(14 to 5), category = 1)
+    private val types = ObjTypes.of(axe, bow, whip, ring, chinchompa, staff)
+    private val fireStrike = CombatSpell(3279, "Fire Strike", 19, 13, 8, listOf(RuneCost(558, 1), RuneCost(554, 3), RuneCost(556, 2)), 115, 711, 1162, 99, 100, 101, autocast = 4)
     private val handlers = Handlers()
     private val sent = mutableListOf<OutgoingGameMessage>()
     private val opened = mutableListOf<Pair<FrameSlot, Int>>()
@@ -34,7 +42,7 @@ class EquipmentTabTest {
     }
 
     init {
-        tab = EquipmentTab(Equipment(types), types, scripts, inventoryTab, openModal, send)
+        tab = EquipmentTab(Equipment(types), types, scripts, inventoryTab, openModal, send, Spells(mapOf(19 to fireStrike), emptyMap()))
     }
 
     // Varbit 357 is bits 0 to 5 of varp 843 in the 241 cache.
@@ -194,5 +202,89 @@ class EquipmentTabTest {
         assertEquals(1, player.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF])
         tab.clickCombatTab(player, EquipmentTab.COMBAT_RETALIATE)
         assertEquals(0, player.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF])
+    }
+
+    private fun opened() = sent.filterIsInstance<IfOpenSub>().map { it.interfaceId }
+
+    @Test
+    fun `Choose spell opens the autocast menu in the combat tab's place, and a spell picked there is autocast`() {
+        player.equipment[WearPos.WEAPON] = InvObj(staff.id, 1)
+        tab.updateCombatTab(player)
+        assertTrue(tab.clickCombatTab(player, EquipmentTab.COMBAT_AUTOCAST_NORMAL))
+        assertEquals(listOf(EquipmentTab.AUTOCAST), opened())
+        assertEquals(false, player.autocastMenu)
+        assertEquals(-1, player.vars[EquipmentTab.VARP_SPITFIRE_COORD])
+        val events = sent.filterIsInstance<IfSetEventsV2>().single()
+        assertEquals(EquipmentTab.AUTOCAST to EquipmentTab.AUTOCAST_SPELLS, events.interfaceId to events.componentId)
+        assertEquals(0 to EquipmentTab.AUTOCAST_SLOTS, events.start to events.end)
+
+        sent.clear()
+        assertTrue(tab.clickAutocastMenu(player, EquipmentTab.AUTOCAST_SPELLS, 4))
+        // Varbit autocast_set (bit 0) and autocast_spell (bits 1 on, Fire Strike's key 4); no style button lit.
+        assertEquals((4 shl 1) or 1, player.vars[Autocast.VARP_LASTCASTSPELL])
+        assertEquals(4, Autocast.key(player))
+        assertEquals(false, Autocast.defensive(player))
+        assertEquals(Autocast.COM_MODE, player.vars[EquipmentTab.VARP_COM_MODE])
+        assertEquals(listOf(EquipmentTab.COMBAT), opened())
+        assertNull(player.autocastMenu)
+        assertEquals("Staff of fire", texts()[EquipmentTab.COMBAT_TITLE])
+    }
+
+    @Test
+    fun `the shield button picks a defensive autocast, Cancel leaves the setting as it was, and a style turns it off`() {
+        player.equipment[WearPos.WEAPON] = InvObj(staff.id, 1)
+        tab.updateCombatTab(player)
+        tab.clickCombatTab(player, EquipmentTab.COMBAT_AUTOCAST_DEFENSIVE)
+        assertEquals(true, player.autocastMenu)
+        tab.clickAutocastMenu(player, EquipmentTab.AUTOCAST_SPELLS, 4)
+        assertTrue(Autocast.defensive(player))
+        assertEquals(1, (player.vars[Autocast.VARP_ALTERNATE_SPELLS] ushr 8) and 1)
+
+        tab.clickCombatTab(player, EquipmentTab.COMBAT_AUTOCAST_NORMAL)
+        tab.clickAutocastMenu(player, EquipmentTab.AUTOCAST_SPELLS, 0)
+        assertEquals(4, Autocast.key(player))
+        assertTrue(Autocast.defensive(player))
+        assertNull(player.autocastMenu)
+
+        tab.clickCombatTab(player, EquipmentTab.STYLE_BUTTONS[1])
+        assertEquals(0, Autocast.key(player))
+        assertEquals(false, Autocast.defensive(player))
+        assertEquals(1, player.vars[EquipmentTab.VARP_COM_MODE])
+    }
+
+    @Test
+    fun `a slot that isn't a spell here, and the spell buttons without a staff, do nothing`() {
+        tab.clickCombatTab(player, EquipmentTab.COMBAT_AUTOCAST_NORMAL)
+        assertTrue(opened().isEmpty())
+        assertNull(player.autocastMenu)
+        player.equipment[WearPos.WEAPON] = InvObj(staff.id, 1)
+        tab.updateCombatTab(player)
+        tab.clickCombatTab(player, EquipmentTab.COMBAT_AUTOCAST_NORMAL)
+        tab.clickAutocastMenu(player, EquipmentTab.AUTOCAST_SPELLS, 1)
+        assertEquals(0, Autocast.key(player))
+        assertEquals(false, player.autocastMenu, "still open")
+    }
+
+    @Test
+    fun `the picked spell is kept under another weapon and autocast comes back with the staff`() {
+        player.equipment[WearPos.WEAPON] = InvObj(staff.id, 1)
+        tab.updateCombatTab(player)
+        tab.clickCombatTab(player, EquipmentTab.COMBAT_AUTOCAST_NORMAL)
+        player.equipment[WearPos.WEAPON] = InvObj(axe.id, 1)
+        tab.updateCombatTab(player)
+        assertNull(player.autocastMenu, "the menu closes with a weapon that has no spell buttons")
+        assertEquals(EquipmentTab.COMBAT, opened().last())
+
+        player.equipment[WearPos.WEAPON] = InvObj(staff.id, 1)
+        tab.updateCombatTab(player)
+        tab.clickCombatTab(player, EquipmentTab.COMBAT_AUTOCAST_NORMAL)
+        tab.clickAutocastMenu(player, EquipmentTab.AUTOCAST_SPELLS, 4)
+        player.equipment[WearPos.WEAPON] = InvObj(axe.id, 1)
+        tab.updateCombatTab(player)
+        assertEquals(4, Autocast.key(player))
+        assertEquals(0, player.vars[EquipmentTab.VARP_COM_MODE])
+        player.equipment[WearPos.WEAPON] = InvObj(staff.id, 1)
+        tab.updateCombatTab(player)
+        assertEquals(Autocast.COM_MODE, player.vars[EquipmentTab.VARP_COM_MODE])
     }
 }

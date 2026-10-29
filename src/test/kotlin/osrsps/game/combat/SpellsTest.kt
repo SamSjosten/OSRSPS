@@ -37,6 +37,16 @@ class SpellsTest {
         assertEquals(setOf(FIRE), spells.runesFrom(staffOfFire.id))
         assertEquals(emptySet(), spells.runesFrom(null))
         assertEquals(emptySet(), spells.runesFrom(FIRE))
+        // No "autocast": a spell the autocast menu doesn't list.
+        assertEquals(-1, spell.autocast)
+    }
+
+    @Test
+    fun `a spell's autocast key picks it from the autocast menu`() {
+        val spells = Spells.parse(file(FIRE_STRIKE.replace("\"xp\"", "\"autocast\": 4, \"xp\"")), objTypes, seqs, spotanims)
+        assertEquals(4, spells.spell(19)!!.autocast)
+        assertEquals(spells.spell(19), spells.autocast(4))
+        assertNull(spells.autocast(1))
     }
 
     @Test
@@ -69,6 +79,8 @@ class SpellsTest {
         fails(file(FIRE_STRIKE.replace("firestrike_impact", "nothing")), "spells entry 1: no spotanim called nothing")
         fails(file(FIRE_STRIKE.replace("\"human_caststrike\"", "\"nothing\"")), "spells entry 1: no animation called nothing")
         fails(file("$FIRE_STRIKE, $FIRE_STRIKE"), "spells entry 2: component 19 is listed twice")
+        val wind = WIND_STRIKE.replace("\"xp\"", "\"autocast\": 4, \"xp\"")
+        fails(file(FIRE_STRIKE.replace("\"xp\"", "\"autocast\": 4, \"xp\"") + ", " + wind), "spells entry 2: autocast key 4 is listed twice")
         fails(file(staves = """{ "items": ["staff_of_fire", "staff_of_fire"], "runes": ["firerune"] }"""), "staves entry 1: Staff of fire (1387) is listed twice")
         // An obj that isn't a spell has none of the params.
         fails(file(FIRE_STRIKE.replace("13_fire_strike", "staff_of_fire")), "spells entry 1: staff_of_fire has no spell name")
@@ -80,6 +92,8 @@ class SpellsTest {
         // least parse with nothing known, and list the twenty standard combat spells.
         val text = Spells::class.java.getResource(Spells.RESOURCE)!!.readText()
         assertEquals(20, Regex("\"spell\":").findAll(text).count())
+        // Enum 1986's keys for the twenty: 1 to 16 the strikes to waves, 48 to 51 the surges.
+        assertEquals((1..16).toList() + (48..51).toList(), Regex("\"autocast\": (\\d+)").findAll(text).map { it.groupValues[1].toInt() }.toList())
         assertEquals(0, Spells.parse(text, ObjTypes.of(), SeqNames.NONE, SpotanimNames.NONE).size)
     }
 
@@ -101,6 +115,9 @@ class SpellsTest {
         const val AIR = 556
         const val FIRE = 554
         const val MIND = 558
+
+        const val WIND_STRIKE = """{ "spell": "01_wind_strike", "xp": 5.5, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
+            "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" }"""
 
         const val FIRE_STRIKE = """{ "spell": "13_fire_strike", "xp": 11.5, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
             "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" }"""

@@ -47,10 +47,12 @@ class Combat(
     /**
      * The attack style the player fights with: their weapon's category and the button picked on the combat tab (varp 43).
      * A button the category lacks falls back to its first style, as the equipment tab resets it; a category the table
-     * doesn't know (no cache) to punching.
+     * doesn't know (no cache) to punching. A player autocasting with a staff ([Autocast]) fights with magic: [AUTOCAST]
+     * or [DEFENSIVE_AUTOCAST].
      */
     fun style(player: Player): AttackStyle {
         val category = Weapons.category(equipment.weapon(player))
+        if (Autocast.active(player, category)) return if (Autocast.defensive(player)) DEFENSIVE_AUTOCAST else AUTOCAST
         val button = player.vars[EquipmentTab.VARP_COM_MODE]
         return attackStyles.style(category, button)
             ?: attackStyles.styles(category).firstOrNull()
@@ -65,8 +67,8 @@ class Combat(
     /** The animations the player swings and blocks with: their weapon's category's. */
     fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
 
-    /** Ticks between the player's attacks: the weapon's speed, 4 unarmed. */
-    fun attackSpeed(player: Player): Int = bonuses(player).attackSpeed
+    /** Ticks between the player's attacks: the weapon's speed, 4 unarmed, and a combat spell's [MagicCombat.SPEED] when autocasting. */
+    fun attackSpeed(player: Player): Int = if (style(player).type == AttackType.MAGIC) MagicCombat.SPEED else bonuses(player).attackSpeed
 
     /**
      * The melee attack type the player's style hits with: its own for a melee style, crush for a style with none (a
@@ -192,6 +194,14 @@ class Combat(
     }
 
     companion object {
+        /**
+         * The styles of a player autocasting ([style]), on varp 43's [Autocast.COM_MODE]. The XP is what [MagicCombat]
+         * gives, Defence too when defensive (OSRS Wiki, Autocast). Guessed: no stance bonus to the player's Defence
+         * either way; the Wiki gives the XP split, not a bonus.
+         */
+        val AUTOCAST = AttackStyle(Autocast.COM_MODE, "Spell", AttackStance.OTHER, AttackType.MAGIC, listOf(Skill.MAGIC))
+        val DEFENSIVE_AUTOCAST = AttackStyle(Autocast.COM_MODE, "Spell (defensive)", AttackStance.OTHER, AttackType.MAGIC, listOf(Skill.MAGIC, Skill.DEFENCE))
+
         private fun rangedStrength(type: ObjType?): Int =
             type?.intParam(EquipmentBonuses.PARAMS[EquipmentBonuses.RANGED_STRENGTH]) ?: 0
 

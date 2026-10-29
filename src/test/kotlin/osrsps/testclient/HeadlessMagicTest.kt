@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.EquipmentTab
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -17,6 +18,7 @@ import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.combat.Autocast
 import osrsps.game.combat.MagicCombat
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.Spells
@@ -26,8 +28,9 @@ import osrsps.map.CollisionMap
 /**
  * Spells through the headless client, with the real spells and NPC combat files: Fire Strike picked in the spellbook
  * and cast on a man until he dies, each cast taking its runes and giving its XP, and the refusals for too low a level
- * and too few runes, with a staff of fire then standing in for the fire runes. The rl-client script
- * test-runner/examples/combat-magic-strike.json makes the same clicks in the real client.
+ * and too few runes, with a staff of fire then standing in for the fire runes; and Fire Strike picked for autocast on
+ * the combat tab, which then fights the man to his death from Attack alone. The rl-client scripts
+ * test-runner/examples/combat-magic-strike.json and combat-magic-autocast.json make the same clicks in the real client.
  */
 class HeadlessMagicTest {
     private val man = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", "Pickpocket", null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
@@ -79,8 +82,11 @@ class HeadlessMagicTest {
                 client.give(MIND, 100)
                 client.give(FIRE, 300)
                 client.give(AIR, 200)
-                // He comes to her once hit, and the dice depend on when the clicks land: ::god keeps the fight hers.
+                // He comes to her once hit, and the dice depend on when the clicks land: ::god keeps the fight hers, and
+                // with auto retaliate off she doesn't punch him between casts (a punch would take XP from the spells).
                 client.commandReply("god") { it.startsWith("You can") }
+                client.ifButton(EquipmentTab.COMBAT, EquipmentTab.COMBAT_RETALIATE, 1)
+                client.await("auto retaliate off") { if (client.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
                 val magicBefore = client.await("the level 13 XP") { client.stat(MAGIC)?.takeIf { it.level == 13 } }.xp
                 var casts = 0
                 while (client.manInView() && casts < 40) {
@@ -127,8 +133,48 @@ class HeadlessMagicTest {
         }
     }
 
+    @Test
+    fun `Fire Strike picked for autocast on the combat tab kills a man from Attack alone, a cast every 5 ticks`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
+                val start = client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel magic 13") { it.contains("Magic") }
+                client.give(MIND, 100)
+                client.give(AIR, 200)
+                client.give(STAFF_OF_FIRE, 1)
+                val slot = client.inventory(BACKPACK).indexOfFirst { it?.id == STAFF_OF_FIRE }
+                client.ifButton(INVENTORY, INVENTORY_ITEMS, IOP_BUTTON_OPS[WIELD - 1], slot, STAFF_OF_FIRE)
+                client.await("the staff worn") { client.inventory(WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == STAFF_OF_FIRE } }
+                client.commandReply("god") { it.startsWith("You can") }
+
+                client.ifButton(EquipmentTab.COMBAT, EquipmentTab.COMBAT_AUTOCAST_NORMAL, 1)
+                client.await("the autocast menu") { if (EquipmentTab.AUTOCAST in client.openInterfaces()) Unit else null }
+                // Slot 4 is Fire Strike's key in enum 1986.
+                client.ifButton(EquipmentTab.AUTOCAST, EquipmentTab.AUTOCAST_SPELLS, 1, sub = 4)
+                client.await("the combat tab back with Fire Strike picked") {
+                    val open = client.openInterfaces()
+                    if (client.varp(Autocast.VARP_LASTCASTSPELL) == (4 shl 1 or 1) && EquipmentTab.COMBAT in open && EquipmentTab.AUTOCAST !in open) Unit else null
+                }
+                assertEquals(Autocast.COM_MODE, client.varp(EquipmentTab.VARP_COM_MODE))
+
+                val magicBefore = client.await("the level 13 XP") { client.stat(MAGIC)?.takeIf { it.level == 13 } }.xp
+                client.npcOp(npc.index, ATTACK)
+                // At most 40 casts of 5 ticks; the man has 7 hitpoints and Fire Strike hits up to 8.
+                client.await("the man's death", timeoutMillis = 40L * MagicCombat.SPEED * 100 + 10_000) { if (client.manInView()) null else Unit }
+                val casts = 100 - client.carried(MIND)
+                assertTrue(casts in 1..40, "$casts casts")
+                assertEquals(start, client.position)
+                // The staff stands in for the fire runes.
+                assertEquals(200 - 2 * casts, client.carried(AIR))
+                assertEquals((casts * 115 + 7 * 20) / 10, client.stat(MAGIC)!!.xp - magicBefore)
+            }
+        }
+    }
+
     companion object {
         const val FIRE_STRIKE = 19
+        private const val ATTACK = 2
         const val AIR = 556
         const val FIRE = 554
         const val MIND = 558

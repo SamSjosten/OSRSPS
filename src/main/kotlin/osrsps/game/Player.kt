@@ -196,6 +196,12 @@ class Player(
     /** The stance last put in the player's appearance; null until the first is sent. */
     var sentStance: Stance? = null
 
+    /**
+     * Whether the combat tab shows the autocast menu in its place, picked from the defensive (true) or normal (false)
+     * spell button; null while it shows the combat tab. See [EquipmentTab.clickCombatTab].
+     */
+    var autocastMenu: Boolean? = null
+
     /** Moved by a teleport this tick; the client is told when the tick's movement is sent. */
     var teleported: Boolean = false
 
