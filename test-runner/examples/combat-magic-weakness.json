@@ -10,10 +10,13 @@
   {"step": "command", "text": "::item staff of water", "expectMessage": "Added 1 x Staff of water", "comment": "stands in for the water runes"},
   {"step": "itemOption", "item": "Staff of water", "option": "Wield"},
   {"step": "assertEquipment", "slot": "weapon", "item": "Staff of water"},
+  {"step": "command", "text": "::buttons on", "expectMessage": "Interface clicks are echoed", "comment": "each click the server gets is echoed, so a click lost on the way shows as a missing echo"},
   {"step": "clickWidget", "interfaceId": 548, "component": 64, "comment": "toplevel:stone0, the combat tab, in the fixed frame the VM's client uses"},
   {"step": "clickWidget", "interfaceId": 593, "component": 28, "comment": "Choose spell"},
+  {"step": "assertMessage", "contains": "Button 593:28 slot -1 op 1", "timeoutMs": 10000},
   {"step": "assertInterface", "interfaceId": 201, "timeoutMs": 10000},
   {"step": "clickWidget", "interfaceId": 201, "component": 1, "slot": 6, "comment": "Water Bolt, enum 1986 key 6"},
+  {"step": "assertMessage", "contains": "Button 201:1 slot 6 op 1", "timeoutMs": 10000, "comment": "the spell click reached the server"},
   {"step": "assertInterface", "interfaceId": 201, "absent": true, "timeoutMs": 10000},
   {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
   {"step": "command", "text": "::combat man", "expectMessage": "max hit 10", "comment": "Water Bolt's own 10: the man has no elemental weakness (OSRS Wiki, Man)"},
@@ -24,6 +27,7 @@
   {"step": "assertSpotanim", "id": 120, "timeoutMs": 20000, "comment": "waterbolt_casting on the player"},
   {"step": "assertSpotanim", "npc": "Imp", "ids": [122, 85], "timeoutMs": 20000, "comment": "waterbolt_impact if it hit, failedspell_impact if it splashed"},
   {"step": "command", "text": "::kill imp", "expectMessage": "Killed Imp #", "comment": "so the next script finds no fight going on"},
+  {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

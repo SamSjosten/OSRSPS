@@ -83,6 +83,16 @@ class DevCommandsTest {
     }
 
     @Test
+    fun `buttons turns echoing interface clicks on and off`() {
+        run("buttons on")
+        assertTrue(player.echoButtons)
+        run("buttons")
+        assertFalse(player.echoButtons)
+        run("buttons sometimes")
+        assertEquals(listOf("Interface clicks are echoed", "Interface clicks are not echoed", "Usage: ::buttons [on|off]"), replies)
+    }
+
+    @Test
     fun `tick shows the world's tick`() {
         run("tick")
         assertEquals(listOf("Tick 0"), replies)

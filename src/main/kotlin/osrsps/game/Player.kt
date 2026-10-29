@@ -175,6 +175,9 @@ class Player(
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
 
+    /** `::buttons`: every interface click the server gets from them is echoed to their chat. Not saved. */
+    var echoButtons: Boolean = false
+
     /** `::god`: NPC hits do them no damage. Not saved. */
     var god: Boolean = false
 

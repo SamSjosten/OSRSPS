@@ -15,8 +15,9 @@ import osrsps.game.script.Op
  * The toxic blowpipe: it holds darts and Zulrah's scales ([Player.charges]) and fires those darts, not what is in the
  * ammo slot ([RangedWeapon.loaded]). From the OSRS Wiki (Toxic blowpipe): up to 16,383 of each; it can't be wielded
  * empty, but stays worn when the scales run out; a shot uses one dart (none come back without an Ava's device, which
- * isn't in yet) and a scale two times in three; worn it has Check, Unload and Uncharge, and the empty one is dismantled
- * for 20,000 scales.
+ * isn't in yet) and a scale two times in three; it has Check, Unload and Uncharge, and the empty one is dismantled for
+ * 20,000 scales. Worn, the 241 cache gives it Check alone, though the Wiki lists all three there too; the worn options
+ * below follow the cache.
  *
  * Guessed and not checked on live: loading by using darts or scales on it (the Wiki only describes the bank's
  * Configure-Charges, which isn't in), that darts go in the empty one too, every message's wording, that Uncharge needs
