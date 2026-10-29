@@ -7,6 +7,7 @@ import osrsps.cache.MapCollisionLoader
 import osrsps.map.CollisionPrinter
 import osrsps.cache.OpenRs2Archive
 import osrsps.game.Accounts
+import osrsps.game.FileAccountLock
 import osrsps.game.FileSaveStore
 import osrsps.game.IpBans
 import osrsps.game.command.Admins
@@ -167,7 +168,8 @@ private fun setPassword(name: String?) {
             System.err.println("A password needs at least ${Accounts.MIN_SET_PASSWORD} characters; nothing changed")
             exitProcess(1)
         }
-        if (!Accounts(FileSaveStore(dataDir.resolve("accounts"))).setPassword(name, password)) {
+        val accountDir = dataDir.resolve("accounts")
+        if (!Accounts(FileSaveStore(accountDir), lock = FileAccountLock(accountDir)).setPassword(name, password)) {
             System.err.println("'$name' isn't a name an account can have; nothing changed")
             exitProcess(1)
         }

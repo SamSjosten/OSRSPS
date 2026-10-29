@@ -1,5 +1,6 @@
 package osrsps.game
 
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -95,5 +96,20 @@ class AccountsTest {
         assertFalse(accounts.setPassword("sam@example.com", "a long password".toCharArray()))
         assertFalse(accounts.setPassword("   ", "a long password".toCharArray()))
         assertTrue(store.saves.isEmpty())
+    }
+
+    @Test
+    fun `a password set by another process wins over a login that claims after it`() {
+        val dir = Files.createTempDirectory("accounts")
+        try {
+            val server = Accounts(FileSaveStore(dir), iterations = 1_000, lock = FileAccountLock(dir))
+            val tool = Accounts(FileSaveStore(dir), iterations = 1_000, lock = FileAccountLock(dir))
+            assertTrue(tool.setPassword("bob", "the owner's password".toCharArray()))
+            assertEquals(Accounts.Check.WRONG_PASSWORD, server.check("bob", "a stranger's".toCharArray()))
+            assertEquals(Accounts.Check.MATCHED, server.check("bob", "the owner's password".toCharArray()))
+            assertTrue(Files.exists(dir.resolve(".lock")))
+        } finally {
+            dir.toFile().deleteRecursively()
+        }
     }
 }
