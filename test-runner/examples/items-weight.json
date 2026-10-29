@@ -1,0 +1,30 @@
+{
+ "name": "Items step 3: carried weight from the inventory and worn items, stackables weigh nothing, graceful and boots of lightness only while worn",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "assertWeight", "kg": 0},
+  {"step": "command", "text": "::item rune platebody", "expectMessage": "Added 1 x Rune platebody"},
+  {"step": "assertWeight", "kg": 9, "comment": "9.979 kg in the cache, shown rounded down"},
+  {"step": "command", "text": "::item rune platebody", "expectMessage": "Added 1 x Rune platebody"},
+  {"step": "assertWeight", "kg": 19},
+  {"step": "command", "text": "::item rune arrow 1000", "expectMessage": "Added 1,000 x Rune arrow"},
+  {"step": "assertWeight", "kg": 19, "comment": "stackables weigh nothing (Wiki, Weight), though the cache gives arrows 16 g"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare."},
+  {"step": "assertWeight", "kg": 0},
+  {"step": "command", "text": "::item graceful hood", "expectMessage": "Added 1 x Graceful hood"},
+  {"step": "command", "text": "::item boots of lightness", "expectMessage": "Added 1 x Boots of lightness"},
+  {"step": "assertWeight", "kg": 0, "comment": "0.6 + 0.34 kg carried"},
+  {"step": "waitTicks", "ticks": 2, "comment": "a click right after an item arrives goes out on an empty slot (seen on the VM 2026-10-28)"},
+  {"step": "itemOption", "item": "Graceful hood", "option": "Wear"},
+  {"step": "assertEquipment", "slot": "head", "item": "Graceful hood"},
+  {"step": "assertWeight", "kg": -2, "comment": "-3 kg worn plus the boots' 0.34 kg carried = -2.66, toward zero"},
+  {"step": "itemOption", "item": "Boots of lightness", "option": "Wear"},
+  {"step": "assertEquipment", "slot": "feet", "item": "Boots of lightness"},
+  {"step": "assertWeight", "kg": -7, "comment": "-3 and -4.535 kg worn"},
+  {"step": "wornOption", "slot": "head", "option": "Remove"},
+  {"step": "assertWeight", "kg": -3, "comment": "the hood back in the inventory at 0.6 kg: -4.535 + 0.6 = -3.935"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

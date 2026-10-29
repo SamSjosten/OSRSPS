@@ -839,6 +839,12 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public int weight()
+	{
+		return loggedIn() ? client.getWeight() : Integer.MIN_VALUE;
+	}
+
+	@Override
 	public int skillLevel(String skill)
 	{
 		Skill s = skill(skill);

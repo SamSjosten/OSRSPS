@@ -207,6 +207,9 @@ class Player(
     /** 0 to 10,000; 100 units show as 1% on the orb. */
     var runEnergy: Int = Movement.MAX_ENERGY
 
+    /** What they carry in grams ([ItemWeights.total]), worked out at the start of their movement each tick. */
+    var weightGrams: Int = 0
+
     /** The prayers on at the start of this tick, which are the ones that count this tick; see [osrsps.game.combat.Prayers]. */
     var prayersInEffect: Int = 0
 
@@ -228,6 +231,7 @@ class Player(
     /** What the client was last told, so changes are sent once. Varps are tracked by [vars]. */
     var sentRunEnabled: Boolean? = null
     var sentRunEnergy: Int = -1
+    var sentWeight: Int = Int.MIN_VALUE
     var sentCombatLevel: Int = -1
 
     /** The stance last put in the player's appearance; null until the first is sent. */
