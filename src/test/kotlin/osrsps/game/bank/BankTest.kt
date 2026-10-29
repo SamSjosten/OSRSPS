@@ -263,6 +263,38 @@ class BankTest {
         assertEquals(listOf(0 to InvObj(LOGS, 2), 1 to InvObj(SWORD, 1)), vault.contents())
     }
 
+    @Test
+    fun `a note or placeholder link that doesn't point back is not followed`() {
+        // The sword's note says it notes something else, and the placeholder stands for something else.
+        val oneWay = ObjTypes(
+            arrayOfNulls<ObjType>(PLACEHOLDER + 1).also {
+                it[SWORD] = ObjType(SWORD, "Sword", certlink = LOGS_NOTE, placeholderlink = PLACEHOLDER)
+                it[LOGS_NOTE] = ObjType(LOGS_NOTE, "Logs", stackable = true, certlink = LOGS, certtemplate = 799)
+                it[LOGS] = ObjType(LOGS, "Logs", certlink = LOGS_NOTE)
+                it[PLACEHOLDER] = ObjType(PLACEHOLDER, "Logs", placeholderlink = LOGS, placeholdertemplate = 14401)
+            },
+        )
+        val strict = Bank(oneWay)
+        vault[0] = InvObj(SWORD, 2)
+        // Asked for as notes, the swords come out as swords, not as logs notes.
+        assertEquals(Bank.Withdrawal(1, notNoted = true), strict.withdraw(vault, tabs, pack, 0, 1, asNote = true, placeholder = true))
+        assertEquals(InvObj(SWORD, 1), pack[0])
+        // The last one leaves no logs placeholder behind.
+        strict.withdraw(vault, tabs, pack, 0, 1, asNote = false, placeholder = true)
+        assertTrue(vault.isEmpty())
+        // A logs note whose logs don't link back goes in as the note, not as logs.
+        val looseNote = ObjTypes(
+            arrayOfNulls<ObjType>(PLACEHOLDER + 1).also {
+                it[LOGS_NOTE] = ObjType(LOGS_NOTE, "Logs", stackable = true, certlink = LOGS, certtemplate = 799)
+                it[LOGS] = ObjType(LOGS, "Logs")
+            },
+        )
+        pack.clear()
+        pack[0] = InvObj(LOGS_NOTE, 5)
+        Bank(looseNote).deposit(vault, tabs, pack, 0, 5)
+        assertEquals(listOf(LOGS_NOTE), ids())
+    }
+
     private companion object {
         const val LOGS = 1511
         const val LOGS_NOTE = 1512
