@@ -135,7 +135,7 @@ class HeadlessRangedTest {
                 client.itemOp(SHORTBOW, WIELD)
                 client.await("the bow worn") { client.worn(WearPos.WEAPON)?.takeIf { it.id == SHORTBOW } }
                 client.npcOp(npc.index, 2)
-                client.awaitMessage("the empty quiver") { it == RangedCombat.NO_AMMO }
+                client.awaitMessage("the empty quiver") { it == "[combat.no_ammo]" }
                 assertEquals("You are not fighting anything.", client.commandReply("fight") { it.startsWith("You are") })
             }
         }

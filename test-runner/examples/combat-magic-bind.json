@@ -4,6 +4,7 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "game messages show their keys, whatever data/dialogue.txt holds"},
   {"step": "command", "text": "::setlevel magic 99", "expectMessage": "Magic set to level 99", "comment": "Bind needs 20"},
   {"step": "command", "text": "::item nature rune 4", "expectMessage": "Added 4 x Nature rune"},
   {"step": "command", "text": "::item water rune 6", "expectMessage": "Added 6 x Water rune"},
@@ -18,13 +19,14 @@
   {"step": "assertInventory", "item": "Nature rune", "count": 2},
   {"step": "command", "text": "::npcs 10", "expectMessage": "; frozen ", "comment": "8 ticks from the hit (OSRS Wiki, Freeze)"},
   {"step": "castOnNpc", "interfaceId": 218, "component": 23, "npc": "Man", "timeoutMs": 20000, "comment": "the nearest man again: he can't have moved, though another may have wandered closer"},
-  {"step": "assertMessage", "contains": "Your target is already held by a magical force.", "timeoutMs": 20000, "comment": "OSRS Wiki, Snare"},
+  {"step": "assertMessage", "contains": "[combat.already_held]", "timeoutMs": 20000, "comment": "OSRS Wiki, Snare"},
   {"step": "assertInventory", "item": "Nature rune", "count": 2, "comment": "a refused cast takes nothing"},
   {"step": "waitTicks", "ticks": 6, "comment": "the hold ends about 8 ticks after the hit; 5 ticks of immunity follow"},
   {"step": "command", "text": "::npcs 10", "expectMessage": "; immune to freezes "},
   {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "::kill picks the man attacking you, so the next script finds no fight going on"},
   {"step": "command", "text": "::sure", "expectMessage": "Your attacks can miss again."},
   {"step": "command", "text": "::god", "expectMessage": "You can be hurt again."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

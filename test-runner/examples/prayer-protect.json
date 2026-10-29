@@ -4,6 +4,7 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "game messages show their keys, whatever data/dialogue.txt holds"},
   {"step": "command", "text": "::setlevel prayer 43", "expectMessage": "Prayer set to level 43", "comment": "Protect from Melee needs 43"},
   {"step": "command", "text": "::buttons on", "expectMessage": "Interface clicks are echoed"},
   {"step": "clickWidget", "interfaceId": 548, "component": 69, "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"},
@@ -22,9 +23,10 @@
   {"step": "command", "text": "::prayers", "expectMessage": "Prayer 3", "comment": "13 a tick against 60: about a point every 4.6 ticks, so 3x after 25 or so ticks"},
   {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #"},
   {"step": "command", "text": "::pray 0", "expectMessage": "Prayer points set to 0."},
-  {"step": "assertMessage", "contains": "You have run out of prayer points", "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "[prayer.out_of_points]", "timeoutMs": 10000},
   {"step": "command", "text": "::prayers", "expectMessage": "Prayer 0/43, drain resistance 60: none"},
   {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

@@ -230,7 +230,9 @@ class World(
     val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
 
     /** The prayer book; see [Prayers]. */
-    val prayers = Prayers(prayerList, equipment, setOverhead = { player, icon -> player.infos.playerInfo.avatar.extendedInfo.setOverheadIcon(icon) })
+    val prayers = Prayers(
+        prayerList, equipment, setOverhead = { player, icon -> player.infos.playerInfo.avatar.extendedInfo.setOverheadIcon(icon) }, words = ::textFor,
+    )
 
     /** The Grand Exchange prices now; `::itemprices` reads the file again. */
     @Volatile
@@ -296,6 +298,7 @@ class World(
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
         multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
+        words = ::textFor,
         npcDied = { npcScripts.died(it) },
     )
 
@@ -304,18 +307,18 @@ class World(
         npcs, collision, movement, combat, objTypes, rangedWeapons, meleeCombat, random, { tick },
         projectile = zones::projectile, dropAmmo = ::dropAmmo,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        multi = multiCombat,
+        multi = multiCombat, words = ::textFor,
     )
 
     /** Tumeken's shadow and the powered staves to come; see [PoweredStaves]. */
-    val poweredStaves = PoweredStaves(objTypes)
+    val poweredStaves = PoweredStaves(objTypes, words = ::textFor)
 
     /** Players casting combat spells on NPCs; see [MagicCombat]. */
     val magicCombat: MagicCombat = MagicCombat(
         npcs, collision, movement, combat, objTypes, spells, meleeCombat, random, { tick },
         projectile = zones::projectile,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        multi = multiCombat, poweredStaves = poweredStaves,
+        multi = multiCombat, poweredStaves = poweredStaves, words = ::textFor,
     )
 
     /** Player death and gravestones; see [Deaths]. */
@@ -328,6 +331,7 @@ class World(
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
         prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) },
         examine = inventoryTab::examine, value = { this.itemPrices.deathValue(it) },
+        words = ::textFor,
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */

@@ -13,6 +13,7 @@ import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.PlayerVars
 import osrsps.game.Skill
+import osrsps.game.dialogue.DialogueText
 
 private val logger = KotlinLogging.logger {}
 
@@ -97,7 +98,7 @@ data class PrayerBoosts(
  * only drains players, who can't be fought yet; Rapid Restore and Preserve wait for stat restoring, which only
  * hitpoints have so far.
  *
- * Guessed and not checked on live: the messages' wording; that a prayer can be turned on during a delay (an agility
+ * Guessed and not checked on live: the messages' wording ([PrayerLines]); that a prayer can be turned on during a delay (an agility
  * obstacle) as it can be in combat; that dying and logging out turn every prayer off; that a protection prayer counts
  * when the NPC's attack is rolled (as our melee NPC hits land on the tick they are rolled, that is also when they land);
  * that the drain happens after the NPCs' attacks in the tick; and that the drain counter starts again from 0 whenever
@@ -114,7 +115,7 @@ data class PrayerBoosts(
  * them. [toggleQuick] and [selectQuick] follow RSMod's QuickPrayerScript (rev 233), not checked on live: the group
  * replaces the prayers on, turning the orb off turns every prayer off (the Wiki's "double left-clicking" turns all
  * prayers off), every prayer going off turns the orb off, and picking a prayer for the group drops the ones it can't be
- * on with. Its messages are RSMod's.
+ * on with. Its messages' words are RSMod's.
  */
 class Prayers(
     val all: List<Prayer>,
@@ -122,6 +123,7 @@ class Prayers(
     private val message: (Player, String) -> Unit = Player::message,
     private val sound: (Player, Int) -> Unit = { player, id -> player.sound(id) },
     private val setOverhead: (Player, Int) -> Unit = { _, _ -> },
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     private val byComponent: Map<Int, Prayer> = all.associateBy { it.component }
 
@@ -204,8 +206,9 @@ class Prayers(
 
     /** Why [player]'s levels don't let them use [prayer], null when they do. */
     private fun levelRefusal(player: Player, prayer: Prayer): String? = when {
-        player.skills.baseLevel(Skill.PRAYER) < prayer.level -> "You need a Prayer level of ${prayer.level} to use ${prayer.name}."
-        player.skills.baseLevel(Skill.DEFENCE) < prayer.defence -> "You need a Prayer level of ${prayer.level} and a Defence level of ${prayer.defence} to use ${prayer.name}."
+        player.skills.baseLevel(Skill.PRAYER) < prayer.level -> words(player)[PrayerLines.LEVEL, "level" to prayer.level, "prayer" to prayer.name]
+        player.skills.baseLevel(Skill.DEFENCE) < prayer.defence ->
+            words(player)[PrayerLines.LEVELS, "level" to prayer.level, "defence" to prayer.defence, "prayer" to prayer.name]
         else -> null
     }
 
@@ -232,8 +235,8 @@ class Prayers(
         val chosen = all.filter { quickSelected(player) and it.mask != 0 && levelRefusal(player, it) == null }
         val reason = when {
             player.dead -> ""
-            quickSelected(player) == 0 -> NO_QUICK_PRAYERS
-            player.skills.currentLevel(Skill.PRAYER) <= 0 -> QUICK_OUT_OF_POINTS
+            quickSelected(player) == 0 -> words(player)[PrayerLines.NO_QUICK_PRAYERS]
+            player.skills.currentLevel(Skill.PRAYER) <= 0 -> words(player)[PrayerLines.QUICK_OUT_OF_POINTS]
             chosen.isEmpty() -> ""
             else -> null
         }
@@ -311,7 +314,7 @@ class Prayers(
         if (points == 0) {
             set(player, 0)
             sound(player, DEPLETE_SOUND)
-            message(player, OUT_OF_POINTS)
+            message(player, words(player)[PrayerLines.OUT_OF_POINTS])
         }
     }
 
@@ -352,9 +355,6 @@ class Prayers(
         const val QUICKPRAYER_BUTTONS = 4
         const val QUICKPRAYER_CLOSE = 5
 
-        const val NO_QUICK_PRAYERS = "You haven't selected any quick-prayers."
-        const val QUICK_OUT_OF_POINTS = "You've run out of prayer points."
-
         /** RuneLite's SoundEffectID: PRAYER_DEACTIVE_VWOOP and PRAYER_DEPLETE_TWINKLE. */
         const val DEACTIVATE_SOUND = 2663
         const val DEPLETE_SOUND = 2672
@@ -365,8 +365,6 @@ class Prayers(
 
         /** prayer_rigour_unlocked, prayer_augury_unlocked, prayer_preserve_unlocked. */
         val SCROLL_UNLOCKS = listOf(5451, 5452, 5453)
-
-        const val OUT_OF_POINTS = "You have run out of prayer points, you can recharge at an altar."
 
         /** The prayers' other effects, as the data file names them; see [has]. */
         const val RAPID_HEAL = "rapidHeal"
