@@ -93,8 +93,11 @@ class HeadlessDepositBoxTest {
                 }
                 // Varp if2 has the axe's slot (1) and not the logs'.
                 client.await("Wield offered on the axe only") { if (client.varp(BankScreen.VARP_EXTRAOPS_WEAR) == 1 shl 1) Unit else null }
-                assertEquals("Slash: +0", client.text(BankScreen.MAIN, BankScreen.WORN_SLASH_ATT))
-                assertEquals("Undead: +0% ", client.text(BankScreen.MAIN, BankScreen.WORN_TYPE_MULTIPLIER))
+                client.await("the bonus lines") {
+                    val slash = client.text(BankScreen.MAIN, BankScreen.WORN_SLASH_ATT)
+                    val undead = client.text(BankScreen.MAIN, BankScreen.WORN_TYPE_MULTIPLIER)
+                    if (slash == "Slash: +0" && undead == "Undead: +0% ") Unit else null
+                }
 
                 // The extra option (op 9) wields it; the bonus line follows and the bit goes.
                 client.ifButton(BankScreen.SIDE, BankScreen.SIDE_ITEMS, BankScreen.SIDE_EXTRAOP, client.slotOf(AXE), AXE)

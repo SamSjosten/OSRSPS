@@ -74,6 +74,8 @@ class BankScreen(
         player.vars.setVarbitIfKnown(VARBIT_WITHDRAW_NOTES, 0)
         openModal(player, FrameSlot.MAINMODAL, MAIN)
         openModal(player, FrameSlot.SIDEMODAL, SIDE)
+        // Before the events, which tests wait for as the sign the bank is ready.
+        send(player, IfSetText(MAIN, MAIN_CAPACITY, bank.capacity().toString()))
         val lastSlot = Inventory.BANK_CAPACITY - 1
         send(player, IfSetEventsV2(MAIN, MAIN_ITEMS, 0, lastSlot, EVENTS_DRAG_DEPTH2 or EVENTS_DRAG_TARGET, opMask(1..11)))
         // The space after each tab's last item, which the client numbers past the slots (script509): main tab first.
@@ -86,7 +88,6 @@ class BankScreen(
         send(player, IfSetEventsV2(SIDE, SIDE_ITEMS, 0, Inventory.INV_CAPACITY - 1, EVENTS_DRAG_DEPTH1 or EVENTS_DRAG_TARGET, opMask(1..10)))
         // The worn items view's inventory: Wear (op 1), Deposit (op 9) and Examine (op 10), as bankside_worn_drawitem has them.
         send(player, IfSetEventsV2(SIDE, SIDE_WORNOPS, 0, Inventory.INV_CAPACITY - 1, EVENTS_DRAG_DEPTH1 or EVENTS_DRAG_TARGET, opMask(1..1) or opMask(9..10)))
-        send(player, IfSetText(MAIN, MAIN_CAPACITY, bank.capacity().toString()))
         sendWornBonuses(player)
         setExtraOps(player)
         player.bank.resendAll()
