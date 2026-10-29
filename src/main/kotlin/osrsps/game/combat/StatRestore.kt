@@ -133,9 +133,9 @@ class StatRestore(private val hasPrayer: (Player, String) -> Boolean = { _, _ ->
         /** The segment [cycle] is in, for a save: one of a minute's five, the last for a cycle Preserve has carried past it. */
         fun segment(cycle: BoostCycle): Int = (cycle.ticks / SEGMENT_TICKS).coerceIn(0, CYCLE_TICKS / SEGMENT_TICKS - 1)
 
-        /** Puts [cycle] at the start of a saved [segment], at login; see [BoostCycle.restart]. */
-        fun resume(cycle: BoostCycle, segment: Int) {
-            cycle.restart()
+        /** Puts [cycle] at the start of a saved [segment], at login, in a tick's input or [inTick] not; see [BoostCycle.restart]. */
+        fun resume(cycle: BoostCycle, segment: Int, inTick: Boolean = true) {
+            cycle.restart(inTick)
             cycle.ticks += segment * SEGMENT_TICKS
         }
 

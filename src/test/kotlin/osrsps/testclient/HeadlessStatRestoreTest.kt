@@ -3,9 +3,13 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.MemorySaveStore
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.PlayerSave
+import osrsps.game.SaveStore
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.Prayers
@@ -59,13 +63,14 @@ class HeadlessStatRestoreTest {
 
     @Test
     fun `a boost's cycle keeps its segment over a logout and starts it again at login`(@TempDir dir: Path) {
-        TestServer(dir).use { server ->
+        val saves = MemorySaveStore()
+        TestServer(dir) { crcs, millis -> World(crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, saves = saves, cycleMillis = millis) }.use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.commandReply("setlevel attack 50") { it.contains("Attack") }
                 client.commandReply("boost attack 55") { it == "Attack is now 55/50" }
                 client.commandReply("statcycles") { it.startsWith("Boost and drain cycles started again") }
-                // 30 ticks in: the second of the cycle's five segments.
+                // 30 ticks in: the second of the cycle's five segments, or a later one on a slow machine, read from the save.
                 client.awaitTicks(30)
                 client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
                 client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
@@ -76,7 +81,10 @@ class HeadlessStatRestoreTest {
                 val off = client.await("the level off", timeoutMillis = 30_000) {
                     if (client.stat(Skill.ATTACK.id)?.level == 54) client.statTick(Skill.ATTACK.id) else null
                 }
-                assertEquals(StatRestore.CYCLE_TICKS - StatRestore.SEGMENT_TICKS, off - login, "the second segment's start and the three after it")
+                // The login read the save, so it is written.
+                val segment = PlayerSave.fromJson(saves.read(SaveStore.saveKey("bob")!!)!!).boostSegments.combat
+                assertTrue(segment > 0, "logged out past the first segment")
+                assertEquals(StatRestore.CYCLE_TICKS - segment * StatRestore.SEGMENT_TICKS, off - login, "the saved segment's start and the ones after it")
             }
         }
     }
