@@ -41,7 +41,8 @@ class HeadlessDeathTest {
                 // Dead, a walk click does nothing; the respawn then puts her at the spawn.
                 client.walk(3225, 3225)
                 client.await("the respawn", timeoutMillis = 10_000) { client.position?.takeIf { it == Coord(3222, 3218) } }
-                assertEquals(10, client.stat(HITPOINTS)!!.level)
+                // The stats update can come after the respawn's move.
+                client.await("the hitpoints back") { client.stat(HITPOINTS)?.takeIf { it.level == 10 } }
                 assertEquals(listOf(InvObj(lobster.id, 1), InvObj(sword.id, 1), InvObj(coins.id, 1), null, null), client.inventory(93).take(5))
                 val npc = client.await("the grave") { client.npcs().firstOrNull { it.id == Deaths.GRAVE } }
                 assertEquals(Coord(3222, 3222), npc.coord)
