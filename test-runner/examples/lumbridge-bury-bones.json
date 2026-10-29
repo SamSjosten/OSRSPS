@@ -1,0 +1,18 @@
+{
+ "name": "Rest of Lumbridge step 1: bury two bones for 4.5 Prayer XP each",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats (no Prayer XP) and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::item bones 2", "expectMessage": "Added 2 x Bones"},
+  {"step": "itemOption", "item": "Bones", "option": "Bury"},
+  {"step": "assertMessage", "contains": "You dig a hole in the ground..."},
+  {"step": "assertMessage", "contains": "You bury the bones."},
+  {"step": "assertInventory", "item": "Bones", "count": 1, "timeoutMs": 5000},
+  {"step": "assertStat", "skill": "Prayer", "level": 1, "xp": 4, "comment": "4.5, shown as 4"},
+  {"step": "itemOption", "item": "Bones", "option": "Bury"},
+  {"step": "assertInventory", "item": "Bones", "count": 0, "timeoutMs": 5000},
+  {"step": "assertStat", "skill": "Prayer", "level": 1, "xp": 9},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

@@ -215,6 +215,21 @@ class HeadlessClient private constructor(
         }
     }
 
+    /**
+     * Component [componentId] of [interfaceId] (slot [sub], showing [obj]) used on loc [id] whose south-west tile is
+     * [x], [z], as OPLOCT: an inventory item's Use, then a click on the loc. Laid out as RSProt's 241 OpLocTDecoder reads it.
+     */
+    fun locTarget(id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
+        send(GameClientProt.OPLOCT) {
+            p2Alt2(sub and 0xFFFF)
+            p2(id)
+            p1(if (ctrl) 1 else 0)
+            p2Alt2(z)
+            p2Alt3(x)
+            p2(obj and 0xFFFF)
+            p4Alt1((interfaceId shl 16) or componentId)
+        }
+
     /** Op [op] (1-5; 3 is Take) on ground obj [id] at [x], [z] (OPOBJ1_V2 to OPOBJ5_V2). */
     fun objOp(id: Int, x: Int, z: Int, op: Int, ctrl: Boolean = false, subop: Int = 0) {
         val key = if (ctrl) 1 else 0

@@ -7,6 +7,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.Interactions
+import osrsps.game.InvObj
 import osrsps.game.Movement
 import osrsps.game.Player
 import osrsps.game.script.Handlers
@@ -126,6 +127,45 @@ class LocInteractionsTest {
         interactions.click(player, LADDER, 3210, 3214, 1, invertRun = false)
         tick()
         assertEquals(listOf(LocInteractions.NOTHING_INTERESTING), messages)
+    }
+
+    @Test
+    fun `an item used on a loc walks there and runs the handler for that item`() {
+        val used = mutableListOf<Op>()
+        handlers.onObjOnLoc(LADDER, BUCKET) { op -> used += op }
+        player.inventory[3] = InvObj(BUCKET, 1)
+        interactions.useObj(player, LADDER, 3210, 3214, slot = 3, obj = BUCKET, invertRun = false)
+        repeat(6) { tick() }
+        assertEquals(listOf(Op.objOnLoc(LADDER, BUCKET, 3, ladder)), used)
+        assertNull(player.interaction)
+        assertEquals(1, faced.size)
+        assertTrue(messages.isEmpty())
+    }
+
+    @Test
+    fun `an item with no handler for the loc does nothing interesting`() {
+        player.inventory[0] = InvObj(BUCKET, 1)
+        interactions.useObj(player, CRATE_HELD_NOWHERE, 3210, 3214, slot = 0, obj = BUCKET, invertRun = false)
+        assertNull(player.interaction, "no such loc there")
+        interactions.useObj(player, LADDER, 3210, 3214, slot = 0, obj = BUCKET, invertRun = false)
+        repeat(6) { tick() }
+        assertEquals(listOf(LocInteractions.NOTHING_INTERESTING), messages)
+    }
+
+    @Test
+    fun `an item the slot doesn't hold, or that leaves it on the way, is used on nothing`() {
+        val used = mutableListOf<Op>()
+        handlers.onObjOnLoc(LADDER) { op -> used += op }
+        player.inventory[0] = InvObj(BUCKET, 1)
+        interactions.useObj(player, LADDER, 3210, 3214, slot = 1, obj = BUCKET, invertRun = false)
+        assertNull(player.interaction)
+        interactions.useObj(player, LADDER, 3210, 3214, slot = 0, obj = BUCKET, invertRun = false)
+        tick()
+        player.inventory[0] = null
+        repeat(6) { tick() }
+        assertTrue(used.isEmpty())
+        assertTrue(messages.isEmpty())
+        assertNull(player.interaction)
     }
 
     @Test
@@ -257,5 +297,7 @@ class LocInteractionsTest {
         const val DOOR_OPEN = 1536
         const val LADDER = 16683
         const val CRATE = 5
+        const val CRATE_HELD_NOWHERE = 6
+        const val BUCKET = 1925
     }
 }

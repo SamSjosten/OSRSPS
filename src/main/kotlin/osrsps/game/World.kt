@@ -59,6 +59,7 @@ import osrsps.game.combat.Spells
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
+import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
 import osrsps.game.dialogue.ChatFont
@@ -266,6 +267,7 @@ class World(
         registerHans(this)
         registerLumbridgeCastle(this)
         registerCombatTutors(this)
+        registerBones(this)
         loadDialogue()
     }
 
@@ -976,6 +978,22 @@ class World(
         npcInteractions.leave(player)
         locInteractions.click(player, id, x, z, option, ctrl)
         // A loc that had gone by the time the click was read leaves any follow behind; the click still ends it.
+        follows.clickedElsewhere(player)
+    }
+
+    /**
+     * The player used something on loc [id] whose south-west tile is [x], [z]: the item in slot [sub] of
+     * [interfaceId]:[componentId], or a spell. Only inventory items are handled; spells on locs come later.
+     */
+    fun onLocTarget(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
+        if (player.scripts.delayed) return@act
+        if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
+            logger.info { "${player.username} used $interfaceId:$componentId sub $sub on loc $id (not handled)" }
+            follows.clickedElsewhere(player)
+            return@act
+        }
+        npcInteractions.leave(player)
+        locInteractions.useObj(player, id, x, z, sub, obj, ctrl)
         follows.clickedElsewhere(player)
     }
 

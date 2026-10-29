@@ -1,0 +1,153 @@
+{
+ "name": "Rest of Lumbridge step 1: take an item spawn in each area outside the castle",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack, so each count below is that item alone; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3211 3247 1",
+   "expectMessage": "Teleported to 3211, 3247, 1"
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1957,
+   "x": 3211,
+   "y": 3247,
+   "timeoutMs": 70000,
+   "comment": "Onion, the general store's first floor; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1957,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3248 3245 0",
+   "expectMessage": "Teleported to 3248, 3245, 0"
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1203,
+   "x": 3248,
+   "y": 3245,
+   "timeoutMs": 70000,
+   "comment": "Iron dagger, Lozar's house; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1203,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3169 3291 0",
+   "expectMessage": "Teleported to 3169, 3291, 0"
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1944,
+   "x": 3169,
+   "y": 3291,
+   "timeoutMs": 70000,
+   "comment": "Egg, Fred's farm; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1944,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3192 3272 0",
+   "expectMessage": "Teleported to 3192, 3272, 0"
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1735,
+   "x": 3192,
+   "y": 3272,
+   "timeoutMs": 70000,
+   "comment": "Shears, Fred's house; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1735,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3225 3294 0",
+   "expectMessage": "Teleported to 3225, 3294, 0"
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1925,
+   "x": 3225,
+   "y": 3294,
+   "timeoutMs": 70000,
+   "comment": "Bucket, Groats' farm; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1925,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3148 3177 0",
+   "expectMessage": "Teleported to 3148, 3177, 0"
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1059,
+   "x": 3148,
+   "y": 3177,
+   "timeoutMs": 70000,
+   "comment": "Leather gloves, Father Urhney's house; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1059,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3164 3169 0",
+   "expectMessage": "Teleported to 3164, 3169, 0"
+  },
+  {
+   "step": "takeItem",
+   "itemId": 1939,
+   "x": 3164,
+   "y": 3169,
+   "timeoutMs": 70000,
+   "comment": "Swamp tar, Lumbridge Swamp; waits up to 70 s, as one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1939,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

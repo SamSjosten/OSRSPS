@@ -69,6 +69,28 @@ class ObjSpawnFilesTest {
     }
 
     @Test
+    fun `Lumbridge's spawn file outside the castle reads, with the 241 cache's ids for its names`() {
+        // Names and ids as the rev 241 gameval symbols have them (Joshua-F/osrs-dumps, checked 2026-10-29).
+        val town = ObjTypes.of(
+            ObjType(556, "Air rune", stackable = true, internalName = "airrune"),
+            ObjType(1059, "Leather gloves", internalName = "leather_gloves"),
+            ObjType(1203, "Iron dagger", internalName = "iron_dagger"),
+            ObjType(1735, "Shears", internalName = "shears"),
+            ObjType(1925, "Bucket", internalName = "bucket_empty"),
+            ObjType(1931, "Pot", internalName = "pot_empty"),
+            ObjType(1939, "Swamp tar", stackable = true, internalName = "swamp_tar"),
+            ObjType(1944, "Egg", internalName = "egg"),
+            ObjType(1957, "Onion", internalName = "onion"),
+        )
+        val text = ObjSpawnFiles.resources().toMap().getValue("lumbridge.tsv")
+        val spawns = ObjSpawnFiles.parse(text, town, "lumbridge.tsv")
+        assertEquals(6, spawns.count { it.id == 1944 }, "the Wiki's 4 eggs at Fred's farm and 2 at the Groats' farm house")
+        assertEquals(17, spawns.count { it.id == 1939 }, "the Wiki's 17 swamp tar")
+        assertEquals(2, spawns.count { it.id == 1735 })
+        assertEquals(listOf(1), spawns.filter { it.id == 1957 }.map { it.level }, "the onion upstairs in the general store")
+    }
+
+    @Test
     fun `finds the spawn files in a folder and in a jar`() {
         val dir = createTempDirectory("obj-spawns")
         val spawns = dir.resolve(ObjSpawnFiles.RESOURCE_DIR).createDirectories()
