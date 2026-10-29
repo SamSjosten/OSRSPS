@@ -66,10 +66,15 @@ class Dialogues(
 
     /** [npc] says [text], its head on the left with expression [anim] (null for a still head). */
     internal suspend fun chatNpc(context: ScriptContext, npc: Npc, anim: ChatAnim?, text: String) {
+        val type = shownType(npc, context.player) ?: npc.type
+        chatNpc(context, type, type.name, anim, text)
+    }
+
+    /** An NPC of [type] says [text] under [name], with no NPC in the world behind it (RSMod's chatNpcSpecific). */
+    internal suspend fun chatNpc(context: ScriptContext, type: NpcType, name: String, anim: ChatAnim?, text: String) {
         val player = context.player
-        val type = shownType(npc, player) ?: npc.type
         for (lines in pages(text, CHAT_WIDTH)) {
-            showChat(player, Chatbox.CHAT_LEFT, type.name, lines, anim, IfSetNpcHead(Chatbox.CHAT_LEFT, Chatbox.CHAT_HEAD, type.id))
+            showChat(player, Chatbox.CHAT_LEFT, name, lines, anim, IfSetNpcHead(Chatbox.CHAT_LEFT, Chatbox.CHAT_HEAD, type.id))
             context.pauseButton(Chatbox.CHAT_LEFT, Chatbox.CHAT_CONTINUE)
         }
     }
@@ -198,6 +203,9 @@ class Dialogue internal constructor(val context: ScriptContext, private val dial
     /** [npc], which needn't be the one the dialogue is with, says [text]. */
     suspend fun chatNpc(npc: Npc, anim: ChatAnim?, text: String) = dialogues.chatNpc(context, npc, anim, text)
 
+    /** An NPC of [type] says [text] under [name]: one the player isn't talking to, or not in the world at all. */
+    suspend fun chatNpc(type: NpcType, name: String, anim: ChatAnim?, text: String) = dialogues.chatNpc(context, type, name, anim, text)
+
     suspend fun chatPlayer(anim: ChatAnim?, text: String) = dialogues.chatPlayer(context, anim, text)
 
     suspend fun mesbox(text: String) = dialogues.mesbox(context, text)
@@ -210,6 +218,8 @@ class Dialogue internal constructor(val context: ScriptContext, private val dial
         (if (player.showDialogueKeys) DialogueText.NONE else dialogues.words()).get(line, *values)
 
     suspend fun chatNpc(anim: ChatAnim?, line: Line, vararg values: Pair<String, Any>) = chatNpc(anim, text(line, *values))
+
+    suspend fun chatNpc(type: NpcType, name: String, anim: ChatAnim?, line: Line) = chatNpc(type, name, anim, text(line))
 
     suspend fun chatPlayer(anim: ChatAnim?, line: Line, vararg values: Pair<String, Any>) = chatPlayer(anim, text(line, *values))
 

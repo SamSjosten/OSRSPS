@@ -11,6 +11,7 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.content.Crops
 import osrsps.game.content.FredsFarm
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -32,16 +33,16 @@ class HeadlessFredsFarmTest {
     private val sheared = NpcType(SHEARED, "Sheep", ops = listOf(null, null, null, null, null), internalName = "sheepsheered")
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val objs = arrayOfNulls<ObjType>(FredsFarm.ONION + 1)
+        val objs = arrayOfNulls<ObjType>(Crops.ONION + 1)
         objs[FredsFarm.SHEARS] = ObjType(FredsFarm.SHEARS, "Shears", iops = listOf(null, null, null, null, "Drop"), internalName = "shears")
         objs[FredsFarm.WOOL] = ObjType(FredsFarm.WOOL, "Wool", iops = listOf(null, null, null, null, "Drop"), internalName = "wool")
-        objs[FredsFarm.ONION] = ObjType(FredsFarm.ONION, "Onion", iops = listOf("Eat", null, null, null, "Drop"), internalName = "onion")
-        val onion = LocType(FredsFarm.ONION_LOC, "Onion", ops = listOf(null, "Pick", null, null, null), collision = LocCollisionType(interactType = 0))
+        objs[Crops.ONION] = ObjType(Crops.ONION, "Onion", iops = listOf("Eat", null, null, null, "Drop"), internalName = "onion")
+        val onion = LocType(Crops.ONION_LOC, "Onion", ops = listOf(null, "Pick", null, null, null), collision = LocCollisionType(interactType = 0))
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), npcTypes = NpcTypes.of(sheep, sheared),
             npcSpawns = listOf(NpcSpawn(sheep, 3224, 3218, source = "test")),
-            locTypes = LocTypes(mapOf(FredsFarm.ONION_LOC to onion)),
-            staticLocs = StaticLocs().apply { add(ZoneLoc(FredsFarm.ONION_LOC, LocShape.CENTREPIECE_STRAIGHT, 0, 3220, 3220, 0)) },
+            locTypes = LocTypes(mapOf(Crops.ONION_LOC to onion)),
+            staticLocs = StaticLocs().apply { add(ZoneLoc(Crops.ONION_LOC, LocShape.CENTREPIECE_STRAIGHT, 0, 3220, 3220, 0)) },
             cycleMillis = millis,
         )
     }
@@ -87,16 +88,16 @@ class HeadlessFredsFarmTest {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
-                client.locOp(FredsFarm.ONION_LOC, 3220, 3220, FredsFarm.PICK)
-                client.seen(FredsFarm.PICKED_ONION)
-                client.await("an onion") { if (client.count(FredsFarm.ONION) == 1) Unit else null }
+                client.locOp(Crops.ONION_LOC, 3220, 3220, Crops.PICK)
+                client.seen(Crops.ONIONS.picked)
+                client.await("an onion") { if (client.count(Crops.ONION) == 1) Unit else null }
                 val picked = client.ticksSeen
-                assertTrue(server.world.locs.find(FredsFarm.ONION_LOC, 3220, 3220, 0) == null, "the onion is still there")
+                assertTrue(server.world.locs.find(Crops.ONION_LOC, 3220, 3220, 0) == null, "the onion is still there")
 
                 val back = client.await("the onion grown back", timeoutMillis = 30_000) {
-                    if (server.world.locs.find(FredsFarm.ONION_LOC, 3220, 3220, 0) != null) client.ticksSeen else null
+                    if (server.world.locs.find(Crops.ONION_LOC, 3220, 3220, 0) != null) client.ticksSeen else null
                 }
-                assertTrue(back - picked in FredsFarm.ONION_RESPAWN_TICKS - 2..FredsFarm.ONION_RESPAWN_TICKS + 2, "${back - picked} ticks to grow back")
+                assertTrue(back - picked in Crops.ONIONS.respawnTicks - 2..Crops.ONIONS.respawnTicks + 2, "${back - picked} ticks to grow back")
             }
         }
     }

@@ -4,6 +4,7 @@ import osrsps.game.combat.CombatLines
 import osrsps.game.combat.FoodLines
 import osrsps.game.combat.PrayerLines
 import osrsps.game.dialogue.Lines
+import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.WoodcuttingLines
 
@@ -12,9 +13,10 @@ object DialogueLines {
     val ALL: List<Lines> = listOf(
         HansLines, CookLines, DukeLines, ManLines, WomanLines, PerduLines, CraftingTutorLines, BankerLines, BankerTutorLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
-        CombatLines, PrayerLines,
+        BirdNestLines, CombatLines, PrayerLines,
         // Rest of Lumbridge.
         ShopKeeperLines, ShopAssistantLines, BobLines, RamBartenderLines, ArthurLines, DonieLines, GeeLines, CookingTutorLines,
-        SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines,
+        SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines, GillieLines, MillieLines,
+        HopperLines,
     )
 }

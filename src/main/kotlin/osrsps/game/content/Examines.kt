@@ -10,7 +10,7 @@ import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 
 /**
- * The examine texts of NPCs and locs, a key each (`examine.npc_<id>`, `examine.loc_<id>`). Live sends them from the
+ * The examine texts of NPCs and locs, a key each (`examine.npc_<id>`, `examine.loc_<id>`), and of notes ([NOTE]). Live sends them from the
  * server, as the cache has none, and they are Jagex's words, so like the dialogue they are in the dialogue file, outside
  * git (Sam, 2026-10-25); one with no words shows its key. Which types have one is in `examines.json` in the resources,
  * by type id, as types that share a name can have different texts (the Wiki lists three cows).
@@ -18,6 +18,9 @@ import osrsps.game.dialogue.Lines
 object Examines : Lines("examine", "Examine") {
     private val npcs = HashMap<Int, Line>()
     private val locs = HashMap<Int, Line>()
+
+    /** Every noted item's examine: the cache has items' own texts but none for notes. */
+    val NOTE = line("note", "Any noted item: Bank note page, infobox")
 
     init {
         val json = Examines::class.java.getResource("/examines.json")?.readText() ?: error("No examines.json in the resources")
@@ -32,8 +35,11 @@ object Examines : Lines("examine", "Examine") {
         }
         for (entry in root.entries("locs")) {
             val id = entry.id("loc")
+            val also = entry["also"]?.jsonArray?.map { it.jsonPrimitive.int }.orEmpty()
             val name = entry.name()
-            require(locs.put(id, line("loc_$id", "$name (loc $id): ${entry.wiki(name)}")) == null) { "examines.json: loc $id is listed twice" }
+            val ids = (listOf(id) + also).joinToString(", ")
+            val line = line("loc_$id", "$name (loc $ids): ${entry.wiki(name)}")
+            for (each in listOf(id) + also) require(locs.put(each, line) == null) { "examines.json: loc $each is listed twice" }
         }
     }
 

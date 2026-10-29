@@ -1,0 +1,32 @@
+{
+ "name": "Gathering skills step 2b: a seed nest and a ring nest fall next to the player (::nest, as a log's 1/256 roll drops one), are taken and searched (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3224 3233 0"},
+  {"step": "assertLocation", "x": 3224, "y": 3233, "plane": 0},
+
+  {"step": "command", "text": "::nest seeds", "expectMessage": "Dropped bird nest 22798"},
+  {"step": "assertMessage", "contains": "birdnest.falls"},
+  {"step": "assertGroundItem", "itemId": 22798, "comment": "bird_nest_seeds_jan2019, on a tile next to the player"},
+  {"step": "takeItem", "itemId": 22798},
+  {"step": "assertInventory", "itemId": 22798, "count": 1},
+  {"step": "itemOption", "itemId": 22798, "option": "Search"},
+  {"step": "assertInventory", "itemId": 5075, "count": 1, "comment": "bird_nest_empty, left in the nest's slot"},
+  {"step": "assertMessage", "contains": "birdnest.search"},
+  {"step": "assertInventory", "itemId": 22798, "count": 0},
+
+  {"step": "command", "text": "::nest ring", "expectMessage": "Dropped bird nest 5074"},
+  {"step": "assertGroundItem", "itemId": 5074},
+  {"step": "takeItem", "itemId": 5074},
+  {"step": "assertInventory", "itemId": 5074, "count": 1},
+  {"step": "itemOption", "itemId": 5074, "option": "Search"},
+  {"step": "assertInventory", "itemId": 5075, "count": 2},
+  {"step": "assertMessage", "contains": "birdnest.search"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
