@@ -1,5 +1,6 @@
 package osrsps.game.script
 
+import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import osrsps.game.Player
 
 /**
@@ -64,6 +65,17 @@ class ScriptContext internal constructor(val player: Player, private val runner:
     suspend fun pauseButton(interfaceId: Int, componentId: Int, subs: IntRange = -1..-1): Int =
         runner.pauseButton(player, Op.packButton(interfaceId, componentId), subs)
 
+    /**
+     * Asks the player for an amount, with [prompt] over the chatbox's input line (client script meslayer_mode7, as RSMod
+     * sends it), and stops the script until they enter one, which it returns: never negative. The player isn't delayed
+     * meanwhile; closing their interfaces (walking, Esc) closes the prompt and drops the script. See
+     * [ScriptRunner.resumeCount].
+     */
+    suspend fun countDialog(prompt: String = ENTER_AMOUNT): Int {
+        player.session.queue(RunClientScript(MESLAYER_MODE7, listOf(prompt)))
+        return runner.countDialog(player).coerceAtLeast(0)
+    }
+
     /** Queues [script] for this player; see [ScriptRunner.queue]. */
     fun queue(name: String, type: QueueType = QueueType.NORMAL, delay: Int = 0, script: Script) =
         runner.queue(player, name, type, delay, script)
@@ -73,4 +85,15 @@ class ScriptContext internal constructor(val player: Player, private val runner:
         runner.setTimer(player, name, interval, type, script)
 
     fun clearTimer(name: String) = runner.clearTimer(player, name)
+
+    companion object {
+        /** meslayer_mode7 in the 241 cache: a prompt for a number. */
+        const val MESLAYER_MODE7 = 108
+
+        /** meslayer_close, which closes the prompt of the layer mode it is given (7 for a number) or any (0). */
+        const val MESLAYER_CLOSE = 101
+        const val MESLAYER_COUNT = 7
+
+        const val ENTER_AMOUNT = "Enter amount:"
+    }
 }

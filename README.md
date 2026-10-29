@@ -288,6 +288,35 @@ as `Op.sub`. The inventory is saved with the player.
 Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it. `::item bones 2`, then Bury both: Prayer XP goes to 9
 (`test-runner/examples/lumbridge-bury-bones.json` does it in the real client).
 
+## Bank
+
+Every loc with a Bank option (the castle's booths: op2), and the bankers' Bank (op3) or asking them for the bank in
+their talk, open the bank: bankmain (12) over the game view and bankside (15) beside it, as RSMod opens them. The bank
+is inv 95, 1,410 slots, of which a members' account holds 900 (`Player.bank`, saved with the player); it is sent only
+while open. The rules are in `game/bank/Bank.kt`, the interface in `game/bank/BankScreen.kt`. The menus are the
+client's own scripts', built from the varbits the buttons set.
+
+| Bank behaviour | Source |
+|----------------|--------|
+| Withdraw-1, -5, -10, -X, -All, -All-but-1 and the requested amount (ops 1 to 8, the left-click one by the quantity buttons); Examine is op 11 | 241 client scripts (script669, script2579) |
+| Deposit-1, -5, -10, -X, -All (ops 2 to 8) on the inventory beside it; Examine op 10. A deposit takes from the item's other slots too | 241 client script bankside_drawitem; RSMod |
+| -X asks "Enter amount:" (client script meslayer_mode7); the amount becomes the requested quantity the menus offer next. Walking or closing the bank closes the prompt | client scripts; closing the prompt is guessed |
+| Everything stacks; notes go in as their item; Note withdraws a noted stack, or the item itself with "This item cannot be withdrawn as a note." | RSMod |
+| The bank has no gaps until tabs come: emptying a slot moves the ones after it up | RSMod's main tab, inferred |
+| Placeholders: the Placeholder option, or Always set placeholders, leave one; a deposit fills it; Release takes it away | 241 client scripts; RSMod |
+| Swap or Insert for drags; a drag past the end moves the item to the end. Drags in the inventory beside it swap | 241 client script bankmain_reorder; RSMod |
+| Deposit inventory and Deposit worn items, "You have nothing to deposit." when empty | RSMod |
+| Messages: "You don't have enough inventory space.", "...to withdraw that many.", "A magical force prevents you from banking this item!", "You already have a full stack of that item in the bank.", "Your bank cannot hold your items." | RSMod, from live |
+| Opening the bank always starts on withdrawing items, not notes | RSMod; not checked |
+| A member's bank holds 900 | OSRS Wiki, Bank (2026-10-29) |
+
+Not built yet (step 3 of the Rest of Lumbridge plan): bank tabs, the worn items view, search, the deposit box, bank
+fillers, PINs, Collect and buying bank space.
+
+Check: `::item logs 5`, Bank at a castle booth, Deposit-All, Withdraw-X 2, then Note and Withdraw-All: two logs and
+three noted logs. Log out and in: what you banked is still there (`test-runner/examples/lumbridge-bank.json` does most
+of it in the real client; it can't type an amount, so -X is left to the headless test).
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and
@@ -738,7 +767,7 @@ Anything typed without `::` is public chat: it shows over your head and in the c
 Each player is saved to `data/saves/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/saves/`, which is not backed up).
 Names ignore case and treat spaces as underscores, so `Test` and `test` share a save. A save holds position, run energy,
 every varp that isn't 0 (the run orb and the resizable layout among them), each skill's XP and current level, and the
-inventory's and equipment's slots; the bank joins it when it exists. Code is in `src/main/kotlin/osrsps/game/PlayerSave.kt` and `SaveStore.kt`.
+inventory's, equipment's and bank's slots. Code is in `src/main/kotlin/osrsps/game/PlayerSave.kt` and `SaveStore.kt`.
 
 | Rule | Source |
 |------|--------|
@@ -814,7 +843,7 @@ any varps or varbits. Scenarios are JSON files in `src/main/resources/scenarios/
 
 | Scenario behaviour | Source |
 |--------------------|--------|
-| What a scenario leaves out is reset: unnamed skills are a new account's, run energy is full, slots it doesn't fill are empty | ours, so a scenario always starts the same |
+| What a scenario leaves out is reset: unnamed skills are a new account's, run energy is full, slots it doesn't fill are empty, the bank is empty | ours, so a scenario always starts the same |
 | Varps and varbits it doesn't name, and the run orb unless it says, are kept | ours: they hold settings and quest states |
 | Starting one, or `::reset`, closes interfaces and drops queued scripts, timers, delays and clicks held while paused | ours |
 | Items are checked against the cache before anything changes; level requirements aren't checked | ours |

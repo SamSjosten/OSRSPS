@@ -10,8 +10,8 @@ data class InvObj(val id: Int, val count: Int) {
 /**
  * An inventory: [capacity] slots, each empty or holding one [InvObj]. Changed slots are sent once a tick by [flush].
  *
- * Only the always-stack rule of the main inventory is built: a stackable item (and every note) goes on one stack per
- * inventory, everything else one per slot. Banks stack everything and come later.
+ * [add] follows the main inventory's stacking rule: a stackable item (and every note) goes on one stack per inventory,
+ * everything else one per slot. The bank, which stacks everything, has its own rules in [osrsps.game.bank.Bank].
  */
 class Inventory(
     /** The inv type id the client knows it by; 93 is the player's inventory. */
@@ -135,5 +135,9 @@ class Inventory(
 
         /** worn in the cache's gameval index: the equipment, one slot per [WearPos]. */
         const val WORN = 94
+
+        /** bank in the cache's gameval index, 1,410 slots in the 241 cache. */
+        const val BANK = 95
+        const val BANK_CAPACITY = 1410
     }
 }

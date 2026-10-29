@@ -45,6 +45,8 @@ class PlayerSave(
     val playedTicks: Long = 0,
     /** What charged items hold, by name; see [Charges]. */
     val charges: Map<String, Int> = emptyMap(),
+    /** The bank's filled slots, by slot. */
+    val bank: Map<Int, InvObj> = emptyMap(),
 ) {
     class SkillSave(val tenths: Int, val currentLevel: Int)
 
@@ -78,6 +80,7 @@ class PlayerSave(
         }
         player.inventory.clear()
         player.equipment.clear()
+        player.bank.clear()
         player.charges.clear()
         applyState(player)
     }
@@ -100,6 +103,7 @@ class PlayerSave(
         for ((slot, obj) in inventory) player.inventory[slot] = obj
         // Not checked against levels either: a save is what the player had, even if something has changed since.
         for ((slot, obj) in equipment) player.equipment[slot] = obj
+        for ((slot, obj) in bank) player.bank[slot] = obj
         for ((name, count) in charges) player.charges[name] = count
     }
 
@@ -139,6 +143,7 @@ class PlayerSave(
         }
         putJsonArray("inventory") { putObjs(inventory) }
         putJsonArray("equipment") { putObjs(equipment) }
+        if (bank.isNotEmpty()) putJsonArray("bank") { putObjs(bank) }
         if (charges.isNotEmpty()) putJsonObject("charges") { for ((name, count) in charges) put(name, count) }
     }
 
@@ -157,6 +162,7 @@ class PlayerSave(
             return PlayerSave(
                 player.x, player.z, player.level, player.runEnergy, varps, skills, inventory, equipment,
                 player.scenario, player.beforeScenario, player.createdAt, player.playedTicks, player.charges.contents(),
+                player.bank.contents().toMap(),
             )
         }
 
@@ -180,7 +186,7 @@ class PlayerSave(
                 val state = readState(root, scenario, beforeScenario)
                 return PlayerSave(
                     state.x, state.z, state.level, state.runEnergy, state.varps, state.skills, state.inventory, state.equipment,
-                    scenario, beforeScenario, createdAt, playedTicks, state.charges,
+                    scenario, beforeScenario, createdAt, playedTicks, state.charges, state.bank,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -217,6 +223,8 @@ class PlayerSave(
             // Optional: saves written before the inventory or equipment existed have none.
             val inventory = root.objs("inventory", "Inventory", Inventory.INV_CAPACITY)
             val equipment = root.objs("equipment", "Equipment", WearPos.COUNT)
+            // Optional: saves from before the bank, and saves with an empty one, have none.
+            val bank = root.objs("bank", "Bank", Inventory.BANK_CAPACITY)
             // Optional: saves from before charged items have none.
             val charges = LinkedHashMap<String, Int>()
             for ((name, value) in root["charges"]?.jsonObject.orEmpty()) {
@@ -224,7 +232,7 @@ class PlayerSave(
                 require(count >= 0) { "Charge $name is negative" }
                 charges[name] = count
             }
-            return PlayerSave(x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges)
+            return PlayerSave(x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank)
         }
 
         private fun JsonObject.int(key: String): Int = getValue(key).jsonPrimitive.int

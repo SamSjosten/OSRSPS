@@ -153,6 +153,12 @@ class HeadlessClient private constructor(
         mask and (1L shl (31 + op)) != 0L
     }
 
+    /** The drag depth (0 to 7) the server enabled on slot [sub] of a component, events1's bits 17 to 19. */
+    fun dragDepth(interfaceId: Int, componentId: Int, sub: Int): Int = lock.withLock {
+        val mask = events[(((interfaceId shl 16) or componentId).toLong() shl 32) + sub] ?: 0L
+        (mask.toInt() ushr 17) and 7
+    }
+
     /** As the real client does when an interface closes, or another opens in its place: its events go. */
     private fun dropEvents(interfaceId: Int?) {
         if (interfaceId != null) events.keys.removeIf { (it shr 48).toInt() == interfaceId }
@@ -287,6 +293,23 @@ class HeadlessClient private constructor(
             p2(toSub and 0xFFFF)
             p2Alt3(fromSub and 0xFFFF)
         }
+
+    /**
+     * One component's item dragged onto another slot (IF_BUTTOND): a bank or inventory rearrange. Laid out as RSProt's
+     * 241 IfButtonDDecoder reads it.
+     */
+    fun ifButtonD(fromInterface: Int, fromComponent: Int, fromSub: Int, fromObj: Int, toInterface: Int, toComponent: Int, toSub: Int, toObj: Int = -1) =
+        send(GameClientProt.IF_BUTTOND) {
+            p2Alt1(fromObj and 0xFFFF)
+            p4Alt3((fromInterface shl 16) or fromComponent)
+            p2Alt1(fromSub and 0xFFFF)
+            p2(toSub and 0xFFFF)
+            p2Alt2(toObj and 0xFFFF)
+            p4Alt3((toInterface shl 16) or toComponent)
+        }
+
+    /** An amount typed into a prompt (RESUME_P_COUNTDIALOG), as after Withdraw-X. */
+    fun resumeCount(count: Int) = send(GameClientProt.RESUME_P_COUNTDIALOG) { p4(count) }
 
     /** A click on a pause button (RESUME_PAUSEBUTTON): a dialogue's continue, or a menu option as [sub]. */
     fun resumePause(interfaceId: Int, componentId: Int, sub: Int = -1) = send(GameClientProt.RESUME_PAUSEBUTTON) {

@@ -45,6 +45,8 @@ import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
+import osrsps.game.bank.Bank
+import osrsps.game.bank.BankScreen
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.Deaths
@@ -59,6 +61,7 @@ import osrsps.game.combat.Spells
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
+import osrsps.game.content.registerBanking
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -179,6 +182,14 @@ class World(
         onDrop = groundObjs::drop,
     )
 
+    /** The bank's rules and the bank interface; see [BankScreen]. */
+    val bank = Bank(objTypes)
+
+    val bankScreen = BankScreen(
+        bank, objTypes, scripts, interfaces::openModal,
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+    )
+
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells)
 
     private val interactions = Interactions()
@@ -268,6 +279,7 @@ class World(
         registerLumbridgeCastle(this)
         registerCombatTutors(this)
         registerBones(this)
+        registerBanking(this)
         loadDialogue()
     }
 
@@ -598,6 +610,7 @@ class World(
             sendEffects(player)
             inventoryTab.flush(player)
             equipmentTab.flush(player)
+            bankScreen.flush(player)
         }
         for (npc in npcs.all) sendNpcEffects(npc)
         network.infoProtocols.update()
@@ -1076,6 +1089,7 @@ class World(
             inventoryTab.click(player, sub, obj, op)
             return@act
         }
+        if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
@@ -1112,6 +1126,7 @@ class World(
             inventoryTab.drag(player, fromSub, fromObj, toSub)
             return@act
         }
+        if (bankScreen.drag(player, interfaceId, componentId, fromSub, fromObj, toInterfaceId, toComponentId, toSub)) return@act
         logger.info { "${player.username} dragged $interfaceId:$componentId sub $fromSub onto $toInterfaceId:$toComponentId sub $toSub (not handled)" }
     }
 
@@ -1209,6 +1224,15 @@ class World(
         if (!dialogues.resume(player, interfaceId, componentId, sub)) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
         }
+    }
+
+    /**
+     * The player typed an amount into a prompt (resume_p_countdialog). A script waiting for it carries on now; with none
+     * waiting (the prompt was closed) it does nothing. Dropped while delayed, as other clicks are.
+     */
+    fun onResumeCount(player: Player, count: Int) = act(player) {
+        if (player.scripts.delayed) return@act
+        if (!scripts.resumeCount(player, count)) logger.debug { "${player.username} entered $count, which nothing waits for" }
     }
 
     /** The client closed its modal: Esc, or a close button. */

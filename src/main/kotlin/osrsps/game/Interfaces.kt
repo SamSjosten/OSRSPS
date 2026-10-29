@@ -11,6 +11,7 @@ import net.rsprot.protocol.game.outgoing.varp.VarpLarge
 import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.dialogue.Chatbox
+import osrsps.game.script.ScriptContext
 
 /**
  * Opens, moves and closes interfaces in a player's game frame.
@@ -170,6 +171,10 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
      */
     fun closeModals(player: Player) {
         closeChatModal(player)
+        // Guessed, after RSMod closing the bank's search prompt: an amount prompt closes with the interfaces it was for.
+        if (player.scripts.dropCount()) {
+            send(player, RunClientScript(ScriptContext.MESLAYER_CLOSE, listOf(ScriptContext.MESLAYER_COUNT)))
+        }
         if (player.modals.isEmpty()) return
         val frame = player.frame
         for (slot in player.modals.keys) send(player, IfCloseSub(frame.interfaceId, frame.component(slot)))
