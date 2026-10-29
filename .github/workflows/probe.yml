@@ -23,7 +23,10 @@ jobs:
         with:
           sparse-checkout: .github/scripts
       - id: probe
+        # Eight tries half a minute apart with ten-second timeouts take six minutes at most; the step's own limit,
+        # under the job's, leaves the alert step time to report whatever happened.
         continue-on-error: true
+        timeout-minutes: 8
         run: node .github/scripts/probe.js http://odinsgate.net:43595/status.json odinsgate.net:43594
       - uses: actions/github-script@v7
         if: always()
