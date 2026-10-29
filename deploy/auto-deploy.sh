@@ -45,7 +45,10 @@ main() {
 	local commit=$deployed
 	if ((code)); then
 		echo "Deploying $target (up now: ${deployed:-unknown})"
-		if ! git merge --ff-only --quiet origin/main || ! OSRSPS_COMMIT=$target docker compose build --quiet; then
+		# The build's whole output goes to .deploy/build.log; on a failure its end is logged, where Gradle's error is.
+		if ! git merge --ff-only --quiet origin/main ||
+			! OSRSPS_COMMIT=$target BUILDKIT_PROGRESS=plain docker compose build >.deploy/build.log 2>&1; then
+			[[ -s .deploy/build.log ]] && tail -n 60 .deploy/build.log
 			echo "$target" >.deploy/failed
 			echo "Deploy of $target FAILED; it is retried when main moves on or with --force"
 			return 1

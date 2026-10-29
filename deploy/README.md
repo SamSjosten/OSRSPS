@@ -26,7 +26,8 @@
   default score before the server.
 - A deploy that fails (build error, or a checkout that can't fast-forward) is written to `.deploy/failed` and is not
   retried every minute. The next commit on main tries again, or `deploy/auto-deploy.sh --force` by hand.
-- Log: `.deploy/log` with the crontab line, `journalctl -u osrsps-deploy -n 50` with the timer. State: `.deploy/deployed`,
+- Log: `journalctl -u osrsps-deploy -n 50` (a failed build also logs the last 60 lines of its output); the last build's
+  whole output is in `.deploy/build.log`. State: `.deploy/deployed`,
   `.deploy/failed` and `.deploy/cache-wait` in the checkout.
 - By hand, as `sam` in `/srv/rsps/OSRSPS`: `deploy/auto-deploy.sh` (deploys main if new) or `--force` (rebuilds now).
 - Other work on the checkout or the container (a cache swap, `fetch-cache`, a hand-made `git pull`) should hold the
