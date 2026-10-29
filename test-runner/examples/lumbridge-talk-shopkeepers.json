@@ -1,0 +1,185 @@
+{
+ "name": "Rest of Lumbridge step 5: Talk-to the General Store's keepers and Bob, every option (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3211 3247 0",
+   "expectMessage": "Teleported to 3211, 3247, 0",
+   "comment": "inside the Lumbridge General Store, between the shop keeper and the assistant"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shop keeper",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_shop_keeper.help]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_shop_keeper.no_thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_shop_keeper.no_thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shop assistant",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_shop_assistant.help]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_shop_assistant.selling]",
+   "comment": "the shop opens, with no line from the player"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "command",
+   "text": "::tele 3231 3203 0",
+   "expectMessage": "Teleported to 3231, 3203, 0",
+   "comment": "Bob's Brilliant Axes, next to Bob (the teleport shuts the store)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Bob",
+   "option": "Talk-to"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[bob.quest]",
+   "comment": "Bob's talk opens with the menu"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bob.quest]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bob.own]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Bob",
+   "option": "Talk-to"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[bob.repair]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bob.repair]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bob.repair_reply]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Bob",
+   "option": "Repair"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bob.nothing_to_repair]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Bob",
+   "option": "Talk-to"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[bob.sell]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bob.sell]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bob.axes]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "command",
+   "text": "::tele 3231 3203 0",
+   "expectMessage": "Teleported to 3231, 3203, 0",
+   "comment": "shuts Bob's shop"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

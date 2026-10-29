@@ -525,6 +525,35 @@ final class Steps
 		}
 	}
 
+	static final class AssertWeight extends Step
+	{
+		final int kg;
+
+		AssertWeight(long timeoutMs, int kg)
+		{
+			super("assertWeight", timeoutMs, false);
+			this.kg = kg;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int weight = run.game.weight();
+			if (weight == Integer.MIN_VALUE)
+			{
+				return Poll.waiting("logged out");
+			}
+			String seen = "weight " + weight + " kg";
+			return weight == kg ? Poll.pass(seen) : Poll.waiting(seen);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert weight " + kg + " kg";
+		}
+	}
+
 	static final class AssertDialogue extends Step
 	{
 		final String contains;

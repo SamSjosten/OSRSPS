@@ -638,6 +638,23 @@ public class RunnerTest
 	}
 
 	@Test
+	public void weightWaitsForTheServersNumber() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertWeight\",\"kg\":-7},{\"step\":\"assertWeight\",\"kg\":3,\"timeoutMs\":40}"), "file");
+		game.weight = 19;
+		assertNull(cycle());
+		game.weight = -7;
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals("assert weight -7 kg", r.steps.get(0).description);
+		assertEquals("weight -7 kg", r.steps.get(0).detail);
+		assertEquals("step 2 (assert weight 3 kg): timed out after 40 ms: weight -7 kg", r.failure);
+	}
+
+	@Test
 	public void groundItemWaitsForTheItemOrForItToGo() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertGroundItem\",\"item\":\"Bones\",\"x\":3213,\"y\":3210},"

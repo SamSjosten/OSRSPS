@@ -5,6 +5,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.Accounts
+import osrsps.game.MemorySaveStore
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Scenario
@@ -23,11 +25,15 @@ class HeadlessAdminCommandsTest {
     private val coins = ObjType(COINS, "Coins", cost = 1, stackable = true, tradeable = true)
     private val gift = Scenario.parse("gift", """{ "position": { "x": 3222, "z": 3218 }, "inventory": [ { "item": "$COINS", "count": 100 } ] }""")
 
-    /** Lumbridge's map square, open ground; only [ADMIN] is an admin. */
+    /**
+     * Lumbridge's map square, open ground; only [ADMIN] is an admin. Its name is claimed up front, with the password
+     * [TestServer.login] uses, as a listed admin's name can't be claimed by a login.
+     */
     private fun server(dir: Path, admins: Admins = Admins.parse(ADMIN)) = TestServer(dir) { crcs, millis ->
+        val accounts = Accounts(MemorySaveStore(), iterations = 1_000).apply { check(ADMIN, "test".toCharArray()) }
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) },
-            objTypes = ObjTypes.of(coins), scenarios = Scenarios(listOf(gift)), admins = admins, cycleMillis = millis,
+            objTypes = ObjTypes.of(coins), scenarios = Scenarios(listOf(gift)), admins = admins, accounts = accounts, cycleMillis = millis,
         )
     }
 

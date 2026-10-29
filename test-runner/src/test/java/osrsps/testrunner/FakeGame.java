@@ -9,6 +9,8 @@ import java.util.Map;
 class FakeGame implements Game
 {
 	boolean loggedIn = true;
+	/** What weight answers while logged in. */
+	int weight;
 	String name = "test";
 	Tile location = new Tile(3200, 3200, 0);
 	/** Where the client draws the player; null for the tile in {@link #location}. */
@@ -250,6 +252,12 @@ class FakeGame implements Game
 	public int[] varp(int id)
 	{
 		return varps.get(id);
+	}
+
+	@Override
+	public int weight()
+	{
+		return loggedIn ? weight : Integer.MIN_VALUE;
 	}
 
 	@Override

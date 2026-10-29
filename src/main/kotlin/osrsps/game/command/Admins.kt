@@ -15,6 +15,9 @@ class Admins private constructor(
 
     fun isAdmin(player: Player): Boolean = keys == null || player.saveKey in keys
 
+    /** Whether the list names [saveKey]; never when [everyone] is an admin. */
+    fun lists(saveKey: String): Boolean = keys != null && saveKey in keys
+
     override fun toString(): String = keys?.sorted()?.joinToString().orEmpty().ifEmpty { if (keys == null) "everyone" else "nobody" }
 
     companion object {

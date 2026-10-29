@@ -67,6 +67,11 @@
    "count": 99
   },
   {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
    "step": "clickWidget",
    "interfaceId": 301,
    "component": 0,
@@ -95,6 +100,11 @@
    "step": "assertInventory",
    "item": "Coins",
    "count": 99
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
   },
   {
    "step": "clickWidget",
@@ -126,6 +136,11 @@
    "count": 94
   },
   {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
    "step": "clickWidget",
    "interfaceId": 300,
    "component": 5,
@@ -144,6 +159,11 @@
    "step": "assertInventory",
    "item": "Pot",
    "count": 0
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
   },
   {
    "step": "clickWidget",
@@ -213,6 +233,11 @@
    "step": "assertInventory",
    "item": "Bronze axe",
    "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
   },
   {
    "step": "clickWidget",

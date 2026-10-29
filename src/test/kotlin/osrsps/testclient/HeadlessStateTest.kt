@@ -15,6 +15,8 @@ class HeadlessStateTest {
         val types = arrayOfNulls<ObjType>(BRONZE_AXE + 1)
         types[BRONZE_AXE] = ObjType(BRONZE_AXE, "Bronze axe")
         types[COINS] = ObjType(COINS, "Coins", stackable = true)
+        // Made-up weight, shaped like the cache's grams.
+        types[PLATEBODY] = ObjType(PLATEBODY, "Rune platebody", weight = 9979)
         World(crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(types), cycleMillis = millis)
     }
 
@@ -48,6 +50,21 @@ class HeadlessStateTest {
     }
 
     @Test
+    fun `the carried weight reaches the client in whole kilograms`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the first weight") { client.weightKg }
+                assertEquals(0, client.weightKg)
+                client.command("item $PLATEBODY 2")
+                client.await("19 kg") { client.weightKg?.takeIf { it == 19 } }
+                client.command("item $COINS 100000")
+                client.await("the coins") { client.inventory(BACKPACK).filterNotNull().takeIf { it.size == 3 } }
+                assertEquals(19, client.weightKg, "coins weigh nothing")
+            }
+        }
+    }
+
+    @Test
     fun `setlevel and varp changes reach the client`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
@@ -69,5 +86,6 @@ class HeadlessStateTest {
         const val HITPOINTS = 3
         const val BRONZE_AXE = 1351
         const val COINS = 995
+        const val PLATEBODY = 1127
     }
 }

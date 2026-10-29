@@ -54,4 +54,23 @@ class AccountsTest {
         assertEquals(Accounts.Check.NO_SUCH_NAME, accounts.check("   ", "pw".toCharArray()))
         assertTrue(store.saves.isEmpty())
     }
+
+    @Test
+    fun `names keep to live's rules`() {
+        for (name in listOf("Zezima", "iron man", "a_b-c", "123456789012", " padded ")) assertTrue(Accounts.validName(name), name)
+        for (name in listOf("", "   ", "1234567890123", "a.b", "tab\tname", "line\nbreak", "Zеzima", "ünder")) {
+            assertFalse(Accounts.validName(name), name)
+            assertEquals(Accounts.Check.NO_SUCH_NAME, accounts.check(name, "pw".toCharArray()), name)
+        }
+        assertTrue(store.saves.isEmpty())
+    }
+
+    @Test
+    fun `a name that may not be claimed is left unclaimed, but one already claimed still logs in`() {
+        assertEquals(Accounts.Check.NOT_CLAIMABLE, accounts.check("boss", "pw".toCharArray(), mayClaim = false))
+        assertTrue(store.saves.isEmpty())
+        accounts.check("boss", "pw".toCharArray())
+        assertEquals(Accounts.Check.MATCHED, accounts.check("boss", "pw".toCharArray(), mayClaim = false))
+        assertEquals(Accounts.Check.WRONG_PASSWORD, accounts.check("boss", "nope".toCharArray(), mayClaim = false))
+    }
 }
