@@ -7,10 +7,13 @@ import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.net.ServerSocket
 import java.net.Socket
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import org.junit.jupiter.api.io.TempDir
 
 class ClientConfigTest {
     private val config = ClientConfig("192.168.0.210", 43595)
@@ -103,6 +106,36 @@ class ClientConfigTest {
             assertEquals("js5 connections 1", url.readText().lines().dropLast(1).last())
             js5 = 3
             assertEquals("js5 connections 3", url.readText().lines().dropLast(1).last())
+        } finally {
+            http.stop()
+        }
+    }
+
+    @Test
+    fun `after merges that leave the server running, version and status answer with the newest commit`(@TempDir state: Path) {
+        val built = "1".repeat(40)
+        val newer = "2".repeat(40)
+        val http = ClientConfig("127.0.0.1", 0, gamePort = 43594, version = built, deployState = state).also { it.start() }
+        try {
+            fun version() = get(http.boundPort, "/version").body
+            fun status() = get(http.boundPort, "/status").body
+            // Nothing written there yet: the commit the server was built from.
+            assertEquals("$built\n", version())
+            Files.writeString(state.resolve("built"), "$built\n")
+            Files.writeString(state.resolve("deployed"), "$newer\n")
+            assertEquals("$newer\n", version())
+            assertEquals("commit $newer\nbuilt from $built\njs5 connections 0\n", status())
+            assertContains(get(http.boundPort, "/status.json").body, "\"commit\":\"$newer\"")
+
+            // A folder that names another build isn't about this server (one started by hand, say).
+            Files.writeString(state.resolve("built"), "3".repeat(40) + "\n")
+            assertEquals("$built\n", version())
+            assertEquals("commit $built\njs5 connections 0\n", status())
+
+            // Nor is a deployed file without a commit in it.
+            Files.writeString(state.resolve("built"), "$built\n")
+            Files.writeString(state.resolve("deployed"), "\n")
+            assertEquals("$built\n", version())
         } finally {
             http.stop()
         }

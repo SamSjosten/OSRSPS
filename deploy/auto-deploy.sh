@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
 # Redeploys the server on VM 214 when origin/main has moved: fast-forwards the checkout and runs
 # `docker compose up -d --build` with OSRSPS_COMMIT set, so the server's /version answers with that commit.
+# When the merges since the running server's build change nothing it is built from (docs, tests, the RuneLite
+# plugins, the launcher, CI, this folder), it only fast-forwards: the server keeps running and its players stay in,
+# and /version answers with the new commit anyway, from the state files below.
 # It also swaps the cache when deploy/cache-build.txt names another OpenRS2 build than data/cache-source.txt.
 # Run every minute (osrsps-deploy.timer, or sam's crontab); by hand it deploys main now if main is new.
 #
 #   deploy/auto-deploy.sh            deploy origin/main if it isn't deployed yet (and didn't fail last time)
 #   deploy/auto-deploy.sh --force    rebuild and restart origin/main even if it is
 #
-# State lives in .deploy/ (git-ignored): `deployed` holds the commit that is up, `failed` the last commit whose
-# deploy failed, which is not retried every minute; a newer commit on main, or --force, tries again. `cache-wait` holds
-# a cache build that couldn't be fetched yet (OpenRS2 doesn't list it as newest, or the fetch failed): it is tried
-# again 30 minutes after the last try.
+# State lives in .deploy/ (git-ignored), which compose.yaml mounts read-only into the server: `deployed` holds the
+# commit of main that is up and `built` the one the running server was built from (older after merges that left it
+# running), `failed` the last commit whose deploy failed, which is not retried every minute; a newer commit on main, or
+# --force, tries again. `cache-wait` holds a cache build that couldn't be fetched yet (OpenRS2 doesn't list it as
+# newest, or the fetch failed): it is tried again 30 minutes after the last try.
 # The whole script is one function so that a fast-forward that changes this file can't change it mid-run.
 set -euo pipefail
 
@@ -29,10 +33,12 @@ main() {
 	fi
 
 	git fetch --quiet origin main
-	local target deployed failed
+	local target deployed failed built
 	target=$(git rev-parse origin/main)
 	deployed=$(cat .deploy/deployed 2>/dev/null || true)
 	failed=$(cat .deploy/failed 2>/dev/null || true)
+	# Before `built` was written, every deploy built the commit it deployed.
+	built=$(cat .deploy/built 2>/dev/null || echo "$deployed")
 	local code=1
 	if ((!force)) && [[ $target == "$deployed" || $target == "$failed" ]]; then
 		code=0
@@ -42,8 +48,21 @@ main() {
 		return 0
 	fi
 
-	local commit=$deployed
-	if ((code)); then
+	local commit=$built
+	if ((code && !force)) && [[ -n $built ]] && ! server_changed "$built" "$target"; then
+		# A restart would kick every player for nothing: the checkout moves on, and the server's /version reads the new
+		# commit from .deploy/deployed, as `built` still names its own.
+		if ! git merge --ff-only --quiet origin/main; then
+			echo "$target" >.deploy/failed
+			echo "Deploy of $target FAILED: the checkout can't fast-forward; it is retried when main moves on or with --force"
+			return 1
+		fi
+		put built "$built"
+		put deployed "$target"
+		rm -f .deploy/failed
+		echo "Deployed $target without a restart: nothing the server is built from changed since $built"
+		code=0
+	elif ((code)); then
 		echo "Deploying $target (up now: ${deployed:-unknown})"
 		# The build's whole output goes to .deploy/build.log; on a failure its end is logged, where Gradle's error is.
 		if ! git merge --ff-only --quiet origin/main ||
@@ -83,7 +102,9 @@ main() {
 	fi
 	if OSRSPS_COMMIT=${commit:-unknown} docker compose up -d "${recreate[@]}"; then
 		if ((code)); then
-			echo "$target" >.deploy/deployed
+			# deployed first: until built names the new server's commit, its /version answers with its own.
+			put deployed "$target"
+			put built "$target"
 			rm -f .deploy/failed
 		fi
 		echo "Deployed ${commit:-unknown}"
@@ -92,6 +113,23 @@ main() {
 		echo "Starting ${commit:-unknown} FAILED"
 		return 1
 	fi
+}
+
+# Whether the commits from $1 to $2 change anything the server is built from or runs with: any file but the docs at the
+# top, the tests, the RuneLite plugins, the launcher, CI and this folder (whose cache-build.txt has a check of its own,
+# cache_due). A file moved out of the server counts, as both of its paths do. When git can't tell (a commit it doesn't
+# have), yes.
+server_changed() {
+	local files
+	files=$(git diff --no-renames --name-only "$1" "$2" --) || return 0
+	[[ -n $files ]] || return 1
+	grep -qvE '^((test-runner|tick-recorder|launcher|deploy|\.github)/|src/test/|[^/]+\.md$)' <<<"$files"
+}
+
+# Writes .deploy/$1 whole, as the server reads `built` and `deployed` for its /version while this runs.
+put() {
+	printf '%s\n' "$2" >".deploy/$1.new"
+	mv -f ".deploy/$1.new" ".deploy/$1"
 }
 
 # The OpenRS2 build deploy/cache-build.txt asks for, e.g. 241.4; nothing when the file is missing or empty.

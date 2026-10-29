@@ -73,7 +73,9 @@ docker compose down            # stop
 ```
 
 After the one-time setup in [`deploy/`](deploy/README.md), the VM redeploys itself: a timer checks `main` every
-minute and rebuilds when it moved, and `http://<public host>:43595/version` says which commit is up.
+minute and rebuilds when it moved, and `http://<public host>:43595/version` says which commit is up. A merge that only
+changes docs, tests, the RuneLite plugins or the launcher doesn't restart the server; `/version` then says that commit
+all the same.
 
 ## Connect RuneLite through RSProx
 
@@ -140,9 +142,9 @@ Odin's Gate, our launcher (being built to replace RSProx for friends), reads its
 each written for the host it was asked by like the others:
 
 - `/status.json`: whether the game is up (its game loop ended a cycle in the last 10 s) and taking logins, the revision
-  it plays, the commit it was built from, how many players are in, and the JS5 count `/status` gives, e.g.
-  `{"up":true,"revision":241,"commit":"b08d450","players":2,"acceptingLogins":true,"js5Connections":14}`. The launcher
-  picks the RuneLite build from the revision.
+  it plays, the commit it runs (the one `/version` gives), how many players are in, and the JS5 count `/status` gives,
+  e.g. `{"up":true,"revision":241,"commit":"b08d450","players":2,"acceptingLogins":true,"js5Connections":14}`. The
+  launcher picks the RuneLite build from the revision.
 - `/rl/worlds.js`: RuneLite's world list with our one world. The launcher points RuneLite's web API at `/rl/`, so the
   world hopper never offers one of Jagex's worlds; RuneLite's other API calls get a 404 there.
 - `/launcher/jav_config.ws` and `/launcher/world_list.ws`: copies of RSProx's two files that leave the game's names out
