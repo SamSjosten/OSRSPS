@@ -29,6 +29,7 @@
   {"step": "command", "text": "::fight", "expectMessage": "You are fighting Man #"},
   {"step": "assertStat", "skill": "Magic", "level": 1, "xp": 11, "comment": "5.5 a cast, more for damage"},
   {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "the man fights back once cast on; ::kill picks the man attacking you"},
+  {"step": "waitTicks", "ticks": 6, "comment": "the dead man's body stays 4 ticks, and the Attack below would pick it as the nearest man"},
   {"step": "clickWidget", "interfaceId": 593, "component": 23, "comment": "the shield button: defensive autocast"},
   {"step": "assertInterface", "interfaceId": 201, "timeoutMs": 10000},
   {"step": "clickWidget", "interfaceId": 201, "component": 1, "slot": 1},
