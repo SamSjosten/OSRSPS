@@ -50,6 +50,8 @@ class PlayerSave(
     val bank: Map<Int, InvObj> = emptyMap(),
     /** The combat and other skills' boost cycles' segments; see [osrsps.game.combat.StatRestore.segment]. */
     val boostSegments: BoostSegments = BoostSegments(0, 0),
+    /** The chatbox's filters. Like the boost segments, part of the header rather than the state ::reset puts back. */
+    val chatFilters: ChatFilters = ChatFilters.DEFAULT,
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -69,6 +71,7 @@ class PlayerSave(
         player.playedTicks = playedTicks
         StatRestore.resume(player.statTimers.combatBoost, boostSegments.combat)
         StatRestore.resume(player.statTimers.skillBoost, boostSegments.other)
+        player.chatFilters = chatFilters
         applyState(player)
     }
 
@@ -127,6 +130,14 @@ class PlayerSave(
                 put("combat", boostSegments.combat)
                 put("other", boostSegments.other)
             }
+            // And the chat filters, which are the client's settings rather than the account's state.
+            if (chatFilters != ChatFilters.DEFAULT) {
+                putJsonObject("chatFilters") {
+                    put("public", chatFilters.public)
+                    put("private", chatFilters.private)
+                    put("trade", chatFilters.trade)
+                }
+            }
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -163,6 +174,9 @@ class PlayerSave(
         /** Raised when the format changes in a way older saves can't be read as. */
         const val VERSION = 1
 
+        /** The packets carry each filter in a byte. */
+        const val MAX_CHAT_FILTER = 255
+
         private val format = Json { prettyPrint = true }
 
         fun of(player: Player): PlayerSave {
@@ -176,6 +190,7 @@ class PlayerSave(
                 player.scenario, player.beforeScenario, player.createdAt, player.playedTicks, player.charges.contents(),
                 player.bank.contents().toMap(),
                 BoostSegments(StatRestore.segment(player.statTimers.combatBoost), StatRestore.segment(player.statTimers.skillBoost)),
+                player.chatFilters,
             )
         }
 
@@ -202,10 +217,17 @@ class PlayerSave(
                 for (segment in listOf(boostSegments.combat, boostSegments.other)) {
                     require(segment in 0 until StatRestore.CYCLE_TICKS / StatRestore.SEGMENT_TICKS) { "Boost segment $segment is out of range" }
                 }
+                // Optional: saves from before the filters were kept, and saves with every filter on, have none.
+                val chatFilters = root["chatFilters"]?.jsonObject?.let { filters ->
+                    val (public, private, trade) = listOf("public", "private", "trade").map { name ->
+                        filters.int(name).also { require(it in 0..MAX_CHAT_FILTER) { "Chat filter $name $it is out of range" } }
+                    }
+                    ChatFilters(public, private, trade)
+                } ?: ChatFilters.DEFAULT
                 val state = readState(root, scenario, beforeScenario)
                 return PlayerSave(
                     state.x, state.z, state.level, state.runEnergy, state.varps, state.skills, state.inventory, state.equipment,
-                    scenario, beforeScenario, createdAt, playedTicks, state.charges, state.bank, boostSegments,
+                    scenario, beforeScenario, createdAt, playedTicks, state.charges, state.bank, boostSegments, chatFilters,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e

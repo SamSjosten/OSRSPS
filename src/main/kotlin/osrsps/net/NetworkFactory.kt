@@ -40,14 +40,13 @@ import net.rsprot.protocol.game.incoming.npcs.OpNpcV2
 import net.rsprot.protocol.game.incoming.players.OpPlayer
 import net.rsprot.protocol.game.incoming.resumed.ResumePCountDialog
 import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton
-import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
-import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
 import net.rsprot.protocol.loginprot.incoming.pow.NopProofOfWorkProvider
 import net.rsprot.protocol.message.codec.incoming.GameMessageConsumerRepositoryBuilder
 import net.rsprot.protocol.message.codec.incoming.MessageConsumer
 import net.rsprot.protocol.message.codec.incoming.provider.DefaultGameMessageConsumerRepositoryProvider
 import net.rsprot.protocol.message.codec.incoming.provider.GameMessageConsumerRepositoryProvider
 import osrsps.game.AllSettings
+import osrsps.game.ChatFilters
 import osrsps.game.Player
 import osrsps.game.SettingsSide
 import osrsps.game.World
@@ -118,11 +117,8 @@ class NetworkFactory(
             if (!message.autocomplete) world.onCommand(player, message.command)
         })
         builder.addListener(MessagePublic::class.java, MessageConsumer { player, message -> world.onPublicChat(player, message) })
-        // Inferred: the chat tabs' filter labels change only when the server echoes the setting back. Nothing filters
-        // chat on the server yet.
         builder.addListener(SetChatFilterSettings::class.java, MessageConsumer { player, message ->
-            player.session.queue(ChatFilterSettings(message.publicChatFilter, message.tradeChatFilter))
-            player.session.queue(ChatFilterSettingsPrivateChat(message.privateChatFilter))
+            world.onChatFilters(player, ChatFilters(message.publicChatFilter, message.privateChatFilter, message.tradeChatFilter))
         })
         builder.addListener(If1Button::class.java, MessageConsumer { player, message ->
             world.onButton(player, message.interfaceId, message.componentId, -1, 1)

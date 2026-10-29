@@ -30,6 +30,7 @@ import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.World.Companion.LOGOUT_BUTTON
 import osrsps.game.World.Companion.LOGOUT_TAB
+import osrsps.game.script.ScriptContext
 import osrsps.map.CollisionMap
 
 /**
@@ -244,6 +245,86 @@ class HeadlessAllSettingsTest {
         }
     }
 
+    @Test
+    fun `a number row asks for an amount and a colour row opens the picker, both held past a relog`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                open(client)
+                client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 3)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 4, 4, CONTROLS)
+
+                // The loot notification value: meslayer_mode7 with the row's prompt, then the amount.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 7)
+                client.await("the amount prompt") {
+                    client.clientScripts().lastOrNull { it.id == ScriptContext.MESLAYER_MODE7 }?.takeIf { it.args == listOf("[settings.loot_notification_value]") }
+                }
+                client.awaitBits(VARP_SETTINGS_TRACKING, 8, 10, LOOT_VALUE)
+                client.resumeCount(5_000)
+                client.awaitBits(OPTION_LOOTNOTIFICATION, 3, 29, 5_000)
+                // Too much for the varbit's 29 bits: the most it holds.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 7)
+                client.await("the second prompt") { client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 }.takeIf { it == 2 } }
+                client.resumeCount(Int.MAX_VALUE)
+                client.awaitBits(OPTION_LOOTNOTIFICATION, 3, 29, (1 shl 29) - 1)
+
+                // Public chat's colour: the picker over the window, told the row's colour (-1, its default).
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 8)
+                client.await("the colour picker") { Unit.takeIf { AllSettings.COLOUR_PALLET in client.openInterfaces() } }
+                client.await("colour_pallet run") {
+                    client.clientScripts().lastOrNull { it.id == AllSettings.COLOUR_PALLET_SCRIPT }?.takeIf { it.args == listOf((INTERFACE shl 16) or AllSettings.POPUP, -1) }
+                }
+                client.awaitBits(VARP_SETTINGS_TRACKING, 8, 10, PUBLIC_CHAT_COLOUR)
+                client.resumeCount(0x123456)
+                client.await("the colour saved") { Unit.takeIf { client.varp(CHAT_COLOUR_PUBLIC_OPAQUE) == 0x123457 } }
+                client.await("the picker closed") { Unit.takeIf { AllSettings.COLOUR_PALLET !in client.openInterfaces() } }
+                // Cancel sends 2^31 - 1, which changes nothing; the picker is told the colour now set.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 8)
+                client.await("colour_pallet run again") {
+                    client.clientScripts().lastOrNull { it.id == AllSettings.COLOUR_PALLET_SCRIPT }?.takeIf { it.args.last() == 0x123456 }
+                }
+                client.resumeCount(Int.MAX_VALUE)
+                client.await("the picker closed again") { Unit.takeIf { AllSettings.COLOUR_PALLET !in client.openInterfaces() } }
+                assertEquals(0x123457, client.varp(CHAT_COLOUR_PUBLIC_OPAQUE))
+
+                client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.awaitNobodyOn()
+            server.login("gina").use { client ->
+                client.awaitBits(OPTION_LOOTNOTIFICATION, 3, 29, (1 shl 29) - 1)
+                client.await("the colour") { Unit.takeIf { client.varp(CHAT_COLOUR_PUBLIC_OPAQUE) == 0x123457 } }
+            }
+        }
+    }
+
+    @Test
+    fun `the chat filters are sent back, saved and sent again at login`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hal").use { client ->
+                client.await("the login rebuild") { client.position }
+                // A new account's filters are all on.
+                assertEquals(Triple(0, 0, 0), client.await("the login's filters") { client.chatFilters() })
+                client.setChatFilters(2, 1, 3)
+                client.await("the filters echoed") { client.chatFilters()?.takeIf { it == Triple(2, 1, 3) } }
+                client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.awaitNobodyOn()
+            server.login("hal").use { client ->
+                client.await("the saved filters") { client.chatFilters()?.takeIf { it == Triple(2, 1, 3) } }
+            }
+        }
+    }
+
+    /** The last public and trade filters (CHAT_FILTER_SETTINGS, each p1Alt1) and private one the server sent. */
+    private fun HeadlessClient.chatFilters(): Triple<Int, Int, Int>? {
+        val packets = packets()
+        val both = packets.lastOrNull { it.prot.name == "CHAT_FILTER_SETTINGS" } ?: return null
+        val private = packets.lastOrNull { it.prot.name == "CHAT_FILTER_SETTINGS_PRIVATECHAT" } ?: return null
+        fun alt1(byte: Byte) = (byte.toInt() - 128) and 0xff
+        return Triple(alt1(both.payload[0]), private.payload[0].toInt() and 0xff, alt1(both.payload[1]))
+    }
+
     private fun open(client: HeadlessClient) {
         client.await("the login rebuild") { client.position }
         client.ifButton(SettingsSide.INTERFACE, SettingsSide.SETTINGS_OPEN, 1)
@@ -277,6 +358,10 @@ class HeadlessAllSettingsTest {
         const val SIDESTONE_KEYBINDINGS_1 = 1224
         const val CHAT_FILTER_ASSIST_2 = 3053
         const val SETTINGS_VARP_3 = 3075
+        const val OPTION_LOOTNOTIFICATION = 427
+        const val CHAT_COLOUR_PUBLIC_OPAQUE = 2992
+        const val LOOT_VALUE = 39
+        const val PUBLIC_CHAT_COLOUR = 87
         val VOLUME_SCRIPT = AllSettings.SCRIPT_TRIGGERS.keys.single()
 
         const val ROOFS = 7
@@ -316,6 +401,8 @@ class HeadlessAllSettingsTest {
             row(14, AllSettings.CLIENT_LAYOUT_DROPDOWN, SettingRow.KIND_DROPDOWN, options = 3),
             row(15, AllSettings.LOGIN_LOGOUT_DROPDOWN, SettingRow.KIND_DROPDOWN, options = 3),
             row(16, 207, SettingRow.KIND_DROPDOWN, options = 4, requires = listOf(SettingDependency(1, 1))),
+            // Then a number (the loot notification value) and a colour (public chat, opaque).
+            row(17, LOOT_VALUE, SettingRow.KIND_NUMBER), row(18, PUBLIC_CHAT_COLOUR, SettingRow.KIND_COLOUR),
         ).associateBy { it.struct }
 
         /** Shaped like enum 422: Activities, Popout (enhanced client only), Chat, Leagues. */
@@ -325,7 +412,7 @@ class HeadlessAllSettingsTest {
                 SettingsCategory(4494, 8, mapOf(AllSettings.PARAM_ENHANCED_ONLY to 1), listOf(ROWS.getValue(5))),
                 SettingsCategory(913, CHAT, emptyMap(), listOf(6, 7, 8).map(ROWS::getValue)),
                 SettingsCategory(AllSettings.LEAGUES_CATEGORY_STRUCT, 9, emptyMap(), listOf(ROWS.getValue(9))),
-                SettingsCategory(2000, CONTROLS, emptyMap(), (10..16).map(ROWS::getValue)),
+                SettingsCategory(2000, CONTROLS, emptyMap(), (10..18).map(ROWS::getValue)),
             ),
             ROWS,
             mapOf(
@@ -340,6 +427,8 @@ class HeadlessAllSettingsTest {
             ),
             mapOf(SCROLLBAR_SIDE to SettingVar.Varbit(6374), 207 to SettingVar.Varbit(13132)),
             mapOf(16 to SettingVar.Mapped(SettingVar.Varbit(4675), F_KEYS, 0), 17 to SettingVar.Mapped(SettingVar.Varbit(4680), F_KEYS, 0)),
+            numbers = mapOf(LOOT_VALUE to SettingVar.Varbit(AllSettings.VARBIT_LOOT_NOTIFICATION_VALUE)),
+            colours = mapOf(PUBLIC_CHAT_COLOUR to SettingVar.Offset(SettingVar.Varp(CHAT_COLOUR_PUBLIC_OPAQUE), -1)),
         )
     }
 }

@@ -158,6 +158,21 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         send(player, IfOpenSub(frame.interfaceId, frame.component(FrameSlot.FLOATER), interfaceId, OVERLAY))
     }
 
+    /** Opens [interfaceId] as an overlay inside component [component] of [parent], an interface that is open. */
+    fun openInside(player: Player, parent: Int, component: Int, interfaceId: Int) {
+        send(player, IfOpenSub(parent, component, interfaceId, OVERLAY))
+    }
+
+    /** Closes what [openInside] opened in [component] of [parent]. */
+    fun closeInside(player: Player, parent: Int, component: Int) {
+        send(player, IfCloseSub(parent, component))
+    }
+
+    /** Runs client script [id] with [args] (ints, and strings in the script's order). */
+    fun runClientScript(player: Player, id: Int, args: List<Any>) {
+        send(player, RunClientScript(id, args))
+    }
+
     /** Closes what [openFloater] opened, if anything. */
     fun closeFloater(player: Player) {
         if (player.floater < 0) return

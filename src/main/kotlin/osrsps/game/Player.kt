@@ -163,6 +163,9 @@ class Player(
     /** What the player's charged items hold, such as a blowpipe's darts and scales; see [Charges]. */
     val charges = Charges()
 
+    /** The chatbox's public, private and trade filters, as the client last set them. Saved. */
+    var chatFilters: ChatFilters = ChatFilters.DEFAULT
+
     /** The `::scenario` the player last started, null when they aren't in one. Saved. */
     var scenario: String? = null
 
@@ -302,5 +305,15 @@ class Player(
 
     private companion object {
         const val CHATTYPE_GAMEMESSAGE = 0
+    }
+}
+
+/**
+ * The chatbox tabs' filters (SET_CHATFILTERSETTINGS): public, private and trade, each the client's own number for its
+ * choice. All 0, on, for a new account (guessed).
+ */
+data class ChatFilters(val public: Int, val private: Int, val trade: Int) {
+    companion object {
+        val DEFAULT = ChatFilters(0, 0, 0)
     }
 }

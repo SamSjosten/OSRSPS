@@ -17,6 +17,10 @@ class SettingsCatalog(
     val dropdowns: Map<Int, SettingVar>,
     /** settings_get_keybind's switch: where each keybind's key is. */
     val keybinds: Map<Int, SettingVar> = emptyMap(),
+    /** settings_get_number_input's switch: where each number input's value is. */
+    val numbers: Map<Int, SettingVar> = emptyMap(),
+    /** settings_get_colour's switch: where each colour input's colour is, -1 for the row's default. */
+    val colours: Map<Int, SettingVar> = emptyMap(),
 ) {
     /**
      * The category drawn while not searching: enum 423 at settings_category, which in 241 is enum 422 again (checked
@@ -31,7 +35,7 @@ class SettingsCatalog(
     val maxOptions: Int get() = rows.values.maxOfOrNull { it.options } ?: 0
 
     companion object {
-        val NONE = SettingsCatalog(emptyList(), emptyMap(), emptyMap(), emptyMap(), emptyMap())
+        val NONE = SettingsCatalog(emptyList(), emptyMap(), emptyMap(), emptyMap())
     }
 }
 
@@ -67,6 +71,11 @@ class SettingRow(
         const val KIND_SLIDER = 1
         const val KIND_DROPDOWN = 2
         const val KIND_KEYBIND = 3
+        const val KIND_NUMBER = 4
+        const val KIND_COLOUR = 9
+
+        /** A colour row's default colour, shown while its var reads -1. */
+        const val PARAM_DEFAULT_COLOUR = 1230
     }
 }
 
@@ -96,6 +105,9 @@ sealed interface SettingVar {
      */
     data class Mapped(val of: SettingVar, val outputs: Map<Int, Int>, val default: Int) : SettingVar
 
+    /** `%of - by` and the like: [of] read with [by] added. The chat colours keep their colour plus 1, 0 for none. */
+    data class Offset(val of: SettingVar, val by: Int) : SettingVar
+
     /** Anything else: a device option, the window mode or a client script; the server can't read it. */
     data object Client : SettingVar
 
@@ -107,6 +119,7 @@ sealed interface SettingVar {
         is Bit -> if (vars.types.varbit(varbit) != null) (vars.getVarbit(varbit) ushr bit) and 1 else null
         is Conditional -> if (vars.types.varbit(varbit) == null) null else if (vars.getVarbit(varbit) == equals) then.read(vars) else 0
         is Mapped -> of.read(vars)?.let { outputs[it] ?: default }
+        is Offset -> of.read(vars)?.let { it + by }
         Client -> null
     }
 
@@ -137,6 +150,7 @@ sealed interface SettingVar {
                     ?: (if (value == default) generateSequence(0) { it + 1 }.first { it !in outputs } else return false)
                 return of.set(vars, key)
             }
+            is Offset -> return of.set(vars, value - by)
             Client -> return false
         }
         return true
@@ -159,7 +173,7 @@ sealed interface SettingVar {
                 if (vars.types.varbit(varbit) == null || vars.getVarbit(varbit) != equals) return false
                 return then.flip(vars)
             }
-            is Mapped, Client -> return false
+            is Mapped, is Offset, Client -> return false
         }
         return true
     }

@@ -102,6 +102,18 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `chat filters are saved, and a save without them loads with every filter on`() {
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), chatFilters = ChatFilters(2, 1, 3)).toJson("test")
+        assertEquals(ChatFilters(2, 1, 3), PlayerSave.fromJson(text).chatFilters)
+        saves.write("test", text)
+        assertEquals(ChatFilters(2, 1, 3), world.loadPlayer(1, "test").chatFilters)
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("chatFilters" !in none)
+        assertEquals(ChatFilters.DEFAULT, PlayerSave.fromJson(none).chatFilters)
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(text.replace("\"trade\": 3", "\"trade\": 256")) }
+    }
+
+    @Test
     fun `the bank is saved, and a save without one loads with an empty bank`() {
         val player = world.loadPlayer(1, "Test")
         player.bank[0] = InvObj(995, 2_000_000_000)

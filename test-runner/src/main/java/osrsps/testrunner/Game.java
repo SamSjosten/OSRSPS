@@ -132,6 +132,12 @@ interface Game
 	/** The carried weight in whole kilograms as the server last sent it (UPDATE_RUNWEIGHT); {@link Integer#MIN_VALUE} when logged out. */
 	int weight();
 
+	/** The chatbox prompt's mode (varc meslayermode): 7 while it asks for a number, 0 when none is open. */
+	int promptMode();
+
+	/** Puts the amount in the open prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
+	String enterAmount(int amount);
+
 	/** The player's real (unboosted) level in the skill, as the stats tab shows it; -1 for a skill the client doesn't know. */
 	int skillLevel(String skill);
 
