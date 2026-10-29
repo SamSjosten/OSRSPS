@@ -30,7 +30,7 @@ fun CommandRegistry.registerIpCommands(world: World) {
             IpBans.Result.ALREADY_BANNED -> reply("$address is already banned")
             else -> {
                 val kicked = world.onlinePlayers.filter { bans.isBanned(it.address) }
-                kicked.forEach { it.logoutRequested = true }
+                kicked.forEach { it.logoutForced = true }
                 reply("Banned $address" + if (kicked.isEmpty()) "" else "; logging out ${kicked.joinToString { it.username }}")
             }
         }

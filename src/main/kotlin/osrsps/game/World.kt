@@ -1495,12 +1495,12 @@ class World(
         // Live closes every tick with ServerTickEnd, and RuneLite fires its GameTick (and replays deferred events such
         // as VarbitChanged) only on it, so without it the client never sees a tick. A paused cycle is not a tick.
         if (tickEnd) session.queue(ServerTickEnd)
-        if (player.logoutRequested && inCombat(player)) {
+        if (player.logoutRequested && !player.logoutForced && inCombat(player)) {
             // Hit later in the tick that the button was clicked in: the NPC phase comes after input.
             player.logoutRequested = false
             player.message(CANT_LOG_OUT_IN_COMBAT)
         }
-        if (player.logoutRequested) {
+        if (player.logoutRequested || player.logoutForced) {
             // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
             // the player is removed on the next tick by hand.
             session.queue(Logout)
