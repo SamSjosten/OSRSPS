@@ -62,6 +62,8 @@ fun CommandRegistry.registerSkillCommands() {
         val timers = player.statTimers
         for (cycle in listOf(timers.combatBoost, timers.skillBoost, timers.hitpoints)) cycle.restart()
         timers.restore = -1
+        // Rapid Restore's own cycle too, while it is on; off, StatRestore keeps it at 0.
+        timers.rapidRestore = -1
         reply("Boost and drain cycles started again: the next levels in ${StatRestore.CYCLE_TICKS} ticks")
     }
 }
