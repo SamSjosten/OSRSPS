@@ -1231,9 +1231,15 @@ class World(
      * with [args] decoded by the types [SettingsSide.SCRIPT_TRIGGERS] gives for its id.
      */
     fun onScriptTrigger(player: Player, interfaceId: Int, componentId: Int, sub: Int, args: List<Any>) = act(player) {
-        if (player.echoButtons) player.message("Script trigger $interfaceId:$componentId slot $sub args $args")
+        if (player.echoButtons) player.message("Script trigger $interfaceId:$componentId slot $sub args ${args.toList()}")
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.scriptTrigger(player, componentId, args)) return@act
         logger.info { "${player.username} triggered a script on $interfaceId:$componentId sub $sub args $args (not handled)" }
+    }
+
+    /** A script trigger whose script or arguments the server can't read: logged, and echoed with `::buttons` so a test sees it arrived. */
+    fun onUnreadScriptTrigger(player: Player, interfaceId: Int, componentId: Int, sub: Int, script: Int, problem: String) = act(player) {
+        if (player.echoButtons) player.message("Script trigger $interfaceId:$componentId slot $sub script ${script.toUInt()} $problem")
+        logger.info { "${player.username} triggered script ${script.toUInt()} on $interfaceId:$componentId sub $sub, which $problem" }
     }
 
     /** The player dragged a component's item, from slot [fromSub] onto [toComponentId]'s slot [toSub]. */

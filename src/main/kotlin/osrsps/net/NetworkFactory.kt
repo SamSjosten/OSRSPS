@@ -3,7 +3,6 @@ package osrsps.net
 import net.rsprot.compression.provider.HuffmanCodecProvider
 import net.rsprot.crypto.rsa.RsaKeyPair
 import net.rsprot.protocol.api.AbstractNetworkServiceFactory
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.channel.ChannelHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
@@ -54,8 +53,6 @@ import osrsps.game.World
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicLong
 import java.util.function.Consumer
-
-private val logger = KotlinLogging.logger {}
 
 /** Wires our cache, keys and login handling into RSProt's network service. */
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -137,11 +134,11 @@ class NetworkFactory(
             val types = SettingsSide.SCRIPT_TRIGGERS[message.crc]
             if (types == null) {
                 message.release()
-                logger.info { "${player.username} triggered unknown script ${message.crc.toUInt()} on ${message.interfaceId}:${message.componentId}" }
+                world.onUnreadScriptTrigger(player, message.interfaceId, message.componentId, message.sub, message.crc, "is not one we know")
                 return@MessageConsumer
             }
             val args = runCatching { message.decode(types) }.getOrElse {
-                logger.info { "${player.username} sent script ${message.crc.toUInt()} with arguments we can't read: ${it.message}" }
+                world.onUnreadScriptTrigger(player, message.interfaceId, message.componentId, message.sub, message.crc, "has arguments we can't read: ${it.message}")
                 return@MessageConsumer
             }
             world.onScriptTrigger(player, message.interfaceId, message.componentId, message.sub, args)
