@@ -34,6 +34,6 @@ class FredsFarmTest {
             assertEquals("examine.npc_1178", Examines.npc(sheared)?.key, "sheared sheep $sheared")
         }
         for (id in listOf(FredsFarm.FRED, 1173, 1174, 1262, 1263, 1264, 1176, 1177)) assertNotNull(Examines.npc(id), "NPC $id")
-        assertEquals("examine.loc_${FredsFarm.ONION_LOC}", Examines.loc(FredsFarm.ONION_LOC)?.key)
+        assertEquals("examine.loc_${Crops.ONION_LOC}", Examines.loc(Crops.ONION_LOC)?.key)
     }
 }

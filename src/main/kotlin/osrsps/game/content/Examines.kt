@@ -32,8 +32,11 @@ object Examines : Lines("examine", "Examine") {
         }
         for (entry in root.entries("locs")) {
             val id = entry.id("loc")
+            val also = entry["also"]?.jsonArray?.map { it.jsonPrimitive.int }.orEmpty()
             val name = entry.name()
-            require(locs.put(id, line("loc_$id", "$name (loc $id): ${entry.wiki(name)}")) == null) { "examines.json: loc $id is listed twice" }
+            val ids = (listOf(id) + also).joinToString(", ")
+            val line = line("loc_$id", "$name (loc $ids): ${entry.wiki(name)}")
+            for (each in listOf(id) + also) require(locs.put(each, line) == null) { "examines.json: loc $each is listed twice" }
         }
     }
 

@@ -3,7 +3,8 @@ package osrsps.game
 /**
  * What a player's charged items hold, by name (`blowpipe_scales`), as counts. They belong to the player, not to one
  * item: two of the same item share them. Guessed: live keeps some charges on the item and some on the player, and the
- * Wiki doesn't say which for each. Saved with the account ([PlayerSave]).
+ * Wiki doesn't say which for each. Saved with the account ([PlayerSave]). A little other state the client has no var
+ * for is kept here the same way, by its own name: the grain in a windmill's hopper ([osrsps.game.content.MillLaneMill]).
  */
 class Charges {
     private val counts = LinkedHashMap<String, Int>()

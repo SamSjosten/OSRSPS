@@ -73,7 +73,10 @@ import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
+import osrsps.game.content.registerCrops
 import osrsps.game.content.registerFredsFarm
+import osrsps.game.content.registerGroatsFarm
+import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
@@ -354,6 +357,9 @@ class World(
         registerShops(this)
         registerLumbridgeTown(this)
         registerFredsFarm(this)
+        registerGroatsFarm(this)
+        registerMillLaneMill(this)
+        registerCrops(this)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         woodcutting.register()
         loadDialogue()
