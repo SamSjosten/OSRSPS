@@ -91,8 +91,12 @@ class MeleeCombatTest {
             face = { player, npc -> faced += player to npc }, stopFacing = { player -> faced += player to null },
             onDeath = { deadPlayers += it },
             loot = { npc, killer -> looted += npc to killer },
+            protects = { _, type -> protectFromMelee && type.melee },
         )
     }
+
+    /** Stands in for Protect from Melee; see [Prayers.protects]. */
+    private var protectFromMelee = false
 
     private fun spawn(type: NpcType = man, x: Int = 3213, z: Int = 3210, wander: Int = 0) =
         npcs.add(NpcSpawn(type, x, z, wander = wander, source = "test"))!!
@@ -369,6 +373,27 @@ class MeleeCombatTest {
         assertEquals(10 - taken.sum(), alice.hitpoints)
         assertEquals(15L, npc.nextAttackTick)
         assertIs<MeleeInteraction>(alice.interaction)
+    }
+
+    @Test
+    fun `a protection prayer blocks the NPC's hits, and the dice roll on as they would have`() {
+        protectFromMelee = true
+        val npc = spawn()
+        attack(alice, npc)
+        val taken = ArrayList<Int>()
+        for (t in 1..11) {
+            tick()
+            alice.effects.pendingHits.singleOrNull()?.let { taken += it.value }
+            alice.effects.flush({}, { _, _ -> }, {}, {})
+            npc.effects.flush({}, {}, {})
+        }
+        val roll = combat.npcAttack(npc, alice)!!
+        val exchange = replayHits(listOf(Rolls(768, 430, 1), Rolls(roll.attackRoll, roll.defenceRoll, roll.maxHit)), 6)
+        // Unprotected she would have taken some of these; her own punches land as they would have.
+        assertTrue(listOf(exchange[1], exchange[3], exchange[5]).sum() > 0, "$exchange")
+        assertEquals(listOf(0, 0, 0), taken)
+        assertEquals(10, alice.hitpoints)
+        assertEquals(7 - (exchange[0] + exchange[2] + exchange[4]), npc.hitpoints)
     }
 
     @Test

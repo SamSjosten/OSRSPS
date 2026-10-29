@@ -200,6 +200,18 @@ class Player(
     /** 0 to 10,000; 100 units show as 1% on the orb. */
     var runEnergy: Int = Movement.MAX_ENERGY
 
+    /** The prayers on at the start of this tick, which are the ones that count this tick; see [osrsps.game.combat.Prayers]. */
+    var prayersInEffect: Int = 0
+
+    /** The prayers turned on this tick, which don't drain this tick. */
+    var prayersActivated: Int = 0
+
+    /** The prayer drain counter; see [osrsps.game.combat.Prayers.drain]. */
+    var prayerDrainCounter: Int = 0
+
+    /** The overhead prayer icon in the player's appearance, -1 for none. */
+    var overheadIcon: Int = -1
+
     /** What the client was last told, so changes are sent once. Varps are tracked by [vars]. */
     var sentRunEnabled: Boolean? = null
     var sentRunEnergy: Int = -1
