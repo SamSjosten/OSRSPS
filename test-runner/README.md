@@ -156,7 +156,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `settings-dropdowns.json`: dropdowns and F-key binds in the All Settings window, each picked from its list (the
   row's clickzone child, then child 3n + 2 of dropdown_buttons for option n) and checked once the client has read it
   again: attack priority, the combat and prayer tab keys (a key taken from the tab that had it), login/logout
-  notifications, chatbox scrollbar side and quest list sort; then close, relog and check every one.
+  notifications, chatbox scrollbar side and quest list sort; and the master and music sliders (a mouse click in the
+  middle of each one's notch, a settings_content child, 53%); then close, relog and check every one.
 
 ## Results
 
