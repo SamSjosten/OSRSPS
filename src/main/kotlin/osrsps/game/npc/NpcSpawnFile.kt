@@ -29,13 +29,13 @@ private val logger = KotlinLogging.logger {}
  *
  * `npc` is a type id, a gameval name (`cow2_calf`) or a menu name. `level` defaults to 0, `direction` to south and
  * `wander` to 0 (standing still). `patrol` lists stops walked to in turn instead of wandering: `[x, z]`, or
- * `[x, z, wait]` to stand `wait` ticks there on arriving. `restrict` is `indoors` or `outdoors` (see [MoveRestrict]).
+ * `[x, z, wait]` to stand `wait` ticks there on arriving. `restrict` is `indoors`, `outdoors` or `blocked` (see [MoveRestrict]).
  * `source` is required.
  * Other keys, such as a file-level `about`, are ignored.
  */
 object NpcSpawnFile {
     /** The spawn files the server loads, in this order. Add an area's file here. */
-    val FILES = listOf("lumbridge.json", "lumbridge-castle.json", "lumbridge-farms.json")
+    val FILES = listOf("lumbridge.json", "lumbridge-castle.json", "lumbridge-farms.json", "lumbridge-ducks.json")
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */
     class Result(val spawns: List<NpcSpawn>, val unknown: List<String>)

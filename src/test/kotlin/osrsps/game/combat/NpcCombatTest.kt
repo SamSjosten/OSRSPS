@@ -14,7 +14,7 @@ class NpcCombatTest {
     private val names = listOf(
         "man", "man2", "man3", "man4", "woman", "woman2", "woman3", "rat", "imp",
         "cow", "cow2", "cow3", "cow2_calf", "cow3_calf", "calf",
-        "chicken", "chicken_brown", "ramunsheered", "ramunsheered2", "ramunsheered3",
+        "chicken", "chicken_brown", "ramunsheered", "ramunsheered2", "ramunsheered3", "duck", "duck_female", "duckling",
     )
     private val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name) }.toTypedArray())
 
@@ -26,7 +26,7 @@ class NpcCombatTest {
             "imp_attack" to 169, "imp_block" to 170, "imp_death" to 172,
             "cow_update_attack" to 5849, "cow_update_defend" to 5850, "cow_update_death" to 5851,
             "chicken_attack" to 55, "chicken_block" to 56, "chicken_death" to 57,
-            "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252,
+            "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252, "duck_rework_death" to 3468,
         ),
     )
 
@@ -34,6 +34,8 @@ class NpcCombatTest {
     fun `the resource gives every castle target its Wiki numbers`() {
         val combat = NpcCombat.load(types, seqs)
         assertEquals(names.size, combat.size)
+        // No attack or block animation for a duck: null in the file.
+        assertEquals(NpcCombatAnims(-1, -1, 3468), combat[types.find("duckling")!!]!!.anims)
         val man = combat[types.find("man")!!]!!
         assertEquals(4, man.attackSpeed)
         assertEquals(AttackType.CRUSH, man.attackType)

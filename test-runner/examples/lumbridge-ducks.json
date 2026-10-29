@@ -1,0 +1,163 @@
+{
+ "name": "Rest of Lumbridge step 7b: the ducks. Examine on a drake, a duck, the ducklings, the attackable duckling and the walking duck and drake (::keys on), a drake on the river out of reach, and a duck's death animation",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "nothing worn or carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3244 3226 0",
+   "expectMessage": "Teleported to 3244, 3226, 0",
+   "comment": "the bridge east of the castle, with drakes on the river just north of it"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3244,
+   "y": 3226,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1838,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "a drake (duck, 1838)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_1838]"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1838,
+   "option": "Attack",
+   "timeoutMs": 20000,
+   "comment": "on the water, past the bridge's railing: no way to it"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "I can't reach that!",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::kill duck",
+   "expectMessage": "Killed Duck #",
+   "comment": "the nearest duck, as the client's nearest Duck below"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Duck",
+   "id": 3468,
+   "timeoutMs": 10000,
+   "comment": "duck_rework_death"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3244 3240 0",
+   "expectMessage": "Teleported to 3244, 3240, 0",
+   "comment": "the east bank, across from the ducks with ducklings"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3244,
+   "y": 3240,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1839,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "a female duck (duck_female, 1839)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_1839]"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ducklings",
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "duck_update_ducklings, 2002, which has no options of its own"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_2002]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3232 3282 0",
+   "expectMessage": "Teleported to 3232, 3282, 0",
+   "comment": "Groats' farm by the river, where a duck and a drake walk on land"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3232,
+   "y": 3282,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2003,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "they run from a player who comes close, so they may be a few tiles off"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_2003]"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2004,
+   "option": "Examine",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_2004]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3177 3267 0",
+   "expectMessage": "Teleported to 3177, 3267, 0",
+   "comment": "the bank of the pond by Fred's farm"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3177,
+   "y": 3267,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2001,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "the attackable duckling (duckling, 2001)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_2001]"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

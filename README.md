@@ -476,8 +476,8 @@ chickens and rams fight and drop through `npc-combat.json` and `npc-drops.json`.
 | Messages: "You need a set of shears to do this.", "You get some wool.", "This sheep has already been shorn.", "You pick an onion.", "You don't have room for this onion." | RSMod and the 2004Scape project, not checked against live |
 | Fred's expressions, the chickens' and rams' fight animations (by name), every wander range (5) | guessed |
 
-Not built yet: the onion seed members sometimes get from a field, the sheep's "Baa!", The Thing and the penguin of Cold
-War (and Fred's option about The Thing), the farmers, and the ducks (the Groats' farm step).
+Not built yet: the onion seed members sometimes get from a field, the sheep's overhead bleat, The Thing and the penguin of Cold
+War (and Fred's option about The Thing), and the farmers. The ducks are in their own section below.
 
 Check: `test-runner/examples/lumbridge-freds-farm.json` talks to Fred, picks an onion, shears a sheep and kills
 chickens for their feathers.
@@ -500,11 +500,38 @@ map's locs. Wheat, potatoes and onions are picked through `game/content/Crops.kt
 | The ladders: Climb-up, a Climb menu on the middle floor, Climb-down | the castle's ladders (RSMod) |
 | The grain in the hopper is kept with the account by name, as charges are, since no var for it is known; Gillie's and Millie's expressions; human_pickuptable for filling and operating | guessed |
 
-Not built yet: the ducks (their own step), sweetcorn and cornflour (Farming), Steal-cowbell and the cowbell amulet
+Not built yet: sweetcorn and cornflour (Farming), Steal-cowbell and the cowbell amulet
 (Thieving, Cold War), and the seeds a field sometimes gives.
 
 Check: `test-runner/examples/lumbridge-mill.json` talks to Millie and Gillie, picks wheat, climbs the mill, makes two
 pots of flour and milks a dairy cow into two buckets.
+
+## Ducks
+
+The ducks of the River Lum and the pond by Fred's farm, and those that walk on land beside the pond south of Mill
+Lane Mill and on Groats' farm, in `npc-spawns/lumbridge-ducks.json` on RSMod's tiles (each checked against the 241
+map: the swimmers on water, the walkers on land). What they do is `game/content/Ducks.kt`, through the NPC scripts of
+`game/npc/NpcScripts.kt` (timers, per-tick actions, deaths and queued actions for NPC types). They fight through
+`npc-combat.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Drakes (1838) and ducks (1839) swim, keeping to the water: move restrict `blocked` steps only onto tiles whose floor can't be walked on, with walls and locs still in the way; wander range 35 | RSMod's duck config and its route finder's blocked collision strategy |
+| A duck quacks over its head (`duck.quack`) with the quack sound (synth 413) 26 ticks after it appears, then every 50 to 100 ticks | RSMod's duck script |
+| Ducklings (2002, and the attackable duckling 2001 at the pond) look every 11 ticks for a female duck within 2 tiles in sight and follow her; every 50 to 100 ticks a female within 10 tiles calls (`duck.call`) and the duckling answers (`duck.eep`) 2 ticks later | RSMod's duck script and hunt; the Wiki's Duckling and Ducklings pages (2001 follows female ducks too) |
+| When a duck is killed, the ducklings within a tile cry (`duck.cheep`) 2 ticks later and swim up to 9 tiles off, then call (`duck.eep`); a drake beside her quacks | RSMod's duck script; the Wiki's Duck page |
+| Ducks and ducklings: level 1, 3 hitpoints, stab for 0, back in 25 ticks, no drops; on the water they can't be reached to melee | OSRS Wiki, Duck and Duckling |
+| Fired ammunition that lands on water is lost | OSRS Wiki, Duck ("Ammunition is lost if ducks are not on land"), taken to hold on any floor that can't be walked on |
+| The walking duck (2003) and drake (2004) have no options and run from a player who comes close | OSRS Wiki, Duck (Common) and Drake (bird) |
+| Which of the 11 ticks a duckling looks on, that a scattering duckling picks a water tile, that the 2001 duckling acts as 2002 does, the walkers' range (5) and how close a player comes (2 tiles) before they run 4 tiles off; ducks have no attack or block animation in the 241 cache, so they fight with none | guessed |
+
+What they say is in the dialogue file (keys `duck.quack`, `duck.call`, `duck.eep`, `duck.cheep`).
+
+Check: `test-runner/examples/lumbridge-ducks.json` examines each kind of duck, tries to reach a drake on the river and
+watches a duck's death animation. The runner has no step that reads overhead text, so the quacks, the ducklings'
+following and the walking ducks running off are checked through the headless client (`HeadlessDucksTest`, which reads
+NPC info's say block), with the death cries and keeping to water in `DucksTest` and the water and arrows in
+`HeadlessRangedTest`.
 
 ## Equipment
 
