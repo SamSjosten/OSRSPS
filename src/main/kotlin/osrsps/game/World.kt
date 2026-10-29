@@ -314,6 +314,22 @@ class World(
     /** Cycles run, paused ones included, for saving every few minutes of real time. */
     private var cycles: Long = 0
 
+    /** Whether [start] has run and [stop] hasn't begun; read off the game thread by [isUp]. */
+    @Volatile
+    private var running = false
+
+    /** When the last cycle ended, or when the world started, in epoch millis; read off the game thread by [isUp]. */
+    @Volatile
+    private var lastCycleMillis = 0L
+
+    /**
+     * How many players are in the world, dropped connections waiting for a reconnect included, as the last cycle left
+     * it; for /status.json, off the game thread.
+     */
+    @Volatile
+    var playerCount = 0
+        private set
+
     /** A login or, with [reconnectSeed], a reconnect: the ISAAC seed the client says its last connection used. */
     private class PendingLogin(
         val responseHandler: GameLoginResponseHandler<Player>,
@@ -428,6 +444,8 @@ class World(
     }
 
     fun start() {
+        lastCycleMillis = System.currentTimeMillis()
+        running = true
         executor.execute {
             network.setCommunicationThread(Thread.currentThread(), true)
             // On the game thread: RSProt hands out NPC avatars only there.
@@ -438,6 +456,7 @@ class World(
 
     /** Stops the cycle and saves everyone still in the world. */
     fun stop() {
+        running = false
         authExecutor.shutdownNow()
         executor.shutdown()
         if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -462,7 +481,18 @@ class World(
         cycles++
         // Guessed interval: the task asks for "every few minutes"; live's own autosave interval isn't known.
         if (cycles % AUTOSAVE_CYCLES == 0L) saveAll()
+        playerCount = players.count { it != null }
+        lastCycleMillis = System.currentTimeMillis()
     }
+
+    /**
+     * Whether the game is running, for /status.json: started, not stopping, and a cycle has ended within
+     * [STALL_MILLIS] of [now], so a stuck game thread shows as down even though the HTTP port still answers.
+     */
+    fun isUp(now: Long = System.currentTimeMillis()): Boolean = running && now - lastCycleMillis < STALL_MILLIS
+
+    /** Whether a login now would be let in as far as the world can tell: it is up, with a slot free. */
+    val acceptingLogins: Boolean get() = isUp() && playerCount < MAX_PLAYERS - 1
 
     private fun tick() {
         tick++
@@ -1337,6 +1367,9 @@ class World(
 
         /** 3 minutes of cycles. */
         const val AUTOSAVE_CYCLES = 300L
+
+        /** How long the game may go without ending a cycle before [isUp] calls it down: 10 s. Our own figure. */
+        const val STALL_MILLIS = 10_000L
 
         /** How long an emptied slot is kept from logins while others are free: 10 cycles (6 s). Guessed. */
         const val SLOT_HOLD_CYCLES = 10L

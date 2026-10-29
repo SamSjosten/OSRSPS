@@ -162,7 +162,9 @@ class GameServer(
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)
-        clientConfig.liveStatus = { listOf("js5 connections ${js5Connections.get()}") }
+        clientConfig.gameStatus = {
+            ClientConfig.GameStatus(world.isUp(), world.playerCount, world.acceptingLogins, js5Connections.get())
+        }
         network = factory.build()
         world.network = network
         network.start()

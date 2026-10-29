@@ -129,6 +129,20 @@ The target also names the RuneLite build that plays the server's revision, as a 
 a client of another revision away. RSProx's own table picks the same build for 241 today; the pin keeps friends on it
 if that table changes. A revision bump adds the build for the new revision to that file; a test fails until it does.
 
+### Files for our own launcher
+
+Odin's Gate, our launcher (being built to replace RSProx for friends), reads its own files from the same HTTP port,
+each written for the host it was asked by like the others:
+
+- `/status.json`: whether the game is up (its game loop ended a cycle in the last 10 s) and taking logins, the revision
+  it plays, the commit it was built from, how many players are in, and the JS5 count `/status` gives, e.g.
+  `{"up":true,"revision":241,"commit":"b08d450","players":2,"acceptingLogins":true,"js5Connections":14}`. The launcher
+  picks the RuneLite build from the revision.
+- `/rl/worlds.js`: RuneLite's world list with our one world. The launcher points RuneLite's web API at `/rl/`, so the
+  world hopper never offers one of Jagex's worlds; RuneLite's other API calls get a 404 there.
+- `/launcher/jav_config.ws` and `/launcher/world_list.ws`: copies of RSProx's two files that leave the game's names out
+  (title Odin's Gate, cache folder `odinsgate`, world activity Odin's Gate). RSProx's own files keep their names.
+
 ## Walking
 
 Click the game view or minimap to walk. The run orb toggles running, ctrl-click inverts walk/run for one click, and

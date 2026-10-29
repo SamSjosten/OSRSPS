@@ -82,6 +82,11 @@ class GameServerTest {
             val targets = URI("http://127.0.0.1:$httpPort/proxy-targets.yaml").toURL().readText().lines()
             assertTrue("    modulus: $modulus" in targets, targets.joinToString("\n"))
             assertTrue("    game_server_port: $port" in targets, targets.joinToString("\n"))
+            // The world is running with nobody in it, and the one JS5 connection above was let in.
+            assertEquals(
+                """{"up":true,"revision":${Revision.MAJOR},"commit":"unknown","players":0,"acceptingLogins":true,"js5Connections":1}""",
+                URI("http://127.0.0.1:$httpPort/status.json").toURL().readText(),
+            )
         } finally {
             server.stop()
         }
