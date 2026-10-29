@@ -294,7 +294,24 @@ expect_status 0
 expect_no_calls
 rm "$FAIL_BUILD"
 push src/main/Server.kt=staging4
+staging4=$head
 staging auto
+expect_status 0
+expect_calls "build OSRSPS_COMMIT=$head" 1
+expect_state deployed "$head"
+expect_state failed none
+
+step="auto when the worktree can't move: nothing is built, the commit counts as failed"
+echo edited >"$tmp/vm/.staging/src/src/main/Server.kt"
+push src/main/Server.kt=staging5
+staging auto
+expect_status 1
+expect_calls "build" 0
+expect_output "Checking out staging ($head) in .staging/src FAILED"
+expect_state failed "$head"
+expect_state deployed "$staging4"
+git -C "$tmp/vm/.staging/src" checkout -q -- .
+staging up staging
 expect_status 0
 expect_calls "build OSRSPS_COMMIT=$head" 1
 expect_state deployed "$head"

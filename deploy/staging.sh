@@ -88,8 +88,13 @@ up() {
 		echo "Staging runs $ref ($commit) already; --force rebuilds and restarts it"
 		return 0
 	fi
-	checkout "$commit"
-	prepare_data
+	# Each step says when it fails, so `auto` (which runs up inside an if, where bash's errexit doesn't reach) stops
+	# too: a worktree still at the old commit would otherwise be built and recorded as the new one.
+	if ! checkout "$commit"; then
+		echo "Checking out $ref ($commit) in .staging/src FAILED"
+		return 1
+	fi
+	prepare_data || return 1
 
 	echo "Building $ref ($commit) for staging (up now: ${running:-nothing})"
 	mkdir -p .deploy
@@ -170,12 +175,13 @@ resolve() {
 	git rev-parse --verify --quiet "$1^{commit}" 2>/dev/null
 }
 
-# .staging/src at commit $1: a worktree of this checkout, made at the first up and moved after.
+# .staging/src at commit $1: a worktree of this checkout, made at the first up and moved after. Fails when git does
+# (a file changed by hand in the worktree that the commit would overwrite, say).
 checkout() {
 	if [[ ! -e .staging/src/.git ]]; then
-		rm -rf .staging/src
-		git worktree prune
-		git worktree add --quiet --detach .staging/src "$1"
+		rm -rf .staging/src &&
+			git worktree prune &&
+			git worktree add --quiet --detach .staging/src "$1"
 	else
 		git -C .staging/src checkout --quiet --detach "$1"
 	fi
@@ -192,13 +198,18 @@ prepare_data() {
 		return 1
 	fi
 	echo "Making .staging/data from the live data folder: the cache and its files and the accounts, no saves"
-	rm -rf .staging/data/cache.new .staging/data/accounts
-	mkdir -p .staging/data
-	find data -maxdepth 1 -type f -exec cp -a --no-preserve=ownership {} .staging/data/ \;
+	rm -rf .staging/data/cache.new .staging/data/accounts || return 1
+	mkdir -p .staging/data || return 1
+	local file
+	for file in data/*; do
+		if [[ -f $file ]]; then
+			cp -a --no-preserve=ownership "$file" .staging/data/ || return 1
+		fi
+	done
 	if [[ -d data/accounts ]]; then
-		cp -a --no-preserve=ownership data/accounts .staging/data/accounts
+		cp -a --no-preserve=ownership data/accounts .staging/data/accounts || return 1
 	fi
-	cp -a --no-preserve=ownership data/cache .staging/data/cache.new
+	cp -a --no-preserve=ownership data/cache .staging/data/cache.new || return 1
 	mv .staging/data/cache.new .staging/data/cache
 }
 
