@@ -1,0 +1,30 @@
+{
+ "name": "Gathering skills step 1: the level-up box, message and fireworks for a skill, then for the combat level (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats at the spawn, 3222, 3218; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+
+  {"step": "command", "text": "::addxp woodcutting 83", "expectMessage": "Woodcutting: 83 xp, level 1 -> 2.", "comment": "83 XP is level 2"},
+  {"step": "assertMessage", "contains": "levelup.message skill=Woodcutting level=2"},
+  {"step": "assertSpotanim", "id": 199, "comment": "levelup_anim, the fireworks"},
+  {"step": "assertInterface", "interfaceId": 233, "comment": "levelup_display in the chatbox"},
+  {"step": "assertWidgetText", "interfaceId": 233, "component": 1, "contains": "levelup.title article=a skill=Woodcutting"},
+  {"step": "assertWidgetText", "interfaceId": 233, "component": 2, "contains": "levelup.body skill=Woodcutting level=2"},
+  {"step": "assertStat", "skill": "Woodcutting", "level": 2, "xp": 83},
+  {"step": "walk", "x": 3223, "y": 3218, "comment": "walking closes the box (the runner's continueDialogue doesn't know levelup_display yet)"},
+  {"step": "assertInterface", "interfaceId": 233, "absent": true},
+
+  {"step": "command", "text": "::addxp attack 1000", "expectMessage": "Combat level 3 -> 6.", "comment": "Attack 1 -> 9 takes the combat level from 3 to 6"},
+  {"step": "assertWidgetText", "interfaceId": 233, "component": 2, "contains": "levelup.body skill=Attack level=9"},
+  {"step": "walk", "x": 3222, "y": 3218},
+  {"step": "assertWidgetText", "interfaceId": 233, "component": 2, "contains": "levelup.combat_body level=6", "comment": "the combat level's box follows the skill's"},
+  {"step": "assertMessage", "contains": "levelup.combat_message level=6"},
+  {"step": "walk", "x": 3223, "y": 3218},
+  {"step": "assertInterface", "interfaceId": 233, "absent": true},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

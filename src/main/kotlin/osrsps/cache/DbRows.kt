@@ -65,14 +65,19 @@ object DbRows {
     private fun ByteBuf.readUnsignedSmart(): Int =
         if (getUnsignedByte(readerIndex()) < 128) readUnsignedByte().toInt() else readUnsignedShort() - 0x8000
 
+    /**
+     * Seven bits a byte, lowest first, as RuneLite's readVarInt2 reads it: table 213 is `d5 01`. Read highest first it
+     * came out as 10881, which only tables under 128 (all this loader read before) got away with.
+     */
     private fun ByteBuf.readVarInt(): Int {
-        var b = readUnsignedByte().toInt()
-        var value = b and 0x7F
-        while (b and 0x80 != 0) {
-            b = readUnsignedByte().toInt()
-            value = (value shl 7) or (b and 0x7F)
+        var value = 0
+        var shift = 0
+        while (true) {
+            val b = readUnsignedByte().toInt()
+            value = value or ((b and 0x7F) shl shift)
+            if (b and 0x80 == 0) return value
+            shift += 7
         }
-        return value
     }
 
     private fun ByteBuf.readString(): String {

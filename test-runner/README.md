@@ -117,6 +117,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
+- `skills-levelup.json`: `::addxp` past a Woodcutting level, then an Attack level that raises the combat level: the
+  chat message, the fireworks, the level-up box with each line's key (`::keys on`), and the combat level's box after
+  the skill's. Walking closes each box. Needs only 0.7.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 

@@ -15,6 +15,7 @@ import osrsps.cache.MapCollisionLoader
 import osrsps.cache.NpcTypeLoader
 import osrsps.cache.ObjTypeLoader
 import osrsps.cache.QuestLoader
+import osrsps.cache.SkillUnlockLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
 import osrsps.game.EffectIds
@@ -44,6 +45,7 @@ import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.game.shop.ShopTypes
+import osrsps.game.skill.SkillUnlocks
 import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
 import osrsps.net.RelayAwareValidator
@@ -104,6 +106,7 @@ class GameServer(
         val attackStyles: AttackStyles
         val seqNames: SeqNames
         val spotanimNames: SpotanimNames
+        val skillUnlocks: SkillUnlocks
         try {
             js5 = Js5Store.load(library)
             map = MapCollisionLoader.loadWorld(library)
@@ -116,6 +119,7 @@ class GameServer(
             attackStyles = CombatLoader.attackStyles(library)
             seqNames = CombatLoader.seqNames(library)
             spotanimNames = CombatLoader.spotanimNames(library)
+            skillUnlocks = SkillUnlockLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
             val huffmanData = library.data(HUFFMAN_ARCHIVE, "huffman", 0) ?: error("No huffman group in the cache")
             huffman = HuffmanCodec.create(Unpooled.wrappedBuffer(huffmanData))
@@ -183,7 +187,7 @@ class GameServer(
             Accounts(FileSaveStore(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
-            spells = spells, prayerList = prayers, shopTypes = shopTypes, ipBans = ipBans,
+            spells = spells, prayerList = prayers, shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)
