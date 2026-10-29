@@ -161,17 +161,25 @@ class Combat(
     /**
      * The player's numbers against [npc] with [spell] cast from the spellbook, or null when it has no combat definition.
      * Everything worn counts towards the magic attack and damage bonuses. The NPC defends with its Magic level, not its
-     * Defence, and its magic defence bonus (OSRS Wiki, Damage per second/Magic).
+     * Defence, and its magic defence bonus (OSRS Wiki, Damage per second/Magic). A monster weak to the spell's element
+     * ([NpcCombatDef.weakness]) makes it more accurate and harder hitting by its percentage ([CombatMath.weaknessAttackRoll],
+     * [CombatMath.weaknessMaxHit]).
      */
     fun magicMatchup(player: Player, npc: Npc, spell: CombatSpell): MagicMatchup? {
         val def = npcCombat[npc.type] ?: return null
         val bonuses = bonuses(player)
-        val attackRoll = CombatMath.playerMagicAttackRoll(player.skills.currentLevel(Skill.MAGIC), bonuses.magicAttack)
+        var attackRoll = CombatMath.playerMagicAttackRoll(player.skills.currentLevel(Skill.MAGIC), bonuses.magicAttack)
+        var maxHit = CombatMath.spellMaxHit(spell.maxHit, bonuses.magicDamage)
+        val weakness = def.weakness?.takeIf { spell.element != null && it.element == spell.element }
+        if (weakness != null) {
+            attackRoll = CombatMath.weaknessAttackRoll(attackRoll, weakness.percent)
+            maxHit += CombatMath.weaknessMaxHit(spell.maxHit, weakness.percent)
+        }
         val defenceRoll = CombatMath.npcDefenceRoll(npc.type.stats.magic, def.defence.magic)
         return MagicMatchup(
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = CombatMath.spellMaxHit(spell.maxHit, bonuses.magicDamage),
+            maxHit = maxHit,
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
     }

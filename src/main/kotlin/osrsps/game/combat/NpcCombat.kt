@@ -39,6 +39,26 @@ data class NpcDefence(
     }
 }
 
+/** The four elements of the standard spellbook's combat spells (air for the wind spells). */
+enum class Element {
+    AIR,
+    WATER,
+    EARTH,
+    FIRE,
+    ;
+
+    companion object {
+        fun parse(text: String): Element =
+            entries.firstOrNull { it.name.equals(text, ignoreCase = true) } ?: throw IllegalArgumentException("unknown element '$text'")
+    }
+}
+
+/**
+ * A monster's weakness to the spells of [element]: [percent] more accuracy and damage for each such spell cast on it
+ * (OSRS Wiki, Elemental weakness; in since Project Rebalance, 29 May 2024).
+ */
+data class ElementalWeakness(val element: Element, val percent: Int)
+
 /** The animations an NPC fights with; -1 where it has none. */
 data class NpcCombatAnims(val attack: Int, val defend: Int, val death: Int) {
     companion object {
@@ -64,6 +84,8 @@ data class NpcCombatDef(
     val source: String,
     /** The Wiki's magic attack bonus, which the twisted bow scales on when it beats the Magic level. */
     val magicAttack: Int = 0,
+    /** The Wiki's elemental weakness, null for "No elemental weakness". */
+    val weakness: ElementalWeakness? = null,
 )
 
 /** NPC combat definitions by NPC type id. An NPC with none can't be attacked. */
@@ -97,6 +119,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          *     "respawnTicks": 25, "source": "OSRS Wiki, Man" }
          * ] }
          * ```
+         *
+         * An entry may add `"magicAttack"` and `"weakness": { "element": "water", "percent": 10 }`.
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
          * [seqs] turns into ids; a name it doesn't know fails the file, unless it knows no names at all (a cache with
@@ -151,6 +175,12 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 respawnTicks = entry.required("respawnTicks").jsonPrimitive.int.also { require(it > 0) { "respawn $it" } },
                 source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
                 magicAttack = entry["magicAttack"]?.jsonPrimitive?.int ?: 0,
+                weakness = entry["weakness"]?.jsonObject?.let { weakness ->
+                    ElementalWeakness(
+                        Element.parse(weakness.required("element").jsonPrimitive.content),
+                        weakness.required("percent").jsonPrimitive.int.also { require(it in 1..100) { "weakness of $it%" } },
+                    )
+                },
             )
         }
 

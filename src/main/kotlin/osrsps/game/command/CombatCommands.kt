@@ -46,7 +46,8 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             val magic = combat.magicMatchup(player, target, spell)!!
             val it = combat.npcAttack(target, player)!!
             reply("${style.name} (${spell.name}), speed ${combat.attackSpeed(player)}: attack roll ${magic.attackRoll}, max hit ${magic.maxHit}")
-            reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${type.stats.hitpoints} hp): defence roll ${magic.defenceRoll}, you hit ${percent(magic.hitChance)}")
+            val weakness = combat.npcCombat[type]?.weakness?.let { ", weak to ${it.element.name.lowercase()} (${it.percent}%)" }.orEmpty()
+            reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${type.stats.hitpoints} hp$weakness): defence roll ${magic.defenceRoll}, you hit ${percent(magic.hitChance)}")
             reply("It: attack roll ${it.attackRoll} vs your ${it.defenceRoll}, hits ${percent(CombatMath.hitChance(it.attackRoll, it.defenceRoll))}, max hit ${it.maxHit}")
             return@register
         }

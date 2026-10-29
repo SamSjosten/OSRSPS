@@ -94,6 +94,12 @@ class SpellsTest {
         assertEquals(20, Regex("\"spell\":").findAll(text).count())
         // Enum 1986's keys for the twenty: 1 to 16 the strikes to waves, 48 to 51 the surges.
         assertEquals((1..16).toList() + (48..51).toList(), Regex("\"autocast\": (\\d+)").findAll(text).map { it.groupValues[1].toInt() }.toList())
+        // Each spell's element is the one in its name, wind for air.
+        for (match in Regex("\"spell\": \"\\d+_(\\w+?)_\\w+\", \"autocast\": \\d+, \"element\": \"(\\w+)\"").findAll(text)) {
+            val (word, element) = match.destructured
+            assertEquals(if (word == "wind") "air" else word, element, match.value)
+        }
+        assertEquals(20, Regex("\"element\":").findAll(text).count())
         assertEquals(0, Spells.parse(text, ObjTypes.of(), SeqNames.NONE, SpotanimNames.NONE).size)
     }
 

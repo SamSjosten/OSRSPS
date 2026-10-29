@@ -102,6 +102,18 @@ object CombatMath {
      */
     fun spellMaxHit(baseMaxHit: Int, magicDamageTenths: Int): Int = baseMaxHit * (1000 + magicDamageTenths) / 1000
 
+    /**
+     * What a monster's elemental weakness of [percent] adds to a spell's max hit: the base max hit times the percentage,
+     * rounded down on its own and added last (OSRS Wiki, Elemental weakness).
+     */
+    fun weaknessMaxHit(baseMaxHit: Int, percent: Int): Int = baseMaxHit * percent / 100
+
+    /**
+     * An attack roll with a monster's elemental weakness of [percent]: 1% more a point (OSRS Wiki, Elemental weakness).
+     * Guessed: a multiplier on the whole roll, rounded down, as the slayer helmet's is; the Wiki gives no formula.
+     */
+    fun weaknessAttackRoll(attackRoll: Int, percent: Int): Int = (attackRoll.toLong() * (100 + percent) / 100).toInt()
+
     /** Magic XP in tenths for [damage] dealt with a spell, on top of its base XP: 2 a point (OSRS Wiki, Magic). */
     fun spellDamageXpTenths(damage: Int): Int = damage * 20
 

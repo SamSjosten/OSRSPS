@@ -25,7 +25,8 @@ data class RuneCost(val rune: Int, val count: Int)
  * cast from, the Magic [level] it needs, its base [maxHit] and its [runes]. What the data file adds: the base XP in
  * tenths ([xpTenths]), the casting animation (with and without a staff, -1 for none) and its graphics: [casting] on the
  * player, the projectile it flies as ([travel]) and [impact] on the target (-1 for none), and its key in the cache's
- * enum 1986 ([autocast]), which numbers the spells of the autocast menu (-1 for a spell that can't be autocast).
+ * enum 1986 ([autocast]), which numbers the spells of the autocast menu (-1 for a spell that can't be autocast), and
+ * its [element], which a monster can be weak to (null for none).
  */
 data class CombatSpell(
     val obj: Int,
@@ -41,6 +42,7 @@ data class CombatSpell(
     val travel: Int,
     val impact: Int,
     val autocast: Int = -1,
+    val element: Element? = null,
 )
 
 /**
@@ -97,7 +99,7 @@ class Spells(
          *
          * ```
          * { "splash": "failedspell_impact",
-         *   "spells": [ { "spell": "13_fire_strike", "autocast": 4, "xp": 11.5, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
+         *   "spells": [ { "spell": "13_fire_strike", "autocast": 4, "element": "fire", "xp": 11.5, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
          *                 "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" } ],
          *   "staves": [ { "items": ["staff_of_fire", "fire_battlestaff"], "runes": ["firerune"] } ] }
          * ```
@@ -105,7 +107,7 @@ class Spells(
          * Spells, items and runes are gameval names; the rest of a spell comes from its obj's params, and a spell obj without
          * them fails the file. Animations and spotanims are gameval names too: one [seqs] or [spotanims] doesn't know
          * fails the file, unless it knows no names at all (a cache with no gameval index), when they are all left out.
-         * "autocast" may be left out for a spell that can't be autocast. A
+         * "autocast" may be left out for a spell that can't be autocast, "element" for one of no element. A
          * spell, staff or rune the cache doesn't have is skipped with a warning, a staff of a missing rune with it.
          */
         fun parse(text: String, objTypes: ObjTypes, seqs: SeqNames, spotanims: SpotanimNames, fileName: String = RESOURCE): Spells {
@@ -148,6 +150,7 @@ class Spells(
                         travel = spotanim(entry, "travel"),
                         impact = spotanim(entry, "impact"),
                         autocast = entry["autocast"]?.jsonPrimitive?.int?.also { require(it >= 1) { "autocast key $it" } } ?: -1,
+                        element = entry["element"]?.jsonPrimitive?.content?.let(Element::parse),
                     )
                     require(spell.component !in byComponent) { "component ${spell.component} is listed twice" }
                     require(spell.autocast < 0 || byComponent.values.none { it.autocast == spell.autocast }) { "autocast key ${spell.autocast} is listed twice" }

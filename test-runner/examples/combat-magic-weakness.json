@@ -1,0 +1,29 @@
+{
+ "name": "Magic: the courtyard imp's 10% water weakness gives autocast Water Bolt a max hit of 11 to a man's 10, then the bolt cast on the imp",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel magic 23", "expectMessage": "Magic set to level 23", "comment": "Water Bolt's level"},
+  {"step": "command", "text": "::item chaos rune 10", "expectMessage": "Added 10 x Chaos rune"},
+  {"step": "command", "text": "::item air rune 20", "expectMessage": "Added 20 x Air rune"},
+  {"step": "command", "text": "::item staff of water", "expectMessage": "Added 1 x Staff of water", "comment": "stands in for the water runes"},
+  {"step": "itemOption", "item": "Staff of water", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "item": "Staff of water"},
+  {"step": "clickWidget", "interfaceId": 548, "component": 64, "comment": "toplevel:stone0, the combat tab, in the fixed frame the VM's client uses"},
+  {"step": "clickWidget", "interfaceId": 593, "component": 28, "comment": "Choose spell"},
+  {"step": "assertInterface", "interfaceId": 201, "timeoutMs": 10000},
+  {"step": "clickWidget", "interfaceId": 201, "component": 1, "slot": 6, "comment": "Water Bolt, enum 1986 key 6"},
+  {"step": "assertInterface", "interfaceId": 201, "absent": true, "timeoutMs": 10000},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "command", "text": "::combat man", "expectMessage": "max hit 10", "comment": "Water Bolt's own 10: the man has no elemental weakness (OSRS Wiki, Man)"},
+  {"step": "command", "text": "::combat imp", "expectMessage": "max hit 11", "comment": "10 + 10 x 10%, rounded down (OSRS Wiki, Elemental weakness); the attack roll is 10% higher too"},
+  {"step": "assertMessage", "contains": "weak to water (10%)", "comment": "OSRS Wiki, Imp: a 10% water weakness since 25 June 2025"},
+  {"step": "npcOption", "npc": "Imp", "option": "Attack", "timeoutMs": 40000, "comment": "the nearest courtyard imp; the player walks until it is in range and in sight"},
+  {"step": "assertAnimation", "id": 1162, "timeoutMs": 40000, "comment": "human_caststrike_staff, which bolts share with strikes"},
+  {"step": "assertSpotanim", "id": 120, "timeoutMs": 20000, "comment": "waterbolt_casting on the player"},
+  {"step": "assertSpotanim", "npc": "Imp", "ids": [122, 85], "timeoutMs": 20000, "comment": "waterbolt_impact if it hit, failedspell_impact if it splashed"},
+  {"step": "command", "text": "::kill imp", "expectMessage": "Killed Imp #", "comment": "so the next script finds no fight going on"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

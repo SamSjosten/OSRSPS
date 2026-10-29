@@ -172,8 +172,64 @@ class HeadlessMagicTest {
         }
     }
 
+    @Test
+    fun `the imp's water weakness gives Water Bolt a tenth more accuracy and max hit, and nothing to Fire Strike`(@TempDir dir: Path) {
+        // Water Bolt as the 241 cache has it: level 23, a chaos rune, two water and two air, max hit 10, key 6.
+        val waterBolt = ObjType(
+            3285, "Water Bolt", internalName = "23_water_bolt",
+            params = mapOf(601 to "Water Bolt", 604 to 23, 596 to (218 shl 16 or WATER_BOLT), 365 to CHAOS, 366 to 1, 367 to WATER, 368 to 2, 369 to AIR, 370 to 2, 1935 to 10),
+        )
+        val imp = NpcType(5007, "Imp", ops = listOf(null, "Attack", null, null, null), combatLevel = 2, internalName = "imp", stats = NpcStats(hitpoints = 8))
+        val extraRunes = listOf(Triple(WATER, "Water rune", "waterrune"), Triple(CHAOS, "Chaos rune", "chaosrune")).map { (id, name, internal) ->
+            ObjType(id, name, stackable = true, iops = listOf(null, null, null, null, "Drop"), internalName = internal)
+        }
+        val server = TestServer(dir) { crcs, millis ->
+            val types = NpcTypes.of(man, imp)
+            val objs = arrayOfNulls<ObjType>(waterBolt.id + 1)
+            for (type in runes + extraRunes + listOf(fireStrike, waterBolt, staff)) objs[type.id] = type
+            val objTypes = ObjTypes(objs)
+            World(
+                crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
+                npcSpawns = listOf(NpcSpawn(man, 3226, 3218, source = "test"), NpcSpawn(imp, 3222, 3222, wander = 0, source = "test")),
+                varTypes = VarTypes(6_000, mapOf(VARBIT_WEAPON_CATEGORY to VarbitType(VARP_WEAPON_CATEGORY, 0, 5))),
+                npcCombat = NpcCombat.load(types, SeqNames.NONE),
+                spells = Spells.load(objTypes, SeqNames.NONE, SpotanimNames.NONE), cycleMillis = millis,
+            )
+        }
+        server.use {
+            server.login("dave").use { client ->
+                client.await("the imp in view") { client.npcs().firstOrNull { it.id == imp.id } }
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel magic 23") { it.contains("Magic") }
+                client.give(STAFF_OF_FIRE, 1)
+                val slot = client.inventory(BACKPACK).indexOfFirst { it?.id == STAFF_OF_FIRE }
+                client.ifButton(INVENTORY, INVENTORY_ITEMS, IOP_BUTTON_OPS[WIELD - 1], slot, STAFF_OF_FIRE)
+                client.await("the staff worn") { client.inventory(WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == STAFF_OF_FIRE } }
+                fun pick(key: Int) {
+                    client.ifButton(EquipmentTab.COMBAT, EquipmentTab.COMBAT_AUTOCAST_NORMAL, 1)
+                    client.await("the autocast menu") { if (EquipmentTab.AUTOCAST in client.openInterfaces()) Unit else null }
+                    client.ifButton(EquipmentTab.AUTOCAST, EquipmentTab.AUTOCAST_SPELLS, 1, sub = key)
+                    client.await("spell $key picked") { if (client.varp(Autocast.VARP_LASTCASTSPELL) == (key shl 1 or 1)) Unit else null }
+                }
+                fun combat(name: String) = client.commandReply("combat $name") { it.startsWith("Spell (") }
+                pick(6)
+                val onMan = combat("man")
+                val onImp = combat("imp")
+                assertTrue(onMan.startsWith("Spell (Water Bolt), speed 5: attack roll ${(23 + 8) * (10 + 64)}, max hit 10"), onMan)
+                // 10 + 10 x 10%, and the attack roll times 1.1.
+                assertTrue(onImp.startsWith("Spell (Water Bolt), speed 5: attack roll ${(23 + 8) * (10 + 64) * 110 / 100}, max hit 11"), onImp)
+                // Fire Strike gets nothing from a water weakness.
+                pick(4)
+                assertTrue(combat("imp").endsWith("max hit 8"), "Fire Strike on the imp")
+            }
+        }
+    }
+
     companion object {
         const val FIRE_STRIKE = 19
+        const val WATER_BOLT = 25
+        const val WATER = 555
+        const val CHAOS = 562
         private const val ATTACK = 2
         const val AIR = 556
         const val FIRE = 554

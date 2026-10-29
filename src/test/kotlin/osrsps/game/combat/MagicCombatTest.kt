@@ -38,7 +38,11 @@ class MagicCombatTest {
 
     /** Magic far past any player's: every cast splashes. */
     private val warded = NpcType(2669, "Warded", ops = listOf(null, "Attack", null, null, null), internalName = "warded", stats = NpcStats(hitpoints = 10_000, magic = 5_000))
-    private val npcTypes = NpcTypes.of(man, dummy, warded)
+
+    /** The dummy weak to fire, and to water, by 50%. */
+    private val fireWeak = NpcType(2670, "Fire-weak dummy", ops = listOf(null, "Attack", null, null, null), internalName = "fire_weak", stats = NpcStats(hitpoints = 10_000))
+    private val waterWeak = NpcType(2671, "Water-weak dummy", ops = listOf(null, "Attack", null, null, null), internalName = "water_weak", stats = NpcStats(hitpoints = 10_000))
+    private val npcTypes = NpcTypes.of(man, dummy, warded, fireWeak, waterWeak)
 
     private val fireStrike = spellObj(3279, "13_fire_strike", "Fire Strike", 13, 19, 8, MIND to 1, FIRE to 3, AIR to 2)
     private val runes = listOf(AIR to "airrune", FIRE to "firerune", MIND to "mindrune").map { (id, name) ->
@@ -51,7 +55,7 @@ class MagicCombatTest {
     private val objTypes = ObjTypes.of(fireStrike, staffOfFire, occult, *runes.toTypedArray())
 
     private val spells = Spells.parse(
-        """{ "splash": "failedspell_impact", "spells": [ { "spell": "13_fire_strike", "autocast": 4, "xp": 11.5, "anim": "human_caststrike",
+        """{ "splash": "failedspell_impact", "spells": [ { "spell": "13_fire_strike", "autocast": 4, "element": "fire", "xp": 11.5, "anim": "human_caststrike",
             "staffAnim": "human_caststrike_staff", "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" } ],
           "staves": [ { "items": ["staff_of_fire"], "runes": ["firerune"] } ] }""",
         objTypes, SeqNames(mapOf("human_caststrike" to 711, "human_caststrike_staff" to 1162)),
@@ -64,7 +68,15 @@ class MagicCombatTest {
             "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" },
           { "npcs": ["warded"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
             "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 500, "light": 0, "standard": 0, "heavy": 0 },
-            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" } ] }""",
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" },
+          { "npcs": ["fire_weak"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+            "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -64, "light": 0, "standard": 0, "heavy": 0 },
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25,
+            "weakness": { "element": "fire", "percent": 50 }, "source": "test" },
+          { "npcs": ["water_weak"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+            "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -64, "light": 0, "standard": 0, "heavy": 0 },
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25,
+            "weakness": { "element": "water", "percent": 50 }, "source": "test" } ] }""",
         npcTypes, SeqNames(mapOf("punch" to 422, "block" to 424, "death" to 836)),
     )
     private val map = CollisionMap().apply { markLoaded(50, 50) }
@@ -263,6 +275,32 @@ class MagicCombatTest {
         // 8 * 1.05 = 8.4, rounded down.
         assertEquals(8, geared.maxHit)
         assertEquals((99 + 8) * (12 + 64), geared.attackRoll)
+    }
+
+    @Test
+    fun `a monster weak to the spell's element takes its percentage more accuracy and max hit`() {
+        val strike = spells.spell(FIRE_STRIKE)!!
+        val plain = combat.magicMatchup(alice, spawn(dummy), strike)!!
+        val weak = combat.magicMatchup(alice, spawn(fireWeak, z = 3211), strike)!!
+        // 8 + 8 x 50%, and the attack roll times 1.5.
+        assertEquals(12, weak.maxHit)
+        assertEquals(plain.attackRoll * 3 / 2, weak.attackRoll)
+        assertEquals(plain.defenceRoll, weak.defenceRoll)
+        // A weakness to another element does nothing for Fire Strike.
+        assertEquals(plain, combat.magicMatchup(alice, spawn(waterWeak, z = 3212), strike))
+    }
+
+    @Test
+    fun `Fire Strike on a fire-weak monster hits past its own max hit, up to the Wiki's`() {
+        val npc = spawn(fireWeak, x = 3212)
+        autocast(alice)
+        // Its punches would kill her before the 40th cast.
+        alice.god = true
+        melee.attackFromAfar(alice, npc)
+        repeat(40 * MagicCombat.SPEED) { tick() }
+        val hits = npc.effects.pendingHits.map { it.value }
+        assertEquals(40, hits.size)
+        assertTrue(hits.max() in 9..12, "hits $hits")
     }
 
     @Test
