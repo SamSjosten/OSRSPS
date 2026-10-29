@@ -12,6 +12,7 @@ import osrsps.game.content.DialogueLines
 import osrsps.game.dialogue.DialogueFile
 import osrsps.net.ClientConfig
 import osrsps.net.ProxyProtocol
+import osrsps.net.RsaKeys
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.exitProcess
@@ -93,7 +94,12 @@ private fun serve(port: Int) {
     // off, optional (the default: with or without one) or required.
     val proxy = ProxyProtocol.parse(System.getenv("OSRSPS_PROXY_PROTOCOL"), relays)
     logger.info { proxy.toString() }
-    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins, version, relays, proxy)
+    // The live server's key must be the one whose modulus is committed, which friends' launchers carry. A local server
+    // can use, or make, a key of its own with OSRSPS_LOCAL_KEY=1.
+    val localKey = System.getenv("OSRSPS_LOCAL_KEY") == "1"
+    if (localKey) logger.warn { "OSRSPS_LOCAL_KEY=1: any RSA key will do; our launcher can't log in unless it's the live one" }
+    val rsaModulus = if (localKey) null else RsaKeys.committedModulus()
+    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins, version, relays, proxy, rsaModulus)
     server.start()
     Runtime.getRuntime().addShutdownHook(Thread(server::stop))
 }

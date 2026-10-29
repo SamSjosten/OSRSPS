@@ -1,6 +1,10 @@
 package osrsps.testclient
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import java.nio.file.Path
+import org.slf4j.LoggerFactory
 import osrsps.game.Accounts
 import osrsps.game.MemorySaveStore
 import osrsps.game.World
@@ -8,6 +12,7 @@ import osrsps.map.CollisionMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 
 /** Name claiming over the real login: a wrong password gets the client's "Invalid username or password". */
@@ -73,6 +78,29 @@ class HeadlessAccountsTest {
             val right = assertFailsWith<LoginFailedException> { server.login("erin", "new") }
             assertEquals(ALREADY_LOGGED_IN, right.code)
         }
+    }
+
+    @Test
+    fun `a name that is an email address is refused before it is logged or stored`(@TempDir dir: Path) {
+        val store = MemorySaveStore()
+        val world = { crcs: IntArray, millis: Long ->
+            World(crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, accounts = Accounts(store, iterations = 1_000), cycleMillis = millis)
+        }
+        val logged = ListAppender<ILoggingEvent>().apply { start() }
+        val root = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) as Logger
+        root.addAppender(logged)
+        try {
+            TestServer(dir, world = world).use { server ->
+                val refused = assertFailsWith<LoginFailedException> { server.login("friend@example.com", "theirs") }
+                assertEquals(INVALID_USERNAME_OR_PASSWORD, refused.code)
+            }
+        } finally {
+            root.detachAppender(logged)
+        }
+        val lines = logged.list.map { it.formattedMessage }
+        assertTrue(lines.any { "email address" in it }, lines.joinToString("\n"))
+        assertTrue(lines.none { "friend" in it }, lines.joinToString("\n"))
+        assertTrue(store.saves.isEmpty(), "no account was made for it")
     }
 
     private companion object {

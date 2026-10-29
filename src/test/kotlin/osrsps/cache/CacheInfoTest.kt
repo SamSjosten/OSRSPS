@@ -30,4 +30,11 @@ class CacheInfoTest {
     fun `explains a missing cache`(@TempDir dir: Path) {
         assertFailsWith<IllegalArgumentException> { CacheInfo.read(dir) }
     }
+
+    @Test
+    fun `reads the revision off a cache-source line`() {
+        assertEquals(241, CacheInfo.sourceRevision("openrs2 runescape/2746 build 241 2026-10-20T00:00:00Z"))
+        assertEquals(241, CacheInfo.sourceRevision("openrs2 runescape/2740 build 241.3 2026-10-14"))
+        assertEquals(null, CacheInfo.sourceRevision("copied over by hand"))
+    }
 }

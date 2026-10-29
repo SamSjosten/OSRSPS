@@ -42,7 +42,8 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 `data/cache-source.txt` records which OpenRS2 cache was used. A fetch keeps the cache it replaces in `data/cache.previous`
 (its source in `data/cache.previous-source.txt`). To roll back, stop the server and swap `data/cache` with
 `data/cache.previous`, and `data/cache-source.txt` with `data/cache.previous-source.txt`, so the source line names the
-cache that is running.
+cache that is running. The server won't start when that line names another revision than the one it plays
+(`Revision.MAJOR`), as clients of one revision can't use the other's files. A cache with no source line isn't checked.
 
 ## Run the server
 
@@ -53,8 +54,12 @@ cache that is running.
 
 RSProx assumes the game port is 43594. For another port, add `game_server_port: 50000` to the RSProx target below.
 
-The first start generates a 1024-bit RSA key in `data/rsa.key` and writes its modulus to `data/rsa-modulus.txt`.
-Any username and password log in, and you appear in Lumbridge.
+The login RSA key is `data/rsa.key`, never committed; each start writes its modulus to `data/rsa-modulus.txt`. The live
+server's modulus is committed too, in `src/main/resources/rsa-modulus.txt`, because our launcher's releases carry it. So
+`serve` won't start when `data/rsa.key` is missing or isn't that key: a new key would quietly lock every friend's
+launcher out. Changing the key is a reviewed commit of that file. For a local server with a key of its own, set
+`OSRSPS_LOCAL_KEY=1`; the first start then generates a 1024-bit key. Any username and password log in, and you appear
+in Lumbridge.
 
 ## Keep it running with Docker
 
@@ -743,7 +748,9 @@ inventory's and equipment's slots; the bank joins it when it exists. Code is in 
 The first login as a name claims it with the password typed; after that the name only logs in with that password, and
 anything else gets the client's "Invalid username or password". Names match the way saves do, so `Sam` and `sam ` are
 one account. This is our own rule for a shared test server, not live's: live accounts come from Jagex's login servers.
-Launcher (token) logins are refused, as only Jagex can check a token.
+Launcher (token) logins are refused, as only Jagex can check a token. A name with an `@` in it, as an email address has,
+is refused with "Invalid username or password" before it is logged, hashed or saved: it is most likely someone's real
+game login, typed where a made-up name belongs.
 
 Each account is `data/accounts/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/accounts/`), holding a salted
 PBKDF2-HMAC-SHA256 hash (600,000 rounds), never the password. Checking takes a fraction of a second, so it runs on its
