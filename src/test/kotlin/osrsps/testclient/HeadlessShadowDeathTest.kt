@@ -20,7 +20,6 @@ import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Deaths
-import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.Spells
@@ -93,7 +92,7 @@ class HeadlessShadowDeathTest {
     }
 
     private fun HeadlessClient.charges(): Int =
-        Regex("""has ([\d,]+) charges""").find(commandReply("shadow") { it.startsWith("Your Tumeken's shadow has") })!!
+        Regex("""charges=([\d,]+)]""").find(commandReply("shadow") { it.startsWith("[combat.staff_check ") })!!
             .groupValues[1].replace(",", "").toInt()
 
     private fun HeadlessClient.chargeUncharged(count: Int) {
@@ -123,7 +122,7 @@ class HeadlessShadowDeathTest {
                 repeat(3) { client.give(LOBSTER, 1) }
 
                 client.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
-                client.await(MeleeCombat.DEAD) { client.messages().firstOrNull { it.text == MeleeCombat.DEAD } }
+                client.await("[combat.dead]") { client.messages().firstOrNull { it.text == "[combat.dead]" } }
                 client.await("the respawn", timeoutMillis = 10_000) { client.position?.takeIf { it.x == 3222 && it.z == 3218 } }
                 client.await("the lobsters kept, the staff lost") {
                     if (client.carried(LOBSTER) == 3 && client.carried(SHADOW) == 0) Unit else null
