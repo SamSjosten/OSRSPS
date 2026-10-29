@@ -22,7 +22,8 @@ private val logger = KotlinLogging.logger {}
  * [sound] it makes when turned on. What the data file adds: its [drain] effect per tick, the [groups] of prayers it
  * can't be on with (each prayer turned on turns off every other prayer that shares a group with it), its [overhead]
  * icon (-1 for none), the attack type it [protects] against (null for none), the Defence level it needs ([defence], 1
- * for none), and what it adds to the combat formulas ([boosts]).
+ * for none), what it adds to the combat formulas ([boosts]), and what else it does ([effect], one of [Prayers.EFFECTS], or
+ * null for nothing more).
  */
 data class Prayer(
     val obj: Int,
@@ -37,6 +38,7 @@ data class Prayer(
     val protects: AttackType? = null,
     val defence: Int = 1,
     val boosts: PrayerBoosts = PrayerBoosts.NONE,
+    val effect: String? = null,
 ) {
     val mask: Int get() = 1 shl bit
 }
@@ -90,7 +92,10 @@ data class PrayerBoosts(
  * counter passes the drain resistance, 60 plus twice the worn prayer bonus, the counter keeping the rest. A prayer
  * turned on this tick neither drains this tick nor applies to anything this tick: protection and the other effects go
  * by the prayers on at the start of the tick, [inEffect]. At no points every prayer goes off. Protection prayers block
- * all of an NPC's damage of their type (40% of a player's, which isn't in).
+ * all of an NPC's damage of their type (40% of a player's, which isn't in). The other effects ([has]): Rapid Heal in
+ * [MeleeCombat]'s hitpoints countdown, Redemption and Retribution in [MeleeCombat], Protect Item in [Deaths]. Smite
+ * only drains players, who can't be fought yet; Rapid Restore and Preserve wait for stat restoring, which only
+ * hitpoints have so far.
  *
  * Guessed and not checked on live: the messages' wording; that a prayer can be turned on during a delay (an agility
  * obstacle) as it can be in combat; that dying and logging out turn every prayer off; that a protection prayer counts
@@ -110,6 +115,8 @@ class Prayers(
     private val setOverhead: (Player, Int) -> Unit = { _, _ -> },
 ) {
     private val byComponent: Map<Int, Prayer> = all.associateBy { it.component }
+
+    private val rapidHeal: Prayer? = all.firstOrNull { it.effect == RAPID_HEAL }
 
     /** Every other prayer each prayer turns off when turned on, as a mask of their bits. */
     private val conflicts: Map<Prayer, Int> = all.associateWith { prayer ->
@@ -131,6 +138,9 @@ class Prayers(
         val against = if (type.melee) AttackType.CRUSH else type
         return all.any { it.protects == against && inEffect(player, it) }
     }
+
+    /** Whether a prayer with [effect] ([EFFECTS]) counts for [player] this tick. */
+    fun has(player: Player, effect: String): Boolean = all.any { it.effect == effect && inEffect(player, it) }
 
     /** What the prayers that count this tick ([inEffect]) add to [player]'s combat formulas. */
     fun boosts(player: Player): PrayerBoosts {
@@ -186,7 +196,12 @@ class Prayers(
     }
 
     private fun set(player: Player, bits: Int) {
+        val before = active(player)
         player.vars[VARP_PRAYERS] = (player.vars[VARP_PRAYERS] and ALL_BITS.inv()) or bits
+        // Turning Rapid Heal on or off starts the hitpoints countdown again, at 30 or 60 seconds (OSRS Wiki, Rapid Heal).
+        if (rapidHeal != null && (before xor bits) and rapidHeal.mask != 0) {
+            player.hitpointsRegenTicks = if (bits and rapidHeal.mask != 0) RAPID_HEAL_TICKS else MeleeCombat.REGEN_TICKS
+        }
         if (bits == 0) player.prayerDrainCounter = 0
         val overhead = all.firstOrNull { it.overhead >= 0 && bits and it.mask != 0 }?.overhead ?: -1
         if (overhead != player.overheadIcon) {
@@ -260,6 +275,16 @@ class Prayers(
 
         const val OUT_OF_POINTS = "You have run out of prayer points, you can recharge at an altar."
 
+        /** The prayers' other effects, as the data file names them; see [has]. */
+        const val RAPID_HEAL = "rapidHeal"
+        const val PROTECT_ITEM = "protectItem"
+        const val RETRIBUTION = "retribution"
+        const val REDEMPTION = "redemption"
+        val EFFECTS = setOf(RAPID_HEAL, PROTECT_ITEM, RETRIBUTION, REDEMPTION)
+
+        /** Hitpoints come back every 50 ticks with Rapid Heal, twice the usual rate (OSRS Wiki, Rapid Heal). */
+        const val RAPID_HEAL_TICKS = 50
+
         /** Cache params of the prayer objs (client scripts prayer_redraw and prayer_updatebutton). */
         const val PARAM_BIT = 630
         const val PARAM_COMPONENT = 1751
@@ -283,8 +308,8 @@ class Prayers(
          *
          * "prayer" is the prayer obj's gameval name and "name" what its param 1752 must say, so a cache where the obj
          * has become something else fails the file. "groups", "overhead", "protects" ("melee", "ranged" or "magic"),
-         * "defence" and "boosts" ([PrayerBoosts]' fields, e.g. `{"attack": 120, "strength": 123, "defence": 125}`) may be
-         * left out. A prayer the cache doesn't have is skipped with a warning.
+         * "defence", "boosts" ([PrayerBoosts]' fields, e.g. `{"attack": 120, "strength": 123, "defence": 125}`) and
+         * "effect" (one of [EFFECTS]) may be left out. A prayer the cache doesn't have is skipped with a warning.
          */
         fun parse(text: String, objTypes: ObjTypes, fileName: String = RESOURCE): List<Prayer> {
             val root = Json.parseToJsonElement(text).jsonObject
@@ -323,6 +348,7 @@ class Prayers(
                         },
                         defence = entry["defence"]?.jsonPrimitive?.int ?: 1,
                         boosts = entry["boosts"]?.jsonObject?.let(::parseBoosts) ?: PrayerBoosts.NONE,
+                        effect = entry["effect"]?.jsonPrimitive?.content?.also { require(it in EFFECTS) { "\"effect\": \"$it\"" } },
                     )
                     require(prayers.none { it.bit == prayer.bit }) { "bit ${prayer.bit} is listed twice" }
                     require(prayers.none { it.component == prayer.component }) { "component ${prayer.component} is listed twice" }

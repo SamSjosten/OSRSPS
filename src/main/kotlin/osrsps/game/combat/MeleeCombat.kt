@@ -85,6 +85,11 @@ class MeleeCombat(
     private val multi: MultiCombat = MultiCombat(),
     /** Whether the player's protection prayers block an NPC's attack of this type; see [Prayers.protects]. */
     private val protects: (Player, AttackType) -> Boolean = { _, _ -> false },
+    /** Whether a prayer with the effect counts for the player this tick; see [Prayers.has]. */
+    private val hasPrayer: (Player, String) -> Boolean = { _, _ -> false },
+    /** Every prayer off ([Prayers.deactivateAll]), for Redemption. */
+    private val prayersOff: (Player) -> Unit = {},
+    private val sound: (Player, Int) -> Unit = { player, id -> player.sound(id) },
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -336,6 +341,7 @@ class MeleeCombat(
             val target = npc.target ?: continue
             fightBack(npc, target, tick)
         }
+        regeneratePlayers()
         if (tick % REGEN_TICKS == 0L) regenerate()
     }
 
@@ -385,10 +391,52 @@ class MeleeCombat(
         }
         if (player.hitpoints <= 0) {
             died(player)
-        } else if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen) {
+            return dealt
+        }
+        redemption(player)
+        if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen) {
             retaliate(player, source, tick)
         }
         return dealt
+    }
+
+    /**
+     * Redemption: hit to under 10% of their Hitpoints level, a 0 included, [player] is healed a quarter of their Prayer
+     * level, rounded down, their prayer points go to 0 and every prayer goes off (OSRS Wiki, Redemption). Guessed: that
+     * the heal comes on the tick of the hit, with the spotanim and the heal sound on the player.
+     */
+    private fun redemption(player: Player) {
+        if (player.hitpoints * 10 >= player.skills.baseLevel(Skill.HITPOINTS) || !hasPrayer(player, Prayers.REDEMPTION)) return
+        val max = player.skills.baseLevel(Skill.HITPOINTS)
+        player.hitpoints = minOf(max, player.hitpoints + player.skills.baseLevel(Skill.PRAYER) / 4)
+        player.skills.setCurrentLevel(Skill.PRAYER, 0)
+        prayersOff(player)
+        player.spotanim(REDEMPTION_SPOTANIM)
+        sound(player, REDEMPTION_HEAL_SOUND)
+        player.effects.headBar(-1, HEALTH_BAR, healthBarFill(player.hitpoints, max))
+    }
+
+    /**
+     * Retribution, as [player] falls: every NPC they could fight within a tile of them takes up to a quarter of their
+     * Prayer level, rounded down, a roll each, 0s included (OSRS Wiki, Retribution). Guessed: the Wiki says only
+     * "nearby enemies", so the 3x3 around the player in multi-way combat, and in single-way the NPC that last hit them
+     * alone, if it is in that 3x3; the spotanim on the player; the targets' hits on this tick.
+     */
+    private fun retribution(player: Player, tick: Long) {
+        if (!hasPrayer(player, Prayers.RETRIBUTION)) return
+        player.spotanim(RETRIBUTION_SPOTANIM)
+        val max = player.skills.baseLevel(Skill.PRAYER) / 4
+        val targets = if (multi.at(player.level, player.x, player.z)) {
+            npcs.all.filter { !it.dead && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) }.toList()
+        } else {
+            listOfNotNull(player.attackedBy?.takeIf { !it.dead && npcs[it.index] === it && it.level == player.level && withinATile(player, it) })
+        }
+        for (npc in targets) hit(npc, player, CombatMath.rollDamage(random, max), tick)
+    }
+
+    private fun withinATile(player: Player, npc: Npc): Boolean {
+        val size = npc.type.size
+        return player.x >= npc.x - 1 && player.x <= npc.x + size && player.z >= npc.z - 1 && player.z <= npc.z + size
     }
 
     /**
@@ -405,6 +453,7 @@ class MeleeCombat(
     /** "Oh dear, you are dead!": every fight with the player ends, and [Deaths] has them from here. */
     private fun died(player: Player) {
         message(player, DEAD)
+        retribution(player, currentTick())
         endFights(player)
         onDeath(player)
     }
@@ -417,12 +466,22 @@ class MeleeCombat(
         player.attackedBy = null
     }
 
-    /** A hitpoint back for every hurt player and NPC; OSRS Wiki, Hitpoints: one a minute. Guessed for NPCs. */
-    private fun regenerate() {
+    /**
+     * Each player's hitpoints countdown ([Player.hitpointsRegenTicks]): at 0 a hurt player gets a hitpoint back and it
+     * starts again, at [REGEN_TICKS] (OSRS Wiki, Hitpoints: one a minute) or [Prayers.RAPID_HEAL_TICKS] with Rapid Heal.
+     * Guessed: the countdown runs from login, and while hitpoints are full.
+     */
+    private fun regeneratePlayers() {
         for (player in players()) {
+            if (--player.hitpointsRegenTicks > 0) continue
+            player.hitpointsRegenTicks = if (hasPrayer(player, Prayers.RAPID_HEAL)) Prayers.RAPID_HEAL_TICKS else REGEN_TICKS
             val max = player.skills.baseLevel(Skill.HITPOINTS)
-            if (player.hitpoints in 1 until max) player.hitpoints++
+            if (player.hitpoints in 1 until max && !player.dead) player.hitpoints++
         }
+    }
+
+    /** A hitpoint back for every hurt NPC each [REGEN_TICKS]. Guessed for NPCs: the players' one a minute, on a world clock. */
+    private fun regenerate() {
         for (npc in npcs.all) {
             if (!npc.dead && npc.hitpoints < npc.type.stats.hitpoints && combat.npcCombat[npc.type] != null) npc.hitpoints++
         }
@@ -456,6 +515,11 @@ class MeleeCombat(
 
         /** Ticks between hitpoints coming back: one a minute (OSRS Wiki, Hitpoints). */
         const val REGEN_TICKS = 100
+
+        /** redemption_spotanim and retribution_spotanim in the 241 cache; the redemption_heal sound (OSRS Wiki, Redemption). */
+        const val REDEMPTION_SPOTANIM = 436
+        const val RETRIBUTION_SPOTANIM = 437
+        const val REDEMPTION_HEAL_SOUND = 2681
 
         /** The headbar NPCs and players show their health on: id 0, 30 pixels wide (cache config 33, rev 241). */
         const val HEALTH_BAR = 0
