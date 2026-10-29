@@ -48,7 +48,7 @@ class PoweredStaff(
  * runes, aren't in.
  */
 class PoweredStaves(private val objTypes: ObjTypes) {
-    private val staves = listOf(TUMEKENS_SHADOW)
+    private val staves = ALL
 
     private val byId: Map<Int, PoweredStaff> = staves.flatMap { listOf(it.charged to it, it.uncharged to it) }.toMap()
 
@@ -169,6 +169,9 @@ class PoweredStaves(private val objTypes: ObjTypes) {
             bonusMultiplier = 3,
             maxHit = { magic -> magic / 3 + 1 },
         )
+
+        /** Every powered staff that is in. */
+        val ALL = listOf(TUMEKENS_SHADOW)
 
         private const val CHECK = "Check"
         private const val CHARGE = "Charge"
