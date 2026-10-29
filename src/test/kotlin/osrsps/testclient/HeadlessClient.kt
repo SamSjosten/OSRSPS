@@ -93,10 +93,7 @@ class HeadlessClient private constructor(
     private var topLevel = -1
     private val texts = HashMap<Int, String>()
 
-    /**
-     * IF_SETEVENTS masks by (component shl 32) + slot, events2 in the high word, kept and dropped as the real client
-     * keeps them; see [opEnabled].
-     */
+    /** IF_SETEVENTS masks by (component shl 32) + slot, kept and dropped as the real client keeps them; see [opEnabled]. */
     private val events = HashMap<Long, Long>()
     private val scripts = ArrayList<ClientScript>()
     private var dialogue: DialogueView? = null
@@ -145,17 +142,15 @@ class HeadlessClient private constructor(
     fun openInterfaces(): Set<Int> = lock.withLock { subs.values.toSet() + topLevel }
 
     /**
-     * Whether the server has enabled op [op] (1 to 32) on slot [sub] of a component with IF_SETEVENTS: ops 1 to 10 by
-     * their old bits in events1 (1 to 10) or by events2, the others by events2 alone (op n is bit n - 1). The real
-     * client sends a click on a component only when its op is enabled, by these events or by the component's own
-     * flags in the cache, which this client doesn't read; so this answers for client-made children, which have no
-     * flags of their own.
+     * Whether the server has enabled op [op] (1 to 32) on slot [sub] of a component with IF_SETEVENTS. The real client
+     * sends a click on a component only when its op is enabled, by these events or by the component's own flags in the
+     * cache, which this client doesn't read; so this answers for client-made children, which have no flags of their own.
+     * Op n is bit n - 1 of the second word, as RSMod's IfEvent has it; the first word's old op bits (1 to 10) don't count,
+     * as the VM's 241 client sent no autocast click with only those set.
      */
     fun opEnabled(interfaceId: Int, componentId: Int, sub: Int, op: Int): Boolean = lock.withLock {
         val mask = events[(((interfaceId shl 16) or componentId).toLong() shl 32) + sub] ?: 0L
-        val events1 = mask.toInt()
-        val events2 = (mask ushr 32).toInt()
-        (op in 1..10 && events1 and (1 shl op) != 0) || events2 and (1 shl (op - 1)) != 0
+        mask and (1L shl (31 + op)) != 0L
     }
 
     /** The drag depth (0 to 7) the server enabled on slot [sub] of a component, events1's bits 17 to 19. */

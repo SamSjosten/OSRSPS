@@ -87,11 +87,34 @@ class SpellsTest {
     }
 
     @Test
+    fun `a hold spell's ticks, splash XP and max hit come from the file when its obj has no max hit`() {
+        val bind = spellObj(3283, "20_bind", "Bind", 20, 23, -1, MIND to 2)
+        val types = ObjTypes.of(bind, *runes.toTypedArray())
+        val entry = BIND.replace("\"xp\"", "\"hold\": 8, \"maxHit\": 0, \"splashXp\": 30, \"xp\"")
+        val spell = Spells.parse(file(entry, staves = ""), types, seqs, spotanims).spell(23)!!
+        assertEquals(listOf(0, 310, 300, 8), listOf(spell.maxHit, spell.xpTenths, spell.splashXpTenths, spell.freezeTicks))
+        assertTrue(spell.holds)
+        // Without "splashXp" a splash gives the same as a hit; "freeze" freezes without the hold rules.
+        val ice = Spells.parse(file(BIND.replace("\"xp\"", "\"freeze\": 8, \"maxHit\": 0, \"xp\""), staves = ""), types, seqs, spotanims).spell(23)!!
+        assertEquals(listOf(310, 310, 8), listOf(ice.xpTenths, ice.splashXpTenths, ice.freezeTicks))
+        assertEquals(false, ice.holds)
+
+        fun fails(text: String, objs: ObjTypes, expected: String) {
+            val e = assertFailsWith<IllegalArgumentException> { Spells.parse(text, objs, seqs, spotanims) }
+            assertTrue(expected in e.message.orEmpty(), e.message)
+        }
+        fails(file(BIND, staves = ""), types, "20_bind has max hit -1")
+        fails(file(BIND.replace("\"xp\"", "\"maxHit\": 0, \"xp\""), staves = ""), types, "20_bind has max hit 0")
+        fails(file(BIND.replace("\"xp\"", "\"hold\": 8, \"freeze\": 8, \"maxHit\": 0, \"xp\""), staves = ""), types, "both \"hold\" and \"freeze\"")
+        fails(file(FIRE_STRIKE.replace("\"xp\"", "\"maxHit\": 9, \"xp\"")), objTypes, "\"maxHit\" given, but the cache has 8")
+    }
+
+    @Test
     fun `the real file names only what the 241 cache has, and every spell in it`() {
         // Every name was checked against the cache's gameval dumps when the file was written; here the file must at
         // least parse with nothing known, and list the twenty standard combat spells.
         val text = Spells::class.java.getResource(Spells.RESOURCE)!!.readText()
-        assertEquals(20, Regex("\"spell\":").findAll(text).count())
+        assertEquals(23, Regex("\"spell\":").findAll(text).count())
         // Enum 1986's keys for the twenty: 1 to 16 the strikes to waves, 48 to 51 the surges.
         assertEquals((1..16).toList() + (48..51).toList(), Regex("\"autocast\": (\\d+)").findAll(text).map { it.groupValues[1].toInt() }.toList())
         // Each spell's element is the one in its name, wind for air.
@@ -100,6 +123,8 @@ class SpellsTest {
             assertEquals(if (word == "wind") "air" else word, element, match.value)
         }
         assertEquals(20, Regex("\"element\":").findAll(text).count())
+        // Bind, Snare and Entangle hold for 8, 16 and 24 ticks (OSRS Wiki, Freeze).
+        assertEquals(listOf(8, 16, 24), Regex("\"hold\": (\\d+)").findAll(text).map { it.groupValues[1].toInt() }.toList())
         assertEquals(0, Spells.parse(text, ObjTypes.of(), SeqNames.NONE, SpotanimNames.NONE).size)
     }
 
@@ -108,7 +133,7 @@ class SpellsTest {
         params[Spells.PARAM_NAME] = name
         params[Spells.PARAM_LEVEL] = level
         params[Spells.PARAM_COMPONENT] = (Spells.SPELLBOOK shl 16) or component
-        params[Spells.PARAM_MAX_HIT] = maxHit
+        if (maxHit >= 0) params[Spells.PARAM_MAX_HIT] = maxHit
         runes.forEachIndexed { i, (rune, count) ->
             val (runeParam, countParam) = Spells.PARAM_RUNES[i]
             params[runeParam] = rune
@@ -123,6 +148,9 @@ class SpellsTest {
         const val MIND = 558
 
         const val WIND_STRIKE = """{ "spell": "01_wind_strike", "xp": 5.5, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
+            "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" }"""
+
+        const val BIND = """{ "spell": "20_bind", "xp": 31, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
             "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" }"""
 
         const val FIRE_STRIKE = """{ "spell": "13_fire_strike", "xp": 11.5, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",

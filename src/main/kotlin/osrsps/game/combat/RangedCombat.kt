@@ -250,7 +250,7 @@ class RangedCombat(
         repeat(shots) { shot ->
             if (travel >= 0) projectile(flight(player, npc, travel, landTick - tick, shot))
             // Accuracy first, then damage, as for melee; a shot's random draws are always these two.
-            val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)
+            val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits
             val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
             val damage = reserve(player, npc, style, rolled)
             inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets)
@@ -293,7 +293,7 @@ class RangedCombat(
         val next = random.pick(targets)
         val style = shot.style ?: return null
         val defenceRoll = combat.rangedDefenceRoll(next, style) ?: return null
-        val rolled = if (CombatMath.rollHits(random, shot.attackRoll, defenceRoll)) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0
+        val rolled = if (CombatMath.rollHits(random, shot.attackRoll, defenceRoll) || shot.player.sureHits) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0
         val damage = reserve(shot.player, next, style, rolled)
         if (shot.travel >= 0) projectile(bounceFlight(from, next, shot.travel))
         return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel)

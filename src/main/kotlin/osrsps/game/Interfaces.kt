@@ -33,7 +33,7 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         }
         openJournalTab(player, JournalTab.forValue(journalTabVarbit(player)?.let { player.vars.getVarbit(it) } ?: 0))
         // Lets the client send clicks on the "Game client layout" dropdown's three options.
-        send(player, IfSetEventsV2(GameFrame.SETTINGS_SIDE, GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS, 1, 3, IF_EVENT_OP1, 0))
+        send(player, IfSetEventsV2(GameFrame.SETTINGS_SIDE, GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS, 1, 3, 0, IF_EVENT_OP1))
         // Inferred: the client's scroll-wheel zoom clamps to varcs camera_zoom_small/big_min/max, which start at 0.
         // In the 241 cache only script 626 (no arguments, 128 to 896) or 603/604 with explicit limits set them, and
         // no script or main game interface calls 626, so the server has to. Not checked against a live login.
@@ -207,8 +207,12 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         const val MODAL = 0
         const val OVERLAY = 1
 
-        /** The first op's bit in an interface event mask. */
-        const val IF_EVENT_OP1 = 1 shl 1
+        /**
+         * Op 1's bit in IF_SETEVENTS_V2's second word, where op n is bit n - 1 (RSMod's IfEvent, Op1 to Op32). Bits 1 to
+         * 10 of the first word are the old op bits, deprecated there: the VM's 241 client sent no autocast menu click
+         * while op 1 was set only in the first word.
+         */
+        const val IF_EVENT_OP1 = 1 shl 0
     }
 }
 

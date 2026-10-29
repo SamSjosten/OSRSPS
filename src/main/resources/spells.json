@@ -1,5 +1,5 @@
 {
-  "source": "XP: OSRS Wiki, each spell's page. Autocast: the spell's key in the cache's enum 1986, which the autocast menu and combat tab read. Element: the spell's, which a monster's elemental weakness is to (OSRS Wiki, Elemental weakness). Staves: OSRS Wiki, Elemental staves and Combination staves. Levels, runes, max hits and spellbook components come from the cache.",
+  "source": "XP: OSRS Wiki, each spell's page. Autocast: the spell's key in the cache's enum 1986, which the autocast menu and combat tab read. Element: the spell's, which a monster's elemental weakness is to (OSRS Wiki, Elemental weakness). Hold (ticks), maxHit and splashXp of Bind, Snare and Entangle: OSRS Wiki, each spell's page and Freeze. Guessed: that the three share Entangle's casting animation, casting graphic and projectile, the cache naming only theirs; each has its own impact. Staves: OSRS Wiki, Elemental staves and Combination staves. Levels, runes, max hits and spellbook components come from the cache.",
   "splash": "failedspell_impact",
   "spells": [
     { "spell": "01_wind_strike", "autocast": 1, "element": "air", "xp": 5.5, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
@@ -41,7 +41,13 @@
     { "spell": "90_earth_surge", "autocast": 50, "element": "earth", "xp": 48.5, "anim": "human_cast_surge", "staffAnim": "human_cast_surge",
       "casting": "earthsurge_casting", "travel": "earthsurge_travel", "impact": "earthsurge_impact" },
     { "spell": "95_fire_surge", "autocast": 51, "element": "fire", "xp": 50.5, "anim": "human_cast_surge", "staffAnim": "human_cast_surge",
-      "casting": "firesurge_casting", "travel": "firesurge_travel", "impact": "firesurge_impact" }
+      "casting": "firesurge_casting", "travel": "firesurge_travel", "impact": "firesurge_impact" },
+    { "spell": "20_bind", "hold": 8, "maxHit": 0, "xp": 31, "splashXp": 30, "anim": "human_castentangle", "staffAnim": "human_castentangle_staff",
+      "casting": "entangle_casting", "travel": "entangle_travel", "impact": "bind_impact" },
+    { "spell": "50_snare", "hold": 16, "maxHit": 2, "xp": 61, "splashXp": 60, "anim": "human_castentangle", "staffAnim": "human_castentangle_staff",
+      "casting": "entangle_casting", "travel": "entangle_travel", "impact": "snare_impact" },
+    { "spell": "79_entangle", "hold": 24, "maxHit": 5, "xp": 89, "splashXp": 70, "anim": "human_castentangle", "staffAnim": "human_castentangle_staff",
+      "casting": "entangle_casting", "travel": "entangle_travel", "impact": "entangle_impact" }
   ],
   "staves": [
     { "items": ["staff_of_air", "air_battlestaff", "mystic_air_staff"], "runes": ["airrune"] },

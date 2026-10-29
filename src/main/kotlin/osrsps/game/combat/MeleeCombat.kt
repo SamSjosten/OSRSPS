@@ -204,7 +204,7 @@ class MeleeCombat(
         player.effects.anim(combat.anims(player).attack(style), 0)
         face(player, npc)
         // Accuracy first, then damage, as the Wiki describes a hit; the attack's random draws are always these two.
-        val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)) CombatMath.rollDamage(random, matchup.maxHit) else 0
+        val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits) CombatMath.rollDamage(random, matchup.maxHit) else 0
         // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way.
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage

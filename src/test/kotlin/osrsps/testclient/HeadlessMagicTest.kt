@@ -29,8 +29,9 @@ import osrsps.map.CollisionMap
  * Spells through the headless client, with the real spells and NPC combat files: Fire Strike picked in the spellbook
  * and cast on a man until he dies, each cast taking its runes and giving its XP, and the refusals for too low a level
  * and too few runes, with a staff of fire then standing in for the fire runes; and Fire Strike picked for autocast on
- * the combat tab, which then fights the man to his death from Attack alone. The rl-client scripts
- * test-runner/examples/combat-magic-strike.json and combat-magic-autocast.json make the same clicks in the real client.
+ * the combat tab, which then fights the man to his death from Attack alone; and Bind holding the man in place. The
+ * rl-client scripts test-runner/examples/combat-magic-strike.json, combat-magic-autocast.json and combat-magic-bind.json
+ * make the same clicks in the real client.
  */
 class HeadlessMagicTest {
     private val man = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", "Pickpocket", null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
@@ -231,8 +232,64 @@ class HeadlessMagicTest {
         }
     }
 
+    @Test
+    fun `Bind holds the man where he stands for 8 ticks, and a second Bind meanwhile is refused`(@TempDir dir: Path) {
+        // Bind as the 241 cache has it: level 20, two nature, three water and three earth runes, and no max hit param.
+        val bind = ObjType(
+            3283, "Bind", internalName = "20_bind",
+            params = mapOf(601 to "Bind", 604 to 20, 596 to (218 shl 16 or BIND), 365 to NATURE, 366 to 2, 367 to WATER, 368 to 3, 369 to EARTH, 370 to 3),
+        )
+        val bindRunes = listOf(Triple(WATER, "Water rune", "waterrune"), Triple(EARTH, "Earth rune", "earthrune"), Triple(NATURE, "Nature rune", "naturerune")).map { (id, name, internal) ->
+            ObjType(id, name, stackable = true, iops = listOf(null, null, null, null, "Drop"), internalName = internal)
+        }
+        val server = TestServer(dir) { crcs, millis ->
+            val types = NpcTypes.of(man)
+            val objs = arrayOfNulls<ObjType>(bind.id + 1)
+            for (type in runes + bindRunes + listOf(fireStrike, bind, staff)) objs[type.id] = type
+            val objTypes = ObjTypes(objs)
+            World(
+                crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
+                npcSpawns = listOf(NpcSpawn(man, 3226, 3218, source = "test")),
+                varTypes = VarTypes(6_000, mapOf(VARBIT_WEAPON_CATEGORY to VarbitType(VARP_WEAPON_CATEGORY, 0, 5))),
+                npcCombat = NpcCombat.load(types, SeqNames.NONE),
+                spells = Spells.load(objTypes, SeqNames.NONE, SpotanimNames.NONE), cycleMillis = millis,
+            )
+        }
+        server.use {
+            server.login("dave").use { client ->
+                val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel magic 20") { it.contains("Magic") }
+                client.give(NATURE, 20)
+                client.give(WATER, 30)
+                client.give(EARTH, 30)
+                client.commandReply("god") { it.startsWith("You can") }
+                // A splash holds nothing, so cast until one hits; the man's magic defence lets most through.
+                var held: String? = null
+                var casts = 0
+                while (held == null && casts < 10) {
+                    client.npcTarget(npc.index, Spells.SPELLBOOK, BIND)
+                    casts++
+                    client.awaitTicks(MagicCombat.SPEED + 1)
+                    held = client.commandReply("npcs 10") { it.startsWith("#${npc.index} ") }.takeIf { "; frozen " in it }
+                }
+                assertTrue(held != null, "no Bind hit in $casts casts")
+                val at = client.npcs().first { it.index == npc.index }.coord
+                client.npcTarget(npc.index, Spells.SPELLBOOK, BIND)
+                client.awaitMessage("the refusal") { it == MagicCombat.ALREADY_HELD }
+                client.awaitTicks(2)
+                // He fights back, but stands where the spell caught him.
+                assertEquals(at, client.npcs().first { it.index == npc.index }.coord)
+                assertEquals(20 - 2 * casts, client.carried(NATURE))
+            }
+        }
+    }
+
     companion object {
         const val FIRE_STRIKE = 19
+        const val BIND = 23
+        const val EARTH = 557
+        const val NATURE = 561
         const val WATER_BOLT = 25
         const val WATER = 555
         const val CHAOS = 562

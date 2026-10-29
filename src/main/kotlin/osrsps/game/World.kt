@@ -535,6 +535,7 @@ class World(
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.NPCS
+        npcs.countDownFreezes()
         npcInteractions.releaseNpcs()
         // Shots and spells land before NPCs fight, as melee hits from the last tick are already in; a shot NPC strikes from the next.
         rangedCombat.process()
