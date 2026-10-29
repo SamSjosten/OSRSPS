@@ -174,6 +174,21 @@ class HeadlessProxyTest {
         }
     }
 
+    @Test
+    fun `banning a player logs them out even in combat`(@TempDir dir: Path) {
+        TestServer(dir, proxy = relayIsUs).use { server ->
+            server.login("erin", header = ProxyHeaders.v2("198.51.100.9", 1)).use { erin ->
+                server.login("frank", header = player).use { frank ->
+                    frank.await("the login rebuild") { frank.position }
+                    // Hit this tick: the logout button would be refused for 16 ticks, an admin's ban is not.
+                    server.world.playerNamed("frank")!!.attackedTick = server.world.tick
+                    assertEquals("Banned 203.0.113.7; logging out frank", erin.commandReply("::ipban frank") { it.startsWith("Banned") })
+                    frank.await("frank's logout") { frank.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+                }
+            }
+        }
+    }
+
     /** `::ipbans`, split into its bans. */
     private fun bans(client: HeadlessClient): List<String> =
         client.commandReply("::ipbans") { it.startsWith("198.") || it.startsWith("203.") || it.startsWith("No ") }.split("; ")

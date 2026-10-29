@@ -63,6 +63,9 @@ class Player(
     /** Set by the logout button; the player is logged out at the end of the tick. */
     var logoutRequested: Boolean = false
 
+    /** Set by an admin disconnect (`::ipban`); logs the player out at the end of the tick even in combat. */
+    var logoutForced: Boolean = false
+
     /** Logged out by the button: removed at the start of the next cycle, with no wait for a reconnect. */
     var loggedOut: Boolean = false
 
