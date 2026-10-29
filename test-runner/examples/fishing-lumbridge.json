@@ -1,0 +1,32 @@
+{
+ "name": "Gathering skills step 5: net shrimps at the Lumbridge Swamp spots (no net first), Bait needs 5, the River Lum's Lure needs 20 (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3245 3157 0", "comment": "the fishing tutor's tile, on the shore by the swamp's spots"},
+  {"step": "assertLocation", "x": 3245, "y": 3157, "plane": 0},
+
+  {"step": "npcOption", "npcId": 1530, "option": "Net"},
+  {"step": "assertMessage", "contains": "fishing.no_net"},
+  {"step": "command", "text": "::item net", "expectMessage": "Added 1 x Small fishing net"},
+  {"step": "npcOption", "npcId": 1530, "option": "Net"},
+  {"step": "assertMessage", "contains": "fishing.cast_net"},
+  {"step": "assertAnimation", "id": 621, "comment": "human_smallnet"},
+  {"step": "assertInventory", "item": "Raw shrimps", "count": 1, "timeoutMs": 90000, "comment": "19% a roll at level 1, a roll every 5 ticks"},
+  {"step": "assertMessage", "contains": "fishing.catch_shrimps"},
+  {"step": "assertStat", "skill": "Fishing", "level": 1, "xp": 10},
+
+  {"step": "npcOption", "npcId": 1530, "option": "Bait"},
+  {"step": "assertMessage", "contains": "fishing.level_bait level=5"},
+
+  {"step": "command", "text": "::tele 3241 3243 0", "comment": "the castle side of the River Lum, by its Lure/Bait spots"},
+  {"step": "assertLocation", "x": 3241, "y": 3243, "plane": 0},
+  {"step": "npcOption", "npcId": 1527, "option": "Lure"},
+  {"step": "assertMessage", "contains": "fishing.level_lure level=20"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

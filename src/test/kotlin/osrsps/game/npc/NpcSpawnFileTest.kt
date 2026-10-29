@@ -6,6 +6,8 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.skill.Fishing
+import osrsps.map.Tile
 
 class NpcSpawnFileTest {
     private val types = NpcTypes.of(
@@ -39,6 +41,8 @@ class NpcSpawnFileTest {
         NpcType(3112, "Woman", internalName = "woman2"),
         NpcType(3113, "Woman", internalName = "woman3"),
         NpcType(2854, "Rat", internalName = "rat"),
+        NpcType(1530, "Fishing spot", internalName = "0_50_49_saltfish"),
+        NpcType(1527, "Rod Fishing spot", internalName = "0_50_50_freshfish"),
     )
 
     private fun file(name: String) = NpcSpawnFile::class.java.getResource("/npc-spawns/$name")!!.readText()
@@ -51,8 +55,9 @@ class NpcSpawnFileTest {
         assertEquals(8, spawns.count { it.type.name == "Cow calf" })
         // The River Lum runs north from Lumbridge at about x 3240; the field is east of it.
         assertTrue(cows.all { it.x > 3240 && it.z in 3250..3300 })
-        // All but the Bartender, at his bar, and Arthur, who stands facing north, wander.
-        assertTrue(spawns.all { it.source.isNotBlank() && (it.wander > 0 || it.type.id in setOf(7546, 8665)) })
+        // All but the Bartender, at his bar, Arthur, who stands facing north, and the fishing spots wander.
+        val still = setOf(7546, 8665, Fishing.SWAMP_SPOT, Fishing.RIVER_SPOT)
+        assertTrue(spawns.all { it.source.isNotBlank() && (it.wander > 0 || it.type.id in still) })
     }
 
     @Test
@@ -73,6 +78,16 @@ class NpcSpawnFileTest {
         val tutors = result.spawns.filter { it.type.id in 3216..3218 }
         assertEquals(listOf(3216, 3217, 3218), tutors.map { it.type.id }.sorted())
         assertTrue(tutors.all { it.x in 3217..3219 && it.z in 3238..3239 && it.level == 0 })
+    }
+
+    @Test
+    fun `the swamp has five Net and Bait spots and the river two Lure and Bait spots, each on a tile of its area`() {
+        val spawns = NpcSpawnFile.parse(file("lumbridge.json"), types).spawns
+        assertEquals(5, spawns.count { it.type.id == Fishing.SWAMP_SPOT })
+        assertEquals(2, spawns.count { it.type.id == Fishing.RIVER_SPOT })
+        for (spot in spawns.filter { it.type.id == Fishing.SWAMP_SPOT || it.type.id == Fishing.RIVER_SPOT }) {
+            assertTrue(Fishing.AREAS.any { Tile(spot.x, spot.z) in it }, "a spot at ${spot.x}, ${spot.z}")
+        }
     }
 
     @Test

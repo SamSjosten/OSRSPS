@@ -49,6 +49,60 @@
   same lock so a timed deploy can't start in the middle: `flock .deploy/lock docker compose run --rm osrsps fetch-cache`,
   or stop the crontab line / `sudo systemctl stop osrsps-deploy.timer` first and start it after.
 
+## The staging server: any branch, next to the live one
+
+`staging.sh` runs a second server on VM 214, in the compose project `osrsps-staging`, from any branch or commit, so a
+change can be tried on the test VMs before it merges. It listens on 44594 (game) and 44595 (HTTP), which the Proxmox
+host forwards from `192.168.0.210` for the LAN only (the relay and the internet never see it). As `sam` in
+`/srv/rsps/OSRSPS`:
+
+```bash
+deploy/staging.sh up claude/some-branch   # fetch the branch's head from origin, build it and start, or restart, staging
+deploy/staging.sh up 3c1b194              # a commit, or main
+deploy/staging.sh up claude/some-branch --force   # build and restart even when that commit is up already
+deploy/staging.sh status                  # the ref and commit up, the container, what /version answers
+deploy/staging.sh down                    # stop and remove it; the data folder and the image stay for the next up
+deploy/staging.sh auto                    # what the crontab line below runs: staging follows origin's `staging` branch
+```
+
+- Without a shell on the VM, staging follows the branch named `staging` on origin: `git push origin my-branch:staging`
+  and within a minute `auto` (the crontab line below) builds and runs its head; push again and it follows; delete the
+  branch (`git push origin --delete staging`) and staging goes down. A commit whose build or start failed is written
+  to `.staging/failed` and not tried every minute; the next commit on the branch is. While the branch exists, `auto`
+  brings staging back up after a `down` by hand, so the branch is what to delete; staging brought up by hand is left
+  alone until the branch appears, and then follows it (a branch made at the very commit that is up takes it over
+  without a rebuild, so deleting the branch takes it down all the same). `auto` says nothing when there is nothing
+  to do, so `.deploy/staging.log` holds only the ups and downs.
+- Everything staging is under `.staging/` in the checkout (git-ignored). `src/` is a git worktree at the staged
+  commit, which the image is built from; the compose file is the checkout's `deploy/compose.staging.yaml`, never the
+  staged commit's, so a branch can't change the staging server's ports or data folder. `deployed` and `ref` say what
+  is up, `build.log` holds the last build's output, and `data/` is the server's data folder.
+- `data/` is made at the first `up` from the live `data/`: the cache, the RSA key and every other file at the top of
+  the folder (the words, the prices) are copied, and so are the accounts (names and password hashes: the server lets
+  nobody claim a listed admin's name at a login, so without them neither Sam's nor the test accounts could ever log
+  in), but not the saves, so everyone starts with a fresh character and their live password. The key is the live
+  one, so the launcher reaches staging with the signed manifest's key (`--server`, below). To start the data over,
+  `down`, `sudo rm -rf .staging/data` (the container made its files as root) and `up` again. A staged commit whose `deploy/cache-build.txt`
+  names another OpenRS2 build than `.staging/data/cache-source.txt` gets that build fetched into the staging data
+  before the start, with the image just built; a fetch that fails (OpenRS2 doesn't list it as newest yet) is said and
+  the server starts on the cache it has.
+- Every command but `status` holds `.staging/lock` from start to end, so a run by hand and the minutely `auto` never
+  work on the same worktree, data or server at once: a command by hand waits up to 15 minutes for the run in
+  progress, `auto` skips its minute. An `up` also takes the deploy lock (`.deploy/lock`), waiting up to 15 minutes
+  for a live deploy's build to finish, from before the staging data is made from the live data (a cache swap by the
+  deploy can't be copied half-way) to the end of the build, so the VM never builds two images at once; a timed deploy
+  that comes due meanwhile sees the lock and tries again a minute later. The staging server runs with the same 512 MB heap as the live one. When memory runs out, the
+  kernel kills a build first (the Dockerfile raises its OOM score), the staging server next (the default score), and
+  the live server last (-500). `down` when staging isn't needed, as it keeps running across reboots like the live one.
+- `http://192.168.0.210:44595/version` answers with the staged commit, so `start-client.ps1 -Commit <sha> -GamePort
+  44594` on a test VM waits for it. `/status`, `/status.json` and the client files answer there too, with the host the
+  client asked by and the staging ports, since the server listens on 44594 itself (`serve 44594`).
+- The test VMs reach staging through the launcher only: `start-client.ps1 -Restart -Launcher -GamePort 44594`
+  (`test-runner/launch/README.md`) points it there with `--server`. RSProx's client goes wherever its `OSRSPS` target
+  says, the live server, so the script refuses another server without `-Launcher`.
+- `deploy/staging-test.sh` (run by CI) plays the script through these cases on a made-up origin with a stand-in for
+  docker, as `auto-deploy-test.sh` does for the deploy.
+
 ## Installing without root: sam's crontab
 
 What runs on 214 now. As `sam`, one line in `crontab -e` runs the same script every minute, logging to
@@ -60,6 +114,12 @@ What runs on 214 now. As `sam`, one line in `crontab -e` runs the same script ev
 
 To stop it: `crontab -l | grep -v osrsps-auto-deploy | crontab -`. If the timer below is installed later, remove
 this line.
+
+A second line, the same way, keeps the staging server on origin's `staging` branch (above):
+
+```bash
+* * * * * /srv/rsps/OSRSPS/deploy/staging.sh auto >>/srv/rsps/OSRSPS/.deploy/staging.log 2>&1 # osrsps-auto-staging
+```
 
 ## Installing the timer instead (once, as root on VM 214)
 

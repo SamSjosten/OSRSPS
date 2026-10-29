@@ -106,6 +106,7 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Fishing
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Woodcutting
@@ -366,6 +367,8 @@ class World(
 
     val mining = Mining(this)
 
+    val fishing = Fishing(this)
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has)
 
@@ -380,7 +383,7 @@ class World(
         registerDevCommands(this@World)
         registerTickCommands(this@World)
         registerVarCommands()
-        registerSkillCommands()
+        registerSkillCommands { phase != null }
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
@@ -417,6 +420,7 @@ class World(
         birdNests.register()
         firemaking.register()
         mining.register()
+        fishing.register()
         loadDialogue()
     }
 
@@ -734,6 +738,7 @@ class World(
         deaths.process()
         npcScripts.process()
         npcs.process()
+        fishing.process()
         shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
         for (player in players) {
@@ -997,7 +1002,7 @@ class World(
         val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
         // A save that couldn't be written is newer than the file, which would hand back what the player had before.
         val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player
-        PlayerSave.fromJson(text).applyTo(player)
+        PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
         if (player.hitpoints <= 0) player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
@@ -1264,17 +1269,19 @@ class World(
     }
 
     /**
-     * Runs [op] again for [player] from the next tick, as RS2's `p_oploc` and `p_opobj` do, until something else
-     * replaces their interaction: how a gathering action keeps going. Loc options and options on objs on the ground for
-     * now; NPC options (fishing spots) come with fishing.
+     * Runs [op] again for [player] from the next tick, as RS2's `p_oploc`, `p_opobj` and `p_opnpc` do, until something
+     * else replaces their interaction: how a gathering action keeps going. Options on locs, objs on the ground and NPCs
+     * (fishing spots).
      */
     fun repeatOp(player: Player, op: Op) {
         val loc = op.loc
         val obj = op.groundObj
+        val npc = op.npc
         when {
             op.target == OpTarget.LOC && loc != null -> locInteractions.repeat(player, loc, op.option)
             op.target == OpTarget.GROUND_OBJ && obj != null -> groundObjs.repeat(player, obj, op.option)
-            else -> throw IllegalArgumentException("Only loc and ground obj options can repeat, not $op")
+            op.target == OpTarget.NPC && npc != null -> npcInteractions.repeat(player, npc, op.option)
+            else -> throw IllegalArgumentException("Only loc, ground obj and NPC options can repeat, not $op")
         }
     }
 
