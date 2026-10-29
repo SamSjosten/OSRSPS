@@ -1,10 +1,14 @@
 package osrsps.game
 
+import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.nio.file.StandardOpenOption
 
 /** Where player saves are kept, one text file per [saveKey]. Used only on the game thread. */
 interface SaveStore {
@@ -46,19 +50,33 @@ class FileSaveStore(private val dir: Path) : SaveStore {
     }
 
     /**
-     * Writes to a temporary file and then moves it over the old save, so a crash mid-write leaves the old save whole.
-     * Done on the game thread: a save is a few KB, and doing it in place keeps a quick logout and login from reading
-     * a save that hasn't been written yet.
+     * Writes to a temporary file, forces it to the disk, and then moves it over the old save, so a crash mid-write or
+     * a power cut just after leaves the old save or the new one whole, never an empty file. Done on the game thread: a
+     * save is a few KB, and doing it in place keeps a quick logout and login from reading a save that hasn't been
+     * written yet.
      */
     override fun write(key: String, text: String) {
         Files.createDirectories(dir)
         val target = file(key)
         val temp = dir.resolve("$key.json.tmp")
-        Files.writeString(temp, text)
+        FileChannel.open(temp, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use { channel ->
+            val bytes = ByteBuffer.wrap(text.toByteArray(Charsets.UTF_8))
+            while (bytes.hasRemaining()) channel.write(bytes)
+            channel.force(true)
+        }
         try {
             Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
         } catch (_: AtomicMoveNotSupportedException) {
             Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING)
+        }
+        forceDir()
+    }
+
+    /** Forces the move itself to the disk. Linux allows opening a folder for this; Windows doesn't, so it's skipped there. */
+    private fun forceDir() {
+        try {
+            FileChannel.open(dir, StandardOpenOption.READ).use { it.force(true) }
+        } catch (_: IOException) {
         }
     }
 
