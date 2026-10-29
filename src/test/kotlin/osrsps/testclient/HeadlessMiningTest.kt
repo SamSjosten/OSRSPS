@@ -66,7 +66,7 @@ class HeadlessMiningTest {
                 client.locOp(COPPER, 3223, 3218, 1)
                 client.seen("[mining.swing]")
                 client.await("copper ore", timeoutMillis = 30_000) { if (client.count(COPPER_ORE) == 1) Unit else null }
-                client.seen("[mining.get_ore ore=copper ore]")
+                client.seen("[mining.get_ore ore=copper]")
                 // 17.5 XP: the stat packet carries whole XP.
                 assertEquals(17, client.await("Mining XP") { client.stat(MINING)?.takeIf { it.xp > 0 } }.xp)
                 client.await("the empty rock") { if (client.locAt(3223, 3218) == Mining.ROCKS1) Unit else null }
@@ -87,7 +87,7 @@ class HeadlessMiningTest {
                 client.await("level 99") { client.stat(MINING)?.takeIf { it.level == 99 } }
                 client.locOp(COPPER, 3223, 3218, 1)
                 val clicked = client.await("the swing") { client.messages().firstOrNull { it.text == "[mining.swing]" } }
-                val ore = client.await("the ore") { client.messages().firstOrNull { it.text == "[mining.get_ore ore=copper ore]" } }
+                val ore = client.await("the ore") { client.messages().firstOrNull { it.text == "[mining.get_ore ore=copper]" } }
                 assertEquals(3, ore.tick - clicked.tick)
             }
         }
@@ -106,7 +106,7 @@ class HeadlessMiningTest {
                 client.command("item $POT 27")
                 client.await("a full backpack") { if (client.inventory(BACKPACK).count { it != null } == 28) Unit else null }
                 client.locOp(COPPER, 3223, 3218, 1)
-                client.seen("[mining.inventory_full ore=copper ore]")
+                client.seen("[mining.inventory_full ore=copper]")
             }
         }
     }

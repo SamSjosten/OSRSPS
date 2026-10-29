@@ -34,6 +34,11 @@ class MiningTest {
     }
 
     @Test
+    fun `every gem on the table has its own message`() {
+        assertEquals(Mining.GEMS.map { it.obj }.filter { it != Mining.NOTHING }.toSet(), Mining.GEM_LINES.keys)
+    }
+
+    @Test
     fun `pickaxes go best first and every rock has an empty rock`() {
         assertEquals(Mining.PICKAXES.sortedByDescending { it.tool.level }.map { it.tool.level }, Mining.PICKAXES.map { it.tool.level })
         for (rock in Mining.ROCKS.values) assertEquals(true, rock.empty in Mining.EMPTY_ROCKS)

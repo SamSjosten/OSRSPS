@@ -10,8 +10,11 @@ import osrsps.game.script.ScriptContext
 /** Mining's words, in the dialogue file. */
 object MiningLines : Lines("mining", "Mining") {
     val SWING = line("swing", "the message on starting to mine")
-    val GET_ORE = line("get_ore", "the message for each ore", "ore")
-    val GEM = line("gem", "the message on finding a gem instead of ore", "gem")
+    val GET_ORE = line("get_ore", "the message for each ore; {ore} is the rock's metal or mineral, as live names it", "ore")
+    val GEM_SAPPHIRE = line("gem_sapphire", "the message on finding an uncut sapphire instead of ore")
+    val GEM_EMERALD = line("gem_emerald", "the message on finding an uncut emerald instead of ore")
+    val GEM_RUBY = line("gem_ruby", "the message on finding an uncut ruby instead of ore")
+    val GEM_DIAMOND = line("gem_diamond", "the message on finding an uncut diamond instead of ore")
     val LEVEL = line("level", "the message when the rock needs a higher level", "level")
     val NO_PICKAXE = line("no_pickaxe", "the message with no pickaxe the player's level can use")
     val INVENTORY_FULL = line("inventory_full", "the message when the backpack is full", "ore")
@@ -66,7 +69,8 @@ class Mining(private val world: World) {
         if (op.repeat && player.modalOpen) return stop()
         val text = world.textFor(player)
         val ore = world.objTypes[rock.type.ore]
-        val oreName = ore?.name?.lowercase() ?: "ore"
+        // Live names the metal or mineral ("some copper"), not the ore item: the rock's key.
+        val oreName = rock.type.key
         if (player.inventory.freeSlots == 0) {
             player.message(text[MiningLines.INVENTORY_FULL, "ore" to oreName])
             return stop()
@@ -97,7 +101,7 @@ class Mining(private val world: World) {
                 if (gem != NOTHING) {
                     val type = world.objTypes[gem] ?: error("No obj type $gem for a mined gem")
                     player.inventory.add(type, 1)
-                    player.message(text[MiningLines.GEM, "gem" to type.name.lowercase()])
+                    GEM_LINES[gem]?.let { player.message(text[it]) }
                 }
             } else if (SuccessRoll.roll(world.random, rock.type.low, rock.type.high, player.skills.currentLevel(Skill.MINING))) {
                 ore ?: error("No obj type ${rock.type.ore} for ${rock.type.key} ore")
@@ -177,6 +181,10 @@ class Mining(private val world: World) {
         const val GEM_TABLE_CHANCE = 1
         const val GEM_TABLE_DENOMINATOR = 256
         const val NOTHING = -1
+        val GEM_LINES = mapOf(
+            1623 to MiningLines.GEM_SAPPHIRE, 1621 to MiningLines.GEM_EMERALD, 1619 to MiningLines.GEM_RUBY, 1617 to MiningLines.GEM_DIAMOND,
+        )
+
         val GEMS = listOf(
             NestEntry(NOTHING, 70),
             NestEntry(1623, 32), // uncut_sapphire
