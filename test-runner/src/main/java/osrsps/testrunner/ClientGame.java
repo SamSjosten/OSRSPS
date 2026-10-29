@@ -56,6 +56,13 @@ final class ClientGame implements Game
 		MenuAction.NPC_FIFTH_OPTION,
 	};
 
+	private static final MenuAction[] GROUND_ITEM_OPS = {
+		MenuAction.GROUND_ITEM_FIRST_OPTION,
+		MenuAction.GROUND_ITEM_SECOND_OPTION,
+		MenuAction.GROUND_ITEM_THIRD_OPTION,
+		MenuAction.GROUND_ITEM_FOURTH_OPTION,
+		MenuAction.GROUND_ITEM_FIFTH_OPTION,
+	};
 	private static final MenuAction[] LOC_OPS = {
 		MenuAction.GAME_OBJECT_FIRST_OPTION,
 		MenuAction.GAME_OBJECT_SECOND_OPTION,
@@ -598,6 +605,25 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String groundItemOption(String name, int id, int op, String option, osrsps.testrunner.Tile at)
+	{
+		if (client.getLocalPlayer() == null)
+		{
+			return "no local player";
+		}
+		GroundItem best = nearestGroundItem(name, id, at);
+		if (best == null)
+		{
+			return groundItemMissing(name, id, at);
+		}
+		// The API doesn't give an item's ground options, so the script names the op, as the server reads it.
+		Point p = best.tile.getSceneLocation();
+		client.menuAction(p.getX(), p.getY(), GROUND_ITEM_OPS[op - 1], best.item.getId(), -1, option,
+			client.getItemDefinition(best.item.getId()).getName());
+		return null;
+	}
+
+	@Override
 	public String groundItem(String name, int id, osrsps.testrunner.Tile at)
 	{
 		if (client.getLocalPlayer() == null)
@@ -1046,6 +1072,49 @@ final class ClientGame implements Game
 		}
 		client.menuAction(slot, InterfaceID.Inventory.ITEMS, ccOp(op), op, itemId, option, c.getName());
 		return null;
+	}
+
+	@Override
+	public String useItemOnItem(String name, int id, String onName, int onId)
+	{
+		ItemContainer inventory = client.getItemContainer(InventoryID.INV);
+		if (inventory == null)
+		{
+			return "no inventory yet";
+		}
+		Item[] items = inventory.getItems();
+		int slot = inventorySlot(items, name, id, -1);
+		int onSlot = inventorySlot(items, onName, onId, slot);
+		if (slot < 0 || onSlot < 0)
+		{
+			String what = slot < 0 ? (name != null ? "\"" + name + "\"" : "item " + id) : (onName != null ? "\"" + onName + "\"" : "item " + onId);
+			return "no " + what + " in the inventory";
+		}
+		if (client.getWidget(InterfaceID.Inventory.ITEMS) == null)
+		{
+			return "the inventory panel is not open";
+		}
+		String itemName = client.getItemDefinition(items[slot].getId()).getName();
+		String onItemName = client.getItemDefinition(items[onSlot].getId()).getName();
+		// Use on the first slot selects it, as a click on Use does; the second click sends IF_BUTTONT with both. Not
+		// yet seen in the client: whether the inventory's Use entries carry these params; the spell cast does the same.
+		client.menuAction(slot, InterfaceID.Inventory.ITEMS, MenuAction.WIDGET_TARGET, 0, items[slot].getId(), "Use", itemName);
+		client.menuAction(onSlot, InterfaceID.Inventory.ITEMS, MenuAction.WIDGET_TARGET_ON_WIDGET, 0, items[onSlot].getId(), "Use",
+			itemName + " -> " + onItemName);
+		return null;
+	}
+
+	/** The first slot holding the item, skipping [skip]; -1 if none. */
+	private int inventorySlot(Item[] items, String name, int id, int skip)
+	{
+		for (int i = 0; i < items.length; i++)
+		{
+			if (i != skip && items[i].getId() >= 0 && items[i].getQuantity() > 0 && itemMatches(items[i].getId(), name, id))
+			{
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	/** Op i + 1 for the action i whose text is the option, or -1. */

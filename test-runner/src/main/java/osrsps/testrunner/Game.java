@@ -62,6 +62,15 @@ interface Game
 	 */
 	String takeItem(String name, int id, Tile at);
 
+	/**
+	 * Clicks ground op [op] (1 to 5; Take is 3), named [option] in the menu, on the nearest item on the ground with this
+	 * name (or id) on the player's plane, on the tile when given.
+	 */
+	String groundItemOption(String name, int id, int op, String option, Tile at);
+
+	/** Uses the first such item in the inventory on the first other slot holding the second item, as Use then a click does. */
+	String useItemOnItem(String name, int id, String onName, int onId);
+
 	/** How many of the item (by name, or id when the name is null) the inventory holds; -1 while the client has none. */
 	int inventoryCount(String name, int id);
 
