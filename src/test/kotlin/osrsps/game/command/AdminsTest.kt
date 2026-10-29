@@ -40,7 +40,7 @@ class AdminsTest {
         val world = osrsps.game.World(IntArray(0), osrsps.map.CollisionMap())
         val open = world.commands.all.filter { !it.admin }.map { it.name }.toSet()
         assertEquals(
-            setOf("pos", "keys", "buttons", "tick", "locs", "npcs", "los", "combat", "fight", "hp", "drops", "scripts", "sound", "jingle"),
+            setOf("pos", "keys", "buttons", "tick", "locs", "npcs", "los", "combat", "fight", "hp", "drops", "scripts", "sound", "jingle", "prayers"),
             open,
         )
     }

@@ -56,6 +56,8 @@ import osrsps.game.combat.MagicCombat
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MultiCombat
 import osrsps.game.combat.PoweredStaves
+import osrsps.game.combat.Prayer
+import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.RangedCombat
@@ -141,6 +143,8 @@ class World(
     val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
     /** The combat spells [MagicCombat] casts; tests that cast pass their own. */
     val spells: Spells = Spells.NONE,
+    /** The prayer book's prayers ([Prayers]); tests that pray pass their own. */
+    prayerList: List<Prayer> = emptyList(),
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -178,6 +182,9 @@ class World(
 
     /** Melee combat with NPCs; see [Combat]. */
     val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons)
+
+    /** The prayer book; see [Prayers]. */
+    val prayers = Prayers(prayerList, equipment, setOverhead = { player, icon -> player.infos.playerInfo.avatar.extendedInfo.setOverheadIcon(icon) })
 
     private val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
@@ -231,7 +238,7 @@ class World(
         onDeath = { deaths.die(it) },
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
-        multi = multiCombat,
+        multi = multiCombat, protects = prayers::protects,
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -261,7 +268,7 @@ class World(
         teleportToSpawn = { teleport(it, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) },
         openModal = { player, id -> interfaces.openModal(player, FrameSlot.MAINMODAL, id) },
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
-        examine = inventoryTab::examine,
+        prayersOff = prayers::deactivateAll, examine = inventoryTab::examine,
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -553,6 +560,7 @@ class World(
     private fun tick() {
         tick++
         phase = TickPhase.WORLD
+        for (player in players) if (player != null) prayers.startTick(player)
         groundObjs.process()
         phase = TickPhase.INPUT
         readInput(ticking = true)
@@ -569,6 +577,7 @@ class World(
         for (player in players) {
             if (player == null) continue
             player.playedTicks++
+            prayers.drain(player)
             scripts.process(player)
         }
         phase = TickPhase.MOVEMENT
@@ -950,6 +959,7 @@ class World(
         PlayerOps.send(player.session::queue)
         allowChat(player)
         quests.completeAll(player.vars)
+        prayers.login(player)
         player.message(WELCOME_MESSAGE)
 
         interfaces.openGameFrame(player)
@@ -1171,6 +1181,7 @@ class World(
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
         if (interfaceId == EquipmentTab.AUTOCAST && equipmentTab.clickAutocastMenu(player, componentId, sub)) return@act
+        if (interfaceId == Prayers.PRAYERBOOK && prayers.click(player, componentId, op)) return@act
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act
