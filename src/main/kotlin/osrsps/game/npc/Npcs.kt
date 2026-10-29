@@ -147,6 +147,20 @@ class Npcs(
         if (following != null) npc.face(following) else npc.resetFace()
     }
 
+    /**
+     * Moves [npc] straight to [x], [z] on its level, as a fishing spot moves: the client draws it there with no walk in
+     * between (NPC info's teleport with jump). Anything it was walking to is dropped.
+     */
+    fun teleport(npc: Npc, x: Int, z: Int) {
+        if (npcs[npc.index] !== npc) return
+        occupy(npc, -1)
+        npc.x = x
+        npc.z = z
+        npc.destination = null
+        occupy(npc, 1)
+        npc.avatar?.teleport(npc.level, x, z, true)
+    }
+
     /** The NPCs on [level] whose south-west tile is within [radius] tiles of [x], [z] on both axes. */
     fun near(x: Int, z: Int, level: Int, radius: Int): List<Npc> =
         all.filter { it.level == level && abs(it.x - x) <= radius && abs(it.z - z) <= radius }.toList()

@@ -57,6 +57,13 @@
     {"npc": "woman", "x": 3235, "z": 3206, "wander": 5, "source": "Woman, in the town. RSMod rev 233 Lumbridge spawns"},
     {"npc": "woman2", "x": 3236, "z": 3203, "wander": 5, "source": "Woman, in the town. RSMod rev 233 Lumbridge spawns"},
     {"npc": "rat", "x": 3232, "z": 3229, "wander": 5, "source": "Rat, in the town. RSMod rev 233 Lumbridge spawns"},
-    {"npc": "rat", "x": 3236, "z": 3222, "wander": 5, "source": "Rat, in the town. RSMod rev 233 Lumbridge spawns"}
+    {"npc": "rat", "x": 3236, "z": 3222, "wander": 5, "source": "Rat, in the town. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "0_50_49_saltfish", "x": 3240, "z": 3146, "source": "Net/Bait fishing spot, Lumbridge Swamp. RSMod rev 233 Lumbridge spawns; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_50_49_saltfish", "x": 3240, "z": 3147, "source": "Net/Bait fishing spot, Lumbridge Swamp. RSMod rev 233 Lumbridge spawns; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_50_49_saltfish", "x": 3244, "z": 3150, "source": "Net/Bait fishing spot, Lumbridge Swamp. RSMod rev 233 Lumbridge spawns; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_50_49_saltfish", "x": 3245, "z": 3152, "source": "Net/Bait fishing spot, Lumbridge Swamp. RSMod rev 233 Lumbridge spawns; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_50_49_saltfish", "x": 3246, "z": 3155, "source": "Net/Bait fishing spot, Lumbridge Swamp. RSMod rev 233 Lumbridge spawns; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_50_50_freshfish", "x": 3239, "z": 3241, "source": "Lure/Bait fishing spot, River Lum by the castle. RSMod rev 233 Lumbridge spawns; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_50_50_freshfish", "x": 3238, "z": 3252, "source": "Lure/Bait fishing spot, River Lum by the castle. RSMod rev 233 Lumbridge spawns; moves between its area's tiles, see Fishing.AREAS"}
   ]
 }
