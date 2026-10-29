@@ -337,6 +337,29 @@ At the deposit box on the castle's top floor, `::item logs 5` and `::item bronze
 a click take the rest; Wield the axe from the box and Bank it from its worn slot. In the bank, Show worn items lists
 the bonuses (`test-runner/examples/lumbridge-deposit-box.json`, with the banker's PIN settings).
 
+## Shops
+
+Trade on a shop keeper opens their shop: shopmain (300) over the game view and shopside (301) beside it. The shops,
+their prices and stock are in `src/main/resources/shops.json` (the OSRS Wiki's shop pages), the stock and prices in
+`game/shop/Shop.kt`, the interface in `game/shop/ShopScreen.kt`. Each shop's stock is the same for every player.
+
+| Shop behaviour | Source |
+|----------------|--------|
+| Lumbridge General Store (the Shop keeper and Shop assistant, 130% / 40% / 3%, 15 items) and Bob's Brilliant Axes (Bob, 100% / 60% / 2%, 7 items) | OSRS Wiki, read 2026-10-29 |
+| The client draws the shop (shop_main_init, script 1074): Buy 1, 5, 10 and 50 as ops 2 to 5, Examine op 10; op 1 is Value, or what the Quantity buttons pick (varbit shop_quantity), op 6 then Value | 241 client scripts (shop_main_update, shop_quantity) |
+| The inventory beside it: Value, Sell 1, 5, 10 and 50 (interface_inv_init, script 149) | RSMod; that it doesn't follow the Quantity buttons is guessed |
+| A price is the shop's percentage of the item's value, less its change for each item over its starting stock (more for each under), held between -500% and +100%, never under 10%; buying costs at least 1 coin. Each item of a Buy 5 or Sell 5 is priced at the stock it meets | 2004Scape's calc_shop_value; every price on the Wiki's two pages and its Bob example agree |
+| A general store buys anything tradeable, into the first free slot; a specialist shop only what it stocks. Coins and untradeable items can't be sold; notes sell as their item | 2004Scape |
+| Each stocked item comes back (or goes down when overstocked) by one every its restock time, as the Wiki gives it; an item the shop doesn't stock goes down by one every 100 ticks and its slot goes at 0, the later items moving up. A sold-out stocked item stays at 0 | the Wiki's restock times; the rest guessed (RSMod's 100 ticks) |
+| Messages: "Pot: currently costs 1 coin.", "...: shop will buy for N coins.", "The shop has run out of stock.", "You don't have enough coins.", "You don't have enough inventory space.", "The shop has run out of space.", "You can't sell this item to a shop.", "You can't sell this item.", "You can't sell this item to this shop." | 2004Scape (RS2), "coins" for its "gp" as RSMod has it; not checked against live |
+
+Not built yet: the shop keepers' Talk-to (the town centre's NPCs, next step), Bob's Repair, ironman stock, noted
+buying (Leagues only) and every other shop.
+
+Check: `::item coins 100` in the Lumbridge General Store, Trade with the Shop keeper, Buy 1 on the pot: 99 coins. Sell
+it back for nothing (40% of 1). The Quantity 5 button makes a click buy five. At Bob's, a pot can't be sold and a
+bronze axe can (`test-runner/examples/lumbridge-shops.json`).
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and

@@ -112,6 +112,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-deposit-box.json`: the castle's deposit box (Deposit-1, the 5 button, Wield from the extra option, a worn
   slot's Bank), then the bank's worn items view (its bonus lines, Wield, Remove and Deposit) and the banker's PIN
   settings screen.
+- `lumbridge-shops.json`: the Lumbridge General Store (Value, Buy 1 and selling a pot back for nothing, the Quantity 5
+  button, Sell 50) and Bob's Brilliant Axes (a pot refused, a bronze axe bought and sold back).
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

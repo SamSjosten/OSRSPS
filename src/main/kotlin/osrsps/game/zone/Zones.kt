@@ -1,5 +1,6 @@
 package osrsps.game.zone
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.ByteBuf
 import net.rsprot.protocol.api.util.ZonePartialEnclosedCacheBuffer
 import net.rsprot.protocol.common.client.OldSchoolClientType
@@ -18,6 +19,8 @@ import net.rsprot.protocol.game.outgoing.zone.payload.SoundArea
 import net.rsprot.protocol.message.OutgoingGameMessage
 import net.rsprot.protocol.message.ZoneProt
 import osrsps.game.Player
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * A stack of objs on the ground. While [owner] is set only that player sees it. [droppedBy] is whose it was, which the
@@ -124,7 +127,12 @@ class ZoneView {
  * A player watches the zones within [VIEW_RADIUS] of their own on their level that fit in their build area. That
  * radius and the rest of this flow follow RSMod's and RSProt's reading of the client, not a recording of live.
  */
-class Zones {
+class Zones internal constructor(
+    /** Encodes one enclosed payload. Tests swap it for one that fails. */
+    private val encode: ZonePartialEnclosedCacheBuffer.(List<ZoneProt>) -> ByteBuf,
+) {
+    constructor() : this({ computeZoneForClient(OldSchoolClientType.DESKTOP, it) })
+
     private val states = HashMap<Int, ZoneState>()
     private val pending = LinkedHashMap<Int, MutableList<ZoneEvent>>()
     private val enclosedCache = ZonePartialEnclosedCacheBuffer(listOf(OldSchoolClientType.DESKTOP))
@@ -262,13 +270,20 @@ class Zones {
             if (update.full) out(UpdateZoneFullFollows(update.zoneX, update.zoneZ, update.zone.level))
             if (update.shared.isNotEmpty()) {
                 val payloads = enclosedPayloads.getOrPut(update.zone.packed) {
-                    update.shared.chunked(MAX_PROTS_ENCLOSED).map { enclosedCache.computeZoneForClient(OldSchoolClientType.DESKTOP, it) }
+                    try {
+                        update.shared.chunked(MAX_PROTS_ENCLOSED).map { enclosedCache.encode(it) }
+                    } catch (e: Exception) {
+                        // Everyone watching shares this payload, so a failure here is the zone's, not the player's: it
+                        // is dropped for the cycle rather than thrown at, and kicking, each of them.
+                        logger.error(e) { "Zone ${update.zone} failed to encode its updates; dropped for this cycle" }
+                        emptyList()
+                    }
                 }
                 for (payload in payloads) out(UpdateZonePartialEnclosed(update.zoneX, update.zoneZ, update.zone.level, payload))
             }
             // A zone's full resend can hold many objs; RSProt refuses an enclosed packet past 40 KB, so it goes in parts.
             for (part in update.own.chunked(MAX_PROTS_ENCLOSED)) {
-                val payload = enclosedCache.computeZoneForClient(OldSchoolClientType.DESKTOP, part)
+                val payload = enclosedCache.encode(part)
                 out(UpdateZonePartialEnclosed(update.zoneX, update.zoneZ, update.zone.level, payload))
             }
         }

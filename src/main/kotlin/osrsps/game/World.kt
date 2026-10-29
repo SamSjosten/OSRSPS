@@ -49,6 +49,8 @@ import osrsps.game.bank.Bank
 import osrsps.game.bank.BankPinSettings
 import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
+import osrsps.game.shop.ShopScreen
+import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.Deaths
@@ -67,6 +69,7 @@ import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
+import osrsps.game.content.registerShops
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -145,6 +148,8 @@ class World(
     val spells: Spells = Spells.NONE,
     /** The prayer book's prayers ([Prayers]); tests that pray pass their own. */
     prayerList: List<Prayer> = emptyList(),
+    /** The shops and their stock; tests that shop pass their own. */
+    val shopTypes: ShopTypes = ShopTypes.NONE,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -213,6 +218,10 @@ class World(
     val bankPinSettings = BankPinSettings(interfaces::openModal)
 
     private val settingsSide = SettingsSide()
+
+    /** Shops and their shared stock; see [ShopScreen]. */
+    val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine)
+
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells)
 
     private val interactions = Interactions()
@@ -309,6 +318,8 @@ class World(
         registerBones(this)
         registerBanking(this)
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
+        registerShops(this)
+        interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         loadDialogue()
     }
 
@@ -573,6 +584,7 @@ class World(
         meleeCombat.process()
         deaths.process()
         npcs.process()
+        shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
         for (player in players) {
             if (player == null) continue
@@ -687,6 +699,7 @@ class World(
                 inventoryTab.flush(player)
                 equipmentTab.flush(player)
                 bankScreen.flush(player)
+                shopScreen.flush(player)
             }
         }
         for (npc in npcs.all) sendNpcEffects(npc)
@@ -1177,6 +1190,7 @@ class World(
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
+        if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
@@ -1200,7 +1214,7 @@ class World(
             }
         }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
-            if (player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS) {
+            if (inCombat(player)) {
                 player.message(CANT_LOG_OUT_IN_COMBAT)
                 return@act
             }
@@ -1495,7 +1509,12 @@ class World(
         // Live closes every tick with ServerTickEnd, and RuneLite fires its GameTick (and replays deferred events such
         // as VarbitChanged) only on it, so without it the client never sees a tick. A paused cycle is not a tick.
         if (tickEnd) session.queue(ServerTickEnd)
-        if (player.logoutRequested) {
+        if (player.logoutRequested && !player.logoutForced && inCombat(player)) {
+            // Hit later in the tick that the button was clicked in: the NPC phase comes after input.
+            player.logoutRequested = false
+            player.message(CANT_LOG_OUT_IN_COMBAT)
+        }
+        if (player.logoutRequested || player.logoutForced) {
             // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
             // the player is removed on the next tick by hand.
             session.queue(Logout)
@@ -1505,6 +1524,9 @@ class World(
         }
         session.flush()
     }
+
+    /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
+    private fun inCombat(player: Player): Boolean = player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {

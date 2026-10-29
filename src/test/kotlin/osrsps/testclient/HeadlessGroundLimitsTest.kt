@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GroundObjs
+import osrsps.game.ObjSpawn
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
@@ -61,6 +62,24 @@ class HeadlessGroundLimitsTest {
         assertEquals(GroundObjs.MAX_PER_TILE, objs.size)
         assert(first !in objs) { "the oldest obj went" }
         assertEquals(coins.id, objs.last().id)
+    }
+
+    @Test
+    fun `a spawn pushed off a full tile waits for room before it comes back`() {
+        val world = world()
+        world.groundObjs.addSpawn(ObjSpawn(sword.id, 1, 3222, 3218, 0, respawnTicks = 5))
+        world.groundObjs.addPublic(sword, GroundObjs.MAX_PER_TILE - 1, 3222, 3218, 0)
+        // The loot pushes out the spawn, the oldest obj there.
+        world.groundObjs.addPrivate(coins, 100, 3222, 3218, 0, "alice", GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
+        assertEquals(1, world.groundObjs.pendingRespawns().size)
+        repeat(20) { world.groundObjs.process() }
+        assertEquals(GroundObjs.MAX_PER_TILE, world.zones.objsAt(3222, 3218, 0).size)
+        assertEquals(1, world.groundObjs.pendingRespawns().size, "still waiting")
+
+        world.groundObjs.clear(3222, 3218, 0)
+        world.groundObjs.process()
+        assertEquals(listOf(sword.id), world.zones.objsAt(3222, 3218, 0).map { it.id })
+        assertEquals(emptyList(), world.groundObjs.pendingRespawns())
     }
 
     @Test

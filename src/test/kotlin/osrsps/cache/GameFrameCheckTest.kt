@@ -11,6 +11,7 @@ import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Chatbox
+import osrsps.game.shop.ShopScreen
 
 class GameFrameCheckTest {
     /** Gameval names as the 241 cache has them, built from our own tables. */
@@ -20,7 +21,7 @@ class GameFrameCheckTest {
             names[frame.interfaceId] = InterfaceNames(frame.cacheName, FrameSlot.entries.associate { frame.component(it) to it.cacheName })
         }
         for (overlay in GameFrame.overlays) names[overlay.interfaceId] = InterfaceNames(overlay.cacheName, emptyMap())
-        for ((id, expected) in EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES + BankScreen.CACHE_NAMES + DepositBox.CACHE_NAMES + BankPinSettings.CACHE_NAMES + SettingsSide.CACHE_NAMES) names[id] = InterfaceNames(expected.first, expected.second)
+        for ((id, expected) in EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES + BankScreen.CACHE_NAMES + DepositBox.CACHE_NAMES + BankPinSettings.CACHE_NAMES + SettingsSide.CACHE_NAMES + ShopScreen.CACHE_NAMES) names[id] = InterfaceNames(expected.first, expected.second)
         return names
     }
 

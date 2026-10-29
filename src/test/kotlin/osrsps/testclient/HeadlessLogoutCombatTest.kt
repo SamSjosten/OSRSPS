@@ -53,6 +53,23 @@ class HeadlessLogoutCombatTest {
         }
     }
 
+    @Test
+    fun `a hit landing in the tick logout was clicked in cancels the logout`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                val alice = server.world.playerNamed("alice")!!
+                // Stands in for the input phase taking the click, then an NPC's first hit landing later in that tick.
+                alice.attackedTick = server.world.tick
+                alice.logoutRequested = true
+                client.awaitMessage("the refusal") { it == World.CANT_LOG_OUT_IN_COMBAT }
+                client.awaitTicks(3)
+                assertNull(client.packets().firstOrNull { it.prot.name == "LOGOUT" })
+                assertTrue(server.world.playerNamed("alice") != null)
+            }
+        }
+    }
+
     private companion object {
         const val ATTACK = 2
     }
