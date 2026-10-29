@@ -153,7 +153,7 @@ class DepositBox(
         const val INTERFACE = 192
 
         /** The inventory's items, one sub per slot. */
-        const val ITEMS = 6
+        const val ITEMS = 24
         const val EXAMINE = 10
 
         /** The worn slots, slot0 to slot13, by wearpos (the number in the name). */
