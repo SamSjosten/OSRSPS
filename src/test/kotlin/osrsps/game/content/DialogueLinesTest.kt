@@ -9,8 +9,10 @@ import kotlin.test.assertEquals
 class DialogueLinesTest {
     @Test
     fun `every Lines object in the content is listed, so dialogue-keys writes its keys`() {
-        val declared = Files.list(Path.of("src/main/kotlin/osrsps/game/content")).use { files ->
-            files.toList().flatMap { file -> DECLARATION.findAll(file.readText()).map { it.groupValues[1] }.toList() }
+        val declared = CONTENT_DIRS.flatMap { dir ->
+            Files.list(Path.of(dir)).use { files ->
+                files.toList().flatMap { file -> DECLARATION.findAll(file.readText()).map { it.groupValues[1] }.toList() }
+            }
         }
         assertEquals(declared.sorted(), DialogueLines.ALL.map { it::class.simpleName!! }.sorted())
     }
@@ -22,6 +24,8 @@ class DialogueLinesTest {
     }
 
     private companion object {
+        /** Where content declares its lines: NPCs and places, and the skills. */
+        val CONTENT_DIRS = listOf("src/main/kotlin/osrsps/game/content", "src/main/kotlin/osrsps/game/skill")
         val DECLARATION = Regex("""object (\w+) : \w*Lines\(""")
     }
 }

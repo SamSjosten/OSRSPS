@@ -268,6 +268,42 @@ the Hitpoints skill's current level (`Player.hitpoints`).
 | A level gained while boosted or drained raises the current level by one | inferred, not measured |
 | The stat packet's invisible boost equals the current level | guessed |
 
+A level gained through XP (not `::setlevel`) shows the level-up (`game/skill/LevelUps.kt`): a chat message, the
+fireworks, the skill's jingle and the levelup_display box in the chatbox, then the same for the combat level when it went
+up too. The words are in the dialogue file under `levelup.*`.
+
+| Level-up behaviour | Source |
+|--------------------|--------|
+| levelup_display 233: text1, text2, continue 3, one hidden layer per skill (woodcutting 53, combat 55) | 241 cache via osrs-dumps |
+| Fireworks: spotanim levelup_anim 199, levelup_99_anim 1388 at 99 | 241 gamevals |
+| Jingles: each skill's "Level Up!", its "(Unlocks)" version (the next id) at levels in skill_features (db table 213) | OSRS Wiki jingle pages; ids for Prayer, Ranged, Runecraft, Slayer and Thieving inferred from the alphabetical run |
+| Order: message, fireworks, jingle, box; combat level's box after the skill's | 2004Scape levelup script; combat order guessed |
+| Queued as a normal script in the script phase after the XP; fireworks height 124; no Sailing jingle | guessed |
+| The "Level N Skill: unlock" chat lines live adds | not sent yet |
+
+Gathering actions share a skill clock (`Player.actionDelay`, `game/skill/SkillClock.kt`): a handler re-runs its own loc
+option every tick with `World.repeatOp` (RS2's `p_oploc`) and rolls only on the ticks the clock comes due, so a new
+click doesn't reset the cycle. Rolls use the Wiki's skilling success formula (`SuccessRoll`, a low and high value per
+action out of 256), and `SkillTools` picks the best axe or pickaxe the player can use from the backpack or weapon slot.
+The shared clock is the 2004Scape project's `%action_delay` model, inferred to hold on OSRS from tick manipulation.
+
+### Woodcutting
+
+Chop down on a tree, or an axe used on one, chops it (`game/skill/Woodcutting.kt`, data in
+`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, maple, yew and magic tree in
+the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the dialogue file.
+
+| Woodcutting behaviour | Source |
+|-----------------------|--------|
+| Levels, XP, a roll every 4 ticks, respawn times, tree timers (oak 45 ticks, willow 50, maple 100, yew 190, magic 390) | OSRS Wiki tree pages |
+| Each tree's success pair per axe tier, checked against the Wiki charts' points (`WoodcuttingDataTest`) | OSRS Wiki tree pages; crystal pairs picked inside the range the charts allow |
+| Regular, dead and evergreen trees fall after one log and grow back in 60 to 100 ticks | OSRS Wiki |
+| Best usable axe from the backpack or weapon slot picks the animation and pair | OSRS Wiki axe pages; animations from the 241 gamevals |
+| Which stump each tree becomes | RSMod's table, matched by gameval name (not in the cache) |
+| Swing message on the click, the animation again on each roll, the checks each tick | 2004Scape woodcut script |
+| The timer runs down one a tick while anyone chops and back up one a tick while nobody does; the tree falls at the first log after it runs out | guessed (the Wiki gives only totals) |
+| No chopping sound | the 241 synth ids have no names to find it by |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for

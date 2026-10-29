@@ -258,6 +258,12 @@ class Player(
     /** Plays animation (seq) [id] on the player for everyone who can see them; -1 stops the one playing. */
     fun anim(id: Int, delay: Int = 0) = effects.anim(id, delay)
 
+    /**
+     * The skill clock: the tick a gathering action's next roll is due, or earlier when none is set. Not saved. See
+     * [osrsps.game.skill.SkillClock].
+     */
+    var actionDelay: Long = -1
+
     /** Plays spotanim [id] on the player for everyone who can see them; -1 clears [slot]. [height] is above the ground. */
     fun spotanim(id: Int, height: Int = 0, delay: Int = 0, slot: Int = 0) = effects.spotanim(slot, id, height, delay)
 

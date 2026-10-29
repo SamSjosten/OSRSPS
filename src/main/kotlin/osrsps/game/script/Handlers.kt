@@ -40,7 +40,8 @@ enum class OpTarget {
  * sub-option of an NPC option; -1 when there is none. [loc] is the loc clicked, for a loc op; [groundObj] the obj clicked
  * on the ground, for [OpTarget.GROUND_OBJ]; [npc] the NPC, for an NPC op or an item used on an NPC. For an item used
  * on an NPC or a loc, [obj] is the item and [sub] its inventory slot. For an item used on another, [obj] and [objSlot]
- * are the one used and [id] and [sub] the one it was used on.
+ * are the one used and [id] and [sub] the one it was used on. [repeat] is true when a handler re-ran its own op (RS2's
+ * `p_oploc`, see [osrsps.game.World.repeatOp]) rather than the player clicking.
  */
 data class Op(
     val target: OpTarget,
@@ -52,6 +53,7 @@ data class Op(
     val npc: Npc? = null,
     val obj: Int = -1,
     val objSlot: Int = -1,
+    val repeat: Boolean = false,
 ) {
     val interfaceId: Int get() = id ushr 16
     val componentId: Int get() = id and 0xFFFF

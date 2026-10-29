@@ -89,6 +89,11 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
+import osrsps.game.script.OpTarget
+import osrsps.game.skill.LevelUps
+import osrsps.game.skill.SkillUnlocks
+import osrsps.game.skill.Woodcutting
+import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
@@ -150,6 +155,8 @@ class World(
     prayerList: List<Prayer> = emptyList(),
     /** The shops and their stock; tests that shop pass their own. */
     val shopTypes: ShopTypes = ShopTypes.NONE,
+    /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
+    skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -288,6 +295,10 @@ class World(
     fun textFor(player: Player): DialogueText = if (player.showDialogueKeys) DialogueText.NONE else dialogueText
 
     /** Chat dialogues for content scripts. */
+    val woodcutting = Woodcutting(this, WoodcuttingData.load())
+
+    private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
+
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
     val commands = CommandRegistry(admins::isAdmin).apply {
@@ -320,6 +331,7 @@ class World(
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
+        woodcutting.register()
         loadDialogue()
     }
 
@@ -590,6 +602,7 @@ class World(
             if (player == null) continue
             player.playedTicks++
             prayers.drain(player)
+            levelUps.process(player)
             scripts.process(player)
         }
         phase = TickPhase.MOVEMENT
@@ -1075,6 +1088,17 @@ class World(
         val obj = groundObjs.visibleAt(player, x, z, player.level).firstOrNull { it.id == id } ?: return@act
         val type = objTypes[id] ?: return@act
         inventoryTab.examine(player, type, obj.count)
+    }
+
+    /**
+     * Runs [op] again for [player] from the next tick, as RS2's `p_oploc` does, until something else replaces their
+     * interaction: how a gathering action keeps going. Only loc options for now; NPC options (fishing spots) come with
+     * fishing.
+     */
+    fun repeatOp(player: Player, op: Op) {
+        val loc = op.loc
+        require(op.target == OpTarget.LOC && loc != null) { "Only loc options can repeat, not $op" }
+        locInteractions.repeat(player, loc, op.option)
     }
 
     /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
