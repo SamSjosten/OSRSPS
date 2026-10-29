@@ -20,10 +20,13 @@
 # Everything staging is under .staging/ in this checkout (git-ignored): src/ is a git worktree at the staged commit,
 # whose Dockerfile builds the image (the compose file is this checkout's deploy/compose.staging.yaml, never the staged
 # commit's); data/ is the staging server's data folder, made at the first `up` from the live data/: the cache, the RSA
-# key and every other file at the top of data/ (the words, the prices) are copied, the saves and accounts are not, so
-# a staging player starts fresh; `deployed` names the commit up and `ref` what it was asked as; build.log holds the
-# last build's output. When the staged commit's deploy/cache-build.txt names another OpenRS2 build than the staging
-# data has, that build is fetched into the staging data before the start, the way auto-deploy.sh does for the live one.
+# key and every other file at the top of data/ (the words, the prices) are copied, and so are the accounts (the names
+# and their password hashes: a name on the admin list can't be claimed at a login, so the test accounts could never
+# log in without theirs), but not the saves, so every player starts fresh; `deployed` names the commit up and `ref`
+# what it was asked as; build.log holds the last build's output. When the staged commit's deploy/cache-build.txt
+# names another OpenRS2 build than the staging data has, that build is fetched into the staging data before the
+# start, the way auto-deploy.sh does for the live one. Every command but `status` holds .staging/lock from start to
+# end, so a run by hand and the minutely `auto` never work on the same worktree, data or server at once.
 set -euo pipefail
 
 AUTO_BRANCH=staging
@@ -33,12 +36,33 @@ main() {
 	repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 	cd "$repo"
 	case ${1:-} in
-		up) shift; up "$@" ;;
-		down) down ;;
+		up) shift; locked wait up "$@" ;;
+		down) locked wait down ;;
+		auto) locked skip auto ;;
 		status) status ;;
-		auto) auto ;;
 		*) echo "usage: deploy/staging.sh up <branch|commit> [--force] | down | status | auto" >&2; return 64 ;;
 	esac
+}
+
+# Runs "$@" holding the staging lock. `wait` (a command by hand) waits up to STAGING_LOCK_WAIT seconds, 15 minutes,
+# for the run that holds it (a build, most likely) and gives up with a word; `skip` (the minutely `auto`) returns at
+# once when it is held. The deploy lock, for the build alone, is taken inside this one (up), never the other way
+# round, so a deploy and a staging run can't wait for each other.
+locked() {
+	local mode=$1
+	shift
+	mkdir -p .staging
+	exec 8>.staging/lock
+	if [[ $mode == skip ]]; then
+		if ! flock -n 8; then
+			echo "Another staging run is going"
+			return 0
+		fi
+	elif ! flock -w "${STAGING_LOCK_WAIT:-900}" 8; then
+		echo "Another staging run has been going for ${STAGING_LOCK_WAIT:-900} s; try again when it is done"
+		return 1
+	fi
+	"$@"
 }
 
 compose() {
@@ -52,7 +76,6 @@ up() {
 		return 64
 	fi
 	[[ ${2:-} == --force ]] && force=1
-	mkdir -p .staging
 	git fetch --quiet origin
 	local commit
 	if ! commit=$(resolve "$ref"); then
@@ -102,14 +125,8 @@ up() {
 }
 
 # Staging on origin's `staging` branch: up on its head when that isn't up (or the commit that failed last), down when
-# the branch is gone and staging was up on it; nothing, said quietly, otherwise. One run at a time (.staging/lock).
+# the branch is gone and staging was up on it; nothing, said quietly, otherwise.
 auto() {
-	mkdir -p .staging
-	exec 8>.staging/lock
-	if ! flock -n 8; then
-		echo "Another staging run is going"
-		return 0
-	fi
 	git fetch --quiet --prune origin
 	local target running
 	target=$(git rev-parse --verify --quiet "origin/$AUTO_BRANCH^{commit}" || true)
@@ -164,19 +181,24 @@ checkout() {
 	fi
 }
 
-# The staging data folder, made once from the live one: the cache and the files at the top of data/, nothing from
-# its folders (saves, accounts). Copied without their owner, as the live files are the container's (root's).
+# The staging data folder, made once from the live one: the cache, the files at the top of data/ and the accounts
+# (name and password hash each; without them no listed admin, the test accounts included, could ever log in, as the
+# server lets nobody claim such a name), not the saves. Copied without their owner, as the live files are the
+# container's (root's). The cache last, since its presence is what says the folder is made.
 prepare_data() {
 	[[ -e .staging/data/cache ]] && return 0
 	if [[ ! -d data/cache ]]; then
 		echo "No cache in data/cache to make the staging data folder from (the top README says how to get one)"
 		return 1
 	fi
-	echo "Making .staging/data from the live data folder: the cache and its files, no saves or accounts"
-	rm -rf .staging/data/cache.new
+	echo "Making .staging/data from the live data folder: the cache and its files and the accounts, no saves"
+	rm -rf .staging/data/cache.new .staging/data/accounts
 	mkdir -p .staging/data
-	cp -a --no-preserve=ownership data/cache .staging/data/cache.new
 	find data -maxdepth 1 -type f -exec cp -a --no-preserve=ownership {} .staging/data/ \;
+	if [[ -d data/accounts ]]; then
+		cp -a --no-preserve=ownership data/accounts .staging/data/accounts
+	fi
+	cp -a --no-preserve=ownership data/cache .staging/data/cache.new
 	mv .staging/data/cache.new .staging/data/cache
 }
 

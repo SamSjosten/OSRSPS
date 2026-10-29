@@ -77,16 +77,19 @@ deploy/staging.sh auto                    # what the crontab line below runs: st
   staged commit's, so a branch can't change the staging server's ports or data folder. `deployed` and `ref` say what
   is up, `build.log` holds the last build's output, and `data/` is the server's data folder.
 - `data/` is made at the first `up` from the live `data/`: the cache, the RSA key and every other file at the top of
-  the folder (the words, the prices) are copied, the saves and accounts are not, so every player starts fresh there
-  (the test accounts included: the runner's first login makes them). The key is the live one, so the launcher
-  reaches staging with the signed manifest's key (`--server`, below). To start the data over, `down`,
-  `sudo rm -rf .staging/data` (the container made its files as root) and `up` again. A staged commit whose `deploy/cache-build.txt`
+  the folder (the words, the prices) are copied, and so are the accounts (names and password hashes: the server lets
+  nobody claim a listed admin's name at a login, so without them neither Sam's nor the test accounts could ever log
+  in), but not the saves, so everyone starts with a fresh character and their live password. The key is the live
+  one, so the launcher reaches staging with the signed manifest's key (`--server`, below). To start the data over,
+  `down`, `sudo rm -rf .staging/data` (the container made its files as root) and `up` again. A staged commit whose `deploy/cache-build.txt`
   names another OpenRS2 build than `.staging/data/cache-source.txt` gets that build fetched into the staging data
   before the start, with the image just built; a fetch that fails (OpenRS2 doesn't list it as newest yet) is said and
   the server starts on the cache it has.
-- The build takes the deploy lock (`.deploy/lock`) and waits up to 15 minutes for a live deploy's build to finish, so
-  the VM never builds two images at once; a timed deploy that comes due during a staging build sees the lock and tries
-  again a minute later. The staging server runs with the same 512 MB heap as the live one. When memory runs out, the
+- Every command but `status` holds `.staging/lock` from start to end, so a run by hand and the minutely `auto` never
+  work on the same worktree, data or server at once: a command by hand waits up to 15 minutes for the run in
+  progress, `auto` skips its minute. The build also takes the deploy lock (`.deploy/lock`) and waits up to 15 minutes
+  for a live deploy's build to finish, so the VM never builds two images at once; a timed deploy that comes due
+  during a staging build sees the lock and tries again a minute later. The staging server runs with the same 512 MB heap as the live one. When memory runs out, the
   kernel kills a build first (the Dockerfile raises its OOM score), the staging server next (the default score), and
   the live server last (-500). `down` when staging isn't needed, as it keeps running across reboots like the live one.
 - `http://192.168.0.210:44595/version` answers with the staged commit, so `start-client.ps1 -Commit <sha> -GamePort

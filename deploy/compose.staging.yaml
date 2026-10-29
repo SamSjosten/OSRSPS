@@ -21,6 +21,8 @@ services:
       OSRSPS_PUBLIC_HOST: 192.168.0.210
       # Only the LAN reaches these ports: no relay, so no PROXY header.
       OSRSPS_PROXY_PROTOCOL: "off"
+      # The live admins. A listed name can't be claimed at a login, so staging.sh copies the live accounts (names and
+      # password hashes) into the staging data: the same logins as live, with fresh characters.
       OSRSPS_ADMINS: "Swaggy,test,test2"
       # The staged commit, served at http://192.168.0.210:44595/version; deploy/staging.sh sets it.
       OSRSPS_COMMIT: ${OSRSPS_COMMIT:-unknown}

@@ -132,7 +132,7 @@ expect_output "Staging runs feature ($feature1) at 192.168.0.210:44594"
 [[ $(cat "$tmp/vm/.staging/data/rsa.key") == key ]] || fail "the key wasn't copied"
 [[ $(cat "$tmp/vm/.staging/data/dialogue.txt") == words ]] || fail "the words weren't copied"
 [[ ! -e $tmp/vm/.staging/data/saves ]] || fail "the live saves were copied"
-[[ ! -e $tmp/vm/.staging/data/accounts ]] || fail "the live accounts were copied"
+[[ $(cat "$tmp/vm/.staging/data/accounts/test.json") == account ]] || fail "the accounts weren't copied"
 [[ ! -e $tmp/vm/.staging/data/cache.new ]] || fail "cache.new was left behind"
 [[ -e $tmp/vm/data/saves/test.json && ! -e $tmp/vm/data/.staging ]] || fail "the live data folder changed"
 [[ $(git -C "$tmp/vm" rev-parse HEAD) == "$main1" ]] || fail "the live checkout moved"
@@ -214,6 +214,20 @@ STAGING_LOCK_WAIT=1 staging up feature
 wait
 expect_status 1
 expect_output "try again"
+expect_no_calls
+expect_state deployed "$cache"
+
+step="up and down by hand while another run holds the staging lock"
+flock -x "$tmp/vm/.staging/lock" sleep 3 &
+sleep 0.5
+STAGING_LOCK_WAIT=1 staging up main
+expect_status 1
+expect_output "Another staging run has been going for 1 s; try again"
+expect_no_calls
+expect_state deployed "$cache"
+STAGING_LOCK_WAIT=1 staging down
+wait
+expect_status 1
 expect_no_calls
 expect_state deployed "$cache"
 
