@@ -112,8 +112,12 @@ class Npc(
     /** Ticks left to stand at the patrol stop it last walked to. */
     internal var patrolWait: Int = 0
 
-    /** Ticks until its [NpcScripts] timer fires; -1 before it is first set. */
-    internal var timerTicks: Int = -1
+    /** The tick it appeared on, which its [NpcScripts] timer counts from. */
+    var spawnTick: Long = 0
+        internal set
+
+    /** The tick its [NpcScripts] timer fires on next; -1 before it is first set. */
+    internal var timerTick: Long = -1
 
     /** An action [NpcScripts.queue] runs on [tick]. */
     internal class Queued(val tick: Long, val action: (Npc) -> Unit)

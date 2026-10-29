@@ -36,7 +36,7 @@ class NpcEffects {
         anim = Anim(id, delay)
     }
 
-    /** Shows [text] over the NPC's head, as a duck's "Quack!" (RSProt's NPC say block). */
+    /** Shows [text] over the NPC's head, as a duck's quack ([osrsps.game.content.DuckLines]); RSProt's NPC say block. */
     fun say(text: String) {
         say = text
     }

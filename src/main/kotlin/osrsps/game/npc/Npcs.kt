@@ -42,11 +42,12 @@ class Npcs(
 
     operator fun get(index: Int): Npc? = npcs.getOrNull(index)
 
-    /** Puts a new NPC in the world at its spawn. Returns null when every slot is taken. */
-    fun add(spawn: NpcSpawn): Npc? {
+    /** Puts a new NPC in the world at its spawn on [tick]. Returns null when every slot is taken. */
+    fun add(spawn: NpcSpawn, tick: Long = 0): Npc? {
         // Index 0 is left free, as players leave theirs.
         val index = (1 until MAX_NPCS).firstOrNull { npcs[it] == null } ?: return null
         val npc = Npc(index, spawn)
+        npc.spawnTick = tick
         npcs[index] = npc
         occupy(npc, 1)
         return npc

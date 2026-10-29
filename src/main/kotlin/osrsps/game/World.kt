@@ -1470,7 +1470,7 @@ class World(
 
     /** Puts an NPC in the world. Returns null, after logging why, if there is no room for it. */
     fun spawnNpc(spawn: NpcSpawn): Npc? {
-        val npc = npcs.add(spawn)
+        val npc = npcs.add(spawn, tick)
         if (npc == null) {
             logger.warn { "No free NPC slot for ${spawn.type} from ${spawn.source}" }
             return null

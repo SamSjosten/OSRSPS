@@ -6,8 +6,9 @@ package osrsps.game.npc
  * and actions queued to run a few ticks later ([queue]). Ducks quack and ducklings follow them this way.
  *
  * [process] runs once a tick in the NPC phase, in NPC index order, timers before queues. A timer counts from the tick
- * the NPC is first processed; a queued action runs [queue]'s delay ticks after the tick it was queued on. Neither runs
- * for an NPC that is dead or has left the world. Only touched on the game thread.
+ * the NPC appeared on ([Npc.spawnTick]), so one that respawns in the combat phase keeps the same timing as one put in
+ * at startup; a queued action runs [queue]'s delay ticks after the tick it was queued on. Neither runs for an NPC that
+ * is dead or has left the world. Only touched on the game thread.
  */
 class NpcScripts(private val npcs: Npcs, private val currentTick: () -> Long) {
     private class Timer(val first: Int, val fire: (Npc) -> Int)
@@ -53,13 +54,17 @@ class NpcScripts(private val npcs: Npcs, private val currentTick: () -> Long) {
         for (npc in npcs.all.toList()) {
             if (npc.dead || npcs[npc.index] !== npc) continue
             val type = npc.spawn.type.id
+            val tick = currentTick()
             timers[type]?.let { timer ->
-                if (npc.timerTicks < 0) npc.timerTicks = timer.first
-                if (--npc.timerTicks == 0) npc.timerTicks = timer.fire(npc).also { require(it > 0) { "a next timer of $it ticks" } }
+                if (npc.timerTick < 0) npc.timerTick = npc.spawnTick + timer.first
+                if (tick >= npc.timerTick) {
+                    val next = timer.fire(npc)
+                    require(next > 0) { "a next timer of $next ticks" }
+                    npc.timerTick = tick + next
+                }
             }
             ticks[type]?.forEach { it(npc) }
             if (npc.queued.isEmpty()) continue
-            val tick = currentTick()
             val due = npc.queued.filter { it.tick <= tick }
             npc.queued.removeAll(due)
             for (queued in due) {

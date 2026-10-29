@@ -36,6 +36,22 @@ class NpcScriptsTest {
     }
 
     @Test
+    fun `a timer counts from the tick the NPC appeared on, so one that respawns mid-tick keeps the same timing`() {
+        val fired = ArrayList<Long>()
+        scripts.onTimer(listOf(duck.id), 3) {
+            fired += tick
+            100
+        }
+        run(10)
+        // As a respawn does, in the combat phase before the scripts run that same tick.
+        tick++
+        npcs.add(NpcSpawn(duck, 3230, 3230, source = "test"), tick)
+        scripts.process()
+        run(4)
+        assertEquals(listOf(14L), fired)
+    }
+
+    @Test
     fun `a queued action runs its delay ticks after the tick it was queued on, from whichever NPC queued it`() {
         val ran = ArrayList<Pair<Int, Long>>()
         val a = add()
