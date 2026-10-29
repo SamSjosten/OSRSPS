@@ -4,12 +4,13 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "game messages show their keys, whatever data/dialogue.txt holds"},
   {"step": "command", "text": "::setlevel defence 99", "expectMessage": "Defence set to level 99", "comment": "Piety needs 70 Defence"},
   {"step": "command", "text": "::setlevel prayer 99", "expectMessage": "Prayer set to level 99"},
   {"step": "command", "text": "::varp 84 0", "expectMessage": "Varp 84:", "comment": "prayer1, varbit quickprayer_selected: nothing picked, whatever an earlier run left"},
   {"step": "command", "text": "::buttons on", "expectMessage": "Interface clicks are echoed"},
   {"step": "clickWidget", "interfaceId": 160, "component": 20, "op": 1, "comment": "orbs:prayerbutton, Activate"},
-  {"step": "assertMessage", "contains": "You haven't selected any quick-prayers.", "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "[prayer.no_quick_prayers]", "timeoutMs": 10000},
   {"step": "command", "text": "::varbit 4103", "expectMessage": "= 0", "comment": "quickprayer_active: the server puts back the orb the client flipped"},
   {"step": "clickWidget", "interfaceId": 160, "component": 20, "op": 2, "comment": "Setup"},
   {"step": "assertMessage", "contains": "Button 160:20 slot -1 op 2", "timeoutMs": 10000},
@@ -30,6 +31,7 @@
   {"step": "command", "text": "::prayers", "expectMessage": "drain resistance 60: none"},
   {"step": "command", "text": "::varbit 4103", "expectMessage": "= 0"},
   {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

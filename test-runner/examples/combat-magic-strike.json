@@ -4,6 +4,7 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "game messages show their keys, whatever data/dialogue.txt holds"},
   {"step": "command", "text": "::setlevel magic 13", "expectMessage": "Magic set to level 13", "comment": "Fire Strike's level; 1,833 XP"},
   {"step": "command", "text": "::item mind rune 2", "expectMessage": "Added 2 x Mind rune"},
   {"step": "command", "text": "::item fire rune 3", "expectMessage": "Added 3 x Fire rune"},
@@ -18,10 +19,10 @@
   {"step": "assertInventory", "item": "Fire rune", "count": 0},
   {"step": "assertInventory", "item": "Air rune", "count": 2},
   {"step": "castOnNpc", "interfaceId": 218, "component": 19, "npc": "Man", "timeoutMs": 20000},
-  {"step": "assertMessage", "contains": "You do not have enough Fire Runes to cast this spell.", "timeoutMs": 20000, "comment": "after the first cast's 5 ticks; guessed wording"},
+  {"step": "assertMessage", "contains": "[combat.not_enough_runes runes=Fire Runes]", "timeoutMs": 20000, "comment": "after the first cast's 5 ticks; guessed wording"},
   {"step": "command", "text": "::setlevel magic 12", "expectMessage": "Magic set to level 12"},
   {"step": "castOnNpc", "interfaceId": 218, "component": 19, "npc": "Man", "timeoutMs": 20000},
-  {"step": "assertMessage", "contains": "Your Magic level is not high enough for this spell.", "timeoutMs": 20000, "comment": "guessed wording"},
+  {"step": "assertMessage", "contains": "[combat.magic_level]", "timeoutMs": 20000, "comment": "guessed wording"},
   {"step": "command", "text": "::setlevel magic 13", "expectMessage": "Magic set to level 13"},
   {"step": "command", "text": "::item staff of fire", "expectMessage": "Added 1 x Staff of fire"},
   {"step": "itemOption", "item": "Staff of fire", "option": "Wield"},
@@ -31,6 +32,7 @@
   {"step": "assertInventory", "item": "Mind rune", "count": 0},
   {"step": "assertInventory", "item": "Air rune", "count": 0},
   {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "the man fights back once cast on, unless the strike killed him; ::kill picks the man attacking you, so the next script finds no fight going on"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

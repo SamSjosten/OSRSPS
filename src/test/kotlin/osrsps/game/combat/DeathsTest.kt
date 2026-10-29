@@ -218,7 +218,7 @@ class DeathsTest {
         assertEquals(listOf(grave.npc), removed)
         assertTrue(deaths.all.isEmpty())
         assertNull(deaths.graveOf(alice))
-        assertEquals(alice to Deaths.GRAVE_COLLAPSED, messages.last())
+        assertEquals(alice to "[combat.grave_collapsed]", messages.last())
     }
 
     @Test
@@ -226,11 +226,11 @@ class DeathsTest {
         val grave = aliceDies()
         npcOp(bob, grave.npc, Deaths.CHECK)
         npcOp(bob, grave.npc, Deaths.LOOT)
-        assertEquals(listOf(bob to Deaths.NOT_YOURS, bob to Deaths.NOT_YOURS), messages)
+        assertEquals(listOf(bob to "[combat.grave_not_yours]", bob to "[combat.grave_not_yours]"), messages)
         assertTrue(bob.modals.isEmpty())
         tick(101)
         npcOp(alice, grave.npc, Deaths.CHECK)
-        assertEquals(alice to "Your grave will stand for 14 more minutes.", messages.last())
+        assertEquals(alice to "[combat.grave_minutes minutes=14]", messages.last())
     }
 
     @Test
@@ -279,7 +279,7 @@ class DeathsTest {
         while (alice.inventory.freeSlots > 0) alice.inventory.add(bones, 1)
         npcOp(alice, grave.npc, Deaths.LOOT)
         button(alice, Deaths.FREEITEMS, sub = 1)
-        assertEquals(alice to Deaths.NO_SPACE, messages.last())
+        assertEquals(alice to "[combat.grave_no_space]", messages.last())
         assertEquals(2, grave.items.contents().size)
         // Take-All still takes what stacks.
         button(alice, Deaths.FREEBUTTON)

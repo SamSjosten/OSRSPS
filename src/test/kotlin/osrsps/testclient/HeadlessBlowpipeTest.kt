@@ -94,7 +94,7 @@ class HeadlessBlowpipeTest {
                 client.useOn(Blowpipe.SCALE, Blowpipe.EMPTY)
                 client.await("the blowpipe charged") { client.carried(Blowpipe.LOADED).takeIf { it == 1 } }
                 client.useOn(DRAGON_DART, Blowpipe.LOADED)
-                client.awaitMessage("the darts in it") { it == "Darts: Dragon dart x 50. Scales: 1,000 (6.1%)." }
+                client.awaitMessage("the darts in it") { it == "[combat.blowpipe_check dart=Dragon dart darts=50 scales=1,000 percent=6.1]" }
                 // The inventory update can come after the message.
                 client.await("the darts gone from the pack") { if (client.carried(DRAGON_DART) == 0) Unit else null }
                 client.itemOp(Blowpipe.LOADED, WIELD)
@@ -102,8 +102,8 @@ class HeadlessBlowpipeTest {
                 client.commandReply("god") { it.startsWith("You can") }
                 client.npcOp(npc.index, 2)
                 client.await("the man's death", timeoutMillis = 60_000) { if (client.npcs().none { it.id == man.id }) Unit else null }
-                val left = client.commandReply("blowpipe") { it.startsWith("Darts:") }
-                val match = Regex("""Darts: Dragon dart x (\d+)\. Scales: ([\d,]+) """).find(left)!!
+                val left = client.commandReply("blowpipe") { it.startsWith("[combat.blowpipe_check ") }
+                val match = Regex("""dart=Dragon dart darts=(\d+) scales=([\d,]+) """).find(left)!!
                 val used = DARTS - match.groupValues[1].toInt()
                 val scalesUsed = 1_000 - match.groupValues[2].replace(",", "").toInt()
                 assertTrue(used >= 1 && scalesUsed <= used, "$used darts and $scalesUsed scales: $left")
