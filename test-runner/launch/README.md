@@ -26,7 +26,8 @@ script, for example after a test-runner jar swap.
 ```powershell
 Copy-Item C:\RSPS\RSProx.cmd C:\RSPS\RSProx.cmd.bak
 Copy-Item .\test-runner\launch\RSProx.cmd C:\RSPS\RSProx.cmd
-Copy-Item .\test-runner\launch\RsproxAutoLaunch.java, .\test-runner\launch\start-client.ps1 C:\RSPS\bin\
+Copy-Item .\test-runner\launch\RsproxAutoLaunch.java, .\test-runner\launch\start-client.ps1, `
+  .\test-runner\launch\start-client-functions.ps1 C:\RSPS\bin\
 ```
 
 The `RSProx` scheduled task already runs `C:\RSPS\RSProx.cmd`, so `schtasks /run /tn RSProx` now brings up a logged-in
@@ -42,3 +43,50 @@ powershell -ExecutionPolicy Bypass -File C:\RSPS\bin\start-client.ps1           
 
 It prints each stage with the time and exits with 1 and the reason when a stage doesn't finish within
 `-TimeoutSeconds` (600 by default).
+
+## The Odin's Gate launcher instead of RSProx
+
+The launcher (`launcher/README.md`) is what friends will get instead of RSProx, and the VM runs it the same way:
+through a scheduled task, so the client runs on the signed-in desktop and outlives the session that started it.
+
+- `OdinsGate.cmd` is that task's command. It runs the installed launcher at `C:\RSPS\launcher\app\bin` with
+  `--auto --dev --home C:\RSPS\launcher --status-file C:\RSPS\launcher\status.json --manifest
+  C:\RSPS\launcher\manifest.json`, its output appended to `C:\RSPS\launcher\logs\launcher.log`. Arguments given to
+  it go through to the launcher (`--server 192.168.0.210:44594` for the staging server). Everything the launcher makes
+  is under `C:\RSPS\launcher`: `runelite\` (the pinned RuneLite), `logs\game.log` (the game's output), and `home\`,
+  the game's own home folder, so RuneLite's folder is `C:\RSPS\launcher\home\.runelite` (sideloaded plugins, the
+  test-runner's `tests` and `test-results`, `logs\client.log`, `profiles2`), not `C:\RSPS\.rlcustom`.
+- `write-dev-manifest.ps1` writes `C:\RSPS\launcher\manifest.json` from the live server, until releases ship the signed
+  manifest: the server's host and ports, the key it serves in `/proxy-targets.yaml`, and the pin table in the script
+  (which RuneLite release serves revision 241). It warns when the server's `/status.json` names a revision the table
+  doesn't pin. Run it again after a key change or a revision bump.
+- `start-client.ps1 -Launcher` does the same stages through the launcher: runs the `OdinsGate` task instead of
+  `RSProx`, waits for the status file to say `RUNNING` (and fails with the launcher's own reason when it says
+  `FAILED`), and moves `-Tests`, `-Results`, `-ClientLog` and `-Profiles` under `C:\RSPS\launcher\home\.runelite`
+  unless given. `-LauncherVersion 0.1.0` fails the run at once when the launcher that starts is another version, so an
+  install that didn't take is caught before the game runs. `run-scripts.ps1` needs the same `-Tests` and `-Results`.
+- `start-client-functions.ps1` holds the parts of `start-client.ps1` that need no VM (telling the JVMs apart, reading
+  and waiting on the status file); `start-client-functions.tests.ps1` checks them, in CI's `launch-scripts` job with
+  PowerShell 7 on Linux or by hand with `pwsh -NoProfile -File .\test-runner\launch\start-client-functions.tests.ps1`.
+
+Installing it, once per launcher build (the `odinsgate-launcher` artifact of CI's `launcher` job is the installed
+layout, `bin\` and `lib\`; nightly.link serves it without a login):
+
+```powershell
+Expand-Archive .\odinsgate-launcher.zip C:\RSPS\launcher\app -Force
+Copy-Item .\test-runner\launch\OdinsGate.cmd, .\test-runner\launch\write-dev-manifest.ps1 C:\RSPS\bin\
+powershell -ExecutionPolicy Bypass -File C:\RSPS\bin\write-dev-manifest.ps1
+# The sideloaded plugins the launcher's RuneLite loads (developer mode), from RSProx's folder.
+New-Item -ItemType Directory -Force C:\RSPS\launcher\home\.runelite\sideloaded-plugins | Out-Null
+Copy-Item C:\RSPS\.rlcustom\sideloaded-plugins\*.jar C:\RSPS\launcher\home\.runelite\sideloaded-plugins\
+# The scheduled task, a copy of RSProx's (same user, interactive, no run-time limit) with our command.
+[xml] $task = (schtasks /query /tn RSProx /xml | Out-String).Trim()
+$task.Task.Actions.Exec.Command = 'C:\RSPS\bin\OdinsGate.cmd'   # and clear its Arguments, if the task has any
+$task.Save('C:\RSPS\launcher\OdinsGate.task.xml')
+schtasks /create /tn OdinsGate /xml C:\RSPS\launcher\OdinsGate.task.xml /f
+```
+
+Then `powershell -ExecutionPolicy Bypass -File C:\RSPS\bin\start-client.ps1 -Restart -Launcher -LauncherVersion 0.1.0`
+and, once it exits with 0, `run-scripts.ps1 -Tests C:\RSPS\launcher\home\.runelite\tests -Results
+C:\RSPS\launcher\home\.runelite\test-results .\test-runner\examples`. The launcher's own lines are in
+`C:\RSPS\launcher\logs\launcher.log`, the game's in `logs\game.log` next to it.
