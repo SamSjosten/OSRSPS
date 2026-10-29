@@ -137,7 +137,10 @@ class AccountsTest {
             val first = thread { FileAccountLock(dir).withLock { holding.countDown(); release.await() } }
             assertTrue(holding.await(5, TimeUnit.SECONDS))
             val second = thread { FileAccountLock(dir).withLock { entered.countDown() } }
-            assertFalse(entered.await(300, TimeUnit.MILLISECONDS), "the second writer got in while the first held the lock")
+            // Wait for the second writer to park on the lock (or, with no lock, to finish), not for a time to pass.
+            while (second.state != Thread.State.WAITING && second.state != Thread.State.TERMINATED) Thread.onSpinWait()
+            assertEquals(Thread.State.WAITING, second.state, "the second writer got through while the first held the lock")
+            assertEquals(1L, entered.count)
             release.countDown()
             assertTrue(entered.await(5, TimeUnit.SECONDS))
             first.join()
