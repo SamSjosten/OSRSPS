@@ -282,9 +282,11 @@ as `Op.sub`. The inventory is saved with the player.
 | Notes: the item's name and value, stackable, "Swap this note at any bank for the equivalent item." | client genCert; the text from memory of live |
 | Dragging swaps two slots; a click on a slot that holds something else is dropped | RSMod / inferred |
 | An option or "Use" nothing handles says "Nothing interesting happens." | from memory of live |
+| Bury on bones: "You dig a hole in the ground...", seq 827, the player stops; a tick later the bones go, the Prayer XP comes and "You bury the bones." (bones, burnt bones 4.5 XP, big bones 15, dragon bones 72) | XP from the Wiki; the steps from the 2004Scape project's script; no sound yet (its 241 synth id isn't known) |
 | Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
 
-Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it.
+Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it. `::item bones 2`, then Bury both: Prayer XP goes to 9
+(`test-runner/examples/lumbridge-bury-bones.json` does it in the real client).
 
 ## Equipment
 
@@ -661,7 +663,9 @@ take an optional number of ticks after which the tile goes back how it was.
 Clicking a loc option walks you to the nearest tile that reaches the loc, then runs its handler, registered with
 `World.handlers.onLoc(id, option) { op -> ... }`; `op.loc` is the loc clicked. A loc next to you is used on the tick
 the click is read, one further away on the tick you arrive. With no handler you get "Nothing interesting happens.",
-and if the route can't get there, "I can't reach that!" when you stop. Changing level from a ladder or staircase is a
+and if the route can't get there, "I can't reach that!" when you stop. An inventory item used on a loc (OPLOCT) walks
+the same way and runs `World.handlers.onObjOnLoc(locId, objId) { op -> ... }`, with the item in `op.obj` and its slot
+in `op.sub`; leave out `objId` to catch every item. Unhandled, it too does nothing interesting. Changing level from a ladder or staircase is a
 handler that calls `World.teleport` with the new level, after playing the climb with `Player.anim` and a `delay`.
 
 Single doors open and close without any content: a closed door type `x` with an Open option and a type `xopen` or

@@ -103,6 +103,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   bonuses, Equip a shield from the stats screen, a two-handed sword taking the shield off, the whip's 70 Attack, the
   whip still worn after a logout, and Remove.
 - `ground-drop-take.json`: drop an axe, see it on the ground, take it back.
+- `lumbridge-bury-bones.json`: bury two bones, 4.5 Prayer XP each.
+- `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
+  Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
+  tar), teleporting onto each tile.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 

@@ -1,0 +1,42 @@
+# Lumbridge's item spawns outside the castle (the castle's are in lumbridge-castle.tsv). Tiles from RSMod's Lumbridge
+# spawn data (rev 233); items, places and counts checked against the OSRS Wiki's item spawn lists where it has them
+# (read 2026-10-29). Every respawn is RSMod's default of 100 ticks: the wiki gives no respawn times, so all are guessed.
+# RSMod's bronze axe by Fred's house is left out: the Wiki lists no bronze axe spawn in Lumbridge.
+obj	count	x	z	level	respawn
+# Fred's farm (wiki: Egg, 4 north-west of Fred the Farmer's house; Shears, 2 at the farm north-west of Lumbridge)
+egg	1	3169	3291	0	100
+egg	1	3172	3301	0	100
+egg	1	3175	3305	0	100
+egg	1	3185	3297	0	100
+shears	1	3192	3272	0	100
+shears	1	3152	3306	0	100
+# Groats' farm (wiki: Egg, 2 in the farm house south of the hops patch)
+egg	1	3226	3301	0	100
+egg	1	3229	3299	0	100
+bucket_empty	1	3225	3294	0	100	# not checked on the wiki
+# The general store's first floor (wiki: Lumbridge, Onion)
+onion	1	3211	3247	1	100
+# Lozar's house, east of the river (wiki: Lumbridge, Iron dagger)
+iron_dagger	1	3248	3245	0	100
+# West of the castle; not checked on the wiki
+airrune	1	3150	3247	0	100
+pot_empty	1	3148	3211	0	100
+# Lumbridge Swamp: Father Urhney's house (wiki: Leather gloves) and 17 swamp tar (wiki: Swamp tar, 17, members)
+leather_gloves	1	3148	3177	0	100
+swamp_tar	1	3164	3169	0	100
+swamp_tar	1	3164	3180	0	100
+swamp_tar	1	3164	3187	0	100
+swamp_tar	1	3170	3167	0	100
+swamp_tar	1	3171	3177	0	100
+swamp_tar	1	3171	3191	0	100
+swamp_tar	1	3173	3166	0	100
+swamp_tar	1	3173	3178	0	100
+swamp_tar	1	3179	3190	0	100
+swamp_tar	1	3181	3193	0	100
+swamp_tar	1	3182	3165	0	100
+swamp_tar	1	3183	3180	0	100
+swamp_tar	1	3185	3161	0	100
+swamp_tar	1	3189	3163	0	100
+swamp_tar	1	3191	3162	0	100
+swamp_tar	1	3193	3181	0	100
+swamp_tar	1	3194	3168	0	100

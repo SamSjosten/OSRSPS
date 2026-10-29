@@ -61,4 +61,19 @@ class HandlersTest {
         assertNull(handlers.find(Op.objOnNpc(3106, 1925, 0)))
         assertFailsWith<IllegalArgumentException> { handlers.register(OpTarget.OBJ_ON_NPC, 3105, 1) {} }
     }
+
+    @Test
+    fun `items used on locs are found by loc and item, with a catch-all for the loc`() {
+        val grain: Handler = {}
+        val any: Handler = {}
+        handlers.onObjOnLoc(24961, 1947, grain)
+        handlers.onObjOnLoc(24961, handler = any)
+        assertSame(grain, handlers.find(Op.objOnLoc(24961, 1947, 0)))
+        assertSame(any, handlers.find(Op.objOnLoc(24961, 0, 0)))
+        assertNull(handlers.find(Op.objOnLoc(24962, 1947, 0)))
+        // Keyed apart from items used on NPCs of the same id.
+        assertNull(handlers.find(Op.objOnNpc(24961, 1947, 0)))
+        assertFailsWith<IllegalArgumentException> { handlers.onObjOnLoc(24961, 1947) {} }
+        assertFailsWith<IllegalArgumentException> { handlers.register(OpTarget.OBJ_ON_LOC, 24961, 1) {} }
+    }
 }
