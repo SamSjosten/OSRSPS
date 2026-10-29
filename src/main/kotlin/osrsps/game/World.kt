@@ -170,6 +170,8 @@ class World(
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
     val ipBans: IpBans = IpBans(),
+    /** The All Settings window's settings, from the cache; tests that click them pass their own. */
+    settings: SettingsCatalog = SettingsCatalog.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -244,6 +246,7 @@ class World(
     val bankPinSettings = BankPinSettings(interfaces::openModal)
 
     private val settingsSide = SettingsSide()
+    private val allSettings = AllSettings(settings, interfaces)
 
     /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine)
@@ -1319,7 +1322,12 @@ class World(
             if (frame != null) interfaces.requestFrame(player, frame, tick)
             return@act
         }
+        if (interfaceId == SettingsSide.INTERFACE && componentId == SettingsSide.SETTINGS_OPEN) {
+            allSettings.open(player)
+            return@act
+        }
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.click(player, componentId, sub, op)) return@act
+        if (interfaceId == AllSettings.INTERFACE && allSettings.click(player, componentId, sub, op)) return@act
         if (interfaceId == JournalTab.SIDE_JOURNAL) {
             val tab = JournalTab.forButton(componentId)
             if (tab != null) {

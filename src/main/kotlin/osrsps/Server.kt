@@ -15,10 +15,13 @@ import osrsps.cache.MapCollisionLoader
 import osrsps.cache.NpcTypeLoader
 import osrsps.cache.ObjTypeLoader
 import osrsps.cache.QuestLoader
+import osrsps.cache.SettingsLoader
 import osrsps.cache.SkillUnlockLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
 import osrsps.game.EffectIds
+import osrsps.game.AllSettings
+import osrsps.game.SettingsCatalog
 import osrsps.game.SettingsSide
 import osrsps.game.Accounts
 import osrsps.game.IpBans
@@ -109,6 +112,7 @@ class GameServer(
         val seqNames: SeqNames
         val spotanimNames: SpotanimNames
         val skillUnlocks: SkillUnlocks
+        val settings: SettingsCatalog
         try {
             js5 = Js5Store.load(library)
             map = MapCollisionLoader.loadWorld(library)
@@ -122,6 +126,7 @@ class GameServer(
             seqNames = CombatLoader.seqNames(library)
             spotanimNames = CombatLoader.spotanimNames(library)
             skillUnlocks = SkillUnlockLoader.load(library)
+            settings = SettingsLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
             val huffmanData = library.data(HUFFMAN_ARCHIVE, "huffman", 0) ?: error("No huffman group in the cache")
             huffman = HuffmanCodec.create(Unpooled.wrappedBuffer(huffmanData))
@@ -131,7 +136,7 @@ class GameServer(
             } else {
                 frameProblems.forEach { logger.warn { "Game frame: $it" } }
             }
-            SettingsSide.checkVarbits(varTypes).forEach { logger.warn { "Settings: $it" } }
+            (SettingsSide.checkVarbits(varTypes) + AllSettings.checkVarbits(varTypes)).forEach { logger.warn { "Settings: $it" } }
             val source = dataDir.resolve("cache-source.txt").toFile().takeIf { it.exists() }?.readText()?.trim()
             // Another revision's cache would hand clients files they can't use, and the next revision's clients our old
             // ones. Without cache-source.txt (a cache copied in by hand, the tests' tiny ones) there's nothing to check.
@@ -192,7 +197,7 @@ class GameServer(
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans,
-            wearRequirements = wearRequirements,
+            wearRequirements = wearRequirements, settings = settings,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)
