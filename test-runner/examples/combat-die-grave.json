@@ -4,6 +4,7 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare", "comment": "nothing worn or carried, whatever earlier scripts left on the account"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "game messages show their keys, whatever data/dialogue.txt holds"},
   {"step": "command", "text": "::heal", "expectMessage": "Healed to "},
   {"step": "command", "text": "::item lobster", "expectMessage": "Added 1 x Lobster"},
   {"step": "command", "text": "::item bronze sword", "expectMessage": "Added 1 x Bronze sword"},
@@ -11,7 +12,7 @@
   {"step": "command", "text": "::item bones 2", "expectMessage": "Added 2 x Bones"},
   {"step": "command", "text": "::tele 3218 3218 0", "expectMessage": "Teleported to 3218, 3218, 0", "comment": "the courtyard, west of the spawn"},
   {"step": "command", "text": "::hit 99 me", "expectMessage": ", dead"},
-  {"step": "assertMessage", "contains": "Oh dear, you are dead!"},
+  {"step": "assertMessage", "contains": "[combat.dead]"},
   {"step": "assertAnimation", "id": 836, "comment": "human_death on the player"},
   {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 15000, "comment": "respawned at the spawn after the death ticks"},
   {"step": "assertInventory", "item": "Lobster", "count": 1, "comment": "the three most valuable units are kept: lobster, sword, one coin"},
@@ -22,7 +23,7 @@
   {"step": "assertMessage", "contains": "examine.npc_9856", "comment": "the key until the words are filled on the server; run ::keys on first if words are in"},
   {"step": "walk", "x": 3220, "y": 3218, "comment": "walk back towards the grave"},
   {"step": "npcOption", "npc": "Grave", "option": "Check"},
-  {"step": "assertMessage", "contains": "Your grave will stand for 15 more minutes."},
+  {"step": "assertMessage", "contains": "[combat.grave_minutes minutes=15]"},
   {"step": "npcOption", "npc": "Grave", "option": "Loot"},
   {"step": "assertInterface", "interfaceId": 672, "timeoutMs": 10000, "comment": "the gravestone, with 9 coins and 2 bones free to reclaim"},
   {"step": "clickWidget", "interfaceId": 672, "component": 6, "slot": 1, "comment": "Take on the first bones (grave slot 1; the coins are slot 0)"},
@@ -31,6 +32,7 @@
   {"step": "assertInventory", "item": "Coins", "count": 10},
   {"step": "assertInventory", "item": "Bones", "count": 2},
   {"step": "assertInterface", "interfaceId": 672, "absent": true, "comment": "an emptied grave closes and goes"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were before ::scenario lumbridge-bare."}
  ]
 }

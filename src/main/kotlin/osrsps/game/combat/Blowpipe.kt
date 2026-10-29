@@ -8,6 +8,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.WearPos
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 
@@ -25,7 +26,12 @@ import osrsps.game.script.Op
  * blowpipes ([osrsps.game.Charges]). A death that loses the last blowpipe puts its darts and scales in the grave
  * ([Deaths]). Not in yet: venom and the special attack.
  */
-class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapons) {
+class Blowpipe(
+    private val objTypes: ObjTypes,
+    private val weapons: RangedWeapons,
+    /** Each player's words for the game messages ([CombatLines]). */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
+) {
     /** The dart it holds, null when it holds none. */
     fun dart(player: Player): ObjType? = if (player.charges[DARTS] > 0) objTypes[player.charges[DART_TYPE]] else null
 
@@ -36,11 +42,11 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
      */
     fun use(player: Player, message: (String) -> Unit, roll: () -> Boolean): Boolean {
         if (player.charges[SCALES] == 0) {
-            message(NO_SCALES)
+            message(words(player)[CombatLines.BLOWPIPE_NO_SCALES])
             return false
         }
         if (player.charges[DARTS] == 0) {
-            message(NO_DARTS)
+            message(words(player)[CombatLines.BLOWPIPE_NO_DARTS])
             return false
         }
         takeDarts(player, 1)
@@ -48,7 +54,7 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
         if (player.charges[SCALES] == 0) {
             val worn = player.equipment[WearPos.WEAPON]
             if (worn?.id == LOADED) player.equipment[WearPos.WEAPON] = InvObj(EMPTY, 1)
-            message(RAN_OUT)
+            message(words(player)[CombatLines.BLOWPIPE_RAN_OUT])
         }
         return true
     }
@@ -56,10 +62,11 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
     /** What Check says. */
     fun check(player: Player): String {
         val dart = dart(player)
-        val darts = if (dart == null) "None" else "${dart.name} x ${number(player.charges[DARTS])}"
         val scales = player.charges[SCALES]
         val percent = String.format(Locale.ROOT, "%.1f", scales * 100.0 / MAX_SCALES)
-        return "Darts: $darts. Scales: ${number(scales)} ($percent%)."
+        val text = words(player)
+        if (dart == null) return text[CombatLines.BLOWPIPE_CHECK_EMPTY, "scales" to number(scales), "percent" to percent]
+        return text[CombatLines.BLOWPIPE_CHECK, "dart" to dart.name, "darts" to number(player.charges[DARTS]), "scales" to number(scales), "percent" to percent]
     }
 
     fun register(handlers: Handlers, message: (Player, String) -> Unit) {
@@ -80,7 +87,7 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
         wornOption(loaded, UNCHARGE)?.let { handlers.onWorn(LOADED, it) { uncharge(player, -1, message) } }
         if (empty != null) {
             option(empty, DISMANTLE)?.let { handlers.onObj(EMPTY, it) { op -> dismantle(player, op.sub, message) } }
-            for (wield in listOf("Wield", "Wear")) option(empty, wield)?.let { handlers.onObj(EMPTY, it) { message(player, NO_SCALES) } }
+            for (wield in listOf("Wield", "Wear")) option(empty, wield)?.let { handlers.onObj(EMPTY, it) { message(player, words(player)[CombatLines.BLOWPIPE_NO_SCALES]) } }
         }
     }
 
@@ -89,12 +96,12 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
         val held = player.inventory[slot]?.takeIf { it.id == dart.id } ?: return
         val have = player.charges[DARTS]
         if (have > 0 && player.charges[DART_TYPE] != dart.id) {
-            message(player, OTHER_DARTS)
+            message(player, words(player)[CombatLines.BLOWPIPE_OTHER_DARTS])
             return
         }
         val added = minOf(held.count, MAX_DARTS - have)
         if (added <= 0) {
-            message(player, FULL_DARTS)
+            message(player, words(player)[CombatLines.BLOWPIPE_FULL_DARTS])
             return
         }
         player.inventory.remove(slot, added)
@@ -110,7 +117,7 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
         val have = player.charges[SCALES]
         val added = minOf(held.count, MAX_SCALES - have)
         if (added <= 0) {
-            message(player, FULL_SCALES)
+            message(player, words(player)[CombatLines.BLOWPIPE_FULL_SCALES])
             return
         }
         player.inventory.remove(scaleSlot, added)
@@ -123,12 +130,12 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
     private fun unload(player: Player, message: (Player, String) -> Unit) {
         val dart = dart(player)
         if (dart == null) {
-            message(player, NO_DARTS)
+            message(player, words(player)[CombatLines.BLOWPIPE_NO_DARTS])
             return
         }
         val back = player.inventory.add(dart, player.charges[DARTS])
         if (back == 0) {
-            message(player, NO_ROOM)
+            message(player, words(player)[CombatLines.NO_ROOM])
             return
         }
         takeDarts(player, back)
@@ -143,7 +150,7 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
         val scale = objTypes[SCALE] ?: return
         val back = listOfNotNull(dart?.let { it to player.charges[DARTS] }, (scale to player.charges[SCALES]).takeIf { it.second > 0 })
         if (!fits(player, back)) {
-            message(player, NO_ROOM)
+            message(player, words(player)[CombatLines.NO_ROOM])
             return
         }
         if (dart != null) takeDarts(player, player.inventory.add(dart, player.charges[DARTS]))
@@ -162,7 +169,7 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
         val dart = dart(player)
         // The blowpipe's own slot is free once it is gone.
         if (!fits(player, listOfNotNull(scale to DISMANTLE_SCALES, dart?.let { it to player.charges[DARTS] }), freed = 1)) {
-            message(player, NO_ROOM)
+            message(player, words(player)[CombatLines.NO_ROOM])
             return
         }
         player.inventory[slot] = null
@@ -214,15 +221,6 @@ class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapon
         private const val UNLOAD = "Unload"
         private const val UNCHARGE = "Uncharge"
         private const val DISMANTLE = "Dismantle"
-
-        // Guessed wording.
-        const val NO_SCALES = "Your blowpipe needs to be charged with Zulrah's scales."
-        const val NO_DARTS = "Your blowpipe contains no darts."
-        const val RAN_OUT = "Your blowpipe has run out of scales."
-        const val OTHER_DARTS = "Your blowpipe already contains a different kind of dart."
-        const val FULL_DARTS = "Your blowpipe can't hold any more darts."
-        const val FULL_SCALES = "Your blowpipe can't hold any more scales."
-        const val NO_ROOM = "You don't have enough inventory space."
 
         private fun number(n: Int) = String.format(Locale.ROOT, "%,d", n)
 

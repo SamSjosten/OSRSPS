@@ -1,0 +1,38 @@
+{
+ "name": "Gathering skills step 3: light logs at the Lumbridge spawn with a tinderbox and with Light on the ground; oak logs need 15; the first fire leaves ashes (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3222 3218 0"},
+  {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0},
+  {"step": "command", "text": "::item tinderbox", "expectMessage": "Added 1 x Tinderbox"},
+  {"step": "command", "text": "::item logs", "expectMessage": "Added 1 x Logs"},
+  {"step": "command", "text": "::item oak_logs", "expectMessage": "Added 1 x Oak logs"},
+
+  {"step": "useItemOnItem", "item": "Tinderbox", "onItem": "Oak logs"},
+  {"step": "assertMessage", "contains": "firemaking.level level=15"},
+  {"step": "assertInventory", "item": "Oak logs", "count": 1},
+
+  {"step": "useItemOnItem", "item": "Tinderbox", "onItem": "Logs"},
+  {"step": "assertMessage", "contains": "firemaking.attempt"},
+  {"step": "assertAnimation", "id": 733, "comment": "human_createfire"},
+  {"step": "assertMessage", "contains": "firemaking.catches", "timeoutMs": 90000, "comment": "65/256 a roll at level 1, a roll every 4 ticks"},
+  {"step": "assertLoc", "locId": 26185, "x": 3222, "y": 3218, "comment": "fire, where the logs were dropped"},
+  {"step": "assertLocation", "x": 3221, "y": 3218, "plane": 0, "comment": "a step west off the fire"},
+  {"step": "assertStat", "skill": "Firemaking", "level": 1, "xp": 40},
+
+  {"step": "command", "text": "::setlevel firemaking 43", "expectMessage": "Firemaking set to level 43"},
+  {"step": "command", "text": "::groundobj logs", "expectMessage": "Put Logs (1511) x 1 on 3221, 3218"},
+  {"step": "groundItemOption", "itemId": 1511, "op": 4, "option": "Light", "x": 3221, "y": 3218},
+  {"step": "assertMessage", "contains": "firemaking.catches", "comment": "sure from level 43: the first roll, 3 ticks after the strike"},
+  {"step": "assertLoc", "locId": 26185, "x": 3221, "y": 3218},
+  {"step": "assertLocation", "x": 3220, "y": 3218, "plane": 0},
+
+  {"step": "assertGroundItem", "item": "Ashes", "x": 3222, "y": 3218, "timeoutMs": 130000, "comment": "the first fire burns 100 to 199 ticks"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
