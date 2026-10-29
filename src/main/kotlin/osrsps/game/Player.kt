@@ -184,6 +184,10 @@ class Player(
     /** The first tick they may swing again; see [osrsps.game.combat.MeleeCombat]. */
     var nextAttackTick: Long = 0
 
+    /** The first tick they may eat again, and eat a combo food again; see [osrsps.game.combat.Foods]. Not saved. */
+    var foodDelayUntil: Long = 0
+    var comboFoodDelayUntil: Long = 0
+
     /** The NPC that hit them last, and the tick it did; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
