@@ -1427,10 +1427,11 @@ class World(
      * (UPDATE_RUNWEIGHT, which the Equipment Stats screen and RuneLite show). Inferred: live sends it on a change only.
      */
     private fun sendWeight(player: Player) {
-        player.weight = ItemWeights.kilograms(itemWeights.total(player))
-        if (player.weight != player.sentWeight) {
-            player.session.queue(UpdateRunWeight(player.weight))
-            player.sentWeight = player.weight
+        player.weightGrams = itemWeights.total(player)
+        val kilograms = ItemWeights.kilograms(player.weightGrams)
+        if (kilograms != player.sentWeight) {
+            player.session.queue(UpdateRunWeight(kilograms))
+            player.sentWeight = kilograms
         }
     }
 

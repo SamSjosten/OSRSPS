@@ -207,8 +207,8 @@ class Player(
     /** 0 to 10,000; 100 units show as 1% on the orb. */
     var runEnergy: Int = Movement.MAX_ENERGY
 
-    /** What they carry in whole kilograms ([ItemWeights.kilograms]), worked out at the start of their movement each tick. */
-    var weight: Int = 0
+    /** What they carry in grams ([ItemWeights.total]), worked out at the start of their movement each tick. */
+    var weightGrams: Int = 0
 
     /** The prayers on at the start of this tick, which are the ones that count this tick; see [osrsps.game.combat.Prayers]. */
     var prayersInEffect: Int = 0

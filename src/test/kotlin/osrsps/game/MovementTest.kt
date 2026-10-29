@@ -56,17 +56,19 @@ class MovementTest {
 
     @Test
     fun `weight speeds up the drain, up to twice at 64 kg`() {
-        fun drainAt(kg: Int): Int {
-            val player = player().apply { runEnabled = true; runEnergy = 5000; weight = kg }
+        fun drainAt(grams: Int): Int {
+            val player = player().apply { runEnabled = true; runEnergy = 5000; weightGrams = grams }
             movement.request(player, 3220, 3210, invertRun = false)
             movement.process(player)
             return 5000 - player.runEnergy
         }
-        // ⌊60 + 67 × weight / 64⌋ × (1 − 1/300), rounded down.
-        assertEquals(59, drainAt(-27))
-        assertEquals(92, drainAt(32))
-        assertEquals(126, drainAt(64))
-        assertEquals(126, drainAt(200))
+        // ⌊(60 + 67 × kg / 64) × (1 − 1/300)⌋, the fractions of a kilogram counting.
+        assertEquals(59, drainAt(-27_605))
+        assertEquals(69, drainAt(9_000))
+        assertEquals(70, drainAt(9_979), "a rune platebody: 70.25, not 9 kg's 69.2")
+        assertEquals(93, drainAt(32_000))
+        assertEquals(126, drainAt(64_000))
+        assertEquals(126, drainAt(200_000))
     }
 
     @Test

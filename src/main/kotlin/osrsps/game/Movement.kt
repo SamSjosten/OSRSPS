@@ -14,10 +14,10 @@ enum class MoveResult { NONE, WALKED, RAN }
 /**
  * Routes players to clicked tiles and moves them along the route: one tile a tick walking, two running.
  *
- * Run energy follows the OSRS Wiki "Energy" article: running drains ⌊60 + 67 × weight / 64⌋ × (1 − agility / 300)
- * units a tick, and any tick spent not running restores ⌊agility / 10⌋ + 15. Weight is [Player.weight] in kilograms,
- * counted from 0 to 64 (the Wiki's Weight article: lighter or heavier has no more effect). Agility is 1 until the skill
- * is built.
+ * Run energy follows the OSRS Wiki "Energy" article: running drains ⌊(60 + 67 × weight / 64) × (1 − agility / 300)⌋
+ * units a tick, and any tick spent not running restores ⌊agility / 10⌋ + 15. Weight is [Player.weightGrams] in
+ * kilograms, counted from 0 to 64 (lighter or heavier has no more effect). Inferred: the weight's fractions count, as
+ * the article tells 64.1 kg from 64; the client is only shown whole kilograms. Agility is 1 until the skill is built.
  */
 class Movement(private val collision: CollisionMap) {
     private val routeFinder = RouteFinder(collision)
@@ -73,8 +73,8 @@ class Movement(private val collision: CollisionMap) {
     private fun updateEnergy(player: Player, result: MoveResult) {
         // Guessed: only a two-tile tick counts as running, and a single tile at the end of a run drains nothing.
         if (result == MoveResult.RAN) {
-            val base = 60 + 67 * player.weight.coerceIn(0, 64) / 64
-            val drain = base * (300 - AGILITY) / 300
+            val grams = player.weightGrams.coerceIn(0, MAX_WEIGHT_GRAMS).toLong()
+            val drain = ((60L * MAX_WEIGHT_GRAMS + 67 * grams) * (300 - AGILITY) / (MAX_WEIGHT_GRAMS * 300L)).toInt()
             player.runEnergy = (player.runEnergy - drain).coerceAtLeast(0)
             // Guessed: run switches itself off when energy runs out, as the orb does on live.
             if (player.runEnergy == 0) player.runEnabled = false
@@ -86,5 +86,8 @@ class Movement(private val collision: CollisionMap) {
     companion object {
         const val MAX_ENERGY = 10_000
         private const val AGILITY = 1
+
+        /** 64 kg, past which weight drains no faster. */
+        private const val MAX_WEIGHT_GRAMS = 64_000
     }
 }
