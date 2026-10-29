@@ -109,6 +109,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-bank-tabs.json`: from `::scenario lumbridge-bank-tabs`, a tab with a placeholder that takes the logs back
   into their slot, Collapse tab, bank fillers and Clear-All's confirmation. The runner can't drag, so items aren't
   moved into tabs here.
+- `lumbridge-deposit-box.json`: the castle's deposit box (Deposit-1, the 5 button, Wield from the extra option, a worn
+  slot's Bank), then the bank's worn items view (its bonus lines, Wield, Remove and Deposit) and the banker's PIN
+  settings screen.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

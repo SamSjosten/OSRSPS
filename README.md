@@ -318,10 +318,14 @@ client's own scripts', built from the varbits the buttons set.
 | Messages: "You don't have enough inventory space.", "...to withdraw that many.", "A magical force prevents you from banking this item!", "You already have a full stack of that item in the bank.", "Your bank cannot hold your items." | RSMod, from live |
 | Opening the bank always starts on withdrawing items, not notes | RSMod; not checked |
 | A member's bank holds 900 | OSRS Wiki, Bank (2026-10-29) |
+| Worn items view: the client switches to it itself; the server fills in the bonus lines ("Melee STR", "Magic DMG", "Undead: +0% ") and answers the worn slots (Remove, Bank, Examine) and the inventory beside it (Wear, Deposit, Examine) | 241 client scripts (bankmain_viewbuttons, wear_updateslot, bankside_worn_drawitem); the labels RSMod's |
+| The inventory's extra option (op 9) wears what can be worn: varp if2 has a bit per slot; the settings menu's toggle hides it | 241 client script bankside_extraop; RSMod |
+| Deposit boxes (Deposit on every Bank deposit box, the castle's top floor one too; Deposit-box on Deadman booths): bank_depositbox (192), op 1 the amount its buttons pick (1, 5, 10, X, All), ops 2 to 6 Deposit-1 to -All, op 9 Wear, the worn slots as above, Deposit inventory and Deposit worn items | 241 client scripts (bank_depositbox_drawslot, storage_create_quantitybuttons) |
+| An item used on a deposit box goes in; with more than one, it asks for an amount | OSRS Wiki, Bank deposit box; asking with the amount prompt is guessed |
+| A banker's PIN settings opens Bank PIN Settings (14) with no PIN: "No PIN set", "7 days", "Stay unlocked"; its buttons say "Bank PINs aren't available on this world." | the screen from the 241 cache; its words guessed; PINs not built |
 
-Not built yet (step 3b of the Rest of Lumbridge plan): the worn items view, the inventory's extra options (Wear, Eat),
-the deposit box and the PIN talk. Not built at all yet: potion storage, deposit locks, bank tags' storage, Collect and
-buying bank space.
+Not built at all yet: the inventory's Eat and Drink in the bank (once there is food), potion storage, deposit locks,
+containers, bank tags' storage, PINs themselves, Collect and buying bank space.
 
 Check: `::item logs 5`, Bank at a castle booth, Deposit-All, Withdraw-X 2, then Note and Withdraw-All: two logs and
 three noted logs. Log out and in: what you banked is still there (`test-runner/examples/lumbridge-bank.json` does most
@@ -329,6 +333,9 @@ of it in the real client; it can't type an amount, so -X is left to the headless
 lumbridge-bank-tabs` starts at the booths with logs and an axe in tab 1: Placeholder on the logs, deposit them back
 and they are in slot 0 again; Collapse tab puts them after the coins (`test-runner/examples/lumbridge-bank-tabs.json`,
 which also fills and clears fillers; the runner can't drag yet, so dragging into tabs is left to the headless test).
+At the deposit box on the castle's top floor, `::item logs 5` and `::item bronze axe`: Deposit-1, then the 5 button and
+a click take the rest; Wield the axe from the box and Bank it from its worn slot. In the bank, Show worn items lists
+the bonuses (`test-runner/examples/lumbridge-deposit-box.json`, with the banker's PIN settings).
 
 ## Equipment
 
@@ -547,8 +554,8 @@ Lumbridge Castle's Cook (`Cook.kt`), Duke Horacio (`DukeHoracio.kt`), men and wo
 (`Doomsayer.kt`), Hatius Cosaintus (`Hatius.kt`) and the Lumbridge Guide (`LumbridgeGuide.kt`) talk as they do once
 every quest is done, since every account here has done them all. The Duke gives an anti-dragon shield to a player
 carrying or wearing none, one talk with a man or woman in 128 hands over a flier, and the Guide gives a security book to
-a player carrying none. Not built yet, so their options end the talk or do nothing: the bank, PIN settings, collection
-box and bank space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings); achievement diaries; Attack
+a player carrying none. Not built yet, so their options end the talk or do nothing: the collection box and bank
+space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings); achievement diaries; Attack
 and Pickpocket; the Guide opening the account management tab's links, and his lost amulet, locket, clue and random
 event talks.
 

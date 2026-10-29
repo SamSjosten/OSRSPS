@@ -1,0 +1,283 @@
+{
+ "name": "Rest of Lumbridge step 3b: the castle's deposit box, the bank's worn items view and Wield, and the banker's PIN settings",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack and an empty bank; ::reset at the end puts both back"
+  },
+  {
+   "step": "command",
+   "text": "::item logs 5",
+   "expectMessage": "Added 5 x Logs"
+  },
+  {
+   "step": "command",
+   "text": "::item bronze axe",
+   "expectMessage": "Added 1 x Bronze axe"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 3220 2",
+   "expectMessage": "Teleported to 3209, 3220, 2",
+   "comment": "the castle's top floor, where the bank's deposit box stands"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank Deposit Box",
+   "option": "Deposit"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 192
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the box's inventory before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 192,
+   "component": 6,
+   "slot": 0,
+   "op": 2,
+   "comment": "Deposit-1 (op 2, the first option in mode 0) on the logs in slot 0"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 4
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 192,
+   "component": 36,
+   "op": 1,
+   "comment": "the 5 button: op 1 becomes Deposit-5"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 192,
+   "component": 6,
+   "slot": 1,
+   "op": 1,
+   "comment": "op 1 on the logs: the last 4 go in"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 0
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 192,
+   "component": 35,
+   "op": 1,
+   "comment": "the 1 button again, as the account had it"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 192,
+   "component": 6,
+   "slot": 5,
+   "op": 9,
+   "comment": "the extra option (op 9, Wield) on the axe in slot 5"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "item": "Bronze axe"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 192,
+   "component": 13,
+   "op": 2,
+   "comment": "the weapon slot (slot3, 13)'s Bank (op 2)"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "empty": true
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze axe",
+   "count": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank booth",
+   "option": "Bank",
+   "comment": "the booths are on the same floor; opening the bank closes the box"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 1,
+   "op": 2,
+   "comment": "Withdraw-1 (op 2) on the axe: the logs are slot 0, the axe slot 1"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze axe",
+   "count": 1
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 107,
+   "op": 1,
+   "comment": "Show worn items (bankmain:wornitems_button, the client's own switch)"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 12,
+   "component": 83,
+   "contains": "Slash: +0",
+   "comment": "the worn view's bonus lines, which the server fills in"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 15,
+   "component": 4,
+   "slot": 0,
+   "op": 1,
+   "comment": "the worn view's inventory: Wield (op 1) on the axe in slot 0"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "item": "Bronze axe"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 12,
+   "component": 83,
+   "contains": "Slash: +4",
+   "comment": "bronze axe: +4 slash (OSRS Wiki)"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 71,
+   "op": 1,
+   "comment": "the weapon slot (wornslot3, 71)'s Remove (op 1)"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "empty": true
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze axe",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 15,
+   "component": 4,
+   "slot": 0,
+   "op": 9,
+   "comment": "the worn view's Deposit (op 9) on the axe"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze axe",
+   "count": 0
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 107,
+   "op": 1,
+   "comment": "Hide worn items, back to the bank's items"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[banker.pin]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 14,
+   "comment": "Bank PIN Settings, with no PIN"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 14,
+   "component": 6,
+   "contains": "No PIN set"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 14,
+   "component": 19,
+   "op": 1,
+   "comment": "Set a PIN"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "Bank PINs aren't available"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "comment": "puts the account back as it was",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
