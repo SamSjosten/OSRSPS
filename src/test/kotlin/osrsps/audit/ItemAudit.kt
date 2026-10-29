@@ -14,6 +14,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import osrsps.game.Equipment
 import osrsps.game.EquipmentBonuses
+import osrsps.game.ItemWeights
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Weapons
@@ -62,7 +63,7 @@ class Finding(val check: String, val id: Int, val name: String, val ours: String
 /**
  * Compares every item the server knows with the Wiki: worn bonuses, attack speed, slot, two-handedness, weapon type
  * and weight against the DPS calculator's data, and requirements, value, members and Grand Exchange flags and weight
- * against osrsreboxed. "Ours" is what the server uses now: the cache, and for requirements [WearRequirements]. Nothing here changes the server; the findings are for the PRs that fix them.
+ * against osrsreboxed. "Ours" is what the server uses now: the cache, [ItemWeights] for weight (stackables weigh nothing, gear its worn weight) and [WearRequirements] for requirements. Nothing here changes the server; the findings are for the PRs that fix them.
  */
 class ItemAudit(
     private val objs: ObjTypes,
@@ -71,6 +72,8 @@ class ItemAudit(
     private val requirements: WearRequirements,
 ) {
     val findings = ArrayList<Finding>()
+
+    private val weights = ItemWeights(objs)
 
     /** How many items each check compared. */
     val compared = LinkedHashMap<String, Int>()
@@ -118,9 +121,10 @@ class ItemAudit(
         for (wiki in equipment) {
             val obj = objs[wiki.id] ?: continue
             count("Weight (DPS calculator)")
-            // The calculator rounds some weights to whole kilograms; only a gap of more than a gram counts.
-            if (kotlin.math.abs(obj.weight - wiki.weight) > 1) {
-                find("Weight (DPS calculator)", obj, label(wiki.name, wiki.version), grams(obj.weight), grams(wiki.weight), wiki.version.isNotEmpty())
+            // The calculator gives the worn weight; only a gap of more than a gram counts, as it rounds some weights.
+            val ours = weights.worn(obj)
+            if (kotlin.math.abs(ours - wiki.weight) > 1) {
+                find("Weight (DPS calculator)", obj, label(wiki.name, wiki.version), grams(ours), grams(wiki.weight), wiki.version.isNotEmpty())
             }
         }
     }
@@ -139,8 +143,9 @@ class ItemAudit(
             if (obj.tradeable != wiki.tradeableOnGe) find("GE-tradeable", obj, wiki.name, obj.tradeable, wiki.tradeableOnGe)
             if (wiki.weight != null) {
                 count("Weight (osrsreboxed)")
-                if (kotlin.math.abs(obj.weight - wiki.weight) > 1) {
-                    find("Weight (osrsreboxed)", obj, wiki.name, grams(obj.weight), grams(wiki.weight))
+                val ours = weights.carried(obj)
+                if (kotlin.math.abs(ours - wiki.weight) > 1) {
+                    find("Weight (osrsreboxed)", obj, wiki.name, grams(ours), grams(wiki.weight))
                 }
             }
             if (!wiki.equipable) continue

@@ -11,6 +11,8 @@ import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.combat.Autocast
 import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
+import osrsps.game.dialogue.DialogueText
+import osrsps.game.dialogue.Lines
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptRunner
@@ -37,6 +39,8 @@ class EquipmentTab(
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
     /** The spells the autocast menu can pick. */
     private val spells: Spells = Spells.NONE,
+    /** The words of [EquipmentLines] for a player, as the dialogue file has them. */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     /** A click on the equipment tab: its stats button or one of its slots, which are a component each. */
     fun clickWornItems(player: Player, component: Int, op: Int): Boolean {
@@ -107,19 +111,20 @@ class EquipmentTab(
     /** Takes off what is worn in [wearpos], as a slot's Remove does: the bank's worn items view's too. */
     fun remove(player: Player, wearpos: Int) = report(player, equipment.remove(player, wearpos))
 
-    /**
-     * Tells the player why a wear or remove didn't happen. The wording is from memory of live and not checked: live
-     * may say it differently.
-     */
+    /** Tells the player why a wear or remove didn't happen, in [EquipmentLines]. */
     private fun report(player: Player, result: EquipResult) {
+        val text = words(player)
         val lines = when (result) {
             EquipResult.Done, EquipResult.Ignored -> return
-            EquipResult.NoSpace -> listOf(NO_SPACE)
+            EquipResult.NoSpace -> listOf(text[EquipmentLines.NO_SPACE])
             is EquipResult.LevelTooLow -> {
-                // Guessed for the combat level, which few items need: the skill line's wording with "combat".
+                // Guessed for the combat level, which few items need: the skill line's words with "combat".
                 val skill = result.requirement.skill?.displayName ?: "combat"
                 val article = if (skill.first().lowercaseChar() in "aeiou") "an" else "a"
-                listOf(LEVEL_TOO_LOW, "You need to have $article $skill level of ${result.requirement.level}.")
+                listOf(
+                    text[EquipmentLines.LEVEL_TOO_LOW],
+                    text[EquipmentLines.LEVEL, "article" to article, "skill" to skill, "level" to result.requirement.level],
+                )
             }
         }
         for (line in lines) send(player, MessageGame(CHATTYPE_GAMEMESSAGE, line))
@@ -431,8 +436,20 @@ class EquipmentTab(
             AUTOCAST to ("autocast" to mapOf(AUTOCAST_SPELLS to "spells")),
         )
 
-        const val LEVEL_TOO_LOW = "You are not a high enough level to use this item."
-        const val NO_SPACE = "You don't have enough free inventory space to do that."
         private const val CHATTYPE_GAMEMESSAGE = 0
     }
+}
+
+/**
+ * Wearing's game messages, in the dialogue file as every line of Jagex text is (Sam's rule, 2026-10-29). Their words are
+ * from memory of live and not checked: live may say them differently.
+ */
+object EquipmentLines : Lines("equipment", "Worn Equipment") {
+    val LEVEL_TOO_LOW = line("level_too_low", "wearing an item below one of its levels, the first of two lines")
+    val LEVEL = line(
+        "level",
+        "the second line: {article} a or an, {skill} the skill (Attack, or combat for the combat level), {level} the level",
+        "article", "skill", "level",
+    )
+    val NO_SPACE = line("no_space", "taking off or swapping gear with no inventory space for what comes off")
 }
