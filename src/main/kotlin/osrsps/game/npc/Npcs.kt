@@ -12,8 +12,8 @@ import kotlin.math.abs
 import kotlin.math.sign
 
 /**
- * Every NPC in the world, and how they move: wandering near their spawn, walking a patrol, or following a player, one
- * tile a tick. An NPC busy with a player ([Npc.engagedWith]) stands still.
+ * Every NPC in the world, and how they move: wandering near their spawn, walking a patrol, or following a player or
+ * another NPC, one tile a tick. An NPC busy with a player ([Npc.engagedWith]) stands still.
  *
  * From the OSRS Wiki ("Wander radius", "Pathfinding"): an NPC picks a tile inside the square of its wander radius
  * around its spawn, then walks to it, and it does so even if something has taken it outside that square. NPCs walk
@@ -42,11 +42,12 @@ class Npcs(
 
     operator fun get(index: Int): Npc? = npcs.getOrNull(index)
 
-    /** Puts a new NPC in the world at its spawn. Returns null when every slot is taken. */
-    fun add(spawn: NpcSpawn): Npc? {
+    /** Puts a new NPC in the world at its spawn on [tick]. Returns null when every slot is taken. */
+    fun add(spawn: NpcSpawn, tick: Long = 0): Npc? {
         // Index 0 is left free, as players leave theirs.
         val index = (1 until MAX_NPCS).firstOrNull { npcs[it] == null } ?: return null
         val npc = Npc(index, spawn)
+        npc.spawnTick = tick
         npcs[index] = npc
         occupy(npc, 1)
         return npc
@@ -74,6 +75,21 @@ class Npcs(
         if (npc.following == null) return
         npc.following = null
         if (npc.engagedWith == null) npc.resetFace()
+    }
+
+    /**
+     * Has [npc] follow [leader], another NPC, until [stopFollowingNpc], [leader] leaves the world or dies, or it gets
+     * more than [FOLLOW_RANGE] tiles away: it walks after it as it would after a player and stops beside it, keeping
+     * to its own [MoveRestrict]. A duckling follows a duck this way (RSMod's duck hunt, which ends in the follow mode).
+     */
+    fun followNpc(npc: Npc, leader: Npc) {
+        require(leader !== npc) { "$npc can't follow itself" }
+        npc.leader = leader
+        npc.destination = null
+    }
+
+    fun stopFollowingNpc(npc: Npc) {
+        npc.leader = null
     }
 
     /** Lets go of [player] everywhere: they left the world. NPCs following or busy with them go back to what they did. */
@@ -195,6 +211,7 @@ class Npcs(
                 // Guessed: an NPC busy with a player doesn't move, even if it follows someone.
                 npc.engagedWith != null -> continue
                 following != null -> chase(npc, following)
+                npc.leader != null -> trail(npc, npc.leader!!)
                 npc.spawn.patrol.isNotEmpty() -> patrol(npc)
                 else -> wander(npc)
             }
@@ -225,23 +242,42 @@ class Npcs(
      * [FOLLOW_RANGE] tiles away.
      */
     private fun chase(npc: Npc, target: Player) {
-        val size = npc.type.size
         if (target.level != npc.level || abs(target.x - npc.x) > FOLLOW_RANGE || abs(target.z - npc.z) > FOLLOW_RANGE) {
             stopFollowing(npc)
             return
         }
-        if (Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, target.x, target.z, 1, 1)) return
-        val (sx, sz) = if (npc.covers(target.x, target.z)) {
+        approach(npc, target.x, target.z)
+    }
+
+    /**
+     * One step after [leader], as [chase] steps after a player, toward its south-west tile; it lets go of a leader that
+     * has left the world, died, or is out of reach as a player would be. Guessed, as in [chase]: the give-up range.
+     */
+    private fun trail(npc: Npc, leader: Npc) {
+        if (npcs[leader.index] !== leader || leader.dead || leader.level != npc.level ||
+            abs(leader.x - npc.x) > FOLLOW_RANGE || abs(leader.z - npc.z) > FOLLOW_RANGE
+        ) {
+            stopFollowingNpc(npc)
+            return
+        }
+        approach(npc, leader.x, leader.z)
+    }
+
+    /** One step toward the one-tile target at [targetX], [targetZ], or out from under it; see [chase]. */
+    private fun approach(npc: Npc, targetX: Int, targetZ: Int) {
+        val size = npc.type.size
+        if (Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, targetX, targetZ, 1, 1)) return
+        val (sx, sz) = if (npc.covers(targetX, targetZ)) {
             // The side that clears the target in the fewest steps; a 3x3 or bigger NPC can need several ticks.
-            STEP_OUT.sortedBy { (dx, dz) -> stepsToClear(npc, dx, dz, target) }.firstOrNull { (dx, dz) -> canStep(npc, dx, dz) }
+            STEP_OUT.sortedBy { (dx, dz) -> stepsToClear(npc, dx, dz, targetX, targetZ) }.firstOrNull { (dx, dz) -> canStep(npc, dx, dz) }
                 ?: return
         } else {
             // Toward the target from the nearest edge of the NPC, so a big NPC lines up with them.
-            val dx = if (target.x < npc.x) -1 else if (target.x >= npc.x + size) 1 else 0
-            val dz = if (target.z < npc.z) -1 else if (target.z >= npc.z + size) 1 else 0
+            val dx = if (targetX < npc.x) -1 else if (targetX >= npc.x + size) 1 else 0
+            val dz = if (targetZ < npc.z) -1 else if (targetZ >= npc.z + size) 1 else 0
             sequenceOf(dx to dz, dx to 0, 0 to dz)
                 .filter { (sx, sz) -> sx != 0 || sz != 0 }
-                .firstOrNull { (sx, sz) -> !overlaps(npc.x + sx, npc.z + sz, size, target.x, target.z) && canStep(npc, sx, sz) }
+                .firstOrNull { (sx, sz) -> !overlaps(npc.x + sx, npc.z + sz, size, targetX, targetZ) && canStep(npc, sx, sz) }
                 ?: return
         }
         // Fighting, it keeps within its max range of its spawn (OSRS Wiki, Retreat: almost always 7 tiles), standing
@@ -250,14 +286,14 @@ class Npcs(
         move(npc, sx, sz)
     }
 
-    /** Steps [npc] must take in direction [dx], [dz] (one of [STEP_OUT]) until it no longer covers [target]. */
-    private fun stepsToClear(npc: Npc, dx: Int, dz: Int, target: Player): Int {
+    /** Steps [npc] must take in direction [dx], [dz] (one of [STEP_OUT]) until it no longer covers the target's tile. */
+    private fun stepsToClear(npc: Npc, dx: Int, dz: Int, targetX: Int, targetZ: Int): Int {
         val size = npc.type.size
         return when {
-            dx < 0 -> npc.x + size - target.x
-            dx > 0 -> target.x - npc.x + 1
-            dz < 0 -> npc.z + size - target.z
-            else -> target.z - npc.z + 1
+            dx < 0 -> npc.x + size - targetX
+            dx > 0 -> targetX - npc.x + 1
+            dz < 0 -> npc.z + size - targetZ
+            else -> targetZ - npc.z + 1
         }
     }
 
@@ -328,7 +364,10 @@ class Npcs(
      */
     fun canStep(npc: Npc, dx: Int, dz: Int): Boolean {
         val size = npc.type.size
-        if (!Steps.canStep(collision, npc.level, npc.x, npc.z, dx, dz, size)) return false
+        val blocked = npc.spawn.restrict == MoveRestrict.BLOCKED
+        val block = if (blocked) CollisionFlag.BLOCK_WALK and CollisionFlag.FLOOR.inv() else CollisionFlag.BLOCK_WALK
+        val need = if (blocked) CollisionFlag.FLOOR else 0
+        if (!Steps.canStep(collision, npc.level, npc.x, npc.z, dx, dz, size, block, need)) return false
         if (!restrictAllows(npc, dx, dz)) return false
         // Inferred from live, where NPCs don't stack: tiles the NPC steps onto must be free of others. Players don't
         // block NPCs here; that isn't checked.
@@ -341,13 +380,36 @@ class Npcs(
     }
 
     /**
+     * Whether [npc] could stand with its south-west tile on [x], [z] as the map and its [MoveRestrict] have it: nothing
+     * blocks any tile it would cover, a blocked NPC's tiles are all water, and an indoors or outdoors one's are all
+     * roofed or all open. Other NPCs aren't counted.
+     */
+    fun canStand(npc: Npc, x: Int, z: Int): Boolean {
+        val restrict = npc.spawn.restrict
+        val size = npc.type.size
+        for (tx in x until x + size) {
+            for (tz in z until z + size) {
+                val flags = collision[tx, tz, npc.level]
+                val ok = when (restrict) {
+                    MoveRestrict.BLOCKED -> flags and CollisionFlag.FLOOR != 0 && flags and (CollisionFlag.BLOCK_WALK and CollisionFlag.FLOOR.inv()) == 0
+                    MoveRestrict.INDOORS -> flags and CollisionFlag.BLOCK_WALK == 0 && flags and CollisionFlag.ROOF != 0
+                    MoveRestrict.OUTDOORS -> flags and CollisionFlag.BLOCK_WALK == 0 && flags and CollisionFlag.ROOF == 0
+                    MoveRestrict.NORMAL -> flags and CollisionFlag.BLOCK_WALK == 0
+                }
+                if (!ok) return false
+            }
+        }
+        return true
+    }
+
+    /**
      * An indoors NPC needs a roof over every tile the step crosses, an outdoors one open sky: the tiles it moves onto
      * and, for a diagonal, both tiles beside the corner, as RS2's step checks read each of them (the 2004Scape
      * project's route finder). Inferred, not seen on live.
      */
     private fun restrictAllows(npc: Npc, dx: Int, dz: Int): Boolean {
         val restrict = npc.spawn.restrict
-        if (restrict == MoveRestrict.NORMAL) return true
+        if (restrict != MoveRestrict.INDOORS && restrict != MoveRestrict.OUTDOORS) return true
         val size = npc.type.size
         val offsets = if (dx != 0 && dz != 0) listOf(dx to 0, 0 to dz, dx to dz) else listOf(dx to dz)
         for ((ox, oz) in offsets) {
