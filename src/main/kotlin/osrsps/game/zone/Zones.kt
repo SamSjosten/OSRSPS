@@ -128,7 +128,7 @@ class Zones {
     private val states = HashMap<Int, ZoneState>()
     private val pending = LinkedHashMap<Int, MutableList<ZoneEvent>>()
     private val enclosedCache = ZonePartialEnclosedCacheBuffer(listOf(OldSchoolClientType.DESKTOP))
-    private val enclosedPayloads = HashMap<Int, ByteBuf>()
+    private val enclosedPayloads = HashMap<Int, List<ByteBuf>>()
 
     private class ZoneState {
         /** By tile-in-zone and layer: what the client must be told on top of the cache. */
@@ -261,13 +261,14 @@ class Zones {
         for (update in collect(player)) {
             if (update.full) out(UpdateZoneFullFollows(update.zoneX, update.zoneZ, update.zone.level))
             if (update.shared.isNotEmpty()) {
-                val payload = enclosedPayloads.getOrPut(update.zone.packed) {
-                    enclosedCache.computeZoneForClient(OldSchoolClientType.DESKTOP, update.shared)
+                val payloads = enclosedPayloads.getOrPut(update.zone.packed) {
+                    update.shared.chunked(MAX_PROTS_ENCLOSED).map { enclosedCache.computeZoneForClient(OldSchoolClientType.DESKTOP, it) }
                 }
-                out(UpdateZonePartialEnclosed(update.zoneX, update.zoneZ, update.zone.level, payload))
+                for (payload in payloads) out(UpdateZonePartialEnclosed(update.zoneX, update.zoneZ, update.zone.level, payload))
             }
-            if (update.own.isNotEmpty()) {
-                val payload = enclosedCache.computeZoneForClient(OldSchoolClientType.DESKTOP, update.own)
+            // A zone's full resend can hold many objs; RSProt refuses an enclosed packet past 40 KB, so it goes in parts.
+            for (part in update.own.chunked(MAX_PROTS_ENCLOSED)) {
+                val payload = enclosedCache.computeZoneForClient(OldSchoolClientType.DESKTOP, part)
                 out(UpdateZonePartialEnclosed(update.zoneX, update.zoneZ, update.zone.level, payload))
             }
         }
@@ -396,6 +397,12 @@ class Zones {
 
         /** The obj times go in two bytes: about 11 hours. */
         private const val MAX_TIME = 65535
+
+        /**
+         * Zone prots in one UPDATE_ZONE_PARTIAL_ENCLOSED at most. RSProt refuses the packet past 39,997 bytes; an obj add
+         * is about 15 bytes (measured: 2,600 of them filled it), so 1,000 of the largest prots stay well under.
+         */
+        private const val MAX_PROTS_ENCLOSED = 1000
 
         /** Zones per side of the map: 16,384 tiles. */
         private const val MAX_ZONE = 2048
