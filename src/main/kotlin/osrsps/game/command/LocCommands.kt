@@ -8,7 +8,7 @@ import osrsps.map.LocShape
 fun CommandRegistry.registerLocCommands(world: World) {
     val locs = world.locs
 
-    register("locs", "::locs [radius]") {
+    register("locs", "::locs [radius]", admin = false) {
         if (args.size > 1) fail("Usage: ::locs [radius]")
         val radius = args.getOrNull(0)?.let { it.toIntOrNull() ?: fail("Usage: ::locs [radius] ('$it' is not a number)") } ?: 1
         if (radius !in 0..MAX_RADIUS) fail("Radius must be 0 to $MAX_RADIUS")

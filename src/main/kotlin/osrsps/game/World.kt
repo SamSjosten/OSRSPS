@@ -908,11 +908,12 @@ class World(
         scripts.interrupt(player)
         player.interaction = null
         npcInteractions.leave(player)
-        if (keyCombination == 2) {
-            // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for everyone.
-            teleport(player, x, z, player.level)
+        if (keyCombination == 2 && admins.isAdmin(player)) {
+            // Ctrl+shift-click is a J-Mod teleport on live; here it is a testing tool for admins, with ::tele's map check.
+            if (hasMap(x, z)) teleport(player, x, z, player.level) else player.message("No map at $x, $z")
             return@act
         }
+        // Inferred: for anyone else the client's ctrl+shift click is an ordinary walk, as on live.
         val route = movement.request(player, x, z, invertRun = keyCombination == 1)
         // Guessed: with no route the client's flag would stay up forever, so clear it.
         if (route.waypoints.isEmpty()) player.session.queue(SetMapFlagV2.RESET)

@@ -33,7 +33,7 @@ fun CommandRegistry.registerEffectCommands(world: World) {
         reply(if (id == -1) "Spotanim slot $slot cleared" else "Spotanim $id in slot $slot")
     }
 
-    register("sound", "::sound [id] [loops] [delay]") {
+    register("sound", "::sound [id] [loops] [delay]", admin = false) {
         if (args.size > 3) fail("Usage: ::sound [id] [loops] [delay]")
         val values = numbers("::sound [id] [loops] [delay]")
         val id = values.getOrElse(0) { DEFAULT_SOUND }
@@ -59,7 +59,7 @@ fun CommandRegistry.registerEffectCommands(world: World) {
         reply("Sound $id from ${player.x}, ${player.z}, heard $radius tiles away")
     }
 
-    register("jingle", "::jingle id") {
+    register("jingle", "::jingle id", admin = false) {
         if (args.size != 1) fail("Usage: ::jingle id")
         val id = numbers("::jingle id")[0]
         if (!ids.jingleExists(id)) fail("No jingle $id in the cache")

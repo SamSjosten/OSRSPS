@@ -60,7 +60,7 @@ fun CommandRegistry.registerZoneCommands(world: World, collision: CollisionMap) 
         reply("Projectile $id from ${player.x}, ${player.z} to ${player.x + dx}, ${player.z + dz}")
     }
 
-    register("los", "::los npcIndex | ::los dx dz") {
+    register("los", "::los npcIndex | ::los dx dz", admin = false) {
         if (args.size !in 1..2) fail("Usage: ::los npcIndex | ::los dx dz")
         val values = args.map { it.toIntOrNull() ?: fail("Usage: ::los npcIndex | ::los dx dz ('$it' is not a number)") }
         val name: String
