@@ -6,6 +6,7 @@ import io.netty.buffer.Unpooled
 import net.rsprot.compression.HuffmanCodec
 import net.rsprot.compression.provider.DefaultHuffmanCodecProvider
 import net.rsprot.protocol.api.NetworkService
+import osrsps.cache.CacheInfo
 import osrsps.cache.CombatLoader
 import osrsps.cache.EffectIdLoader
 import osrsps.cache.FontLoader
@@ -47,6 +48,7 @@ import osrsps.net.NetworkFactory
 import osrsps.net.ProxyProtocol
 import osrsps.net.RsaKeys
 import osrsps.net.RuneLitePins
+import java.math.BigInteger
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
@@ -70,6 +72,8 @@ class GameServer(
     private val relays: Set<String> = emptySet(),
     /** Who may put a PROXY header in front of a connection on either port; see [ProxyProtocol]. */
     private val proxy: ProxyProtocol = ProxyProtocol.OFF,
+    /** The modulus the data folder's RSA key must have (the committed one), or null for any key; see [RsaKeys.load]. */
+    private val rsaModulus: BigInteger? = null,
 ) {
     private lateinit var world: World
     private val clientConfig = ClientConfig(publicHost, httpPort, gamePort = port, version = version, proxy = proxy, runelitePins = RuneLitePins.load())
@@ -114,6 +118,14 @@ class GameServer(
                 frameProblems.forEach { logger.warn { "Game frame: $it" } }
             }
             val source = dataDir.resolve("cache-source.txt").toFile().takeIf { it.exists() }?.readText()?.trim()
+            // Another revision's cache would hand clients files they can't use, and the next revision's clients our old
+            // ones. Without cache-source.txt (a cache copied in by hand, the tests' tiny ones) there's nothing to check.
+            source?.let(CacheInfo::sourceRevision)?.let { revision ->
+                check(revision == Revision.MAJOR) {
+                    "The cache is revision $revision's (cache-source.txt: $source), but the server plays revision " +
+                        "${Revision.MAJOR}: fetch-cache the right one, or change Revision.MAJOR"
+                }
+            }
             clientConfig.status = listOf("cache ${source ?: "of unknown source (no cache-source.txt)"}") +
                 frameProblems.ifEmpty { listOf("ids match the cache's names") }.map { "Game frame: $it" }
         } finally {
@@ -121,7 +133,7 @@ class GameServer(
         }
         logger.info { "Loaded ${js5.size} JS5 responses for ${js5.crcs.size} archives" }
 
-        val rsa = RsaKeys.loadOrCreate(dataDir)
+        val rsa = RsaKeys.load(dataDir, rsaModulus)
         clientConfig.modulusHex = rsa.modulus.toString(16)
         val random = GameRandom(seed ?: GameRandom.newSeed())
         logger.info { "Random seed ${random.seed}" + if (seed == null) " (picked at startup; set OSRSPS_SEED to fix it)" else " (from OSRSPS_SEED)" }

@@ -11,6 +11,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createFile
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -45,8 +46,21 @@ class GameServerTest {
     }
 
     @Test
+    fun `won't start on another revision's cache`(@TempDir dataDir: Path) {
+        writeTinyCache(dataDir)
+        Files.writeString(dataDir.resolve("cache-source.txt"), "openrs2 runescape/2600 build ${Revision.MAJOR - 1}.2 2026-08-05\n")
+        val port = ServerSocket(0).use { it.localPort }
+        val server = GameServer(dataDir, port, ServerSocket(0).use { it.localPort }, "127.0.0.1")
+        val refused = assertFailsWith<IllegalStateException> { server.start() }
+        assertContains(refused.message!!, "revision ${Revision.MAJOR - 1}'s")
+        assertFailsWith<IOException>("game port should not be open") { Socket("127.0.0.1", port).close() }
+    }
+
+    @Test
     fun `serves the master index over JS5 and writes the RSA modulus`(@TempDir dataDir: Path) {
         writeTinyCache(dataDir)
+        // Our revision's cache, so the revision check lets it start.
+        Files.writeString(dataDir.resolve("cache-source.txt"), "openrs2 runescape/2746 build ${Revision.MAJOR} 2026-10-20\n")
 
         val port = ServerSocket(0).use { it.localPort }
         val httpPort = ServerSocket(0).use { it.localPort }

@@ -342,6 +342,11 @@ class World(
         val password = (block.authentication as? AuthenticationType.PasswordAuthentication)?.password?.asCharArray()
         block.authentication.clear()
         val address = responseHandler.address
+        if (isEmailAddress(block.username)) {
+            password?.fill('\u0000')
+            refuseEmailAddress(responseHandler, "login")
+            return
+        }
         if (ipBans.isBanned(address)) {
             logger.info { "Rejecting ${block.username} from $address: that address is banned" }
             responseHandler.writeFailedResponse(LoginResponse.IPBlocked)
@@ -384,6 +389,17 @@ class World(
         }
     }
 
+    /**
+     * Whether a login's name has an "@", as an email address does: likely the friend's real game login, typed where
+     * the launcher asks for a made-up name. Refused before the name is logged, hashed or saved anywhere.
+     */
+    private fun isEmailAddress(username: String): Boolean = '@' in username
+
+    private fun refuseEmailAddress(responseHandler: GameLoginResponseHandler<Player>, what: String) {
+        logger.info { "Rejecting a $what from ${responseHandler.address}: its name is an email address (not logged)" }
+        responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
+    }
+
     /** On the login-auth thread: queues the login if [password] is right for its name, or claims the name for it. */
     private fun checkPassword(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<AuthenticationType>, password: CharArray) {
         val key = SaveStore.saveKey(block.username)
@@ -423,6 +439,10 @@ class World(
 
     override fun onReconnect(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<XteaKey>) {
         val address = responseHandler.address
+        if (isEmailAddress(block.username)) {
+            refuseEmailAddress(responseHandler, "reconnect")
+            return
+        }
         if (ipBans.isBanned(address)) {
             logger.info { "Rejecting a reconnect for ${block.username} from $address: that address is banned" }
             responseHandler.writeFailedResponse(LoginResponse.IPBlocked)
