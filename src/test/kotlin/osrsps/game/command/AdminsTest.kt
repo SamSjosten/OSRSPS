@@ -36,16 +36,12 @@ class AdminsTest {
     }
 
     @Test
-    fun `the world-changing commands are the admin ones`() {
+    fun `only the commands that read or only show the player something are open to everyone`() {
         val world = osrsps.game.World(IntArray(0), osrsps.map.CollisionMap())
-        val adminOnly = world.commands.all.filter { it.admin }.map { it.name }.toSet()
+        val open = world.commands.all.filter { !it.admin }.map { it.name }.toSet()
         assertEquals(
-            setOf(
-                "pause", "step", "resume", "seed", "addloc", "delloc", "resetlocs", "gfx", "proj", "areasound",
-                "dialogue", "groundobj", "objspawn", "cleartile", "npc", "npchp", "follow", "delnpc", "hit", "kill", "god", "sure", "heal", "multi", "blowpipe",
-                "ip", "ipban", "ipunban", "ipbans",
-            ),
-            adminOnly,
+            setOf("pos", "keys", "buttons", "tick", "locs", "npcs", "los", "combat", "fight", "hp", "drops", "scripts", "sound", "jingle"),
+            open,
         )
     }
 }

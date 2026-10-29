@@ -57,7 +57,7 @@ class CommandRegistryTest {
     fun `an admin command refuses someone who isn't one and leaves it off their list`() {
         val admins = Admins.parse("Sam")
         val guarded = CommandRegistry(admins::isAdmin).apply {
-            register("pos", "::pos") { reply("here") }
+            register("pos", "::pos", admin = false) { reply("here") }
             register("pause", "::pause", admin = true) { reply("paused") }
         }
         val sam = Player(2, "sam", 3222, 3218, 0)
@@ -68,12 +68,31 @@ class CommandRegistryTest {
         guarded.execute(sam, "nope", replies::add)
         assertEquals(
             listOf(
-                "::pause changes the world for everyone, so only admins can use it here.",
+                "::pause is a testing tool, so only admins can use it here.",
                 "here",
                 "Unknown command ::nope. Commands: ::pos",
                 "paused",
                 "Unknown command ::nope. Commands: ::pause, ::pos",
             ),
+            replies,
+        )
+    }
+
+    @Test
+    fun `commands are for admins unless registered otherwise, and a dead player runs only the open ones`() {
+        val guarded = CommandRegistry(Admins.parse("Sam")::isAdmin).apply {
+            register("item", "::item") { reply("item") }
+            register("pos", "::pos", admin = false) { reply("here") }
+        }
+        val sam = Player(2, "sam", 3222, 3218, 0)
+        guarded.execute(player, "item", replies::add)
+        sam.deathTick = 5
+        guarded.execute(sam, "item", replies::add)
+        guarded.execute(sam, "pos", replies::add)
+        sam.deathTick = -1
+        guarded.execute(sam, "item", replies::add)
+        assertEquals(
+            listOf("::item is a testing tool, so only admins can use it here.", "You can't use ::item while you are dead.", "here", "item"),
             replies,
         )
     }

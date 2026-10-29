@@ -55,7 +55,7 @@ fun CommandRegistry.registerScriptCommands(world: World) {
         reply("Set a ${type.name.lowercase()} timer every $interval ${ticks(interval)} ${moment(world)}")
     }
 
-    register("scripts", "::scripts") {
+    register("scripts", "::scripts", admin = false) {
         val state = player.scripts
         val delay = if (state.delayed) "delayed until tick ${state.delayedUntil}" else "not delayed"
         val modals = if (player.modalOpen) "modal open" else "no modal"

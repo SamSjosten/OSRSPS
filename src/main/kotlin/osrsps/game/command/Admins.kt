@@ -4,7 +4,7 @@ import osrsps.game.Player
 import osrsps.game.SaveStore
 
 /**
- * Who may run the commands that change the world for everyone (`::pause`, `::npc`, `::addloc` and the like). Names
+ * Who may run the testing commands: all of them but the few that only read or only show the player something. Names
  * match the way saves and accounts do, so an admin's name is safe once they have logged in and claimed it.
  */
 class Admins private constructor(
