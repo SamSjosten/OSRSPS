@@ -18,6 +18,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Weapons
 import osrsps.game.WearPos
+import osrsps.game.WearRequirements
 import kotlin.math.roundToInt
 
 /**
@@ -61,10 +62,14 @@ class Finding(val check: String, val id: Int, val name: String, val ours: String
 /**
  * Compares every item the server knows with the Wiki: worn bonuses, attack speed, slot, two-handedness, weapon type
  * and weight against the DPS calculator's data, and requirements, value, members and Grand Exchange flags and weight
- * against osrsreboxed. "Ours" is what the server uses now: the cache, and for requirements [Equipment.requirements]
- * with its metal-tier rule. Nothing here changes the server; the findings are for the PRs that fix them.
+ * against osrsreboxed. "Ours" is what the server uses now: the cache, and for requirements [WearRequirements]. Nothing here changes the server; the findings are for the PRs that fix them.
  */
-class ItemAudit(private val objs: ObjTypes, private val equipment: List<WikiEquipment>, private val items: List<WikiItem>) {
+class ItemAudit(
+    private val objs: ObjTypes,
+    private val equipment: List<WikiEquipment>,
+    private val items: List<WikiItem>,
+    private val requirements: WearRequirements,
+) {
     val findings = ArrayList<Finding>()
 
     /** How many items each check compared. */
@@ -140,7 +145,7 @@ class ItemAudit(private val objs: ObjTypes, private val equipment: List<WikiEqui
             }
             if (!wiki.equipable) continue
             count("Requirements")
-            val ours = Equipment.requirements(obj).associate { it.skill.name.lowercase() to it.level }
+            val ours = requirements[obj].associate { (it.skill?.name?.lowercase() ?: "combat") to it.level }
             val theirs = wiki.requirements.filterValues { it > 1 }
             if (ours != theirs) find("Requirements", obj, wiki.name, reqs(ours), reqs(theirs))
         }

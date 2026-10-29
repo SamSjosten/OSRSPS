@@ -1,0 +1,2207 @@
+# The levels needed to wear items (osrsps.game.WearRequirements). Items not listed need none.
+# Columns, tab-separated: the item's gameval name; its levels as skill=level (combat=N for the combat level);
+# the OSRS Wiki page the levels are from. Quest requirements are left out: every account has done every quest.
+# Built 2026-10-29: the Wiki pages themselves (read 2026-10-29) for every item where osrsreboxed's Wiki-derived
+# requirements and the 241 cache's params 434-437 disagree or osrsreboxed has no entry, else osrsreboxed's. Where a
+# page states no level, the cache's combat-skill params stand (guessed: they match the Wiki wherever both exist);
+# the cache's Crafting/Firemaking params are the levels to make an item, not to wear it, and are left out.
+excalibur	attack=20	Excalibur
+steel_thrownaxe	ranged=5	Steel thrownaxe
+mithril_thrownaxe	ranged=20	Mithril thrownaxe
+adamnt_thrownaxe	ranged=30	Adamant thrownaxe
+rune_thrownaxe	ranged=40	Rune thrownaxe
+steel_dart	ranged=5	Steel dart
+mithril_dart	ranged=20	Mithril dart
+adamant_dart	ranged=30	Adamant dart
+rune_dart	ranged=40	Rune dart
+steel_dart_p	ranged=5	Steel dart
+mithril_dart_p	ranged=20	Mithril dart
+adamant_dart_p	ranged=30	Adamant dart
+rune_dart_p	ranged=40	Rune dart
+steel_javelin	ranged=5	Steel javelin
+mithril_javelin	ranged=20	Mithril javelin
+adamant_javelin	ranged=30	Adamant javelin
+rune_javelin	ranged=40	Rune javelin
+steel_javelin_p	ranged=5	Steel javelin
+mithril_javelin_p	ranged=20	Mithril javelin
+adamant_javelin_p	ranged=30	Adamant javelin
+rune_javelin_p	ranged=40	Rune javelin
+oak_shortbow	ranged=5	Oak shortbow
+oak_longbow	ranged=5	Oak longbow
+willow_longbow	ranged=20	Willow longbow
+willow_shortbow	ranged=20	Willow shortbow
+maple_longbow	ranged=30	Maple longbow
+maple_shortbow	ranged=30	Maple shortbow
+yew_longbow	ranged=40	Yew longbow
+yew_shortbow	ranged=40	Yew shortbow
+magic_longbow	ranged=50	Magic longbow
+magic_shortbow	ranged=50	Magic shortbow
+steel_knife	ranged=5	Steel knife
+mithril_knife	ranged=20	Mithril knife
+adamant_knife	ranged=30	Adamant knife
+rune_knife	ranged=40	Rune knife
+black_knife	ranged=10	Black knife
+steel_knife_p	ranged=5	Steel knife
+mithril_knife_p	ranged=20	Mithril knife
+black_knife_p	ranged=10	Black knife
+adamant_knife_p	ranged=30	Adamant knife
+rune_knife_p	ranged=40	Rune knife
+steel_arrow	ranged=5	Steel arrow
+steel_arrow_p	ranged=5	Steel arrow
+mithril_arrow	ranged=20	Mithril arrow
+mithril_arrow_p	ranged=20	Mithril arrow
+adamant_arrow	ranged=30	Adamant arrow
+adamant_arrow_p	ranged=30	Adamant arrow
+rune_arrow	ranged=40	Rune arrow
+rune_arrow_p	ranged=40	Rune arrow
+dragon_vambraces	ranged=40	Green d'hide vambraces
+steel_platelegs	defence=5	Steel platelegs
+mithril_platelegs	defence=20	Mithril platelegs
+adamant_platelegs	defence=30	Adamant platelegs
+black_platelegs	defence=10	Black platelegs
+rune_platelegs	defence=40	Rune platelegs
+steel_plateskirt	defence=5	Steel plateskirt
+mithril_plateskirt	defence=20	Mithril plateskirt
+black_plateskirt	defence=10	Black plateskirt
+adamant_plateskirt	defence=30	Adamant plateskirt
+rune_plateskirt	defence=40	Rune plateskirt
+studded_chaps	ranged=20	Studded chaps
+dragonhide_chaps	ranged=40	Green d'hide chaps
+steel_chainbody	defence=5	Steel chainbody
+black_chainbody	defence=10	Black chainbody
+mithril_chainbody	defence=20	Mithril chainbody
+adamant_chainbody	defence=30	Adamant chainbody
+rune_chainbody	defence=40	Rune chainbody
+steel_platebody	defence=5	Steel platebody
+mithril_platebody	defence=20	Mithril platebody
+adamant_platebody	defence=30	Adamant platebody
+black_platebody	defence=10	Black platebody
+rune_platebody	defence=40	Rune platebody
+hardleather_body	defence=10	Hardleather body
+studded_body	defence=20 ranged=20	Studded body
+dragonhide_body	defence=40 ranged=40	Green d'hide body
+steel_med_helm	defence=5	Steel med helm
+mithril_med_helm	defence=20	Mithril med helm
+adamant_med_helm	defence=30	Adamant med helm
+rune_med_helm	defence=40	Rune med helm
+dragon_med_helm	defence=60	Dragon med helm
+black_med_helm	defence=10	Black med helm
+steel_full_helm	defence=5	Steel full helm
+mithril_full_helm	defence=20	Mithril full helm
+adamant_full_helm	defence=30	Adamant full helm
+rune_full_helm	defence=40	Rune full helm
+black_full_helm	defence=10	Black full helm
+coif	ranged=20	Coif
+steel_sq_shield	defence=5	Steel sq shield
+black_sq_shield	defence=10	Black sq shield
+mithril_sq_shield	defence=20	Mithril sq shield
+adamant_sq_shield	defence=30	Adamant sq shield
+rune_sq_shield	defence=40	Rune sq shield
+dragon_sq_shield	defence=60	Dragon sq shield
+steel_kiteshield	defence=5	Steel kiteshield
+black_kiteshield	defence=10	Black kiteshield
+mithril_kiteshield	defence=20	Mithril kiteshield
+adamant_kiteshield	defence=30	Adamant kiteshield
+rune_kiteshield	defence=40	Rune kiteshield
+steel_dagger	attack=5	Steel dagger
+mithril_dagger	attack=20	Mithril dagger
+adamant_dagger	attack=30	Adamant dagger
+rune_dagger	attack=40	Rune dagger
+dragon_dagger	attack=60	Dragon dagger
+black_dagger	attack=10	Black dagger
+steel_dagger_p	attack=5	Steel dagger
+mithril_dagger_p	attack=20	Mithril dagger
+adamant_dagger_p	attack=30	Adamant dagger
+rune_dagger_p	attack=40	Rune dagger
+dragon_dagger_p	attack=60	Dragon dagger
+black_dagger_p	attack=10	Black dagger
+steel_spear	attack=5	Steel spear
+mithril_spear	attack=20	Mithril spear
+adamant_spear	attack=30	Adamant spear
+rune_spear	attack=40	Rune spear
+dragon_spear	attack=60	Dragon spear
+steel_spear_p	attack=5	Steel spear
+mithril_spear_p	attack=20	Mithril spear
+adamant_spear_p	attack=30	Adamant spear
+rune_spear_p	attack=40	Rune spear
+dragon_spear_p	attack=60	Dragon spear
+steel_pickaxe	attack=5 mining=6	Steel pickaxe
+adamant_pickaxe	attack=30 mining=31	Adamant pickaxe
+mithril_pickaxe	attack=20 mining=21	Mithril pickaxe
+rune_pickaxe	attack=40 mining=41	Rune pickaxe
+steel_sword	attack=5	Steel sword
+black_sword	attack=10	Black sword
+mithril_sword	attack=20	Mithril sword
+adamant_sword	attack=30	Adamant sword
+rune_sword	attack=40	Rune sword
+steel_longsword	attack=5	Steel longsword
+black_longsword	attack=10	Black longsword
+mithril_longsword	attack=20	Mithril longsword
+adamant_longsword	attack=30	Adamant longsword
+rune_longsword	attack=40	Rune longsword
+dragon_longsword	attack=60	Dragon longsword
+steel_2h_sword	attack=5	Steel 2h sword
+black_2h_sword	attack=10	Black 2h sword
+mithril_2h_sword	attack=20	Mithril 2h sword
+adamant_2h_sword	attack=30	Adamant 2h sword
+rune_2h_sword	attack=40	Rune 2h sword
+steel_scimitar	attack=5	Steel scimitar
+black_scimitar	attack=10	Black scimitar
+mithril_scimitar	attack=20	Mithril scimitar
+adamant_scimitar	attack=30	Adamant scimitar
+rune_scimitar	attack=40	Rune scimitar
+steel_warhammer	attack=5	Steel warhammer
+black_warhammer	attack=10	Black warhammer
+mithril_warhammer	attack=20	Mithril warhammer
+adamnt_warhammer	attack=30	Adamant warhammer
+rune_warhammer	attack=40	Rune warhammer
+steel_axe	attack=5	Steel axe
+mithril_axe	attack=20	Mithril axe
+adamant_axe	attack=30	Adamant axe
+rune_axe	attack=40	Rune axe
+black_axe	attack=10	Black axe
+steel_battleaxe	attack=5	Steel battleaxe
+black_battleaxe	attack=10	Black battleaxe
+mithril_battleaxe	attack=20	Mithril battleaxe
+adamant_battleaxe	attack=30	Adamant battleaxe
+rune_battleaxe	attack=40	Rune battleaxe
+dragon_battleaxe	attack=60	Dragon battleaxe
+fire_battlestaff	attack=30 magic=30	Fire battlestaff
+water_battlestaff	attack=30 magic=30	Water battlestaff
+air_battlestaff	attack=30 magic=30	Air battlestaff
+earth_battlestaff	attack=30 magic=30	Earth battlestaff
+mystic_fire_staff	attack=40 magic=40	Mystic fire staff
+mystic_water_staff	attack=40 magic=40	Mystic water staff
+mystic_air_staff	attack=40 magic=40	Mystic air staff
+mystic_earth_staff	attack=40 magic=40	Mystic earth staff
+ibanstaff	attack=50 magic=50	Iban's staff
+steel_mace	attack=5	Steel mace
+black_mace	attack=10	Black mace
+mithril_mace	attack=20	Mithril mace
+adamant_mace	attack=30	Adamant mace
+rune_mace	attack=40	Rune mace
+dragon_mace	attack=60	Dragon mace
+saradomin_cape	magic=60	Saradomin cape
+guthix_cape	magic=60	Guthix cape
+zamorak_cape	magic=60	Zamorak cape
+saradomin_staff	magic=60	Saradomin staff
+guthix_staff	magic=60	Guthix staff
+zamorak_staff	magic=60	Zamorak staff
+blue_dragon_vambraces	ranged=50	Blue d'hide vambraces
+red_dragon_vambraces	ranged=60	Red d'hide vambraces
+black_dragon_vambraces	ranged=70	Black d'hide vambraces
+blue_dragonhide_chaps	ranged=50	Blue d'hide chaps
+red_dragonhide_chaps	ranged=60	Red d'hide chaps
+black_dragonhide_chaps	ranged=70	Black d'hide chaps
+blue_dragonhide_body	defence=40 ranged=50	Blue d'hide body
+red_dragonhide_body	defence=40 ranged=60	Red d'hide body
+black_dragonhide_body	defence=40 ranged=70	Black d'hide body
+steel_unlitarrow	ranged=5	Steel fire arrow
+steel_litarrow	ranged=5	Steel fire arrow
+mithril_unlitarrow	ranged=20	Mithril fire arrow
+mithril_litarrow	ranged=20	Mithril fire arrow
+adamant_unlitarrow	ranged=30	Adamant fire arrow
+adamant_litarrow	ranged=30	Adamant fire arrow
+rune_unlitarrow	ranged=40	Rune fire arrow
+rune_litarrow	ranged=40	Rune fire arrow
+boots_ranger	ranged=40	Ranger boots
+boots_wizard	magic=20	Wizard boots
+robinhoodhat	ranged=40	Robin hood hat
+black_platebody_trim	defence=10	Black platebody (t)
+black_platelegs_trim	defence=10	Black platelegs (t)
+black_full_helm_trim	defence=10	Black full helm (t)
+black_kiteshield_trim	defence=10	Black kiteshield (t)
+black_platebody_gold	defence=10	Black platebody (g)
+black_platelegs_gold	defence=10	Black platelegs (g)
+black_full_helm_gold	defence=10	Black full helm (g)
+black_kiteshield_gold	defence=10	Black kiteshield (g)
+adamant_platebody_trim	defence=30	Adamant platebody (t)
+adamant_platelegs_trim	defence=30	Adamant platelegs (t)
+adamant_kiteshield_trim	defence=30	Adamant kiteshield (t)
+adamant_full_helm_trim	defence=30	Adamant full helm (t)
+adamant_platebody_gold	defence=30	Adamant platebody (g)
+adamant_platelegs_gold	defence=30	Adamant platelegs (g)
+adamant_kiteshield_gold	defence=30	Adamant kiteshield (g)
+adamant_full_helm_gold	defence=30	Adamant full helm (g)
+rune_platebody_gold	defence=40	Rune platebody (g)
+rune_platelegs_gold	defence=40	Rune platelegs (g)
+rune_full_helm_gold	defence=40	Rune full helm (g)
+rune_kiteshield_gold	defence=40	Rune kiteshield (g)
+rune_platebody_trim	defence=40	Rune platebody (t)
+rune_platelegs_trim	defence=40	Rune platelegs (t)
+rune_full_helm_trim	defence=40	Rune full helm (t)
+rune_kiteshield_trim	defence=40	Rune kiteshield (t)
+rune_platebody_zamorak	defence=40	Zamorak platebody
+rune_platelegs_zamorak	defence=40	Zamorak platelegs
+rune_full_helm_zamorak	defence=40	Zamorak full helm
+rune_kiteshield_zamorak	defence=40	Zamorak kiteshield
+rune_platebody_saradomin	defence=40	Saradomin platebody
+rune_platelegs_saradomin	defence=40	Saradomin platelegs
+rune_full_helm_saradomin	defence=40	Saradomin full helm
+rune_kiteshield_saradomin	defence=40	Saradomin kiteshield
+rune_platebody_guthix	defence=40	Guthix platebody
+rune_platelegs_guthix	defence=40	Guthix platelegs
+rune_full_helm_guthix	defence=40	Guthix full helm
+rune_kiteshield_guthix	defence=40	Guthix kiteshield
+ogre_arrow	ranged=30	Ogre arrow
+ogre_bow	ranged=30	Ogre bow
+lava_battlestaff	attack=30 magic=30	Lava battlestaff
+mystic_lava_staff	attack=40 magic=40	Mystic lava staff
+black_dart	ranged=10	Black dart
+black_dart_p	ranged=10	Black dart
+steel_claws	attack=5	Steel claws
+black_claws	attack=10	Black claws
+mithril_claws	attack=20	Mithril claws
+adamant_claws	attack=30	Adamant claws
+rune_claws	attack=40	Rune claws
+granite_shield	defence=50 strength=50	Granite shield
+dragon_chainbody	defence=60	Dragon chainbody
+tbwt_steel_spear_kp	attack=5	Steel spear
+tbwt_mithril_spear_kp	attack=20	Mithril spear
+tbwt_adamant_spear_kp	attack=30	Adamant spear
+tbwt_rune_spear_kp	attack=40	Rune spear
+tbwt_dragon_spear_kp	attack=60	Dragon spear
+steel_halberd	attack=5	Steel halberd
+black_halberd	attack=10 strength=5	Black halberd
+mithril_halberd	attack=20 strength=10	Mithril halberd
+adamant_halberd	attack=30 strength=15	Adamant halberd
+rune_halberd	attack=40 strength=20	Rune halberd
+dragon_halberd	attack=60 strength=30	Dragon halberd
+splitbark_helm	defence=40 magic=40	Splitbark helm
+splitbark_body	defence=40 magic=40	Splitbark body
+splitbark_legs	defence=40 magic=40	Splitbark legs
+splitbark_gauntlets	defence=40 magic=40	Splitbark gauntlets
+splitbark_greaves	defence=40 magic=40	Splitbark boots
+black_plateskirt_trim	defence=10	Black plateskirt (t)
+black_plateskirt_gold	defence=10	Black plateskirt (g)
+adamant_plateskirt_trim	defence=30	Adamant plateskirt (t)
+adamant_plateskirt_gold	defence=30	Adamant plateskirt (g)
+rune_plateskirt_gold	defence=40	Rune plateskirt (g)
+rune_plateskirt_trim	defence=40	Rune plateskirt (t)
+rune_plateskirt_zamorak	defence=40	Zamorak plateskirt
+rune_plateskirt_saradomin	defence=40	Saradomin plateskirt
+rune_plateskirt_guthix	defence=40	Guthix plateskirt
+rune_platebody_goldplate	defence=40	Gilded platebody
+rune_platelegs_goldplate	defence=40	Gilded platelegs
+rune_plateskirt_goldplate	defence=40	Gilded plateskirt
+rune_full_helm_goldplate	defence=40	Gilded full helm
+rune_kiteshield_goldplate	defence=40	Gilded kiteshield
+viking_helmet	defence=30	Fremennik helm
+viking_helmet_range	defence=45	Archer helm
+viking_helmet_crush	defence=45	Berserker helm
+viking_helmet_slash	defence=45	Warrior helm
+viking_helmet_magic	defence=45	Farseer helm
+viking_sword	attack=30	Fremennik blade
+viking_shield	defence=30	Fremennik shield
+castlewars_sword	attack=5	Decorative sword (red)
+castlewars_armour_body	defence=5	Decorative armour (red platebody)
+castlewars_armour_legs	defence=5	Decorative armour (red platelegs)
+castlewars_med_helm	defence=5	Decorative helm (red)
+castlewars_shield	defence=5	Decorative shield (red)
+dragon_platelegs	defence=60	Dragon platelegs
+mystic_hat	defence=20 magic=40	Mystic hat
+mystic_robe_top	defence=20 magic=40	Mystic robe top
+mystic_robe_bottom	defence=20 magic=40	Mystic robe bottom
+mystic_gloves	defence=20 magic=40	Mystic gloves
+mystic_boots	defence=20 magic=40	Mystic boots
+mystic_hat_dark	defence=20 magic=40	Mystic hat (dark)
+mystic_robe_top_dark	defence=20 magic=40	Mystic robe top (dark)
+mystic_robe_bottom_dark	defence=20 magic=40	Mystic robe bottom (dark)
+mystic_gloves_dark	defence=20 magic=40	Mystic gloves (dark)
+mystic_boots_dark	defence=20 magic=40	Mystic boots (dark)
+mystic_hat_light	defence=20 magic=40	Mystic hat (light)
+mystic_robe_top_light	defence=20 magic=40	Mystic robe top (light)
+mystic_robe_bottom_light	defence=20 magic=40	Mystic robe bottom (light)
+mystic_gloves_light	defence=20 magic=40	Mystic gloves (light)
+mystic_boots_light	defence=20 magic=40	Mystic boots (light)
+steel_armoured_boots	defence=5	Steel boots
+black_armoured_boots	defence=10	Black boots
+mithril_armoured_boots	defence=20	Mithril boots
+adamant_armoured_boots	defence=30	Adamant boots
+rune_armoured_boots	defence=40	Rune boots
+abyssal_whip	attack=70	Abyssal whip
+granite_maul	attack=50 strength=50	Granite maul
+slayer_mirror_shield	defence=20 slayer=25	Mirror shield
+slayer_leafbladed_spear	attack=50 slayer=55	Leaf-bladed spear
+slayer_broad_arrows	ranged=50 slayer=55	Broad arrows
+slayer_facemask	slayer=10	Facemask
+slayer_earmuffs	slayer=15	Earmuffs
+slayer_nosepeg	slayer=60	Nose peg
+slayer_staff	magic=50 slayer=55	Slayer's staff
+roving_crystal_bow_new	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_bow_1000	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_bow_900	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_bow_800	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_bow_700	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_bow_600	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_bow_500	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_bow_400	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_bow_300	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_bow_200	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_bow_100	ranged=70 agility=50	Crystal bow (historical)
+roving_crystal_shield_new	defence=70 agility=50	Crystal shield (historical)
+roving_crystal_shield_1000	defence=70 agility=50	Crystal shield (historical)
+roving_crystal_shield_900	defence=70 agility=50	Crystal shield (historical)
+roving_crystal_shield_800	defence=70 agility=50	Crystal shield (historical)
+roving_crystal_shield_700	defence=70 agility=50	Crystal shield (historical)
+roving_crystal_shield_600	defence=70 agility=50	Crystal shield (historical)
+roving_crystal_shield_500	defence=70 agility=50	Crystal shield (historical)
+roving_crystal_shield_400	defence=70 agility=50	Crystal shield (historical)
+roving_crystal_shield_300	defence=70 agility=50	Crystal shield (historical)
+roving_crystal_shield_200	defence=70 agility=50	Crystal shield (historical)
+roving_crystal_shield_100	defence=70 agility=50	Crystal shield (historical)
+oak_longbow_signed	ranged=5	Signed oak bow
+castlewars_sword_2	attack=5	Decorative sword (white)
+castlewars_armour_body_2	defence=5	Decorative armour (white platebody)
+castlewars_armour_legs_2	defence=5	Decorative armour (white platelegs)
+castlewars_med_helm_2	defence=5	Decorative helm (white)
+castlewars_shield_2	defence=5	Decorative shield (white)
+castlewars_sword_3	attack=5	Decorative sword (gold)
+castlewars_armour_body_3	defence=30	Decorative armour (gold platebody)
+castlewars_armour_legs_3	defence=30	Decorative armour (gold platelegs)
+castlewars_med_helm_3	defence=30	Decorative helm (gold)
+castlewars_shield_3	defence=30	Decorative shield (gold)
+wallbeast_spike_helmet	defence=5	Spiny helmet
+dwarf_goldrock_helmet	defence=30	Gold helmet
+black_spear	attack=10	Black spear
+black_spear_p	attack=10	Black spear
+tbwt_black_spear_kp	attack=10	Black spear
+dragon_plateskirt	defence=60	Dragon plateskirt
+dragon_scimitar	attack=60	Dragon scimitar
+staff_of_zaros	attack=50 magic=50	Ancient staff
+barrows_ahrim_head	defence=70 magic=70	Ahrim's hood
+barrows_ahrim_weapon	attack=70 magic=70	Ahrim's staff
+barrows_ahrim_body	defence=70 magic=70	Ahrim's robetop
+barrows_ahrim_legs	defence=70 magic=70	Ahrim's robeskirt
+barrows_dharok_head	defence=70	Dharok's helm
+barrows_dharok_weapon	attack=70 strength=70	Dharok's greataxe
+barrows_dharok_body	defence=70	Dharok's platebody
+barrows_dharok_legs	defence=70	Dharok's platelegs
+barrows_guthan_head	defence=70	Guthan's helm
+barrows_guthan_weapon	attack=70	Guthan's warspear
+barrows_guthan_body	defence=70	Guthan's platebody
+barrows_guthan_legs	defence=70	Guthan's chainskirt
+barrows_karil_head	defence=70 ranged=70	Karil's coif
+barrows_karil_weapon	ranged=70	Karil's crossbow
+barrows_karil_body	defence=70 ranged=70	Karil's leathertop
+barrows_karil_legs	defence=70 ranged=70	Karil's leatherskirt
+barrows_torag_head	defence=70	Torag's helm
+barrows_torag_weapon	attack=70 strength=70	Torag's hammers
+barrows_torag_body	defence=70	Torag's platebody
+barrows_torag_legs	defence=70	Torag's platelegs
+barrows_verac_head	defence=70	Verac's helm
+barrows_verac_weapon	attack=70	Verac's flail
+barrows_verac_body	defence=70	Verac's brassard
+barrows_verac_legs	defence=70	Verac's plateskirt
+zogre_brutal_steel	ranged=5	Steel brutal
+zogre_brutal_black	ranged=10	Black brutal
+zogre_brutal_mithril	ranged=20	Mithril brutal
+zogre_brutal_adamant	ranged=30	Adamant brutal
+zogre_brutal_rune	ranged=40	Rune brutal
+zogre_bow	ranged=30	Comp ogre bow
+barrows_ahrim_head_100	defence=70 magic=70	Ahrim's hood
+barrows_ahrim_head_75	defence=70 magic=70	Ahrim's hood
+barrows_ahrim_head_50	defence=70 magic=70	Ahrim's hood
+barrows_ahrim_head_25	defence=70 magic=70	Ahrim's hood
+barrows_ahrim_weapon_100	attack=70 magic=70	Ahrim's staff
+barrows_ahrim_weapon_75	attack=70 magic=70	Ahrim's staff
+barrows_ahrim_weapon_50	attack=70 magic=70	Ahrim's staff
+barrows_ahrim_weapon_25	attack=70 magic=70	Ahrim's staff
+barrows_ahrim_body_100	defence=70 magic=70	Ahrim's robetop
+barrows_ahrim_body_75	defence=70 magic=70	Ahrim's robetop
+barrows_ahrim_body_50	defence=70 magic=70	Ahrim's robetop
+barrows_ahrim_body_25	defence=70 magic=70	Ahrim's robetop
+barrows_ahrim_legs_100	defence=70 magic=70	Ahrim's robeskirt
+barrows_ahrim_legs_75	defence=70 magic=70	Ahrim's robeskirt
+barrows_ahrim_legs_50	defence=70 magic=70	Ahrim's robeskirt
+barrows_ahrim_legs_25	defence=70 magic=70	Ahrim's robeskirt
+barrows_dharok_head_100	defence=70	Dharok's helm
+barrows_dharok_head_75	defence=70	Dharok's helm
+barrows_dharok_head_50	defence=70	Dharok's helm
+barrows_dharok_head_25	defence=70	Dharok's helm
+barrows_dharok_weapon_100	attack=70 strength=70	Dharok's greataxe
+barrows_dharok_weapon_75	attack=70 strength=70	Dharok's greataxe
+barrows_dharok_weapon_50	attack=70 strength=70	Dharok's greataxe
+barrows_dharok_weapon_25	attack=70 strength=70	Dharok's greataxe
+barrows_dharok_body_100	defence=70	Dharok's platebody
+barrows_dharok_body_75	defence=70	Dharok's platebody
+barrows_dharok_body_50	defence=70	Dharok's platebody
+barrows_dharok_body_25	defence=70	Dharok's platebody
+barrows_dharok_legs_100	defence=70	Dharok's platelegs
+barrows_dharok_legs_75	defence=70	Dharok's platelegs
+barrows_dharok_legs_50	defence=70	Dharok's platelegs
+barrows_dharok_legs_25	defence=70	Dharok's platelegs
+barrows_guthan_head_100	defence=70	Guthan's helm
+barrows_guthan_head_75	defence=70	Guthan's helm
+barrows_guthan_head_50	defence=70	Guthan's helm
+barrows_guthan_head_25	defence=70	Guthan's helm
+barrows_guthan_weapon_100	attack=70	Guthan's warspear
+barrows_guthan_weapon_75	attack=70	Guthan's warspear
+barrows_guthan_weapon_50	attack=70	Guthan's warspear
+barrows_guthan_weapon_25	attack=70	Guthan's warspear
+barrows_guthan_body_100	defence=70	Guthan's platebody
+barrows_guthan_body_75	defence=70	Guthan's platebody
+barrows_guthan_body_50	defence=70	Guthan's platebody
+barrows_guthan_body_25	defence=70	Guthan's platebody
+barrows_guthan_legs_100	defence=70	Guthan's chainskirt
+barrows_guthan_legs_75	defence=70	Guthan's chainskirt
+barrows_guthan_legs_50	defence=70	Guthan's chainskirt
+barrows_guthan_legs_25	defence=70	Guthan's chainskirt
+barrows_karil_head_100	defence=70 ranged=70	Karil's coif
+barrows_karil_head_75	defence=70 ranged=70	Karil's coif
+barrows_karil_head_50	defence=70 ranged=70	Karil's coif
+barrows_karil_head_25	defence=70 ranged=70	Karil's coif
+barrows_karil_weapon_100	ranged=70	Karil's crossbow
+barrows_karil_weapon_75	ranged=70	Karil's crossbow
+barrows_karil_weapon_50	ranged=70	Karil's crossbow
+barrows_karil_weapon_25	ranged=70	Karil's crossbow
+barrows_karil_body_100	defence=70 ranged=70	Karil's leathertop
+barrows_karil_body_75	defence=70 ranged=70	Karil's leathertop
+barrows_karil_body_50	defence=70 ranged=70	Karil's leathertop
+barrows_karil_body_25	defence=70 ranged=70	Karil's leathertop
+barrows_karil_legs_100	defence=70 ranged=70	Karil's leatherskirt
+barrows_karil_legs_75	defence=70 ranged=70	Karil's leatherskirt
+barrows_karil_legs_50	defence=70 ranged=70	Karil's leatherskirt
+barrows_karil_legs_25	defence=70 ranged=70	Karil's leatherskirt
+barrows_torag_head_100	defence=70	Torag's helm
+barrows_torag_head_75	defence=70	Torag's helm
+barrows_torag_head_50	defence=70	Torag's helm
+barrows_torag_head_25	defence=70	Torag's helm
+barrows_torag_weapon_100	attack=70 strength=70	Torag's hammers
+barrows_torag_weapon_75	attack=70 strength=70	Torag's hammers
+barrows_torag_weapon_50	attack=70 strength=70	Torag's hammers
+barrows_torag_weapon_25	attack=70 strength=70	Torag's hammers
+barrows_torag_body_100	defence=70	Torag's platebody
+barrows_torag_body_75	defence=70	Torag's platebody
+barrows_torag_body_50	defence=70	Torag's platebody
+barrows_torag_body_25	defence=70	Torag's platebody
+barrows_torag_legs_100	defence=70	Torag's platelegs
+barrows_torag_legs_75	defence=70	Torag's platelegs
+barrows_torag_legs_50	defence=70	Torag's platelegs
+barrows_torag_legs_25	defence=70	Torag's platelegs
+barrows_verac_head_100	defence=70	Verac's helm
+barrows_verac_head_75	defence=70	Verac's helm
+barrows_verac_head_50	defence=70	Verac's helm
+barrows_verac_head_25	defence=70	Verac's helm
+barrows_verac_weapon_100	attack=70	Verac's flail
+barrows_verac_weapon_75	attack=70	Verac's flail
+barrows_verac_weapon_50	attack=70	Verac's flail
+barrows_verac_weapon_25	attack=70	Verac's flail
+barrows_verac_body_100	defence=70	Verac's brassard
+barrows_verac_body_75	defence=70	Verac's brassard
+barrows_verac_body_50	defence=70	Verac's brassard
+barrows_verac_body_25	defence=70	Verac's brassard
+barrows_verac_legs_100	defence=70	Verac's plateskirt
+barrows_verac_legs_75	defence=70	Verac's plateskirt
+barrows_verac_legs_50	defence=70	Verac's plateskirt
+barrows_verac_legs_25	defence=70	Verac's plateskirt
+roguesden_body	agility=50 thieving=50	Rogue top
+roguesden_helm	agility=50 thieving=50	Rogue mask
+roguesden_legs	agility=50 thieving=50	Rogue trousers
+roguesden_gloves	agility=50 thieving=50	Rogue gloves
+roguesden_boots	agility=50 thieving=50	Rogue boots
+basic_tk_helm	defence=20 prayer=10	Initiate sallet
+basic_tk_body	defence=20 prayer=10	Initiate hauberk
+basic_tk_legs	defence=20 prayer=10	Initiate cuisse
+steel_arrow_p+	ranged=5	Steel arrow
+mithril_arrow_p+	ranged=20	Mithril arrow
+adamant_arrow_p+	ranged=30	Adamant arrow
+rune_arrow_p+	ranged=40	Rune arrow
+steel_arrow_p++	ranged=5	Steel arrow
+mithril_arrow_p++	ranged=30	Mithril arrow
+adamant_arrow_p++	ranged=30	Adamant arrow
+rune_arrow_p++	ranged=40	Rune arrow
+steel_dart_p+	ranged=5	Steel dart
+black_dart_p+	ranged=10	Black dart
+mithril_dart_p+	ranged=20	Mithril dart
+adamant_dart_p+	ranged=30	Adamant dart
+rune_dart_p+	ranged=40	Rune dart
+steel_dart_p++	ranged=5	Steel dart
+black_dart_p++	ranged=10	Black dart
+mithril_dart_p++	ranged=20	Mithril dart
+adamant_dart_p++	ranged=30	Adamant dart
+rune_dart_p++	ranged=40	Rune dart
+steel_javelin_p+	ranged=5	Steel javelin
+mithril_javelin_p+	ranged=20	Mithril javelin
+adamant_javelin_p+	ranged=30	Adamant javelin
+rune_javelin_p+	ranged=40	Rune javelin
+steel_javelin_p++	ranged=5	Steel javelin
+mithril_javelin_p++	ranged=20	Mithril javelin
+adamant_javelin_p++	ranged=30	Adamant javelin
+rune_javelin_p++	ranged=40	Rune javelin
+steel_knife_p+	ranged=5	Steel knife
+mithril_knife_p+	ranged=20	Mithril knife
+black_knife_p+	ranged=10	Black knife
+adamant_knife_p+	ranged=30	Adamant knife
+rune_knife_p+	ranged=40	Rune knife
+steel_knife_p++	ranged=5	Steel knife
+mithril_knife_p++	ranged=20	Mithril knife
+black_knife_p++	ranged=10	Black knife
+adamant_knife_p++	ranged=30	Adamant knife
+rune_knife_p++	ranged=40	Rune knife
+steel_dagger_p+	attack=5	Steel dagger
+mithril_dagger_p+	attack=20	Mithril dagger
+adamant_dagger_p+	attack=30	Adamant dagger
+rune_dagger_p+	attack=40	Rune dagger
+dragon_dagger_p+	attack=60	Dragon dagger
+black_dagger_p+	attack=10	Black dagger
+steel_dagger_p++	attack=5	Steel dagger
+mithril_dagger_p++	attack=20	Mithril dagger
+adamant_dagger_p++	attack=30	Adamant dagger
+rune_dagger_p++	attack=40	Rune dagger
+dragon_dagger_p++	attack=60	Dragon dagger
+black_dagger_p++	attack=10	Black dagger
+steel_spear_p+	attack=5	Steel spear
+mithril_spear_p+	attack=20	Mithril spear
+adamant_spear_p+	attack=30	Adamant spear
+rune_spear_p+	attack=40	Rune spear
+dragon_spear_p+	attack=60	Dragon spear
+steel_spear_p++	attack=5	Steel spear
+mithril_spear_p++	attack=20	Mithril spear
+adamant_spear_p++	attack=30	Adamant spear
+rune_spear_p++	attack=40	Rune spear
+dragon_spear_p++	attack=60	Dragon spear
+black_spear_p+	attack=10	Black spear
+black_spear_p++	attack=10	Black spear
+dagganoth_melee_helm	defence=40	Rock-shell helm
+dagganoth_melee_body	defence=40	Rock-shell plate
+dagganoth_melee_legs	defence=40	Rock-shell legs
+dagganoth_ranged_helm	defence=40 ranged=40	Spined helm
+dagganoth_ranged_body	defence=40 ranged=40	Spined body
+dagganoth_ranged_legs	defence=40 ranged=40	Spined chaps
+dagganoth_mage_helm	defence=40 magic=40	Skeletal helm
+dagganoth_mage_body	defence=40 magic=40	Skeletal top
+dagganoth_mage_legs	defence=40 magic=40	Skeletal bottoms
+dagganoth_range_feet	defence=40 magic=40	Spined boots
+broodoo_poisonshield_10	defence=25	Broodoo shield (poison)
+broodoo_poisonshield_9	defence=25	Broodoo shield (poison)
+broodoo_poisonshield_8	defence=25	Broodoo shield (poison)
+broodoo_poisonshield_7	defence=25	Broodoo shield (poison)
+broodoo_poisonshield_6	defence=25	Broodoo shield (poison)
+broodoo_poisonshield_5	defence=25	Broodoo shield (poison)
+broodoo_poisonshield_4	defence=25	Broodoo shield (poison)
+broodoo_poisonshield_3	defence=25	Broodoo shield (poison)
+broodoo_poisonshield_2	defence=25	Broodoo shield (poison)
+broodoo_poisonshield_1	defence=25	Broodoo shield (poison)
+broodoo_poisonshield	defence=25	Broodoo shield (poison)
+broodoo_diseaseshield_10	defence=25	Broodoo shield (disease)
+broodoo_diseaseshield_9	defence=25	Broodoo shield (disease)
+broodoo_diseaseshield_8	defence=25	Broodoo shield (disease)
+broodoo_diseaseshield_7	defence=25	Broodoo shield (disease)
+broodoo_diseaseshield_6	defence=25	Broodoo shield (disease)
+broodoo_diseaseshield_5	defence=25	Broodoo shield (disease)
+broodoo_diseaseshield_4	defence=25	Broodoo shield (disease)
+broodoo_diseaseshield_3	defence=25	Broodoo shield (disease)
+broodoo_diseaseshield_2	defence=25	Broodoo shield (disease)
+broodoo_diseaseshield_1	defence=25	Broodoo shield (disease)
+broodoo_diseaseshield	defence=25	Broodoo shield (disease)
+broodoo_combatshield_10	defence=25	Broodoo shield (combat)
+broodoo_combatshield_9	defence=25	Broodoo shield (combat)
+broodoo_combatshield_8	defence=25	Broodoo shield (combat)
+broodoo_combatshield_7	defence=25	Broodoo shield (combat)
+broodoo_combatshield_6	defence=25	Broodoo shield (combat)
+broodoo_combatshield_5	defence=25	Broodoo shield (combat)
+broodoo_combatshield_4	defence=25	Broodoo shield (combat)
+broodoo_combatshield_3	defence=25	Broodoo shield (combat)
+broodoo_combatshield_2	defence=25	Broodoo shield (combat)
+broodoo_combatshield_1	defence=25	Broodoo shield (combat)
+broodoo_combatshield	defence=25	Broodoo shield (combat)
+snakeskin_body	defence=30 ranged=30	Snakeskin body
+snakeskin_chaps	defence=30 ranged=30	Snakeskin chaps
+snakeskin_bandana	defence=30 ranged=30	Snakeskin bandana
+snakeskin_boots	defence=30 ranged=30	Snakeskin boots
+snakeskin_vambraces	defence=30 ranged=30	Snakeskin vambraces
+tzhaar_throwingring	ranged=60	Toktz-xil-ul
+tzhaar_splitsword	attack=60	Toktz-xil-ak
+tzhaar_spikeshield	defence=60	Toktz-ket-xil
+tzhaar_knife	attack=60	Toktz-xil-ek
+tzhaar_staff	attack=60 magic=60	Toktz-mej-tal
+tzhaar_mace	attack=60	Tzhaar-ket-em
+tzhaar_maul	strength=60	Tzhaar-ket-om
+mud_battlestaff	attack=30 magic=30	Mud battlestaff
+mystic_mud_staff	attack=40 magic=40	Mystic mud staff
+white_claws	attack=10	White claws
+white_battleaxe	attack=10	White battleaxe
+white_dagger	attack=10	White dagger
+white_dagger_p	attack=10	White dagger
+white_dagger_p+	attack=10	White dagger
+white_dagger_p++	attack=10	White dagger
+white_halberd	attack=10 strength=5	White halberd
+white_mace	attack=10	White mace
+white_magic_staff	attack=10	White magic staff
+white_sword	attack=10	White sword
+white_longsword	attack=10	White longsword
+white_2h_sword	attack=10	White 2h sword
+white_scimitar	attack=10	White scimitar
+white_warhammer	attack=10	White warhammer
+white_chainbody	defence=10	White chainbody
+white_platebody	defence=10	White platebody
+white_armoured_boots	defence=10	White boots
+white_med_helm	defence=10	White med helm
+white_full_helm	defence=10	White full helm
+white_platelegs	defence=10	White platelegs
+white_plateskirt	defence=10	White plateskirt
+white_gloves	defence=10	White gloves
+white_sq_shield	defence=10	White sq shield
+white_kiteshield	defence=10	White kiteshield
+daganoth_cave_magic_shortbow	ranged=50	Seercull
+dragon_axe	attack=61	Dragon axe
+granite_legs	defence=50 strength=50	Granite legs
+magictraining_bookofmagic	magic=60	Mage's book
+magictraining_wand_beg	magic=45	Beginner wand
+magictraining_wand_appr	magic=50	Apprentice wand
+magictraining_wand_teach	magic=50	Teacher wand
+magictraining_wand_master	magic=60	Master wand
+magictraining_infinitytop	defence=25 magic=50	Infinity top
+magictraining_infinityhat	defence=25 magic=50	Infinity hat
+magictraining_infinityboots	defence=25 magic=50	Infinity boots
+magictraining_infinitygloves	defence=25 magic=50	Infinity gloves
+magictraining_infinitybottom	defence=25 magic=50	Infinity bottoms
+slayer_buglan_off	slayer=33	Bug lantern
+slayer_buglan_on	slayer=33	Bug lantern
+fever_cutlass_unlucky_jenkins_lucky_cutlass	attack=30	Lucky cutlass
+fever_cutlass_brasshand_harry	attack=20	Harry's cutlass
+fever_rapier_mallard	attack=40	Rapier
+dragon_2h_sword	attack=60	Dragon 2h sword
+slayer_boots	slayer=37	Insulated boots
+black_heraldic_kiteshield1	defence=10	Black shield (h1)
+adamant_heraldic_kiteshield1	defence=30	Adamant shield (h1)
+rune_heraldic_kiteshield1	defence=40	Rune shield (h1)
+black_heraldic_kiteshield2	defence=10	Black shield (h2)
+adamant_heraldic_kiteshield2	defence=30	Adamant shield (h2)
+rune_heraldic_kiteshield2	defence=40	Rune shield (h2)
+black_heraldic_kiteshield3	defence=10	Black shield (h3)
+adamant_heraldic_kiteshield3	defence=30	Adamant shield (h3)
+rune_heraldic_kiteshield3	defence=40	Rune shield (h3)
+black_heraldic_kiteshield4	defence=10	Black shield (h4)
+adamant_heraldic_kiteshield4	defence=30	Adamant shield (h4)
+rune_heraldic_kiteshield4	defence=40	Rune shield (h4)
+black_heraldic_kiteshield5	defence=10	Black shield (h5)
+adamant_heraldic_kiteshield5	defence=30	Adamant shield (h5)
+rune_heraldic_kiteshield5	defence=40	Rune shield (h5)
+studded_body_trim_gold	defence=20 ranged=20	Studded body (g)
+studded_body_trim_fur	defence=20 ranged=20	Studded body (t)
+studded_chaps_trim_gold	ranged=20	Studded chaps (g)
+studded_chaps_trim_fur	ranged=20	Studded chaps (t)
+dragonhide_body_trim_gold	defence=40 ranged=40	Green d'hide body (g)
+dragonhide_body_trim	defence=40 ranged=40	Green d'hide body (t)
+blue_dragonhide_body_trim_gold	defence=40 ranged=50	Blue d'hide body (g)
+blue_dragonhide_body_trim	defence=40 ranged=50	Blue d'hide body (t)
+dragonhide_chaps_trim_gold	ranged=40	Green d'hide chaps (g)
+dragonhide_chaps_trim	ranged=40	Green d'hide chaps (t)
+blue_dragonhide_chaps_trim_gold	ranged=50	Blue d'hide chaps (g)
+blue_dragonhide_chaps_trim	ranged=50	Blue d'hide chaps (t)
+enchanted_robelegs	defence=20 magic=40	Enchanted robe
+enchanted_robetop	defence=20 magic=40	Enchanted top
+enchanted_hat	defence=20 magic=40	Enchanted hat
+hundred_knife	attack=40	Kitchen knife
+gadderanks_warhammer	attack=30	Gadderhammer
+rag_ram_helm	defence=30	Ram skull helm
+poh_helmet_arrav_rune	defence=40	Rune heraldic helm (Arrav)
+poh_helmet_asgarnia_rune	defence=40	Rune heraldic helm (Asgarnia)
+poh_helmet_dorgeshuun_rune	defence=40	Rune heraldic helm (Dorgeshuun)
+poh_helmet_dragon_rune	defence=40	Rune heraldic helm (Dragon)
+poh_helmet_fairy_rune	defence=40	Rune heraldic helm (Fairy)
+poh_helmet_guthix_rune	defence=40	Rune heraldic helm (Guthix)
+poh_helmet_ham_rune	defence=40	Rune heraldic helm (HAM)
+poh_helmet_horse_rune	defence=40	Rune heraldic helm (Horse)
+poh_helmet_jogre_rune	defence=40	Rune heraldic helm (Jogre)
+poh_helmet_kandarin_rune	defence=40	Rune heraldic helm (Kandarin)
+poh_helmet_misthalin_rune	defence=40	Rune heraldic helm (Misthalin)
+poh_helmet_money_rune	defence=40	Rune heraldic helm (Money)
+poh_helmet_saradomin_rune	defence=40	Rune heraldic helm (Saradomin)
+poh_helmet_skull_rune	defence=40	Rune heraldic helm (Skull)
+poh_helmet_varrock_rune	defence=40	Rune heraldic helm (Varrock)
+poh_helmet_zamorak_rune	defence=40	Rune heraldic helm (Zamorak)
+poh_helmet_arrav	defence=5	Steel heraldic helm (Arrav)
+poh_helmet_asgarnia	defence=5	Steel heraldic helm (Asgarnia)
+poh_helmet_dorgeshuun	defence=5	Steel heraldic helm (Dorgeshuun)
+poh_helmet_dragon	defence=5	Steel heraldic helm (Dragon)
+poh_helmet_fairy	defence=5	Steel heraldic helm (Fairy)
+poh_helmet_guthix	defence=5	Steel heraldic helm (Guthix)
+poh_helmet_ham	defence=5	Steel heraldic helm (HAM)
+poh_helmet_horse	defence=5	Steel heraldic helm (Horse)
+poh_helmet_jogre	defence=5	Steel heraldic helm (Jogre)
+poh_helmet_kandarin	defence=5	Steel heraldic helm (Kandarin)
+poh_helmet_misthalin	defence=5	Steel heraldic helm (Misthalin)
+poh_helmet_money	defence=5	Steel heraldic helm (Money)
+poh_helmet_saradomin	defence=5	Steel heraldic helm (Saradomin)
+poh_helmet_skull	defence=5	Steel heraldic helm (Skull)
+poh_helmet_varrock	defence=5	Steel heraldic helm (Varrock)
+poh_helmet_zamorak	defence=5	Steel heraldic helm (Zamorak)
+poh_shield_arrav_rune	defence=40	Rune kiteshield (Arrav)
+poh_shield_asgarnia_rune	defence=40	Rune kiteshield (Asgarnia)
+poh_shield_dorgeshuun_rune	defence=40	Rune kiteshield (Dorgeshuun)
+poh_shield_dragon_rune	defence=40	Rune kiteshield (Dragon)
+poh_shield_fairy_rune	defence=40	Rune kiteshield (Fairy)
+poh_shield_guthix_rune	defence=40	Rune kiteshield (Guthix)
+poh_shield_ham_rune	defence=40	Rune kiteshield (HAM)
+poh_shield_horse_rune	defence=40	Rune kiteshield (Horse)
+poh_shield_jogre_rune	defence=40	Rune kiteshield (Jogre)
+poh_shield_kandarin_rune	defence=40	Rune kiteshield (Kandarin)
+poh_shield_misthalin_rune	defence=40	Rune kiteshield (Misthalin)
+poh_shield_money_rune	defence=40	Rune kiteshield (Money)
+poh_shield_saradomin_rune	defence=40	Rune kiteshield (Saradomin)
+poh_shield_skull_rune	defence=40	Rune kiteshield (Skull)
+poh_shield_varrock_rune	defence=40	Rune kiteshield (Varrock)
+poh_shield_zamorak_rune	defence=40	Rune kiteshield (Zamorak)
+poh_shield_arrav	defence=5	Steel kiteshield (Arrav)
+poh_shield_asgarnia	defence=5	Steel kiteshield (Asgarnia)
+poh_shield_dorgeshuun	defence=5	Steel kiteshield (Dorgeshuun)
+poh_shield_dragon	defence=5	Steel kiteshield (Dragon)
+poh_shield_fairy	defence=5	Steel kiteshield (Fairy)
+poh_shield_guthix	defence=5	Steel kiteshield (Guthix)
+poh_shield_ham	defence=5	Steel kiteshield (HAM)
+poh_shield_horse	defence=5	Steel kiteshield (Horse)
+poh_shield_jogre	defence=5	Steel kiteshield (Jogre)
+poh_shield_kandarin	defence=5	Steel kiteshield (Kandarin)
+poh_shield_misthalin	defence=5	Steel kiteshield (Misthalin)
+poh_shield_money	defence=5	Steel kiteshield (Money)
+poh_shield_saradomin	defence=5	Steel kiteshield (Saradomin)
+poh_shield_skull	defence=5	Steel kiteshield (Skull)
+poh_shield_varrock	defence=5	Steel kiteshield (Varrock)
+poh_shield_zamorak	defence=5	Steel kiteshield (Zamorak)
+pest_void_knight_top	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void knight top
+pest_void_knight_robes	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void knight robe
+pest_void_knight_mace	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void knight mace
+pest_void_knight_gloves	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void knight gloves
+steel_parryingdagger	attack=5 defence=5	Steel defender
+black_parryingdagger	attack=10 defence=10	Black defender
+mithril_parryingdagger	attack=20 defence=20	Mithril defender
+adamant_parryingdagger	attack=30 defence=30	Adamant defender
+rune_parryingdagger	attack=40 defence=40	Rune defender
+dttd_bone_crossbow	ranged=28	Dorgeshuun crossbow
+dttd_bone_crossbow_bolt	ranged=28	Bone bolts
+harmless_black_mask_10	defence=10 strength=20 combat=40	Black mask
+harmless_black_mask_9	defence=10 strength=20 combat=40	Black mask
+harmless_black_mask_8	defence=10 strength=20 combat=40	Black mask
+harmless_black_mask_7	defence=10 strength=20 combat=40	Black mask
+harmless_black_mask_6	defence=10 strength=20 combat=40	Black mask
+harmless_black_mask_5	defence=10 strength=20 combat=40	Black mask
+harmless_black_mask_4	defence=10 strength=20 combat=40	Black mask
+harmless_black_mask_3	defence=10 strength=20 combat=40	Black mask
+harmless_black_mask_2	defence=10 strength=20 combat=40	Black mask
+harmless_black_mask_1	defence=10 strength=20 combat=40	Black mask
+harmless_black_mask	defence=10 strength=20 combat=40	Black mask
+witchwood_icon	slayer=35	Witchwood icon
+lunar_moonclan_liminal_staff	magic=65	Lunar staff
+lunar_helmet	defence=40 magic=65	Lunar helm
+lunar_torso	defence=40 magic=65	Lunar torso
+lunar_legs	defence=40 magic=65	Lunar legs
+lunar_gloves	defence=40 magic=65	Lunar gloves
+lunar_boots	defence=40 magic=65	Lunar boots
+lunar_cape	defence=40 magic=65	Lunar cape
+xbows_crossbow_bolts_blurite	ranged=16	Blurite bolts
+xbows_crossbow_bolts_iron	ranged=26	Iron bolts
+xbows_crossbow_bolts_steel	ranged=31	Steel bolts
+xbows_crossbow_bolts_mithril	ranged=36	Mithril bolts
+xbows_crossbow_bolts_adamantite	ranged=46	Adamant bolts
+xbows_crossbow_bolts_runite	ranged=61	Runite bolts
+xbows_crossbow_bolts_silver	ranged=26	Silver bolts
+xbows_crossbow_blurite	ranged=16	Blurite crossbow
+xbows_crossbow_iron	attack=26	Iron crossbow
+xbows_crossbow_steel	ranged=31	Steel crossbow
+xbows_crossbow_mithril	ranged=36	Mithril crossbow
+xbows_crossbow_adamantite	ranged=46	Adamant crossbow
+xbows_crossbow_runite	ranged=61	Rune crossbow
+xbows_crossbow_bolts_blurite_tipped_jade_enchanted	ranged=16	Jade bolts (e)
+xbows_crossbow_bolts_steel_tipped_redtopaz_enchanted	ranged=31	Topaz bolts (e)
+xbows_crossbow_bolts_mithril_tipped_sapphire_enchanted	ranged=36	Sapphire bolts (e)
+xbows_crossbow_bolts_mithril_tipped_emerald_enchanted	ranged=36	Emerald bolts (e)
+xbows_crossbow_bolts_adamantite_tipped_ruby_enchanted	ranged=46	Ruby bolts (e)
+xbows_crossbow_bolts_adamantite_tipped_diamond_enchanted	ranged=46	Diamond bolts (e)
+xbows_crossbow_bolts_runite_tipped_dragonstone_enchanted	ranged=61	Dragonstone bolts (e)
+xbows_crossbow_bolts_runite_tipped_onyx_enchanted	ranged=61	Onyx bolts (e)
+xbows_crossbow_bolts_blurite_poisoned	ranged=16	Blurite bolts
+xbows_crossbow_bolts_iron_poisoned	ranged=26	Iron bolts
+xbows_crossbow_bolts_steel_poisoned	ranged=31	Steel bolts
+xbows_crossbow_bolts_mithril_poisoned	ranged=36	Mithril bolts
+xbows_crossbow_bolts_adamantite_poisoned	ranged=46	Adamant bolts
+xbows_crossbow_bolts_runite_poisoned	ranged=61	Runite bolts
+xbows_crossbow_bolts_silver_poisoned	ranged=26	Silver bolts
+xbows_crossbow_bolts_blurite_poisoned+	ranged=16	Blurite bolts
+xbows_crossbow_bolts_iron_poisoned+	ranged=26	Iron bolts
+xbows_crossbow_bolts_steel_poisoned+	ranged=31	Steel bolts
+xbows_crossbow_bolts_mithril_poisoned+	ranged=36	Mithril bolts
+xbows_crossbow_bolts_adamantite_poisoned+	ranged=46	Adamant bolts
+xbows_crossbow_bolts_runite_poisoned+	ranged=61	Runite bolts
+xbows_crossbow_bolts_silver_poisoned+	ranged=26	Silver bolts
+xbows_crossbow_bolts_blurite_poisoned++	ranged=16	Blurite bolts
+xbows_crossbow_bolts_iron_poisoned++	ranged=26	Iron bolts
+xbows_crossbow_bolts_steel_poisoned++	ranged=31	Steel bolts
+xbows_crossbow_bolts_mithril_poisoned++	ranged=36	Mithril bolts
+xbows_crossbow_bolts_adamantite_poisoned++	ranged=46	Adamant bolts
+xbows_crossbow_bolts_runite_poisoned++	ranged=61	Runite bolts
+xbows_crossbow_bolts_silver_poisoned++	ranged=26	Silver bolts
+xbows_crossbow_bolts_blurite_tipped_jade	ranged=16	Jade bolts
+xbows_crossbow_bolts_steel_tipped_redtopaz	ranged=31	Topaz bolts
+xbows_crossbow_bolts_mithril_tipped_sapphire	ranged=36	Sapphire bolts
+xbows_crossbow_bolts_mithril_tipped_emerald	ranged=46	Emerald bolts
+xbows_crossbow_bolts_adamantite_tipped_ruby	ranged=46	Ruby bolts
+xbows_crossbow_bolts_adamantite_tipped_diamond	ranged=61	Diamond bolts
+xbows_crossbow_bolts_runite_tipped_dragonstone	ranged=61	Dragonstone bolts
+xbows_crossbow_bolts_runite_tipped_onyx	ranged=61	Onyx bolts
+sail_tyras_helm	defence=5	Tyras helm
+basic_tk_rank2_helm	defence=30 prayer=20	Proselyte sallet
+basic_tk_rank2_body	defence=30 prayer=20	Proselyte hauberk
+basic_tk_rank2_legs	defence=30 prayer=20	Proselyte cuisse
+basic_tk_rank2_plateskirt	defence=30 prayer=20	Proselyte tasset
+skillcape_attack	attack=99	Attack cape
+skillcape_attack_trimmed	attack=99	Attack cape
+skillcape_attack_hood	attack=99	Attack hood
+skillcape_strength	strength=99	Strength cape
+skillcape_strength_trimmed	strength=99	Strength cape
+skillcape_strength_hood	strength=99	Strength hood
+skillcape_defence	defence=99	Defence cape
+skillcape_defence_trimmed	defence=99	Defence cape
+skillcape_defence_hood	defence=99	Defence hood
+skillcape_ranging	ranged=99	Ranging cape
+skillcape_ranging_trimmed	ranged=99	Ranging cape
+skillcape_ranging_hood	ranged=99	Ranging hood
+skillcape_prayer	prayer=99	Prayer cape
+skillcape_prayer_trimmed	prayer=99	Prayer cape
+skillcape_prayer_hood	prayer=99	Prayer hood
+skillcape_magic	magic=99	Magic cape
+skillcape_magic_trimmed	magic=99	Magic cape
+skillcape_magic_hood	magic=99	Magic hood
+skillcape_runecrafting	runecraft=99	Runecraft cape
+skillcape_runecrafting_trimmed	runecraft=99	Runecraft cape
+skillcape_runecrafting_hood	runecraft=99	Runecraft hood
+skillcape_hitpoints	hitpoints=99	Hitpoints cape
+skillcape_hitpoints_trimmed	hitpoints=99	Hitpoints cape
+skillcape_hitpoints_hood	hitpoints=99	Hitpoints hood
+skillcape_agility	agility=99	Agility cape
+skillcape_agility_trimmed	agility=99	Agility cape
+skillcape_agility_hood	agility=99	Agility hood
+skillcape_herblore	herblore=99	Herblore cape
+skillcape_herblore_trimmed	herblore=99	Herblore cape
+skillcape_herblore_hood	herblore=99	Herblore hood
+skillcape_thieving	thieving=99	Thieving cape
+skillcape_thieving_trimmed	thieving=99	Thieving cape
+skillcape_thieving_hood	thieving=99	Thieving hood
+skillcape_crafting	crafting=99	Crafting cape
+skillcape_crafting_trimmed	crafting=99	Crafting cape
+skillcape_crafting_hood	crafting=99	Crafting hood
+skillcape_fletching	fletching=99	Fletching cape
+skillcape_fletching_trimmed	fletching=99	Fletching cape
+skillcape_fletching_hood	fletching=99	Fletching hood
+skillcape_slayer	slayer=99	Slayer cape
+skillcape_slayer_trimmed	slayer=99	Slayer cape
+skillcape_slayer_hood	slayer=99	Slayer hood
+skillcape_construction	construction=99	Construct. cape
+skillcape_construction_trimmed	construction=99	Construct. cape
+skillcape_construction_hood	construction=99	Construct. hood
+skillcape_mining	mining=99	Mining cape
+skillcape_mining_trimmed	mining=99	Mining cape
+skillcape_mining_hood	mining=99	Mining hood
+skillcape_smithing	smithing=99	Smithing cape
+skillcape_smithing_trimmed	smithing=99	Smithing cape
+skillcape_smithing_hood	smithing=99	Smithing hood
+skillcape_fishing	fishing=99	Fishing cape
+skillcape_fishing_trimmed	fishing=99	Fishing cape
+skillcape_fishing_hood	fishing=99	Fishing hood
+skillcape_cooking	cooking=99	Cooking cape
+skillcape_cooking_trimmed	cooking=99	Cooking cape
+skillcape_cooking_hood	cooking=99	Cooking hood
+skillcape_firemaking	firemaking=99	Firemaking cape
+skillcape_firemaking_trimmed	firemaking=99	Firemaking cape
+skillcape_firemaking_hood	firemaking=99	Firemaking hood
+skillcape_woodcutting	woodcutting=99	Woodcutting cape
+skillcape_woodcutting_trimmed	woodcutting=99	Woodcutting cape
+skillcape_woodcutting_hood	woodcutting=99	Woodcutting hood
+skillcape_farming	farming=99	Farming cape
+skillcape_farming_trimmed	farming=99	Farming cape
+skillcape_farming_hood	farming=99	Farming hood
+skillcape_hunting	hunter=99	Hunter cape
+skillcape_hunting_trimmed	hunter=99	Hunter cape
+skillcape_hunting_hood	hunter=99	Hunter hood
+hunting_butterfly_net	hunter=15	Butterfly net
+falcon_gloves	hunter=43	Falconer's glove
+falcon_on_gloves	hunter=43	Falconer's glove
+chinchompa_captured	ranged=45	Chinchompa
+chinchompa_big_captured	ranged=55	Red chinchompa
+hunting_trousers_tiger	hunter=52	Kyatt legs
+hunting_torso_tiger	hunter=52	Kyatt top
+hunting_hat_tiger	hunter=52	Kyatt hat
+hunting_trousers_jaguar	hunter=28	Larupia legs
+hunting_torso_jaguar	hunter=28	Larupia top
+hunting_hat_jaguar	hunter=28	Larupia hat
+hunting_trousers_leopard	hunter=38	Graahk legs
+hunting_torso_leopard	hunter=38	Graahk top
+hunting_hat_leopard	hunter=38	Graahk headdress
+hunting_light_cape	hunter=40	Spotted cape
+hunting_lighter_cape	hunter=66	Spottier cape
+hunting_light_cape_worn	hunter=40	Spotted cape
+hunting_lighter_cape_worn	hunter=66	Spottier cape
+hunting_silent_gloves	hunter=54	Gloves of silence
+hunting_green_spiked_vambraces	ranged=40	Green spiky vambraces
+hunting_blue_spiked_vambraces	ranged=50	Blue spiky vambraces
+hunting_red_spiked_vambraces	ranged=60	Red spiky vambraces
+hunting_black_spiked_vambraces	ranged=70	Black spiky vambraces
+orange_salamander	attack=50 ranged=50 magic=50	Orange salamander
+red_salamander	attack=60 ranged=60 magic=60	Red salamander
+black_salamander	attack=70 ranged=70 magic=70	Black salamander
+green_salamander	attack=30 ranged=30 magic=30	Swamp lizard
+hunting_crossbow	ranged=50	Hunters' crossbow
+huntingbow_bolts	ranged=50	Kebbit bolts
+huntingbow_bigbolts	ranged=50	Long kebbit bolts
+trail_composite_bow_willow	ranged=20	Willow comp bow
+trail_composite_bow_yew	ranged=40	Yew comp bow
+trail_composite_bow_magic	ranged=50	Magic comp bow
+trail_heraldic_helm_1_rune	defence=40	Rune helm (h1)
+trail_heraldic_helm_2_rune	defence=40	Rune helm (h2)
+trail_heraldic_helm_3_rune	defence=40	Rune helm (h3)
+trail_heraldic_helm_4_rune	defence=40	Rune helm (h4)
+trail_heraldic_helm_5_rune	defence=40	Rune helm (h5)
+trail_heraldic_helm_1_adamant	defence=30	Adamant helm (h1)
+trail_heraldic_helm_2_adamant	defence=30	Adamant helm (h2)
+trail_heraldic_helm_3_adamant	defence=30	Adamant helm (h3)
+trail_heraldic_helm_4_adamant	defence=30	Adamant helm (h4)
+trail_heraldic_helm_5_adamant	defence=30	Adamant helm (h5)
+trail_heraldic_helm_1_black	defence=10	Black helm (h1)
+trail_heraldic_helm_2_black	defence=10	Black helm (h2)
+trail_heraldic_helm_3_black	defence=10	Black helm (h3)
+trail_heraldic_helm_4_black	defence=10	Black helm (h4)
+trail_heraldic_helm_5_black	defence=10	Black helm (h5)
+trail_ranger_torso	defence=45 ranged=65	3rd age range top
+trail_ranger_legs	defence=45 ranged=65	3rd age range legs
+trail_ranger_coif	defence=45 ranged=65	3rd age range coif
+trail_ranger_vambraces	defence=45 ranged=65	3rd age vambraces
+trail_mage_torso	defence=30 magic=65	3rd age robe top
+trail_mage_legs	defence=30 magic=65	3rd age robe
+trail_mage_hat	defence=30 magic=65	3rd age mage hat
+trail_mage_amulet	defence=30 magic=65	3rd age amulet
+trail_silver_plate_legs	defence=65	3rd age platelegs
+trail_silver_plate_chest	defence=65	3rd age platebody
+trail_fighter_helm	defence=65	3rd age full helmet
+trail_fighter_shield	defence=65	3rd age kiteshield
+trail_zamorak_vambraces	defence=40 ranged=70	Zamorak bracers
+trail_zamorak_chest	defence=40 ranged=70	Zamorak d'hide body
+trail_zamorak_chaps	defence=40 ranged=70	Zamorak chaps
+trail_zamorak_coif	defence=40 ranged=70	Zamorak coif
+trail_guthix_vambraces	defence=40 ranged=70	Guthix bracers
+trail_guthix_chest	defence=40 ranged=70	Guthix d'hide body
+trail_guthix_chaps	defence=40 ranged=70	Guthix chaps
+trail_guthix_coif	defence=40 ranged=70	Guthix coif
+trail_saradomin_vambraces	defence=40 ranged=70	Saradomin bracers
+trail_saradomin_chest	defence=40 ranged=70	Saradomin d'hide body
+trail_saradomin_chaps	defence=40 ranged=70	Saradomin chaps
+trail_saradomin_coif	defence=40 ranged=70	Saradomin coif
+trail_saradomin_staff	prayer=60	Saradomin crozier
+trail_guthix_staff	prayer=60	Guthix crozier
+trail_zamorak_staff	prayer=60	Zamorak crozier
+trail_saradomin_cloak	prayer=40	Saradomin cloak
+trail_guthix_cloak	prayer=40	Guthix cloak
+trail_zamorak_cloak	prayer=40	Zamorak cloak
+trail_saradomin_mitre	prayer=40 magic=40	Saradomin mitre
+trail_guthix_mitre	prayer=40 magic=40	Guthix mitre
+trail_zamorak_mitre	prayer=40 magic=40	Zamorak mitre
+trail_saradomin_robe_t	prayer=20	Saradomin robe top
+trail_zamorak_robe_t	prayer=20	Zamorak robe top
+trail_guthix_robe_t	prayer=20	Guthix robe top
+trail_saradomin_robe_l	prayer=20	Saradomin robe legs
+trail_guthix_robe_l	prayer=20	Guthix robe legs
+trail_zamorak_robe_l	prayer=20	Zamorak robe legs
+trail_saradomin_scarf	prayer=60	Saradomin stole
+trail_guthix_scarf	prayer=60	Guthix stole
+trail_zamorak_scarf	prayer=60	Zamorak stole
+anma_axe	attack=20	Blessed axe
+anma_50_reward	ranged=50	Ava's accumulator
+barbassault_penance_healer_hat	defence=45	Healer hat
+barbassault_penance_fighter_hat	defence=45	Fighter hat
+barbassault_penance_runner_hat	defence=45	Runner hat
+barbassault_penance_ranger_hat	defence=45	Ranger hat
+barbassault_penance_fighter_torso	defence=40	Fighter torso
+barbassault_penance_runner_boots	defence=40	Runner boots
+barbassault_penance_gloves	defence=40	Penance gloves
+barbassault_penance_gloves_worn	defence=40	Penance gloves
+barbassault_penance_ranger_legs	defence=40 ranged=60	Penance skirt
+granite_body	defence=50 strength=50	Granite body
+contact_keris	attack=50	Keris
+contact_keris_p	attack=50	Keris
+contact_keris_p+	attack=50	Keris
+contact_keris_p++	attack=50	Keris
+granite_helm	defence=50 strength=50	Granite helm
+yak_hide_armour_body	defence=20	Yak-hide armour (top)
+yak_hide_armour_greaves	defence=20	Yak-hide armour (legs)
+fremmenik_round_shield	defence=30	Neitiznot shield
+fris_kingly_helm	defence=55	Helm of neitiznot
+brain_anchor	attack=60 strength=40	Barrelchest anchor
+dorgesh_frog_armour_top	defence=25 ranged=25	Frog-leather body
+dorgesh_frog_armour_bottoms	defence=25 ranged=25	Frog-leather chaps
+dorgesh_frog_armour_shoes	defence=25 ranged=25	Frog-leather boots
+olaf2_brine_sabre	attack=40	Brine sabre
+ancient_goblin_mace	attack=15 prayer=25	Ancient mace
+grim_wear_helmet	defence=50	Dwarven helmet
+dragon_arrow	ranged=60	Dragon arrow
+dragon_unlitarrow	ranged=60	Dragon fire arrow
+dragon_litarrow	ranged=60	Dragon fire arrow
+dragon_arrow_p	ranged=60	Dragon arrow
+dragon_arrow_p+	ranged=60	Dragon arrow
+dragon_arrow_p++	ranged=60	Dragon arrow
+dragon_dart	ranged=60	Dragon dart
+dragon_dart_p	ranged=60	Dragon dart
+dragon_dart_p+	ranged=60	Dragon dart
+dragon_dart_p++	ranged=60	Dragon dart
+darkbow	ranged=60	Dark bow
+ii_magic_butterfly_net	hunter=17	Magic butterfly net
+dragonfire_shield	defence=75	Dragonfire shield
+dragonfire_shield_uncharged	defence=75	Dragonfire shield
+brut_dragon_full_helm	defence=60	Dragon full helm
+brut_steel_spear	attack=5	Steel hasta
+brut_mithril_spear	attack=20	Mithril hasta
+brut_adamant_spear	attack=30	Adamant hasta
+brut_rune_spear	attack=40	Rune hasta
+brut_steel_spear_p	attack=5	Steel hasta
+brut_steel_spear_kp	attack=5	Steel hasta
+brut_steel_spear_p+	attack=5	Steel hasta
+brut_steel_spear_p++	attack=5	Steel hasta
+brut_mithril_spear_p	attack=20	Mithril hasta
+brut_mithril_spear_kp	attack=20	Mithril hasta
+brut_mithril_spear_p+	attack=20	Mithril hasta
+brut_mithril_spear_p++	attack=20	Mithril hasta
+brut_adamant_spear_p	attack=30	Adamant hasta
+brut_adamant_spear_kp	attack=30	Adamant hasta
+brut_adamant_spear_p+	attack=30	Adamant hasta
+brut_adamant_spear_p++	attack=30	Adamant hasta
+brut_rune_spear_p	attack=40	Rune hasta
+brut_rune_spear_kp	attack=40	Rune hasta
+brut_rune_spear_p+	attack=40	Rune hasta
+brut_rune_spear_p++	attack=40	Rune hasta
+game_pest_mage_helm	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void mage helm
+game_pest_archer_helm	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void ranger helm
+game_pest_melee_helm	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void melee helm
+pest_seal_8	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void seal
+pest_seal_7	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void seal
+pest_seal_6	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void seal
+pest_seal_5	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void seal
+pest_seal_4	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void seal
+pest_seal_3	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void seal
+pest_seal_2	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void seal
+pest_seal_1	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void seal
+nzone_rune_pickaxe	attack=40	Rune pickaxe (nz)
+nzone_mithril_pickaxe	attack=20	Mithril pickaxe (nz)
+nzone_crystal_bow_new	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_bow_1000	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_bow_900	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_bow_800	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_bow_700	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_bow_600	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_bow_500	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_bow_400	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_bow_300	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_bow_200	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_bow_100	ranged=70 agility=50	Crystal bow (i)
+nzone_crystal_shield_new	defence=70 agility=50	Crystal shield (i)
+nzone_crystal_shield_1000	defence=70 agility=50	Crystal shield (i)
+nzone_crystal_shield_900	defence=70 agility=50	Crystal shield (i)
+nzone_crystal_shield_800	defence=70 agility=50	Crystal shield (i)
+nzone_crystal_shield_700	defence=70 agility=50	Crystal shield (i)
+nzone_crystal_shield_600	defence=70 agility=50	Crystal shield (i)
+nzone_crystal_shield_500	defence=70 agility=50	Crystal shield (i)
+nzone_crystal_shield_400	defence=70 agility=50	Crystal shield (i)
+nzone_crystal_shield_300	defence=70 agility=50	Crystal shield (i)
+nzone_crystal_shield_200	defence=70 agility=50	Crystal shield (i)
+nzone_crystal_shield_100	defence=70 agility=50	Crystal shield (i)
+nzone_black_mask_10	defence=10 strength=20 combat=40	Black mask (i)
+nzone_black_mask_9	defence=10 strength=20 combat=40	Black mask (i)
+nzone_black_mask_8	defence=10 strength=20 combat=40	Black mask (i)
+nzone_black_mask_7	defence=10 strength=20 combat=40	Black mask (i)
+nzone_black_mask_6	defence=10 strength=20 combat=40	Black mask (i)
+nzone_black_mask_5	defence=10 strength=20 combat=40	Black mask (i)
+nzone_black_mask_4	defence=10 strength=20 combat=40	Black mask (i)
+nzone_black_mask_3	defence=10 strength=20 combat=40	Black mask (i)
+nzone_black_mask_2	defence=10 strength=20 combat=40	Black mask (i)
+nzone_black_mask_1	defence=10 strength=20 combat=40	Black mask (i)
+nzone_black_mask	defence=10 strength=20 combat=40	Black mask (i)
+acb	ranged=70	Armadyl crossbow
+steam_battlestaff	attack=30 magic=30	Steam battlestaff
+mystic_steam_battlestaff	attack=40 magic=40	Mystic steam staff
+sotd	attack=75 magic=75	Staff of the dead
+ags	attack=75	Armadyl godsword
+bgs	attack=75	Bandos godsword
+sgs	attack=75	Saradomin godsword
+zgs	attack=75	Zamorak godsword
+zamorak_spear	attack=70	Zamorakian spear
+armadyl_helmet	defence=70 ranged=70	Armadyl helmet
+armadyl_chestplate	defence=70 ranged=70	Armadyl chestplate
+armadyl_skirt	defence=70 ranged=70	Armadyl chainskirt
+bandos_chestplate	defence=65	Bandos chestplate
+bandos_skirt	defence=65	Bandos tassets
+bandos_boots	defence=65	Bandos boots
+saradomin_sword	attack=70	Saradomin sword
+dragon_boots	defence=60	Dragon boots
+slayer_helm	defence=10	Slayer helmet
+slayer_helm_i	defence=10	Slayer helmet (i)
+slayer_broad_bolt	ranged=61 slayer=55	Broad bolts
+zamorak_hasta	attack=70	Zamorakian hasta
+castlewars_armour_skirt	defence=5	Decorative armour (red plateskirt)
+castlewars_armour_skirt_2	defence=5	Decorative armour (white plateskirt)
+castlewars_armour_skirt_3	defence=5	Decorative armour (gold plateskirt)
+castlewars_mage_top	defence=5	Decorative armour (magic top)
+castlewars_mage_legs	defence=5	Decorative armour (magic legs)
+castlewars_mage_hat	defence=5	Decorative armour (magic hat)
+castlewars_range_top	ranged=30	Decorative armour (ranged top)
+castlewars_range_legs	defence=5	Decorative armour (ranged legs)
+castlewars_range_quiver	defence=5	Decorative armour (quiver)
+leafbladed_sword	attack=50 slayer=55	Leaf-bladed sword
+tots	magic=75	Trident of the seas
+tots_charged	magic=75	Trident of the seas
+tots_uncharged	magic=75	Trident of the seas
+dragon_pickaxe	attack=60	Dragon pickaxe
+malediction_ward	defence=60	Malediction ward
+odium_ward	defence=60	Odium ward
+chinchompa_black	ranged=65	Black chinchompa
+smoke_battlestaff	attack=30 magic=30	Smoke battlestaff
+mystic_smoke_battlestaff	attack=40 magic=40	Mystic smoke staff
+occult_necklace	magic=70	Occult necklace
+abyssal_tentacle	attack=75	Abyssal tentacle
+trail_ancient_robe_t	prayer=20	Ancient robe top
+trail_ancient_robe_l	prayer=20	Ancient robe legs
+trail_ancient_cloak	prayer=40	Ancient cloak
+trail_ancient_staff	prayer=60	Ancient crozier
+trail_ancient_scarf	prayer=60	Ancient stole
+trail_ancient_mitre	prayer=40 magic=40	Ancient mitre
+trail_armadyl_robe_t	prayer=20	Armadyl robe top
+trail_armadyl_robe_l	prayer=20	Armadyl robe legs
+trail_armadyl_scarf	prayer=60	Armadyl stole
+trail_armadyl_mitre	prayer=40 magic=40	Armadyl mitre
+trail_armadyl_cloak	prayer=40	Armadyl cloak
+trail_armadyl_staff	prayer=60	Armadyl crozier
+trail_bandos_robe_t	prayer=20	Bandos robe top
+trail_bandos_robe_l	prayer=20	Bandos robe legs
+trail_bandos_scarf	prayer=60	Bandos stole
+trail_bandos_mitre	prayer=40 magic=40	Bandos mitre
+trail_bandos_cloak	prayer=40	Bandos cloak
+trail_bandos_staff	prayer=60	Bandos crozier
+mithril_platebody_gold	defence=20	Mithril platebody (g)
+mithril_platelegs_gold	defence=20	Mithril platelegs (g)
+mithril_kiteshield_gold	defence=20	Mithril kiteshield (g)
+mithril_full_helm_gold	defence=20	Mithril full helm (g)
+mithril_plateskirt_gold	defence=20	Mithril plateskirt (g)
+mithril_platebody_trim	defence=20	Mithril platebody (t)
+mithril_platelegs_trim	defence=20	Mithril platelegs (t)
+mithril_kiteshield_trim	defence=20	Mithril kiteshield (t)
+mithril_full_helm_trim	defence=20	Mithril full helm (t)
+mithril_plateskirt_trim	defence=20	Mithril plateskirt (t)
+black_pickaxe	attack=10	Black pickaxe
+red_dragonhide_body_gold	defence=40 ranged=60	Red d'hide body (g)
+red_dragonhide_chaps_gold	ranged=60	Red d'hide chaps (g)
+red_dragonhide_body_trim	defence=40 ranged=60	Red d'hide body (t)
+red_dragonhide_chaps_trim	ranged=60	Red d'hide chaps (t)
+dragon_cane	attack=60	Dragon cane
+black_cane	attack=10	Black cane
+adamant_cane	attack=30	Adamant cane
+rune_cane	attack=40	Rune cane
+black_dragonhide_body_gold	defence=40 ranged=70	Black d'hide body (g)
+black_dragonhide_chaps_gold	ranged=70	Black d'hide chaps (g)
+black_dragonhide_body_trim	defence=40 ranged=70	Black d'hide body (t)
+black_dragonhide_chaps_trim	ranged=70	Black d'hide chaps (t)
+rune_scimitar_gold	attack=40	Gilded scimitar
+rune_boots_gold	defence=40	Gilded boots
+dragon_chainbody_gold	defence=60	Dragon chainbody (g)
+dragon_platelegs_gold	defence=60	Dragon platelegs (g)
+dragon_plateskirt_gold	defence=60	Dragon plateskirt (g)
+dragon_full_helm_gold	defence=60	Dragon full helm (g)
+dragon_sq_shield_gold	defence=60	Dragon sq shield (g)
+infinity_hat_gold	defence=25 magic=50	Light infinity hat
+infinity_top_gold	defence=25 magic=50	Light infinity top
+infinity_bottom_gold	defence=25 magic=50	Light infinity bottoms
+trail_mage_wand	magic=65	3rd age wand
+trail_ranger_bow	ranged=65	3rd age bow
+trail_fighter_sword	attack=65	3rd age longsword
+trail_third_cape	prayer=65	3rd age cloak
+infinity_hat_trim	defence=25 magic=50	Dark infinity hat
+infinity_top_trim	defence=25 magic=50	Dark infinity top
+infinity_bottom_trim	defence=25 magic=50	Dark infinity bottoms
+rune_platebody_ancient	defence=40	Ancient platebody
+rune_platelegs_ancient	defence=40	Ancient platelegs
+rune_plateskirt_ancient	defence=40	Ancient plateskirt
+rune_full_helm_ancient	defence=40	Ancient full helm
+rune_kiteshield_ancient	defence=40	Ancient kiteshield
+rune_platebody_armadyl	defence=40	Armadyl platebody
+rune_platelegs_armadyl	defence=40	Armadyl platelegs
+rune_plateskirt_armadyl	defence=40	Armadyl plateskirt
+rune_full_helm_armadyl	defence=40	Armadyl full helm
+rune_kiteshield_armadyl	defence=40	Armadyl kiteshield
+rune_platebody_bandos	defence=40	Bandos platebody
+rune_platelegs_bandos	defence=40	Bandos platelegs
+rune_plateskirt_bandos	defence=40	Bandos plateskirt
+rune_full_helm_bandos	defence=40	Bandos full helm
+rune_kiteshield_bandos	defence=40	Bandos kiteshield
+trail_ancient_vambraces	defence=40 ranged=70	Ancient bracers
+trail_ancient_chest	defence=40 ranged=70	Ancient d'hide body
+trail_ancient_chaps	defence=40 ranged=70	Ancient chaps
+trail_ancient_coif	defence=40 ranged=70	Ancient coif
+trail_bandos_vambraces	defence=40 ranged=70	Bandos bracers
+trail_bandos_chest	defence=40 ranged=70	Bandos d'hide body
+trail_bandos_chaps	defence=40 ranged=70	Bandos chaps
+trail_bandos_coif	defence=40 ranged=70	Bandos coif
+trail_armadyl_vambraces	defence=40 ranged=70	Armadyl bracers
+trail_armadyl_chest	defence=40 ranged=70	Armadyl d'hide body
+trail_armadyl_chaps	defence=40 ranged=70	Armadyl chaps
+trail_armadyl_coif	defence=40 ranged=70	Armadyl coif
+ranger_tunic	ranged=40	Rangers' tunic
+holy_sandals	prayer=31	Holy sandals
+ibanstaff_upgraded	attack=50 magic=50	Iban's staff (u)
+darkbow_green	ranged=60	Dark bow
+darkbow_blue	ranged=60	Dark bow
+darkbow_yellow	ranged=60	Dark bow
+darkbow_white	ranged=60	Dark bow
+abyssal_whip_lava	attack=70	Volcanic abyssal whip
+abyssal_whip_ice	attack=70	Frozen abyssal whip
+magic_shortbow_i	ranged=50	Magic shortbow (i)
+steam_battlestaff_pretty	attack=30 magic=30	Steam battlestaff (or)
+mystic_steam_battlestaff_pretty	attack=40 magic=40	Mystic steam staff (or)
+dragon_pickaxe_pretty	attack=60	Dragon pickaxe (upgraded)
+malediction_ward_pretty	defence=60	Malediction ward (or)
+odium_ward_pretty	defence=60	Odium ward (or)
+blessed_saradomin_sword	attack=75	Saradomin's blessed sword
+blessed_saradomin_sword_degraded	attack=75	Saradomin's blessed sword
+elysian	defence=75 prayer=75	Elysian spirit shield
+spectral	defence=75 prayer=70 magic=65	Spectral spirit shield
+arcane	defence=75 prayer=70 magic=65	Arcane spirit shield
+spirit_shield	defence=45 prayer=55	Spirit shield
+blessed_spirit_shield	defence=70 prayer=60	Blessed spirit shield
+granite_maul_pretty	attack=50 strength=50	Granite maul (or)
+toxic_tots_charged	magic=78	Trident of the swamp
+toxic_tots_uncharged	magic=78	Trident of the swamp
+toxic_sotd	attack=75 magic=75	Toxic staff of the dead
+toxic_sotd_charged	attack=75 magic=75	Toxic staff of the dead
+toxic_blowpipe	ranged=75	Toxic blowpipe
+toxic_blowpipe_loaded	ranged=75	Toxic blowpipe
+serpentine_helm	defence=75	Serpentine helm
+serpentine_helm_charged	defence=75	Serpentine helm
+dragon_parryingdagger	defence=60	Dragon defender
+elite_void_knight_top	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Elite void top
+elite_void_knight_robes	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Elite void robe
+nzone_crystal_halberd_new	attack=75 strength=35 agility=50	Crystal halberd (i)
+nzone_crystal_halberd_1000	attack=70 strength=35 agility=50	Crystal halberd (i)
+nzone_crystal_halberd_900	attack=70 strength=35 agility=50	Crystal halberd (i)
+nzone_crystal_halberd_800	attack=70 strength=35 agility=50	Crystal halberd (i)
+nzone_crystal_halberd_700	attack=70 strength=35 agility=50	Crystal halberd (i)
+nzone_crystal_halberd_600	attack=70 strength=35 agility=50	Crystal halberd (i)
+nzone_crystal_halberd_500	attack=70 strength=35 agility=50	Crystal halberd (i)
+nzone_crystal_halberd_400	attack=70 strength=35 agility=50	Crystal halberd (i)
+nzone_crystal_halberd_300	attack=70 strength=35 agility=50	Crystal halberd (i)
+nzone_crystal_halberd_200	attack=70 strength=35 agility=50	Crystal halberd (i)
+nzone_crystal_halberd_100	attack=70 strength=35 agility=50	Crystal halberd (i)
+crystal_halberd_new	attack=75 strength=35 agility=50	Crystal halberd (historical)
+crystal_halberd_1000	attack=70 strength=35 agility=50	Crystal halberd (historical)
+crystal_halberd_900	attack=70 strength=35 agility=50	Crystal halberd (historical)
+crystal_halberd_800	attack=70 strength=35 agility=50	Crystal halberd (historical)
+crystal_halberd_700	attack=70 strength=35 agility=50	Crystal halberd (historical)
+crystal_halberd_600	attack=70 strength=35 agility=50	Crystal halberd (historical)
+crystal_halberd_500	attack=70 strength=35 agility=50	Crystal halberd (historical)
+crystal_halberd_400	attack=70 strength=35 agility=50	Crystal halberd (historical)
+crystal_halberd_300	attack=70 strength=35 agility=50	Crystal halberd (historical)
+crystal_halberd_200	attack=70 strength=35 agility=50	Crystal halberd (historical)
+crystal_halberd_100	attack=70 strength=35 agility=50	Crystal halberd (historical)
+serpentine_helm_cyan	defence=75	Tanzanite helm
+serpentine_helm_charged_cyan	defence=75	Tanzanite helm
+serpentine_helm_red	defence=75	Magma helm
+serpentine_helm_charged_red	defence=75	Magma helm
+eternal_boots	defence=75 magic=75	Eternal boots
+pegasian_boots	defence=75 ranged=75	Pegasian boots
+primordial_boots	defence=75 strength=75	Primordial boots
+infernal_axe	attack=60	Infernal axe
+infernal_axe_empty	attack=60	Infernal axe
+infernal_pickaxe	attack=60	Infernal pickaxe
+infernal_pickaxe_empty	attack=60	Infernal pickaxe
+abyssal_bludgeon	attack=70 strength=70	Abyssal bludgeon
+abyssal_dagger	attack=70	Abyssal dagger
+abyssal_dagger_p	attack=70	Abyssal dagger
+abyssal_dagger_p+	attack=70	Abyssal dagger
+abyssal_dagger_p++	attack=70	Abyssal dagger
+skillcape_max	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Max cape
+skillcape_max_hood	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Max hood
+skillcape_max_firecape	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Fire max cape
+skillcape_max_hood_firecape	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Fire max hood
+skillcape_max_saradomin	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Saradomin max cape
+skillcape_max_hood_saradomin	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Saradomin max hood
+skillcape_max_zamorak	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Zamorak max cape
+skillcape_max_hood_zamorak	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Zamorak max hood
+skillcape_max_guthix	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Guthix max cape
+skillcape_max_hood_guthix	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Guthix max hood
+skillcape_max_anma	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Accumulator max cape
+skillcape_max_hood_anma	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Accumulator max hood
+skillcape_max_worn	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Max cape
+shayzien_gloves_1	defence=20	Shayzien gloves (1)
+shayzien_boots_1	defence=20	Shayzien boots (1)
+shayzien_helm_1	defence=20	Shayzien helm (1)
+shayzien_legs_1	defence=20	Shayzien greaves (1)
+shayzien_body_1	defence=20	Shayzien platebody (1)
+shayzien_gloves_2	defence=20	Shayzien gloves (2)
+shayzien_boots_2	defence=20	Shayzien boots (2)
+shayzien_helm_2	defence=20	Shayzien helm (2)
+shayzien_legs_2	defence=20	Shayzien greaves (2)
+shayzien_body_2	defence=20	Shayzien platebody (2)
+shayzien_gloves_3	defence=20	Shayzien gloves (3)
+shayzien_boots_3	defence=20	Shayzien boots (3)
+shayzien_helm_3	defence=20	Shayzien helm (3)
+shayzien_legs_3	defence=20	Shayzien greaves (3)
+shayzien_body_3	defence=20	Shayzien platebody (3)
+shayzien_gloves_4	defence=20	Shayzien gloves (4)
+shayzien_boots_4	defence=20	Shayzien boots (4)
+shayzien_helm_4	defence=20	Shayzien helm (4)
+shayzien_legs_4	defence=20	Shayzien greaves (4)
+shayzien_body_4	defence=20	Shayzien platebody (4)
+shayzien_gloves_5	defence=20	Shayzien gloves (5)
+shayzien_boots_5	defence=20	Shayzien boots (5)
+shayzien_helm_5	defence=20	Shayzien helm (5)
+shayzien_legs_5	defence=20	Shayzien greaves (5)
+shayzien_body_5	defence=20	Shayzien body (5)
+xeric_hat	defence=10 magic=20	Xerician hat
+xeric_top	defence=10 magic=20	Xerician top
+xeric_robe	defence=10 magic=20	Xerician robe
+dragon_warhammer	strength=60	Dragon warhammer
+dragon_claws	attack=60	Dragon claws
+light_ballista	ranged=65	Light ballista
+heavy_ballista	ranged=75	Heavy ballista
+dragon_javelin	ranged=65	Dragon javelin
+dragon_javelin_p	ranged=65	Dragon javelin
+dragon_javelin_p+	ranged=65	Dragon javelin
+dragon_javelin_p++	ranged=65	Dragon javelin
+zenyte_bracelet_enchanted	hitpoints=75	Tormented bracelet
+zenyte_necklace_enchanted	hitpoints=75	Necklace of anguish
+zenyte_ring_enchanted	hitpoints=75	Ring of suffering
+zenyte_amulet_enchanted	hitpoints=75	Amulet of torture
+slayer_helm_black	defence=10	Black slayer helmet
+slayer_helm_i_black	defence=10	Black slayer helmet (i)
+slayer_helm_green	defence=10	Green slayer helmet
+slayer_helm_i_green	defence=10	Green slayer helmet (i)
+slayer_helm_red	defence=10	Red slayer helmet
+slayer_helm_i_red	defence=10	Red slayer helmet (i)
+arclight	attack=75	Arclight
+nzone_zenyte_ring_enchanted	hitpoints=75	Ring of suffering (i)
+occult_necklace_ornament	magic=75	Occult necklace (or)
+dragon_parryingdagger_t	defence=60	Dragon defender (t)
+blessed_boots_ancient	defence=40 ranged=70	Ancient d'hide boots
+blessed_boots_bandos	defence=40 ranged=70	Bandos d'hide boots
+blessed_boots_guthix	defence=40 ranged=70	Guthix d'hide boots
+blessed_boots_armadyl	defence=40 ranged=70	Armadyl d'hide boots
+blessed_boots_saradomin	defence=40 ranged=70	Saradomin d'hide boots
+blessed_boots_zamorak	defence=40 ranged=70	Zamorak d'hide boots
+ranger_gloves	ranged=40	Ranger gloves
+holy_wraps	prayer=31	Holy wraps
+dragon_scimitar_ornament	attack=60	Dragon scimitar (or)
+3a_axe	attack=65	3rd age axe
+3a_pickaxe	attack=65	3rd age pickaxe
+samurai_hat	defence=35	Samurai kasa
+samurai_top	defence=35	Samurai shirt
+samurai_gloves	defence=35	Samurai gloves
+samurai_legs	defence=35	Samurai greaves
+samurai_boots	defence=35	Samurai boots
+robe_darkness_head	defence=20 magic=40	Hood of darkness
+robe_darkness_top	defence=20 magic=40	Robe top of darkness
+robe_darkness_hands	defence=20 magic=40	Gloves of darkness
+robe_darkness_legs	defence=20 magic=40	Robe bottom of darkness
+robe_darkness_feet	defence=20 magic=40	Boots of darkness
+rune_med_helm_gold	defence=40	Gilded med helm
+rune_chainbody_gold	defence=40	Gilded chainbody
+rune_sq_shield_gold	defence=40	Gilded sq shield
+rune_2h_sword_gold	attack=40	Gilded 2h sword
+rune_spear_gold	attack=40	Gilded spear
+brut_rune_spear_gold	attack=40	Gilded hasta
+steel_platebody_gold	defence=5	Steel platebody (g)
+steel_platelegs_gold	defence=5	Steel platelegs (g)
+steel_plateskirt_gold	defence=5	Steel plateskirt (g)
+steel_full_helm_gold	defence=5	Steel full helm (g)
+steel_kiteshield_gold	defence=5	Steel kiteshield (g)
+steel_platebody_trim	defence=5	Steel platebody (t)
+steel_platelegs_trim	defence=5	Steel platelegs (t)
+steel_plateskirt_trim	defence=5	Steel plateskirt (t)
+steel_full_helm_trim	defence=5	Steel full helm (t)
+steel_kiteshield_trim	defence=5	Steel kiteshield (t)
+cabbage_shield	defence=30	Cabbage round shield
+zenyte_amulet_ornament	hitpoints=75	Amulet of torture (or)
+agsg	attack=75	Armadyl godsword (or)
+bgsg	attack=75	Bandos godsword (or)
+sgsg	attack=75	Saradomin godsword (or)
+zgsg	attack=75	Zamorak godsword (or)
+fake_dragon_arrow	ranged=60	Dragon arrow (Last Man Standing)
+br_abyssal_whip	attack=70	Abyssal whip (Last Man Standing)
+br_dragon_scimitar	attack=60	Dragon scimitar (Last Man Standing)
+br_dragon_dagger	attack=60	Dragon dagger (Last Man Standing)
+br_darkbow	ranged=60	Dark bow (Last Man Standing)
+br_rune_platelegs	defence=40	Rune platelegs (Last Man Standing)
+br_blackdhide_body	defence=40 ranged=70	Black d'hide body (Last Man Standing)
+br_blackdhide_chaps	ranged=70	Black d'hide chaps (Last Man Standing)
+br_mystic_body	defence=20 magic=40	Mystic robe top (Last Man Standing)
+br_mystic_legs	defence=20 magic=40	Mystic robe bottom (Last Man Standing)
+br_ancient_staff	attack=50 magic=50	Ancient staff (Last Man Standing)
+elderchaos_top	magic=40	Elder chaos top
+elderchaos_bottom	magic=40	Elder chaos robe
+br_granite_maul	attack=50 strength=50	Granite maul (Last Man Standing)
+br_3a_mage_body	defence=30 magic=65	3rd age robe top (Last Man Standing)
+br_3a_mage_legs	defence=30 magic=65	3rd age robe (Last Man Standing)
+br_ags	attack=75	Armadyl godsword (Last Man Standing)
+elderchaos_hood	magic=40	Elder chaos hood
+br_ahrim_body	defence=70 magic=70	Ahrim's robetop (Last Man Standing)
+br_ahrim_legs	defence=70 magic=70	Ahrim's robeskirt (Last Man Standing)
+zenyte_ring_enchanted_recoil	hitpoints=75	Ring of suffering
+nzone_zenyte_ring_enchanted_recoil	hitpoints=75	Ring of suffering (i)
+tome_of_fire	magic=50	Tome of fire
+tome_of_fire_uncharged	magic=50	Tome of fire
+leafbladed_battleaxe	attack=65 slayer=55	Leaf-bladed battleaxe
+mist_battlestaff	attack=30 magic=30	Mist battlestaff
+mystic_mist_battlestaff	attack=40 magic=40	Mystic mist staff
+dust_battlestaff	attack=30 magic=30	Dust battlestaff
+mystic_dust_battlestaff	attack=40 magic=40	Mystic dust staff
+hillgiant_boss_club	attack=40	Hill giant club
+skillcape_max_ardy	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Ardougne max cape
+skillcape_max_hood_ardy	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Ardougne max hood
+br_dragon_claws	attack=60	Dragon claws (Last Man Standing)
+dragon_thrownaxe	ranged=61	Dragon thrownaxe
+twisted_bow	ranged=85	Twisted bow
+twisted_buckler	defence=75 ranged=75	Twisted buckler
+elder_maul	attack=75 strength=75	Elder maul
+kodai_wand	magic=80	Kodai wand
+dragon_shortsword	attack=60	Dragon sword
+dragonhunter_xbow	ranged=70	Dragon hunter crossbow
+dinhs_bulwark	attack=75 defence=75	Dinh's bulwark
+ancestral_hat	defence=65 magic=75	Ancestral hat
+ancestral_robe_top	defence=65 magic=75	Ancestral robe top
+ancestral_robe_bottom	defence=65 magic=75	Ancestral robe bottom
+dragon_harpoon	attack=60	Dragon harpoon
+infernal_harpoon	attack=60	Infernal harpoon
+infernal_harpoon_empty	attack=60	Infernal harpoon
+lava_battlestaff_pretty	attack=30 magic=30	Lava battlestaff (or)
+mystic_lava_staff_pretty	attack=40 magic=40	Mystic lava staff (or)
+br_elder_maul	attack=75 strength=75	Elder maul (Last Man Standing)
+slayer_staff_enchanted	magic=75 slayer=55	Slayer's staff (e)
+slayer_helm_purple	defence=10	Purple slayer helmet
+slayer_helm_i_purple	defence=10	Purple slayer helmet (i)
+skillcape_max_hood_infernalcape	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Infernal max hood
+skillcape_max_infernalcape	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Infernal max cape
+obsidian_helmet	defence=60	Obsidian helmet
+obsidian_platebody	defence=60	Obsidian platebody
+obsidian_platelegs	defence=60	Obsidian platelegs
+slayer_broad_bolt_amethyst	ranged=61 slayer=65	Amethyst broad bolts
+amethyst_javelin	ranged=65	Amethyst javelin
+amethyst_javelin_p	ranged=65	Amethyst javelin
+amethyst_javelin_p+	ranged=65	Amethyst javelin
+amethyst_javelin_p++	ranged=65	Amethyst javelin
+amethyst_arrow	ranged=50	Amethyst arrow
+amethyst_unlitarrow	ranged=50	Amethyst fire arrow
+amethyst_litarrow	ranged=50	Amethyst fire arrow
+amethyst_arrow_p	ranged=50	Amethyst arrow
+amethyst_arrow_p+	ranged=50	Amethyst arrow
+amethyst_arrow_p++	ranged=50	Amethyst arrow
+wyvern_shield	defence=75 magic=70	Ancient wyvern shield
+wyvern_shield_uncharged	defence=75 magic=70	Ancient wyvern shield
+granite_boots	defence=50	Granite boots
+granite_longsword	attack=50 strength=50	Granite longsword
+guardian_boots	defence=75	Guardian boots
+granite_gloves	defence=50 strength=50	Granite gloves
+granite_ring	defence=50 strength=50	Granite ring
+granite_hammer	attack=50 strength=50	Granite hammer
+nzone_granite_ring	defence=50 strength=50	Granite ring (i)
+skillcape_max_saradomin2	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Imbued saradomin max cape
+skillcape_max_hood_saradomin2	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Imbued saradomin max hood
+skillcape_max_zamorak2	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Imbued zamorak max cape
+skillcape_max_hood_zamorak2	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Imbued zamorak max hood
+skillcape_max_guthix2	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Imbued guthix max cape
+skillcape_max_hood_guthix2	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Imbued guthix max hood
+ma2_saradomin_cape	magic=75	Imbued saradomin cape
+ma2_guthix_cape	magic=75	Imbued guthix cape
+ma2_zamorak_cape	magic=75	Imbued zamorak cape
+slayer_helm_turquoise	defence=10	Turquoise slayer helmet
+slayer_helm_i_turquoise	defence=10	Turquoise slayer helmet (i)
+dragon_platebody	defence=60	Dragon platebody
+dragon_kiteshield	defence=60	Dragon kiteshield
+skillcape_max_assembler	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Assembler max cape
+skillcape_max_hood_assembler	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Assembler max hood
+xbows_crossbow_dragon	ranged=64	Dragon crossbow
+dragon_bolts	ranged=64	Dragon bolts
+dragon_bolts_p	ranged=64	Dragon bolts
+dragon_bolts_p+	ranged=64	Dragon bolts
+dragon_bolts_p++	ranged=64	Dragon bolts
+dragon_bolts_enchanted_opal	ranged=64	Opal dragon bolts (e)
+dragon_bolts_enchanted_jade	ranged=64	Jade dragon bolts (e)
+dragon_bolts_enchanted_pearl	ranged=64	Pearl dragon bolts (e)
+dragon_bolts_enchanted_topaz	ranged=64	Topaz dragon bolts (e)
+dragon_bolts_enchanted_sapphire	ranged=64	Sapphire dragon bolts (e)
+dragon_bolts_enchanted_emerald	ranged=64	Emerald dragon bolts (e)
+dragon_bolts_enchanted_ruby	ranged=64	Ruby dragon bolts (e)
+dragon_bolts_enchanted_diamond	ranged=64	Diamond dragon bolts (e)
+dragon_bolts_enchanted_dragonstone	ranged=64	Dragonstone dragon bolts (e)
+dragon_bolts_enchanted_onyx	ranged=64	Onyx dragon bolts (e)
+dragon_bolts_unenchanted_opal	ranged=64	Opal dragon bolts
+dragon_bolts_unenchanted_jade	ranged=64	Jade dragon bolts
+dragon_bolts_unenchanted_pearl	ranged=64	Pearl dragon bolts
+dragon_bolts_unenchanted_topaz	ranged=64	Topaz dragon bolts
+dragon_bolts_unenchanted_sapphire	ranged=64	Sapphire dragon bolts
+dragon_bolts_unenchanted_emerald	ranged=64	Emerald dragon bolts
+dragon_bolts_unenchanted_ruby	ranged=64	Ruby dragon bolts
+dragon_bolts_unenchanted_diamond	ranged=64	Diamond dragon bolts
+dragon_bolts_unenchanted_dragonstone	ranged=64	Dragonstone dragon bolts
+dragon_bolts_unenchanted_onyx	ranged=64	Onyx dragon bolts
+dragonfire_ward	defence=75 ranged=70	Dragonfire ward
+dragonfire_ward_uncharged	defence=75 ranged=70	Dragonfire ward
+avas_assembler	ranged=70	Ava's assembler
+dragonbone_necklace	prayer=70	Dragonbone necklace
+poh_shield_arrav_adamant	defence=30	Adamant kiteshield (Arrav)
+poh_shield_asgarnia_adamant	defence=30	Adamant kiteshield (Asgarnia)
+poh_shield_dorgeshuun_adamant	defence=30	Adamant kiteshield (Dorgeshuun)
+poh_shield_dragon_adamant	defence=30	Adamant kiteshield (Dragon)
+poh_shield_fairy_adamant	defence=30	Adamant kiteshield (Fairy)
+poh_shield_guthix_adamant	defence=30	Adamant kiteshield (Guthix)
+poh_shield_ham_adamant	defence=30	Adamant kiteshield (HAM)
+poh_shield_horse_adamant	defence=30	Adamant kiteshield (Horse)
+poh_shield_jogre_adamant	defence=30	Adamant kiteshield (Jogre)
+poh_shield_kandarin_adamant	defence=30	Adamant kiteshield (Kandarin)
+poh_shield_misthalin_adamant	defence=30	Adamant kiteshield (Misthalin)
+poh_shield_money_adamant	defence=30	Adamant kiteshield (Money)
+poh_shield_saradomin_adamant	defence=30	Adamant kiteshield (Saradomin)
+poh_shield_skull_adamant	defence=30	Adamant kiteshield (Skull)
+poh_shield_varrock_adamant	defence=30	Adamant kiteshield (Varrock)
+poh_shield_zamorak_adamant	defence=30	Adamant kiteshield (Zamorak)
+poh_helmet_arrav_adamant	defence=30	Adamant heraldic helm (Arrav)
+poh_helmet_asgarnia_adamant	defence=30	Adamant heraldic helm (Asgarnia)
+poh_helmet_dorgeshuun_adamant	defence=30	Adamant heraldic helm (Dorgeshuun)
+poh_helmet_dragon_adamant	defence=30	Adamant heraldic helm (Dragon)
+poh_helmet_fairy_adamant	defence=30	Adamant heraldic helm (Fairy)
+poh_helmet_guthix_adamant	defence=30	Adamant heraldic helm (Guthix)
+poh_helmet_ham_adamant	defence=30	Adamant heraldic helm (HAM)
+poh_helmet_horse_adamant	defence=30	Adamant heraldic helm (Horse)
+poh_helmet_jogre_adamant	defence=30	Adamant heraldic helm (Jogre)
+poh_helmet_kandarin_adamant	defence=30	Adamant heraldic helm (Kandarin)
+poh_helmet_misthalin_adamant	defence=30	Adamant heraldic helm (Misthalin)
+poh_helmet_money_adamant	defence=30	Adamant heraldic helm (Money)
+poh_helmet_saradomin_adamant	defence=30	Adamant heraldic helm (Saradomin)
+poh_helmet_skull_adamant	defence=30	Adamant heraldic helm (Skull)
+poh_helmet_varrock_adamant	defence=30	Adamant heraldic helm (Varrock)
+poh_helmet_zamorak_adamant	defence=30	Adamant heraldic helm (Zamorak)
+dragon_boots_gold	defence=60	Dragon boots (g)
+dragon_platebody_gold	defence=60	Dragon platebody (g)
+dragon_kiteshield_gold	defence=60	Dragon kiteshield (g)
+zenyte_necklace_ornament	hitpoints=75	Necklace of anguish (or)
+oak_shield	defence=10	Oak shield
+willow_shield	defence=30	Willow shield
+maple_shield	defence=40	Maple shield
+yew_shield	defence=40	Yew shield
+magic_shield	defence=40	Magic shield
+redwood_shield	defence=40	Redwood shield
+leather_shield	defence=10 ranged=20	Hard leather shield
+snakeskin_shield	defence=30 ranged=30	Snakeskin shield
+green_dhide_shield	defence=40 ranged=40	Green d'hide shield
+blue_dhide_shield	defence=40 ranged=50	Blue d'hide shield
+red_dhide_shield	defence=40 ranged=60	Red d'hide shield
+black_dhide_shield	defence=40 ranged=70	Black d'hide shield
+tots_i_charged	magic=75	Trident of the seas (e)
+tots_i_uncharged	magic=75	Trident of the seas (e)
+toxic_tots_i_charged	magic=78	Trident of the swamp (e)
+toxic_tots_i_uncharged	magic=78	Trident of the swamp (e)
+staff_of_light	attack=75 magic=75	Staff of light
+infernal_defender	attack=70 defence=70	Avernic defender
+sanguinesti_staff	magic=82	Sanguinesti staff
+ghrazi_rapier	attack=80	Ghrazi rapier
+scythe_of_vitur	attack=80 strength=90	Scythe of vitur
+justiciar_faceguard	defence=75	Justiciar faceguard
+justiciar_chestguard	defence=75	Justiciar chestguard
+justiciar_leg_guards	defence=75	Justiciar legguards
+nature_staff_uncharged	attack=30 magic=30	Bryophyta's staff
+nature_staff_charged	attack=30 magic=30	Bryophyta's staff
+ivandis_flail	attack=40	Ivandis flail
+sanguinesti_staff_uncharged	magic=82	Sanguinesti staff
+scythe_of_vitur_uncharged	attack=80 strength=90	Scythe of vitur
+wild_cave_chainmace_uncharged	attack=60	Viggora's chainmace
+wild_cave_chainmace_charged	attack=60	Viggora's chainmace
+wild_cave_bow_uncharged	ranged=60	Craw's bow
+wild_cave_bow_charged	ranged=60	Craw's bow
+wild_cave_sceptre_uncharged	magic=60	Thammaron's sceptre
+wild_cave_sceptre_charged	magic=60	Thammaron's sceptre
+vestas_spear	attack=78	Vesta's spear (Deadman Mode)
+vestas_longsword	attack=78	Vesta's longsword (Deadman Mode)
+vestas_chainbody	defence=78	Vesta's chainbody (Deadman Mode)
+vestas_plateskirt	defence=78	Vesta's plateskirt (Deadman Mode)
+statius_warhammer	attack=20 strength=78	Statius's warhammer (Deadman Mode)
+statius_full_helm	defence=78	Statius's full helm (Deadman Mode)
+statius_platebody	defence=78	Statius's platebody (Deadman Mode)
+statius_platelegs	defence=78	Statius's platelegs (Deadman Mode)
+morrigans_thrownaxe	ranged=78	Morrigan's throwing axe (Deadman Mode)
+morrigans_javelin	ranged=78	Morrigan's javelin (Deadman Mode)
+morrigans_coif	defence=78	Morrigan's coif (Deadman Mode)
+morrigans_leather_body	defence=78	Morrigan's leather body (Deadman Mode)
+morrigans_leather_chaps	defence=78	Morrigan's leather chaps (Deadman Mode)
+zuriels_staff	attack=60 magic=78	Zuriel's staff (Deadman Mode)
+zuriels_hood	defence=78	Zuriel's hood (Deadman Mode)
+zuriels_robe_top	defence=78	Zuriel's robe top (Deadman Mode)
+zuriels_robe_bottom	defence=78	Zuriel's robe bottom (Deadman Mode)
+brut_dragon_spear	attack=60	Dragon hasta
+brut_dragon_spear_p	attack=60	Dragon hasta
+brut_dragon_spear_p+	attack=60	Dragon hasta
+brut_dragon_spear_p++	attack=60	Dragon hasta
+brut_dragon_spear_kp	attack=60	Dragon hasta
+dragon_knife	ranged=60	Dragon knife
+dragon_knife_p	ranged=60	Dragon knife
+dragon_knife_p+	ranged=60	Dragon knife
+dragon_knife_p++	ranged=60	Dragon knife
+aerial_fishing_gloves_no_bird	fishing=43 hunter=35	Cormorant's glove
+aerial_fishing_gloves_bird	fishing=43 hunter=35	Cormorant's glove
+boots_of_brimstone	defence=70 ranged=70 magic=70 slayer=44	Boots of brimstone
+devout_boots	prayer=60	Devout boots
+dragonhunter_lance	attack=78	Dragon hunter lance
+ferocious_gloves	attack=80 defence=80	Ferocious gloves
+bonecrusher_necklace	prayer=80	Bonecrusher necklace
+boots_of_stone	slayer=44	Boots of stone
+mystic_hat_dusk	defence=20 magic=40	Mystic hat (dusk)
+mystic_robe_top_dusk	defence=20 magic=40	Mystic robe top (dusk)
+mystic_robe_bottom_dusk	defence=20 magic=40	Mystic robe bottom (dusk)
+mystic_gloves_dusk	defence=20 magic=40	Mystic gloves (dusk)
+mystic_boots_dusk	defence=20 magic=40	Mystic boots (dusk)
+slayer_helm_hydra	defence=10 slayer=60	Hydra slayer helmet
+slayer_helm_i_hydra	defence=10 slayer=60	Hydra slayer helmet (i)
+blessed_dhide_shield_guthix	defence=40 ranged=70	Guthix d'hide shield
+blessed_dhide_shield_saradomin	defence=40 ranged=70	Saradomin d'hide shield
+blessed_dhide_shield_zamorak	defence=40 ranged=70	Zamorak d'hide shield
+blessed_dhide_shield_ancient	defence=40 ranged=70	Ancient d'hide shield
+blessed_dhide_shield_armadyl	defence=40 ranged=70	Armadyl d'hide shield
+blessed_dhide_shield_bandos	defence=40 ranged=70	Bandos d'hide shield
+rune_platebody_h1	defence=40	Rune platebody (h1)
+rune_platebody_h2	defence=40	Rune platebody (h2)
+rune_platebody_h3	defence=40	Rune platebody (h3)
+rune_platebody_h4	defence=40	Rune platebody (h4)
+rune_platebody_h5	defence=40	Rune platebody (h5)
+rune_parryingdagger_t	attack=40 defence=40	Rune defender (t)
+tzhaar_maul_t	strength=40	Tzhaar-ket-om (t)
+trail_silver_plate_skirt	defence=65	3rd age plateskirt
+rangers_tights	ranged=40	Rangers' tights
+trail_gilded_dhide_vambraces	ranged=40	Gilded d'hide vambraces
+trail_gilded_dhide_top	defence=40 ranged=40	Gilded d'hide body
+trail_gilded_dhide_chaps	ranged=40	Gilded d'hide chaps
+trail_gilded_pickaxe	attack=40 mining=41	Gilded pickaxe
+trail_gilded_axe	attack=40 woodcutting=41	Gilded axe
+rune_scimitar_guthix	attack=40	Rune scimitar (guthix)
+rune_scimitar_saradomin	attack=40	Rune scimitar (saradomin)
+rune_scimitar_zamorak	attack=40	Rune scimitar (zamorak)
+3a_druidic_top	defence=65 prayer=65	3rd age druidic robe top
+3a_druidic_bottoms	defence=65 prayer=65	3rd age druidic robe bottoms
+3a_druidic_staff	attack=65 prayer=65	3rd age druidic staff
+3a_druidic_cloak	defence=65 prayer=65	3rd age druidic cloak
+black_platebody_h1	defence=10	Black platebody (h1)
+black_platebody_h2	defence=10	Black platebody (h2)
+black_platebody_h3	defence=10	Black platebody (h3)
+black_platebody_h4	defence=10	Black platebody (h4)
+black_platebody_h5	defence=10	Black platebody (h5)
+adamant_platebody_h1	defence=30	Adamant platebody (h1)
+adamant_platebody_h2	defence=30	Adamant platebody (h2)
+adamant_platebody_h3	defence=30	Adamant platebody (h3)
+adamant_platebody_h4	defence=30	Adamant platebody (h4)
+adamant_platebody_h5	defence=30	Adamant platebody (h5)
+zenyte_bracelet_enchanted_ornament	hitpoints=75	Tormented bracelet (or)
+sarachnis_cudgel	attack=65	Sarachnis cudgel
+br_fris_kingly_helm	defence=55	Helm of neitiznot (Last Man Standing)
+br_dragon_parryingdagger	defence=60	Dragon defender (Last Man Standing)
+br_spirit_shield	defence=45 prayer=55	Spirit shield (Last Man Standing)
+br_xbows_crossbow_runite	ranged=61	Rune crossbow (Last Man Standing)
+br_ma2_guthix_cape	magic=50	Imbued guthix cape (Last Man Standing)
+br_ma2_zamorak_cape	magic=50	Imbued zamorak cape (Last Man Standing)
+br_ma2_saradomin_cape	magic=50	Imbued saradomin cape (Last Man Standing)
+br_acb	ranged=70	Armadyl crossbow (Last Man Standing)
+br_sotd	attack=75 magic=75	Staff of the dead (Last Man Standing)
+br_vestas_longsword	attack=78	Vesta's longsword (Last Man Standing)
+br_zuriels_staff	magic=78	Zuriel's staff (Last Man Standing)
+br_morrigans_javelin	ranged=78	Morrigan's javelin (Last Man Standing)
+br_statius_warhammer	attack=78	Statius's warhammer (Last Man Standing)
+br_kodai_wand	magic=80	Kodai wand (Last Man Standing)
+br_ghrazi_rapier	attack=80	Ghrazi rapier (Last Man Standing)
+br_heavy_ballista	ranged=75	Heavy ballista (Last Man Standing)
+br_barrows_karil_body	defence=70 ranged=70	Karil's leathertop (Last Man Standing)
+br_barrows_dharok_legs	defence=70	Dharok's platelegs (Last Man Standing)
+br_barrows_torag_legs	defence=70	Torag's platelegs (Last Man Standing)
+br_barrows_verac_legs	defence=70	Verac's plateskirt (Last Man Standing)
+br_barrows_verac_head	defence=70	Verac's helm (Last Man Standing)
+br_barrows_torag_head	defence=70	Torag's helm (Last Man Standing)
+br_barrows_guthan_head	defence=70	Guthan's helm (Last Man Standing)
+br_barrows_dharok_head	defence=70	Dharok's helm (Last Man Standing)
+br_blessed_spirit_shield	defence=70 prayer=60	Blessed spirit shield (Last Man Standing)
+br_eternal_boots	defence=75 magic=75	Eternal boots (Last Man Standing)
+br_bandos_skirt	defence=65	Bandos tassets (Last Man Standing)
+br_dragon_javelin	ranged=65	Dragon javelin (Last Man Standing)
+br_dstone_bolts_e	ranged=61	Diamond bolts (e) (Last Man Standing)
+br_magesbook	magic=60	Mage's book (Last Man Standing)
+br_barrows_ahrim_weapon	attack=70 magic=70	Ahrim's staff (Last Man Standing)
+br_occult_necklace	magic=75	Occult necklace (Last Man Standing)
+crystal_axe	attack=70 woodcutting=71 agility=50	Crystal axe
+crystal_axe_inactive	attack=70 woodcutting=70 agility=50	Crystal axe
+zalcano_pickaxe	attack=60 mining=61	Dragon pickaxe (or)
+crystal_pickaxe	attack=70 mining=71 agility=50	Crystal pickaxe
+crystal_pickaxe_inactive	attack=70 mining=71 agility=50	Crystal pickaxe
+crystal_harpoon	attack=70 fishing=71 agility=50	Crystal harpoon
+crystal_harpoon_inactive	attack=70 fishing=71 agility=50	Crystal harpoon
+gauntlet_axe	attack=70 woodcutting=71 agility=50	Crystal axe (The Gauntlet)
+gauntlet_pickaxe	attack=70 mining=71 agility=50	Crystal pickaxe (The Gauntlet)
+gauntlet_harpoon	attack=70 fishing=71 agility=50	Crystal harpoon (The Gauntlet)
+crystal_helmet	defence=70 agility=50	Crystal helm
+crystal_helmet_inactive	defence=70 agility=50	Crystal helm
+crystal_chestplate	defence=70 agility=50	Crystal body
+crystal_chestplate_inactive	defence=70 agility=50	Crystal body
+crystal_platelegs	defence=70 agility=50	Crystal legs
+crystal_platelegs_inactive	defence=70 agility=50	Crystal legs
+crystal_bow	ranged=70 agility=50	Crystal bow
+crystal_halberd	attack=70 strength=35 agility=50	Crystal halberd
+crystal_shield	defence=70 agility=50	Crystal shield
+blade_of_saeldor	attack=80	Blade of saeldor
+blade_of_saeldor_inactive	attack=80	Blade of saeldor
+dragonstone_helmet	defence=40	Dragonstone full helm
+dragonstone_platebody	defence=40	Dragonstone platebody
+dragonstone_platelegs	defence=40	Dragonstone platelegs
+dragonstone_armoured_boots	defence=40	Dragonstone boots
+dragonstone_gauntlets	defence=40	Dragonstone gauntlets
+crystal_bow_2500	ranged=70 agility=50	Crystal bow
+crystal_halberd_2500	attack=70 strength=35 agility=50	Crystal halberd
+crystal_shield_2500	defence=70 agility=50	Crystal shield
+skillcape_max_infernalcape_trouver	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Infernal max cape
+skillcape_max_firecape_trouver	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Fire max cape
+skillcape_max_assembler_trouver	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Assembler max cape
+steel_parryingdagger_trouver	attack=5 defence=5	Steel defender
+black_parryingdagger_trouver	attack=10 defence=10	Black defender
+mithril_parryingdagger_trouver	attack=20 defence=20	Mithril defender
+adamant_parryingdagger_trouver	attack=30 defence=30	Adamant defender
+rune_parryingdagger_trouver	attack=40 defence=40	Rune defender
+dragon_parryingdagger_trouver	attack=60 defence=60	Dragon defender
+staff_of_balance	attack=75 magic=75	Staff of balance
+castlewars_sword_3_trouver	attack=30	Decorative sword (gold)
+castlewars_armour_body_3_trouver	defence=30	Decorative armour (gold platebody)
+castlewars_armour_legs_3_trouver	defence=30	Decorative armour (gold platelegs)
+castlewars_med_helm_3_trouver	defence=30	Decorative helm (gold)
+castlewars_shield_3_trouver	defence=30	Decorative shield (gold)
+castlewars_armour_skirt_3_trouver	defence=30	Decorative armour (gold plateskirt)
+castlewars_mage_top_trouver	defence=30	Decorative armour (magic top)
+castlewars_mage_legs_trouver	defence=30	Decorative armour (magic legs)
+castlewars_mage_hat_trouver	defence=30	Decorative armour (magic hat)
+castlewars_range_top_trouver	ranged=30	Decorative armour (ranged top)
+castlewars_range_legs_trouver	defence=30	Decorative armour (ranged legs)
+castlewars_range_quiver_trouver	defence=30	Decorative armour (quiver)
+barbassault_penance_healer_hat_trouver	defence=45	Healer hat
+barbassault_penance_fighter_hat_trouver	defence=45	Fighter hat
+barbassault_penance_ranger_hat_trouver	defence=45	Ranger hat
+barbassault_penance_fighter_torso_trouver	defence=40	Fighter torso
+barbassault_penance_ranger_legs_trouver	defence=40 ranged=60	Penance skirt
+pest_void_knight_top_trouver	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void knight top
+elite_void_knight_top_trouver	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Elite void top
+pest_void_knight_robes_trouver	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void knight robe
+elite_void_knight_robes_trouver	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Elite void robe
+pest_void_knight_mace_trouver	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void knight mace
+pest_void_knight_gloves_trouver	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void knight gloves
+game_pest_mage_helm_trouver	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void mage helm
+game_pest_archer_helm_trouver	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void ranger helm
+game_pest_melee_helm_trouver	attack=42 defence=42 strength=42 hitpoints=42 ranged=42 prayer=22 magic=42	Void melee helm
+infernal_defender_trouver	attack=70 defence=70	Avernic defender
+avas_assembler_trouver	ranged=70	Ava's assembler
+granite_maul_plus	attack=50 strength=50	Granite maul (ornate handle)
+granite_maul_pretty_plus	attack=50 strength=50	Granite maul (ornate handle)
+skillcape_max_saradomin2_trouver	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Imbued saradomin max cape
+skillcape_max_zamorak2_trouver	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Imbued zamorak max cape
+skillcape_max_guthix2_trouver	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Imbued guthix max cape
+ma2_saradomin_cape_trouver	magic=75	Imbued saradomin cape
+ma2_guthix_cape_trouver	magic=75	Imbued guthix cape
+ma2_zamorak_cape_trouver	magic=75	Imbued zamorak cape
+v_shield	defence=40	V's shield
+neitiznot_faceguard	defence=70	Neitiznot faceguard
+dagonhai_hat	defence=40 magic=70	Dagon'hai hat
+dagonhai_robe_top	defence=40 magic=70	Dagon'hai robe top
+dagonhai_robe_bottom	defence=40 magic=70	Dagon'hai robe bottom
+slayer_helm_twisted	defence=10 slayer=60	Twisted slayer helmet
+inquisitors_mace	attack=80	Inquisitor's mace
+inquisitors_helm	defence=30 strength=70	Inquisitor's great helm
+inquisitors_body	defence=30 strength=70	Inquisitor's hauberk
+inquisitors_skirt	defence=30 strength=70	Inquisitor's plateskirt
+nightmare_staff	hitpoints=50 magic=72	Nightmare staff
+nightmare_staff_harmonised	hitpoints=50 magic=82	Harmonised nightmare staff
+nightmare_staff_volatile	hitpoints=50 magic=82	Volatile nightmare staff
+nightmare_staff_eldritch	hitpoints=50 magic=82	Eldritch nightmare staff
+slayer_helm_i_twisted	defence=10	Twisted slayer helmet (i)
+barbassault_penance_runner_hat_trouver	defence=45	Runner hat
+blade_of_saeldor_infinite	attack=80	Blade of saeldor (c)
+bh_vestas_longsword	attack=75	Vesta's blighted longsword
+ancestral_hat_twisted	defence=65 magic=75	Twisted ancestral hat
+ancestral_robe_top_twisted	defence=65 magic=75	Twisted ancestral robe top
+ancestral_robe_bottom_twisted	defence=65 magic=75	Twisted ancestral robe bottom
+blisterwood_flail	attack=50	Blisterwood flail
+ring_of_endurance	agility=70	Ring of endurance
+ring_of_endurance_nocharges	agility=70	Ring of endurance
+skillcape_max_mythical	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Mythical max cape
+skillcape_max_hood_mythical	attack=99 defence=99 strength=99 hitpoints=99 ranged=99 prayer=99 magic=99 cooking=99 woodcutting=99 fletching=99 fishing=99 firemaking=99 crafting=99 smithing=99 mining=99 herblore=99 agility=99 thieving=99 slayer=99 farming=99 runecraft=99 hunter=99 construction=99	Mythical max hood
+sw_zenyte_ring_enchanted	hitpoints=75	Ring of suffering (i)
+sw_zenyte_ring_enchanted_recoil	hitpoints=75	Ring of suffering (ri)
+soul_cape_red	prayer=70	Soul cape
+soul_cape_blue	prayer=70	Soul cape
+swampbark_body	defence=50 magic=50	Swampbark body
+swampbark_gauntlets	defence=50 magic=50	Swampbark gauntlets
+swampbark_greaves	defence=50 magic=50	Swampbark boots
+swampbark_helm	defence=50 magic=50	Swampbark helm
+swampbark_legs	defence=50 magic=50	Swampbark legs
+bloodbark_body	defence=60 magic=60	Bloodbark body
+bloodbark_gauntlets	defence=60 magic=60	Bloodbark gauntlets
+bloodbark_greaves	defence=60 magic=60	Bloodbark boots
+bloodbark_helm	defence=60 magic=60	Bloodbark helm
+bloodbark_legs	defence=60 magic=60	Bloodbark legs
+tome_of_water	magic=50	Tome of water
+barronite_mace	attack=40	Barronite mace
+bow_of_faerdhinen_inactive	ranged=80 agility=70	Bow of faerdhinen
+bow_of_faerdhinen	ranged=80 agility=70	Bow of faerdhinen
+bow_of_faerdhinen_infinite	ranged=80 agility=70	Bow of faerdhinen (c)
+blade_of_saeldor_infinite_ithell	attack=80	Blade of saeldor (c) (Ithell)
+blade_of_saeldor_infinite_iorwerth	attack=80	Blade of saeldor (c) (Iorwerth)
+blade_of_saeldor_infinite_trahaearn	attack=80	Blade of saeldor (c) (Trahaearn)
+blade_of_saeldor_infinite_cadarn	attack=80	Blade of saeldor (c) (Cadarn)
+blade_of_saeldor_infinite_crwys	attack=80	Blade of saeldor (c) (Crwys)
+blade_of_saeldor_infinite_meilyr	attack=80	Blade of saeldor (c) (Meilyr)
+blade_of_saeldor_infinite_amlodd	attack=80	Blade of saeldor (c) (Amlodd)
+bow_of_faerdhinen_infinite_ithell	ranged=80 agility=70	Bow of faerdhinen (c) (Ithell)
+bow_of_faerdhinen_infinite_iorwerth	ranged=80 agility=70	Bow of faerdhinen (c) (Iorwerth)
+bow_of_faerdhinen_infinite_trahaearn	ranged=80 agility=70	Bow of faerdhinen (c) (Trahaearn)
+bow_of_faerdhinen_infinite_cadarn	ranged=80 agility=70	Bow of faerdhinen (c) (Cadarn)
+bow_of_faerdhinen_infinite_crwys	ranged=80 agility=70	Bow of faerdhinen (c) (Crwys)
+bow_of_faerdhinen_infinite_meilyr	ranged=80 agility=70	Bow of faerdhinen (c) (Meilyr)
+bow_of_faerdhinen_infinite_amlodd	ranged=80 agility=70	Bow of faerdhinen (c) (Amlodd)
+keris_partisan_breach	attack=80	Keris partisan of breaching
+elidinis_ward	defence=80 prayer=80 magic=80	Elidinis' ward
+osmumtens_fang	attack=82	Osmumten's fang
+ancient_godsword	attack=75	Ancient godsword
+zaryte_vambraces	defence=45 ranged=80	Zaryte vambraces
+virtus_mask	defence=75 magic=78	Virtus mask
+virtus_top	defence=75 magic=78	Virtus robe top
+virtus_legs	defence=75 magic=78	Virtus robe bottom
+zaryte_xbow	ranged=80	Zaryte crossbow
+torva_helm	defence=80	Torva full helm
+torva_chest	defence=80	Torva platebody
+torva_legs	defence=80	Torva platelegs
+league_3_whip	attack=70	Abyssal whip (or)
+league_3_whip_tentacle	attack=75	Abyssal tentacle (or)
+pvpa_saikas_hood	magic=70	Saika's hood
+pvpa_saikas_veil	defence=40 magic=70	Saika's veil
+pvpa_saikas_shroud	defence=70 magic=70	Saika's shroud
+pvpa_koriffs_headband	ranged=70	Koriff's headband
+pvpa_koriffs_cowl	defence=40 ranged=70	Koriff's cowl
+pvpa_koriffs_coif	defence=70 ranged=70	Koriff's coif
+pvpa_maomas_med_helm	strength=70	Maoma's med helm
+pvpa_maomas_full_helm	defence=40 strength=70	Maoma's full helm
+pvpa_maomas_great_helm	defence=70 strength=70	Maoma's great helm
+pvpa_calamity_chest	strength=70 ranged=70 magic=70	Calamity chest
+pvpa_superior_calamity_chest	defence=40 strength=70 ranged=70 magic=70	Superior calamity chest
+pvpa_elite_calamity_chest	defence=70 strength=70 ranged=70 magic=70	Elite calamity chest
+pvpa_calamity_breeches	strength=70 ranged=70 magic=70	Calamity breeches
+pvpa_superior_calamity_breeches	defence=40 strength=70 ranged=70 magic=70	Superior calamity breeches
+pvpa_elite_calamity_breeches	defence=70 strength=70 ranged=70 magic=70	Elite calamity breeches
+pvpa_zenyte_ring_enchanted	hitpoints=75	Ring of suffering (i)
+pvpa_zenyte_ring_enchanted_recoil	hitpoints=75	Ring of suffering (ri)
+giants_foundry_colossal_blade	attack=60	Colossal blade
+elder_maul_ornament	attack=75 strength=75	Elder maul (or)
+elderchaos_top_pretty	magic=40	Elder chaos top (or)
+elderchaos_bottom_pretty	magic=40	Elder chaos robe (or)
+elderchaos_hood_pretty	magic=40	Elder chaos hood (or)
+masori_mask	defence=30 ranged=80	Masori mask
+masori_body	defence=30 ranged=80	Masori body
+masori_chaps	defence=30 ranged=80	Masori chaps
+masori_mask_fortified	defence=80 ranged=80	Masori mask (f)
+masori_body_fortified	defence=80 ranged=80	Masori body (f)
+masori_chaps_fortified	defence=80 ranged=80	Masori chaps (f)
+osmumtens_fang_ornament	attack=82	Osmumten's fang (or)
+elidinis_ward_fortified	defence=80 prayer=80 magic=80	Elidinis' ward (f)
+elidinis_ward_ornament	defence=80 prayer=80 magic=80	Elidinis' ward (or)
+tumekens_shadow	magic=85	Tumeken's shadow
+tumekens_shadow_uncharged	magic=85	Tumeken's shadow
+keris_partisan_corruption	attack=80	Keris partisan of corruption
+keris_partisan_sun	attack=80	Keris partisan of the sun
+avas_assembler_masori	defence=35 ranged=70	Masori assembler
+venator_bow	ranged=80	Venator bow
+venator_bow_uncharged	ranged=80	Venator bow
+wild_cave_webweaver_charged	ranged=70	Webweaver bow
+wild_cave_ursine_charged	attack=70	Ursine chainmace
+wild_cave_accursed_charged	magic=70	Accursed sceptre
+wild_cave_accursed_charged_recol	magic=70	Accursed sceptre (a)
+voidwaker	attack=75	Voidwaker
+crystal_chestplate_hefin	defence=70 agility=50	Crystal body (Hefin)
+crystal_platelegs_hefin	defence=70 agility=50	Crystal legs (Hefin)
+crystal_helmet_hefin	defence=70 agility=50	Crystal helm (Hefin)
+crystal_chestplate_ithell	defence=70 agility=50	Crystal body (Ithell)
+crystal_platelegs_ithell	defence=70 agility=50	Crystal legs (Ithell)
+crystal_helmet_ithell	defence=70 agility=50	Crystal helm (Ithell)
+crystal_chestplate_iorwerth	defence=70 agility=50	Crystal body (Iorwerth)
+crystal_platelegs_iorwerth	defence=70 agility=50	Crystal legs (Iorwerth)
+crystal_helmet_iorwerth	defence=70 agility=50	Crystal helm (Iorwerth)
+crystal_chestplate_trahaearn	defence=70 agility=50	Crystal body (Trahaearn)
+crystal_platelegs_trahaearn	defence=70 agility=50	Crystal legs (Trahaearn)
+crystal_helmet_trahaearn	defence=70 agility=50	Crystal helm (Trahaearn)
+crystal_chestplate_cadarn	defence=70 agility=50	Crystal body (Cadarn)
+crystal_platelegs_cadarn	defence=70 agility=50	Crystal legs (Cadarn)
+crystal_helmet_cadarn	defence=70 agility=50	Crystal helm (Cadarn)
+crystal_chestplate_crwys	defence=70 agility=50	Crystal body (Crwys)
+crystal_platelegs_crwys	defence=70 agility=50	Crystal legs (Crwys)
+crystal_helmet_crwys	defence=70 agility=50	Crystal helm (Crwys)
+crystal_chestplate_amlodd	defence=70 agility=50	Crystal body (Amlodd)
+crystal_platelegs_amlodd	defence=70 agility=50	Crystal legs (Amlodd)
+crystal_helmet_amlodd	defence=70 agility=50	Crystal helm (Amlodd)
+wild_cave_sceptre_charged_recol	magic=60	Thammaron's sceptre (a)
+bh_darkbow_imbue	ranged=60	Dark bow (bh)
+bh_brain_anchor_imbue	attack=50 strength=40	Barrelchest anchor (bh)
+bh_dragon_mace_imbue	attack=60	Dragon mace (bh)
+bh_dragon_longsword_imbue	attack=60	Dragon longsword (bh)
+bh_abyssal_dagger_imbue	attack=70	Abyssal dagger (bh)
+br_voidwaker	attack=75	Voidwaker (Last Man Standing)
+bh_dragon_dagger_corrupted	attack=60	Dragon dagger (cr)
+bh_dragon_dagger_p++_corrupted	attack=60	Dragon dagger (cr)
+bh_dragon_mace_corrupted	attack=60	Dragon mace (cr)
+bh_dragon_shortsword_corrupted	attack=60	Dragon sword (cr)
+bh_dragon_scimitar_corrupted	attack=60	Dragon scimitar (cr)
+bh_dragon_longsword_corrupted	attack=60	Dragon longsword (cr)
+bh_dragon_warhammer_corrupted	strength=60	Dragon warhammer (cr)
+bh_dragon_claws_corrupted	attack=60	Dragon claws (cr)
+bh_dragon_spear_corrupted	attack=60	Dragon spear (cr)
+bh_dragon_2h_sword_corrupted	attack=60	Dragon 2h sword (cr)
+bh_xbows_crossbow_dragon_corrupted	ranged=64	Dragon crossbow (cr)
+bh_dragon_med_helm_corrupted	defence=60	Dragon med helm (cr)
+bh_dragon_plateskirt_corrupted	defence=60	Dragon plateskirt (cr)
+bh_barbassault_penance_fighter_torso_corrupted	defence=40	Fighter torso (or)
+bh_barbassault_penance_fighter_torso_corrupted_trouver	defence=40	Fighter torso (or)
+bh_fris_kingly_helm_corrupted	defence=55	Helm of neitiznot (or)
+torva_helm_sanguine	defence=80	Sanguine torva full helm
+torva_chest_sanguine	defence=80	Sanguine torva platebody
+torva_legs_sanguine	defence=80	Sanguine torva platelegs
+soulreaper	attack=80 strength=80	Soulreaper axe
+deadman_blighted_voidwaker	attack=65	Corrupted voidwaker
+deadman_blighted_dragon_claws	attack=40	Corrupted dragon claws
+deadman_blighted_ags	attack=65	Corrupted armadyl godsword
+deadman_blighted_twisted_bow	ranged=70	Corrupted twisted bow
+deadman_blighted_scythe_of_vitur	attack=60 strength=70	Corrupted scythe of vitur
+deadman_blighted_tumekens_shadow	magic=75	Corrupted tumeken's shadow
+deadman_blighted_tumekens_shadow_uncharged	magic=75	Corrupted tumeken's shadow
+warped_sceptre_uncharged	magic=62 slayer=56	Warped sceptre
+warped_sceptre	magic=62 slayer=56	Warped sceptre
+dinhs_bulwark_ornament	attack=75 defence=75	Dinh's blazing bulwark
+toxic_blowpipe_ornament	ranged=75	Blazing blowpipe
+toxic_blowpipe_loaded_ornament	ranged=75	Blazing blowpipe
+league_executioner_weapon	ranged=60	Sage's axe
+rat_bone_mace	attack=50	Bone mace
+rat_bone_staff	magic=50	Bone staff
+zombie_axe	attack=65	Zombie axe
+tonalztics_of_ralos_uncharged	ranged=75	Tonalztics of ralos
+tonalztics_of_ralos_charged	ranged=75	Tonalztics of ralos
+sunfire_helm	defence=40 prayer=60	Sunfire fanatic helm
+sunfire_body	defence=40 prayer=60	Sunfire fanatic cuirass
+sunfire_legs	defence=40 prayer=60	Sunfire fanatic chausses
+echo_boots	defence=75	Echo boots
+dizanas_quiver_uncharged	ranged=75	Dizana's quiver
+dizanas_quiver_uncharged_trouver	ranged=75	Dizana's quiver
+dizanas_quiver_charged	ranged=75	Dizana's quiver
+dizanas_quiver_charged_trouver	ranged=75	Dizana's quiver
+dizanas_quiver_infinite	ranged=75	Blessed dizana's quiver
+dizanas_quiver_infinite_trouver	ranged=75	Blessed dizana's quiver
+frostmoon_spear	attack=70 magic=75	Blue moon spear
+dual_macuahuitl	attack=70 strength=75	Dual macuahuitl
+eclipse_atlatl	attack=50 strength=50 ranged=75	Eclipse atlatl
+eclipse_moon_chestplate	defence=50 ranged=75	Eclipse moon chestplate
+eclipse_moon_tassets	defence=50 ranged=75	Eclipse moon tassets
+eclipse_moon_helm	defence=50 ranged=75	Eclipse moon helm
+frost_moon_chestplate	defence=50 magic=75	Blue moon chestplate
+frost_moon_tassets	defence=50 magic=75	Blue moon tassets
+frost_moon_helm	defence=50 magic=75	Blue moon helm
+blood_moon_chestplate	defence=50 strength=75	Blood moon chestplate
+blood_moon_tassets	defence=50 strength=75	Blood moon tassets
+blood_moon_helm	defence=50 strength=75	Blood moon helm
+eclipse_moon_chestplate_degraded	defence=50 ranged=75	Eclipse moon chestplate
+eclipse_moon_tassets_degraded	defence=50 ranged=75	Eclipse moon tassets
+eclipse_moon_helm_degraded	defence=50 ranged=75	Eclipse moon helm
+frost_moon_chestplate_degraded	defence=50 magic=75	Blue moon chestplate
+frost_moon_tassets_degraded	defence=50 magic=75	Blue moon tassets
+frost_moon_helm_degraded	defence=50 magic=75	Blue moon helm
+blood_moon_chestplate_degraded	defence=50 strength=75	Blood moon chestplate
+blood_moon_tassets_degraded	defence=50 strength=75	Blood moon tassets
+blood_moon_helm_degraded	defence=50 strength=75	Blood moon helm
+eclipse_moon_chestplate_broken	defence=50 ranged=75	Eclipse moon chestplate
+eclipse_moon_tassets_broken	defence=50 ranged=75	Eclipse moon tassets
+eclipse_moon_helm_broken	defence=50 ranged=75	Eclipse moon helm
+frost_moon_chestplate_broken	defence=50 magic=75	Blue moon chestplate
+frost_moon_tassets_broken	defence=50 magic=75	Blue moon tassets
+frost_moon_helm_broken	defence=50 magic=75	Blue moon helm
+blood_moon_chestplate_broken	defence=50 strength=75	Blood moon chestplate
+blood_moon_tassets_broken	defence=50 strength=75	Blood moon tassets
+blood_moon_helm_broken	defence=50 strength=75	Blood moon helm
+sulphur_blades	attack=55	Sulphur blades
+hg_hunter_spear	strength=30 ranged=55	Hunter's spear
+elite_black_full_helm	defence=40	Elite black full helm
+elite_black_platebody	defence=40	Elite black platebody
+elite_black_platelegs	defence=40	Elite black platelegs
+bone_claws	attack=60	Bone claws
+emberlight	attack=77	Emberlight
+scorching_bow	ranged=77	Scorching bow
+purging_staff	attack=50 magic=77	Purging staff
+deadman_blighted_dark_bow	ranged=50	Corrupted dark bow
+deadman_blighted_volatile_staff	hitpoints=20 magic=50	Corrupted volatile nightmare staff
+deadman_ags	attack=75	Armadyl godsword (deadman)
+deadman_voidwaker	attack=75	Voidwaker (deadman)
+deadman_nightmare_staff_volatile	hitpoints=50 magic=82	Volatile nightmare staff (deadman)
+deadman_darkbow	ranged=60	Dark bow (deadman)
+deadman_ma2_zamorak_cape	magic=75	Imbued zamorak cape (deadman)
+deadman_ma2_guthix_cape	magic=75	Imbued guthix cape (deadman)
+deadman_ma2_saradomin_cape	magic=75	Imbued saradomin cape (deadman)
+noxious_halberd	attack=80	Noxious halberd
+amulet_of_rancour	hitpoints=90	Amulet of rancour
+br_eclipse_moon_chestplate	defence=50 ranged=75	Eclipse moon chestplate (Last Man Standing)
+br_eclipse_moon_tassets	defence=50 ranged=75	Eclipse moon tassets (Last Man Standing)
+br_eclipse_moon_helm	defence=50 ranged=75	Eclipse moon helm (Last Man Standing)
+br_frost_moon_chestplate	defence=50 magic=75	Blue moon chestplate (Last Man Standing)
+br_frost_moon_tassets	defence=50 magic=75	Blue moon tassets (Last Man Standing)
+br_frost_moon_helm	defence=50 magic=75	Blue moon helm (Last Man Standing)
+br_blood_moon_chestplate	defence=50 strength=75	Blood moon chestplate (Last Man Standing)
+br_blood_moon_tassets	defence=50 strength=75	Blood moon tassets (Last Man Standing)
+br_blood_moon_helm	defence=50 strength=75	Blood moon helm (Last Man Standing)
+br_frostmoon_spear	attack=70 magic=75	Blue moon spear (Last Man Standing)
+br_dual_macuahuitl	attack=70 strength=75	Dual macuahuitl (Last Man Standing)
+br_eclipse_atlatl	attack=50 strength=50 ranged=75	Eclipse atlatl (Last Man Standing)
+glacial_temotli	attack=55	Glacial temotli
+tome_of_earth	magic=50	Tome of earth
+dragonhunter_wand	magic=65	Dragon hunter wand
+huey_body	defence=40 ranged=70	Hueycoatl hide body
+huey_chaps	ranged=70	Hueycoatl hide chaps
+huey_vambraces	ranged=70	Hueycoatl hide vambraces
+arclight_inactive	attack=75	Arclight
+zombie_helmet	defence=50 strength=50	Zombie helmet
+venator_bow_ornament	ranged=80	Echo venator bow
+venator_bow_ornament_uncharged	ranged=80	Echo venator bow (uncharged)
+virtus_mask_ornament	defence=75 magic=78	Echo virtus mask
+virtus_top_ornament	defence=75 magic=78	Echo virtus robe top
+virtus_legs_ornament	defence=75 magic=78	Echo virtus robe bottom
+barrows_ahrim_head_ornament	defence=70 magic=70	Echo ahrim's hood
+barrows_ahrim_body_ornament	defence=70 magic=70	Echo ahrim's robetop
+barrows_ahrim_legs_ornament	defence=70 magic=70	Echo ahrim's robeskirt
+barrows_ahrim_head_ornament_100	defence=70 magic=70	Echo ahrim's hood 100
+barrows_ahrim_body_ornament_100	defence=70 magic=70	Echo ahrim's robetop 100
+barrows_ahrim_legs_ornament_100	defence=70 magic=70	Echo ahrim's robeskirt 100
+barrows_ahrim_head_ornament_75	defence=70 magic=70	Echo ahrim's hood 75
+barrows_ahrim_body_ornament_75	defence=70 magic=70	Echo ahrim's robetop 75
+barrows_ahrim_legs_ornament_75	defence=70 magic=70	Echo ahrim's robeskirt 75
+barrows_ahrim_head_ornament_50	defence=70 magic=70	Echo ahrim's hood 50
+barrows_ahrim_body_ornament_50	defence=70 magic=70	Echo ahrim's robetop 50
+barrows_ahrim_legs_ornament_50	defence=70 magic=70	Echo ahrim's robeskirt 50
+barrows_ahrim_head_ornament_25	defence=70 magic=70	Echo ahrim's hood 25
+barrows_ahrim_body_ornament_25	defence=70 magic=70	Echo ahrim's robetop 25
+barrows_ahrim_legs_ornament_25	defence=70 magic=70	Echo ahrim's robeskirt 25
+barrows_ahrim_head_ornament_broken	defence=70 magic=70	Echo ahrim's hood 0
+barrows_ahrim_body_ornament_broken	defence=70 magic=70	Echo ahrim's robetop 0
+barrows_ahrim_legs_ornament_broken	defence=70 magic=70	Echo ahrim's robeskirt 0
+barrows_ahrim_weapon_ornament	attack=70 magic=70	Echo ahrim's staff
+barrows_ahrim_weapon_ornament_100	attack=70 magic=70	Echo ahrim's staff 100
+barrows_ahrim_weapon_ornament_75	attack=70 magic=70	Echo ahrim's staff 75
+barrows_ahrim_weapon_ornament_50	attack=70 magic=70	Echo ahrim's staff 50
+barrows_ahrim_weapon_ornament_25	attack=70 magic=70	Echo ahrim's staff 25
+barrows_ahrim_weapon_ornament_broken	attack=70 magic=70	Echo ahrim's staff 0
+twinflame_staff	magic=60	Twinflame staff
+castlewars_bolt	ranged=64	Castle wars bolts
+oathplate_helm	defence=78	Oathplate helm
+oathplate_chest	defence=78	Oathplate chest
+oathplate_legs	defence=78	Oathplate legs
+soulflame_horn	magic=80	Soulflame horn
+radiant_oathplate_helm	defence=78	Radiant oathplate helm
+radiant_oathplate_chest	defence=78	Radiant oathplate chest
+radiant_oathplate_legs	defence=78	Radiant oathplate legs
+keris_partisan_amascut	attack=80	Keris partisan of amascut
+arkan_blade	attack=60	Arkan blade
+earthbound_tecpatl	attack=55	Earthbound tecpatl
+custodian_antler_guard	prayer=50	Antler guard
+avernic_treads	defence=80 strength=80 ranged=80 magic=80	Avernic treads
+avernic_treads_melee	defence=80 strength=80 ranged=80 magic=80	Avernic treads (pr)
+avernic_treads_ranged	defence=80 strength=80 ranged=80 magic=80	Avernic treads (pe)
+avernic_treads_magic	defence=80 strength=80 ranged=80 magic=80	Avernic treads (et)
+avernic_treads_melee_ranged	defence=80 strength=80 ranged=80 magic=80	Avernic treads (pr)(pe)
+avernic_treads_melee_magic	defence=80 strength=80 ranged=80 magic=80	Avernic treads (pr)(et)
+avernic_treads_ranged_magic	defence=80 strength=80 ranged=80 magic=80	Avernic treads (pe)(et)
+avernic_treads_max	defence=80 strength=80 ranged=80 magic=80	Avernic treads (max)
+confliction_gauntlets	hitpoints=90	Confliction gauntlets
+eye_of_ayak	magic=83	Eye of Ayak
+eye_of_ayak_uncharged	magic=83	Eye of Ayak (uncharged)
+rotten_dinhs_bulwark	attack=75 defence=75	Dinh's blazing bulwark
+rotten_venator_bow	ranged=80	Venator bow
+horn_of_plenty	hunter=50	Horn of Plenty
+horn_of_plenty_uncharged	hunter=50	Horn of Plenty (empty)
+belles_folly	attack=65	Belle's folly
+krill_angler_hat	fishing=35	Spirit angler headband
+camphor_blowpipe	ranged=45	Camphor blowpipe
+camphor_blowpipe_empty	ranged=45	Camphor blowpipe (empty)
+ironwood_blowpipe	ranged=55	Ironwood blowpipe
+ironwood_blowpipe_empty	ranged=55	Ironwood blowpipe (empty)
+rosewood_blowpipe	ranged=65	Rosewood blowpipe
+rosewood_blowpipe_empty	ranged=65	Rosewood blowpipe (empty)
+aquanite_hopper	ranged=60	Aquanite hopper
+holy_moleys	prayer=31	Holy moleys
+bow_of_faerdhinen_infinite_deadman	ranged=80 agility=70	Bow of Faerdhinen (c)
+crystal_chestplate_deadman	defence=70 agility=50	Crystal body
+crystal_chestplate_inactive_deadman	defence=70 agility=50	Crystal body (inactive)
+crystal_platelegs_deadman	defence=70 agility=50	Crystal legs
+crystal_platelegs_inactive_deadman	defence=70 agility=50	Crystal legs (inactive)
+crystal_helmet_deadman	defence=70 agility=50	Crystal helm
+crystal_helmet_inactive_deadman	defence=70 agility=50	Crystal helm (inactive)
+toxic_sotd_deadman	attack=75 magic=75	Toxic staff (uncharged)
+toxic_sotd_charged_deadman	attack=75 magic=75	Toxic staff (Deadman)
+deadman_dogsword	attack=75	The dogsword
+deadman_thunder_khopesh	attack=60	Thunder khopesh
+br_crystal_chestplate	defence=70 agility=50	Crystal body
+br_crystal_platelegs	defence=70 agility=50	Crystal legs
+br_crystal_helmet	defence=70 agility=50	Crystal helm
+br_avernic_treads	defence=80 strength=80 ranged=80 magic=80	Avernic treads (max)
+br_osmumtens_fang	attack=82	Osmumten's fang
+br_elidinis_ward_fortified	defence=80 prayer=80 magic=80	Elidinis' ward (f)
+br_noxious_halberd	attack=80	Noxious halberd
+br_purging_staff	attack=50 magic=77	Purging staff
+br_dragonfire_shield	defence=75	Dragonfire shield
+br_twisted_buckler	defence=75 ranged=75	Twisted buckler
+br_masori_body_fortified	defence=80 ranged=80	Masori body (f)
+br_masori_chaps_fortified	defence=80 ranged=80	Masori chaps (f)
+br_torva_legs	defence=80	Torva platelegs
+br_virtus_top	defence=75 magic=78	Virtus robe top
+br_virtus_legs	defence=75 magic=78	Virtus robe bottom
+br_bone_claws	attack=60	Burning claws
+toxic_tots_charged_orn	magic=78	Trident of the Swamp (o)
+toxic_tots_uncharged_orn	magic=78	Uncharged toxic trident (o)
+toxic_tots_i_charged_orn	magic=78	Trident of the Swamp (e) (o)
+toxic_tots_i_uncharged_orn	magic=78	Uncharged toxic trident (e) (o)
+tots_charged_orn	magic=75	Trident of the Seas (o)
+tots_orn	magic=75	Trident of the Seas (full) (o)
+tots_i_charged_orn	magic=75	Trident of the Seas (e) (o)
+tots_i_uncharged_orn	magic=75	Uncharged trident (e) (o)
+iban_staff_orn	attack=50 magic=50	Iban's staff (o)
+iban_staff_upgraded_orn	attack=50 magic=50	Iban's staff (u) (o)
+soulreaper_axe_orn	attack=80 strength=80	Soulreaper axe (o)
+tots_uncharged_orn	magic=75	Uncharged trident (o)
+br_xbows_crossbow_dragon	ranged=64	Dragon crossbow
+br_oathplate_helm	defence=78	Oathplate helm
+seeking_slayer_broad_arrows	ranged=50	Seeking broad arrows
+crimson_kisten	attack=60 strength=85	Crimson kisten
+necklace_of_rupture	hitpoints=90	Necklace of rupture
+blisterwood_stake	ranged=50	Blisterwood stake
+hallowed_flail	attack=50	Hallowed flail
+sunspear	attack=50	Sunspear
+sotfa_forest_talon	ranged=50	Spine
+hallowfell	attack=75	Hallowfell
+amulet_of_air	magic=59	Amulet of air
+amulet_of_water	magic=59	Amulet of water
+amulet_of_earth	magic=59	Amulet of earth
+amulet_of_fire	magic=59	Amulet of fire
+elemental_amulet	magic=59	Elemental amulet
+deadman_ma2_zaros_cape	magic=75	Imbued ancient cape (Deadman)
+br_barrows_karil_legs	defence=70 ranged=70	Karil's leatherskirt
+br_bandos_chestplate	defence=65	Bandos chestplate
+br_barbassault_penance_fighter_torso	defence=40	Fighter torso
+br_black_dhide_shield	defence=40 ranged=70	Black d'hide shield
+br_torva_helm	defence=80	Torva full helm
+br_abyssal_tentacle	attack=75	Abyssal tentacle
+br_dragon_boots	defence=60	Dragon boots
+ma2_zaros_cape	magic=75	Imbued ancient cape
+ma2_zaros_cape_broken	magic=75	Imbued ancient cape (broken)
+ma2_zaros_cape_trouver	magic=75	Imbued ancient cape (l)
+ma2_zaros_cape_darker	magic=75	Imbued ancient cape
+ascension_crossbows	ranged=80	Ascension crossbows
+ascension_bolts	ranged=80	Ascension bolts
+ascension_bolts_diamond_unenchanted	ranged=80	Diamond ascension bolts
+ascension_bolts_diamond_enchanted	ranged=80	Diamond ascension bolts (e)
+ascension_bolts_onyx_unenchanted	ranged=80	Onyx ascension bolts
+ascension_bolts_onyx_enchanted	ranged=80	Onyx ascension bolts (e)
+obligator	attack=85	Obligator
+obligator_uncharged	attack=85	Obligator (uncharged)
+rondache	defence=80	Rondache
+zoryas_tome	magic=85	Zorya's tome
+zoryas_tome_uncharged	magic=85	Zorya's tome (uncharged)

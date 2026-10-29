@@ -159,6 +159,8 @@ class World(
     val shopTypes: ShopTypes = ShopTypes.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
     skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
+    /** The levels needed to wear items; tests that check levels pass their own. */
+    wearRequirements: WearRequirements = WearRequirements.NONE,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -201,7 +203,7 @@ class World(
         },
     )
 
-    private val equipment = Equipment(objTypes)
+    private val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */

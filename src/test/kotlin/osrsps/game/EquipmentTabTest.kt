@@ -23,7 +23,7 @@ import osrsps.game.script.ScriptRunner
 class EquipmentTabTest {
     private val axe = ObjType(1351, "Bronze axe", desc = "A woodcutter's axe.", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(1 to 4, 10 to 5, 14 to 5), category = 35)
     private val bow = ObjType(841, "Shortbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, params = mapOf(4 to 8, 14 to 4), category = 64)
-    private val whip = ObjType(4151, "Abyssal whip", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(434 to 0, 436 to 70), category = 150)
+    private val whip = ObjType(4151, "Abyssal whip", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "abyssal_whip", category = 150)
     private val ring = ObjType(2552, "Ring of dueling(8)", wearpos1 = WearPos.RING, params = mapOf(451 to "Emir's Arena", 452 to "Castle Wars"))
     private val chinchompa = ObjType(11959, "Black chinchompa", stackable = true, iops = listOf(null, "Wield", null, null, "Release"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 80, 12 to 30, 14 to 4), category = 572)
     // Obj category 1 is the staves.
@@ -43,7 +43,7 @@ class EquipmentTabTest {
     }
 
     init {
-        tab = EquipmentTab(Equipment(types), types, scripts, inventoryTab, openModal, send, Spells(mapOf(19 to fireStrike), emptyMap()))
+        tab = EquipmentTab(Equipment(types, WearRequirements.parse("abyssal_whip\tattack=70", types)), types, scripts, inventoryTab, openModal, send, Spells(mapOf(19 to fireStrike), emptyMap()))
     }
 
     // Varbit 357 is bits 0 to 5 of varp 843 in the 241 cache.
