@@ -36,7 +36,7 @@ class HeadlessAdminCommandsTest {
         server(dir).use { server ->
             server.login("mallory").use { mallory ->
                 mallory.await("the login rebuild") { mallory.position }
-                for (command in listOf("item $COINS 1000", "empty", "setlevel all 99", "addxp magic 1000", "boost strength 255", "varp 173 1", "varbit 357 1", "tele 3223 3218", "if 672", "scenario gift", "reset", "grounditems", "anim 836", "queue weak")) {
+                for (command in listOf("item $COINS 1000", "empty", "setlevel all 99", "addxp magic 1000", "boost strength 255", "varp 173 1", "varbit 357 1", "tele 3223 3218", "if 672", "ifevents 116 95 -1 -1 1", "scenario gift", "reset", "grounditems", "anim 836", "queue weak")) {
                     val name = command.substringBefore(' ')
                     assertEquals("::$name is a testing tool, so only admins can use it here.", mallory.commandReply(command) { it.startsWith("::$name") })
                 }

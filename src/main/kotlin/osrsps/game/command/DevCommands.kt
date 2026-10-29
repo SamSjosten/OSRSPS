@@ -1,5 +1,6 @@
 package osrsps.game.command
 
+import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import osrsps.game.FrameSlot
 import osrsps.game.World
 
@@ -77,7 +78,22 @@ fun CommandRegistry.registerDevCommands(world: World) {
         world.openModal(player, slot, id)
         reply("Opened interface $id. Walk or use its close button to close it.")
     }
+
+    // For finding which events a component needs before the client sends anything for it: sends IF_SETEVENTS_V2 as
+    // given. Events take decimal or 0x hex; start and end are -1 for a component without children. Lasts until the
+    // interface is opened again.
+    register("ifevents", "::ifevents interface component start end events1 [events2]") {
+        if (args.size !in 5..6) fail("Usage: ::ifevents interface component start end events1 [events2]")
+        val values = args.map { parseEvents(it) ?: fail("Usage: ::ifevents interface component start end events1 [events2] ('$it' is not a number)") }
+        val events2 = values.getOrElse(5) { 0 }
+        player.session.queue(IfSetEventsV2(values[0], values[1], values[2], values[3], values[4], events2))
+        reply("Events on ${values[0]}:${values[1]} slots ${values[2]}..${values[3]}: 0x${values[4].toUInt().toString(16)}, ops 0x${events2.toUInt().toString(16)}")
+    }
 }
+
+/** A decimal or 0x hex int; hex up to 0xffffffff so the top bit can be set. */
+private fun parseEvents(text: String): Int? =
+    if (text.startsWith("0x", ignoreCase = true)) text.drop(2).toLongOrNull(16)?.takeIf { it <= 0xffffffffL }?.toInt() else text.toIntOrNull()
 
 private val COORD_SEPARATORS = Regex("[\\s,]+")
 
