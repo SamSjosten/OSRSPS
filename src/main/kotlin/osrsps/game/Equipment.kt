@@ -126,6 +126,7 @@ class Equipment(val objTypes: ObjTypes) {
         for ((_, obj) in player.equipment.contents()) {
             val type = objTypes[obj.id] ?: continue
             for ((index, param) in EquipmentBonuses.PARAMS.withIndex()) totals[index] += type.intParam(param)
+            totals[EquipmentBonuses.RANGED_STRENGTH] += type.intParam(EquipmentBonuses.PARAM_GEAR_RANGED_STRENGTH)
         }
         val weapon = player.equipment[WearPos.WEAPON]?.let { objTypes[it.id] }
         val speed = weapon?.intParam(PARAM_ATTACK_SPEED, UNARMED_ATTACK_SPEED) ?: UNARMED_ATTACK_SPEED
@@ -201,7 +202,8 @@ private fun Inventory.firstFree(): Int = (0 until capacity).first { this[it] == 
 /**
  * Equipment bonuses, in the order of [PARAMS]. The param ids were matched to bonuses against items whose stats are
  * well known (bronze sword: stab 4, slash 3, crush -2; wooden shield; occult necklace 5% magic damage as 50; rune
- * arrow ranged strength 49), so the mapping is checked against the 241 cache, the stats themselves from memory.
+ * arrow ranged strength 49), so the mapping is checked against the 241 cache, the stats themselves from memory. Ranged
+ * strength has a second param for gear, [PARAM_GEAR_RANGED_STRENGTH] (found by the item audit against the Wiki).
  */
 class EquipmentBonuses(private val values: IntArray, val attackSpeed: Int) {
     operator fun get(index: Int): Int = values[index]
@@ -241,5 +243,15 @@ class EquipmentBonuses(private val values: IntArray, val attackSpeed: Int) {
 
         /** Item param id of each bonus, by the indexes above. */
         val PARAMS = intArrayOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 299, 11)
+
+        /**
+         * Ranged strength on what isn't ammunition or a thrown weapon (the twisted bow 20, Masori body 4, pegasian boots 1
+         * in the 241 cache): it adds to [RANGED_STRENGTH]'s param 12, which no item has alongside it.
+         */
+        const val PARAM_GEAR_RANGED_STRENGTH = 189
+
+        /** [type]'s own ranged strength, from either param. */
+        fun rangedStrength(type: ObjType?): Int =
+            type?.let { it.intParam(PARAMS[RANGED_STRENGTH]) + it.intParam(PARAM_GEAR_RANGED_STRENGTH) } ?: 0
     }
 }
