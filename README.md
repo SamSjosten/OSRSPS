@@ -138,8 +138,9 @@ if that table changes. A revision bump adds the build for the new revision to th
 
 ### Files for our own launcher
 
-Odin's Gate, our launcher (being built to replace RSProx for friends), reads its own files from the same HTTP port,
-each written for the host it was asked by like the others:
+Odin's Gate, our launcher (being built to replace RSProx for friends; its code is `launcher/`, its own Gradle build
+like the plugins'), reads its own files from the same HTTP port, each written for the host it was asked by like the
+others:
 
 - `/status.json`: whether the game is up (its game loop ended a cycle in the last 10 s) and taking logins, the revision
   it plays, the commit it runs (the one `/version` gives), how many players are in, and the JS5 count `/status` gives,
