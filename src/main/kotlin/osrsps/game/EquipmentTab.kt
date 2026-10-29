@@ -1,11 +1,15 @@
 package osrsps.game
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
+import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.combat.Autocast
+import osrsps.game.combat.Spells
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptRunner
@@ -15,8 +19,9 @@ private val logger = KotlinLogging.logger {}
 
 /**
  * The worn equipment as the player sees it: the equipment tab (wornitems, 387), the Equipment Stats screen
- * (equipment, 84, with its side inventory equipment_side, 85), the combat tab's weapon category and style buttons
- * (combat_interface, 593), and the worn models and stance on the player's model.
+ * (equipment, 84, with its side inventory equipment_side, 85), the combat tab's weapon category, style buttons and spell
+ * buttons (combat_interface, 593) with the autocast menu they open (autocast, 201), and the worn models and stance on
+ * the player's model.
  *
  * Interface and component ids are from the 241 cache's gameval names. The tab's slots and the stats screen's slots
  * have every op in their cache click mask, so they need no events from the server; the stats screen's side inventory
@@ -29,6 +34,8 @@ class EquipmentTab(
     private val inventoryTab: InventoryTab,
     private val openModal: (Player, FrameSlot, Int) -> Unit,
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
+    /** The spells the autocast menu can pick. */
+    private val spells: Spells = Spells.NONE,
 ) {
     /** A click on the equipment tab: its stats button or one of its slots, which are a component each. */
     fun clickWornItems(player: Player, component: Int, op: Int): Boolean {
@@ -194,20 +201,37 @@ class EquipmentTab(
         val weapon = equipment.weapon(player)
         val category = Weapons.category(weapon)
         if (player.vars.types.varbit(VARBIT_WEAPON_CATEGORY) != null) player.vars.setVarbit(VARBIT_WEAPON_CATEGORY, category)
-        if (player.vars[VARP_COM_MODE] !in Weapons.styleButtons(category)) player.vars[VARP_COM_MODE] = 0
+        // A picked spell is kept under a weapon that can't cast it, and autocast is back on with the next staff (OSRS
+        // Wiki, Autocast: remembered across weapon changes). Guessed: the menu closes with a weapon that has no spell
+        // buttons.
+        if (Autocast.active(player, category)) {
+            player.vars[VARP_COM_MODE] = Autocast.COM_MODE
+        } else if (player.vars[VARP_COM_MODE] !in Weapons.styleButtons(category)) {
+            player.vars[VARP_COM_MODE] = 0
+        }
+        if (player.autocastMenu != null && category !in Autocast.CATEGORIES) {
+            closeAutocastMenu(player)
+            return
+        }
         // No client script writes these two; live sends them. "Unarmed" as the title with no weapon is guessed.
         send(player, IfSetText(COMBAT, COMBAT_TITLE, weapon?.name ?: Weapons.categoryName(Weapons.UNARMED)))
         send(player, IfSetText(COMBAT, COMBAT_CATEGORY, "Category: ${Weapons.categoryName(category)}"))
     }
 
-    /** A click on the combat tab: an attack style button or Auto retaliate. */
+    /** A click on the combat tab: an attack style button, a spell button or Auto retaliate. */
     fun clickCombatTab(player: Player, component: Int): Boolean {
         val button = STYLE_BUTTONS.indexOf(component)
         if (button >= 0) {
             if (button in Weapons.styleButtons(Weapons.category(equipment.weapon(player)))) {
+                // A style picked turns autocast off (from memory of live, not checked).
+                Autocast.clear(player)
                 player.vars[VARP_COM_MODE] = button
                 if (player.modals[FrameSlot.MAINMODAL] == STATS) sendStats(player)
             }
+            return true
+        }
+        if (component == COMBAT_AUTOCAST_NORMAL || component == COMBAT_AUTOCAST_DEFENSIVE) {
+            if (Weapons.category(equipment.weapon(player)) in Autocast.CATEGORIES) openAutocastMenu(player, component == COMBAT_AUTOCAST_DEFENSIVE)
             return true
         }
         if (component == COMBAT_RETALIATE) {
@@ -216,6 +240,54 @@ class EquipmentTab(
             return true
         }
         return false
+    }
+
+    /**
+     * "Choose spell": the autocast menu takes the combat tab's place. Its onload script lays the spells out by varp 664
+     * (spitfire_coord): null for the standard spells, an item for the few weapons with a list of their own, which come
+     * later. Its spells are client-made children of autocast:spells, one per enum 1986 key, so their op needs events from
+     * the server. Inferred from the 241 client scripts (autocast_init, autocast_setup); the opening itself (in the side
+     * panel's place, as an overlay) is guessed.
+     */
+    private fun openAutocastMenu(player: Player, defensive: Boolean) {
+        player.autocastMenu = defensive
+        player.vars[VARP_SPITFIRE_COORD] = -1
+        // Sent now so the menu's onload script reads it; the end-of-cycle flush resends it.
+        send(player, VarpSmall(VARP_SPITFIRE_COORD, -1))
+        openSide(player, AUTOCAST)
+        send(player, IfSetEventsV2(AUTOCAST, AUTOCAST_SPELLS, 0, AUTOCAST_SLOTS, Interfaces.IF_EVENT_OP1, 0))
+    }
+
+    /**
+     * A click in the autocast menu: Cancel (slot 0) or a spell (the slot is its enum 1986 key). A spell is picked whatever
+     * the player's level and runes (OSRS Wiki, Autocast: since April 2025 it stays selected without them); the cast
+     * checks them. Either way the combat tab comes back.
+     */
+    fun clickAutocastMenu(player: Player, component: Int, sub: Int): Boolean {
+        if (component != AUTOCAST_SPELLS) return false
+        val defensive = player.autocastMenu ?: return true
+        if (sub != 0) {
+            val spell = spells.autocast(sub)
+            if (spell == null) {
+                logger.info { "${player.username} picked autocast slot $sub, which isn't a spell here" }
+                return true
+            }
+            Autocast.set(player, spell, defensive)
+        }
+        closeAutocastMenu(player)
+        return true
+    }
+
+    private fun closeAutocastMenu(player: Player) {
+        player.autocastMenu = null
+        openSide(player, COMBAT)
+        updateCombatTab(player)
+    }
+
+    /** Opens [interfaceId] in the combat tab's side panel slot, in place of what is there. */
+    private fun openSide(player: Player, interfaceId: Int) {
+        val frame = player.frame
+        send(player, IfOpenSub(frame.interfaceId, frame.component(FrameSlot.SIDE0), interfaceId, Interfaces.OVERLAY))
     }
 
     private fun signed(value: Int): String = if (value >= 0) "+$value" else "$value"
@@ -280,6 +352,18 @@ class EquipmentTab(
         val STYLE_BUTTONS = intArrayOf(6, 10, 14, 18)
         const val COMBAT_RETALIATE = 32
 
+        /** combat_interface's two "Choose spell" buttons: the shield one (defensive) and the other. */
+        const val COMBAT_AUTOCAST_DEFENSIVE = 23
+        const val COMBAT_AUTOCAST_NORMAL = 28
+
+        /** autocast, the menu of spells, and its spells layer; the spells are its children 1 to 58, Cancel child 0. */
+        const val AUTOCAST = 201
+        const val AUTOCAST_SPELLS = 1
+        const val AUTOCAST_SLOTS = 58
+
+        /** spitfire_coord, an obj varp: which weapon's spell layout the autocast menu shows, null (-1) for the standard one. */
+        const val VARP_SPITFIRE_COORD = 664
+
         const val VARBIT_WEAPON_CATEGORY = 357
         const val VARP_COM_MODE = 43
         const val VARP_AUTO_RETALIATE_OFF = 172
@@ -320,7 +404,10 @@ class EquipmentTab(
                 put(COMBAT_CATEGORY, "category")
                 STYLE_BUTTONS.forEachIndexed { button, component -> put(component, "$button") }
                 put(COMBAT_RETALIATE, "retaliate")
+                put(COMBAT_AUTOCAST_DEFENSIVE, "autocast_defensive")
+                put(COMBAT_AUTOCAST_NORMAL, "autocast_normal")
             }),
+            AUTOCAST to ("autocast" to mapOf(AUTOCAST_SPELLS to "spells")),
         )
 
         const val LEVEL_TOO_LOW = "You are not a high enough level to use this item."

@@ -19,8 +19,18 @@ import osrsps.map.Tile
 
 private val logger = KotlinLogging.logger {}
 
-/** A player casting [spell] on [npc]: they walk until it is in range and in sight, then cast once. See [MagicCombat]. */
-class MagicInteraction internal constructor(val npc: Npc, val spell: CombatSpell, private val owner: MagicCombat) : Interaction {
+/**
+ * A player casting on [npc]: they walk until it is in range and in sight, then cast [spell] once, or, with [spell] null,
+ * the spell they autocast, again and again. See [MagicCombat].
+ */
+class MagicInteraction internal constructor(val npc: Npc, spell: CombatSpell?, private val owner: MagicCombat) : Interaction {
+    /** The spell picked in the spellbook for one cast; null while autocasting. */
+    var spell: CombatSpell? = spell
+        internal set
+
+    /** Whether the player has cast on the NPC yet; until then the fight can still be refused on arrival. */
+    internal var cast = false
+
     /** Where the NPC stood when the player's route to it was last made; null once they have stood in range. */
     internal var routedTo: Tile? = null
 
@@ -37,16 +47,18 @@ class MagicInteraction internal constructor(val npc: Npc, val spell: CombatSpell
 /**
  * Combat spells from the standard spellbook cast on NPCs ([Spells] lists them): a spell picked in the spellbook and
  * clicked on an NPC becomes a [MagicInteraction]. The player walks until the NPC is within [RANGE] and in line of sight,
- * stops, waits for their attack delay if a swing or shot is still on it, and casts once; without autocast (a later
- * step) the fight ends there. Single-way combat works as for melee ([MeleeCombat.foughtByAnother],
- * [MeleeCombat.underAttackByAnother]).
+ * stops, waits for their attack delay if a swing or shot is still on it, and casts once. A player autocasting
+ * ([Autocast], picked on the combat tab) fights with magic instead: Attack, or auto retaliate, makes a fight ([fight])
+ * that casts the picked spell every [SPEED] ticks until the NPC dies or the player can't cast it any more. Single-way
+ * combat works as for melee ([MeleeCombat.foughtByAnother], [MeleeCombat.underAttackByAnother]).
  *
  * From the OSRS Wiki:
  * - A spell needs its Magic level, boosts counting, and its runes, taken as it is cast; an elemental staff stands in
  *   for its runes ([Spells.runesFrom]).
  * - Accuracy and damage are the magic formulas ([Combat.magicMatchup]); a spell that misses splashes: no damage, the
  *   splash graphic on the target, and the base XP only (Splashing). Combat spells take [SPEED] ticks (Magic).
- * - XP is the spell's base XP and 2 a point of damage to Magic, and 1.33 a point to Hitpoints (Magic, Combat).
+ * - XP is the spell's base XP and 2 a point of damage to Magic, and 1.33 a point to Hitpoints (Magic, Combat); a
+ *   defensive autocast gives 1.33 a point to Magic and 1 to Defence instead of the 2 (Autocast).
  * - The hit lands [HitDelay.MAGIC] ticks after the cast, a tick later on an NPC ([HitDelay.ON_NPC]).
  *
  * Inferred as for ranged: that the XP is given as the spell is cast, for the damage rolled (capped at what the NPC has
@@ -54,7 +66,8 @@ class MagicInteraction internal constructor(val npc: Npc, val spell: CombatSpell
  *
  * Guessed and marked below: the messages for too low a level and too few runes, which rune they name when several are
  * short, the graphics' heights, the projectile's start, heights and arc, which animation counts as cast with a staff,
- * that the player keeps facing the NPC after the cast, and what a splash shows besides its graphic.
+ * that the player keeps facing the NPC after the cast, what a splash shows besides its graphic, and that a spell cast
+ * from the spellbook while autocasting is followed by the autocast spell (from memory of live).
  */
 class MagicCombat(
     private val npcs: Npcs,
@@ -104,12 +117,37 @@ class MagicCombat(
         player.interaction = MagicInteraction(npc, spell, this)
     }
 
+    /**
+     * A fight with [npc] for a player autocasting ([Combat.style] is magic), or null when they aren't or their spell
+     * isn't one here; see [MeleeCombat.fight].
+     */
+    fun fight(player: Player, npc: Npc): MagicInteraction? {
+        if (combat.style(player).type != AttackType.MAGIC) return null
+        autocastSpell(player) ?: return null
+        return MagicInteraction(npc, null, this)
+    }
+
+    /** The spell the player autocasts, or null when they don't. */
+    private fun autocastSpell(player: Player): CombatSpell? =
+        if (combat.style(player).type == AttackType.MAGIC) spells.autocast(Autocast.key(player)) else null
+
     internal fun unreachable(player: Player) = stopFacing(player)
 
     internal fun tryInteract(player: Player, interaction: MagicInteraction): Boolean {
         val npc = interaction.npc
         if (npcs[npc.index] !== npc || npc.level != player.level || npc.dead) {
             stopFacing(player)
+            return true
+        }
+        val spell = interaction.spell ?: autocastSpell(player)
+        if (spell == null) {
+            // Autocast went off on the way (a style picked, the staff taken off): carry on with whatever fights now.
+            val next = melee.fight(player, npc)
+            if (next == null) {
+                message(player, MeleeCombat.MELEE_ONLY)
+                stopFacing(player)
+            }
+            player.interaction = next
             return true
         }
         val size = npc.type.size
@@ -130,20 +168,31 @@ class MagicCombat(
             stopFacing(player)
             return true
         }
-        if (melee.underAttackByAnother(player, npc)) {
+        // Another NPC may have caught them on the way; once the fight is on, a newcomer's hits don't stop it.
+        if (!interaction.cast && melee.underAttackByAnother(player, npc)) {
             message(player, MeleeCombat.ALREADY_UNDER_ATTACK)
             stopFacing(player)
             return true
         }
         val tick = currentTick()
         if (tick < player.nextAttackTick) return false
-        // Guessed: the player keeps facing the NPC after the cast, as live's face-entity stays until they do something else.
-        if (!release(player, npc, interaction.spell, tick)) stopFacing(player)
-        return true
+        val autocast = interaction.spell == null
+        if (!release(player, npc, spell, tick, defensive = autocast && Autocast.defensive(player))) {
+            stopFacing(player)
+            return true
+        }
+        interaction.cast = true
+        // A spell from the book is cast once; then the autocast spell, if any, carries the fight on. Guessed: the player
+        // keeps facing the NPC after a single cast, as live's face-entity stays until they do something else.
+        interaction.spell = null
+        return autocastSpell(player) == null
     }
 
-    /** Casts [spell] on [npc] on [tick]; false when the player can't, and has been told why. */
-    private fun release(player: Player, npc: Npc, spell: CombatSpell, tick: Long): Boolean {
+    /**
+     * Casts [spell] on [npc] on [tick], with defensive autocast's XP when [defensive]; false when the player can't, and
+     * has been told why.
+     */
+    private fun release(player: Player, npc: Npc, spell: CombatSpell, tick: Long, defensive: Boolean): Boolean {
         if (player.skills.currentLevel(Skill.MAGIC) < spell.level) {
             message(player, LEVEL_TOO_LOW)
             return false
@@ -170,7 +219,12 @@ class MagicCombat(
         val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
-        player.skills.addTenths(Skill.MAGIC, spell.xpTenths + CombatMath.spellDamageXpTenths(damage))
+        if (defensive) {
+            player.skills.addTenths(Skill.MAGIC, spell.xpTenths + CombatMath.defensiveSpellMagicXpTenths(damage))
+            player.skills.addTenths(Skill.DEFENCE, CombatMath.defensiveSpellDefenceXpTenths(damage))
+        } else {
+            player.skills.addTenths(Skill.MAGIC, spell.xpTenths + CombatMath.spellDamageXpTenths(damage))
+        }
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
         inFlight += Cast(player, npc, spell, hit, damage, landTick)
         return true

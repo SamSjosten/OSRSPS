@@ -178,7 +178,7 @@ class World(
         onDrop = groundObjs::drop,
     )
 
-    private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal)
+    private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells)
 
     private val interactions = Interactions()
 
@@ -202,7 +202,7 @@ class World(
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
         onDeath = { deaths.die(it) },
         loot = ::dropLoot,
-        ranged = { player, npc -> rangedCombat.fight(player, npc) },
+        ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
         multi = multiCombat,
     )
 
@@ -1059,6 +1059,7 @@ class World(
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
+        if (interfaceId == EquipmentTab.AUTOCAST && equipmentTab.clickAutocastMenu(player, componentId, sub)) return@act
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act

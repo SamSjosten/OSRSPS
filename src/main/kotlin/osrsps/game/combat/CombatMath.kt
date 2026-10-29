@@ -105,6 +105,14 @@ object CombatMath {
     /** Magic XP in tenths for [damage] dealt with a spell, on top of its base XP: 2 a point (OSRS Wiki, Magic). */
     fun spellDamageXpTenths(damage: Int): Int = damage * 20
 
+    /**
+     * Defensive autocast's split of [spellDamageXpTenths], in tenths: 1.33 Magic and 1 Defence a point of damage (OSRS
+     * Wiki, Autocast). The base XP still all goes to Magic.
+     */
+    fun defensiveSpellMagicXpTenths(damage: Int): Int = damage * 40 / 3
+
+    fun defensiveSpellDefenceXpTenths(damage: Int): Int = damage * 10
+
     /** Outside the Chambers of Xeric (350 there; OSRS Wiki, Twisted bow). */
     const val TWISTED_BOW_MAGIC_CAP = 250
 

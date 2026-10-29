@@ -51,7 +51,7 @@ class MagicCombatTest {
     private val objTypes = ObjTypes.of(fireStrike, staffOfFire, occult, *runes.toTypedArray())
 
     private val spells = Spells.parse(
-        """{ "splash": "failedspell_impact", "spells": [ { "spell": "13_fire_strike", "xp": 11.5, "anim": "human_caststrike",
+        """{ "splash": "failedspell_impact", "spells": [ { "spell": "13_fire_strike", "autocast": 4, "xp": 11.5, "anim": "human_caststrike",
             "staffAnim": "human_caststrike_staff", "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" } ],
           "staves": [ { "items": ["staff_of_fire"], "runes": ["firerune"] } ] }""",
         objTypes, SeqNames(mapOf("human_caststrike" to 711, "human_caststrike_staff" to 1162)),
@@ -94,6 +94,7 @@ class MagicCombatTest {
             npcs, map, movement, combat, random, { tick }, removeNpc = { npcs.remove(it) }, spawnNpc = {},
             message = { player, text -> messages += player to text },
             players = { sequenceOf(alice, bob) },
+            ranged = { player, npc -> magic.fight(player, npc) },
         )
     }
 
@@ -285,6 +286,105 @@ class MagicCombatTest {
         assertNull(alice.interaction)
         assertTrue(projectiles.isEmpty())
         assertEquals(100, count(alice, MIND))
+    }
+
+    private fun autocast(player: Player, defensive: Boolean = false) {
+        player.equipment[WearPos.WEAPON] = InvObj(staffOfFire.id, 1)
+        Autocast.set(player, spells.autocast(4)!!, defensive)
+    }
+
+    /** The ticks the player cast on, from the projectiles. */
+    private fun castTicks() = projectiles.map { it.first }
+
+    @Test
+    fun `autocasting, Attack casts the picked spell every 5 ticks until the NPC is dead`() {
+        val npc = spawn(man)
+        autocast(alice)
+        assertEquals(AttackType.MAGIC, combat.style(alice).type)
+        assertTrue(melee.attackFromAfar(alice, npc))
+        while (!npc.dead && tick < 200) tick()
+        assertTrue(npc.dead)
+        val casts = castTicks()
+        assertTrue(casts.isNotEmpty())
+        assertEquals(casts.indices.map { 1L + it * MagicCombat.SPEED }, casts)
+        // The staff stands in for the fire runes; the rest go a cast at a time.
+        assertEquals(listOf(100 - casts.size, 300, 200 - 2 * casts.size), listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR)))
+        // 11.5 a cast and 2 a point of the man's 7 hitpoints, all to Magic.
+        assertEquals(casts.size * 115 + 7 * 20, alice.skills.tenths(Skill.MAGIC) - xpAt13)
+        assertEquals(0, alice.skills.tenths(Skill.DEFENCE))
+        repeat(10) { tick() }
+        assertEquals(casts.size, projectiles.size)
+    }
+
+    @Test
+    fun `defensive autocast gives Defence 1 and Magic 1·33 a point of damage, the base XP to Magic`() {
+        val npc = spawn(dummy)
+        autocast(alice, defensive = true)
+        assertEquals(listOf(Skill.MAGIC, Skill.DEFENCE), combat.style(alice).xp)
+        melee.attackFromAfar(alice, npc)
+        repeat(16) { tick() }
+        assertEquals(4, projectiles.size)
+        // The XP comes with each cast, for what it rolled: what has landed and what is on its way.
+        val rolled = dummy.stats.hitpoints - npc.hitpoints + npc.incoming
+        assertTrue(rolled > 0)
+        assertEquals(rolled * 10, alice.skills.tenths(Skill.DEFENCE))
+        // 1.33 a point, rounded down a cast at a time.
+        val magic = alice.skills.tenths(Skill.MAGIC) - xpAt13 - 4 * 115
+        assertTrue(magic in rolled * 40 / 3 - 3..rolled * 40 / 3, "$magic tenths for $rolled damage")
+    }
+
+    @Test
+    fun `out of runes the autocast fight ends with the message`() {
+        val npc = spawn(dummy)
+        alice.inventory.remove(alice.inventory.contents().first { it.second.id == MIND }.first)
+        give(alice, MIND, 2)
+        autocast(alice)
+        melee.attackFromAfar(alice, npc)
+        repeat(12) { tick() }
+        assertEquals(2, projectiles.size)
+        assertEquals("You do not have enough Mind Runes to cast this spell.", messages.single().second)
+        assertNull(alice.interaction)
+    }
+
+    @Test
+    fun `autocast going off mid-fight hands the fight to melee`() {
+        val npc = spawn(dummy, x = 3211)
+        autocast(alice)
+        melee.attackFromAfar(alice, npc)
+        tick()
+        assertEquals(1, projectiles.size)
+        Autocast.clear(alice)
+        tick()
+        assertTrue(alice.interaction is MeleeInteraction, "${alice.interaction}")
+    }
+
+    @Test
+    fun `a spell picked without a staff to cast it is kept, and the player punches`() {
+        Autocast.set(alice, spells.autocast(4)!!, defensive = false)
+        assertEquals(4, Autocast.key(alice))
+        assertEquals(AttackType.CRUSH, combat.style(alice).type)
+        assertNull(magic.fight(alice, spawn(dummy)))
+    }
+
+    @Test
+    fun `auto retaliate autocasts, with half the spell's delay`() {
+        val npc = spawn(dummy, x = 3212)
+        autocast(alice)
+        melee.hitPlayer(alice, npc, 1, tick)
+        assertTrue(alice.interaction is MagicInteraction)
+        assertEquals(tick + 3, alice.nextAttackTick)
+    }
+
+    @Test
+    fun `a spell cast from the book while autocasting is followed by the autocast spell`() {
+        val npc = spawn(dummy)
+        autocast(alice)
+        cast(alice, npc)
+        tick()
+        val interaction = alice.interaction as MagicInteraction
+        assertNull(interaction.spell)
+        repeat(5) { tick() }
+        assertEquals(listOf(1L, 6L), castTicks())
     }
 
     /** Magic XP in tenths at level 13, where every test starts. */

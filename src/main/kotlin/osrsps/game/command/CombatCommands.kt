@@ -5,9 +5,12 @@ import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.AmmoKind
 import osrsps.game.combat.AttackStance
+import osrsps.game.combat.AttackType
+import osrsps.game.combat.Autocast
 import osrsps.game.combat.Blowpipe
 import osrsps.game.combat.CombatMath
 import osrsps.game.combat.DropItem
+import osrsps.game.combat.MagicInteraction
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
 import osrsps.game.combat.RangedInteraction
@@ -38,6 +41,15 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             reply("It: attack roll ${it.attackRoll} vs your ${it.defenceRoll}, hits ${percent(CombatMath.hitChance(it.attackRoll, it.defenceRoll))}, max hit ${it.maxHit}")
             return@register
         }
+        if (style.type == AttackType.MAGIC) {
+            val spell = world.spells.autocast(Autocast.key(player)) ?: fail("You autocast a spell that isn't in yet")
+            val magic = combat.magicMatchup(player, target, spell)!!
+            val it = combat.npcAttack(target, player)!!
+            reply("${style.name} (${spell.name}), speed ${combat.attackSpeed(player)}: attack roll ${magic.attackRoll}, max hit ${magic.maxHit}")
+            reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${type.stats.hitpoints} hp): defence roll ${magic.defenceRoll}, you hit ${percent(magic.hitChance)}")
+            reply("It: attack roll ${it.attackRoll} vs your ${it.defenceRoll}, hits ${percent(CombatMath.hitChance(it.attackRoll, it.defenceRoll))}, max hit ${it.maxHit}")
+            return@register
+        }
         if (combat.meleeType(style) == null) fail("${style.name} is a ${style.type.name.lowercase()} style; only melee and ranged are in so far")
         val m = combat.matchup(player, target) ?: fail("${type.name} #${target.index} can't be fought")
         val stance = style.stance.name.lowercase()
@@ -51,6 +63,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         val npc = when (val fight = player.interaction) {
             is MeleeInteraction -> fight.npc
             is RangedInteraction -> fight.npc
+            is MagicInteraction -> fight.npc
             else -> fail("You are not fighting anything.")
         }
         val wait = (player.nextAttackTick - world.tick).coerceAtLeast(0)

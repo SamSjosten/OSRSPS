@@ -6,6 +6,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.double
+import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -23,7 +24,8 @@ data class RuneCost(val rune: Int, val count: Int)
  * A combat spell on the standard spellbook. What the cache's spell obj has: its [name], the spellbook component it is
  * cast from, the Magic [level] it needs, its base [maxHit] and its [runes]. What the data file adds: the base XP in
  * tenths ([xpTenths]), the casting animation (with and without a staff, -1 for none) and its graphics: [casting] on the
- * player, the projectile it flies as ([travel]) and [impact] on the target (-1 for none).
+ * player, the projectile it flies as ([travel]) and [impact] on the target (-1 for none), and its key in the cache's
+ * enum 1986 ([autocast]), which numbers the spells of the autocast menu (-1 for a spell that can't be autocast).
  */
 data class CombatSpell(
     val obj: Int,
@@ -38,6 +40,7 @@ data class CombatSpell(
     val casting: Int,
     val travel: Int,
     val impact: Int,
+    val autocast: Int = -1,
 )
 
 /**
@@ -53,6 +56,11 @@ class Spells(
 ) {
     /** The spell cast from component [component] of the standard spellbook, or null for one that isn't a combat spell here. */
     fun spell(component: Int): CombatSpell? = byComponent[component]
+
+    private val byAutocast: Map<Int, CombatSpell> = byComponent.values.filter { it.autocast >= 0 }.associateBy { it.autocast }
+
+    /** The spell the autocast menu numbers [key] (its enum 1986 key), or null for none here. */
+    fun autocast(key: Int): CombatSpell? = byAutocast[key]
 
     /** The runes a staff (by item id) provides as many of as are needed; empty for anything else. */
     fun runesFrom(staff: Int?): Set<Int> = staff?.let { staves[it] }.orEmpty()
@@ -89,14 +97,15 @@ class Spells(
          *
          * ```
          * { "splash": "failedspell_impact",
-         *   "spells": [ { "spell": "13_fire_strike", "xp": 11.5, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
+         *   "spells": [ { "spell": "13_fire_strike", "autocast": 4, "xp": 11.5, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
          *                 "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" } ],
          *   "staves": [ { "items": ["staff_of_fire", "fire_battlestaff"], "runes": ["firerune"] } ] }
          * ```
          *
          * Spells, items and runes are gameval names; the rest of a spell comes from its obj's params, and a spell obj without
          * them fails the file. Animations and spotanims are gameval names too: one [seqs] or [spotanims] doesn't know
-         * fails the file, unless it knows no names at all (a cache with no gameval index), when they are all left out. A
+         * fails the file, unless it knows no names at all (a cache with no gameval index), when they are all left out.
+         * "autocast" may be left out for a spell that can't be autocast. A
          * spell, staff or rune the cache doesn't have is skipped with a warning, a staff of a missing rune with it.
          */
         fun parse(text: String, objTypes: ObjTypes, seqs: SeqNames, spotanims: SpotanimNames, fileName: String = RESOURCE): Spells {
@@ -138,8 +147,10 @@ class Spells(
                         casting = spotanim(entry, "casting"),
                         travel = spotanim(entry, "travel"),
                         impact = spotanim(entry, "impact"),
+                        autocast = entry["autocast"]?.jsonPrimitive?.int?.also { require(it >= 1) { "autocast key $it" } } ?: -1,
                     )
                     require(spell.component !in byComponent) { "component ${spell.component} is listed twice" }
+                    require(spell.autocast < 0 || byComponent.values.none { it.autocast == spell.autocast }) { "autocast key ${spell.autocast} is listed twice" }
                     byComponent[spell.component] = spell
                 } catch (e: Exception) {
                     throw IllegalArgumentException("$fileName: spells entry ${i + 1}: ${e.message}", e)
