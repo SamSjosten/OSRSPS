@@ -145,6 +145,7 @@ class MagicCombatTest {
 
     private fun tick(vararg players: Player = arrayOf(alice)) {
         tick++
+        npcs.countDownFreezes()
         interactions.releaseNpcs()
         magic.process()
         melee.process()
@@ -470,9 +471,10 @@ class MagicCombatTest {
             tick()
             assertEquals(3215, npc.x, "moved on tick $tick")
         }
+        assertEquals(1, npc.freezeTicks)
+        tick()
         assertEquals(0, npc.freezeTicks)
         assertEquals(Npcs.FREEZE_IMMUNITY_TICKS, npc.freezeImmunityTicks)
-        tick()
         assertEquals(3214, npc.x)
     }
 
@@ -488,15 +490,19 @@ class MagicCombatTest {
         tick()
         assertEquals(listOf(alice to MagicCombat.ALREADY_HELD), messages)
         messages.clear()
-        // Free on tick 12, then immune for 5 ticks.
-        while (tick < 11) tick()
+        // Moving again from tick 13, and immune in that tick and the 4 after.
+        while (tick < 12) tick()
         cast(alice, npc, BIND)
         tick()
         assertEquals(listOf(alice to MagicCombat.IMMUNE), messages)
+        messages.clear()
+        while (tick < 16) tick()
+        cast(alice, npc, BIND)
+        tick()
+        assertEquals(listOf(alice to MagicCombat.IMMUNE), messages, "on tick 17, the fifth it moves in")
         assertEquals(runes, listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR)))
         assertEquals(1, projectiles.size)
         messages.clear()
-        while (tick < 16) tick()
         cast(alice, npc, BIND)
         tick()
         assertTrue(messages.isEmpty(), messages.toString())
@@ -511,7 +517,7 @@ class MagicCombatTest {
         cast(alice, dummyNpc, SNARE)
         repeat(5) { tick() }
         assertTrue(dummyNpc.effects.pendingHits.single().value in 0..2)
-        assertEquals(15, dummyNpc.freezeTicks)
+        assertEquals(16, dummyNpc.freezeTicks)
 
         val ward = spawn(warded, x = 3212, z = 3211)
         alice.nextAttackTick = 0

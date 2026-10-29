@@ -81,14 +81,22 @@ class NpcsTest {
         assertNull(npc.destination)
         assertFalse(npcs.freeze(npc, 3))
         npc.destination = Tile(3240, 3230)
-        repeat(3) { npcs.process() }
+        // A tick as the world has it: the count-down, then spells landing, then movement.
+        npcs.process()
+        repeat(2) {
+            npcs.countDownFreezes()
+            assertFalse(npcs.freeze(npc, 3))
+            npcs.process()
+        }
         assertEquals(3230, npc.x)
-        // Free now, and immune for 5 ticks.
+        // Free from the next tick, and immune for each of the 5 ticks it moves in.
         repeat(Npcs.FREEZE_IMMUNITY_TICKS) {
-            assertFalse(npcs.freeze(npc, 3), "frozen again ${it + 1} ticks after")
+            npcs.countDownFreezes()
+            assertFalse(npcs.freeze(npc, 3), "frozen again in moving tick ${it + 1}")
             npcs.process()
         }
         assertEquals(3235, npc.x)
+        npcs.countDownFreezes()
         assertTrue(npcs.freeze(npc, 3))
     }
 
