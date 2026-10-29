@@ -160,7 +160,43 @@
    "step": "command",
    "text": "::kill chicken",
    "expectMessage": "Killed Chicken #",
-   "comment": "four kills: each drops feathers 3 times in 4, so all four drop none 1 time in 256"
+   "comment": "eight kills: a kill drops feathers 3 times in 4, so none of the eight does 1 time in 65,536. The rates themselves are checked deterministically in NpcDropsTest"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::kill chicken",
+   "expectMessage": "Killed Chicken #"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::kill chicken",
+   "expectMessage": "Killed Chicken #"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::kill chicken",
+   "expectMessage": "Killed Chicken #"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::kill chicken",
+   "expectMessage": "Killed Chicken #"
   },
   {
    "step": "waitTicks",

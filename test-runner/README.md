@@ -118,7 +118,7 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   `lumbridge-talk-tutors.json`, `lumbridge-talk-townsfolk.json`: talk to each of the town centre's NPCs through every
   option with `::keys on`, checking each line's key (the Sheared Ram's needs 0.8.0 for `assertVarbit`).
 - `lumbridge-freds-farm.json`: Fred the Farmer's talk (with `::keys on`), an onion picked from his patch, a sheep
-  sheared for wool that the client then shows as sheared, and four chickens killed for their feathers.
+  sheared for wool that the client then shows as sheared, and eight chickens killed for their feathers.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
