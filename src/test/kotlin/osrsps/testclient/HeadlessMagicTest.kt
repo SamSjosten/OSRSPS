@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.EquipmentTab
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -79,8 +80,11 @@ class HeadlessMagicTest {
                 client.give(MIND, 100)
                 client.give(FIRE, 300)
                 client.give(AIR, 200)
-                // He comes to her once hit, and the dice depend on when the clicks land: ::god keeps the fight hers.
+                // He comes to her once hit, and the dice depend on when the clicks land: ::god keeps the fight hers, and
+                // with auto retaliate off she doesn't punch him between casts (a punch would take XP from the spells).
                 client.commandReply("god") { it.startsWith("You can") }
+                client.ifButton(EquipmentTab.COMBAT, EquipmentTab.COMBAT_RETALIATE, 1)
+                client.await("auto retaliate off") { if (client.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
                 val magicBefore = client.await("the level 13 XP") { client.stat(MAGIC)?.takeIf { it.level == 13 } }.xp
                 var casts = 0
                 while (client.manInView() && casts < 40) {
