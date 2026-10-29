@@ -28,3 +28,25 @@ To check every open pull request now (after changing this workflow, say): Action
 
 A pull request that only changes this file, top-level docs or `.github/` doesn't restart the server on VM 214 (the
 deploy filter in `deploy/auto-deploy.sh`).
+
+## Scheduled checks
+
+Two workflows run on a schedule and, when they fail, open an issue assigned to the repository's owner, so the failure
+arrives as an issue email (`.github/scripts/alert.js`; GitHub mails a failed scheduled run only to whoever last edited
+its cron line, and a line Claude wrote reaches no one). The issue's body is brought up to date while the check keeps
+failing, with no new notification however long that lasts, and it is closed with a comment when the check passes
+again. Each run stays red while the check fails.
+
+- `.github/workflows/probe.yml`, every 15 minutes: the server as a friend reaches it, through the relay at
+  odinsgate.net (`.github/scripts/probe.js`). `/status.json` on port 43595 must answer with `"up": true` and port
+  43594 must accept a connection, tried eight times half a minute apart before it counts as down, so the restart
+  after a deploy raises no alarm. A full server is up. The issue is **odinsgate.net is down**.
+- `.github/workflows/pin-health.yml`, Mondays, and on a pull request that touches the pin table or the check: every
+  pin in `src/main/resources/runelite-pins.json` still holds on RuneLite's servers (`./gradlew -p launcher pinHealth`,
+  `launcher/src/main/java/net/odinsgate/launcher/PinHealth.java`). The bootstrap carries the pinned SHA-256 and
+  RuneLite's signature, every jar it names for any system answers a HEAD request with its size, and RuneLite's runtime
+  config doesn't list the pinned client version as outdated. HEAD only: no RuneLite jar is downloaded or cached in
+  Actions. The issue is **A RuneLite pin is no longer healthy**; on a pull request a failure is just a failing check.
+
+To run either now: Actions, the workflow, **Run workflow**. The scripts' own tests run in `build`
+(`node --test .github/scripts/*.test.js`).
