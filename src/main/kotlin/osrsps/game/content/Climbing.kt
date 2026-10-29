@@ -86,33 +86,41 @@ suspend fun ScriptContext.climbStairsMenu(world: World, loc: ZoneLoc) {
     climbStairs(world, loc, levels)
 }
 
-/** A ladder up or down [levels] levels on the player's own tile, with [anim]. */
-suspend fun ScriptContext.climbLadder(world: World, levels: Int, anim: Int) {
+/**
+ * Ladder [loc] up or down [levels] levels on the player's own tile, with [anim]. The tile and level are taken before
+ * any wait, from where the player stands beside the ladder and the ladder's own level, so nothing that moves the player
+ * during the wait can carry the climb off the map (the exploit review found a teleport during the wait made level 4).
+ */
+suspend fun ScriptContext.climbLadder(world: World, loc: ZoneLoc, levels: Int, anim: Int) {
+    val to = Destination(player.x, player.z, loc.level + levels)
     arriveDelay()
-    val level = player.level + levels
     player.anim(anim)
     delay(1)
-    world.teleport(player, player.x, player.z, level)
+    world.teleport(player, to.x, to.z, to.level)
 }
 
-/** The Climb option on a ladder with a floor above and below: a menu, then up or down after a longer wait. */
-suspend fun ScriptContext.climbLadderMenu(world: World) {
+/** The Climb option on ladder [loc] with a floor above and below: a menu, then up or down after a longer wait. */
+suspend fun ScriptContext.climbLadderMenu(world: World, loc: ZoneLoc) {
+    val x = player.x
+    val z = player.z
     arriveDelay()
     var levels = 0
     world.dialogues.start(this) {
         levels = if (choice(Climbing.LADDER_UP, Climbing.LADDER_DOWN, title = Climbing.LADDER_MENU_TITLE) == 1) 1 else -1
     }
-    val level = player.level + levels
     player.anim(Climbing.ANIM_REACH_FOR_LADDER)
     delay(2)
-    world.teleport(player, player.x, player.z, level)
+    world.teleport(player, x, z, loc.level + levels)
 }
 
-/** A ladder or trapdoor between the ground and the dungeon below it: [down] adds [Climbing.DUNGEON_OFFSET] to z. */
-suspend fun ScriptContext.climbDungeonLadder(world: World, down: Boolean, anim: Int) {
+/**
+ * Ladder or trapdoor [loc] between the ground and the dungeon below it: [down] adds [Climbing.DUNGEON_OFFSET] to z. As
+ * for [climbLadder], the tile and level are taken before the wait.
+ */
+suspend fun ScriptContext.climbDungeonLadder(world: World, loc: ZoneLoc, down: Boolean, anim: Int) {
+    val to = Destination(player.x, player.z + if (down) Climbing.DUNGEON_OFFSET else -Climbing.DUNGEON_OFFSET, loc.level)
     arriveDelay()
-    val z = player.z + if (down) Climbing.DUNGEON_OFFSET else -Climbing.DUNGEON_OFFSET
     player.anim(anim)
     delay(1)
-    world.teleport(player, player.x, z, player.level)
+    world.teleport(player, to.x, to.z, to.level)
 }
