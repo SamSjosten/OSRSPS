@@ -1200,7 +1200,7 @@ class World(
             }
         }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
-            if (player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS) {
+            if (inCombat(player)) {
                 player.message(CANT_LOG_OUT_IN_COMBAT)
                 return@act
             }
@@ -1495,6 +1495,11 @@ class World(
         // Live closes every tick with ServerTickEnd, and RuneLite fires its GameTick (and replays deferred events such
         // as VarbitChanged) only on it, so without it the client never sees a tick. A paused cycle is not a tick.
         if (tickEnd) session.queue(ServerTickEnd)
+        if (player.logoutRequested && inCombat(player)) {
+            // Hit later in the tick that the button was clicked in: the NPC phase comes after input.
+            player.logoutRequested = false
+            player.message(CANT_LOG_OUT_IN_COMBAT)
+        }
         if (player.logoutRequested) {
             // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
             // the player is removed on the next tick by hand.
@@ -1505,6 +1510,9 @@ class World(
         }
         session.flush()
     }
+
+    /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
+    private fun inCombat(player: Player): Boolean = player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
