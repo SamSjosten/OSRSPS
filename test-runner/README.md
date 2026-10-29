@@ -146,6 +146,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   level 5, and on the River Lum, Lure's level 20. Needs only 0.5.0.
 - `cooking-lumbridge.json`: in the Lumbridge Castle kitchen, Cook on the range with nothing raw, then at 99 the Make-X
   box over three raw shrimps cooks all three (90 XP).
+- `smithing-lumbridge.json`: north of Lumbridge Castle, the furnace's Make-X box smelts a bronze bar, then the rusted
+  anvil needs a hammer and hammers the bar into a dagger. Needs 0.8.0 (`assertVarbit`).
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 

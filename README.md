@@ -391,6 +391,23 @@ range (114) burns less. The cooking re-runs every tick on the loc (`World.repeat
 | Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
 | Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
 
+### Smithing
+
+Smelting at a furnace and smithing at an anvil (`game/skill/Smithing.kt`, words under `smithing.*`). Smelt, or ore used
+on a furnace, opens the Make-X box (as cooking's) over the free-to-play bars. Smith, or a bar used on an anvil, opens
+the anvil (`smithing`, interface 312): the client lays it out itself from varbit `smithing_bar_type`, so the server only
+sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answers the item buttons. The anvil's items
+(`AnvilItems.kt`) are the client's own `smithing_setup` list, with levels, bars and counts from the client's enums.
+
+| Smithing behaviour | Source |
+|--------------------|--------|
+| Bar levels, ores and smelting XP; iron's 50% at a furnace, the ore lost | OSRS Wiki, Smelting and Iron bar |
+| Smelting 4 ticks then 5 a bar, a single bar 6 | OSRS Wiki, Bronze bar |
+| 5 ticks an item on the anvil; a hammer needed; 12.5 XP a bar a tier | OSRS Wiki, Smithing |
+| Each bar's anvil items, levels, bars and counts | client scripts and enums 844 to 846 (cache 241), checked against the Wiki's bronze and iron tables (`SmithingTest`) |
+| The furnace box showing every free-to-play bar and suggesting All; Smith opening the best bar the level can use; a cancelled X smithing one; the messages' arguments | guessed |
+| Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, cannonballs, jewellery, blurite and lovakite | out of scope |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for

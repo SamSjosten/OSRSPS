@@ -1,0 +1,36 @@
+{
+ "name": "Gathering skills step 7: at the furnace north of Lumbridge Castle, the Make-X box smelts a bronze bar, then the rusted anvil beside it needs a hammer and hammers the bar into a dagger (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3225 3254 0", "comment": "between the furnace and the rusted anvil"},
+  {"step": "assertLocation", "x": 3225, "y": 3254, "plane": 0},
+
+  {"step": "command", "text": "::item 436", "expectMessage": "Added 1 x Copper ore"},
+  {"step": "command", "text": "::item 438", "expectMessage": "Added 1 x Tin ore"},
+  {"step": "locOption", "locId": 24009, "option": "Smelt", "x": 3226, "y": 3256},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti, the Make-X box over the bars"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the bronze bar, first in the box"},
+  {"step": "assertAnimation", "id": 899, "comment": "human_furnace"},
+  {"step": "assertInventory", "item": "Bronze bar", "count": 1, "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "smithing.smelted bar=bronze"},
+  {"step": "assertStat", "skill": "Smithing", "level": 1, "xp": 6},
+
+  {"step": "locOption", "locId": 39620, "option": "Smith", "x": 3227, "y": 3250},
+  {"step": "assertMessage", "contains": "smithing.no_hammer"},
+  {"step": "command", "text": "::item hammer", "expectMessage": "Added 1 x Hammer"},
+  {"step": "locOption", "locId": 39620, "option": "Smith", "x": 3227, "y": 3250},
+  {"step": "assertInterface", "interfaceId": 312, "comment": "the anvil, laid out for bronze"},
+  {"step": "assertVarbit", "id": 3216, "value": 1, "comment": "smithing_bar_type: bronze"},
+  {"step": "clickWidget", "interfaceId": 312, "component": 9, "comment": "the dagger"},
+  {"step": "assertAnimation", "id": 898, "comment": "human_smithing"},
+  {"step": "assertInventory", "item": "Bronze dagger", "count": 1, "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "smithing.smithed bar=bronze"},
+  {"step": "assertStat", "skill": "Smithing", "level": 1, "xp": 18, "comment": "6.2 + 12.5"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

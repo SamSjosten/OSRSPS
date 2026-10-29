@@ -18,6 +18,7 @@ import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.FishingLines
 import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MiningLines
+import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.WoodcuttingLines
 
 /** Every conversation's lines, which the dialogue file is read and written against. Each new [Lines] object goes here. */
@@ -28,6 +29,7 @@ object DialogueLines {
         MiningLines,
         FishingLines,
         CookingLines,
+        SmithingLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
         BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines,
         // Rest of Lumbridge.
