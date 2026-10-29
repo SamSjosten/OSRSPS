@@ -85,7 +85,8 @@ class Firemaking(private val world: World, private val collision: CollisionMap) 
     private suspend fun ScriptContext.light(obj: ZoneObj, option: Int, log: LogType, repeat: Boolean) {
         // As for woodcutting: a box opened since the last try (a level-up) ends it.
         if (repeat && player.modalOpen) return player.anim(-1)
-        if (!repeat && !canLight(log, obj.x, obj.z)) return
+        // Checked before every try, as 2004Scape does: the tinderbox may have been dropped, or a fire lit on the tile.
+        if (!canLight(log, obj.x, obj.z)) return player.anim(-1)
         val text = world.textFor(player)
         when (SkillClock.step(player, tick, CYCLE)) {
             ClockStep.STARTED -> {
@@ -99,6 +100,8 @@ class Firemaking(private val world: World, private val collision: CollisionMap) 
                     lit(obj, log)
                     return
                 }
+                // A failed roll strikes again and waits a whole cycle, with no new message (2004Scape).
+                player.actionDelay = tick + CYCLE
                 player.anim(ANIM)
             }
         }

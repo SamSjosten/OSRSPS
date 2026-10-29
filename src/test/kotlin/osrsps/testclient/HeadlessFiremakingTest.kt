@@ -59,6 +59,8 @@ class HeadlessFiremakingTest {
                 client.await("the logs on the ground") { client.groundObjs().firstOrNull { it.id == LOGS && it.coord == at } }
                 // 65/256 a roll at level 1, a roll every 4 ticks.
                 client.seen("[firemaking.catches]", timeoutMillis = 30_000)
+                // Failed rolls strike again without a new message: one attempt message however many rolls it took.
+                assertEquals(1, client.messages().count { it.text == "[firemaking.attempt]" })
                 client.await("the fire") { if (client.locAt(at.x, at.z) == Firemaking.FIRE) Unit else null }
                 client.await("a step west") { client.position?.takeIf { it.x == at.x - 1 && it.z == at.z } }
                 assertEquals(40, client.await("Firemaking XP") { client.stat(FIREMAKING)?.takeIf { it.xp > 0 } }.xp)
