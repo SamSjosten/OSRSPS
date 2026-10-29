@@ -72,6 +72,19 @@ class Accounts(
         return if (MessageDigest.isEqual(hash(password, salt, rounds), expected)) Check.MATCHED else Check.WRONG_PASSWORD
     }
 
+    /**
+     * Sets [username]'s password to [password], claiming the name if nobody has, admin or not: for the server's owner
+     * at the VM (`osrsps set-password`), never a login. False if the name isn't one [validName] or a save takes.
+     * Throws if the account file can't be written.
+     */
+    fun setPassword(username: String, password: CharArray): Boolean {
+        if (!validName(username)) return false
+        val key = SaveStore.saveKey(username) ?: return false
+        val salt = ByteArray(SALT_BYTES).also(salts::nextBytes)
+        store.write(key, toJson(username, iterations, salt, hash(password, salt, iterations)))
+        return true
+    }
+
     private fun toJson(username: String, rounds: Int, salt: ByteArray, hash: ByteArray): String = buildJsonObject {
         put("version", VERSION)
         // For whoever opens the file; the file name is what finds it.
@@ -109,5 +122,8 @@ class Accounts(
         const val ITERATIONS = 600_000
         const val SALT_BYTES = 16
         const val HASH_BITS = 256
+
+        /** The shortest password `osrsps set-password` takes; logins themselves take any (our own rule). */
+        const val MIN_SET_PASSWORD = 12
     }
 }

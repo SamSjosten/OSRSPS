@@ -73,4 +73,27 @@ class AccountsTest {
         assertEquals(Accounts.Check.MATCHED, accounts.check("boss", "pw".toCharArray(), mayClaim = false))
         assertEquals(Accounts.Check.WRONG_PASSWORD, accounts.check("boss", "nope".toCharArray(), mayClaim = false))
     }
+
+    @Test
+    fun `setting a password replaces the old one`() {
+        accounts.check("alice", "old".toCharArray())
+        assertTrue(accounts.setPassword("Alice", "new password".toCharArray()))
+        assertEquals(Accounts.Check.WRONG_PASSWORD, accounts.check("alice", "old".toCharArray()))
+        assertEquals(Accounts.Check.MATCHED, accounts.check("alice", "new password".toCharArray()))
+        assertFalse("new password" in store.saves.getValue("alice"))
+    }
+
+    @Test
+    fun `setting a password claims a name nobody has, even one a login may not claim`() {
+        assertEquals(Accounts.Check.NOT_CLAIMABLE, accounts.check("admin", "pw".toCharArray(), mayClaim = false))
+        assertTrue(accounts.setPassword("admin", "a long password".toCharArray()))
+        assertEquals(Accounts.Check.MATCHED, accounts.check("admin", "a long password".toCharArray(), mayClaim = false))
+    }
+
+    @Test
+    fun `setting a password refuses names a login would`() {
+        assertFalse(accounts.setPassword("sam@example.com", "a long password".toCharArray()))
+        assertFalse(accounts.setPassword("   ", "a long password".toCharArray()))
+        assertTrue(store.saves.isEmpty())
+    }
 }
