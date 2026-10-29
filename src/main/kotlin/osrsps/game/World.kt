@@ -99,6 +99,7 @@ import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
+import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Woodcutting
@@ -180,6 +181,8 @@ class World(
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
     val ipBans: IpBans = IpBans(),
+    /** The All Settings window's settings, from the cache; tests that click them pass their own. */
+    settings: SettingsCatalog = SettingsCatalog.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -225,7 +228,9 @@ class World(
     val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
 
     /** The prayer book; see [Prayers]. */
-    val prayers = Prayers(prayerList, equipment, setOverhead = { player, icon -> player.infos.playerInfo.avatar.extendedInfo.setOverheadIcon(icon) })
+    val prayers = Prayers(
+        prayerList, equipment, setOverhead = { player, icon -> player.infos.playerInfo.avatar.extendedInfo.setOverheadIcon(icon) }, words = ::textFor,
+    )
 
     /** The Grand Exchange prices now; `::itemprices` reads the file again. */
     @Volatile
@@ -261,6 +266,7 @@ class World(
     val bankPinSettings = BankPinSettings(interfaces::openModal)
 
     private val settingsSide = SettingsSide()
+    private val allSettings = AllSettings(settings, interfaces)
 
     /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine)
@@ -291,6 +297,7 @@ class World(
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
         multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
+        words = ::textFor,
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -298,18 +305,18 @@ class World(
         npcs, collision, movement, combat, objTypes, rangedWeapons, meleeCombat, random, { tick },
         projectile = zones::projectile, dropAmmo = ::dropAmmo,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        multi = multiCombat,
+        multi = multiCombat, words = ::textFor,
     )
 
     /** Tumeken's shadow and the powered staves to come; see [PoweredStaves]. */
-    val poweredStaves = PoweredStaves(objTypes)
+    val poweredStaves = PoweredStaves(objTypes, words = ::textFor)
 
     /** Players casting combat spells on NPCs; see [MagicCombat]. */
     val magicCombat: MagicCombat = MagicCombat(
         npcs, collision, movement, combat, objTypes, spells, meleeCombat, random, { tick },
         projectile = zones::projectile,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        multi = multiCombat, poweredStaves = poweredStaves,
+        multi = multiCombat, poweredStaves = poweredStaves, words = ::textFor,
     )
 
     /** Player death and gravestones; see [Deaths]. */
@@ -322,6 +329,7 @@ class World(
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
         prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) },
         examine = inventoryTab::examine, value = { this.itemPrices.deathValue(it) },
+        words = ::textFor,
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -335,6 +343,8 @@ class World(
     val birdNests = BirdNests(this, collision)
 
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
+
+    val firemaking = Firemaking(this, collision)
 
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
@@ -381,6 +391,7 @@ class World(
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         woodcutting.register()
         birdNests.register()
+        firemaking.register()
         loadDialogue()
     }
 
@@ -709,6 +720,7 @@ class World(
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
         locs.process()
+        firemaking.process()
         follows.startMovement(players.filterNotNull())
         for (player in players) {
             if (player == null || player.loggedOut) continue
@@ -1223,14 +1235,18 @@ class World(
     }
 
     /**
-     * Runs [op] again for [player] from the next tick, as RS2's `p_oploc` does, until something else replaces their
-     * interaction: how a gathering action keeps going. Only loc options for now; NPC options (fishing spots) come with
-     * fishing.
+     * Runs [op] again for [player] from the next tick, as RS2's `p_oploc` and `p_opobj` do, until something else
+     * replaces their interaction: how a gathering action keeps going. Loc options and options on objs on the ground for
+     * now; NPC options (fishing spots) come with fishing.
      */
     fun repeatOp(player: Player, op: Op) {
         val loc = op.loc
-        require(op.target == OpTarget.LOC && loc != null) { "Only loc options can repeat, not $op" }
-        locInteractions.repeat(player, loc, op.option)
+        val obj = op.groundObj
+        when {
+            op.target == OpTarget.LOC && loc != null -> locInteractions.repeat(player, loc, op.option)
+            op.target == OpTarget.GROUND_OBJ && obj != null -> groundObjs.repeat(player, obj, op.option)
+            else -> throw IllegalArgumentException("Only loc and ground obj options can repeat, not $op")
+        }
     }
 
     /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
@@ -1369,7 +1385,12 @@ class World(
             if (frame != null) interfaces.requestFrame(player, frame, tick)
             return@act
         }
+        if (interfaceId == SettingsSide.INTERFACE && componentId == SettingsSide.SETTINGS_OPEN) {
+            allSettings.open(player)
+            return@act
+        }
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.click(player, componentId, sub, op)) return@act
+        if (interfaceId == AllSettings.INTERFACE && allSettings.click(player, componentId, sub, op)) return@act
         if (interfaceId == JournalTab.SIDE_JOURNAL) {
             val tab = JournalTab.forButton(componentId)
             if (tab != null) {

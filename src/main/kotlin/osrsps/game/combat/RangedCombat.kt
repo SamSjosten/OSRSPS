@@ -9,6 +9,7 @@ import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.WearPos
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.npc.Npc
 import osrsps.game.npc.Npcs
 import osrsps.game.zone.Projectile
@@ -81,6 +82,8 @@ class RangedCombat(
     private val stopFacing: (Player) -> Unit = {},
     /** Where shots bounce and the single-way rules don't hold. */
     private val multi: MultiCombat = MultiCombat(),
+    /** Each player's words for the game messages ([CombatLines]). */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     /**
      * A shot on its way to [npc]. [ammo] falls when it lands (null for a bounce, which fires nothing); [bounces] is how
@@ -107,7 +110,7 @@ class RangedCombat(
     private val inFlight = ArrayList<Shot>()
 
     /** The blowpipe's darts and scales; World registers its item options. */
-    val blowpipe = Blowpipe(objTypes, weapons)
+    val blowpipe = Blowpipe(objTypes, weapons, words)
 
     /** A ranged fight with [npc], or null when the player's style isn't ranged or their weapon isn't one this fires. */
     fun fight(player: Player, npc: Npc): RangedInteraction? {
@@ -150,12 +153,12 @@ class RangedCombat(
         interaction.routedTo = null
         player.waypoints.clear()
         if (melee.foughtByAnother(player, npc)) {
-            message(player, MeleeCombat.SOMEONE_ELSE)
+            message(player, words(player)[CombatLines.SOMEONE_ELSE])
             stopFacing(player)
             return true
         }
         if (!interaction.fired && melee.underAttackByAnother(player, npc)) {
-            message(player, MeleeCombat.ALREADY_UNDER_ATTACK)
+            message(player, words(player)[CombatLines.ALREADY_UNDER_ATTACK])
             stopFacing(player)
             return true
         }
@@ -181,13 +184,13 @@ class RangedCombat(
         if (weapon.thrown) return fireThrown(player, npc, weapon, tick)
         val worn = player.equipment[WearPos.AMMO]
         if (worn == null) {
-            message(player, NO_AMMO)
+            message(player, words(player)[CombatLines.NO_AMMO])
             return false
         }
         val ammoType = objTypes[worn.id]
         val ammo = weapons.ammo(ammoType)
         if (ammoType == null || ammo == null || !weapon.fires(ammo)) {
-            message(player, if (weapon.kind == AmmoKind.BOLTS) WRONG_BOLTS else WRONG_ARROWS)
+            message(player, words(player)[if (weapon.kind == AmmoKind.BOLTS) CombatLines.WRONG_BOLTS else CombatLines.WRONG_ARROWS])
             return false
         }
         val matchup = combat.rangedMatchup(player, npc) ?: return false
@@ -423,13 +426,6 @@ class RangedCombat(
 
         /** Guessed: the Wiki doesn't say how long a bounce takes. */
         const val BOUNCE_TICKS = 1L
-
-        /** The live message for an empty ammo slot (OSRS Wiki, Ammunition). */
-        const val NO_AMMO = "There is no ammo left in your quiver."
-
-        /** Guessed wording: live's message for ammunition the weapon can't fire isn't on the Wiki. */
-        const val WRONG_ARROWS = "You can't use that ammo with your bow."
-        const val WRONG_BOLTS = "You can't use that ammo with your crossbow."
 
         const val LONGRANGE_EXTRA = 2
 

@@ -134,6 +134,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Needs only 0.5.0.
 - `woodcutting-nests.json`: `::nest seeds` and `::nest ring` drop a nest next to the player as a log's 1/256 roll does;
   each is taken and searched, leaving an empty nest and the seed or ring. Needs only 0.6.0.
+- `firemaking-lumbridge.json`: at the spawn, a tinderbox on oak logs (level 15 needed), then on logs (lit after a
+  roll or more, a step west, 40 XP), Light on logs on the ground at level 43, and the first fire's ashes. Needs 0.10.0
+  (`useItemOnItem`, `groundItemOption`).
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
@@ -143,6 +146,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `settings-side.json`: the settings side panel's three tabs, scroll-wheel zoom, accept aid, skull prevention, run,
   the player attack priority dropdown, the master and music sliders (a mouse click in the middle of each, 58%) and the
   master mute; every one checked in both the server's copy and the client's, then again after a relog.
+- `settings-toggles.json`: the All Settings window from the side panel's button; a toggle in each category but Popout
+  (clicked by its clickzone child, the row's place in its category), the wiki button refused while the data orbs are
+  off, and a search (its text set with `runClientScript` 5968), where children count across every category; then
+  close, relog and check every one.
 
 ## Results
 
@@ -240,6 +247,8 @@ server's answer instead of failing on what was there before.
 | `assertVarbit` | `id`, `value` | (0.8.0) The same for varbit `id`, worked out from both copies of its varp with the client's varbit definition. |
 | `runClientScript` | `id`, `args` | (0.8.0) Runs client script `id` from the cache with `args` (whole numbers and strings in the script's order; a component is interface × 65536 + component), as the client's interfaces would. For what the runner can't do by clicking. A script's `if_runscript` sends nothing when run this way, so a slider needs a `mouseClick` instead (VM, 2026-10-29). |
 | `assertWeight` | `kg` | (0.9.0) Waits until the carried weight the server last sent is `kg` whole kilograms (rounded toward zero, so -4.535 kg is -4), as RuneLite's weight shows it. |
+| `groundItemOption` | `item` (name) or `itemId`, `op`, `option`, `x`+`y` | (0.10.0) Clicks ground op `op` (1 to 5; Take is 3, logs' Light is 4) on the nearest such item on the ground, as `takeItem` does Take; `option` is the menu text. RuneLite doesn't give an item's ground options, so the script names the op. |
+| `useItemOnItem` | `item` (name) or `itemId`, `onItem` or `onItemId` | (0.10.0) Clicks Use on the first such item in the inventory, then the first other slot holding the second item, as the server reads it (IF_BUTTONT). Retries until both are there; doesn't wait for the result. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)

@@ -120,10 +120,10 @@ class HeadlessMagicTest {
                 client.give(MIND, 1)
                 client.give(AIR, 2)
                 client.npcTarget(npc.index, Spells.SPELLBOOK, FIRE_STRIKE)
-                client.awaitMessage("the level refusal") { it == MagicCombat.LEVEL_TOO_LOW }
+                client.awaitMessage("the level refusal") { it == "[combat.magic_level]" }
                 client.commandReply("setlevel magic 13") { it.contains("Magic") }
                 client.npcTarget(npc.index, Spells.SPELLBOOK, FIRE_STRIKE)
-                client.awaitMessage("the rune refusal") { it == "You do not have enough Fire Runes to cast this spell." }
+                client.awaitMessage("the rune refusal") { it == "[combat.not_enough_runes runes=Fire Runes]" }
                 assertEquals(1 to 2, client.carried(MIND) to client.carried(AIR))
                 client.give(STAFF_OF_FIRE, 1)
                 val slot = client.inventory(BACKPACK).indexOfFirst { it?.id == STAFF_OF_FIRE }
@@ -277,7 +277,7 @@ class HeadlessMagicTest {
                 assertTrue(held != null, "no Bind hit in $casts casts")
                 val at = client.npcs().first { it.index == npc.index }.coord
                 client.npcTarget(npc.index, Spells.SPELLBOOK, BIND)
-                client.awaitMessage("the refusal") { it == MagicCombat.ALREADY_HELD }
+                client.awaitMessage("the refusal") { it == "[combat.already_held]" }
                 client.awaitTicks(2)
                 // He fights back, but stands where the spell caught him.
                 assertEquals(at, client.npcs().first { it.index == npc.index }.coord)

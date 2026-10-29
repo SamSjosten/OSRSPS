@@ -366,6 +366,73 @@ final class Steps
 		}
 	}
 
+	/** (0.10.0) Clicks an op on an item on the ground, as {@link TakeItem} clicks Take. Does not wait for the result. */
+	static final class GroundItemOption extends Step
+	{
+		final String item;
+		final int itemId;
+		final int op;
+		final String option;
+		final Tile at;
+
+		GroundItemOption(long timeoutMs, String item, int itemId, int op, String option, Tile at)
+		{
+			super("groundItemOption", timeoutMs, false);
+			this.item = item;
+			this.itemId = itemId;
+			this.op = op;
+			this.option = option;
+			this.at = at;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.groundItemOption(item, itemId, op, option, at);
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return option + " (op " + op + ") on " + (item != null ? item : "item " + itemId) + (at == null ? "" : " at " + at.x + ", " + at.y);
+		}
+	}
+
+	/** (0.10.0) Uses one inventory item on another. Waits (to the timeout) for both; does not wait for the result. */
+	static final class UseItemOnItem extends Step
+	{
+		final String item;
+		final int itemId;
+		final String onItem;
+		final int onItemId;
+
+		UseItemOnItem(long timeoutMs, String item, int itemId, String onItem, int onItemId)
+		{
+			super("useItemOnItem", timeoutMs, false);
+			this.item = item;
+			this.itemId = itemId;
+			this.onItem = onItem;
+			this.onItemId = onItemId;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.useItemOnItem(item, itemId, onItem, onItemId);
+			// Items the last command gave may not be in the client's inventory yet: keep trying.
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "use " + (item != null ? item : "item " + itemId) + " on " + (onItem != null ? onItem : "item " + onItemId);
+		}
+	}
+
 	/** Passes when the inventory holds exactly that many of an item, or any at all when no count is given. */
 	static final class AssertInventory extends Step
 	{

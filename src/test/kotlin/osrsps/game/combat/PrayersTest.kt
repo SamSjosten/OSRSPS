@@ -103,11 +103,11 @@ class PrayersTest {
     fun `too low a Prayer or Defence level, or no points, is refused`() {
         alice.skills.setLevel(Skill.PRAYER, 69)
         click("Piety")
-        assertEquals("You need a Prayer level of 70 to use Piety.", messages.last())
+        assertEquals("[prayer.level level=70 prayer=Piety]", messages.last())
         alice.skills.setLevel(Skill.PRAYER, 70)
         alice.skills.setLevel(Skill.DEFENCE, 69)
         click("Piety")
-        assertEquals("You need a Prayer level of 70 and a Defence level of 70 to use Piety.", messages.last())
+        assertEquals("[prayer.levels level=70 defence=70 prayer=Piety]", messages.last())
         alice.skills.setLevel(Skill.DEFENCE, 70)
         alice.skills.setCurrentLevel(Skill.PRAYER, 0)
         click("Piety")
@@ -176,7 +176,7 @@ class PrayersTest {
         assertEquals(0, alice.skills.currentLevel(Skill.PRAYER))
         assertEquals(emptyList(), on())
         assertEquals(-1, alice.overheadIcon)
-        assertEquals(Prayers.OUT_OF_POINTS, messages.last())
+        assertEquals("[prayer.out_of_points]", messages.last())
         assertEquals(Prayers.DEPLETE_SOUND, sounds.last())
         assertEquals(0, alice.prayerDrainCounter)
     }
@@ -221,7 +221,7 @@ class PrayersTest {
         pick("Rock Skin")
         alice.skills.setLevel(Skill.PRAYER, 69)
         pick("Piety")
-        assertEquals(listOf("You need a Prayer level of 70 to use Piety."), messages)
+        assertEquals(listOf("[prayer.level level=70 prayer=Piety]"), messages)
         assertEquals(listOf("Rock Skin"), picked())
         assertFalse(prayers.selectQuick(alice, 29))
     }
@@ -272,11 +272,11 @@ class PrayersTest {
     fun `the quick prayer orb is refused with nothing picked, no points, or levels too low for all of it`() {
         prayers.toggleQuick(alice)
         assertFalse(prayers.quickActive(alice))
-        assertEquals(listOf(Prayers.NO_QUICK_PRAYERS), messages)
+        assertEquals(listOf("[prayer.no_quick_prayers]"), messages)
         pick("Piety")
         alice.skills.setCurrentLevel(Skill.PRAYER, 0)
         prayers.toggleQuick(alice)
-        assertEquals(Prayers.QUICK_OUT_OF_POINTS, messages.last())
+        assertEquals("[prayer.quick_out_of_points]", messages.last())
         assertFalse(prayers.quickActive(alice))
         // Picked at 99, then too low a level: the orb turns on only what the levels allow, and nothing is nothing.
         alice.skills.setLevel(Skill.PRAYER, 50)

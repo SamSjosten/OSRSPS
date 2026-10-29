@@ -102,7 +102,7 @@ class HeadlessAdminCommandsTest {
                 client.command("item $COINS 1000")
                 client.await("the coins") { client.inventory(BACKPACK).firstOrNull() }
                 client.command("hit 99 me")
-                client.await(MeleeCombat.DEAD) { client.messages().firstOrNull { it.text == MeleeCombat.DEAD } }
+                client.await("[combat.dead]") { client.messages().firstOrNull { it.text == "[combat.dead]" } }
                 assertEquals("You can't use ::scenario while you are dead.", client.commandReply("scenario gift") { it.contains("::scenario") })
                 assertEquals("You can't use ::tele while you are dead.", client.commandReply("tele 3230 3230") { it.contains("::tele") })
                 assertTrue(client.commandReply("pos") { it.contains("3218") }.isNotEmpty())
