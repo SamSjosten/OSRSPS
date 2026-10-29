@@ -1,5 +1,5 @@
 // node --test .github/scripts/*.test.js : the odinsgate probe against a status page and a game port on loopback.
-const test = require('node:test');
+const { test, before } = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
 const net = require('node:net');
@@ -38,10 +38,24 @@ async function deadPort() {
   return port;
 }
 
+// The first fetch in a process loads its implementation, which took seconds on a cold CI runner once and ate the
+// first try's timeout (the try failed, and a test that expects one try saw two). Loaded here, before any test.
+before(async () => {
+  const server = await fakeServer();
+  try {
+    await fetch(server.statusUrl);
+  } finally {
+    await server.close();
+  }
+});
+
+// A timeout only a fault could reach, so no test depends on how fast the runner is; the one test about the
+// timeout passes its own short one.
 function run(server, more = {}) {
   const log = [];
-  return probe({ statusUrl: server.statusUrl, game: server.game, tries: 3, delayMs: 0, timeoutMs: 500,
-    log: line => log.push(line), sleep: async () => {}, ...more }).then(result => ({ ...result, log }));
+  return probe({ statusUrl: server.statusUrl, game: server.game, tries: 3, delayMs: 0,
+    timeoutMs: 10000, log: line => log.push(line), sleep: async () => {}, ...more })
+    .then(result => ({ ...result, log }));
 }
 
 test('a server that is up and accepting connections is up on the first try', async () => {
@@ -143,7 +157,8 @@ test('a port that accepts but never answers the status request is down after the
   await new Promise(resolve => silent.listen(0, '127.0.0.1', resolve));
   const server = await fakeServer();
   try {
-    const result = await run(server, { statusUrl: `http://127.0.0.1:${silent.address().port}/status.json`, tries: 1 });
+    const result = await run(server, { statusUrl: `http://127.0.0.1:${silent.address().port}/status.json`, tries: 1,
+      timeoutMs: 500 });
     assert.strictEqual(result.up, false);
     assert.match(result.detail, /status\.json: .*(timeout|aborted)/i);
   } finally {
