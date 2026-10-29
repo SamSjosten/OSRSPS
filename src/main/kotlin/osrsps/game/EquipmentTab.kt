@@ -56,7 +56,7 @@ class EquipmentTab(
             if (held == null || held.id != obj) return true
             val type = objTypes[held.id] ?: return true
             when (op) {
-                1 -> if (!player.scripts.delayed) wear(player, sub)
+                1 -> if (!player.scripts.delayed && player.modals[FrameSlot.MAINMODAL] == STATS) equipFromStats(player, sub, type)
                 10 -> inventoryTab.examine(player, type, held.count)
             }
             return true
@@ -65,6 +65,17 @@ class EquipmentTab(
         val wearpos = STATS_SLOTS.indexOf(component).takeIf { it >= 0 }?.let { SLOT_WEARPOS[it] } ?: return false
         clickWorn(player, wearpos, op)
         return true
+    }
+
+    /**
+     * The side inventory's Equip goes the inventory's way: the item's own Wear, Wield or Equip option, so a content
+     * handler on it (an empty blowpipe's refusal) has its say, and an item with none of them isn't worn. Unlike the
+     * inventory, the stats screen stays open. The exploit review of 29 Oct 2026 found it wore anything, panel open or not.
+     */
+    private fun equipFromStats(player: Player, slot: Int, type: ObjType) {
+        val option = type.iops.indices.map { it + 1 }.firstOrNull { type.iop(it) in Equipment.WEAR_OPTIONS } ?: return
+        if (scripts.trigger(player, Op(OpTarget.OBJ, type.id, option, slot))) return
+        if (type.wearable) wear(player, slot)
     }
 
     /**
