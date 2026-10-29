@@ -22,9 +22,9 @@
   {"step": "clickWidget", "interfaceId": 134, "component": 24, "slot": 1, "comment": "Audio"},
   {"step": "assertVarbit", "id": 9656, "value": 1},
   {"step": "waitTicks", "ticks": 1, "comment": "so the sliders are laid out before the mouse lands on them"},
-  {"step": "mouseClick", "interfaceId": 134, "component": 19, "slot": 23, "comment": "settings:settings_content child 23, master volume's one notch (the Volume header makes children 0-1, the slider's box, name and 19 track pieces 2-22: settings_create_slider), clicked in its middle: settings_master_volume_op sends IF_SCRIPT_TRIGGER (319, 53) from the slider's clickzone child, 136 of 256 pixels"},
+  {"step": "mouseClick", "interfaceId": 134, "component": 19, "slot": 26, "comment": "settings:settings_content child 26, master volume's clickzone, clicked in its middle. settings_create_slider makes, after the Volume header's children 0-1: the box, the name, 19 track pieces, 3 notch marks (param 1102 defaults to 5 notches, ends not drawn) and the one clickzone (param 1101 = 1), so 2-26. settings_master_volume_op sends IF_SCRIPT_TRIGGER (319, 53), 136 of 256 pixels. Child 23, the first notch mark, gave 28 on the VM (2026-10-29)"},
   {"step": "assertVarp", "id": 3796, "value": 53},
-  {"step": "mouseClick", "interfaceId": 134, "component": 19, "slot": 45, "comment": "music volume's notch, 22 children on"},
+  {"step": "mouseClick", "interfaceId": 134, "component": 19, "slot": 51, "comment": "music volume's clickzone, 25 children on"},
   {"step": "assertVarp", "id": 168, "value": 53},
 
   {"step": "clickWidget", "interfaceId": 134, "component": 24, "slot": 3, "comment": "settings:categories_clickzone child 3, Controls"},
