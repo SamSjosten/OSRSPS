@@ -202,7 +202,7 @@ class PrayersTest {
     fun `Rapid Heal turned on starts boosted Hitpoints' cycle again, and turned off leaves it`() {
         alice.statTimers.hitpoints.ticks = 90
         click("Rapid Heal")
-        assertEquals(0, alice.statTimers.hitpoints.ticks)
+        assertEquals(-1, alice.statTimers.hitpoints.ticks, "the tick's own count brings it to 0, as for the hitpoints countdown")
         alice.statTimers.hitpoints.ticks = 40
         click("Rapid Heal")
         assertEquals(40, alice.statTimers.hitpoints.ticks)

@@ -55,8 +55,12 @@ class PlayerSave(
 
     class SkillSave(val tenths: Int, val currentLevel: Int)
 
-    /** Gives [player] this save's state. The player must be new: varps the save doesn't name are left as they are. */
-    fun applyTo(player: Player) {
+    /**
+     * Gives [player] this save's state. The player must be new: varps the save doesn't name are left as they are.
+     * [inTick]: whether the login is in a tick's input rather than on a paused cycle, for the stat cycles (see
+     * [osrsps.game.combat.BoostCycle.restart]).
+     */
+    fun applyTo(player: Player, inTick: Boolean = true) {
         player.x = x
         player.z = z
         player.level = level
@@ -67,8 +71,9 @@ class PlayerSave(
         // A save from before account ages were kept counts the account as made now.
         if (createdAt != null) player.createdAt = createdAt
         player.playedTicks = playedTicks
-        StatRestore.resume(player.statTimers.combatBoost, boostSegments.combat)
-        StatRestore.resume(player.statTimers.skillBoost, boostSegments.other)
+        StatRestore.resume(player.statTimers.combatBoost, boostSegments.combat, inTick)
+        StatRestore.resume(player.statTimers.skillBoost, boostSegments.other, inTick)
+        player.statTimers.hitpoints.restart(inTick)
         applyState(player)
     }
 

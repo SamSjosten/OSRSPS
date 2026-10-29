@@ -56,10 +56,15 @@ class PlayerSaveTest {
         player.statTimers.skillBoost.ticks = 85
         player.statTimers.hitpoints.ticks = 70
         assertTrue(world.save(player))
+        // Loaded between ticks, as on a paused clock: no tick is to count them on.
         val loaded = world.loadPlayer(2, "test")
         assertEquals(40, loaded.statTimers.combatBoost.ticks)
         assertEquals(80, loaded.statTimers.skillBoost.ticks)
         assertEquals(0, loaded.statTimers.hitpoints.ticks, "logging in starts Hitpoints' cycle again")
+        // In a tick's input, one short, as the login tick counts them on; see BoostCycle.restart.
+        val ticking = Player(3, "ticking", 3222, 3218, 0)
+        PlayerSave.of(player).applyTo(ticking, inTick = true)
+        assertEquals(listOf(39, 79, -1), listOf(ticking.statTimers.combatBoost.ticks, ticking.statTimers.skillBoost.ticks, ticking.statTimers.hitpoints.ticks))
         val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), boostSegments = PlayerSave.BoostSegments(3, 2)).toJson("old")
         val stripped = text.replace(Regex("""\s*"boostSegments": \{[^}]*},"""), "")
         assertTrue("boostSegments" !in stripped)

@@ -381,7 +381,7 @@ class World(
         registerDevCommands(this@World)
         registerTickCommands(this@World)
         registerVarCommands()
-        registerSkillCommands()
+        registerSkillCommands { phase != null }
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
@@ -1000,7 +1000,7 @@ class World(
         val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
         // A save that couldn't be written is newer than the file, which would hand back what the player had before.
         val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player
-        PlayerSave.fromJson(text).applyTo(player)
+        PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
         if (player.hitpoints <= 0) player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)

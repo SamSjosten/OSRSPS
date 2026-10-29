@@ -1,5 +1,5 @@
 {
- "name": "Stats: a Strength boost loses a level and a Mining drain gets one back a minute, then Rapid Restore clicked on brings a drain back twice as fast, read off ::stats",
+ "name": "Stats: a Strength boost loses a level and a Mining drain gets one back a minute, Rapid Restore clicked on brings a drain back twice as fast, a boost's segment is kept over a logout, and Rapid Heal clicked on holds boosted Hitpoints a minute from the click, read off ::stats and ::hp",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -21,6 +21,26 @@
   {"step": "command", "text": "::stats", "expectMessage": "Mining 48/50"},
   {"step": "clickWidget", "interfaceId": 541, "component": 15, "comment": "Rapid Restore off"},
   {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"},
+  {"step": "command", "text": "::setlevel attack 50", "expectMessage": "Attack set to level 50"},
+  {"step": "command", "text": "::boost attack 55", "expectMessage": "Attack is now 55/50"},
+  {"step": "command", "text": "::statcycles", "expectMessage": "Boost and drain cycles started again"},
+  {"step": "waitTicks", "ticks": 30, "comment": "into the second of the combat cycle's five 12-second segments"},
+  {"step": "logout"},
+  {"step": "waitForLogin", "comment": "auto login"},
+  {"step": "waitTicks", "ticks": 1, "comment": "so the next ::stats can't land in the tick after the login, which would still say 80"},
+  {"step": "command", "text": "::stats", "expectMessage": "next combat boost level in 7", "comment": "the segment kept: back at its start, 80 ticks from the login (a few gone by now); a cycle started afresh would say 9x"},
+  {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "Hitpoints set to level 99"},
+  {"step": "command", "text": "::boost hitpoints 110", "expectMessage": "Hitpoints is now 110/99"},
+  {"step": "command", "text": "::statcycles", "expectMessage": "Boost and drain cycles started again"},
+  {"step": "waitTicks", "ticks": 50},
+  {"step": "clickWidget", "interfaceId": 548, "component": 69, "comment": "the prayer tab"},
+  {"step": "clickWidget", "interfaceId": 541, "component": 16, "comment": "Rapid Heal, which starts boosted Hitpoints' cycle again"},
+  {"step": "command", "text": "::prayers", "expectMessage": ": Rapid Heal"},
+  {"step": "waitTicks", "ticks": 60, "comment": "past the minute from ::statcycles, but not from the click"},
+  {"step": "command", "text": "::hp", "expectMessage": "You have 110/99 hitpoints"},
+  {"step": "waitTicks", "ticks": 55},
+  {"step": "command", "text": "::hp", "expectMessage": "You have 109/99 hitpoints", "comment": "a minute from the click"},
+  {"step": "clickWidget", "interfaceId": 541, "component": 16, "comment": "Rapid Heal off"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }
