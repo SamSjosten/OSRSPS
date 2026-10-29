@@ -105,9 +105,9 @@ class HeadlessShadowTest {
                 client.itemOp(SHADOW_UNCHARGED, CHARGE_UNCHARGED)
                 client.await("the count prompt") { client.clientScripts().lastOrNull { it.id == ScriptContext.MESLAYER_MODE7 } }
                 // As a second shadow, worn and casting, would change them.
-                client.commandReply("shadow 100") { it.contains("100 charges") }
+                client.commandReply("shadow 100") { it.contains("charges=100]") }
                 client.resumeCount(10)
-                client.awaitMessage("the charges added") { it == "Your Tumeken's shadow has 110 charges remaining." }
+                client.awaitMessage("the charges added") { it == "[combat.staff_check staff=Tumeken's shadow charges=110]" }
             }
         }
     }
@@ -125,17 +125,17 @@ class HeadlessShadowTest {
                 client.itemOp(SHADOW_UNCHARGED, CHARGE_UNCHARGED)
                 client.await("the count prompt") { client.clientScripts().lastOrNull { it.id == ScriptContext.MESLAYER_MODE7 } }
                 client.resumeCount(10)
-                client.awaitMessage("the charges added") { it == "Your Tumeken's shadow has 10 charges remaining." }
+                client.awaitMessage("the charges added") { it == "[combat.staff_check staff=Tumeken's shadow charges=10]" }
                 client.await("the staff charged") { client.carried(SHADOW).takeIf { it == 1 } }
                 assertEquals(listOf(11, 25, 0), listOf(client.carried(SOUL), client.carried(CHAOS), client.carried(SHADOW_UNCHARGED)))
 
                 client.itemOp(SHADOW, CHECK)
-                client.await("the Check reply") { client.messages().count { it.text == "Your Tumeken's shadow has 10 charges remaining." }.takeIf { it == 2 } }
+                client.await("the Check reply") { client.messages().count { it.text == "[combat.staff_check staff=Tumeken's shadow charges=10]" }.takeIf { it == 2 } }
 
                 client.itemOp(SHADOW, WIELD)
                 client.await("the shadow worn") { client.inventory(WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == SHADOW } }
                 client.ifButton(EquipmentTab.WORNITEMS, WORNITEMS_WEAPON, WORN_CHECK)
-                client.await("the worn Check reply") { client.messages().count { it.text == "Your Tumeken's shadow has 10 charges remaining." }.takeIf { it == 3 } }
+                client.await("the worn Check reply") { client.messages().count { it.text == "[combat.staff_check staff=Tumeken's shadow charges=10]" }.takeIf { it == 3 } }
 
                 client.commandReply("setlevel magic 99") { it.contains("Magic") }
                 val magicBefore = client.await("the level 99 XP") { client.stat(MAGIC)?.takeIf { it.level == 99 } }.xp
@@ -145,7 +145,7 @@ class HeadlessShadowTest {
                 client.await("auto retaliate off") { if (client.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
                 client.npcOp(npc.index, ATTACK)
                 client.await("the man's death", timeoutMillis = 60_000) { if (client.npcs().none { it.id == man.id }) Unit else null }
-                val left = Regex("""has (\d+) charges""").find(client.commandReply("shadow") { it.startsWith("Your Tumeken's shadow has") })!!
+                val left = Regex("""charges=(\d+)]""").find(client.commandReply("shadow") { it.startsWith("[combat.staff_check ") })!!
                     .groupValues[1].toInt()
                 assertTrue(left in 0..9, "$left charges left")
                 // No runes for the casts, and 2 Magic XP a point of the man's 7 hitpoints with no base XP.
@@ -157,7 +157,7 @@ class HeadlessShadowTest {
                 client.itemOp(SHADOW, UNCHARGE)
                 client.await("the staff uncharged") { client.carried(SHADOW_UNCHARGED).takeIf { it == 1 } }
                 client.await("the runes back") { if (client.carried(SOUL) == 11 + 2 * left && client.carried(CHAOS) == 25 + 5 * left) Unit else null }
-                client.commandReply("shadow") { it == "Your Tumeken's shadow has 0 charges remaining." }
+                client.commandReply("shadow") { it == "[combat.staff_check staff=Tumeken's shadow charges=0]" }
 
                 // A soul rune used on the uncharged staff asks the same: one charge this time.
                 val prompts = client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 }
@@ -166,7 +166,7 @@ class HeadlessShadowTest {
                 client.resumeCount(1)
                 client.await("the staff charged again") { client.carried(SHADOW).takeIf { it == 1 } }
                 assertEquals(9 + 2 * left to 20 + 5 * left, client.carried(SOUL) to client.carried(CHAOS))
-                client.commandReply("shadow") { it == "Your Tumeken's shadow has 1 charges remaining." }
+                client.commandReply("shadow") { it == "[combat.staff_check staff=Tumeken's shadow charges=1]" }
             }
         }
     }

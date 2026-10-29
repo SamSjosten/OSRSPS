@@ -4,11 +4,12 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried, no charges; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "game messages show their keys, whatever data/dialogue.txt holds"},
   {"step": "command", "text": "::setlevel magic 99", "expectMessage": "99", "comment": "the shadow needs 85 Magic, and its spell's max hit is Magic / 3 + 1"},
   {"step": "command", "text": "::item tumekens_shadow", "expectMessage": "Added 1 x Tumeken's shadow"},
-  {"step": "command", "text": "::shadow 100", "expectMessage": "Your Tumeken's shadow has 100 charges remaining.", "comment": "charging with Charge or runes used on it asks for a count, which the runner can't type yet; the headless test covers it"},
+  {"step": "command", "text": "::shadow 100", "expectMessage": "[combat.staff_check staff=Tumeken's shadow charges=100]", "comment": "charging with Charge or runes used on it asks for a count, which the runner can't type yet; the headless test covers it"},
   {"step": "itemOption", "item": "Tumeken's shadow", "option": "Check"},
-  {"step": "assertMessage", "contains": "has 100 charges remaining", "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "charges=100]", "timeoutMs": 10000},
   {"step": "itemOption", "item": "Tumeken's shadow", "option": "Wield"},
   {"step": "assertEquipment", "slot": "weapon", "itemId": 27275},
   {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0", "comment": "the courtyard, where the other magic scripts' casts land"},
@@ -25,7 +26,8 @@
   {"step": "assertInventory", "item": "Soul rune", "timeoutMs": 10000, "comment": "2 soul runes and 5 chaos runes a charge left"},
   {"step": "assertInventory", "item": "Chaos rune"},
   {"step": "assertInventory", "itemId": 27277, "comment": "the uncharged shadow, where the charged one was"},
-  {"step": "command", "text": "::shadow", "expectMessage": "Your Tumeken's shadow has 0 charges remaining."},
+  {"step": "command", "text": "::shadow", "expectMessage": "[combat.staff_check staff=Tumeken's shadow charges=0]"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }
