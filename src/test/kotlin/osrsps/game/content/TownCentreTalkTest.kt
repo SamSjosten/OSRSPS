@@ -213,6 +213,23 @@ class TownCentreTalkTest {
     }
 
     @Test
+    fun `the Woodsman tutor hands nothing to a beginner with an axe and a tinderbox in the bank`() {
+        // The free axe sold to Bob for coins from nothing while only the bag and worn items counted (second exploit
+        // review, 29 Oct 2026).
+        h.player.bank.add(ObjType(LumbridgeTutors.BRONZE_AXE, "Bronze axe"), 1)
+        h.player.bank.add(ObjType(LumbridgeTutors.TINDERBOX, "Tinderbox"), 1)
+        h.talk { with(LumbridgeTutors) { woodsmanTutor(give) } }
+        h.menu("woodsman_tutor.basics", "woodsman_tutor.cape", "woodsman_tutor.goodbye")
+        h.pick(1)
+        h.expect(
+            "woodsman_tutor.basics", "woodsman_tutor.tree_hint", "woodsman_tutor.likely_tree",
+            "woodsman_tutor.full_inventory", "woodsman_tutor.bank_hint", "woodsman_tutor.click_tinderbox",
+        )
+        h.ends()
+        assertEquals(emptyList(), given)
+    }
+
+    @Test
     fun `the Woodsman tutor's trees menu has magic trees from level 29`() {
         h.player.skills.setLevel(Skill.WOODCUTTING, 40)
         h.player.inventory.add(ObjType(LumbridgeTutors.BRONZE_AXE, "Bronze axe"), 1)

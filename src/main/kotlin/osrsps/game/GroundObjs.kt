@@ -71,7 +71,7 @@ class GroundObjs(
         val type = requireNotNull(objTypes[spawn.id]) { "No obj type ${spawn.id} for $spawn" }
         require(type.stackable || spawn.count == 1) { "$spawn: only stackable objs can spawn more than one to a stack" }
         spawnList += spawn
-        makeRoom(spawn.x, spawn.z, spawn.level, 1)
+        makeRoom(spawn.x, spawn.z, spawn.level, 1, owner = null)
         placeSpawn(spawn)
     }
 
@@ -144,7 +144,7 @@ class GroundObjs(
         }
         val pieces = if (type.stackable) 1 else count
         require(pieces <= MAX_SPLIT) { "Won't put $count separate ${type.name} on one tile" }
-        makeRoom(x, z, level, pieces)
+        makeRoom(x, z, level, pieces, owner)
         var last: ZoneObj? = null
         repeat(pieces) {
             val obj = ZoneObj(
@@ -163,7 +163,7 @@ class GroundObjs(
         require(count >= 1) { "Can't put $count of $type on the ground" }
         val pieces = if (type.stackable) 1 else count
         require(pieces <= MAX_SPLIT) { "Won't put $count separate ${type.name} on one tile" }
-        makeRoom(x, z, level, pieces)
+        makeRoom(x, z, level, pieces, owner = null)
         return List(pieces) {
             val obj = ZoneObj(type.id, if (type.stackable) count else 1, x, z, level, ticksUntilDespawn = despawnTicks)
             zones.addObj(obj)
@@ -188,15 +188,21 @@ class GroundObjs(
 
     /**
      * Removes the oldest objs on a tile until [pieces] more fit within [MAX_PER_TILE]. Guessed: the Wiki gives the limit
-     * but not what happens past it; a player's own drop is refused instead ([drop]), so this only acts on loot and
+     * but not what happens past it; a player's own drop is refused instead ([drop]), so this only acts on loot, ammo and
      * content putting objs down on a full tile.
+     *
+     * Only objs anyone could take, or [owner]'s own, make room: another player's private drop is never pushed off, so
+     * a gift, loot or ammo brought down on purpose can't delete it (the second exploit review, 29 Oct 2026). When that
+     * isn't enough, the tile goes over the limit by what is left. That is bounded: each owner's next obj there pushes
+     * off their own first, and zone packets are split to fit ([osrsps.game.zone.Zones]).
      */
-    private fun makeRoom(x: Int, z: Int, level: Int, pieces: Int) {
+    private fun makeRoom(x: Int, z: Int, level: Int, pieces: Int, owner: String?) {
         val objs = zones.objsAt(x, z, level)
         val over = objs.size + pieces - MAX_PER_TILE
         if (over <= 0) return
-        logger.info { "Tile $x, $z, $level is full; removing its $over oldest objs" }
-        objs.take(over).forEach(::remove)
+        val taken = objs.filter { it.owner == null || it.owner == owner }.take(over)
+        logger.info { "Tile $x, $z, $level is full; removing its ${taken.size} oldest objs that may go, of $over" }
+        taken.forEach(::remove)
     }
 
     /** Removes everything on a tile. Spawns there come back as if taken. Returns how many objs went. */
