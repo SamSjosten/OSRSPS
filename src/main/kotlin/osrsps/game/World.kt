@@ -93,6 +93,8 @@ import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.skill.LevelUps
 import osrsps.game.skill.SkillUnlocks
+import osrsps.game.skill.Woodcutting
+import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
@@ -294,6 +296,8 @@ class World(
     fun textFor(player: Player): DialogueText = if (player.showDialogueKeys) DialogueText.NONE else dialogueText
 
     /** Chat dialogues for content scripts. */
+    val woodcutting = Woodcutting(this, WoodcuttingData.load())
+
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
@@ -329,6 +333,7 @@ class World(
         registerShops(this)
         registerLumbridgeTown(this)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
+        woodcutting.register()
         loadDialogue()
     }
 

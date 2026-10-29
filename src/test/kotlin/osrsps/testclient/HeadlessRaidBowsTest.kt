@@ -34,8 +34,8 @@ class HeadlessRaidBowsTest {
     private val man = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", "Pickpocket", null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
 
     // Shaped like the 241 cache's: param 4 ranged attack, 12 ranged strength, 14 attack speed; obj category 64 is bows.
-    private val twistedBow = ObjType(TWISTED_BOW, "Twisted bow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 70, 12 to 20, 14 to 6), internalName = "twisted_bow", category = 64)
-    private val venator = ObjType(VENATOR_BOW, "Venator bow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 90, 12 to 25, 14 to 5), internalName = "venator_bow", category = 64)
+    private val twistedBow = ObjType(TWISTED_BOW, "Twisted bow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 70, 189 to 20, 14 to 6), internalName = "twisted_bow", category = 64)
+    private val venator = ObjType(VENATOR_BOW, "Venator bow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 90, 189 to 25, 14 to 5), internalName = "venator_bow", category = 64)
     private val arrows = ObjType(BRONZE_ARROW, "Bronze arrow", stackable = true, tradeable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
 
     // The unarmed and bow rows of dbtable 78 as the 241 cache has them.

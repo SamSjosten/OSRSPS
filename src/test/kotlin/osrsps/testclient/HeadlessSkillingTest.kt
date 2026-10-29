@@ -24,7 +24,7 @@ import osrsps.map.LocShape
  */
 class HeadlessSkillingTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val tree = LocType(TREE, "Tree", ops = listOf("Chop down", null, null, null, null), collision = LocCollisionType(width = 1, length = 1))
+        val tree = LocType(TREE, "Test tree", ops = listOf("Chop", null, null, null, null), collision = LocCollisionType(width = 1, length = 1))
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) },
             locTypes = LocTypes(mapOf(TREE to tree)),
@@ -104,6 +104,7 @@ class HeadlessSkillingTest {
     }
 
     private companion object {
-        const val TREE = 1276
+        /** Not a real tree, which woodcutting would already handle. */
+        const val TREE = 9010
     }
 }
