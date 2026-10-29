@@ -357,8 +357,9 @@
   {
    "step": "assertLocation",
    "plane": 1,
-   "x": 3165,
-   "y": 3307
+   "x": 3164,
+   "y": 3306,
+   "comment": "walking from the hopper controls, the ladder's south side is the nearest tile it can be used from, and a ladder keeps the player's tile"
   },
   {
    "step": "locOption",
@@ -375,8 +376,8 @@
   {
    "step": "assertLocation",
    "plane": 0,
-   "x": 3165,
-   "y": 3307
+   "x": 3164,
+   "y": 3306
   },
   {
    "step": "locOption",

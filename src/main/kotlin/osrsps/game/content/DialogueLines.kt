@@ -1,12 +1,14 @@
 package osrsps.game.content
 
+import osrsps.game.Player
+import osrsps.game.World
+import osrsps.game.bank.BankLines
 import osrsps.game.combat.CombatLines
 import osrsps.game.combat.FoodLines
 import osrsps.game.combat.PrayerLines
-import osrsps.game.Player
-import osrsps.game.World
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
+import osrsps.game.shop.ShopLines
 import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.LevelUpLines
@@ -22,6 +24,7 @@ object DialogueLines {
         ShopKeeperLines, ShopAssistantLines, BobLines, RamBartenderLines, ArthurLines, DonieLines, GeeLines, CookingTutorLines,
         SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines, GillieLines, MillieLines,
         HopperLines, DuckLines, SheepLines, CropLines, DairyCowLines, MillLines, BonesLines, SearchLines, ClimbLines,
+        BankLines, ShopLines,
     )
 }
 
