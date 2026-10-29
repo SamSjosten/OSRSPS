@@ -184,7 +184,7 @@ class Woodcutting(private val world: World, val data: WoodcuttingData, private v
         }
         if (timer.lastTick == tick) return timer
         val idle = (tick - timer.lastTick - 1).coerceAtMost(despawn.toLong()).toInt()
-        timer.left = (timer.left + idle).coerceAtMost(despawn) - 1
+        timer.left = runDown(timer.left, idle, despawn)
         timer.lastTick = tick
         return timer
     }
@@ -200,5 +200,12 @@ class Woodcutting(private val world: World, val data: WoodcuttingData, private v
     companion object {
         /** A roll every 4 ticks: the Wiki's tree pages. */
         const val CYCLE = 4
+
+        /**
+         * A tree timer at [left] after [idle] ticks nobody chopped and then one tick of chopping: back up one a tick
+         * while idle, to [despawn] at most, then down one, but not below 0, so failed rolls on a run-out timer don't
+         * eat into the refill.
+         */
+        internal fun runDown(left: Int, idle: Int, despawn: Int): Int = ((left + idle).coerceAtMost(despawn) - 1).coerceAtLeast(0)
     }
 }
