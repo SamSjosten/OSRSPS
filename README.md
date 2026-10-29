@@ -75,7 +75,9 @@ docker compose down            # stop
 After the one-time setup in [`deploy/`](deploy/README.md), the VM redeploys itself: a timer checks `main` every
 minute and rebuilds when it moved, and `http://<public host>:43595/version` says which commit is up. A merge that only
 changes docs, tests, the RuneLite plugins or the launcher doesn't restart the server; `/version` then says that commit
-all the same.
+all the same. A branch can be tried before it merges on the staging server next to it: push it as the branch `staging`
+(`git push origin my-branch:staging`) and within a minute it runs on the LAN-only ports 44594 and 44595 with a data
+folder of its own (`deploy/staging.sh`).
 
 ## Connect RuneLite through RSProx
 

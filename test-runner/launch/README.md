@@ -66,6 +66,15 @@ through a scheduled task, so the client runs on the signed-in desktop and outliv
   `FAILED`), and moves `-Tests`, `-Results`, `-ClientLog` and `-Profiles` under `C:\RSPS\launcher\home\.runelite`
   unless given. `-LauncherVersion 0.1.0` fails the run at once when the launcher that starts is another version, so an
   install that didn't take is caught before the game runs. `run-scripts.ps1` needs the same `-Tests` and `-Results`.
+- `start-client.ps1 -Restart -Launcher -GamePort 44594` starts the client on the staging server
+  (`deploy/README.md`): `-Server` and `-GamePort` name the server to wait for and, with `-Launcher`, to start the
+  client on. The script writes the launcher's `--server 192.168.0.210:44594` as the one line of
+  `C:\RSPS\launcher\launch-args.txt`, which `OdinsGate.cmd` adds to the launcher's arguments (a scheduled task's
+  own arguments are fixed), and removes the file for the live server; the launcher dials staging with the live key,
+  which staging shares. A launcher's client already running on another server than the one asked is restarted (its
+  command line says which server it was started for), and without `-Launcher` another server is refused, since
+  RSProx's client goes wherever its `OSRSPS` target says. With `-Commit <sha>` the script first waits until staging's
+  `/version` names that commit.
 - `start-client-functions.ps1` holds the parts of `start-client.ps1` that need no VM (telling the JVMs apart, reading
   and waiting on the status file); `start-client-functions.tests.ps1` checks them, in CI's `launch-scripts` job with
   PowerShell 7 on Linux or by hand with `pwsh -NoProfile -File .\test-runner\launch\start-client-functions.tests.ps1`.
