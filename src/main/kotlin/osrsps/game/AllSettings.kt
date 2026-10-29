@@ -1,6 +1,7 @@
 package osrsps.game
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import net.rsprot.protocol.game.incoming.buttons.IfScriptTrigger.ParameterTypes
 
 private val logger = KotlinLogging.logger {}
 
@@ -15,33 +16,59 @@ private val logger = KotlinLogging.logger {}
  * on), checks the same dependencies and makes the same change, so the varp it next sends agrees with the client.
  *
  * Read from the rev 241 client scripts (Joshua-F/osrs-dumps, 2026-10-28) each comment names; none of it has been seen
- * on live. Dropdowns, sliders, keybinds and inputs are the next steps; their clicks are logged and left alone.
+ * on live. Number, colour and text inputs are the next step; their clicks are logged and left alone.
+ *
+ * A dropdown or keybind row's op opens a list of its options in dropdown_buttons (setting_show_dropdown), once the
+ * row's dependencies are met; picking one sets the var in the client (settings_set_dropdown, settings_set_keybind),
+ * or for most rows doesn't, and 35 client timer ticks later the row reads the var again (setting_dropdown_synch). So
+ * the server keeps which row's list is open and stores the option picked, or the row would jump back. Of the sliders
+ * only the four volumes tell the server anything (IF_SCRIPT_TRIGGER); the rest are the client's own (brightness,
+ * zoom, draw distance and the like).
  */
 class AllSettings(private val catalog: SettingsCatalog, private val interfaces: Interfaces) {
     /** The side panel's All Settings button. RSMod (rev 233) opens the window as an overlay in the floater. */
     fun open(player: Player) {
         // settings_init draws the window from settings_tracking as it loads, so the client gets the server's copy first.
         interfaces.sendVarpNow(player, VARP_SETTINGS_TRACKING)
+        player.settingsDropdown = -1
         interfaces.openFloater(player, INTERFACE)
         // Inferred from settings_create_tabs and settings_populate_settings, which give these children their ops:
         // one tab per category, one clickzone child per row. Live's ranges aren't known; these cover every child.
         interfaces.setEvents(player, INTERFACE, CATEGORIES_CLICKZONE, 0, maxOf(catalog.categories.size - 1, 0), Interfaces.IF_EVENT_OP1)
-        interfaces.setEvents(player, INTERFACE, SETTINGS_CLICKZONE, 0, maxOf(catalog.slotCount - 1, 0), Interfaces.IF_EVENT_OP1)
+        // A slider's bobble is its row's clickzone child; the volumes' settings_*_pos send IF_SCRIPT_TRIGGER from it.
+        interfaces.setEvents(
+            player, INTERFACE, SETTINGS_CLICKZONE, 0, maxOf(catalog.slotCount - 1, 0), Interfaces.IF_EVENT_OP1,
+            scriptEvents = Interfaces.IF_EVENT_SCRIPT_TRIGGER,
+        )
+        // setting_show_dropdown makes three children per option, the third (3n + 2) the one with op 1.
+        interfaces.setEvents(player, INTERFACE, DROPDOWN_BUTTONS, 0, maxOf(catalog.maxOptions * 3 - 1, 0), Interfaces.IF_EVENT_OP1)
     }
 
-    /** Handles a click on [component] of the window; false when the window isn't open or the click isn't one of these. */
-    fun click(player: Player, component: Int, sub: Int, op: Int): Boolean {
+    /**
+     * Handles a click on [component] of the window on [tick]; false when the window isn't open or the click isn't one
+     * of these.
+     */
+    fun click(player: Player, component: Int, sub: Int, op: Int, tick: Long): Boolean {
         if (player.floater != INTERFACE) return false
         when (component) {
             // The close button's op only plays a sound in the client (settings_window_setup); Esc is its op 2.
-            CLOSE -> interfaces.closeFloater(player)
+            CLOSE -> {
+                player.settingsDropdown = -1
+                interfaces.closeFloater(player)
+            }
             // script3829 and settings_declutter_op: the "Less info" and "Hide locked" buttons.
             TOOLTIP_TOGGLE -> flipVarbit(player, VARBIT_TOOLTIPS_HIDDEN)
             DECLUTTER_TOGGLE -> flipVarbit(player, VARBIT_DECLUTTER)
             // searchbar_op, which does nothing while a search is on (the client also takes the op away then).
-            SEARCH -> if (varbit(player, VARBIT_SEARCHING) == 0) setVarbit(player, VARBIT_SEARCHING, 1)
+            SEARCH -> if (varbit(player, VARBIT_SEARCHING) == 0) {
+                player.settingsDropdown = -1
+                setVarbit(player, VARBIT_SEARCHING, 1)
+            }
             CATEGORIES_CLICKZONE -> clickTab(player, sub)
             SETTINGS_CLICKZONE -> clickRow(player, sub, op)
+            // setting_dropdown_entry_close, the "Close dropdown" op on the dark area around the list.
+            DROPDOWN_CLOSE -> player.settingsDropdown = -1
+            DROPDOWN_BUTTONS -> if (op == 1) pick(player, sub, tick)
             else -> return false
         }
         return true
@@ -55,6 +82,7 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
     private fun clickTab(player: Player, sub: Int) {
         val category = catalog.categories.filter { it?.struct != LEAGUES_CATEGORY_STRUCT }.getOrNull(sub) ?: return
         if (blocked(player, category.params)) return
+        player.settingsDropdown = -1
         setVarbit(player, VARBIT_CATEGORY, category.id)
         setVarbit(player, VARBIT_SEARCHING, 0)
         setVarbit(player, VARBIT_SELECTED_SETTING, 0)
@@ -63,17 +91,101 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
     /** The row the client drew as clickzone child [sub]: see [rowAt]. */
     private fun clickRow(player: Player, sub: Int, op: Int) {
         val row = rowAt(player, sub) ?: return
-        if (row.kind != SettingRow.KIND_TOGGLE) {
-            logger.info { "${player.username} clicked setting ${row.id} (kind ${row.kind}) op $op, not handled yet" }
-            return
+        when (row.kind) {
+            SettingRow.KIND_TOGGLE, SettingRow.KIND_DROPDOWN, SettingRow.KIND_KEYBIND -> Unit
+            // A slider's bobble has no op of its own: its notches (other components) and drags work it.
+            SettingRow.KIND_SLIDER -> return
+            else -> {
+                logger.info { "${player.username} clicked setting ${row.id} (kind ${row.kind}) op $op, not handled yet" }
+                return
+            }
         }
         if (op != 1) return
         if (blocked(player, row.params)) return
         // settings_op_checker: a row whose dependencies aren't met says why (the client's own message) and stops. (A
-        // row with param 1926 is hidden instead, which the same check covers.)
+        // row with param 1926 is hidden instead, which the same check covers.) setting_show_dropdown runs it too.
         if (!dependenciesMet(player, row)) return
+        if (row.kind != SettingRow.KIND_TOGGLE) {
+            player.settingsDropdown = row.struct
+            return
+        }
         setVarbit(player, VARBIT_SELECTED_SETTING, row.id)
         toggle(player, row.id)
+    }
+
+    /**
+     * setting_dropdown_entry_op: option n of the open list is child 3n + 2 of dropdown_buttons. It closes the list and
+     * sets the option through settings_set_dropdown or settings_set_keybind, which first make the row the selected
+     * setting. An option past the row's count, or a click with no list open, does nothing.
+     */
+    private fun pick(player: Player, sub: Int, tick: Long) {
+        val row = catalog.rows[player.settingsDropdown] ?: return
+        player.settingsDropdown = -1
+        if (sub < 0 || sub % 3 != 2) return
+        val option = sub / 3
+        if (option >= row.options) return
+        setVarbit(player, VARBIT_SELECTED_SETTING, row.id)
+        when (row.kind) {
+            SettingRow.KIND_DROPDOWN -> setDropdown(player, row.id, option, tick)
+            SettingRow.KIND_KEYBIND -> setKeybind(player, row.id, option)
+        }
+    }
+
+    /**
+     * Dropdown [id] set to [option]. Most cases of settings_set_dropdown set nothing, and those that do set the var
+     * settings_get_dropdown reads to the option (clamped to the option count): the server sets that var either way.
+     * The cases below read more than one var, or aren't a var.
+     */
+    private fun setDropdown(player: Player, id: Int, option: Int, tick: Long) {
+        when (id) {
+            // "Game client layout": settings_set_dropdown has no case for it, so the server moves the frame, as from
+            // the side panel's dropdown.
+            CLIENT_LAYOUT_DROPDOWN -> GameFrame.forLayoutOption(option + 1)?.let { interfaces.requestFrame(player, it, tick) }
+            // loginlogout_setting_get: loginlogout_permanent when set, else loginlogout_setting. Guessed: a pick clears
+            // the permanent one, which nothing in the 241 scripts sets.
+            LOGIN_LOGOUT_DROPDOWN -> {
+                setVarbit(player, VARBIT_LOGINLOGOUT_PERMANENT, 0)
+                setVarbit(player, VARBIT_LOGINLOGOUT_SETTING, option)
+            }
+            // script662: 0 when level-up messages are off, else 2 for the popup list, else 1. Guessed as its inverse.
+            LEVEL_UP_DROPDOWN -> {
+                setVarbit(player, VARBIT_LEVEL_UP_MESSAGE_DISABLED, if (option == 0) 1 else 0)
+                if (option != 0) setVarbit(player, VARBIT_LEVEL_UP_POPUP_LIST, if (option == 2) 1 else 0)
+            }
+            else -> if (catalog.dropdowns[id]?.set(player.vars, option) != true) {
+                logger.info { "${player.username} picked option $option of dropdown $id, which the client keeps to itself" }
+            }
+        }
+    }
+
+    /**
+     * Keybind [id] set to key [option] (0 none, 1 to 12 F1 to F12, 13 Esc in enum 3506). settings_set_keybind sets
+     * nothing in the client, so the key is the server's to store. Guessed: a key already bound to another tab is taken
+     * from it, so no key opens two tabs.
+     */
+    private fun setKeybind(player: Player, id: Int, option: Int) {
+        val keybind = catalog.keybinds[id] ?: return
+        if (option != 0) {
+            for ((other, otherVar) in catalog.keybinds) {
+                if (other != id && otherVar.read(player.vars) == option) otherVar.set(player.vars, 0)
+            }
+        }
+        keybind.set(player.vars, option)
+    }
+
+    /**
+     * IF_SCRIPT_TRIGGER from the window: settings_master_volume_pos, settings_music_pos, script9272 and their area
+     * sound twin send (setting id, volume) from the slider's clickzone child [sub] when it is let go, or moves to or
+     * from 0. False when it isn't one of these.
+     */
+    fun scriptTrigger(player: Player, component: Int, sub: Int, args: List<Any>): Boolean {
+        if (player.floater != INTERFACE || component != SETTINGS_CLICKZONE) return false
+        val id = args.getOrNull(0) as? Int ?: return false
+        val value = args.getOrNull(1) as? Int ?: return false
+        val volume = VOLUMES[id] ?: return false
+        if (rowAt(player, sub)?.id != id) return false
+        volume.set(player, value.coerceIn(0, SettingsSide.MAX_VOLUME))
+        return true
     }
 
     /**
@@ -195,8 +307,11 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
         SettingRow.KIND_DROPDOWN -> when (row.id) {
             // settings_get_dropdown case 12, "Game client layout": fixed 0, resizable classic 1, modern 2.
             CLIENT_LAYOUT_DROPDOWN -> if (!player.frame.resizable) 0 else if (player.stoneArrangement == 0) 1 else 2
+            LOGIN_LOGOUT_DROPDOWN -> varbit(player, VARBIT_LOGINLOGOUT_PERMANENT).takeIf { it != 0 } ?: varbit(player, VARBIT_LOGINLOGOUT_SETTING)
+            LEVEL_UP_DROPDOWN -> if (varbit(player, VARBIT_LEVEL_UP_MESSAGE_DISABLED) == 1) 0 else if (varbit(player, VARBIT_LEVEL_UP_POPUP_LIST) == 1) 2 else 1
             else -> catalog.dropdowns[row.id]?.read(player.vars)
         }
+        SettingRow.KIND_KEYBIND -> catalog.keybinds[row.id]?.read(player.vars)
         else -> null
     }
 
@@ -243,10 +358,14 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
         const val SEARCH = 11
         const val SETTINGS_CLICKZONE = 20
         const val CATEGORIES_CLICKZONE = 24
+        const val DROPDOWN_CLOSE = 26
+        const val DROPDOWN_BUTTONS = 29
 
         /** Enum 422's Leagues category, which settings_create_tabs leaves out off a league world. */
         const val LEAGUES_CATEGORY_STRUCT = 1108
         const val CLIENT_LAYOUT_DROPDOWN = 12
+        const val LOGIN_LOGOUT_DROPDOWN = 44
+        const val LEVEL_UP_DROPDOWN = 315
         private const val MAX_DEPENDENCY_DEPTH = 16
 
         // settings_check_block's params, by what each one hides the row from.
@@ -290,6 +409,23 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
         const val VARBIT_WILDERNESS_DIARY_ANY = 4470
         const val VARBIT_BRUT_HERB_POTION = 3761
         const val VARBIT_BRUT_FARMING_SMASHING = 9610
+        const val VARBIT_LOGINLOGOUT_PERMANENT = 1627
+        const val VARBIT_LOGINLOGOUT_SETTING = 12274
+        const val VARBIT_LEVEL_UP_MESSAGE_DISABLED = 20157
+        const val VARBIT_LEVEL_UP_POPUP_LIST = 4371
+
+        /** The volume sliders by setting id (settings_slider_choose_onop). */
+        val VOLUMES: Map<Int, SettingsSide.Volume> = mapOf(
+            319 to SettingsSide.Volume.MASTER, 30 to SettingsSide.Volume.MUSIC,
+            31 to SettingsSide.Volume.SOUND, 32 to SettingsSide.Volume.AREA_SOUND,
+        )
+
+        /**
+         * The volume sliders' IF_SCRIPT_TRIGGER script (ifscript_3416078959 in the dump), the same for all four, and its
+         * arguments: the setting id and the volume. Read from the dump only.
+         */
+        val SCRIPT_TRIGGERS: Map<Int, ParameterTypes> =
+            mapOf(3_416_078_959L.toInt() to ParameterTypes.of(ParameterTypes.INT, ParameterTypes.INT))
 
         /** Each varbit's place in the 241 cache (config/dump.varbit), checked against the cache at start. */
         val VARBITS: Map<Int, VarbitType> = mapOf(
@@ -309,6 +445,10 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
             VARBIT_WILDERNESS_DIARY_ANY to VarbitType(1188, 18, 21),
             VARBIT_BRUT_HERB_POTION to VarbitType(1023, 11, 12),
             VARBIT_BRUT_FARMING_SMASHING to VarbitType(4086, 0, 1),
+            VARBIT_LOGINLOGOUT_PERMANENT to VarbitType(1055, 7, 7),
+            VARBIT_LOGINLOGOUT_SETTING to VarbitType(3053, 0, 1),
+            VARBIT_LEVEL_UP_MESSAGE_DISABLED to VarbitType(3190, 7, 7),
+            VARBIT_LEVEL_UP_POPUP_LIST to VarbitType(1734, 18, 18),
         )
 
         val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>> = mapOf(
@@ -316,6 +456,7 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
                 "settings" to mapOf(
                     CLOSE to "close", TOOLTIP_TOGGLE to "tooltip_inside_if_clickzone", DECLUTTER_TOGGLE to "declutter_button_clickzone",
                     SEARCH to "searchbar_image", SETTINGS_CLICKZONE to "settings_clickzone", CATEGORIES_CLICKZONE to "categories_clickzone",
+                    DROPDOWN_CLOSE to "dropdown_close", DROPDOWN_BUTTONS to "dropdown_buttons",
                 )
                 ),
         )

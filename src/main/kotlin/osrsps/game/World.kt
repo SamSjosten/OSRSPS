@@ -1406,7 +1406,7 @@ class World(
             return@act
         }
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.click(player, componentId, sub, op)) return@act
-        if (interfaceId == AllSettings.INTERFACE && allSettings.click(player, componentId, sub, op)) return@act
+        if (interfaceId == AllSettings.INTERFACE && allSettings.click(player, componentId, sub, op, tick)) return@act
         if (interfaceId == JournalTab.SIDE_JOURNAL) {
             val tab = JournalTab.forButton(componentId)
             if (tab != null) {
@@ -1429,11 +1429,12 @@ class World(
 
     /**
      * A client script told the server to run its server-side half (IF_SCRIPT_TRIGGER) on [componentId] of [interfaceId],
-     * with [args] decoded by the types [SettingsSide.SCRIPT_TRIGGERS] gives for its id.
+     * with [args] decoded by the types [SettingsSide.SCRIPT_TRIGGERS] or [AllSettings.SCRIPT_TRIGGERS] give for its id.
      */
     fun onScriptTrigger(player: Player, interfaceId: Int, componentId: Int, sub: Int, args: List<Any>) = act(player) {
         if (player.echoButtons) player.message("Script trigger $interfaceId:$componentId slot $sub args ${args.toList()}")
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.scriptTrigger(player, componentId, args)) return@act
+        if (interfaceId == AllSettings.INTERFACE && allSettings.scriptTrigger(player, componentId, sub, args)) return@act
         logger.info { "${player.username} triggered a script on $interfaceId:$componentId sub $sub args $args (not handled)" }
     }
 

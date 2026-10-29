@@ -53,6 +53,13 @@ class Player(
     var floater: Int = -1
         internal set
 
+    /**
+     * The All Settings row (its struct) whose dropdown or keybind options are open, -1 for none. See
+     * [AllSettings.click].
+     */
+    var settingsDropdown: Int = -1
+        internal set
+
     /** The dialogue (or other modal) open in the chatbox's chatmodal, -1 for none. See [Interfaces.openChatModal]. */
     var chatModal: Int = -1
         internal set
