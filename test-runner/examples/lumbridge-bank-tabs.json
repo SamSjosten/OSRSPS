@@ -167,7 +167,7 @@
    "interfaceId": 289,
    "component": 8,
    "op": 1,
-   "comment": "Clear them all"
+   "comment": "the confirm button"
   },
   {
    "step": "assertInterface",
