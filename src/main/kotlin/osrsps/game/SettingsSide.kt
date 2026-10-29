@@ -171,7 +171,9 @@ class SettingsSide {
 
         /**
          * The volume sliders' IF_SCRIPT_TRIGGER scripts, by the id the client sends (the ifscript_ number in the dump),
-         * and their arguments: each sends the new volume as one int.
+         * and their arguments: each sends the new volume as one int. Master's was seen arriving from the VM's client
+         * (2026-10-29); the other three are read the same way from the dump. The client sends one only while the
+         * slider's bobble has [Interfaces.IF_EVENT_SCRIPT_TRIGGER].
          */
         val SCRIPT_TRIGGERS: Map<Int, ParameterTypes> = listOf(3_081_216_314L, 406_545_006L, 3_225_222_424L, 2_493_361_579L)
             .associate { it.toInt() to ParameterTypes.of(ParameterTypes.INT) }

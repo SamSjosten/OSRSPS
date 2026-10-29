@@ -156,6 +156,15 @@ class HeadlessClient private constructor(
         mask and (1L shl (31 + op)) != 0L
     }
 
+    /**
+     * Whether the server let slot [sub] of a component send IF_SCRIPT_TRIGGER: events1's bit 23, without which the VM's
+     * 241 client sent nothing from a volume slider.
+     */
+    fun scriptTriggerEnabled(interfaceId: Int, componentId: Int, sub: Int): Boolean = lock.withLock {
+        val mask = events[(((interfaceId shl 16) or componentId).toLong() shl 32) + sub] ?: 0L
+        mask and (1L shl 23) != 0L
+    }
+
     /** The drag depth (0 to 7) the server enabled on slot [sub] of a component, events1's bits 17 to 19. */
     fun dragDepth(interfaceId: Int, componentId: Int, sub: Int): Int = lock.withLock {
         val mask = events[(((interfaceId shl 16) or componentId).toLong() shl 32) + sub] ?: 0L
@@ -324,8 +333,11 @@ class HeadlessClient private constructor(
      * A client script's call to its server half (IF_SCRIPT_TRIGGER), as a volume slider sends it: script [id] on
      * component [componentId] of [interfaceId] with int arguments [args]. Laid out as RSProt's 241
      * IfScriptTriggerDecoder reads it; the arguments are signed var-ints, as IfScriptTrigger.decode reads them.
+     * As the 241 client, it waits for the server to have enabled the component with [scriptTriggerEnabled] first, and
+     * fails if it never does: the real client would send nothing.
      */
-    fun ifScriptTrigger(interfaceId: Int, componentId: Int, id: Int, vararg args: Int, sub: Int = -1, obj: Int = -1) =
+    fun ifScriptTrigger(interfaceId: Int, componentId: Int, id: Int, vararg args: Int, sub: Int = -1, obj: Int = -1) {
+        await("IF_SCRIPT_TRIGGER events on $interfaceId:$componentId") { Unit.takeIf { scriptTriggerEnabled(interfaceId, componentId, sub) } }
         send(GameClientProt.IF_SCRIPT_TRIGGER) {
             p4Alt2((interfaceId shl 16) or componentId)
             p2Alt1(obj and 0xFFFF)
@@ -333,6 +345,7 @@ class HeadlessClient private constructor(
             p4Alt2(id)
             for (arg in args) pVarInt2s(arg)
         }
+    }
 
     /** An amount typed into a prompt (RESUME_P_COUNTDIALOG), as after Withdraw-X. */
     fun resumeCount(count: Int) = send(GameClientProt.RESUME_P_COUNTDIALOG) { p4(count) }
