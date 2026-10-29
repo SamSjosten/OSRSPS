@@ -1,0 +1,26 @@
+{
+ "name": "Food: a shark and then a karambwan eaten one after the other both heal (20 and 18), a second shark waits out the eat delay, and a meat pie goes in two bites to a pie dish",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "Hitpoints set to level 99"},
+  {"step": "command", "text": "::hit 49 me", "expectMessage": "Hit yourself for 49: 50/99 hp"},
+  {"step": "command", "text": "::item 385", "comment": "shark"},
+  {"step": "command", "text": "::item 3144", "comment": "tbwt_cooked_karambwan"},
+  {"step": "assertInventory", "itemId": 3144, "count": 1},
+  {"step": "itemOption", "itemId": 385, "option": "Eat"},
+  {"step": "itemOption", "itemId": 3144, "option": "Eat", "comment": "a combo food: it has its own timer, so it can follow the shark at once"},
+  {"step": "assertInventory", "itemId": 3144, "count": 0},
+  {"step": "command", "text": "::hp", "expectMessage": "You have 88/99 hitpoints"},
+  {"step": "command", "text": "::item 2327", "comment": "meat_pie"},
+  {"step": "assertInventory", "itemId": 2327, "count": 1},
+  {"step": "waitTicks", "ticks": 3, "comment": "the eat delay from the karambwan"},
+  {"step": "itemOption", "itemId": 2327, "option": "Eat"},
+  {"step": "assertInventory", "itemId": 2331, "count": 1, "comment": "half_a_meat_pie"},
+  {"step": "itemOption", "itemId": 2331, "option": "Eat"},
+  {"step": "assertInventory", "itemId": 2313, "count": 1, "comment": "piedish"},
+  {"step": "command", "text": "::hp", "expectMessage": "You have 99/99 hitpoints", "comment": "88 + 6 + 6, up to the level"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

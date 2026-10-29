@@ -38,6 +38,7 @@ import osrsps.game.WearRequirements
 import osrsps.game.SeqNames
 import osrsps.game.SpotanimNames
 import osrsps.game.combat.AttackStyles
+import osrsps.game.combat.Foods
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.Prayers
@@ -194,8 +195,8 @@ class GameServer(
             Accounts(FileSaveStore(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
-            spells = spells, prayerList = prayers, shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, wearRequirements = wearRequirements,
-            itemPrices = itemPrices, itemPricesFile = itemPricesFile,
+            spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans,
+            wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)

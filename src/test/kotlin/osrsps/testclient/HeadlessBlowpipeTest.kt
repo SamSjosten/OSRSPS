@@ -2,6 +2,7 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.EquipmentTab
@@ -108,6 +109,24 @@ class HeadlessBlowpipeTest {
                 assertTrue(used >= 1 && scalesUsed <= used, "$used darts and $scalesUsed scales: $left")
                 // Nothing on the floor: darts don't come back without an Ava's device.
                 assertTrue(client.groundObjs().none { it.id == DRAGON_DART })
+            }
+        }
+    }
+
+    @Test
+    fun `the stats screen's Equip refuses the empty blowpipe, as the backpack does`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${Blowpipe.EMPTY}")
+                val slot = client.slot(Blowpipe.EMPTY)
+                client.ifButton(EquipmentTab.WORNITEMS, EquipmentTab.WORNITEMS_VIEW_STATS, 1)
+                client.await("the stats screen") { if (EquipmentTab.STATS in client.openInterfaces()) Unit else null }
+                // The exploit review found Equip here wore an empty blowpipe that the backpack won't.
+                client.ifButton(EquipmentTab.STATS_SIDE, EquipmentTab.STATS_SIDE_ITEMS, 1, slot, Blowpipe.EMPTY)
+                client.awaitTicks(3)
+                assertEquals(null, client.inventory(WORN).getOrNull(WearPos.WEAPON))
+                assertEquals(Blowpipe.EMPTY, client.inventory(BACKPACK)[slot]?.id)
             }
         }
     }
