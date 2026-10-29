@@ -126,6 +126,9 @@ class Woodcutting(private val world: World, val data: WoodcuttingData) {
 
     private suspend fun ScriptContext.chop(op: Op, tree: TreeType) {
         val loc = op.loc ?: return
+        // A box opened since the last tick (the level-up a log gave) ends the action, as RS2's busy() check does in the
+        // 2004Scape engine. Guessed for OSRS that it ends rather than waits; live play shows a level-up stopping you.
+        if (op.repeat && player.modalOpen) return stop()
         val text = world.textFor(player)
         if (player.skills.currentLevel(Skill.WOODCUTTING) < tree.level) {
             player.message(text[WoodcuttingLines.LEVEL, "level" to tree.level])

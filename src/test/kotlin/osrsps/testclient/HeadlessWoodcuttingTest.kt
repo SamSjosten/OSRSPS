@@ -11,6 +11,7 @@ import osrsps.game.World
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.skill.LevelUps
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -101,6 +102,30 @@ class HeadlessWoodcuttingTest {
                 client.await("450 XP") { client.stat(WOODCUTTING)?.takeIf { it.xp == 13_034_431 + 450 } }
                 client.awaitTicks(8)
                 assertEquals(12, client.count(OAK_LOGS))
+            }
+        }
+    }
+
+    @Test
+    fun `a level-up stops the chopping`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $DRAGON_AXE")
+                // Level 61 (a dragon axe's) is 302,288 XP and 62 is 333,804: one oak log (37.5) is the level.
+                client.command("setlevel woodcutting 61")
+                client.command("addxp woodcutting 31500")
+                client.await("333,788 XP") { client.stat(WOODCUTTING)?.takeIf { it.xp == 333_788 } }
+                client.locOp(OAK, 3215, 3218, 1)
+                client.await("the level-up box", timeoutMillis = 30_000) { if (LevelUps.INTERFACE in client.openInterfaces()) Unit else null }
+                assertEquals(1, client.count(OAK_LOGS))
+                client.awaitTicks(12)
+                assertEquals(1, client.count(OAK_LOGS), "chopping carried on behind the level-up box")
+                // Closing it doesn't start it again.
+                client.resumePause(LevelUps.INTERFACE, LevelUps.CONTINUE)
+                client.await("the box closed") { if (LevelUps.INTERFACE !in client.openInterfaces()) Unit else null }
+                client.awaitTicks(8)
+                assertEquals(1, client.count(OAK_LOGS))
             }
         }
     }
