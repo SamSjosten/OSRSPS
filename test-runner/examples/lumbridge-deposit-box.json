@@ -44,7 +44,7 @@
   {
    "step": "clickWidget",
    "interfaceId": 192,
-   "component": 6,
+   "component": 24,
    "slot": 0,
    "op": 2,
    "comment": "Deposit-1 (op 2, the first option in mode 0) on the logs in slot 0"
@@ -68,7 +68,7 @@
   {
    "step": "clickWidget",
    "interfaceId": 192,
-   "component": 6,
+   "component": 24,
    "slot": 1,
    "op": 1,
    "comment": "op 1 on the logs: the last 4 go in"
@@ -92,7 +92,7 @@
   {
    "step": "clickWidget",
    "interfaceId": 192,
-   "component": 6,
+   "component": 24,
    "slot": 5,
    "op": 9,
    "comment": "the extra option (op 9, Wield) on the axe in slot 5"
