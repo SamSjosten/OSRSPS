@@ -1,0 +1,28 @@
+{
+ "name": "Magic: Bind on a castle man holds him where he stands, a second Bind meanwhile is refused, and he is immune for a few ticks after",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel magic 99", "expectMessage": "Magic set to level 99", "comment": "Bind needs 20; at 99 it hits a man about 97 times in 100, and a splash holds nothing"},
+  {"step": "command", "text": "::item nature rune 4", "expectMessage": "Added 4 x Nature rune"},
+  {"step": "command", "text": "::item water rune 6", "expectMessage": "Added 6 x Water rune"},
+  {"step": "command", "text": "::item earth rune 6", "expectMessage": "Added 6 x Earth rune"},
+  {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now", "comment": "the man fights back once cast on"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "castOnNpc", "interfaceId": 218, "component": 23, "npc": "Man", "timeoutMs": 20000, "comment": "Bind on the nearest man; in range and in sight there is no walk"},
+  {"step": "assertAnimation", "id": 710, "timeoutMs": 20000, "comment": "human_castentangle, which Bind shares with Snare and Entangle (guessed)"},
+  {"step": "assertSpotanim", "id": 177, "timeoutMs": 20000, "comment": "entangle_casting on the player"},
+  {"step": "assertSpotanim", "npc": "Man", "id": 181, "timeoutMs": 20000, "comment": "bind_impact: it hit; failedspell_impact (85) here would be the rare splash"},
+  {"step": "assertInventory", "item": "Nature rune", "count": 2},
+  {"step": "command", "text": "::npcs 10", "expectMessage": "; frozen ", "comment": "8 ticks from the hit (OSRS Wiki, Freeze)"},
+  {"step": "castOnNpc", "interfaceId": 218, "component": 23, "npc": "Man", "timeoutMs": 20000, "comment": "the nearest man again: he can't have moved, though another may have wandered closer"},
+  {"step": "assertMessage", "contains": "Your target is already held by a magical force.", "timeoutMs": 20000, "comment": "OSRS Wiki, Snare"},
+  {"step": "assertInventory", "item": "Nature rune", "count": 2, "comment": "a refused cast takes nothing"},
+  {"step": "waitTicks", "ticks": 6, "comment": "the hold ends about 8 ticks after the hit; 5 ticks of immunity follow"},
+  {"step": "command", "text": "::npcs 10", "expectMessage": "; immune to freezes "},
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "::kill picks the man attacking you, so the next script finds no fight going on"},
+  {"step": "command", "text": "::god", "expectMessage": "You can be hurt again."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

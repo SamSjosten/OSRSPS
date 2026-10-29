@@ -156,6 +156,14 @@ class Npc(
     /** The first tick it may swing at its target again. */
     internal var nextAttackTick: Long = 0
 
+    /** Ticks it still can't move for, frozen by a spell; see [Npcs.freeze]. */
+    var freezeTicks: Int = 0
+        internal set
+
+    /** Ticks after a freeze it can't be frozen again for; see [Npcs.freeze]. */
+    var freezeImmunityTicks: Int = 0
+        internal set
+
     /** The animation, hitsplats and health bars given this cycle; see [NpcEffects]. */
     val effects = NpcEffects()
 

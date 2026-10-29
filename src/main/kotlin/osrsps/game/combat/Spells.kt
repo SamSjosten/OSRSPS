@@ -25,8 +25,11 @@ data class RuneCost(val rune: Int, val count: Int)
  * cast from, the Magic [level] it needs, its base [maxHit] and its [runes]. What the data file adds: the base XP in
  * tenths ([xpTenths]), the casting animation (with and without a staff, -1 for none) and its graphics: [casting] on the
  * player, the projectile it flies as ([travel]) and [impact] on the target (-1 for none), and its key in the cache's
- * enum 1986 ([autocast]), which numbers the spells of the autocast menu (-1 for a spell that can't be autocast), and
- * its [element], which a monster can be weak to (null for none).
+ * enum 1986 ([autocast]), which numbers the spells of the autocast menu (-1 for a spell that can't be autocast), its
+ * [element], which a monster can be weak to (null for none), the base XP of a splash when it differs ([splashXpTenths]),
+ * and the ticks a hit freezes the target for ([freezeTicks], 0 for none). A spell that [holds] (Bind, Snare and
+ * Entangle, whose descriptions say "Holds your opponent") can't be cast on a target that is frozen or immune to it.
+ * The cache has no max hit for the hold spells; the data file gives theirs.
  */
 data class CombatSpell(
     val obj: Int,
@@ -43,6 +46,9 @@ data class CombatSpell(
     val impact: Int,
     val autocast: Int = -1,
     val element: Element? = null,
+    val splashXpTenths: Int = xpTenths,
+    val freezeTicks: Int = 0,
+    val holds: Boolean = false,
 )
 
 /**
@@ -104,6 +110,9 @@ class Spells(
          *   "staves": [ { "items": ["staff_of_fire", "fire_battlestaff"], "runes": ["firerune"] } ] }
          * ```
          *
+         * A spell that freezes has "hold" (the hold spells) or "freeze" with its ticks, and may have "splashXp" when a
+         * splash gives less, and "maxHit" when its obj has no max hit param (0 only for a spell that freezes).
+         *
          * Spells, items and runes are gameval names; the rest of a spell comes from its obj's params, and a spell obj without
          * them fails the file. Animations and spotanims are gameval names too: one [seqs] or [spotanims] doesn't know
          * fails the file, unless it knows no names at all (a cache with no gameval index), when they are all left out.
@@ -133,15 +142,23 @@ class Spells(
                         unknown += name
                         return@forEachIndexed
                     }
-                    val xp = entry.required("xp").jsonPrimitive.double
-                    val xpTenths = Math.round(xp * 10).toInt()
-                    require(xpTenths > 0 && abs(xpTenths - xp * 10) < 1e-6) { "xp $xp isn't a whole number of tenths" }
+                    val spellName = type.stringParam(PARAM_NAME) ?: throw IllegalArgumentException("$name has no spell name (param $PARAM_NAME)")
+                    val xpTenths = tenths(entry.required("xp").jsonPrimitive.double)
+                    val hold = entry["hold"]?.jsonPrimitive?.int
+                    val freeze = entry["freeze"]?.jsonPrimitive?.int
+                    require(hold == null || freeze == null) { "both \"hold\" and \"freeze\"" }
+                    val freezeTicks = (hold ?: freeze ?: 0).also { require(it >= 0) { "a freeze of $it ticks" } }
+                    val cacheMaxHit = type.intParam(PARAM_MAX_HIT, -1)
+                    val dataMaxHit = entry["maxHit"]?.jsonPrimitive?.int
+                    require(cacheMaxHit < 0 || dataMaxHit == null) { "\"maxHit\" given, but the cache has $cacheMaxHit (param $PARAM_MAX_HIT)" }
+                    val maxHit = if (cacheMaxHit >= 0) cacheMaxHit else dataMaxHit ?: -1
+                    require(maxHit >= 1 || (maxHit == 0 && freezeTicks > 0)) { "$name has max hit $maxHit (param $PARAM_MAX_HIT, or \"maxHit\")" }
                     val spell = CombatSpell(
                         obj = type.id,
-                        name = type.stringParam(PARAM_NAME) ?: throw IllegalArgumentException("$name has no spell name (param $PARAM_NAME)"),
+                        name = spellName,
                         component = component(type),
                         level = type.intParam(PARAM_LEVEL, -1).also { require(it in 1..99) { "$name has Magic level $it (param $PARAM_LEVEL)" } },
-                        maxHit = type.intParam(PARAM_MAX_HIT, -1).also { require(it >= 1) { "$name has max hit $it (param $PARAM_MAX_HIT)" } },
+                        maxHit = maxHit,
                         runes = runes(type),
                         xpTenths = xpTenths,
                         anim = seq(entry, "anim"),
@@ -151,6 +168,9 @@ class Spells(
                         impact = spotanim(entry, "impact"),
                         autocast = entry["autocast"]?.jsonPrimitive?.int?.also { require(it >= 1) { "autocast key $it" } } ?: -1,
                         element = entry["element"]?.jsonPrimitive?.content?.let(Element::parse),
+                        splashXpTenths = entry["splashXp"]?.jsonPrimitive?.double?.let(::tenths) ?: xpTenths,
+                        freezeTicks = freezeTicks,
+                        holds = hold != null,
                     )
                     require(spell.component !in byComponent) { "component ${spell.component} is listed twice" }
                     require(spell.autocast < 0 || byComponent.values.none { it.autocast == spell.autocast }) { "autocast key ${spell.autocast} is listed twice" }
@@ -204,6 +224,12 @@ class Spells(
             }
             require(runes.isNotEmpty()) { "${type.internalName} needs no runes (params ${PARAM_RUNES.first().first} on)" }
             return runes
+        }
+
+        private fun tenths(xp: Double): Int {
+            val tenths = Math.round(xp * 10).toInt()
+            require(tenths > 0 && abs(tenths - xp * 10) < 1e-6) { "xp $xp isn't a whole number of tenths" }
+            return tenths
         }
 
         private fun JsonObject.required(key: String): JsonElement = get(key) ?: throw IllegalArgumentException("no \"$key\"")

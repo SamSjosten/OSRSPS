@@ -60,6 +60,9 @@ class MagicInteraction internal constructor(val npc: Npc, spell: CombatSpell?, p
  * - XP is the spell's base XP and 2 a point of damage to Magic, and 1.33 a point to Hitpoints (Magic, Combat); a
  *   defensive autocast gives 1.33 a point to Magic and 1 to Defence instead of the 2 (Autocast).
  * - The hit lands [HitDelay.MAGIC] ticks after the cast, a tick later on an NPC ([HitDelay.ON_NPC]).
+ * - Bind, Snare and Entangle hold the target for their ticks when they hit, not when they splash, and can't be cast
+ *   on a target that is held or in the 5 ticks of immunity after ([Npcs.freeze]; Freeze, Snare). A splash of one gives
+ *   less base XP than a hit ([CombatSpell.splashXpTenths]).
  *
  * Inferred as for ranged: that the XP is given as the spell is cast, for the damage rolled (capped at what the NPC has
  * left after the hits already on their way).
@@ -203,6 +206,10 @@ class MagicCombat(
             message(player, notEnough(short.rune))
             return false
         }
+        if (spell.holds && (npc.freezeTicks > 0 || npc.freezeImmunityTicks > 0)) {
+            message(player, if (npc.freezeTicks > 0) ALREADY_HELD else IMMUNE)
+            return false
+        }
         val matchup = combat.magicMatchup(player, npc, spell) ?: return false
         for (cost in spell.runes) if (cost.rune !in provided) take(player, cost)
         player.nextAttackTick = tick + SPEED
@@ -219,11 +226,12 @@ class MagicCombat(
         val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
+        val baseXp = if (hit) spell.xpTenths else spell.splashXpTenths
         if (defensive) {
-            player.skills.addTenths(Skill.MAGIC, spell.xpTenths + CombatMath.defensiveSpellMagicXpTenths(damage))
+            player.skills.addTenths(Skill.MAGIC, baseXp + CombatMath.defensiveSpellMagicXpTenths(damage))
             player.skills.addTenths(Skill.DEFENCE, CombatMath.defensiveSpellDefenceXpTenths(damage))
         } else {
-            player.skills.addTenths(Skill.MAGIC, spell.xpTenths + CombatMath.spellDamageXpTenths(damage))
+            player.skills.addTenths(Skill.MAGIC, baseXp + CombatMath.spellDamageXpTenths(damage))
         }
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
         inFlight += Cast(player, npc, spell, hit, damage, landTick)
@@ -263,7 +271,9 @@ class MagicCombat(
             if (npcs[npc.index] !== npc || npc.dead) continue
             if (cast.hit) {
                 if (cast.spell.impact >= 0) npc.effects.spotanim(0, cast.spell.impact, IMPACT_HEIGHT)
-                melee.hit(npc, cast.player, cast.damage, tick)
+                // Guessed: Bind, which can't do damage, shows no hitsplat, as a splash shows none.
+                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick) else melee.hit(npc, cast.player, cast.damage, tick)
+                if (cast.spell.freezeTicks > 0 && !npc.dead) npcs.freeze(npc, cast.spell.freezeTicks)
             } else {
                 if (spells.splash >= 0) npc.effects.spotanim(0, spells.splash, IMPACT_HEIGHT)
                 melee.splashed(npc, cast.player, tick)
@@ -301,6 +311,12 @@ class MagicCombat(
 
         /** Combat spells from the spellbook take 5 ticks, 3 seconds (OSRS Wiki, Magic). */
         const val SPEED = 5
+
+        /** A hold spell on a frozen target (OSRS Wiki, Snare). */
+        const val ALREADY_HELD = "Your target is already held by a magical force."
+
+        /** A hold spell on a target in the ticks after a freeze (OSRS Wiki, Snare). */
+        const val IMMUNE = "The target is currently immune to that spell."
 
         /** Guessed wording, from memory. */
         const val LEVEL_TOO_LOW = "Your Magic level is not high enough for this spell."

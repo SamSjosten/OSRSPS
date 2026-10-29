@@ -3,6 +3,7 @@ package osrsps.game.npc
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -69,6 +70,26 @@ class NpcsTest {
         val xs = (1..4).map { npcs.process(); npc.x }
         assertEquals(listOf(3231, 3232, 3233, 3233), xs)
         assertNull(npc.destination)
+    }
+
+    @Test
+    fun `a frozen NPC stands for the freeze's ticks, can't be frozen again until 5 ticks after, and drops where it was going`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val npc = npcs.add(spawn(wander = 0))!!
+        npc.destination = Tile(3240, 3230)
+        assertTrue(npcs.freeze(npc, 3))
+        assertNull(npc.destination)
+        assertFalse(npcs.freeze(npc, 3))
+        npc.destination = Tile(3240, 3230)
+        repeat(3) { npcs.process() }
+        assertEquals(3230, npc.x)
+        // Free now, and immune for 5 ticks.
+        repeat(Npcs.FREEZE_IMMUNITY_TICKS) {
+            assertFalse(npcs.freeze(npc, 3), "frozen again ${it + 1} ticks after")
+            npcs.process()
+        }
+        assertEquals(3235, npc.x)
+        assertTrue(npcs.freeze(npc, 3))
     }
 
     @Test
