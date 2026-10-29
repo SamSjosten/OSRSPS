@@ -16,6 +16,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import osrsps.game.combat.StatRestore
 
 private val logger = KotlinLogging.logger {}
 
@@ -47,11 +48,19 @@ class PlayerSave(
     val charges: Map<String, Int> = emptyMap(),
     /** The bank's filled slots, by slot. */
     val bank: Map<Int, InvObj> = emptyMap(),
+    /** The combat and other skills' boost cycles' segments; see [osrsps.game.combat.StatRestore.segment]. */
+    val boostSegments: BoostSegments = BoostSegments(0, 0),
 ) {
+    class BoostSegments(val combat: Int, val other: Int)
+
     class SkillSave(val tenths: Int, val currentLevel: Int)
 
-    /** Gives [player] this save's state. The player must be new: varps the save doesn't name are left as they are. */
-    fun applyTo(player: Player) {
+    /**
+     * Gives [player] this save's state. The player must be new: varps the save doesn't name are left as they are.
+     * [inTick]: whether the login is in a tick's input rather than on a paused cycle, for the stat cycles (see
+     * [osrsps.game.combat.BoostCycle.restart]).
+     */
+    fun applyTo(player: Player, inTick: Boolean = true) {
         player.x = x
         player.z = z
         player.level = level
@@ -62,6 +71,9 @@ class PlayerSave(
         // A save from before account ages were kept counts the account as made now.
         if (createdAt != null) player.createdAt = createdAt
         player.playedTicks = playedTicks
+        StatRestore.resume(player.statTimers.combatBoost, boostSegments.combat, inTick)
+        StatRestore.resume(player.statTimers.skillBoost, boostSegments.other, inTick)
+        player.statTimers.hitpoints.restart(inTick)
         applyState(player)
     }
 
@@ -115,6 +127,11 @@ class PlayerSave(
             // Not part of the state ::reset puts back: time played and account age go on through scenarios.
             if (createdAt != null) put("createdAt", createdAt)
             put("playedTicks", playedTicks)
+            // Not part of ::reset's state either: the cycles run on through scenarios as they do through logouts.
+            putJsonObject("boostSegments") {
+                put("combat", boostSegments.combat)
+                put("other", boostSegments.other)
+            }
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -163,6 +180,7 @@ class PlayerSave(
                 player.x, player.z, player.level, player.runEnergy, varps, skills, inventory, equipment,
                 player.scenario, player.beforeScenario, player.createdAt, player.playedTicks, player.charges.contents(),
                 player.bank.contents().toMap(),
+                BoostSegments(StatRestore.segment(player.statTimers.combatBoost), StatRestore.segment(player.statTimers.skillBoost)),
             )
         }
 
@@ -183,10 +201,16 @@ class PlayerSave(
                 val createdAt = root["createdAt"]?.jsonPrimitive?.long
                 val playedTicks = root["playedTicks"]?.jsonPrimitive?.long ?: 0
                 require(playedTicks >= 0) { "Played ticks $playedTicks is negative" }
+                // Optional too: saves from before boosts wore off start both cycles at their first segment.
+                val segments = root["boostSegments"]?.jsonObject
+                val boostSegments = BoostSegments(segments?.int("combat") ?: 0, segments?.int("other") ?: 0)
+                for (segment in listOf(boostSegments.combat, boostSegments.other)) {
+                    require(segment in 0 until StatRestore.CYCLE_TICKS / StatRestore.SEGMENT_TICKS) { "Boost segment $segment is out of range" }
+                }
                 val state = readState(root, scenario, beforeScenario)
                 return PlayerSave(
                     state.x, state.z, state.level, state.runEnergy, state.varps, state.skills, state.inventory, state.equipment,
-                    scenario, beforeScenario, createdAt, playedTicks, state.charges, state.bank,
+                    scenario, beforeScenario, createdAt, playedTicks, state.charges, state.bank, boostSegments,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e

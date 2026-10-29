@@ -48,9 +48,12 @@ class SettingsLoaderTest {
                 4 to SettingVar.Bit(102, 3),
                 5 to SettingVar.Conditional(103, 1, SettingVar.Varbit(104)),
                 6 to SettingVar.Client,
+                7 to SettingVar.Mapped(SettingVar.Varbit(105), mapOf(1 to 1, 2 to 2), 0),
             ),
-            SettingsLoader.decodeGetter(getterScript()),
+            SettingsLoader.decodeGetter(getterScript()) { if (it == 700) SettingsLoader.decodeEnum(intEnum(1 to 1, 2 to 2)) else null },
         )
+        // An enum the cache hasn't leaves the case to the client.
+        assertEquals(SettingVar.Client, SettingsLoader.decodeGetter(getterScript())[7])
     }
 
     @Test
@@ -63,19 +66,24 @@ class SettingsLoaderTest {
             // Row 21 requires row 20 to be 1.
             600 to intEnum(0 to 20),
             601 to intEnum(0 to 1),
+            // Row 22's options.
+            602 to intEnum(0 to 0, 1 to 1, 2 to 2),
         )
         val structs = mapOf(
             10 to structOf(743 to 0, 745 to 500),
             11 to structOf(743 to 1, 745 to 501),
             20 to structOf(1077 to 7, 1078 to 0),
             21 to structOf(1077 to 8, 1078 to 0, 1080 to 600, 1081 to 601),
-            22 to structOf(1077 to 9, 1078 to 2),
+            22 to structOf(1077 to 9, 1078 to 2, 1091 to 602),
         )
         val catalog = SettingsLoader.build(enums::get, structs::get, mapOf(SettingsLoader.TOGGLE_GETTER to getterScript())::get)
         assertEquals(listOf(0, 1), catalog.categories.map { it?.id })
         assertEquals(listOf(7, 8), catalog.category(0)!!.rows.map { it.id })
         assertEquals(listOf(9), catalog.category(1)!!.rows.map { it.id })
         assertEquals(SettingRow.KIND_DROPDOWN, catalog.category(1)!!.rows[0].kind)
+        assertEquals(3, catalog.category(1)!!.rows[0].options)
+        assertEquals(0, catalog.category(0)!!.rows[0].options)
+        assertEquals(3, catalog.maxOptions)
         assertEquals(listOf(SettingDependency(20, 1)), catalog.rows.getValue(21).requires)
         assertEquals(3, catalog.slotCount)
         assertEquals(SettingVar.Varbit(100), catalog.toggles[1])
@@ -105,13 +113,24 @@ class SettingsLoaderTest {
         assertEquals(SettingVar.Conditional(12454, 1, SettingVar.Varbit(12457)), catalog.toggles[162]) // ca_refailure_notifications_enabled
         assertEquals(SettingVar.Client, catalog.toggles[241]) // full screen, a device option
         assertEquals(listOf(241), catalog.toggles.filterValues { it == SettingVar.Client }.keys.toList())
+        assertEquals(SettingVar.Varbit(6374), catalog.dropdowns[1]) // chatbox_scrollbarside
+        assertEquals(SettingVar.Varp(1107), catalog.dropdowns[55]) // option_attackpriority
+        assertEquals(SettingVar.Client, catalog.dropdowns[44]) // loginlogout_setting_get, hand-coded in AllSettings
+        // The F-key binds, through enum 1161 (1 to 13 as themselves): combat stone_combat_key and so on.
+        val f = (1..13).associateWith { it }
+        assertEquals((16..29).toList() + 238, catalog.keybinds.keys.sorted())
+        assertEquals(SettingVar.Mapped(SettingVar.Varbit(4675), f, 0), catalog.keybinds[16])
+        assertEquals(SettingVar.Mapped(SettingVar.Varbit(6517), f, 0), catalog.keybinds[26])
+        // Enum 3506: None, F1 to F12, Esc.
+        assertEquals(14, catalog.rows.getValue(2739).options)
+        assertEquals(12, catalog.rows.getValue(3107).options) // quest list sort
         val varbits = cache.group(2, 14).mapValues { VarTypeLoader.decodeVarbit(it.value) }
         assertEquals(emptyList(), AllSettings.checkVarbits(VarTypes(6_000, varbits)))
     }
 
     /**
      * `iload 0; switch; jump end` then one case per shape: get_varbit; get_varp; 1 - get_varbit; testbit;
-     * a conditional; a device option. Cases 1 to 6 in that order.
+     * a conditional; a device option; an enum lookup. Cases 1 to 7 in that order.
      */
     private fun getterScript(): ByteArray = bytes {
         writeByte(0)
@@ -127,9 +146,10 @@ class SettingsLoaderTest {
         op(25, 103); op(0, 1); op(8, 1); op(6, 5); op(25, 104); op(21) // 15
         op(0, 17); op(3214); op(21) // 21
         op(0, 0); op(21) // 24
-        writeInt(26)
+        op(0, 105); op(0, 105); op(0, 700); op(25, 105); op(3408); op(21) // 26
+        writeInt(32)
         repeat(6) { writeShort(if (it == 3) 1 else 0) }
-        val targets = listOf(3, 5, 7, 11, 15, 21)
+        val targets = listOf(3, 5, 7, 11, 15, 21, 26)
         writeByte(1); writeShort(targets.size)
         targets.forEachIndexed { index, target -> writeInt(index + 1); writeInt(target - 2) }
         writeShort(1 + 2 + 8 * targets.size)

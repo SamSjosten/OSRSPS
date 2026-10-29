@@ -65,6 +65,31 @@ class HeadlessGroundLimitsTest {
     }
 
     @Test
+    fun `loot or a gift on a full tile never pushes off another player's private drop`() {
+        // The second exploit review (29 Oct 2026) found a tutor's gift, landing on a tile filled on purpose, deleted
+        // another player's drop there.
+        val world = world()
+        val bobs = world.groundObjs.addPrivate(sword, 1, 3222, 3218, 0, "bob", GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
+        world.groundObjs.addPrivate(sword, GroundObjs.MAX_PER_TILE - 1, 3222, 3218, 0, "carol", GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
+        world.groundObjs.addPrivate(coins, 100, 3222, 3218, 0, "alice", GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
+        val objs = world.zones.objsAt(3222, 3218, 0)
+        assert(bobs in objs) { "bob's drop stayed" }
+        assertEquals(GroundObjs.MAX_PER_TILE + 1, objs.size, "over the limit by the one obj that had nowhere to go")
+        // alice's next obj there pushes off her own first, so the tile grows no further.
+        world.groundObjs.addPrivate(sword, 1, 3222, 3218, 0, "alice", GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
+        val after = world.zones.objsAt(3222, 3218, 0)
+        assertEquals(GroundObjs.MAX_PER_TILE + 1, after.size)
+        assertEquals(listOf("alice"), after.filter { it.owner == "alice" }.map { it.owner })
+        assertEquals(sword.id, after.last().id)
+        // What anyone could take makes room too: public loot goes over once, then pushes off the last public loot.
+        val public = world.groundObjs.addPublic(sword, 1, 3222, 3218, 0).single()
+        assertEquals(GroundObjs.MAX_PER_TILE + 2, world.zones.objsAt(3222, 3218, 0).size)
+        world.groundObjs.addPublic(sword, 1, 3222, 3218, 0)
+        assertEquals(GroundObjs.MAX_PER_TILE + 2, world.zones.objsAt(3222, 3218, 0).size)
+        assert(public !in world.zones.objsAt(3222, 3218, 0)) { "the older public loot went" }
+    }
+
+    @Test
     fun `a spawn pushed off a full tile waits for room before it comes back`() {
         val world = world()
         world.groundObjs.addSpawn(ObjSpawn(sword.id, 1, 3222, 3218, 0, respawnTicks = 5))

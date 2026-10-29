@@ -6,6 +6,9 @@ import osrsps.cache.CacheInfo
 import osrsps.cache.MapCollisionLoader
 import osrsps.map.CollisionPrinter
 import osrsps.cache.OpenRs2Archive
+import osrsps.game.Accounts
+import osrsps.game.FileAccountLock
+import osrsps.game.FileSaveStore
 import osrsps.game.IpBans
 import osrsps.game.command.Admins
 import osrsps.game.content.DialogueLines
@@ -39,8 +42,9 @@ fun main(args: Array<String>) {
         "serve" -> serve(args.getOrNull(1)?.toInt() ?: DEFAULT_PORT)
         "collision" -> printCollision(args.getOrNull(1)?.toInt() ?: 3222, args.getOrNull(2)?.toInt() ?: 3218, args.getOrNull(3)?.toInt() ?: 0)
         "dialogue-keys" -> writeDialogueKeys()
+        "set-password" -> setPassword(args.getOrNull(1))
         else -> {
-            System.err.println("Usage: osrsps [fetch-cache [build] | cache-info | serve [port] | collision [x z [level]] | dialogue-keys]  (HTTP config on port+1)")
+            System.err.println("Usage: osrsps [fetch-cache [build] | cache-info | serve [port] | collision [x z [level]] | dialogue-keys | set-password name]  (HTTP config on port+1)")
             exitProcess(2)
         }
     }
@@ -132,6 +136,47 @@ private fun writeDialogueKeys() {
     val loaded = DialogueFile.load(file, DialogueLines.ALL)
     logger.info { "Wrote ${file.toAbsolutePath()}: ${loaded.summary}" }
     loaded.problems.forEach { logger.warn { "${file.fileName}: $it" } }
+}
+
+/**
+ * Sets an account's password, asked for twice without echo (or read as one line from a pipe), so it never lands in a
+ * shell history, a log or a chat. Writes data/accounts/<name>.json the way a login claim does, which the running
+ * server reads at each login, so no restart is needed. Works for an admin's name, which no login can claim.
+ */
+private fun setPassword(name: String?) {
+    if (name == null) {
+        System.err.println("Usage: osrsps set-password <name>")
+        exitProcess(2)
+    }
+    val console = System.console()
+    val password: CharArray
+    if (console != null) {
+        password = console.readPassword("New password for %s: ", name) ?: exitProcess(1)
+        val again = console.readPassword("Again: ") ?: exitProcess(1)
+        val same = password.contentEquals(again)
+        again.fill('\u0000')
+        if (!same) {
+            password.fill('\u0000')
+            System.err.println("The two passwords differ; nothing changed")
+            exitProcess(1)
+        }
+    } else {
+        password = (readlnOrNull() ?: "").toCharArray()
+    }
+    try {
+        if (password.size < Accounts.MIN_SET_PASSWORD) {
+            System.err.println("A password needs at least ${Accounts.MIN_SET_PASSWORD} characters; nothing changed")
+            exitProcess(1)
+        }
+        val accountDir = dataDir.resolve("accounts")
+        if (!Accounts(FileSaveStore(accountDir), lock = FileAccountLock(accountDir)).setPassword(name, password)) {
+            System.err.println("'$name' isn't a name an account can have; nothing changed")
+            exitProcess(1)
+        }
+    } finally {
+        password.fill('\u0000')
+    }
+    println("Password set for $name")
 }
 
 /** Prints the collision 15 tiles around a tile, north up, so it can be compared with the game. */

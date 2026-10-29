@@ -1,7 +1,9 @@
 <#
 The parts of start-client.ps1 that can be checked without a VM, dot-sourced by it and run by
-start-client-functions.tests.ps1 in CI (pwsh on Linux): telling the client's JVMs apart by their command lines, and
-reading and waiting on the Odin's Gate launcher's status file. Nothing here starts, stops or finds a process itself.
+start-client-functions.tests.ps1 in CI (pwsh on Linux): telling the client's JVMs apart by their command lines (and
+which server the launcher's client was started for), reading and waiting on the Odin's Gate launcher's status file,
+and the launch-args file that points the launcher at the staging server. Nothing here starts, stops or finds a process
+itself.
 #>
 
 # RSProx's GUI (started by its launcher or by RsproxAutoLaunch.java), the Odin's Gate launcher (its Main, which stays
@@ -78,4 +80,40 @@ function Wait-LauncherStatus([string] $Path, [DateTime] $Since, [string] $Versio
 		}
 		Start-Sleep -Seconds $PollSeconds
 	}
+}
+
+# The server the launcher's RuneLite was started for, as "host:gamePort", from its command line: the host in the
+# -Drunelite.http-service.url the launcher gives it and the game port the loader patches into the client (its --port;
+# the HTTP port in that URL is the game port + 1, not the game's). '' for a RuneLite that isn't the launcher's: RSProx's
+# target decides where its client goes, and nothing on the command line says which.
+function Get-ClientServer([object] $Process)
+{
+	$line = [string] $Process.CommandLine
+	if ($line -notmatch '-Drunelite\.http-service\.url=http://([^/:\s"]+):\d+/') { return '' }
+	$serverHost = $Matches[1]
+	if ($line -notmatch '(^|\s)--port[ =](\d+)') { return '' }
+	"${serverHost}:$($Matches[2])"
+}
+
+# What the launcher is given for the server asked: '' for the live one (the signed manifest's, the parameters'
+# defaults), else "--server host:port", which the launcher dials instead, with the manifest's key (launcher/README.md).
+function Get-LauncherServerArgs([string] $Server, [int] $GamePort, [string] $LiveServer, [int] $LivePort)
+{
+	if ($Server -eq $LiveServer -and $GamePort -eq $LivePort) { return '' }
+	"--server ${Server}:$GamePort"
+}
+
+# Writes $Line as the one line of the launch-args file at $Path, which OdinsGate.cmd adds to the launcher's arguments
+# (a scheduled task's command is fixed, so the arguments that change go through this file), or removes the file when
+# there is no line, so a run for the live server after one for staging doesn't dial staging again. No byte-order mark:
+# cmd's `set /p` would make it part of the first argument.
+function Set-LaunchArgsFile([string] $Path, [string] $Line)
+{
+	if ($Line)
+	{
+		$dir = Split-Path -Parent $Path
+		if ($dir) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
+		[IO.File]::WriteAllText($Path, $Line + "`r`n", (New-Object Text.UTF8Encoding $false))
+	}
+	elseif (Test-Path -LiteralPath $Path) { Remove-Item -LiteralPath $Path }
 }

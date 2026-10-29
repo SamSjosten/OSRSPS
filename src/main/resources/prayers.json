@@ -6,7 +6,7 @@
   {"prayer": "xmas16_ball_inflated_blue", "name": "Rock Skin", "drain": 6, "groups": ["defence"], "boosts": {"defence": 110}},
   {"prayer": "placeholder_xmas16_ball_inflated_blue", "name": "Superhuman Strength", "drain": 6, "groups": ["strength"], "boosts": {"strength": 110}},
   {"prayer": "xmas16_ball_deflated_red", "name": "Improved Reflexes", "drain": 6, "groups": ["attack"], "boosts": {"attack": 110}},
-  {"prayer": "placeholder_xmas16_ball_deflated_red", "name": "Rapid Restore", "drain": 1},
+  {"prayer": "placeholder_xmas16_ball_deflated_red", "name": "Rapid Restore", "drain": 1, "effect": "rapidRestore"},
   {"prayer": "xmas16_ball_deflated_green", "name": "Rapid Heal", "drain": 2, "effect": "rapidHeal"},
   {"prayer": "placeholder_xmas16_ball_deflated_green", "name": "Protect Item", "drain": 2, "effect": "protectItem"},
   {"prayer": "xmas16_ball_deflated_blue", "name": "Steel Skin", "drain": 12, "groups": ["defence"], "boosts": {"defence": 115}},
@@ -28,6 +28,6 @@
   {"prayer": "xmas16_blue_partyhat", "name": "Chivalry", "drain": 24, "groups": ["attack", "strength", "defence"], "defence": 65, "boosts": {"attack": 115, "strength": 118, "defence": 120}},
   {"prayer": "placeholder_xmas16_blue_partyhat", "name": "Piety", "drain": 24, "groups": ["attack", "strength", "defence"], "defence": 70, "boosts": {"attack": 120, "strength": 123, "defence": 125}},
   {"prayer": "xmas16_teddy", "name": "Augury", "drain": 24, "groups": ["attack", "strength", "defence"], "defence": 70, "boosts": {"magic": 125, "magicDefence": 125, "magicDamage": 40, "defence": 125}},
-  {"prayer": "placeholder_xmas16_teddy", "name": "Preserve", "drain": 2}
+  {"prayer": "placeholder_xmas16_teddy", "name": "Preserve", "drain": 2, "effect": "preserve"}
  ]
 }

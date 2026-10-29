@@ -75,7 +75,9 @@ docker compose down            # stop
 After the one-time setup in [`deploy/`](deploy/README.md), the VM redeploys itself: a timer checks `main` every
 minute and rebuilds when it moved, and `http://<public host>:43595/version` says which commit is up. A merge that only
 changes docs, tests, the RuneLite plugins or the launcher doesn't restart the server; `/version` then says that commit
-all the same.
+all the same. A branch can be tried before it merges on the staging server next to it: push it as the branch `staging`
+(`git push origin my-branch:staging`) and within a minute it runs on the LAN-only ports 44594 and 44595 with a data
+folder of its own (`deploy/staging.sh`).
 
 ## Connect RuneLite through RSProx
 
@@ -224,6 +226,8 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too |
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
+| `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
+| `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -335,6 +339,40 @@ out. Ops on items on the ground can now re-run each tick too (`World.repeatOp`, 
 | A fire burns 100 to 199 ticks, then ashes for 100 ticks | 2004Scape; the Wiki says only "a short while" |
 | The step off the fire is walked (2004Scape moves the player at once); fires allowed in banks | guessed |
 | Out: bows as tinderboxes, coloured logs, Forester's campfires, a tinderbox used on logs on the ground | out of scope |
+
+### Mining
+
+Mine on a rock mines it with the best pickaxe the player can use (`game/skill/Mining.kt`, words under `mining.*`):
+clay, copper, tin, iron, coal, mithril and adamantite rocks, with the bronze to crystal pickaxes. A mined rock turns into
+an empty rock (`rocks1`/`rocks2`) until it respawns.
+
+| Mining behaviour | Source |
+|------------------|--------|
+| Levels, XP, respawn times (clay 2 ticks, copper and tin 4, iron 9, coal 50, mithril 200, adamantite 400) | OSRS Wiki rock pages |
+| Each rock's success pair, fitted to and checked against the Wiki's chart points (`MiningTest`) | OSRS Wiki rock pages |
+| The pickaxe sets only the ticks between rolls (bronze 8 ... rune 3; dragon, infernal and 3rd age 3 with a 1/6 chance of 2, crystal 1/4) | OSRS Wiki, Pickaxe |
+| The mining gem table, 1/256 a roll: a gem (or nothing) in place of ore, no XP, the rock stays | OSRS Wiki, Mining |
+| The click starts the clock and the first roll comes a whole interval later; the swing message and animation | 2004Scape mining script |
+| Which empty rock each rock becomes (rockN to rocksN); swinging on the click's own tick | guessed |
+| Out: the glory's gem chance, mining gloves and other extra-ore items, the prospector kit, gem rocks, essence | out of scope |
+
+### Fishing
+
+Fishing spots are NPCs (`game/skill/Fishing.kt`, words under `fishing.*`): the Lumbridge Swamp's Net/Bait spots
+(shrimps and anchovies with a small net, sardines and herring with a rod and bait) and the River Lum's Lure/Bait spots
+(trout and salmon with a fly fishing rod and feathers, pike with a rod and bait). Their spawns are in
+`npc-spawns/lumbridge.json`. The option re-runs every tick on the NPC (`World.repeatOp`, as RS2's `p_opnpc`).
+
+| Fishing behaviour | Source |
+|-------------------|--------|
+| Levels, XP, tools and bait (one bait or feather a catch) | OSRS Wiki fish pages, Fishing |
+| A roll every 5 ticks; pike recasts 1 roll in 5 (two casts a tick apart), the next roll a tick later | OSRS Wiki, Raw pike |
+| Each fish's success pair, the better fish tried first, fitted to and checked against the Wiki's charts (`FishingTest`) | OSRS Wiki fish pages |
+| Spots move every 250 to 530 ticks to a free tile of their area | OSRS Wiki, Fishing spot |
+| The river spots' tiles; the cast message and animation on the click, the first roll 4 ticks later, the last bait freeing its slot | 2004Scape fishing scripts |
+| Spawn tiles | RSMod rev 233 Lumbridge spawns |
+| The swamp spots' area (their spawn tiles, so they stay put); the player stopping when the spot moves | guessed |
+| Out: pearl and barbarian rods, stripy feathers, big nets, harpoons, cages, outfits and other catch boosts, whirlpools | out of scope |
 
 ## Items and inventory
 
@@ -1014,8 +1052,16 @@ claim it first, then list it.
 Each account is `data/accounts/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/accounts/`), holding a salted
 PBKDF2-HMAC-SHA256 hash (600,000 rounds), never the password. Checking takes a fraction of a second, so it runs on its
 own login thread, not the game thread. A save with no account file (every save from before accounts) is claimed by its
-next login. To reset a forgotten password, delete that name's file on the VM; the next login claims it again (an
-admin's name must come off `OSRSPS_ADMINS` for that login, then go back on):
+next login. To change a password, or set one for a name nobody has claimed (an admin's included), run `set-password`
+on the VM in the running container. It asks twice without echoing, so the password stays out of shell history and
+logs, needs at least 12 characters, and takes effect at the next login with no restart:
+
+```bash
+cd /srv/rsps/OSRSPS && docker compose exec -e JAVA_OPTS=-Xmx64m osrsps bin/osrsps set-password <name>
+```
+
+Deleting that name's file on the VM also resets it, and the next login claims it again (an admin's name must come off
+`OSRSPS_ADMINS` for that login, then go back on):
 
 ```bash
 rm /srv/rsps/OSRSPS/data/accounts/<name>.json

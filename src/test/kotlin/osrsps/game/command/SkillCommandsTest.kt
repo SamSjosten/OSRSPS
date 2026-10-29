@@ -89,4 +89,16 @@ class SkillCommandsTest {
         player.skills.flush { skill, _, _ -> changed.add(skill) }
         assertEquals(emptyList(), changed)
     }
+
+    @Test
+    fun `statcycles starts every boost and drain cycle again, Rapid Restore's included`() {
+        val timers = player.statTimers
+        for (cycle in listOf(timers.combatBoost, timers.skillBoost, timers.hitpoints)) cycle.ticks = 99
+        timers.restore = 99
+        timers.rapidRestore = 99
+        run("statcycles")
+        assertEquals(listOf("Boost and drain cycles started again: the next levels in 100 ticks"), replies)
+        // 0, as no tick is running here, as on a paused clock; in a tick's input, -1 (BoostCycle.restart).
+        assertEquals(listOf(0, 0, 0, 0, 0), listOf(timers.combatBoost.ticks, timers.skillBoost.ticks, timers.hitpoints.ticks, timers.restore, timers.rapidRestore))
+    }
 }

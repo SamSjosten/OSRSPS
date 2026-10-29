@@ -53,6 +53,13 @@ class Player(
     var floater: Int = -1
         internal set
 
+    /**
+     * The All Settings row (its struct) whose dropdown or keybind options are open, -1 for none. See
+     * [AllSettings.click].
+     */
+    var settingsDropdown: Int = -1
+        internal set
+
     /** The dialogue (or other modal) open in the chatbox's chatmodal, -1 for none. See [Interfaces.openChatModal]. */
     var chatModal: Int = -1
         internal set
@@ -229,6 +236,9 @@ class Player(
 
     /** Ticks until the next hitpoint comes back, counted down at each tick's regeneration; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var hitpointsRegenTicks: Int = osrsps.game.combat.MeleeCombat.REGEN_TICKS
+
+    /** The boost, drain and Rapid Restore cycles; see [osrsps.game.combat.StatRestore]. The boost cycles' segments are saved. */
+    val statTimers = osrsps.game.combat.StatTimers()
 
     /** How many items a death keeps, decided as the player falls; see [osrsps.game.combat.Deaths]. */
     var deathKeptItems: Int = osrsps.game.combat.Deaths.KEPT_ITEMS

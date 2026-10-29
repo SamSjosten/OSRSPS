@@ -3,11 +3,14 @@ package osrsps.game.command
 import osrsps.game.Experience
 import osrsps.game.PlayerSkills
 import osrsps.game.Skill
+import osrsps.game.combat.StatRestore
 import java.math.BigDecimal
 import java.util.Locale
 
-/** Set the typing player's levels and XP. The client is sent any change at the end of the tick. */
-fun CommandRegistry.registerSkillCommands() {
+/** Set the typing player's levels and XP, and show their boosts and drains. The client is sent any change at the end of
+ * the tick. */
+/** [inTick]: whether a tick is being run, for `::statcycles`; see [osrsps.game.combat.BoostCycle.restart]. */
+fun CommandRegistry.registerSkillCommands(inTick: () -> Boolean = { true }) {
     register("setlevel", "::setlevel skill|all level") {
         if (args.size != 2) fail("Usage: ::setlevel skill|all level")
         val level = args[1].toIntOrNull() ?: fail("Usage: ::setlevel skill|all level ('${args[1]}' is not a number)")
@@ -39,6 +42,31 @@ fun CommandRegistry.registerSkillCommands() {
         if (level !in 0..PlayerSkills.MAX_CURRENT_LEVEL) fail("Current levels are 0 to ${PlayerSkills.MAX_CURRENT_LEVEL}")
         player.skills.setCurrentLevel(skill, level)
         reply("${skill.displayName} is now $level/${player.skills.baseLevel(skill)}")
+    }
+
+    register("stats", "::stats", admin = false) {
+        val skills = player.skills
+        val changed = Skill.entries.filter { skills.currentLevel(it) != skills.baseLevel(it) }
+        val timers = player.statTimers
+        val preserved = timers.preserve >= StatRestore.PRESERVE_DELAY
+        val cycles = "next combat boost level in ${StatRestore.ticksLeft(timers.combatBoost, preserved)} ticks, other boosts " +
+            "${StatRestore.ticksLeft(timers.skillBoost, preserved)}, hitpoints ${StatRestore.ticksLeft(timers.hitpoints, preserved)}, " +
+            "drains ${StatRestore.CYCLE_TICKS - timers.restore}" +
+            if (timers.preserve > 0) "; Preserve on for ${timers.preserve} ticks" else ""
+        val levels = if (changed.isEmpty()) "Every stat is at its level" else changed.joinToString(", ") {
+            "${it.displayName} ${skills.currentLevel(it)}/${skills.baseLevel(it)}"
+        }
+        reply("$levels; $cycles")
+    }
+
+    register("statcycles", "::statcycles") {
+        val timers = player.statTimers
+        val during = inTick()
+        for (cycle in listOf(timers.combatBoost, timers.skillBoost, timers.hitpoints)) cycle.restart(during)
+        timers.restore = if (during) -1 else 0
+        // Rapid Restore's own cycle too, while it is on; off, StatRestore keeps it at 0.
+        timers.rapidRestore = timers.restore
+        reply("Boost and drain cycles started again: the next levels in ${StatRestore.CYCLE_TICKS} ticks")
     }
 }
 
