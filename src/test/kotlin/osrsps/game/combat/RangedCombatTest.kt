@@ -54,19 +54,21 @@ class RangedCombatTest {
     private val blowpipe = ObjType(Blowpipe.LOADED, "Toxic blowpipe", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 30, 12 to 20, 14 to 3), internalName = "toxic_blowpipe_loaded", category = 24)
     private val emptyBlowpipe = ObjType(Blowpipe.EMPTY, "Toxic blowpipe (empty)", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 30, 14 to 3), internalName = "toxic_blowpipe", category = 24)
     private val dragonDart = ObjType(11230, "Dragon dart", stackable = true, params = mapOf(12 to 35), internalName = "dragon_dart")
+    // Black chinchompas as the 241 cache has them: 80 ranged attack, 30 ranged strength, speed 4, obj category 572.
+    private val chinchompa = ObjType(11959, "Black chinchompa", stackable = true, wearpos1 = WearPos.WEAPON, params = mapOf(4 to 80, 12 to 30, 14 to 4), internalName = "chinchompa_black", category = 572)
     private val sword = ObjType(1277, "Bronze sword", wearpos1 = WearPos.WEAPON, params = mapOf(0 to 4, 14 to 4), internalName = "bronze_sword", category = 25)
     private val bronzeArrow = ObjType(882, "Bronze arrow", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
     private val steelArrow = ObjType(886, "Steel arrow", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 16), internalName = "steel_arrow")
     private val runiteBolts = ObjType(9144, "Runite bolts", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 115), internalName = "xbows_crossbow_bolts_runite")
     private val dragonBolts = ObjType(21905, "Dragon bolts", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 122), internalName = "dragon_bolts")
-    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, twistedBow, venator, blowpipe, emptyBlowpipe, dragonDart, sword, bronzeArrow, steelArrow, runiteBolts, dragonBolts)
+    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, twistedBow, venator, blowpipe, emptyBlowpipe, dragonDart, chinchompa, sword, bronzeArrow, steelArrow, runiteBolts, dragonBolts)
 
     private val spotanims = SpotanimNames(
         mapOf(
             "bronze_arrow_launch" to 19, "double_bronze_arrow_launch" to 1104, "bronze_arrow_travel" to 10,
             "steel_arrow_launch" to 20, "double_steel_arrow_launch" to 1106, "steel_arrow_travel" to 11,
             "crossbowbolt_travel" to 27, "dragon_crossbowbolt_travel" to 1468,
-            "arrow_venator01_launch01" to 2289, "arrow_venator01_travel01" to 2291, "ii_dragon_dart_projanim" to 1122,
+            "arrow_venator01_launch01" to 2289, "arrow_venator01_travel01" to 2291, "ii_dragon_dart_projanim" to 1122, "black_chinchompa_grenade" to 1272,
         ),
     )
     private val weapons = RangedWeapons.parse(
@@ -78,6 +80,8 @@ class RangedCombatTest {
               "launch": "arrow_venator01_launch01", "travel": "arrow_venator01_travel01", "source": "test" },
             { "items": ["toxic_blowpipe_loaded", "toxic_blowpipe"], "ammo": "darts", "tier": 7, "range": 5, "anim": "snakeboss_blowpipe_attack",
               "loaded": true, "delay": "thrown", "source": "test" },
+            { "items": ["chinchompa_black"], "ammo": "chinchompas", "tier": 1, "range": 9, "targets": 3, "anim": "human_chinchompa_attack_pvn",
+              "travel": "black_chinchompa_grenade", "thrown": true, "delay": "thrown", "source": "test" },
             { "items": ["xbows_crossbow_runite"], "ammo": "bolts", "tier": 7, "range": 7, "anim": "xbows_human_fire_and_reload_pvn", "source": "test" } ],
           "ammo": [
             { "items": ["bronze_arrow"], "ammo": "arrows", "tier": 1, "launch": "bronze_arrow_launch", "doubleLaunch": "double_bronze_arrow_launch", "travel": "bronze_arrow_travel" },
@@ -85,7 +89,7 @@ class RangedCombatTest {
             { "items": ["xbows_crossbow_bolts_runite"], "ammo": "bolts", "tier": 7, "travel": "crossbowbolt_travel" },
             { "items": ["dragon_bolts"], "ammo": "bolts", "tier": 8, "travel": "dragon_crossbowbolt_travel" },
             { "items": ["dragon_dart"], "ammo": "darts", "tier": 7, "travel": "ii_dragon_dart_projanim" } ] }""",
-        objTypes, SeqNames(mapOf("human_bow" to 426, "xbows_human_fire_and_reload_pvn" to 7552, "human_weapon_bow_venator01_shoot" to 9858, "snakeboss_blowpipe_attack" to 5061)), spotanims,
+        objTypes, SeqNames(mapOf("human_bow" to 426, "xbows_human_fire_and_reload_pvn" to 7552, "human_weapon_bow_venator01_shoot" to 9858, "snakeboss_blowpipe_attack" to 5061, "human_chinchompa_attack_pvn" to 7618)), spotanims,
     )
 
     // The bow (3) and crossbow (5) rows as the 241 cache has them.
@@ -105,6 +109,11 @@ class RangedCombatTest {
                 0, "Accurate", "(Accurate)<br>(Standard)<br>(Ranged XP)", 0,
                 1, "Rapid", "(Rapid)<br>(Standard)<br>(Ranged XP)", 0,
                 3, "Longrange", "(Longrange)<br>(Standard)<br>(Ranged XP)<br>(Defence XP)", 0,
+            ),
+            listOf<Any>(7) to listOf<Any>(
+                0, "Short fuse", "(Short fuse)<br>(Heavy)<br>(Ranged XP)", 0,
+                1, "Medium fuse", "(Medium fuse)<br>(Heavy)<br>(Ranged XP)", 0,
+                3, "Long fuse", "(Long fuse)<br>(Heavy)<br>(Ranged XP)<br>(Defence XP)", 0,
             ),
             listOf<Any>(5) to listOf<Any>(
                 0, "Accurate", "(Accurate)<br>(Heavy)<br>(Ranged XP)", 0,
@@ -135,6 +144,7 @@ class RangedCombatTest {
     private val messages = mutableListOf<Pair<Player, String>>()
     private val projectiles = mutableListOf<Pair<Long, Projectile>>()
     private val dropped = mutableListOf<Triple<ObjType, Pair<Int, Int>, Player>>()
+    private val stopped = mutableListOf<Player>()
     private val combat = Combat(Equipment(objTypes), styles, npcCombat, weapons)
     private val multi = MultiCombat()
     private lateinit var melee: MeleeCombat
@@ -164,6 +174,7 @@ class RangedCombatTest {
             projectile = { projectiles += tick to it },
             dropAmmo = { type, x, z, _, owner -> dropped += Triple(type, x to z, owner) },
             message = { player, text -> messages += player to text },
+            stopFacing = { stopped += it },
             multi = multi,
         )
         wield(alice, shortbow, bronzeArrow, 100)
@@ -561,5 +572,128 @@ class RangedCombatTest {
 
     companion object {
         private const val SEED = 5L
+    }
+
+    @Test
+    fun `a chinchompa is thrown from the weapon stack every 4 ticks, at the thrown delay, and none come back`() {
+        alice.god = true
+        wield(alice, chinchompa, bronzeArrow, 50)
+        alice.equipment[WearPos.WEAPON] = InvObj(chinchompa.id, 100)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        tick()
+        assertEquals(7618, alice.effects.anim?.id)
+        assertEquals(1272, projectiles.single().second.id)
+        assertEquals(5L, alice.nextAttackTick)
+        // Distance 4 thrown: 1 + 4 / 6 = 1 tick, and one on an NPC: tick 3.
+        tick()
+        assertTrue(npc.effects.pendingHits.isEmpty())
+        tick()
+        assertEquals(1, npc.effects.pendingHits.size)
+        repeat(37) { tick() }
+        assertEquals(10, projectiles.size)
+        assertEquals(90, alice.equipment[WearPos.WEAPON]?.count)
+        assertTrue(dropped.isEmpty(), dropped.toString())
+        assertEquals(50, ammoLeft(alice))
+    }
+
+    @Test
+    fun `the last chinchompa thrown empties the weapon slot and ends the fight`() {
+        alice.god = true
+        alice.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
+        wield(alice, chinchompa)
+        alice.equipment[WearPos.WEAPON] = InvObj(chinchompa.id, 2)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        repeat(4) { tick() }
+        assertEquals(1, alice.equipment[WearPos.WEAPON]?.count)
+        tick()
+        assertNull(alice.equipment[WearPos.WEAPON])
+        assertNull(alice.interaction)
+        assertTrue(stopped.any { it === alice }, "she stopped facing the dummy")
+        assertEquals(2, projectiles.size)
+        repeat(4) { tick() }
+        assertEquals(0, ranged.shotsInFlight)
+        assertEquals(2, projectiles.size)
+    }
+
+    @Test
+    fun `a chinchompa's accuracy falls off with distance by fuse, and the ammo slot adds no strength`() {
+        alice.skills.setLevel(Skill.RANGED, 99)
+        wield(alice, chinchompa, bronzeArrow, 50)
+        // Short fuse is accurate: (99 + 3 + 8) * (80 + 64), and ((99 + 3 + 8) * (30 + 64) + 320) / 640 = 16, without the arrows' 7.
+        val near = combat.rangedMatchup(alice, spawn(type = dummy, x = 3212))!!
+        assertEquals(110 * (80 + 64), near.attackRoll)
+        assertEquals(16, near.maxHit)
+        // The percentage comes off the +80, not the +64: 75% is +60, 50% is +40.
+        assertEquals(110 * (60 + 64), combat.rangedMatchup(alice, spawn(type = dummy, x = 3215))!!.attackRoll)
+        val far = spawn(type = dummy, x = 3219)
+        assertEquals(110 * (40 + 64), combat.rangedMatchup(alice, far)!!.attackRoll)
+        // Long fuse: no +3, and best at 7 or more.
+        alice.vars[EquipmentTab.VARP_COM_MODE] = 3
+        assertEquals(107 * 144, combat.rangedMatchup(alice, far)!!.attackRoll)
+    }
+
+    @Test
+    fun `in multi-way combat a chinchompa hits the NPCs around its target, hit or missed with it`() {
+        alice.skills.setLevel(Skill.RANGED, 99)
+        alice.god = true
+        alice.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
+        wield(alice, chinchompa)
+        alice.equipment[WearPos.WEAPON] = InvObj(chinchompa.id, 100)
+        val target = spawn(type = dummy, x = 3214, z = 3211)
+        val beside = spawn(type = dummy, x = 3215, z = 3212)
+        val corner = spawn(type = dummy, x = 3213, z = 3210)
+        // Two tiles off: outside the 3x3.
+        val outside = spawn(type = dummy, x = 3216, z = 3211)
+        multi.set(0, 3214, 3211, true)
+        val before = alice.skills.tenths(Skill.RANGED)
+        attack(alice, target)
+        repeat(40) { tick() }
+        alice.interaction = null
+        repeat(4) { tick() }
+        assertEquals(0, ranged.shotsInFlight)
+        assertEquals(10, projectiles.size)
+        // Both NPCs beside the target were caught in a blast, and came for her (out of the blasts' way, after that).
+        for (npc in listOf(beside, corner)) assertTrue(npc.attacker === alice, "${npc.x}, ${npc.z}")
+        assertTrue(beside.hitpoints + corner.hitpoints < 20_000)
+        assertEquals(10_000, outside.hitpoints)
+        assertNull(outside.attacker)
+        assertEquals(0, beside.incoming + corner.incoming)
+        // The blast's damage gives XP too: more than the target's alone.
+        val dealt = listOf(target, beside, corner).sumOf { 10_000 - it.hitpoints }
+        assertEquals(dealt * 40, alice.skills.tenths(Skill.RANGED) - before)
+        assertTrue(dealt > 10_000 - target.hitpoints)
+    }
+
+    @Test
+    fun `a blast hits no more NPCs than the chinchompa's cap, its target among them`() {
+        alice.god = true
+        alice.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
+        wield(alice, chinchompa)
+        val target = spawn(type = dummy, x = 3214, z = 3211)
+        // Three more around it; the test file's cap of 3 leaves room for two.
+        val around = listOf(spawn(type = dummy, x = 3215, z = 3212), spawn(type = dummy, x = 3213, z = 3210), spawn(type = dummy, x = 3215, z = 3210))
+        multi.set(0, 3214, 3211, true)
+        attack(alice, target)
+        repeat(4) { tick() }
+        assertEquals(1, projectiles.size)
+        assertEquals(2, around.count { it.attacker === alice }, around.map { it.attacker }.toString())
+        assertTrue(target.attacker === alice)
+    }
+
+    @Test
+    fun `in single-way combat a chinchompa hits only its target`() {
+        alice.god = true
+        alice.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
+        wield(alice, chinchompa)
+        alice.equipment[WearPos.WEAPON] = InvObj(chinchompa.id, 100)
+        val target = spawn(type = dummy, x = 3214, z = 3211)
+        val beside = spawn(type = dummy, x = 3215, z = 3212)
+        attack(alice, target)
+        repeat(20) { tick() }
+        assertTrue(target.hitpoints < 10_000 || target.attacker === alice)
+        assertEquals(10_000, beside.hitpoints)
+        assertNull(beside.attacker)
     }
 }

@@ -9,6 +9,7 @@ import osrsps.game.Skill
 import osrsps.game.Weapons
 import osrsps.game.WearPos
 import osrsps.game.npc.Npc
+import osrsps.map.LineOfSight
 
 /** A player's melee numbers against one NPC, and the NPC's against them. */
 data class MeleeMatchup(
@@ -116,13 +117,22 @@ class Combat(
         if (style.type != AttackType.RANGED) return null
         val bonuses = bonuses(player)
         val ranged = player.skills.currentLevel(Skill.RANGED)
-        var attackRoll = CombatMath.playerRangedAttackRoll(ranged, style.stance, bonuses.rangedAttack)
         val weapon = rangedWeapons.weapon(equipment.weapon(player))
+        var attackBonus = bonuses.rangedAttack
+        if (weapon?.kind == AmmoKind.CHINCHOMPAS) {
+            val size = npc.type.size
+            val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
+            attackBonus = attackBonus * CombatMath.chinchompaAccuracy(style.stance, distance) / 100
+        }
+        var attackRoll = CombatMath.playerRangedAttackRoll(ranged, style.stance, attackBonus)
         var strength = bonuses.rangedStrength
         if (weapon?.loaded == true) {
             val slot = player.equipment[WearPos.AMMO]?.let { equipment.objTypes[it.id] }
             val dart = if (player.charges[Blowpipe.DARTS] > 0) equipment.objTypes[player.charges[Blowpipe.DART_TYPE]] else null
             strength += rangedStrength(dart) - rangedStrength(slot)
+        } else if (weapon?.thrown == true) {
+            // Guessed: a thrown weapon is its own ammunition, so what is in the ammo slot adds nothing.
+            strength -= rangedStrength(player.equipment[WearPos.AMMO]?.let { equipment.objTypes[it.id] })
         }
         var maxHit = CombatMath.playerRangedMaxHit(ranged, style.stance, strength)
         if (weapon?.scaling == RangedScaling.TWISTED_BOW) {

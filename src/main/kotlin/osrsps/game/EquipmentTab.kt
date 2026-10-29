@@ -141,7 +141,7 @@ class EquipmentTab(
     /** The rapid style shortens a ranged weapon's attack by a tick (OSRS Wiki, from memory). */
     private fun actualSpeed(player: Player, base: Int): Int {
         val category = Weapons.category(equipment.weapon(player))
-        val ranged = category == Weapons.BOW || category == Weapons.CROSSBOW || category == Weapons.THROWN
+        val ranged = category == Weapons.BOW || category == Weapons.CROSSBOW || category == Weapons.THROWN || category == Weapons.GRENADE
         return if (ranged && player.vars[VARP_COM_MODE] == RAPID_BUTTON) base - 1 else base
     }
 

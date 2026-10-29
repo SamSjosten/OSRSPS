@@ -105,4 +105,17 @@ class CombatMathTest {
         assertTrue((0..400).all { CombatMath.twistedBowAccuracy(it) in 0..140 && CombatMath.twistedBowDamage(it) in 0..250 })
         assertTrue((1..250).all { CombatMath.twistedBowDamage(it) >= CombatMath.twistedBowDamage(it - 1) })
     }
+
+    @Test
+    fun `a chinchompa's accuracy is the Wiki's table by fuse and distance`() {
+        val table = mapOf(
+            AttackStance.ACCURATE to listOf(100, 75, 50),
+            AttackStance.RAPID to listOf(75, 100, 75),
+            AttackStance.LONGRANGE to listOf(50, 75, 100),
+        )
+        for ((fuse, row) in table) {
+            assertEquals(row, listOf(0, 4, 7).map { CombatMath.chinchompaAccuracy(fuse, it) }, "$fuse")
+            assertEquals(row, listOf(3, 6, 10).map { CombatMath.chinchompaAccuracy(fuse, it) }, "$fuse")
+        }
+    }
 }

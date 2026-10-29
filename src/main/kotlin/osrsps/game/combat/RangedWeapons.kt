@@ -16,11 +16,14 @@ import osrsps.game.Weapons
 
 private val logger = KotlinLogging.logger {}
 
-/** What a ranged weapon fires: arrows from bows, bolts from crossbows, darts from the blowpipe. */
+/** What a ranged weapon fires: arrows from bows, bolts from crossbows, darts from the blowpipe, and chinchompas. */
 enum class AmmoKind {
     ARROWS,
     BOLTS,
     DARTS,
+
+    /** Thrown from the weapon slot ([RangedWeapon.thrown]), and blowing up in a 3x3 area ([RangedWeapon.targets]). */
+    CHINCHOMPAS,
 }
 
 /** How a weapon's accuracy and damage grow with what it is fired at. */
@@ -48,10 +51,20 @@ data class RangedWeapon(
     val travel: Int = -1,
     /** Whether it fires what it holds ([Blowpipe]) rather than what is in the ammo slot. */
     val loaded: Boolean = false,
-    /** How long its hits take to land: [HitDelay.BOW], or [HitDelay.THROWN] for the blowpipe. */
+    /** How long its hits take to land: [HitDelay.BOW], or [HitDelay.THROWN] for the blowpipe and thrown weapons. */
     val delay: HitDelay = HitDelay.BOW,
+    /** Whether it is its own ammunition: each throw takes one from the stack in the weapon slot. */
+    val thrown: Boolean = false,
+    /**
+     * How many NPCs one throw can hit in multi-way combat, its target among them (guessed: the Wiki doesn't say): more
+     * than 1 for chinchompas, which hit those around their target too.
+     */
+    val targets: Int = 1,
 ) {
     fun fires(ammo: RangedAmmo): Boolean = ammo.kind == kind && ammo.tier <= tier
+
+    /** Whether it hits the NPCs around its target in multi-way combat, as chinchompas do. */
+    val splash: Boolean get() = targets > 1
 }
 
 /**
@@ -61,10 +74,10 @@ data class RangedWeapon(
 data class RangedAmmo(val kind: AmmoKind, val tier: Int, val launch: Int, val doubleLaunch: Int, val travel: Int)
 
 /**
- * The bows and crossbows that fire ammunition, and the ammunition, by item id. Tiers stand for the Wiki's "up to and
- * including" lists on each weapon's page (an iron crossbow fires bronze, blurite and iron bolts); ranges are the Wiki's
- * Attack range table. Weapons that aren't here (thrown weapons, crystal bows, the twisted bow and the dragon hunter
- * crossbow with their own rules, ballistas) come with later steps.
+ * The ranged weapons and the ammunition they fire, by item id. Tiers stand for the Wiki's "up to and including" lists
+ * on each weapon's page (an iron crossbow fires bronze, blurite and iron bolts); ranges are the Wiki's Attack range
+ * table. Weapons that aren't here (thrown weapons other than chinchompas, crystal bows, the dragon hunter crossbow with
+ * its own rules, ballistas) come with later steps.
  */
 class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val ammo: Map<Int, RangedAmmo>) {
     fun weapon(type: ObjType?): RangedWeapon? = type?.let { weapons[it.id] }
@@ -100,7 +113,9 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
          * ```
          *
          * Items are gameval names. `shots`, `launch` and `doubleLaunch` may be left out (1, none, none). A weapon may
-         * also have `"scaling": "twisted_bow"`, `"bounces"` (0 to 2) and its own `launch` and `travel`. Animations and
+         * also have `"scaling": "twisted_bow"`, `"bounces"` (0 to 2), its own `launch` and `travel`, `"loaded": true`
+         * (the blowpipe), `"thrown": true` (chinchompas, which must be), `"targets"` (chinchompas' cap, which they must have)
+         * and a `"delay"` other than the bow's. Animations and
          * spotanims are gameval names too; one [seqs] or [spotanims] doesn't know fails the file, unless it knows no
          * names at all (a cache with no gameval index), when they are all left out. An item the cache doesn't have is
          * skipped with a warning.
@@ -157,7 +172,12 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
                         HitDelay.entries.firstOrNull { it.name.equals(text, ignoreCase = true) }
                             ?: throw IllegalArgumentException("unknown delay '$text'")
                     } ?: HitDelay.BOW,
-                )
+                    thrown = entry["thrown"]?.jsonPrimitive?.content?.toBooleanStrict() ?: false,
+                    targets = entry["targets"]?.jsonPrimitive?.int?.also { require(it in 1..MAX_TARGETS) { "targets $it" } } ?: 1,
+                ).also {
+                    require(it.kind != AmmoKind.CHINCHOMPAS || it.thrown) { "chinchompas are thrown" }
+                    require((it.kind == AmmoKind.CHINCHOMPAS) == it.splash) { "only chinchompas have \"targets\", and they must" }
+                }
             }
             val ammo = read("ammo") { entry ->
                 RangedAmmo(
@@ -183,12 +203,16 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
                 AmmoKind.ARROWS -> Weapons.BOW
                 AmmoKind.BOLTS -> Weapons.CROSSBOW
                 AmmoKind.DARTS -> Weapons.THROWN
+                AmmoKind.CHINCHOMPAS -> Weapons.GRENADE
             }
             if (category != expected) logger.warn { "${type.name} (${type.id}) has weapon category $category, not $expected; it won't fire" }
         }
 
         /** The Wiki's longest attack range; longrange's +2 stops here too. */
         const val MAX_RANGE = 10
+
+        /** Black chinchompas': 12 in PvM (OSRS Wiki, Black chinchompa). */
+        const val MAX_TARGETS = 12
 
         /** The Venator bow's: a shot goes on to up to two more targets (OSRS Wiki, Venator bow). */
         const val MAX_BOUNCES = 2
