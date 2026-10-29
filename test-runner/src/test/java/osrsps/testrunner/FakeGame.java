@@ -20,6 +20,7 @@ class FakeGame implements Game
 	/** When set, npcOption fails with this until cleared. */
 	String npcError;
 	String locError;
+	/** When set, takeItem and groundItemOption fail with this until cleared. */
 	String takeError;
 	/** The locs locAt finds, as "name at x y" or "name with option at x y". */
 	final List<String> locs = new ArrayList<>();
@@ -51,7 +52,7 @@ class FakeGame implements Game
 	final Map<Integer, int[]> varbits = new HashMap<>();
 	/** The interfaces interfaceOpen says are open. */
 	final List<Integer> openInterfaces = new ArrayList<>();
-	/** When set, itemOption, wornOption and clickWidget fail with this until cleared. */
+	/** When set, itemOption, useItemOnItem, wornOption and clickWidget fail with this until cleared. */
 	String clickError;
 	/** What wornId answers by wearpos; a missing slot is empty. */
 	final Map<Integer, Integer> worn = new HashMap<>();
@@ -167,6 +168,28 @@ class FakeGame implements Game
 			return takeError;
 		}
 		actions.add("Take " + (name != null ? name : "item " + id) + (at == null ? "" : " at " + at.x + " " + at.y));
+		return null;
+	}
+
+	@Override
+	public String groundItemOption(String name, int id, int op, String option, Tile at)
+	{
+		if (takeError != null)
+		{
+			return takeError;
+		}
+		actions.add(option + " op " + op + " " + (name != null ? name : "item " + id) + (at == null ? "" : " at " + at.x + " " + at.y));
+		return null;
+	}
+
+	@Override
+	public String useItemOnItem(String name, int id, String onName, int onId)
+	{
+		if (clickError != null)
+		{
+			return clickError;
+		}
+		actions.add("Use " + (name != null ? name : "item " + id) + " on " + (onName != null ? onName : "item " + onId));
 		return null;
 	}
 
