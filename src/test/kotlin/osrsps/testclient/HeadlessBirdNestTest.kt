@@ -61,24 +61,31 @@ class HeadlessBirdNestTest {
     }
 
     @Test
-    fun `searching a ring nest with a full backpack says so and keeps the nest`(@TempDir dir: Path) {
+    fun `searching with a full backpack says so and keeps the nest, even when the seed would stack`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
-                client.command("item ${BirdNests.RING}")
-                client.command("item $POT 27")
+                // A seed already held could stack, but the nest isn't rolled without a free slot, or a full backpack
+                // could reroll it until it gave that seed.
+                client.command("item ${BirdNests.SEEDS}")
+                client.command("item $ACORN")
+                client.command("item $POT 26")
                 client.await("a full backpack") { if (client.inventory(BACKPACK).count { it != null } == 28) Unit else null }
-                val slot = client.slotOf(BirdNests.RING)
-                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, SEARCH_BUTTON_OP, slot, BirdNests.RING)
-                client.seen("[birdnest.inventory_full]")
-                client.awaitTicks(2)
-                assertEquals(BirdNests.RING, client.inventory(BACKPACK)[slot]?.id)
+                val slot = client.slotOf(BirdNests.SEEDS)
+                repeat(3) {
+                    client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, SEARCH_BUTTON_OP, slot, BirdNests.SEEDS)
+                    client.awaitTicks(2)
+                }
+                assertEquals(3, client.messages().count { it.text == "[birdnest.inventory_full]" })
+                assertEquals(BirdNests.SEEDS, client.inventory(BACKPACK)[slot]?.id)
+                assertEquals(1, client.inventory(BACKPACK).filterNotNull().single { it.id == ACORN }.count)
             }
         }
     }
 
     private companion object {
         const val POT = 1931
+        const val ACORN = 5312
         const val BACKPACK = 93
         const val TAKE = 3
 

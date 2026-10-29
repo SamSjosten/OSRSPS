@@ -316,7 +316,7 @@ nest in its slot and puts its seed, ring or egg in the backpack.
 | Seed nest 65 in 100, ring nest 32, each egg nest 1; the seed (out of 1,011) and ring (out of 100) tables | OSRS Wiki nest pages |
 | Lands on a free tile next to the player, the west one twice as likely | guessed from the Wiki's "biased west" |
 | The player's alone for 100 ticks, gone after 1,200 (four times a drop's 300) | guessed from the Wiki's June 2022 change |
-| Searching needs a free slot unless the item stacks onto one held | guessed |
+| Searching needs a free slot, whatever is in the nest (so a full backpack can't reroll it) | guessed |
 | Out: clue nests, Forestry, the strung rabbit foot, twitcher's gloves | out of scope |
 
 ## Items and inventory

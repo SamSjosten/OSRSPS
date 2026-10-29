@@ -31,7 +31,7 @@ class NestEntry(val obj: Int, val weight: Int)
  * contents; obj ids by gameval name from the 241 cache. Guessed: which tile (the Wiki quotes Mod Ash, "biased west",
  * here the west tile counts twice among the free ones), the timers (a drop's 100 ticks private, then four times a
  * drop's 300 ticks on the ground, from the Wiki's note that nests were made to last four times longer in June 2022),
- * and searching needing a free slot unless the item stacks onto one held. No sound: the 241 synth ids have no names.
+ * and searching needing a free slot, whatever is in the nest. No sound: the 241 synth ids have no names.
  * Out: clue nests (clues are out of scope), Forestry, the strung rabbit foot and twitcher's gloves.
  */
 class BirdNests(private val world: World, private val collision: CollisionMap) {
@@ -75,13 +75,14 @@ class BirdNests(private val world: World, private val collision: CollisionMap) {
     private suspend fun ScriptContext.search(slot: Int, nest: Int) {
         if (player.inventory[slot]?.id != nest) return
         val text = world.textFor(player)
-        val item = pick(world.random, CONTENTS.getValue(nest))
-        val type = world.objTypes[item] ?: error("No obj type $item in a bird nest")
-        val stacksOnto = type.stackable && player.inventory.count(item) > 0
-        if (player.inventory.freeSlots == 0 && !stacksOnto) {
+        // The room is checked before the roll: a check on what came out would let a full backpack holding one seed
+        // reroll a nest until it gave that seed.
+        if (player.inventory.freeSlots == 0) {
             player.message(text[BirdNestLines.INVENTORY_FULL])
             return
         }
+        val item = pick(world.random, CONTENTS.getValue(nest))
+        val type = world.objTypes[item] ?: error("No obj type $item in a bird nest")
         player.inventory[slot] = InvObj(EMPTY_NEST, 1)
         player.inventory.add(type, 1)
         player.message(text[BirdNestLines.SEARCH, "item" to type.name.lowercase()])
