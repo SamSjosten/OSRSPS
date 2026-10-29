@@ -38,6 +38,10 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         // Inferred from settings_side_dropdown_open; RSMod sends the same ranges.
         send(player, IfSetEventsV2(SettingsSide.INTERFACE, SettingsSide.ATTACK_PRIORITY_PLAYER_BUTTONS, 1, SettingsSide.PLAYER_PRIORITY_OPTIONS, 0, IF_EVENT_OP1))
         send(player, IfSetEventsV2(SettingsSide.INTERFACE, SettingsSide.ATTACK_PRIORITY_NPC_BUTTONS, 1, SettingsSide.NPC_PRIORITY_OPTIONS, 0, IF_EVENT_OP1))
+        // And the volume sliders' IF_SCRIPT_TRIGGER, which each names its bobble (settings_side_*_volume_pos).
+        for (volume in SettingsSide.Volume.entries) {
+            send(player, IfSetEventsV2(SettingsSide.INTERFACE, volume.slider, -1, -1, IF_EVENT_SCRIPT_TRIGGER, 0))
+        }
         // Inferred: the client's scroll-wheel zoom clamps to varcs camera_zoom_small/big_min/max, which start at 0.
         // In the 241 cache only script 626 (no arguments, 128 to 896) or 603/604 with explicit limits set them, and
         // no script or main game interface calls 626, so the server has to. Not checked against a live login.
@@ -238,6 +242,13 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
          * while op 1 was set only in the first word.
          */
         const val IF_EVENT_OP1 = 1 shl 0
+
+        /**
+         * IF_SETEVENTS_V2 first word: the component may send IF_SCRIPT_TRIGGER (cs2 `if_runscript`). Without it the 241
+         * client runs the script's other commands and sends nothing. Found on the VM (2026-10-29) by clicking the
+         * master volume slider with each bit set alone: bit 23 sent it, none of bits 0 to 22 or 24 to 30 did.
+         */
+        const val IF_EVENT_SCRIPT_TRIGGER = 1 shl 23
     }
 }
 
