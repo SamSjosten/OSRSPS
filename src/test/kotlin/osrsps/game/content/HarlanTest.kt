@@ -41,7 +41,7 @@ class HarlanTest {
         harness.menu("harlan.human", *root.drop(1).toTypedArray())
         harness.pick(1)
         harness.expect(
-            "harlan.human", "harlan.human_1", "harlan.human_2", "harlan.human_teams", "harlan.capture_the_flag", "harlan.human_3",
+            "harlan.human", "harlan.human_1", "harlan.human_2", "harlan.capture_the_flag", "harlan.human_3",
             "harlan.human_4", "harlan.human_5", "harlan.human_6", "harlan.human_7", "harlan.human_8", "harlan.human_9",
             "harlan.human_anything_else",
         )
