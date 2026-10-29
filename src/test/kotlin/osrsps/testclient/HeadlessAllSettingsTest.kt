@@ -1,6 +1,7 @@
 package osrsps.testclient
 
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -81,7 +82,8 @@ class HeadlessAllSettingsTest {
                 client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
                 client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
             }
-            server.loginAgain("bob").use { client ->
+            server.awaitNobodyOn()
+            server.login("bob").use { client ->
                 client.awaitBits(SETTINGS_VARP_2, 31, 1, 1)
                 client.awaitBits(MOBILE_OPTIONS_TRANSMIT, 6, 1, 1)
                 assertEquals(0, (client.varp(CHAT_FILTER_ASSIST) ushr 3) and 1)
@@ -162,13 +164,16 @@ class HeadlessAllSettingsTest {
     private fun HeadlessClient.awaitBits(varp: Int, start: Int, width: Int, value: Int) =
         await("varp $varp bits $start+$width = $value") { Unit.takeIf { (varp(varp) ushr start) and ((1 shl width) - 1) == value } }
 
-    /** Logs in once the server has let the last login of [name] go: until then a login is refused as still on. */
-    private fun TestServer.loginAgain(name: String): HeadlessClient {
-        repeat(50) {
-            runCatching { login(name) }.onSuccess { return it }
-            Thread.sleep(100)
+    /**
+     * Waits until the world has let every player go: it saves a player before it frees their slot, and counts the
+     * slots at the end of that cycle. Until then a login as the same name is refused as still on.
+     */
+    private fun TestServer.awaitNobodyOn() {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+        while (world.playerCount != 0) {
+            check(System.nanoTime() < deadline) { "Timed out waiting for the world to let the last player go" }
+            Thread.sleep(10)
         }
-        return login(name)
     }
 
     private companion object {
