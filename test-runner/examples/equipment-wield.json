@@ -4,6 +4,7 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "game messages show their keys, whatever data/dialogue.txt holds"},
   {"step": "assertEquipment", "slot": "weapon", "empty": true},
   {"step": "assertEquipment", "slot": "shield", "empty": true},
   {"step": "command", "text": "::item bronze axe", "expectMessage": "Added 1 x Bronze axe"},
@@ -32,7 +33,7 @@
   {"step": "assertPose", "idle": 2561, "comment": "human_dh_weapon_ready; which weapon gets which stance is guessed (Weapons.kt)"},
   {"step": "command", "text": "::item abyssal whip", "expectMessage": "Added 1 x Abyssal whip"},
   {"step": "itemOption", "item": "Abyssal whip", "option": "Wield"},
-  {"step": "assertMessage", "contains": "You are not a high enough level to use this item."},
+  {"step": "assertMessage", "contains": "[equipment.level_too_low]"},
   {"step": "assertEquipment", "slot": "weapon", "item": "Bronze 2h sword"},
   {"step": "command", "text": "::setlevel attack 70", "expectMessage": "set to level 70"},
   {"step": "itemOption", "item": "Abyssal whip", "option": "Wield"},
@@ -43,6 +44,7 @@
   {"step": "wornOption", "slot": "weapon", "option": "Remove"},
   {"step": "assertEquipment", "slot": "weapon", "empty": true},
   {"step": "assertInventory", "item": "Abyssal whip", "count": 1},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

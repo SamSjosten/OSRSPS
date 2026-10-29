@@ -75,7 +75,7 @@ class EquipmentTabTest {
     fun `too low a level says so and leaves the item`() {
         player.inventory.add(whip, 1)
         inventoryTab.click(player, 0, 4151, 3)
-        assertEquals(listOf(EquipmentTab.LEVEL_TOO_LOW, "You need to have an Attack level of 70."), messages())
+        assertEquals(listOf("[equipment.level_too_low]", "[equipment.level article=an skill=Attack level=70]"), messages())
         assertEquals(InvObj(4151, 1), player.inventory[0])
     }
 
@@ -93,7 +93,7 @@ class EquipmentTabTest {
         repeat(28) { player.inventory.add(ring, 1) }
         tab.clickWornItems(player, 18, 1)
         assertEquals(InvObj(1351, 1), player.equipment[WearPos.WEAPON])
-        assertEquals(listOf(EquipmentTab.NO_SPACE), messages())
+        assertEquals(listOf("[equipment.no_space]"), messages())
     }
 
     @Test
