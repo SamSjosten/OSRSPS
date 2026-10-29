@@ -120,6 +120,7 @@ class ScriptRunner(
         state.suspended = null
         state.delayedUntil = 0
         state.paused = null
+        state.counting = null
     }
 
     /**
@@ -132,6 +133,17 @@ class ScriptRunner(
         if (paused.component != component || sub !in paused.subs) return false
         state.paused = null
         paused.continuation.resume(sub)
+        return true
+    }
+
+    /**
+     * The client sent the amount the player typed (resume_p_countdialog). Carries on the script waiting for it, now,
+     * and returns true; returns false when none waits (the dialog was closed, or an old or forged packet).
+     */
+    fun resumeCount(player: Player, count: Int): Boolean {
+        val continuation = player.scripts.counting ?: return false
+        player.scripts.counting = null
+        continuation.resume(count)
         return true
     }
 
@@ -220,6 +232,13 @@ class ScriptRunner(
         // Only one dialogue shows at a time: a script that opens another drops the one waiting on the old.
         if (state.paused != null) logger.debug { "Dropping ${player.username}'s script waiting on a dialogue for a new one" }
         return suspendCoroutine { continuation -> state.paused = PausedScript(component, subs, continuation) }
+    }
+
+    internal suspend fun countDialog(player: Player): Int {
+        val state = player.scripts
+        // One prompt at a time, as in the client: a second replaces the first, whose script never carries on.
+        if (state.counting != null) logger.debug { "Dropping ${player.username}'s script waiting on an amount for a new one" }
+        return suspendCoroutine { continuation -> state.counting = continuation }
     }
 
     /** Where a script ends up when it finishes or throws. One bad script shouldn't cost everyone the tick. */

@@ -106,12 +106,25 @@ class CastleTalkTest {
     }
 
     @Test
-    fun `the banker's bank options end the talk while there is no bank`() {
-        h.talk { with(Bankers) { banker() } }
+    fun `asking the banker for the bank ends the talk with the bank to open`() {
+        var bank = false
+        h.talk { bank = with(Bankers) { banker() } }
         h.expect("banker.greeting")
         h.menu("banker.open_bank", "banker.pin", "banker.collect", "banker.buy_slots", "banker.what_place")
         h.pick(1)
         kotlin.test.assertEquals(-1, h.player.chatModal)
+        kotlin.test.assertTrue(bank)
+    }
+
+    @Test
+    fun `asking the Banker tutor for the account ends the talk with the bank to open`() {
+        var bank = false
+        h.talk { bank = with(Bankers) { tutor() } }
+        h.expect("banker_tutor.greeting")
+        h.menu("banker_tutor.how_it_works", "banker_tutor.access", "banker_tutor.pin", "banker_tutor.collect", "banker_tutor.buy_slots")
+        h.pick(2)
+        kotlin.test.assertEquals(-1, h.player.chatModal)
+        kotlin.test.assertTrue(bank)
     }
 
     @Test

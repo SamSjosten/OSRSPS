@@ -65,10 +65,10 @@ object BankerTutorLines : Lines("banker_tutor", "Transcript:Banker tutor") {
 
 /**
  * The bankers on the castle's top floor: the Banker (multi-NPC 6520, which players see as 2897 while varbit 4153 is 0)
- * and the Banker tutor (3227). From the Wiki: both conversations. Not built yet: the bank, PIN settings, the collection
- * box and buying bank space, so those options end the conversation (Sam, 2026-10-25: Bank does nothing for now), and
- * the Bank and Collect options do nothing. Guessed: every chathead expression; that the tutor's topic menu comes back
- * after each topic (the Wiki doesn't say where they lead).
+ * and the Banker tutor (3227). From the Wiki: both conversations; asking for the bank opens it. Not built yet: PIN
+ * settings, the collection box and buying bank space, so those options end the conversation, and Collect does nothing.
+ * Guessed: every chathead expression; that the tutor's topic menu comes back after each topic (the Wiki doesn't say
+ * where they lead).
  */
 object Bankers {
     /** banker1_new: the banker players see. */
@@ -76,9 +76,14 @@ object Bankers {
     const val BANKER_TUTOR = 3227
     const val TALK_TO = 1
 
-    internal suspend fun Dialogue.banker() = with(BankerLines) {
+    /** The NPCs' Bank option (op3 in the 241 cache). */
+    const val BANK = 3
+
+    /** Returns true when the player asked for their bank. */
+    internal suspend fun Dialogue.banker(): Boolean = with(BankerLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
         when (choice(OPEN_BANK, PIN, COLLECT, BUY_SLOTS, WHAT_PLACE)) {
+            1 -> return true
             4 -> chatPlayer(ChatAnim.QUIZ, BUY_SLOTS)
             5 -> {
                 chatPlayer(ChatAnim.QUIZ, WHAT_PLACE)
@@ -87,14 +92,18 @@ object Bankers {
                 chatNpc(ChatAnim.HAPPY, SAFEKEEPING)
             }
         }
+        false
     }
 
-    internal suspend fun Dialogue.tutor() = with(BankerTutorLines) {
+    /** Returns true when the player asked for their bank. */
+    internal suspend fun Dialogue.tutor(): Boolean = with(BankerTutorLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
         when (choice(HOW_IT_WORKS, ACCESS, PIN, COLLECT, BUY_SLOTS)) {
             1 -> tutorTopics()
+            2 -> return true
             5 -> chatPlayer(ChatAnim.QUIZ, BUY_SLOTS)
         }
+        false
     }
 
     /** The topic menu, again after each topic, and the PIN menu after the PIN topic, until the player says goodbye. */
@@ -139,14 +148,21 @@ object Bankers {
     }
 }
 
-/** The bankers' Talk-to, from across their booths. Bank and Collect do nothing yet. */
+/** The bankers' Talk-to and Bank, from across their booths. Collect does nothing yet. */
 fun registerBankers(world: World) {
     world.npcInteractions.reachOverCounter(Bankers.BANKER)
     world.npcInteractions.reachOverCounter(Bankers.BANKER_TUTOR)
     world.handlers.onNpc(Bankers.BANKER, Bankers.TALK_TO) { op ->
-        world.dialogues.start(this, op.npc) { with(Bankers) { banker() } }
+        var bank = false
+        world.dialogues.start(this, op.npc) { bank = with(Bankers) { banker() } }
+        if (bank) world.bankScreen.open(player)
     }
     world.handlers.onNpc(Bankers.BANKER_TUTOR, Bankers.TALK_TO) { op ->
-        world.dialogues.start(this, op.npc) { with(Bankers) { tutor() } }
+        var bank = false
+        world.dialogues.start(this, op.npc) { bank = with(Bankers) { tutor() } }
+        if (bank) world.bankScreen.open(player)
+    }
+    for (banker in listOf(Bankers.BANKER, Bankers.BANKER_TUTOR)) {
+        world.handlers.onNpc(banker, Bankers.BANK) { world.bankScreen.open(player) }
     }
 }

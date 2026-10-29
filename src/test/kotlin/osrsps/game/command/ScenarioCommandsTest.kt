@@ -97,8 +97,10 @@ class ScenarioCommandsTest {
 
     @Test
     fun `reset puts back everything the scenario changed`() {
+        player.bank[0] = InvObj(995, 500)
         val before = PlayerSave.of(player).toJson("test")
         run("scenario cows")
+        assertTrue(player.bank.isEmpty())
         run("reset")
         assertEquals("Back to how you were before ::scenario cows.", replies.last())
         assertEquals(listOf(3222, 3218, 0), listOf(player.x, player.z, player.level))
@@ -112,6 +114,7 @@ class ScenarioCommandsTest {
         assertEquals(1, player.vars[300])
         assertEquals(listOf(5 to InvObj(1351, 1)), player.inventory.contents())
         assertEquals(listOf(WearPos.WEAPON to InvObj(1351, 1)), player.equipment.contents())
+        assertEquals(listOf(0 to InvObj(995, 500)), player.bank.contents())
         assertNull(player.scenario)
         assertNull(player.beforeScenario)
         assertEquals(before, PlayerSave.of(player).toJson("test"))

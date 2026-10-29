@@ -81,6 +81,22 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `the bank is saved, and a save without one loads with an empty bank`() {
+        val player = world.loadPlayer(1, "Test")
+        player.bank[0] = InvObj(995, 2_000_000_000)
+        player.bank[Inventory.BANK_CAPACITY - 1] = InvObj(1511, 400)
+        assertTrue(world.save(player))
+        assertEquals(listOf(0 to InvObj(995, 2_000_000_000), 1409 to InvObj(1511, 400)), world.loadPlayer(2, "test").bank.contents())
+
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("none")
+        assertTrue("bank" !in none)
+        saves.write("none", none)
+        assertTrue(world.loadPlayer(3, "none").bank.isEmpty())
+        val past = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), bank = mapOf(1410 to InvObj(995, 1))).toJson("test")
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(past) }
+    }
+
+    @Test
     fun `a save from before equipment loads with nothing worn`() {
         val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
         saves.write("test", text.replace(Regex(",\\s*\"equipment\": \\[\\s*]"), ""))

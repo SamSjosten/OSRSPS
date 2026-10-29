@@ -1,0 +1,184 @@
+{
+ "name": "Rest of Lumbridge step 2: the bank at the castle's booths: deposit, withdraw, notes, deposit inventory, kept over a logout",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack and an empty bank; ::reset at the end puts both back"
+  },
+  {
+   "step": "command",
+   "text": "::item logs 5",
+   "expectMessage": "Added 5 x Logs"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 1000",
+   "expectMessage": "Added 1,000 x Coins"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 5
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 3220 2",
+   "expectMessage": "Teleported to 3209, 3220, 2"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank booth",
+   "option": "Bank",
+   "comment": "the castle's top floor booths"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "comment": "bankmain, with bankside (15) beside it"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 12,
+   "component": 8,
+   "contains": "900",
+   "comment": "the bank's capacity"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 15,
+   "component": 3,
+   "slot": 0,
+   "op": 3,
+   "comment": "Deposit-1 on the first log"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 4
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 15,
+   "component": 3,
+   "slot": 1,
+   "op": 8,
+   "comment": "Deposit-All on a log takes all four"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 0
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 15,
+   "component": 3,
+   "slot": 5,
+   "op": 8,
+   "comment": "Deposit-All on the coins"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 0,
+   "op": 3,
+   "comment": "Withdraw-5 on the logs, the bank's first slot"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 5
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 47,
+   "op": 1,
+   "comment": "Deposit inventory"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 0
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 25,
+   "op": 1,
+   "comment": "withdraw as notes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 0,
+   "op": 7,
+   "comment": "Withdraw-All on the logs: five noted logs"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1512,
+   "count": 5
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 0,
+   "op": 4,
+   "comment": "the logs' slot is gone, so the coins are first now: Withdraw-10"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 10
+  },
+  {
+   "step": "logout",
+   "comment": "the bank is saved with the account"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank booth",
+   "option": "Bank"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 0,
+   "op": 7,
+   "comment": "Withdraw-All on the 990 coins still banked"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 1000
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
