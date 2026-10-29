@@ -32,6 +32,9 @@ class HeadlessSaveHygieneTest {
     private class FlakyStore : SaveStore {
         val saves = ConcurrentHashMap<String, String>()
 
+        /** Every key written, in order. */
+        val written: MutableList<String> = java.util.Collections.synchronizedList(ArrayList())
+
         @Volatile
         var failing = false
 
@@ -40,6 +43,7 @@ class HeadlessSaveHygieneTest {
         override fun write(key: String, text: String) {
             if (failing) throw IOException("disk full (test)")
             saves[key] = text
+            written += key
         }
     }
 
@@ -69,12 +73,16 @@ class HeadlessSaveHygieneTest {
                     // Public after 100 ticks, 2 s here.
                     gina.await("the axe turning public", timeoutMillis = 10_000) { gina.groundObjs().firstOrNull { it.id == AXE } }
                     store.saves.clear()
+                    store.written.clear()
                     gina.objOp(AXE, World.SPAWN_X, World.SPAWN_Z, TAKE)
                     gina.await("the axe in her backpack") { gina.inventory(BACKPACK).firstOrNull { it?.id == AXE } }
                     // Both saved by the take itself, with both still in the world: a crash now gives the axe to gina alone.
-                    gina.await("both saves") { if (store.saves.keys.containsAll(listOf("frank", "gina"))) Unit else null }
+                    // Within a second, long before the autosave (every 300 cycles, 6 s here) could have written them.
+                    gina.await("both saves", timeoutMillis = 1_000) { if (store.saves.keys.containsAll(listOf("frank", "gina"))) Unit else null }
                     assertEquals(0, axes(store.saves["frank"]))
                     assertEquals(1, axes(store.saves["gina"]))
+                    // Frank first: a crash between the writes loses the axe rather than leaving it in both saves.
+                    assertEquals(listOf("frank", "gina"), store.written.take(2))
                 }
             }
         }

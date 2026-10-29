@@ -348,8 +348,9 @@ class GroundObjs(
         player.inventory.add(type, obj.count)
         // Guessed: only a take that worked makes the sound; RSMod plays it before checking.
         player.sound(SOUND_PICK)
-        val owner = obj.owner
-        if (owner != null && owner != player.saveKey) handedOver(player, owner)
+        // Whose it was, not who can see it: a drop has no owner left once it has turned public.
+        val dropper = obj.droppedBy
+        if (dropper != null && dropper != player.saveKey) handedOver(player, dropper)
         return true
     }
 

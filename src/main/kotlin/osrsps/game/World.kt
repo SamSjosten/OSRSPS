@@ -184,10 +184,11 @@ class World(
     val groundObjs = GroundObjs(
         zones, objTypes, scripts, collision, { findPlayer(it) != null }, { players.count { it != null } },
         // Both sides of a hand-over are saved at once, so a crash can't give the item back to one and leave it with
-        // the other. Live's saves are its own business; this is ours.
+        // the other. The one who let it go first: a crash between the two writes then loses the item rather than
+        // doubling it. Live's saves are its own business; this is ours.
         handedOver = { taker, owner ->
-            save(taker)
             findPlayer(owner)?.let(::save)
+            save(taker)
         },
     )
 
