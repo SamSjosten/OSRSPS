@@ -2,7 +2,6 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.EquipmentTab
@@ -95,7 +94,8 @@ class HeadlessBlowpipeTest {
                 client.await("the blowpipe charged") { client.carried(Blowpipe.LOADED).takeIf { it == 1 } }
                 client.useOn(DRAGON_DART, Blowpipe.LOADED)
                 client.awaitMessage("the darts in it") { it == "Darts: Dragon dart x 50. Scales: 1,000 (6.1%)." }
-                assertEquals(0, client.carried(DRAGON_DART))
+                // The inventory update can come after the message.
+                client.await("the darts gone from the pack") { if (client.carried(DRAGON_DART) == 0) Unit else null }
                 client.itemOp(Blowpipe.LOADED, WIELD)
                 client.await("the blowpipe worn") { client.inventory(WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == Blowpipe.LOADED } }
                 client.commandReply("god") { it.startsWith("You can") }
