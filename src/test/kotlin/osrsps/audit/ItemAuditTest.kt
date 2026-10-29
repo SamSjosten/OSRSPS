@@ -79,6 +79,8 @@ class ItemAuditTest {
      */
     @Test
     @EnabledIfEnvironmentVariable(named = "OSRSPS_FLATCACHE", matches = ".+")
+    @EnabledIfEnvironmentVariable(named = "OSRSPS_WIKI_EQUIPMENT", matches = ".+")
+    @EnabledIfEnvironmentVariable(named = "OSRSPS_WIKI_ITEMS", matches = ".+")
     fun `audit the live cache against the Wiki`() {
         val cache = FlatCache(Path(System.getenv("OSRSPS_FLATCACHE")))
         val names = cache.group(GAMEVAL_INDEX, GAMEVAL_OBJS)
