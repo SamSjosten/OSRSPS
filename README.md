@@ -302,7 +302,14 @@ client's own scripts', built from the varbits the buttons set.
 | Deposit-1, -5, -10, -X, -All (ops 2 to 8) on the inventory beside it; Examine op 10. A deposit takes from the item's other slots too | 241 client script bankside_drawitem; RSMod |
 | -X asks "Enter amount:" (client script meslayer_mode7); the amount becomes the requested quantity the menus offer next. Walking or closing the bank closes the prompt | client scripts; closing the prompt is guessed |
 | Everything stacks; notes go in as their item; Note withdraws a noted stack, or the item itself with "This item cannot be withdrawn as a note." | RSMod |
-| The bank has no gaps until tabs come: emptying a slot moves the ones after it up | RSMod's main tab, inferred |
+| Tabs 1 to 9 come first, then the main tab; their sizes are varbits bank_tab_1 to 9, and bank_currenttab is the tab viewed (0 shows all) | 241 client scripts (bank_gettabrange, bankmain_build) |
+| The bank has no gaps: every change closes them, and a tab that empties goes, the later ones moving down; the tab viewed follows its tab | RSMod; RSMod's main tab can keep a gap after a drag, ours can't |
+| A new item goes at the end of the tab viewed (the main tab when viewing all) | RSMod |
+| Drag an item onto a tab, onto the space after a tab's last item, or onto New tab (the icon after the last tab); an insert into another tab goes in front of the item dropped on | 241 client scripts (bankmain_tabicon, script509); RSMod |
+| Tab ops: View tab, Collapse tab (its items go to the end of the main tab), Remove placeholders (that tab's only, the main tab's too); drag a tab onto another to move it; a click on New tab says "To create a new tab, drag items from your bank onto this tab." | 241 client scripts; RSMod |
+| Search filters in the client alone (meslayer mode 11); the server views all items and closes the search line with the bank | 241 client scripts; RSMod |
+| Settings menu: the toggles, tab display, Release all placeholders and the fillers (1, 10, 50, X, All, then Fill), each "are you sure" in popupoverlay. Fillers fill free space at the end of the main tab; Clear and Clear-All take them | 241 client scripts (script1428, enum_1907, script4212); RSMod's messages |
+| The incinerator burns the item it is given | RSMod |
 | Placeholders: the Placeholder option, or Always set placeholders, leave one; a deposit fills it; Release takes it away | 241 client scripts; RSMod |
 | Swap or Insert for drags; a drag past the end moves the item to the end. Drags in the inventory beside it swap | 241 client script bankmain_reorder; RSMod |
 | Deposit inventory and Deposit worn items, "You have nothing to deposit." when empty | RSMod |
@@ -310,12 +317,16 @@ client's own scripts', built from the varbits the buttons set.
 | Opening the bank always starts on withdrawing items, not notes | RSMod; not checked |
 | A member's bank holds 900 | OSRS Wiki, Bank (2026-10-29) |
 
-Not built yet (step 3 of the Rest of Lumbridge plan): bank tabs, the worn items view, search, the deposit box, bank
-fillers, PINs, Collect and buying bank space.
+Not built yet (step 3b of the Rest of Lumbridge plan): the worn items view, the inventory's extra options (Wear, Eat),
+the deposit box and the PIN talk. Not built at all yet: potion storage, deposit locks, bank tags' storage, Collect and
+buying bank space.
 
 Check: `::item logs 5`, Bank at a castle booth, Deposit-All, Withdraw-X 2, then Note and Withdraw-All: two logs and
 three noted logs. Log out and in: what you banked is still there (`test-runner/examples/lumbridge-bank.json` does most
-of it in the real client; it can't type an amount, so -X is left to the headless test).
+of it in the real client; it can't type an amount, so -X is left to the headless test). For tabs, `::scenario
+lumbridge-bank-tabs` starts at the booths with logs and an axe in tab 1: Placeholder on the logs, deposit them back
+and they are in slot 0 again; Collapse tab puts them after the coins (`test-runner/examples/lumbridge-bank-tabs.json`,
+which also fills and clears fillers; the runner can't drag yet, so dragging into tabs is left to the headless test).
 
 ## Equipment
 
@@ -843,7 +854,7 @@ any varps or varbits. Scenarios are JSON files in `src/main/resources/scenarios/
 
 | Scenario behaviour | Source |
 |--------------------|--------|
-| What a scenario leaves out is reset: unnamed skills are a new account's, run energy is full, slots it doesn't fill are empty, the bank is empty | ours, so a scenario always starts the same |
+| What a scenario leaves out is reset: unnamed skills are a new account's, run energy is full, slots it doesn't fill are empty, the bank holds only what it lists, in the tabs it names | ours, so a scenario always starts the same |
 | Varps and varbits it doesn't name, and the run orb unless it says, are kept | ours: they hold settings and quest states |
 | Starting one, or `::reset`, closes interfaces and drops queued scripts, timers, delays and clicks held while paused | ours |
 | Items are checked against the cache before anything changes; level requirements aren't checked | ours |
@@ -858,6 +869,9 @@ tinderbox and 100 coins, with run on.
 
 `lumbridge-bare` stands you on the Lumbridge spawn (3222, 3218) with a new account's stats and nothing worn or carried:
 the clean start the equipment test scripts use.
+
+`lumbridge-bank-tabs` stands you by the castle's top floor bank booths (3209, 3220, 2) carrying nothing, with logs and
+a bronze axe in bank tab 1 and 1,000 coins in the main tab: for the tab script, as the test runner can't drag.
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.

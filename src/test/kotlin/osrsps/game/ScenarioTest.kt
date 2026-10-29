@@ -113,6 +113,26 @@ class ScenarioTest {
     }
 
     @Test
+    fun `bank items take a slot each, tabs first in order, and the tab sizes come with them`() {
+        val loadout = scenario(
+            """, "bank": [ { "item": "coins", "count": 1000 }, { "item": "lobster", "count": 3, "tab": 2 },
+                { "item": "iron_scimitar", "tab": 1 }, { "item": "steel_scimitar", "tab": 2 } ]""",
+        ).loadout(types)
+        assertEquals(
+            mapOf(0 to InvObj(1323, 1), 1 to InvObj(379, 3), 2 to InvObj(1325, 1), 3 to InvObj(995, 1000)),
+            loadout.bank,
+        )
+        assertEquals(listOf(1, 2, 0, 0, 0, 0, 0, 0, 0), loadout.bankTabs)
+        fun problem(body: String) = assertFailsWith<IllegalArgumentException> { scenario(body).loadout(types) }.message
+        assertEquals("The bank lists an item twice: the bank stacks everything", problem(""", "bank": [ { "item": "coins" }, { "item": "995" } ]"""))
+        assertEquals("Bank tabs must be 1 up with none left out", problem(""", "bank": [ { "item": "coins", "tab": 2 } ]"""))
+        assertEquals(
+            "Scenario test: inventory entry 1: only bank items go in a tab",
+            assertFailsWith<IllegalArgumentException> { scenario(""", "inventory": [ { "item": "coins", "tab": 1 } ]""") }.message,
+        )
+    }
+
+    @Test
     fun `every scenario file in the resources reads`() {
         val scenarios = Scenarios.load()
         assertEquals(Scenarios.FILES.toSet(), scenarios.names)
@@ -122,5 +142,7 @@ class ScenarioTest {
         assertTrue(cows.equipment.isNotEmpty() && cows.inventory.isNotEmpty())
         val bare = scenarios["lumbridge-bare"]!!
         assertTrue(bare.equipment.isEmpty() && bare.inventory.isEmpty() && bare.skills.isEmpty())
+        val tabs = scenarios["lumbridge-bank-tabs"]!!
+        assertEquals(listOf(0, 1, 1), tabs.bank.map { it.tab })
     }
 }

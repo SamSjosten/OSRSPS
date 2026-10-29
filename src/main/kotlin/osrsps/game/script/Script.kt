@@ -76,6 +76,12 @@ class ScriptContext internal constructor(val player: Player, private val runner:
         return runner.countDialog(player).coerceAtLeast(0)
     }
 
+    /**
+     * Stops the script until the client sends a resume_p_countdialog, without opening a prompt: for an interface whose
+     * own buttons send one, as popupoverlay's two buttons send 0 and 1. Dropped like [countDialog]'s.
+     */
+    suspend fun waitForCount(): Int = runner.countDialog(player)
+
     /** Queues [script] for this player; see [ScriptRunner.queue]. */
     fun queue(name: String, type: QueueType = QueueType.NORMAL, delay: Int = 0, script: Script) =
         runner.queue(player, name, type, delay, script)

@@ -280,6 +280,7 @@ class World(
         registerCombatTutors(this)
         registerBones(this)
         registerBanking(this)
+        interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         loadDialogue()
     }
 
