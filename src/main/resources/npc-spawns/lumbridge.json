@@ -1,5 +1,5 @@
 {
-  "about": "Lumbridge NPCs. Tiles are the OSRS Wiki's location maps (checked 2026-10-21), which give the tile but not which of a name's types stands there: cows take cow, cow2 and cow3 (ids 2790, 2791, 2793) in turn and calves cow2_calf and cow3_calf (2792, 2794), guessed. Every wander range is guessed (5; the combat tutors 2, as they keep to their hill) until recorded. The combat tutors' and shop keepers' tiles are RSMod's rev 233 Lumbridge spawns (the Wiki gives no map for them). The castle's NPCs, Hans among them, are in lumbridge-castle.json.",
+  "about": "Lumbridge NPCs. Tiles are the OSRS Wiki's location maps (checked 2026-10-21), which give the tile but not which of a name's types stands there: cows take cow, cow2 and cow3 (ids 2790, 2791, 2793) in turn and calves cow2_calf and cow3_calf (2792, 2794), guessed. Every wander range is guessed (5; the combat tutors 2, as they keep to their hill) until recorded. The combat tutors', shop keepers' and town centre NPCs' tiles are RSMod's rev 233 Lumbridge spawns (the Wiki gives no map for them). Left out of the town: Veos (only here during X Marks the Spot), Barfy Bill (east of the river, with its step), the church's and the farms' NPCs (their own steps), and the Adventure Paths guide, the Deadman and PvP-world NPCs and Aris, whom the cache hides here. The castle's NPCs, Hans among them, are in lumbridge-castle.json.",
   "spawns": [
     {"npc": "cow", "x": 3254, "z": 3255, "wander": 5, "source": "OSRS Wiki, Cow, Locations: Lumbridge cow field"},
     {"npc": "cow2", "x": 3254, "z": 3258, "wander": 5, "source": "OSRS Wiki, Cow, Locations: Lumbridge cow field"},
@@ -35,6 +35,28 @@
     {"npc": "aide_tutor_magic", "x": 3217, "z": 3238, "wander": 2, "source": "Mikasi, the magic combat tutor. RSMod rev 233 Lumbridge spawns"},
     {"npc": "generalshopkeeper1", "x": 3209, "z": 3247, "restrict": "indoors", "wander": 5, "source": "Shop keeper, Lumbridge General Store. RSMod rev 233 Lumbridge spawns, indoors as RSMod has it"},
     {"npc": "generalassistant1", "x": 3212, "z": 3247, "restrict": "indoors", "wander": 5, "source": "Shop assistant, Lumbridge General Store. RSMod rev 233 Lumbridge spawns, indoors as RSMod has it"},
-    {"npc": "bob", "x": 3232, "z": 3203, "restrict": "indoors", "wander": 5, "source": "Bob, Bob's Brilliant Axes. RSMod rev 233 Lumbridge spawns; indoors guessed, so he stays in his shop"}
+    {"npc": "bob", "x": 3232, "z": 3203, "restrict": "indoors", "wander": 5, "source": "Bob, Bob's Brilliant Axes. RSMod rev 233 Lumbridge spawns; indoors guessed, so he stays in his shop"},
+    {"npc": "ram_bartender", "x": 3232, "z": 3241, "restrict": "indoors", "wander": 0, "source": "The Sheared Ram's Bartender, behind his bar. RSMod rev 233 Lumbridge spawns; wander 0 guessed, so he stays at the bar"},
+    {"npc": "aide_tutor_clues", "x": 3229, "z": 3236, "direction": "N", "wander": 0, "source": "Arthur the Clue Hunter, by the Sheared Ram. RSMod rev 233 Lumbridge spawns, which has him stand facing north"},
+    {"npc": "aide_tutor_cooking", "x": 3234, "z": 3196, "restrict": "indoors", "wander": 5, "source": "Cooking tutor, in his house south of Bob's. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "aide_tutor_woodsman", "x": 3228, "z": 3245, "wander": 2, "source": "Woodsman tutor, north of the Sheared Ram. RSMod rev 233 Lumbridge spawns; wander 2 guessed, as he keeps to his trees"},
+    {"npc": "aide_tutor_smithing_apprentice", "x": 3227, "z": 3253, "restrict": "indoors", "wander": 5, "source": "Smithing apprentice, in the smiths' building north of the town. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "lumbridge_guide2_woman", "x": 3216, "z": 3254, "wander": 5, "source": "Donie. RSMod rev 233 Lumbridge spawns (two Donies and two Gees, as RSMod has them)"},
+    {"npc": "lumbridge_guide2_woman", "x": 3235, "z": 3225, "wander": 5, "source": "Donie. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "lumbridge_guide2_man", "x": 3219, "z": 3230, "wander": 5, "source": "Gee. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "lumbridge_guide2_man", "x": 3245, "z": 3261, "wander": 5, "source": "Gee. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "ironman_tutor_1", "x": 3229, "z": 3228, "wander": 5, "source": "Ironman tutor, east of the castle. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "tob_spectator_misthalin", "x": 3210, "z": 3249, "level": 1, "restrict": "indoors", "wander": 5, "source": "Abigaila, upstairs in the General Store. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "man2", "x": 3235, "z": 3219, "wander": 5, "source": "Man, in the town. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "man3", "x": 3217, "z": 3236, "wander": 5, "source": "Man, in the town. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "man3", "x": 3236, "z": 3201, "wander": 5, "source": "Man, in the town. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "man", "x": 3223, "z": 3240, "wander": 5, "source": "Man, in the town. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "man_indoor", "x": 3229, "z": 3238, "restrict": "indoors", "wander": 5, "source": "Man, in the Sheared Ram (man_indoor). RSMod rev 233 Lumbridge spawns"},
+    {"npc": "man", "x": 3231, "z": 3207, "wander": 5, "source": "Man, in the town. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "woman3", "x": 3244, "z": 3211, "wander": 5, "source": "Woman, by the church. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "woman", "x": 3235, "z": 3206, "wander": 5, "source": "Woman, in the town. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "woman2", "x": 3236, "z": 3203, "wander": 5, "source": "Woman, in the town. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "rat", "x": 3232, "z": 3229, "wander": 5, "source": "Rat, in the town. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "rat", "x": 3236, "z": 3222, "wander": 5, "source": "Rat, in the town. RSMod rev 233 Lumbridge spawns"}
   ]
 }

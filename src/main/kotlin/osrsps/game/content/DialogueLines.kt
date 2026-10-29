@@ -9,5 +9,8 @@ object DialogueLines {
     val ALL: List<Lines> = listOf(
         HansLines, CookLines, DukeLines, ManLines, WomanLines, PerduLines, CraftingTutorLines, BankerLines, BankerTutorLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines,
+        // Rest of Lumbridge.
+        ShopKeeperLines, ShopAssistantLines, BobLines, RamBartenderLines, ArthurLines, DonieLines, GeeLines, CookingTutorLines,
+        SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines,
     )
 }

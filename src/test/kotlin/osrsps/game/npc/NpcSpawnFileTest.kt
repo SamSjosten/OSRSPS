@@ -22,6 +22,23 @@ class NpcSpawnFileTest {
         NpcType(2813, "Shop keeper", internalName = "generalshopkeeper1"),
         NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
         NpcType(10619, "Bob", internalName = "bob"),
+        NpcType(7546, "Bartender", internalName = "ram_bartender"),
+        NpcType(8665, "Arthur the Clue Hunter", internalName = "aide_tutor_clues"),
+        NpcType(3219, "Cooking tutor", internalName = "aide_tutor_cooking"),
+        NpcType(3226, "Woodsman tutor", internalName = "aide_tutor_woodsman"),
+        NpcType(3224, "Smithing apprentice", internalName = "aide_tutor_smithing_apprentice"),
+        NpcType(921, "Donie", internalName = "lumbridge_guide2_woman"),
+        NpcType(6816, "Gee", internalName = "lumbridge_guide2_man"),
+        NpcType(311, "Ironman tutor", internalName = "ironman_tutor_1"),
+        NpcType(8368, "Abigaila", internalName = "tob_spectator_misthalin"),
+        NpcType(3106, "Man", internalName = "man"),
+        NpcType(3107, "Man", internalName = "man2"),
+        NpcType(3108, "Man", internalName = "man3"),
+        NpcType(6818, "Man", internalName = "man_indoor"),
+        NpcType(3111, "Woman", internalName = "woman"),
+        NpcType(3112, "Woman", internalName = "woman2"),
+        NpcType(3113, "Woman", internalName = "woman3"),
+        NpcType(2854, "Rat", internalName = "rat"),
     )
 
     private fun file(name: String) = NpcSpawnFile::class.java.getResource("/npc-spawns/$name")!!.readText()
@@ -34,7 +51,19 @@ class NpcSpawnFileTest {
         assertEquals(8, spawns.count { it.type.name == "Cow calf" })
         // The River Lum runs north from Lumbridge at about x 3240; the field is east of it.
         assertTrue(cows.all { it.x > 3240 && it.z in 3250..3300 })
-        assertTrue(spawns.all { it.source.isNotBlank() && it.wander > 0 })
+        // All but the Bartender, at his bar, and Arthur, who stands facing north, wander.
+        assertTrue(spawns.all { it.source.isNotBlank() && (it.wander > 0 || it.type.id in setOf(7546, 8665)) })
+    }
+
+    @Test
+    fun `the town centre's NPCs stand west of the river, Abigaila upstairs in the General Store`() {
+        val spawns = NpcSpawnFile.parse(file("lumbridge.json"), types).spawns
+        val town = spawns.filter { it.type.id in setOf(7546, 8665, 3219, 3226, 3224, 311, 8368) }
+        assertEquals(7, town.size)
+        assertTrue(town.all { it.x < 3240 && it.z in 3190..3260 })
+        assertEquals(1, town.single { it.type.id == 8368 }.level)
+        assertEquals(2, spawns.count { it.type.id == 921 })
+        assertEquals(2, spawns.count { it.type.id == 6816 })
     }
 
     @Test

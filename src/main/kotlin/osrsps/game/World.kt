@@ -70,6 +70,7 @@ import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
+import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -339,6 +340,7 @@ class World(
         registerBanking(this)
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
+        registerLumbridgeTown(this)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         woodcutting.register()
         loadDialogue()

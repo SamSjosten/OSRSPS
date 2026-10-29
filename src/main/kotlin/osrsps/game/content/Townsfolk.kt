@@ -58,9 +58,9 @@ object WomanLines : TownsfolkLines("woman", "Transcript:Woman", "Woman")
  * attacks the player on live; with no combat yet (Sam, 2026-10-25), they only say their line.
  */
 object Townsfolk {
-    /** Man (man, man3) and Woman (woman), the ones in Lumbridge Castle. */
-    val MEN = listOf(3106, 3108)
-    val WOMEN = listOf(3111)
+    /** Man (man, man2, man3, man_indoor) and Woman (woman, woman2, woman3), the ones in Lumbridge. */
+    val MEN = listOf(3106, 3107, 3108, 6818)
+    val WOMEN = listOf(3111, 3112, 3113)
     const val TALK_TO = 1
 
     /** Flier (`flier`), which advertises Bob's Axes. */
