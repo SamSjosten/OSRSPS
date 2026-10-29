@@ -21,6 +21,11 @@ import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.HttpServerCodec
 import io.netty.handler.codec.http.HttpUtil
 import io.netty.handler.codec.http.QueryStringDecoder
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import osrsps.Revision
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
@@ -33,7 +38,9 @@ private val logger = KotlinLogging.logger {}
  * Serves the two files a client launcher needs to find this server, `jav_config.ws` and `world_list.ws`,
  * `proxy-targets.yaml`, an RSProx target for this server that RSProx's "+" button imports from a URL, `version`,
  * the git commit this server was built from, so a script can wait for a deploy to be up, and `status`, that commit
- * with what the server started from and how many JS5 connections it has let in.
+ * with what the server started from and how many JS5 connections it has let in. Our own launcher gets copies of the
+ * first two under `/launcher/` ([ClientKind]), `status.json` ([statusJson]) and RuneLite's world list
+ * ([runeLiteWorlds]).
  *
  * RSProx reads the jav_config's `codebase` host, looks for a world with that host in the world list,
  * and connects to it on the game port. So the host in them must be one the player's PC can reach. Each file is written
@@ -67,20 +74,20 @@ class ClientConfig(
     @Volatile
     var status: List<String> = emptyList()
 
-    /** Lines worked out again for each /status request, after [status]: how many JS5 connections have come in. */
+    /** The game as it is now, read again for each /status and /status.json request; down until the server sets it. */
     @Volatile
-    var liveStatus: () -> List<String> = { emptyList() }
+    var gameStatus: () -> GameStatus = { GameStatus.DOWN }
 
     /** The login RSA key's modulus in hex, once loaded; until then there is no RSProx target to hand out. */
     @Volatile
     var modulusHex: String? = null
 
-    /** The jav_config for a client that reached us at [host]. */
-    fun javConfig(host: String = publicHost): String = buildString {
-        appendLine("title=OSRSPS")
+    /** The jav_config for a client of [kind] that reached us at [host]. */
+    fun javConfig(host: String = publicHost, kind: ClientKind = ClientKind.RSPROX): String = buildString {
+        appendLine("title=${kind.title}")
         appendLine("adverturl=http://$host:$httpPort/advert.ws")
         appendLine("codebase=http://$host/")
-        appendLine("cachedir=osrsps")
+        appendLine("cachedir=${kind.cacheDir}")
         appendLine("storebase=0")
         appendLine("initial_jar=gamepack.jar")
         appendLine("initial_class=client.class")
@@ -123,7 +130,7 @@ class ClientConfig(
         appendLine("param=14=0")
         appendLine("param=15=0")
         appendLine("param=16=false")
-        appendLine("param=17=http://$host:$httpPort/world_list.ws")
+        appendLine("param=17=http://$host:$httpPort${kind.path}/world_list.ws")
         appendLine("param=18=")
         appendLine("param=19=")
         appendLine("param=20=http://$host:$httpPort/")
@@ -134,9 +141,47 @@ class ClientConfig(
         appendLine("param=29=1")
     }
 
-    /** The binary world list for a client that reached us at [host]: one members world there. */
-    fun worldList(host: String = publicHost): ByteArray =
-        encodeWorldList(listOf(World(worldId, WORLD_PROPERTIES, host, "OSRSPS test world", 0, 1)))
+    /** The binary world list for a client of [kind] that reached us at [host]: one members world there. */
+    fun worldList(host: String = publicHost, kind: ClientKind = ClientKind.RSPROX): ByteArray =
+        encodeWorldList(listOf(World(worldId, WORLD_PROPERTIES, host, kind.worldActivity, WORLD_LOCATION, 1)))
+
+    /**
+     * RuneLite's world list, the `worlds.js` of its web API, for a client that reached us at [host]: our one world
+     * there, members as [WORLD_PROPERTIES] says. The launcher points RuneLite's API at /rl/
+     * (`-Drunelite.http-service.url`), so RuneLite's world hopper offers this world and never one of Jagex's.
+     * RuneLite's other calls to its API find nothing there (404), as they found nothing at the launcher spike's
+     * stand-in for the API, which RuneLite ran fine with.
+     */
+    fun runeLiteWorlds(host: String = publicHost): String = buildJsonObject {
+        putJsonArray("worlds") {
+            addJsonObject {
+                put("id", worldId)
+                putJsonArray("types") { add("MEMBERS") }
+                put("address", host)
+                put("activity", ClientKind.LAUNCHER.worldActivity)
+                put("location", WORLD_LOCATION)
+                put("players", gameStatus().players)
+            }
+        }
+    }.toString()
+
+    /**
+     * How the server is doing, for the launcher: whether the game is up and taking logins, the revision it plays (which
+     * RuneLite build to start), the commit it was built from, how many players are in, and the JS5 count /status gives.
+     * The launcher reads it before it starts the game and once a minute after, to see the server move to a new
+     * revision.
+     */
+    fun statusJson(): String {
+        val game = gameStatus()
+        return buildJsonObject {
+            put("up", game.up)
+            put("revision", Revision.MAJOR)
+            put("commit", version)
+            put("players", game.players)
+            put("acceptingLogins", game.acceptingLogins)
+            put("js5Connections", game.js5Connections)
+        }.toString()
+    }
 
     /**
      * The RSProx target for this server, in the format of RSProx's `proxy-targets.yaml`, or null before [modulusHex]
@@ -161,14 +206,24 @@ class ClientConfig(
 
     /** The body and content type for a GET of [path] by a client that reached us at [host]; null for a 404. */
     internal fun respond(path: String, host: String): Response? = when (path) {
-        "/jav_config.ws" -> Response("text/plain; charset=ISO-8859-1", javConfig(host).toByteArray(Charsets.ISO_8859_1))
+        "/jav_config.ws" -> javConfigResponse(host, ClientKind.RSPROX)
         "/world_list.ws" -> Response("application/octet-stream", worldList(host))
+        "/launcher/jav_config.ws" -> javConfigResponse(host, ClientKind.LAUNCHER)
+        "/launcher/world_list.ws" -> Response("application/octet-stream", worldList(host, ClientKind.LAUNCHER))
+        "/rl/worlds.js" -> Response(JSON, runeLiteWorlds(host).toByteArray(Charsets.UTF_8))
         "/proxy-targets.yaml" -> proxyTargets(host)?.let { Response("text/yaml; charset=UTF-8", it.toByteArray(Charsets.UTF_8)) }
             ?: Response("text/plain", ByteArray(0), HttpResponseStatus.SERVICE_UNAVAILABLE)
         "/version" -> Response("text/plain; charset=UTF-8", "$version\n".toByteArray(Charsets.UTF_8))
-        "/status" -> Response("text/plain; charset=UTF-8", (listOf("commit $version") + status + liveStatus()).joinToString("") { "$it\n" }.toByteArray(Charsets.UTF_8))
+        "/status" -> {
+            val lines = listOf("commit $version") + status + "js5 connections ${gameStatus().js5Connections}"
+            Response("text/plain; charset=UTF-8", lines.joinToString("") { "$it\n" }.toByteArray(Charsets.UTF_8))
+        }
+        "/status.json" -> Response(JSON, statusJson().toByteArray(Charsets.UTF_8))
         else -> null
     }
+
+    private fun javConfigResponse(host: String, kind: ClientKind) =
+        Response("text/plain; charset=ISO-8859-1", javConfig(host, kind).toByteArray(Charsets.ISO_8859_1))
 
     internal class Response(val contentType: String, val body: ByteArray, val status: HttpResponseStatus = HttpResponseStatus.OK)
 
@@ -236,6 +291,28 @@ class ClientConfig(
 
     data class World(val id: Int, val properties: Int, val host: String, val activity: String, val location: Int, val population: Int)
 
+    /**
+     * What /status.json says about the game: whether it is [up] (its game loop is running), how many [players] are in
+     * it, whether it is [acceptingLogins], and how many [js5Connections] (cache connections) it has let in since it
+     * started.
+     */
+    data class GameStatus(val up: Boolean, val players: Int, val acceptingLogins: Boolean, val js5Connections: Long) {
+        companion object {
+            val DOWN = GameStatus(up = false, players = 0, acceptingLogins = false, js5Connections = 0)
+        }
+    }
+
+    /**
+     * The clients the jav_config and world list are written for, each under its own [path]. RSProx's keep the names our
+     * setup has always used. Our launcher's leave the game's names out of the jav_config's title and cache folder and
+     * the world's activity line, as the launcher plan's naming rule asks: Odin's Gate, and odinsgate where a name must
+     * do without the apostrophe and the space.
+     */
+    enum class ClientKind(val path: String, val title: String, val cacheDir: String, val worldActivity: String) {
+        RSPROX("", "OSRSPS", "osrsps", "OSRSPS test world"),
+        LAUNCHER("/launcher", "Odin's Gate", "odinsgate", "Odin's Gate"),
+    }
+
     companion object {
         const val WORLD_ID = 301
 
@@ -255,6 +332,11 @@ class ClientConfig(
 
         /** Members world. */
         const val WORLD_PROPERTIES = 1
+
+        /** The world's location in both world lists: 0, the one RSProx gives the worlds it makes up itself. */
+        const val WORLD_LOCATION = 0
+
+        private const val JSON = "application/json; charset=UTF-8"
 
         fun encodeWorldList(worlds: List<World>): ByteArray {
             val payload = ByteArrayOutputStream()

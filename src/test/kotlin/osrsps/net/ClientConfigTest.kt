@@ -1,8 +1,12 @@
 package osrsps.net
 
 import osrsps.Revision
+import osrsps.net.ClientConfig.ClientKind
+import osrsps.net.ClientConfig.GameStatus
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
+import java.net.ServerSocket
+import java.net.Socket
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -87,15 +91,16 @@ class ClientConfigTest {
         val http = ClientConfig("127.0.0.1", 0, gamePort = 43594, version = "3c1b194").also { it.start() }
         try {
             val url = java.net.URI("http://127.0.0.1:${http.boundPort}/status").toURL()
-            assertEquals("commit 3c1b194\n", url.readText())
+            assertEquals("commit 3c1b194\njs5 connections 0\n", url.readText())
             http.status = listOf("cache openrs2 runescape/2740 build 241.3 2026-10-14", "Game frame: ids match the cache's names")
             assertEquals(
-                "commit 3c1b194\ncache openrs2 runescape/2740 build 241.3 2026-10-14\nGame frame: ids match the cache's names\n",
+                "commit 3c1b194\ncache openrs2 runescape/2740 build 241.3 2026-10-14\nGame frame: ids match the cache's names\n" +
+                    "js5 connections 0\n",
                 url.readText(),
             )
-            var js5 = 0
-            http.liveStatus = { listOf("js5 connections $js5") }
-            assertEquals("js5 connections 0", url.readText().lines().dropLast(1).last())
+            var js5 = 1L
+            http.gameStatus = { GameStatus(up = true, players = 0, acceptingLogins = true, js5Connections = js5) }
+            assertEquals("js5 connections 1", url.readText().lines().dropLast(1).last())
             js5 = 3
             assertEquals("js5 connections 3", url.readText().lines().dropLast(1).last())
         } finally {
@@ -119,6 +124,105 @@ class ClientConfigTest {
     }
 
     @Test
+    fun `status json says whether the game is up, its revision and commit, and how busy it is`() {
+        val http = ClientConfig("127.0.0.1", 0, gamePort = 43594, version = "3c1b194").also { it.start() }
+        try {
+            val down = get(http.boundPort, "/status.json")
+            assertEquals(200, down.code)
+            assertEquals("application/json; charset=UTF-8", down.contentType)
+            assertEquals(
+                """{"up":false,"revision":${Revision.MAJOR},"commit":"3c1b194","players":0,"acceptingLogins":false,"js5Connections":0}""",
+                down.body,
+            )
+            http.gameStatus = { GameStatus(up = true, players = 3, acceptingLogins = true, js5Connections = 12) }
+            assertEquals(
+                """{"up":true,"revision":${Revision.MAJOR},"commit":"3c1b194","players":3,"acceptingLogins":true,"js5Connections":12}""",
+                get(http.boundPort, "/status.json").body,
+            )
+        } finally {
+            http.stop()
+        }
+    }
+
+    @Test
+    fun `RuneLite's world list has our one world at the host the client asked by`() {
+        val http = ClientConfig("192.168.0.210", 0, gamePort = 43594).also { it.start() }
+        try {
+            http.gameStatus = { GameStatus(up = true, players = 2, acceptingLogins = true, js5Connections = 5) }
+            val worlds = get(http.boundPort, "/rl/worlds.js", host = "odinsgate.net:43595")
+            assertEquals(200, worlds.code)
+            assertEquals("application/json; charset=UTF-8", worlds.contentType)
+            // RuneLite's World: id, types, address, activity, location, players.
+            assertEquals(
+                """{"worlds":[{"id":301,"types":["MEMBERS"],"address":"odinsgate.net","activity":"Odin's Gate","location":0,"players":2}]}""",
+                worlds.body,
+            )
+            assertContains(get(http.boundPort, "/rl/worlds.js", host = "203.0.113.7").body, """"address":"203.0.113.7"""")
+            // With no usable Host header, the public host.
+            assertContains(get(http.boundPort, "/rl/worlds.js", host = null).body, """"address":"192.168.0.210"""")
+            assertContains(get(http.boundPort, "/rl/worlds.js", host = "a b").body, """"address":"192.168.0.210"""")
+        } finally {
+            http.stop()
+        }
+    }
+
+    @Test
+    fun `launcher clients get a jav config with neutral names, and RSProx keeps its own`() {
+        val launcher = config.javConfig("odinsgate.net", ClientKind.LAUNCHER).lines()
+        assertContains(launcher, "title=Odin's Gate")
+        assertContains(launcher, "cachedir=odinsgate")
+        assertContains(launcher, "codebase=http://odinsgate.net/")
+        assertContains(launcher, "param=17=http://odinsgate.net:43595/launcher/world_list.ws")
+        val rsprox = config.javConfig("odinsgate.net").lines()
+        assertEquals(rsprox.size, launcher.size)
+        assertEquals(
+            listOf("title=OSRSPS", "cachedir=osrsps", "param=17=http://odinsgate.net:43595/world_list.ws"),
+            rsprox.filterIndexed { i, line -> line != launcher[i] },
+            "only the names and the world list's address differ",
+        )
+        val input = DataInputStream(ByteArrayInputStream(config.worldList("odinsgate.net", ClientKind.LAUNCHER)))
+        input.readInt()
+        input.readUnsignedShort()
+        input.readUnsignedShort()
+        input.readInt()
+        assertEquals("odinsgate.net", input.readJagexString())
+        assertEquals("Odin's Gate", input.readJagexString())
+    }
+
+    @Test
+    fun `no name in the launcher's files is the game's`() {
+        // The launcher plan's naming rule: none of RuneScape, OSRS, Jagex, -scape or RSPS.
+        val banned = Regex("runescape|osrs|jagex|scape|rsps", RegexOption.IGNORE_CASE)
+        for (name in listOf(ClientKind.LAUNCHER.title, ClientKind.LAUNCHER.cacheDir, ClientKind.LAUNCHER.worldActivity)) {
+            assertFalse(banned.containsMatchIn(name), name)
+        }
+    }
+
+    @Test
+    fun `the launcher's files are served under launcher, next to RSProx's`() {
+        // A port of its own rather than 0, as the files name the port they are served on.
+        val port = ServerSocket(0).use { it.localPort }
+        val http = ClientConfig("192.168.0.210", port, gamePort = 43594).also { it.start() }
+        try {
+            val javConfig = get(port, "/launcher/jav_config.ws", host = "odinsgate.net:$port")
+            assertEquals(200, javConfig.code)
+            assertEquals("text/plain; charset=ISO-8859-1", javConfig.contentType)
+            assertContains(javConfig.body.lines(), "title=Odin's Gate")
+            assertContains(javConfig.body.lines(), "param=17=http://odinsgate.net:$port/launcher/world_list.ws")
+            val worldList = get(port, "/launcher/world_list.ws", host = "odinsgate.net:$port")
+            assertEquals(200, worldList.code)
+            assertEquals("application/octet-stream", worldList.contentType)
+            assertEquals(
+                http.worldList("odinsgate.net", ClientKind.LAUNCHER).toList(),
+                worldList.body.toByteArray(Charsets.ISO_8859_1).toList(),
+            )
+            assertContains(get(port, "/jav_config.ws", host = "odinsgate.net:$port").body.lines(), "title=OSRSPS")
+        } finally {
+            http.stop()
+        }
+    }
+
+    @Test
     fun `a Host header is used only when it is a plain host`() {
         assertEquals("192.168.0.210", ClientConfig.hostOf("192.168.0.210:43595"))
         assertEquals("osrsps.example.net", ClientConfig.hostOf(" osrsps.example.net "))
@@ -128,6 +232,24 @@ class ClientConfigTest {
         assertEquals(null, ClientConfig.hostOf("a b"))
         assertEquals(null, ClientConfig.hostOf("[::1]:43595"))
     }
+
+    private class Reply(val code: Int, val contentType: String?, val body: String)
+
+    /** A GET of [path] over a plain socket, so the Host header is ours: [host], or none when it is null. */
+    private fun get(port: Int, path: String, host: String? = "127.0.0.1:$port"): Reply =
+        Socket("127.0.0.1", port).use { socket ->
+            socket.soTimeout = 5000
+            val hostLine = host?.let { "Host: $it\r\n" }.orEmpty()
+            socket.getOutputStream().apply {
+                write("GET $path HTTP/1.1\r\n${hostLine}Connection: close\r\n\r\n".toByteArray(Charsets.US_ASCII))
+                flush()
+            }
+            // ISO-8859-1 keeps every byte as one char, so a binary body can be turned back into its bytes.
+            val response = String(socket.getInputStream().readBytes(), Charsets.ISO_8859_1)
+            val head = response.substringBefore("\r\n\r\n").split("\r\n")
+            val contentType = head.drop(1).firstOrNull { it.startsWith("content-type:", ignoreCase = true) }
+            Reply(head.first().split(' ')[1].toInt(), contentType?.substringAfter(':')?.trim(), response.substringAfter("\r\n\r\n"))
+        }
 
     private fun DataInputStream.readJagexString(): String {
         val bytes = generateSequence { readUnsignedByte().takeIf { it != 0 } }.map { it.toByte() }.toList().toByteArray()
