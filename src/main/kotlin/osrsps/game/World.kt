@@ -101,6 +101,7 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
@@ -343,6 +344,8 @@ class World(
 
     val firemaking = Firemaking(this, collision)
 
+    val mining = Mining(this)
+
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
     val foods = Foods(foodList, words = ::textFor)
@@ -389,6 +392,7 @@ class World(
         woodcutting.register()
         birdNests.register()
         firemaking.register()
+        mining.register()
         loadDialogue()
     }
 

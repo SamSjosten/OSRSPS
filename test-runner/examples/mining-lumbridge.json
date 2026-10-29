@@ -1,0 +1,36 @@
+{
+ "name": "Gathering skills step 4: mine copper and tin at the Lumbridge Swamp mine with a bronze pickaxe (one ore each, the rock empties and comes back), mithril needs 55 (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3229 3146 0"},
+  {"step": "assertLocation", "x": 3229, "y": 3146, "plane": 0},
+
+  {"step": "locOption", "locId": 11161, "option": "Mine", "x": 3229, "y": 3145},
+  {"step": "assertMessage", "contains": "mining.no_pickaxe"},
+  {"step": "command", "text": "::item bronze_pickaxe", "expectMessage": "Added 1 x Bronze pickaxe"},
+  {"step": "locOption", "locId": 11161, "option": "Mine", "x": 3229, "y": 3145},
+  {"step": "assertMessage", "contains": "mining.swing"},
+  {"step": "assertAnimation", "id": 625, "comment": "human_mining_bronze_pickaxe"},
+  {"step": "assertInventory", "item": "Copper ore", "count": 1, "timeoutMs": 90000, "comment": "39.5% a roll at level 1, a roll every 8 ticks"},
+  {"step": "assertLoc", "locId": 11391, "x": 3229, "y": 3145, "comment": "rocks2, the empty rock, for 4 ticks: checked first"},
+  {"step": "assertStat", "skill": "Mining", "level": 1, "xp": 17},
+  {"step": "assertLoc", "locId": 11161, "x": 3229, "y": 3145, "option": "Mine", "timeoutMs": 10000, "comment": "copper back after 4 ticks"},
+
+  {"step": "command", "text": "::tele 3224 3147 0"},
+  {"step": "assertLocation", "x": 3224, "y": 3147, "plane": 0},
+  {"step": "locOption", "locId": 11360, "option": "Mine", "x": 3224, "y": 3146},
+  {"step": "assertInventory", "item": "Tin ore", "count": 1, "timeoutMs": 90000},
+  {"step": "assertStat", "skill": "Mining", "level": 1, "xp": 35},
+
+  {"step": "command", "text": "::tele 3144 3146 0"},
+  {"step": "assertLocation", "x": 3144, "y": 3146, "plane": 0},
+  {"step": "locOption", "locId": 11372, "option": "Mine", "x": 3143, "y": 3146},
+  {"step": "assertMessage", "contains": "mining.level level=55"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

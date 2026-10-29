@@ -336,6 +336,22 @@ out. Ops on items on the ground can now re-run each tick too (`World.repeatOp`, 
 | The step off the fire is walked (2004Scape moves the player at once); fires allowed in banks | guessed |
 | Out: bows as tinderboxes, coloured logs, Forester's campfires, a tinderbox used on logs on the ground | out of scope |
 
+### Mining
+
+Mine on a rock mines it with the best pickaxe the player can use (`game/skill/Mining.kt`, words under `mining.*`):
+clay, copper, tin, iron, coal, mithril and adamantite rocks, with the bronze to crystal pickaxes. A mined rock turns into
+an empty rock (`rocks1`/`rocks2`) until it respawns.
+
+| Mining behaviour | Source |
+|------------------|--------|
+| Levels, XP, respawn times (clay 2 ticks, copper and tin 4, iron 9, coal 50, mithril 200, adamantite 400) | OSRS Wiki rock pages |
+| Each rock's success pair, fitted to and checked against the Wiki's chart points (`MiningTest`) | OSRS Wiki rock pages |
+| The pickaxe sets only the ticks between rolls (bronze 8 ... rune 3; dragon, infernal and 3rd age 3 with a 1/6 chance of 2, crystal 1/4) | OSRS Wiki, Pickaxe |
+| The mining gem table, 1/256 a roll: a gem (or nothing) in place of ore, no XP, the rock stays | OSRS Wiki, Mining |
+| The click starts the clock and the first roll comes a whole interval later; the swing message and animation | 2004Scape mining script |
+| Which empty rock each rock becomes (rockN to rocksN); swinging on the click's own tick | guessed |
+| Out: the glory's gem chance, mining gloves and other extra-ore items, the prospector kit, gem rocks, essence | out of scope |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
