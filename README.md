@@ -268,6 +268,25 @@ the Hitpoints skill's current level (`Player.hitpoints`).
 | A level gained while boosted or drained raises the current level by one | inferred, not measured |
 | The stat packet's invisible boost equals the current level | guessed |
 
+A level gained through XP (not `::setlevel`) shows the level-up (`game/skill/LevelUps.kt`): a chat message, the
+fireworks, the skill's jingle and the levelup_display box in the chatbox, then the same for the combat level when it went
+up too. The words are in the dialogue file under `levelup.*`.
+
+| Level-up behaviour | Source |
+|--------------------|--------|
+| levelup_display 233: text1, text2, continue 3, one hidden layer per skill (woodcutting 53, combat 55) | 241 cache via osrs-dumps |
+| Fireworks: spotanim levelup_anim 199, levelup_99_anim 1388 at 99 | 241 gamevals |
+| Jingles: each skill's "Level Up!", its "(Unlocks)" version (the next id) at levels in skill_features (db table 213) | OSRS Wiki jingle pages; ids for Prayer, Ranged, Runecraft, Slayer and Thieving inferred from the alphabetical run |
+| Order: message, fireworks, jingle, box; combat level's box after the skill's | 2004Scape levelup script; combat order guessed |
+| Queued as a normal script in the script phase after the XP; fireworks height 124; no Sailing jingle | guessed |
+| The "Level N Skill: unlock" chat lines live adds | not sent yet |
+
+Gathering actions share a skill clock (`Player.actionDelay`, `game/skill/SkillClock.kt`): a handler re-runs its own loc
+option every tick with `World.repeatOp` (RS2's `p_oploc`) and rolls only on the ticks the clock comes due, so a new
+click doesn't reset the cycle. Rolls use the Wiki's skilling success formula (`SuccessRoll`, a low and high value per
+action out of 256), and `SkillTools` picks the best axe or pickaxe the player can use from the backpack or weapon slot.
+The shared clock is the 2004Scape project's `%action_delay` model, inferred to hold on OSRS from tick manipulation.
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for

@@ -28,6 +28,8 @@ class LocInteraction internal constructor(
     private val owner: LocInteractions,
     val obj: Int = -1,
     val slot: Int = -1,
+    /** Set by [LocInteractions.repeat]: the handler asked to run again, the player didn't click. */
+    val repeat: Boolean = false,
 ) : Interaction {
     val usesObj: Boolean get() = obj >= 0
 
@@ -85,6 +87,15 @@ class LocInteractions(
         start(player, LocInteraction(loc, 0, this, obj = obj, slot = slot), invertRun)
     }
 
+    /**
+     * Runs option [option] on [loc] again from the next tick's movement phase, as RS2's `p_oploc` does: the way a
+     * gathering action keeps going. Nothing is walked; anything that replaces the player's interaction (a click, a walk)
+     * ends it, and so does the loc changing (a felled tree). The handler gets an [Op] with [Op.repeat] set.
+     */
+    fun repeat(player: Player, loc: ZoneLoc, option: Int) {
+        player.interaction = LocInteraction(loc, option, this, repeat = true)
+    }
+
     private fun start(player: Player, interaction: LocInteraction, invertRun: Boolean) {
         scripts.interrupt(player)
         player.interaction = interaction
@@ -109,7 +120,8 @@ class LocInteractions(
         player.interaction = null
         player.waypoints.clear()
         // Guessed: the player turns to the loc as they use it, the way they do on live, and keeps that until they walk.
-        faceLoc(player, target(loc))
+        // A re-run is still facing it, so it isn't sent again every tick.
+        if (!interaction.repeat) faceLoc(player, target(loc))
         if (interaction.usesObj) {
             // Guessed: an item that left its slot on the way (dropped, or moved) is used on nothing, with no message.
             if (!holds(player, interaction.slot, interaction.obj)) return true
@@ -122,7 +134,7 @@ class LocInteractions(
             }
             return true
         }
-        val op = Op(OpTarget.LOC, loc.id, interaction.option, loc = loc)
+        val op = Op(OpTarget.LOC, loc.id, interaction.option, loc = loc, repeat = interaction.repeat)
         if (handlers.find(op) != null) {
             scripts.trigger(player, op)
         } else if (doors.toggle(loc, interaction.option) == null) {
