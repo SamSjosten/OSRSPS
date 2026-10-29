@@ -73,7 +73,10 @@ import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
+import osrsps.game.content.registerCrops
 import osrsps.game.content.registerFredsFarm
+import osrsps.game.content.registerGroatsFarm
+import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
@@ -95,6 +98,7 @@ import osrsps.game.npc.Npcs
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
+import osrsps.game.skill.BirdNests
 import osrsps.game.skill.LevelUps
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Woodcutting
@@ -104,6 +108,8 @@ import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import java.nio.file.Path
+import kotlin.io.path.exists
+import kotlin.io.path.readText
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -166,6 +172,10 @@ class World(
     skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
     /** The levels needed to wear items; tests that check levels pass their own. */
     wearRequirements: WearRequirements = WearRequirements.NONE,
+    /** The Grand Exchange price snapshot at start; see [ItemPrices]. */
+    itemPrices: ItemPrices = ItemPrices.NONE,
+    /** Where `::itemprices` reads the snapshot again and writes a new one; null for none (tests). */
+    private val itemPricesFile: Path? = null,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -217,12 +227,21 @@ class World(
     val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
 
     /** The prayer book; see [Prayers]. */
-    val prayers = Prayers(prayerList, equipment, setOverhead = { player, icon -> player.infos.playerInfo.avatar.extendedInfo.setOverheadIcon(icon) })
+    val prayers = Prayers(
+        prayerList, equipment, setOverhead = { player, icon -> player.infos.playerInfo.avatar.extendedInfo.setOverheadIcon(icon) }, words = ::textFor,
+    )
+
+    /** The Grand Exchange prices now; `::itemprices` reads the file again. */
+    @Volatile
+    var itemPrices: ItemPrices = itemPrices
+        private set
 
     private val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
         onDrop = groundObjs::drop,
+        price = { this.itemPrices.price(it) },
+        desc = { player, type -> if (type.isCert) textFor(player)[Examines.NOTE] else type.desc ?: "" },
     )
 
     /** The bank's rules and the bank interface; see [BankScreen]. */
@@ -277,6 +296,7 @@ class World(
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
         multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
+        words = ::textFor,
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -284,18 +304,18 @@ class World(
         npcs, collision, movement, combat, objTypes, rangedWeapons, meleeCombat, random, { tick },
         projectile = zones::projectile, dropAmmo = ::dropAmmo,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        multi = multiCombat,
+        multi = multiCombat, words = ::textFor,
     )
 
     /** Tumeken's shadow and the powered staves to come; see [PoweredStaves]. */
-    val poweredStaves = PoweredStaves(objTypes)
+    val poweredStaves = PoweredStaves(objTypes, words = ::textFor)
 
     /** Players casting combat spells on NPCs; see [MagicCombat]. */
     val magicCombat: MagicCombat = MagicCombat(
         npcs, collision, movement, combat, objTypes, spells, meleeCombat, random, { tick },
         projectile = zones::projectile,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        multi = multiCombat, poweredStaves = poweredStaves,
+        multi = multiCombat, poweredStaves = poweredStaves, words = ::textFor,
     )
 
     /** Player death and gravestones; see [Deaths]. */
@@ -306,7 +326,9 @@ class World(
         teleportToSpawn = { teleport(it, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) },
         openModal = { player, id -> interfaces.openModal(player, FrameSlot.MAINMODAL, id) },
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
-        prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) }, examine = inventoryTab::examine,
+        prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) },
+        examine = inventoryTab::examine, value = { this.itemPrices.deathValue(it) },
+        words = ::textFor,
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -316,13 +338,16 @@ class World(
     /** The words [player] sees: none, so every line shows its key, while they have `::keys` on. */
     fun textFor(player: Player): DialogueText = if (player.showDialogueKeys) DialogueText.NONE else dialogueText
 
-    /** Chat dialogues for content scripts. */
-    val woodcutting = Woodcutting(this, WoodcuttingData.load())
+    /** Bird nests that fall from trees. */
+    val birdNests = BirdNests(this, collision)
+
+    val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
 
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
     val foods = Foods(foodList, words = ::textFor)
 
+    /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
     val commands = CommandRegistry(admins::isAdmin).apply {
@@ -357,9 +382,38 @@ class World(
         registerShops(this)
         registerLumbridgeTown(this)
         registerFredsFarm(this)
+        registerGroatsFarm(this)
+        registerMillLaneMill(this)
+        registerCrops(this)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         woodcutting.register()
+        birdNests.register()
         loadDialogue()
+    }
+
+    /** Reads the Grand Exchange price file again, for a hand edit; says what it read. */
+    fun loadItemPrices(): String {
+        val file = itemPricesFile ?: return "No price file"
+        if (!file.exists()) return "No ${file.fileName} yet: ::itemprices refresh downloads one"
+        itemPrices = ItemPrices.parse(file.readText())
+        return "Read ${itemPrices.size} Grand Exchange prices (${itemPrices.snapshot ?: "no snapshot date"})"
+    }
+
+    /**
+     * Downloads a new Grand Exchange snapshot from the Wiki on a thread of its own, so the tick doesn't wait on the
+     * network, and writes it to the file; `::itemprices` then reads it. The outcome goes to the server log.
+     */
+    fun refreshItemPrices(): String {
+        val file = itemPricesFile ?: return "No price file"
+        Thread({
+            try {
+                val prices = ItemPrices.refresh(file)
+                logger.info { "Downloaded ${prices.size} Grand Exchange prices (${prices.snapshot}) into $file" }
+            } catch (e: Exception) {
+                logger.warn(e) { "Could not download the Grand Exchange prices" }
+            }
+        }, "item-prices").apply { isDaemon = true }.start()
+        return "Downloading the Wiki's Grand Exchange prices; run ::itemprices in a few seconds to read them"
     }
 
     /**

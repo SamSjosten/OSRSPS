@@ -36,7 +36,7 @@ class HeadlessDeathTest {
                 assertEquals("Teleported to 3222, 3222, 0", client.commandReply("tele 3222 3222 0") { it.startsWith("Teleported") })
                 assertEquals("Hit yourself for 10: 0/10 hp, dead", client.commandReply("hit 99 me") { it.startsWith("Hit yourself") })
                 // Said in the same tick as the command's reply, so look back over every message.
-                client.await(MeleeCombat.DEAD) { client.messages().firstOrNull { it.text == MeleeCombat.DEAD } }
+                client.await("[combat.dead]") { client.messages().firstOrNull { it.text == "[combat.dead]" } }
                 // Dead, a walk click does nothing; the respawn then puts her at the spawn.
                 client.walk(3225, 3225)
                 client.await("the respawn", timeoutMillis = 10_000) { client.position?.takeIf { it == Coord(3222, 3218) } }
@@ -49,7 +49,7 @@ class HeadlessDeathTest {
                 server.login("bob").use { bob ->
                     bob.await("the grave in view") { bob.npcs().firstOrNull { it.id == Deaths.GRAVE } }
                     bob.npcOp(npc.index, Deaths.CHECK)
-                    bob.await(Deaths.NOT_YOURS, timeoutMillis = 10_000) { bob.messages().firstOrNull { it.text == Deaths.NOT_YOURS } }
+                    bob.await("[combat.grave_not_yours]", timeoutMillis = 10_000) { bob.messages().firstOrNull { it.text == "[combat.grave_not_yours]" } }
                 }
 
                 // Loot walks her back to it and opens the gravestone with what she lost.
@@ -64,7 +64,7 @@ class HeadlessDeathTest {
                 assertEquals(listOf(InvObj(lobster.id, 1), InvObj(sword.id, 1), InvObj(coins.id, 10), InvObj(bones.id, 1), InvObj(bones.id, 1)), client.inventory(93).take(5))
                 // The close can come in a later packet than the grave's removal.
                 client.await("the gravestone closed") { if (Deaths.GRAVESTONE in client.openInterfaces()) null else Unit }
-                assertTrue(client.messages().none { it.text == Deaths.NO_SPACE })
+                assertTrue(client.messages().none { it.text == "[combat.grave_no_space]" })
             }
         }
     }

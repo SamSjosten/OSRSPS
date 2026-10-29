@@ -119,6 +119,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   option with `::keys on`, checking each line's key (the Sheared Ram's needs 0.8.0 for `assertVarbit`).
 - `lumbridge-freds-farm.json`: Fred the Farmer's talk (with `::keys on`), an onion picked from his patch, a sheep
   sheared for wool that the client then shows as sheared, and eight chickens killed for their feathers.
+- `lumbridge-mill.json`: Millie Miller's and Gillie Groats' talks (with `::keys on`), wheat picked into grain, the
+  grain up Mill Lane Mill's ladders into the hopper and through the controls into two pots of flour (checking
+  varbits mill_flour and mill_showflour), Gillie's talk when milking with no bucket, and a dairy cow milked into two
+  buckets. Needs 0.8.0 for `assertVarbit`.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
@@ -128,6 +132,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `woodcutting-lumbridge.json`: Chop down with no axe, then a bronze axe on a tree north of the castle (one log, the
   stump, the tree back), then a level 99 dragon axe on the oak south of the castle (12 logs before its timer fells it).
   Needs only 0.5.0.
+- `woodcutting-nests.json`: `::nest seeds` and `::nest ring` drop a nest next to the player as a log's 1/256 roll does;
+  each is taken and searched, leaving an empty nest and the seed or ring. Needs only 0.6.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 

@@ -284,14 +284,14 @@ class RangedCombatTest {
         attack(alice, npc)
         tick()
         assertNull(alice.interaction)
-        assertEquals(listOf(alice to RangedCombat.NO_AMMO), messages)
+        assertEquals(listOf(alice to "[combat.no_ammo]"), messages)
         assertNull(alice.effects.anim)
 
         for ((weapon, ammo, text) in listOf(
-            Triple(shortbow, steelArrow, RangedCombat.WRONG_ARROWS),
-            Triple(shortbow, runiteBolts, RangedCombat.WRONG_ARROWS),
-            Triple(runeCrossbow, dragonBolts, RangedCombat.WRONG_BOLTS),
-            Triple(runeCrossbow, bronzeArrow, RangedCombat.WRONG_BOLTS),
+            Triple(shortbow, steelArrow, "[combat.wrong_arrows]"),
+            Triple(shortbow, runiteBolts, "[combat.wrong_arrows]"),
+            Triple(runeCrossbow, dragonBolts, "[combat.wrong_bolts]"),
+            Triple(runeCrossbow, bronzeArrow, "[combat.wrong_bolts]"),
         )) {
             messages.clear()
             wield(alice, weapon, ammo, 10)
@@ -407,7 +407,7 @@ class RangedCombatTest {
         attack(alice, npc)
         tick(bob, alice)
         assertNull(alice.interaction)
-        assertTrue(alice to MeleeCombat.SOMEONE_ELSE in messages, messages.toString())
+        assertTrue(alice to "[combat.someone_else]" in messages, messages.toString())
     }
 
     @Test
@@ -558,15 +558,15 @@ class RangedCombatTest {
         attack(alice, npc)
         repeat(30) { tick() }
         assertEquals(blowpipe.id - 2, alice.equipment[WearPos.WEAPON]?.id)
-        assertTrue(alice to Blowpipe.RAN_OUT in messages, messages.toString())
-        assertTrue(alice to Blowpipe.NO_SCALES in messages, messages.toString())
+        assertTrue(alice to "[combat.blowpipe_ran_out]" in messages, messages.toString())
+        assertTrue(alice to "[combat.blowpipe_no_scales]" in messages, messages.toString())
         assertNull(alice.interaction)
 
         messages.clear()
         loadBlowpipe(darts = 0, scales = 10)
         attack(alice, npc)
         tick()
-        assertEquals(listOf(alice to Blowpipe.NO_DARTS), messages)
+        assertEquals(listOf(alice to "[combat.blowpipe_no_darts]"), messages)
         assertNull(alice.interaction)
     }
 

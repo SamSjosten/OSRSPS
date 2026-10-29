@@ -15,6 +15,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.script.Handlers
@@ -50,10 +51,10 @@ class Grave(
  * From the Wiki: the message, three items kept (one more with Protect Item; fewer skulled, which isn't built), valued at
  * the Grand Exchange price or the alchemy value, 15 minutes that pause while logged out or with the interface open,
  * a second death adding to the grave, and death restoring stats and run energy. Guessed and marked below: the ticks
- * the body lies before the respawn, the value order ([ObjType.cost], as there is no Grand Exchange snapshot yet; ties
- * by worn then inventory slot), that each unit of a stack counts as an item, and what Check says. The free list is
- * the interface's: its client script puts slots from varbit [VARBIT_FREE_FROM] minus one in the free list and the
- * rest in the paid one (gravestone_generic_window_set); every item here is free.
+ * the body lies before the respawn, ties in the value order ([value]) going by worn then inventory slot, that each
+ * unit of a stack counts as an item, and what Check says. The free list is the interface's: its client script puts
+ * slots from varbit [VARBIT_FREE_FROM] minus one in the free list and the rest in the paid one
+ * (gravestone_generic_window_set); every item here is free.
  */
 class Deaths(
     private val objTypes: ObjTypes,
@@ -80,6 +81,10 @@ class Deaths(
     private val message: (Player, String) -> Unit = Player::message,
     /** Examine on a grave item: the inventory's examine. */
     private val examine: (Player, ObjType, Int) -> Unit = { _, _, _ -> },
+    /** What an item counts for when choosing the kept items ([osrsps.game.ItemPrices.deathValue]). */
+    private val value: (ObjType) -> Long = { it.cost.toLong() },
+    /** Each player's words for the game messages ([CombatLines]). */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -155,13 +160,13 @@ class Deaths(
      * stack of coins.
      */
     private fun dropItems(player: Player): List<InvObj> {
-        class Held(val inv: Inventory, val slot: Int, val obj: InvObj, val cost: Int)
+        class Held(val inv: Inventory, val slot: Int, val obj: InvObj, val value: Long)
         val held = ArrayList<Held>()
         for (inv in listOf(player.equipment, player.inventory)) {
-            for ((slot, obj) in inv.contents()) held += Held(inv, slot, obj, objTypes[obj.id]?.cost ?: 0)
+            for ((slot, obj) in inv.contents()) held += Held(inv, slot, obj, objTypes[obj.id]?.let(value) ?: 0)
         }
         // Stable, so ties keep worn-then-inventory slot order.
-        held.sortByDescending { it.cost }
+        held.sortByDescending { it.value }
         var keep = player.deathKeptItems
         val lost = ArrayList<InvObj>()
         for (item in held) {
@@ -228,23 +233,23 @@ class Deaths(
         viewing.values.removeIf { it === grave }
         for (viewer in players()) if (viewing[viewer.saveKey] == null && hasOpen(viewer)) closeModals(viewer)
         val owner = findPlayer(grave.owner) ?: return
-        if (!grave.items.isEmpty()) message(owner, GRAVE_COLLAPSED)
+        if (!grave.items.isEmpty()) message(owner, words(owner)[CombatLines.GRAVE_COLLAPSED])
     }
 
     private fun check(player: Player, npc: Npc) {
         val grave = graves[npc] ?: return
         if (grave.owner != player.saveKey) {
-            message(player, NOT_YOURS)
+            message(player, words(player)[CombatLines.GRAVE_NOT_YOURS])
             return
         }
         val minutes = (grave.ticksLeft + TICKS_PER_MINUTE - 1) / TICKS_PER_MINUTE
-        message(player, "Your grave will stand for $minutes more minute${if (minutes == 1) "" else "s"}.")
+        message(player, if (minutes == 1) words(player)[CombatLines.GRAVE_MINUTE] else words(player)[CombatLines.GRAVE_MINUTES, "minutes" to minutes])
     }
 
     private fun loot(player: Player, npc: Npc) {
         val grave = graves[npc] ?: return
         if (grave.owner != player.saveKey) {
-            message(player, NOT_YOURS)
+            message(player, words(player)[CombatLines.GRAVE_NOT_YOURS])
             return
         }
         viewing[player.saveKey] = grave
@@ -289,7 +294,7 @@ class Deaths(
     private fun take(player: Player, slot: Int) {
         val grave = opened(player) ?: return
         if (slot !in 0 until GRAVE_CAPACITY) return
-        if (!takeSlot(player, grave, slot)) message(player, NO_SPACE)
+        if (!takeSlot(player, grave, slot)) message(player, words(player)[CombatLines.GRAVE_NO_SPACE])
         finishTaking(player, grave)
     }
 
@@ -297,7 +302,7 @@ class Deaths(
         val grave = opened(player) ?: return
         for ((slot, _) in grave.items.contents()) {
             if (!takeSlot(player, grave, slot)) {
-                message(player, NO_SPACE)
+                message(player, words(player)[CombatLines.GRAVE_NO_SPACE])
                 break
             }
         }
@@ -362,10 +367,5 @@ class Deaths(
         /** 15 minutes (OSRS Wiki, Gravestone). */
         const val GRAVE_TICKS = 1500
         const val TICKS_PER_MINUTE = 100
-
-        /** Guessed words; live's Check opens a timer interface, and a stranger's grave says something else. */
-        const val NOT_YOURS = "That isn't your grave."
-        const val GRAVE_COLLAPSED = "Your grave has collapsed, and what was in it is gone."
-        const val NO_SPACE = "You don't have enough inventory space to take that."
     }
 }

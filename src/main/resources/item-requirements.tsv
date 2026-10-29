@@ -5,6 +5,7 @@
 # requirements and the 241 cache's params 434-437 disagree or osrsreboxed has no entry, else osrsreboxed's. Where a
 # page states no level, the cache's combat-skill params stand (guessed: they match the Wiki wherever both exist);
 # the cache's Crafting/Firemaking params are the levels to make an item, not to wear it, and are left out.
+# Tools list only the level to wield them: a pickaxe's Mining level is to mine with it (Wiki, Pickaxe; Codex on #174).
 excalibur	attack=20	Excalibur
 steel_thrownaxe	ranged=5	Steel thrownaxe
 mithril_thrownaxe	ranged=20	Mithril thrownaxe
@@ -125,10 +126,10 @@ mithril_spear_p	attack=20	Mithril spear
 adamant_spear_p	attack=30	Adamant spear
 rune_spear_p	attack=40	Rune spear
 dragon_spear_p	attack=60	Dragon spear
-steel_pickaxe	attack=5 mining=6	Steel pickaxe
-adamant_pickaxe	attack=30 mining=31	Adamant pickaxe
-mithril_pickaxe	attack=20 mining=21	Mithril pickaxe
-rune_pickaxe	attack=40 mining=41	Rune pickaxe
+steel_pickaxe	attack=5	Steel pickaxe
+adamant_pickaxe	attack=30	Adamant pickaxe
+mithril_pickaxe	attack=20	Mithril pickaxe
+rune_pickaxe	attack=40	Rune pickaxe
 steel_sword	attack=5	Steel sword
 black_sword	attack=10	Black sword
 mithril_sword	attack=20	Mithril sword
@@ -1671,8 +1672,8 @@ rangers_tights	ranged=40	Rangers' tights
 trail_gilded_dhide_vambraces	ranged=40	Gilded d'hide vambraces
 trail_gilded_dhide_top	defence=40 ranged=40	Gilded d'hide body
 trail_gilded_dhide_chaps	ranged=40	Gilded d'hide chaps
-trail_gilded_pickaxe	attack=40 mining=41	Gilded pickaxe
-trail_gilded_axe	attack=40 woodcutting=41	Gilded axe
+trail_gilded_pickaxe	attack=40	Gilded pickaxe
+trail_gilded_axe	attack=40	Gilded axe
 rune_scimitar_guthix	attack=40	Rune scimitar (guthix)
 rune_scimitar_saradomin	attack=40	Rune scimitar (saradomin)
 rune_scimitar_zamorak	attack=40	Rune scimitar (zamorak)
@@ -1724,16 +1725,16 @@ br_dstone_bolts_e	ranged=61	Diamond bolts (e) (Last Man Standing)
 br_magesbook	magic=60	Mage's book (Last Man Standing)
 br_barrows_ahrim_weapon	attack=70 magic=70	Ahrim's staff (Last Man Standing)
 br_occult_necklace	magic=75	Occult necklace (Last Man Standing)
-crystal_axe	attack=70 woodcutting=71 agility=50	Crystal axe
-crystal_axe_inactive	attack=70 woodcutting=70 agility=50	Crystal axe
-zalcano_pickaxe	attack=60 mining=61	Dragon pickaxe (or)
-crystal_pickaxe	attack=70 mining=71 agility=50	Crystal pickaxe
-crystal_pickaxe_inactive	attack=70 mining=71 agility=50	Crystal pickaxe
-crystal_harpoon	attack=70 fishing=71 agility=50	Crystal harpoon
-crystal_harpoon_inactive	attack=70 fishing=71 agility=50	Crystal harpoon
-gauntlet_axe	attack=70 woodcutting=71 agility=50	Crystal axe (The Gauntlet)
-gauntlet_pickaxe	attack=70 mining=71 agility=50	Crystal pickaxe (The Gauntlet)
-gauntlet_harpoon	attack=70 fishing=71 agility=50	Crystal harpoon (The Gauntlet)
+crystal_axe	attack=70 agility=50	Crystal axe
+crystal_axe_inactive	attack=70 agility=50	Crystal axe
+zalcano_pickaxe	attack=60	Dragon pickaxe (or)
+crystal_pickaxe	attack=70 agility=50	Crystal pickaxe
+crystal_pickaxe_inactive	attack=70 agility=50	Crystal pickaxe
+crystal_harpoon	attack=70 agility=50	Crystal harpoon
+crystal_harpoon_inactive	attack=70 agility=50	Crystal harpoon
+gauntlet_axe	attack=70 agility=50	Crystal axe (The Gauntlet)
+gauntlet_pickaxe	attack=70 agility=50	Crystal pickaxe (The Gauntlet)
+gauntlet_harpoon	attack=70 agility=50	Crystal harpoon (The Gauntlet)
 crystal_helmet	defence=70 agility=50	Crystal helm
 crystal_helmet_inactive	defence=70 agility=50	Crystal helm
 crystal_chestplate	defence=70 agility=50	Crystal body

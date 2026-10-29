@@ -6,6 +6,7 @@ import osrsps.game.Interaction
 import osrsps.game.Movement
 import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcEffects
 import osrsps.game.npc.NpcSpawn
@@ -90,6 +91,8 @@ class MeleeCombat(
     /** Every prayer off ([Prayers.deactivateAll]), for Redemption. */
     private val prayersOff: (Player) -> Unit = {},
     private val sound: (Player, Int) -> Unit = { player, id -> player.sound(id) },
+    /** Each player's words for the game messages ([CombatLines]). */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -120,11 +123,11 @@ class MeleeCombat(
             return true
         }
         if (underAttackByAnother(player, npc)) {
-            message(player, ALREADY_UNDER_ATTACK)
+            message(player, words(player)[CombatLines.ALREADY_UNDER_ATTACK])
             return true
         }
         if (foughtByAnother(player, npc)) {
-            message(player, SOMEONE_ELSE)
+            message(player, words(player)[CombatLines.SOMEONE_ELSE])
             return true
         }
         player.interaction = fight
@@ -156,13 +159,13 @@ class MeleeCombat(
         interaction.inReach = true
         player.waypoints.clear()
         if (foughtByAnother(player, npc)) {
-            message(player, SOMEONE_ELSE)
+            message(player, words(player)[CombatLines.SOMEONE_ELSE])
             stopFacing(player)
             return true
         }
         // Another NPC may have caught them on the way; once the fight is on, a newcomer's hits don't stop it.
         if (!interaction.swung && underAttackByAnother(player, npc)) {
-            message(player, ALREADY_UNDER_ATTACK)
+            message(player, words(player)[CombatLines.ALREADY_UNDER_ATTACK])
             stopFacing(player)
             return true
         }
@@ -452,7 +455,7 @@ class MeleeCombat(
 
     /** "Oh dear, you are dead!": every fight with the player ends, and [Deaths] has them from here. */
     private fun died(player: Player) {
-        message(player, DEAD)
+        message(player, words(player)[CombatLines.DEAD])
         retribution(player, currentTick())
         endFights(player)
         onDeath(player)
@@ -496,10 +499,6 @@ class MeleeCombat(
     val respawning: Int get() = dying.size
 
     companion object {
-        const val SOMEONE_ELSE = "Someone else is fighting that."
-        const val ALREADY_UNDER_ATTACK = "I'm already under attack."
-        const val DEAD = "Oh dear, you are dead!"
-
         /** Not a live message: magic and the other ranged weapons come with later pieces. */
         const val MELEE_ONLY = "Only melee, bows and crossbows are in so far; the rest comes later."
 

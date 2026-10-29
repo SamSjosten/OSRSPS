@@ -11,6 +11,7 @@ import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.FrameSlot
 import osrsps.game.GameRandom
 import osrsps.game.InvObj
+import osrsps.game.ItemPrices
 import osrsps.game.Movement
 import osrsps.game.NpcType
 import osrsps.game.ObjType
@@ -218,7 +219,7 @@ class DeathsTest {
         assertEquals(listOf(grave.npc), removed)
         assertTrue(deaths.all.isEmpty())
         assertNull(deaths.graveOf(alice))
-        assertEquals(alice to Deaths.GRAVE_COLLAPSED, messages.last())
+        assertEquals(alice to "[combat.grave_collapsed]", messages.last())
     }
 
     @Test
@@ -226,11 +227,11 @@ class DeathsTest {
         val grave = aliceDies()
         npcOp(bob, grave.npc, Deaths.CHECK)
         npcOp(bob, grave.npc, Deaths.LOOT)
-        assertEquals(listOf(bob to Deaths.NOT_YOURS, bob to Deaths.NOT_YOURS), messages)
+        assertEquals(listOf(bob to "[combat.grave_not_yours]", bob to "[combat.grave_not_yours]"), messages)
         assertTrue(bob.modals.isEmpty())
         tick(101)
         npcOp(alice, grave.npc, Deaths.CHECK)
-        assertEquals(alice to "Your grave will stand for 14 more minutes.", messages.last())
+        assertEquals(alice to "[combat.grave_minutes minutes=14]", messages.last())
     }
 
     @Test
@@ -279,7 +280,7 @@ class DeathsTest {
         while (alice.inventory.freeSlots > 0) alice.inventory.add(bones, 1)
         npcOp(alice, grave.npc, Deaths.LOOT)
         button(alice, Deaths.FREEITEMS, sub = 1)
-        assertEquals(alice to Deaths.NO_SPACE, messages.last())
+        assertEquals(alice to "[combat.grave_no_space]", messages.last())
         assertEquals(2, grave.items.contents().size)
         // Take-All still takes what stacks.
         button(alice, Deaths.FREEBUTTON)
@@ -368,6 +369,24 @@ class DeathsTest {
         assertEquals(1L, grave.items.count(pipe.id))
         assertEquals(0L, grave.items.count(dart.id))
         assertEquals(500, alice.charges[Blowpipe.DARTS])
+    }
+
+    @Test
+    fun `the kept items are the ones worth most by the value given, a Grand Exchange price say`() {
+        // Made-up prices: the shield and bones are worth more on the Exchange than their values say.
+        val prices = ItemPrices(mapOf(shield.id to ItemPrices.Entry("Wooden shield", 500, null), bones.id to ItemPrices.Entry("Bones", 300, null)))
+        val byPrice = Deaths(
+            objTypes, null, { tick }, { online.asSequence() }, { null }, { npcs.add(it) }, {}, {}, { _, _ -> }, {}, { _, _, _ -> },
+            send = { _, _ -> }, message = { _, _ -> }, value = prices::deathValue,
+        )
+        alice.inventory.add(lobster, 1)
+        alice.inventory.add(bones, 1)
+        alice.inventory.add(shield, 1)
+        alice.inventory.add(sword, 1)
+        byPrice.die(alice)
+        byPrice.respawn(alice)
+        // Shield 500, bones 300, lobster 90 (high alchemy of 150), sword 15: the sword goes.
+        assertEquals(listOf(lobster.id, bones.id, shield.id), alice.inventory.contents().map { it.second.id })
     }
 
     @Test

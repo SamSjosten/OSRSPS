@@ -7,7 +7,8 @@ import kotlin.test.assertTrue
 
 class WearRequirementsTest {
     private val pegasian = ObjType(13237, "Pegasian boots", wearpos1 = WearPos.FEET, internalName = "pegasian_boots")
-    private val types = ObjTypes.of(pegasian)
+    private val pickaxe = ObjType(1273, "Mithril pickaxe", wearpos1 = WearPos.WEAPON, internalName = "mithril_pickaxe")
+    private val types = ObjTypes.of(pegasian, pickaxe)
 
     @Test
     fun `a line holds any number of levels, the combat level among them`() {
@@ -34,5 +35,11 @@ class WearRequirementsTest {
         assertTrue(lines.size > 2000, "${lines.size} lines")
         for (line in lines) assertEquals(3, line.split('\t').size, line)
         assertEquals(lines.size, lines.map { it.substringBefore('\t') }.toSet().size, "an item listed twice")
+    }
+
+    @Test
+    fun `a tool needs the level to wield it, not the level to use it`() {
+        // The Wiki's Pickaxe article: 20 Attack to wield a mithril pickaxe, 21 Mining to mine with it.
+        assertEquals(listOf(WearRequirement(Skill.ATTACK, 20)), WearRequirements.load(types)[pickaxe])
     }
 }

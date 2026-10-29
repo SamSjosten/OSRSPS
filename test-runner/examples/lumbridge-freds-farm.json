@@ -89,11 +89,18 @@
    "step": "assertNoDialogue"
   },
   {
+   "step": "command",
+   "text": "::tele 3190 3269 0",
+   "expectMessage": "Teleported to 3190, 3269, 0",
+   "comment": "inside the onion patch's fence, against the house's south wall: from inside the house the patch can't be reached"
+  },
+  {
    "step": "locOption",
    "loc": "Onion",
    "option": "Pick",
-   "timeoutMs": 20000,
-   "comment": "the nearest onion of the patch by Fred's house"
+   "x": 3190,
+   "y": 3268,
+   "comment": "an onion of the fenced patch south of Fred's house"
   },
   {
    "step": "assertMessage",

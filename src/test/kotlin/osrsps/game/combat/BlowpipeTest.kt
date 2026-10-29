@@ -74,15 +74,15 @@ class BlowpipeTest {
         assertEquals(500, alice.charges[Blowpipe.DARTS])
         assertEquals(dragonDart.id, alice.charges[Blowpipe.DART_TYPE])
         assertEquals(0L, alice.inventory.count(dragonDart.id))
-        assertEquals("Darts: Dragon dart x 500. Scales: 16,383 (100.0%).", messages.last())
+        assertEquals("[combat.blowpipe_check dart=Dragon dart darts=500 scales=16,383 percent=100.0]", messages.last())
         // Another kind of dart waits for an Unload.
         alice.inventory.add(runeDart, 10)
         use(runeDart.id, Blowpipe.LOADED)
-        assertEquals(Blowpipe.OTHER_DARTS, messages.last())
+        assertEquals("[combat.blowpipe_other_darts]", messages.last())
         assertEquals(10L, alice.inventory.count(runeDart.id))
         messages.clear()
         option(Blowpipe.LOADED, 3)
-        assertEquals(listOf("Darts: Dragon dart x 500. Scales: 16,383 (100.0%)."), messages)
+        assertEquals(listOf("[combat.blowpipe_check dart=Dragon dart darts=500 scales=16,383 percent=100.0]"), messages)
     }
 
     @Test
@@ -95,7 +95,7 @@ class BlowpipeTest {
         assertEquals(30L, alice.inventory.count(dragonDart.id))
         assertEquals(0, alice.charges[Blowpipe.DARTS])
         assertNull(blowpipe.dart(alice))
-        assertEquals("Darts: None. Scales: 1,000 (6.1%).", blowpipe.check(alice))
+        assertEquals("[combat.blowpipe_check_empty scales=1,000 percent=6.1]", blowpipe.check(alice))
         use(dragonDart.id, Blowpipe.LOADED)
         option(Blowpipe.LOADED, 5)
         assertEquals(30L, alice.inventory.count(dragonDart.id))
@@ -114,7 +114,7 @@ class BlowpipeTest {
         alice.charges[Blowpipe.DARTS] = 5
         alice.charges[Blowpipe.SCALES] = 50
         run(Op(OpTarget.WORN, Blowpipe.LOADED, 1, WearPos.WEAPON))
-        assertEquals("Darts: Rune dart x 5. Scales: 50 (0.3%).", messages.last())
+        assertEquals("[combat.blowpipe_check dart=Rune dart darts=5 scales=50 percent=0.3]", messages.last())
         run(Op(OpTarget.WORN, Blowpipe.LOADED, 3, WearPos.WEAPON))
         assertEquals(5L, alice.inventory.count(runeDart.id))
         assertEquals(50L, alice.inventory.count(Blowpipe.SCALE))
@@ -129,7 +129,7 @@ class BlowpipeTest {
         alice.charges[Blowpipe.DARTS] = 30
         alice.charges[Blowpipe.SCALES] = 1_000
         option(Blowpipe.LOADED, 5)
-        assertEquals(Blowpipe.NO_ROOM, messages.last())
+        assertEquals("[combat.no_room]", messages.last())
         assertEquals(0L, alice.inventory.count(dragonDart.id))
         assertEquals((Inventory.MAX_STACK - 10).toLong(), alice.inventory.count(Blowpipe.SCALE))
         assertEquals(1L, alice.inventory.count(Blowpipe.LOADED))
@@ -146,7 +146,7 @@ class BlowpipeTest {
         val filler = ObjType(4151, "Abyssal whip", internalName = "abyssal_whip")
         while (alice.inventory.freeSlots > 0) alice.inventory.add(filler, 1)
         option(Blowpipe.EMPTY, 3)
-        assertEquals(Blowpipe.NO_ROOM, messages.last())
+        assertEquals("[combat.no_room]", messages.last())
         assertEquals(1L, alice.inventory.count(Blowpipe.EMPTY))
         alice.inventory.remove(slotOf(filler.id))
         option(Blowpipe.EMPTY, 3)
@@ -169,12 +169,12 @@ class BlowpipeTest {
         assertEquals(8 to 1, alice.charges[Blowpipe.DARTS] to alice.charges[Blowpipe.SCALES])
         assertTrue(blowpipe.use(alice, { said += it }) { false })
         assertEquals(InvObj(Blowpipe.EMPTY, 1), alice.equipment[WearPos.WEAPON])
-        assertEquals(listOf(Blowpipe.RAN_OUT), said)
+        assertEquals(listOf("[combat.blowpipe_ran_out]"), said)
         assertTrue(!blowpipe.use(alice, { said += it }) { false })
-        assertEquals(Blowpipe.NO_SCALES, said.last())
+        assertEquals("[combat.blowpipe_no_scales]", said.last())
         alice.charges[Blowpipe.SCALES] = 5
         alice.charges[Blowpipe.DARTS] = 0
         assertTrue(!blowpipe.use(alice, { said += it }) { false })
-        assertEquals(Blowpipe.NO_DARTS, said.last())
+        assertEquals("[combat.blowpipe_no_darts]", said.last())
     }
 }

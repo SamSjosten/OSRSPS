@@ -98,7 +98,7 @@ class WoodcuttingData(val axes: List<Axe>, val trees: Map<Int, TreeType>, val st
  * the animation starting on the click's own tick (2004Scape waits a tick). No chopping sound is sent: the 241 synth ids
  * have no names to find it by.
  */
-class Woodcutting(private val world: World, val data: WoodcuttingData) {
+class Woodcutting(private val world: World, val data: WoodcuttingData, private val nests: BirdNests) {
     private class TreeTimer(var left: Int, var lastTick: Long)
 
     /** Timed trees being chopped, by tile and level. */
@@ -158,6 +158,7 @@ class Woodcutting(private val world: World, val data: WoodcuttingData) {
                 player.inventory.add(logs, 1)
                 player.skills.addTenths(Skill.WOODCUTTING, tree.xpTenths)
                 player.message(text[WoodcuttingLines.GET_LOGS, "logs" to logs.name.lowercase()])
+                nests.roll(player)
                 if (timer == null || timer.left <= 0) {
                     fell(loc, tree)
                     return stop()
@@ -183,7 +184,7 @@ class Woodcutting(private val world: World, val data: WoodcuttingData) {
         }
         if (timer.lastTick == tick) return timer
         val idle = (tick - timer.lastTick - 1).coerceAtMost(despawn.toLong()).toInt()
-        timer.left = (timer.left + idle).coerceAtMost(despawn) - 1
+        timer.left = runDown(timer.left, idle, despawn)
         timer.lastTick = tick
         return timer
     }
@@ -199,5 +200,12 @@ class Woodcutting(private val world: World, val data: WoodcuttingData) {
     companion object {
         /** A roll every 4 ticks: the Wiki's tree pages. */
         const val CYCLE = 4
+
+        /**
+         * A tree timer at [left] after [idle] ticks nobody chopped and then one tick of chopping: back up one a tick
+         * while idle, to [despawn] at most, then down one, but not below 0, so failed rolls on a run-out timer don't
+         * eat into the refill.
+         */
+        internal fun runDown(left: Int, idle: Int, despawn: Int): Int = ((left + idle).coerceAtMost(despawn) - 1).coerceAtLeast(0)
     }
 }

@@ -128,4 +128,16 @@ class WoodcuttingDataTest {
         const val FULL = -1
         val TIERS = listOf("bronze", "iron", "steel", "black", "mithril", "adamant", "rune", "dragon", "crystal")
     }
+
+    @Test
+    fun `a tree timer runs down to 0 and no further, and refills while nobody chops`() {
+        // An oak (45 ticks) chopped down to 0, then 20 more ticks of failed rolls: still 0.
+        var left = 44
+        repeat(64) { left = Woodcutting.runDown(left, 0, 45) }
+        assertEquals(0, left)
+        // 30 idle ticks refill it to 30, and the tick of chopping takes one off.
+        assertEquals(29, Woodcutting.runDown(left, 30, 45))
+        // A long wait fills it to the top.
+        assertEquals(44, Woodcutting.runDown(0, 1000, 45))
+    }
 }

@@ -291,7 +291,7 @@ class MagicCombatTest {
         alice.skills.setLevel(Skill.MAGIC, 12)
         cast(alice, npc)
         tick()
-        assertEquals(listOf(alice to MagicCombat.LEVEL_TOO_LOW), messages)
+        assertEquals(listOf(alice to "[combat.magic_level]"), messages)
         assertNull(alice.interaction)
         assertEquals(listOf(alice), stopped)
         assertNull(alice.effects.anim)
@@ -302,7 +302,7 @@ class MagicCombatTest {
         alice.inventory.remove(slot, 298)
         cast(alice, npc)
         tick()
-        assertEquals(listOf(alice to "You do not have enough Fire Runes to cast this spell."), messages)
+        assertEquals(listOf(alice to "[combat.not_enough_runes runes=Fire Runes]"), messages)
         assertEquals(listOf(100, 2, 200), listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR)))
         assertTrue(projectiles.isEmpty())
     }
@@ -370,7 +370,7 @@ class MagicCombatTest {
         assertEquals(bob, npc.attacker)
         cast(alice, npc)
         tick(alice, bob)
-        assertEquals(listOf(alice to MeleeCombat.SOMEONE_ELSE), messages)
+        assertEquals(listOf(alice to "[combat.someone_else]"), messages)
         assertNull(alice.interaction)
     }
 
@@ -438,7 +438,7 @@ class MagicCombatTest {
         melee.attackFromAfar(alice, npc)
         repeat(12) { tick() }
         assertEquals(2, projectiles.size)
-        assertEquals("You do not have enough Mind Runes to cast this spell.", messages.single().second)
+        assertEquals("[combat.not_enough_runes runes=Mind Runes]", messages.single().second)
         assertNull(alice.interaction)
     }
 
@@ -517,18 +517,18 @@ class MagicCombatTest {
         val runes = listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR))
         cast(alice, npc, BIND)
         tick()
-        assertEquals(listOf(alice to MagicCombat.ALREADY_HELD), messages)
+        assertEquals(listOf(alice to "[combat.already_held]"), messages)
         messages.clear()
         // Moving again from tick 13, and immune in that tick and the 4 after.
         while (tick < 12) tick()
         cast(alice, npc, BIND)
         tick()
-        assertEquals(listOf(alice to MagicCombat.IMMUNE), messages)
+        assertEquals(listOf(alice to "[combat.immune]"), messages)
         messages.clear()
         while (tick < 16) tick()
         cast(alice, npc, BIND)
         tick()
-        assertEquals(listOf(alice to MagicCombat.IMMUNE), messages, "on tick 17, the fifth it moves in")
+        assertEquals(listOf(alice to "[combat.immune]"), messages, "on tick 17, the fifth it moves in")
         assertEquals(runes, listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR)))
         assertEquals(1, projectiles.size)
         messages.clear()
@@ -677,10 +677,10 @@ class MagicCombatTest {
         melee.attackFromAfar(alice, npc)
         tick()
         assertEquals(SHADOW_UNCHARGED, alice.equipment[WearPos.WEAPON]?.id)
-        assertEquals(alice to "Your Tumeken's shadow has run out of charges.", messages.last())
+        assertEquals(alice to "[combat.staff_ran_out staff=Tumeken's shadow]", messages.last())
         repeat(5) { tick() }
         assertEquals(1, castTicks().size)
-        assertEquals(alice to "Your Tumeken's shadow has no charges.", messages.last())
+        assertEquals(alice to "[combat.staff_no_charges staff=Tumeken's shadow]", messages.last())
         assertNull(alice.interaction)
     }
 
