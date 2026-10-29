@@ -42,7 +42,7 @@ class AdminsTest {
         assertEquals(
             setOf(
                 "pause", "step", "resume", "seed", "addloc", "delloc", "resetlocs", "gfx", "proj", "areasound",
-                "dialogue", "groundobj", "objspawn", "cleartile", "npc", "npchp", "follow", "delnpc", "hit", "kill", "god", "sure", "heal", "multi", "blowpipe",
+                "dialogue", "groundobj", "objspawn", "cleartile", "npc", "npchp", "follow", "delnpc", "hit", "kill", "god", "sure", "heal", "multi", "blowpipe", "spellbook",
                 "ip", "ipban", "ipunban", "ipbans",
             ),
             adminOnly,

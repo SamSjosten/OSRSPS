@@ -116,7 +116,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
     }
 
     // In place of the altars that switch books, which come with their areas.
-    register("spellbook", "::spellbook [${Spellbook.NAMES.joinToString("|")}]") {
+    register("spellbook", "::spellbook [${Spellbook.NAMES.joinToString("|")}]", admin = true) {
         val usage = "Usage: ::spellbook [${Spellbook.NAMES.joinToString("|")}]"
         if (args.size > 1) fail(usage)
         val name = args.firstOrNull()?.lowercase()

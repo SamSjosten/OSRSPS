@@ -143,8 +143,10 @@ class MagicCombat(
     }
 
     /** The spell the player autocasts, or null when they don't. */
-    private fun autocastSpell(player: Player): CombatSpell? =
-        if (combat.style(player).type == AttackType.MAGIC) spells.autocast(Autocast.key(player)) else null
+    private fun autocastSpell(player: Player): CombatSpell? {
+        if (combat.style(player).type != AttackType.MAGIC) return null
+        return spells.autocast(Autocast.key(player))?.takeIf { it.spellbook == Spellbook.of(player) }
+    }
 
     internal fun unreachable(player: Player) = stopFacing(player)
 
@@ -208,6 +210,11 @@ class MagicCombat(
      * has been told why.
      */
     private fun release(player: Player, npc: Npc, spell: CombatSpell, tick: Long, defensive: Boolean): Boolean {
+        // The book can change between the click and the cast (::spellbook on the way to the NPC).
+        if (spell.spellbook != Spellbook.of(player)) {
+            logger.info { "${player.username} was to cast ${spell.name} on $npc, but has spellbook ${Spellbook.of(player)} open now" }
+            return false
+        }
         if (player.skills.currentLevel(Skill.MAGIC) < spell.level) {
             message(player, LEVEL_TOO_LOW)
             return false
