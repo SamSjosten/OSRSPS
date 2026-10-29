@@ -150,6 +150,22 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply(if (player.sureHits) "Your attacks can't miss now (::sure again to turn it off)." else "Your attacks can miss again.")
     }
 
+    register("prayers", "::prayers", admin = false) {
+        val prayers = world.prayers
+        val on = prayers.all.filter { prayers.isActive(player, it) }.joinToString { it.name }.ifEmpty { "none" }
+        val points = player.skills.currentLevel(Skill.PRAYER)
+        val overhead = if (player.overheadIcon >= 0) ", overhead ${player.overheadIcon}" else ""
+        reply("Prayer $points/${player.skills.baseLevel(Skill.PRAYER)}, drain resistance ${prayers.drainResistance(player)}$overhead: $on")
+    }
+
+    register("pray", "::pray points", admin = true) {
+        // Sets the points alone, up to the base level, as an altar would recharge them (::setlevel prayer resets the level).
+        val base = player.skills.baseLevel(Skill.PRAYER)
+        val points = args.singleOrNull()?.toIntOrNull()?.takeIf { it in 0..base } ?: fail("Usage: ::pray points (0 to $base)")
+        player.skills.setCurrentLevel(Skill.PRAYER, points)
+        reply("Prayer points set to $points.")
+    }
+
     register("heal", "::heal", admin = true) {
         player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
         reply("Healed to ${player.hitpoints} hitpoints.")

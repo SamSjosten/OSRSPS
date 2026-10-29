@@ -1,0 +1,30 @@
+{
+ "name": "Prayer: Protect from Melee clicked on in the prayer book, a castle man's punches blocked, the drain, Thick Skin alongside, the Piety refusal, and every prayer off at no points",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel prayer 43", "expectMessage": "Prayer set to level 43", "comment": "Protect from Melee needs 43"},
+  {"step": "command", "text": "::buttons on", "expectMessage": "Interface clicks are echoed"},
+  {"step": "clickWidget", "interfaceId": 548, "component": 69, "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"},
+  {"step": "clickWidget", "interfaceId": 541, "component": 35, "comment": "prayerbook:prayer27, Piety: 70 Prayer"},
+  {"step": "assertMessage", "contains": "Button 541:35 slot -1 op 1", "timeoutMs": 10000, "comment": "the client may refuse it itself as well; the server must not turn it on"},
+  {"step": "command", "text": "::prayers", "expectMessage": "Prayer 43/43, drain resistance 60: none"},
+  {"step": "clickWidget", "interfaceId": 541, "component": 23, "comment": "prayerbook:prayer15, Protect from Melee"},
+  {"step": "assertMessage", "contains": "Button 541:23 slot -1 op 1", "timeoutMs": 10000},
+  {"step": "command", "text": "::prayers", "expectMessage": "overhead 0: Protect from Melee", "comment": "on, with the melee overhead icon"},
+  {"step": "clickWidget", "interfaceId": 541, "component": 9, "comment": "prayerbook:prayer1, Thick Skin, which doesn't share a group with it"},
+  {"step": "command", "text": "::prayers", "expectMessage": "overhead 0: Thick Skin, Protect from Melee"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000, "comment": "he fights back once punched"},
+  {"step": "waitTicks", "ticks": 20, "comment": "five of his punches at 4 ticks"},
+  {"step": "command", "text": "::hp", "expectMessage": "You have 10/10 hitpoints", "comment": "every punch blocked"},
+  {"step": "command", "text": "::prayers", "expectMessage": "Prayer 3", "comment": "13 a tick against 60: about a point every 4.6 ticks, so 3x after 25 or so ticks"},
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #"},
+  {"step": "command", "text": "::pray 0", "expectMessage": "Prayer points set to 0."},
+  {"step": "assertMessage", "contains": "You have run out of prayer points", "timeoutMs": 10000},
+  {"step": "command", "text": "::prayers", "expectMessage": "Prayer 0/43, drain resistance 60: none"},
+  {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

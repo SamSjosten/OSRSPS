@@ -83,6 +83,8 @@ class MeleeCombat(
     private val ranged: (Player, Npc) -> Interaction? = { _, _ -> null },
     /** Where the single-way rules below don't hold. */
     private val multi: MultiCombat = MultiCombat(),
+    /** Whether the player's protection prayers block an NPC's attack of this type; see [Prayers.protects]. */
+    private val protects: (Player, AttackType) -> Boolean = { _, _ -> false },
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -354,7 +356,8 @@ class MeleeCombat(
         npc.face(player)
         val roll = combat.npcAttack(npc, player) ?: return
         val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, roll.maxHit) else 0
-        hitPlayer(player, npc, damage, tick)
+        // The dice are rolled either way, so a prayer doesn't change what comes after (World.random is shared).
+        hitPlayer(player, npc, if (protects(player, def.attackType)) 0 else damage, tick)
     }
 
     /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis. */

@@ -81,6 +81,11 @@ class PlayerVars(val types: VarTypes) {
         }
     }
 
+    /** Makes the next [flush] send [varp] even if it hasn't changed: the client changed its own copy. */
+    fun resend(varp: Int) {
+        changed.add(checkVarp(varp))
+    }
+
     /**
      * Makes the next [flush] send every varp the client may have a stale value for: those that aren't 0, and those
      * sent before, which covers a varp that went back to 0 while the client wasn't listening.

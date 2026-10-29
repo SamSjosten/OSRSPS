@@ -71,6 +71,8 @@ class Deaths(
     private val setVarbitNow: (Player, Int, Int) -> Unit,
     /** Drops the player's scripts: a delayed one (a ladder half climbed) must not carry on once they are dead. */
     private val cancelScripts: (Player) -> Unit = {},
+    /** Turns every prayer off ([Prayers.deactivateAll]). */
+    private val prayersOff: (Player) -> Unit = {},
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
     private val message: (Player, String) -> Unit = Player::message,
     /** Examine on a grave item: the inventory's examine. */
@@ -101,6 +103,8 @@ class Deaths(
         closeModals(player)
         // Guessed: live's death clears the player's queue too, so a climb or a search in progress never finishes.
         cancelScripts(player)
+        // Guessed: the prayers go off as the player falls, not at the respawn.
+        prayersOff(player)
         player.interaction = null
         player.waypoints.clear()
         player.anim(DEATH_ANIM)
