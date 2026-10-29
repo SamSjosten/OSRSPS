@@ -304,6 +304,20 @@ the world, with the bronze to crystal axes. Words are under `woodcutting.*` in t
 | Swing message on the click, the animation again on each roll, the checks each tick | 2004Scape woodcut script |
 | The timer runs down one a tick while anyone chops and back up one a tick while nobody does; the tree falls at the first log after it runs out | guessed (the Wiki gives only totals) |
 | No chopping sound | the 241 synth ids have no names to find it by |
+| A level-up box ends the action | 2004Scape engine's busy() check; guessed that live ends rather than waits |
+
+Each log has a 1/256 chance of a bird nest (`game/skill/BirdNests.kt`, words under `birdnest.*`), 11/2560 with a
+Woodcutting cape worn; `::nest [seeds|ring|red|green|blue]` drops one as a tree does. Search on a nest leaves an empty
+nest in its slot and puts its seed, ring or egg in the backpack.
+
+| Bird nest behaviour | Source |
+|---------------------|--------|
+| 1/256 a log, members only (every account counts as members), 10% more with the cape | OSRS Wiki, Bird nest |
+| Seed nest 65 in 100, ring nest 32, each egg nest 1; the seed (out of 1,011) and ring (out of 100) tables | OSRS Wiki nest pages |
+| Lands on a free tile next to the player, the west one twice as likely | guessed from the Wiki's "biased west" |
+| The player's alone for 100 ticks, gone after 1,200 (four times a drop's 300) | guessed from the Wiki's June 2022 change |
+| Searching needs a free slot, whatever is in the nest (so a full backpack can't reroll it) | guessed |
+| Out: clue nests, Forestry, the strung rabbit foot, twitcher's gloves | out of scope |
 
 ## Items and inventory
 
