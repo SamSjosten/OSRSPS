@@ -12,46 +12,54 @@ import osrsps.map.CollisionFlag.WALL_WEST
 
 /** Whether a single step is allowed: the checks the route finder makes, for one tile or a larger square. */
 object Steps {
-    /** One step of ([dx], [dz]), each -1 to 1, from [x], [z] by something one tile big. */
-    fun canStep(collision: CollisionMap, level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean {
-        fun open(ox: Int, oz: Int, mask: Int) = collision[x + ox, z + oz, level] and mask == 0
+    /**
+     * One step of ([dx], [dz]), each -1 to 1, from [x], [z] by something one tile big. [block] is what stops a tile
+     * being stepped onto besides its walls, and every tile the step crosses must also have all of [need]: NPCs that
+     * keep to water ([osrsps.game.npc.MoveRestrict.BLOCKED]) step only where the floor is blocked.
+     */
+    fun canStep(collision: CollisionMap, level: Int, x: Int, z: Int, dx: Int, dz: Int, block: Int = BLOCK_WALK, need: Int = 0): Boolean {
+        fun open(ox: Int, oz: Int, walls: Int): Boolean {
+            val flags = collision[x + ox, z + oz, level]
+            return flags and (block or walls) == 0 && flags and need == need
+        }
         val westEast = when (dx) {
-            -1 -> open(-1, 0, BLOCK_WALK or WALL_EAST)
-            1 -> open(1, 0, BLOCK_WALK or WALL_WEST)
+            -1 -> open(-1, 0, WALL_EAST)
+            1 -> open(1, 0, WALL_WEST)
             else -> true
         }
         val southNorth = when (dz) {
-            -1 -> open(0, -1, BLOCK_WALK or WALL_NORTH)
-            1 -> open(0, 1, BLOCK_WALK or WALL_SOUTH)
+            -1 -> open(0, -1, WALL_NORTH)
+            1 -> open(0, 1, WALL_SOUTH)
             else -> true
         }
         if (dx == 0 || dz == 0) return westEast && southNorth && (dx != 0 || dz != 0)
         val corner = when {
-            dx < 0 && dz < 0 -> BLOCK_WALK or WALL_NORTH or WALL_NORTH_EAST or WALL_EAST
-            dx > 0 && dz < 0 -> BLOCK_WALK or WALL_NORTH_WEST or WALL_NORTH or WALL_WEST
-            dx < 0 -> BLOCK_WALK or WALL_EAST or WALL_SOUTH_EAST or WALL_SOUTH
-            else -> BLOCK_WALK or WALL_SOUTH or WALL_SOUTH_WEST or WALL_WEST
+            dx < 0 && dz < 0 -> WALL_NORTH or WALL_NORTH_EAST or WALL_EAST
+            dx > 0 && dz < 0 -> WALL_NORTH_WEST or WALL_NORTH or WALL_WEST
+            dx < 0 -> WALL_EAST or WALL_SOUTH_EAST or WALL_SOUTH
+            else -> WALL_SOUTH or WALL_SOUTH_WEST or WALL_WEST
         }
         return westEast && southNorth && open(dx, dz, corner)
     }
 
     /**
-     * One step by something [size] tiles square whose south-west tile is [x], [z].
+     * One step by something [size] tiles square whose south-west tile is [x], [z], with [block] and [need] as for one
+     * tile.
      *
      * Inferred, not checked against live: the square moves as its tiles would one by one. Each tile on its leading
      * edge must be able to take the step on its own, and no wall may cut across the tiles it moves onto. That reads the
      * same as the client's rules for one tile and matches what large NPCs are seen to do (a cow can't straddle a
      * fence), but the corner cases with pillars haven't been compared with live.
      */
-    fun canStep(collision: CollisionMap, level: Int, x: Int, z: Int, dx: Int, dz: Int, size: Int): Boolean {
-        if (size <= 1) return canStep(collision, level, x, z, dx, dz)
+    fun canStep(collision: CollisionMap, level: Int, x: Int, z: Int, dx: Int, dz: Int, size: Int, block: Int = BLOCK_WALK, need: Int = 0): Boolean {
+        if (size <= 1) return canStep(collision, level, x, z, dx, dz, block, need)
         if (dx == 0 && dz == 0) return false
         fun inOld(tx: Int, tz: Int) = tx in x until x + size && tz in z until z + size
         for (tx in x until x + size) {
             for (tz in z until z + size) {
                 // Only the leading tiles step onto ground the square doesn't already cover.
                 if (inOld(tx + dx, tz + dz)) continue
-                if (!canStep(collision, level, tx, tz, dx, dz)) return false
+                if (!canStep(collision, level, tx, tz, dx, dz, block, need)) return false
             }
         }
         // Walls between two tiles the square moves onto, at least one of them new to it. Walls are flagged on both

@@ -168,13 +168,13 @@ class GroundObjsTest {
         assertEquals(InvObj(1351, 1), alice.inventory[0])
         assertFalse(zones.hasObj(obj))
         assertFalse(ground.take(alice, obj))
-        assertEquals(listOf(GroundObjs.TOO_LATE), messages(alice))
+        assertEquals(listOf("[game.too_late]"), messages(alice))
 
         val again = dropAxe()
         alice.inventory.add(axe, 28)
         assertFalse(ground.take(alice, again))
         assertTrue(zones.hasObj(again))
-        assertEquals(GroundObjs.NO_SPACE, messages(alice).last())
+        assertEquals("[game.no_space]", messages(alice).last())
     }
 
     @Test
@@ -271,7 +271,7 @@ class GroundObjsTest {
         val told = mutableListOf<String>()
         alice.interaction = interaction
         Interactions { _, text -> told += text }.process(alice) {}
-        assertEquals(listOf(Interactions.CANT_REACH), told)
+        assertEquals(listOf("[game.cant_reach]"), told)
         assertNull(alice.interaction)
         assertEquals(0L, alice.inventory.count(1351))
     }

@@ -8,6 +8,7 @@ import net.rsprot.protocol.game.outgoing.inv.UpdateInvPartial
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptRunner
@@ -31,6 +32,8 @@ class InventoryTab(
     private val price: (ObjType) -> Long? = { null },
     /** The examine text: the cache's, or for a note the dialogue file's. */
     private val desc: (Player, ObjType) -> String = { _, type -> type.desc ?: "" },
+    /** Each player's words for the game messages ([GameLines]); [EquipmentTab] says its "nothing interesting" with them too. */
+    internal val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     /** Lets the client send clicks, drags and "Use" on the 28 slots. Sent once the panel is open on login. */
     fun open(player: Player) {
@@ -135,7 +138,7 @@ class InventoryTab(
 
     /** Live's answer to an option or "Use" that does nothing. */
     private fun nothingInteresting(player: Player) {
-        send(player, MessageGame(CHATTYPE_GAMEMESSAGE, NOTHING_INTERESTING))
+        send(player, MessageGame(CHATTYPE_GAMEMESSAGE, words(player)[GameLines.NOTHING_INTERESTING]))
     }
 
     companion object {
@@ -148,7 +151,6 @@ class InventoryTab(
         /** The inventory option that drops the item, unless a handler takes it. */
         const val DROP = "Drop"
         const val EXAMINE_SCRIPT = 6003
-        const val NOTHING_INTERESTING = "Nothing interesting happens."
         private const val CHATTYPE_GAMEMESSAGE = 0
 
         /** Button op to iop number. */

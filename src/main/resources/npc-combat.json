@@ -59,6 +59,14 @@
       "source": "OSRS Wiki, Chicken (ids 1173, 1174), read 2026-10-29; they stand and walk with lore_chicken_ready and lore_chicken_walk, so the chicken_ attack, block and death animations are guessed"
     },
     {
+      "npcs": ["duck", "duck_female", "duckling"],
+      "attackSpeed": 4, "maxHit": 0, "attackType": "stab", "attackBonus": -47, "strengthBonus": -42,
+      "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
+      "anims": { "attack": null, "defend": null, "death": "duck_rework_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Duck (ids 1838, 1839) and Duckling (id 2001), read 2026-10-29; the 241 cache has no duck attack or block animation, so they fight with none"
+    },
+    {
       "npcs": ["ramunsheered", "ramunsheered2", "ramunsheered3"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": -15, "strengthBonus": -15,
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },

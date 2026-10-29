@@ -104,7 +104,7 @@ class EquipmentTabTest {
         tab.clickWornItems(player, 24, 3)
         assertEquals(listOf(Op(OpTarget.WORN, 2552, 2, WearPos.RING)), ran)
         tab.clickWornItems(player, 24, 2)
-        assertEquals(listOf(InventoryTab.NOTHING_INTERESTING), messages())
+        assertEquals(listOf("[game.nothing_interesting]"), messages())
         player.equipment[WearPos.WEAPON] = InvObj(1351, 1)
         tab.clickWornItems(player, 18, 10)
         assertEquals(6003, sent.filterIsInstance<RunClientScript>().single().id)

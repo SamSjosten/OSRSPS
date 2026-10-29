@@ -15,7 +15,7 @@ class HeadlessClientTest {
     fun `logs in at the spawn and gets the welcome message and ticks`(@TempDir dir: Path) {
         TestServer(dir).use { server ->
             server.login("alice").use { client ->
-                client.await("the welcome message") { client.messages().firstOrNull { it.text == World.WELCOME_MESSAGE } }
+                client.await("the welcome message") { client.messages().firstOrNull { it.text == "[game.welcome]" } }
                 assertEquals(spawn, client.position)
                 client.awaitTicks(3)
             }

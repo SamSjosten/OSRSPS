@@ -93,6 +93,8 @@ class MeleeCombat(
     private val sound: (Player, Int) -> Unit = { player, id -> player.sound(id) },
     /** Each player's words for the game messages ([CombatLines]). */
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
+    /** Told of an NPC on the tick it is killed; see [osrsps.game.npc.NpcScripts.onDeath]. */
+    private val npcDied: (Npc) -> Unit = {},
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -308,6 +310,7 @@ class MeleeCombat(
         val respawnTick = tick + maxOf(def.respawnTicks, DEATH_TICKS)
         dying += Dying(npc, killer, tick + DEATH_TICKS, respawnTick)
         logger.debug { "$npc died; back on tick $respawnTick" }
+        npcDied(npc)
     }
 
     /** [npc] stops fighting whoever it fought and goes back to what it did. */

@@ -233,6 +233,50 @@ class NpcsTest {
     }
 
     @Test
+    fun `a blocked NPC keeps to water, and walls and locs on the water still stop it`() {
+        // A pond over x 3228 to 3232, with a loc in it at 3230, 3234 and a wall along the west side of 3231, 3226.
+        val map = map().apply {
+            for (x in 3228..3232) for (z in 3220..3240) add(x, z, 0, CollisionFlag.FLOOR)
+            add(3230, 3234, 0, CollisionFlag.LOC)
+            add(3231, 3226, 0, CollisionFlag.WALL_WEST)
+            add(3230, 3226, 0, CollisionFlag.WALL_EAST)
+        }
+        val npcs = Npcs(map, GameRandom(5))
+        val duck = npcs.add(NpcSpawn(man, 3230, 3230, wander = 10, restrict = MoveRestrict.BLOCKED, source = "test"))!!
+        val seen = HashSet<Tile>()
+        repeat(3_000) {
+            npcs.process()
+            seen += Tile(duck.x, duck.z)
+        }
+        assertEquals((3228..3232).toSet(), seen.map { it.x }.toSet())
+        assertFalse(Tile(3230, 3234) in seen, "on the loc")
+        // The wall is passed only around its ends, never across: a step across it from 3230 to 3231 is refused.
+        duck.x = 3230
+        duck.z = 3226
+        assertFalse(npcs.canStep(duck, 1, 0))
+        assertTrue(npcs.canStep(duck, 0, 1))
+        // A normal NPC can't step onto the water at all.
+        val man = npcs.add(NpcSpawn(man, 3227, 3238, source = "test"))!!
+        assertFalse(npcs.canStep(man, 1, 0))
+    }
+
+    @Test
+    fun `an NPC following another walks after it, stops beside it, and lets go when it is gone`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val leader = npcs.add(spawn(x = 3236, z = 3233, wander = 0))!!
+        val duckling = npcs.add(spawn(x = 3230, z = 3230, wander = 0))!!
+        npcs.followNpc(duckling, leader)
+        repeat(10) { npcs.process() }
+        assertEquals(Tile(3235, 3233), Tile(duckling.x, duckling.z))
+        leader.destination = Tile(3236, 3238)
+        repeat(10) { npcs.process() }
+        assertEquals(Tile(3236, 3237), Tile(duckling.x, duckling.z))
+        npcs.remove(leader)
+        npcs.process()
+        assertNull(duckling.leader)
+    }
+
+    @Test
     fun `near finds NPCs around a tile on its level`() {
         val npcs = Npcs(map(), GameRandom(1))
         npcs.add(spawn(x = 3230))

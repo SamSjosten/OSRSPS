@@ -340,7 +340,7 @@ class MeleeCombatTest {
         val other = spawn(hans, x = 3211)
         interactions.click(alice, other.index, 3, -1, invertRun = false)
         tick()
-        assertEquals(listOf(alice to NpcInteractions.NOTHING_INTERESTING), messages)
+        assertEquals(listOf(alice to "[game.nothing_interesting]"), messages)
         assertFalse(melee.attack(alice, other))
     }
 

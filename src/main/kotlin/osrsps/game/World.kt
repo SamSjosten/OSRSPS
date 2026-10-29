@@ -73,6 +73,7 @@ import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
+import osrsps.game.content.Ducks
 import osrsps.game.content.registerCrops
 import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerGroatsFarm
@@ -93,6 +94,7 @@ import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcEffects
 import osrsps.game.npc.NpcInteractions
+import osrsps.game.npc.NpcScripts
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.script.Handlers
@@ -207,6 +209,9 @@ class World(
 
     val npcs = Npcs(collision, random)
 
+    /** What NPCs do on their own: timers, per-tick actions and deaths that content gives them; see [NpcScripts]. */
+    val npcScripts = NpcScripts(npcs) { tick }
+
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
     /** Items on the ground: drops, takes, their timers and item spawns. */
@@ -219,6 +224,7 @@ class World(
             findPlayer(owner)?.let(::save)
             save(taker)
         },
+        words = ::textFor,
     )
 
     private val equipment = Equipment(objTypes, wearRequirements)
@@ -243,6 +249,7 @@ class World(
         onDrop = groundObjs::drop,
         price = { this.itemPrices.price(it) },
         desc = { player, type -> if (type.isCert) textFor(player)[Examines.NOTE] else type.desc ?: "" },
+        words = ::textFor,
     )
 
     /** The bank's rules and the bank interface; see [BankScreen]. */
@@ -273,16 +280,17 @@ class World(
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
 
-    private val interactions = Interactions()
+    private val interactions = Interactions(words = ::textFor)
 
     private val follows = Follows(movement, { players[it.index] === it })
 
-    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors)
+    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, words = ::textFor)
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
         attack = { player, npc -> meleeCombat.attack(player, npc) },
         attackFromAfar = { player, npc -> meleeCombat.attackFromAfar(player, npc) },
+        words = ::textFor,
     )
 
     /** Where combat is multi-way; see [MultiCombat]. */
@@ -298,6 +306,7 @@ class World(
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
         multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
         words = ::textFor,
+        npcDied = { npcScripts.died(it) },
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -341,6 +350,11 @@ class World(
 
     /** Bird nests that fall from trees. */
     val birdNests = BirdNests(this, collision)
+
+    /** The ducks' quacks, the ducklings following them, and the land ducks running off; see [Ducks]. */
+    val ducks = Ducks(npcs, npcScripts, collision, random, { tick }, { dialogueText }, { onlinePlayers }) { npc, id ->
+        zones.soundArea(npc.x, npc.z, npc.level, id)
+    }
 
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
 
@@ -388,6 +402,7 @@ class World(
         registerGroatsFarm(this)
         registerMillLaneMill(this)
         registerCrops(this)
+        ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         woodcutting.register()
         birdNests.register()
@@ -707,6 +722,7 @@ class World(
         magicCombat.process()
         meleeCombat.process()
         deaths.process()
+        npcScripts.process()
         npcs.process()
         shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
@@ -1130,7 +1146,7 @@ class World(
         allowChat(player)
         quests.completeAll(player.vars)
         prayers.login(player)
-        player.message(WELCOME_MESSAGE)
+        player.message(textFor(player)[GameLines.WELCOME])
 
         interfaces.openGameFrame(player)
         inventoryTab.open(player)
@@ -1400,7 +1416,7 @@ class World(
         }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
             if (inCombat(player)) {
-                player.message(CANT_LOG_OUT_IN_COMBAT)
+                player.message(textFor(player)[GameLines.CANT_LOG_OUT])
                 return@act
             }
             interfaces.closeModals(player)
@@ -1474,7 +1490,7 @@ class World(
 
     /** Puts an NPC in the world. Returns null, after logging why, if there is no room for it. */
     fun spawnNpc(spawn: NpcSpawn): Npc? {
-        val npc = npcs.add(spawn)
+        val npc = npcs.add(spawn, tick)
         if (npc == null) {
             logger.warn { "No free NPC slot for ${spawn.type} from ${spawn.source}" }
             return null
@@ -1509,6 +1525,8 @@ class World(
      * for fired ammunition, so these are a drop's.
      */
     private fun dropAmmo(type: ObjType, x: Int, z: Int, level: Int, owner: Player) {
+        // Lost in water: the Wiki's Duck page, for ducks off land, taken to hold on any floor that can't be walked on.
+        if (collision[x, z, level] and CollisionFlag.FLOOR != 0) return
         if (owner.loggedOut) {
             groundObjs.addPublic(type, 1, x, z, level, GroundObjs.DROP_DESPAWN_TICKS)
         } else {
@@ -1667,7 +1685,7 @@ class World(
         )
     }
 
-    /** Sends an NPC's animation, hitsplats and health bars through its avatar; see [NpcEffects]. */
+    /** Sends an NPC's animation, hitsplats, health bars and overhead text through its avatar; see [NpcEffects]. */
     private fun sendNpcEffects(npc: Npc) {
         val extendedInfo = npc.avatar?.extendedInfo
         npc.effects.flush(
@@ -1675,6 +1693,7 @@ class World(
             hit = { extendedInfo?.addHitMark(it.source, it.selfType, it.otherType, it.value, it.delay) },
             headBar = { extendedInfo?.addHeadBar(it.source, it.type, it.type, it.fill) },
             spotanim = { extendedInfo?.setSpotAnim(it.slot, it.id, it.delay, it.height) },
+            say = { extendedInfo?.setSay(it) },
         )
     }
 
@@ -1716,7 +1735,7 @@ class World(
         if (player.logoutRequested && !player.logoutForced && inCombat(player)) {
             // Hit later in the tick that the button was clicked in: the NPC phase comes after input.
             player.logoutRequested = false
-            player.message(CANT_LOG_OUT_IN_COMBAT)
+            player.message(textFor(player)[GameLines.CANT_LOG_OUT])
         }
         if (player.logoutRequested || player.logoutForced) {
             // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
@@ -1784,9 +1803,6 @@ class World(
         /** The logout button does nothing until this many ticks after the player was last hit (OSRS Wiki, Logout button). */
         const val LOGOUT_COMBAT_TICKS = 16L
 
-        /** The logout button in combat. From memory, not checked against live. */
-        const val CANT_LOG_OUT_IN_COMBAT = "You can't log out until 10 seconds after the end of combat."
-
         /**
          * How long a player whose connection dropped stays in the world for the client to reconnect: 60 s, the
          * wiki's "60 second timer before the game forcibly logs you out after an unexpected disconnection" (Logout
@@ -1834,9 +1850,6 @@ class World(
 
         /** has_displayname_transmitter in RuneLite's VarbitID. */
         const val VARBIT_HAS_DISPLAYNAME = 8119
-
-        /** The first game message after login on live, from memory rather than a recording. */
-        const val WELCOME_MESSAGE = "Welcome to Old School RuneScape."
 
         private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }

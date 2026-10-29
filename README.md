@@ -351,7 +351,7 @@ as `Op.sub`. The inventory is saved with the player.
 | The examine's Grand Exchange price is the item's value | guessed: the server has no market prices |
 | Notes: the item's name and value, stackable, "Swap this note at any bank for the equivalent item." | client genCert; the text from memory of live |
 | Dragging swaps two slots; a click on a slot that holds something else is dropped | RSMod / inferred |
-| An option or "Use" nothing handles says "Nothing interesting happens." | from memory of live |
+| An option or "Use" nothing handles says live's "nothing interesting" message (`game.nothing_interesting`) | from memory of live |
 | Bury on bones: "You dig a hole in the ground...", seq 827, the player stops; a tick later the bones go, the Prayer XP comes and "You bury the bones." (bones, burnt bones 4.5 XP, big bones 15, dragon bones 72) | XP from the Wiki; the steps from the 2004Scape project's script; no sound yet (its 241 synth id isn't known) |
 | Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
 
@@ -476,8 +476,8 @@ chickens and rams fight and drop through `npc-combat.json` and `npc-drops.json`.
 | Messages: "You need a set of shears to do this.", "You get some wool.", "This sheep has already been shorn.", "You pick an onion.", "You don't have room for this onion." | RSMod and the 2004Scape project, not checked against live |
 | Fred's expressions, the chickens' and rams' fight animations (by name), every wander range (5) | guessed |
 
-Not built yet: the onion seed members sometimes get from a field, the sheep's "Baa!", The Thing and the penguin of Cold
-War (and Fred's option about The Thing), the farmers, and the ducks (the Groats' farm step).
+Not built yet: the onion seed members sometimes get from a field, the sheep's overhead bleat, The Thing and the penguin of Cold
+War (and Fred's option about The Thing), and the farmers. The ducks are in their own section below.
 
 Check: `test-runner/examples/lumbridge-freds-farm.json` talks to Fred, picks an onion, shears a sheep and kills
 chickens for their feathers.
@@ -500,11 +500,38 @@ map's locs. Wheat, potatoes and onions are picked through `game/content/Crops.kt
 | The ladders: Climb-up, a Climb menu on the middle floor, Climb-down | the castle's ladders (RSMod) |
 | The grain in the hopper is kept with the account by name, as charges are, since no var for it is known; Gillie's and Millie's expressions; human_pickuptable for filling and operating | guessed |
 
-Not built yet: the ducks (their own step), sweetcorn and cornflour (Farming), Steal-cowbell and the cowbell amulet
+Not built yet: sweetcorn and cornflour (Farming), Steal-cowbell and the cowbell amulet
 (Thieving, Cold War), and the seeds a field sometimes gives.
 
 Check: `test-runner/examples/lumbridge-mill.json` talks to Millie and Gillie, picks wheat, climbs the mill, makes two
 pots of flour and milks a dairy cow into two buckets.
+
+## Ducks
+
+The ducks of the River Lum and the pond by Fred's farm, and those that walk on land beside the pond south of Mill
+Lane Mill and on Groats' farm, in `npc-spawns/lumbridge-ducks.json` on RSMod's tiles (each checked against the 241
+map: the swimmers on water, the walkers on land). What they do is `game/content/Ducks.kt`, through the NPC scripts of
+`game/npc/NpcScripts.kt` (timers, per-tick actions, deaths and queued actions for NPC types). They fight through
+`npc-combat.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Drakes (1838) and ducks (1839) swim, keeping to the water: move restrict `blocked` steps only onto tiles whose floor can't be walked on, with walls and locs still in the way; wander range 35 | RSMod's duck config and its route finder's blocked collision strategy |
+| A duck quacks over its head (`duck.quack`) with the quack sound (synth 413) 26 ticks after it appears, then every 50 to 100 ticks | RSMod's duck script |
+| Ducklings (2002, and the attackable duckling 2001 at the pond) look every 11 ticks for a female duck within 2 tiles in sight and follow her; every 50 to 100 ticks a female within 10 tiles calls (`duck.call`) and the duckling answers (`duck.eep`) 2 ticks later | RSMod's duck script and hunt; the Wiki's Duckling and Ducklings pages (2001 follows female ducks too) |
+| When a duck is killed, the ducklings within a tile cry (`duck.cheep`) 2 ticks later and swim up to 9 tiles off, then call (`duck.eep`); a drake beside her quacks | RSMod's duck script; the Wiki's Duck page |
+| Ducks and ducklings: level 1, 3 hitpoints, stab for 0, back in 25 ticks, no drops; on the water they can't be reached to melee | OSRS Wiki, Duck and Duckling |
+| Fired ammunition that lands on water is lost | OSRS Wiki, Duck ("Ammunition is lost if ducks are not on land"), taken to hold on any floor that can't be walked on |
+| The walking duck (2003) and drake (2004) have no options and run from a player who comes close | OSRS Wiki, Duck (Common) and Drake (bird) |
+| Which of the 11 ticks a duckling looks on, that a scattering duckling picks a water tile, that the 2001 duckling acts as 2002 does, the walkers' range (5) and how close a player comes (2 tiles) before they run 4 tiles off; ducks have no attack or block animation in the 241 cache, so they fight with none | guessed |
+
+What they say is in the dialogue file (keys `duck.quack`, `duck.call`, `duck.eep`, `duck.cheep`).
+
+Check: `test-runner/examples/lumbridge-ducks.json` examines each kind of duck, tries to reach a drake on the river and
+watches a duck's death animation. The runner has no step that reads overhead text, so the quacks, the ducklings'
+following and the walking ducks running off are checked through the headless client (`HeadlessDucksTest`, which reads
+NPC info's say block), with the death cries and keeping to water in `DucksTest` and the water and arrows in
+`HeadlessRangedTest`.
 
 ## Equipment
 
@@ -586,7 +613,7 @@ plugins read.
 | Take is op3; the player walks onto the item and takes it the tick they arrive | the cache's default ground ops; tick from the RS2 world cycle, inferred |
 | An item on a tile you can't stand on (a table) is taken from the tile beside it, north/south/east/west with no wall between, a tick later, with animation 832 | RSMod and inferred |
 | Drop plays sound 2739, a take sound 2582 | RSMod's symbol names (put_down, pick2), not checked against the 241 cache |
-| "I can't reach that!", "Too late - it's gone!", "You don't have enough inventory space to hold that item." | RSMod (rev 233), not checked against live |
+| The can't-reach, too-late and no-space messages (`game.cant_reach`, `game.too_late`, `game.no_space`) | RSMod (rev 233), not checked against live |
 | An item that vanished while you walked to it just ends the walk | guessed |
 | Ground Examine shows the inventory examine (script 6003) | guessed |
 | The obj times are in ticks and 0 means none | inferred from RSProt and RuneLite's TileItem |
@@ -666,7 +693,7 @@ moves. When the option runs, the NPC turns to you and stands still while you are
 `delay`, or a dialogue is open), then goes back to wandering. A multi-NPC uses the type your vars show.
 
 Walking, clicking something else or a teleport drops the interaction; the NPC going away ends it quietly. With no
-handler you get "Nothing interesting happens.", and an NPC you can't get to says "I can't reach that!" once you stop.
+handler you get the "nothing interesting" message, and an NPC you can't get to says the can't-reach one once you stop.
 
 `World.npcs.follow(npc, player)` has an NPC follow a player and stop beside them, naively, as NPCs walk; it faces them
 while it follows (`::follow` tries it). Pets trail a tile behind instead, which isn't modelled yet.
@@ -748,7 +775,8 @@ shows its key, such as `[hans.greeting]`.
 The Wiki's transcripts are Jagex's text, so the repo has each conversation's tree and a key for every line, and the words
 are in `data/dialogue.txt` on the machine that runs the server, outside git. A line with no words there shows its key
 in brackets, with any amounts after it (`[hans.time_played days=2 hours=3 minutes=7 days_ago=10]`), so every
-conversation runs, and is tested, without them.
+conversation runs, and is tested, without them. Game messages work the same way (the engine's under `game.`, combat's
+under `combat.` and `prayer.`, eating's under `food.`), so they show as keys too until their words are typed in.
 
 ```
 # Talk-to: Hans's first line
@@ -840,7 +868,7 @@ devices and special attacks.
 | The hit lands 1 + (3 + d) / 6 ticks later, plus one on an NPC | Wiki, Hit delay |
 | XP is given as the shot is fired, for the damage rolled, even if less lands (another player's hit first) | inferred: RuneLite's XP drop "predicted hit" relies on the drop coming before the hitsplat; not recorded |
 | One ammunition a shot, two for the dark bow (one when one is left); 1 in 5 breaks, the rest falls to the floor | Wiki, Ava's accumulator (20% broken without a device) and Dark bow |
-| "There is no ammo left in your quiver." | Wiki, Ammunition |
+| The empty-quiver message (`combat.no_ammo`) | Wiki, Ammunition |
 | Fired ammunition lands under the NPC, yours for 100 ticks and gone after 300, as a drop | guessed |
 | "You can't use that ammo with your bow." / "... crossbow." | guessed wording |
 | Projectile heights, start, arc and the second dark bow arrow leaving 10 cycles later; the crossbow animation (xbows_human_fire_and_reload_pvn) | guessed |
@@ -880,8 +908,8 @@ take an optional number of ticks after which the tile goes back how it was.
 
 Clicking a loc option walks you to the nearest tile that reaches the loc, then runs its handler, registered with
 `World.handlers.onLoc(id, option) { op -> ... }`; `op.loc` is the loc clicked. A loc next to you is used on the tick
-the click is read, one further away on the tick you arrive. With no handler you get "Nothing interesting happens.",
-and if the route can't get there, "I can't reach that!" when you stop. An inventory item used on a loc (OPLOCT) walks
+the click is read, one further away on the tick you arrive. With no handler you get the "nothing interesting" message,
+and if the route can't get there, the can't-reach one when you stop. An inventory item used on a loc (OPLOCT) walks
 the same way and runs `World.handlers.onObjOnLoc(locId, objId) { op -> ... }`, with the item in `op.obj` and its slot
 in `op.sub`; leave out `objId` to catch every item. Unhandled, it too does nothing interesting. Changing level from a ladder or staircase is a
 handler that calls `World.teleport` with the new level, after playing the climb with `Player.anim` and a `delay`.
@@ -898,7 +926,7 @@ content, which can pair a door with `World.doors.register(closed, open)`.
 | Which tiles reach a wall, wall decoration or ground loc, and turning the blocked sides with the loc | the client's reach checks as open-source route finders document them, not checked on live |
 | An unreachable loc walks you to the nearest tile to its footprint (within 10 tiles) | the client's route finder fallback, as above |
 | Used before moving and again after, in the movement phase | the 2004Scape reconstruction of the RS2 world cycle, not checked on OSRS |
-| "Nothing interesting happens." and "I can't reach that!" | live messages, from memory |
+| The "nothing interesting" and can't-reach messages | live messages, from memory |
 | The player turns to face the loc when using it | guessed |
 | A loc that changes before you get there ends the interaction; you finish the walk | guessed |
 | Door pairs by gameval name | the 241 cache's own names |
@@ -948,7 +976,7 @@ Anything typed without `::` is public chat: it shows over your head and in the c
 | A colour, effect or pattern the client can't send falls back to plain yellow | guessed |
 | Friends, clan and guest channel messages get "There are no chat-channels on this server yet." | ours, no channels yet |
 | Public, private and trade filter changes are echoed back so the tab labels update; nothing is filtered on the server | inferred |
-| "Welcome to Old School RuneScape." after login | from memory of live, not a recording |
+| The welcome message after login (`game.welcome`) | from memory of live, not a recording |
 | Varbit 8119 (`has_displayname_transmitter`) set to 1 at login, or the client says "You must set a name before you can chat" and blocks typing | var name from RuneLite's VarbitID; that the chatbox checks it is inferred |
 
 ## Saving and reconnect

@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import osrsps.game.EquipmentLines
+import osrsps.game.GameLines
 import osrsps.game.combat.CombatLines
 import osrsps.game.combat.FoodLines
 import osrsps.game.combat.PrayerLines
@@ -15,10 +16,10 @@ object DialogueLines {
     val ALL: List<Lines> = listOf(
         HansLines, CookLines, DukeLines, ManLines, WomanLines, PerduLines, CraftingTutorLines, BankerLines, BankerTutorLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
-        BirdNestLines, FiremakingLines, CombatLines, PrayerLines, EquipmentLines,
+        BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines,
         // Rest of Lumbridge.
         ShopKeeperLines, ShopAssistantLines, BobLines, RamBartenderLines, ArthurLines, DonieLines, GeeLines, CookingTutorLines,
         SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines, GillieLines, MillieLines,
-        HopperLines,
+        HopperLines, DuckLines,
     )
 }

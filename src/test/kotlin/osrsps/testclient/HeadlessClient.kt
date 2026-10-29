@@ -112,6 +112,7 @@ class HeadlessClient private constructor(
 
     private val packets = ArrayList<ServerPacket>()
     private val messages = ArrayList<GameMessage>()
+    private val npcSaid = ArrayList<NpcSaid>()
     private val moves = ArrayList<TickMove>()
     private var ticks = 0
     private var failure: Throwable? = null
@@ -140,6 +141,9 @@ class HeadlessClient private constructor(
 
     /** The NPCs in view, in the order the server keeps them. */
     fun npcs(): List<NpcView> = lock.withLock { npcInfo.npcs() }
+
+    /** Every NPC's overhead text seen so far, oldest first. */
+    fun npcSaid(): List<NpcSaid> = lock.withLock { npcSaid.toList() }
 
     /** The top-level interface and every interface open in another's component. */
     fun openInterfaces(): Set<Int> = lock.withLock { subs.values.toSet() + topLevel }
@@ -525,11 +529,14 @@ class HeadlessClient private constructor(
                 val name = if (buf.g1() == 1) buf.gjstr() else null
                 messages += GameMessage(type, buf.gjstr(), name, ticks)
             }
-            GameServerProt.NPC_INFO_SMALL_V6, GameServerProt.NPC_INFO_LARGE_V6 -> npcInfo.read(
-                packet.payload,
-                large = packet.prot == GameServerProt.NPC_INFO_LARGE_V6,
-                local = playerInfo.coord(index) ?: error("NPC info before the login rebuild"),
-            )
+            GameServerProt.NPC_INFO_SMALL_V6, GameServerProt.NPC_INFO_LARGE_V6 -> {
+                npcInfo.read(
+                    packet.payload,
+                    large = packet.prot == GameServerProt.NPC_INFO_LARGE_V6,
+                    local = playerInfo.coord(index) ?: error("NPC info before the login rebuild"),
+                )
+                for ((npc, text) in npcInfo.said) npcSaid += NpcSaid(npc, text, ticks)
+            }
             GameServerProt.IF_OPENTOP -> topLevel = buf.g2Alt2()
             GameServerProt.IF_OPENSUB -> {
                 val destination = buf.g4Alt3()
