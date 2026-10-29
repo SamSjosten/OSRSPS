@@ -285,6 +285,14 @@ class HeadlessAllSettingsTest {
                 client.resumeCount(Int.MAX_VALUE)
                 client.await("the picker closed again") { Unit.takeIf { AllSettings.COLOUR_PALLET !in client.openInterfaces() } }
                 assertEquals(0x123457, client.varp(CHAT_COLOUR_PUBLIC_OPAQUE))
+                // Walking drops the wait for a colour and closes the picker; a Save after that changes nothing.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 8)
+                client.await("the picker for the walk") { Unit.takeIf { AllSettings.COLOUR_PALLET in client.openInterfaces() } }
+                client.walk(3223, 3218)
+                client.await("the picker closed by the walk") { Unit.takeIf { AllSettings.COLOUR_PALLET !in client.openInterfaces() } }
+                client.resumeCount(0x000001)
+                client.awaitTicks(2)
+                assertEquals(0x123457, client.varp(CHAT_COLOUR_PUBLIC_OPAQUE))
 
                 client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
                 client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }

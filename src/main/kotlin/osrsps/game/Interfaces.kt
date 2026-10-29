@@ -226,6 +226,7 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         // Guessed, after RSMod closing the bank's search prompt: an amount prompt closes with the interfaces it was for.
         if (player.scripts.dropCount()) {
             send(player, RunClientScript(ScriptContext.MESLAYER_CLOSE, listOf(ScriptContext.MESLAYER_COUNT)))
+            for (hook in countDropHooks) hook(player)
         }
         if (player.modals.isEmpty()) return
         val frame = player.frame
@@ -236,6 +237,12 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     }
 
     private val closeHooks = HashMap<Int, (Player) -> Unit>()
+    private val countDropHooks = ArrayList<(Player) -> Unit>()
+
+    /** Runs [hook] whenever closing the interfaces drops a script waiting on an amount: for what asked for it. */
+    fun onCountDropped(hook: (Player) -> Unit) {
+        countDropHooks += hook
+    }
 
     /** Runs [hook] whenever modal [interfaceId] closes, after it has: for what the client keeps open past it. */
     fun onClose(interfaceId: Int, hook: (Player) -> Unit) {

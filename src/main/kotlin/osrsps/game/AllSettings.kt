@@ -41,6 +41,11 @@ class AllSettings(
     /** The words of [SettingsLines] for a player, as the dialogue file has them. */
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
+    init {
+        // Walking or another interface drops the picker's wait for a colour; the picker goes with it.
+        interfaces.onCountDropped(::closeColourPicker)
+    }
+
     /** The side panel's All Settings button. RSMod (rev 233) opens the window as an overlay in the floater. */
     fun open(player: Player) {
         // settings_init draws the window from settings_tracking as it loads, so the client gets the server's copy first.
@@ -69,6 +74,8 @@ class AllSettings(
             // The close button's op only plays a sound in the client (settings_window_setup); Esc is its op 2.
             CLOSE -> {
                 player.settingsDropdown = -1
+                // The picker closes with the window it is in.
+                player.colourPickerOpen = false
                 interfaces.closeFloater(player)
             }
             // script3829 and settings_declutter_op: the "Less info" and "Hide locked" buttons.
@@ -161,15 +168,23 @@ class AllSettings(
             logger.info { "${player.username} clicked colour input ${row.id}, which settings_get_colour doesn't read" }
             return
         }
-        setVarbit(player, VARBIT_SELECTED_SETTING, row.id)
+        // Sent now, not with the end-of-tick flush: colour_pallet reads it as it runs.
+        interfaces.setVarbitNow(player, VARBIT_SELECTED_SETTING, row.id)
         interfaces.openInside(player, INTERFACE, POPUP, COLOUR_PALLET)
+        player.colourPickerOpen = true
         interfaces.runClientScript(player, COLOUR_PALLET_SCRIPT, listOf((INTERFACE shl 16) or POPUP, colour.read(player.vars) ?: -1))
         runner.start(player) {
             val picked = waitForCount()
-            interfaces.closeInside(player, INTERFACE, POPUP)
+            closeColourPicker(player)
             // colour_pallet_update refuses anything past 0xffffff; Cancel and closing send 2^31 - 1.
             if (picked in 0..MAX_COLOUR) colour.set(player.vars, picked)
         }
+    }
+
+    private fun closeColourPicker(player: Player) {
+        if (!player.colourPickerOpen) return
+        player.colourPickerOpen = false
+        interfaces.closeInside(player, INTERFACE, POPUP)
     }
 
     /** The largest value [setting] can hold: its varbit's, or any int for a varp. */

@@ -60,6 +60,10 @@ class Player(
     var settingsDropdown: Int = -1
         internal set
 
+    /** Whether the All Settings window's colour picker is open, waiting on a colour. See [AllSettings]. */
+    var colourPickerOpen: Boolean = false
+        internal set
+
     /** The dialogue (or other modal) open in the chatbox's chatmodal, -1 for none. See [Interfaces.openChatModal]. */
     var chatModal: Int = -1
         internal set

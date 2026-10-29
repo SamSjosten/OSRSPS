@@ -73,9 +73,6 @@ class SettingRow(
         const val KIND_KEYBIND = 3
         const val KIND_NUMBER = 4
         const val KIND_COLOUR = 9
-
-        /** A colour row's default colour, shown while its var reads -1. */
-        const val PARAM_DEFAULT_COLOUR = 1230
     }
 }
 
