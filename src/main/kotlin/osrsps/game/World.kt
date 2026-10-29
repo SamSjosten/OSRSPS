@@ -186,7 +186,7 @@ class World(
     private val equipment = Equipment(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
-    val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons)
+    val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
 
     /** The prayer book; see [Prayers]. */
     val prayers = Prayers(prayerList, equipment, setOverhead = { player, icon -> player.infos.playerInfo.avatar.extendedInfo.setOverheadIcon(icon) })

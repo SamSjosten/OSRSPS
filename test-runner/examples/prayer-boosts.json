@@ -1,0 +1,30 @@
+{
+ "name": "Prayer: Piety clicked on in the prayer book raises a man fight's attack roll, max hit and defence roll in ::combat from the next tick, and turned off puts them back",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel attack 99", "expectMessage": "Attack set to level 99"},
+  {"step": "command", "text": "::setlevel strength 99", "expectMessage": "Strength set to level 99"},
+  {"step": "command", "text": "::setlevel defence 99", "expectMessage": "Defence set to level 99", "comment": "Piety needs 70 Defence as well"},
+  {"step": "command", "text": "::setlevel prayer 99", "expectMessage": "Prayer set to level 99"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0", "comment": "the castle courtyard's men"},
+  {"step": "command", "text": "::combat man", "expectMessage": "attack roll 7040, max hit 11", "comment": "punching, accurate: (99 + 3 + 8) * 64, and ((99 + 8) * 64 + 320) / 640"},
+  {"step": "assertMessage", "contains": "vs your 6848", "timeoutMs": 10000, "comment": "(99 + 8) * 64"},
+  {"step": "command", "text": "::buttons on", "expectMessage": "Interface clicks are echoed"},
+  {"step": "clickWidget", "interfaceId": 548, "component": 69, "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"},
+  {"step": "clickWidget", "interfaceId": 541, "component": 35, "comment": "prayerbook:prayer27, Piety; a client that thinks the world isn't members refuses it itself, and this step's echo doesn't come"},
+  {"step": "assertMessage", "contains": "Button 541:35 slot -1 op 1", "timeoutMs": 10000},
+  {"step": "command", "text": "::prayers", "expectMessage": "99/99, drain resistance 60: Piety"},
+  {"step": "waitTicks", "ticks": 1, "comment": "a prayer counts from the tick after it is turned on"},
+  {"step": "command", "text": "::combat man", "expectMessage": "attack roll 8256, max hit 13", "comment": "99 * 1.2 = 118 and 99 * 1.23 = 121, rounded down: (118 + 3 + 8) * 64 and ((121 + 8) * 64 + 320) / 640"},
+  {"step": "assertMessage", "contains": "vs your 8384", "timeoutMs": 10000, "comment": "99 * 1.25 = 123: (123 + 8) * 64"},
+  {"step": "clickWidget", "interfaceId": 541, "component": 35, "comment": "Piety off"},
+  {"step": "assertMessage", "contains": "Button 541:35 slot -1 op 1", "timeoutMs": 10000},
+  {"step": "command", "text": "::prayers", "expectMessage": "drain resistance 60: none"},
+  {"step": "waitTicks", "ticks": 1},
+  {"step": "command", "text": "::combat man", "expectMessage": "attack roll 7040, max hit 11"},
+  {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
