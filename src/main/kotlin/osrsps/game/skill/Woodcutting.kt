@@ -98,7 +98,7 @@ class WoodcuttingData(val axes: List<Axe>, val trees: Map<Int, TreeType>, val st
  * the animation starting on the click's own tick (2004Scape waits a tick). No chopping sound is sent: the 241 synth ids
  * have no names to find it by.
  */
-class Woodcutting(private val world: World, val data: WoodcuttingData) {
+class Woodcutting(private val world: World, val data: WoodcuttingData, private val nests: BirdNests) {
     private class TreeTimer(var left: Int, var lastTick: Long)
 
     /** Timed trees being chopped, by tile and level. */
@@ -158,6 +158,7 @@ class Woodcutting(private val world: World, val data: WoodcuttingData) {
                 player.inventory.add(logs, 1)
                 player.skills.addTenths(Skill.WOODCUTTING, tree.xpTenths)
                 player.message(text[WoodcuttingLines.GET_LOGS, "logs" to logs.name.lowercase()])
+                nests.roll(player)
                 if (timer == null || timer.left <= 0) {
                     fell(loc, tree)
                     return stop()

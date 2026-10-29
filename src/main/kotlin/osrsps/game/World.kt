@@ -93,6 +93,7 @@ import osrsps.game.npc.Npcs
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
+import osrsps.game.skill.BirdNests
 import osrsps.game.skill.LevelUps
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Woodcutting
@@ -309,11 +310,14 @@ class World(
     /** The words [player] sees: none, so every line shows its key, while they have `::keys` on. */
     fun textFor(player: Player): DialogueText = if (player.showDialogueKeys) DialogueText.NONE else dialogueText
 
-    /** Chat dialogues for content scripts. */
-    val woodcutting = Woodcutting(this, WoodcuttingData.load())
+    /** Bird nests that fall from trees. */
+    val birdNests = BirdNests(this, collision)
+
+    val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
 
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
+    /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
     val commands = CommandRegistry(admins::isAdmin).apply {
@@ -349,6 +353,7 @@ class World(
         registerFredsFarm(this)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         woodcutting.register()
+        birdNests.register()
         loadDialogue()
     }
 

@@ -128,6 +128,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `woodcutting-lumbridge.json`: Chop down with no axe, then a bronze axe on a tree north of the castle (one log, the
   stump, the tree back), then a level 99 dragon axe on the oak south of the castle (12 logs before its timer fells it).
   Needs only 0.5.0.
+- `woodcutting-nests.json`: `::nest seeds` and `::nest ring` drop a nest next to the player as a log's 1/256 roll does;
+  each is taken and searched, leaving an empty nest and the seed or ring. Needs only 0.6.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 

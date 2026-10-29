@@ -4,6 +4,7 @@ import osrsps.game.GroundObjs
 import osrsps.game.ObjSpawn
 import osrsps.game.ObjType
 import osrsps.game.World
+import osrsps.game.skill.BirdNests
 import osrsps.game.zone.ZoneObj
 
 /** Testing commands for ground items, on the typing player's tile. Drop and Take themselves are the game's own options. */
@@ -26,6 +27,22 @@ fun CommandRegistry.registerGroundObjCommands(world: World) {
         if (!type.stackable && count != 1) fail("${type.name} doesn't stack, so a spawn of it is 1")
         ground.addSpawn(ObjSpawn(type.id, count, player.x, player.z, player.level, respawn))
         reply("Item spawn: ${type.name} (${type.id}) x $count on ${player.x}, ${player.z}, back $respawn ticks after it's taken (until a restart)")
+    }
+
+    // As if a log had just come up with a nest: one picked as a tree picks it, or the one named.
+    register("nest", "::nest [seeds|ring|red|green|blue]", admin = true) {
+        if (args.size > 1) fail("Usage: ::nest [seeds|ring|red|green|blue]")
+        val nest = when (args.getOrNull(0)?.lowercase()) {
+            null -> null
+            "seeds" -> BirdNests.SEEDS
+            "ring" -> BirdNests.RING
+            "red" -> BirdNests.EGG_RED
+            "green" -> BirdNests.EGG_GREEN
+            "blue" -> BirdNests.EGG_BLUE
+            else -> fail("Usage: ::nest [seeds|ring|red|green|blue]")
+        }
+        val id = if (nest == null) world.birdNests.drop(player) else world.birdNests.drop(player, nest)
+        reply("Dropped bird nest $id next to you")
     }
 
     register("grounditems", "::grounditems") {
