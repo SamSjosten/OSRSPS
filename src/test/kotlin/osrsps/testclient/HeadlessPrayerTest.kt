@@ -11,6 +11,8 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.Scenario
+import osrsps.game.Scenarios
 import osrsps.game.SeqNames
 import osrsps.game.World
 import osrsps.game.combat.NpcCombat
@@ -49,6 +51,7 @@ class HeadlessPrayerTest {
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
             npcSpawns = listOf(NpcSpawn(man, 3224, 3218, source = "test")),
             npcCombat = NpcCombat.load(types, SeqNames.NONE), prayerList = Prayers.load(objTypes), cycleMillis = millis,
+            scenarios = Scenarios(listOf(Scenario.parse("praying", """{ "position": { "x": 3222, "z": 3218 }, "skills": { "prayer": 43 } }"""))),
         )
     }
 
@@ -115,6 +118,27 @@ class HeadlessPrayerTest {
                 client.await("Piety off") { if (client.prayers() == 0) Unit else null }
                 client.awaitTicks(1)
                 client.commandReply("combat man") { it.contains("attack roll 7040, max hit 11") }
+            }
+        }
+    }
+
+    @Test
+    fun `a scenario and its reset turn every prayer off, the overhead icon with them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel prayer 43") { it.contains("Prayer") }
+                client.click(PROTECT_FROM_MELEE)
+                client.await("Protect from Melee on") { if (client.prayers() == 1 shl 14) Unit else null }
+                client.commandReply("scenario praying") { it.startsWith("Started scenario") }
+                client.await("every prayer off") { if (client.prayers() == 0) Unit else null }
+                client.commandReply("prayers") { it == "Prayer 43/43, drain resistance 60: none" }
+                client.click(PROTECT_FROM_MELEE)
+                client.await("Protect from Melee on again") { if (client.prayers() == 1 shl 14) Unit else null }
+                client.commandReply("reset") { it.startsWith("Back to how you were") }
+                // The varp before the scenario had Protect from Melee on; the reset doesn't bring it back.
+                client.await("off after the reset") { if (client.prayers() == 0) Unit else null }
+                client.commandReply("prayers") { it.endsWith("drain resistance 60: none") }
             }
         }
     }

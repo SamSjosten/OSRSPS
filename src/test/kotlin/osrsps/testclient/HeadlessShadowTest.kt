@@ -95,6 +95,24 @@ class HeadlessShadowTest {
     }
 
     @Test
+    fun `charges that change while the count prompt is up are counted when it is answered`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.give(SHADOW_UNCHARGED, 1)
+                client.give(SOUL, 20)
+                client.give(CHAOS, 50)
+                client.itemOp(SHADOW_UNCHARGED, CHARGE_UNCHARGED)
+                client.await("the count prompt") { client.clientScripts().lastOrNull { it.id == ScriptContext.MESLAYER_MODE7 } }
+                // As a second shadow, worn and casting, would change them.
+                client.commandReply("shadow 100") { it.contains("100 charges") }
+                client.resumeCount(10)
+                client.awaitMessage("the charges added") { it == "Your Tumeken's shadow has 110 charges remaining." }
+            }
+        }
+    }
+
+    @Test
     fun `the shadow is charged, checked, kills a man with its charges alone and is uncharged`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->

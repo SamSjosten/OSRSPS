@@ -114,10 +114,12 @@ class PoweredStaves(private val objTypes: ObjTypes) {
         // The runes or the staff may have gone while the prompt was up.
         val held = player.inventory[slot]?.id
         if (held != staff.charged && held != staff.uncharged) return
-        val added = minOf(wanted, afford(player, staff), staff.maxCharges - have)
+        // So may charges: another of the staff, worn, casts from the same count.
+        val now = player.charges[staff.charge]
+        val added = minOf(wanted, afford(player, staff), staff.maxCharges - now)
         if (added <= 0) return
         for (cost in staff.runesPerCharge) take(player, cost.rune, cost.count * added)
-        player.charges[staff.charge] = have + added
+        player.charges[staff.charge] = now + added
         if (held == staff.uncharged) player.inventory[slot] = InvObj(staff.charged, 1)
         message(player, check(player, staff))
     }

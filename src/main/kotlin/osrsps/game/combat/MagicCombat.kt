@@ -171,6 +171,8 @@ class MagicCombat(
     /** The spell the player autocasts, or null when they don't. */
     private fun autocastSpell(player: Player): CombatSpell? {
         if (combat.style(player).type != AttackType.MAGIC) return null
+        // A powered staff keeps the spell picked with another staff, but casts its own.
+        if (!Autocast.active(player, combat.weaponCategory(player))) return null
         return spells.autocast(Autocast.key(player))?.takeIf { it.spellbook == Spellbook.of(player) }
     }
 
