@@ -652,6 +652,33 @@ public class RunnerTest
 	}
 
 	@Test
+	public void castOnNpcRetriesUntilItCanThenSpotanimsCountOnlyAfterIt() throws Exception
+	{
+		game.castError = "no NPC \"Man\" in view";
+		runner.start(script("{\"step\":\"castOnNpc\",\"interfaceId\":218,\"component\":19,\"npc\":\"Man\"},"
+			+ "{\"step\":\"assertSpotanim\",\"id\":99},"
+			+ "{\"step\":\"assertSpotanim\",\"ids\":[101,85],\"npc\":\"Man\"}"), "file");
+		game.npcIndexes.put("Man", 7);
+		// One from before the cast doesn't count.
+		runner.spotanim(Run.SELF, null, 99);
+		assertNull(cycle());
+		assertEquals("cast 218:19 on Man", game.actions.get(game.actions.size() - 1));
+		game.castError = null;
+		assertNull(cycle());
+		runner.spotanim(Run.SELF, null, 99);
+		assertNull(cycle());
+		runner.spotanim(9, "Man", 101);
+		assertNull(cycle());
+		runner.spotanim(7, "Man", 85);
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("cast 218:19 on Man", r.steps.get(0).description);
+		assertEquals("assert spotanim 101 or 85 on Man", r.steps.get(2).description);
+		assertEquals("spotanim 99 on you", r.steps.get(1).detail);
+		assertEquals("spotanim 85 on Man #7", r.steps.get(2).detail);
+	}
+
+	@Test
 	public void itemOptionRetriesUntilTheItemIsThereThenTheSlotShowsIt() throws Exception
 	{
 		game.clickError = "no \"Bronze axe\" in the inventory";

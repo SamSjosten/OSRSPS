@@ -392,6 +392,62 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "id", "npc", "comment");
 				return new Steps.AssertAnimation(timeout, npc, id);
 			}
+			case "assertSpotanim":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int[] ids;
+				if (f.o.has("ids"))
+				{
+					if (f.o.has("id"))
+					{
+						throw new Invalid(f.where + " has both \"id\" and \"ids\"");
+					}
+					JsonArray array = f.array("ids");
+					ids = new int[array.size()];
+					for (int i = 0; i < ids.length; i++)
+					{
+						JsonElement e = array.get(i);
+						if (!e.isJsonPrimitive() || !e.getAsJsonPrimitive().isNumber() || e.getAsInt() < 0 || e.getAsDouble() != e.getAsInt())
+						{
+							throw new Invalid(f.where + ": \"ids\" must be whole numbers, 0 or more");
+						}
+						ids[i] = e.getAsInt();
+					}
+					if (ids.length == 0)
+					{
+						throw new Invalid(f.where + ": \"ids\" is empty");
+					}
+				}
+				else
+				{
+					ids = new int[] {f.requiredInt("id")};
+					if (ids[0] < 0)
+					{
+						throw new Invalid(f.where + ": \"id\" must be 0 or more");
+					}
+				}
+				String npc = f.string("npc", null);
+				f.rejectUnknown("step", "timeoutMs", "id", "ids", "npc", "comment");
+				return new Steps.AssertSpotanim(timeout, npc, ids);
+			}
+			case "castOnNpc":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int interfaceId = f.requiredInt("interfaceId");
+				int component = f.requiredInt("component");
+				if (interfaceId < 0 || interfaceId > 0xffff || component < 0 || component > 0xffff)
+				{
+					throw new Invalid(f.where + ": \"interfaceId\" and \"component\" must be 0 to 65535");
+				}
+				String npc = f.string("npc", null);
+				int id = f.integer("npcId", -1);
+				if (npc == null && id < 0)
+				{
+					throw new Invalid(f.where + " needs \"npc\" (a name) or \"npcId\"");
+				}
+				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "npc", "npcId", "comment");
+				return new Steps.CastOnNpc(timeout, interfaceId, component, npc, id);
+			}
 			case "assertInterface":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

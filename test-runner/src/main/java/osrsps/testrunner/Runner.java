@@ -9,7 +9,8 @@ import java.util.function.Supplier;
 /**
  * Runs one script at a time, a step per poll. The plugin calls {@link #poll} every client cycle, {@link #gameTick}
  * on each game tick, {@link #message} for each chat message, {@link #hitsplat} for each hitsplat and
- * {@link #animation} for each animation an actor starts, all on the client thread.
+ * {@link #animation} for each animation an actor starts, {@link #spotanim} for each spotanim one is given, all on the
+ * client thread.
  */
 final class Runner
 {
@@ -86,6 +87,15 @@ final class Runner
 		if (run != null)
 		{
 			run.animation(index, npc, id);
+		}
+	}
+
+	/** A spotanim the player ({@code index} {@link Run#SELF}) or an NPC by index and name was given. */
+	void spotanim(int index, String npc, int id)
+	{
+		if (run != null)
+		{
+			run.spotanim(index, npc, id);
 		}
 	}
 

@@ -1066,6 +1066,28 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String castOnNpc(int interfaceId, int component, String name, int id)
+	{
+		int packed = interfaceId << 16 | component;
+		Widget spell = client.getWidget(packed);
+		if (spell == null)
+		{
+			return "interface " + interfaceId + ":" + component + " is not open";
+		}
+		NPC npc = theNpc(name, id);
+		if (npc == null)
+		{
+			return "no NPC " + (name != null ? "\"" + name + "\"" : "id " + id) + " in view";
+		}
+		String spellName = spell.getName() == null ? "" : spell.getName();
+		// The spell first: the client remembers it as the selected one (param0 -1 for the component itself, not a slot).
+		client.menuAction(-1, packed, MenuAction.WIDGET_TARGET, 0, -1, "Cast", spellName);
+		// Then the NPC, which the client sends as OPNPCT with the selected spell.
+		client.menuAction(0, 0, MenuAction.WIDGET_TARGET_ON_NPC, npc.getIndex(), -1, "Cast", spellName + " -> " + npc.getName());
+		return null;
+	}
+
+	@Override
 	public String widgetText(int interfaceId, int component)
 	{
 		List<String> texts = new ArrayList<>();

@@ -934,6 +934,100 @@ final class Steps
 		}
 	}
 
+	/**
+	 * Passes when the player (or the NPC with this name) was given the spotanim (or one of them) since the last step that acted. A spotanim
+	 * the actor already had is reported again when it gets another, so one still playing from before can count too.
+	 */
+	static final class AssertSpotanim extends Step
+	{
+		/** The NPC's name; null for the player. */
+		final String npc;
+		/** Any one of these passes. */
+		final int[] ids;
+
+		AssertSpotanim(long timeoutMs, String npc, int[] ids)
+		{
+			super("assertSpotanim", timeoutMs, false);
+			this.npc = npc;
+			this.ids = ids;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int index = npc == null ? Run.SELF : run.game.npcIndex(npc, -1);
+			if (index < 0 && npc != null)
+			{
+				return Poll.waiting("no NPC \"" + npc + "\" in view");
+			}
+			for (int id : ids)
+			{
+				Run.Spotanim seen = run.spotanimSinceAction(index, id);
+				if (seen != null)
+				{
+					return Poll.pass(seen.toString());
+				}
+			}
+			return Poll.waiting("no spotanim " + idList() + " on " + who() + " since the last action");
+		}
+
+		private String idList()
+		{
+			StringBuilder b = new StringBuilder();
+			for (int i = 0; i < ids.length; i++)
+			{
+				b.append(i == 0 ? "" : i == ids.length - 1 ? " or " : ", ").append(ids[i]);
+			}
+			return b.toString();
+		}
+
+		private String who()
+		{
+			return npc == null ? "you" : npc;
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert spotanim " + idList() + " on " + who();
+		}
+	}
+
+	/**
+	 * Picks a spell in an interface (the spellbook) and casts it on an NPC. Waits (to the timeout) for the interface and
+	 * the NPC; does not wait for the result.
+	 */
+	static final class CastOnNpc extends Step
+	{
+		final int interfaceId;
+		final int component;
+		final String npc;
+		final int npcId;
+
+		CastOnNpc(long timeoutMs, int interfaceId, int component, String npc, int npcId)
+		{
+			super("castOnNpc", timeoutMs, false);
+			this.interfaceId = interfaceId;
+			this.component = component;
+			this.npc = npc;
+			this.npcId = npcId;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.castOnNpc(interfaceId, component, npc, npcId);
+			return error == null ? Poll.pass("cast") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "cast " + interfaceId + ":" + component + " on " + (npc != null ? npc : "NPC " + npcId);
+		}
+	}
+
 	/** Clicks an option on the first such item in the inventory, retrying until there is one. */
 	static final class ItemOption extends Step
 	{

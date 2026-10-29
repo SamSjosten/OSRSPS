@@ -183,6 +183,19 @@ class HeadlessClient private constructor(
         }
     }
 
+    /**
+     * Component [componentId] of [interfaceId] (slot [sub], showing [obj]; -1 for none) used on the NPC at [index], as
+     * OPNPCT: a spell picked in the spellbook and clicked on the NPC. Laid out as RSProt's 241 OpNpcTDecoder reads it.
+     */
+    fun npcTarget(index: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
+        send(GameClientProt.OPNPCT) {
+            p4Alt3((interfaceId shl 16) or componentId)
+            p2(index)
+            p2(sub and 0xFFFF)
+            p2Alt2(obj and 0xFFFF)
+            p1Alt2(if (ctrl) 1 else 0)
+        }
+
     /** Examine on NPC type [id], as OPNPC6. */
     fun examineNpc(id: Int) = send(GameClientProt.OPNPC6) { p2(id) }
 

@@ -27,12 +27,15 @@ data class MeleeMatchup(
 /** A player's ranged numbers against one NPC with the ammunition they have; see [Combat.rangedMatchup]. */
 data class RangedMatchup(val style: AttackStyle, val attackRoll: Int, val defenceRoll: Int, val maxHit: Int, val hitChance: Double)
 
+/** A player's numbers against one NPC with a spell; see [Combat.magicMatchup]. */
+data class MagicMatchup(val attackRoll: Int, val defenceRoll: Int, val maxHit: Int, val hitChance: Double)
+
 /** What an NPC rolls against a player: its attack roll, the player's defence roll against its attack type, its max hit. */
 data class NpcAttack(val attackRoll: Int, val defenceRoll: Int, val maxHit: Int)
 
 /**
- * Combat between players and NPCs: the numbers ([matchup], [rangedMatchup], [npcAttack]); the fighting is [MeleeCombat]
- * and [RangedCombat].
+ * Combat between players and NPCs: the numbers ([matchup], [rangedMatchup], [magicMatchup], [npcAttack]); the fighting
+ * is [MeleeCombat], [RangedCombat] and [MagicCombat].
  */
 class Combat(
     private val equipment: Equipment,
@@ -55,6 +58,9 @@ class Combat(
     }
 
     fun bonuses(player: Player): EquipmentBonuses = equipment.bonuses(player)
+
+    /** The category of the weapon the player wields ([Weapons]), [Weapons.UNARMED] for none. */
+    fun weaponCategory(player: Player): Int = Weapons.category(equipment.weapon(player))
 
     /** The animations the player swings and blocks with: their weapon's category's. */
     fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
@@ -146,6 +152,24 @@ class Combat(
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
             maxHit = maxHit,
+            hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
+        )
+    }
+
+    /**
+     * The player's numbers against [npc] with [spell] cast from the spellbook, or null when it has no combat definition.
+     * Everything worn counts towards the magic attack and damage bonuses. The NPC defends with its Magic level, not its
+     * Defence, and its magic defence bonus (OSRS Wiki, Damage per second/Magic).
+     */
+    fun magicMatchup(player: Player, npc: Npc, spell: CombatSpell): MagicMatchup? {
+        val def = npcCombat[npc.type] ?: return null
+        val bonuses = bonuses(player)
+        val attackRoll = CombatMath.playerMagicAttackRoll(player.skills.currentLevel(Skill.MAGIC), bonuses.magicAttack)
+        val defenceRoll = CombatMath.npcDefenceRoll(npc.type.stats.magic, def.defence.magic)
+        return MagicMatchup(
+            attackRoll = attackRoll,
+            defenceRoll = defenceRoll,
+            maxHit = CombatMath.spellMaxHit(spell.maxHit, bonuses.magicDamage),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
     }

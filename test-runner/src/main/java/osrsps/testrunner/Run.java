@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * What the steps of one running script share: the game, the chat messages, hitsplats and animations seen, and the
- * game tick count.
+ * What the steps of one running script share: the game, the chat messages, hitsplats, animations and spotanims seen,
+ * and the game tick count.
  */
 final class Run
 {
@@ -57,14 +57,37 @@ final class Run
 		}
 	}
 
+	/** A spotanim (graphic) an actor was given: the player ({@link #index} {@link #SELF}) or an NPC by index. */
+	static final class Spotanim
+	{
+		final int index;
+		final String npc;
+		final int id;
+
+		Spotanim(int index, String npc, int id)
+		{
+			this.index = index;
+			this.npc = npc;
+			this.id = id;
+		}
+
+		@Override
+		public String toString()
+		{
+			return "spotanim " + id + " on " + (index == SELF ? "you" : npc + " #" + index);
+		}
+	}
+
 	final Game game;
 	private final List<String> messages = new ArrayList<>();
 	private final List<Hitsplat> hitsplats = new ArrayList<>();
 	private final List<Animation> animations = new ArrayList<>();
+	private final List<Spotanim> spotanims = new ArrayList<>();
 	/** Index into {@link #messages} of the first message after the last step that acted. */
 	private int actionMark;
 	private int hitsplatMark;
 	private int animationMark;
+	private int spotanimMark;
 	private int gameTicks;
 
 	Run(Game game)
@@ -78,6 +101,7 @@ final class Run
 		actionMark = messages.size();
 		hitsplatMark = hitsplats.size();
 		animationMark = animations.size();
+		spotanimMark = spotanims.size();
 	}
 
 	/** The first message since the last action containing the text, or null. */
@@ -133,6 +157,26 @@ final class Run
 		for (int i = animationMark; i < animations.size(); i++)
 		{
 			Animation a = animations.get(i);
+			if (a.index == index && a.id == id)
+			{
+				return a;
+			}
+		}
+		return null;
+	}
+
+	/** A spotanim the player ({@code index} {@link #SELF}) or the NPC with that index and name was given. */
+	void spotanim(int index, String npc, int id)
+	{
+		spotanims.add(new Spotanim(index, npc, id));
+	}
+
+	/** The first spotanim since the last action with that id on the actor with that index ({@link #SELF} for the player). */
+	Spotanim spotanimSinceAction(int index, int id)
+	{
+		for (int i = spotanimMark; i < spotanims.size(); i++)
+		{
+			Spotanim a = spotanims.get(i);
 			if (a.index == index && a.id == id)
 			{
 				return a;

@@ -251,10 +251,7 @@ class MeleeCombat(
         if (dealt > 0) npc.effects.hit(from, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER, dealt)
         else npc.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, 0)
         npc.effects.headBar(from, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.type.stats.hitpoints))
-        npc.attacker = source
-        npc.attackedTick = tick
-        npc.holdTicks = IN_COMBAT_TICKS
-        if (source != null) npc.face(source)
+        attacked(npc, source, tick)
         if (npc.hitpoints > 0) {
             // Its own swing this tick wins over the block (guessed).
             if (def.anims.defend >= 0 && npc.effects.anim == null) npc.effects.anim(def.anims.defend)
@@ -263,6 +260,26 @@ class MeleeCombat(
             die(npc, def, source, tick)
         }
         return dealt
+    }
+
+    /**
+     * A spell [source] cast on [npc] splashed: no hitsplat, health bar or block animation (guessed: the Wiki shows the
+     * splash graphic alone), but the NPC is under attack all the same and turns on whoever cast it, as one that is hit
+     * does (OSRS Wiki, Splashing: it is how players train Magic on monsters that fight back).
+     */
+    fun splashed(npc: Npc, source: Player, tick: Long) {
+        combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
+        if (npc.dead) return
+        attacked(npc, source, tick)
+        retaliate(npc, source, tick)
+    }
+
+    /** [npc] is in combat with [source] (null for none) from [tick], and faces them. */
+    private fun attacked(npc: Npc, source: Player?, tick: Long) {
+        npc.attacker = source
+        npc.attackedTick = tick
+        npc.holdTicks = IN_COMBAT_TICKS
+        if (source != null) npc.face(source)
     }
 
     /** [npc] was hit by [player]: it turns on them, striking from the next tick (guessed) if it isn't fighting already. */
