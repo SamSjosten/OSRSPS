@@ -373,6 +373,23 @@ Fishing spots are NPCs (`game/skill/Fishing.kt`, words under `fishing.*`): the L
 | The swamp spots' area (their spawn tiles, so they stay put); the player stopping when the spot moves | guessed |
 | Out: pearl and barbarian rods, stripy feathers, big nets, harpoons, cages, outfits and other catch boosts, whirlpools | out of scope |
 
+### Cooking
+
+Raw food used on a fire or range, or Cook on a range, cooks it (`game/skill/Cooking.kt`, words under `cooking.*`):
+shrimps, anchovies, sardines, herring, trout, pike, salmon, beef, rat and bear meat, chicken, and bread dough (range
+only). With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
+range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
+
+| Cooking behaviour | Source |
+|-------------------|--------|
+| Levels and XP | OSRS Wiki food pages |
+| 4 ticks a piece | OSRS Wiki, Raw shrimps |
+| Each food's burn pair on a fire or range and on the Lumbridge range, fitted to and checked against the Wiki's charts (`CookingTest`) | OSRS Wiki food pages |
+| The Make-X box: its components, client script 2046's arguments and the pause button carrying the quantity | decompiled client scripts (osrs-dumps) |
+| Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
+| Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
