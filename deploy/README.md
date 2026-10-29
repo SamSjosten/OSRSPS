@@ -14,8 +14,12 @@
   (`launcher/`), CI (`.github/`) or this folder. Any other file, or one moved out of the server, rebuilds it.
   `.deploy/built` keeps the running server's commit and `.deploy/deployed` the merge's, and compose mounts `.deploy/`
   read-only into the container, so `/version` answers with the merge's commit anyway and `/status` adds a
-  `built from <commit>` line under it. `--force` rebuilds and restarts all the same. `deploy/auto-deploy-test.sh` (run
-  by CI) plays the script through these cases on a made-up `main` with a stand-in for docker.
+  `built from <commit>` line under it. `.deploy/built` is empty from a new build, or a restart, until the server is up,
+  and stays empty if it doesn't start: the image may then be a build that never started, and the old server may be
+  gone, so the next merge builds and restarts even when it leaves the server's files alone (a revert of the change that
+  didn't start, say), and `/version` answers with the server's own commit. `--force` rebuilds and restarts all the
+  same. `deploy/auto-deploy-test.sh` (run by CI) plays the script through these cases on a made-up `main` with a
+  stand-in for docker.
 - It also swaps the cache: when `deploy/cache-build.txt` (e.g. `241.4`) names another OpenRS2 build than
   `data/cache-source.txt`, it runs `fetch-cache <build>` with the new image, then recreates the container. The fetch
   keeps the old cache in `data/cache.previous`. While OpenRS2 doesn't list that build as the newest, `fetch-cache`
@@ -33,8 +37,9 @@
   to one small JVM and raises that step's OOM score to the top, and compose fixes the server's heap at 512 MB and
   lowers its score to -500: if memory runs out anyway, the kernel kills the build first and every process with the
   default score before the server.
-- A deploy that fails (build error, or a checkout that can't fast-forward) is written to `.deploy/failed` and is not
-  retried every minute. The next commit on main tries again, or `deploy/auto-deploy.sh --force` by hand.
+- A deploy that fails (build error, a server that doesn't start, or a checkout that can't fast-forward) is written to
+  `.deploy/failed` and is not retried every minute. The next commit on main tries again, or
+  `deploy/auto-deploy.sh --force` by hand.
 - Log: `journalctl -u osrsps-deploy -n 50` (a failed build also logs the last 60 lines of its output); the last build's
   whole output is in `.deploy/build.log`. State: `.deploy/deployed`, `.deploy/built`,
   `.deploy/failed` and `.deploy/cache-wait` in the checkout. On a checkout where `docker compose up` ran before the

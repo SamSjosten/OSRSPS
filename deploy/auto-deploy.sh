@@ -13,8 +13,11 @@
 # State lives in .deploy/ (git-ignored), which compose.yaml mounts read-only into the server: `deployed` holds the
 # commit of main that is up and `built` the one the running server was built from (older after merges that left it
 # running), `failed` the last commit whose deploy failed, which is not retried every minute; a newer commit on main, or
-# --force, tries again. `cache-wait` holds a cache build that couldn't be fetched yet (OpenRS2 doesn't list it as
-# newest, or the fetch failed): it is tried again 30 minutes after the last try.
+# --force, tries again. `built` is empty from a new build, or a restart, until the server is up, and stays empty if it
+# doesn't start: the image and the running server are then no longer known to be one build, so the next merge builds,
+# even one that leaves the server's files alone, and the server answers /version with its own commit. `cache-wait`
+# holds a cache build that couldn't be fetched yet (OpenRS2 doesn't list it as newest, or the fetch failed): it is
+# tried again 30 minutes after the last try.
 # The whole script is one function so that a fast-forward that changes this file can't change it mid-run.
 set -euo pipefail
 
@@ -72,6 +75,8 @@ main() {
 			echo "Deploy of $target FAILED; it is retried when main moves on or with --force"
 			return 1
 		fi
+		# The image is the new build from here on, not the running server's.
+		put built ""
 		commit=$target
 	fi
 
@@ -100,13 +105,15 @@ main() {
 	if ((!code)) && ((${#recreate[@]} == 0)); then
 		return 0
 	fi
+	# The restart replaces the running server: which build runs is known again once the new one is up.
+	put built ""
 	if OSRSPS_COMMIT=${commit:-unknown} docker compose up -d "${recreate[@]}"; then
 		if ((code)); then
 			# deployed first: until built names the new server's commit, its /version answers with its own.
 			put deployed "$target"
-			put built "$target"
 			rm -f .deploy/failed
 		fi
+		put built "$commit"
 		echo "Deployed ${commit:-unknown}"
 	else
 		((code)) && echo "$target" >.deploy/failed
