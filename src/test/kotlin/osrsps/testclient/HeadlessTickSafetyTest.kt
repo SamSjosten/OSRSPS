@@ -110,6 +110,10 @@ class HeadlessTickSafetyTest {
                     bob.await("the world still ticking") { if (bob.ticksSeen >= ticks + 5) Unit else null }
                     assertNull(server.world.playerNamed("alice"))
                     assertTrue(bob.position != null)
+                    // Saved at the spawn, not at level 4, so she can log back in.
+                    server.login("alice").use { again ->
+                        assertEquals(Coord(World.SPAWN_X, World.SPAWN_Z, World.SPAWN_LEVEL), again.await("alice back") { again.position })
+                    }
                 }
             }
         }

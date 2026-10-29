@@ -596,6 +596,13 @@ class World(
     /** Drops [player]'s connection and removes them at the start of the next cycle, as a logout does. */
     private fun kick(player: Player) {
         player.loggedOut = true
+        // The save that follows would keep a place the map can't hold, and a save like that refuses to load.
+        if (player.level !in 0 until LEVELS || player.x !in 0 until MAP_SIZE || player.z !in 0 until MAP_SIZE) {
+            logger.warn { "${player.username} was at ${player.x}, ${player.z}, ${player.level}; saving them at the spawn" }
+            player.x = SPAWN_X
+            player.z = SPAWN_Z
+            player.level = SPAWN_LEVEL
+        }
         try {
             player.session.requestClose()
         } catch (e: Exception) {
