@@ -224,16 +224,23 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     fun closeModals(player: Player) {
         closeChatModal(player)
         // Guessed, after RSMod closing the bank's search prompt: an amount prompt closes with the interfaces it was for.
-        if (player.scripts.dropCount()) {
-            send(player, RunClientScript(ScriptContext.MESLAYER_CLOSE, listOf(ScriptContext.MESLAYER_COUNT)))
-            for (hook in countDropHooks) hook(player)
-        }
+        dropCount(player)
         if (player.modals.isEmpty()) return
         val frame = player.frame
         for (slot in player.modals.keys) send(player, IfCloseSub(frame.interfaceId, frame.component(slot)))
         val closed = player.modals.values.toList()
         player.modals.clear()
         for (interfaceId in closed) closeHooks[interfaceId]?.invoke(player)
+    }
+
+    /**
+     * Drops the script waiting on an amount, if any: the chatbox prompt closes, a late answer does nothing, and the
+     * [onCountDropped] hooks run.
+     */
+    fun dropCount(player: Player) {
+        if (!player.scripts.dropCount()) return
+        send(player, RunClientScript(ScriptContext.MESLAYER_CLOSE, listOf(ScriptContext.MESLAYER_COUNT)))
+        for (hook in countDropHooks) hook(player)
     }
 
     private val closeHooks = HashMap<Int, (Player) -> Unit>()

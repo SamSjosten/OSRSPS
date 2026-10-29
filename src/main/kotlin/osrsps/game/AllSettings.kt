@@ -43,7 +43,7 @@ class AllSettings(
 ) {
     init {
         // Walking or another interface drops the picker's wait for a colour; the picker goes with it.
-        interfaces.onCountDropped(::closeColourPicker)
+        interfaces.onCountDropped(::inputDropped)
     }
 
     /** The side panel's All Settings button. RSMod (rev 233) opens the window as an overlay in the floater. */
@@ -74,7 +74,8 @@ class AllSettings(
             // The close button's op only plays a sound in the client (settings_window_setup); Esc is its op 2.
             CLOSE -> {
                 player.settingsDropdown = -1
-                // The picker closes with the window it is in.
+                // A number prompt or the picker goes with the window it was for, so a late answer changes nothing.
+                if (player.settingsInputOpen) interfaces.dropCount(player)
                 player.colourPickerOpen = false
                 interfaces.closeFloater(player)
             }
@@ -151,8 +152,10 @@ class AllSettings(
         }
         setVarbit(player, VARBIT_SELECTED_SETTING, row.id)
         val prompt = SettingsLines.NUMBER_PROMPTS[row.id] ?: SettingsLines.NUMBER_PROMPT
+        player.settingsInputOpen = true
         runner.start(player) {
             val amount = countDialog(words(player)[prompt])
+            player.settingsInputOpen = false
             number.set(player.vars, amount.coerceAtMost(largest(player, number)))
         }
     }
@@ -172,13 +175,20 @@ class AllSettings(
         interfaces.setVarbitNow(player, VARBIT_SELECTED_SETTING, row.id)
         interfaces.openInside(player, INTERFACE, POPUP, COLOUR_PALLET)
         player.colourPickerOpen = true
+        player.settingsInputOpen = true
         interfaces.runClientScript(player, COLOUR_PALLET_SCRIPT, listOf((INTERFACE shl 16) or POPUP, colour.read(player.vars) ?: -1))
         runner.start(player) {
             val picked = waitForCount()
+            player.settingsInputOpen = false
             closeColourPicker(player)
             // colour_pallet_update refuses anything past 0xffffff; Cancel and closing send 2^31 - 1.
             if (picked in 0..MAX_COLOUR) colour.set(player.vars, picked)
         }
+    }
+
+    private fun inputDropped(player: Player) {
+        player.settingsInputOpen = false
+        closeColourPicker(player)
     }
 
     private fun closeColourPicker(player: Player) {

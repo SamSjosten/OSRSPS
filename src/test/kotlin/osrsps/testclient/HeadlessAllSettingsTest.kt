@@ -293,6 +293,17 @@ class HeadlessAllSettingsTest {
                 client.resumeCount(0x000001)
                 client.awaitTicks(2)
                 assertEquals(0x123457, client.varp(CHAT_COLOUR_PUBLIC_OPAQUE))
+                // Closing the window drops a number prompt it asked for: the prompt closes, and an amount after that
+                // changes nothing.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 7)
+                client.await("the third prompt") { client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 }.takeIf { it == 3 } }
+                client.ifButton(INTERFACE, CLOSE, 1)
+                client.await("the prompt closed with the window") {
+                    client.clientScripts().lastOrNull { it.id == ScriptContext.MESLAYER_CLOSE }?.takeIf { it.args == listOf(ScriptContext.MESLAYER_COUNT) }
+                }
+                client.resumeCount(1)
+                client.awaitTicks(2)
+                assertEquals((1 shl 29) - 1, (client.varp(OPTION_LOOTNOTIFICATION) ushr 3) and ((1 shl 29) - 1))
 
                 client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
                 client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }

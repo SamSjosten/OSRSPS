@@ -64,6 +64,10 @@ class Player(
     var colourPickerOpen: Boolean = false
         internal set
 
+    /** Whether a number prompt or the colour picker of the All Settings window is waiting on an amount. */
+    var settingsInputOpen: Boolean = false
+        internal set
+
     /** The dialogue (or other modal) open in the chatbox's chatmodal, -1 for none. See [Interfaces.openChatModal]. */
     var chatModal: Int = -1
         internal set
