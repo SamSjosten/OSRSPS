@@ -2,11 +2,13 @@ package osrsps.game.loc
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
+import osrsps.game.GameLines
 import osrsps.game.Interaction
 import osrsps.game.Interactions
 import osrsps.game.Inventory
 import osrsps.game.Movement
 import osrsps.game.Player
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -55,6 +57,8 @@ class LocInteractions(
     private val message: (Player, String) -> Unit = Player::message,
     private val faceLoc: (Player, RouteTarget) -> Unit = ::faceLoc,
     private val clearFlag: (Player) -> Unit = { it.session.queue(SetMapFlagV2.RESET) },
+    /** Each player's words for the game messages ([GameLines]). */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     /** The player clicked option [option] (1 to 5) on loc [id] at [x], [z]. [invertRun] is the ctrl key. */
     fun click(player: Player, id: Int, x: Int, z: Int, option: Int, invertRun: Boolean) {
@@ -133,7 +137,7 @@ class LocInteractions(
                 scripts.trigger(player, op)
             } else {
                 logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }
-                message(player, NOTHING_INTERESTING)
+                message(player, words(player)[GameLines.NOTHING_INTERESTING])
             }
             return true
         }
@@ -142,7 +146,7 @@ class LocInteractions(
             scripts.trigger(player, op)
         } else if (doors.toggle(loc, interaction.option) == null) {
             logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }
-            message(player, NOTHING_INTERESTING)
+            message(player, words(player)[GameLines.NOTHING_INTERESTING])
         }
         return true
     }
@@ -156,6 +160,5 @@ class LocInteractions(
         private fun faceLoc(player: Player, target: RouteTarget) =
             player.infos.playerInfo.avatar.extendedInfo.setFaceLoc(target.x, target.z, target.width, target.length, instant = false, walkMode = 0)
 
-        const val NOTHING_INTERESTING = "Nothing interesting happens."
     }
 }

@@ -1,5 +1,7 @@
 package osrsps.game
 
+import osrsps.game.dialogue.DialogueText
+
 /** Something the player clicked and is walking to use: a loc's option, an obj on the ground, an NPC. See [Interactions]. */
 fun interface Interaction {
     /**
@@ -26,6 +28,8 @@ fun interface Interaction {
  * message.
  */
 class Interactions(
+    /** Each player's words for the game messages ([GameLines]). */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
     /** What the player is told; tests swap it for a recorder, as they have no client. */
     private val message: (Player, String) -> Unit = Player::message,
 ) {
@@ -44,7 +48,7 @@ class Interactions(
         if (player.waypoints.isEmpty() && !interaction.holding(player)) {
             player.interaction = null
             interaction.unreachable(player)
-            message(player, CANT_REACH)
+            message(player, words(player)[GameLines.CANT_REACH])
         }
     }
 
@@ -52,9 +56,5 @@ class Interactions(
         if (!interaction.tryInteract(player)) return false
         if (player.interaction === interaction) player.interaction = null
         return true
-    }
-
-    companion object {
-        const val CANT_REACH = "I can't reach that!"
     }
 }

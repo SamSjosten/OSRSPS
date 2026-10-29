@@ -139,7 +139,7 @@ class NpcInteractionsTest {
         val npc = spawn(x = 3213)
         interactions.click(player, npc.index, 1, -1, invertRun = false)
         tick()
-        assertEquals(listOf(NpcInteractions.NOTHING_INTERESTING), messages)
+        assertEquals(listOf("[game.nothing_interesting]"), messages)
         // It still turns to the player, and goes back to wandering the next tick.
         assertSame(player, npc.engagedWith)
         tick()
@@ -185,7 +185,7 @@ class NpcInteractionsTest {
         val npc = spawn(x = 3216)
         interactions.click(player, npc.index, 1, -1, invertRun = false)
         repeat(5) { tick() }
-        assertEquals(listOf(Interactions.CANT_REACH), messages)
+        assertEquals(listOf("[game.cant_reach]"), messages)
         assertNull(player.interaction)
         assertNull(npc.engagedWith)
         // The player stops turning to the NPC they gave up on.
@@ -205,7 +205,7 @@ class NpcInteractionsTest {
         interactions.click(player, npc.index, 1, -1, invertRun = false)
         repeat(3) { tick() }
         assertEquals(emptyList(), used)
-        assertEquals(listOf(Interactions.CANT_REACH), messages)
+        assertEquals(listOf("[game.cant_reach]"), messages)
 
         interactions.reachOverCounter(HANS)
         interactions.click(player, npc.index, 1, -1, invertRun = false)
@@ -223,7 +223,7 @@ class NpcInteractionsTest {
         handlers.onNpc(HANS, 1) { error("used") }
         interactions.click(player, npc.index, 1, -1, invertRun = false)
         repeat(3) { tick() }
-        assertEquals(listOf(Interactions.CANT_REACH), messages)
+        assertEquals(listOf("[game.cant_reach]"), messages)
     }
 
     @Test
@@ -276,7 +276,7 @@ class NpcInteractionsTest {
         player.inventory[4] = InvObj(BUCKET, 1)
         interactions.useObj(player, npc.index, 4, BUCKET, invertRun = false)
         tick()
-        assertEquals(listOf(NpcInteractions.NOTHING_INTERESTING), messages)
+        assertEquals(listOf("[game.nothing_interesting]"), messages)
     }
 
     @Test
