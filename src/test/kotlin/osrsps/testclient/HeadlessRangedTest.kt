@@ -6,7 +6,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
-import osrsps.game.Interactions
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -148,7 +147,7 @@ class HeadlessRangedTest {
                 val target = client.await("the duck in view") { client.npcs().firstOrNull { it.id == duck.id } }
                 client.await("the login rebuild") { client.position }
                 client.npcOp(target.index, 2)
-                client.awaitMessage("no way to the duck") { it == Interactions.CANT_REACH }
+                client.awaitMessage("no way to the duck") { it == "[game.cant_reach]" }
                 client.command("item $SHORTBOW")
                 client.itemOp(SHORTBOW, WIELD)
                 client.command("item $BRONZE_ARROW $ARROWS")
