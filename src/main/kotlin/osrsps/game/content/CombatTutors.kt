@@ -41,7 +41,6 @@ object HarlanLines : Lines("harlan", "Transcript:Melee combat tutor") {
 
     val HUMAN_1 = line("human_1", "more human: first line, places to fight")
     val HUMAN_2 = line("human_2", "more human: second line, Castle Wars")
-    val HUMAN_TEAMS = line("human_teams", "more human: third line, how the two teams play Castle Wars")
     val CAPTURE_THE_FLAG = line("capture_the_flag", "more human: the player's remark after Castle Wars")
     val HUMAN_3 = line("human_3", "more human: third line, Clan Wars (the Grouping tab opens after it)")
     val HUMAN_4 = line("human_4", "more human: fourth line, safe minigames")
@@ -186,7 +185,6 @@ object Harlan {
     private suspend fun Dialogue.human() = with(HarlanLines) {
         chatNpc(ChatAnim.NEUTRAL, HUMAN_1)
         chatNpc(ChatAnim.NEUTRAL, HUMAN_2)
-        chatNpc(ChatAnim.NEUTRAL, HUMAN_TEAMS)
         chatPlayer(ChatAnim.HAPPY, CAPTURE_THE_FLAG)
         for (line in listOf(HUMAN_3, HUMAN_4, HUMAN_5, HUMAN_6, HUMAN_7, HUMAN_8, HUMAN_9)) chatNpc(ChatAnim.NEUTRAL, line)
         chatNpc(ChatAnim.HAPPY, HUMAN_ANYTHING_ELSE)
