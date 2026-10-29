@@ -104,6 +104,8 @@ import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import java.nio.file.Path
+import kotlin.io.path.exists
+import kotlin.io.path.readText
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -166,6 +168,10 @@ class World(
     skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
     /** The levels needed to wear items; tests that check levels pass their own. */
     wearRequirements: WearRequirements = WearRequirements.NONE,
+    /** The Grand Exchange price snapshot at start; see [ItemPrices]. */
+    itemPrices: ItemPrices = ItemPrices.NONE,
+    /** Where `::itemprices` reads the snapshot again and writes a new one; null for none (tests). */
+    private val itemPricesFile: Path? = null,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -217,10 +223,17 @@ class World(
     /** The prayer book; see [Prayers]. */
     val prayers = Prayers(prayerList, equipment, setOverhead = { player, icon -> player.infos.playerInfo.avatar.extendedInfo.setOverheadIcon(icon) })
 
+    /** The Grand Exchange prices now; `::itemprices` reads the file again. */
+    @Volatile
+    var itemPrices: ItemPrices = itemPrices
+        private set
+
     private val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
         onDrop = groundObjs::drop,
+        price = { this.itemPrices.price(it) },
+        desc = { player, type -> if (type.isCert) textFor(player)[Examines.NOTE] else type.desc ?: "" },
     )
 
     /** The bank's rules and the bank interface; see [BankScreen]. */
@@ -303,7 +316,8 @@ class World(
         teleportToSpawn = { teleport(it, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) },
         openModal = { player, id -> interfaces.openModal(player, FrameSlot.MAINMODAL, id) },
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
-        prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) }, examine = inventoryTab::examine,
+        prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) },
+        examine = inventoryTab::examine, value = { this.itemPrices.deathValue(it) },
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -357,6 +371,31 @@ class World(
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         woodcutting.register()
         loadDialogue()
+    }
+
+    /** Reads the Grand Exchange price file again, for a hand edit; says what it read. */
+    fun loadItemPrices(): String {
+        val file = itemPricesFile ?: return "No price file"
+        if (!file.exists()) return "No ${file.fileName} yet: ::itemprices refresh downloads one"
+        itemPrices = ItemPrices.parse(file.readText())
+        return "Read ${itemPrices.size} Grand Exchange prices (${itemPrices.snapshot ?: "no snapshot date"})"
+    }
+
+    /**
+     * Downloads a new Grand Exchange snapshot from the Wiki on a thread of its own, so the tick doesn't wait on the
+     * network, and writes it to the file; `::itemprices` then reads it. The outcome goes to the server log.
+     */
+    fun refreshItemPrices(): String {
+        val file = itemPricesFile ?: return "No price file"
+        Thread({
+            try {
+                val prices = ItemPrices.refresh(file)
+                logger.info { "Downloaded ${prices.size} Grand Exchange prices (${prices.snapshot}) into $file" }
+            } catch (e: Exception) {
+                logger.warn(e) { "Could not download the Grand Exchange prices" }
+            }
+        }, "item-prices").apply { isDaemon = true }.start()
+        return "Downloading the Wiki's Grand Exchange prices; run ::itemprices in a few seconds to read them"
     }
 
     /**

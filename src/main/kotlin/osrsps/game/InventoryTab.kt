@@ -27,6 +27,10 @@ class InventoryTab(
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
     /** Drops the slot's stack on the ground; see [GroundObjs.drop]. */
     private val onDrop: (Player, Int) -> Unit = { _, _ -> },
+    /** The Grand Exchange price Examine shows ([ItemPrices]), null for none. */
+    private val price: (ObjType) -> Long? = { null },
+    /** The examine text: the cache's, or for a note the dialogue file's. */
+    private val desc: (Player, ObjType) -> String = { _, type -> type.desc ?: "" },
 ) {
     /** Lets the client send clicks, drags and "Use" on the 28 slots. Sent once the panel is open on login. */
     fun open(player: Player) {
@@ -102,18 +106,19 @@ class InventoryTab(
     }
 
     /**
-     * Examine runs client script 6003, which in the 241 cache takes (obj, count, desc, tradeable, price as a long,
-     * alchemisable, high alch, low alch) and writes the examine text and the item's values to the chatbox, as RSMod
-     * calls it (rev 233, without the long). The argument types are read from the 241 script's header and its call to
-     * 6004.
+     * Examine runs client script 6003 (examine_item), which in the 241 cache takes the ints obj, count, tradeable, no
+     * alchemy, high alch and low alch, the long price and the string desc, and writes the examine text to the chatbox.
+     * The price line after it (examine_price_info, 6005) shows only on the enhanced clients with the examine price
+     * settings on, not in RuneLite; it shows the alchemy values only when the no-alchemy flag is 0 (osrs-dumps, rev 241).
      *
-     * Guessed: the Grand Exchange price is a live market figure the server doesn't have, so the item's value stands in.
+     * The price is the Grand Exchange guide price from the snapshot ([ItemPrices]). Guessed: an item the snapshot has
+     * no price for sends its value instead.
      */
     fun examine(player: Player, type: ObjType, count: Int) {
-        val alchemisable = if (type.intParam(ObjType.PARAM_NO_ALCHEMY) == 0) 1 else 0
+        val noAlchemy = if (type.intParam(ObjType.PARAM_NO_ALCHEMY) == 0) 0 else 1
         val args = listOf(
-            type.id, count, type.desc ?: "", if (type.tradeable) 1 else 0, type.cost.toLong(),
-            alchemisable, type.highAlch, type.lowAlch,
+            type.id, count, desc(player, type), if (type.tradeable) 1 else 0, price(type) ?: type.cost.toLong(),
+            noAlchemy, type.highAlch, type.lowAlch,
         )
         send(player, RunClientScript(EXAMINE_SCRIPT, args))
     }

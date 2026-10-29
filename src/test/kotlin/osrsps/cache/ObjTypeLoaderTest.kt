@@ -111,7 +111,7 @@ class ObjTypeLoaderTest {
         assertEquals(16, linkedNote.cost)
         assertTrue(linkedNote.stackable)
         assertTrue(linkedNote.tradeable)
-        assertEquals(ObjTypeLoader.CERT_DESC, linkedNote.desc)
+        assertNull(linkedNote.desc, "notes' examine comes from the dialogue file")
         assertEquals(listOf(null, null, null, null, "Drop"), linkedNote.iops)
         assertEquals("Test axe", types[3]!!.name)
         assertEquals(0, types[3]!!.cost)

@@ -34,12 +34,6 @@ object ObjTypeLoader {
     private const val GAMEVAL_OBJS = 0
     private val CP1252: Charset = Charset.forName("windows-1252")
 
-    /**
-     * The examine text of every noted item. The cache has none for notes (the client builds them from the note
-     * template), so it comes from the server. From memory of live, not checked against a recording.
-     */
-    const val CERT_DESC = "Swap this note at any bank for the equivalent item."
-
     fun load(library: CacheLibrary): ObjTypes {
         val files = library.index(CONFIG_INDEX)?.archive(OBJ_GROUP)?.files().orEmpty()
         if (files.isEmpty()) {
@@ -81,11 +75,14 @@ object ObjTypeLoader {
         return ObjTypes(array)
     }
 
-    /** The client's genCert takes the name, value and members flag from the real item and makes the note stack. */
+    /**
+     * The client's genCert takes the name, value and members flag from the real item and makes the note stack. The cache
+     * has no examine text for notes; the server sends one from the dialogue file ([osrsps.game.content.Examines.NOTE]).
+     */
     private fun cert(note: ObjType, item: ObjType) = copy(
         note,
         name = item.name,
-        desc = CERT_DESC,
+        desc = null,
         cost = item.cost,
         stackable = true,
         members = item.members,
