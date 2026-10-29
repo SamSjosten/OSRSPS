@@ -107,8 +107,9 @@ class AttackStyles(private val byCategory: Map<Int, List<AttackStyle>>) {
         fun parse(button: Int, name: String, tooltip: String): AttackStyle {
             val words = BRACKETED.findAll(tooltip).map { it.groupValues[1].lowercase() }.toList()
             val stance = words.firstNotNullOfOrNull { STANCES[it] } ?: AttackStance.OTHER
-            val type = words.firstNotNullOfOrNull { TYPES[it] } ?: AttackType.NONE
             val xp = words.flatMap { XP[it].orEmpty() }
+            // Powered staves' tooltips name only the XP: "(Accurate)<br>(Magic XP)".
+            val type = words.firstNotNullOfOrNull { TYPES[it] } ?: if (Skill.MAGIC in xp) AttackType.MAGIC else AttackType.NONE
             val weight = words.firstNotNullOfOrNull { WEIGHTS[it] }
             return AttackStyle(button, name, stance, type, xp, weight)
         }

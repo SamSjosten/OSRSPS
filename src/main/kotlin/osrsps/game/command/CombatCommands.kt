@@ -6,13 +6,13 @@ import osrsps.game.World
 import osrsps.game.combat.AmmoKind
 import osrsps.game.combat.AttackStance
 import osrsps.game.combat.AttackType
-import osrsps.game.combat.Autocast
 import osrsps.game.combat.Blowpipe
 import osrsps.game.combat.CombatMath
 import osrsps.game.combat.DropItem
 import osrsps.game.combat.MagicInteraction
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
+import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.RangedInteraction
 import osrsps.game.combat.Spellbook
 import osrsps.game.npc.Npc
@@ -43,7 +43,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             return@register
         }
         if (style.type == AttackType.MAGIC) {
-            val spell = world.spells.autocast(Autocast.key(player)) ?: fail("You autocast a spell that isn't in yet")
+            val spell = world.magicCombat.fightSpell(player) ?: fail("You autocast a spell that isn't in yet")
             val magic = combat.magicMatchup(player, target, spell)!!
             val it = combat.npcAttack(target, player)!!
             reply("${style.name} (${spell.name}), speed ${combat.attackSpeed(player)}: attack roll ${magic.attackRoll}, max hit ${magic.maxHit}")
@@ -100,6 +100,17 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             player.charges[Blowpipe.SCALES] = scales
         }
         reply(blowpipe.check(player))
+    }
+
+    register("shadow", "::shadow [charges]", admin = true) {
+        val staff = PoweredStaves.TUMEKENS_SHADOW
+        if (args.isNotEmpty()) {
+            // Charges it without the runes, as the bank's Configure-Charges would, which isn't in: ::shadow 20000.
+            val charges = args.singleOrNull()?.let { parseCount(it) }?.takeIf { it in 0..staff.maxCharges }
+                ?: fail("Usage: ::shadow [charges] (0 to ${staff.maxCharges})")
+            player.charges[staff.charge] = charges
+        }
+        reply(world.poweredStaves.check(player, staff))
     }
 
     register("multi", "::multi [on|off]", admin = true) {

@@ -53,6 +53,8 @@ data class CombatSpell(
     val holds: Boolean = false,
     val spellbook: Int = Spellbook.STANDARD,
     val area: Boolean = false,
+    /** The powered staff whose built-in spell this is, null for a spellbook spell; see [MagicCombat]. */
+    val staff: PoweredStaff? = null,
 )
 
 /**

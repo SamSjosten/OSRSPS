@@ -95,6 +95,7 @@ class MagicCombat(
     private val face: (Player, Npc) -> Unit = { _, _ -> },
     private val stopFacing: (Player) -> Unit = {},
     private val multi: MultiCombat = MultiCombat(),
+    private val poweredStaves: PoweredStaves = PoweredStaves(objTypes),
 ) {
     /** A spell on its way to [npc], landing on [landTick] for [damage] if [hit], or splashing. */
     private class Cast(val player: Player, val npc: Npc, val spell: CombatSpell, val hit: Boolean, val damage: Int, val landTick: Long)
@@ -138,8 +139,33 @@ class MagicCombat(
      */
     fun fight(player: Player, npc: Npc): MagicInteraction? {
         if (combat.style(player).type != AttackType.MAGIC) return null
-        autocastSpell(player) ?: return null
+        fightSpell(player) ?: return null
         return MagicInteraction(npc, null, this)
+    }
+
+    /** The spell a fight casts: the autocast spell, else a wielded powered staff's own; null for neither. */
+    fun fightSpell(player: Player): CombatSpell? = autocastSpell(player) ?: poweredSpell(player)
+
+    /**
+     * The built-in spell of the powered staff [player] fights with, or null: no base XP and no runes (the staff's
+     * charges pay), its max hit from the visible (boosted) Magic level (OSRS Wiki, Powered staff, Tumeken's shadow).
+     */
+    private fun poweredSpell(player: Player): CombatSpell? {
+        if (combat.style(player).type != AttackType.MAGIC) return null
+        val staff = poweredStaves.wielded(player) ?: return null
+        return CombatSpell(
+            obj = -1, name = objTypes[staff.charged]?.name ?: "staff", component = -1, level = 0,
+            maxHit = staff.maxHit(player.skills.currentLevel(Skill.MAGIC)), runes = emptyList(), xpTenths = 0,
+            anim = staff.anim, staffAnim = staff.anim, casting = staff.casting, travel = staff.travel, impact = staff.impact,
+            spellbook = Spellbook.of(player), staff = staff,
+        )
+    }
+
+    /** How far [spell] reaches: a powered staff's spell 8 tiles, 10 on longrange (OSRS Wiki, Tumeken's shadow). */
+    private fun range(player: Player, spell: CombatSpell): Int = when {
+        spell.staff == null -> RANGE
+        combat.style(player).stance == AttackStance.LONGRANGE -> POWERED_LONGRANGE
+        else -> POWERED_RANGE
     }
 
     /** The spell the player autocasts, or null when they don't. */
@@ -156,7 +182,7 @@ class MagicCombat(
             stopFacing(player)
             return true
         }
-        val spell = interaction.spell ?: autocastSpell(player)
+        val spell = interaction.spell ?: fightSpell(player)
         if (spell == null) {
             // Autocast went off on the way (a style picked, the staff taken off): carry on with whatever fights now.
             val next = melee.fight(player, npc)
@@ -168,7 +194,7 @@ class MagicCombat(
             return true
         }
         val size = npc.type.size
-        if (!LineOfSight.inRange(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size, RANGE)) {
+        if (!LineOfSight.inRange(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size, range(player, spell))) {
             interaction.inRange = false
             val at = Tile(npc.x, npc.z)
             if (interaction.routedTo != at) {
@@ -193,25 +219,30 @@ class MagicCombat(
         }
         val tick = currentTick()
         if (tick < player.nextAttackTick) return false
-        val autocast = interaction.spell == null
-        if (!release(player, npc, spell, tick, defensive = autocast && Autocast.defensive(player))) {
+        val fighting = interaction.spell == null
+        // Defensive autocast and a powered staff's longrange split the damage XP with Defence (guessed for the staff:
+        // the Wiki gives its styles' skills, not the split).
+        val defensive = if (spell.staff != null) combat.style(player).stance == AttackStance.LONGRANGE else fighting && Autocast.defensive(player)
+        val speed = if (fighting) combat.attackSpeed(player) else SPEED
+        if (!release(player, npc, spell, tick, defensive, speed)) {
             stopFacing(player)
             return true
         }
         interaction.cast = true
-        // A spell from the book is cast once; then the autocast spell, if any, carries the fight on. Guessed: the player
-        // keeps facing the NPC after a single cast, as live's face-entity stays until they do something else.
+        // A spell from the book is cast once; then the autocast spell or a powered staff's, if any, carries the fight
+        // on. Guessed: the player keeps facing the NPC after a single cast, as live's face-entity stays until they do
+        // something else; and that a powered staff takes over after a spellbook cast, as autocast does.
         interaction.spell = null
-        return autocastSpell(player) == null
+        return fightSpell(player) == null
     }
 
     /**
-     * Casts [spell] on [npc] on [tick], with defensive autocast's XP when [defensive]; false when the player can't, and
-     * has been told why.
+     * Casts [spell] on [npc] on [tick], with defensive autocast's XP when [defensive], the next cast [speed] ticks on;
+     * false when the player can't, and has been told why.
      */
-    private fun release(player: Player, npc: Npc, spell: CombatSpell, tick: Long, defensive: Boolean): Boolean {
+    private fun release(player: Player, npc: Npc, spell: CombatSpell, tick: Long, defensive: Boolean, speed: Int): Boolean {
         // The book can change between the click and the cast (::spellbook on the way to the NPC).
-        if (spell.spellbook != Spellbook.of(player)) {
+        if (spell.staff == null && spell.spellbook != Spellbook.of(player)) {
             logger.info { "${player.username} was to cast ${spell.name} on $npc, but has spellbook ${Spellbook.of(player)} open now" }
             return false
         }
@@ -230,8 +261,9 @@ class MagicCombat(
             return false
         }
         val matchup = combat.magicMatchup(player, npc, spell) ?: return false
+        if (spell.staff != null && !poweredStaves.use(player, spell.staff) { message(player, it) }) return false
         for (cost in spell.runes) if (cost.rune !in provided) take(player, cost)
-        player.nextAttackTick = tick + SPEED
+        player.nextAttackTick = tick + speed
         val anim = if (combat.weaponCategory(player) == Weapons.STAFF) spell.staffAnim else spell.anim
         if (anim >= 0) player.effects.anim(anim, 0)
         if (spell.casting >= 0) player.effects.spotanim(0, spell.casting, CASTING_HEIGHT, 0)
@@ -366,6 +398,14 @@ class MagicCombat(
 
         /** Combat spells from the spellbook take 5 ticks, 3 seconds (OSRS Wiki, Magic). */
         const val SPEED = 5
+
+        /** nightmare_staff_harmonised: standard spells autocast with it every [HARMONISED_SPEED] ticks. */
+        const val HARMONISED_STAFF = 24423
+        const val HARMONISED_SPEED = 4
+
+        /** A powered staff's spell reaches 8 tiles, 10 on longrange (OSRS Wiki, Tumeken's shadow). */
+        const val POWERED_RANGE = 8
+        const val POWERED_LONGRANGE = 10
 
         /** A hold spell on a frozen target (OSRS Wiki, Snare). */
         const val ALREADY_HELD = "Your target is already held by a magical force."
