@@ -94,9 +94,8 @@ data class PrayerBoosts(
  * turned on this tick neither drains this tick nor applies to anything this tick: protection and the other effects go
  * by the prayers on at the start of the tick, [inEffect]. At no points every prayer goes off. Protection prayers block
  * all of an NPC's damage of their type (40% of a player's, which isn't in). The other effects ([has]): Rapid Heal in
- * [MeleeCombat]'s hitpoints countdown, Redemption and Retribution in [MeleeCombat], Protect Item in [Deaths]. Smite
- * only drains players, who can't be fought yet; Rapid Restore and Preserve wait for stat restoring, which only
- * hitpoints have so far.
+ * [MeleeCombat]'s hitpoints countdown, Redemption and Retribution in [MeleeCombat], Protect Item in [Deaths], Rapid
+ * Restore and Preserve in [StatRestore]. Smite only drains players, who can't be fought yet.
  *
  * Guessed and not checked on live: the messages' wording ([PrayerLines]); that a prayer can be turned on during a delay (an agility
  * obstacle) as it can be in combat; that dying and logging out turn every prayer off; that a protection prayer counts
@@ -371,7 +370,9 @@ class Prayers(
         const val PROTECT_ITEM = "protectItem"
         const val RETRIBUTION = "retribution"
         const val REDEMPTION = "redemption"
-        val EFFECTS = setOf(RAPID_HEAL, PROTECT_ITEM, RETRIBUTION, REDEMPTION)
+        const val RAPID_RESTORE = "rapidRestore"
+        const val PRESERVE = "preserve"
+        val EFFECTS = setOf(RAPID_HEAL, PROTECT_ITEM, RETRIBUTION, REDEMPTION, RAPID_RESTORE, PRESERVE)
 
         /** Hitpoints come back every 50 ticks with Rapid Heal, twice the usual rate (OSRS Wiki, Rapid Heal). */
         const val RAPID_HEAL_TICKS = 50

@@ -1,0 +1,26 @@
+{
+ "name": "Stats: a Strength boost loses a level and a Mining drain gets one back a minute, then Rapid Restore clicked on brings a drain back twice as fast, read off ::stats",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel strength 50", "expectMessage": "Strength set to level 50"},
+  {"step": "command", "text": "::setlevel mining 50", "expectMessage": "Mining set to level 50"},
+  {"step": "command", "text": "::setlevel prayer 99", "expectMessage": "Prayer set to level 99", "comment": "Rapid Restore needs 19"},
+  {"step": "command", "text": "::boost strength 55", "expectMessage": "Strength is now 55/50"},
+  {"step": "command", "text": "::boost mining 45", "expectMessage": "Mining is now 45/50"},
+  {"step": "command", "text": "::stats", "expectMessage": "Strength 55/50, Mining 45/50"},
+  {"step": "waitTicks", "ticks": 100, "comment": "a minute: one cycle ends in it, whenever it began (the cycles run from login)"},
+  {"step": "command", "text": "::stats", "expectMessage": "Strength 54/50, Mining 46/50"},
+  {"step": "command", "text": "::buttons on", "expectMessage": "Interface clicks are echoed"},
+  {"step": "clickWidget", "interfaceId": 548, "component": 69, "comment": "the prayer tab"},
+  {"step": "clickWidget", "interfaceId": 541, "component": 15, "comment": "Rapid Restore"},
+  {"step": "assertMessage", "contains": "Button 541:15 slot -1 op 1", "timeoutMs": 10000},
+  {"step": "command", "text": "::prayers", "expectMessage": ": Rapid Restore"},
+  {"step": "waitTicks", "ticks": 100, "comment": "the usual cycle and Rapid Restore's own, 100 ticks from when it went on"},
+  {"step": "command", "text": "::stats", "expectMessage": "Mining 48/50"},
+  {"step": "clickWidget", "interfaceId": 541, "component": 15, "comment": "Rapid Restore off"},
+  {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
