@@ -132,6 +132,11 @@ class ClientConfigTest {
             assertEquals("$built\n", version())
             assertEquals("commit $built\njs5 connections 0\n", status())
 
+            // An empty built: a restart under way, or one whose server didn't start, so which build runs isn't known.
+            Files.writeString(state.resolve("built"), "\n")
+            assertEquals("$built\n", version())
+            assertEquals("commit $built\njs5 connections 0\n", status())
+
             // Nor is a deployed file without a commit in it.
             Files.writeString(state.resolve("built"), "$built\n")
             Files.writeString(state.resolve("deployed"), "\n")
