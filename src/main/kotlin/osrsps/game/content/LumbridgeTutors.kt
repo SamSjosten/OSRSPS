@@ -361,7 +361,7 @@ object LumbridgeTutors {
                     chatNpc(ChatAnim.NEUTRAL, LIKELY_TREE)
                     chatNpc(ChatAnim.HAPPY, FULL_INVENTORY)
                     objbox(BANK_ICON, BANK_HINT)
-                    if (player.inventory.count(TINDERBOX) == 0L) {
+                    if (!owns(TINDERBOX)) {
                         give(player, TINDERBOX)
                         chatNpc(ChatAnim.NEUTRAL, LOST_TINDERBOX)
                     }
@@ -429,9 +429,17 @@ object LumbridgeTutors {
         }
     }
 
-    /** With no axe on them, a bronze one, or a line saying there's no room for it. */
+    /**
+     * Whether the player has [obj] carried, worn or banked. The Wiki's Woodsman tutor gives the axe and tinderbox "only if
+     * unowned"; the bank counting is read from that, not seen on live. Without it the free axe sold to Bob for coins
+     * from nothing (the second exploit review, 29 Oct 2026).
+     */
+    private fun Dialogue.owns(obj: Int): Boolean =
+        player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0
+
+    /** With no axe of their own, a bronze one, or a line saying there's no room for it. */
     private suspend fun Dialogue.axeIfNeeded(give: (Player, Int) -> Unit) = with(WoodsmanTutorLines) {
-        if (WOODCUTTING_AXES.any { player.inventory.count(it) > 0 || player.equipment.count(it) > 0 }) return@with
+        if (WOODCUTTING_AXES.any { owns(it) }) return@with
         if (player.inventory.freeSlots == 0) {
             chatNpc(ChatAnim.SAD, NO_ROOM_FOR_AXE)
         } else {

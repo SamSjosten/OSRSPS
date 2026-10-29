@@ -3,6 +3,7 @@ package osrsps.game
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptRunner
@@ -46,6 +47,8 @@ class GroundObjs(
     private val population: () -> Int,
     /** Called after a player takes an obj another player (this save key) put down, to save them both. */
     private val handedOver: (Player, String) -> Unit = { _, _ -> },
+    /** Each player's words for the game messages ([GameLines]). */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     /** Objs whose timers are running, in the order they were put down. */
@@ -68,7 +71,7 @@ class GroundObjs(
         val type = requireNotNull(objTypes[spawn.id]) { "No obj type ${spawn.id} for $spawn" }
         require(type.stackable || spawn.count == 1) { "$spawn: only stackable objs can spawn more than one to a stack" }
         spawnList += spawn
-        makeRoom(spawn.x, spawn.z, spawn.level, 1)
+        makeRoom(spawn.x, spawn.z, spawn.level, 1, owner = null)
         placeSpawn(spawn)
     }
 
@@ -94,7 +97,7 @@ class GroundObjs(
         }
         val neverPublic = !type.tradeable
         if (!fitsOnTile(type, held.count, player.x, player.z, player.level, player.saveKey, neverPublic)) {
-            message(player, TILE_FULL)
+            message(player, words(player)[GameLines.TILE_FULL])
             return null
         }
         player.inventory.remove(slot)
@@ -141,7 +144,7 @@ class GroundObjs(
         }
         val pieces = if (type.stackable) 1 else count
         require(pieces <= MAX_SPLIT) { "Won't put $count separate ${type.name} on one tile" }
-        makeRoom(x, z, level, pieces)
+        makeRoom(x, z, level, pieces, owner)
         var last: ZoneObj? = null
         repeat(pieces) {
             val obj = ZoneObj(
@@ -160,7 +163,7 @@ class GroundObjs(
         require(count >= 1) { "Can't put $count of $type on the ground" }
         val pieces = if (type.stackable) 1 else count
         require(pieces <= MAX_SPLIT) { "Won't put $count separate ${type.name} on one tile" }
-        makeRoom(x, z, level, pieces)
+        makeRoom(x, z, level, pieces, owner = null)
         return List(pieces) {
             val obj = ZoneObj(type.id, if (type.stackable) count else 1, x, z, level, ticksUntilDespawn = despawnTicks)
             zones.addObj(obj)
@@ -185,15 +188,21 @@ class GroundObjs(
 
     /**
      * Removes the oldest objs on a tile until [pieces] more fit within [MAX_PER_TILE]. Guessed: the Wiki gives the limit
-     * but not what happens past it; a player's own drop is refused instead ([drop]), so this only acts on loot and
+     * but not what happens past it; a player's own drop is refused instead ([drop]), so this only acts on loot, ammo and
      * content putting objs down on a full tile.
+     *
+     * Only objs anyone could take, or [owner]'s own, make room: another player's private drop is never pushed off, so
+     * a gift, loot or ammo brought down on purpose can't delete it (the second exploit review, 29 Oct 2026). When that
+     * isn't enough, the tile goes over the limit by what is left. That is bounded: each owner's next obj there pushes
+     * off their own first, and zone packets are split to fit ([osrsps.game.zone.Zones]).
      */
-    private fun makeRoom(x: Int, z: Int, level: Int, pieces: Int) {
+    private fun makeRoom(x: Int, z: Int, level: Int, pieces: Int, owner: String?) {
         val objs = zones.objsAt(x, z, level)
         val over = objs.size + pieces - MAX_PER_TILE
         if (over <= 0) return
-        logger.info { "Tile $x, $z, $level is full; removing its $over oldest objs" }
-        objs.take(over).forEach(::remove)
+        val taken = objs.filter { it.owner == null || it.owner == owner }.take(over)
+        logger.info { "Tile $x, $z, $level is full; removing its ${taken.size} oldest objs that may go, of $over" }
+        taken.forEach(::remove)
     }
 
     /** Removes everything on a tile. Spawns there come back as if taken. Returns how many objs went. */
@@ -330,7 +339,7 @@ class GroundObjs(
     private fun run(player: Player, obj: ZoneObj, option: Int, far: Boolean, repeat: Boolean = false) {
         if (scripts.trigger(player, Op(OpTarget.GROUND_OBJ, obj.id, option, groundObj = obj, repeat = repeat))) return
         if (option != TAKE_OPTION) {
-            message(player, InventoryTab.NOTHING_INTERESTING)
+            message(player, words(player)[GameLines.NOTHING_INTERESTING])
             return
         }
         if (!far) {
@@ -339,7 +348,7 @@ class GroundObjs(
         }
         val type = objTypes[obj.id] ?: return
         if (!fits(player.inventory, type, obj.count)) {
-            message(player, NO_SPACE)
+            message(player, words(player)[GameLines.NO_SPACE])
             return
         }
         scripts.start(player) {
@@ -355,12 +364,12 @@ class GroundObjs(
      */
     fun take(player: Player, obj: ZoneObj): Boolean {
         if (!zones.hasObj(obj) || !obj.visibleTo(player.saveKey)) {
-            message(player, TOO_LATE)
+            message(player, words(player)[GameLines.TOO_LATE])
             return false
         }
         val type = objTypes[obj.id] ?: return false
         if (!fits(player.inventory, type, obj.count)) {
-            message(player, NO_SPACE)
+            message(player, words(player)[GameLines.NO_SPACE])
             return false
         }
         remove(obj)
@@ -422,12 +431,6 @@ class GroundObjs(
          * that can fit on one game tile is 128"). It also keeps a zone's full resend within reach of its packets.
          */
         const val MAX_PER_TILE = 128
-
-        /** Guessed wording: a drop on a tile already holding [MAX_PER_TILE] objs. */
-        const val TILE_FULL = "There isn't enough room on the ground here."
-
-        const val TOO_LATE = "Too late - it's gone!"
-        const val NO_SPACE = "You don't have enough inventory space to hold that item."
 
         private const val CHATTYPE_GAMEMESSAGE = 0
     }

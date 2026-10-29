@@ -148,6 +148,24 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         send(player, IfSetEventsV2(interfaceId, component, from, to, 0, events))
     }
 
+    /**
+     * Opens [interfaceId] in the frame's floater as an overlay, as RSMod opens the All Settings window: it moves with
+     * the frame and stays open until the server closes it, walking and other modals leaving it alone (inferred).
+     */
+    fun openFloater(player: Player, interfaceId: Int) {
+        player.floater = interfaceId
+        val frame = player.frame
+        send(player, IfOpenSub(frame.interfaceId, frame.component(FrameSlot.FLOATER), interfaceId, OVERLAY))
+    }
+
+    /** Closes what [openFloater] opened, if anything. */
+    fun closeFloater(player: Player) {
+        if (player.floater < 0) return
+        val frame = player.frame
+        send(player, IfCloseSub(frame.interfaceId, frame.component(FrameSlot.FLOATER)))
+        player.floater = -1
+    }
+
     /** Opens [interfaceId] as a modal in [slot], replacing whatever modal was there. */
     fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) {
         player.modals[slot] = interfaceId
@@ -227,6 +245,9 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         player.vars.setVarbit(id, value)
         sendVarp(player, varbit.baseVar, player.vars[varbit.baseVar])
     }
+
+    /** Sends varp [id] now, ahead of the end-of-cycle flush, for an interface opening in the same cycle that reads it. */
+    fun sendVarpNow(player: Player, id: Int) = sendVarp(player, id, player.vars[id])
 
     private fun sendVarp(player: Player, id: Int, value: Int) {
         send(player, if (value in Byte.MIN_VALUE..Byte.MAX_VALUE) VarpSmall(id, value) else VarpLarge(id, value))

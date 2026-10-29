@@ -3,6 +3,7 @@ package osrsps.game.combat
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -120,7 +121,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * ] }
          * ```
          *
-         * An entry may add `"magicAttack"` and `"weakness": { "element": "water", "percent": 10 }`.
+         * An animation may be `null` for none. An entry may add `"magicAttack"` and `"weakness": { "element": "water", "percent": 10 }`.
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
          * [seqs] turns into ids; a name it doesn't know fails the file, unless it knows no names at all (a cache with
@@ -157,7 +158,10 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
             fun bonus(key: String) = defence.required(key).jsonPrimitive.int
             val anims = entry.required("anims").jsonObject
             fun anim(key: String): Int {
-                val name = anims.required(key).jsonPrimitive.content
+                val value = anims.required(key)
+                // null for an NPC with no such animation, as ducks have no attack or block.
+                if (value is JsonNull) return -1
+                val name = value.jsonPrimitive.content
                 return seqs[name] ?: throw IllegalArgumentException("no animation called $name")
             }
             val attackType = entry.required("attackType").jsonPrimitive.content.let { text ->

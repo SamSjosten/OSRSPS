@@ -25,7 +25,7 @@ object FredLines : Lines("fred_the_farmer", "Transcript:Fred the Farmer") {
  * shows as its sheared type for 50 ticks (the OSRS Wiki, Sheep: 30 seconds to regrow) and the player gets a wool,
  * dropped at their feet when the inventory is full. Since 27 October 2019 it never fails (the Wiki). The messages are
  * RSMod's and the 2004Scape project's, not checked against live. Guessed: Fred's chathead expressions. Left out: Fred's
- * third option, about The Thing of Cold War, which isn't here, and the sheep's "Baa!".
+ * third option, about The Thing of Cold War, which isn't here, and the sheep's overhead bleat.
  */
 object FredsFarm {
     const val FRED = 732

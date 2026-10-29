@@ -126,7 +126,7 @@ class LocInteractionsTest {
         assertNull(player.interaction)
         interactions.click(player, LADDER, 3210, 3214, 1, invertRun = false)
         tick()
-        assertEquals(listOf(LocInteractions.NOTHING_INTERESTING), messages)
+        assertEquals(listOf("[game.nothing_interesting]"), messages)
     }
 
     @Test
@@ -149,7 +149,7 @@ class LocInteractionsTest {
         assertNull(player.interaction, "no such loc there")
         interactions.useObj(player, LADDER, 3210, 3214, slot = 0, obj = BUCKET, invertRun = false)
         repeat(6) { tick() }
-        assertEquals(listOf(LocInteractions.NOTHING_INTERESTING), messages)
+        assertEquals(listOf("[game.nothing_interesting]"), messages)
     }
 
     @Test
@@ -184,7 +184,7 @@ class LocInteractionsTest {
         for (angle in 0..3) walls.addLoc(types[WALL]!!.collision, 3220, 3220, 0, LocShape.WALL_STRAIGHT, angle)
         interactions.click(player, LADDER, 3210, 3214, 1, invertRun = false)
         tick()
-        assertEquals(listOf(Interactions.CANT_REACH), messages)
+        assertEquals(listOf("[game.cant_reach]"), messages)
         assertNull(player.interaction)
     }
 
@@ -261,7 +261,7 @@ class LocInteractionsTest {
         interactions.click(player, DOOR, 3215, 3210, 1, invertRun = false)
         tick()
         assertEquals(listOf(door), locs.at(3215, 3210, 0))
-        assertEquals(listOf(LocInteractions.NOTHING_INTERESTING), messages)
+        assertEquals(listOf("[game.nothing_interesting]"), messages)
     }
 
     @Test

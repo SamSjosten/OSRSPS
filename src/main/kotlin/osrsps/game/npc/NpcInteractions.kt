@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import osrsps.game.ConditionalOp
 import osrsps.game.Facing
+import osrsps.game.GameLines
 import osrsps.game.Interaction
 import osrsps.game.Interactions
 import osrsps.game.Inventory
@@ -11,6 +12,7 @@ import osrsps.game.Movement
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -84,6 +86,8 @@ class NpcInteractions(
      * to the NPC first, as for any option.
      */
     private val attackFromAfar: (Player, Npc) -> Boolean = { _, _ -> false },
+    /** Each player's words for the game messages ([GameLines]). */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     /**
      * The player clicked option [option] (1 to 5) of NPC [index], with sub-option [sub] (-1 for none). [invertRun] is the
@@ -220,7 +224,7 @@ class NpcInteractions(
             scripts.trigger(player, op)
         } else {
             logger.info { "${player.username} used $op on $npc (not handled)" }
-            message(player, NOTHING_INTERESTING)
+            message(player, words(player)[GameLines.NOTHING_INTERESTING])
         }
         return true
     }
@@ -346,7 +350,6 @@ class NpcInteractions(
         /** How far away an NPC can be clicked: RSProt's NPC info sends NPCs within 15 tiles. */
         const val VIEW_RANGE = 15
 
-        const val NOTHING_INTERESTING = "Nothing interesting happens."
 
         /** The option that starts a fight, as the cache names it on every fightable NPC. */
         const val ATTACK = "Attack"

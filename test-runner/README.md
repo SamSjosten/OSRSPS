@@ -123,6 +123,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   grain up Mill Lane Mill's ladders into the hopper and through the controls into two pots of flour (checking
   varbits mill_flour and mill_showflour), Gillie's talk when milking with no bucket, and a dairy cow milked into two
   buckets. Needs 0.8.0 for `assertVarbit`.
+- `lumbridge-ducks.json`: Examine (with `::keys on`) on a drake and a duck on the River Lum, the ducklings, the
+  attackable duckling at the pond by Fred's farm and the duck and drake that walk on Groats' farm; Attack on a drake
+  on the water says it can't be reached, and `::kill duck` shows the duck's death animation.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
@@ -148,6 +151,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `settings-side.json`: the settings side panel's three tabs, scroll-wheel zoom, accept aid, skull prevention, run,
   the player attack priority dropdown, the master and music sliders (a mouse click in the middle of each, 58%) and the
   master mute; every one checked in both the server's copy and the client's, then again after a relog.
+- `settings-toggles.json`: the All Settings window from the side panel's button; a toggle in each category but Popout
+  (clicked by its clickzone child, the row's place in its category), the wiki button refused while the data orbs are
+  off, and a search (its text set with `runClientScript` 5968), where children count across every category; then
+  close, relog and check every one.
 
 ## Results
 

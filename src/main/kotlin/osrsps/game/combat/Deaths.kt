@@ -181,25 +181,37 @@ class Deaths(
     }
 
     /**
-     * A blowpipe's darts and scales, as items, when [lost] took [player]'s last blowpipe; its charges are then gone from
-     * the player. They are kept with a kept or banked blowpipe. Charges are the player's, not the item's ([osrsps.game.Charges]),
-     * so before this a death kept them all on top of the three kept items. Guessed: live keeps the charges on the
-     * blowpipe in the grave; with no charges on items here, the grave holds them as the darts and scales.
+     * The charges of [player]'s last blowpipe or powered staff, as items, when [lost] took it; they are then gone from
+     * the player. They are kept with a kept or banked one. Charges are the player's, not the item's
+     * ([osrsps.game.Charges]), so before this a death kept them all on top of the three kept items; the exploit reviews
+     * of 29 Oct 2026 found it for the blowpipe and then for Tumeken's shadow. Guessed: live keeps the charges on the item
+     * in the grave; with no charges on items here, the grave holds them as what they were made of, a blowpipe's darts
+     * and scales and a staff's runes.
      */
     private fun lostCharges(player: Player, lost: List<InvObj>): List<InvObj> {
-        if (lost.none { it.id == Blowpipe.LOADED || it.id == Blowpipe.EMPTY }) return emptyList()
-        // A blowpipe in the bank keeps them too: the charges are shared, so moving them would empty one never at risk.
-        if (listOf(player.inventory, player.equipment, player.bank).any { inv -> inv.contents().any { (_, obj) -> obj.id == Blowpipe.LOADED || obj.id == Blowpipe.EMPTY } }) {
-            return emptyList()
-        }
         val charges = ArrayList<InvObj>()
-        val darts = player.charges[Blowpipe.DARTS]
-        if (darts > 0) charges += InvObj(player.charges[Blowpipe.DART_TYPE], darts)
-        val scales = player.charges[Blowpipe.SCALES]
-        if (scales > 0) charges += InvObj(Blowpipe.SCALE, scales)
-        for (name in listOf(Blowpipe.DART_TYPE, Blowpipe.DARTS, Blowpipe.SCALES)) player.charges[name] = 0
+        if (lostLast(player, lost, setOf(Blowpipe.LOADED, Blowpipe.EMPTY))) {
+            val darts = player.charges[Blowpipe.DARTS]
+            if (darts > 0) charges += InvObj(player.charges[Blowpipe.DART_TYPE], darts)
+            val scales = player.charges[Blowpipe.SCALES]
+            if (scales > 0) charges += InvObj(Blowpipe.SCALE, scales)
+            for (name in listOf(Blowpipe.DART_TYPE, Blowpipe.DARTS, Blowpipe.SCALES)) player.charges[name] = 0
+        }
+        for (staff in PoweredStaves.ALL) {
+            if (!lostLast(player, lost, setOf(staff.charged, staff.uncharged))) continue
+            val left = player.charges[staff.charge]
+            if (left > 0) for (cost in staff.runesPerCharge) charges += InvObj(cost.rune, cost.count * left)
+            player.charges[staff.charge] = 0
+        }
         return charges
     }
+
+    /**
+     * Whether [lost] holds one of [ids] and none is left in [player]'s inventory, equipment or bank. One in the bank
+     * keeps the charges too: they are shared, so moving them would empty one never at risk.
+     */
+    private fun lostLast(player: Player, lost: List<InvObj>, ids: Set<Int>): Boolean =
+        lost.any { it.id in ids } && listOf(player.inventory, player.equipment, player.bank).none { inv -> inv.contents().any { (_, obj) -> obj.id in ids } }
 
     /** Puts [lost] in [player]'s grave, raising one on their tile if they have none; an existing grave starts its timer again. */
     private fun bury(player: Player, lost: List<InvObj>) {

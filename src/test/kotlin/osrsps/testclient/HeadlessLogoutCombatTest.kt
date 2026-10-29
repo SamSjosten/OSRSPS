@@ -38,7 +38,7 @@ class HeadlessLogoutCombatTest {
                 client.npcOp(npc.index, ATTACK)
                 client.await("the man's swing", timeoutMillis = 15_000) { server.world.playerNamed("alice")?.attackedTick?.takeIf { it >= 0 } }
                 client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
-                client.awaitMessage("the refusal") { it == World.CANT_LOG_OUT_IN_COMBAT }
+                client.awaitMessage("the refusal") { it == "[game.cant_log_out]" }
                 assertNull(client.packets().firstOrNull { it.prot.name == "LOGOUT" })
 
                 // The fight over, the lock runs out 16 ticks after the last hit.
@@ -62,7 +62,7 @@ class HeadlessLogoutCombatTest {
                 // Stands in for the input phase taking the click, then an NPC's first hit landing later in that tick.
                 alice.attackedTick = server.world.tick
                 alice.logoutRequested = true
-                client.awaitMessage("the refusal") { it == World.CANT_LOG_OUT_IN_COMBAT }
+                client.awaitMessage("the refusal") { it == "[game.cant_log_out]" }
                 client.awaitTicks(3)
                 assertNull(client.packets().firstOrNull { it.prot.name == "LOGOUT" })
                 assertTrue(server.world.playerNamed("alice") != null)
