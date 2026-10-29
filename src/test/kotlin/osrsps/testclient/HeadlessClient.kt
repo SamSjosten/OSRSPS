@@ -100,6 +100,8 @@ class HeadlessClient private constructor(
     private val invs = HashMap<Int, MutableList<InvObj?>>()
     private val stats = HashMap<Int, Stat>()
     private val varps = HashMap<Int, Int>()
+    private val statTicks = HashMap<Int, Int>()
+    private val varpTicks = HashMap<Int, Int>()
     private var runEnergy = -1
 
     /** Counts changes of [dialogue]; [dialogueMark] is its value when the last packet was sent. */
@@ -180,6 +182,12 @@ class HeadlessClient private constructor(
 
     /** Varp [id] as the server last set it; 0, as in the client, if it never has. */
     fun varp(id: Int): Int = lock.withLock { varps[id] ?: 0 }
+
+    /** [ticksSeen] when skill [skill] last came, so the tick it was sent in whenever the test looks; null if never. */
+    fun statTick(skill: Int): Int? = lock.withLock { statTicks[skill] }
+
+    /** [ticksSeen] when varp [id] was last set, as [statTick]; null if never. */
+    fun varpTick(id: Int): Int? = lock.withLock { varpTicks[id] }
 
     /** The ground objs in the build area, from zone updates. */
     fun groundObjs(): List<GroundObjView> = lock.withLock { zones.groundObjs() }
@@ -562,14 +570,18 @@ class HeadlessClient private constructor(
                 val invisibleLevel = buf.g1Alt1()
                 val skill = buf.g1Alt2()
                 stats[skill] = Stat(buf.g1Alt2(), xp, invisibleLevel)
+                statTicks[skill] = ticks
             }
             GameServerProt.VARP_SMALL -> {
                 val value = buf.g1sAlt3()
-                varps[buf.g2Alt1()] = value
+                val id = buf.g2Alt1()
+                varps[id] = value
+                varpTicks[id] = ticks
             }
             GameServerProt.VARP_LARGE -> {
                 val id = buf.g2Alt3()
                 varps[id] = buf.g4Alt3()
+                varpTicks[id] = ticks
             }
             GameServerProt.VARP_RESET -> varps.clear()
             GameServerProt.UPDATE_RUNENERGY -> runEnergy = buf.g2()

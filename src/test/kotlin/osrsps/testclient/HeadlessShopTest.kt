@@ -27,7 +27,9 @@ class HeadlessShopTest {
     private val coins = ObjType(COINS, "Coins", stackable = true)
     private val pot = ObjType(POT, "Pot", tradeable = true)
     private val axe = ObjType(AXE, "Bronze axe", cost = 16, tradeable = true)
-    private val objs = ObjTypes.of(coins, pot, axe)
+    // A note that claims to note the axe, which doesn't link back: a bad cache link, not anything live has.
+    private val looseNote = ObjType(LOOSE_NOTE, "Pot", stackable = true, tradeable = true, certlink = AXE, certtemplate = 799)
+    private val objs = ObjTypes.of(coins, pot, axe, looseNote)
 
     private val store = ShopType(
         "store", "Test General Store", invId = STORE_INV, size = 40, general = true, sellAt = 1300, buyAt = 400, changePer = 30,
@@ -180,10 +182,28 @@ class HeadlessShopTest {
         }
     }
 
+    @Test
+    fun `a note whose item doesn't link back sells as itself, not as that item`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $LOOSE_NOTE 5")
+                client.await("the note") { if (client.held(LOOSE_NOTE) == 5) Unit else null }
+                client.open(BOB)
+                client.awaitStock(AXE_INV, InvObj(AXE, 10))
+                client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(LOOSE_NOTE), LOOSE_NOTE)
+                client.awaitMessage("not this shop") { it == ShopScreen.WRONG_SHOP }
+                assertEquals(5, client.held(LOOSE_NOTE))
+                assertEquals(0, client.held(COINS))
+            }
+        }
+    }
+
     private companion object {
         const val COINS = 995
         const val POT = 1931
         const val AXE = 1351
+        const val LOOSE_NOTE = 1932
         const val STORE_INV = 3
         const val AXE_INV = 1
         const val KEEPER = 2813

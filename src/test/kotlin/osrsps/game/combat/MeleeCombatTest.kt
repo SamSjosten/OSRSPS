@@ -83,6 +83,12 @@ class MeleeCombatTest {
     private val alice = Player(1, "alice", 3212, 3210, 0)
     private val bob = Player(2, "bob", 3214, 3210, 0)
 
+    /** Stand in for the prayers' effects; see [Prayers.has]. */
+    private val prayerEffects = mutableSetOf<String>()
+    private var prayersOffs = 0
+    private val sounds = mutableListOf<Int>()
+    private val multi = MultiCombat()
+
     init {
         melee = MeleeCombat(
             npcs, map, movement, combat, random, { tick }, removeNpc = { npcs.remove(it); removed += it }, spawnNpc = { respawned += it },
@@ -92,8 +98,13 @@ class MeleeCombatTest {
             onDeath = { deadPlayers += it },
             loot = { npc, killer -> looted += npc to killer },
             protects = { _, type -> protectFromMelee && type.melee },
+            hasPrayer = { _, effect -> effect in prayerEffects },
+            prayersOff = { prayerEffects.clear(); prayersOffs++ },
+            sound = { _, id -> sounds += id },
+            multi = multi,
         )
     }
+
 
     /** Stands in for Protect from Melee; see [Prayers.protects]. */
     private var protectFromMelee = false
@@ -556,18 +567,105 @@ class MeleeCombatTest {
         alice.hitpoints = 5
         bob.hitpoints = 10
         npc.hitpoints = 3
+        // Each player has their own countdown; NPCs go by the world clock.
+        alice.hitpointsRegenTicks = 1
         tick = MeleeCombat.REGEN_TICKS - 2L
         tick()
         assertEquals(5, alice.hitpoints)
         tick()
         assertEquals(6, alice.hitpoints)
+        // This tick was its first.
+        assertEquals(MeleeCombat.REGEN_TICKS - 1, alice.hitpointsRegenTicks)
         assertEquals(10, bob.hitpoints)
         assertEquals(4, npc.hitpoints)
         assertEquals(other.type.stats.hitpoints, other.hitpoints)
-        tick = 2L * MeleeCombat.REGEN_TICKS - 1
+        repeat(MeleeCombat.REGEN_TICKS - 1) { tick() }
+        assertEquals(6, alice.hitpoints)
         tick()
         assertEquals(7, alice.hitpoints)
         assertEquals(5, npc.hitpoints)
+    }
+
+    @Test
+    fun `with Rapid Heal the countdown starts again at 50 ticks`() {
+        alice.hitpoints = 5
+        prayerEffects += Prayers.RAPID_HEAL
+        alice.hitpointsRegenTicks = 0
+        tick()
+        assertEquals(6, alice.hitpoints)
+        assertEquals(Prayers.RAPID_HEAL_TICKS - 1, alice.hitpointsRegenTicks)
+        repeat(Prayers.RAPID_HEAL_TICKS - 1) { tick() }
+        assertEquals(6, alice.hitpoints)
+        tick()
+        assertEquals(7, alice.hitpoints)
+    }
+
+    @Test
+    fun `a countdown set earlier in the tick, at login or by Rapid Heal, takes its whole length`() {
+        alice.hitpoints = 5
+        // Set during this tick's input, before the regeneration.
+        alice.hitpointsRegenTicks = MeleeCombat.REGEN_TICKS
+        tick()
+        repeat(MeleeCombat.REGEN_TICKS - 1) { tick() }
+        assertEquals(5, alice.hitpoints)
+        // A hundred ticks on.
+        tick()
+        assertEquals(6, alice.hitpoints)
+    }
+
+    @Test
+    fun `Redemption heals a quarter of the Prayer level when a hit leaves under 10%, and takes every point`() {
+        val npc = spawn()
+        alice.skills.setLevel(Skill.HITPOINTS, 99)
+        alice.skills.setLevel(Skill.PRAYER, 52)
+        alice.hitpoints = 20
+        prayerEffects += Prayers.REDEMPTION
+        // 10 left is 10.1%: nothing yet.
+        melee.hitPlayer(alice, npc, 10, tick)
+        assertEquals(10, alice.hitpoints)
+        assertEquals(0, prayersOffs)
+        // 9 is under 9.9: 52 / 4 = 13 back.
+        melee.hitPlayer(alice, npc, 1, tick)
+        assertEquals(22, alice.hitpoints)
+        assertEquals(0, alice.skills.currentLevel(Skill.PRAYER))
+        assertEquals(1, prayersOffs)
+        assertEquals(MeleeCombat.REDEMPTION_SPOTANIM, alice.effects.pendingSpotanims.values.single().id)
+        assertEquals(listOf(MeleeCombat.REDEMPTION_HEAL_SOUND), sounds)
+        // With it off, a hit under 10% heals nothing; nor does it save her from a hit that kills.
+        melee.hitPlayer(alice, npc, 13, tick)
+        assertEquals(9, alice.hitpoints)
+        prayerEffects += Prayers.REDEMPTION
+        melee.hitPlayer(alice, npc, 9, tick)
+        assertEquals(0, alice.hitpoints)
+        assertEquals(listOf(alice), deadPlayers)
+    }
+
+    @Test
+    fun `Retribution hits the NPC that killed her in single-way combat, and every fightable NPC beside her in multi-way`() {
+        // Prayer 4: up to 1, so nobody here dies of it.
+        alice.skills.setLevel(Skill.PRAYER, 4)
+        prayerEffects += Prayers.RETRIBUTION
+        val killer = spawn(x = 3213)
+        val beside = spawn(x = 3211)
+        val far = spawn(x = 3215)
+        val shopkeeper = spawn(hans, z = 3211)
+        melee.hitPlayer(alice, killer, 10, tick)
+        assertEquals(listOf(alice), deadPlayers)
+        assertEquals(MeleeCombat.RETRIBUTION_SPOTANIM, alice.effects.pendingSpotanims.values.single().id)
+        assertEquals(1, killer.effects.pendingHits.size)
+        assertTrue(killer.effects.pendingHits.single().value <= 1, "4 / 4")
+        assertTrue(beside.effects.pendingHits.isEmpty())
+
+        multi.set(0, alice.x, alice.z, true)
+        bob.skills.setLevel(Skill.PRAYER, 4)
+        bob.x = 3212
+        bob.z = 3211
+        melee.hitPlayer(bob, killer, 10, tick)
+        assertEquals(2, killer.effects.pendingHits.size)
+        assertEquals(1, beside.effects.pendingHits.size)
+        assertTrue(far.effects.pendingHits.isEmpty())
+        // Hans can't be fought.
+        assertTrue(shopkeeper.effects.pendingHits.isEmpty())
     }
 
     @Test

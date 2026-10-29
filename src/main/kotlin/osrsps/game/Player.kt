@@ -216,6 +216,12 @@ class Player(
     /** The prayer drain counter; see [osrsps.game.combat.Prayers.drain]. */
     var prayerDrainCounter: Int = 0
 
+    /** Ticks until the next hitpoint comes back, counted down at each tick's regeneration; see [osrsps.game.combat.MeleeCombat]. Not saved. */
+    var hitpointsRegenTicks: Int = osrsps.game.combat.MeleeCombat.REGEN_TICKS
+
+    /** How many items a death keeps, decided as the player falls; see [osrsps.game.combat.Deaths]. */
+    var deathKeptItems: Int = osrsps.game.combat.Deaths.KEPT_ITEMS
+
     /** The overhead prayer icon in the player's appearance, -1 for none. */
     var overheadIcon: Int = -1
 
@@ -251,6 +257,12 @@ class Player(
 
     /** Plays animation (seq) [id] on the player for everyone who can see them; -1 stops the one playing. */
     fun anim(id: Int, delay: Int = 0) = effects.anim(id, delay)
+
+    /**
+     * The skill clock: the tick a gathering action's next roll is due, or earlier when none is set. Not saved. See
+     * [osrsps.game.skill.SkillClock].
+     */
+    var actionDelay: Long = -1
 
     /** Plays spotanim [id] on the player for everyone who can see them; -1 clears [slot]. [height] is above the ground. */
     fun spotanim(id: Int, height: Int = 0, delay: Int = 0, slot: Int = 0) = effects.spotanim(slot, id, height, delay)

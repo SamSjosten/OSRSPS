@@ -26,13 +26,14 @@ class PrayersTest {
     private val burst = prayerObj(20804, "xmas16_ball_inflated_green", "Burst of Strength", 1, 4, 2688)
     private val clarity = prayerObj(20805, "placeholder_xmas16_ball_inflated_green", "Clarity of Thought", 2, 7, 2664)
     private val rockSkin = prayerObj(20806, "xmas16_ball_inflated_blue", "Rock Skin", 3, 10, 2684)
+    private val rapidHeal = prayerObj(20810, "xmas16_ball_deflated_green", "Rapid Heal", 7, 22, 2679)
     private val protectMagic = prayerObj(20815, "placeholder_xmas16_marionette_unpainted", "Protect from Magic", 12, 37, 2675)
     private val protectMelee = prayerObj(20817, "placeholder_xmas16_marionette_blue", "Protect from Melee", 14, 43, 2676)
     private val smite = prayerObj(20820, "xmas16_marionette_red", "Smite", 17, 52, 2686)
     private val sharpEye = prayerObj(20821, "placeholder_xmas16_marionette_red", "Sharp Eye", 18, 8, 2685)
     private val piety = prayerObj(20829, "placeholder_xmas16_blue_partyhat", "Piety", 26, 70, 3825)
     private val holySymbol = ObjType(1718, "Holy symbol", wearpos1 = WearPos.NECK, params = mapOf(11 to 15), internalName = "holy_symbol")
-    private val objTypes = ObjTypes.of(thickSkin, burst, clarity, rockSkin, protectMagic, protectMelee, smite, sharpEye, piety, holySymbol)
+    private val objTypes = ObjTypes.of(thickSkin, burst, clarity, rockSkin, rapidHeal, protectMagic, protectMelee, smite, sharpEye, piety, holySymbol)
 
     private val messages = mutableListOf<String>()
     private val sounds = mutableListOf<Int>()
@@ -54,8 +55,8 @@ class PrayersTest {
 
     @Test
     fun `the file is read against the cache's prayer objs, skipping the ones it doesn't have`() {
-        // The test cache has 9 of the file's 29.
-        assertEquals(9, prayers.all.size)
+        // The test cache has 10 of the file's 29.
+        assertEquals(10, prayers.all.size)
         val melee = prayer("Protect from Melee")
         assertEquals(Prayer(protectMelee.id, "Protect from Melee", 14, 23, 43, 2676, 12, setOf("overhead"), overhead = 0, protects = AttackType.CRUSH), melee)
         assertEquals(70, prayer("Piety").defence)
@@ -178,5 +179,22 @@ class PrayersTest {
         assertEquals(Prayers.OUT_OF_POINTS, messages.last())
         assertEquals(Prayers.DEPLETE_SOUND, sounds.last())
         assertEquals(0, alice.prayerDrainCounter)
+    }
+
+    @Test
+    fun `Rapid Heal turned on or off starts the hitpoints countdown again, and counts from the next tick`() {
+        assertEquals(Prayers.RAPID_HEAL, prayer("Rapid Heal").effect)
+        alice.hitpointsRegenTicks = 80
+        click("Rapid Heal")
+        assertEquals(Prayers.RAPID_HEAL_TICKS, alice.hitpointsRegenTicks)
+        assertFalse(prayers.has(alice, Prayers.RAPID_HEAL))
+        prayers.startTick(alice)
+        assertTrue(prayers.has(alice, Prayers.RAPID_HEAL))
+        // Another prayer leaves the countdown alone.
+        alice.hitpointsRegenTicks = 20
+        click("Thick Skin")
+        assertEquals(20, alice.hitpointsRegenTicks)
+        click("Rapid Heal")
+        assertEquals(MeleeCombat.REGEN_TICKS, alice.hitpointsRegenTicks)
     }
 }

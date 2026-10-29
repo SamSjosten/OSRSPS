@@ -195,6 +195,44 @@ class HeadlessSettingsSideTest {
         }
     }
 
+    @Test
+    fun `buttons echo shows a script trigger the server can't read`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("grace").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("buttons on") { it.startsWith("Interface clicks") }
+                client.ifScriptTrigger(INTERFACE, MUSIC_SLIDER_BOBBLE, 12_345, 50)
+                client.await("the unknown script's echo") {
+                    client.messages().firstOrNull { it.text == "Script trigger $INTERFACE:$MUSIC_SLIDER_BOBBLE slot -1 script 12345 is not one we know" }
+                }
+                // The master slider's script with no argument: the packet arrived, its arguments didn't fit.
+                client.ifScriptTrigger(INTERFACE, MASTER_SLIDER_BOBBLE, MASTER_TRIGGER)
+                client.await("the unreadable script's echo") {
+                    client.messages().firstOrNull { it.text.startsWith("Script trigger $INTERFACE:$MASTER_SLIDER_BOBBLE slot -1 script ${MASTER_TRIGGER.toUInt()} has arguments we can't read") }
+                }
+                client.ifScriptTrigger(INTERFACE, MASTER_SLIDER_BOBBLE, MASTER_TRIGGER, 40)
+                client.await("the handled script's echo") { client.messages().firstOrNull { it.text == "Script trigger $INTERFACE:$MASTER_SLIDER_BOBBLE slot -1 args [40]" } }
+            }
+        }
+    }
+
+    @Test
+    fun `ifevents sends the events it is given`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("heidi").use { client ->
+                client.await("the login rebuild") { client.position }
+                assertEquals(
+                    "Events on $INTERFACE:$MASTER_SLIDER_BOBBLE slots -1..-1: 0x20000, ops 0x80000001",
+                    client.commandReply("ifevents $INTERFACE $MASTER_SLIDER_BOBBLE -1 -1 0x20000 0x80000001") { it.startsWith("Events on") },
+                )
+                client.await("the events") { Unit.takeIf { client.opEnabled(INTERFACE, MASTER_SLIDER_BOBBLE, -1, 1) } }
+                assertEquals(true, client.opEnabled(INTERFACE, MASTER_SLIDER_BOBBLE, -1, 32))
+                assertEquals(1, client.dragDepth(INTERFACE, MASTER_SLIDER_BOBBLE, -1))
+                assertEquals(true, client.commandReply("ifevents 1 2 3") { it.startsWith("Usage") }.startsWith("Usage: ::ifevents"))
+            }
+        }
+    }
+
     /** Waits until [width] bits of varp [varp], from bit [start], hold [value]. */
     private fun HeadlessClient.awaitBits(varp: Int, start: Int, width: Int, value: Int) =
         await("varp $varp bits $start+$width = $value") { Unit.takeIf { (varp(varp) ushr start) and ((1 shl width) - 1) == value } }
