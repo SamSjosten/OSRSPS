@@ -115,6 +115,22 @@ class HeadlessEquipmentTest {
     }
 
     @Test
+    fun `the stats screen's Equip does nothing while the screen is shut`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $SHIELD")
+                val slot = client.await("the shield") { client.inventory(BACKPACK).indexOfFirst { it?.id == SHIELD }.takeIf { it >= 0 } }
+                // A forged click: the exploit review found it wore the item with the panel never opened.
+                client.ifButton(STATS_SIDE, STATS_SIDE_ITEMS, 1, slot, SHIELD)
+                client.awaitTicks(3)
+                assertEquals(null, client.worn(WearPos.SHIELD))
+                assertEquals(SHIELD, client.inventory(BACKPACK)[slot]?.id)
+            }
+        }
+    }
+
+    @Test
     fun `the whip needs 70 Attack, and what is worn is still worn after a logout`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->

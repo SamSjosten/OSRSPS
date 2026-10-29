@@ -60,6 +60,8 @@ import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MultiCombat
 import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.Prayer
+import osrsps.game.combat.Food
+import osrsps.game.combat.Foods
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
@@ -157,6 +159,8 @@ class World(
     val spells: Spells = Spells.NONE,
     /** The prayer book's prayers ([Prayers]); tests that pray pass their own. */
     prayerList: List<Prayer> = emptyList(),
+    /** What can be eaten, by obj type id ([Foods]); tests that eat pass their own. */
+    foodList: Map<Int, Food> = emptyMap(),
     /** The shops and their stock; tests that shop pass their own. */
     val shopTypes: ShopTypes = ShopTypes.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
@@ -317,6 +321,8 @@ class World(
 
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
+    val foods = Foods(foodList, words = ::textFor)
+
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
@@ -346,6 +352,7 @@ class World(
         registerLumbridgeCastle(this)
         registerCombatTutors(this)
         registerBones(this)
+        foods.register(this)
         registerBanking(this)
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
