@@ -45,7 +45,7 @@ class MagicInteraction internal constructor(val npc: Npc, spell: CombatSpell?, p
 }
 
 /**
- * Combat spells from the standard spellbook cast on NPCs ([Spells] lists them): a spell picked in the spellbook and
+ * Combat spells cast on NPCs ([Spells] lists them), from the spellbook the player has open ([Spellbook]): a spell picked in the spellbook and
  * clicked on an NPC becomes a [MagicInteraction]. The player walks until the NPC is within [RANGE] and in line of sight,
  * stops, waits for their attack delay if a swing or shot is still on it, and casts once. A player autocasting
  * ([Autocast], picked on the combat tab) fights with magic instead: Attack, or auto retaliate, makes a fight ([fight])
@@ -63,9 +63,15 @@ class MagicInteraction internal constructor(val npc: Npc, spell: CombatSpell?, p
  * - Bind, Snare and Entangle hold the target for their ticks when they hit, not when they splash, and can't be cast
  *   on a target that is held or in the 5 ticks of immunity after ([Npcs.freeze]; Freeze, Snare). A splash of one gives
  *   less base XP than a hit ([CombatSpell.splashXpTenths]).
+ * - The Ancient Magicks ice spells freeze what they hit for their ticks (Ice Rush to Ice Barrage); a target already
+ *   frozen or immune takes the hit and no freeze. Burst and Barrage spells hit the NPCs with any tile in the 3x3
+ *   around their target's south-west tile too, up to nine in all, in multi-way combat ([MultiCombat]), each with its
+ *   own accuracy roll (Ancient Magicks, Ice Barrage).
  *
  * Inferred as for ranged: that the XP is given as the spell is cast, for the damage rolled (capped at what the NPC has
- * left after the hits already on their way).
+ * left after the hits already on their way). Guessed: that an area spell gives its base XP once, for its target, and
+ * the damage XP for every NPC it hits; that the others need to stand in multi-way combat too; and the order they are
+ * picked in when more than nine could be (by NPC index).
  *
  * Guessed and marked below: the messages for too low a level and too few runes, which rune they name when several are
  * short, the graphics' heights, the projectile's start, heights and arc, which animation counts as cast with a staff,
@@ -88,6 +94,7 @@ class MagicCombat(
     private val message: (Player, String) -> Unit = Player::message,
     private val face: (Player, Npc) -> Unit = { _, _ -> },
     private val stopFacing: (Player) -> Unit = {},
+    private val multi: MultiCombat = MultiCombat(),
 ) {
     /** A spell on its way to [npc], landing on [landTick] for [damage] if [hit], or splashing. */
     private class Cast(val player: Player, val npc: Npc, val spell: CombatSpell, val hit: Boolean, val damage: Int, val landTick: Long)
@@ -95,13 +102,18 @@ class MagicCombat(
     private val inFlight = ArrayList<Cast>()
 
     /**
-     * The player cast the spell at [component] of the standard spellbook on [npc]. Nothing happens for a spell that
-     * isn't a combat spell here or an NPC that can't be fought; single-way combat refuses it as an Attack would.
+     * The player cast the spell at [component] of the magic tab on [npc]. Nothing happens for a spell that isn't a
+     * combat spell here, one of a book they don't have open (the client shows only that book's) or an NPC that can't be
+     * fought; single-way combat refuses it as an Attack would.
      */
     fun cast(player: Player, npc: Npc, component: Int) {
         val spell = spells.spell(component)
         if (spell == null) {
             logger.info { "${player.username} cast spellbook component $component on $npc, which isn't a combat spell here" }
+            return
+        }
+        if (spell.spellbook != Spellbook.of(player)) {
+            logger.info { "${player.username} cast ${spell.name} on $npc from spellbook ${Spellbook.of(player)}, not its ${spell.spellbook}" }
             return
         }
         if (combat.npcCombat[npc.type] == null) {
@@ -221,22 +233,52 @@ class MagicCombat(
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
         val landTick = tick + HitDelay.MAGIC.ticks(distance) + HitDelay.ON_NPC
         if (spell.travel >= 0) projectile(flight(player, npc, spell.travel, landTick - tick))
+        val hit = roll(player, npc, spell, matchup, landTick, defensive)
+        player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
+        if (spell.area && multi.at(npc.level, npc.x, npc.z)) {
+            for (other in around(npc)) {
+                val otherMatchup = combat.magicMatchup(player, other, spell) ?: continue
+                roll(player, other, spell, otherMatchup, landTick, defensive)
+            }
+        }
+        return true
+    }
+
+    /**
+     * Rolls [spell] on [npc] and sends it on its way to land on [landTick], with the XP for its damage (the base XP is
+     * the caller's); whether it hits.
+     */
+    private fun roll(player: Player, npc: Npc, spell: CombatSpell, matchup: MagicMatchup, landTick: Long, defensive: Boolean): Boolean {
         // Accuracy first, then damage, as for melee and ranged.
         val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits
         val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
-        val baseXp = if (hit) spell.xpTenths else spell.splashXpTenths
         if (defensive) {
-            player.skills.addTenths(Skill.MAGIC, baseXp + CombatMath.defensiveSpellMagicXpTenths(damage))
+            player.skills.addTenths(Skill.MAGIC, CombatMath.defensiveSpellMagicXpTenths(damage))
             player.skills.addTenths(Skill.DEFENCE, CombatMath.defensiveSpellDefenceXpTenths(damage))
         } else {
-            player.skills.addTenths(Skill.MAGIC, baseXp + CombatMath.spellDamageXpTenths(damage))
+            player.skills.addTenths(Skill.MAGIC, CombatMath.spellDamageXpTenths(damage))
         }
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
         inFlight += Cast(player, npc, spell, hit, damage, landTick)
-        return true
+        return hit
     }
+
+    /**
+     * The other NPCs an area spell on [target] hits: those that can be fought, alive, in multi-way combat, with any
+     * tile in the 3x3 around [target]'s south-west tile (OSRS Wiki, Ancient Magicks), eight at most, lowest index first.
+     */
+    private fun around(target: Npc): List<Npc> =
+        npcs.near(target.x, target.z, target.level, AREA_REACH).asSequence()
+            .filter { it !== target && !it.dead && combat.npcCombat[it.type] != null && multi.at(it.level, it.x, it.z) }
+            .filter { other ->
+                val size = other.type.size
+                other.x <= target.x + 1 && other.x + size - 1 >= target.x - 1 && other.z <= target.z + 1 && other.z + size - 1 >= target.z - 1
+            }
+            .sortedBy { it.index }
+            .take(AREA_TARGETS - 1)
+            .toList()
 
     /** Takes [cost] from the inventory, from the first stacks of the rune on. */
     private fun take(player: Player, cost: RuneCost) {
@@ -308,6 +350,12 @@ class MagicCombat(
     companion object {
         /** Spells reach 10 tiles (OSRS Wiki, Attack range). */
         const val RANGE = 10
+
+        /** Burst and Barrage spells hit up to 9 targets (OSRS Wiki, Ice Barrage). */
+        const val AREA_TARGETS = 9
+
+        /** How far from the target's south-west tile [near][Npcs.near] looks for a big NPC overlapping the 3x3. */
+        private const val AREA_REACH = 6
 
         /** Combat spells from the spellbook take 5 ticks, 3 seconds (OSRS Wiki, Magic). */
         const val SPEED = 5

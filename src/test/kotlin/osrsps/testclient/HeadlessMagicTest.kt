@@ -29,9 +29,10 @@ import osrsps.map.CollisionMap
  * Spells through the headless client, with the real spells and NPC combat files: Fire Strike picked in the spellbook
  * and cast on a man until he dies, each cast taking its runes and giving its XP, and the refusals for too low a level
  * and too few runes, with a staff of fire then standing in for the fire runes; and Fire Strike picked for autocast on
- * the combat tab, which then fights the man to his death from Attack alone; and Bind holding the man in place. The
- * rl-client scripts test-runner/examples/combat-magic-strike.json, combat-magic-autocast.json and combat-magic-bind.json
- * make the same clicks in the real client.
+ * the combat tab, which then fights the man to his death from Attack alone; Bind holding the man in place; and Ice
+ * Barrage from the Ancient book freezing two men in a multi-way zone. The rl-client scripts
+ * test-runner/examples/combat-magic-strike.json, combat-magic-autocast.json, combat-magic-bind.json and
+ * combat-magic-ice.json make the same clicks in the real client.
  */
 class HeadlessMagicTest {
     private val man = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", "Pickpocket", null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
@@ -285,9 +286,66 @@ class HeadlessMagicTest {
         }
     }
 
+    @Test
+    fun `Ice Barrage from the Ancient book freezes both men standing together in a multi-way zone`(@TempDir dir: Path) {
+        // Ice Barrage as the 241 cache has it: Ancient Magicks (param 336), level 94, six water, two blood and four death
+        // runes, and no max hit param.
+        val barrage = ObjType(
+            4651, "Ice Barrage", internalName = "94_ice_barrage",
+            params = mapOf(601 to "Ice Barrage", 604 to 94, 596 to (218 shl 16 or ICE_BARRAGE), 336 to 1, 365 to WATER, 366 to 6, 367 to BLOOD, 368 to 2, 369 to DEATH, 370 to 4),
+        )
+        val barrageRunes = listOf(Triple(WATER, "Water rune", "waterrune"), Triple(BLOOD, "Blood rune", "bloodrune"), Triple(DEATH, "Death rune", "deathrune")).map { (id, name, internal) ->
+            ObjType(id, name, stackable = true, iops = listOf(null, null, null, null, "Drop"), internalName = internal)
+        }
+        // Men with the hitpoints to take a barrage each, which would kill a 7-hitpoint man before his freeze shows.
+        val bigMan = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", "Pickpocket", null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 1_000))
+        val server = TestServer(dir) { crcs, millis ->
+            val types = NpcTypes.of(bigMan)
+            val objs = arrayOfNulls<ObjType>(barrage.id + 1)
+            for (type in runes + barrageRunes + listOf(fireStrike, barrage, staff)) objs[type.id] = type
+            val objTypes = ObjTypes(objs)
+            World(
+                crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
+                // Both in the player's 8x8 zone, which ::multi makes multi-way, and beside each other.
+                npcSpawns = listOf(NpcSpawn(bigMan, 3219, 3218, wander = 0, source = "test"), NpcSpawn(bigMan, 3219, 3219, wander = 0, source = "test")),
+                varTypes = VarTypes(6_000, mapOf(VARBIT_WEAPON_CATEGORY to VarbitType(VARP_WEAPON_CATEGORY, 0, 5))),
+                npcCombat = NpcCombat.load(types, SeqNames.NONE),
+                spells = Spells.load(objTypes, SeqNames.NONE, SpotanimNames.NONE), cycleMillis = millis,
+            )
+        }
+        server.use {
+            server.login("dave").use { client ->
+                val men = client.await("both men in view") { client.npcs().filter { it.id == bigMan.id }.takeIf { it.size == 2 } }
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel magic 94") { it.contains("Magic") }
+                client.give(WATER, 60)
+                client.give(BLOOD, 20)
+                client.give(DEATH, 40)
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("sure") { it.startsWith("Your attacks") }
+                client.commandReply("multi on") { it.startsWith("Combat is multi-way") }
+                // On the standard book the spell isn't there to cast: nothing happens.
+                client.npcTarget(men[0].index, Spells.SPELLBOOK, ICE_BARRAGE)
+                client.awaitTicks(MagicCombat.SPEED + 1)
+                assertEquals(40, client.carried(DEATH))
+                client.commandReply("spellbook ancient") { it == "Your spellbook is ancient now." }
+                client.npcTarget(men[0].index, Spells.SPELLBOOK, ICE_BARRAGE)
+                client.awaitTicks(MagicCombat.SPEED + 1)
+                assertEquals(36, client.carried(DEATH))
+                for (npc in men) {
+                    val line = client.commandReply("npcs 10") { it.startsWith("#${npc.index} ") }
+                    assertTrue("; frozen " in line, line)
+                }
+            }
+        }
+    }
+
     companion object {
         const val FIRE_STRIKE = 19
         const val BIND = 23
+        const val ICE_BARRAGE = 87
+        const val BLOOD = 565
+        const val DEATH = 560
         const val EARTH = 557
         const val NATURE = 561
         const val WATER_BOLT = 25

@@ -56,6 +56,21 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         reply("${npc.type.name} #$index follows you. ::follow $index again to stop.")
     }
 
+    register("npchp", "::npchp hitpoints index|mine", admin = true) {
+        val usage = "Usage: ::npchp hitpoints index|mine (from ::npcs)"
+        if (args.size != 2) fail(usage)
+        val hitpoints = args[0].toIntOrNull()?.takeIf { it in 1..MAX_NPC_HITPOINTS } ?: fail("The hitpoints must be 1 to $MAX_NPC_HITPOINTS")
+        // Past the NPC's own maximum too, so a test can hit one many times; its health bar shows it full until it is below.
+        val chosen = if (args[1] == "mine") {
+            world.npcs.all.filter { it.spawn.source == spawnSource(player.username) }.toList()
+        } else {
+            val index = args[1].toIntOrNull() ?: fail(usage)
+            listOf(world.npcs[index] ?: fail("No NPC #$index"))
+        }
+        for (npc in chosen) npc.hitpoints = hitpoints
+        reply("${chosen.size} NPC${if (chosen.size == 1) "" else "s"} now on $hitpoints hitpoints until they respawn.")
+    }
+
     register("delnpc", "::delnpc index|mine", admin = true) {
         if (args.singleOrNull() == "mine") {
             // Every NPC you put in with ::npc, so a test script can clean up whatever happened to them.
@@ -78,3 +93,4 @@ private const val DEFAULT_LIST_RADIUS = 15
 private const val MAX_LIST_RADIUS = 104
 /** Each line is a chatbox message; more than this scrolls the rest away. */
 private const val MAX_LISTED = 20
+private const val MAX_NPC_HITPOINTS = 100_000
