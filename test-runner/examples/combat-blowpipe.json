@@ -1,5 +1,5 @@
 {
- "name": "Blowpipe: charged with ::blowpipe, Check, wield, shoot a man with its darts, then Uncharge worn gives the darts and scales back",
+ "name": "Blowpipe: charged with ::blowpipe, Check, wield, shoot a man with its darts, then Check worn, and Uncharge once taken off gives the darts and scales back",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -18,10 +18,14 @@
   {"step": "assertHitsplat", "npc": "Man", "timeoutMs": 20000},
   {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "the man fights back once shot; ::kill picks the one being fought"},
   {"step": "command", "text": "::blowpipe", "expectMessage": "Darts: Dragon dart x", "comment": "fewer than 100 now; one a shot"},
-  {"step": "wornOption", "slot": "weapon", "option": "Uncharge"},
-  {"step": "assertInventory", "item": "Dragon dart"},
+  {"step": "wornOption", "slot": "weapon", "option": "Check", "comment": "the cache gives the worn blowpipe Check alone (wearop param 451); Unload and Uncharge are its inventory options"},
+  {"step": "assertMessage", "contains": "Darts: Dragon dart x", "timeoutMs": 10000},
+  {"step": "wornOption", "slot": "weapon", "option": "Remove"},
+  {"step": "assertInventory", "itemId": 12926, "timeoutMs": 10000},
+  {"step": "itemOption", "item": "Toxic blowpipe", "option": "Uncharge"},
+  {"step": "assertInventory", "item": "Dragon dart", "timeoutMs": 10000},
   {"step": "assertInventory", "itemId": 12934, "comment": "Zulrah's scales"},
-  {"step": "assertEquipment", "slot": "weapon", "itemId": 12924, "comment": "the empty blowpipe stays worn"},
+  {"step": "assertInventory", "itemId": 12924, "comment": "the empty blowpipe, where the loaded one was"},
   {"step": "command", "text": "::blowpipe", "expectMessage": "Darts: None. Scales: 0 (0.0%)."},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]

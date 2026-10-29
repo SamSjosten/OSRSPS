@@ -1052,6 +1052,7 @@ class World(
 
     /** A click on an interface component. [obj] is the item the client showed there, -1 if none. */
     fun onButton(player: Player, interfaceId: Int, componentId: Int, sub: Int, op: Int, obj: Int = -1) = act(player) {
+        if (player.echoButtons) player.message("Button $interfaceId:$componentId slot $sub op $op" + if (obj >= 0) " obj $obj" else "")
         if (interfaceId == InventoryTab.INTERFACE && componentId == InventoryTab.ITEMS) {
             inventoryTab.click(player, sub, obj, op)
             return@act

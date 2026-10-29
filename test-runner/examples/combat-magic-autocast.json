@@ -9,10 +9,13 @@
   {"step": "command", "text": "::item staff of fire", "expectMessage": "Added 1 x Staff of fire"},
   {"step": "itemOption", "item": "Staff of fire", "option": "Wield"},
   {"step": "assertEquipment", "slot": "weapon", "item": "Staff of fire"},
+  {"step": "command", "text": "::buttons on", "expectMessage": "Interface clicks are echoed", "comment": "each click the server gets is echoed, so a click lost on the way shows as a missing echo"},
   {"step": "clickWidget", "interfaceId": 548, "component": 64, "comment": "toplevel:stone0, the combat tab, in the fixed frame the VM's client uses: the interfaces below only count as open while the tab shows"},
   {"step": "clickWidget", "interfaceId": 593, "component": 28, "comment": "the combat tab's Choose spell (the button without the shield)"},
+  {"step": "assertMessage", "contains": "Button 593:28 slot -1 op 1", "timeoutMs": 10000},
   {"step": "assertInterface", "interfaceId": 201, "timeoutMs": 10000, "comment": "the autocast menu in the combat tab's place"},
   {"step": "clickWidget", "interfaceId": 201, "component": 1, "slot": 1, "comment": "Wind Strike, enum 1986 key 1; level 1, so a bare account can cast it, and with a 2 max hit a man takes at least four casts"},
+  {"step": "assertMessage", "contains": "Button 201:1 slot 1 op 1", "timeoutMs": 10000, "comment": "the spell click reached the server"},
   {"step": "assertInterface", "interfaceId": 201, "absent": true, "timeoutMs": 10000},
   {"step": "assertInterface", "interfaceId": 593, "comment": "the combat tab back"},
   {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
@@ -35,6 +38,7 @@
   {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #"},
   {"step": "clickWidget", "interfaceId": 593, "component": 6, "comment": "the first style button: autocast goes off"},
   {"step": "command", "text": "::combat man", "expectMessage": "Bash (accurate, crush)", "comment": "the staff's first style, from the cache's dbtable 78"},
+  {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

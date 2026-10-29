@@ -92,6 +92,9 @@ class HeadlessClient private constructor(
     private val subs = HashMap<Int, Int>()
     private var topLevel = -1
     private val texts = HashMap<Int, String>()
+
+    /** IF_SETEVENTS masks by (component shl 32) + slot, kept and dropped as the real client keeps them; see [opEnabled]. */
+    private val events = HashMap<Long, Int>()
     private val scripts = ArrayList<ClientScript>()
     private var dialogue: DialogueView? = null
     private val invs = HashMap<Int, MutableList<InvObj?>>()
@@ -137,6 +140,21 @@ class HeadlessClient private constructor(
 
     /** The top-level interface and every interface open in another's component. */
     fun openInterfaces(): Set<Int> = lock.withLock { subs.values.toSet() + topLevel }
+
+    /**
+     * Whether the server has enabled op [op] (1 to 10) on slot [sub] of a component with IF_SETEVENTS. The real client
+     * sends a click on a component only when its op is enabled, by these events or by the component's own flags in the
+     * cache, which this client doesn't read; so this answers for client-made children, which have no flags of their own.
+     */
+    fun opEnabled(interfaceId: Int, componentId: Int, sub: Int, op: Int): Boolean = lock.withLock {
+        val mask = events[(((interfaceId shl 16) or componentId).toLong() shl 32) + sub] ?: 0
+        mask and (1 shl op) != 0
+    }
+
+    /** As the real client does when an interface closes, or another opens in its place: its events go. */
+    private fun dropEvents(interfaceId: Int?) {
+        if (interfaceId != null) events.keys.removeIf { (it shr 48).toInt() == interfaceId }
+    }
 
     /** The text last set on a component (IF_SETTEXT), or null if none has been. */
     fun text(interfaceId: Int, componentId: Int): String? = lock.withLock { texts[(interfaceId shl 16) or componentId] }
@@ -436,9 +454,17 @@ class HeadlessClient private constructor(
             GameServerProt.IF_OPENTOP -> topLevel = buf.g2Alt2()
             GameServerProt.IF_OPENSUB -> {
                 val destination = buf.g4Alt3()
-                subs[destination] = buf.g2Alt2()
+                dropEvents(subs.put(destination, buf.g2Alt2()))
             }
-            GameServerProt.IF_CLOSESUB -> subs.remove(buf.g4())
+            GameServerProt.IF_CLOSESUB -> dropEvents(subs.remove(buf.g4()))
+            GameServerProt.IF_SETEVENTS_V2 -> {
+                val events1 = buf.g4Alt2()
+                val end = buf.g2Alt3().let { if (it == 0xFFFF) -1 else it }
+                val start = buf.g2Alt1().let { if (it == 0xFFFF) -1 else it }
+                val component = buf.g4()
+                buf.g4Alt1() // events2: ops 11 to 32, which nothing here uses
+                for (sub in start..end) events[(component.toLong() shl 32) + sub] = events1
+            }
             GameServerProt.IF_MOVESUB -> {
                 val from = buf.g4Alt1()
                 val to = buf.g4Alt1()

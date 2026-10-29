@@ -147,9 +147,12 @@ class HeadlessMagicTest {
                 client.ifButton(INVENTORY, INVENTORY_ITEMS, IOP_BUTTON_OPS[WIELD - 1], slot, STAFF_OF_FIRE)
                 client.await("the staff worn") { client.inventory(WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == STAFF_OF_FIRE } }
                 client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("buttons on") { it == "Interface clicks are echoed" }
 
                 client.ifButton(EquipmentTab.COMBAT, EquipmentTab.COMBAT_AUTOCAST_NORMAL, 1)
                 client.await("the autocast menu") { if (EquipmentTab.AUTOCAST in client.openInterfaces()) Unit else null }
+                // The menu's spells are made by its script, so the real client only sends a click on one the server enabled.
+                client.await("op 1 on the menu's spells") { if (client.opEnabled(EquipmentTab.AUTOCAST, EquipmentTab.AUTOCAST_SPELLS, 4, 1)) Unit else null }
                 // Slot 4 is Fire Strike's key in enum 1986.
                 client.ifButton(EquipmentTab.AUTOCAST, EquipmentTab.AUTOCAST_SPELLS, 1, sub = 4)
                 client.await("the combat tab back with Fire Strike picked") {
@@ -157,6 +160,9 @@ class HeadlessMagicTest {
                     if (client.varp(Autocast.VARP_LASTCASTSPELL) == (4 shl 1 or 1) && EquipmentTab.COMBAT in open && EquipmentTab.AUTOCAST !in open) Unit else null
                 }
                 assertEquals(Autocast.COM_MODE, client.varp(EquipmentTab.VARP_COM_MODE))
+                // ::buttons echoed both clicks as the server got them.
+                val echoed = client.messages().map { it.text }.filter { it.startsWith("Button ") }
+                assertEquals(listOf("Button 593:${EquipmentTab.COMBAT_AUTOCAST_NORMAL} slot -1 op 1", "Button 201:1 slot 4 op 1"), echoed)
 
                 val magicBefore = client.await("the level 13 XP") { client.stat(MAGIC)?.takeIf { it.level == 13 } }.xp
                 client.npcOp(npc.index, ATTACK)

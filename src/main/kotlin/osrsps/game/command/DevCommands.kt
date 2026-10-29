@@ -47,6 +47,18 @@ fun CommandRegistry.registerDevCommands(world: World) {
         reply(if (player.showDialogueKeys) "Dialogue shows keys" else "Dialogue shows words")
     }
 
+    // For test scripts: shows whether a click in the client reached the server at all, and with which slot and op.
+    register("buttons", "::buttons [on|off]") {
+        if (args.size > 1) fail("Usage: ::buttons [on|off]")
+        player.echoButtons = when (args.singleOrNull()?.lowercase()) {
+            null -> !player.echoButtons
+            "on" -> true
+            "off" -> false
+            else -> fail("Usage: ::buttons [on|off]")
+        }
+        reply(if (player.echoButtons) "Interface clicks are echoed" else "Interface clicks are not echoed")
+    }
+
     register("tick", "::tick") {
         reply("Tick ${world.tick}" + if (world.clock.paused) " (paused)" else "")
     }
