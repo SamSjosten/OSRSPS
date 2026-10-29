@@ -494,9 +494,10 @@ class World(
     private fun checkPassword(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<AuthenticationType>, password: CharArray) {
         val key = SaveStore.saveKey(block.username)
         // Checked before hashing, so guesses at a locked name cost nothing. The client says to wait a few minutes.
-        if (key != null && loginGuard.locked(key)) {
+        val address = responseHandler.address
+        if (key != null && loginGuard.locked(key, address)) {
             password.fill('\u0000')
-            logger.info { "Rejecting ${block.username} from ${responseHandler.address}: locked after ${LoginGuard.MAX_WRONG} wrong passwords" }
+            logger.info { "Rejecting ${block.username} from $address: locked there after ${LoginGuard.MAX_WRONG} wrong passwords" }
             responseHandler.writeFailedResponse(LoginResponse.TooManyAttempts)
             return
         }
@@ -511,14 +512,14 @@ class World(
         }
         when (check) {
             Accounts.Check.WRONG_PASSWORD -> {
-                loginGuard.wrongPassword(key!!)
+                loginGuard.wrongPassword(key!!, address)
                 logger.info { "Rejecting ${block.username} from ${responseHandler.address}: wrong password" }
                 responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
                 return
             }
             Accounts.Check.CLAIMED -> {
                 // Strikes against a name whose file was deleted for a reset don't carry over to its new password.
-                loginGuard.rightPassword(key!!)
+                loginGuard.forget(key!!)
                 logger.info { "${block.username} claimed their name" }
             }
             Accounts.Check.NOT_CLAIMABLE -> {
@@ -526,7 +527,7 @@ class World(
                 responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
                 return
             }
-            Accounts.Check.MATCHED -> loginGuard.rightPassword(key!!)
+            Accounts.Check.MATCHED -> loginGuard.rightPassword(key!!, address)
             Accounts.Check.NO_SUCH_NAME -> {}
         }
         pendingLogins.add(PendingLogin(responseHandler, block))
