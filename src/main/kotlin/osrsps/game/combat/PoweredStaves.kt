@@ -8,6 +8,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.WearPos
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.ScriptContext
@@ -47,7 +48,11 @@ class PoweredStaff(
  * charges are the player's, as the blowpipe's are ([osrsps.game.Charges]). Aether runes, which can stand in for soul
  * runes, aren't in.
  */
-class PoweredStaves(private val objTypes: ObjTypes) {
+class PoweredStaves(
+    private val objTypes: ObjTypes,
+    /** Each player's words for the game messages ([CombatLines]). */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
+) {
     private val staves = listOf(TUMEKENS_SHADOW)
 
     private val byId: Map<Int, PoweredStaff> = staves.flatMap { listOf(it.charged to it, it.uncharged to it) }.toMap()
@@ -61,7 +66,7 @@ class PoweredStaves(private val objTypes: ObjTypes) {
     /** What Check says. */
     fun check(player: Player, staff: PoweredStaff): String {
         val name = objTypes[staff.charged]?.name ?: "staff"
-        return "Your $name has ${number(player.charges[staff.charge])} charges remaining."
+        return words(player)[CombatLines.STAFF_CHECK, "staff" to name, "charges" to number(player.charges[staff.charge])]
     }
 
     /**
@@ -72,13 +77,13 @@ class PoweredStaves(private val objTypes: ObjTypes) {
         val left = player.charges[staff.charge]
         val name = objTypes[staff.charged]?.name ?: "staff"
         if (left == 0) {
-            message("Your $name has no charges.")
+            message(words(player)[CombatLines.STAFF_NO_CHARGES, "staff" to name])
             return false
         }
         player.charges[staff.charge] = left - 1
         if (left == 1) {
             if (player.equipment[WearPos.WEAPON]?.id == staff.charged) player.equipment[WearPos.WEAPON] = InvObj(staff.uncharged, 1)
-            message("Your $name has run out of charges.")
+            message(words(player)[CombatLines.STAFF_RAN_OUT, "staff" to name])
         }
         return true
     }
@@ -107,10 +112,10 @@ class PoweredStaves(private val objTypes: ObjTypes) {
         val have = player.charges[staff.charge]
         val most = minOf(afford(player, staff), staff.maxCharges - have)
         if (most <= 0) {
-            message(player, if (have >= staff.maxCharges) "It can't hold any more charges." else "You don't have the runes to charge it.")
+            message(player, words(player)[if (have >= staff.maxCharges) CombatLines.STAFF_FULL else CombatLines.STAFF_NO_RUNES])
             return
         }
-        val wanted = countDialog("How many charges would you like to add? (0 - ${number(most)})")
+        val wanted = countDialog(words(player)[CombatLines.STAFF_HOW_MANY, "most" to number(most)])
         // The runes or the staff may have gone while the prompt was up.
         val held = player.inventory[slot]?.id
         if (held != staff.charged && held != staff.uncharged) return
@@ -131,7 +136,7 @@ class PoweredStaves(private val objTypes: ObjTypes) {
         val back = staff.runesPerCharge.mapNotNull { cost -> objTypes[cost.rune]?.let { it to cost.count.toLong() * charges } }
         val newStacks = back.count { (type, count) -> count > 0 && player.inventory.count(type.id) == 0L }
         if (back.any { (type, count) -> player.inventory.count(type.id) + count > Inventory.MAX_STACK } || player.inventory.freeSlots < newStacks) {
-            message(player, NO_ROOM)
+            message(player, words(player)[CombatLines.NO_ROOM])
             return
         }
         for ((type, count) in back) if (count > 0) player.inventory.add(type, count.toInt())
@@ -173,8 +178,6 @@ class PoweredStaves(private val objTypes: ObjTypes) {
         private const val CHECK = "Check"
         private const val CHARGE = "Charge"
         private const val UNCHARGE = "Uncharge"
-
-        const val NO_ROOM = "You don't have enough inventory space."
 
         private fun number(n: Int) = String.format(Locale.ROOT, "%,d", n)
 

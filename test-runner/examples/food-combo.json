@@ -1,5 +1,5 @@
 {
- "name": "Food: a shark and then a karambwan eaten one after the other both heal (20 and 18), a second shark waits out the eat delay, and a meat pie goes in two bites to a pie dish",
+ "name": "Food: a shark and then a karambwan eaten one after the other both heal (20 and 18), and after the eat delay a meat pie goes in two bites to a pie dish",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},

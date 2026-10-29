@@ -233,7 +233,7 @@ class MeleeCombatTest {
         attack(alice, npc)
         tick(alice)
         assertNull(alice.interaction)
-        assertEquals(listOf(alice to MeleeCombat.SOMEONE_ELSE), messages)
+        assertEquals(listOf(alice to "[combat.someone_else]"), messages)
         // Bob stops; eight ticks after his last hit landed, on tick 2, Alice may.
         bob.interaction = null
         repeat(MeleeCombat.IN_COMBAT_TICKS - 1) { tick(bob) }
@@ -474,7 +474,7 @@ class MeleeCombatTest {
         attack(alice, second)
         tick()
         assertNull(alice.interaction)
-        assertEquals(listOf(alice to MeleeCombat.ALREADY_UNDER_ATTACK), messages)
+        assertEquals(listOf(alice to "[combat.already_under_attack]"), messages)
         assertNull(second.target)
         // The first man dies; the second is fair game.
         melee.hit(first, alice, 100, tick)
@@ -500,7 +500,7 @@ class MeleeCombatTest {
         tick()
         assertEquals(first, alice.attackedBy)
         assertNull(alice.interaction)
-        assertEquals(listOf(alice to MeleeCombat.ALREADY_UNDER_ATTACK), messages)
+        assertEquals(listOf(alice to "[combat.already_under_attack]"), messages)
         repeat(2) { tick() }
         assertTrue(second.effects.pendingHits.isEmpty())
         assertNull(second.target)
@@ -687,7 +687,7 @@ class MeleeCombatTest {
         tick()
         alice.hitpoints = 1
         assertEquals(1, melee.hitPlayer(alice, npc, 5, tick))
-        assertEquals(listOf(alice to MeleeCombat.DEAD), messages)
+        assertEquals(listOf(alice to "[combat.dead]"), messages)
         assertEquals(listOf(alice), deadPlayers)
         assertEquals(0, alice.hitpoints)
         // Lying dead, nothing more lands on them.

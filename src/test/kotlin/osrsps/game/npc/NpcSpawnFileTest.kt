@@ -111,11 +111,12 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Fred's farm has its sheep, rams and lambs in the pen and 33 chickens, all north-west of the castle`() {
+    fun `the farms file has Fred's sheep, rams, lambs and 33 chickens north-west of the castle, Gillie and Millie`() {
         val names = mapOf(
             732 to "fred_the_farmer", 2693 to "sheepunsheered", 2699 to "sheepunsheered3", 2694 to "sheepunsheeredg", 2695 to "sheepunsheeredw",
             2786 to "sheepunsheered3g", 2787 to "sheepunsheered3w", 1262 to "ramunsheered", 1263 to "ramunsheered2", 1264 to "ramunsheered3",
             1176 to "lamb1", 1177 to "lamb2", 1301 to "sheepsheered2w", 1308 to "sheepsheered3g", 1173 to "chicken", 1174 to "chicken_brown",
+            4628 to "gillie_the_milkmaid", 4627 to "millie_the_miller",
         )
         val farmTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("lumbridge-farms.json"), farmTypes, "lumbridge-farms.json")
@@ -125,11 +126,16 @@ class NpcSpawnFileTest {
         assertEquals(16, spawns.count { it.type.internalName!!.startsWith("sheepunsheered") })
         assertEquals(4, spawns.count { it.type.internalName!!.startsWith("ram") })
         assertEquals(33, spawns.count { it.type.internalName!!.startsWith("chicken") })
-        // The farm is west of the River Lum and north of the castle; the two shorn sheep are in the pen west of it.
-        val farm = spawns.filter { !it.type.internalName!!.startsWith("sheepsheered") }
+        // Fred's farm is west of the River Lum and north of the castle; the two shorn sheep are in the pen west of it.
+        val farm = spawns.filter { !it.type.internalName!!.startsWith("sheepsheered") && it.type.id !in setOf(4627, 4628) }
         assertTrue(farm.all { it.x in 3165..3215 && it.z in 3255..3310 && it.level == 0 })
         assertTrue(spawns.filter { it.type.internalName!!.startsWith("sheepsheered") }.all { it.x < 3200 && it.z < 3225 })
         assertTrue(spawns.all { it.source.isNotBlank() && it.wander == 5 })
+        // Gillie in the Groats' dairy cow pen east of the river, Millie inside Mill Lane Mill.
+        val gillie = spawns.single { it.type.id == 4628 }
+        assertTrue(gillie.x in 3250..3258 && gillie.z in 3268..3278)
+        val millie = spawns.single { it.type.id == 4627 }
+        assertTrue(millie.x in 3163..3170 && millie.z in 3303..3310 && millie.restrict == MoveRestrict.INDOORS)
     }
 
     @Test

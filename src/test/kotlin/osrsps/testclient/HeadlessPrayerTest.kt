@@ -74,7 +74,7 @@ class HeadlessPrayerTest {
                 client.await("43 points") { client.points()?.takeIf { it == 43 } }
 
                 client.click(PIETY)
-                client.awaitMessage("the level refusal") { it == "You need a Prayer level of 70 to use Piety." }
+                client.awaitMessage("the level refusal") { it == "[prayer.level level=70 prayer=Piety]" }
                 assertEquals(0, client.prayers())
 
                 client.click(PROTECT_FROM_MELEE)
@@ -94,7 +94,7 @@ class HeadlessPrayerTest {
 
                 client.commandReply("pray 0") { it.startsWith("Prayer points set") }
                 // The drain later in the same tick finds no points, so the message can come with the reply.
-                client.await("out of points") { if (client.messages().any { it.text == Prayers.OUT_OF_POINTS }) Unit else null }
+                client.await("out of points") { if (client.messages().any { it.text == "[prayer.out_of_points]" }) Unit else null }
                 client.await("every prayer off") { if (client.prayers() == 0) Unit else null }
                 client.click(PROTECT_FROM_MELEE)
                 client.awaitTicks(2)
@@ -171,7 +171,7 @@ class HeadlessPrayerTest {
                 client.await("the login rebuild") { client.position }
                 for (skill in listOf("defence", "prayer")) client.commandReply("setlevel $skill 99") { it.contains("set to level 99") }
                 client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 1)
-                client.awaitMessage("nothing picked") { it == Prayers.NO_QUICK_PRAYERS }
+                client.awaitMessage("nothing picked") { it == "[prayer.no_quick_prayers]" }
 
                 // Setup: the quick prayer setup in the prayer book's place, its prayers clickable by bit.
                 client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 2)

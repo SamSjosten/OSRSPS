@@ -119,6 +119,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   option with `::keys on`, checking each line's key (the Sheared Ram's needs 0.8.0 for `assertVarbit`).
 - `lumbridge-freds-farm.json`: Fred the Farmer's talk (with `::keys on`), an onion picked from his patch, a sheep
   sheared for wool that the client then shows as sheared, and eight chickens killed for their feathers.
+- `lumbridge-mill.json`: Millie Miller's and Gillie Groats' talks (with `::keys on`), wheat picked into grain, the
+  grain up Mill Lane Mill's ladders into the hopper and through the controls into two pots of flour (checking
+  varbits mill_flour and mill_showflour), Gillie's talk when milking with no bucket, and a dairy cow milked into two
+  buckets. Needs 0.8.0 for `assertVarbit`.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

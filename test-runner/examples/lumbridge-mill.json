@@ -1,0 +1,649 @@
+{
+ "name": "Rest of Lumbridge step 7: Mill Lane Mill and Groats' farm, Millie's and Gillie's talks (::keys on), wheat into grain, grain up the ladders into the hopper and down into pots of flour, and a dairy cow milked into two buckets",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack, and nothing in the hopper; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 4920 0",
+   "expectMessage": "Varbit 4920 (varp",
+   "comment": "mill_flour: an empty flour bin"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 5325 0",
+   "expectMessage": "Varbit 5325 (varp",
+   "comment": "mill_showflour"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3166 3305 0",
+   "expectMessage": "Teleported to 3166, 3305, 0",
+   "comment": "inside Mill Lane Mill, beside the flour bin; Millie's spawn is 3168 3307"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Millie Miller",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.welcome]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[millie_miller.place]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.place]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.this_is]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.we_take]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.how]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.making]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.field]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.bring]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.any_mill]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.hopper]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.where]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.appears]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.thats_it]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.great]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Millie Miller",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.welcome]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[millie_miller.fine]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[millie_miller.fine]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "loc": "Flour bin",
+   "option": "Empty",
+   "x": 3166,
+   "y": 3306,
+   "comment": "the flour bin, empty for now"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "The flour bin is already empty."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3158 3301 0",
+   "expectMessage": "Teleported to 3158, 3301, 0",
+   "comment": "in the wheat field west of the mill"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wheat",
+   "option": "Pick",
+   "x": 3159,
+   "y": 3301
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You pick some grain."
+  },
+  {
+   "step": "assertInventory",
+   "item": "Grain",
+   "count": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Wheat",
+   "option": "Pick",
+   "x": 3159,
+   "y": 3300
+  },
+  {
+   "step": "assertInventory",
+   "item": "Grain",
+   "count": 2
+  },
+  {
+   "step": "command",
+   "text": "::tele 3165 3307 0",
+   "expectMessage": "Teleported to 3165, 3307, 0",
+   "comment": "inside the mill, beside the ladder (3164 3307), so each climb leaves the player on 3165 3307"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3164,
+   "y": 3307
+  },
+  {
+   "step": "assertLocation",
+   "plane": 1,
+   "comment": "the middle floor, where the millstones are",
+   "x": 3165,
+   "y": 3307
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3164,
+   "y": 3307
+  },
+  {
+   "step": "assertLocation",
+   "plane": 2,
+   "comment": "the top floor, with the hopper",
+   "x": 3165,
+   "y": 3307
+  },
+  {
+   "step": "locOption",
+   "loc": "Hopper controls",
+   "option": "Operate",
+   "x": 3166,
+   "y": 3305
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You operate the empty hopper. Nothing interesting happens."
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "that message comes before the arrive delay; a click while delayed is dropped"
+  },
+  {
+   "step": "locOption",
+   "loc": "Hopper",
+   "option": "Fill",
+   "x": 3166,
+   "y": 3307
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You put the grain in the hopper."
+  },
+  {
+   "step": "assertAnimation",
+   "id": 832
+  },
+  {
+   "step": "assertInventory",
+   "item": "Grain",
+   "count": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Hopper",
+   "option": "Fill",
+   "x": 3166,
+   "y": 3307
+  },
+  {
+   "step": "assertMessage",
+   "contains": "There is already grain in the hopper."
+  },
+  {
+   "step": "locOption",
+   "loc": "Hopper controls",
+   "option": "Operate",
+   "x": 3166,
+   "y": 3305
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You operate the hopper. The grain slides down the chute."
+  },
+  {
+   "step": "assertVarbit",
+   "id": 4920,
+   "value": 1,
+   "comment": "one pot of flour in the bin"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 5325,
+   "value": 1,
+   "comment": "the bin shows flour"
+  },
+  {
+   "step": "locOption",
+   "loc": "Hopper",
+   "option": "Fill",
+   "x": 3166,
+   "y": 3307
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You put the grain in the hopper."
+  },
+  {
+   "step": "locOption",
+   "loc": "Hopper controls",
+   "option": "Operate",
+   "x": 3166,
+   "y": 3305
+  },
+  {
+   "step": "assertMessage",
+   "contains": "The grain slides down the chute."
+  },
+  {
+   "step": "assertVarbit",
+   "id": 4920,
+   "value": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-down",
+   "x": 3164,
+   "y": 3307
+  },
+  {
+   "step": "assertLocation",
+   "plane": 1,
+   "x": 3165,
+   "y": 3307
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb",
+   "x": 3164,
+   "y": 3307,
+   "comment": "the middle ladder's menu"
+  },
+  {
+   "step": "chooseOption",
+   "text": "Climb-down"
+  },
+  {
+   "step": "assertLocation",
+   "plane": 0,
+   "x": 3165,
+   "y": 3307
+  },
+  {
+   "step": "locOption",
+   "loc": "Flour bin",
+   "option": "Empty",
+   "x": 3166,
+   "y": 3306
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You need an empty pot to hold the flour in."
+  },
+  {
+   "step": "command",
+   "text": "::item 1931 2",
+   "expectMessage": "Added 2 x Pot (1931)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Flour bin",
+   "option": "Empty",
+   "x": 3166,
+   "y": 3306
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You fill a pot with flour from the bin."
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot of flour",
+   "count": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Flour bin",
+   "option": "Empty",
+   "x": 3166,
+   "y": 3306
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You fill a pot with the last of the flour in the bin."
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot of flour",
+   "count": 2
+  },
+  {
+   "step": "assertVarbit",
+   "id": 4920,
+   "value": 0
+  },
+  {
+   "step": "assertVarbit",
+   "id": 5325,
+   "value": 0,
+   "comment": "the bin shows empty again"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3255 3273 0",
+   "expectMessage": "Teleported to 3255, 3273, 0",
+   "comment": "Groats' farm, in the dairy cows' pen beside Gillie (spawn 3254 3274)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Gillie Groats",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[gillie_groats.how]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.how_get]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.bucket]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.dairy]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.find]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.spot]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.near]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.milk_it]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Gillie Groats",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[gillie_groats.who]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.name]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.spare]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.not_spare]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "loc": "Dairy cow",
+   "option": "Milk",
+   "comment": "no bucket: Gillie speaks up"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.tee_hee]",
+   "speaker": "Gillie Groats the Milkmaid"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.how_tell]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.spilling]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.guessed]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.city]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gillie_groats.do_that]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 1925 2",
+   "expectMessage": "Added 2 x Bucket (1925)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Dairy cow",
+   "option": "Milk"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You milk the cow."
+  },
+  {
+   "step": "assertAnimation",
+   "id": 2305
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bucket of milk",
+   "count": 2,
+   "timeoutMs": 15000,
+   "comment": "the second eight ticks after the first"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bucket",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

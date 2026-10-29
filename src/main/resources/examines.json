@@ -1,5 +1,5 @@
 {
-  "about": "The NPCs and locs that have an examine text, by type id. The texts are Jagex's words, so they aren't here: each gets a key in the dialogue file (examine.npc_<id>, examine.loc_<id>), which Sam fills from the Wiki (2026-10-25). wiki says where on the Wiki the text is, when not the infobox of the page named after it; also lists other ids that show as this NPC (multi-NPCs, which the client may send either way). NPCs: those spawned in npc-spawns. Locs: every named loc type in Lumbridge Castle and its cellar (the 241 cache, map squares 50,50 and 50,150).",
+  "about": "The NPCs and locs that have an examine text, by type id. The texts are Jagex's words, so they aren't here: each gets a key in the dialogue file (examine.npc_<id>, examine.loc_<id>), which Sam fills from the Wiki (2026-10-25). wiki says where on the Wiki the text is, when not the infobox of the page named after it; also lists other ids that show as this NPC (multi-NPCs, which the client may send either way). NPCs: those spawned in npc-spawns. Locs: every named loc type in Lumbridge Castle and its cellar (the 241 cache, map squares 50,50 and 50,150), and those the rest of Lumbridge's content uses; also lists other ids that share the text.",
   "npcs": [
     {"npc": 3105, "name": "Hans"},
     {"npc": 9856, "name": "Grave", "also": [9857], "wiki": "Gravestone page, infobox (the player's grave)"},
@@ -50,10 +50,21 @@
     {"npc": 1262, "name": "Ram", "also": [1263, 1264]},
     {"npc": 1176, "name": "Li'l lamb"},
     {"npc": 1177, "name": "Lamb"},
-    {"npc": 1173, "name": "Chicken", "also": [1174]}
+    {"npc": 1173, "name": "Chicken", "also": [1174]},
+    {"npc": 4628, "name": "Gillie Groats"},
+    {"npc": 4627, "name": "Millie Miller"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},
+    {"loc": 312, "name": "Potato"},
+    {"loc": 313, "name": "Wheat", "also": [15506, 15507, 15508]},
+    {"loc": 8689, "name": "Dairy cow", "also": [60788]},
+    {"loc": 24961, "name": "Hopper"},
+    {"loc": 24964, "name": "Hopper controls"},
+    {"loc": 5792, "name": "Flour bin", "wiki": "Flour bin page, infobox (empty)"},
+    {"loc": 1782, "name": "Flour bin", "wiki": "Flour bin page, infobox (with flour)"},
+    {"loc": 1778, "name": "Millstones"},
+    {"loc": 12964, "name": "Ladder", "also": [12965, 12966]},
     {"loc": 837, "name": "Axe cabinet"},
     {"loc": 18491, "name": "Bank booth"},
     {"loc": 10529, "name": "Bank Deposit Box"},

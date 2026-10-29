@@ -9,6 +9,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.Weapons
 import osrsps.game.WearPos
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.npc.Npc
 import osrsps.game.npc.Npcs
 import osrsps.game.zone.Projectile
@@ -96,6 +97,8 @@ class MagicCombat(
     private val stopFacing: (Player) -> Unit = {},
     private val multi: MultiCombat = MultiCombat(),
     private val poweredStaves: PoweredStaves = PoweredStaves(objTypes),
+    /** Each player's words for the game messages ([CombatLines]). */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     /** A spell on its way to [npc], landing on [landTick] for [damage] if [hit], or splashing. */
     private class Cast(val player: Player, val npc: Npc, val spell: CombatSpell, val hit: Boolean, val damage: Int, val landTick: Long)
@@ -122,11 +125,11 @@ class MagicCombat(
             return
         }
         if (melee.underAttackByAnother(player, npc)) {
-            message(player, MeleeCombat.ALREADY_UNDER_ATTACK)
+            message(player, words(player)[CombatLines.ALREADY_UNDER_ATTACK])
             return
         }
         if (melee.foughtByAnother(player, npc)) {
-            message(player, MeleeCombat.SOMEONE_ELSE)
+            message(player, words(player)[CombatLines.SOMEONE_ELSE])
             return
         }
         // The cast starts in the movement phase, as a ranged fight does.
@@ -209,13 +212,13 @@ class MagicCombat(
         interaction.routedTo = null
         player.waypoints.clear()
         if (melee.foughtByAnother(player, npc)) {
-            message(player, MeleeCombat.SOMEONE_ELSE)
+            message(player, words(player)[CombatLines.SOMEONE_ELSE])
             stopFacing(player)
             return true
         }
         // Another NPC may have caught them on the way; once the fight is on, a newcomer's hits don't stop it.
         if (!interaction.cast && melee.underAttackByAnother(player, npc)) {
-            message(player, MeleeCombat.ALREADY_UNDER_ATTACK)
+            message(player, words(player)[CombatLines.ALREADY_UNDER_ATTACK])
             stopFacing(player)
             return true
         }
@@ -249,17 +252,17 @@ class MagicCombat(
             return false
         }
         if (player.skills.currentLevel(Skill.MAGIC) < spell.level) {
-            message(player, LEVEL_TOO_LOW)
+            message(player, words(player)[CombatLines.MAGIC_LEVEL])
             return false
         }
         val provided = spells.runesFrom(player.equipment[WearPos.WEAPON]?.id)
         val short = spell.runes.firstOrNull { it.rune !in provided && player.inventory.count(it.rune) < it.count }
         if (short != null) {
-            message(player, notEnough(short.rune))
+            message(player, notEnough(player, short.rune))
             return false
         }
         if (spell.holds && (npc.freezeTicks > 0 || npc.freezeImmunityTicks > 0)) {
-            message(player, if (npc.freezeTicks > 0) ALREADY_HELD else IMMUNE)
+            message(player, words(player)[if (npc.freezeTicks > 0) CombatLines.ALREADY_HELD else CombatLines.IMMUNE])
             return false
         }
         val matchup = combat.magicMatchup(player, npc, spell) ?: return false
@@ -331,10 +334,10 @@ class MagicCombat(
     }
 
     /** Guessed wording, from memory: "You do not have enough Fire Runes to cast this spell." */
-    private fun notEnough(rune: Int): String {
+    private fun notEnough(player: Player, rune: Int): String {
         val name = objTypes[rune]?.name ?: "rune"
         val plural = name.split(' ').joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } } + "s"
-        return "You do not have enough $plural to cast this spell."
+        return words(player)[CombatLines.NOT_ENOUGH_RUNES, "runes" to plural]
     }
 
     /**
@@ -408,15 +411,6 @@ class MagicCombat(
         /** A powered staff's spell reaches 8 tiles, 10 on longrange (OSRS Wiki, Tumeken's shadow). */
         const val POWERED_RANGE = 8
         const val POWERED_LONGRANGE = 10
-
-        /** A hold spell on a frozen target (OSRS Wiki, Snare). */
-        const val ALREADY_HELD = "Your target is already held by a magical force."
-
-        /** A hold spell on a target in the ticks after a freeze (OSRS Wiki, Snare). */
-        const val IMMUNE = "The target is currently immune to that spell."
-
-        /** Guessed wording, from memory. */
-        const val LEVEL_TOO_LOW = "Your Magic level is not high enough for this spell."
 
         /** Guessed: about the hands, as the ranged launch graphics are. */
         const val CASTING_HEIGHT = 92

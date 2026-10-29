@@ -22,7 +22,15 @@ import osrsps.game.ObjTypes
  * end stays there, which the client draws too) until the next withdrawal closes them; ours moves the item to the end at
  * once.
  */
-class Bank(private val objTypes: ObjTypes) {
+class Bank(
+    private val objTypes: ObjTypes,
+    /**
+     * Items the bank refuses, which content names; none yet. Not param 59, which RSMod's rev 233 table names no_bank:
+     * the 241 cache sets it on 2,687 items, the coal bag, gem bag, Falador shield, Ardougne cloak and Karamja gloves
+     * among them, which live banks. Its 241 meaning is unknown (just param_59 in the osrs-dumps symbols).
+     */
+    private val notBankable: Set<Int> = emptySet(),
+) {
     /** How many slots the bank holds: [DEFAULT_CAPACITY] for every account until bank space can be bought. */
     fun capacity(): Int = DEFAULT_CAPACITY
 
@@ -38,8 +46,9 @@ class Bank(private val objTypes: ObjTypes) {
     fun deposit(bank: Inventory, tabs: BankTabs, from: Inventory, slot: Int, count: Int): Deposit {
         val held = from[slot] ?: return Deposit.Nothing
         val type = objTypes[held.id] ?: return Deposit.Nothing
-        if (type.intParam(PARAM_NO_BANK) != 0) return Deposit.NotBankable
         val item = banked(type)
+        // The item too: a note goes in as its item, so a note of an unbankable one mustn't (second review, 29 Oct 2026).
+        if (type.id in notBankable || item.id in notBankable) return Deposit.NotBankable
         val existing = existingSlot(bank, item)
         if (existing == null && used(bank) >= capacity()) return Deposit.BankFull
         val have = existing?.let { bank[it] }?.takeIf { it.id == item.id }?.count ?: 0
@@ -350,9 +359,6 @@ class Bank(private val objTypes: ObjTypes) {
          * still says 900; left at 900 until checked on live.
          */
         const val DEFAULT_CAPACITY = 900
-
-        /** Param no_bank in RSMod's rev 233 symbol table: not 0 on items a bank refuses. Not checked in 241. */
-        const val PARAM_NO_BANK = 59
 
         /** bank_filler in the 241 cache. */
         const val FILLER = 20594
