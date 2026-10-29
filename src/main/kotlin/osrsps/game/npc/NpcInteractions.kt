@@ -37,6 +37,8 @@ class NpcInteraction internal constructor(
     val sub: Int = -1,
     val obj: Int = -1,
     val slot: Int = -1,
+    /** Set by [NpcInteractions.repeat]: the handler asked to run again, the player didn't click. */
+    val repeat: Boolean = false,
 ) : Interaction {
     val usesObj: Boolean get() = obj >= 0
 
@@ -113,6 +115,15 @@ class NpcInteractions(
         start(player, NpcInteraction(npc, option, this, sub), invertRun)
     }
 
+    /**
+     * Runs option [option] on [npc] again from the next tick's movement phase, as RS2's `p_opnpc` does: the way fishing
+     * keeps going. Nothing is walked: an NPC that has moved off (a fishing spot moving on) or gone ends it, as does
+     * anything that replaces the player's interaction (a click, a walk). The handler gets an [Op] with [Op.repeat] set.
+     */
+    fun repeat(player: Player, npc: Npc, option: Int) {
+        player.interaction = NpcInteraction(npc, option, this, repeat = true)
+    }
+
     /** The player used the item [obj] in inventory slot [slot] on NPC [index]. */
     fun useObj(player: Player, index: Int, slot: Int, obj: Int, invertRun: Boolean) {
         val npc = clickable(player, index) ?: return
@@ -186,6 +197,7 @@ class NpcInteractions(
             // Guessed: the NPC went away (or up a ladder); the player stops turning to it and finishes their walk.
             player.interaction = null
             stopFacing(player)
+            if (interaction.repeat) player.anim(-1)
             return true
         }
         if (interaction.usesObj && !holds(player, interaction.slot, interaction.obj)) {
@@ -196,6 +208,14 @@ class NpcInteractions(
         }
         val size = npc.type.size
         if (!Reach.reachedEntity(collision, player.level, player.x, player.z, 1, npc.x, npc.z, size, size) && !overCounter(player, npc)) {
+            if (interaction.repeat) {
+                // The NPC moved off while the action went on (a fishing spot moving): the action stops where the player
+                // stands, as on live, rather than chasing it. Guessed: the animation stops with it.
+                player.interaction = null
+                stopFacing(player)
+                player.anim(-1)
+                return true
+            }
             if (interaction.routedTo != Tile(npc.x, npc.z)) route(player, interaction)
             return false
         }
@@ -207,13 +227,19 @@ class NpcInteractions(
             stopFacing(player)
             return true
         }
-        // Sent again on arrival, in case the client dropped the turn while the player walked.
-        face(player, npc)
+        // Sent again on arrival, in case the client dropped the turn while the player walked; a re-run is still turned.
+        if (!interaction.repeat) face(player, npc)
         if (!interaction.usesObj && type.op(interaction.option) { readVar(player, it) } == ATTACK && attack(player, npc)) return true
         val op = if (interaction.usesObj) {
             Op.objOnNpc(type.id, interaction.obj, interaction.slot, npc)
         } else {
-            Op(OpTarget.NPC, type.id, interaction.option, interaction.sub, npc = npc)
+            Op(OpTarget.NPC, type.id, interaction.option, interaction.sub, npc = npc, repeat = interaction.repeat)
+        }
+        // A re-run isn't a new click: the NPC isn't taken up with the player again, so a fishing spot doesn't turn to
+        // every player fishing at it. Guessed.
+        if (interaction.repeat) {
+            if (!scripts.trigger(player, op)) player.anim(-1)
+            return true
         }
         // An NPC already busy with another player stays with them until they're done, then turns to this one if they
         // are still busy with it. Guessed: live NPCs talk to several players at once, but which one they face isn't

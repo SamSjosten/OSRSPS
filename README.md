@@ -355,6 +355,24 @@ an empty rock (`rocks1`/`rocks2`) until it respawns.
 | Which empty rock each rock becomes (rockN to rocksN); swinging on the click's own tick | guessed |
 | Out: the glory's gem chance, mining gloves and other extra-ore items, the prospector kit, gem rocks, essence | out of scope |
 
+### Fishing
+
+Fishing spots are NPCs (`game/skill/Fishing.kt`, words under `fishing.*`): the Lumbridge Swamp's Net/Bait spots
+(shrimps and anchovies with a small net, sardines and herring with a rod and bait) and the River Lum's Lure/Bait spots
+(trout and salmon with a fly fishing rod and feathers, pike with a rod and bait). Their spawns are in
+`npc-spawns/lumbridge.json`. The option re-runs every tick on the NPC (`World.repeatOp`, as RS2's `p_opnpc`).
+
+| Fishing behaviour | Source |
+|-------------------|--------|
+| Levels, XP, tools and bait (one bait or feather a catch) | OSRS Wiki fish pages, Fishing |
+| A roll every 5 ticks; pike recasts 1 roll in 5 (two casts a tick apart), the next roll a tick later | OSRS Wiki, Raw pike |
+| Each fish's success pair, the better fish tried first, fitted to and checked against the Wiki's charts (`FishingTest`) | OSRS Wiki fish pages |
+| Spots move every 250 to 530 ticks to a free tile of their area | OSRS Wiki, Fishing spot |
+| The river spots' tiles; the cast message and animation on the click, the first roll 4 ticks later, the last bait freeing its slot | 2004Scape fishing scripts |
+| Spawn tiles | RSMod rev 233 Lumbridge spawns |
+| The swamp spots' area (their spawn tiles, so they stay put); the player stopping when the spot moves | guessed |
+| Out: pearl and barbarian rods, stripy feathers, big nets, harpoons, cages, outfits and other catch boosts, whirlpools | out of scope |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
