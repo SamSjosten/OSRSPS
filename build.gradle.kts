@@ -36,4 +36,6 @@ application {
 
 tasks.test {
     useJUnitPlatform()
+    // The item audit (osrsps.audit.ItemAuditTest) reads a 50 MB Wiki file when asked to; everything else fits the default.
+    maxHeapSize = providers.environmentVariable("OSRSPS_TEST_HEAP").getOrElse("512m")
 }
