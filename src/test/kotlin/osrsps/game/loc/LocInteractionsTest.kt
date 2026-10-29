@@ -275,6 +275,18 @@ class LocInteractionsTest {
     }
 
     @Test
+    fun `a re-running action whose loc goes stops the player's animation`() {
+        // The player stands by the ladder, mid-action, when someone else changes it (another player felling a tree).
+        player.x = 3210
+        player.z = 3213
+        interactions.repeat(player, ladder, 1)
+        locs.remove(ladder)
+        tick()
+        assertNull(player.interaction)
+        assertEquals(-1, player.effects.anim?.id)
+    }
+
+    @Test
     fun `doors pair by their gameval names`() {
         assertEquals(DOOR_OPEN, doors.openType(DOOR))
         assertEquals(DOOR, doors.closedType(DOOR_OPEN))

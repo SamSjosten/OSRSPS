@@ -165,9 +165,9 @@
   },
   {
    "step": "command",
-   "text": "::tele 3229 3235 0",
-   "expectMessage": "Teleported to 3229, 3235, 0",
-   "comment": "beside Arthur the Clue Hunter, south of the pub"
+   "text": "::tele 3229 3237 0",
+   "expectMessage": "Teleported to 3229, 3237, 0",
+   "comment": "beside Arthur the Clue Hunter, just inside the Sheared Ram's south wall; the tile south of him is outside it"
   },
   {
    "step": "npcOption",

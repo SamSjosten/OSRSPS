@@ -114,6 +114,9 @@ class LocInteractions(
         if (!locs.exists(loc)) {
             // Guessed: someone else changed it (opened the door first); the player gives up and finishes their walk.
             player.interaction = null
+            // A gathering action whose loc went (another player felled the tree) stops its animation, as its own stop
+            // would have. Guessed: every re-running action animates, and none has its own anim to keep.
+            if (interaction.repeat) player.anim(-1)
             return true
         }
         if (!Reach.reached(collision, player.level, player.x, player.z, target(loc))) return false

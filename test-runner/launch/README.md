@@ -51,11 +51,12 @@ through a scheduled task, so the client runs on the signed-in desktop and outliv
 
 - `OdinsGate.cmd` is that task's command. It runs the installed launcher at `C:\RSPS\launcher\app\bin` with
   `--auto --dev --home C:\RSPS\launcher --status-file C:\RSPS\launcher\status.json --manifest
-  C:\RSPS\launcher\manifest.json`, its output appended to `C:\RSPS\launcher\logs\launcher.log`. Arguments given to
+  C:\RSPS\launcher\manifest.json`, its console appended to `C:\RSPS\launcher\logs\console.log`. Arguments given to
   it go through to the launcher (`--server 192.168.0.210:44594` for the staging server). Everything the launcher makes
-  is under `C:\RSPS\launcher`: `runelite\` (the pinned RuneLite), `logs\game.log` (the game's output), and `home\`,
-  the game's own home folder, so RuneLite's folder is `C:\RSPS\launcher\home\.runelite` (sideloaded plugins, the
-  test-runner's `tests` and `test-results`, `logs\client.log`, `profiles2`), not `C:\RSPS\.rlcustom`.
+  is under `C:\RSPS\launcher`: `runelite\` (the pinned RuneLite), `logs\launcher.log` (the launcher's own lines)
+  and `logs\game.log` (the game's output), both moved aside at 1 MB (`.1`, `.2`, `.3`), and `home\`, the game's own
+  home folder, so RuneLite's folder is `C:\RSPS\launcher\home\.runelite` (sideloaded plugins, the test-runner's
+  `tests` and `test-results`, `logs\client.log`, `profiles2`), not `C:\RSPS\.rlcustom`.
 - `write-dev-manifest.ps1` writes `C:\RSPS\launcher\manifest.json` from the live server, until releases ship the signed
   manifest: the server's host and ports, the key it serves in `/proxy-targets.yaml`, and the pin table in the script
   (which RuneLite release serves revision 241). It warns when the server's `/status.json` names a revision the table
@@ -89,4 +90,5 @@ schtasks /create /tn OdinsGate /xml C:\RSPS\launcher\OdinsGate.task.xml /f
 Then `powershell -ExecutionPolicy Bypass -File C:\RSPS\bin\start-client.ps1 -Restart -Launcher -LauncherVersion 0.1.0`
 and, once it exits with 0, `run-scripts.ps1 -Tests C:\RSPS\launcher\home\.runelite\tests -Results
 C:\RSPS\launcher\home\.runelite\test-results .\test-runner\examples`. The launcher's own lines are in
-`C:\RSPS\launcher\logs\launcher.log`, the game's in `logs\game.log` next to it.
+`C:\RSPS\launcher\logs\launcher.log`, the game's in `logs\game.log` next to it, and what the launcher's JVM printed to
+the console (a crash, say) in `logs\console.log`.

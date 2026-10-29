@@ -108,6 +108,11 @@ class HeadlessSettingsSideTest {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
+                // The 241 client sends a slider's trigger only with bit 23 set on its bobble, which login sends.
+                for (volume in SettingsSide.Volume.entries) {
+                    client.await("the trigger event on ${volume.name}") { Unit.takeIf { client.scriptTriggerEnabled(INTERFACE, volume.slider, -1) } }
+                }
+                assertEquals(false, client.scriptTriggerEnabled(INTERFACE, MASTER_ICON, -1))
                 client.ifScriptTrigger(INTERFACE, MASTER_SLIDER_BOBBLE, MASTER_TRIGGER, 37)
                 client.await("master at 37") { client.varp(VARP_MASTER_VOLUME).takeIf { it == 37 } }
                 client.ifScriptTrigger(INTERFACE, AREASOUNDS_SLIDER_BOBBLE, AREASOUNDS_TRIGGER, 250)

@@ -10,6 +10,7 @@ import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.WearPos
+import osrsps.game.WearRequirements
 import osrsps.game.World
 import osrsps.map.CollisionMap
 
@@ -23,7 +24,7 @@ class HeadlessEquipmentTest {
     private val axe = ObjType(AXE, "Bronze axe", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(1 to 4, 10 to 5, 14 to 5), category = 35)
     private val twoHander = ObjType(TWO_HANDER, "Bronze 2h sword", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, params = mapOf(14 to 7), category = 61)
     private val shield = ObjType(SHIELD, "Wooden shield", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.SHIELD, params = mapOf(5 to 4, 6 to 5))
-    private val whip = ObjType(WHIP, "Abyssal whip", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(434 to 0, 436 to 70), category = 150)
+    private val whip = ObjType(WHIP, "Abyssal whip", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(1 to 82), internalName = "abyssal_whip", category = 150)
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(WHIP + 1)
@@ -32,6 +33,8 @@ class HeadlessEquipmentTest {
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
             // combat_weapon_category is bits 0 to 5 of varp 843 in the 241 cache.
             varTypes = VarTypes(6_000, mapOf(VARBIT_WEAPON_CATEGORY to VarbitType(VARP_WEAPON_CATEGORY, 0, 5))),
+            // The real requirements file, so the whip needs the level it does in the game.
+            wearRequirements = WearRequirements.load(ObjTypes(objs)),
             cycleMillis = millis,
         )
     }

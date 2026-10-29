@@ -111,6 +111,25 @@
     {
       "npcs": ["rat"],
       "source": "OSRS Wiki, Rat: no drops outside quests, the Wilderness and the Stronghold of Security"
+    },
+    {
+      "npcs": ["chicken", "chicken_brown"],
+      "always": [{"item": 526, "name": "Bones"}, {"item": 2138, "name": "Raw chicken"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 314, "name": "Feather", "count": 5, "weight": 64},
+          {"item": 314, "name": "Feather", "count": 15, "weight": 32},
+          {"nothing": true, "weight": 32}
+        ]
+      },
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/300"}],
+      "source": "OSRS Wiki, Chicken, read 2026-10-29 (the clue-step key is left out)"
+    },
+    {
+      "npcs": ["ramunsheered", "ramunsheered2", "ramunsheered3"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Ram, read 2026-10-29 (its ram skull drops only during Rag and Bone Man I, which every account has done)"
     }
   ]
 }

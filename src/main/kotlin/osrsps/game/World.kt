@@ -73,6 +73,7 @@ import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
+import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
@@ -163,6 +164,8 @@ class World(
     val shopTypes: ShopTypes = ShopTypes.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
     skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
+    /** The levels needed to wear items; tests that check levels pass their own. */
+    wearRequirements: WearRequirements = WearRequirements.NONE,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -205,7 +208,7 @@ class World(
         },
     )
 
-    private val equipment = Equipment(objTypes)
+    private val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
@@ -350,6 +353,7 @@ class World(
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
         registerLumbridgeTown(this)
+        registerFredsFarm(this)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         woodcutting.register()
         loadDialogue()
@@ -501,9 +505,10 @@ class World(
     private fun checkPassword(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<AuthenticationType>, password: CharArray) {
         val key = SaveStore.saveKey(block.username)
         // Checked before hashing, so guesses at a locked name cost nothing. The client says to wait a few minutes.
-        if (key != null && loginGuard.locked(key)) {
+        val address = responseHandler.address
+        if (key != null && loginGuard.locked(key, address)) {
             password.fill('\u0000')
-            logger.info { "Rejecting ${block.username} from ${responseHandler.address}: locked after ${LoginGuard.MAX_WRONG} wrong passwords" }
+            logger.info { "Rejecting ${block.username} from $address: locked there after ${LoginGuard.MAX_WRONG} wrong passwords" }
             responseHandler.writeFailedResponse(LoginResponse.TooManyAttempts)
             return
         }
@@ -518,14 +523,14 @@ class World(
         }
         when (check) {
             Accounts.Check.WRONG_PASSWORD -> {
-                loginGuard.wrongPassword(key!!)
+                loginGuard.wrongPassword(key!!, address)
                 logger.info { "Rejecting ${block.username} from ${responseHandler.address}: wrong password" }
                 responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
                 return
             }
             Accounts.Check.CLAIMED -> {
                 // Strikes against a name whose file was deleted for a reset don't carry over to its new password.
-                loginGuard.rightPassword(key!!)
+                loginGuard.forget(key!!)
                 logger.info { "${block.username} claimed their name" }
             }
             Accounts.Check.NOT_CLAIMABLE -> {
@@ -533,7 +538,7 @@ class World(
                 responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
                 return
             }
-            Accounts.Check.MATCHED -> loginGuard.rightPassword(key!!)
+            Accounts.Check.MATCHED -> loginGuard.rightPassword(key!!, address)
             Accounts.Check.NO_SUCH_NAME -> {}
         }
         pendingLogins.add(PendingLogin(responseHandler, block))
@@ -634,6 +639,7 @@ class World(
         readInput(ticking = true)
         phase = TickPhase.NPCS
         npcs.countDownFreezes()
+        npcs.countDownTransforms()
         npcInteractions.releaseNpcs()
         // Shots and spells land before NPCs fight, as melee hits from the last tick are already in; a shot NPC strikes from the next.
         rangedCombat.process()

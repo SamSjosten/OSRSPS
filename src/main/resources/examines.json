@@ -43,9 +43,17 @@
     {"npc": 921, "name": "Donie"},
     {"npc": 6816, "name": "Gee"},
     {"npc": 311, "name": "Ironman tutor"},
-    {"npc": 8368, "name": "Abigaila"}
+    {"npc": 8368, "name": "Abigaila"},
+    {"npc": 732, "name": "Fred the Farmer"},
+    {"npc": 2693, "name": "Sheep", "also": [2696, 2699, 2694, 2697, 2786, 2695, 2698, 2787, 2788, 2789], "wiki": "Sheep page, infobox (one examine for every sheep with wool)"},
+    {"npc": 1178, "name": "Sheep", "also": [1301, 1304, 1299, 1302, 1308, 1300, 1303, 1309, 2691, 2692], "wiki": "Sheep page (a sheared sheep has an examine of its own)"},
+    {"npc": 1262, "name": "Ram", "also": [1263, 1264]},
+    {"npc": 1176, "name": "Li'l lamb"},
+    {"npc": 1177, "name": "Lamb"},
+    {"npc": 1173, "name": "Chicken", "also": [1174]}
   ],
   "locs": [
+    {"loc": 3366, "name": "Onion"},
     {"loc": 837, "name": "Axe cabinet"},
     {"loc": 18491, "name": "Bank booth"},
     {"loc": 10529, "name": "Bank Deposit Box"},

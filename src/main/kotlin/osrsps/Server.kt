@@ -33,6 +33,7 @@ import osrsps.game.Quests
 import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.WearRequirements
 import osrsps.game.SeqNames
 import osrsps.game.SpotanimNames
 import osrsps.game.combat.AttackStyles
@@ -173,6 +174,8 @@ class GameServer(
         logger.info { "Loaded ${prayers.size} prayers" }
         val shopTypes = ShopTypes.load(npcTypes, objTypes)
         logger.info { "Loaded ${shopTypes.all.size} shops" }
+        val wearRequirements = WearRequirements.load(objTypes)
+        logger.info { "Loaded the wear requirements of ${wearRequirements.size} items" }
                 val scenarios = Scenarios.load()
         for (name in scenarios.names) {
             // Checked again when started; warned about here so a bad item name shows in the deploy log.
@@ -189,6 +192,7 @@ class GameServer(
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans,
+            wearRequirements = wearRequirements,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)
