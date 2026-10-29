@@ -3,7 +3,6 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
@@ -39,6 +38,7 @@ class HeadlessPrayerTest {
     private val prayerObjs = listOf(
         prayerObj(20803, "placeholder_xmas16_ball_inflated_red", "Thick Skin", 0, THICK_SKIN, 1, 2690),
         prayerObj(20817, "placeholder_xmas16_marionette_blue", "Protect from Melee", 14, PROTECT_FROM_MELEE, 43, 2676),
+        prayerObj(20819, "placeholder_xmas16_marionette_green", "Redemption", 16, REDEMPTION, 49, 2680),
         prayerObj(20829, "placeholder_xmas16_blue_partyhat", "Piety", 26, PIETY, 70, 3825),
     )
 
@@ -75,11 +75,12 @@ class HeadlessPrayerTest {
                 assertEquals(0, client.prayers())
 
                 client.click(PROTECT_FROM_MELEE)
-                val on = client.await("Protect from Melee on") { if (client.prayers() == 1 shl 14) client.ticksSeen else null }
+                // Counted by the ticks the varp and the stat were sent in, not when the waits see them, which a slow machine
+                // makes late.
+                val on = client.await("Protect from Melee on") { if (client.prayers() == 1 shl 14) client.varpTick(Prayers.VARP_PRAYERS) else null }
+                val drained = client.await("the first point", timeoutMillis = 20_000) { if (client.points() == 42) client.statTick(PRAYER) else null }
                 // A point goes once the counter passes 60 at 12 a tick: on the 6th tick of draining.
-                val drained = client.await("the first point", timeoutMillis = 20_000) { if (client.points() == 42) client.ticksSeen else null }
-                // The varp and the stat come in their ticks' packets; the wait may only see one after its tick has ended.
-                assertTrue(drained - on in 6..7, "${drained - on} ticks from on to the first point")
+                assertEquals(6, drained - on, "ticks from on to the first point")
                 client.click(THICK_SKIN)
                 client.await("both on") { if (client.prayers() == (1 shl 14 or 1)) Unit else null }
 
@@ -143,11 +144,29 @@ class HeadlessPrayerTest {
         }
     }
 
+    @Test
+    fun `Redemption heals a quarter of the Prayer level when a hit leaves under 10% hitpoints, and every prayer goes off`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                for (skill in listOf("hitpoints", "prayer")) client.commandReply("setlevel $skill 99") { it.contains("set to level 99") }
+                client.click(REDEMPTION)
+                client.await("Redemption on") { if (client.prayers() == 1 shl 16) Unit else null }
+                client.awaitTicks(1)
+                // 9 left is under 9.9: 99 / 4 = 24 back.
+                client.commandReply("hit 90 me") { it == "Hit yourself for 90: 33/99 hp" }
+                client.await("every prayer off") { if (client.prayers() == 0) Unit else null }
+                client.await("no points") { client.points()?.takeIf { it == 0 } }
+            }
+        }
+    }
+
     companion object {
         // prayerbook:prayer1 is 541:9, so prayer N is 9 + N - 1.
         private const val THICK_SKIN = 9
         private const val PROTECT_FROM_MELEE = 23
         private const val PIETY = 35
+        private const val REDEMPTION = 25
         private const val ATTACK = 2
         private const val HITPOINTS = 3
         private const val PRAYER = 5

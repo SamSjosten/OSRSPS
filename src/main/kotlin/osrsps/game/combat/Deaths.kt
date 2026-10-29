@@ -47,7 +47,7 @@ class Grave(
  * Dying again while it stands adds to it and starts its timer again. When it collapses its contents are lost: Death's
  * Office, where they would go on live, isn't built. Nobody else can check or loot it.
  *
- * From the Wiki: the message, three items kept (more with Protect Item, fewer skulled: neither is built), valued at
+ * From the Wiki: the message, three items kept (one more with Protect Item; fewer skulled, which isn't built), valued at
  * the Grand Exchange price or the alchemy value, 15 minutes that pause while logged out or with the interface open,
  * a second death adding to the grave, and death restoring stats and run energy. Guessed and marked below: the ticks
  * the body lies before the respawn, the value order ([ObjType.cost], as there is no Grand Exchange snapshot yet; ties
@@ -74,6 +74,8 @@ class Deaths(
     private val cancelScripts: (Player) -> Unit = {},
     /** Turns every prayer off ([Prayers.deactivateAll]). */
     private val prayersOff: (Player) -> Unit = {},
+    /** Whether Protect Item counts for the player this tick ([Prayers.has]). */
+    private val protectItem: (Player) -> Boolean = { false },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
     private val message: (Player, String) -> Unit = Player::message,
     /** Examine on a grave item: the inventory's examine. */
@@ -104,7 +106,8 @@ class Deaths(
         closeModals(player)
         // Guessed: live's death clears the player's queue too, so a climb or a search in progress never finishes.
         cancelScripts(player)
-        // Guessed: the prayers go off as the player falls, not at the respawn.
+        // Protect Item counts if it is on as they fall; the prayers then go off (guessed: as they fall, not at the respawn).
+        player.deathKeptItems = KEPT_ITEMS + if (protectItem(player)) 1 else 0
         prayersOff(player)
         player.interaction = null
         player.waypoints.clear()
@@ -133,6 +136,7 @@ class Deaths(
     fun respawn(player: Player) {
         player.deathTick = -1
         val lost = dropItems(player)
+        player.deathKeptItems = KEPT_ITEMS
         val charges = lostCharges(player, lost)
         if (lost.isNotEmpty() || charges.isNotEmpty()) bury(player, lost + charges)
         for (skill in Skill.entries) player.skills.setCurrentLevel(skill, player.skills.baseLevel(skill))
@@ -145,7 +149,7 @@ class Deaths(
     }
 
     /**
-     * Takes everything but the [KEPT_ITEMS] most valuable units out of [player]'s inventory and equipment, returning what
+     * Takes everything but the [Player.deathKeptItems] most valuable units out of [player]'s inventory and equipment, returning what
      * came out. A stack counts a unit per item, so three coins of a stack of ten are kept and seven go. Guessed; the
      * Wiki says only that stacks "count as one item" for the kept-item count, which can't be what it means for a
      * stack of coins.
@@ -158,7 +162,7 @@ class Deaths(
         }
         // Stable, so ties keep worn-then-inventory slot order.
         held.sortByDescending { it.cost }
-        var keep = KEPT_ITEMS
+        var keep = player.deathKeptItems
         val lost = ArrayList<InvObj>()
         for (item in held) {
             val kept = minOf(keep, item.obj.count)

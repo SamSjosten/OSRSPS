@@ -1,0 +1,20 @@
+{
+ "name": "Prayer: Redemption clicked on in the prayer book heals a quarter of the Prayer level when a ::hit leaves under 10% hitpoints, and takes every prayer point",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "Hitpoints set to level 99"},
+  {"step": "command", "text": "::setlevel prayer 99", "expectMessage": "Prayer set to level 99", "comment": "Redemption needs 49; 99 heals 24"},
+  {"step": "command", "text": "::buttons on", "expectMessage": "Interface clicks are echoed"},
+  {"step": "clickWidget", "interfaceId": 548, "component": 69, "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"},
+  {"step": "clickWidget", "interfaceId": 541, "component": 25, "comment": "prayerbook:prayer17, Redemption; members, so a client that thinks the world isn't members refuses it itself"},
+  {"step": "assertMessage", "contains": "Button 541:25 slot -1 op 1", "timeoutMs": 10000},
+  {"step": "command", "text": "::prayers", "expectMessage": "overhead 5: Redemption", "comment": "the heart overhead"},
+  {"step": "waitTicks", "ticks": 1, "comment": "a prayer counts from the tick after it is turned on"},
+  {"step": "command", "text": "::hit 90 me", "expectMessage": "Hit yourself for 90: 33/99 hp", "comment": "9 left is under 9.9, so 99 / 4 = 24 back"},
+  {"step": "command", "text": "::prayers", "expectMessage": "Prayer 0/99, drain resistance 60: none", "comment": "every point gone and every prayer off"},
+  {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

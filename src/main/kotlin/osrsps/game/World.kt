@@ -247,7 +247,7 @@ class World(
         onDeath = { deaths.die(it) },
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
-        multi = multiCombat, protects = prayers::protects,
+        multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -277,7 +277,7 @@ class World(
         teleportToSpawn = { teleport(it, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) },
         openModal = { player, id -> interfaces.openModal(player, FrameSlot.MAINMODAL, id) },
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
-        prayersOff = prayers::deactivateAll, examine = inventoryTab::examine,
+        prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) }, examine = inventoryTab::examine,
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
