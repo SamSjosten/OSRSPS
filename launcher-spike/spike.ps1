@@ -346,7 +346,8 @@ function Start-SpikeClient([string] $name, [switch] $Developer)
 	# RuneLite only takes --developer-mode with assertions on; on in its own class, as RSProx has it.
 	if ($Developer) { $jvmArgs += '-ea:net.runelite.client.RuneLite' }
 	$jvmArgs += @("-Duser.home=$userHome", "-Drunelite.rtconf=$rtconf", '-cp', "$classes;$asmPath", 'SpikeLoader', 'run',
-		$classpathFile, $modulus, '--rlcustom', '--world', $Server, '--stub-log', (Join-Path $runDir "$name-api.txt"), '--out', $out,
+		$classpathFile, $modulus, '--rlcustom', '--world', $Server, '--allow', "${Server}:$GamePort", '--allow', "${Server}:$($GamePort + 1)",
+		'--stub-log', (Join-Path $runDir "$name-api.txt"), '--out', $out,
 		'--main', 'net.runelite.client.RuneLite', '--', '--jav_config', $javConfig, '--disable-telemetry', '--noupdate')
 	if ($Developer) { $jvmArgs += '--developer-mode' }
 	if ($profileName) { $jvmArgs += @('--profile', $profileName) }
@@ -397,18 +398,33 @@ function Start-SpikeClient([string] $name, [switch] $Developer)
 # Every remote end the spike client's TCP connections had, sampled twice a second from before it starts until the stop
 # file appears. OkHttp keeps an idle connection open for 5 minutes, so an HTTP call to anywhere shows up here too; a
 # connection shorter than a sample is in SpikeLoader's connect log instead (Test-Connects), unless it skipped Java's
-# ProxySelector.
-function Start-NetWatch([string] $file)
+# ProxySelector. Every 2 s it also writes each new name in Windows' DNS cache to $dnsFile, since a cached name expires
+# with its TTL, often before the run ends.
+function Start-NetWatch([string] $file, [string] $dnsFile)
 {
 	$stopFile = "$file.stop"
 	$readyFile = "$file.ready"
-	$job = Start-Job -ArgumentList $file, $stopFile, $readyFile -ScriptBlock {
-		param($file, $stopFile, $readyFile)
+	$job = Start-Job -ArgumentList $file, $dnsFile, $stopFile, $readyFile -ScriptBlock {
+		param($file, $dnsFile, $stopFile, $readyFile)
 		$seen = @{}
+		$names = @{}
+		$loop = 0
 		$processId = $null
 		[IO.File]::WriteAllText($readyFile, 'ready')
 		while (-not (Test-Path -LiteralPath $stopFile))
 		{
+			if (($loop++ % 4) -eq 0)
+			{
+				foreach ($entry in @(Get-DnsClientCache -ErrorAction SilentlyContinue))
+				{
+					$n = "$($entry.Entry)".ToLowerInvariant()
+					if ($n -and -not $names.ContainsKey($n))
+					{
+						$names[$n] = $true
+						[IO.File]::AppendAllText($dnsFile, ('{0:o} {1}' -f (Get-Date).ToUniversalTime(), $n) + "`r`n")
+					}
+				}
+			}
 			if (-not $processId)
 			{
 				$jvm = @(Get-CimInstance Win32_Process -Filter "Name = 'javaw.exe'" | Where-Object { $_.CommandLine -match 'SpikeLoader run ' })[0]
@@ -452,23 +468,31 @@ function Stop-NetWatch($watch, [string] $name)
 }
 
 # Names Windows looked up while the client ran (any program's), of Jagex's, RuneLite's or the Wiki's domains. The cache is
-# emptied first when Windows lets this session do that; a name still cached from before can't be told apart.
+# emptied first when Windows lets this session do that; a name still cached from before can't be told apart. Then this
+# script looks up example.com itself: if that name isn't in the cache right after, the cache can't show lookups here.
 function Get-DnsNames
 {
 	try { Clear-DnsClientCache -ErrorAction Stop; $script:dnsFlushed = $true } catch { $script:dnsFlushed = $false }
-	@(Get-DnsClientCache -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Entry)".ToLowerInvariant() } | Sort-Object -Unique)
+	try { [void] [Net.Dns]::GetHostAddresses('example.com') } catch { }
+	$names = @(Get-DnsClientCache -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Entry)".ToLowerInvariant() } | Sort-Object -Unique)
+	$script:dnsSeen = $names -contains 'example.com'
+	$names
 }
 
 function Test-Dns([string] $name, [string[]] $before)
 {
 	$watched = '(^|\.)(jagex\.com|runescape\.com|runelite\.net|runescape\.wiki)$'
-	$now = @(Get-DnsClientCache -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Entry)".ToLowerInvariant() } | Sort-Object -Unique)
-	$new = @($now | Where-Object { $before -notcontains $_ })
+	$sampled = Join-Path $runDir "$name-dns.txt"
+	$during = @(if (Test-Path -LiteralPath $sampled) { [IO.File]::ReadAllLines($sampled) | ForEach-Object { ($_ -split ' ')[-1] } })
+	$now = @(@(Get-DnsClientCache -ErrorAction SilentlyContinue | ForEach-Object { "$($_.Entry)".ToLowerInvariant() }) + $during | Sort-Object -Unique)
+	$new = @($now | Where-Object { $_ -and $before -notcontains $_ })
 	$flagged = @($new | Where-Object { $_ -match $watched })
 	$older = @($before | Where-Object { $_ -match $watched })
 	$note = if ($dnsFlushed) { 'cache emptied first' } elseif ($older.Count -gt 0) { "not emptied; cached from before: $($older -join ', ')" } else { 'not emptied' }
-	if ($flagged.Count -eq 0) { Check "$name.dns" 'pass' "no Jagex, RuneLite or Wiki name looked up ($($new.Count) other new names; $note)" }
-	else { Check "$name.dns" 'fail' ('looked up: ' + ($flagged -join ', ') + "; $note") }
+	$note += $(if ($dnsSeen) { "; this script's own lookup of example.com showed up" } else { "; this script's own lookup of example.com did NOT show up, so the cache may not show the client's" })
+	if ($flagged.Count -gt 0) { Check "$name.dns" 'fail' ('looked up: ' + ($flagged -join ', ') + "; $note") }
+	elseif (-not $dnsSeen) { Check "$name.dns" 'warn' "no Jagex, RuneLite or Wiki name seen ($($new.Count) other new names; $note)" }
+	else { Check "$name.dns" 'pass' "no Jagex, RuneLite or Wiki name looked up ($($new.Count) other new names; $note)" }
 }
 
 function Test-Patched([string] $name)
@@ -498,17 +522,20 @@ function Save-ClientLog([string] $name, [long] $from)
 	Check "$name.log" $(if ($errors.Count -eq 0) { 'pass' } else { 'warn' }) $detail
 }
 
-# What SpikeLoader logged as "[spike] connect <scheme>://<host>:<port><path>": each target Java was asked to connect to,
-# once, however short the connection was.
-function Get-Connects([string] $name)
+# What SpikeLoader logged as "[spike] connect <scheme>://<host>:<port><path>" (let through) or, with -Kind blocked, as
+# "[spike] blocked ..." (refused inside the client, never reached): each target Java was asked to connect to, once,
+# however short the connection was.
+function Get-Connects([string] $name, [string] $Kind = 'connect')
 {
 	$text = Read-Shared (Join-Path $runDir "$name-out.txt")
-	@([regex]::Matches($text, '(?m)^\[spike\] connect (\S+)') | ForEach-Object { $_.Groups[1].Value })
+	@([regex]::Matches($text, "(?m)^\[spike\] $Kind (\S+)") | ForEach-Object { $_.Groups[1].Value })
 }
 
-# Only our server's two ports and loopback may appear.
+# Only our server's two ports and loopback may be let through; SpikeLoader refuses the rest.
 function Test-Connects([string] $name)
 {
+	$blocked = Get-Connects $name -Kind blocked
+	if ($blocked.Count -gt 0) { Check "$name.blocked" 'info' ('refused inside the client, never reached: ' + (@($blocked | Select-Object -First 10) -join ', ')) }
 	$targets = Get-Connects $name
 	$ours = @("${Server}:$GamePort", "${Server}:$($GamePort + 1)")
 	$foreign = @($targets | Where-Object {
@@ -534,9 +561,12 @@ function Test-Gamepack([string] $name, [long] $from, [datetime] $since)
 	# SpikeLoader's own lines name updateVanilla when it patches it.
 	$lines = @($text -split "`r?`n" | Where-Object { $_ -match '(?i)gamepack|vanilla' -and $_ -notmatch '^\[(spike|scan)\] ' } |
 		Select-Object -First 5)
-	# $since is taken just before the client starts, so the jars setup downloaded don't count.
+	# $since is taken just before the client starts, so the jars setup downloaded don't count. A file must also be dated
+	# before now: the test VM has files dated hours ahead of its clock (the test runner's jar was), which no run wrote.
+	$until = (Get-Date).ToUniversalTime().AddMinutes(1)
 	$written = @(Get-ChildItem -LiteralPath $userHome -Recurse -File -Force -ErrorAction SilentlyContinue |
-		Where-Object { $_.LastWriteTimeUtc -ge $since -and $_.Name -match '(?i)\.jar$|gamepack|vanilla|patched' } |
+		Where-Object { $_.Name -match '(?i)\.jar$|gamepack|vanilla|patched' -and
+			(($_.LastWriteTimeUtc -ge $since -and $_.LastWriteTimeUtc -le $until) -or ($_.CreationTimeUtc -ge $since -and $_.CreationTimeUtc -le $until)) } |
 		Select-Object -First 5 | ForEach-Object { $_.FullName })
 	if ($fetched.Count -gt 0) { Check "$name.gamepack" 'fail' ('asked Java for: ' + ($fetched -join ', ')) }
 	if ($written.Count -gt 0) { Check "$name.gamepack" 'fail' ('written during the run: ' + ($written -join ', ')) }
@@ -606,7 +636,7 @@ function Invoke-Dev
 	$dnsBefore = Get-DnsNames
 	$logFrom = Get-LogEnd
 	$since = (Get-Date).ToUniversalTime()
-	$watch = Start-NetWatch (Join-Path $runDir 'dev-net.txt')
+	$watch = Start-NetWatch (Join-Path $runDir 'dev-net.txt') (Join-Path $runDir 'dev-dns.txt')
 	try
 	{
 		Start-SpikeClient 'dev' -Developer
@@ -685,7 +715,7 @@ function Invoke-Normal
 	$dnsBefore = Get-DnsNames
 	$logFrom = Get-LogEnd
 	$since = (Get-Date).ToUniversalTime()
-	$watch = Start-NetWatch (Join-Path $runDir 'normal-net.txt')
+	$watch = Start-NetWatch (Join-Path $runDir 'normal-net.txt') (Join-Path $runDir 'normal-dns.txt')
 	try
 	{
 		Start-SpikeClient 'normal'

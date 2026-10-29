@@ -6,7 +6,8 @@
  *   javac -cp asm-9.11.jar;asm-tree-9.11.jar -d classes SpikeLoader.java
  *   java -cp classes;asm-9.11.jar;asm-tree-9.11.jar SpikeLoader scan <classpath.txt> <modulus> [--rlcustom]
  *   javaw <RuneLite's JVM flags> -cp classes;asm-9.11.jar;asm-tree-9.11.jar SpikeLoader run <classpath.txt> <modulus>
- *       [--rlcustom] [--world <host>] [--stub-log <file>] [--out <file>] [--main <class>] -- <RuneLite's arguments>
+ *       [--rlcustom] [--world <host>] [--allow <host:port>]... [--stub-log <file>] [--out <file>] [--main <class>]
+ *       -- <RuneLite's arguments>
  *
  * classpath.txt lists RuneLite's jars, one path per line, in the bootstrap's order. <modulus> is our server's RSA
  * modulus in hex. --rlcustom moves RuneLite's folder from .runelite to .rlcustom, as RSProx does, so a client started
@@ -16,7 +17,8 @@
  * "scan" reports every patch point it finds and exits 0 only when each required one is there. "run" scans the same way
  * and refuses to start when one is missing. Then it starts RuneLite through PatchingClassLoader, the way RuneLite's own
  * launcher runs it on a Mac, with a stub on 127.0.0.1 for RuneLite's web API: worlds.js answers with our world, every
- * other call is logged and answered 404. Each place Java is asked to connect to is logged as "[spike] connect ...".
+ * other call is logged and answered 404. Each place Java is asked to connect to is logged as "[spike] connect ...",
+ * unless it is neither loopback nor an endpoint --allow names: that one is refused, and logged as "[spike] blocked ...".
  *
  * What it patches (RSProx's recipe, rsprox/runelite-launcher RuneLitePatcher.kt and ClientLoaderPatcher.kt, redone with
  * ASM on classes as they load):
@@ -44,6 +46,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.ProxySelector;
+import java.net.ServerSocket;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.net.URL;
@@ -165,9 +168,10 @@ public class SpikeLoader
 		}
 
 		// Plain sockets, URL connections and OkHttp all ask the default ProxySelector before they connect, so this logs
-		// every place RuneLite and the client connect to, however short the connection; the test VM's connection watch
-		// only sees one that is still open at its next sample. NIO channels don't ask it, and the watch covers those.
-		ProxySelector.setDefault(new ConnectLog(ProxySelector.getDefault(), System.out));
+		// every place RuneLite and the client connect to, however short the connection, and refuses all but our server
+		// and loopback: RuneLite's plugins reach other hosts (its Wiki crowdsourcing plugin, on by default, posts to the
+		// Wiki). NIO channels don't ask it; the test VM's connection watch covers those.
+		ProxySelector.setDefault(new ConnectGuard(ProxySelector.getDefault(), options.allow, System.out));
 
 		// Each is patched as it loads, so a class RuneLite never loads is never patched.
 		scan.patches.values().forEach(patch -> System.out.println("[spike] will patch " + patch.className.replace('/', '.') + ": " + patch.summary()));
@@ -211,15 +215,15 @@ public class SpikeLoader
 		System.exit(1);
 	}
 
-	record Options(String mode, Path classpath, String modulus, boolean rlcustom, String world, Path stubLog, Path out,
-		String mainClass, String[] runeliteArgs)
+	record Options(String mode, Path classpath, String modulus, boolean rlcustom, String world, List<String> allow, Path stubLog,
+		Path out, String mainClass, String[] runeliteArgs)
 	{
 		static Options parse(String[] args)
 		{
 			if (args.length < 3 || !(args[0].equals("scan") || args[0].equals("run")))
 			{
 				System.out.println("usage: SpikeLoader scan|run <classpath.txt> <modulus> [--rlcustom] [--world <host>] "
-					+ "[--stub-log <file>] [--out <file>] [--main <class>] [-- <RuneLite's arguments>]");
+					+ "[--allow <host:port>]... [--stub-log <file>] [--out <file>] [--main <class>] [-- <RuneLite's arguments>]");
 				System.exit(1);
 			}
 			String modulus = args[2];
@@ -229,6 +233,7 @@ public class SpikeLoader
 			}
 			boolean rlcustom = false;
 			String world = "127.0.0.1";
+			List<String> allow = new ArrayList<>();
 			Path stubLog = null;
 			Path out = null;
 			String mainClass = "net.runelite.client.RuneLite";
@@ -239,6 +244,7 @@ public class SpikeLoader
 				{
 					case "--rlcustom" -> rlcustom = true;
 					case "--world" -> world = args[++i];
+					case "--allow" -> allow.add(args[++i].toLowerCase(Locale.ROOT));
 					case "--stub-log" -> stubLog = Path.of(args[++i]);
 					case "--out" -> out = Path.of(args[++i]);
 					case "--main" -> mainClass = args[++i];
@@ -250,7 +256,7 @@ public class SpikeLoader
 					default -> fail("unknown option " + args[i]);
 				}
 			}
-			return new Options(args[0], Path.of(args[1]), modulus, rlcustom, world, stubLog, out, mainClass, rest);
+			return new Options(args[0], Path.of(args[1]), modulus, rlcustom, world, List.copyOf(allow), stubLog, out, mainClass, rest);
 		}
 	}
 
@@ -757,17 +763,48 @@ public class SpikeLoader
 		return counts;
 	}
 
-	/** Logs each scheme, host, port and path Java is asked to connect to, once, and never a query; then asks [next]. */
-	static final class ConnectLog extends ProxySelector
+	/**
+	 * Logs each scheme, host, port and path Java is asked to connect to, once, and never a query. Loopback and the
+	 * endpoints in [allowed] are left to [next]; anything else gets a proxy at [refuser], a listener on 127.0.0.1 that
+	 * closes each connection at once, so the attempt fails straight away and never reaches that host. A URL connection or
+	 * OkHttp then doesn't even look the host's name up, since that is the proxy's job.
+	 */
+	static final class ConnectGuard extends ProxySelector
 	{
 		private final ProxySelector next;
+		private final Set<String> allowed;
 		private final PrintStream log;
 		private final Set<String> seen = ConcurrentHashMap.newKeySet();
+		private final InetSocketAddress refuser;
 
-		ConnectLog(ProxySelector next, PrintStream log)
+		ConnectGuard(ProxySelector next, List<String> allowed, PrintStream log) throws IOException
 		{
 			this.next = next;
+			this.allowed = Set.copyOf(allowed);
 			this.log = log;
+			ServerSocket server = new ServerSocket(0, 50, InetAddress.getLoopbackAddress());
+			refuser = new InetSocketAddress(server.getInetAddress(), server.getLocalPort());
+			Thread thread = new Thread(() ->
+			{
+				while (!server.isClosed())
+				{
+					try
+					{
+						server.accept().close();
+					}
+					catch (IOException e)
+					{
+						// Only this connection is lost; the next one is refused the same way.
+					}
+				}
+			}, "spike-refuser");
+			thread.setDaemon(true);
+			thread.start();
+		}
+
+		static boolean isLoopback(String host)
+		{
+			return host.equals("127.0.0.1") || host.equals("localhost") || host.equals("[::1]");
 		}
 
 		@Override
@@ -784,11 +821,23 @@ public class SpikeLoader
 				case "https", "wss" -> 443;
 				default -> -1;
 			};
-			String where = uri.getHost() != null ? uri.getHost() + ":" + port : uri.getRawAuthority();
+			String host = uri.getHost() == null ? null : uri.getHost().toLowerCase(Locale.ROOT);
+			// OkHttp's own socket to the refuser.
+			if (host != null && isLoopback(host) && port == refuser.getPort())
+			{
+				return List.of(Proxy.NO_PROXY);
+			}
+			boolean ok = host != null && (isLoopback(host) || allowed.contains(host + ":" + port));
+			String where = host != null ? host + ":" + port : uri.getRawAuthority();
 			String target = scheme + "://" + where + (uri.getRawPath() == null ? "" : uri.getRawPath());
 			if (seen.add(target))
 			{
-				log.println("[spike] connect " + target);
+				log.println("[spike] " + (ok ? "connect " : "blocked ") + target);
+			}
+			if (!ok)
+			{
+				// A plain socket only takes a SOCKS proxy; URL connections and OkHttp take an HTTP one.
+				return List.of(new Proxy(scheme.equals("socket") ? Proxy.Type.SOCKS : Proxy.Type.HTTP, refuser));
 			}
 			return next != null ? next.select(uri) : List.of(Proxy.NO_PROXY);
 		}
@@ -796,7 +845,7 @@ public class SpikeLoader
 		@Override
 		public void connectFailed(URI uri, SocketAddress address, IOException e)
 		{
-			if (next != null)
+			if (next != null && !refuser.equals(address))
 			{
 				next.connectFailed(uri, address, e);
 			}

@@ -14,6 +14,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -54,7 +58,10 @@ public class SelfTest
 				package net.runelite.client;
 
 				import java.io.File;
+				import java.io.IOException;
 				import java.io.InputStream;
+				import java.net.HttpURLConnection;
+				import java.net.InetSocketAddress;
 				import java.net.Socket;
 				import java.net.URI;
 				import java.util.Arrays;
@@ -87,12 +94,45 @@ public class SelfTest
 						{
 							System.out.println("FAKE socket=" + socket.isConnected());
 						}
+						// Endpoints the spike must let through (--allow names them) or refuse.
+						for (int i = 0; i + 1 < args.length; i++)
+						{
+							if (args[i].equals("--try"))
+							{
+								tryConnect(args[i + 1]);
+							}
+						}
 						Object client = RuneLite.class.getClassLoader().loadClass("client").getDeclaredConstructor().newInstance();
 						System.out.println("FAKE client=" + ((Supplier<?>) client).get());
 						// RuneLite ends with System.exit; with --return main just returns and the JVM must end by itself.
 						if (!Arrays.asList(args).contains("--return"))
 						{
 							System.exit(0);
+						}
+					}
+
+					static void tryConnect(String at)
+					{
+						int colon = at.lastIndexOf(':');
+						try (Socket socket = new Socket())
+						{
+							socket.connect(new InetSocketAddress(at.substring(0, colon), Integer.parseInt(at.substring(colon + 1))), 3000);
+							System.out.println("FAKE try socket " + at + "=connected");
+						}
+						catch (IOException e)
+						{
+							System.out.println("FAKE try socket " + at + "=" + e.getClass().getSimpleName());
+						}
+						try
+						{
+							HttpURLConnection connection = (HttpURLConnection) URI.create("http://" + at + "/try").toURL().openConnection();
+							connection.setConnectTimeout(3000);
+							connection.setReadTimeout(1000);
+							System.out.println("FAKE try url " + at + "=" + connection.getResponseCode());
+						}
+						catch (IOException e)
+						{
+							System.out.println("FAKE try url " + at + "=" + e.getClass().getSimpleName());
 						}
 					}
 
@@ -222,6 +262,12 @@ public class SelfTest
 		Files.writeString(noInjected, client + "\n");
 		Path stubLog = work.resolve("stub.log");
 		Path out = work.resolve("out.txt");
+		// Two listeners on loopback addresses that the spike doesn't take for loopback (it takes 127.0.0.1 only): the fake
+		// must reach the one --allow names, and be refused before it reaches the other.
+		ServerSocket allowed = new ServerSocket(0, 50, InetAddress.getByName("127.0.0.2"));
+		ServerSocket other = new ServerSocket(0, 50, InetAddress.getByName("127.0.0.3"));
+		String allowedAt = "127.0.0.2:" + allowed.getLocalPort();
+		String otherAt = "127.0.0.3:" + other.getLocalPort();
 
 		String scan = spike(spike, asm, work, List.of("scan", classpath.toString(), ours, "--rlcustom"), 0);
 		check("scan finds the modulus in the one class with a hex constant", scan.contains("[scan] modulus: class client, the client's key is 1024 bits"));
@@ -233,7 +279,8 @@ public class SelfTest
 		check("scan passes", scan.contains("every required patch point is there"));
 
 		String console = spike(spike, asm, work, List.of("run", classpath.toString(), ours, "--rlcustom", "--world", "192.168.0.210",
-			"--stub-log", stubLog.toString(), "--out", out.toString(), "--", "--jav_config", "http://192.168.0.210:43595/jav_config.ws", "--developer-mode"), 0);
+			"--allow", allowedAt, "--stub-log", stubLog.toString(), "--out", out.toString(), "--", "--jav_config",
+			"http://192.168.0.210:43595/jav_config.ws", "--developer-mode", "--try", allowedAt, "--try", otherAt), 0);
 		String run = Files.exists(out) ? Files.readString(out) : "";
 		// The JVM's own notes (such as "Picked up JAVA_TOOL_OPTIONS") still go to the console.
 		check("with --out the spike's and RuneLite's lines go to the file", console.lines().noneMatch(line -> line.startsWith("[") || line.startsWith("FAKE"))
@@ -263,6 +310,14 @@ public class SelfTest
 			&& run.indexOf("[spike] connect http://") < run.indexOf("FAKE worlds="));
 		check("a plain socket is logged", run.contains("FAKE socket=true")
 			&& Pattern.compile("(?m)^\\[spike\\] connect socket://127\\.0\\.0\\.1:\\d+$").matcher(run).find());
+		check("a socket to an endpoint --allow names goes through", run.contains("FAKE try socket " + allowedAt + "=connected")
+			&& run.lines().anyMatch(("[spike] connect socket://" + allowedAt)::equals));
+		check("a socket to anywhere else is refused", run.lines().anyMatch(("[spike] blocked socket://" + otherAt)::equals)
+			&& run.contains("FAKE try socket " + otherAt + "=") && !run.contains("FAKE try socket " + otherAt + "=connected"));
+		check("a URL connection to anywhere else is refused", run.lines().anyMatch(("[spike] blocked http://" + otherAt + "/try")::equals)
+			&& run.contains("FAKE try url " + otherAt + "=") && !run.contains("FAKE try url " + otherAt + "=200"));
+		check("the endpoint --allow names was reached", accepted(allowed) > 0);
+		check("nothing reached the endpoint that isn't allowed", accepted(other) == 0);
 
 		String plain = spike(spike, asm, work, List.of("run", classpath.toString(), ours, "--world", "192.168.0.210", "--"), 0);
 		check("without --rlcustom the folder stays .runelite", plain.contains("FAKE dir=.runelite"));
@@ -279,6 +334,27 @@ public class SelfTest
 
 		System.out.println(failures == 0 ? "SelfTest: all checks passed" : "SelfTest: " + failures + " check(s) FAILED");
 		System.exit(failures == 0 ? 0 : 1);
+	}
+
+	/** How many connections reached [server] by now; closes it. */
+	static int accepted(ServerSocket server) throws IOException
+	{
+		int count = 0;
+		try (server)
+		{
+			server.setSoTimeout(200);
+			while (true)
+			{
+				try (Socket socket = server.accept())
+				{
+					count++;
+				}
+				catch (SocketTimeoutException e)
+				{
+					return count;
+				}
+			}
+		}
 	}
 
 	static void check(String what, boolean ok)
