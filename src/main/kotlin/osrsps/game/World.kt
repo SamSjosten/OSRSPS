@@ -556,23 +556,59 @@ class World(
         locs.process()
         follows.startMovement(players.filterNotNull())
         for (player in players) {
-            if (player == null) continue
-            interfaces.processFrameMove(player, tick)
-            // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
-            // after them for a follow that ended in them.
-            sendFace(player)
-            follows.process(player, move = { move(player) }) { interactions.process(player) { move(player) } }
-            sendFace(player)
-            // A loc or obj used after the player's step (a ladder on arrival) can teleport them once move() has run.
-            if (player.teleported) {
-                finishTeleport(player)
-                rebuildIfNeeded(player)
-            }
-            player.infos.updateRootCoord(player.level, player.x, player.z)
+            if (player == null || player.loggedOut) continue
+            perPlayer(player, "movement") { movePhase(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
         sendUpdates(tickEnd = true)
+    }
+
+    /** One player's part of the movement phase. */
+    private fun movePhase(player: Player) {
+        interfaces.processFrameMove(player, tick)
+        // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
+        // after them for a follow that ended in them.
+        sendFace(player)
+        follows.process(player, move = { move(player) }) { interactions.process(player) { move(player) } }
+        sendFace(player)
+        // A loc or obj used after the player's step (a ladder on arrival) can teleport them once move() has run.
+        if (player.teleported) {
+            finishTeleport(player)
+            rebuildIfNeeded(player)
+        }
+        player.infos.updateRootCoord(player.level, player.x, player.z)
+    }
+
+    /**
+     * Runs [part] of a tick for one [player], so a failure costs only them: once the shared protocol state has moved on,
+     * whatever failed for one player would otherwise stop the rest of the tick for everyone after them, every tick (the
+     * exploit review found two ways to cause that). The player is kicked, as their state can't be trusted.
+     */
+    private inline fun perPlayer(player: Player, part: String, action: () -> Unit) {
+        try {
+            action()
+        } catch (e: Exception) {
+            logger.error(e) { "The $part of tick $tick failed for ${player.username}; kicking them" }
+            kick(player)
+        }
+    }
+
+    /** Drops [player]'s connection and removes them at the start of the next cycle, as a logout does. */
+    private fun kick(player: Player) {
+        player.loggedOut = true
+        // The save that follows would keep a place the map can't hold, and a save like that refuses to load.
+        if (player.level !in 0 until LEVELS || player.x !in 0 until MAP_SIZE || player.z !in 0 until MAP_SIZE) {
+            logger.warn { "${player.username} was at ${player.x}, ${player.z}, ${player.level}; saving them at the spawn" }
+            player.x = SPAWN_X
+            player.z = SPAWN_Z
+            player.level = SPAWN_LEVEL
+        }
+        try {
+            player.session.requestClose()
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't close ${player.username}'s connection" }
+        }
     }
 
     /**
@@ -589,7 +625,13 @@ class World(
     private fun readInput(ticking: Boolean) {
         // Leavers go first, so their save is written before a login on the same name reads it.
         for (player in players) {
-            if (player != null && (player.loggedOut || (player.connectionLost && lingerOver(player)))) remove(player)
+            if (player != null && (player.loggedOut || (player.connectionLost && lingerOver(player)))) {
+                try {
+                    remove(player)
+                } catch (e: Exception) {
+                    logger.error(e) { "Removing ${player.username} failed" }
+                }
+            }
         }
         acceptLogins()
         for (player in players) {
@@ -606,19 +648,21 @@ class World(
         // step.
         for (player in players) {
             if (player == null) continue
-            equipmentTab.updateVars(player)
-            sendVars(player)
-            sendStats(player)
-            sendEffects(player)
-            inventoryTab.flush(player)
-            equipmentTab.flush(player)
-            bankScreen.flush(player)
+            perPlayer(player, "updates") {
+                equipmentTab.updateVars(player)
+                sendVars(player)
+                sendStats(player)
+                sendEffects(player)
+                inventoryTab.flush(player)
+                equipmentTab.flush(player)
+                bankScreen.flush(player)
+            }
         }
         for (npc in npcs.all) sendNpcEffects(npc)
         network.infoProtocols.update()
         try {
             for (player in players) {
-                if (player != null) sendInfo(player, tickEnd)
+                if (player != null) perPlayer(player, "info") { sendInfo(player, tickEnd) }
             }
         } finally {
             // Even after a failure, so a graphic is never sent twice and the shared buffers are always freed.
@@ -1067,7 +1111,12 @@ class World(
     }
 
     /** Moves [player] straight to the tile, dropping any route. The client is told at the end of the tick. */
-    fun teleport(player: Player, x: Int, z: Int, level: Int) {
+    fun teleport(player: Player, x: Int, z: Int, level: Int): Boolean {
+        // A tile off the map would fail the player's info every tick from here on; see [kick].
+        if (level !in 0 until LEVELS || x !in 0 until MAP_SIZE || z !in 0 until MAP_SIZE) {
+            logger.error(IllegalArgumentException("teleport to $x, $z, $level")) { "Refused to teleport ${player.username} off the map" }
+            return false
+        }
         player.waypoints.clear()
         player.interaction = null
         npcInteractions.leave(player)
@@ -1077,6 +1126,7 @@ class World(
         // Anyone following them heads for the tile west of where they land, as after a login (RSMod).
         player.lastStepFrom = null
         player.teleported = true
+        return true
     }
 
     /** Whether the cache has terrain for the map square holding [x], [z]. */
@@ -1407,20 +1457,28 @@ class World(
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
-        // Nobody is saved dead: a leaver's death finishes now, grave and all.
-        if (player.dead) deaths.respawn(player)
-        npcs.forget(player, scripts::busy)
-        save(player)
-        network.infoProtocols.dealloc(player.infos)
-        player.session.clear()
-        players[player.index] = null
-        freedSlots[player.index] = cycles
+        try {
+            // Nobody is saved dead: a leaver's death finishes now, grave and all.
+            if (player.dead) deaths.respawn(player)
+            npcs.forget(player, scripts::busy)
+            save(player)
+        } finally {
+            // Whatever failed above, the slot is freed, or the removal would fail again every cycle.
+            players[player.index] = null
+            freedSlots[player.index] = cycles
+            network.infoProtocols.dealloc(player.infos)
+            player.session.clear()
+        }
         logger.info { "${player.username} logged out" + if (player.loggedOut) "" else " (connection lost)" }
     }
 
     companion object {
         const val TICK_MILLIS = 600L
         const val MAX_PLAYERS = 2048
+
+        /** Levels are 0 to 3, and x and z 0 to 16383 (the client's 14 bits). */
+        const val LEVELS = 4
+        const val MAP_SIZE = 1 shl 14
 
         /** The logout tab and its "Click here to logout" button, logout:logout. */
         const val LOGOUT_TAB = 182

@@ -121,13 +121,13 @@ fun registerLumbridgeCastle(world: World) {
         world.handlers.onLoc(STAIRS_TOP, 1) { op -> climbStairs(world, op.loc!!, -1) }
         world.handlers.onLoc(STAIRS_TOP, SKIP_FLOOR) { op -> climbStairs(world, op.loc!!, -2) }
 
-        world.handlers.onLoc(LADDER_BOTTOM, 1) { climbLadder(world, 1, Climbing.ANIM_REACH_FOR_LADDER) }
-        world.handlers.onLoc(LADDER_MIDDLE, CLIMB) { climbLadderMenu(world) }
-        world.handlers.onLoc(LADDER_MIDDLE, CLIMB_UP) { climbLadder(world, 1, Climbing.ANIM_REACH_FOR_LADDER) }
-        world.handlers.onLoc(LADDER_MIDDLE, CLIMB_DOWN) { climbLadder(world, -1, Climbing.ANIM_REACH_FOR_LADDER) }
-        world.handlers.onLoc(LADDER_TOP, 1) { climbLadder(world, -1, Climbing.ANIM_PICKUP_FLOOR) }
+        world.handlers.onLoc(LADDER_BOTTOM, 1) { op -> climbLadder(world, op.loc!!, 1, Climbing.ANIM_REACH_FOR_LADDER) }
+        world.handlers.onLoc(LADDER_MIDDLE, CLIMB) { op -> climbLadderMenu(world, op.loc!!) }
+        world.handlers.onLoc(LADDER_MIDDLE, CLIMB_UP) { op -> climbLadder(world, op.loc!!, 1, Climbing.ANIM_REACH_FOR_LADDER) }
+        world.handlers.onLoc(LADDER_MIDDLE, CLIMB_DOWN) { op -> climbLadder(world, op.loc!!, -1, Climbing.ANIM_REACH_FOR_LADDER) }
+        world.handlers.onLoc(LADDER_TOP, 1) { op -> climbLadder(world, op.loc!!, -1, Climbing.ANIM_PICKUP_FLOOR) }
 
-        world.handlers.onLoc(KITCHEN_TRAPDOOR, 1) { climbDungeonLadder(world, down = true, anim = Climbing.ANIM_PICKUP_FLOOR) }
-        world.handlers.onLoc(CELLAR_LADDER, 1) { climbDungeonLadder(world, down = false, anim = Climbing.ANIM_REACH_FOR_LADDER) }
+        world.handlers.onLoc(KITCHEN_TRAPDOOR, 1) { op -> climbDungeonLadder(world, op.loc!!, down = true, anim = Climbing.ANIM_PICKUP_FLOOR) }
+        world.handlers.onLoc(CELLAR_LADDER, 1) { op -> climbDungeonLadder(world, op.loc!!, down = false, anim = Climbing.ANIM_REACH_FOR_LADDER) }
     }
 }
