@@ -5,19 +5,25 @@ Starts the test client with nobody at the screen and waits until it is logged in
   .\test-runner\launch\start-client.ps1 -Restart    # close RSProx and RuneLite first, e.g. after a plugin jar swap
   .\test-runner\launch\start-client.ps1 -Commit 3c1b194   # first wait until the server runs that commit
   .\test-runner\launch\start-client.ps1 -Restart -Launcher [-LauncherVersion 0.1.0]   # through the Odin's Gate launcher
+  .\test-runner\launch\start-client.ps1 -Restart -Launcher -GamePort 44594   # on the staging server (deploy/README.md)
 
 Without -Launcher the client is RSProx's; with it, the Odin's Gate launcher's (launcher/README.md), started by the
 OdinsGate scheduled task (OdinsGate.cmd) and followed through its status file. The launcher's RuneLite has its own home
 under C:\RSPS\launcher\home, so unless given, -Task is OdinsGate and -Tests, -Results, -ClientLog and -Profiles move
 under C:\RSPS\launcher\home\.runelite. -LauncherVersion fails the run at once when the launcher that starts is
-another version, so a jar swap that didn't take is caught before the game runs.
+another version, so a jar swap that didn't take is caught before the game runs. -Server and -GamePort name the server
+to wait for and, with -Launcher, to start the client on: the live server unless given, the staging server with
+-GamePort 44594. The launcher gets it as --server through the launch-args file OdinsGate.cmd reads (a scheduled task's
+command is fixed), and dials it with the live key, which the staging server shares. Without -Launcher another server
+is refused: RSProx's client goes wherever its OSRSPS target says, the live server.
 
 1. Waits for our server to answer on its game port and jav_config (after a redeploy the server takes a while). With
    -Commit, also until its /version (the commit of main deploy/auto-deploy.sh deployed) starts with that commit.
 2. Closes RSProx's, the launcher's and RuneLite's JVMs when -Restart is given, when RSProx or the launcher is open
-   without a RuneLite (nobody pressed Launch Session, or the launcher is still downloading), or when the RuneLite that
-   runs is the other one's (RSProx's with -Launcher, the launcher's without). With the right RuneLite already running
-   and no -Restart, it only does step 4. RuneLite is asked to close its window first, so plugins see the
+   without a RuneLite (nobody pressed Launch Session, or the launcher is still downloading), when the RuneLite that
+   runs is the other one's (RSProx's with -Launcher, the launcher's without), or when the launcher's RuneLite runs on
+   another server than the one asked (its command line says which). With the right RuneLite already running and no
+   -Restart, it only does step 4. RuneLite is asked to close its window first, so plugins see the
    client exit (the Tick Recorder writes its stop line) and the launcher exits by itself; one still running after
    -CloseSeconds is killed. Then each RuneLite profile in -Profiles gets Exit warning set to Never, as the warning
    popup would keep the next close from finishing.
@@ -44,6 +50,7 @@ param(
 	[string] $LauncherVersion,
 	# With -Launcher: the launcher's data folder (OdinsGate.cmd's --home), holding status.json and the game's home.
 	[string] $LauncherHome = 'C:\RSPS\launcher',
+	# The server to wait for and, with -Launcher, to start the client on: the live server, or 44594 for the staging one.
 	[string] $Server = '192.168.0.210',
 	[int] $GamePort = 43594,
 	# RSProx, or OdinsGate with -Launcher.
@@ -73,6 +80,8 @@ if ($Launcher)
 	if (-not $PSBoundParameters.ContainsKey('ClientLog')) { $ClientLog = Join-Path $runeliteDir 'logs\client.log' }
 	if (-not $PSBoundParameters.ContainsKey('Profiles')) { $Profiles = Join-Path $runeliteDir 'profiles2' }
 }
+# What the launcher is given for the server: nothing for the live one, the parameters' defaults.
+$serverArgs = Get-LauncherServerArgs $Server $GamePort '192.168.0.210' 43594
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 function Reset-Deadline { $script:deadline = (Get-Date).AddSeconds($TimeoutSeconds) }
 
@@ -105,6 +114,10 @@ function Get-AutoLoginLines
 
 function Step([string] $text) { Write-Host ("[{0:HH:mm:ss}] {1}" -f (Get-Date), $text) }
 function Fail([string] $text) { Step "FAILED: $text"; exit 1 }
+if ($serverArgs -and -not $Launcher)
+{
+	Fail "RSProx's client goes to its OSRSPS target, the live server; ${Server}:$GamePort is reached with -Launcher"
+}
 
 function Test-Port([string] $hostName, [int] $port)
 {
@@ -160,6 +173,16 @@ $ours = if ($Launcher) { $jvms.Launcher.Count -gt 0 } else { $jvms.Launcher.Coun
 if ($jvms.RuneLite.Count -gt 0 -and -not $ours)
 {
 	Step "The RuneLite running (pid $($jvms.RuneLite.ProcessId -join ', ')) is $(if ($Launcher) { "RSProx's" } else { "the launcher's" }); restarting"
+}
+elseif ($Launcher)
+{
+	# The launcher's client is started for one server (its --server, or the manifest's); another one asked is a restart.
+	$elsewhere = @($jvms.RuneLite | Where-Object { (Get-ClientServer $_) -ne "${Server}:$GamePort" })
+	if ($elsewhere.Count -gt 0)
+	{
+		Step "The RuneLite running (pid $($elsewhere.ProcessId -join ', ')) is on $(Get-ClientServer $elsewhere[0]), not ${Server}:$GamePort; restarting"
+		$ours = $false
+	}
 }
 if ($jvms.RuneLite.Count -gt 0 -and $ours -and -not $Restart)
 {
@@ -227,6 +250,13 @@ else
 	{
 		if ((Get-Date) -gt $deadline) { Fail "scheduled task $Task still counts as running" }
 		Start-Sleep -Seconds 1
+	}
+	if ($Launcher)
+	{
+		# The task's command is fixed: OdinsGate.cmd adds what this file says, the --server for another server than
+		# the manifest's, and nothing (no file) for the live one.
+		Set-LaunchArgsFile (Join-Path $LauncherHome 'launch-args.txt') $serverArgs
+		if ($serverArgs) { Step "The launcher is pointed at ${Server}:$GamePort ($serverArgs)" }
 	}
 	$launchedAfter = Get-Date
 	Step "Running scheduled task $Task"

@@ -1,0 +1,30 @@
+# The staging server on VM 214: a second compose project (osrsps-staging) next to the live one, run by
+# deploy/staging.sh from any branch or commit, on the LAN-only ports 44594 (game) and 44595 (HTTP), with a data folder
+# of its own. Written on its own rather than over compose.yaml, so that nothing of the live server's setup (its ports,
+# relay, deploy state) can leak in through a merge of the two files.
+# Paths are relative to the project directory the script passes, .staging/ in the live checkout: src/ is the git
+# worktree at the staged commit, whose Dockerfile builds the image, and data/ the staging server's data folder.
+services:
+  osrsps:
+    build: ./src
+    restart: unless-stopped
+    ports:
+      - "44594:44594"
+      - "44595:44595"
+    # The server listens on the ports it is reached by, so the client files it serves name them.
+    command: ["serve", "44594"]
+    environment:
+      # The same heap as the live server's. VM 214 has about 2 GB: with both servers up, an image build is what the
+      # kernel kills first when memory runs out (the Dockerfile raises the build's OOM score), then this server (the
+      # default score), and the live server (-500 in compose.yaml) last.
+      JAVA_OPTS: -Xmx512m
+      OSRSPS_PUBLIC_HOST: 192.168.0.210
+      # Only the LAN reaches these ports: no relay, so no PROXY header.
+      OSRSPS_PROXY_PROTOCOL: "off"
+      # The live admins. A listed name can't be claimed at a login, so staging.sh copies the live accounts (names and
+      # password hashes) into the staging data: the same logins as live, with fresh characters.
+      OSRSPS_ADMINS: "Swaggy,test,test2"
+      # The staged commit, served at http://192.168.0.210:44595/version; deploy/staging.sh sets it.
+      OSRSPS_COMMIT: ${OSRSPS_COMMIT:-unknown}
+    volumes:
+      - ./data:/data
