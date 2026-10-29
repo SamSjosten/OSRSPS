@@ -201,7 +201,8 @@ only read the world or only show you something. Commands that touch only you (it
 are admin ones too: in an ordinary player's hands they make items and skip the game's rules. Anyone else is told so,
 and the list an unknown command prints leaves them out. A dead player can run only the **everyone** ones. With
 `OSRSPS_ADMINS` unset, everyone is an admin, as before, and the server log warns. Names are claimed with a password at
-first login (see Accounts), so log in as each admin name before anyone else joins.
+first login (see Accounts), but a name in `OSRSPS_ADMINS` can't be: a stranger logging in first as an admin name nobody
+has used would otherwise become an admin. So log in as a name first, then add it to the list.
 
 | Command | What it does |
 |---------|--------------|
@@ -267,6 +268,42 @@ the Hitpoints skill's current level (`Player.hitpoints`).
 | New account: 10 Hitpoints, 1 elsewhere | OSRS Wiki |
 | A level gained while boosted or drained raises the current level by one | inferred, not measured |
 | The stat packet's invisible boost equals the current level | guessed |
+
+A level gained through XP (not `::setlevel`) shows the level-up (`game/skill/LevelUps.kt`): a chat message, the
+fireworks, the skill's jingle and the levelup_display box in the chatbox, then the same for the combat level when it went
+up too. The words are in the dialogue file under `levelup.*`.
+
+| Level-up behaviour | Source |
+|--------------------|--------|
+| levelup_display 233: text1, text2, continue 3, one hidden layer per skill (woodcutting 53, combat 55) | 241 cache via osrs-dumps |
+| Fireworks: spotanim levelup_anim 199, levelup_99_anim 1388 at 99 | 241 gamevals |
+| Jingles: each skill's "Level Up!", its "(Unlocks)" version (the next id) at levels in skill_features (db table 213) | OSRS Wiki jingle pages; ids for Prayer, Ranged, Runecraft, Slayer and Thieving inferred from the alphabetical run |
+| Order: message, fireworks, jingle, box; combat level's box after the skill's | 2004Scape levelup script; combat order guessed |
+| Queued as a normal script in the script phase after the XP; fireworks height 124; no Sailing jingle | guessed |
+| The "Level N Skill: unlock" chat lines live adds | not sent yet |
+
+Gathering actions share a skill clock (`Player.actionDelay`, `game/skill/SkillClock.kt`): a handler re-runs its own loc
+option every tick with `World.repeatOp` (RS2's `p_oploc`) and rolls only on the ticks the clock comes due, so a new
+click doesn't reset the cycle. Rolls use the Wiki's skilling success formula (`SuccessRoll`, a low and high value per
+action out of 256), and `SkillTools` picks the best axe or pickaxe the player can use from the backpack or weapon slot.
+The shared clock is the 2004Scape project's `%action_delay` model, inferred to hold on OSRS from tick manipulation.
+
+### Woodcutting
+
+Chop down on a tree, or an axe used on one, chops it (`game/skill/Woodcutting.kt`, data in
+`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, maple, yew and magic tree in
+the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the dialogue file.
+
+| Woodcutting behaviour | Source |
+|-----------------------|--------|
+| Levels, XP, a roll every 4 ticks, respawn times, tree timers (oak 45 ticks, willow 50, maple 100, yew 190, magic 390) | OSRS Wiki tree pages |
+| Each tree's success pair per axe tier, checked against the Wiki charts' points (`WoodcuttingDataTest`) | OSRS Wiki tree pages; crystal pairs picked inside the range the charts allow |
+| Regular, dead and evergreen trees fall after one log and grow back in 60 to 100 ticks | OSRS Wiki |
+| Best usable axe from the backpack or weapon slot picks the animation and pair | OSRS Wiki axe pages; animations from the 241 gamevals |
+| Which stump each tree becomes | RSMod's table, matched by gameval name (not in the cache) |
+| Swing message on the click, the animation again on each roll, the checks each tick | 2004Scape woodcut script |
+| The timer runs down one a tick while anyone chops and back up one a tick while nobody does; the tree falls at the first log after it runs out | guessed (the Wiki gives only totals) |
+| No chopping sound | the 241 synth ids have no names to find it by |
 
 ## Items and inventory
 
@@ -353,12 +390,66 @@ their prices and stock are in `src/main/resources/shops.json` (the OSRS Wiki's s
 | Each stocked item comes back (or goes down when overstocked) by one every its restock time, as the Wiki gives it; an item the shop doesn't stock goes down by one every 100 ticks and its slot goes at 0, the later items moving up. A sold-out stocked item stays at 0 | the Wiki's restock times; the rest guessed (RSMod's 100 ticks) |
 | Messages: "Pot: currently costs 1 coin.", "...: shop will buy for N coins.", "The shop has run out of stock.", "You don't have enough coins.", "You don't have enough inventory space.", "The shop has run out of space.", "You can't sell this item to a shop.", "You can't sell this item.", "You can't sell this item to this shop." | 2004Scape (RS2), "coins" for its "gp" as RSMod has it; not checked against live |
 
-Not built yet: the shop keepers' Talk-to (the town centre's NPCs, next step), Bob's Repair, ironman stock, noted
-buying (Leagues only) and every other shop.
+Not built yet: Bob's Repair (he says there is nothing to repair, as there is no degrading equipment yet), ironman
+stock, noted buying (Leagues only) and every other shop.
 
 Check: `::item coins 100` in the Lumbridge General Store, Trade with the Shop keeper, Buy 1 on the pot: 99 coins. Sell
 it back for nothing (40% of 1). The Quantity 5 button makes a click buy five. At Bob's, a pot can't be sold and a
 bronze axe can (`test-runner/examples/lumbridge-shops.json`).
+
+## Lumbridge town centre
+
+The town west of the River Lum, outside the castle: `lumbridge.json` has its NPCs on RSMod's spawn tiles (rev 233),
+and the conversations are in `game/content/` (`LumbridgeShopkeepers.kt`, `ShearedRam.kt`, `DonieAndGee.kt`,
+`LumbridgeTutors.kt`, `LumbridgeTownsfolk.kt`), each from the OSRS Wiki's transcript as a player with every quest done
+sees it. The words are in the dialogue file, like every other line.
+
+| Who | What they do |
+|-----|--------------|
+| The General Store's Shop keeper and Shop assistant, Bob | Talk-to; "what do you sell" opens their shop. Bob's Repair and an item used on him answer that nothing needs repairing |
+| The Sheared Ram's Bartender | Sells a beer for 2 coins |
+| Arthur the Clue Hunter | Explains every clue type (three pages of them) and turns clue vessels on and off (varbit 9365) |
+| Donie and Gee | One of four opening menus at random, the quests, Lumbridge, and Gee's small monsters |
+| The Cooking tutor, Smithing apprentice and Woodsman tutor | Advice by your level; the Woodsman tutor gives an axe and tinderbox when you have none and sells the Woodcutting cape at 99 (trimmed with another 99) |
+| Abigaila, upstairs in the General Store | Her story; her scrying ball refuses a player carrying or wearing anything (the Theatre of Blood isn't built) |
+| The Ironman tutor | Explains Ironman; this game has no Ironmen, so his armour and the account modes are refused or end the talk |
+| Men, women and rats | As in the castle |
+
+| Behaviour | Source |
+|-----------|--------|
+| Every line, option and its order, and which ones the levels pick | OSRS Wiki transcripts, read 2026-10-29 |
+| The NPCs' tiles | RSMod's Lumbridge spawns (rev 233) |
+| The menus' paging, Donie and Gee's four openings picked at random, the tutors' level bands | RSMod's scripts for these NPCs |
+| Every chathead expression the Wiki doesn't give, that "what do you sell" opens the shop after the last line | guessed |
+
+Not built yet: Veos and Barfy Bill (quest and travel NPCs), the overhead lines some of them say, the Theatre of Blood
+and account modes, Bob's Repair.
+
+Check: `test-runner/examples/lumbridge-talk-*.json` talk to each of them through every option with `::keys on`, so
+the dialogue shows each line's key.
+
+## Fred's farm
+
+North-west of the castle, in `npc-spawns/lumbridge-farms.json` on RSMod's tiles: Fred the Farmer, his sheep pen's
+sheep, rams and lambs, and the 33 chickens of the Wiki's Lumbridge West Farm. The code is `game/content/FredsFarm.kt`;
+chickens and rams fight and drop through `npc-combat.json` and `npc-drops.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Fred's talk after Sheep Shearer: what you're doing on his land, then something to kill or being lost | OSRS Wiki, Transcript:Fred the Farmer, read 2026-10-29 |
+| Shear (or shears used on a sheep) needs shears, plays human_shearing, and after two ticks gives a wool (dropped at your feet when the backpack is full); the sheep shows as its sheared type for 50 ticks, then grows its wool back. It never fails | RSMod's sheep script; the Wiki's Sheep page (50 ticks, no failure since 27 October 2019) |
+| A sheep shows as its sheared type through the NPC info's transformation block, for every player; its options and examine are the sheared type's meanwhile (`Npcs.transform`) | RSMod's npcChangeType |
+| Chickens: level 1, 3 hitpoints, stab for 0, back in 25 ticks; always bones and raw chicken, 5 feathers 64/128, 15 feathers 32/128, a beginner clue 1/300 | OSRS Wiki, Chicken |
+| Rams: level 2, 8 hitpoints, crush for 1, back in 45 ticks, weak to fire (20%); always bones | OSRS Wiki, Ram |
+| Pick on an onion takes it for 50 ticks and gives an onion, or says there's no room | the 2004Scape project's pickables script; the Wiki's Onion page (fields respawn in 30 seconds) |
+| Messages: "You need a set of shears to do this.", "You get some wool.", "This sheep has already been shorn.", "You pick an onion.", "You don't have room for this onion." | RSMod and the 2004Scape project, not checked against live |
+| Fred's expressions, the chickens' and rams' fight animations (by name), every wander range (5) | guessed |
+
+Not built yet: the onion seed members sometimes get from a field, the sheep's "Baa!", The Thing and the penguin of Cold
+War (and Fred's option about The Thing), the farmers, and the ducks (the Groats' farm step).
+
+Check: `test-runner/examples/lumbridge-freds-farm.json` talks to Fred, picks an onion, shears a sheep and kills
+chickens for their feathers.
 
 ## Equipment
 
@@ -814,7 +905,10 @@ inventory's, equipment's and bank's slots. Code is in `src/main/kotlin/osrsps/ga
 
 | Rule | Source |
 |------|--------|
-| Saved on logout, when a lost connection gives up, every 3 minutes of real time (paused or not) and on shutdown (skipped if the game thread is stuck, leaving the last autosave) | ours |
+| Saved on logout, when a lost connection gives up, every 3 minutes of real time (paused or not) and on shutdown (skipped if the game thread is stuck even after an interrupt, leaving the last autosave) | ours |
+| Taking an item another player put down saves both of them at once, so a crash can't leave it with both | ours |
+| A save the disk refuses is kept in memory, loaded in place of the file at the next login, and written again every 3 minutes until it goes | ours |
+| A save is forced to the disk before it replaces the old one, so a power cut leaves one or the other whole | ours |
 | A save that can't be read refuses the login rather than starting afresh and overwriting it | ours |
 | A dropped connection keeps the player in the world for 100 ticks (60 s) for the client to reconnect | wiki (Logout button) gives the 60 s for combat; outside combat is inferred |
 | Logging in while that player is still in the world, waiting for a reconnect included, gets "already logged in" | inferred from live |
@@ -829,12 +923,16 @@ anything else gets the client's "Invalid username or password". Names match the 
 one account. This is our own rule for a shared test server, not live's: live accounts come from Jagex's login servers.
 Launcher (token) logins are refused, as only Jagex can check a token. A name with an `@` in it, as an email address has,
 is refused with "Invalid username or password" before it is logged, hashed or saved: it is most likely someone's real
-game login, typed where a made-up name belongs.
+game login, typed where a made-up name belongs. Any other name must keep to live's display name rules: 1 to 12
+letters, numbers, spaces, hyphens and underscores (refused the same way, and not logged either), so no name can carry
+look-alike letters or a line break into the log. A name listed in `OSRSPS_ADMINS` with no account yet can't be claimed;
+claim it first, then list it.
 
 Each account is `data/accounts/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/accounts/`), holding a salted
 PBKDF2-HMAC-SHA256 hash (600,000 rounds), never the password. Checking takes a fraction of a second, so it runs on its
 own login thread, not the game thread. A save with no account file (every save from before accounts) is claimed by its
-next login. To reset a forgotten password, delete that name's file on the VM; the next login claims it again:
+next login. To reset a forgotten password, delete that name's file on the VM; the next login claims it again (an
+admin's name must come off `OSRSPS_ADMINS` for that login, then go back on):
 
 ```bash
 rm /srv/rsps/OSRSPS/data/accounts/<name>.json

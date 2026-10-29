@@ -1,0 +1,266 @@
+{
+  "about": "Woodcutting, as the OSRS Wiki's tree and axe pages give it (read 2026-10-29). Each tree's success pairs (low, high out of 256, see SuccessRoll) are per axe tier; each was checked against the Wiki chart's points for that tree and axe (WoodcuttingDataTest). Where the chart's points allow a range (crystal axes mostly) a pair inside it was picked. respawn is in ticks, low and high, picked at random; despawn is the tree timer in ticks, null for trees that fall after one log. Ids are the 241 cache's; names are its gamevals. Which stump each tree turns into isn't in the cache: these follow the RSMod project's table, every pair checked to match by gameval name.",
+  "axes": [
+    {"obj": 23673, "name": "crystal_axe", "level": 71, "anim": 8324, "tier": "crystal"},
+    {"obj": 20011, "name": "3a_axe", "level": 61, "anim": 7264, "tier": "dragon"},
+    {"obj": 13241, "name": "infernal_axe", "level": 61, "anim": 2117, "tier": "dragon"},
+    {"obj": 6739, "name": "dragon_axe", "level": 61, "anim": 2846, "tier": "dragon"},
+    {"obj": 23279, "name": "trail_gilded_axe", "level": 41, "anim": 8303, "tier": "rune"},
+    {"obj": 1359, "name": "rune_axe", "level": 41, "anim": 867, "tier": "rune"},
+    {"obj": 1357, "name": "adamant_axe", "level": 31, "anim": 869, "tier": "adamant"},
+    {"obj": 1355, "name": "mithril_axe", "level": 21, "anim": 871, "tier": "mithril"},
+    {"obj": 1361, "name": "black_axe", "level": 11, "anim": 873, "tier": "black"},
+    {"obj": 1353, "name": "steel_axe", "level": 6, "anim": 875, "tier": "steel"},
+    {"obj": 1349, "name": "iron_axe", "level": 1, "anim": 877, "tier": "iron"},
+    {"obj": 1351, "name": "bronze_axe", "level": 1, "anim": 879, "tier": "bronze"}
+  ],
+  "trees": [
+    {
+      "key": "regular",
+      "name": "Tree",
+      "page": "Tree",
+      "level": 1,
+      "xpTenths": 250,
+      "logs": 1511,
+      "logsName": "logs",
+      "respawn": [60, 100],
+      "despawn": null,
+      "rates": {
+        "bronze": [64, 200],
+        "iron": [96, 300],
+        "steel": [128, 400],
+        "black": [144, 450],
+        "mithril": [160, 500],
+        "adamant": [192, 600],
+        "rune": [224, 700],
+        "dragon": [240, 750],
+        "crystal": [250, 800]
+      },
+      "locs": [
+        {"tree": 1276, "stump": 1342, "name": "tree"},
+        {"tree": 1277, "stump": 1343, "name": "lighttree"},
+        {"tree": 1278, "stump": 1342, "name": "tree2"},
+        {"tree": 1279, "stump": 1342, "name": "tree3"},
+        {"tree": 1280, "stump": 1343, "name": "lighttree2"},
+        {"tree": 52823, "stump": 1342, "name": "tree4"},
+        {"tree": 1330, "stump": 1355, "name": "snowtree1"},
+        {"tree": 1331, "stump": 1355, "name": "snowtree2"},
+        {"tree": 1332, "stump": 1355, "name": "snowtree3"},
+        {"tree": 14308, "stump": 1342, "name": "pest_tree"},
+        {"tree": 14309, "stump": 1342, "name": "pest_tree2"},
+        {"tree": 36672, "stump": 36673, "name": "prif_tree_normal_1"},
+        {"tree": 36674, "stump": 36675, "name": "prif_tree_normal_2"},
+        {"tree": 36677, "stump": 36678, "name": "prif_outside_tree_normal_1"},
+        {"tree": 36679, "stump": 36678, "name": "prif_outside_tree_normal_2"},
+        {"tree": 3879, "stump": 3880, "name": "regicide_tree_large"},
+        {"tree": 3881, "stump": 3880, "name": "regicide_tree_large2"},
+        {"tree": 3882, "stump": 3880, "name": "regicide_tree_large3"},
+        {"tree": 3883, "stump": 3884, "name": "regicide_tree_small"},
+        {"tree": 40750, "stump": 40751, "name": "tree_update_1"},
+        {"tree": 40752, "stump": 40753, "name": "tree_update_2"},
+        {"tree": 42393, "stump": 42394, "name": "tree_normal_default01"},
+        {"tree": 51762, "stump": 51763, "name": "avium_tree_1"},
+        {"tree": 51764, "stump": 51765, "name": "avium_tree_2"},
+        {"tree": 53188, "stump": 53189, "name": "avium_tree_dark"}
+      ]
+    },
+    {
+      "key": "dead",
+      "name": "Dead tree",
+      "page": "Dead tree",
+      "level": 1,
+      "xpTenths": 250,
+      "logs": 1511,
+      "logsName": "logs",
+      "respawn": [60, 100],
+      "despawn": null,
+      "rates": {
+        "bronze": [64, 200],
+        "iron": [96, 300],
+        "steel": [128, 400],
+        "black": [144, 450],
+        "mithril": [160, 500],
+        "adamant": [192, 600],
+        "rune": [224, 700],
+        "dragon": [240, 750],
+        "crystal": [250, 800]
+      },
+      "locs": [
+        {"tree": 1282, "stump": 1347, "name": "deadtree1"},
+        {"tree": 1283, "stump": 1347, "name": "deadtree1_large"},
+        {"tree": 1284, "stump": 6212, "name": "deadtree4"},
+        {"tree": 1285, "stump": 1349, "name": "lightdeadtree1"},
+        {"tree": 1286, "stump": 1351, "name": "deadtree2"},
+        {"tree": 1289, "stump": 1353, "name": "deadtree2_dark"},
+        {"tree": 1290, "stump": 1354, "name": "deadtree3"},
+        {"tree": 1291, "stump": 23054, "name": "deadtree2_snowy"},
+        {"tree": 1365, "stump": 1352, "name": "deadtree2_swamp"},
+        {"tree": 1383, "stump": 1358, "name": "deadtree6"},
+        {"tree": 1384, "stump": 1353, "name": "deadtree_burnt"},
+        {"tree": 5904, "stump": 5905, "name": "mdaughter_passable_tree"}
+      ]
+    },
+    {
+      "key": "evergreen",
+      "name": "Evergreen tree",
+      "page": "Evergreen tree",
+      "level": 1,
+      "xpTenths": 250,
+      "logs": 1511,
+      "logsName": "logs",
+      "respawn": [60, 100],
+      "despawn": null,
+      "rates": {
+        "bronze": [64, 200],
+        "iron": [96, 300],
+        "steel": [128, 400],
+        "black": [144, 450],
+        "mithril": [160, 500],
+        "adamant": [192, 600],
+        "rune": [224, 700],
+        "dragon": [240, 750],
+        "crystal": [250, 800]
+      },
+      "locs": [
+        {"tree": 1318, "stump": 1355, "name": "evergreen_vsnowy_large"},
+        {"tree": 1319, "stump": 1355, "name": "evergreen_snowy_large"},
+        {"tree": 2091, "stump": 1342, "name": "evergreen"},
+        {"tree": 2092, "stump": 1355, "name": "evergreen_large"}
+      ]
+    },
+    {
+      "key": "oak",
+      "name": "Oak tree",
+      "page": "Oak tree",
+      "level": 15,
+      "xpTenths": 375,
+      "logs": 1521,
+      "logsName": "oak_logs",
+      "respawn": [14, 14],
+      "despawn": 45,
+      "rates": {
+        "bronze": [32, 100],
+        "iron": [48, 150],
+        "steel": [64, 200],
+        "black": [72, 225],
+        "mithril": [80, 250],
+        "adamant": [96, 300],
+        "rune": [112, 350],
+        "dragon": [120, 375],
+        "crystal": [125, 400]
+      },
+      "locs": [
+        {"tree": 10820, "stump": 1356, "name": "oaktree"},
+        {"tree": 42395, "stump": 42396, "name": "tree_oak_default01"}
+      ]
+    },
+    {
+      "key": "willow",
+      "name": "Willow tree",
+      "page": "Willow tree",
+      "level": 30,
+      "xpTenths": 675,
+      "logs": 1519,
+      "logsName": "willow_logs",
+      "respawn": [14, 14],
+      "despawn": 50,
+      "rates": {
+        "bronze": [16, 50],
+        "iron": [24, 75],
+        "steel": [32, 100],
+        "black": [36, 112],
+        "mithril": [40, 125],
+        "adamant": [48, 150],
+        "rune": [56, 175],
+        "dragon": [60, 187],
+        "crystal": [65, 195]
+      },
+      "locs": [
+        {"tree": 10819, "stump": 9711, "name": "willowtree"},
+        {"tree": 10829, "stump": 9471, "name": "willow_tree2"},
+        {"tree": 10831, "stump": 9471, "name": "willow_tree3"},
+        {"tree": 10833, "stump": 9471, "name": "willow_tree4"}
+      ]
+    },
+    {
+      "key": "maple",
+      "name": "Maple tree",
+      "page": "Maple tree",
+      "level": 45,
+      "xpTenths": 1000,
+      "logs": 1517,
+      "logsName": "maple_logs",
+      "respawn": [59, 59],
+      "despawn": 100,
+      "rates": {
+        "bronze": [8, 25],
+        "iron": [12, 37],
+        "steel": [16, 50],
+        "black": [18, 56],
+        "mithril": [20, 62],
+        "adamant": [24, 75],
+        "rune": [28, 87],
+        "dragon": [30, 93],
+        "crystal": [32, 100]
+      },
+      "locs": [
+        {"tree": 10832, "stump": 9712, "name": "mapletree"},
+        {"tree": 36681, "stump": 36682, "name": "prif_mapletree"},
+        {"tree": 40754, "stump": 40755, "name": "mapletree_update"}
+      ]
+    },
+    {
+      "key": "yew",
+      "name": "Yew tree",
+      "page": "Yew tree",
+      "level": 60,
+      "xpTenths": 1750,
+      "logs": 1515,
+      "logsName": "yew_logs",
+      "respawn": [99, 99],
+      "despawn": 190,
+      "rates": {
+        "bronze": [4, 12],
+        "iron": [6, 19],
+        "steel": [8, 25],
+        "black": [9, 28],
+        "mithril": [10, 31],
+        "adamant": [12, 37],
+        "rune": [14, 44],
+        "dragon": [15, 47],
+        "crystal": [16, 50]
+      },
+      "locs": [
+        {"tree": 10822, "stump": 9714, "name": "yewtree"},
+        {"tree": 36683, "stump": 36684, "name": "prif_yewtree"},
+        {"tree": 40756, "stump": 40757, "name": "yewtree_update"},
+        {"tree": 42391, "stump": 42392, "name": "tree_yew_default01"}
+      ]
+    },
+    {
+      "key": "magic",
+      "name": "Magic tree",
+      "page": "Magic tree",
+      "level": 75,
+      "xpTenths": 2500,
+      "logs": 1513,
+      "logsName": "magic_logs",
+      "respawn": [199, 199],
+      "despawn": 390,
+      "rates": {
+        "bronze": [2, 6],
+        "iron": [3, 9],
+        "steel": [4, 12],
+        "black": [5, 13],
+        "mithril": [5, 15],
+        "adamant": [6, 18],
+        "rune": [7, 21],
+        "dragon": [7, 22],
+        "crystal": [7, 23]
+      },
+      "locs": [
+        {"tree": 10834, "stump": 9713, "name": "magictree"}
+      ]
+    }
+  ]
+}

@@ -133,6 +133,17 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         send(player, RunClientScript(GameFrame.SIDEBUTTON_SWITCH_SCRIPT, listOf<Any>(tab)))
     }
 
+    /** Opens [interfaceId] in side panel [slot] in place of what is there, as an overlay like the side panels. */
+    fun openSide(player: Player, slot: FrameSlot, interfaceId: Int) {
+        val frame = player.frame
+        send(player, IfOpenSub(frame.interfaceId, frame.component(slot), interfaceId, OVERLAY))
+    }
+
+    /** Enables [events] on slots [from] to [to] of a component: an interface's events go when it closes, so after opening it. */
+    fun setEvents(player: Player, interfaceId: Int, component: Int, from: Int, to: Int, events: Int) {
+        send(player, IfSetEventsV2(interfaceId, component, from, to, 0, events))
+    }
+
     /** Opens [interfaceId] as a modal in [slot], replacing whatever modal was there. */
     fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) {
         player.modals[slot] = interfaceId

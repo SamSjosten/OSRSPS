@@ -19,7 +19,9 @@ class NpcDropsTest {
     private val imp = NpcType(5007, "Imp", combatLevel = 2, internalName = "imp")
     private val cow = NpcType(2790, "Cow", combatLevel = 2, internalName = "cow")
     private val rat = NpcType(2854, "Rat", combatLevel = 1, internalName = "rat")
-    private val types = NpcTypes.of(man, imp, cow, rat)
+    private val chicken = NpcType(1173, "Chicken", combatLevel = 1, internalName = "chicken")
+    private val ram = NpcType(1262, "Ram", combatLevel = 2, internalName = "ramunsheered")
+    private val types = NpcTypes.of(man, imp, cow, rat, chicken, ram)
     private val objTypes = DropTestItems.objTypes()
     private val drops = NpcDrops.load(types, objTypes)
 
@@ -27,7 +29,7 @@ class NpcDropsTest {
     fun `the file reads, naming every item as the cache does, and the tables add up`() {
         // The test's cache knows one man, cow and so on; every other warning would be a wrong item name.
         assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
-        assertEquals(4, drops.size)
+        assertEquals(6, drops.size)
         val def = drops[man]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })
         assertEquals(128, def.table!!.slots)
@@ -35,6 +37,10 @@ class NpcDropsTest {
         assertEquals(listOf("Cowhide", "Raw beef", "Bones"), drops[cow]!!.always.map { it.type.name })
         assertNull(drops[cow]!!.table)
         assertEquals("Fiendish ashes", drops[imp]!!.always.single().type.name)
+        assertEquals(listOf("Bones", "Raw chicken"), drops[chicken]!!.always.map { it.type.name })
+        assertEquals(listOf("Clue scroll (beginner)" to 300), drops[chicken]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals("Bones", drops[ram]!!.always.single().type.name)
+        assertNull(drops[ram]!!.table)
         // A rat drops nothing at all.
         val nothing = drops[rat]!!
         assertTrue(nothing.isEmpty)
@@ -121,6 +127,25 @@ class NpcDropsTest {
         // A wrong name is only warned about: the id rules.
         val wrongName = good.replace("\"Bones\"", "\"Big bones\"")
         assertEquals(listOf("526 is Bones, not Big bones"), NpcDrops.parse(wrongName, types, objTypes).warnings)
+    }
+
+    @Test
+    fun `ten thousand chickens drop bones and raw chicken every time, and 5 feathers half the time, 15 a quarter`() {
+        val def = drops[chicken]!!
+        val random = GameRandom(7)
+        val feathers = HashMap<Int, Int>()
+        repeat(KILLS) {
+            val kill = def.roll(random)
+            assertEquals(listOf("Bones", "Raw chicken"), kill.take(2).map { it.type.name })
+            for (drop in kill.drop(2)) if (drop.type.name == "Feather") feathers[drop.count] = (feathers[drop.count] ?: 0) + 1
+        }
+        assertEquals(setOf(5, 15), feathers.keys)
+        for ((count, weight) in listOf(5 to 64, 15 to 32)) {
+            val p = weight / 128.0
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            assertTrue(abs(feathers[count]!! - mean) <= 5 * sigma, "$count feathers: ${feathers[count]} of $KILLS")
+        }
     }
 
     companion object {

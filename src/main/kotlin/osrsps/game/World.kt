@@ -17,6 +17,7 @@ import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
+import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunWeight
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
 import net.rsprot.protocol.game.outgoing.sound.MidiJingle
 import net.rsprot.protocol.game.outgoing.sound.SynthSound
@@ -70,6 +71,8 @@ import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
+import osrsps.game.content.registerFredsFarm
+import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -89,6 +92,11 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
+import osrsps.game.script.OpTarget
+import osrsps.game.skill.LevelUps
+import osrsps.game.skill.SkillUnlocks
+import osrsps.game.skill.Woodcutting
+import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
@@ -150,6 +158,8 @@ class World(
     prayerList: List<Prayer> = emptyList(),
     /** The shops and their stock; tests that shop pass their own. */
     val shopTypes: ShopTypes = ShopTypes.NONE,
+    /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
+    skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -181,9 +191,19 @@ class World(
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
     /** Items on the ground: drops, takes, their timers and item spawns. */
-    val groundObjs = GroundObjs(zones, objTypes, scripts, collision, { findPlayer(it) != null }, { players.count { it != null } })
+    val groundObjs = GroundObjs(
+        zones, objTypes, scripts, collision, { findPlayer(it) != null }, { players.count { it != null } },
+        // Both sides of a hand-over are saved at once, so a crash can't give the item back to one and leave it with
+        // the other. The one who let it go first: a crash between the two writes then loses the item rather than
+        // doubling it. Live's saves are its own business; this is ours.
+        handedOver = { taker, owner ->
+            findPlayer(owner)?.let(::save)
+            save(taker)
+        },
+    )
 
     private val equipment = Equipment(objTypes)
+    private val itemWeights = ItemWeights(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
     val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
@@ -247,7 +267,7 @@ class World(
         onDeath = { deaths.die(it) },
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
-        multi = multiCombat, protects = prayers::protects,
+        multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -277,7 +297,7 @@ class World(
         teleportToSpawn = { teleport(it, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) },
         openModal = { player, id -> interfaces.openModal(player, FrameSlot.MAINMODAL, id) },
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
-        prayersOff = prayers::deactivateAll, examine = inventoryTab::examine,
+        prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) }, examine = inventoryTab::examine,
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -288,6 +308,10 @@ class World(
     fun textFor(player: Player): DialogueText = if (player.showDialogueKeys) DialogueText.NONE else dialogueText
 
     /** Chat dialogues for content scripts. */
+    val woodcutting = Woodcutting(this, WoodcuttingData.load())
+
+    private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
+
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
     val commands = CommandRegistry(admins::isAdmin).apply {
@@ -319,7 +343,10 @@ class World(
         registerBanking(this)
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
+        registerLumbridgeTown(this)
+        registerFredsFarm(this)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
+        woodcutting.register()
         loadDialogue()
     }
 
@@ -401,6 +428,11 @@ class World(
             refuseEmailAddress(responseHandler, "login")
             return
         }
+        if (!Accounts.validName(block.username)) {
+            password?.fill('\u0000')
+            refuseBadName(responseHandler, "login")
+            return
+        }
         if (ipBans.isBanned(address)) {
             logger.info { "Rejecting ${block.username} from $address: that address is banned" }
             responseHandler.writeFailedResponse(LoginResponse.IPBlocked)
@@ -449,6 +481,12 @@ class World(
      */
     private fun isEmailAddress(username: String): Boolean = '@' in username
 
+    /** Not logged, as the name could hold anything, line breaks included. */
+    private fun refuseBadName(responseHandler: GameLoginResponseHandler<Player>, what: String) {
+        logger.info { "Rejecting a $what from ${responseHandler.address}: its name breaks the name rules (not logged)" }
+        responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
+    }
+
     private fun refuseEmailAddress(responseHandler: GameLoginResponseHandler<Player>, what: String) {
         logger.info { "Rejecting a $what from ${responseHandler.address}: its name is an email address (not logged)" }
         responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
@@ -458,14 +496,15 @@ class World(
     private fun checkPassword(responseHandler: GameLoginResponseHandler<Player>, block: LoginBlock<AuthenticationType>, password: CharArray) {
         val key = SaveStore.saveKey(block.username)
         // Checked before hashing, so guesses at a locked name cost nothing. The client says to wait a few minutes.
-        if (key != null && loginGuard.locked(key)) {
+        val address = responseHandler.address
+        if (key != null && loginGuard.locked(key, address)) {
             password.fill('\u0000')
-            logger.info { "Rejecting ${block.username} from ${responseHandler.address}: locked after ${LoginGuard.MAX_WRONG} wrong passwords" }
+            logger.info { "Rejecting ${block.username} from $address: locked there after ${LoginGuard.MAX_WRONG} wrong passwords" }
             responseHandler.writeFailedResponse(LoginResponse.TooManyAttempts)
             return
         }
         val check = try {
-            accounts.check(block.username, password)
+            accounts.check(block.username, password, mayClaim = key == null || !admins.lists(key))
         } catch (e: Exception) {
             logger.error(e) { "Rejecting ${block.username}: their account can't be read or written" }
             responseHandler.writeFailedResponse(LoginResponse.ConnectFail)
@@ -475,17 +514,22 @@ class World(
         }
         when (check) {
             Accounts.Check.WRONG_PASSWORD -> {
-                loginGuard.wrongPassword(key!!)
+                loginGuard.wrongPassword(key!!, address)
                 logger.info { "Rejecting ${block.username} from ${responseHandler.address}: wrong password" }
                 responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
                 return
             }
             Accounts.Check.CLAIMED -> {
                 // Strikes against a name whose file was deleted for a reset don't carry over to its new password.
-                loginGuard.rightPassword(key!!)
+                loginGuard.forget(key!!)
                 logger.info { "${block.username} claimed their name" }
             }
-            Accounts.Check.MATCHED -> loginGuard.rightPassword(key!!)
+            Accounts.Check.NOT_CLAIMABLE -> {
+                logger.info { "Rejecting ${block.username}: an admin's name nobody has claimed yet; claim it before listing it in OSRSPS_ADMINS" }
+                responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
+                return
+            }
+            Accounts.Check.MATCHED -> loginGuard.rightPassword(key!!, address)
             Accounts.Check.NO_SUCH_NAME -> {}
         }
         pendingLogins.add(PendingLogin(responseHandler, block))
@@ -495,6 +539,10 @@ class World(
         val address = responseHandler.address
         if (isEmailAddress(block.username)) {
             refuseEmailAddress(responseHandler, "reconnect")
+            return
+        }
+        if (!Accounts.validName(block.username)) {
+            refuseBadName(responseHandler, "reconnect")
             return
         }
         if (ipBans.isBanned(address)) {
@@ -534,9 +582,14 @@ class World(
         authExecutor.shutdownNow()
         executor.shutdown()
         if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-            // Saving now would race the game thread for the players and the save files; the last autosave stands.
-            logger.error { "The game thread didn't stop in 5 s; not saving on shutdown" }
-            return
+            // A cycle stuck waiting (a save on a slow disk) may still give way to an interrupt.
+            logger.warn { "The game thread didn't stop in 5 s; interrupting it" }
+            executor.shutdownNow()
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                // Saving now would race the game thread for the players and the save files; the last autosave stands.
+                logger.error { "The game thread didn't stop in 10 s; not saving on shutdown. ${players.count { it != null }} players and ${unwritten.size} unwritten saves go back to their last save" }
+                return
+            }
         }
         // Once the executor has stopped this thread is the only one touching the players. Nobody is saved dead: a
         // death the stop cut short finishes now, grave and all (the grave is lost with the restart).
@@ -577,6 +630,7 @@ class World(
         readInput(ticking = true)
         phase = TickPhase.NPCS
         npcs.countDownFreezes()
+        npcs.countDownTransforms()
         npcInteractions.releaseNpcs()
         // Shots and spells land before NPCs fight, as melee hits from the last tick are already in; a shot NPC strikes from the next.
         rangedCombat.process()
@@ -590,6 +644,7 @@ class World(
             if (player == null) continue
             player.playedTicks++
             prayers.drain(player)
+            levelUps.process(player)
             scripts.process(player)
         }
         phase = TickPhase.MOVEMENT
@@ -608,6 +663,7 @@ class World(
     /** One player's part of the movement phase. */
     private fun movePhase(player: Player) {
         interfaces.processFrameMove(player, tick)
+        sendWeight(player)
         // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
         // after them for a follow that ended in them.
         sendFace(player)
@@ -841,7 +897,8 @@ class World(
      */
     internal fun loadPlayer(index: Int, username: String): Player {
         val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
-        val text = saves.read(player.saveKey) ?: return player
+        // A save that couldn't be written is newer than the file, which would hand back what the player had before.
+        val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player
         PlayerSave.fromJson(text).applyTo(player)
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
@@ -849,21 +906,48 @@ class World(
         return player
     }
 
-    /** Writes [player]'s save. Returns false, after logging why, if it couldn't be written. */
-    internal fun save(player: Player): Boolean = try {
-        saves.write(player.saveKey, PlayerSave.of(player).toJson(player.username))
+    /**
+     * Saves that couldn't be written, by save key: kept to write again at each autosave, and loaded in place of the
+     * file meanwhile. Without them a player whose last save failed would come back with what the file had, items they
+     * had since dropped for someone else included.
+     */
+    private val unwritten = HashMap<String, String>()
+
+    /** Writes [player]'s save. Returns false, after logging why, if it couldn't be written; see [unwritten]. */
+    internal fun save(player: Player): Boolean {
+        val text = try {
+            PlayerSave.of(player).toJson(player.username)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't save ${player.username}" }
+            return false
+        }
+        return write(player.saveKey, text)
+    }
+
+    private fun write(key: String, text: String): Boolean = try {
+        saves.write(key, text)
+        unwritten.remove(key)
         true
     } catch (e: Exception) {
-        logger.error(e) { "Couldn't save ${player.username}" }
+        unwritten[key] = text
+        logger.error(e) { "Couldn't write the save for $key; keeping it in memory to write again" }
         false
     }
+
+    /** Saves that are still only in memory, for tests. */
+    internal val unwrittenSaves: Set<String> get() = unwritten.keys
 
     private fun saveAll() {
         var count = 0
         for (player in players) {
             if (player != null && save(player)) count++
         }
+        // Those who left while the saves couldn't be written.
+        for ((key, text) in unwritten.toList()) {
+            if (findPlayer(key) == null && write(key, text)) count++
+        }
         if (count > 0) logger.info { "Saved $count player${if (count == 1) "" else "s"}" }
+        if (unwritten.isNotEmpty()) logger.error { "${unwritten.size} save${if (unwritten.size == 1) " is" else "s are"} still only in memory: ${unwritten.keys.sorted()}" }
     }
 
     /**
@@ -945,8 +1029,10 @@ class World(
         player.equipment.resendAll()
         player.sentRunEnabled = null
         player.sentRunEnergy = -1
+        player.sentWeight = Int.MIN_VALUE
         player.sentCombatLevel = -1
         sendRunState(player)
+        sendWeight(player)
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
@@ -1077,6 +1163,17 @@ class World(
         inventoryTab.examine(player, type, obj.count)
     }
 
+    /**
+     * Runs [op] again for [player] from the next tick, as RS2's `p_oploc` does, until something else replaces their
+     * interaction: how a gathering action keeps going. Only loc options for now; NPC options (fishing spots) come with
+     * fishing.
+     */
+    fun repeatOp(player: Player, op: Op) {
+        val loc = op.loc
+        require(op.target == OpTarget.LOC && loc != null) { "Only loc options can repeat, not $op" }
+        locInteractions.repeat(player, loc, op.option)
+    }
+
     /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
     fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
         // Inferred, as for a walk: a delayed player's clicks do nothing.
@@ -1200,6 +1297,14 @@ class World(
             player.runEnabled = !player.runEnabled
             return@act
         }
+        if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_PRAYER_BUTTON) {
+            when (op) {
+                1 -> prayers.toggleQuick(player)
+                2 -> openQuickPrayerSetup(player)
+            }
+            return@act
+        }
+        if (interfaceId == Prayers.QUICKPRAYER && clickQuickPrayerSetup(player, componentId, sub)) return@act
         if (interfaceId == GameFrame.SETTINGS_SIDE && componentId == GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS) {
             val frame = GameFrame.forLayoutOption(sub)
             if (frame != null) interfaces.requestFrame(player, frame, tick)
@@ -1398,6 +1503,19 @@ class World(
 
     private fun moveSpeed(player: Player) = if (player.runEnabled) MOVE_SPEED_RUN else MOVE_SPEED_WALK
 
+    /**
+     * Works out what [player] carries for this tick's run energy, and tells the client when the whole kilograms change
+     * (UPDATE_RUNWEIGHT, which the Equipment Stats screen and RuneLite show). Inferred: live sends it on a change only.
+     */
+    private fun sendWeight(player: Player) {
+        player.weightGrams = itemWeights.total(player)
+        val kilograms = ItemWeights.kilograms(player.weightGrams)
+        if (kilograms != player.sentWeight) {
+            player.session.queue(UpdateRunWeight(kilograms))
+            player.sentWeight = kilograms
+        }
+    }
+
     /** Sends the move speed that goes with the run orb, and the run energy, when they change. The orb is a varp. */
     private fun sendRunState(player: Player) {
         if (player.runEnabled != player.sentRunEnabled) {
@@ -1529,6 +1647,26 @@ class World(
             return
         }
         session.flush()
+    }
+
+    /**
+     * The prayer orb's Setup: the quick prayer setup in the prayer book's place, its prayers (one client-made child per
+     * bit, laid out by its onload script quickprayer_init) clickable, and the prayer tab shown. As RSMod opens it.
+     */
+    private fun openQuickPrayerSetup(player: Player) {
+        interfaces.openSide(player, FrameSlot.SIDE5, Prayers.QUICKPRAYER)
+        interfaces.setEvents(player, Prayers.QUICKPRAYER, Prayers.QUICKPRAYER_BUTTONS, 0, Prayers.ALL_BITS.countOneBits() - 1, Interfaces.IF_EVENT_OP1)
+        interfaces.switchSideTab(player, GameFrame.SIDE_TAB_PRAYER)
+    }
+
+    /** A click in the quick prayer setup: a prayer, by its bit, or Done, which puts the prayer book back. */
+    private fun clickQuickPrayerSetup(player: Player, component: Int, sub: Int): Boolean = when (component) {
+        Prayers.QUICKPRAYER_BUTTONS -> prayers.selectQuick(player, sub)
+        Prayers.QUICKPRAYER_CLOSE -> {
+            interfaces.openSide(player, FrameSlot.SIDE5, Prayers.PRAYERBOOK)
+            true
+        }
+        else -> false
     }
 
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */

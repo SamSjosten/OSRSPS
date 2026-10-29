@@ -22,6 +22,23 @@ class NpcSpawnFileTest {
         NpcType(2813, "Shop keeper", internalName = "generalshopkeeper1"),
         NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
         NpcType(10619, "Bob", internalName = "bob"),
+        NpcType(7546, "Bartender", internalName = "ram_bartender"),
+        NpcType(8665, "Arthur the Clue Hunter", internalName = "aide_tutor_clues"),
+        NpcType(3219, "Cooking tutor", internalName = "aide_tutor_cooking"),
+        NpcType(3226, "Woodsman tutor", internalName = "aide_tutor_woodsman"),
+        NpcType(3224, "Smithing apprentice", internalName = "aide_tutor_smithing_apprentice"),
+        NpcType(921, "Donie", internalName = "lumbridge_guide2_woman"),
+        NpcType(6816, "Gee", internalName = "lumbridge_guide2_man"),
+        NpcType(311, "Ironman tutor", internalName = "ironman_tutor_1"),
+        NpcType(8368, "Abigaila", internalName = "tob_spectator_misthalin"),
+        NpcType(3106, "Man", internalName = "man"),
+        NpcType(3107, "Man", internalName = "man2"),
+        NpcType(3108, "Man", internalName = "man3"),
+        NpcType(6818, "Man", internalName = "man_indoor"),
+        NpcType(3111, "Woman", internalName = "woman"),
+        NpcType(3112, "Woman", internalName = "woman2"),
+        NpcType(3113, "Woman", internalName = "woman3"),
+        NpcType(2854, "Rat", internalName = "rat"),
     )
 
     private fun file(name: String) = NpcSpawnFile::class.java.getResource("/npc-spawns/$name")!!.readText()
@@ -34,7 +51,19 @@ class NpcSpawnFileTest {
         assertEquals(8, spawns.count { it.type.name == "Cow calf" })
         // The River Lum runs north from Lumbridge at about x 3240; the field is east of it.
         assertTrue(cows.all { it.x > 3240 && it.z in 3250..3300 })
-        assertTrue(spawns.all { it.source.isNotBlank() && it.wander > 0 })
+        // All but the Bartender, at his bar, and Arthur, who stands facing north, wander.
+        assertTrue(spawns.all { it.source.isNotBlank() && (it.wander > 0 || it.type.id in setOf(7546, 8665)) })
+    }
+
+    @Test
+    fun `the town centre's NPCs stand west of the river, Abigaila upstairs in the General Store`() {
+        val spawns = NpcSpawnFile.parse(file("lumbridge.json"), types).spawns
+        val town = spawns.filter { it.type.id in setOf(7546, 8665, 3219, 3226, 3224, 311, 8368) }
+        assertEquals(7, town.size)
+        assertTrue(town.all { it.x < 3240 && it.z in 3190..3260 })
+        assertEquals(1, town.single { it.type.id == 8368 }.level)
+        assertEquals(2, spawns.count { it.type.id == 921 })
+        assertEquals(2, spawns.count { it.type.id == 6816 })
     }
 
     @Test
@@ -79,6 +108,28 @@ class NpcSpawnFileTest {
         assertEquals(MoveRestrict.INDOORS, spawns.single { it.type.id == 4626 }.restrict)
         // Everyone but Hans wanders or stands still on purpose.
         assertTrue(spawns.filter { it.patrol.isEmpty() }.all { it.wander == 0 || it.wander == 5 })
+    }
+
+    @Test
+    fun `Fred's farm has its sheep, rams and lambs in the pen and 33 chickens, all north-west of the castle`() {
+        val names = mapOf(
+            732 to "fred_the_farmer", 2693 to "sheepunsheered", 2699 to "sheepunsheered3", 2694 to "sheepunsheeredg", 2695 to "sheepunsheeredw",
+            2786 to "sheepunsheered3g", 2787 to "sheepunsheered3w", 1262 to "ramunsheered", 1263 to "ramunsheered2", 1264 to "ramunsheered3",
+            1176 to "lamb1", 1177 to "lamb2", 1301 to "sheepsheered2w", 1308 to "sheepsheered3g", 1173 to "chicken", 1174 to "chicken_brown",
+        )
+        val farmTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-farms.json"), farmTypes, "lumbridge-farms.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(1, spawns.count { it.type.id == 732 })
+        assertEquals(16, spawns.count { it.type.internalName!!.startsWith("sheepunsheered") })
+        assertEquals(4, spawns.count { it.type.internalName!!.startsWith("ram") })
+        assertEquals(33, spawns.count { it.type.internalName!!.startsWith("chicken") })
+        // The farm is west of the River Lum and north of the castle; the two shorn sheep are in the pen west of it.
+        val farm = spawns.filter { !it.type.internalName!!.startsWith("sheepsheered") }
+        assertTrue(farm.all { it.x in 3165..3215 && it.z in 3255..3310 && it.level == 0 })
+        assertTrue(spawns.filter { it.type.internalName!!.startsWith("sheepsheered") }.all { it.x < 3200 && it.z < 3225 })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == 5 })
     }
 
     @Test

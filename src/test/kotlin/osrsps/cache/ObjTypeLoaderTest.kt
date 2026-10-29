@@ -118,6 +118,17 @@ class ObjTypeLoaderTest {
     }
 
     @Test
+    fun `a note or placeholder whose item doesn't link back takes nothing from it`() {
+        // Both point at the axe, which links to 2 and 3, not to 4 and 5.
+        val note = ObjTypeLoader.decode(4, obj { writeByte(97); writeShort(1); writeByte(98); writeShort(799) })
+        val placeholder = ObjTypeLoader.decode(5, obj { writeByte(148); writeShort(1); writeByte(149); writeShort(14401) })
+        val types = ObjTypeLoader.link(mapOf(1 to ObjTypeLoader.decode(1, axe), 4 to note, 5 to placeholder))
+        val oneWay = types[4]!!
+        assertEquals(listOf("null", 1, false), listOf(oneWay.name, oneWay.cost, oneWay.tradeable))
+        assertEquals("null", types[5]!!.name)
+    }
+
+    @Test
     fun `loads items and their gameval names from a cache`(@TempDir dir: Path) {
         val cacheDir = Files.createDirectories(dir.resolve("cache"))
         cacheDir.resolve("main_file_cache.dat2").createFile()

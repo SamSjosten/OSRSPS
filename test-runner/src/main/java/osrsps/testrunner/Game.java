@@ -120,6 +120,9 @@ interface Game
 	/** Varbit {@code id} worked out from both copies of its varp, as {@link #varp} gives them; null for one the client lacks. */
 	int[] varbit(int id);
 
+	/** The carried weight in whole kilograms as the server last sent it (UPDATE_RUNWEIGHT); {@link Integer#MIN_VALUE} when logged out. */
+	int weight();
+
 	/** The player's real (unboosted) level in the skill, as the stats tab shows it; -1 for a skill the client doesn't know. */
 	int skillLevel(String skill);
 

@@ -3,8 +3,10 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.GameFrame
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -39,6 +41,7 @@ class HeadlessPrayerTest {
     private val prayerObjs = listOf(
         prayerObj(20803, "placeholder_xmas16_ball_inflated_red", "Thick Skin", 0, THICK_SKIN, 1, 2690),
         prayerObj(20817, "placeholder_xmas16_marionette_blue", "Protect from Melee", 14, PROTECT_FROM_MELEE, 43, 2676),
+        prayerObj(20819, "placeholder_xmas16_marionette_green", "Redemption", 16, REDEMPTION, 49, 2680),
         prayerObj(20829, "placeholder_xmas16_blue_partyhat", "Piety", 26, PIETY, 70, 3825),
     )
 
@@ -75,11 +78,12 @@ class HeadlessPrayerTest {
                 assertEquals(0, client.prayers())
 
                 client.click(PROTECT_FROM_MELEE)
-                val on = client.await("Protect from Melee on") { if (client.prayers() == 1 shl 14) client.ticksSeen else null }
+                // Counted by the ticks the varp and the stat were sent in, not when the waits see them, which a slow machine
+                // makes late.
+                val on = client.await("Protect from Melee on") { if (client.prayers() == 1 shl 14) client.varpTick(Prayers.VARP_PRAYERS) else null }
+                val drained = client.await("the first point", timeoutMillis = 20_000) { if (client.points() == 42) client.statTick(PRAYER) else null }
                 // A point goes once the counter passes 60 at 12 a tick: on the 6th tick of draining.
-                val drained = client.await("the first point", timeoutMillis = 20_000) { if (client.points() == 42) client.ticksSeen else null }
-                // The varp and the stat come in their ticks' packets; the wait may only see one after its tick has ended.
-                assertTrue(drained - on in 6..7, "${drained - on} ticks from on to the first point")
+                assertEquals(6, drained - on, "ticks from on to the first point")
                 client.click(THICK_SKIN)
                 client.await("both on") { if (client.prayers() == (1 shl 14 or 1)) Unit else null }
 
@@ -143,11 +147,62 @@ class HeadlessPrayerTest {
         }
     }
 
+    @Test
+    fun `Redemption heals a quarter of the Prayer level when a hit leaves under 10% hitpoints, and every prayer goes off`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                for (skill in listOf("hitpoints", "prayer")) client.commandReply("setlevel $skill 99") { it.contains("set to level 99") }
+                client.click(REDEMPTION)
+                client.await("Redemption on") { if (client.prayers() == 1 shl 16) Unit else null }
+                client.awaitTicks(1)
+                // 9 left is under 9.9: 99 / 4 = 24 back.
+                client.commandReply("hit 90 me") { it == "Hit yourself for 90: 33/99 hp" }
+                client.await("every prayer off") { if (client.prayers() == 0) Unit else null }
+                client.await("no points") { client.points()?.takeIf { it == 0 } }
+            }
+        }
+    }
+
+    @Test
+    fun `quick prayers picked in the orb's setup, turned on and off from the orb`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                for (skill in listOf("defence", "prayer")) client.commandReply("setlevel $skill 99") { it.contains("set to level 99") }
+                client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 1)
+                client.awaitMessage("nothing picked") { it == Prayers.NO_QUICK_PRAYERS }
+
+                // Setup: the quick prayer setup in the prayer book's place, its prayers clickable by bit.
+                client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 2)
+                client.await("the setup open") { if (Prayers.QUICKPRAYER in client.openInterfaces()) Unit else null }
+                assertFalse(Prayers.PRAYERBOOK in client.openInterfaces())
+                assertTrue(client.opEnabled(Prayers.QUICKPRAYER, Prayers.QUICKPRAYER_BUTTONS, 26, 1))
+                client.ifButton(Prayers.QUICKPRAYER, Prayers.QUICKPRAYER_BUTTONS, 1, sub = 26)
+                client.ifButton(Prayers.QUICKPRAYER, Prayers.QUICKPRAYER_BUTTONS, 1, sub = 14)
+                val picked = 1 shl 26 or (1 shl 14)
+                client.await("Piety and Protect from Melee picked") { if (client.varp(Prayers.VARP_QUICK_PRAYERS) == picked) Unit else null }
+                assertEquals(0, client.prayers())
+                client.ifButton(Prayers.QUICKPRAYER, Prayers.QUICKPRAYER_CLOSE, 1)
+                client.await("the prayer book back") { if (Prayers.PRAYERBOOK in client.openInterfaces()) Unit else null }
+                assertFalse(Prayers.QUICKPRAYER in client.openInterfaces())
+
+                client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 1)
+                client.await("both on") { if (client.prayers() == picked) Unit else null }
+                assertEquals(1, client.varp(Prayers.VARP_QUICK_ACTIVE))
+                client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 1)
+                client.await("every prayer off") { if (client.prayers() == 0) Unit else null }
+                assertEquals(0, client.varp(Prayers.VARP_QUICK_ACTIVE))
+            }
+        }
+    }
+
     companion object {
         // prayerbook:prayer1 is 541:9, so prayer N is 9 + N - 1.
         private const val THICK_SKIN = 9
         private const val PROTECT_FROM_MELEE = 23
         private const val PIETY = 35
+        private const val REDEMPTION = 25
         private const val ATTACK = 2
         private const val HITPOINTS = 3
         private const val PRAYER = 5

@@ -99,6 +99,9 @@ class PlayerSkills {
     private val tenths = IntArray(Skill.COUNT)
     private val current = IntArray(Skill.COUNT) { 1 }
 
+    private val advanced = LinkedHashSet<Skill>()
+    private var combatFrom: Int? = null
+
     /** Starts all true: every skill is sent on the first flush. */
     private val changed = BooleanArray(Skill.COUNT) { true }
 
@@ -148,11 +151,25 @@ class PlayerSkills {
     fun addTenths(skill: Skill, amount: Int): Int {
         require(amount >= 0) { "XP can only be added, not $amount" }
         val before = baseLevel(skill)
+        val combatBefore = combatLevel
         setTenths(skill, (tenths[skill.id].toLong() + amount).coerceAtMost(Experience.MAX_TENTHS.toLong()).toInt())
         val gained = baseLevel(skill) - before
-        if (gained > 0) setCurrentLevel(skill, (current[skill.id] + gained).coerceAtMost(MAX_CURRENT_LEVEL))
+        if (gained > 0) {
+            setCurrentLevel(skill, (current[skill.id] + gained).coerceAtMost(MAX_CURRENT_LEVEL))
+            advanced += skill
+            if (combatFrom == null && combatLevel > combatBefore) combatFrom = combatBefore
+        }
         return gained
     }
+
+    /** Skills levelled by [addTenths] since the last call, in the order they levelled, for the level-up. */
+    fun takeAdvanced(): List<Skill> = advanced.toList().also { advanced.clear() }
+
+    /**
+     * The combat level before [addTenths] last raised it, if it did since the last call; then forgets it. Setting a
+     * level (`::setlevel`) is not a level-up and isn't counted.
+     */
+    fun takeCombatFrom(): Int? = combatFrom.also { combatFrom = null }
 
     /** The wiki's combat level formula, from base levels. 3 for a new account, 126 with every combat skill at 99. */
     val combatLevel: Int

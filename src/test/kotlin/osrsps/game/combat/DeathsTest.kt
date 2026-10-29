@@ -50,6 +50,9 @@ class DeathsTest {
     private val teleported = mutableListOf<Player>()
     private val varbits = mutableListOf<Triple<Player, Int, Int>>()
     private val removed = mutableListOf<Npc>()
+    /** Stands in for Protect Item; see [Prayers.has]. */
+    private var protectItem = false
+
     private val deaths = Deaths(
         objTypes, graveType, { tick }, { online.asSequence() }, { key -> online.firstOrNull { it.saveKey == key } },
         spawnNpc = { npcs.add(it) }, removeNpc = { npcs.remove(it); removed += it },
@@ -58,6 +61,8 @@ class DeathsTest {
         closeModals = { it.modals.clear() },
         setVarbitNow = { player, id, value -> varbits += Triple(player, id, value) },
         cancelScripts = { scripts.clearAll(it) },
+        prayersOff = { protectItem = false },
+        protectItem = { protectItem },
         send = { player, message -> sent += player to message },
         message = { player, text -> messages += player to text },
     )
@@ -154,6 +159,24 @@ class DeathsTest {
         tick(Deaths.DEATH_TICKS)
         assertEquals(listOf(0 to InvObj(coins.id, 3)), alice.inventory.contents())
         assertEquals(listOf(0 to InvObj(coins.id, 7)), deaths.graveOf(alice)!!.items.contents())
+    }
+
+    @Test
+    fun `Protect Item on as she falls keeps a fourth, though the prayers go off with the fall`() {
+        alice.inventory.add(coins, 10)
+        protectItem = true
+        alice.hitpoints = 0
+        deaths.die(alice)
+        assertFalse(protectItem)
+        tick(Deaths.DEATH_TICKS)
+        assertEquals(listOf(0 to InvObj(coins.id, 4)), alice.inventory.contents())
+        assertEquals(listOf(0 to InvObj(coins.id, 6)), deaths.graveOf(alice)!!.items.contents())
+        // The next death without it keeps three again.
+        alice.inventory.add(coins, 6)
+        alice.hitpoints = 0
+        deaths.die(alice)
+        tick(Deaths.DEATH_TICKS)
+        assertEquals(listOf(0 to InvObj(coins.id, 3)), alice.inventory.contents())
     }
 
     @Test

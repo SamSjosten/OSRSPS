@@ -113,7 +113,7 @@ class Bank(private val objTypes: ObjTypes) {
         if (added <= 0) return Withdrawal.NoSpace
         if (added < held.count) {
             bank[slot] = held.copy(count = held.count - added)
-        } else if (placeholder && type.placeholderlink != -1) {
+        } else if (placeholder && placeholderOf(type) != null) {
             // Guessed: the placeholder is kept with a count of 1; the client draws it with none.
             bank[slot] = InvObj(type.placeholderlink, 1)
         } else {
@@ -294,15 +294,25 @@ class Bank(private val objTypes: ObjTypes) {
         return removed
     }
 
-    /** The item that goes in the bank for [type]: what a note stands for, else the item itself. */
-    private fun banked(type: ObjType): ObjType = if (type.isCert) objTypes[type.certlink] ?: type else type
+    /**
+     * The item that goes in the bank for [type]: what a note stands for, else the item itself. Here and below a link is
+     * followed only when the other end links back, so a one-way link in the cache can't turn one item into another.
+     */
+    private fun banked(type: ObjType): ObjType {
+        if (!type.isCert) return type
+        return objTypes[type.certlink]?.takeIf { !it.isCert && it.certlink == type.id } ?: type
+    }
 
     /** The note of [type], or null when it has none (stackable items, quest items). */
-    private fun noteOf(type: ObjType): ObjType? = objTypes[type.certlink]?.takeIf { it.isCert }
+    private fun noteOf(type: ObjType): ObjType? = objTypes[type.certlink]?.takeIf { it.isCert && it.certlink == type.id }
+
+    /** The placeholder of [type], or null when it has none. */
+    private fun placeholderOf(type: ObjType): ObjType? =
+        if (type.isPlaceholder) null else objTypes[type.placeholderlink]?.takeIf { it.isPlaceholder && it.placeholderlink == type.id }
 
     /** The slot holding [item]'s stack or placeholder, if the bank has either. */
     private fun existingSlot(bank: Inventory, item: ObjType): Int? {
-        val placeholder = item.placeholderlink.takeIf { it != -1 && !item.isPlaceholder }
+        val placeholder = placeholderOf(item)?.id
         return bank.contents().firstOrNull { (_, obj) -> obj.id == item.id || obj.id == placeholder }?.first
     }
 

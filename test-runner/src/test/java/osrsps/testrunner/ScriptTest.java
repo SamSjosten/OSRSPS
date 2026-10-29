@@ -100,6 +100,7 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertNpcHealth\",\"npc\":\"Man\",\"max\":101}]}", "0 to 100");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertStat\",\"skill\":\"Luck\",\"xp\":1}]}", "no skill \"Luck\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertVarbit\",\"id\":13131}]}", "needs \"value\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertWeight\"}]}", "needs \"kg\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"runClientScript\",\"id\":9231,\"args\":[1.5]}]}", "whole numbers and strings");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertVarp\",\"id\":-1,\"value\":0}]}", "\"id\" must be 0 or more");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertStat\",\"skill\":\"Attack\"}]}", "needs \"level\" or \"xp\"");

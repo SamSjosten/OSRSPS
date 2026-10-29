@@ -22,7 +22,8 @@ private val logger = KotlinLogging.logger {}
  * [sound] it makes when turned on. What the data file adds: its [drain] effect per tick, the [groups] of prayers it
  * can't be on with (each prayer turned on turns off every other prayer that shares a group with it), its [overhead]
  * icon (-1 for none), the attack type it [protects] against (null for none), the Defence level it needs ([defence], 1
- * for none), and what it adds to the combat formulas ([boosts]).
+ * for none), what it adds to the combat formulas ([boosts]), and what else it does ([effect], one of [Prayers.EFFECTS], or
+ * null for nothing more).
  */
 data class Prayer(
     val obj: Int,
@@ -37,6 +38,7 @@ data class Prayer(
     val protects: AttackType? = null,
     val defence: Int = 1,
     val boosts: PrayerBoosts = PrayerBoosts.NONE,
+    val effect: String? = null,
 ) {
     val mask: Int get() = 1 shl bit
 }
@@ -90,7 +92,10 @@ data class PrayerBoosts(
  * counter passes the drain resistance, 60 plus twice the worn prayer bonus, the counter keeping the rest. A prayer
  * turned on this tick neither drains this tick nor applies to anything this tick: protection and the other effects go
  * by the prayers on at the start of the tick, [inEffect]. At no points every prayer goes off. Protection prayers block
- * all of an NPC's damage of their type (40% of a player's, which isn't in).
+ * all of an NPC's damage of their type (40% of a player's, which isn't in). The other effects ([has]): Rapid Heal in
+ * [MeleeCombat]'s hitpoints countdown, Redemption and Retribution in [MeleeCombat], Protect Item in [Deaths]. Smite
+ * only drains players, who can't be fought yet; Rapid Restore and Preserve wait for stat restoring, which only
+ * hitpoints have so far.
  *
  * Guessed and not checked on live: the messages' wording; that a prayer can be turned on during a delay (an agility
  * obstacle) as it can be in combat; that dying and logging out turn every prayer off; that a protection prayer counts
@@ -101,6 +106,15 @@ data class PrayerBoosts(
  * Every account has Chivalry and Piety (Knight Waves, after King's Ransom) and Rigour, Augury and Preserve (the
  * Chambers of Xeric scrolls) unlocked, as every account has every quest done ([osrsps.game.Quests]); [unlockAll] sets
  * the varbits the client checks before it lets them be clicked.
+ *
+ * Quick prayers (OSRS Wiki, Prayer: the orb's left-click turns a chosen group on or off, its Setup picks the group):
+ * the group is varbit quickprayer_selected ([VARP_QUICK_PRAYERS]'s bits, the same bit per prayer as varp 83), kept
+ * with the account; the orb's state is varbit quickprayer_active ([VARP_QUICK_ACTIVE]'s bit 0). The client flips both
+ * itself when clicked (client scripts orbs_toggle_prayer and quickprayer_button_op), so the server's varps settle
+ * them. [toggleQuick] and [selectQuick] follow RSMod's QuickPrayerScript (rev 233), not checked on live: the group
+ * replaces the prayers on, turning the orb off turns every prayer off (the Wiki's "double left-clicking" turns all
+ * prayers off), every prayer going off turns the orb off, and picking a prayer for the group drops the ones it can't be
+ * on with. Its messages are RSMod's.
  */
 class Prayers(
     val all: List<Prayer>,
@@ -110,6 +124,8 @@ class Prayers(
     private val setOverhead: (Player, Int) -> Unit = { _, _ -> },
 ) {
     private val byComponent: Map<Int, Prayer> = all.associateBy { it.component }
+
+    private val rapidHeal: Prayer? = all.firstOrNull { it.effect == RAPID_HEAL }
 
     /** Every other prayer each prayer turns off when turned on, as a mask of their bits. */
     private val conflicts: Map<Prayer, Int> = all.associateWith { prayer ->
@@ -131,6 +147,9 @@ class Prayers(
         val against = if (type.melee) AttackType.CRUSH else type
         return all.any { it.protects == against && inEffect(player, it) }
     }
+
+    /** Whether a prayer with [effect] ([EFFECTS]) counts for [player] this tick. */
+    fun has(player: Player, effect: String): Boolean = all.any { it.effect == effect && inEffect(player, it) }
 
     /** What the prayers that count this tick ([inEffect]) add to [player]'s combat formulas. */
     fun boosts(player: Player): PrayerBoosts {
@@ -180,14 +199,89 @@ class Prayers(
     private fun refusal(player: Player, prayer: Prayer): String? = when {
         player.dead -> ""
         player.skills.currentLevel(Skill.PRAYER) <= 0 -> ""
+        else -> levelRefusal(player, prayer)
+    }
+
+    /** Why [player]'s levels don't let them use [prayer], null when they do. */
+    private fun levelRefusal(player: Player, prayer: Prayer): String? = when {
         player.skills.baseLevel(Skill.PRAYER) < prayer.level -> "You need a Prayer level of ${prayer.level} to use ${prayer.name}."
         player.skills.baseLevel(Skill.DEFENCE) < prayer.defence -> "You need a Prayer level of ${prayer.level} and a Defence level of ${prayer.defence} to use ${prayer.name}."
         else -> null
     }
 
+    /** The quick prayers [player] picked, as varp 83's bits. */
+    fun quickSelected(player: Player): Int = player.vars[VARP_QUICK_PRAYERS] and ALL_BITS
+
+    /** Whether [player]'s quick prayer orb is on. */
+    fun quickActive(player: Player): Boolean = player.vars[VARP_QUICK_ACTIVE] and 1 != 0
+
+    private fun setQuickActive(player: Player, active: Boolean) {
+        player.vars[VARP_QUICK_ACTIVE] = (player.vars[VARP_QUICK_ACTIVE] and 1.inv()) or if (active) 1 else 0
+    }
+
+    /**
+     * The quick prayer orb's left-click: on, the picked prayers replace the ones on (those [player]'s levels still allow,
+     * each with its sound); off, every prayer goes off. Refused, the orb the client already flipped is put back.
+     */
+    fun toggleQuick(player: Player) {
+        if (quickActive(player)) {
+            set(player, 0)
+            sound(player, DEACTIVATE_SOUND)
+            return
+        }
+        val chosen = all.filter { quickSelected(player) and it.mask != 0 && levelRefusal(player, it) == null }
+        val reason = when {
+            player.dead -> ""
+            quickSelected(player) == 0 -> NO_QUICK_PRAYERS
+            player.skills.currentLevel(Skill.PRAYER) <= 0 -> QUICK_OUT_OF_POINTS
+            chosen.isEmpty() -> ""
+            else -> null
+        }
+        if (reason != null) {
+            player.vars.resend(VARP_QUICK_ACTIVE)
+            if (reason.isNotEmpty()) message(player, reason)
+            return
+        }
+        val bits = chosen.fold(0) { mask, it -> mask or it.mask }
+        player.prayersActivated = player.prayersActivated or (bits and active(player).inv())
+        set(player, bits)
+        setQuickActive(player, true)
+        for (prayer in chosen) sound(player, prayer.sound)
+    }
+
+    /**
+     * A prayer clicked in the quick prayer setup, by its [bit]: picked, the ones it can't be on with are dropped; refused
+     * for [player]'s levels, the client's copy is put back. Returns false when no prayer has that bit.
+     */
+    fun selectQuick(player: Player, bit: Int): Boolean {
+        val prayer = all.firstOrNull { it.bit == bit } ?: return false
+        val selected = quickSelected(player)
+        val after = if (selected and prayer.mask != 0) {
+            selected and prayer.mask.inv()
+        } else {
+            val reason = levelRefusal(player, prayer)
+            if (reason != null) {
+                player.vars.resend(VARP_QUICK_PRAYERS)
+                message(player, reason)
+                return true
+            }
+            (selected and conflicts.getValue(prayer).inv()) or prayer.mask
+        }
+        player.vars[VARP_QUICK_PRAYERS] = (player.vars[VARP_QUICK_PRAYERS] and ALL_BITS.inv()) or after
+        return true
+    }
+
     private fun set(player: Player, bits: Int) {
+        val before = active(player)
         player.vars[VARP_PRAYERS] = (player.vars[VARP_PRAYERS] and ALL_BITS.inv()) or bits
-        if (bits == 0) player.prayerDrainCounter = 0
+        // Turning Rapid Heal on or off starts the hitpoints countdown again, at 30 or 60 seconds (OSRS Wiki, Rapid Heal).
+        if (rapidHeal != null && (before xor bits) and rapidHeal.mask != 0) {
+            player.hitpointsRegenTicks = if (bits and rapidHeal.mask != 0) RAPID_HEAL_TICKS else MeleeCombat.REGEN_TICKS
+        }
+        if (bits == 0) {
+            player.prayerDrainCounter = 0
+            if (quickActive(player)) setQuickActive(player, false)
+        }
         val overhead = all.firstOrNull { it.overhead >= 0 && bits and it.mask != 0 }?.overhead ?: -1
         if (overhead != player.overheadIcon) {
             player.overheadIcon = overhead
@@ -247,6 +341,20 @@ class Prayers(
         const val VARP_PRAYERS = 83
         const val ALL_BITS = (1 shl 29) - 1
 
+        /** prayer1: bits 0 to 28 are varbit quickprayer_selected (4102), with varp 83's bits. */
+        const val VARP_QUICK_PRAYERS = 84
+
+        /** armourhitsound: bit 0 is varbit quickprayer_active (4103). */
+        const val VARP_QUICK_ACTIVE = 375
+
+        /** The quick prayer setup (quickprayer), opened in the prayer book's place: its prayers (client-made children of buttons, by bit) and Done. */
+        const val QUICKPRAYER = 77
+        const val QUICKPRAYER_BUTTONS = 4
+        const val QUICKPRAYER_CLOSE = 5
+
+        const val NO_QUICK_PRAYERS = "You haven't selected any quick-prayers."
+        const val QUICK_OUT_OF_POINTS = "You've run out of prayer points."
+
         /** RuneLite's SoundEffectID: PRAYER_DEACTIVE_VWOOP and PRAYER_DEPLETE_TWINKLE. */
         const val DEACTIVATE_SOUND = 2663
         const val DEPLETE_SOUND = 2672
@@ -259,6 +367,16 @@ class Prayers(
         val SCROLL_UNLOCKS = listOf(5451, 5452, 5453)
 
         const val OUT_OF_POINTS = "You have run out of prayer points, you can recharge at an altar."
+
+        /** The prayers' other effects, as the data file names them; see [has]. */
+        const val RAPID_HEAL = "rapidHeal"
+        const val PROTECT_ITEM = "protectItem"
+        const val RETRIBUTION = "retribution"
+        const val REDEMPTION = "redemption"
+        val EFFECTS = setOf(RAPID_HEAL, PROTECT_ITEM, RETRIBUTION, REDEMPTION)
+
+        /** Hitpoints come back every 50 ticks with Rapid Heal, twice the usual rate (OSRS Wiki, Rapid Heal). */
+        const val RAPID_HEAL_TICKS = 50
 
         /** Cache params of the prayer objs (client scripts prayer_redraw and prayer_updatebutton). */
         const val PARAM_BIT = 630
@@ -283,8 +401,8 @@ class Prayers(
          *
          * "prayer" is the prayer obj's gameval name and "name" what its param 1752 must say, so a cache where the obj
          * has become something else fails the file. "groups", "overhead", "protects" ("melee", "ranged" or "magic"),
-         * "defence" and "boosts" ([PrayerBoosts]' fields, e.g. `{"attack": 120, "strength": 123, "defence": 125}`) may be
-         * left out. A prayer the cache doesn't have is skipped with a warning.
+         * "defence", "boosts" ([PrayerBoosts]' fields, e.g. `{"attack": 120, "strength": 123, "defence": 125}`) and
+         * "effect" (one of [EFFECTS]) may be left out. A prayer the cache doesn't have is skipped with a warning.
          */
         fun parse(text: String, objTypes: ObjTypes, fileName: String = RESOURCE): List<Prayer> {
             val root = Json.parseToJsonElement(text).jsonObject
@@ -323,6 +441,7 @@ class Prayers(
                         },
                         defence = entry["defence"]?.jsonPrimitive?.int ?: 1,
                         boosts = entry["boosts"]?.jsonObject?.let(::parseBoosts) ?: PrayerBoosts.NONE,
+                        effect = entry["effect"]?.jsonPrimitive?.content?.also { require(it in EFFECTS) { "\"effect\": \"$it\"" } },
                     )
                     require(prayers.none { it.bit == prayer.bit }) { "bit ${prayer.bit} is listed twice" }
                     require(prayers.none { it.component == prayer.component }) { "component ${prayer.component} is listed twice" }

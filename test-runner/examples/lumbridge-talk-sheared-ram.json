@@ -1,0 +1,522 @@
+{
+ "name": "Rest of Lumbridge step 5: Talk-to the Sheared Ram's Bartender (a beer for 2 coins) and Arthur the Clue Hunter (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 2",
+   "expectMessage": "Added 2 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3229 3238 0",
+   "expectMessage": "Teleported to 3229, 3238, 0",
+   "comment": "inside the Sheared Ram, in front of the bar"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Bartender",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.welcome]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ram_bartender.beer]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.beer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.price]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Beer",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Bartender",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.welcome]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ram_bartender.beer]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.beer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.price]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.cant_afford]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Bartender",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.welcome]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ram_bartender.rumours]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.rumours]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.veos]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Bartender",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ram_bartender.welcome]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ram_bartender.fine]",
+   "comment": "the talk ends with no line from the player"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3229 3237 0",
+   "expectMessage": "Teleported to 3229, 3237, 0",
+   "comment": "beside Arthur the Clue Hunter, just inside the Sheared Ram's south wall; the tile south of him is outside it"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Arthur the Clue Hunter",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.beginner]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.beginner_said]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.eyes_light_up]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.beginner_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.beginner_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.beginner_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.beginner_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.beginner_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.beginner_6]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.beginner_7]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.advanced]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.advanced_said]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.advanced_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.advanced_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.advanced_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.advanced_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.advanced_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.advanced_6]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.types]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.cipher]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.cipher_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.cipher_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.cipher_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.more]",
+   "comment": "the second page"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.puzzle]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.puzzle_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.puzzle_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.puzzle_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.puzzle_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.more]",
+   "comment": "the third page"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.fairy_ring]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.fairy_ring_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.fairy_ring_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.something_else]",
+   "comment": "back to the first menu"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.toggle]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.stop_ask]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.vessels_stop]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.stop]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.stop]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.stopped]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.anything_else]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 9365,
+   "value": 1,
+   "comment": "vesseled_clues_disabled"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.toggle]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.start_ask]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.vessels_start]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.start]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.start]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.started]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.anything_else]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 9365,
+   "value": 0
+  },
+  {
+   "step": "chooseOption",
+   "text": "[arthur.goodbye]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.goodbye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arthur.so_long]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

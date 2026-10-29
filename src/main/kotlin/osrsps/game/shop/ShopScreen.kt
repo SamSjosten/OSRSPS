@@ -229,7 +229,9 @@ class ShopScreen(
         player.inventory.add(coins, count)
     }
 
-    private fun unnoted(type: ObjType): ObjType = if (type.isCert) objTypes[type.certlink] ?: type else type
+    /** What a note stands for, else [type]; only when the item links back, so a one-way cache link can't sell as another. */
+    private fun unnoted(type: ObjType): ObjType =
+        if (type.isCert) objTypes[type.certlink]?.takeIf { !it.isCert && it.certlink == type.id } ?: type else type
 
     private fun coins(count: Int) = if (count == 1) "1 coin" else "%,d coins".format(count)
 
