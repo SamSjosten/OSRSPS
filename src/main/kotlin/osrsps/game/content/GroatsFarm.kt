@@ -35,12 +35,19 @@ object GillieLines : Lines("gillie_groats", "Transcript:Gillie Groats") {
     val DO_THAT = line("do_that", "milking with no bucket: the player's last line")
 }
 
+/** Milking's messages, RSMod's, not checked against live. */
+object DairyCowLines : Lines("dairy_cow", "Dairy cow") {
+    val MILKED = line("milked", "each bucket filled")
+    val NO_BUCKET = line("no_bucket", "Milk with no bucket, on a cow outside Gillie's pen")
+    val NOT_WANTED = line("not_wanted", "anything but a bucket used on a dairy cow")
+}
+
 /**
  * Groats' farm, north of Lumbridge east of the River Lum: Gillie Groats the milkmaid (4628) and the two dairy cows in
  * her pen. The farm's beef cows are in npc-spawns/lumbridge.json.
  *
  * Milking is RSMod's dairy cow script: an empty bucket, then two ticks later a bucket of milk, the milkit animation and
- * "You milk the cow.", again every eight ticks while buckets are left, until the player does something else. With no
+ * a message, again every eight ticks while buckets are left, until the player does something else. With no
  * bucket, a dairy cow in Gillie's pen gets her talk about it and any other dairy cow a message. Guessed: Gillie's
  * chathead expressions outside RSMod's no-bucket talk. Left out: Steal-cowbell (Thieving, and Cold War's cowbells) and
  * Gillie's talk about a lost cowbell amulet, both Cold War's.
@@ -68,10 +75,6 @@ object GroatsFarm {
 
     /** The dairy cows in Gillie's pen (the 241 map). */
     val GILLIES_COWS = setOf(3252 to 3275, 3253 to 3271)
-
-    const val MILKED = "You milk the cow."
-    const val NO_BUCKET = "You'll need an empty bucket to collect the milk."
-    const val NOT_WANTED = "The cow doesn't want that."
 
     internal suspend fun Dialogue.gillie() = with(GillieLines) {
         chatNpc(ChatAnim.HAPPY, HELLO)
@@ -114,7 +117,7 @@ fun registerGroatsFarm(world: World) {
     for (cow in GroatsFarm.DAIRY_COWS) {
         world.handlers.onLoc(cow, GroatsFarm.MILK) { op -> milk(world, op.loc!!) }
         world.handlers.onObjOnLoc(cow, GroatsFarm.BUCKET) { op -> milk(world, op.loc!!) }
-        world.handlers.onObjOnLoc(cow) { player.message(GroatsFarm.NOT_WANTED) }
+        world.handlers.onObjOnLoc(cow) { world.message(player, DairyCowLines.NOT_WANTED) }
     }
 }
 
@@ -125,20 +128,20 @@ private suspend fun ScriptContext.milk(world: World, cow: ZoneLoc) {
             val gillie = world.npcTypes[GroatsFarm.GILLIE] ?: return
             world.dialogues.start(this) { with(GroatsFarm) { noBucket(gillie) } }
         } else {
-            player.message(GroatsFarm.NO_BUCKET)
+            world.message(player, DairyCowLines.NO_BUCKET)
         }
         return
     }
-    queue(MILK_QUEUE, QueueType.WEAK, GroatsFarm.FIRST_MILK_TICKS) { milkOnce() }
+    queue(MILK_QUEUE, QueueType.WEAK, GroatsFarm.FIRST_MILK_TICKS) { milkOnce(world) }
 }
 
 /** One bucket filled, and the next queued: a weak queue, so walking off or clicking anything else stops it. */
-private fun ScriptContext.milkOnce() {
+private fun ScriptContext.milkOnce(world: World) {
     val slot = player.inventory.contents().firstOrNull { it.second.id == GroatsFarm.BUCKET }?.first ?: return
     player.inventory[slot] = InvObj(GroatsFarm.BUCKET_OF_MILK, 1)
-    player.message(GroatsFarm.MILKED)
+    world.message(player, DairyCowLines.MILKED)
     player.anim(GroatsFarm.ANIM_MILK)
-    queue(MILK_QUEUE, QueueType.WEAK, GroatsFarm.MILK_TICKS) { milkOnce() }
+    queue(MILK_QUEUE, QueueType.WEAK, GroatsFarm.MILK_TICKS) { milkOnce(world) }
 }
 
 private const val MILK_QUEUE = "milk_cow"

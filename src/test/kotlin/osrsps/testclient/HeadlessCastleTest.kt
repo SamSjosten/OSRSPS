@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.World
+import osrsps.game.content.ClimbLines
 import osrsps.game.content.Climbing
 import osrsps.game.content.LumbridgeCastle.CELLAR_LADDER
 import osrsps.game.content.LumbridgeCastle.CHEST
@@ -29,7 +30,9 @@ import osrsps.game.content.LumbridgeCastle.SKIP_FLOOR
 import osrsps.game.content.LumbridgeCastle.STAIRS_BOTTOM
 import osrsps.game.content.LumbridgeCastle.STAIRS_MIDDLE
 import osrsps.game.content.LumbridgeCastle.STAIRS_TOP
+import osrsps.game.content.SearchLines
 import osrsps.game.content.Searching
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -133,7 +136,7 @@ class HeadlessCastleTest {
 
                 client.locOp(STAIRS_MIDDLE, 3204, 3207, CLIMB)
                 val menu = client.awaitDialogue("the stairs menu") { it is DialogueView.Menu } as DialogueView.Menu
-                assertEquals(DialogueView.Menu(Climbing.STAIRS_MENU_TITLE, listOf(Climbing.STAIRS_UP, Climbing.STAIRS_DOWN)), menu)
+                assertEquals(DialogueView.Menu(DialogueText.NONE[ClimbLines.STAIRS_TITLE], listOf(DialogueText.NONE[ClimbLines.STAIRS_UP], DialogueText.NONE[ClimbLines.STAIRS_DOWN])), menu)
                 client.chooseOption(1)
                 client.awaitAt(3205, 3209, 2)
 
@@ -157,7 +160,7 @@ class HeadlessCastleTest {
 
                 client.locOp(LADDER_MIDDLE, 3229, 3213, CLIMB)
                 val menu = client.awaitDialogue("the ladder menu") { it is DialogueView.Menu } as DialogueView.Menu
-                assertEquals(DialogueView.Menu(Climbing.LADDER_MENU_TITLE, listOf(Climbing.LADDER_UP, Climbing.LADDER_DOWN)), menu)
+                assertEquals(DialogueView.Menu(DialogueText.NONE[ClimbLines.LADDER_TITLE], listOf(Climbing.LADDER_UP, Climbing.LADDER_DOWN)), menu)
                 client.chooseOption(1)
                 client.awaitAt(3228, 3213, 2)
 
@@ -213,13 +216,13 @@ class HeadlessCastleTest {
                 client.await("the login rebuild") { client.position }
                 client.tele(3208, 3218, 1)
                 client.locOp(CRATE, 3210, 3218, 1)
-                client.awaitMessage("the crate searched") { it == Searching.CRATE_EMPTY }
+                client.awaitMessage("the crate searched") { it == DialogueText.NONE[SearchLines.CRATE_EMPTY] }
 
                 val chestOpen = LocChange(CHEST_OPEN, LocShape.CENTREPIECE_STRAIGHT, 0, Coord(3209, 3218, 1))
                 client.locOp(CHEST, 3209, 3218, 1)
                 client.await("the chest open") { client.locChanges().takeIf { chestOpen in it } }
                 client.locOp(CHEST_OPEN, 3209, 3218, Searching.SEARCH)
-                client.awaitMessage("the chest searched") { it == Searching.CHEST_EMPTY }
+                client.awaitMessage("the chest searched") { it == DialogueText.NONE[SearchLines.CHEST_EMPTY] }
                 client.locOp(CHEST_OPEN, 3209, 3218, Searching.SHUT)
                 client.await("the chest shut") { client.locChanges().takeIf { chestOpen !in it } }
 
@@ -228,11 +231,11 @@ class HeadlessCastleTest {
                 client.locOp(DRAWERS, 3213, 3216, 1)
                 client.await("the drawers open") { client.locChanges().takeIf { drawersOpen in it } }
                 client.locOp(DRAWERS_OPEN, 3213, 3216, Searching.SEARCH)
-                client.awaitMessage("the drawers searched") { it == Searching.DRAWERS_EMPTY }
+                client.awaitMessage("the drawers searched") { it == DialogueText.NONE[SearchLines.DRAWERS_EMPTY] }
 
                 client.tele(3206, 3218, 2)
                 client.locOp(SACKS, 3205, 3218, 1)
-                client.awaitMessage("the sacks searched") { it == Searching.SACKS_EMPTY }
+                client.awaitMessage("the sacks searched") { it == DialogueText.NONE[SearchLines.SACKS_EMPTY] }
             }
         }
     }

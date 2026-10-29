@@ -7,6 +7,11 @@
   },
   {
    "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
    "text": "::tele 3210 3219 1",
    "expectMessage": "Teleported to 3210, 3219, 1"
   },
@@ -25,7 +30,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You search the crate but find nothing."
+   "contains": "[search.crate_empty]"
   },
   {
    "step": "locOption",
@@ -44,7 +49,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You search the chest but find nothing."
+   "contains": "[search.chest_empty]"
   },
   {
    "step": "locOption",
@@ -96,7 +101,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "There is nothing interesting in these sacks."
+   "contains": "[search.sacks_empty]"
   }
  ]
 }

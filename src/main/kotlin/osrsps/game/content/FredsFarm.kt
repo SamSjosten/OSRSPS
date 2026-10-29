@@ -16,6 +16,13 @@ object FredLines : Lines("fred_the_farmer", "Transcript:Fred the Farmer") {
     val ROAD = line("road", "option 2: Fred's answer, the road to Lumbridge")
 }
 
+/** Shearing's messages, RSMod's and the 2004Scape project's, not checked against live. */
+object SheepLines : Lines("sheep", "Sheep") {
+    val NO_SHEARS = line("no_shears", "Shear with no shears")
+    val GOT_WOOL = line("got_wool", "a sheep sheared")
+    val ALREADY_SHORN = line("already_shorn", "shears used on a sheep already sheared")
+}
+
 /**
  * Fred's farm, north-west of Lumbridge Castle: Fred the Farmer (732) and his sheep to shear. Its chickens and rams only
  * fight and drop (npc-combat.json, npc-drops.json); its eggs and shears are item spawns (obj-spawns/lumbridge.tsv), and
@@ -56,10 +63,6 @@ object FredsFarm {
         2789 to 2692, // sheepunsheeredshaggy2
     )
 
-    const val NO_SHEARS = "You need a set of shears to do this."
-    const val GOT_WOOL = "You get some wool."
-    const val ALREADY_SHORN = "This sheep has already been shorn."
-
     internal suspend fun Dialogue.fred() = with(FredLines) {
         chatNpc(ChatAnim.ANGRY, MY_LAND)
         when (choice(KILL, LOST)) {
@@ -84,13 +87,13 @@ fun registerFredsFarm(world: World) {
         world.handlers.onNpc(sheep, FredsFarm.SHEAR) { op -> shear(world, op.npc!!, sheared) }
         world.handlers.onObjOnNpc(sheep, FredsFarm.SHEARS) { op -> shear(world, op.npc!!, sheared) }
         // A sheared sheep has no Shear option; shears used on one say so.
-        world.handlers.onObjOnNpc(sheared, FredsFarm.SHEARS) { player.message(FredsFarm.ALREADY_SHORN) }
+        world.handlers.onObjOnNpc(sheared, FredsFarm.SHEARS) { world.message(player, SheepLines.ALREADY_SHORN) }
     }
 }
 
 private suspend fun ScriptContext.shear(world: World, sheep: Npc, sheared: Int) {
     if (player.inventory.count(FredsFarm.SHEARS) == 0L) {
-        player.message(FredsFarm.NO_SHEARS)
+        world.message(player, SheepLines.NO_SHEARS)
         return
     }
     player.anim(FredsFarm.ANIM_SHEAR)
@@ -100,6 +103,6 @@ private suspend fun ScriptContext.shear(world: World, sheep: Npc, sheared: Int) 
     if (sheep.dead || sheep.transformedTo != null || world.npcs[sheep.index] !== sheep) return
     val type = world.npcTypes[sheared] ?: return
     world.npcs.transform(sheep, type, FredsFarm.REGROW_TICKS)
-    player.message(FredsFarm.GOT_WOOL)
+    world.message(player, SheepLines.GOT_WOOL)
     world.objTypes[FredsFarm.WOOL]?.let { world.groundObjs.give(player, it, 1) }
 }

@@ -15,8 +15,29 @@ import osrsps.game.Player
 import osrsps.game.bank.BankScreen
 import osrsps.game.bank.getVarbitIfKnown
 import osrsps.game.bank.setVarbitIfKnown
+import osrsps.game.dialogue.DialogueText
+import osrsps.game.dialogue.Line
+import osrsps.game.dialogue.Lines
 
 private val logger = KotlinLogging.logger {}
+
+/**
+ * A shop's messages, 2004Scape's (RS2) except the value checks', which are RSMod's; not checked against live. `{item}`
+ * is the item's name and `{price}` the coins, written as 1,000.
+ */
+object ShopLines : Lines("shop", "Shop") {
+    val COSTS_ONE = line("costs_one", "Value on a shop's item that costs 1 coin", "item")
+    val COSTS = line("costs", "Value on a shop's item at any other price", "item", "price")
+    val BUYS_FOR_ONE = line("buys_for_one", "Value on an inventory item the shop would buy for 1 coin", "item")
+    val BUYS_FOR = line("buys_for", "Value on an inventory item at any other price", "item", "price")
+    val OUT_OF_STOCK = line("out_of_stock", "buying when the stock has run out")
+    val NOT_ENOUGH_COINS = line("not_enough_coins", "buying without the coins")
+    val NOT_ENOUGH_SPACE = line("not_enough_space", "buying, or selling for coins, with no room in the inventory")
+    val NO_ROOM = line("no_room", "selling to a shop whose slots are all taken")
+    val CANT_SELL_COINS = line("cant_sell_coins", "Value or Sell on coins")
+    val CANT_SELL = line("cant_sell", "Value or Sell on an untradeable item")
+    val WRONG_SHOP = line("wrong_shop", "Value or Sell on an item a specialist shop doesn't stock")
+}
 
 /** The shop a player has open, and the [Shop.version] their client last got. */
 class OpenShop(val shop: Shop) {
@@ -43,6 +64,8 @@ class ShopScreen(
     private val openModal: (Player, FrameSlot, Int) -> Unit,
     /** Shows an item's examine text and values, as the inventory's Examine does. */
     private val examine: (Player, ObjType, Int) -> Unit,
+    /** The words of [ShopLines] for a player. */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     private val shops: Map<String, Shop> = types.all.associate { it.key to Shop(it) }
@@ -157,14 +180,14 @@ class ShopScreen(
 
     private fun valueInShop(player: Player, shop: Shop, type: ObjType) {
         val price = shop.buyPrice(type.id, type.cost, shop.count(type.id))
-        message(player, "${type.name}: currently costs ${coins(price)}.")
+        value(player, ShopLines.COSTS_ONE, ShopLines.COSTS, type.name, price)
     }
 
     private fun valueInInventory(player: Player, shop: Shop, type: ObjType) {
         val base = unnoted(type)
         if (!canSell(player, shop, base)) return
         val price = shop.sellPrice(base.id, base.cost, shop.count(base.id))
-        message(player, "${base.name}: shop will buy for ${coins(price)}.")
+        value(player, ShopLines.BUYS_FOR_ONE, ShopLines.BUYS_FOR, base.name, price)
     }
 
     /**
@@ -176,15 +199,15 @@ class ShopScreen(
         val inv = player.inventory
         repeat(amount) {
             val stock = shop.count(type.id)
-            if (stock <= 0) return message(player, OUT_OF_STOCK)
+            if (stock <= 0) return message(player, ShopLines.OUT_OF_STOCK)
             val price = shop.buyPrice(type.id, type.cost, stock)
             val coinSlot = inv.slotOf(COINS)
-            if (coinSlot < 0 || inv[coinSlot]!!.count < price) return message(player, NOT_ENOUGH_COINS)
+            if (coinSlot < 0 || inv[coinSlot]!!.count < price) return message(player, ShopLines.NOT_ENOUGH_COINS)
             // Paying with the last coins frees their slot for the item, as 2004Scape lets it.
             inv.remove(coinSlot, price)
             if (inv.add(type, 1) == 0) {
                 coinsBack(player, price)
-                return message(player, NOT_ENOUGH_SPACE)
+                return message(player, ShopLines.NOT_ENOUGH_SPACE)
             }
             shop.take(shop.slotOf(type.id), 1)
         }
@@ -202,11 +225,11 @@ class ShopScreen(
         repeat(amount) {
             val from = if (inv[slot]?.id == type.id) slot else inv.slotOf(type.id)
             if (from < 0) return
-            if (!shop.hasRoom(base.id)) return message(player, NO_ROOM)
+            if (!shop.hasRoom(base.id)) return message(player, ShopLines.NO_ROOM)
             val price = shop.sellPrice(base.id, base.cost, shop.count(base.id))
             val freesSlot = !type.stackable && !type.isCert || inv[from]!!.count == 1
-            if (price > 0 && inv.slotOf(COINS) < 0 && inv.freeSlots == 0 && !freesSlot) return message(player, NOT_ENOUGH_SPACE)
-            if (price > 0 && inv.count(COINS) + price > Inventory.MAX_STACK) return message(player, NOT_ENOUGH_SPACE)
+            if (price > 0 && inv.slotOf(COINS) < 0 && inv.freeSlots == 0 && !freesSlot) return message(player, ShopLines.NOT_ENOUGH_SPACE)
+            if (price > 0 && inv.count(COINS) + price > Inventory.MAX_STACK) return message(player, ShopLines.NOT_ENOUGH_SPACE)
             inv.remove(from, 1)
             shop.put(base.id, 1)
             if (price > 0) coinsBack(player, price)
@@ -215,9 +238,9 @@ class ShopScreen(
 
     private fun canSell(player: Player, shop: Shop, base: ObjType): Boolean {
         val refusal = when {
-            base.id == COINS -> CANT_SELL_COINS
-            !base.tradeable -> CANT_SELL
-            !shop.type.general && !shop.type.stocks(base.id) -> WRONG_SHOP
+            base.id == COINS -> ShopLines.CANT_SELL_COINS
+            !base.tradeable -> ShopLines.CANT_SELL
+            !shop.type.general && !shop.type.stocks(base.id) -> ShopLines.WRONG_SHOP
             else -> null
         }
         refusal?.let { message(player, it) }
@@ -233,9 +256,12 @@ class ShopScreen(
     private fun unnoted(type: ObjType): ObjType =
         if (type.isCert) objTypes[type.certlink]?.takeIf { !it.isCert && it.certlink == type.id } ?: type else type
 
-    private fun coins(count: Int) = if (count == 1) "1 coin" else "%,d coins".format(count)
+    /** A value check's message: [one] for a price of 1 coin, else [many] with the price written as 1,000 and so on. */
+    private fun value(player: Player, one: Line, many: Line, item: String, price: Int) =
+        if (price == 1) message(player, one, "item" to item) else message(player, many, "item" to item, "price" to "%,d".format(price))
 
-    private fun message(player: Player, text: String) = send(player, MessageGame(CHATTYPE_GAMEMESSAGE, text))
+    private fun message(player: Player, line: Line, vararg values: Pair<String, Any>) =
+        send(player, MessageGame(CHATTYPE_GAMEMESSAGE, words(player).get(line, *values)))
 
     private fun Inventory.slotOf(id: Int): Int = contents().firstOrNull { it.second.id == id }?.first ?: -1
 
@@ -272,14 +298,6 @@ class ShopScreen(
         private const val VALUE_OP = "Value$OP_COLOUR"
 
         const val COINS = 995
-
-        const val OUT_OF_STOCK = "The shop has run out of stock."
-        const val NOT_ENOUGH_COINS = "You don't have enough coins."
-        const val NOT_ENOUGH_SPACE = "You don't have enough inventory space."
-        const val NO_ROOM = "The shop has run out of space."
-        const val CANT_SELL_COINS = "You can't sell this item to a shop."
-        const val CANT_SELL = "You can't sell this item."
-        const val WRONG_SHOP = "You can't sell this item to this shop."
 
         private const val CHATTYPE_GAMEMESSAGE = 0
 
