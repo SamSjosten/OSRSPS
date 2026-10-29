@@ -104,6 +104,7 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
@@ -361,6 +362,8 @@ class World(
 
     val firemaking = Firemaking(this, collision)
 
+    val mining = Mining(this)
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has)
 
@@ -411,6 +414,7 @@ class World(
         woodcutting.register()
         birdNests.register()
         firemaking.register()
+        mining.register()
         loadDialogue()
     }
 
