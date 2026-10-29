@@ -124,19 +124,29 @@ class StatRestoreTest {
     }
 
     @Test
-    fun `Preserve turned off in a lengthened cycle's last 12 seconds keeps the cycle long`() {
+    fun `Preserve turned off with under 13 seconds of a lengthened cycle to go keeps the cycle long`() {
         prayersOn += Prayers.PRESERVE
         alice.skills.setCurrentLevel(Skill.ATTACK, 99)
-        run(130)
+        run(129)
         prayersOn.clear()
-        run(19)
-        assertEquals(99, level(Skill.ATTACK), "turned off with 20 ticks to go")
+        run(20)
+        assertEquals(99, level(Skill.ATTACK), "turned off with 21 ticks, 12.6 seconds, to go")
         run(1)
         assertEquals(98, level(Skill.ATTACK))
         run(99)
         assertEquals(98, level(Skill.ATTACK), "the next cycle is a minute again")
         run(1)
         assertEquals(97, level(Skill.ATTACK))
+    }
+
+    @Test
+    fun `Preserve turned off with 22 ticks to go ends a cycle past a minute at once`() {
+        prayersOn += Prayers.PRESERVE
+        alice.skills.setCurrentLevel(Skill.ATTACK, 99)
+        run(128)
+        prayersOn.clear()
+        run(1)
+        assertEquals(98, level(Skill.ATTACK))
     }
 
     @Test

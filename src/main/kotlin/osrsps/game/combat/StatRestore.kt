@@ -7,7 +7,7 @@ import osrsps.game.Skill
 class BoostCycle {
     var ticks = 0
 
-    /** Set once Preserve has carried the cycle into its last [StatRestore.SEGMENT_TICKS]; turning Preserve off then doesn't shorten it. */
+    /** Set once Preserve has carried the cycle into its last [StatRestore.PRESERVE_KEEP_TICKS]; turning Preserve off then doesn't shorten it. */
     var lengthened = false
 
     /**
@@ -57,8 +57,8 @@ class StatTimers {
  *
  * Guessed and not checked on live: which skills are the combat ones (Attack, Strength, Defence, Ranged, Magic and
  * Prayer); that boosted Prayer goes down on the combat cycle and boosted Hitpoints' cycle is lengthened by Preserve too;
- * that Preserve's 13 seconds are the cycle's last segment, so turning it off any earlier ends a cycle already past a
- * minute at once; that a cycle saved past a minute, Preserve having lengthened it, comes back as its last segment; that
+ * that Preserve's "under 13 seconds" is the last 21 ticks counted from the end of the tick it was last on in, and turning
+ * it off any earlier ends a cycle already past a minute at once; that a cycle saved past a minute, Preserve having lengthened it, comes back as its last segment; that
  * drained stats share one restore cycle, separate from the boost cycles, not lengthened by Preserve and not saved; and
  * where in the tick it happens (with the prayer drain, after the NPCs' attacks). Divine potions' fixed five minutes come
  * with the potions, step 6c.
@@ -90,7 +90,7 @@ class StatRestore(private val hasPrayer: (Player, String) -> Boolean = { _, _ ->
     /** Counts [cycle] on by a tick; true when it ends, at a minute, or a minute and a half with Preserve. */
     private fun advance(cycle: BoostCycle, preserved: Boolean): Boolean {
         cycle.ticks++
-        if (preserved && cycle.ticks >= PRESERVE_CYCLE_TICKS - SEGMENT_TICKS) cycle.lengthened = true
+        if (preserved && cycle.ticks >= PRESERVE_CYCLE_TICKS - PRESERVE_KEEP_TICKS) cycle.lengthened = true
         if (cycle.ticks < if (preserved || cycle.lengthened) PRESERVE_CYCLE_TICKS else CYCLE_TICKS) return false
         cycle.ticks = 0
         cycle.lengthened = false
@@ -119,6 +119,9 @@ class StatRestore(private val hasPrayer: (Player, String) -> Boolean = { _, _ ->
 
         /** A minute and a half, with Preserve. */
         const val PRESERVE_CYCLE_TICKS = 150
+
+        /** Under 13 seconds: Preserve on with this many ticks or fewer to go can be turned off without losing the 90 seconds. */
+        const val PRESERVE_KEEP_TICKS = 21
 
         /** Preserve counts once it has been on for 15 seconds. */
         const val PRESERVE_DELAY = 25
