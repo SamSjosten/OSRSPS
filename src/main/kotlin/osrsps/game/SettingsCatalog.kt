@@ -48,8 +48,6 @@ class SettingRow(
     val id: Int get() = params[PARAM_ID] ?: 0
     val kind: Int get() = params[PARAM_KIND] ?: KIND_TOGGLE
 
-    fun flag(param: Int): Boolean = (params[param] ?: 0) != 0
-
     companion object {
         const val PARAM_ID = 1077
         const val PARAM_KIND = 1078
