@@ -287,6 +287,23 @@ click doesn't reset the cycle. Rolls use the Wiki's skilling success formula (`S
 action out of 256), and `SkillTools` picks the best axe or pickaxe the player can use from the backpack or weapon slot.
 The shared clock is the 2004Scape project's `%action_delay` model, inferred to hold on OSRS from tick manipulation.
 
+### Woodcutting
+
+Chop down on a tree, or an axe used on one, chops it (`game/skill/Woodcutting.kt`, data in
+`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, maple, yew and magic tree in
+the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the dialogue file.
+
+| Woodcutting behaviour | Source |
+|-----------------------|--------|
+| Levels, XP, a roll every 4 ticks, respawn times, tree timers (oak 45 ticks, willow 50, maple 100, yew 190, magic 390) | OSRS Wiki tree pages |
+| Each tree's success pair per axe tier, checked against the Wiki charts' points (`WoodcuttingDataTest`) | OSRS Wiki tree pages; crystal pairs picked inside the range the charts allow |
+| Regular, dead and evergreen trees fall after one log and grow back in 60 to 100 ticks | OSRS Wiki |
+| Best usable axe from the backpack or weapon slot picks the animation and pair | OSRS Wiki axe pages; animations from the 241 gamevals |
+| Which stump each tree becomes | RSMod's table, matched by gameval name (not in the cache) |
+| Swing message on the click, the animation again on each roll, the checks each tick | 2004Scape woodcut script |
+| The timer runs down one a tick while anyone chops and back up one a tick while nobody does; the tree falls at the first log after it runs out | guessed (the Wiki gives only totals) |
+| No chopping sound | the 241 synth ids have no names to find it by |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for

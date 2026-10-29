@@ -1,0 +1,35 @@
+{
+ "name": "Gathering skills step 2: chop a tree north of Lumbridge Castle with a bronze axe (one log, a stump, the tree back), then fell the oak south of it at level 99 with a dragon axe (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3224 3233 0"},
+  {"step": "assertLocation", "x": 3224, "y": 3233, "plane": 0},
+
+  {"step": "locOption", "locId": 1278, "option": "Chop down", "x": 3225, "y": 3232},
+  {"step": "assertMessage", "contains": "woodcutting.no_axe"},
+  {"step": "command", "text": "::item bronze_axe", "expectMessage": "Added 1 x Bronze axe"},
+  {"step": "locOption", "locId": 1278, "option": "Chop down", "x": 3225, "y": 3232},
+  {"step": "assertMessage", "contains": "woodcutting.swing"},
+  {"step": "assertAnimation", "id": 879, "comment": "human_woodcutting_bronze_axe"},
+  {"step": "assertInventory", "item": "Logs", "count": 1, "timeoutMs": 90000, "comment": "25.4% a roll at level 1, a roll every 4 ticks"},
+  {"step": "assertStat", "skill": "Woodcutting", "level": 1, "xp": 25},
+  {"step": "assertLoc", "locId": 1342, "x": 3225, "y": 3232, "comment": "treestump2: a regular tree falls after one log"},
+  {"step": "assertLoc", "locId": 1278, "x": 3225, "y": 3232, "option": "Chop down", "timeoutMs": 70000, "comment": "back after 60 to 100 ticks"},
+
+  {"step": "command", "text": "::setlevel woodcutting 99", "expectMessage": "Woodcutting set to level 99"},
+  {"step": "command", "text": "::item dragon_axe", "expectMessage": "Added 1 x Dragon axe"},
+  {"step": "command", "text": "::tele 3217 3206 0"},
+  {"step": "assertLocation", "x": 3217, "y": 3206, "plane": 0},
+  {"step": "locOption", "locId": 10820, "option": "Chop down", "x": 3218, "y": 3205},
+  {"step": "assertAnimation", "id": 2846, "comment": "human_woodcutting_dragon_axe: the best axe the level allows"},
+  {"step": "assertLoc", "locId": 1356, "x": 3218, "y": 3205, "timeoutMs": 60000, "comment": "oaktree_stump once the 45-tick timer has run out"},
+  {"step": "assertInventory", "item": "Oak logs", "count": 12, "comment": "a sure roll every 4 ticks: logs at 3, 7, ... 47 ticks, the last one felling it"},
+  {"step": "assertLoc", "locId": 10820, "x": 3218, "y": 3205, "option": "Chop down", "timeoutMs": 20000, "comment": "back after 14 ticks"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
