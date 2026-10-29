@@ -45,6 +45,10 @@ class MagicCombatTest {
     private val npcTypes = NpcTypes.of(man, dummy, warded, fireWeak, waterWeak)
 
     private val fireStrike = spellObj(3279, "13_fire_strike", "Fire Strike", 13, 19, 8, MIND to 1, FIRE to 3, AIR to 2)
+
+    // As in the cache, the hold spells have no max hit param; their runes here are stand-ins.
+    private val bind = spellObj(3283, "20_bind", "Bind", 20, BIND, -1, MIND to 2, AIR to 3, FIRE to 3)
+    private val snare = spellObj(3300, "50_snare", "Snare", 50, SNARE, -1, MIND to 3, AIR to 4, FIRE to 4)
     private val runes = listOf(AIR to "airrune", FIRE to "firerune", MIND to "mindrune").map { (id, name) ->
         ObjType(id, name.removeSuffix("rune").replaceFirstChar { it.uppercase() } + " rune", stackable = true, internalName = name)
     }
@@ -52,11 +56,15 @@ class MagicCombatTest {
     // Obj category 1 is the staves (weapon category 18), as Weapons maps it; param 3 magic attack, 14 attack speed.
     private val staffOfFire = ObjType(1387, "Staff of fire", wearpos1 = WearPos.WEAPON, params = mapOf(3 to 10, 14 to 5), internalName = "staff_of_fire", category = 1)
     private val occult = ObjType(12002, "Occult necklace", wearpos1 = WearPos.NECK, params = mapOf(3 to 12, 299 to 50), internalName = "occult_necklace")
-    private val objTypes = ObjTypes.of(fireStrike, staffOfFire, occult, *runes.toTypedArray())
+    private val objTypes = ObjTypes.of(fireStrike, bind, snare, staffOfFire, occult, *runes.toTypedArray())
 
     private val spells = Spells.parse(
         """{ "splash": "failedspell_impact", "spells": [ { "spell": "13_fire_strike", "autocast": 4, "element": "fire", "xp": 11.5, "anim": "human_caststrike",
-            "staffAnim": "human_caststrike_staff", "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" } ],
+            "staffAnim": "human_caststrike_staff", "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" },
+          { "spell": "20_bind", "hold": 8, "maxHit": 0, "xp": 31, "splashXp": 30, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
+            "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" },
+          { "spell": "50_snare", "hold": 16, "maxHit": 2, "xp": 61, "splashXp": 60, "anim": "human_caststrike", "staffAnim": "human_caststrike_staff",
+            "casting": "firestrike_casting", "travel": "firestrike_travel", "impact": "firestrike_impact" } ],
           "staves": [ { "items": ["staff_of_fire"], "runes": ["firerune"] } ] }""",
         objTypes, SeqNames(mapOf("human_caststrike" to 711, "human_caststrike_staff" to 1162)),
         SpotanimNames(mapOf("firestrike_casting" to 99, "firestrike_travel" to 100, "firestrike_impact" to 101, "failedspell_impact" to 85)),
@@ -137,6 +145,7 @@ class MagicCombatTest {
 
     private fun tick(vararg players: Player = arrayOf(alice)) {
         tick++
+        npcs.countDownFreezes()
         interactions.releaseNpcs()
         magic.process()
         melee.process()
@@ -200,6 +209,26 @@ class MagicCombatTest {
         assertEquals(before, alice.skills.tenths(Skill.HITPOINTS))
         // It turns on the caster as a hit NPC does.
         assertEquals(alice, npc.target)
+    }
+
+    @Test
+    fun `with sure hits on, a spell the warded NPC would shrug off hits, and the accuracy roll is still drawn`() {
+        val npc = spawn(warded, x = 3212)
+        val before = random.draws
+        cast(alice, npc)
+        tick()
+        val missDraws = random.draws - before
+        repeat(3) { tick() }
+        assertEquals(85, npc.effects.pendingSpotanims.single().id)
+        repeat(2) { tick() }
+        alice.sureHits = true
+        val sureBefore = random.draws
+        cast(alice, npc)
+        tick()
+        // The accuracy roll's two draws as before, and the damage roll a hit adds.
+        assertEquals(missDraws + 1, random.draws - sureBefore)
+        repeat(3) { tick() }
+        assertEquals(101, npc.effects.pendingSpotanims.single().id)
     }
 
     @Test
@@ -425,6 +454,82 @@ class MagicCombatTest {
         assertEquals(listOf(1L, 6L), castTicks())
     }
 
+    @Test
+    fun `Bind holds a man where he stands for 8 ticks, with no hitsplat, then he chases the caster`() {
+        alice.skills.setLevel(Skill.MAGIC, 20)
+        val xpBefore = alice.skills.tenths(Skill.MAGIC)
+        val npc = spawn(man)
+        cast(alice, npc, BIND)
+        // Cast on tick 1, 5 tiles away: it lands on tick 5, and he can't move that tick or the 7 after.
+        repeat(5) { tick() }
+        assertEquals(101, npc.effects.pendingSpotanims.single().id)
+        assertTrue(npc.effects.pendingHits.isEmpty())
+        assertEquals(alice, npc.target)
+        assertEquals(310, alice.skills.tenths(Skill.MAGIC) - xpBefore)
+        assertEquals(listOf(98, 297, 197), listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR)))
+        while (tick < 12) {
+            tick()
+            assertEquals(3215, npc.x, "moved on tick $tick")
+        }
+        assertEquals(1, npc.freezeTicks)
+        tick()
+        assertEquals(0, npc.freezeTicks)
+        assertEquals(Npcs.FREEZE_IMMUNITY_TICKS, npc.freezeImmunityTicks)
+        assertEquals(3214, npc.x)
+    }
+
+    @Test
+    fun `a hold spell on a held or immune target is refused with the Wiki's message, and takes no runes`() {
+        alice.skills.setLevel(Skill.MAGIC, 20)
+        alice.god = true
+        val npc = spawn(man)
+        cast(alice, npc, BIND)
+        repeat(6) { tick() }
+        val runes = listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR))
+        cast(alice, npc, BIND)
+        tick()
+        assertEquals(listOf(alice to MagicCombat.ALREADY_HELD), messages)
+        messages.clear()
+        // Moving again from tick 13, and immune in that tick and the 4 after.
+        while (tick < 12) tick()
+        cast(alice, npc, BIND)
+        tick()
+        assertEquals(listOf(alice to MagicCombat.IMMUNE), messages)
+        messages.clear()
+        while (tick < 16) tick()
+        cast(alice, npc, BIND)
+        tick()
+        assertEquals(listOf(alice to MagicCombat.IMMUNE), messages, "on tick 17, the fifth it moves in")
+        assertEquals(runes, listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR)))
+        assertEquals(1, projectiles.size)
+        messages.clear()
+        cast(alice, npc, BIND)
+        tick()
+        assertTrue(messages.isEmpty(), messages.toString())
+        assertEquals(2, projectiles.size)
+    }
+
+    @Test
+    fun `Snare hits for up to 2 and holds for 16 ticks, and one that splashes holds nothing and gives its splash XP`() {
+        alice.skills.setLevel(Skill.MAGIC, 50)
+        val xpBefore = alice.skills.tenths(Skill.MAGIC)
+        val dummyNpc = spawn(dummy)
+        cast(alice, dummyNpc, SNARE)
+        repeat(5) { tick() }
+        assertTrue(dummyNpc.effects.pendingHits.single().value in 0..2)
+        assertEquals(16, dummyNpc.freezeTicks)
+
+        val ward = spawn(warded, x = 3212, z = 3211)
+        alice.nextAttackTick = 0
+        val afterFirst = alice.skills.tenths(Skill.MAGIC)
+        cast(alice, ward, SNARE)
+        repeat(4) { tick() }
+        assertEquals(85, ward.effects.pendingSpotanims.single().id)
+        assertEquals(0, ward.freezeTicks)
+        assertEquals(600, alice.skills.tenths(Skill.MAGIC) - afterFirst)
+        assertTrue(afterFirst - xpBefore >= 610)
+    }
+
     /** Magic XP in tenths at level 13, where every test starts. */
     private val xpAt13 = alice.skills.tenths(Skill.MAGIC)
 
@@ -433,7 +538,7 @@ class MagicCombatTest {
         params[Spells.PARAM_NAME] = name
         params[Spells.PARAM_LEVEL] = level
         params[Spells.PARAM_COMPONENT] = (Spells.SPELLBOOK shl 16) or component
-        params[Spells.PARAM_MAX_HIT] = maxHit
+        if (maxHit >= 0) params[Spells.PARAM_MAX_HIT] = maxHit
         runes.forEachIndexed { i, (rune, count) ->
             val (runeParam, countParam) = Spells.PARAM_RUNES[i]
             params[runeParam] = rune
@@ -445,6 +550,8 @@ class MagicCombatTest {
     companion object {
         const val SEED = 7L
         const val FIRE_STRIKE = 19
+        const val BIND = 23
+        const val SNARE = 42
         const val AIR = 556
         const val FIRE = 554
         const val MIND = 558

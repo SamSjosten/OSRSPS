@@ -33,7 +33,12 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         reply("${near.size} NPC${if (near.size == 1) "" else "s"} within $radius tiles:")
         for (npc in near.take(MAX_LISTED)) {
             val spawn = npc.spawn
-            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}")
+            val freeze = when {
+                npc.freezeTicks > 0 -> "; frozen ${npc.freezeTicks} more tick${if (npc.freezeTicks == 1) "" else "s"}"
+                npc.freezeImmunityTicks > 0 -> "; immune to freezes ${npc.freezeImmunityTicks} more tick${if (npc.freezeImmunityTicks == 1) "" else "s"}"
+                else -> ""
+            }
+            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$freeze")
         }
         if (near.size > MAX_LISTED) reply("...and ${near.size - MAX_LISTED} more.")
     }

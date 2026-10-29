@@ -134,10 +134,26 @@ class Npcs(
     fun near(x: Int, z: Int, level: Int, radius: Int): List<Npc> =
         all.filter { it.level == level && abs(it.x - x) <= radius && abs(it.z - z) <= radius }.toList()
 
+    /**
+     * Counts every NPC's freeze and freeze immunity down a tick. The world calls it at the start of the NPC phase, before
+     * spells land and before [process], so a tick's spells, its movement and the next casts all see the same counts.
+     */
+    fun countDownFreezes() {
+        for (npc in npcs) {
+            if (npc == null) continue
+            if (npc.freezeTicks > 0) {
+                if (--npc.freezeTicks == 0) npc.freezeImmunityTicks = FREEZE_IMMUNITY_TICKS
+            } else if (npc.freezeImmunityTicks > 0) {
+                npc.freezeImmunityTicks--
+            }
+        }
+    }
+
     /** One tick of movement for every NPC, in index order. */
     fun process() {
         for (npc in npcs) {
             if (npc == null) continue
+            val frozen = npc.freezeTicks > 0
             val following = npc.following
             if (npc.holdTicks > 0) {
                 // Being fought, it stands and faces its attacker, unless it fights back: then it chases them. Guessed.
@@ -151,6 +167,8 @@ class Npcs(
                 }
             }
             when {
+                // Frozen, it stands; it can still hit whoever is beside it (OSRS Wiki, Freeze: movement only).
+                frozen -> continue
                 // Guessed: an NPC busy with a player doesn't move, even if it follows someone.
                 npc.engagedWith != null -> continue
                 following != null -> chase(npc, following)
@@ -159,6 +177,22 @@ class Npcs(
             }
             step(npc)
         }
+    }
+
+    /**
+     * Freezes [npc] for [ticks]: it can't move this tick or the [ticks] - 1 after, and then can't be frozen again for the
+     * [FREEZE_IMMUNITY_TICKS] it moves in after (OSRS Wiki, Freeze: 5 ticks, 3 seconds, of immunity after every bind
+     * and ice spell). False, and nothing changes, while it is frozen or immune. Called from the combat phase, which
+     * comes after [countDownFreezes] and before [process] in a tick, so the tick it is frozen on is its first tick
+     * standing. Guessed: the NPC side of it works as the Wiki says
+     * the player side does; the Wiki's freeze page is about players.
+     */
+    fun freeze(npc: Npc, ticks: Int): Boolean {
+        require(ticks > 0) { "a freeze of $ticks ticks" }
+        if (npc.freezeTicks > 0 || npc.freezeImmunityTicks > 0) return false
+        npc.freezeTicks = ticks
+        npc.destination = null
+        return true
     }
 
     /**
@@ -330,6 +364,9 @@ class Npcs(
 
         /** How far from its spawn, on either axis, an NPC walks after a player it fights; see [chase]. */
         const val MAX_RANGE = 7
+
+        /** Ticks after a freeze ends before another can take; see [freeze]. */
+        const val FREEZE_IMMUNITY_TICKS = 5
 
         private val STEP_OUT = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)
     }

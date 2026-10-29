@@ -1034,7 +1034,8 @@ final class ClientGame implements Game
 		int op = REMOVE.equalsIgnoreCase(option) ? 1 : isExamine(option) ? EXAMINE_OP : actionOp(slot.getActions(), option);
 		if (op < 0)
 		{
-			return "the item in slot " + wearpos + " has no option \"" + option + "\"";
+			return "the item in slot " + wearpos + " (" + itemId + ") has no option \"" + option + "\"; its options are "
+				+ Arrays.toString(slot.getActions());
 		}
 		client.menuAction(-1, component, ccOp(op), op, itemId, option, client.getItemDefinition(itemId).getName());
 		return null;

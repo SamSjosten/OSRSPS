@@ -255,7 +255,7 @@ class EquipmentTab(
         // Sent now so the menu's onload script reads it; the end-of-cycle flush resends it.
         send(player, VarpSmall(VARP_SPITFIRE_COORD, -1))
         openSide(player, AUTOCAST)
-        send(player, IfSetEventsV2(AUTOCAST, AUTOCAST_SPELLS, 0, AUTOCAST_SLOTS, Interfaces.IF_EVENT_OP1, 0))
+        send(player, IfSetEventsV2(AUTOCAST, AUTOCAST_SPELLS, 0, AUTOCAST_SLOTS, 0, Interfaces.IF_EVENT_OP1))
     }
 
     /**
