@@ -17,11 +17,12 @@ class BankTest {
             it[LOGS_NOTE] = ObjType(LOGS_NOTE, "Logs", stackable = true, certlink = LOGS, certtemplate = 799)
             it[PLACEHOLDER] = ObjType(PLACEHOLDER, "Logs", placeholderlink = LOGS, placeholdertemplate = 14401)
             it[COINS] = ObjType(COINS, "Coins", stackable = true)
-            it[ORB] = ObjType(ORB, "Orb", params = mapOf(Bank.PARAM_NO_BANK to 1))
+            it[ORB] = ObjType(ORB, "Orb")
+            it[COAL_BAG] = ObjType(COAL_BAG, "Coal bag", params = mapOf(59 to 1))
             for (id in SWORD until SWORD + 6) it[id] = ObjType(id, "Sword")
         },
     )
-    private val bank = Bank(types)
+    private val bank = Bank(types, notBankable = setOf(ORB))
     private val vault = Inventory(Inventory.BANK, Inventory.BANK_CAPACITY)
     private val pack = Inventory(Inventory.INV, Inventory.INV_CAPACITY)
     private val tabs = Tabs()
@@ -295,6 +296,23 @@ class BankTest {
         assertEquals(listOf(LOGS_NOTE), ids())
     }
 
+    @Test
+    fun `param 59 doesn't stop an item being banked`() {
+        // The coal bag carries it in 241, and live banks it.
+        pack[0] = InvObj(COAL_BAG, 1)
+        assertEquals(Bank.Deposit.Done(1), bank.deposit(vault, tabs, pack, 0, 1))
+        assertEquals(listOf(COAL_BAG), ids())
+    }
+
+    @Test
+    fun `a note of an unbankable item is refused, as the item is`() {
+        val strict = Bank(types, notBankable = setOf(LOGS))
+        pack[0] = InvObj(LOGS_NOTE, 5)
+        assertEquals(Bank.Deposit.NotBankable, strict.deposit(vault, tabs, pack, 0, 5))
+        assertEquals(InvObj(LOGS_NOTE, 5), pack[0])
+        assertEquals(emptyList(), ids())
+    }
+
     private companion object {
         const val LOGS = 1511
         const val LOGS_NOTE = 1512
@@ -302,5 +320,6 @@ class BankTest {
         const val ORB = 50
         const val SWORD = 1277
         const val PLACEHOLDER = 14401
+        const val COAL_BAG = 764
     }
 }
