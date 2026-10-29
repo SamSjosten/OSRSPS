@@ -8,7 +8,7 @@ import osrsps.game.Skill
 /** Boosts wearing off and drains coming back, with Rapid Restore and Preserve. */
 class StatRestoreTest {
     private val prayersOn = mutableSetOf<String>()
-    private val restore = StatRestore { _, effect -> effect in prayersOn }
+    private val restore = StatRestore(hasPrayer = { _, effect -> effect in prayersOn })
     private val alice = Player(1, "alice", 3222, 3218, 0).apply {
         for (skill in Skill.entries) skills.setLevel(skill, 90)
     }

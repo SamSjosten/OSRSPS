@@ -56,27 +56,40 @@ sealed interface PotionEffect {
 
 /**
  * A potion by its doses' objs, most first ([doses], 4 to 1); the dose objs left out are those the cache doesn't have.
- * [name] is the cache's without the dose count, in lower case; [divine] potions cost 10 hitpoints and hold what they
- * boost for five minutes.
+ * [name] is the cache's without the dose count, in lower case. A divine potion costs 10 hitpoints and holds what it
+ * boosts for five minutes, counted down in its [divineVarbit] (-1 for other potions).
  */
 data class Potion(
     val name: String,
     val doses: List<Int>,
     val effects: List<PotionEffect>,
     val message: Line = PotionLines.DRINK,
-    val divine: Boolean = false,
-)
+    val divineVarbit: Int = -1,
+) {
+    val divine: Boolean get() = divineVarbit >= 0
+
+    /** The skills its boosts raise. */
+    val boosted: Set<Skill> get() = effects.filterIsInstance<PotionEffect.Boost>().flatMap { it.skills }.toSet()
+}
+
+/**
+ * A divine potion's hold: while [varbit] (the cache's `divine*_potion_time`, ticks left, which RuneLite's Timers & Buffs
+ * shows) isn't 0, [skills] don't wear off; see [StatRestore].
+ */
+data class DivineHold(val varbit: Int, val skills: Set<Skill>)
 
 /**
  * Drinking (OSRS Wiki, Potions, Combo eating and each potion's page, read 2026-10-29). A dose's Drink option applies its
  * effects, leaves the next dose or a vial, and starts the drink delay, 3 ticks on a timer of its own: a potion can be
- * drunk in the tick that food or a combo food was eaten, and it adds nothing to the attack delay. A divine potion needs
- * more than 10 hitpoints, takes 10 and holds the stats it boosts from wearing off for five minutes ([StatRestore]).
+ * drunk in the tick that food was eaten, and a combo food after it, but drinking holds back ordinary food for the delay
+ * (Combo eating: food, potion, combo food, in that order). It adds nothing to the attack delay. A divine potion needs
+ * more than 10 hitpoints, takes 10 and holds the stats it boosts from wearing off for five minutes ([StatRestore]), in
+ * varbits that are saved with the rest, so the hold goes on over a logout and RuneLite shows its timer.
  *
  * Guessed: a boost on a drained stat adding to the current level, capped at the boost past the base (RSMod's statBoost);
  * Prayer restores going by the base Prayer level where the Wiki says "current Prayer level"; the hitsplats for the
  * divine and Zamorak brew hitpoints, from no one; that a divine dose drunk during the effect starts the five minutes
- * again; the animation (human_eat, as for food), and no sound, as the 241 synth id for drinking isn't known. Stamina
+ * again, and the hold carrying on over a logout; the animation (human_eat, as for food), and no sound, as the 241 synth id for drinking isn't known. Stamina
  * potions, antifire and the antipoisons (step 6d) aren't here yet, nor barbarian mixes, which share the food timer.
  */
 class Potions(
@@ -105,6 +118,7 @@ class Potions(
             return true
         }
         player.potionDelayUntil = tick + DRINK_DELAY
+        player.foodDelayUntil = maxOf(player.foodDelayUntil, tick + DRINK_DELAY)
         val left = potion.doses.size - 1 - potion.doses.indexOf(id)
         player.inventory[slot] = if (left > 0) InvObj(potion.doses[potion.doses.size - left], 1) else if (data.vial >= 0) InvObj(data.vial, 1) else null
         player.anim(Foods.EAT_ANIM)
@@ -112,9 +126,8 @@ class Potions(
         for (effect in potion.effects) apply(player, effect)
         if (potion.divine) {
             damage(player, DIVINE_COST)
-            for (effect in potion.effects) {
-                if (effect is PotionEffect.Boost) for (skill in effect.skills) player.statTimers.divine[skill.ordinal] = DIVINE_TICKS
-            }
+            // One over, as this tick's StatRestore counts it down: the client sees 500, and the hold ends 500 ticks on.
+            if (player.vars.types.varbit(potion.divineVarbit) != null) player.vars.setVarbit(potion.divineVarbit, DIVINE_TICKS + 1)
         }
         message(player, when (left) {
             0 -> text[PotionLines.FINISHED]
@@ -150,6 +163,11 @@ class Potions(
         }
     }
 
+    /** Ends every divine hold on [player] at once, leaving the levels as they are: a scenario starting. */
+    fun clearDivine(player: Player) {
+        for (hold in data.divineHolds) if (player.vars.types.varbit(hold.varbit) != null) player.vars.setVarbit(hold.varbit, 0)
+    }
+
     private fun hasWrench(player: Player): Boolean =
         player.inventory.contents().any { (_, obj) -> obj.id in data.wrenchCarried } ||
             player.equipment.contents().any { (_, obj) -> obj.id in data.wrenchCarried || obj.id in data.wrenchWorn }
@@ -167,6 +185,9 @@ class Potions(
      * those that give it worn only; and the vial a last dose leaves, -1 for none.
      */
     class Data(val potions: Map<Int, Potion>, val wrenchCarried: Set<Int> = emptySet(), val wrenchWorn: Set<Int> = emptySet(), val vial: Int = -1) {
+        /** Each divine potion's hold, for [StatRestore]. */
+        val divineHolds: List<DivineHold> = potions.values.filter { it.divine }.distinct().map { DivineHold(it.divineVarbit, it.boosted) }
+
         companion object {
             val NONE = Data(emptyMap())
         }
@@ -182,6 +203,12 @@ class Potions(
 
         /** Five minutes. */
         const val DIVINE_TICKS = 500
+
+        /** The 241 cache's `<potion>_potion_time` varbit for each divine potion, by its doses' stem. */
+        val DIVINE_VARBITS = mapOf(
+            "divineattack" to 8429, "divinestrength" to 8430, "divinedefence" to 8431, "divinerange" to 8432, "divinemagic" to 8433,
+            "divinecombat" to 13663, "divinebastion" to 13664, "divinebattlemage" to 13665,
+        )
 
         /** Reads [RESOURCE]; see [parse]. */
         fun load(objTypes: ObjTypes): Data {
@@ -223,7 +250,7 @@ class Potions(
                         doses = types.map { it.id },
                         effects = entry.required("effects").jsonArray.map { effect(it.jsonObject) },
                         message = message ?: if (name.endsWith("potion")) PotionLines.DRINK else PotionLines.DRINK_POTION,
-                        divine = entry["divine"]?.jsonPrimitive?.boolean ?: false,
+                        divineVarbit = if (entry["divine"]?.jsonPrimitive?.boolean == true) DIVINE_VARBITS[stem] ?: throw IllegalArgumentException("no divine varbit for $stem") else -1,
                     )
                     for (type in types) potions[type.id] = potion
                 } catch (e: Exception) {

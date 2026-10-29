@@ -10,6 +10,8 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.WearPos
 
 /** Drinking: boosts, restores, the brews, divine potions, the drink delay, doses and the potion file. */
@@ -35,10 +37,15 @@ class PotionsTest {
         vial, wrench, ring, shark,
     )
     private val messages = mutableListOf<String>()
-    private val potions = Potions(Potions.load(objTypes), message = { _, text -> messages += text })
-    private val restore = StatRestore()
+    private val data = Potions.load(objTypes)
+    private val potions = Potions(data, message = { _, text -> messages += text })
+    private val restore = StatRestore(divineHolds = data.divineHolds)
 
-    private val alice = Player(1, "alice", 3222, 3218, 0).apply {
+    // The divine timers as the 241 cache has them: divinecombat_potion_time is bits 0 to 8 of divine_potion_4; the
+    // varp id here is made up.
+    private val varTypes = VarTypes(6_000, mapOf(DIVINE_COMBAT_VARBIT to VarbitType(5_000, 0, 8)))
+
+    private val alice = Player(1, "alice", 3222, 3218, 0, varTypes).apply {
         for (skill in Skill.entries) skills.setLevel(skill, 99)
     }
 
@@ -81,10 +88,12 @@ class PotionsTest {
     }
 
     @Test
-    fun `the drink delay is 3 ticks on its own timer, and drinking doesn't hold back an attack`() {
+    fun `the drink delay is 3 ticks on its own timer, holds back ordinary food but not an attack`() {
         give(superCombat[3], prayerPotion[0], prayerPotion[1])
         alice.skills.setCurrentLevel(Skill.PRAYER, 10)
+        // Food eaten this tick: the potion still goes down.
         alice.foodDelayUntil = 13
+        alice.comboFoodDelayUntil = 10
         alice.nextAttackTick = 12
         drink(0, 10)
         assertEquals(vial.id, alice.inventory[0]?.id, "the last dose leaves a vial")
@@ -95,7 +104,8 @@ class PotionsTest {
         // 99 * 25% + 7 = 31.
         assertEquals(41, level(Skill.PRAYER))
         assertEquals(12, alice.nextAttackTick)
-        assertEquals(13, alice.foodDelayUntil)
+        assertEquals(16, alice.foodDelayUntil, "food after a potion waits out the drink delay")
+        assertEquals(10, alice.comboFoodDelayUntil, "a combo food can still follow")
     }
 
     @Test
@@ -160,13 +170,27 @@ class PotionsTest {
         assertEquals(40, alice.hitpoints)
         assertEquals(118, level(Skill.ATTACK))
         alice.skills.setCurrentLevel(Skill.MINING, 105)
+        // The drinking tick's own count, then the client sees the five minutes.
+        restore.process(alice)
+        assertEquals(Potions.DIVINE_TICKS, alice.vars.getVarbit(DIVINE_COMBAT_VARBIT))
         repeat(Potions.DIVINE_TICKS - 1) { restore.process(alice) }
         assertEquals(118, level(Skill.ATTACK))
         assertEquals(118, level(Skill.DEFENCE))
-        assertEquals(101, level(Skill.MINING), "other boosts wear off as usual")
+        assertEquals(100, level(Skill.MINING), "other boosts wear off as usual")
         restore.process(alice)
-        assertEquals(99, level(Skill.ATTACK), "back to the level at once")
+        assertEquals(99, level(Skill.ATTACK), "back to the level at once, 500 ticks after the drinking tick")
         assertEquals(99, level(Skill.STRENGTH))
+        assertEquals(0, alice.vars.getVarbit(DIVINE_COMBAT_VARBIT))
+    }
+
+    @Test
+    fun `a scenario starting ends the divine hold`() {
+        give(divineCombat[0])
+        drink(0, 10)
+        potions.clearDivine(alice)
+        assertEquals(0, alice.vars.getVarbit(DIVINE_COMBAT_VARBIT))
+        restore.process(alice)
+        assertEquals(118, level(Skill.ATTACK), "the levels are left as they are")
     }
 
     @Test
@@ -185,5 +209,9 @@ class PotionsTest {
         val bad = """{"vial": "vial_empty", "potions": [{"potion": "2combat", "effects": [{"boost": ["fletchcooking"]}]}]}"""
         val error = assertFailsWith<IllegalArgumentException> { Potions.parse(bad, objTypes) }
         assertEquals("/potions.json: potions entry 1: no skill 'fletchcooking'", error.message)
+    }
+
+    private companion object {
+        const val DIVINE_COMBAT_VARBIT = 13663
     }
 }

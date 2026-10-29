@@ -371,7 +371,7 @@ class World(
     val fishing = Fishing(this)
 
     /** Boosted and drained stats going back; see [StatRestore]. */
-    private val statRestore = StatRestore(prayers::has)
+    private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
