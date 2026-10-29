@@ -73,10 +73,9 @@ class SpotType(val npc: Int, val methods: List<FishingMethod>)
  * (the click's cast message and animation, the first roll 4 ticks after the click, the checks before every roll, the
  * last bait freeing its own slot) and the river spots' tiles are the 2004Scape project's fishing scripts; the spawn
  * tiles are RSMod's (rev 233). Guessed: the swamp spots' area (their five spawn tiles, so they never find a free one and
- * stay put; the Wiki only says most spots move), the player stopping when their spot moves, and the cast animation only
- * once on a pike recast (the Wiki shows it twice, a tick apart). Out: pearl and barbarian rods, stripy feathers (rainbow
- * fish), the big net, harpoons, cages, karambwanji, fishing outfits and other catch boosts, heron pets, the random
- * fishing spot whirlpools. No sounds: the 241 synth ids have no names.
+ * stay put; the Wiki only says most spots move) and the player stopping when their spot moves. Out: pearl and
+ * barbarian rods, stripy feathers (rainbow fish), the big net, harpoons, cages, karambwanji, fishing outfits and other
+ * catch boosts, heron pets, the random fishing spot whirlpools. No sounds: the 241 synth ids have no names.
  */
 class Fishing(private val world: World) {
     /** The tick each spot moves next, set the first time it is seen. */
@@ -153,7 +152,8 @@ class Fishing(private val world: World) {
             player.message(text[method.cast])
             player.anim(method.castAnim)
         }
-        if (SkillClock.step(player, tick, CYCLE) == ClockStep.DUE) {
+        val step = SkillClock.step(player, tick, CYCLE)
+        if (step == ClockStep.DUE) {
             if (method.recasts && world.random.chance(RECAST_CHANCE, RECAST_DENOMINATOR)) {
                 // The next roll is a tick later: 6 ticks on, not 5.
                 player.actionDelay = tick + CYCLE + 1
@@ -162,6 +162,9 @@ class Fishing(private val world: World) {
                 player.anim(method.rollAnim)
             }
             roll(method, level)
+        } else if (step == ClockStep.WAITING && method.recasts && player.actionDelay - tick == CYCLE.toLong()) {
+            // The tick after a recast (only then is a whole cycle still to wait): the second cast the Wiki shows.
+            player.anim(method.castAnim)
         }
         world.repeatOp(player, Op(OpTarget.NPC, op.id, op.option, npc = npc))
     }

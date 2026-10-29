@@ -363,12 +363,12 @@ Fishing spots are NPCs (`game/skill/Fishing.kt`, words under `fishing.*`): the L
 | Fishing behaviour | Source |
 |-------------------|--------|
 | Levels, XP, tools and bait (one bait or feather a catch) | OSRS Wiki fish pages, Fishing |
-| A roll every 5 ticks; pike recasts 1 roll in 5, a tick later | OSRS Wiki, Raw pike |
+| A roll every 5 ticks; pike recasts 1 roll in 5 (two casts a tick apart), the next roll a tick later | OSRS Wiki, Raw pike |
 | Each fish's success pair, the better fish tried first, fitted to and checked against the Wiki's charts (`FishingTest`) | OSRS Wiki fish pages |
 | Spots move every 250 to 530 ticks to a free tile of their area | OSRS Wiki, Fishing spot |
 | The river spots' tiles; the cast message and animation on the click, the first roll 4 ticks later, the last bait freeing its slot | 2004Scape fishing scripts |
 | Spawn tiles | RSMod rev 233 Lumbridge spawns |
-| The swamp spots' area (their spawn tiles, so they stay put); the player stopping when the spot moves; one cast animation on a pike recast | guessed |
+| The swamp spots' area (their spawn tiles, so they stay put); the player stopping when the spot moves | guessed |
 | Out: pearl and barbarian rods, stripy feathers, big nets, harpoons, cages, outfits and other catch boosts, whirlpools | out of scope |
 
 ## Items and inventory
