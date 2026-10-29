@@ -4,9 +4,18 @@
 `osrsps-deploy.timer`) runs it, and when `origin/main` has moved it fast-forwards `/srv/rsps/OSRSPS` and runs
 `docker compose up -d --build`. Nobody needs to ssh in after a merge.
 
-- The server answers `http://192.168.0.210:43595/version` with the commit it was built from (`OSRSPS_COMMIT`, set by
-  the script; `unknown` after a plain `docker compose up`). `test-runner/launch/start-client.ps1 -Commit <sha>` on the
-  test VM waits for it, so a test run starts once the merge is live.
+- The server answers `http://192.168.0.210:43595/version` with the commit of main it runs: the one it was built from
+  (`OSRSPS_COMMIT`, set by the script; `unknown` after a plain `docker compose up`), or a newer one that left it
+  running (next point). `test-runner/launch/start-client.ps1 -Commit <sha>` on the test VM waits for it, so a test run
+  starts once the merge is live.
+- When the merges since the running server's build change nothing it is built from, the script only fast-forwards
+  the checkout, and the server keeps running with its players in. That is a merge whose files are all docs at the top
+  of the repo, tests (`src/test/`), the RuneLite plugins (`test-runner/`, `tick-recorder/`), the launcher
+  (`launcher/`), CI (`.github/`) or this folder. Any other file, or one moved out of the server, rebuilds it.
+  `.deploy/built` keeps the running server's commit and `.deploy/deployed` the merge's, and compose mounts `.deploy/`
+  read-only into the container, so `/version` answers with the merge's commit anyway and `/status` adds a
+  `built from <commit>` line under it. `--force` rebuilds and restarts all the same. `deploy/auto-deploy-test.sh` (run
+  by CI) plays the script through these cases on a made-up `main` with a stand-in for docker.
 - It also swaps the cache: when `deploy/cache-build.txt` (e.g. `241.4`) names another OpenRS2 build than
   `data/cache-source.txt`, it runs `fetch-cache <build>` with the new image, then recreates the container. The fetch
   keeps the old cache in `data/cache.previous`. While OpenRS2 doesn't list that build as the newest, `fetch-cache`
@@ -27,8 +36,9 @@
 - A deploy that fails (build error, or a checkout that can't fast-forward) is written to `.deploy/failed` and is not
   retried every minute. The next commit on main tries again, or `deploy/auto-deploy.sh --force` by hand.
 - Log: `journalctl -u osrsps-deploy -n 50` (a failed build also logs the last 60 lines of its output); the last build's
-  whole output is in `.deploy/build.log`. State: `.deploy/deployed`,
-  `.deploy/failed` and `.deploy/cache-wait` in the checkout.
+  whole output is in `.deploy/build.log`. State: `.deploy/deployed`, `.deploy/built`,
+  `.deploy/failed` and `.deploy/cache-wait` in the checkout. On a checkout where `docker compose up` ran before the
+  script ever did, Docker made `.deploy/` for its mount as root: `sudo chown sam .deploy` before the first run.
 - By hand, as `sam` in `/srv/rsps/OSRSPS`: `deploy/auto-deploy.sh` (deploys main if new) or `--force` (rebuilds now).
 - Other work on the checkout or the container (a cache swap, `fetch-cache`, a hand-made `git pull`) should hold the
   same lock so a timed deploy can't start in the middle: `flock .deploy/lock docker compose run --rm osrsps fetch-cache`,

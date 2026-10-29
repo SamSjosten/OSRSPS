@@ -30,6 +30,8 @@ import osrsps.Revision
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.net.InetSocketAddress
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
 private val logger = KotlinLogging.logger {}
@@ -37,9 +39,9 @@ private val logger = KotlinLogging.logger {}
 /**
  * Serves the two files a client launcher needs to find this server, `jav_config.ws` and `world_list.ws`,
  * `proxy-targets.yaml`, an RSProx target for this server that RSProx's "+" button imports from a URL, `version`,
- * the git commit this server was built from, so a script can wait for a deploy to be up, and `status`, that commit
- * with what the server started from and how many JS5 connections it has let in. Our own launcher gets copies of the
- * first two under `/launcher/` ([ClientKind]), `status.json` ([statusJson]) and RuneLite's world list
+ * the git commit of main this server runs ([servedVersion]), so a script can wait for a deploy to be up, and `status`,
+ * that commit with what the server started from and how many JS5 connections it has let in. Our own launcher gets
+ * copies of the first two under `/launcher/` ([ClientKind]), `status.json` ([statusJson]) and RuneLite's world list
  * ([runeLiteWorlds]).
  *
  * RSProx reads the jav_config's `codebase` host, looks for a world with that host in the world list,
@@ -59,6 +61,12 @@ class ClientConfig(
     private val gamePort: Int = httpPort - 1,
     /** The git commit the server was built from (OSRSPS_COMMIT, set by deploy/auto-deploy.sh), or "unknown". */
     private val version: String = UNKNOWN_VERSION,
+    /**
+     * deploy/auto-deploy.sh's state folder (OSRSPS_DEPLOY_STATE, its `.deploy/` mounted read-only), or null. Its
+     * `built` file names the commit the running server was built from and `deployed` the newest commit of main
+     * deployed, which is newer when the merges since changed nothing the server is built from; see [servedVersion].
+     */
+    private val deployState: Path? = null,
     /** Who may put a PROXY header in front of a request; see [ProxyProtocol]. */
     private val proxy: ProxyProtocol = ProxyProtocol.OFF,
     /** The RuneLite build for each revision; the RSProx target names the one for [Revision.MAJOR]. */
@@ -167,16 +175,16 @@ class ClientConfig(
 
     /**
      * How the server is doing, for the launcher: whether the game is up and taking logins, the revision it plays (which
-     * RuneLite build to start), the commit it was built from, how many players are in, and the JS5 count /status gives.
-     * The launcher reads it before it starts the game and once a minute after, to see the server move to a new
-     * revision.
+     * RuneLite build to start), the commit it runs ([servedVersion]), how many players are in, and the JS5 count
+     * /status gives. The launcher reads it before it starts the game and once a minute after, to see the server move
+     * to a new revision.
      */
     fun statusJson(): String {
         val game = gameStatus()
         return buildJsonObject {
             put("up", game.up)
             put("revision", Revision.MAJOR)
-            put("commit", version)
+            put("commit", servedVersion())
             put("players", game.players)
             put("acceptingLogins", game.acceptingLogins)
             put("js5Connections", game.js5Connections)
@@ -204,6 +212,19 @@ class ClientConfig(
         }
     }
 
+    /**
+     * The commit of main this server runs: [version], or a newer commit deploy/auto-deploy.sh deployed without a
+     * restart because the merges since changed nothing the server is built from (docs, tests, the RuneLite plugins,
+     * the launcher). The script records that in [deployState] as it goes, so this reads it for each request. A server
+     * that isn't the build the folder names (one started by hand, say) answers with its own commit.
+     */
+    fun servedVersion(): String {
+        val state = deployState ?: return version
+        fun read(name: String) = runCatching { Files.readString(state.resolve(name)).trim() }.getOrNull()
+        val deployed = read("deployed") ?: return version
+        return if (read("built") == version && COMMIT.matches(deployed)) deployed else version
+    }
+
     /** The body and content type for a GET of [path] by a client that reached us at [host]; null for a 404. */
     internal fun respond(path: String, host: String): Response? = when (path) {
         "/jav_config.ws" -> javConfigResponse(host, ClientKind.RSPROX)
@@ -213,9 +234,11 @@ class ClientConfig(
         "/rl/worlds.js" -> Response(JSON, runeLiteWorlds(host).toByteArray(Charsets.UTF_8))
         "/proxy-targets.yaml" -> proxyTargets(host)?.let { Response("text/yaml; charset=UTF-8", it.toByteArray(Charsets.UTF_8)) }
             ?: Response("text/plain", ByteArray(0), HttpResponseStatus.SERVICE_UNAVAILABLE)
-        "/version" -> Response("text/plain; charset=UTF-8", "$version\n".toByteArray(Charsets.UTF_8))
+        "/version" -> Response("text/plain; charset=UTF-8", "${servedVersion()}\n".toByteArray(Charsets.UTF_8))
         "/status" -> {
-            val lines = listOf("commit $version") + status + "js5 connections ${gameStatus().js5Connections}"
+            val served = servedVersion()
+            val commit = if (served == version) listOf("commit $served") else listOf("commit $served", "built from $version")
+            val lines = commit + status + "js5 connections ${gameStatus().js5Connections}"
             Response("text/plain; charset=UTF-8", lines.joinToString("") { "$it\n" }.toByteArray(Charsets.UTF_8))
         }
         "/status.json" -> Response(JSON, statusJson().toByteArray(Charsets.UTF_8))
@@ -326,6 +349,9 @@ class ClientConfig(
         const val TARGET_NAME = "OSRSPS"
         const val DEFAULT_GAME_PORT = 43594
         const val UNKNOWN_VERSION = "unknown"
+
+        /** A full commit hash, as deploy/auto-deploy.sh writes them. */
+        private val COMMIT = Regex("[0-9a-f]{40}")
 
         /** Requests are bodiless GETs; anything bigger is refused. */
         private const val MAX_REQUEST_BYTES = 8192

@@ -35,5 +35,10 @@ services:
       # The commit served at http://<host>:43595/version. deploy/auto-deploy.sh sets it; a plain `docker compose up`
       # leaves it "unknown".
       OSRSPS_COMMIT: ${OSRSPS_COMMIT:-unknown}
+      # deploy/auto-deploy.sh's state, mounted below. A merge that changes nothing the server is built from (docs,
+      # tests, the RuneLite plugins, the launcher) doesn't restart it: the script writes that commit there, and /version
+      # answers with it.
+      OSRSPS_DEPLOY_STATE: /deploy
     volumes:
       - ./data:/data
+      - ./.deploy:/deploy:ro

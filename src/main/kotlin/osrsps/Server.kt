@@ -74,9 +74,14 @@ class GameServer(
     private val proxy: ProxyProtocol = ProxyProtocol.OFF,
     /** The modulus the data folder's RSA key must have (the committed one), or null for any key; see [RsaKeys.load]. */
     private val rsaModulus: BigInteger? = null,
+    /** deploy/auto-deploy.sh's state folder, which can name a newer commit for /version; see [ClientConfig]. */
+    deployState: Path? = null,
 ) {
     private lateinit var world: World
-    private val clientConfig = ClientConfig(publicHost, httpPort, gamePort = port, version = version, proxy = proxy, runelitePins = RuneLitePins.load())
+    private val clientConfig = ClientConfig(
+        publicHost, httpPort, gamePort = port, version = version, deployState = deployState, proxy = proxy,
+        runelitePins = RuneLitePins.load(),
+    )
     private val js5Connections = AtomicLong()
     private lateinit var factory: NetworkFactory
     private lateinit var network: NetworkService<Player>

@@ -6,7 +6,7 @@ Starts the test client with nobody at the screen and waits until it is logged in
   .\test-runner\launch\start-client.ps1 -Commit 3c1b194   # first wait until the server runs that commit
 
 1. Waits for our server to answer on its game port and jav_config (after a redeploy the server takes a while). With
-   -Commit, also until its /version (the commit deploy/auto-deploy.sh built it from) starts with that commit.
+   -Commit, also until its /version (the commit of main deploy/auto-deploy.sh deployed) starts with that commit.
 2. Closes RSProx's and RuneLite's JVMs when -Restart is given, or when RSProx is open without a RuneLite (nobody pressed
    Launch Session). With RuneLite already running and no -Restart, it only does step 4. RuneLite is asked to close its
    window first, so plugins see the client exit (the Tick Recorder writes its stop line); one still running after

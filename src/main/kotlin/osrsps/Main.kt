@@ -84,6 +84,9 @@ private fun serve(port: Int) {
     val admins = Admins.parse(System.getenv("OSRSPS_ADMINS"))
     // The git commit deploy/auto-deploy.sh built this from, served at /version so scripts can wait for a deploy.
     val version = System.getenv("OSRSPS_COMMIT")?.takeIf { it.isNotBlank() } ?: ClientConfig.UNKNOWN_VERSION
+    // The script's state folder, mounted read-only: after a merge that changes nothing the server is built from, the
+    // script leaves the server running and /version answers with that merge's commit from there.
+    val deployState = System.getenv("OSRSPS_DEPLOY_STATE")?.takeIf { it.isNotBlank() }?.let { Path.of(it) }
     // Addresses, comma separated, that forward many players (the VPS relay); each may hold more than 10 connections.
     // Plain IP addresses only, written the way connections report them: the connection limit, the PROXY header rule and
     // the bans all match a relay by its exact address.
@@ -99,7 +102,7 @@ private fun serve(port: Int) {
     val localKey = System.getenv("OSRSPS_LOCAL_KEY") == "1"
     if (localKey) logger.warn { "OSRSPS_LOCAL_KEY=1: any RSA key will do; our launcher can't log in unless it's the live one" }
     val rsaModulus = if (localKey) null else RsaKeys.committedModulus()
-    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins, version, relays, proxy, rsaModulus)
+    val server = GameServer(dataDir, port, port + 1, publicHost, seed, admins, version, relays, proxy, rsaModulus, deployState)
     server.start()
     Runtime.getRuntime().addShutdownHook(Thread(server::stop))
 }
