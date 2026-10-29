@@ -150,6 +150,8 @@ class AllSettings(
             logger.info { "${player.username} clicked number input ${row.id}, which settings_get_number_input doesn't read" }
             return
         }
+        // One input at a time: an unanswered prompt or picker goes first, so its answer can't land on this one.
+        interfaces.dropCount(player)
         setVarbit(player, VARBIT_SELECTED_SETTING, row.id)
         val prompt = SettingsLines.NUMBER_PROMPTS[row.id] ?: SettingsLines.NUMBER_PROMPT
         player.settingsInputOpen = true
@@ -171,6 +173,7 @@ class AllSettings(
             logger.info { "${player.username} clicked colour input ${row.id}, which settings_get_colour doesn't read" }
             return
         }
+        interfaces.dropCount(player)
         // Sent now, not with the end-of-tick flush: colour_pallet reads it as it runs.
         interfaces.setVarbitNow(player, VARBIT_SELECTED_SETTING, row.id)
         interfaces.openInside(player, INTERFACE, POPUP, COLOUR_PALLET)

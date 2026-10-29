@@ -293,24 +293,38 @@ class HeadlessAllSettingsTest {
                 client.resumeCount(0x000001)
                 client.awaitTicks(2)
                 assertEquals(0x123457, client.varp(CHAT_COLOUR_PUBLIC_OPAQUE))
+                // A second input drops the first: a number prompt closes when a colour row opens the picker, and the
+                // picker closes when a number row asks for an amount.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 7)
+                client.await("the prompt before the picker") { client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 }.takeIf { it == 3 } }
+                val closes = client.clientScripts().count { it.id == ScriptContext.MESLAYER_CLOSE }
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 8)
+                client.await("the prompt closed by the picker") { client.clientScripts().count { it.id == ScriptContext.MESLAYER_CLOSE }.takeIf { it == closes + 1 } }
+                client.await("the picker after the prompt") { Unit.takeIf { AllSettings.COLOUR_PALLET in client.openInterfaces() } }
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 7)
+                client.await("the picker closed by the prompt") { Unit.takeIf { AllSettings.COLOUR_PALLET !in client.openInterfaces() } }
+                client.await("the prompt after the picker") { client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 }.takeIf { it == 4 } }
+                client.resumeCount(7)
+                client.awaitBits(OPTION_LOOTNOTIFICATION, 3, 29, 7)
+                assertEquals(0x123457, client.varp(CHAT_COLOUR_PUBLIC_OPAQUE))
                 // Closing the window drops a number prompt it asked for: the prompt closes, and an amount after that
                 // changes nothing.
                 client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 7)
-                client.await("the third prompt") { client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 }.takeIf { it == 3 } }
+                client.await("the fifth prompt") { client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 }.takeIf { it == 5 } }
                 client.ifButton(INTERFACE, CLOSE, 1)
                 client.await("the prompt closed with the window") {
                     client.clientScripts().lastOrNull { it.id == ScriptContext.MESLAYER_CLOSE }?.takeIf { it.args == listOf(ScriptContext.MESLAYER_COUNT) }
                 }
                 client.resumeCount(1)
                 client.awaitTicks(2)
-                assertEquals((1 shl 29) - 1, (client.varp(OPTION_LOOTNOTIFICATION) ushr 3) and ((1 shl 29) - 1))
+                assertEquals(7, (client.varp(OPTION_LOOTNOTIFICATION) ushr 3) and ((1 shl 29) - 1))
 
                 client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
                 client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
             }
             server.awaitNobodyOn()
             server.login("gina").use { client ->
-                client.awaitBits(OPTION_LOOTNOTIFICATION, 3, 29, (1 shl 29) - 1)
+                client.awaitBits(OPTION_LOOTNOTIFICATION, 3, 29, 7)
                 client.await("the colour") { Unit.takeIf { client.varp(CHAT_COLOUR_PUBLIC_OPAQUE) == 0x123457 } }
             }
         }
