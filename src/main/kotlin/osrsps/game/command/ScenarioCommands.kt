@@ -34,6 +34,8 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         world.scripts.clearAll(player)
         world.meleeCombat.endFights(player)
         before.restoreTo(player)
+        // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
+        world.prayers.deactivateAll(player)
         world.teleport(player, before.x, before.z, before.level)
         player.scenario = null
         player.beforeScenario = null
@@ -81,6 +83,8 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     loadout.bankTabs.forEachIndexed { i, size -> tabs[i + 1] = size }
     for ((varp, value) in scenario.varps) vars[varp] = value
     for ((id, value) in scenario.varbits) vars.setVarbit(id, value)
+    // The scenario's levels may not allow the prayers that were on.
+    world.prayers.deactivateAll(player)
     world.teleport(player, scenario.x, scenario.z, scenario.level)
     player.scenario = scenario.name
 }

@@ -662,6 +662,15 @@ class MagicCombatTest {
     }
 
     @Test
+    fun `a spell picked for autocast with another staff is kept, but the shadow casts its own`() {
+        autocast(alice)
+        wieldShadow(10)
+        val spell = magic.fightSpell(alice)!!
+        assertEquals(PoweredStaves.TUMEKENS_SHADOW, spell.staff)
+        assertEquals(0, spell.runes.size)
+    }
+
+    @Test
     fun `the shadow's last charge leaves it uncharged, and with none it casts nothing and the fight ends`() {
         wieldShadow(1)
         val npc = spawn(dummy)
