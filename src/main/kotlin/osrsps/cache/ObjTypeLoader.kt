@@ -64,13 +64,17 @@ object ObjTypeLoader {
         return types
     }
 
-    /** Fills in noted items and placeholders from the items they stand for, as the client does. */
+    /**
+     * Fills in noted items and placeholders from the items they stand for, as the client does. Only from an item that
+     * links back: the client doesn't check, but a one-way link would give a note another item's value to sell at.
+     */
     fun link(decoded: Map<Int, ObjType>): ObjTypes {
         val array = arrayOfNulls<ObjType>((decoded.keys.maxOrNull() ?: -1) + 1)
         for ((id, type) in decoded) {
             array[id] = when {
-                type.isCert -> decoded[type.certlink]?.let { cert(type, it) } ?: type
-                type.isPlaceholder -> decoded[type.placeholderlink]?.let { placeholder(type, it) } ?: type
+                type.isCert -> decoded[type.certlink]?.takeIf { !it.isCert && it.certlink == id }?.let { cert(type, it) } ?: type
+                type.isPlaceholder ->
+                    decoded[type.placeholderlink]?.takeIf { !it.isPlaceholder && it.placeholderlink == id }?.let { placeholder(type, it) } ?: type
                 else -> type
             }
         }
