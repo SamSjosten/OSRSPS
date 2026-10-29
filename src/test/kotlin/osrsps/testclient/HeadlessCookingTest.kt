@@ -135,6 +135,27 @@ class HeadlessCookingTest {
     }
 
     @Test
+    fun `a boost that wears off while the box is open stops the cooking`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("boost cooking 15")
+                client.await("boosted") { client.stat(COOKING)?.takeIf { it.level == 15 } }
+                client.give(Cooking.TROUT.raw, 3)
+                client.locTarget(Firemaking.FIRE, FIRE_X, FIRE_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(Cooking.TROUT.raw), Cooking.TROUT.raw)
+                client.await("the Make-X box") { client.clientScripts().firstOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } }
+                client.command("boost cooking 1")
+                client.await("back to 1") { client.stat(COOKING)?.takeIf { it.level == 1 } }
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 3)
+                client.seen("[cooking.level level=15]")
+                client.awaitTicks(8)
+                assertEquals(0, client.cooked().size)
+                assertEquals(3, client.count(Cooking.TROUT.raw))
+            }
+        }
+    }
+
+    @Test
     fun `Cook on a range offers every raw food held and cooks the one picked`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->

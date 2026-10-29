@@ -135,6 +135,8 @@ class Cooking(private val world: World) {
 
     private fun ScriptContext.start(loc: ZoneLoc, option: Int, food: Food, quantity: Int) {
         if (!world.locs.exists(loc)) return
+        // Again after the box: a boost can wear off while it is open.
+        if (!canCook(loc, food)) return
         // The box closes as cooking starts, rather than after this script, so the first tick doesn't see it open.
         world.interfaces.closeChatModal(player)
         jobs[player] = Job(food, quantity, loc)
@@ -165,6 +167,8 @@ class Cooking(private val world: World) {
         // A level-up box opened since the last tick ends it, as for the other gathering skills.
         if (player.modalOpen) return finish()
         if (job.left <= 0 || player.inventory.count(job.food.raw) < 1) return finish()
+        // Guessed: a boost wearing off below the food's level stops the job without a word.
+        if (player.skills.currentLevel(Skill.COOKING) < job.food.level) return finish()
         val range = loc.id in RANGES
         val anim = if (range) RANGE_ANIM else FIRE_ANIM
         when (SkillClock.step(player, tick, CYCLE)) {
