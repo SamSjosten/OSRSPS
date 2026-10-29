@@ -279,6 +279,8 @@ class Prayers(
         // Turning Rapid Heal on or off starts the hitpoints countdown again, at 30 or 60 seconds (OSRS Wiki, Rapid Heal).
         if (rapidHeal != null && (before xor bits) and rapidHeal.mask != 0) {
             player.hitpointsRegenTicks = if (bits and rapidHeal.mask != 0) RAPID_HEAL_TICKS else MeleeCombat.REGEN_TICKS
+            // Turning it on starts boosted Hitpoints' cycle again too (OSRS Wiki, Hitpoints, Overhealing).
+            if (bits and rapidHeal.mask != 0) player.statTimers.hitpoints.restart()
         }
         if (bits == 0) {
             player.prayerDrainCounter = 0

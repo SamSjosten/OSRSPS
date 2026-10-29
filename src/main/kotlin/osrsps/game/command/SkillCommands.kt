@@ -47,8 +47,10 @@ fun CommandRegistry.registerSkillCommands() {
         val skills = player.skills
         val changed = Skill.entries.filter { skills.currentLevel(it) != skills.baseLevel(it) }
         val timers = player.statTimers
-        val cycles = "next combat boost level in ${StatRestore.CYCLE_TICKS - timers.combatBoost} ticks, other boosts " +
-            "${StatRestore.CYCLE_TICKS - timers.skillBoost}, drains ${StatRestore.CYCLE_TICKS - timers.restore}" +
+        val preserved = timers.preserve >= StatRestore.PRESERVE_DELAY
+        val cycles = "next combat boost level in ${StatRestore.ticksLeft(timers.combatBoost, preserved)} ticks, other boosts " +
+            "${StatRestore.ticksLeft(timers.skillBoost, preserved)}, hitpoints ${StatRestore.ticksLeft(timers.hitpoints, preserved)}, " +
+            "drains ${StatRestore.CYCLE_TICKS - timers.restore}" +
             if (timers.preserve > 0) "; Preserve on for ${timers.preserve} ticks" else ""
         val levels = if (changed.isEmpty()) "Every stat is at its level" else changed.joinToString(", ") {
             "${it.displayName} ${skills.currentLevel(it)}/${skills.baseLevel(it)}"

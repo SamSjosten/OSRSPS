@@ -198,6 +198,16 @@ class PrayersTest {
         assertEquals(MeleeCombat.REGEN_TICKS, alice.hitpointsRegenTicks)
     }
 
+    @Test
+    fun `Rapid Heal turned on starts boosted Hitpoints' cycle again, and turned off leaves it`() {
+        alice.statTimers.hitpoints.ticks = 90
+        click("Rapid Heal")
+        assertEquals(0, alice.statTimers.hitpoints.ticks)
+        alice.statTimers.hitpoints.ticks = 40
+        click("Rapid Heal")
+        assertEquals(40, alice.statTimers.hitpoints.ticks)
+    }
+
     private fun pick(name: String) = assertTrue(prayers.selectQuick(alice, prayer(name).bit))
 
     private fun picked(): List<String> = prayers.all.filter { prayers.quickSelected(alice) and it.mask != 0 }.map { it.name }
