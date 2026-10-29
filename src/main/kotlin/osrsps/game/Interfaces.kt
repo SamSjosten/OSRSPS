@@ -34,6 +34,10 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         openJournalTab(player, JournalTab.forValue(journalTabVarbit(player)?.let { player.vars.getVarbit(it) } ?: 0))
         // Lets the client send clicks on the "Game client layout" dropdown's three options.
         send(player, IfSetEventsV2(GameFrame.SETTINGS_SIDE, GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS, 1, 3, 0, IF_EVENT_OP1))
+        // And on the attack priority dropdowns' options: client-made children 1 to n of their buttons components.
+        // Inferred from settings_side_dropdown_open; RSMod sends the same ranges.
+        send(player, IfSetEventsV2(SettingsSide.INTERFACE, SettingsSide.ATTACK_PRIORITY_PLAYER_BUTTONS, 1, SettingsSide.PLAYER_PRIORITY_OPTIONS, 0, IF_EVENT_OP1))
+        send(player, IfSetEventsV2(SettingsSide.INTERFACE, SettingsSide.ATTACK_PRIORITY_NPC_BUTTONS, 1, SettingsSide.NPC_PRIORITY_OPTIONS, 0, IF_EVENT_OP1))
         // Inferred: the client's scroll-wheel zoom clamps to varcs camera_zoom_small/big_min/max, which start at 0.
         // In the 241 cache only script 626 (no arguments, 128 to 896) or 603/604 with explicit limits set them, and
         // no script or main game interface calls 626, so the server has to. Not checked against a live login.

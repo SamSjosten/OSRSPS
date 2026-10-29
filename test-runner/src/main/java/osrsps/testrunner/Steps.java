@@ -429,6 +429,102 @@ final class Steps
 		}
 	}
 
+	/** Clicks the mouse on a component, for what reacts to the mouse rather than to a menu option. */
+	static final class MouseClick extends Step
+	{
+		final int interfaceId;
+		final int component;
+		final int sub;
+
+		MouseClick(long timeoutMs, int interfaceId, int component, int sub)
+		{
+			super("mouseClick", timeoutMs, false);
+			this.interfaceId = interfaceId;
+			this.component = component;
+			this.sub = sub;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.mouseClickWidget(interfaceId, component, sub);
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "mouse click on " + interfaceId + ":" + component + (sub < 0 ? "" : " slot " + sub);
+		}
+	}
+
+	/** Runs a client script from the cache, as an interface of the client's would. */
+	static final class RunClientScript extends Step
+	{
+		final int id;
+		final Object[] args;
+
+		RunClientScript(long timeoutMs, int id, Object[] args)
+		{
+			super("runClientScript", timeoutMs, false);
+			this.id = id;
+			this.args = args;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.runClientScript(id, args);
+			return error == null ? Poll.pass("ran") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "run client script " + id + " " + java.util.Arrays.toString(args);
+		}
+	}
+
+	/**
+	 * Passes when a varp or varbit holds the value in both the server's copy and the client's. A setting the client
+	 * changed for itself and the server ignored shows here as the client's copy alone holding the new value.
+	 */
+	static final class AssertVar extends Step
+	{
+		final boolean varbit;
+		final int id;
+		final int value;
+
+		AssertVar(long timeoutMs, boolean varbit, int id, int value)
+		{
+			super(varbit ? "assertVarbit" : "assertVarp", timeoutMs, false);
+			this.varbit = varbit;
+			this.id = id;
+			this.value = value;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int[] values = varbit ? run.game.varbit(id) : run.game.varp(id);
+			String what = (varbit ? "varbit " : "varp ") + id;
+			if (values == null)
+			{
+				return Poll.waiting("the client has no " + what);
+			}
+			String seen = what + ": server " + values[0] + ", client " + values[1];
+			return values[0] == value && values[1] == value ? Poll.pass(seen) : Poll.waiting(seen);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert " + (varbit ? "varbit " : "varp ") + id + " = " + value;
+		}
+	}
+
 	static final class AssertDialogue extends Step
 	{
 		final String contains;

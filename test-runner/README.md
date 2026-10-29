@@ -115,6 +115,13 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
+The settings checks need 0.8.0 (`assertVarp`, `assertVarbit`, `runClientScript`, `mouseClick`). They set each setting
+to a known start with `::varp` and `::varbit` and put the account back at the end:
+
+- `settings-side.json`: the settings side panel's three tabs, scroll-wheel zoom, accept aid, skull prevention, run,
+  the player attack priority dropdown, the master and music sliders (run as letting go of the slider would) and the
+  master mute; every one checked in both the server's copy and the client's, then again after a relog.
+
 ## Results
 
 Results go to `C:\RSPS\.rlcustom\test-results\`:
@@ -207,6 +214,10 @@ server's answer instead of failing on what was there before.
 | `assertPose` | `idle` | Waits until the player stands in that animation: the ready pose of their weapon's stance (808 is human_ready). |
 | `logout` | | Clicks Click here to logout and waits until the client is logged out. Auto login logs the account back in; follow it with `waitForLogin`. |
 | `assertInterface` | `interfaceId`, `absent` | Waits until the interface (by id, such as 672 for the gravestone) is open, or, with `absent: true`, until it is not. |
+| `assertVarp` | `id`, `value` | (0.8.0) Waits until varp `id` holds `value` both as the server last sent it and in the client's own copy. The client's scripts change their copy first for most settings, so a setting the server ignored shows as the client alone holding it; the result shows both. |
+| `assertVarbit` | `id`, `value` | (0.8.0) The same for varbit `id`, worked out from both copies of its varp with the client's varbit definition. |
+| `runClientScript` | `id`, `args` | (0.8.0) Runs client script `id` from the cache with `args` (whole numbers and strings in the script's order; a component is interface × 65536 + component), as the client's interfaces would. For what the runner can't do by clicking, such as letting go of a slider: `settings_side_master_volume_drag_complete` is 9231. |
+| `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)
 objectbox_double, the box with two items.

@@ -448,6 +448,69 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "npc", "npcId", "comment");
 				return new Steps.CastOnNpc(timeout, interfaceId, component, npc, id);
 			}
+			case "mouseClick":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int interfaceId = f.requiredInt("interfaceId");
+				int component = f.requiredInt("component");
+				int sub = f.integer("slot", -1);
+				if (interfaceId < 0 || interfaceId > 0xffff || component < 0 || component > 0xffff)
+				{
+					throw new Invalid(f.where + ": \"interfaceId\" and \"component\" must be 0 to 65535");
+				}
+				if (f.o.has("slot") && sub < 0)
+				{
+					throw new Invalid(f.where + ": \"slot\" must be 0 or more");
+				}
+				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "slot", "comment");
+				return new Steps.MouseClick(timeout, interfaceId, component, sub);
+			}
+			case "runClientScript":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int id = f.requiredInt("id");
+				if (id < 0)
+				{
+					throw new Invalid(f.where + ": \"id\" must be 0 or more");
+				}
+				Object[] args = new Object[0];
+				if (f.o.has("args"))
+				{
+					JsonArray array = f.array("args");
+					args = new Object[array.size()];
+					for (int i = 0; i < args.length; i++)
+					{
+						JsonElement e = array.get(i);
+						if (e.isJsonPrimitive() && e.getAsJsonPrimitive().isString())
+						{
+							args[i] = e.getAsString();
+						}
+						else if (e.isJsonPrimitive() && e.getAsJsonPrimitive().isNumber() && e.getAsDouble() == (int) e.getAsDouble())
+						{
+							args[i] = (int) e.getAsDouble();
+						}
+						else
+						{
+							throw new Invalid(f.where + ": \"args\" must be whole numbers and strings");
+						}
+					}
+				}
+				f.rejectUnknown("step", "timeoutMs", "id", "args", "comment");
+				return new Steps.RunClientScript(timeout, id, args);
+			}
+			case "assertVarp":
+			case "assertVarbit":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int id = f.requiredInt("id");
+				if (id < 0)
+				{
+					throw new Invalid(f.where + ": \"id\" must be 0 or more");
+				}
+				int value = f.requiredInt("value");
+				f.rejectUnknown("step", "timeoutMs", "id", "value", "comment");
+				return new Steps.AssertVar(timeout, type.equals("assertVarbit"), id, value);
+			}
 			case "assertInterface":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

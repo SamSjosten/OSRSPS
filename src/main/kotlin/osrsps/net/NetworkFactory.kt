@@ -3,6 +3,7 @@ package osrsps.net
 import net.rsprot.compression.provider.HuffmanCodecProvider
 import net.rsprot.crypto.rsa.RsaKeyPair
 import net.rsprot.protocol.api.AbstractNetworkServiceFactory
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.channel.ChannelHandler
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
@@ -22,6 +23,7 @@ import net.rsprot.protocol.game.incoming.buttons.If1Button
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import net.rsprot.protocol.game.incoming.buttons.IfButtonD
 import net.rsprot.protocol.game.incoming.buttons.IfButtonT
+import net.rsprot.protocol.game.incoming.buttons.IfScriptTrigger
 import net.rsprot.protocol.game.incoming.locs.OpLoc6
 import net.rsprot.protocol.game.incoming.locs.OpLocT
 import net.rsprot.protocol.game.incoming.locs.OpLocV2
@@ -47,10 +49,13 @@ import net.rsprot.protocol.message.codec.incoming.MessageConsumer
 import net.rsprot.protocol.message.codec.incoming.provider.DefaultGameMessageConsumerRepositoryProvider
 import net.rsprot.protocol.message.codec.incoming.provider.GameMessageConsumerRepositoryProvider
 import osrsps.game.Player
+import osrsps.game.SettingsSide
 import osrsps.game.World
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicLong
 import java.util.function.Consumer
+
+private val logger = KotlinLogging.logger {}
 
 /** Wires our cache, keys and login handling into RSProt's network service. */
 @OptIn(ExperimentalUnsignedTypes::class)
@@ -126,6 +131,20 @@ class NetworkFactory(
         })
         builder.addListener(If3Button::class.java, MessageConsumer { player, message ->
             world.onButton(player, message.interfaceId, message.componentId, message.sub, message.op, message.obj)
+        })
+        // The packet doesn't say its arguments' types; a script we don't know is only logged, its buffer released.
+        builder.addListener(IfScriptTrigger::class.java, MessageConsumer { player, message ->
+            val types = SettingsSide.SCRIPT_TRIGGERS[message.crc]
+            if (types == null) {
+                message.release()
+                logger.info { "${player.username} triggered unknown script ${message.crc.toUInt()} on ${message.interfaceId}:${message.componentId}" }
+                return@MessageConsumer
+            }
+            val args = runCatching { message.decode(types) }.getOrElse {
+                logger.info { "${player.username} sent script ${message.crc.toUInt()} with arguments we can't read: ${it.message}" }
+                return@MessageConsumer
+            }
+            world.onScriptTrigger(player, message.interfaceId, message.componentId, message.sub, args)
         })
         builder.addListener(IfButtonD::class.java, MessageConsumer { player, message ->
             world.onButtonDrag(

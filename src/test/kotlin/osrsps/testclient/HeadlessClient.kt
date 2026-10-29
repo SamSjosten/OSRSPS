@@ -308,6 +308,20 @@ class HeadlessClient private constructor(
             p4Alt3((toInterface shl 16) or toComponent)
         }
 
+    /**
+     * A client script's call to its server half (IF_SCRIPT_TRIGGER), as a volume slider sends it: script [id] on
+     * component [componentId] of [interfaceId] with int arguments [args]. Laid out as RSProt's 241
+     * IfScriptTriggerDecoder reads it; the arguments are signed var-ints, as IfScriptTrigger.decode reads them.
+     */
+    fun ifScriptTrigger(interfaceId: Int, componentId: Int, id: Int, vararg args: Int, sub: Int = -1, obj: Int = -1) =
+        send(GameClientProt.IF_SCRIPT_TRIGGER) {
+            p4Alt2((interfaceId shl 16) or componentId)
+            p2Alt1(obj and 0xFFFF)
+            p2Alt1(sub and 0xFFFF)
+            p4Alt2(id)
+            for (arg in args) pVarInt2s(arg)
+        }
+
     /** An amount typed into a prompt (RESUME_P_COUNTDIALOG), as after Withdraw-X. */
     fun resumeCount(count: Int) = send(GameClientProt.RESUME_P_COUNTDIALOG) { p4(count) }
 

@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import osrsps.game.EquipmentTab
 import osrsps.game.FrameSlot
 import osrsps.game.GameFrame
+import osrsps.game.SettingsSide
 import osrsps.game.bank.BankScreen
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Chatbox
@@ -17,7 +18,7 @@ class GameFrameCheckTest {
             names[frame.interfaceId] = InterfaceNames(frame.cacheName, FrameSlot.entries.associate { frame.component(it) to it.cacheName })
         }
         for (overlay in GameFrame.overlays) names[overlay.interfaceId] = InterfaceNames(overlay.cacheName, emptyMap())
-        for ((id, expected) in EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES + BankScreen.CACHE_NAMES) names[id] = InterfaceNames(expected.first, expected.second)
+        for ((id, expected) in EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES + BankScreen.CACHE_NAMES + SettingsSide.CACHE_NAMES) names[id] = InterfaceNames(expected.first, expected.second)
         return names
     }
 

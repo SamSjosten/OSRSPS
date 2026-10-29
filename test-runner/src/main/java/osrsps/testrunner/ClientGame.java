@@ -1,6 +1,8 @@
 package osrsps.testrunner;
 
 import java.awt.Canvas;
+import java.awt.Rectangle;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import net.runelite.api.Scene;
 import net.runelite.api.Skill;
 import net.runelite.api.TileItem;
 import net.runelite.api.TileObject;
+import net.runelite.api.VarbitComposition;
 import net.runelite.api.WorldView;
 import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
@@ -754,6 +757,86 @@ final class ClientGame implements Game
 		return root != null && !root.isHidden();
 	}
 
+
+	/**
+	 * Presses and releases the left button over the component's middle, on the AWT thread as {@link #moveMouse} does.
+	 * Assumes stretched mode is off. Not yet tried in the client.
+	 */
+	@Override
+	public String mouseClickWidget(int interfaceId, int component, int sub)
+	{
+		Widget w = client.getWidget(interfaceId, component);
+		if (w != null && sub >= 0)
+		{
+			w = w.getChild(sub);
+		}
+		if (w == null || w.isHidden())
+		{
+			return interfaceId + ":" + component + (sub < 0 ? "" : " slot " + sub) + " is not showing";
+		}
+		Rectangle b = w.getBounds();
+		Canvas canvas = client.getCanvas();
+		if (b == null || b.width <= 0 || b.height <= 0 || canvas == null)
+		{
+			return interfaceId + ":" + component + " has no place on the screen yet";
+		}
+		int x = b.x + b.width / 2;
+		int y = b.y + b.height / 2;
+		SwingUtilities.invokeLater(() ->
+		{
+			long now = System.currentTimeMillis();
+			canvas.dispatchEvent(new MouseEvent(canvas, MouseEvent.MOUSE_MOVED, now, 0, x, y, 0, false));
+			canvas.dispatchEvent(new MouseEvent(canvas, MouseEvent.MOUSE_PRESSED, now, InputEvent.BUTTON1_DOWN_MASK, x, y, 1, false, MouseEvent.BUTTON1));
+			canvas.dispatchEvent(new MouseEvent(canvas, MouseEvent.MOUSE_RELEASED, now + 50, 0, x, y, 1, false, MouseEvent.BUTTON1));
+			canvas.dispatchEvent(new MouseEvent(canvas, MouseEvent.MOUSE_CLICKED, now + 50, 0, x, y, 1, false, MouseEvent.BUTTON1));
+		});
+		return null;
+	}
+
+	@Override
+	public String runClientScript(int id, Object[] args)
+	{
+		if (!loggedIn())
+		{
+			return "not logged in";
+		}
+		Object[] call = new Object[args.length + 1];
+		call[0] = id;
+		System.arraycopy(args, 0, call, 1, args.length);
+		client.runScript(call);
+		return null;
+	}
+
+	@Override
+	public int[] varp(int id)
+	{
+		int[] server = client.getServerVarps();
+		int[] local = client.getVarps();
+		if (!loggedIn() || server == null || local == null || id < 0 || id >= server.length || id >= local.length)
+		{
+			return null;
+		}
+		return new int[] {server[id], local[id]};
+	}
+
+	@Override
+	public int[] varbit(int id)
+	{
+		VarbitComposition type = id < 0 ? null : client.getVarbit(id);
+		if (type == null)
+		{
+			return null;
+		}
+		int[] values = varp(type.getIndex());
+		if (values == null)
+		{
+			return null;
+		}
+		int low = type.getLeastSignificantBit();
+		int width = type.getMostSignificantBit() - low + 1;
+		int mask = width >= 32 ? -1 : (1 << width) - 1;
+		return new int[] {(values[0] >>> low) & mask, (values[1] >>> low) & mask};
+	}
 
 	@Override
 	public int skillLevel(String skill)
