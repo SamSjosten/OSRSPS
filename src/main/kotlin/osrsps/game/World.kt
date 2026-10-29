@@ -313,7 +313,7 @@ class World(
         openModal = { player, id -> interfaces.openModal(player, FrameSlot.MAINMODAL, id) },
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
         prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) },
-        examine = inventoryTab::examine, value = { itemPrices.deathValue(it) },
+        examine = inventoryTab::examine, value = { this.itemPrices.deathValue(it) },
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -366,10 +366,6 @@ class World(
         loadDialogue()
     }
 
-    /**
-     * Reads the dialogue file again, so new words show from the next line said. Returns what was read and what was
-     * wrong with it, which is logged too.
-     */
     /** Reads the Grand Exchange price file again, for a hand edit; says what it read. */
     fun loadItemPrices(): String {
         val file = itemPricesFile ?: return "No price file"
@@ -395,6 +391,10 @@ class World(
         return "Downloading the Wiki's Grand Exchange prices; run ::itemprices in a few seconds to read them"
     }
 
+    /**
+     * Reads the dialogue file again, so new words show from the next line said. Returns what was read and what was
+     * wrong with it, which is logged too.
+     */
     fun loadDialogue(): List<String> {
         val file = dialogueFile ?: return listOf("No dialogue file: every line shows its key").onEach { logger.info { it } }
         val loaded = DialogueFile.load(file, DialogueLines.ALL)
