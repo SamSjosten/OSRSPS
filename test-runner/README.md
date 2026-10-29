@@ -106,6 +106,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-bury-bones.json`: bury two bones, 4.5 Prayer XP each.
 - `lumbridge-bank.json`: at a castle bank booth, deposit, withdraw 5 and as notes, deposit the inventory, log out and
   back in and take out what is still banked. It can't type an amount, so Withdraw-X isn't in it.
+- `lumbridge-bank-tabs.json`: from `::scenario lumbridge-bank-tabs`, a tab with a placeholder that takes the logs back
+  into their slot, Collapse tab, bank fillers and Clear-All's confirmation. The runner can't drag, so items aren't
+  moved into tabs here.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

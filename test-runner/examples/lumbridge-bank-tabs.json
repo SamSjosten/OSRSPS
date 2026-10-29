@@ -1,0 +1,197 @@
+{
+ "name": "Rest of Lumbridge step 3a: bank tabs, placeholders, collapsing a tab, fillers and Clear-All's confirmation",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bank-tabs",
+   "expectMessage": "Started scenario lumbridge-bank-tabs.",
+   "comment": "at the castle's booths with logs and a bronze axe in tab 1 and coins in the main tab (slots 0, 1, 2); ::reset at the end puts the bank back"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank booth",
+   "option": "Bank"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 10,
+   "slot": 11,
+   "op": 1,
+   "comment": "View tab 1 (tab icons are numbered from 10, the main tab)"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 0,
+   "op": 10,
+   "comment": "Placeholder on the logs: all five come out"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 5
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client redraw before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 15,
+   "component": 3,
+   "slot": 0,
+   "op": 8,
+   "comment": "Deposit-All on the logs: they fill their placeholder in slot 0"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 0
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 0,
+   "op": 3,
+   "comment": "Withdraw-5 on slot 0 takes the logs again; without the placeholder they would have gone in after the axe"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 5
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 15,
+   "component": 3,
+   "slot": 0,
+   "op": 8,
+   "comment": "Deposit-All on the logs"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 0
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 10,
+   "slot": 11,
+   "op": 6,
+   "comment": "Collapse tab 1: the logs and the axe go after the coins"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 0,
+   "op": 2,
+   "comment": "Withdraw-1 on slot 0 is the coins now"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 1
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 145,
+   "op": 1,
+   "comment": "Bank fillers: 10, in the settings menu"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 153,
+   "op": 1,
+   "comment": "Fill"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You add 10 bank fillers to your bank."
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 3,
+   "op": 8,
+   "comment": "Clear-All on a filler (after the coins, the logs and the axe)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 289,
+   "comment": "popupoverlay asks first"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 289,
+   "component": 8,
+   "op": 1,
+   "comment": "Clear them all"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 289,
+   "absent": true
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 151,
+   "op": 1,
+   "comment": "Bank fillers: All"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 153,
+   "op": 1,
+   "comment": "Fill"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You add 897 bank fillers to your bank.",
+   "comment": "900 less the three items: the ten fillers were cleared"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

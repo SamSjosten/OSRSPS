@@ -114,6 +114,11 @@
    "count": 0
   },
   {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client redraw the bank: a click on a slot sends the item the client draws there, and the server ignores a click whose item doesn't match"
+  },
+  {
    "step": "clickWidget",
    "interfaceId": 12,
    "component": 25,
@@ -124,9 +129,9 @@
    "step": "clickWidget",
    "interfaceId": 12,
    "component": 12,
-   "slot": 0,
+   "slot": 1,
    "op": 7,
-   "comment": "Withdraw-All on the logs: five noted logs"
+   "comment": "Withdraw-All on the logs, now after the coins (Withdraw-5 took every log, so their slot closed and Deposit inventory put them at the end): five noted logs"
   },
   {
    "step": "assertInventory",
@@ -139,7 +144,7 @@
    "component": 12,
    "slot": 0,
    "op": 4,
-   "comment": "the logs' slot is gone, so the coins are first now: Withdraw-10"
+   "comment": "the logs' slot is gone again, leaving only the coins: Withdraw-10"
   },
   {
    "step": "assertInventory",

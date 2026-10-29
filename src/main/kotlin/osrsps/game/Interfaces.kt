@@ -178,7 +178,17 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         if (player.modals.isEmpty()) return
         val frame = player.frame
         for (slot in player.modals.keys) send(player, IfCloseSub(frame.interfaceId, frame.component(slot)))
+        val closed = player.modals.values.toList()
         player.modals.clear()
+        for (interfaceId in closed) closeHooks[interfaceId]?.invoke(player)
+    }
+
+    private val closeHooks = HashMap<Int, (Player) -> Unit>()
+
+    /** Runs [hook] whenever modal [interfaceId] closes, after it has: for what the client keeps open past it. */
+    fun onClose(interfaceId: Int, hook: (Player) -> Unit) {
+        check(interfaceId !in closeHooks) { "Interface $interfaceId already has a close hook" }
+        closeHooks[interfaceId] = hook
     }
 
     /**

@@ -1,0 +1,10 @@
+{
+  "about": "At the castle's top floor bank booths with a bank of three items, two of them in tab 1, and nothing carried.",
+  "notes": "For test-runner/examples/lumbridge-bank-tabs.json: the runner can't drag yet, so the tab comes from here.",
+  "position": { "x": 3209, "z": 3220, "level": 2 },
+  "bank": [
+    { "item": "coins", "count": 1000 },
+    { "item": "logs", "count": 5, "tab": 1 },
+    { "item": "bronze_axe", "tab": 1 }
+  ]
+}
