@@ -2,7 +2,7 @@ package osrsps.game.npc
 
 /**
  * What an NPC was given this cycle for everyone who sees it, sent at the end of the cycle by [osrsps.game.World]
- * through NPC info: an animation, spotanims, hitsplats and health bars. Kept apart from the avatar so tests, which have no
+ * through NPC info: an animation, spotanims, hitsplats, health bars and overhead text. Kept apart from the avatar so tests, which have no
  * network, can read them. Delays are in client cycles (20 ms).
  */
 class NpcEffects {
@@ -24,12 +24,21 @@ class NpcEffects {
     var anim: Anim? = null
         private set
 
+    /** The overhead text to send, or null for none; the last one set in a cycle wins. */
+    var say: String? = null
+        private set
+
     private val hits = ArrayList<Hit>()
     private val headBars = ArrayList<HeadBar>()
     private val spotanims = LinkedHashMap<Int, SpotAnim>()
 
     fun anim(id: Int, delay: Int = 0) {
         anim = Anim(id, delay)
+    }
+
+    /** Shows [text] over the NPC's head, as a duck's "Quack!" (RSProt's NPC say block). */
+    fun say(text: String) {
+        say = text
     }
 
     fun hit(source: Int, selfType: Int, otherType: Int, value: Int, delay: Int = 0) {
@@ -59,12 +68,14 @@ class NpcEffects {
     val pendingSpotanims: List<SpotAnim> get() = spotanims.values.toList()
 
     /** Hands everything set since the last flush to the senders and forgets it. */
-    fun flush(anim: (Anim) -> Unit, hit: (Hit) -> Unit, headBar: (HeadBar) -> Unit, spotanim: (SpotAnim) -> Unit = {}) {
+    fun flush(anim: (Anim) -> Unit, hit: (Hit) -> Unit, headBar: (HeadBar) -> Unit, spotanim: (SpotAnim) -> Unit = {}, say: (String) -> Unit = {}) {
         val sendAnim = this.anim
+        val sendSay = this.say
         val sendHits = hits.toList()
         val sendBars = headBars.toList()
         val sendSpotanims = spotanims.values.toList()
         this.anim = null
+        this.say = null
         hits.clear()
         headBars.clear()
         spotanims.clear()
@@ -72,6 +83,7 @@ class NpcEffects {
         sendHits.forEach(hit)
         sendBars.forEach(headBar)
         sendSpotanims.forEach(spotanim)
+        sendSay?.let(say)
     }
 
     companion object {

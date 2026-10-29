@@ -60,14 +60,17 @@ class NpcSpawn(
 }
 
 /**
- * RS2's NPC move restrictions (the 2004Scape project's `moverestrict`) for the two kinds that read the map: an
- * [INDOORS] NPC only steps onto roofed tiles and an [OUTDOORS] one only onto open sky. The Lumbridge cook keeps to the
- * castle this way.
+ * RS2's NPC move restrictions (the 2004Scape project's `moverestrict`) for the kinds that read the map: an [INDOORS]
+ * NPC only steps onto roofed tiles and an [OUTDOORS] one only onto open sky; a [BLOCKED] one only onto tiles whose floor
+ * can't be walked on, which is water where ducks swim, with walls and locs still in its way (RSMod's ducks, and its
+ * route finder's blocked collision strategy). The Lumbridge cook keeps to the castle this way, and the ducks to the
+ * river.
  */
 enum class MoveRestrict {
     NORMAL,
     INDOORS,
     OUTDOORS,
+    BLOCKED,
 }
 
 /** A tile on an NPC's patrol, and how many ticks it stands there on arriving before it walks to the next. */
@@ -109,6 +112,14 @@ class Npc(
     /** Ticks left to stand at the patrol stop it last walked to. */
     internal var patrolWait: Int = 0
 
+    /** Ticks until its [NpcScripts] timer fires; -1 before it is first set. */
+    internal var timerTicks: Int = -1
+
+    /** An action [NpcScripts.queue] runs on [tick]. */
+    internal class Queued(val tick: Long, val action: (Npc) -> Unit)
+
+    internal val queued = ArrayList<Queued>()
+
     /** What the client is told it does through NPC info; null until the world gives it one (and in tests). */
     var avatar: NpcAvatar? = null
 
@@ -127,6 +138,10 @@ class Npc(
 
     /** The player it follows, stopping beside them; see [Npcs.follow]. */
     var following: Player? = null
+        internal set
+
+    /** The NPC it follows, as a duckling follows a duck; see [Npcs.followNpc]. A player it follows comes first. */
+    var leader: Npc? = null
         internal set
 
     /** The player it is told to face, null when it faces where it last turned. */

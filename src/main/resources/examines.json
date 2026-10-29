@@ -52,7 +52,13 @@
     {"npc": 1177, "name": "Lamb"},
     {"npc": 1173, "name": "Chicken", "also": [1174]},
     {"npc": 4628, "name": "Gillie Groats"},
-    {"npc": 4627, "name": "Millie Miller"}
+    {"npc": 4627, "name": "Millie Miller"},
+    {"npc": 1838, "name": "Duck", "wiki": "Duck page, infobox, Male"},
+    {"npc": 1839, "name": "Duck", "wiki": "Duck page, infobox, Female"},
+    {"npc": 2001, "name": "Duckling"},
+    {"npc": 2002, "name": "Ducklings"},
+    {"npc": 2003, "name": "Duck", "wiki": "Duck (Common) page, infobox"},
+    {"npc": 2004, "name": "Drake", "wiki": "Drake (bird) page, infobox"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},

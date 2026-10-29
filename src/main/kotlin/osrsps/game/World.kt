@@ -73,6 +73,7 @@ import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
+import osrsps.game.content.Ducks
 import osrsps.game.content.registerCrops
 import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerGroatsFarm
@@ -93,6 +94,7 @@ import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcEffects
 import osrsps.game.npc.NpcInteractions
+import osrsps.game.npc.NpcScripts
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.script.Handlers
@@ -204,6 +206,9 @@ class World(
 
     val npcs = Npcs(collision, random)
 
+    /** What NPCs do on their own: timers, per-tick actions and deaths that content gives them; see [NpcScripts]. */
+    val npcScripts = NpcScripts(npcs) { tick }
+
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
     /** Items on the ground: drops, takes, their timers and item spawns. */
@@ -291,6 +296,7 @@ class World(
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
         multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
+        npcDied = { npcScripts.died(it) },
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -333,6 +339,11 @@ class World(
 
     /** Bird nests that fall from trees. */
     val birdNests = BirdNests(this, collision)
+
+    /** The ducks' quacks, the ducklings following them, and the land ducks running off; see [Ducks]. */
+    val ducks = Ducks(npcs, npcScripts, collision, random, { tick }, { dialogueText }, { onlinePlayers }) { npc, id ->
+        zones.soundArea(npc.x, npc.z, npc.level, id)
+    }
 
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
 
@@ -378,6 +389,7 @@ class World(
         registerGroatsFarm(this)
         registerMillLaneMill(this)
         registerCrops(this)
+        ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         woodcutting.register()
         birdNests.register()
@@ -696,6 +708,7 @@ class World(
         magicCombat.process()
         meleeCombat.process()
         deaths.process()
+        npcScripts.process()
         npcs.process()
         shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
@@ -1488,6 +1501,8 @@ class World(
      * for fired ammunition, so these are a drop's.
      */
     private fun dropAmmo(type: ObjType, x: Int, z: Int, level: Int, owner: Player) {
+        // Lost in water: the Wiki's Duck page, for ducks off land, taken to hold on any floor that can't be walked on.
+        if (collision[x, z, level] and CollisionFlag.FLOOR != 0) return
         if (owner.loggedOut) {
             groundObjs.addPublic(type, 1, x, z, level, GroundObjs.DROP_DESPAWN_TICKS)
         } else {
@@ -1646,7 +1661,7 @@ class World(
         )
     }
 
-    /** Sends an NPC's animation, hitsplats and health bars through its avatar; see [NpcEffects]. */
+    /** Sends an NPC's animation, hitsplats, health bars and overhead text through its avatar; see [NpcEffects]. */
     private fun sendNpcEffects(npc: Npc) {
         val extendedInfo = npc.avatar?.extendedInfo
         npc.effects.flush(
@@ -1654,6 +1669,7 @@ class World(
             hit = { extendedInfo?.addHitMark(it.source, it.selfType, it.otherType, it.value, it.delay) },
             headBar = { extendedInfo?.addHeadBar(it.source, it.type, it.type, it.fill) },
             spotanim = { extendedInfo?.setSpotAnim(it.slot, it.id, it.delay, it.height) },
+            say = { extendedInfo?.setSay(it) },
         )
     }
 

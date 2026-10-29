@@ -123,6 +123,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   grain up Mill Lane Mill's ladders into the hopper and through the controls into two pots of flour (checking
   varbits mill_flour and mill_showflour), Gillie's talk when milking with no bucket, and a dairy cow milked into two
   buckets. Needs 0.8.0 for `assertVarbit`.
+- `lumbridge-ducks.json`: Examine (with `::keys on`) on a drake and a duck on the River Lum, the ducklings, the
+  attackable duckling at the pond by Fred's farm and the duck and drake that walk on Groats' farm; Attack on a drake
+  on the water says it can't be reached, and `::kill duck` shows the duck's death animation.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

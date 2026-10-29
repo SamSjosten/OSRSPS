@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
+import osrsps.game.Interactions
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -21,7 +22,10 @@ import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
+import osrsps.game.content.Ducks
+import osrsps.game.npc.MoveRestrict
 import osrsps.game.npc.NpcSpawn
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 
 /**
@@ -52,14 +56,22 @@ class HeadlessRangedTest {
         ),
     )
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val types = NpcTypes.of(man)
+    private val duck = NpcType(Ducks.DRAKE, "Duck", ops = listOf(null, "Attack", null, null, null), combatLevel = 1, internalName = "duck", stats = NpcStats(hitpoints = 3))
+
+    /** With [pond], a pond east of the player over x 3228 to 3235, z 3214 to 3222, and a duck on it. */
+    private fun server(dir: Path, pond: Boolean = false) = TestServer(dir) { crcs, millis ->
+        val types = NpcTypes.of(man, duck)
+        val map = CollisionMap().apply {
+            markLoaded(3222 shr 6, 3218 shr 6)
+            if (pond) for (x in 3228..3235) for (z in 3214..3222) add(x, z, 0, CollisionFlag.FLOOR)
+        }
+        val ducks = if (pond) listOf(NpcSpawn(duck, 3230, 3218, restrict = MoveRestrict.BLOCKED, source = "test")) else emptyList()
         val objs = arrayOfNulls<ObjType>(BRONZE_ARROW + 1)
         for (type in listOf(shortbow, arrows)) objs[type.id] = type
         val objTypes = ObjTypes(objs)
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
-            npcSpawns = listOf(NpcSpawn(man, 3226, 3218, source = "test")),
+            crcs, map, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
+            npcSpawns = listOf(NpcSpawn(man, 3226, 3218, source = "test")) + ducks,
             varTypes = VarTypes(6_000, mapOf(VARBIT_WEAPON_CATEGORY to VarbitType(VARP_WEAPON_CATEGORY, 0, 5))),
             attackStyles = styles, npcCombat = NpcCombat.load(types, SeqNames.NONE),
             rangedWeapons = RangedWeapons.load(objTypes, SeqNames.NONE, SpotanimNames.NONE), cycleMillis = millis,
@@ -125,6 +137,33 @@ class HeadlessRangedTest {
                 client.npcOp(npc.index, 2)
                 client.awaitMessage("the empty quiver") { it == RangedCombat.NO_AMMO }
                 assertEquals("You are not fighting anything.", client.commandReply("fight") { it.startsWith("You are") })
+            }
+        }
+    }
+
+    @Test
+    fun `a duck on the water can't be reached to punch, and arrows shot at it are lost in the water`(@TempDir dir: Path) {
+        server(dir, pond = true).use { server ->
+            server.login("carol").use { client ->
+                val target = client.await("the duck in view") { client.npcs().firstOrNull { it.id == duck.id } }
+                client.await("the login rebuild") { client.position }
+                client.npcOp(target.index, 2)
+                client.awaitMessage("no way to the duck") { it == Interactions.CANT_REACH }
+                client.command("item $SHORTBOW")
+                client.itemOp(SHORTBOW, WIELD)
+                client.command("item $BRONZE_ARROW $ARROWS")
+                client.itemOp(BRONZE_ARROW, WIELD)
+                client.await("the arrows worn") { client.worn(WearPos.AMMO)?.takeIf { it.id == BRONZE_ARROW && it.count == ARROWS } }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.npcOp(target.index, 2)
+                client.await("the duck's death", timeoutMillis = 60_000) { if (client.npcs().none { it.id == duck.id }) Unit else null }
+                val used = ARROWS - (client.worn(WearPos.AMMO)?.count ?: 0)
+                assertTrue(used >= 3, "$used used")
+                // The last arrow lands as the duck dies; give the floor a few ticks to show any.
+                client.awaitTicks(3)
+                assertEquals(emptyList(), client.groundObjs().filter { it.id == BRONZE_ARROW })
+                // It swam nowhere: a duck keeps to the water, and the player stands on the bank.
+                assertTrue(client.position!!.x < 3228, "${client.position}")
             }
         }
     }
