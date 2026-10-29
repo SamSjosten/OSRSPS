@@ -6,7 +6,6 @@ import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
 import osrsps.game.script.ScriptContext
-import osrsps.game.zone.ZoneLoc
 
 /** Fred the Farmer's lines; the words are in the dialogue file, from the Wiki's Transcript:Fred the Farmer (after Sheep Shearer), read 2026-10-29. */
 object FredLines : Lines("fred_the_farmer", "Transcript:Fred the Farmer") {
@@ -18,17 +17,15 @@ object FredLines : Lines("fred_the_farmer", "Transcript:Fred the Farmer") {
 }
 
 /**
- * Fred's farm, north-west of Lumbridge Castle: Fred the Farmer (732), his sheep to shear, and the onion patch by his
- * house. Its chickens and rams only fight and drop (npc-combat.json, npc-drops.json); its eggs and shears are item
- * spawns (obj-spawns/lumbridge.tsv).
+ * Fred's farm, north-west of Lumbridge Castle: Fred the Farmer (732) and his sheep to shear. Its chickens and rams only
+ * fight and drop (npc-combat.json, npc-drops.json); its eggs and shears are item spawns (obj-spawns/lumbridge.tsv), and
+ * the onion patch by his house is one of the [Crops].
  *
  * Shearing is RSMod's sheep script: shears in the inventory, the human_shearing animation, two ticks, then the sheep
  * shows as its sheared type for 50 ticks (the OSRS Wiki, Sheep: 30 seconds to regrow) and the player gets a wool,
  * dropped at their feet when the inventory is full. Since 27 October 2019 it never fails (the Wiki). The messages are
- * RSMod's and the 2004Scape project's, not checked against live. Picking an onion is the 2004Scape project's
- * pickables script: the onion goes for 50 ticks (the Wiki, Onion: fields respawn in 30 seconds). Guessed: Fred's
- * chathead expressions, and that the onion seed members sometimes get from a field is left out (the Wiki gives no
- * chance). Left out: Fred's third option, about The Thing of Cold War, which isn't here, and the sheep's "Baa!".
+ * RSMod's and the 2004Scape project's, not checked against live. Guessed: Fred's chathead expressions. Left out: Fred's
+ * third option, about The Thing of Cold War, which isn't here, and the sheep's "Baa!".
  */
 object FredsFarm {
     const val FRED = 732
@@ -59,21 +56,9 @@ object FredsFarm {
         2789 to 2692, // sheepunsheeredshaggy2
     )
 
-    const val ONION_LOC = 3366
-    const val PICK = 2
-    const val ONION = 1957
-
-    /** How long a picked onion takes to grow back (OSRS Wiki, Onion). */
-    const val ONION_RESPAWN_TICKS = 50
-
-    /** human_pickupfloor. */
-    const val ANIM_PICK = 827
-
     const val NO_SHEARS = "You need a set of shears to do this."
     const val GOT_WOOL = "You get some wool."
     const val ALREADY_SHORN = "This sheep has already been shorn."
-    const val PICKED_ONION = "You pick an onion."
-    const val NO_ROOM_ONION = "You don't have room for this onion."
 
     internal suspend fun Dialogue.fred() = with(FredLines) {
         chatNpc(ChatAnim.ANGRY, MY_LAND)
@@ -90,7 +75,7 @@ object FredsFarm {
     }
 }
 
-/** Fred's Talk-to, Shear and shears on the sheep, and the onion patch's Pick. */
+/** Fred's Talk-to, and Shear and shears on the sheep. */
 fun registerFredsFarm(world: World) {
     world.handlers.onNpc(FredsFarm.FRED, FredsFarm.TALK_TO) { op ->
         world.dialogues.start(this, op.npc) { with(FredsFarm) { fred() } }
@@ -101,7 +86,6 @@ fun registerFredsFarm(world: World) {
         // A sheared sheep has no Shear option; shears used on one say so.
         world.handlers.onObjOnNpc(sheared, FredsFarm.SHEARS) { player.message(FredsFarm.ALREADY_SHORN) }
     }
-    world.handlers.onLoc(FredsFarm.ONION_LOC, FredsFarm.PICK) { op -> pickOnion(world, op.loc!!) }
 }
 
 private suspend fun ScriptContext.shear(world: World, sheep: Npc, sheared: Int) {
@@ -118,18 +102,4 @@ private suspend fun ScriptContext.shear(world: World, sheep: Npc, sheared: Int) 
     world.npcs.transform(sheep, type, FredsFarm.REGROW_TICKS)
     player.message(FredsFarm.GOT_WOOL)
     world.objTypes[FredsFarm.WOOL]?.let { world.groundObjs.give(player, it, 1) }
-}
-
-private suspend fun ScriptContext.pickOnion(world: World, onion: ZoneLoc) {
-    if (player.inventory.freeSlots == 0) {
-        player.message(FredsFarm.NO_ROOM_ONION)
-        return
-    }
-    player.anim(FredsFarm.ANIM_PICK)
-    delay(1)
-    // Someone else may have picked it this tick.
-    if (!world.locs.exists(onion)) return
-    world.locs.remove(onion, FredsFarm.ONION_RESPAWN_TICKS)
-    world.objTypes[FredsFarm.ONION]?.let { player.inventory.add(it, 1) }
-    player.message(FredsFarm.PICKED_ONION)
 }

@@ -455,7 +455,7 @@ chickens and rams fight and drop through `npc-combat.json` and `npc-drops.json`.
 | A sheep shows as its sheared type through the NPC info's transformation block, for every player; its options and examine are the sheared type's meanwhile (`Npcs.transform`) | RSMod's npcChangeType |
 | Chickens: level 1, 3 hitpoints, stab for 0, back in 25 ticks; always bones and raw chicken, 5 feathers 64/128, 15 feathers 32/128, a beginner clue 1/300 | OSRS Wiki, Chicken |
 | Rams: level 2, 8 hitpoints, crush for 1, back in 45 ticks, weak to fire (20%); always bones | OSRS Wiki, Ram |
-| Pick on an onion takes it for 50 ticks and gives an onion, or says there's no room | the 2004Scape project's pickables script; the Wiki's Onion page (fields respawn in 30 seconds) |
+| Pick on an onion takes it for 50 ticks and gives an onion, or says there's no room (`Crops.kt`) | the 2004Scape project's pickables script; the Wiki's Onion page (fields respawn in 30 seconds) |
 | Messages: "You need a set of shears to do this.", "You get some wool.", "This sheep has already been shorn.", "You pick an onion.", "You don't have room for this onion." | RSMod and the 2004Scape project, not checked against live |
 | Fred's expressions, the chickens' and rams' fight animations (by name), every wander range (5) | guessed |
 
@@ -464,6 +464,30 @@ War (and Fred's option about The Thing), the farmers, and the ducks (the Groats'
 
 Check: `test-runner/examples/lumbridge-freds-farm.json` talks to Fred, picks an onion, shears a sheep and kills
 chickens for their feathers.
+
+## Groats' farm and Mill Lane Mill
+
+Gillie Groats and her pen's two dairy cows north of Lumbridge (`game/content/GroatsFarm.kt`), and Mill Lane Mill with
+Millie Miller and its wheat field north-west of Fred's farm (`game/content/MillLaneMill.kt`). Gillie and Millie are in
+`npc-spawns/lumbridge-farms.json` on RSMod's tiles; the cows, hopper, controls, bin, ladders and crops are the 241
+map's locs. Wheat, potatoes and onions are picked through `game/content/Crops.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Gillie's talk: who she is, how to milk a cow, or nothing; with no bucket, a dairy cow in her pen gets her talk under the name "Gillie Groats the Milkmaid" | OSRS Wiki, Transcript:Gillie Groats, read 2026-10-29 |
+| Milk (or a bucket used on a dairy cow): two ticks, then a bucket of milk, milkit and "You milk the cow.", every eight ticks while buckets are left, until the player does anything else; anything else used on one: "The cow doesn't want that." | RSMod's dairy cow script |
+| Millie's talk: who she is, what the mill is, how to mill flour (three ways in), or nothing | OSRS Wiki, Transcript:Millie Miller, read 2026-10-29 |
+| Pick on wheat gives a grain and takes it for 20 ticks; on a potato, a potato for 50 | OSRS Wiki, Wheat (20 ticks); the 2004Scape project's pickables script and RSMod (potato 50, and every message) |
+| Fill on the hopper (or grain used on it) puts one grain in; Operate on the controls sends it to the flour bin; the bin holds 30 pots; Empty on the bin (or a pot used on it) fills a pot | OSRS Wiki, Windmill and Transcript:Hopper; the 2004Scape project's windmill script |
+| The bin's flour is the player's own, shared by every windmill: varbit mill_flour (4920), and mill_showflour (5325) shows the bin with flour in it | the 241 cache's flour bin (multivar mill_showflour) and varbits; OSRS Wiki, Windmill |
+| The ladders: Climb-up, a Climb menu on the middle floor, Climb-down | the castle's ladders (RSMod) |
+| The grain in the hopper is kept with the account by name, as charges are, since no var for it is known; Gillie's and Millie's expressions; human_pickuptable for filling and operating | guessed |
+
+Not built yet: the ducks (their own step), sweetcorn and cornflour (Farming), Steal-cowbell and the cowbell amulet
+(Thieving, Cold War), and the seeds a field sometimes gives.
+
+Check: `test-runner/examples/lumbridge-mill.json` talks to Millie and Gillie, picks wheat, climbs the mill, makes two
+pots of flour and milks a dairy cow into two buckets.
 
 ## Equipment
 
