@@ -89,9 +89,14 @@ class GroundObjs(
             logger.warn { "${player.username} dropped unknown obj ${held.id}" }
             return null
         }
+        val neverPublic = !type.tradeable
+        if (!fitsOnTile(type, held.count, player.x, player.z, player.level, player.saveKey, neverPublic)) {
+            message(player, TILE_FULL)
+            return null
+        }
         player.inventory.remove(slot)
         player.sound(SOUND_PUT_DOWN)
-        return addPrivate(type, held.count, player.x, player.z, player.level, player.saveKey, DROP_PRIVATE_TICKS, DROP_DESPAWN_TICKS, neverPublic = !type.tradeable)
+        return addPrivate(type, held.count, player.x, player.z, player.level, player.saveKey, DROP_PRIVATE_TICKS, DROP_DESPAWN_TICKS, neverPublic = neverPublic)
     }
 
     /**
@@ -126,17 +131,14 @@ class GroundObjs(
         neverPublic: Boolean = !type.tradeable,
     ): ZoneObj {
         require(count >= 1) { "Can't put $count of $type on the ground" }
-        if (type.stackable) {
-            val stack = zones.objsAt(x, z, level).firstOrNull {
-                it.id == type.id && it.owner == owner && it.neverPublic == neverPublic && it.count.toLong() + count <= Int.MAX_VALUE
-            }
-            if (stack != null) {
-                zones.setObjCount(stack, stack.count + count)
-                return stack
-            }
+        val stack = stackFor(type, count, x, z, level, owner, neverPublic)
+        if (stack != null) {
+            zones.setObjCount(stack, stack.count + count)
+            return stack
         }
         val pieces = if (type.stackable) 1 else count
         require(pieces <= MAX_SPLIT) { "Won't put $count separate ${type.name} on one tile" }
+        makeRoom(x, z, level, pieces)
         var last: ZoneObj? = null
         repeat(pieces) {
             val obj = ZoneObj(
@@ -155,12 +157,40 @@ class GroundObjs(
         require(count >= 1) { "Can't put $count of $type on the ground" }
         val pieces = if (type.stackable) 1 else count
         require(pieces <= MAX_SPLIT) { "Won't put $count separate ${type.name} on one tile" }
+        makeRoom(x, z, level, pieces)
         return List(pieces) {
             val obj = ZoneObj(type.id, if (type.stackable) count else 1, x, z, level, ticksUntilDespawn = despawnTicks)
             zones.addObj(obj)
             if (despawnTicks != ZoneObj.NEVER) timed += obj
             obj
         }
+    }
+
+    /** [owner]'s private stack of [type] on the tile that [count] more would join, or null if there is none. */
+    private fun stackFor(type: ObjType, count: Int, x: Int, z: Int, level: Int, owner: String, neverPublic: Boolean): ZoneObj? {
+        if (!type.stackable) return null
+        return zones.objsAt(x, z, level).firstOrNull {
+            it.id == type.id && it.owner == owner && it.neverPublic == neverPublic && it.count.toLong() + count <= Int.MAX_VALUE
+        }
+    }
+
+    /** Whether [owner] dropping [count] of [type] on the tile stays within [MAX_PER_TILE]. */
+    private fun fitsOnTile(type: ObjType, count: Int, x: Int, z: Int, level: Int, owner: String, neverPublic: Boolean): Boolean {
+        if (stackFor(type, count, x, z, level, owner, neverPublic) != null) return true
+        return zones.objsAt(x, z, level).size + (if (type.stackable) 1 else count) <= MAX_PER_TILE
+    }
+
+    /**
+     * Removes the oldest objs on a tile until [pieces] more fit within [MAX_PER_TILE]. Guessed: the Wiki gives the limit
+     * but not what happens past it; a player's own drop is refused instead ([drop]), so this only acts on loot and
+     * content putting objs down on a full tile.
+     */
+    private fun makeRoom(x: Int, z: Int, level: Int, pieces: Int) {
+        val objs = zones.objsAt(x, z, level)
+        val over = objs.size + pieces - MAX_PER_TILE
+        if (over <= 0) return
+        logger.info { "Tile $x, $z, $level is full; removing its $over oldest objs" }
+        objs.take(over).forEach(::remove)
     }
 
     /** Removes everything on a tile. Spawns there come back as if taken. Returns how many objs went. */
@@ -352,6 +382,15 @@ class GroundObjs(
          * one call putting down more than that many separate objs.
          */
         const val MAX_SPLIT = 128
+
+        /**
+         * Objs on one tile at most, a stack counting as one: OSRS Wiki, Drop ("The limit to the number of different items
+         * that can fit on one game tile is 128"). It also keeps a zone's full resend within reach of its packets.
+         */
+        const val MAX_PER_TILE = 128
+
+        /** Guessed wording: a drop on a tile already holding [MAX_PER_TILE] objs. */
+        const val TILE_FULL = "There isn't enough room on the ground here."
 
         const val TOO_LATE = "Too late - it's gone!"
         const val NO_SPACE = "You don't have enough inventory space to hold that item."

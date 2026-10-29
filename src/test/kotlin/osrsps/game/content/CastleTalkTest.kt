@@ -107,24 +107,35 @@ class CastleTalkTest {
 
     @Test
     fun `asking the banker for the bank ends the talk with the bank to open`() {
-        var bank = false
-        h.talk { bank = with(Bankers) { banker() } }
+        var ask = Bankers.Ask.NOTHING
+        h.talk { ask = with(Bankers) { banker() } }
         h.expect("banker.greeting")
         h.menu("banker.open_bank", "banker.pin", "banker.collect", "banker.buy_slots", "banker.what_place")
         h.pick(1)
         kotlin.test.assertEquals(-1, h.player.chatModal)
-        kotlin.test.assertTrue(bank)
+        kotlin.test.assertEquals(Bankers.Ask.BANK, ask)
+    }
+
+    @Test
+    fun `asking the banker for PIN settings ends the talk with the settings to open`() {
+        var ask = Bankers.Ask.NOTHING
+        h.talk { ask = with(Bankers) { banker() } }
+        h.expect("banker.greeting")
+        h.menu("banker.open_bank", "banker.pin", "banker.collect", "banker.buy_slots", "banker.what_place")
+        h.pick(2)
+        kotlin.test.assertEquals(-1, h.player.chatModal)
+        kotlin.test.assertEquals(Bankers.Ask.PIN, ask)
     }
 
     @Test
     fun `asking the Banker tutor for the account ends the talk with the bank to open`() {
-        var bank = false
-        h.talk { bank = with(Bankers) { tutor() } }
+        var ask = Bankers.Ask.NOTHING
+        h.talk { ask = with(Bankers) { tutor() } }
         h.expect("banker_tutor.greeting")
         h.menu("banker_tutor.how_it_works", "banker_tutor.access", "banker_tutor.pin", "banker_tutor.collect", "banker_tutor.buy_slots")
         h.pick(2)
         kotlin.test.assertEquals(-1, h.player.chatModal)
-        kotlin.test.assertTrue(bank)
+        kotlin.test.assertEquals(Bankers.Ask.BANK, ask)
     }
 
     @Test

@@ -80,7 +80,7 @@ class EquipmentTab(
         }
         if (player.scripts.delayed) return
         if (op == 1) {
-            report(player, equipment.remove(player, wearpos))
+            remove(player, wearpos)
             return
         }
         val option = op - 1
@@ -92,6 +92,9 @@ class EquipmentTab(
 
     /** Wears the item in inventory [slot], from the inventory's Wear/Wield/Equip or the stats screen's Equip. */
     fun wear(player: Player, slot: Int) = report(player, equipment.wear(player, slot))
+
+    /** Takes off what is worn in [wearpos], as a slot's Remove does: the bank's worn items view's too. */
+    fun remove(player: Player, wearpos: Int) = report(player, equipment.remove(player, wearpos))
 
     /**
      * Tells the player why a wear or remove didn't happen. The wording is from memory of live and not checked: live

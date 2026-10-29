@@ -46,7 +46,9 @@ import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
 import osrsps.game.bank.Bank
+import osrsps.game.bank.BankPinSettings
 import osrsps.game.bank.BankScreen
+import osrsps.game.bank.DepositBox
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.Deaths
@@ -189,7 +191,19 @@ class World(
     val bankScreen = BankScreen(
         bank, objTypes, scripts, interfaces::openModal,
         examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        bonuses = equipment::bonuses,
+        wear = { player, slot -> equipmentTab.wear(player, slot) },
+        remove = { player, wearpos -> equipmentTab.remove(player, wearpos) },
     )
+
+    /** Bank deposit boxes; see [DepositBox]. */
+    val depositBox = DepositBox(
+        bankScreen, interfaces::openModal,
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+    )
+
+    /** The bankers' PIN settings screen; see [BankPinSettings]. */
+    val bankPinSettings = BankPinSettings(interfaces::openModal)
 
     private val settingsSide = SettingsSide()
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells)
@@ -656,6 +670,8 @@ class World(
             if (player == null) continue
             perPlayer(player, "updates") {
                 equipmentTab.updateVars(player)
+                bankScreen.updateVars(player)
+                depositBox.updateVars(player)
                 sendVars(player)
                 sendStats(player)
                 sendEffects(player)
@@ -1149,6 +1165,8 @@ class World(
             return@act
         }
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
+        if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
+        if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
@@ -1197,6 +1215,7 @@ class World(
             return@act
         }
         if (bankScreen.drag(player, interfaceId, componentId, fromSub, fromObj, toInterfaceId, toComponentId, toSub)) return@act
+        if (depositBox.drag(player, interfaceId, componentId, fromSub, fromObj, toInterfaceId, toComponentId, toSub)) return@act
         logger.info { "${player.username} dragged $interfaceId:$componentId sub $fromSub onto $toInterfaceId:$toComponentId sub $toSub (not handled)" }
     }
 
@@ -1291,7 +1310,7 @@ class World(
      */
     fun onResumePauseButton(player: Player, interfaceId: Int, componentId: Int, sub: Int) = act(player) {
         if (player.scripts.delayed) return@act
-        if (!dialogues.resume(player, interfaceId, componentId, sub)) {
+        if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId)) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
         }
     }
