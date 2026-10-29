@@ -98,7 +98,7 @@ class EquipmentTab(
         if (option !in 1..WORN_OPS || type.stringParam(PARAM_WORN_OP1 + option - 1) == null) return
         if (scripts.trigger(player, Op(OpTarget.WORN, type.id, option, wearpos))) return
         logger.info { "${player.username} picked worn op $option on $type (not handled)" }
-        send(player, MessageGame(CHATTYPE_GAMEMESSAGE, InventoryTab.NOTHING_INTERESTING))
+        send(player, MessageGame(CHATTYPE_GAMEMESSAGE, inventoryTab.words(player)[GameLines.NOTHING_INTERESTING]))
     }
 
     /** Wears the item in inventory [slot], from the inventory's Wear/Wield/Equip or the stats screen's Equip. */

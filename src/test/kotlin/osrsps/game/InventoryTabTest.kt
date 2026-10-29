@@ -57,7 +57,7 @@ class InventoryTabTest {
     fun `an option nothing handles says nothing interesting happens`() {
         player.inventory.add(axe, 1)
         tab.click(player, 0, 1351, 3)
-        assertEquals(listOf("Nothing interesting happens."), messages())
+        assertEquals(listOf("[game.nothing_interesting]"), messages())
     }
 
     @Test
@@ -154,7 +154,7 @@ class InventoryTabTest {
         player.inventory.add(axe, 1)
         player.inventory.add(coins, 1)
         tab.use(player, 0, 1351, 1, 995)
-        assertEquals(listOf("Nothing interesting happens."), messages())
+        assertEquals(listOf("[game.nothing_interesting]"), messages())
     }
 
     @Test

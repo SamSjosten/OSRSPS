@@ -11,7 +11,7 @@
   {"step": "command", "text": "::item death rune 4", "expectMessage": "Added 4 x Death rune"},
   {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now", "comment": "the imps fight back once hit"},
   {"step": "command", "text": "::sure", "expectMessage": "Your attacks can't miss now", "comment": "a splash freezes nothing, so both imps' accuracy rolls pass"},
-  {"step": "command", "text": "::tele 3218 3219 0", "expectMessage": "Teleported to 3218, 3219, 0", "comment": "the castle courtyard, where the Bind script casts; north of the castle the cast got \"I can't reach that!\" on the VM"},
+  {"step": "command", "text": "::tele 3218 3219 0", "expectMessage": "Teleported to 3218, 3219, 0", "comment": "the castle courtyard, where the Bind script casts; north of the castle the cast got the can't-reach message on the VM"},
   {"step": "command", "text": "::npc imp 0", "expectMessage": "Spawned Imp", "comment": "imps, not men: the courtyard's men wander about here"},
   {"step": "command", "text": "::tele 3219 3219 0", "expectMessage": "Teleported to 3219, 3219, 0"},
   {"step": "command", "text": "::npc imp 0", "expectMessage": "Spawned Imp", "comment": "beside the first, inside the 3x3 around it"},

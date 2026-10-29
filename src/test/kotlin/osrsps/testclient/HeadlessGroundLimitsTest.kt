@@ -38,7 +38,7 @@ class HeadlessGroundLimitsTest {
                 alice.ifButton(INVENTORY, ITEMS, DROP, sub = 0, obj = coins.id)
                 alice.await("the coins down") { if (alice.inventory(BACKPACK)[0] == null) Unit else null }
                 alice.ifButton(INVENTORY, ITEMS, DROP, sub = 1, obj = sword.id)
-                alice.awaitMessage("refused") { it == GroundObjs.TILE_FULL }
+                alice.awaitMessage("refused") { it == "[game.tile_full]" }
                 assertEquals(InvObj(sword.id, 1), alice.inventory(BACKPACK)[1])
                 assertEquals(GroundObjs.MAX_PER_TILE, server.world.zones.objsAt(World.SPAWN_X, World.SPAWN_Z, 0).size)
                 // More coins join her stack, which takes no new place.

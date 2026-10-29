@@ -216,6 +216,7 @@ class World(
             findPlayer(owner)?.let(::save)
             save(taker)
         },
+        words = ::textFor,
     )
 
     private val equipment = Equipment(objTypes, wearRequirements)
@@ -240,6 +241,7 @@ class World(
         onDrop = groundObjs::drop,
         price = { this.itemPrices.price(it) },
         desc = { player, type -> if (type.isCert) textFor(player)[Examines.NOTE] else type.desc ?: "" },
+        words = ::textFor,
     )
 
     /** The bank's rules and the bank interface; see [BankScreen]. */
@@ -269,16 +271,17 @@ class World(
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells)
 
-    private val interactions = Interactions()
+    private val interactions = Interactions(words = ::textFor)
 
     private val follows = Follows(movement, { players[it.index] === it })
 
-    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors)
+    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, words = ::textFor)
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
         attack = { player, npc -> meleeCombat.attack(player, npc) },
         attackFromAfar = { player, npc -> meleeCombat.attackFromAfar(player, npc) },
+        words = ::textFor,
     )
 
     /** Where combat is multi-way; see [MultiCombat]. */
@@ -1122,7 +1125,7 @@ class World(
         allowChat(player)
         quests.completeAll(player.vars)
         prayers.login(player)
-        player.message(WELCOME_MESSAGE)
+        player.message(textFor(player)[GameLines.WELCOME])
 
         interfaces.openGameFrame(player)
         inventoryTab.open(player)
@@ -1383,7 +1386,7 @@ class World(
         }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
             if (inCombat(player)) {
-                player.message(CANT_LOG_OUT_IN_COMBAT)
+                player.message(textFor(player)[GameLines.CANT_LOG_OUT])
                 return@act
             }
             interfaces.closeModals(player)
@@ -1699,7 +1702,7 @@ class World(
         if (player.logoutRequested && !player.logoutForced && inCombat(player)) {
             // Hit later in the tick that the button was clicked in: the NPC phase comes after input.
             player.logoutRequested = false
-            player.message(CANT_LOG_OUT_IN_COMBAT)
+            player.message(textFor(player)[GameLines.CANT_LOG_OUT])
         }
         if (player.logoutRequested || player.logoutForced) {
             // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
@@ -1767,9 +1770,6 @@ class World(
         /** The logout button does nothing until this many ticks after the player was last hit (OSRS Wiki, Logout button). */
         const val LOGOUT_COMBAT_TICKS = 16L
 
-        /** The logout button in combat. From memory, not checked against live. */
-        const val CANT_LOG_OUT_IN_COMBAT = "You can't log out until 10 seconds after the end of combat."
-
         /**
          * How long a player whose connection dropped stays in the world for the client to reconnect: 60 s, the
          * wiki's "60 second timer before the game forcibly logs you out after an unexpected disconnection" (Logout
@@ -1817,9 +1817,6 @@ class World(
 
         /** has_displayname_transmitter in RuneLite's VarbitID. */
         const val VARBIT_HAS_DISPLAYNAME = 8119
-
-        /** The first game message after login on live, from memory rather than a recording. */
-        const val WELCOME_MESSAGE = "Welcome to Old School RuneScape."
 
         private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }
