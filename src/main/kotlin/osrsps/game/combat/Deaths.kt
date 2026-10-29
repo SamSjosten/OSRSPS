@@ -220,10 +220,10 @@ class Deaths(
         openModal(player, GRAVESTONE)
         setVarbitNow(player, VARBIT_FREE_FROM, 1)
         sendItems(player, grave)
-        // The item slots' Take (op 1) and Examine (op 10), and the Take-All button; op bits in both event words, as
-        // which word the client reads them from for script-made slots isn't known.
-        send(player, IfSetEventsV2(GRAVESTONE, FREEITEMS, 0, GRAVE_CAPACITY - 1, (1 shl 1) or (1 shl 10), (1 shl 0) or (1 shl 9)))
-        send(player, IfSetEventsV2(GRAVESTONE, FREEBUTTON, -1, -1, 1 shl 1, 1 shl 0))
+        // The item slots' Take (op 1) and Examine (op 10), and the Take-All button, in the second event word, where op n
+        // is bit n - 1 (see Interfaces.IF_EVENT_OP1).
+        send(player, IfSetEventsV2(GRAVESTONE, FREEITEMS, 0, GRAVE_CAPACITY - 1, 0, (1 shl 0) or (1 shl 9)))
+        send(player, IfSetEventsV2(GRAVESTONE, FREEBUTTON, -1, -1, 0, 1 shl 0))
     }
 
     private fun sendItems(player: Player, grave: Grave) {
