@@ -207,7 +207,8 @@ expect_output "FAILED; the whole output is in .staging/build.log"
 expect_state deployed "$cache"
 rm "$FAIL_BUILD"
 
-step="the deploy lock held by a live build"
+step="the deploy lock held by a live build: nothing is built, and no staging data is made meanwhile"
+rm -rf "$tmp/vm/.staging/data"
 flock -x "$tmp/vm/.deploy/lock" sleep 3 &
 sleep 0.5
 STAGING_LOCK_WAIT=1 staging up feature
@@ -216,6 +217,10 @@ expect_status 1
 expect_output "try again"
 expect_no_calls
 expect_state deployed "$cache"
+[[ ! -e $tmp/vm/.staging/data ]] || fail "the staging data was made while the deploy held its lock"
+staging up feature --force
+expect_status 0
+[[ -e $tmp/vm/.staging/data/cache ]] || fail "the staging data wasn't made again"
 
 step="up and down by hand while another run holds the staging lock"
 flock -x "$tmp/vm/.staging/lock" sleep 3 &
@@ -224,12 +229,12 @@ STAGING_LOCK_WAIT=1 staging up main
 expect_status 1
 expect_output "Another staging run has been going for 1 s; try again"
 expect_no_calls
-expect_state deployed "$cache"
+expect_state deployed "$head"
 STAGING_LOCK_WAIT=1 staging down
 wait
 expect_status 1
 expect_no_calls
-expect_state deployed "$cache"
+expect_state deployed "$head"
 
 step="down"
 staging down
@@ -350,6 +355,24 @@ staging auto
 expect_status 0
 expect_no_calls
 expect_state ref feature
+
+step="the branch made at the commit up by hand takes staging over, so deleting it takes staging down"
+git -C "$tmp/dev" push -q origin feature:staging
+staging auto
+expect_status 0
+expect_no_calls
+expect_state ref staging
+expect_output "brought up by hand; it follows the branch now"
+staging auto
+expect_status 0
+expect_no_calls
+[[ ! -s $tmp/out ]] || fail "auto said something with nothing to do"
+git -C "$tmp/dev" push -q origin --delete staging
+staging auto
+expect_status 0
+expect_calls "$compose down" 1
+expect_state deployed none
+staging up feature
 
 step="auto while another auto runs"
 flock -x "$tmp/vm/.staging/lock" sleep 2 &

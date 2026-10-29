@@ -94,15 +94,17 @@ up() {
 		echo "Checking out $ref ($commit) in .staging/src FAILED"
 		return 1
 	fi
-	prepare_data || return 1
-
-	echo "Building $ref ($commit) for staging (up now: ${running:-nothing})"
+	# The live deploy's lock, from before the staging data is made from the live data (a cache swap by the deploy
+	# would otherwise be copied half-way) to the end of the build (one image build at a time).
 	mkdir -p .deploy
 	exec 9>.deploy/lock
 	if ! flock -w "${STAGING_LOCK_WAIT:-900}" 9; then
 		echo "A live deploy has been building for a while; try again when it is done"
 		return 1
 	fi
+	prepare_data || return 1
+
+	echo "Building $ref ($commit) for staging (up now: ${running:-nothing})"
 	if ! OSRSPS_COMMIT=$commit BUILDKIT_PROGRESS=plain compose build >.staging/build.log 2>&1; then
 		[[ -s .staging/build.log ]] && tail -n 60 .staging/build.log
 		echo "Building $ref ($commit) for staging FAILED; the whole output is in .staging/build.log"
@@ -137,7 +139,15 @@ auto() {
 	target=$(git rev-parse --verify --quiet "origin/$AUTO_BRANCH^{commit}" || true)
 	running=$(cat .staging/deployed 2>/dev/null || true)
 	if [[ -n $target ]]; then
-		if [[ $target == "$running" || $target == "$(cat .staging/failed 2>/dev/null || true)" ]]; then
+		if [[ $target == "$running" ]]; then
+			# Up by hand on the same commit, say: the branch owns staging from here, so deleting it takes it down.
+			if [[ $(cat .staging/ref 2>/dev/null || true) != "$AUTO_BRANCH" ]]; then
+				printf '%s\n' "$AUTO_BRANCH" >.staging/ref
+				echo "Staging runs $AUTO_BRANCH ($target) already, brought up by hand; it follows the branch now"
+			fi
+			return 0
+		fi
+		if [[ $target == "$(cat .staging/failed 2>/dev/null || true)" ]]; then
 			return 0
 		fi
 		if ! up "$AUTO_BRANCH"; then
