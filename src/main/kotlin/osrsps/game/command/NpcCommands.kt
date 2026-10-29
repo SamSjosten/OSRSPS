@@ -19,7 +19,7 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         reply("Spawned ${type.name} (${type.id}) as #${npc.index} at ${npc.x}, ${npc.z}" + if (spawn.wander > 0) ", wander ${spawn.wander}" else "")
     }
 
-    register("npcs", "::npcs [radius]") {
+    register("npcs", "::npcs [radius]", admin = false) {
         val radius = when (args.size) {
             0 -> DEFAULT_LIST_RADIUS
             1 -> args[0].toIntOrNull()?.takeIf { it in 0..MAX_LIST_RADIUS } ?: fail("The radius must be 0 to $MAX_LIST_RADIUS")

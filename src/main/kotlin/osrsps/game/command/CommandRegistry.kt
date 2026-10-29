@@ -10,7 +10,7 @@ class Command(
     val name: String,
     /** Shown when the arguments don't fit, e.g. `::tele x z [level]`. */
     val usage: String,
-    /** Only [Admins] may run it: it changes the world for everyone, not just the player who typed it. */
+    /** Only [Admins] may run it. Every command is, except the ones that only read or only show the player something. */
     val admin: Boolean,
     val run: CommandContext.() -> Unit,
 )
@@ -33,14 +33,20 @@ internal class CommandFailure(message: String) : RuntimeException(message)
  * The `::` commands, by name. The client sends what follows `::` as a ClientCheat packet; names are matched
  * without regard to case and the rest of the line is split on whitespace.
  *
- * Every player can run the commands that only touch themselves; the ones marked admin need [isAdmin].
+ * Commands are for admins ([isAdmin]) unless registered with `admin = false`, which is for the ones that only read the
+ * world or only show the typing player something (`::pos`, `::combat`, `::sound`). Commands that give items, XP or
+ * levels, set vars, open interfaces or move the player are admin ones even though they touch only the player who types
+ * them: in a non-admin's hands they make items and skip the game's rules (`::item`, `::scenario` then `::reset`).
+ *
+ * A dead player can run only the non-admin ones: anything else could move the body or the items before the grave
+ * takes them.
  */
 class CommandRegistry(private val isAdmin: (Player) -> Boolean = { true }) {
     private val commands = sortedMapOf<String, Command>()
 
     val all: Collection<Command> get() = commands.values
 
-    fun register(name: String, usage: String, admin: Boolean = false, run: CommandContext.() -> Unit) {
+    fun register(name: String, usage: String, admin: Boolean = true, run: CommandContext.() -> Unit) {
         val key = name.lowercase()
         require(key.isNotEmpty() && key.none(Char::isWhitespace)) { "Bad command name '$name'" }
         require(key !in commands) { "::$key is already registered" }
@@ -61,7 +67,11 @@ class CommandRegistry(private val isAdmin: (Player) -> Boolean = { true }) {
         }
         if (command.admin && !admin) {
             logger.info { "${player.username} tried ::${words.joinToString(" ")}, which is for admins" }
-            reply("::$name changes the world for everyone, so only admins can use it here.")
+            reply("::$name is a testing tool, so only admins can use it here.")
+            return
+        }
+        if (command.admin && player.dead) {
+            reply("You can't use ::$name while you are dead.")
             return
         }
         logger.info { "${player.username} ran ::${words.joinToString(" ")}" }

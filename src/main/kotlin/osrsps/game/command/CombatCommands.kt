@@ -25,7 +25,7 @@ import kotlin.math.max
  * only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
-    register("combat", "::combat [index|name]") {
+    register("combat", "::combat [index|name]", admin = false) {
         val combat = world.combat
         val target = target(world, player, args, "::combat")
         val type = target.type
@@ -60,7 +60,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("It: attack roll ${m.npcAttackRoll} vs your ${m.playerDefenceRoll}, hits ${percent(m.npcHitChance)}, max hit ${m.npcMaxHit}")
     }
 
-    register("fight", "::fight") {
+    register("fight", "::fight", admin = false) {
         val npc = when (val fight = player.interaction) {
             is MeleeInteraction -> fight.npc
             is RangedInteraction -> fight.npc
@@ -71,7 +71,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("You are fighting ${npc.type.name} #${npc.index} (${npc.hitpoints}/${npc.type.stats.hitpoints} hp); next swing in $wait tick${if (wait == 1L) "" else "s"}.")
     }
 
-    register("hp", "::hp") {
+    register("hp", "::hp", admin = false) {
         val max = player.skills.baseLevel(Skill.HITPOINTS)
         val attacker = player.attackedBy
         val ago = world.tick - player.attackedTick
@@ -144,7 +144,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("Hit ${target.type.name} #${target.index} for $dealt: ${target.hitpoints}/${target.type.stats.hitpoints} hp" + if (target.dead) ", dead" else "")
     }
 
-    register("drops", "::drops [index|name]") {
+    register("drops", "::drops [index|name]", admin = false) {
         val target = target(world, player, args, "::drops")
         val type = target.type
         val def = world.npcDrops[type]?.takeIf { !it.isEmpty } ?: fail("${type.name} drops nothing")

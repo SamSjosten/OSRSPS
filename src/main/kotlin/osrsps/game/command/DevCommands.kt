@@ -5,7 +5,7 @@ import osrsps.game.World
 
 /** Testing commands: where am I, put me there, what tick is it, read the dialogue file again and show its keys. */
 fun CommandRegistry.registerDevCommands(world: World) {
-    register("pos", "::pos") {
+    register("pos", "::pos", admin = false) {
         val p = player
         // Same order and separators as RuneLite's world location, so the coordinates paste straight into ::tele.
         reply("${p.x}, ${p.z}, ${p.level} (region ${((p.x shr 6) shl 8) or (p.z shr 6)}, local ${p.x and 63}, ${p.z and 63})")
@@ -36,7 +36,7 @@ fun CommandRegistry.registerDevCommands(world: World) {
     }
 
     // For test scripts: with keys on, every dialogue and examine line shows its key whatever the dialogue file holds.
-    register("keys", "::keys [on|off]") {
+    register("keys", "::keys [on|off]", admin = false) {
         if (args.size > 1) fail("Usage: ::keys [on|off]")
         player.showDialogueKeys = when (args.singleOrNull()?.lowercase()) {
             null -> !player.showDialogueKeys
@@ -48,7 +48,7 @@ fun CommandRegistry.registerDevCommands(world: World) {
     }
 
     // For test scripts: shows whether a click in the client reached the server at all, and with which slot and op.
-    register("buttons", "::buttons [on|off]") {
+    register("buttons", "::buttons [on|off]", admin = false) {
         if (args.size > 1) fail("Usage: ::buttons [on|off]")
         player.echoButtons = when (args.singleOrNull()?.lowercase()) {
             null -> !player.echoButtons
@@ -59,7 +59,7 @@ fun CommandRegistry.registerDevCommands(world: World) {
         reply(if (player.echoButtons) "Interface clicks are echoed" else "Interface clicks are not echoed")
     }
 
-    register("tick", "::tick") {
+    register("tick", "::tick", admin = false) {
         reply("Tick ${world.tick}" + if (world.clock.paused) " (paused)" else "")
     }
 
