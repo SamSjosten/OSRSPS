@@ -1187,6 +1187,10 @@ class World(
             }
         }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
+            if (player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS) {
+                player.message(CANT_LOG_OUT_IN_COMBAT)
+                return@act
+            }
             interfaces.closeModals(player)
             player.logoutRequested = true
             return@act
@@ -1507,6 +1511,12 @@ class World(
         /** The logout tab and its "Click here to logout" button, logout:logout. */
         const val LOGOUT_TAB = 182
         const val LOGOUT_BUTTON = 8
+
+        /** The logout button does nothing until this many ticks after the player was last hit (OSRS Wiki, Logout button). */
+        const val LOGOUT_COMBAT_TICKS = 16L
+
+        /** The logout button in combat. From memory, not checked against live. */
+        const val CANT_LOG_OUT_IN_COMBAT = "You can't log out until 10 seconds after the end of combat."
 
         /**
          * How long a player whose connection dropped stays in the world for the client to reconnect: 60 s, the
