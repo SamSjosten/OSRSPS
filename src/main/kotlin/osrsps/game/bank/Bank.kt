@@ -245,25 +245,27 @@ class Bank(private val objTypes: ObjTypes) {
      * The bank's items by tab: index 0 the main tab, 1 to 9 the numbered ones, each in slot order. The tab sizes say
      * which slots are whose; an empty slot (a gap in a save edited by hand) is left out, so [store] closes it.
      */
-    private fun layout(bank: Inventory, tabs: BankTabs): MutableList<MutableList<InvObj>> {
-        val layout = MutableList(TABS + 1) { mutableListOf<InvObj>() }
-        for (slot in 0 until bank.capacity) bank[slot]?.let { layout[tabOf(tabs, slot)] += it }
-        return layout
+    private fun layout(bank: Inventory, tabs: BankTabs): Layout {
+        val lists = MutableList(TABS + 1) { mutableListOf<InvObj>() }
+        for (slot in 0 until bank.capacity) bank[slot]?.let { lists[tabOf(tabs, slot)] += it }
+        return Layout(lists, lists.getOrNull(tabs.current)?.takeIf { tabs.current in 1..TABS && it.isNotEmpty() })
     }
+
+    /**
+     * The bank's items by tab, and the list of the numbered tab being viewed. Changes edit the lists or move them
+     * about, so [store] finds where the viewed tab went by the list itself: two tabs can hold equal items (fillers).
+     */
+    private class Layout(lists: MutableList<MutableList<InvObj>>, val viewed: List<InvObj>?) : MutableList<MutableList<InvObj>> by lists
 
     /**
      * Writes [layout] back: the numbered tabs that still have items, moved down over any that emptied, then the main
      * tab. The tab being viewed follows its tab, or goes to the main tab when its tab emptied.
      */
-    private fun store(bank: Inventory, tabs: BankTabs, layout: List<List<InvObj>>) {
-        val before = layout(bank, tabs)
-        val viewing = tabs.current
-        // The tab being viewed, by what was in it before and is still in it: its place may have changed.
+    private fun store(bank: Inventory, tabs: BankTabs, layout: Layout) {
         val numbered = (1..TABS).filter { layout[it].isNotEmpty() }
-        val viewedNow = if (viewing in 1..TABS && before[viewing].isNotEmpty()) {
-            numbered.indexOfFirst { tab -> layout[tab].any { it in before[viewing] } }.let { if (it < 0) MAIN_TAB else it + 1 }
-        } else {
-            null
+        // Where the viewed tab's list is now, if it still has items: its place may have changed.
+        val viewedNow = layout.viewed?.let { viewed ->
+            numbered.indexOfFirst { layout[it] === viewed }.let { if (it < 0) MAIN_TAB else it + 1 }
         }
         val items = numbered.flatMap { layout[it] } + layout[MAIN_TAB]
         // Every slot, so nothing is left behind past a gap. Slots that don't change aren't sent again.

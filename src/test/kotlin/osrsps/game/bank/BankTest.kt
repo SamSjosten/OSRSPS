@@ -219,6 +219,17 @@ class BankTest {
     }
 
     @Test
+    fun `the view follows its own tab when other tabs hold the same items`() {
+        // A filler in each of tabs 1 to 3, viewing tab 3: collapsing tab 1 leaves it as tab 2.
+        for (slot in 0 until 3) vault[slot] = InvObj(Bank.FILLER, 1)
+        for (tab in 1..3) tabs[tab] = 1
+        tabs.current = 3
+        assertTrue(bank.collapse(vault, tabs, 1))
+        assertEquals(listOf(1, 1), sizes())
+        assertEquals(2, tabs.current)
+    }
+
+    @Test
     fun `placeholders go by the tab or all at once, and fillers fill the free space and clear`() {
         vault[0] = InvObj(PLACEHOLDER, 1)
         vault[1] = InvObj(SWORD, 1)

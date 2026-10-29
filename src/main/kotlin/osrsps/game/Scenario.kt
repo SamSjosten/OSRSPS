@@ -90,10 +90,12 @@ class Scenario(
             throw IllegalArgumentException("${weapon.name} is two-handed, so no shield can be worn with it")
         }
         // Tabs 1 to 9 first, then the main tab, as the bank keeps them.
-        val banked = this.bank.sortedBy { if (it.tab == 0) Int.MAX_VALUE else it.tab }.map { it.tab to find(types, it.item) }
+        // A note is banked as its item, as a deposit does.
+        fun bankedType(item: String) = find(types, item).let { if (it.isCert) types[it.certlink] ?: it else it }
+        val banked = this.bank.sortedBy { if (it.tab == 0) Int.MAX_VALUE else it.tab }.map { it.tab to bankedType(it.item) }
         require(banked.distinctBy { it.second.id }.size == banked.size) { "The bank lists an item twice: the bank stacks everything" }
         require(banked.size <= Inventory.BANK_CAPACITY) { "The bank holds at most ${Inventory.BANK_CAPACITY} items" }
-        val counts = this.bank.associate { find(types, it.item).id to it.count }
+        val counts = this.bank.associate { bankedType(it.item).id to it.count }
         val bank = banked.withIndex().associate { (slot, entry) -> slot to InvObj(entry.second.id, counts.getValue(entry.second.id)) }
         val tabs = (1..9).map { tab -> banked.count { it.first == tab } }
         require(tabs.dropWhile { it > 0 }.all { it == 0 }) { "Bank tabs must be 1 up with none left out" }
