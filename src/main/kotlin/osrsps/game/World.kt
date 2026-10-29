@@ -68,6 +68,7 @@ import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
 import osrsps.game.combat.Spells
+import osrsps.game.combat.StatRestore
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
@@ -359,6 +360,9 @@ class World(
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
 
     val firemaking = Firemaking(this, collision)
+
+    /** Boosted and drained stats going back; see [StatRestore]. */
+    private val statRestore = StatRestore(prayers::has)
 
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
@@ -729,6 +733,7 @@ class World(
         for (player in players) {
             if (player == null) continue
             player.playedTicks++
+            statRestore.process(player)
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
