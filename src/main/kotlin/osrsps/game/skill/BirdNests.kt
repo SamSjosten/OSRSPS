@@ -84,7 +84,8 @@ class BirdNests(private val world: World, private val collision: CollisionMap) {
         val item = pick(world.random, CONTENTS.getValue(nest))
         val type = world.objTypes[item] ?: error("No obj type $item in a bird nest")
         player.inventory[slot] = InvObj(EMPTY_NEST, 1)
-        player.inventory.add(type, 1)
+        // give, not add: a seed stack already at the cap can't take one more, so it goes on the floor instead of nowhere.
+        world.groundObjs.give(player, type, 1)
         player.message(text[BirdNestLines.SEARCH, "item" to type.name.lowercase()])
     }
 
