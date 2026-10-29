@@ -44,6 +44,8 @@ class GroundObjs(
     private val isOnline: (String) -> Boolean,
     /** Players in the world, for respawn times. */
     private val population: () -> Int,
+    /** Called after a player takes an obj another player (this save key) put down, to save them both. */
+    private val handedOver: (Player, String) -> Unit = { _, _ -> },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     /** Objs whose timers are running, in the order they were put down. */
@@ -346,6 +348,8 @@ class GroundObjs(
         player.inventory.add(type, obj.count)
         // Guessed: only a take that worked makes the sound; RSMod plays it before checking.
         player.sound(SOUND_PICK)
+        val owner = obj.owner
+        if (owner != null && owner != player.saveKey) handedOver(player, owner)
         return true
     }
 

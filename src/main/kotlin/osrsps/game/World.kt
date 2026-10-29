@@ -181,7 +181,15 @@ class World(
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
     /** Items on the ground: drops, takes, their timers and item spawns. */
-    val groundObjs = GroundObjs(zones, objTypes, scripts, collision, { findPlayer(it) != null }, { players.count { it != null } })
+    val groundObjs = GroundObjs(
+        zones, objTypes, scripts, collision, { findPlayer(it) != null }, { players.count { it != null } },
+        // Both sides of a hand-over are saved at once, so a crash can't give the item back to one and leave it with
+        // the other. Live's saves are its own business; this is ours.
+        handedOver = { taker, owner ->
+            save(taker)
+            findPlayer(owner)?.let(::save)
+        },
+    )
 
     private val equipment = Equipment(objTypes)
 
@@ -401,6 +409,11 @@ class World(
             refuseEmailAddress(responseHandler, "login")
             return
         }
+        if (!Accounts.validName(block.username)) {
+            password?.fill('\u0000')
+            refuseBadName(responseHandler, "login")
+            return
+        }
         if (ipBans.isBanned(address)) {
             logger.info { "Rejecting ${block.username} from $address: that address is banned" }
             responseHandler.writeFailedResponse(LoginResponse.IPBlocked)
@@ -449,6 +462,12 @@ class World(
      */
     private fun isEmailAddress(username: String): Boolean = '@' in username
 
+    /** Not logged, as the name could hold anything, line breaks included. */
+    private fun refuseBadName(responseHandler: GameLoginResponseHandler<Player>, what: String) {
+        logger.info { "Rejecting a $what from ${responseHandler.address}: its name breaks the name rules (not logged)" }
+        responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
+    }
+
     private fun refuseEmailAddress(responseHandler: GameLoginResponseHandler<Player>, what: String) {
         logger.info { "Rejecting a $what from ${responseHandler.address}: its name is an email address (not logged)" }
         responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
@@ -465,7 +484,7 @@ class World(
             return
         }
         val check = try {
-            accounts.check(block.username, password)
+            accounts.check(block.username, password, mayClaim = key == null || !admins.lists(key))
         } catch (e: Exception) {
             logger.error(e) { "Rejecting ${block.username}: their account can't be read or written" }
             responseHandler.writeFailedResponse(LoginResponse.ConnectFail)
@@ -485,6 +504,11 @@ class World(
                 loginGuard.rightPassword(key!!)
                 logger.info { "${block.username} claimed their name" }
             }
+            Accounts.Check.NOT_CLAIMABLE -> {
+                logger.info { "Rejecting ${block.username}: an admin's name nobody has claimed yet; claim it before listing it in OSRSPS_ADMINS" }
+                responseHandler.writeFailedResponse(LoginResponse.InvalidUsernameOrPassword)
+                return
+            }
             Accounts.Check.MATCHED -> loginGuard.rightPassword(key!!)
             Accounts.Check.NO_SUCH_NAME -> {}
         }
@@ -495,6 +519,10 @@ class World(
         val address = responseHandler.address
         if (isEmailAddress(block.username)) {
             refuseEmailAddress(responseHandler, "reconnect")
+            return
+        }
+        if (!Accounts.validName(block.username)) {
+            refuseBadName(responseHandler, "reconnect")
             return
         }
         if (ipBans.isBanned(address)) {
@@ -534,9 +562,14 @@ class World(
         authExecutor.shutdownNow()
         executor.shutdown()
         if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-            // Saving now would race the game thread for the players and the save files; the last autosave stands.
-            logger.error { "The game thread didn't stop in 5 s; not saving on shutdown" }
-            return
+            // A cycle stuck waiting (a save on a slow disk) may still give way to an interrupt.
+            logger.warn { "The game thread didn't stop in 5 s; interrupting it" }
+            executor.shutdownNow()
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                // Saving now would race the game thread for the players and the save files; the last autosave stands.
+                logger.error { "The game thread didn't stop in 10 s; not saving on shutdown. ${players.count { it != null }} players and ${unwritten.size} unwritten saves go back to their last save" }
+                return
+            }
         }
         // Once the executor has stopped this thread is the only one touching the players. Nobody is saved dead: a
         // death the stop cut short finishes now, grave and all (the grave is lost with the restart).
@@ -841,7 +874,8 @@ class World(
      */
     internal fun loadPlayer(index: Int, username: String): Player {
         val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
-        val text = saves.read(player.saveKey) ?: return player
+        // A save that couldn't be written is newer than the file, which would hand back what the player had before.
+        val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player
         PlayerSave.fromJson(text).applyTo(player)
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
@@ -849,21 +883,48 @@ class World(
         return player
     }
 
-    /** Writes [player]'s save. Returns false, after logging why, if it couldn't be written. */
-    internal fun save(player: Player): Boolean = try {
-        saves.write(player.saveKey, PlayerSave.of(player).toJson(player.username))
+    /**
+     * Saves that couldn't be written, by save key: kept to write again at each autosave, and loaded in place of the
+     * file meanwhile. Without them a player whose last save failed would come back with what the file had, items they
+     * had since dropped for someone else included.
+     */
+    private val unwritten = HashMap<String, String>()
+
+    /** Writes [player]'s save. Returns false, after logging why, if it couldn't be written; see [unwritten]. */
+    internal fun save(player: Player): Boolean {
+        val text = try {
+            PlayerSave.of(player).toJson(player.username)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't save ${player.username}" }
+            return false
+        }
+        return write(player.saveKey, text)
+    }
+
+    private fun write(key: String, text: String): Boolean = try {
+        saves.write(key, text)
+        unwritten.remove(key)
         true
     } catch (e: Exception) {
-        logger.error(e) { "Couldn't save ${player.username}" }
+        unwritten[key] = text
+        logger.error(e) { "Couldn't write the save for $key; keeping it in memory to write again" }
         false
     }
+
+    /** Saves that are still only in memory, for tests. */
+    internal val unwrittenSaves: Set<String> get() = unwritten.keys
 
     private fun saveAll() {
         var count = 0
         for (player in players) {
             if (player != null && save(player)) count++
         }
+        // Those who left while the saves couldn't be written.
+        for ((key, text) in unwritten.toList()) {
+            if (findPlayer(key) == null && write(key, text)) count++
+        }
         if (count > 0) logger.info { "Saved $count player${if (count == 1) "" else "s"}" }
+        if (unwritten.isNotEmpty()) logger.error { "${unwritten.size} save${if (unwritten.size == 1) " is" else "s are"} still only in memory: ${unwritten.keys.sorted()}" }
     }
 
     /**

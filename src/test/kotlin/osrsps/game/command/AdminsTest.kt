@@ -17,6 +17,8 @@ class AdminsTest {
         assertTrue(admins.isAdmin(player("iron_man")))
         assertFalse(admins.isAdmin(player("test")))
         assertEquals("iron_man, sam, test2", admins.toString())
+        assertTrue(admins.lists("iron_man"))
+        assertFalse(admins.lists("test"))
     }
 
     @Test
@@ -25,6 +27,8 @@ class AdminsTest {
             val admins = Admins.parse(list)
             assertTrue(admins.everyone)
             assertTrue(admins.isAdmin(player("anyone")))
+            // Nobody is listed, so every name can still be claimed.
+            assertFalse(admins.lists("anyone"))
         }
     }
 

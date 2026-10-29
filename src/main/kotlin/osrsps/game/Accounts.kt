@@ -36,17 +36,26 @@ class Accounts(
         /** The name is claimed with another password. */
         WRONG_PASSWORD,
 
-        /** Not a name a save can be kept under; the login refuses it on its own. */
+        /** Not a name a save can be kept under, or one [validName] refuses; the login refuses it on its own. */
         NO_SUCH_NAME,
+
+        /** The name had no account and may not be claimed by a login: an admin's, see [check]. */
+        NOT_CLAIMABLE,
     }
 
     private val salts = SecureRandom()
 
-    /** Checks [password] for [username], claiming the name if nobody has. Throws if the account file can't be read or written. */
-    fun check(username: String, password: CharArray): Check {
+    /**
+     * Checks [password] for [username], claiming the name if nobody has and [mayClaim]. A name on the admin list
+     * isn't claimable, so a stranger can't become an admin by logging in first as a listed name nobody has used yet.
+     * Throws if the account file can't be read or written.
+     */
+    fun check(username: String, password: CharArray, mayClaim: Boolean = true): Check {
+        if (!validName(username)) return Check.NO_SUCH_NAME
         val key = SaveStore.saveKey(username) ?: return Check.NO_SUCH_NAME
         val text = store.read(key)
         if (text == null) {
+            if (!mayClaim) return Check.NOT_CLAIMABLE
             val salt = ByteArray(SALT_BYTES).also(salts::nextBytes)
             store.write(key, toJson(username, iterations, salt, hash(password, salt, iterations)))
             return Check.CLAIMED
@@ -83,6 +92,16 @@ class Accounts(
     }
 
     companion object {
+        /**
+         * Live's display names (wiki, Display name): at most 12 characters, punctuation other than dashes dropped. That
+         * spaces and underscores are the only other characters kept is inferred from names seen on live. Leading and
+         * trailing spaces are let through, as save keys drop them; a name of spaces alone isn't one. Keeps look-alike
+         * letters, control characters and line breaks out of names, saves and the log.
+         */
+        private val NAME = Regex("[A-Za-z0-9 _-]{1,12}")
+
+        fun validName(username: String): Boolean = NAME.matches(username) && username.isNotBlank()
+
         const val VERSION = 1
         const val ALGORITHM = "PBKDF2WithHmacSHA256"
 
