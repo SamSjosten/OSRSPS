@@ -351,7 +351,7 @@ as `Op.sub`. The inventory is saved with the player.
 | The examine's Grand Exchange price is the item's value | guessed: the server has no market prices |
 | Notes: the item's name and value, stackable, "Swap this note at any bank for the equivalent item." | client genCert; the text from memory of live |
 | Dragging swaps two slots; a click on a slot that holds something else is dropped | RSMod / inferred |
-| An option or "Use" nothing handles says "Nothing interesting happens." | from memory of live |
+| An option or "Use" nothing handles says live's "nothing interesting" message (`game.nothing_interesting`) | from memory of live |
 | Bury on bones: a message (`bones.dig`), seq 827, the player stops; a tick later the bones go, the Prayer XP comes and a second message (`bones.buried`) (bones, burnt bones 4.5 XP, big bones 15, dragon bones 72) | XP from the Wiki; the steps from the 2004Scape project's script; no sound yet (its 241 synth id isn't known) |
 | Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
 
@@ -613,7 +613,7 @@ plugins read.
 | Take is op3; the player walks onto the item and takes it the tick they arrive | the cache's default ground ops; tick from the RS2 world cycle, inferred |
 | An item on a tile you can't stand on (a table) is taken from the tile beside it, north/south/east/west with no wall between, a tick later, with animation 832 | RSMod and inferred |
 | Drop plays sound 2739, a take sound 2582 | RSMod's symbol names (put_down, pick2), not checked against the 241 cache |
-| "I can't reach that!", "Too late - it's gone!", "You don't have enough inventory space to hold that item." | RSMod (rev 233), not checked against live |
+| The can't-reach, too-late and no-space messages (`game.cant_reach`, `game.too_late`, `game.no_space`) | RSMod (rev 233), not checked against live |
 | An item that vanished while you walked to it just ends the walk | guessed |
 | Ground Examine shows the inventory examine (script 6003) | guessed |
 | The obj times are in ticks and 0 means none | inferred from RSProt and RuneLite's TileItem |
@@ -693,7 +693,7 @@ moves. When the option runs, the NPC turns to you and stands still while you are
 `delay`, or a dialogue is open), then goes back to wandering. A multi-NPC uses the type your vars show.
 
 Walking, clicking something else or a teleport drops the interaction; the NPC going away ends it quietly. With no
-handler you get "Nothing interesting happens.", and an NPC you can't get to says "I can't reach that!" once you stop.
+handler you get the "nothing interesting" message, and an NPC you can't get to says the can't-reach one once you stop.
 
 `World.npcs.follow(npc, player)` has an NPC follow a player and stop beside them, naively, as NPCs walk; it faces them
 while it follows (`::follow` tries it). Pets trail a tile behind instead, which isn't modelled yet.
@@ -775,7 +775,8 @@ shows its key, such as `[hans.greeting]`.
 The Wiki's transcripts are Jagex's text, so the repo has each conversation's tree and a key for every line, and the words
 are in `data/dialogue.txt` on the machine that runs the server, outside git. A line with no words there shows its key
 in brackets, with any amounts after it (`[hans.time_played days=2 hours=3 minutes=7 days_ago=10]`), so every
-conversation runs, and is tested, without them.
+conversation runs, and is tested, without them. Game messages work the same way (the engine's under `game.`, combat's
+under `combat.` and `prayer.`, eating's under `food.`), so they show as keys too until their words are typed in.
 
 ```
 # Talk-to: Hans's first line
@@ -867,7 +868,7 @@ devices and special attacks.
 | The hit lands 1 + (3 + d) / 6 ticks later, plus one on an NPC | Wiki, Hit delay |
 | XP is given as the shot is fired, for the damage rolled, even if less lands (another player's hit first) | inferred: RuneLite's XP drop "predicted hit" relies on the drop coming before the hitsplat; not recorded |
 | One ammunition a shot, two for the dark bow (one when one is left); 1 in 5 breaks, the rest falls to the floor | Wiki, Ava's accumulator (20% broken without a device) and Dark bow |
-| "There is no ammo left in your quiver." | Wiki, Ammunition |
+| The empty-quiver message (`combat.no_ammo`) | Wiki, Ammunition |
 | Fired ammunition lands under the NPC, yours for 100 ticks and gone after 300, as a drop | guessed |
 | "You can't use that ammo with your bow." / "... crossbow." | guessed wording |
 | Projectile heights, start, arc and the second dark bow arrow leaving 10 cycles later; the crossbow animation (xbows_human_fire_and_reload_pvn) | guessed |
@@ -907,8 +908,8 @@ take an optional number of ticks after which the tile goes back how it was.
 
 Clicking a loc option walks you to the nearest tile that reaches the loc, then runs its handler, registered with
 `World.handlers.onLoc(id, option) { op -> ... }`; `op.loc` is the loc clicked. A loc next to you is used on the tick
-the click is read, one further away on the tick you arrive. With no handler you get "Nothing interesting happens.",
-and if the route can't get there, "I can't reach that!" when you stop. An inventory item used on a loc (OPLOCT) walks
+the click is read, one further away on the tick you arrive. With no handler you get the "nothing interesting" message,
+and if the route can't get there, the can't-reach one when you stop. An inventory item used on a loc (OPLOCT) walks
 the same way and runs `World.handlers.onObjOnLoc(locId, objId) { op -> ... }`, with the item in `op.obj` and its slot
 in `op.sub`; leave out `objId` to catch every item. Unhandled, it too does nothing interesting. Changing level from a ladder or staircase is a
 handler that calls `World.teleport` with the new level, after playing the climb with `Player.anim` and a `delay`.
@@ -925,7 +926,7 @@ content, which can pair a door with `World.doors.register(closed, open)`.
 | Which tiles reach a wall, wall decoration or ground loc, and turning the blocked sides with the loc | the client's reach checks as open-source route finders document them, not checked on live |
 | An unreachable loc walks you to the nearest tile to its footprint (within 10 tiles) | the client's route finder fallback, as above |
 | Used before moving and again after, in the movement phase | the 2004Scape reconstruction of the RS2 world cycle, not checked on OSRS |
-| "Nothing interesting happens." and "I can't reach that!" | live messages, from memory |
+| The "nothing interesting" and can't-reach messages | live messages, from memory |
 | The player turns to face the loc when using it | guessed |
 | A loc that changes before you get there ends the interaction; you finish the walk | guessed |
 | Door pairs by gameval name | the 241 cache's own names |
@@ -975,7 +976,7 @@ Anything typed without `::` is public chat: it shows over your head and in the c
 | A colour, effect or pattern the client can't send falls back to plain yellow | guessed |
 | Friends, clan and guest channel messages get "There are no chat-channels on this server yet." | ours, no channels yet |
 | Public, private and trade filter changes are echoed back so the tab labels update; nothing is filtered on the server | inferred |
-| "Welcome to Old School RuneScape." after login | from memory of live, not a recording |
+| The welcome message after login (`game.welcome`) | from memory of live, not a recording |
 | Varbit 8119 (`has_displayname_transmitter`) set to 1 at login, or the client says "You must set a name before you can chat" and blocks typing | var name from RuneLite's VarbitID; that the chatbox checks it is inferred |
 
 ## Saving and reconnect

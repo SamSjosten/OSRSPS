@@ -82,7 +82,7 @@ class HeadlessBonesTest {
                 client.locTarget(WELL, 3225, 3218, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, BUCKET)
                 client.seen("You fill the bucket.")
                 client.locTarget(PUMP, 3219, 3218, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, BUCKET)
-                client.seen("Nothing interesting happens.")
+                client.seen("[game.nothing_interesting]")
             }
         }
     }
