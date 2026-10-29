@@ -131,4 +131,15 @@ class CombatMathTest {
         // 2 Magic XP a point of damage, on top of the spell's own.
         assertEquals(160, CombatMath.spellDamageXpTenths(8))
     }
+
+    @Test
+    fun `elemental weakness adds its percentage of the base max hit, rounded down on its own, and as much accuracy`() {
+        // OSRS Wiki, Elemental weakness: floor(floor(base x (1 + magic damage)) x ...) + floor(base x weakness).
+        assertEquals(1, CombatMath.weaknessMaxHit(10, 10))
+        assertEquals(0, CombatMath.weaknessMaxHit(4, 10))
+        assertEquals(4, CombatMath.weaknessMaxHit(8, 50))
+        assertEquals(25 + 7, CombatMath.spellMaxHit(24, 50) + CombatMath.weaknessMaxHit(24, 30))
+        assertEquals(1344 * 110 / 100, CombatMath.weaknessAttackRoll(1344, 10))
+        assertEquals(2 * 1344, CombatMath.weaknessAttackRoll(1344, 100))
+    }
 }

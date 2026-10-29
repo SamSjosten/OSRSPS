@@ -39,6 +39,9 @@ class NpcCombatTest {
         assertEquals(25, man.respawnTicks)
         assertEquals(AttackType.STAB, combat[types.find("imp")!!]!!.attackType)
         assertEquals(2, combat[types.find("rat")!!]!!.respawnTicks)
+        // The imp alone has an elemental weakness among them (OSRS Wiki: the others say "No elemental weakness").
+        assertEquals(ElementalWeakness(Element.WATER, 10), combat[types.find("imp")!!]!!.weakness)
+        assertEquals(listOf("imp"), names.filter { combat[types.find(it)!!]!!.weakness != null })
     }
 
     @Test
@@ -75,6 +78,12 @@ class NpcCombatTest {
         }
         assertFailsWith<IllegalArgumentException> {
             NpcCombat.parse("""{ "npcs": [${entry.format("\"man\"", "crush")}] }""", types, SeqNames(mapOf("other" to 1)))
+        }
+        fun weak(weakness: String) = entry.format("\"man\"", "crush").replace("\"respawnTicks\"", "\"weakness\": $weakness, \"respawnTicks\"")
+        val fire = NpcCombat.parse("""{ "npcs": [${weak("""{ "element": "fire", "percent": 30 }""")}] }""", types, seqs)
+        assertEquals(ElementalWeakness(Element.FIRE, 30), fire[types.find("man")!!]!!.weakness)
+        for (bad in listOf("""{ "element": "lava", "percent": 30 }""", """{ "element": "fire", "percent": 0 }""", """{ "element": "fire" }""")) {
+            assertFailsWith<IllegalArgumentException>(bad) { NpcCombat.parse("""{ "npcs": [${weak(bad)}] }""", types, seqs) }
         }
     }
 }

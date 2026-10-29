@@ -3,7 +3,6 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.NpcType
@@ -63,7 +62,8 @@ class HeadlessDeathTest {
                 client.ifButton(Deaths.GRAVESTONE, Deaths.FREEBUTTON, op = 1)
                 client.await("the grave emptied and gone") { if (client.npcs().none { it.id == Deaths.GRAVE }) Unit else null }
                 assertEquals(listOf(InvObj(lobster.id, 1), InvObj(sword.id, 1), InvObj(coins.id, 10), InvObj(bones.id, 1), InvObj(bones.id, 1)), client.inventory(93).take(5))
-                assertFalse(Deaths.GRAVESTONE in client.openInterfaces())
+                // The close can come in a later packet than the grave's removal.
+                client.await("the gravestone closed") { if (Deaths.GRAVESTONE in client.openInterfaces()) null else Unit }
                 assertTrue(client.messages().none { it.text == Deaths.NO_SPACE })
             }
         }

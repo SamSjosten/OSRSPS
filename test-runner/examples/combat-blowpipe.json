@@ -11,7 +11,7 @@
   {"step": "assertMessage", "contains": "Darts: Dragon dart x 100.", "timeoutMs": 10000},
   {"step": "itemOption", "item": "Toxic blowpipe", "option": "Wield"},
   {"step": "assertEquipment", "slot": "weapon", "itemId": 12926},
-  {"step": "command", "text": "::combat man", "expectMessage": "Accurate (accurate, ranged standard), speed 3", "comment": "the blowpipe's speed is 3 in PvM"},
+  {"step": "command", "text": "::combat man", "expectMessage": "Accurate (accurate, ranged light), speed 3", "comment": "the blowpipe's speed is 3 in PvM; darts are light ammunition, as the cache's thrown-weapon tooltips say"},
   {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
   {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000},
   {"step": "assertAnimation", "id": 5061, "timeoutMs": 20000, "comment": "snakeboss_blowpipe_attack"},
