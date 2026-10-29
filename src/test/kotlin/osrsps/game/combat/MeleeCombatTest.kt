@@ -568,13 +568,14 @@ class MeleeCombatTest {
         bob.hitpoints = 10
         npc.hitpoints = 3
         // Each player has their own countdown; NPCs go by the world clock.
-        alice.hitpointsRegenTicks = 2
+        alice.hitpointsRegenTicks = 1
         tick = MeleeCombat.REGEN_TICKS - 2L
         tick()
         assertEquals(5, alice.hitpoints)
         tick()
         assertEquals(6, alice.hitpoints)
-        assertEquals(MeleeCombat.REGEN_TICKS, alice.hitpointsRegenTicks)
+        // This tick was its first.
+        assertEquals(MeleeCombat.REGEN_TICKS - 1, alice.hitpointsRegenTicks)
         assertEquals(10, bob.hitpoints)
         assertEquals(4, npc.hitpoints)
         assertEquals(other.type.stats.hitpoints, other.hitpoints)
@@ -589,12 +590,27 @@ class MeleeCombatTest {
     fun `with Rapid Heal the countdown starts again at 50 ticks`() {
         alice.hitpoints = 5
         prayerEffects += Prayers.RAPID_HEAL
-        alice.hitpointsRegenTicks = 1
+        alice.hitpointsRegenTicks = 0
         tick()
         assertEquals(6, alice.hitpoints)
-        assertEquals(Prayers.RAPID_HEAL_TICKS, alice.hitpointsRegenTicks)
-        repeat(Prayers.RAPID_HEAL_TICKS) { tick() }
+        assertEquals(Prayers.RAPID_HEAL_TICKS - 1, alice.hitpointsRegenTicks)
+        repeat(Prayers.RAPID_HEAL_TICKS - 1) { tick() }
+        assertEquals(6, alice.hitpoints)
+        tick()
         assertEquals(7, alice.hitpoints)
+    }
+
+    @Test
+    fun `a countdown set earlier in the tick, at login or by Rapid Heal, takes its whole length`() {
+        alice.hitpoints = 5
+        // Set during this tick's input, before the regeneration.
+        alice.hitpointsRegenTicks = MeleeCombat.REGEN_TICKS
+        tick()
+        repeat(MeleeCombat.REGEN_TICKS - 1) { tick() }
+        assertEquals(5, alice.hitpoints)
+        // A hundred ticks on.
+        tick()
+        assertEquals(6, alice.hitpoints)
     }
 
     @Test

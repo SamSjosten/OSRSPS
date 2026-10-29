@@ -216,7 +216,7 @@ class Player(
     /** The prayer drain counter; see [osrsps.game.combat.Prayers.drain]. */
     var prayerDrainCounter: Int = 0
 
-    /** Ticks until the next hitpoint comes back; see [osrsps.game.combat.MeleeCombat]. Not saved. */
+    /** Ticks until the next hitpoint comes back, counted down at each tick's regeneration; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var hitpointsRegenTicks: Int = osrsps.game.combat.MeleeCombat.REGEN_TICKS
 
     /** How many items a death keeps, decided as the player falls; see [osrsps.game.combat.Deaths]. */

@@ -469,12 +469,17 @@ class MeleeCombat(
     /**
      * Each player's hitpoints countdown ([Player.hitpointsRegenTicks]): at 0 a hurt player gets a hitpoint back and it
      * starts again, at [REGEN_TICKS] (OSRS Wiki, Hitpoints: one a minute) or [Prayers.RAPID_HEAL_TICKS] with Rapid Heal.
+     * A countdown set earlier in the tick (login, Rapid Heal toggled) counts this tick, so the hitpoint comes that many
+     * ticks later; one started again here has had this tick, so it starts one lower.
      * Guessed: the countdown runs from login, and while hitpoints are full.
      */
     private fun regeneratePlayers() {
         for (player in players()) {
-            if (--player.hitpointsRegenTicks > 0) continue
-            player.hitpointsRegenTicks = if (hasPrayer(player, Prayers.RAPID_HEAL)) Prayers.RAPID_HEAL_TICKS else REGEN_TICKS
+            if (player.hitpointsRegenTicks > 0) {
+                player.hitpointsRegenTicks--
+                continue
+            }
+            player.hitpointsRegenTicks = (if (hasPrayer(player, Prayers.RAPID_HEAL)) Prayers.RAPID_HEAL_TICKS else REGEN_TICKS) - 1
             val max = player.skills.baseLevel(Skill.HITPOINTS)
             if (player.hitpoints in 1 until max && !player.dead) player.hitpoints++
         }
