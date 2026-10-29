@@ -158,17 +158,18 @@ interface AccountLock {
 
 /**
  * An OS file lock on `.lock` in the account folder, which the server and `osrsps set-password` both take, so a claim
- * and a password change can't interleave or share `<key>.json.tmp`. Also locked within the process, as a JVM may hold
- * a file lock only once.
+ * and a password change can't interleave or share `<key>.json.tmp`. Also locked within the process, by one lock for
+ * every instance, as a JVM may hold a file lock only once and throws on a second.
  */
 class FileAccountLock(private val dir: Path) : AccountLock {
-    private val local = ReentrantLock()
-
     override fun <T> withLock(block: () -> T): T = local.withLock {
         Files.createDirectories(dir)
         FileChannel.open(dir.resolve(".lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE).use { channel ->
             channel.lock().use { block() }
         }
     }
-}
 
+    private companion object {
+        val local = ReentrantLock()
+    }
+}

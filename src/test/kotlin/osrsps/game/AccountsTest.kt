@@ -1,6 +1,9 @@
 package osrsps.game
 
 import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -99,15 +102,46 @@ class AccountsTest {
     }
 
     @Test
-    fun `a password set by another process wins over a login that claims after it`() {
+    fun `a password set between a login's first read and its claim wins`() {
         val dir = Files.createTempDirectory("accounts")
         try {
-            val server = Accounts(FileSaveStore(dir), iterations = 1_000, lock = FileAccountLock(dir))
-            val tool = Accounts(FileSaveStore(dir), iterations = 1_000, lock = FileAccountLock(dir))
-            assertTrue(tool.setPassword("bob", "the owner's password".toCharArray()))
+            val files = FileSaveStore(dir)
+            val tool = Accounts(files, iterations = 1_000, lock = FileAccountLock(dir))
+            // The login's first read finds no file; set-password writes one right then, before the claim.
+            var first = true
+            val racing = object : SaveStore {
+                override fun read(key: String): String? = files.read(key).also {
+                    if (first) {
+                        first = false
+                        assertTrue(tool.setPassword("bob", "the owner's password".toCharArray()))
+                    }
+                }
+
+                override fun write(key: String, text: String) = files.write(key, text)
+            }
+            val server = Accounts(racing, iterations = 1_000, lock = FileAccountLock(dir))
             assertEquals(Accounts.Check.WRONG_PASSWORD, server.check("bob", "a stranger's".toCharArray()))
             assertEquals(Accounts.Check.MATCHED, server.check("bob", "the owner's password".toCharArray()))
-            assertTrue(Files.exists(dir.resolve(".lock")))
+        } finally {
+            dir.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `the account lock lets one writer in at a time`() {
+        val dir = Files.createTempDirectory("accounts")
+        try {
+            val holding = CountDownLatch(1)
+            val release = CountDownLatch(1)
+            val entered = CountDownLatch(1)
+            val first = thread { FileAccountLock(dir).withLock { holding.countDown(); release.await() } }
+            assertTrue(holding.await(5, TimeUnit.SECONDS))
+            val second = thread { FileAccountLock(dir).withLock { entered.countDown() } }
+            assertFalse(entered.await(300, TimeUnit.MILLISECONDS), "the second writer got in while the first held the lock")
+            release.countDown()
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+            first.join()
+            second.join()
         } finally {
             dir.toFile().deleteRecursively()
         }
