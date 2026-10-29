@@ -8,11 +8,13 @@ import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.EquipmentBonuses
 import osrsps.game.FrameSlot
 import osrsps.game.Inventory
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.PlayerVars
+import osrsps.game.WearPos
 import osrsps.game.sendInventory
 import osrsps.game.script.ScriptContext
 import osrsps.game.script.ScriptRunner
@@ -37,8 +39,13 @@ private val logger = KotlinLogging.logger {}
  * sends doesn't undo them. Search is the client's alone (meslayer mode 11, filtering what it draws); the server only
  * closes it with the bank, as RSMod does.
  *
- * Not built yet (the plan's step 3b): the worn items view, the inventory's extra options (Wear, Eat), the deposit box
- * and PINs. Not built at all yet: potion storage, deposit locks, bank tags' storage, Collect and buying bank space.
+ * The worn items view (the button under the settings menu's) is the client's too: bankmain_viewbuttons swaps the
+ * items for the worn slots and sets bank_wornmode, a varc, and bankside_build then draws the inventory with Wear as
+ * op 1 (bankside:wornops). The server fills in the bonus lines and answers the slots' ops. The inventory's extra option
+ * (op 9: Wear, Wield) shows where varp if2 has the slot's bit, which [updateVars] keeps up as RSMod does.
+ *
+ * Not built at all yet: the inventory's Eat and Drink (varp if3, once there is food), potion storage, deposit locks,
+ * bank tags' storage, Collect and buying bank space.
  */
 class BankScreen(
     private val bank: Bank,
@@ -47,6 +54,12 @@ class BankScreen(
     private val openModal: (Player, FrameSlot, Int) -> Unit,
     /** Shows an item's examine text and values, as the inventory's Examine does. */
     private val examine: (Player, Int, Int) -> Unit,
+    /** The worn items' bonuses, for the worn items view. */
+    private val bonuses: (Player) -> EquipmentBonuses,
+    /** Wears the item in an inventory slot, as its Wear does, and says why not. */
+    private val wear: (Player, Int) -> Unit,
+    /** Takes off what is worn in a wearpos, as the equipment tab's Remove does, and says why not. */
+    private val remove: (Player, Int) -> Unit,
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL] == MAIN
@@ -61,6 +74,8 @@ class BankScreen(
         player.vars.setVarbitIfKnown(VARBIT_WITHDRAW_NOTES, 0)
         openModal(player, FrameSlot.MAINMODAL, MAIN)
         openModal(player, FrameSlot.SIDEMODAL, SIDE)
+        // Before the events, which tests wait for as the sign the bank is ready.
+        send(player, IfSetText(MAIN, MAIN_CAPACITY, bank.capacity().toString()))
         val lastSlot = Inventory.BANK_CAPACITY - 1
         send(player, IfSetEventsV2(MAIN, MAIN_ITEMS, 0, lastSlot, EVENTS_DRAG_DEPTH2 or EVENTS_DRAG_TARGET, opMask(1..11)))
         // The space after each tab's last item, which the client numbers past the slots (script509): main tab first.
@@ -71,8 +86,68 @@ class BankScreen(
         // The tab display dropdown's options, which script2076 numbers 1, 3, 5 and 7.
         send(player, IfSetEventsV2(MAIN, DROPDOWN_CONTENT, 1, 2 * TAB_DISPLAY_OPTIONS - 1, 0, opMask(1..1)))
         send(player, IfSetEventsV2(SIDE, SIDE_ITEMS, 0, Inventory.INV_CAPACITY - 1, EVENTS_DRAG_DEPTH1 or EVENTS_DRAG_TARGET, opMask(1..10)))
-        send(player, IfSetText(MAIN, MAIN_CAPACITY, bank.capacity().toString()))
+        // The worn items view's inventory: Wear (op 1), Deposit (op 9) and Examine (op 10), as bankside_worn_drawitem has them.
+        send(player, IfSetEventsV2(SIDE, SIDE_WORNOPS, 0, Inventory.INV_CAPACITY - 1, EVENTS_DRAG_DEPTH1 or EVENTS_DRAG_TARGET, opMask(1..1) or opMask(9..10)))
+        sendWornBonuses(player)
+        setExtraOps(player)
         player.bank.resendAll()
+    }
+
+    /**
+     * Keeps up what the bank's client scripts read from varps and texts while it is open: the inventory's extra option
+     * bits and, after the equipment changed, the worn items view's bonuses. Run every cycle before the varps are sent.
+     */
+    fun updateVars(player: Player) {
+        if (!isOpen(player)) return
+        setExtraOps(player)
+        if (player.equipment.hasChanges) sendWornBonuses(player)
+    }
+
+    /**
+     * Varp if2, a bit for each inventory slot whose item bankside_extraop offers to wear (op 9), with the item's wear
+     * option (param wear_op_index, 2 unless set) as its name: wearable items with that option and no extra option of
+     * their own (param bankside_extraop), as RSMod sets it. Shared with the deposit box, whose client scripts read it too.
+     */
+    internal fun setExtraOps(player: Player) {
+        var bits = 0
+        for ((slot, obj) in player.inventory.contents()) {
+            if (wearOption(obj.id) != null) bits = bits or (1 shl slot)
+        }
+        player.vars[VARP_EXTRAOPS_WEAR] = bits
+    }
+
+    /** The item's wear option for the bank's extra option, null when it has none there. */
+    private fun wearOption(id: Int): String? {
+        val type = objTypes[id] ?: return null
+        if (!type.wearable || type.stringParam(PARAM_BANKSIDE_EXTRAOP) != null) return null
+        return type.iop(type.intParam(PARAM_WEAR_OP_INDEX, DEFAULT_WEAR_OP_INDEX))
+    }
+
+    /**
+     * Fills in the worn items view's bonus lines. The labels are RSMod's (rev 233, from live): they differ from the
+     * Equipment Stats screen's ("Melee STR", "Magic DMG"), and the Undead line ends in a space while it is 0.
+     */
+    private fun sendWornBonuses(player: Player) {
+        val bonuses = bonuses(player)
+        fun text(component: Int, value: String) = send(player, IfSetText(MAIN, component, value))
+        fun signed(value: Int) = if (value < 0) "$value" else "+$value"
+        text(WORN_STAB_ATT, "Stab: ${signed(bonuses.stabAttack)}")
+        text(WORN_SLASH_ATT, "Slash: ${signed(bonuses.slashAttack)}")
+        text(WORN_CRUSH_ATT, "Crush: ${signed(bonuses.crushAttack)}")
+        text(WORN_MAGIC_ATT, "Magic: ${signed(bonuses.magicAttack)}")
+        text(WORN_RANGE_ATT, "Range: ${signed(bonuses.rangedAttack)}")
+        text(WORN_STAB_DEF, "Stab: ${signed(bonuses.stabDefence)}")
+        text(WORN_SLASH_DEF, "Slash: ${signed(bonuses.slashDefence)}")
+        text(WORN_CRUSH_DEF, "Crush: ${signed(bonuses.crushDefence)}")
+        text(WORN_MAGIC_DEF, "Magic: ${signed(bonuses.magicDefence)}")
+        text(WORN_RANGE_DEF, "Range: ${signed(bonuses.rangedDefence)}")
+        text(WORN_MELEE_STRENGTH, "Melee STR: ${signed(bonuses.meleeStrength)}")
+        text(WORN_RANGED_STRENGTH, "Ranged STR: ${signed(bonuses.rangedStrength)}")
+        text(WORN_MAGIC_DAMAGE, "Magic DMG: +${bonuses.magicDamage / 10.0}%")
+        text(WORN_PRAYER, "Prayer: ${signed(bonuses.prayer)}")
+        // Salve amulet and black mask boosts aren't item bonuses; they come with combat.
+        text(WORN_TYPE_MULTIPLIER, "Undead: +0% ")
+        text(WORN_SLAYER_MULTIPLIER, "Slayer: +0%")
     }
 
     /** What the client keeps open past the bank: the search line. RSMod closes it as the bank closes. */
@@ -91,8 +166,11 @@ class BankScreen(
     /** A click on the bank or its inventory. Returns false when the click isn't on either. */
     fun click(player: Player, interfaceId: Int, component: Int, sub: Int, obj: Int, op: Int): Boolean {
         if (interfaceId == SIDE) {
-            if (component != SIDE_ITEMS) return false
-            if (isOpen(player)) clickInventory(player, sub, obj, op)
+            when (component) {
+                SIDE_ITEMS -> if (isOpen(player)) clickInventory(player, sub, obj, op)
+                SIDE_WORNOPS -> if (isOpen(player)) clickWornInventory(player, sub, obj, op)
+                else -> return false
+            }
             return true
         }
         if (interfaceId != MAIN) return false
@@ -131,6 +209,7 @@ class BankScreen(
             FILLER_ALL -> setFillerMode(player, FILLER_MODE_ALL)
             FILLER_CONFIRM -> fill(player)
             in SETTINGS_TOGGLES -> toggle(player, SETTINGS_TOGGLES.getValue(component))
+            in WORN_SLOTS -> clickWorn(player, WORN_SLOT_WEARPOS.getValue(component), op)
             else -> logger.info { "${player.username} clicked bank component $component op $op (not built yet)" }
         }
         return true
@@ -259,7 +338,41 @@ class BankScreen(
                 if (amount > 0) deposit(player, slot, held.id, amount)
             }
             8 -> deposit(player, slot, held.id, Int.MAX_VALUE)
+            SIDE_EXTRAOP -> clickExtraOp(player, slot, held.id)
             else -> logger.info { "${player.username} picked bank inventory op $op on ${held.id} (not built yet)" }
+        }
+    }
+
+    /** The inventory's extra option, here and in the deposit box: Wear, unless the settings menu hides it. */
+    internal fun clickExtraOp(player: Player, slot: Int, id: Int) {
+        if (player.vars.getVarbitIfKnown(VARBIT_HIDE_SIDEOPS) == 0 && wearOption(id) != null) wear(player, slot)
+    }
+
+    /** The worn items view's inventory: Wear, Deposit (all of the slot's stack) and Examine. */
+    private fun clickWornInventory(player: Player, slot: Int, obj: Int, op: Int) {
+        val held = player.inventory.takeIf { slot in 0 until Inventory.INV_CAPACITY }?.get(slot)
+        if (held == null || held.id != obj) return
+        when (op) {
+            SIDE_EXAMINE -> examine(player, held.id, held.count)
+            1 -> if (!player.scripts.delayed && wearOption(held.id) != null) wear(player, slot)
+            SIDE_EXTRAOP -> if (!player.scripts.delayed) deposit(player, slot, held.id, Int.MAX_VALUE)
+        }
+    }
+
+    /**
+     * A worn slot of the worn items view (or the deposit box's, which [DepositBox] sends here): Remove (op 1), Bank
+     * (op 2, the whole stack) and Examine (op 10), as wear_updateslot names them.
+     */
+    internal fun clickWorn(player: Player, wearpos: Int, op: Int) {
+        val worn = player.equipment[wearpos] ?: return
+        if (op == WORN_EXAMINE) {
+            examine(player, worn.id, worn.count)
+            return
+        }
+        if (player.scripts.delayed) return
+        when (op) {
+            1 -> remove(player, wearpos)
+            2 -> depositFrom(player, player.equipment, wearpos, worn.id, Int.MAX_VALUE)
         }
     }
 
@@ -280,8 +393,13 @@ class BankScreen(
     }
 
     private fun deposit(player: Player, slot: Int, id: Int, count: Int) {
-        if (!isOpen(player) || player.inventory[slot]?.id != id) return
-        when (bank.deposit(player.bank, tabs(player), player.inventory, slot, count)) {
+        if (isOpen(player)) depositFrom(player, player.inventory, slot, id, count)
+    }
+
+    /** Deposits [count] from [slot] of [from], if it still holds [id], and says why not all of it went. */
+    internal fun depositFrom(player: Player, from: Inventory, slot: Int, id: Int, count: Int) {
+        if (from[slot]?.id != id) return
+        when (bank.deposit(player.bank, tabs(player), from, slot, count)) {
             Bank.Deposit.NotBankable -> message(player, NOT_BANKABLE)
             Bank.Deposit.BankFull -> message(player, BANK_FULL)
             Bank.Deposit.FullStack, is Bank.Deposit.Partly -> message(player, FULL_STACK)
@@ -289,7 +407,7 @@ class BankScreen(
         }
     }
 
-    private fun depositAll(player: Player, from: Inventory) {
+    internal fun depositAll(player: Player, from: Inventory) {
         if (player.scripts.delayed) return
         if (from.isEmpty()) {
             message(player, NOTHING_TO_DEPOSIT)
@@ -370,13 +488,13 @@ class BankScreen(
     private fun requested(player: Player): Int = maxOf(1, player.vars.getVarbitIfKnown(VARBIT_REQUESTED_QUANTITY))
 
     /** Asks for an amount, which becomes the requested quantity the client offers next to Withdraw-X (op 5). */
-    private suspend fun ScriptContext.askAmount(): Int {
+    internal suspend fun ScriptContext.askAmount(): Int {
         val amount = countDialog()
         if (amount > 0) player.vars.setVarbitIfKnown(VARBIT_REQUESTED_QUANTITY, amount)
         return amount
     }
 
-    private fun start(player: Player, script: suspend ScriptContext.() -> Unit) {
+    internal fun start(player: Player, script: suspend ScriptContext.() -> Unit) {
         if (!player.scripts.delayed) scripts.start(player, script)
     }
 
@@ -451,6 +569,48 @@ class BankScreen(
         /** bankside and its inventory. */
         const val SIDE = 15
         const val SIDE_ITEMS = 3
+        const val SIDE_WORNOPS = 4
+
+        /** bankmain's worn slots in the worn items view, wornslot0 to wornslot13, by wearpos (the number in the name). */
+        val WORN_SLOT_WEARPOS = mapOf(
+            68 to WearPos.HEAD, 69 to WearPos.CAPE, 70 to WearPos.NECK, 71 to WearPos.WEAPON, 72 to WearPos.BODY,
+            73 to WearPos.SHIELD, 74 to WearPos.LEGS, 75 to WearPos.HANDS, 76 to WearPos.FEET, 77 to WearPos.RING,
+            78 to WearPos.AMMO,
+        )
+        val WORN_SLOTS = WORN_SLOT_WEARPOS.keys
+        const val WORN_EXAMINE = 10
+
+        /** The worn items view's bonus lines (stat_group). 241 has no attack speed lines here, which RSMod's 233 had. */
+        const val WORN_STAB_ATT = 82
+        const val WORN_SLASH_ATT = 83
+        const val WORN_CRUSH_ATT = 84
+        const val WORN_MAGIC_ATT = 85
+        const val WORN_RANGE_ATT = 86
+        const val WORN_STAB_DEF = 88
+        const val WORN_SLASH_DEF = 89
+        const val WORN_CRUSH_DEF = 90
+        const val WORN_MAGIC_DEF = 91
+        const val WORN_RANGE_DEF = 92
+        const val WORN_MELEE_STRENGTH = 94
+        const val WORN_RANGED_STRENGTH = 95
+        const val WORN_MAGIC_DAMAGE = 96
+        const val WORN_PRAYER = 97
+        const val WORN_TYPE_MULTIPLIER = 99
+        const val WORN_SLAYER_MULTIPLIER = 100
+
+        /** The inventory's extra option (bankside_extraop), op 9. */
+        const val SIDE_EXTRAOP = 9
+
+        /** Varp if2: a bit per inventory slot whose item the extra option wears. */
+        const val VARP_EXTRAOPS_WEAR = 262
+
+        /** bank_hidesideops, the settings menu's toggle that hides the extra option. */
+        const val VARBIT_HIDE_SIDEOPS = 10079
+
+        /** Params wear_op_index (which inventory option wears the item; 2 by default) and bankside_extraop. */
+        const val PARAM_WEAR_OP_INDEX = 148
+        const val DEFAULT_WEAR_OP_INDEX = 2
+        const val PARAM_BANKSIDE_EXTRAOP = 595
 
         /** A bank slot's Examine (op 11 in 241; 10 in RSMod's rev 233), a placeholder's Release, a filler's Clear and Clear-All. */
         const val MAIN_EXAMINE = 11
@@ -557,18 +717,24 @@ class BankScreen(
                     CHUGGINGBARREL_TOGGLE to "chuggingbarrel_toggle", RELEASE_PLACEHOLDERS to "release_placeholders",
                     FILLER_1 to "bank_filler_1", FILLER_10 to "bank_filler_10", FILLER_50 to "bank_filler_50", FILLER_X to "bank_filler_x",
                     FILLER_ALL to "bank_filler_all", FILLER_CONFIRM to "bank_filler_confirm",
+                ) + WORN_SLOT_WEARPOS.mapValues { (_, wearpos) -> "wornslot$wearpos" } + mapOf(
+                    WORN_STAB_ATT to "stabatt", WORN_SLASH_ATT to "slashatt", WORN_CRUSH_ATT to "crushatt", WORN_MAGIC_ATT to "magicatt",
+                    WORN_RANGE_ATT to "rangeatt", WORN_STAB_DEF to "stabdef", WORN_SLASH_DEF to "slashdef", WORN_CRUSH_DEF to "crushdef",
+                    WORN_MAGIC_DEF to "magicdef", WORN_RANGE_DEF to "rangedef", WORN_MELEE_STRENGTH to "meleestrength",
+                    WORN_RANGED_STRENGTH to "rangestrength", WORN_MAGIC_DAMAGE to "magicdamage", WORN_PRAYER to "prayer",
+                    WORN_TYPE_MULTIPLIER to "typemultiplier", WORN_SLAYER_MULTIPLIER to "slayermultiplier",
                 )
                 ),
-            SIDE to ("bankside" to mapOf(SIDE_ITEMS to "items")),
+            SIDE to ("bankside" to mapOf(SIDE_ITEMS to "items", SIDE_WORNOPS to "wornops")),
             POPUPOVERLAY to ("popupoverlay" to emptyMap()),
         )
     }
 }
 
 /** The varbit's value, 0 when the cache has no such varbit (tests). */
-private fun PlayerVars.getVarbitIfKnown(id: Int): Int = if (types.varbit(id) == null) 0 else getVarbit(id)
+internal fun PlayerVars.getVarbitIfKnown(id: Int): Int = if (types.varbit(id) == null) 0 else getVarbit(id)
 
 /** Sets the varbit; does nothing when the cache has no such varbit (tests). */
-private fun PlayerVars.setVarbitIfKnown(id: Int, value: Int) {
+internal fun PlayerVars.setVarbitIfKnown(id: Int, value: Int) {
     if (types.varbit(id) != null) setVarbit(id, value)
 }

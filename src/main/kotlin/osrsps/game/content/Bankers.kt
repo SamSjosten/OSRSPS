@@ -4,6 +4,7 @@ import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
+import osrsps.game.script.ScriptContext
 
 /** A banker's lines; the words are in the dialogue file, from the Wiki's Transcript:Banker (Standard dialogue), read 2026-10-25. */
 object BankerLines : Lines("banker", "Transcript:Banker") {
@@ -65,8 +66,9 @@ object BankerTutorLines : Lines("banker_tutor", "Transcript:Banker tutor") {
 
 /**
  * The bankers on the castle's top floor: the Banker (multi-NPC 6520, which players see as 2897 while varbit 4153 is 0)
- * and the Banker tutor (3227). From the Wiki: both conversations; asking for the bank opens it. Not built yet: PIN
- * settings, the collection box and buying bank space, so those options end the conversation, and Collect does nothing.
+ * and the Banker tutor (3227). From the Wiki: both conversations; asking for the bank opens it, asking for PIN settings
+ * opens [osrsps.game.bank.BankPinSettings]. Not built yet: the collection box and buying bank space, so those options
+ * end the conversation, and Collect does nothing.
  * Guessed: every chathead expression; that the tutor's topic menu comes back after each topic (the Wiki doesn't say
  * where they lead).
  */
@@ -79,11 +81,14 @@ object Bankers {
     /** The NPCs' Bank option (op3 in the 241 cache). */
     const val BANK = 3
 
-    /** Returns true when the player asked for their bank. */
-    internal suspend fun Dialogue.banker(): Boolean = with(BankerLines) {
+    /** What a conversation ends in: nothing more, the bank, or the PIN settings screen. */
+    enum class Ask { NOTHING, BANK, PIN }
+
+    internal suspend fun Dialogue.banker(): Ask = with(BankerLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
         when (choice(OPEN_BANK, PIN, COLLECT, BUY_SLOTS, WHAT_PLACE)) {
-            1 -> return true
+            1 -> return Ask.BANK
+            2 -> return Ask.PIN
             4 -> chatPlayer(ChatAnim.QUIZ, BUY_SLOTS)
             5 -> {
                 chatPlayer(ChatAnim.QUIZ, WHAT_PLACE)
@@ -92,18 +97,18 @@ object Bankers {
                 chatNpc(ChatAnim.HAPPY, SAFEKEEPING)
             }
         }
-        false
+        Ask.NOTHING
     }
 
-    /** Returns true when the player asked for their bank. */
-    internal suspend fun Dialogue.tutor(): Boolean = with(BankerTutorLines) {
+    internal suspend fun Dialogue.tutor(): Ask = with(BankerTutorLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
         when (choice(HOW_IT_WORKS, ACCESS, PIN, COLLECT, BUY_SLOTS)) {
             1 -> tutorTopics()
-            2 -> return true
+            2 -> return Ask.BANK
+            3 -> return Ask.PIN
             5 -> chatPlayer(ChatAnim.QUIZ, BUY_SLOTS)
         }
-        false
+        Ask.NOTHING
     }
 
     /** The topic menu, again after each topic, and the PIN menu after the PIN topic, until the player says goodbye. */
@@ -152,15 +157,20 @@ object Bankers {
 fun registerBankers(world: World) {
     world.npcInteractions.reachOverCounter(Bankers.BANKER)
     world.npcInteractions.reachOverCounter(Bankers.BANKER_TUTOR)
+    fun ScriptContext.answer(ask: Bankers.Ask) = when (ask) {
+        Bankers.Ask.BANK -> world.bankScreen.open(player)
+        Bankers.Ask.PIN -> world.bankPinSettings.open(player)
+        Bankers.Ask.NOTHING -> Unit
+    }
     world.handlers.onNpc(Bankers.BANKER, Bankers.TALK_TO) { op ->
-        var bank = false
-        world.dialogues.start(this, op.npc) { bank = with(Bankers) { banker() } }
-        if (bank) world.bankScreen.open(player)
+        var ask = Bankers.Ask.NOTHING
+        world.dialogues.start(this, op.npc) { ask = with(Bankers) { banker() } }
+        answer(ask)
     }
     world.handlers.onNpc(Bankers.BANKER_TUTOR, Bankers.TALK_TO) { op ->
-        var bank = false
-        world.dialogues.start(this, op.npc) { bank = with(Bankers) { tutor() } }
-        if (bank) world.bankScreen.open(player)
+        var ask = Bankers.Ask.NOTHING
+        world.dialogues.start(this, op.npc) { ask = with(Bankers) { tutor() } }
+        answer(ask)
     }
     for (banker in listOf(Bankers.BANKER, Bankers.BANKER_TUTOR)) {
         world.handlers.onNpc(banker, Bankers.BANK) { world.bankScreen.open(player) }
