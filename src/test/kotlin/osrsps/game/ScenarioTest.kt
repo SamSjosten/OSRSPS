@@ -127,6 +127,13 @@ class ScenarioTest {
         fun problem(body: String) = assertFailsWith<IllegalArgumentException> { scenario(body).loadout(types) }.message
         assertEquals("The bank lists an item twice: the bank stacks everything", problem(""", "bank": [ { "item": "coins" }, { "item": "995" } ]"""))
         assertEquals("Bank tabs must be 1 up with none left out", problem(""", "bank": [ { "item": "coins", "tab": 2 } ]"""))
+        // An account's bank holds 900, though its inventory has 1,410 slots.
+        val many = ObjTypes.of(*Array(901) { ObjType(10_000 + it, "Thing") })
+        val tooMany = (0 until 901).joinToString(", ") { """{ "item": "${it + 10_000}" }""" }
+        assertEquals(
+            "The bank holds at most 900 items",
+            assertFailsWith<IllegalArgumentException> { scenario(""", "bank": [ $tooMany ]""").loadout(many) }.message,
+        )
         // A note is banked as its item, so it and the item are the same entry twice.
         assertEquals(mapOf(0 to InvObj(379, 4)), scenario(""", "bank": [ { "item": "cert_lobster", "count": 4 } ]""").loadout(types).bank)
         assertEquals(

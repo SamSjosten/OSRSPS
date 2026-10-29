@@ -9,6 +9,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import osrsps.game.bank.Bank
 
 /**
  * A testing scenario: where to stand and what to have, set in one go by `::scenario name`. Not live content. Read from
@@ -94,7 +95,8 @@ class Scenario(
         fun bankedType(item: String) = find(types, item).let { if (it.isCert) types[it.certlink] ?: it else it }
         val banked = this.bank.sortedBy { if (it.tab == 0) Int.MAX_VALUE else it.tab }.map { it.tab to bankedType(it.item) }
         require(banked.distinctBy { it.second.id }.size == banked.size) { "The bank lists an item twice: the bank stacks everything" }
-        require(banked.size <= Inventory.BANK_CAPACITY) { "The bank holds at most ${Inventory.BANK_CAPACITY} items" }
+        // What the account holds (900), not the inventory's 1,410 slots.
+        require(banked.size <= Bank.DEFAULT_CAPACITY) { "The bank holds at most ${Bank.DEFAULT_CAPACITY} items" }
         val counts = this.bank.associate { bankedType(it.item).id to it.count }
         val bank = banked.withIndex().associate { (slot, entry) -> slot to InvObj(entry.second.id, counts.getValue(entry.second.id)) }
         val tabs = (1..9).map { tab -> banked.count { it.first == tab } }
