@@ -34,6 +34,19 @@ class PlayerScripts {
         return had
     }
 
+    /** The script waiting for the player to type an amount, if any; see [ScriptContext.countDialog]. */
+    internal var counting: Continuation<Int>? = null
+
+    /** A script waits for the player to type an amount. */
+    val waitingForCount: Boolean get() = counting != null
+
+    /** Drops the script waiting for an amount, which never carries on. Returns whether there was one. */
+    internal fun dropCount(): Boolean {
+        val had = counting != null
+        counting = null
+        return had
+    }
+
     val queued: List<QueuedScript> get() = queue + weakQueue
     val activeTimers: Collection<ScriptTimer> get() = timers.values
 }

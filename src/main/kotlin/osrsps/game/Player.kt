@@ -136,6 +136,12 @@ class Player(
     /** What the player wears, inv 94, one slot per [WearPos]. Changes are sent at the end of the cycle. */
     val equipment = Inventory(Inventory.WORN, WearPos.COUNT)
 
+    /**
+     * The bank, inv 95. Sent only while the bank is open: changes made with it shut wait for the next opening, which
+     * sends it all again. See [osrsps.game.bank.Bank].
+     */
+    val bank = Inventory(Inventory.BANK, Inventory.BANK_CAPACITY)
+
     /** What the player's charged items hold, such as a blowpipe's darts and scales; see [Charges]. */
     val charges = Charges()
 

@@ -93,8 +93,11 @@ class HeadlessClient private constructor(
     private var topLevel = -1
     private val texts = HashMap<Int, String>()
 
-    /** IF_SETEVENTS masks by (component shl 32) + slot, kept and dropped as the real client keeps them; see [opEnabled]. */
-    private val events = HashMap<Long, Int>()
+    /**
+     * IF_SETEVENTS masks by (component shl 32) + slot, events2 in the high word, kept and dropped as the real client
+     * keeps them; see [opEnabled].
+     */
+    private val events = HashMap<Long, Long>()
     private val scripts = ArrayList<ClientScript>()
     private var dialogue: DialogueView? = null
     private val invs = HashMap<Int, MutableList<InvObj?>>()
@@ -142,13 +145,23 @@ class HeadlessClient private constructor(
     fun openInterfaces(): Set<Int> = lock.withLock { subs.values.toSet() + topLevel }
 
     /**
-     * Whether the server has enabled op [op] (1 to 10) on slot [sub] of a component with IF_SETEVENTS. The real client
-     * sends a click on a component only when its op is enabled, by these events or by the component's own flags in the
-     * cache, which this client doesn't read; so this answers for client-made children, which have no flags of their own.
+     * Whether the server has enabled op [op] (1 to 32) on slot [sub] of a component with IF_SETEVENTS: ops 1 to 10 by
+     * their old bits in events1 (1 to 10) or by events2, the others by events2 alone (op n is bit n - 1). The real
+     * client sends a click on a component only when its op is enabled, by these events or by the component's own
+     * flags in the cache, which this client doesn't read; so this answers for client-made children, which have no
+     * flags of their own.
      */
     fun opEnabled(interfaceId: Int, componentId: Int, sub: Int, op: Int): Boolean = lock.withLock {
-        val mask = events[(((interfaceId shl 16) or componentId).toLong() shl 32) + sub] ?: 0
-        mask and (1 shl op) != 0
+        val mask = events[(((interfaceId shl 16) or componentId).toLong() shl 32) + sub] ?: 0L
+        val events1 = mask.toInt()
+        val events2 = (mask ushr 32).toInt()
+        (op in 1..10 && events1 and (1 shl op) != 0) || events2 and (1 shl (op - 1)) != 0
+    }
+
+    /** The drag depth (0 to 7) the server enabled on slot [sub] of a component, events1's bits 17 to 19. */
+    fun dragDepth(interfaceId: Int, componentId: Int, sub: Int): Int = lock.withLock {
+        val mask = events[(((interfaceId shl 16) or componentId).toLong() shl 32) + sub] ?: 0L
+        (mask.toInt() ushr 17) and 7
     }
 
     /** As the real client does when an interface closes, or another opens in its place: its events go. */
@@ -285,6 +298,23 @@ class HeadlessClient private constructor(
             p2(toSub and 0xFFFF)
             p2Alt3(fromSub and 0xFFFF)
         }
+
+    /**
+     * One component's item dragged onto another slot (IF_BUTTOND): a bank or inventory rearrange. Laid out as RSProt's
+     * 241 IfButtonDDecoder reads it.
+     */
+    fun ifButtonD(fromInterface: Int, fromComponent: Int, fromSub: Int, fromObj: Int, toInterface: Int, toComponent: Int, toSub: Int, toObj: Int = -1) =
+        send(GameClientProt.IF_BUTTOND) {
+            p2Alt1(fromObj and 0xFFFF)
+            p4Alt3((fromInterface shl 16) or fromComponent)
+            p2Alt1(fromSub and 0xFFFF)
+            p2(toSub and 0xFFFF)
+            p2Alt2(toObj and 0xFFFF)
+            p4Alt3((toInterface shl 16) or toComponent)
+        }
+
+    /** An amount typed into a prompt (RESUME_P_COUNTDIALOG), as after Withdraw-X. */
+    fun resumeCount(count: Int) = send(GameClientProt.RESUME_P_COUNTDIALOG) { p4(count) }
 
     /** A click on a pause button (RESUME_PAUSEBUTTON): a dialogue's continue, or a menu option as [sub]. */
     fun resumePause(interfaceId: Int, componentId: Int, sub: Int = -1) = send(GameClientProt.RESUME_PAUSEBUTTON) {
@@ -477,8 +507,9 @@ class HeadlessClient private constructor(
                 val end = buf.g2Alt3().let { if (it == 0xFFFF) -1 else it }
                 val start = buf.g2Alt1().let { if (it == 0xFFFF) -1 else it }
                 val component = buf.g4()
-                buf.g4Alt1() // events2: ops 11 to 32, which nothing here uses
-                for (sub in start..end) events[(component.toLong() shl 32) + sub] = events1
+                val events2 = buf.g4Alt1()
+                val mask = (events2.toLong() shl 32) or (events1.toLong() and 0xFFFFFFFFL)
+                for (sub in start..end) events[(component.toLong() shl 32) + sub] = mask
             }
             GameServerProt.IF_MOVESUB -> {
                 val from = buf.g4Alt1()

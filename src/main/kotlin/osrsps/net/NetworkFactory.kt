@@ -37,6 +37,7 @@ import net.rsprot.protocol.game.incoming.npcs.OpNpc6
 import net.rsprot.protocol.game.incoming.npcs.OpNpcT
 import net.rsprot.protocol.game.incoming.npcs.OpNpcV2
 import net.rsprot.protocol.game.incoming.players.OpPlayer
+import net.rsprot.protocol.game.incoming.resumed.ResumePCountDialog
 import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
@@ -167,6 +168,9 @@ class NetworkFactory(
         })
         builder.addListener(OpPlayer::class.java, MessageConsumer { player, message ->
             world.onPlayerOp(player, message.index, message.op, message.controlKey)
+        })
+        builder.addListener(ResumePCountDialog::class.java, MessageConsumer { player, message ->
+            world.onResumeCount(player, message.count)
         })
         builder.addListener(ResumePauseButton::class.java, MessageConsumer { player, message ->
             world.onResumePauseButton(player, message.interfaceId, message.componentId, message.sub)
