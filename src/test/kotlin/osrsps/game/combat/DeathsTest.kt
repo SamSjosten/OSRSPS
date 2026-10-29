@@ -38,7 +38,10 @@ class DeathsTest {
     private val shield = ObjType(1171, "Wooden shield", cost = 20, wearpos1 = WearPos.SHIELD)
     private val bones = ObjType(526, "Bones", cost = 1)
     private val lobster = ObjType(379, "Lobster", cost = 150)
-    private val objTypes = ObjTypes.of(coins, sword, shield, bones, lobster)
+    private val pipe = ObjType(Blowpipe.LOADED, "Toxic blowpipe", cost = 1, wearpos1 = WearPos.WEAPON)
+    private val dart = ObjType(810, "Adamant dart", cost = 1, stackable = true)
+    private val scale = ObjType(Blowpipe.SCALE, "Zulrah's scales", cost = 1, stackable = true)
+    private val objTypes = ObjTypes.of(coins, sword, shield, bones, lobster, pipe, dart, scale)
     private val alice = Player(1, "alice", 3212, 3210, 0)
     private val bob = Player(2, "bob", 3214, 3210, 0)
     private val online = mutableListOf(alice, bob)
@@ -83,7 +86,12 @@ class DeathsTest {
         return deaths.graveOf(alice) ?: error("Alice has no grave")
     }
 
-    private fun npcOp(player: Player, npc: Npc, option: Int) = scripts.trigger(player, Op(OpTarget.NPC, Deaths.GRAVE, option, npc = npc))
+    /** An op on the grave, from the tile east of it, where Loot's walk would have taken them. */
+    private fun npcOp(player: Player, npc: Npc, option: Int): Boolean {
+        player.x = npc.x + 1
+        player.z = npc.z
+        return scripts.trigger(player, Op(OpTarget.NPC, Deaths.GRAVE, option, npc = npc))
+    }
 
     private fun button(player: Player, componentId: Int, sub: Int = -1, op: Int = 1) = scripts.trigger(player, Op.button(Deaths.GRAVESTONE, componentId, op, sub))
 
@@ -273,6 +281,55 @@ class DeathsTest {
         // The lobster, sword and shield are kept again; the five bones join the coins and bones there.
         assertEquals(7, grave.items.contents().size)
         assertEquals(6L, grave.items.count(bones.id))
+    }
+
+    @Test
+    fun `the gravestone does nothing from more than two tiles away, and the grave counts down meanwhile`() {
+        val grave = aliceDies()
+        npcOp(alice, grave.npc, Deaths.LOOT)
+        alice.x = grave.npc.x + Deaths.GRAVE_REACH + 1
+        button(alice, Deaths.FREEBUTTON)
+        button(alice, Deaths.FREEITEMS, sub = 0)
+        assertEquals(2, grave.items.contents().size)
+        tick(10)
+        assertEquals(Deaths.GRAVE_TICKS - 10, grave.ticksLeft)
+        alice.x = grave.npc.x + Deaths.GRAVE_REACH
+        button(alice, Deaths.FREEITEMS, sub = 0)
+        assertEquals(1, grave.items.contents().size)
+    }
+
+    @Test
+    fun `examine on a slot past the grave's end does nothing`() {
+        val grave = aliceDies()
+        npcOp(alice, grave.npc, Deaths.LOOT)
+        button(alice, Deaths.FREEITEMS, sub = Deaths.GRAVE_CAPACITY + 5, op = 10)
+        assertEquals(2, grave.items.contents().size)
+    }
+
+    @Test
+    fun `a lost blowpipe takes its darts and scales to the grave, and a kept one keeps them`() {
+        alice.equipment[WearPos.WEAPON] = InvObj(pipe.id, 1)
+        alice.charges[Blowpipe.DART_TYPE] = dart.id
+        alice.charges[Blowpipe.DARTS] = 500
+        alice.charges[Blowpipe.SCALES] = 1000
+        alice.inventory.add(lobster, 3)
+        deaths.die(alice)
+        tick(Deaths.DEATH_TICKS)
+        // Three lobsters are worth more, so the blowpipe went, and its charges with it.
+        val grave = deaths.graveOf(alice) ?: error("Alice has no grave")
+        assertEquals(1L, grave.items.count(pipe.id))
+        assertEquals(500L, grave.items.count(dart.id))
+        assertEquals(1000L, grave.items.count(scale.id))
+        assertEquals(emptyMap(), alice.charges.contents())
+
+        bob.equipment[WearPos.WEAPON] = InvObj(pipe.id, 1)
+        bob.charges[Blowpipe.DART_TYPE] = dart.id
+        bob.charges[Blowpipe.DARTS] = 500
+        bob.inventory.add(bones, 5)
+        deaths.die(bob)
+        tick(Deaths.DEATH_TICKS)
+        assertEquals(InvObj(pipe.id, 1), bob.equipment[WearPos.WEAPON])
+        assertEquals(500, bob.charges[Blowpipe.DARTS])
     }
 
     @Test

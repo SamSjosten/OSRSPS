@@ -1,6 +1,7 @@
 package osrsps.game.combat
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlin.math.abs
 import net.rsprot.protocol.common.game.outgoing.inv.InventoryObject
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.inv.UpdateInvFull
@@ -113,7 +114,7 @@ class Deaths(
     /** Counts the graves down (a grave raised this tick starts next tick), and respawns the players whose death animation is over. */
     fun process() {
         if (graves.isNotEmpty()) {
-            val open = viewing.filter { (owner, _) -> findPlayer(owner)?.let { hasOpen(it) } == true }.values.toSet()
+            val open = viewing.mapNotNull { (owner, _) -> findPlayer(owner)?.let(::opened) }.toSet()
             for (grave in graves.values.toList()) {
                 if (grave in open || findPlayer(grave.owner) == null) continue
                 if (--grave.ticksLeft <= 0) collapse(grave)
@@ -132,7 +133,8 @@ class Deaths(
     fun respawn(player: Player) {
         player.deathTick = -1
         val lost = dropItems(player)
-        if (lost.isNotEmpty()) bury(player, lost)
+        val charges = lostCharges(player, lost)
+        if (lost.isNotEmpty() || charges.isNotEmpty()) bury(player, lost + charges)
         for (skill in Skill.entries) player.skills.setCurrentLevel(skill, player.skills.baseLevel(skill))
         player.runEnergy = Movement.MAX_ENERGY
         // The death seq's last frame lasts 20,000 client cycles (seq 836 in the 241 cache), so the client holds the
@@ -167,6 +169,26 @@ class Deaths(
             lost += InvObj(item.obj.id, gone)
         }
         return lost
+    }
+
+    /**
+     * A blowpipe's darts and scales, as items, when [lost] took [player]'s last blowpipe; its charges are then gone from
+     * the player. They are kept with a kept blowpipe. Charges are the player's, not the item's ([osrsps.game.Charges]),
+     * so before this a death kept them all on top of the three kept items. Guessed: live keeps the charges on the
+     * blowpipe in the grave; with no charges on items here, the grave holds them as the darts and scales.
+     */
+    private fun lostCharges(player: Player, lost: List<InvObj>): List<InvObj> {
+        if (lost.none { it.id == Blowpipe.LOADED || it.id == Blowpipe.EMPTY }) return emptyList()
+        if (listOf(player.inventory, player.equipment).any { inv -> inv.contents().any { (_, obj) -> obj.id == Blowpipe.LOADED || obj.id == Blowpipe.EMPTY } }) {
+            return emptyList()
+        }
+        val charges = ArrayList<InvObj>()
+        val darts = player.charges[Blowpipe.DARTS]
+        if (darts > 0) charges += InvObj(player.charges[Blowpipe.DART_TYPE], darts)
+        val scales = player.charges[Blowpipe.SCALES]
+        if (scales > 0) charges += InvObj(Blowpipe.SCALE, scales)
+        for (name in listOf(Blowpipe.DART_TYPE, Blowpipe.DARTS, Blowpipe.SCALES)) player.charges[name] = 0
+        return charges
     }
 
     /** Puts [lost] in [player]'s grave, raising one on their tile if they have none; an existing grave starts its timer again. */
@@ -236,10 +258,16 @@ class Deaths(
         send(player, UpdateInvFull(GRAVE_INV, count) { slot -> slots[slot]?.let { InventoryObject(slot, it.id, it.count) } ?: InventoryObject.NULL })
     }
 
-    /** The grave [player] has open now, or null. */
+    /**
+     * The grave [player] has open now, or null: the gravestone open, the grave still standing, and the player beside it.
+     * The last is a guard: the gravestone closes when the player walks, but an interface opened some other way
+     * mustn't empty a grave from across the map.
+     */
     private fun opened(player: Player): Grave? {
         val grave = viewing[player.saveKey] ?: return null
         if (!hasOpen(player) || graves[grave.npc] !== grave) return null
+        val npc = grave.npc
+        if (npc.level != player.level || maxOf(abs(npc.x - player.x), abs(npc.z - player.z)) > GRAVE_REACH) return null
         return grave
     }
 
@@ -247,6 +275,7 @@ class Deaths(
 
     private fun examineItem(player: Player, slot: Int) {
         val grave = opened(player) ?: return
+        if (slot !in 0 until GRAVE_CAPACITY) return
         val obj = grave.items[slot] ?: return
         val type = objTypes[obj.id] ?: return
         examine(player, type, obj.count)
@@ -302,6 +331,9 @@ class Deaths(
         const val GRAVESTONE = 672
         const val FREEITEMS = 6
         const val FREEBUTTON = 8
+
+        /** How far from the grave, in tiles either way, its gravestone's buttons still work. A guard, not from live. */
+        const val GRAVE_REACH = 2
 
         /** The gravestone's inv: 120 slots. */
         const val GRAVE_INV = 525

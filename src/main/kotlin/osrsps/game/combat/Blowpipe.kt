@@ -22,7 +22,8 @@ import osrsps.game.script.Op
  * Guessed and not checked on live: loading by using darts or scales on it (the Wiki only describes the bank's
  * Configure-Charges, which isn't in), that darts go in the empty one too, every message's wording, that Uncharge needs
  * no confirmation and leaves the empty blowpipe where it was, and that the charges are the player's, shared by two
- * blowpipes ([osrsps.game.Charges]). Not in yet: venom, the special attack, and the charges falling on death.
+ * blowpipes ([osrsps.game.Charges]). A death that loses the last blowpipe puts its darts and scales in the grave
+ * ([Deaths]). Not in yet: venom and the special attack.
  */
 class Blowpipe(private val objTypes: ObjTypes, private val weapons: RangedWeapons) {
     /** The dart it holds, null when it holds none. */
