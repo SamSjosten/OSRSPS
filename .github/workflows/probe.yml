@@ -1,0 +1,39 @@
+name: probe
+# Is the server reachable the way a friend reaches it, through the relay at odinsgate.net? Every 15 minutes,
+# .github/scripts/probe.js asks /status.json on the HTTP port for "up": true and connects to the game port, trying
+# again for a few minutes first so a restart after a deploy raises no alarm. While it is down, one issue titled
+# "odinsgate.net is down" stays open, assigned to the repository's owner (.github/scripts/alert.js, CONTRIBUTING.md),
+# and each run is red; when it is back, the issue is closed with a comment.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: probe
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - id: probe
+        continue-on-error: true
+        run: node .github/scripts/probe.js http://odinsgate.net:43595/status.json odinsgate.net:43594
+      - uses: actions/github-script@v7
+        if: always()
+        env:
+          DETAIL: ${{ steps.probe.outputs.detail }}
+        with:
+          script: |
+            await require('./.github/scripts/alert.js')({ github, context, core }, {
+              key: 'probe',
+              title: 'odinsgate.net is down',
+              healthy: '${{ steps.probe.outputs.up }}' === 'true',
+              detail: process.env.DETAIL,
+            });

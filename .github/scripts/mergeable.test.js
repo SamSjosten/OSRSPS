@@ -1,4 +1,4 @@
-// node --test .github/scripts/ : plays mergeable.js through its cases against a stand-in for GitHub's API.
+// node --test .github/scripts/*.test.js : plays mergeable.js through its cases against a stand-in for GitHub's API.
 const test = require('node:test');
 const assert = require('node:assert');
 const run = require('./mergeable.js');
