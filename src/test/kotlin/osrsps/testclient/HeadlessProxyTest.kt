@@ -189,6 +189,22 @@ class HeadlessProxyTest {
         }
     }
 
+    @Test
+    fun `a stranger's wrong passwords lock the name only from the stranger's address`(@TempDir dir: Path) {
+        val owner = ProxyHeaders.v2("198.51.100.9", 1)
+        TestServer(dir, proxy = relayIsUs).use { server ->
+            server.login("carol", "mine", header = owner).close()
+            repeat(5) {
+                assertEquals(INVALID_USERNAME_OR_PASSWORD, assertFailsWith<LoginFailedException> { server.login("carol", "guess$it", header = player) }.code)
+            }
+            // The stranger is locked out, even with the right password...
+            assertEquals(TOO_MANY_ATTEMPTS, assertFailsWith<LoginFailedException> { server.login("carol", "mine", header = player) }.code)
+            // ...but carol, on her own address, gets past the check, to "already logged in" as her first session still
+            // lingers. The exploit review found anyone could lock any account.
+            assertEquals(ALREADY_LOGGED_IN, assertFailsWith<LoginFailedException> { server.login("carol", "mine", header = owner) }.code)
+        }
+    }
+
     /** `::ipbans`, split into its bans. */
     private fun bans(client: HeadlessClient): List<String> =
         client.commandReply("::ipbans") { it.startsWith("198.") || it.startsWith("203.") || it.startsWith("No ") }.split("; ")
@@ -221,5 +237,8 @@ class HeadlessProxyTest {
     private companion object {
         /** "Your address has been blocked", LoginResponse.IPBlocked. */
         const val IP_BLOCKED = 26
+        const val INVALID_USERNAME_OR_PASSWORD = 3
+        const val TOO_MANY_ATTEMPTS = 16
+        const val ALREADY_LOGGED_IN = 5
     }
 }
