@@ -10,9 +10,12 @@ class BoostCycle {
     /** Set once Preserve has carried the cycle into its last [StatRestore.SEGMENT_TICKS]; turning Preserve off then doesn't shorten it. */
     var lengthened = false
 
-    /** Back to the cycle's start. */
+    /**
+     * Back to the cycle's start, from somewhere earlier in a tick than [StatRestore] (a login, a prayer clicked): that
+     * tick's count brings it to 0, so the whole cycle comes after it, as the hitpoints countdown has it ([MeleeCombat]).
+     */
     fun restart() {
-        ticks = 0
+        ticks = -1
         lengthened = false
     }
 }
@@ -89,7 +92,8 @@ class StatRestore(private val hasPrayer: (Player, String) -> Boolean = { _, _ ->
         cycle.ticks++
         if (preserved && cycle.ticks >= PRESERVE_CYCLE_TICKS - SEGMENT_TICKS) cycle.lengthened = true
         if (cycle.ticks < if (preserved || cycle.lengthened) PRESERVE_CYCLE_TICKS else CYCLE_TICKS) return false
-        cycle.restart()
+        cycle.ticks = 0
+        cycle.lengthened = false
         return true
     }
 
@@ -123,12 +127,12 @@ class StatRestore(private val hasPrayer: (Player, String) -> Boolean = { _, _ ->
         val COMBAT = setOf(Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE, Skill.RANGED, Skill.MAGIC, Skill.PRAYER)
 
         /** The segment [cycle] is in, for a save: one of a minute's five, the last for a cycle Preserve has carried past it. */
-        fun segment(cycle: BoostCycle): Int = minOf(cycle.ticks / SEGMENT_TICKS, CYCLE_TICKS / SEGMENT_TICKS - 1)
+        fun segment(cycle: BoostCycle): Int = (cycle.ticks / SEGMENT_TICKS).coerceIn(0, CYCLE_TICKS / SEGMENT_TICKS - 1)
 
-        /** Puts [cycle] at the start of a saved [segment]. */
+        /** Puts [cycle] at the start of a saved [segment], at login; see [BoostCycle.restart]. */
         fun resume(cycle: BoostCycle, segment: Int) {
             cycle.restart()
-            cycle.ticks = segment * SEGMENT_TICKS
+            cycle.ticks += segment * SEGMENT_TICKS
         }
 
         /** The ticks left in [cycle], given whether Preserve counts now. */

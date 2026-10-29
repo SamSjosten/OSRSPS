@@ -57,6 +57,13 @@ fun CommandRegistry.registerSkillCommands() {
         }
         reply("$levels; $cycles")
     }
+
+    register("statcycles", "::statcycles") {
+        val timers = player.statTimers
+        for (cycle in listOf(timers.combatBoost, timers.skillBoost, timers.hitpoints)) cycle.restart()
+        timers.restore = -1
+        reply("Boost and drain cycles started again: the next levels in ${StatRestore.CYCLE_TICKS} ticks")
+    }
 }
 
 private fun CommandContext.skill(text: String): Skill = Skill.find(text) ?: fail("No skill '$text'")

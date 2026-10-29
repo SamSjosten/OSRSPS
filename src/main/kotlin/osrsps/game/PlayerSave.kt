@@ -69,6 +69,7 @@ class PlayerSave(
         player.playedTicks = playedTicks
         StatRestore.resume(player.statTimers.combatBoost, boostSegments.combat)
         StatRestore.resume(player.statTimers.skillBoost, boostSegments.other)
+        player.statTimers.hitpoints.restart()
         applyState(player)
     }
 

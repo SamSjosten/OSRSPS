@@ -45,12 +45,14 @@ class StatRestoreTest {
         assertEquals(98, level(Skill.HITPOINTS))
         assertEquals(91, level(Skill.PRAYER))
         run(90)
-        // What Prayers does as Rapid Heal goes on.
+        // What Prayers does as Rapid Heal goes on, in the tick's input.
         alice.statTimers.hitpoints.restart()
         run(10)
         assertEquals(90, level(Skill.PRAYER))
         assertEquals(98, level(Skill.HITPOINTS), "held by Rapid Heal")
         run(90)
+        assertEquals(98, level(Skill.HITPOINTS), "the tick it went on and 99 more")
+        run(1)
         assertEquals(97, level(Skill.HITPOINTS))
     }
 
@@ -144,8 +146,8 @@ class StatRestoreTest {
         val save = StatRestore.segment(alice.statTimers.combatBoost)
         assertEquals(2, save)
         StatRestore.resume(alice.statTimers.combatBoost, save)
-        run(59)
-        assertEquals(99, level(Skill.ATTACK), "19 ticks into the segment at logout, 60 after the login")
+        run(60)
+        assertEquals(99, level(Skill.ATTACK), "19 ticks into the segment at logout; the login tick and 60 after it")
         run(1)
         assertEquals(98, level(Skill.ATTACK))
         alice.statTimers.combatBoost.ticks = 140
