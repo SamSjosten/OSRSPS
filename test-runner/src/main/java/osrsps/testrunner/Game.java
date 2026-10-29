@@ -110,6 +110,16 @@ interface Game
 		}
 	}
 
+	/**
+	 * Varp {@code id} twice: as the server last sent it, then as the client holds it now (the client's own scripts
+	 * change their copy, as the settings do before telling the server). Null when logged out or the client has no such
+	 * varp.
+	 */
+	int[] varp(int id);
+
+	/** Varbit {@code id} worked out from both copies of its varp, as {@link #varp} gives them; null for one the client lacks. */
+	int[] varbit(int id);
+
 	/** The player's real (unboosted) level in the skill, as the stats tab shows it; -1 for a skill the client doesn't know. */
 	int skillLevel(String skill);
 
@@ -160,6 +170,18 @@ interface Game
 	 * as a click on a menu entry of that component would.
 	 */
 	String clickWidget(int interfaceId, int component, int sub, int op);
+
+	/**
+	 * Runs client script {@code id} from the cache with {@code args} (Integers and Strings, in the script's order), as
+	 * the client's own interfaces would: what the script sends the server goes out as it would from a click.
+	 */
+	String runClientScript(int id, Object[] args);
+
+	/**
+	 * Clicks the left mouse button on the middle of an interface component, or of its slot {@code sub} when that is 0 or
+	 * more, for what only reacts to the mouse itself (a dropdown's box opens on the click, not on a menu option).
+	 */
+	String mouseClickWidget(int interfaceId, int component, int sub);
 
 	/**
 	 * Picks a spell (any component that targets, as the spellbook's spells do) at {@code interfaceId}:{@code component}

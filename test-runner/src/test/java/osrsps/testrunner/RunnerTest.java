@@ -594,6 +594,50 @@ public class RunnerTest
 	}
 
 	@Test
+	public void mouseClickWaitsForTheComponent() throws Exception
+	{
+		runner.start(script("{\"step\":\"mouseClick\",\"interfaceId\":116,\"component\":6,\"slot\":0}"), "file");
+		game.clickError = "116:6 slot 0 is not showing";
+		assertNull(cycle());
+		game.clickError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("mouse click on 116:6 slot 0", r.steps.get(0).description);
+		assertEquals(List.of("116:6 slot 0"), game.mouseClicks);
+	}
+
+	@Test
+	public void clientScriptRunsOnceWithItsArguments() throws Exception
+	{
+		runner.start(script("{\"step\":\"runClientScript\",\"id\":9231,\"args\":[7602271,50,116,\"x\"]}"), "file");
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("run client script 9231 [7602271, 50, 116, x]", r.steps.get(0).description);
+		assertEquals(List.of("9231 [7602271, 50, 116, x]"), game.scriptsRun);
+	}
+
+	@Test
+	public void varsWantTheServerAndTheClientToAgree() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertVarbit\",\"id\":13131,\"value\":1},"
+			+ "{\"step\":\"assertVarp\",\"id\":1107,\"value\":2,\"timeoutMs\":40}"), "file");
+		assertNull(cycle());
+		// The client flipped its own copy; the server hasn't yet.
+		game.varbits.put(13131, new int[] {0, 1});
+		assertNull(cycle());
+		game.varbits.put(13131, new int[] {1, 1});
+		game.varps.put(1107, new int[] {0, 2});
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals("assert varbit 13131 = 1", r.steps.get(0).description);
+		assertEquals("varbit 13131: server 1, client 1", r.steps.get(0).detail);
+		assertEquals("step 2 (assert varp 1107 = 2): timed out after 40 ms: varp 1107: server 0, client 2", r.failure);
+	}
+
+	@Test
 	public void groundItemWaitsForTheItemOrForItToGo() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertGroundItem\",\"item\":\"Bones\",\"x\":3213,\"y\":3210},"

@@ -18,6 +18,7 @@ import osrsps.cache.QuestLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
 import osrsps.game.EffectIds
+import osrsps.game.SettingsSide
 import osrsps.game.Accounts
 import osrsps.game.IpBans
 import osrsps.game.command.Admins
@@ -122,6 +123,7 @@ class GameServer(
             } else {
                 frameProblems.forEach { logger.warn { "Game frame: $it" } }
             }
+            SettingsSide.checkVarbits(varTypes).forEach { logger.warn { "Settings: $it" } }
             val source = dataDir.resolve("cache-source.txt").toFile().takeIf { it.exists() }?.readText()?.trim()
             // Another revision's cache would hand clients files they can't use, and the next revision's clients our old
             // ones. Without cache-source.txt (a cache copied in by hand, the tests' tiny ones) there's nothing to check.

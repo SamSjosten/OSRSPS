@@ -205,6 +205,7 @@ class World(
     /** The bankers' PIN settings screen; see [BankPinSettings]. */
     val bankPinSettings = BankPinSettings(interfaces::openModal)
 
+    private val settingsSide = SettingsSide()
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells)
 
     private val interactions = Interactions()
@@ -1179,6 +1180,7 @@ class World(
             if (frame != null) interfaces.requestFrame(player, frame, tick)
             return@act
         }
+        if (interfaceId == SettingsSide.INTERFACE && settingsSide.click(player, componentId, sub, op)) return@act
         if (interfaceId == JournalTab.SIDE_JOURNAL) {
             val tab = JournalTab.forButton(componentId)
             if (tab != null) {
@@ -1197,6 +1199,16 @@ class World(
         }
         if (scripts.trigger(player, Op.button(interfaceId, componentId, op, sub))) return@act
         logger.info { "${player.username} clicked $interfaceId:$componentId sub $sub op $op (not handled)" }
+    }
+
+    /**
+     * A client script told the server to run its server-side half (IF_SCRIPT_TRIGGER) on [componentId] of [interfaceId],
+     * with [args] decoded by the types [SettingsSide.SCRIPT_TRIGGERS] gives for its id.
+     */
+    fun onScriptTrigger(player: Player, interfaceId: Int, componentId: Int, sub: Int, args: List<Any>) = act(player) {
+        if (player.echoButtons) player.message("Script trigger $interfaceId:$componentId slot $sub args $args")
+        if (interfaceId == SettingsSide.INTERFACE && settingsSide.scriptTrigger(player, componentId, args)) return@act
+        logger.info { "${player.username} triggered a script on $interfaceId:$componentId sub $sub args $args (not handled)" }
     }
 
     /** The player dragged a component's item, from slot [fromSub] onto [toComponentId]'s slot [toSub]. */

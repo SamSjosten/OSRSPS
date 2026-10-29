@@ -4,6 +4,7 @@ import com.displee.cache.CacheLibrary
 import osrsps.game.EquipmentTab
 import osrsps.game.FrameSlot
 import osrsps.game.GameFrame
+import osrsps.game.SettingsSide
 import osrsps.game.bank.BankPinSettings
 import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
@@ -12,7 +13,7 @@ import osrsps.game.dialogue.Chatbox
 import java.nio.charset.Charset
 
 /**
- * Checks [GameFrame]'s, [EquipmentTab]'s, [Chatbox]'s and [BankScreen]'s interface and component ids, and [ChatAnim]'s seqs, against
+ * Checks [GameFrame]'s, [EquipmentTab]'s, [Chatbox]'s, [BankScreen]'s and [SettingsSide]'s interface and component ids, and [ChatAnim]'s seqs, against
  * the names in the cache's gameval index, which Jagex ships with the cache from about rev 230. A mismatch means a
  * revision moved something and the frame will show a missing or wrong panel, or a dialogue a wrong head animation.
  */
@@ -43,7 +44,7 @@ object GameFrameCheck {
             val actual = names(overlay.interfaceId)?.name
             if (actual != overlay.cacheName) problems += "interface ${overlay.interfaceId} should be ${overlay.cacheName} but is $actual"
         }
-        for ((interfaceId, expected) in EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES + BankScreen.CACHE_NAMES + DepositBox.CACHE_NAMES + BankPinSettings.CACHE_NAMES) {
+        for ((interfaceId, expected) in EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES + BankScreen.CACHE_NAMES + DepositBox.CACHE_NAMES + BankPinSettings.CACHE_NAMES + SettingsSide.CACHE_NAMES) {
             val (name, components) = expected
             val interfaceNames = names(interfaceId)
             if (interfaceNames == null || interfaceNames.name != name) {

@@ -40,6 +40,13 @@ class FakeGame implements Game
 	final Map<String, Integer> xps = new HashMap<>();
 	/** The items groundItem finds, as "name" or "name at x y". */
 	final List<String> groundItems = new ArrayList<>();
+	/** The components mouseClickWidget clicked, as "interface:component" or "interface:component slot n". */
+	final List<String> mouseClicks = new ArrayList<>();
+	/** The client scripts runClientScript ran, as "id [args]". */
+	final List<String> scriptsRun = new ArrayList<>();
+	/** What varp and varbit answer by id: the server's value, then the client's; a missing id is null. */
+	final Map<Integer, int[]> varps = new HashMap<>();
+	final Map<Integer, int[]> varbits = new HashMap<>();
 	/** The interfaces interfaceOpen says are open. */
 	final List<Integer> openInterfaces = new ArrayList<>();
 	/** When set, itemOption, wornOption and clickWidget fail with this until cleared. */
@@ -215,6 +222,40 @@ class FakeGame implements Game
 	public int skillXp(String skill)
 	{
 		return xps.getOrDefault(skill, -1);
+	}
+
+	@Override
+	public String mouseClickWidget(int interfaceId, int component, int sub)
+	{
+		if (clickError != null)
+		{
+			return clickError;
+		}
+		mouseClicks.add(interfaceId + ":" + component + (sub < 0 ? "" : " slot " + sub));
+		return null;
+	}
+
+	@Override
+	public String runClientScript(int id, Object[] args)
+	{
+		if (clickError != null)
+		{
+			return clickError;
+		}
+		scriptsRun.add(id + " " + java.util.Arrays.toString(args));
+		return null;
+	}
+
+	@Override
+	public int[] varp(int id)
+	{
+		return varps.get(id);
+	}
+
+	@Override
+	public int[] varbit(int id)
+	{
+		return varbits.get(id);
 	}
 
 	@Override
