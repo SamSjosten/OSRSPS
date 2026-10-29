@@ -112,7 +112,8 @@ class Smithing(private val world: World) {
             player.actionDelay = tick + SINGLE_BAR_TICKS
             player.anim(FURNACE_ANIM)
         }
-        work(Op(OpTarget.LOC, loc.id, option, loc = loc, repeat = true))
+        // As cooking's: the first tick runs with the interactions, so a due bar can't be taken twice on one tick.
+        world.repeatOp(player, Op(OpTarget.LOC, loc.id, option, loc = loc, repeat = true))
     }
 
     private fun hasOres(player: Player, bar: Bar): Boolean = bar.ores.all { (ore, count) -> player.inventory.count(ore) >= count }
@@ -192,7 +193,7 @@ class Smithing(private val world: World) {
             player.vars.setVarbit(VARBIT_LAST_ITEM, component - FIRST_ITEM_COMPONENT + 1)
         }
         jobs[player] = Job(bar, item, quantity, loc)
-        work(Op(OpTarget.LOC, loc.id, optionOf(loc.id, "Smith"), loc = loc, repeat = true))
+        world.repeatOp(player, Op(OpTarget.LOC, loc.id, optionOf(loc.id, "Smith"), loc = loc, repeat = true))
     }
 
     private fun itemName(item: AnvilItem): String = world.objTypes[item.obj]?.name?.lowercase() ?: "item"
@@ -206,7 +207,7 @@ class Smithing(private val world: World) {
 
     // Both.
 
-    /** One tick of smelting or smithing: a bar or item every [CYCLE] ticks, then the re-run. */
+    /** One tick of smelting or smithing: the animation as each starts, a bar or item every [CYCLE] ticks, then the re-run. */
     private fun ScriptContext.work(op: Op) {
         val loc = op.loc ?: return
         val job = jobs[player]
@@ -221,16 +222,18 @@ class Smithing(private val world: World) {
             ClockStep.DUE -> {
                 if (job.item == null) smeltOne(job.bar) else smithOne(job.bar, job.item)
                 job.left--
+                // The next one's animation comes with the clock starting again next tick.
                 if (job.left <= 0 || !canDoOne(job)) return finish(stopAnim = false)
-                player.anim(anim)
             }
         }
         world.repeatOp(player, op)
     }
 
     private fun ScriptContext.canDoOne(job: Job): Boolean {
-        val item = job.item ?: return hasOres(player, job.bar)
-        return player.inventory.count(job.bar.obj) >= item.bars && player.inventory.count(HAMMER) > 0
+        // Guessed: a boost wearing off below the level stops the job without a word.
+        val level = player.skills.currentLevel(Skill.SMITHING)
+        val item = job.item ?: return level >= job.bar.level && hasOres(player, job.bar)
+        return level >= item.level && player.inventory.count(job.bar.obj) >= item.bars && player.inventory.count(HAMMER) > 0
     }
 
     private fun ScriptContext.finish(stopAnim: Boolean = true) {
