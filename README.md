@@ -1031,8 +1031,16 @@ claim it first, then list it.
 Each account is `data/accounts/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/accounts/`), holding a salted
 PBKDF2-HMAC-SHA256 hash (600,000 rounds), never the password. Checking takes a fraction of a second, so it runs on its
 own login thread, not the game thread. A save with no account file (every save from before accounts) is claimed by its
-next login. To reset a forgotten password, delete that name's file on the VM; the next login claims it again (an
-admin's name must come off `OSRSPS_ADMINS` for that login, then go back on):
+next login. To change a password, or set one for a name nobody has claimed (an admin's included), run `set-password`
+on the VM in the running container. It asks twice without echoing, so the password stays out of shell history and
+logs, needs at least 12 characters, and takes effect at the next login with no restart:
+
+```bash
+cd /srv/rsps/OSRSPS && docker compose exec -e JAVA_OPTS=-Xmx64m osrsps bin/osrsps set-password <name>
+```
+
+Deleting that name's file on the VM also resets it, and the next login claims it again (an admin's name must come off
+`OSRSPS_ADMINS` for that login, then go back on):
 
 ```bash
 rm /srv/rsps/OSRSPS/data/accounts/<name>.json

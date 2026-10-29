@@ -1,10 +1,16 @@
 package osrsps.game
 
+import java.nio.channels.FileChannel
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
@@ -25,6 +31,11 @@ class Accounts(
     private val store: SaveStore,
     /** PBKDF2 rounds for a new or changed password; an account keeps the count it was hashed with. */
     private val iterations: Int = ITERATIONS,
+    /**
+     * Held around every account write and the read before a claim. The server and `osrsps set-password` are two
+     * processes writing the same files, so on disk it is a [FileAccountLock]; in memory, with one process, none.
+     */
+    private val lock: AccountLock = AccountLock.NONE,
 ) {
     enum class Check {
         /** The name had no account; it is now claimed with this password. */
@@ -53,12 +64,17 @@ class Accounts(
     fun check(username: String, password: CharArray, mayClaim: Boolean = true): Check {
         if (!validName(username)) return Check.NO_SUCH_NAME
         val key = SaveStore.saveKey(username) ?: return Check.NO_SUCH_NAME
-        val text = store.read(key)
-        if (text == null) {
+        val text = store.read(key) ?: run {
             if (!mayClaim) return Check.NOT_CLAIMABLE
-            val salt = ByteArray(SALT_BYTES).also(salts::nextBytes)
-            store.write(key, toJson(username, iterations, salt, hash(password, salt, iterations)))
-            return Check.CLAIMED
+            // Read again under the lock: `set-password` may have written the name since, and its password wins.
+            lock.withLock {
+                store.read(key).also {
+                    if (it == null) {
+                        val salt = ByteArray(SALT_BYTES).also(salts::nextBytes)
+                        store.write(key, toJson(username, iterations, salt, hash(password, salt, iterations)))
+                    }
+                }
+            } ?: return Check.CLAIMED
         }
         val account = try {
             Json.parseToJsonElement(text).jsonObject
@@ -70,6 +86,20 @@ class Accounts(
         val expected = Base64.getDecoder().decode(account["hash"]!!.jsonPrimitive.content)
         // Constant time, so how long a refusal takes says nothing about how much of the hash matched.
         return if (MessageDigest.isEqual(hash(password, salt, rounds), expected)) Check.MATCHED else Check.WRONG_PASSWORD
+    }
+
+    /**
+     * Sets [username]'s password to [password], claiming the name if nobody has, admin or not: for the server's owner
+     * at the VM (`osrsps set-password`), never a login. False if the name isn't one [validName] or a save takes.
+     * Throws if the account file can't be written.
+     */
+    fun setPassword(username: String, password: CharArray): Boolean {
+        if (!validName(username)) return false
+        val key = SaveStore.saveKey(username) ?: return false
+        val salt = ByteArray(SALT_BYTES).also(salts::nextBytes)
+        val json = toJson(username, iterations, salt, hash(password, salt, iterations))
+        lock.withLock { store.write(key, json) }
+        return true
     }
 
     private fun toJson(username: String, rounds: Int, salt: ByteArray, hash: ByteArray): String = buildJsonObject {
@@ -109,5 +139,37 @@ class Accounts(
         const val ITERATIONS = 600_000
         const val SALT_BYTES = 16
         const val HASH_BITS = 256
+
+        /** The shortest password `osrsps set-password` takes; logins themselves take any (our own rule). */
+        const val MIN_SET_PASSWORD = 12
+    }
+}
+
+/** Keeps two writers of the account files from overlapping; see [Accounts]. */
+interface AccountLock {
+    fun <T> withLock(block: () -> T): T
+
+    companion object {
+        val NONE = object : AccountLock {
+            override fun <T> withLock(block: () -> T): T = block()
+        }
+    }
+}
+
+/**
+ * An OS file lock on `.lock` in the account folder, which the server and `osrsps set-password` both take, so a claim
+ * and a password change can't interleave or share `<key>.json.tmp`. Also locked within the process, by one lock for
+ * every instance, as a JVM may hold a file lock only once and throws on a second.
+ */
+class FileAccountLock(private val dir: Path) : AccountLock {
+    override fun <T> withLock(block: () -> T): T = local.withLock {
+        Files.createDirectories(dir)
+        FileChannel.open(dir.resolve(".lock"), StandardOpenOption.CREATE, StandardOpenOption.WRITE).use { channel ->
+            channel.lock().use { block() }
+        }
+    }
+
+    private companion object {
+        val local = ReentrantLock()
     }
 }
