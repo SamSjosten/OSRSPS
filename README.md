@@ -428,6 +428,29 @@ and account modes, Bob's Repair.
 Check: `test-runner/examples/lumbridge-talk-*.json` talk to each of them through every option with `::keys on`, so
 the dialogue shows each line's key.
 
+## Fred's farm
+
+North-west of the castle, in `npc-spawns/lumbridge-farms.json` on RSMod's tiles: Fred the Farmer, his sheep pen's
+sheep, rams and lambs, and the 33 chickens of the Wiki's Lumbridge West Farm. The code is `game/content/FredsFarm.kt`;
+chickens and rams fight and drop through `npc-combat.json` and `npc-drops.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Fred's talk after Sheep Shearer: what you're doing on his land, then something to kill or being lost | OSRS Wiki, Transcript:Fred the Farmer, read 2026-10-29 |
+| Shear (or shears used on a sheep) needs shears, plays human_shearing, and after two ticks gives a wool (dropped at your feet when the backpack is full); the sheep shows as its sheared type for 50 ticks, then grows its wool back. It never fails | RSMod's sheep script; the Wiki's Sheep page (50 ticks, no failure since 27 October 2019) |
+| A sheep shows as its sheared type through the NPC info's transformation block, for every player; its options and examine are the sheared type's meanwhile (`Npcs.transform`) | RSMod's npcChangeType |
+| Chickens: level 1, 3 hitpoints, stab for 0, back in 25 ticks; always bones and raw chicken, 5 feathers 64/128, 15 feathers 32/128, a beginner clue 1/300 | OSRS Wiki, Chicken |
+| Rams: level 2, 8 hitpoints, crush for 1, back in 45 ticks, weak to fire (20%); always bones | OSRS Wiki, Ram |
+| Pick on an onion takes it for 50 ticks and gives an onion, or says there's no room | the 2004Scape project's pickables script; the Wiki's Onion page (fields respawn in 30 seconds) |
+| Messages: "You need a set of shears to do this.", "You get some wool.", "This sheep has already been shorn.", "You pick an onion.", "You don't have room for this onion." | RSMod and the 2004Scape project, not checked against live |
+| Fred's expressions, the chickens' and rams' fight animations (by name), every wander range (5) | guessed |
+
+Not built yet: the onion seed members sometimes get from a field, the sheep's "Baa!", The Thing and the penguin of Cold
+War (and Fred's option about The Thing), the farmers, and the ducks (the Groats' farm step).
+
+Check: `test-runner/examples/lumbridge-freds-farm.json` talks to Fred, picks an onion, shears a sheep and kills
+chickens for their feathers.
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and

@@ -111,6 +111,28 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `Fred's farm has its sheep, rams and lambs in the pen and 33 chickens, all north-west of the castle`() {
+        val names = mapOf(
+            732 to "fred_the_farmer", 2693 to "sheepunsheered", 2699 to "sheepunsheered3", 2694 to "sheepunsheeredg", 2695 to "sheepunsheeredw",
+            2786 to "sheepunsheered3g", 2787 to "sheepunsheered3w", 1262 to "ramunsheered", 1263 to "ramunsheered2", 1264 to "ramunsheered3",
+            1176 to "lamb1", 1177 to "lamb2", 1301 to "sheepsheered2w", 1308 to "sheepsheered3g", 1173 to "chicken", 1174 to "chicken_brown",
+        )
+        val farmTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-farms.json"), farmTypes, "lumbridge-farms.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(1, spawns.count { it.type.id == 732 })
+        assertEquals(16, spawns.count { it.type.internalName!!.startsWith("sheepunsheered") })
+        assertEquals(4, spawns.count { it.type.internalName!!.startsWith("ram") })
+        assertEquals(33, spawns.count { it.type.internalName!!.startsWith("chicken") })
+        // The farm is west of the River Lum and north of the castle; the two shorn sheep are in the pen west of it.
+        val farm = spawns.filter { !it.type.internalName!!.startsWith("sheepsheered") }
+        assertTrue(farm.all { it.x in 3165..3215 && it.z in 3255..3310 && it.level == 0 })
+        assertTrue(spawns.filter { it.type.internalName!!.startsWith("sheepsheered") }.all { it.x < 3200 && it.z < 3225 })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == 5 })
+    }
+
+    @Test
     fun `every file names only NPCs it can find in a full cache`() {
         // With no types at all every spawn is skipped by name, not dropped silently.
         for (file in NpcSpawnFile.FILES) {

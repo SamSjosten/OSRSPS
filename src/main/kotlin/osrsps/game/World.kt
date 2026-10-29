@@ -71,6 +71,7 @@ import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
+import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
@@ -343,6 +344,7 @@ class World(
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
         registerLumbridgeTown(this)
+        registerFredsFarm(this)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         woodcutting.register()
         loadDialogue()
@@ -627,6 +629,7 @@ class World(
         readInput(ticking = true)
         phase = TickPhase.NPCS
         npcs.countDownFreezes()
+        npcs.countDownTransforms()
         npcInteractions.releaseNpcs()
         // Shots and spells land before NPCs fight, as melee hits from the last tick are already in; a shot NPC strikes from the next.
         rangedCombat.process()
