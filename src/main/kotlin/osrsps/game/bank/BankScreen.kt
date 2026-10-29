@@ -15,11 +15,40 @@ import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.PlayerVars
 import osrsps.game.WearPos
+import osrsps.game.dialogue.DialogueText
+import osrsps.game.dialogue.Line
+import osrsps.game.dialogue.Lines
 import osrsps.game.sendInventory
 import osrsps.game.script.ScriptContext
 import osrsps.game.script.ScriptRunner
 
 private val logger = KotlinLogging.logger {}
+
+/** The bank's messages and its confirm boxes, RSMod's (rev 233) and not checked against live; `{count}` is how many fillers. */
+object BankLines : Lines("bank", "Bank") {
+    val NO_INVENTORY_SPACE = line("no_inventory_space", "withdrawing with a full inventory")
+    val NOT_ENOUGH_SPACE_FOR_ALL = line("not_enough_space_for_all", "withdrawing more than the inventory has room for")
+    val CANNOT_NOTE = line("cannot_note", "withdrawing as a note an item that has no note")
+    val NOT_BANKABLE = line("not_bankable", "depositing an item that can't be banked")
+    val BANK_FULL = line("bank_full", "depositing a new item into a full bank")
+    val FULL_STACK = line("full_stack", "depositing onto a stack already at the most")
+    val NOTHING_TO_DEPOSIT = line("nothing_to_deposit", "Deposit inventory or Deposit worn items with nothing there")
+    val CANNOT_HOLD = line("cannot_hold", "Deposit inventory or worn items when the bank runs out of room")
+    val NONE_BANKABLE = line("none_bankable", "Deposit inventory or worn items when none of them can be banked")
+    val SOME_NOT_BANKABLE = line("some_not_bankable", "Deposit inventory or worn items when some can't be banked")
+    val NEW_TAB = line("new_tab", "clicking the New tab icon")
+    val NO_PLACEHOLDERS = line("no_placeholders", "Remove placeholders on a tab with none")
+    val BANK_ALREADY_FULL = line("bank_already_full", "Fill with a full bank")
+    val FILLER_ADDED = line("filler_added", "Fill adding one bank filler")
+    val FILLERS_ADDED = line("fillers_added", "Fill adding more than one bank filler", "count")
+    val RELEASE_TITLE = line("release_title", "Release all placeholders: the confirm box's title")
+    val RELEASE_TEXT = line("release_text", "Release all placeholders: the confirm box's text, colour tags included")
+    val RELEASE_CONFIRM = line("release_confirm", "Release all placeholders: its confirm button")
+    val CLEAR_FILLERS_TITLE = line("clear_fillers_title", "Clear-All on a bank filler: the confirm box's title")
+    val CLEAR_FILLERS_TEXT = line("clear_fillers_text", "Clear-All on a bank filler: the confirm box's text, colour tags included")
+    val CLEAR_FILLERS_CONFIRM = line("clear_fillers_confirm", "Clear-All on a bank filler: its confirm button")
+    val CANCEL = line("cancel", "both confirm boxes' cancel button")
+}
 
 /**
  * The bank as the player sees it: bankmain (12) over the game view and bankside (15), the inventory beside it, as
@@ -60,6 +89,8 @@ class BankScreen(
     private val wear: (Player, Int) -> Unit,
     /** Takes off what is worn in a wearpos, as the equipment tab's Remove does, and says why not. */
     private val remove: (Player, Int) -> Unit,
+    /** The words of [BankLines] for a player. */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL] == MAIN
@@ -273,7 +304,7 @@ class BankScreen(
             when (op) {
                 MAIN_CLEAR -> bank.discard(player.bank, tabs, slot)
                 MAIN_CLEAR_ALL -> start(player) {
-                    if (confirm(player, CLEAR_FILLERS_TITLE, CLEAR_FILLERS_TEXT, CLEAR_FILLERS_CONFIRM)) bank.clearFillers(player.bank, tabs)
+                    if (confirm(player, BankLines.CLEAR_FILLERS_TITLE, BankLines.CLEAR_FILLERS_TEXT, BankLines.CLEAR_FILLERS_CONFIRM)) bank.clearFillers(player.bank, tabs)
                 }
             }
             return
@@ -306,7 +337,7 @@ class BankScreen(
         if (tab !in 0..Bank.TABS) return
         val tabs = tabs(player)
         if (tab != Bank.MAIN_TAB && tabs[tab] == 0) {
-            message(player, NEW_TAB)
+            message(player, BankLines.NEW_TAB)
             return
         }
         // RSMod closes the search line when a numbered tab is clicked, which the client's switch to it ends anyway.
@@ -315,7 +346,7 @@ class BankScreen(
             1 -> tabs.current = tab
             6 -> if (tab != Bank.MAIN_TAB && !player.scripts.delayed) bank.collapse(player.bank, tabs, tab)
             // RSMod: the main tab's takes only the main tab's placeholders, not every tab's.
-            7 -> if (!player.scripts.delayed && bank.releasePlaceholders(player.bank, tabs, tab) == 0) message(player, NO_PLACEHOLDERS)
+            7 -> if (!player.scripts.delayed && bank.releasePlaceholders(player.bank, tabs, tab) == 0) message(player, BankLines.NO_PLACEHOLDERS)
         }
     }
 
@@ -385,11 +416,11 @@ class BankScreen(
         val notes = player.vars.getVarbitIfKnown(VARBIT_WITHDRAW_NOTES) == 1
         val result = bank.withdraw(player.bank, tabs(player), player.inventory, slot, count, notes, placeholder)
         if (result.count == 0) {
-            if (result.short) message(player, NO_INVENTORY_SPACE)
+            if (result.short) message(player, BankLines.NO_INVENTORY_SPACE)
             return
         }
-        if (result.notNoted) message(player, CANNOT_NOTE)
-        if (result.short) message(player, NOT_ENOUGH_SPACE_FOR_ALL)
+        if (result.notNoted) message(player, BankLines.CANNOT_NOTE)
+        if (result.short) message(player, BankLines.NOT_ENOUGH_SPACE_FOR_ALL)
     }
 
     private fun deposit(player: Player, slot: Int, id: Int, count: Int) {
@@ -400,9 +431,9 @@ class BankScreen(
     internal fun depositFrom(player: Player, from: Inventory, slot: Int, id: Int, count: Int) {
         if (from[slot]?.id != id) return
         when (bank.deposit(player.bank, tabs(player), from, slot, count)) {
-            Bank.Deposit.NotBankable -> message(player, NOT_BANKABLE)
-            Bank.Deposit.BankFull -> message(player, BANK_FULL)
-            Bank.Deposit.FullStack, is Bank.Deposit.Partly -> message(player, FULL_STACK)
+            Bank.Deposit.NotBankable -> message(player, BankLines.NOT_BANKABLE)
+            Bank.Deposit.BankFull -> message(player, BankLines.BANK_FULL)
+            Bank.Deposit.FullStack, is Bank.Deposit.Partly -> message(player, BankLines.FULL_STACK)
             is Bank.Deposit.Done, Bank.Deposit.Nothing -> Unit
         }
     }
@@ -410,14 +441,14 @@ class BankScreen(
     internal fun depositAll(player: Player, from: Inventory) {
         if (player.scripts.delayed) return
         if (from.isEmpty()) {
-            message(player, NOTHING_TO_DEPOSIT)
+            message(player, BankLines.NOTHING_TO_DEPOSIT)
             return
         }
         val result = bank.depositAll(player.bank, tabs(player), from)
         when {
-            result.noRoom > 0 -> message(player, CANNOT_HOLD)
-            result.notBankable > 0 && result.deposited == 0 -> message(player, NONE_BANKABLE)
-            result.notBankable > 0 -> message(player, SOME_NOT_BANKABLE)
+            result.noRoom > 0 -> message(player, BankLines.CANNOT_HOLD)
+            result.notBankable > 0 && result.deposited == 0 -> message(player, BankLines.NONE_BANKABLE)
+            result.notBankable > 0 -> message(player, BankLines.SOME_NOT_BANKABLE)
         }
     }
 
@@ -438,14 +469,14 @@ class BankScreen(
     private fun releaseAllPlaceholders(player: Player) {
         if (!bank.hasPlaceholders(player.bank)) return
         start(player) {
-            if (confirm(player, RELEASE_TITLE, RELEASE_TEXT, RELEASE_CONFIRM)) bank.releasePlaceholders(player.bank, tabs(player), null)
+            if (confirm(player, BankLines.RELEASE_TITLE, BankLines.RELEASE_TEXT, BankLines.RELEASE_CONFIRM)) bank.releasePlaceholders(player.bank, tabs(player), null)
         }
     }
 
     /** The settings menu's Fill: as many fillers as the filler mode says, asking for X. Messages are RSMod's. */
     private fun fill(player: Player) {
         if (bank.used(player.bank) >= bank.capacity()) {
-            message(player, BANK_ALREADY_FULL)
+            message(player, BankLines.BANK_ALREADY_FULL)
             return
         }
         start(player) {
@@ -458,7 +489,11 @@ class BankScreen(
             }
             if (count <= 0 || !isOpen(player)) return@start
             val added = bank.addFillers(player.bank, tabs(player), count)
-            message(player, if (added == 0) BANK_ALREADY_FULL else "You add $added ${if (added == 1) "bank filler" else "bank fillers"} to your bank.")
+            when (added) {
+                0 -> message(player, BankLines.BANK_ALREADY_FULL)
+                1 -> message(player, BankLines.FILLER_ADDED)
+                else -> message(player, BankLines.FILLERS_ADDED, "count" to added)
+            }
         }
     }
 
@@ -466,9 +501,11 @@ class BankScreen(
      * Asks to confirm in popupoverlay over the bank, as RSMod's confirmOverlay does: script4212 fills it in, and its
      * buttons send resume_p_countdialog 0 (Cancel) or 1. False when cancelled or the bank closed meanwhile.
      */
-    private suspend fun ScriptContext.confirm(player: Player, title: String, text: String, confirm: String): Boolean {
+    private suspend fun ScriptContext.confirm(player: Player, title: Line, body: Line, confirm: Line): Boolean {
+        val text = words(player)
+        val shown = "${text[title]}|${text[body]}|<col=ff0000>${text[BankLines.CANCEL]}</col>|<col=0dc10d>${text[confirm]}</col>"
         send(player, IfOpenSub(MAIN, POPUP, POPUPOVERLAY, OVERLAY))
-        send(player, RunClientScript(CONFIRM_OVERLAY_SCRIPT, listOf("$title|$text|$CANCEL|$confirm", MAIN shl 16 or POPUP)))
+        send(player, RunClientScript(CONFIRM_OVERLAY_SCRIPT, listOf(shown, MAIN shl 16 or POPUP)))
         val answer = waitForCount()
         if (!isOpen(player)) return false
         send(player, IfCloseSub(MAIN, POPUP))
@@ -506,7 +543,8 @@ class BankScreen(
 
     private fun setFillerMode(player: Player, mode: Int) = player.vars.setVarbitIfKnown(VARBIT_FILLER_MODE, mode)
 
-    private fun message(player: Player, text: String) = send(player, MessageGame(CHATTYPE_GAMEMESSAGE, text))
+    private fun message(player: Player, line: Line, vararg values: Pair<String, Any>) =
+        send(player, MessageGame(CHATTYPE_GAMEMESSAGE, words(player).get(line, *values)))
 
     /** The tab sizes and the tab being viewed, in the bank_tab_1 to 9 and bank_currenttab varbits. */
     private class VarbitTabs(private val vars: PlayerVars) : BankTabs {
@@ -680,26 +718,6 @@ class BankScreen(
 
         fun opMask(ops: IntRange): Int = ops.fold(0) { mask, op -> mask or (1 shl (op - 1)) }
 
-        const val NO_INVENTORY_SPACE = "You don't have enough inventory space."
-        const val NOT_ENOUGH_SPACE_FOR_ALL = "You don't have enough inventory space to withdraw that many."
-        const val CANNOT_NOTE = "This item cannot be withdrawn as a note."
-        const val NOT_BANKABLE = "A magical force prevents you from banking this item!"
-        const val BANK_FULL = "You don't have enough space in your bank account."
-        const val FULL_STACK = "You already have a full stack of that item in the bank."
-        const val NOTHING_TO_DEPOSIT = "You have nothing to deposit."
-        const val CANNOT_HOLD = "Your bank cannot hold your items."
-        const val NONE_BANKABLE = "Your items cannot be stored in the bank."
-        const val SOME_NOT_BANKABLE = "Some of your items cannot be stored in the bank."
-        const val NEW_TAB = "To create a new tab, drag items from your bank onto this tab."
-        const val NO_PLACEHOLDERS = "You don't have any placeholders to release."
-        const val BANK_ALREADY_FULL = "Your bank is already full, so there is no reason to add any bank fillers."
-        const val RELEASE_TITLE = "Release all placeholders?"
-        const val RELEASE_TEXT = "This option will release <col=ffb83f>all</col> the placeholders throughout your <col=ffb83f>whole bank</col>.<br><br>Are you sure?"
-        const val RELEASE_CONFIRM = "<col=0dc10d>Release them all</col>"
-        const val CLEAR_FILLERS_TITLE = "Clear all fillers?"
-        const val CLEAR_FILLERS_TEXT = "This option will clear <col=ffb83f>all</col> the bank fillers throughout your <col=ffb83f>whole bank</col>.<br><br>Are you sure?"
-        const val CLEAR_FILLERS_CONFIRM = "<col=0dc10d>Clear them all</col>"
-        private const val CANCEL = "<col=ff0000>Cancel</col>"
         private const val CHATTYPE_GAMEMESSAGE = 0
 
         /** Every id above with its gameval name in the 241 cache, for [osrsps.cache.GameFrameCheck]. */

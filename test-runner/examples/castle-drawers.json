@@ -7,6 +7,11 @@
   },
   {
    "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
    "text": "::tele 3212 3216 1",
    "expectMessage": "Teleported to 3212, 3216, 1"
   },
@@ -33,7 +38,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "The drawers are empty."
+   "contains": "[search.drawers_empty]"
   },
   {
    "step": "locOption",

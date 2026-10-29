@@ -9,6 +9,8 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.game.content.Bones
+import osrsps.game.content.BonesLines
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -57,8 +59,8 @@ class HeadlessBonesTest {
                 client.command("item $BONES 2")
                 val slot = client.slotOf(BONES)
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, BURY_BUTTON_OP, slot, BONES)
-                client.seen(Bones.DIG)
-                client.seen(Bones.BURIED)
+                client.seen(DialogueText.NONE[BonesLines.DIG])
+                client.seen(DialogueText.NONE[BonesLines.BURIED])
                 client.await("one bone left") { if (client.inventory(BACKPACK).count { it?.id == BONES } == 1) Unit else null }
                 // 45 tenths: the stat packet carries whole XP.
                 assertEquals(4, client.await("Prayer XP") { client.stat(PRAYER)?.takeIf { it.xp > 0 } }.xp)

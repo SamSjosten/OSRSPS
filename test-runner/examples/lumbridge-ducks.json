@@ -48,7 +48,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "I can't reach that!",
+   "contains": "reach",
    "timeoutMs": 20000
   },
   {

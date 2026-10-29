@@ -7,6 +7,11 @@
   },
   {
    "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
    "text": "::scenario lumbridge-bare",
    "expectMessage": "Started scenario lumbridge-bare.",
    "comment": "an empty backpack; ::reset at the end puts it back"
@@ -46,7 +51,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "Pot: currently costs 1 coin."
+   "contains": "[shop.costs_one item=Pot]"
   },
   {
    "step": "clickWidget",
@@ -81,7 +86,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "Pot: shop will buy for 0 coins."
+   "contains": "[shop.buys_for item=Pot price=0]"
   },
   {
    "step": "clickWidget",
@@ -207,7 +212,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You can't sell this item to this shop."
+   "contains": "[shop.wrong_shop]"
   },
   {
    "step": "clickWidget",
@@ -219,7 +224,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "Bronze axe: currently costs"
+   "contains": "[shop.costs item=Bronze axe price="
   },
   {
    "step": "clickWidget",

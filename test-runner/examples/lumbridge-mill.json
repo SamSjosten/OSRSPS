@@ -180,7 +180,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "The flour bin is already empty."
+   "contains": "[mill.bin_empty]"
   },
   {
    "step": "command",
@@ -197,7 +197,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You pick some grain."
+   "contains": "[crop.grain_picked]"
   },
   {
    "step": "assertInventory",
@@ -259,7 +259,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You operate the empty hopper. Nothing interesting happens."
+   "contains": "[mill.empty_hopper]"
   },
   {
    "step": "waitTicks",
@@ -275,7 +275,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You put the grain in the hopper."
+   "contains": "[mill.put_grain]"
   },
   {
    "step": "assertAnimation",
@@ -295,7 +295,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "There is already grain in the hopper."
+   "contains": "[mill.already_grain]"
   },
   {
    "step": "locOption",
@@ -306,7 +306,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You operate the hopper. The grain slides down the chute."
+   "contains": "[mill.operated]"
   },
   {
    "step": "assertVarbit",
@@ -329,7 +329,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You put the grain in the hopper."
+   "contains": "[mill.put_grain]"
   },
   {
    "step": "locOption",
@@ -340,7 +340,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "The grain slides down the chute."
+   "contains": "[mill.operated]"
   },
   {
    "step": "assertVarbit",
@@ -387,7 +387,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You need an empty pot to hold the flour in."
+   "contains": "[mill.no_pot]"
   },
   {
    "step": "command",
@@ -403,7 +403,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You fill a pot with flour from the bin."
+   "contains": "[mill.filled_pot]"
   },
   {
    "step": "assertInventory",
@@ -419,7 +419,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You fill a pot with the last of the flour in the bin."
+   "contains": "[mill.last_pot]"
   },
   {
    "step": "assertInventory",
@@ -622,7 +622,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You milk the cow."
+   "contains": "[dairy_cow.milked]"
   },
   {
    "step": "assertAnimation",

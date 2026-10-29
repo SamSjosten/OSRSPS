@@ -259,6 +259,7 @@ class World(
         bonuses = equipment::bonuses,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
         remove = { player, wearpos -> equipmentTab.remove(player, wearpos) },
+        words = ::textFor,
     )
 
     /** Bank deposit boxes; see [DepositBox]. */
@@ -274,7 +275,7 @@ class World(
     private val allSettings = AllSettings(settings, interfaces)
 
     /** Shops and their shared stock; see [ShopScreen]. */
-    val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine)
+    val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells)
 
