@@ -319,6 +319,23 @@ nest in its slot and puts its seed, ring or egg in the backpack.
 | Searching needs a free slot, whatever is in the nest (so a full backpack can't reroll it) | guessed |
 | Out: clue nests, Forestry, the strung rabbit foot, twitcher's gloves | out of scope |
 
+### Firemaking
+
+A tinderbox used on logs drops them and lights them on the player's tile; Light on logs on the ground lights them
+there (`game/skill/Firemaking.kt`, words under `firemaking.*`). A lit fire is loc 26185 and leaves ashes when it goes
+out. Ops on items on the ground can now re-run each tick too (`World.repeatOp`, `GroundObjs.repeat`).
+
+| Firemaking behaviour | Source |
+|----------------------|--------|
+| Levels and XP for every log from normal to redwood | OSRS Wiki, Firemaking |
+| 65/256 at level 1 to 513/256 at 99 (sure from 43), the 64/512 pair | OSRS Wiki (crowdsourced there), 2004Scape's script rolls the same |
+| The player steps west, else east, south, north | OSRS Wiki |
+| A strike, then a roll every 4 ticks; the next log can roll 4 ticks after a fire is lit | 2004Scape firemaking script |
+| No fire on a tile with a loc on it or one that blocks walking | 2004Scape |
+| A fire burns 100 to 199 ticks, then ashes for 100 ticks | 2004Scape; the Wiki says only "a short while" |
+| The step off the fire is walked (2004Scape moves the player at once); fires allowed in banks | guessed |
+| Out: bows as tinderboxes, coloured logs, Forester's campfires, a tinderbox used on logs on the ground | out of scope |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for

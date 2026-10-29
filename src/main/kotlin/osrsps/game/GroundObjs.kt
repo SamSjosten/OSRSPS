@@ -203,7 +203,8 @@ class GroundObjs(
         return objs.size
     }
 
-    private fun remove(obj: ZoneObj): Boolean {
+    /** Takes [obj] off the ground, as content using it up does. Returns false if it was already gone. */
+    fun remove(obj: ZoneObj): Boolean {
         if (!zones.removeObj(obj)) return false
         timed -= obj
         spawned.remove(obj)?.let { respawns += Respawn(it, respawnDelay(it)) }
@@ -283,11 +284,28 @@ class GroundObjs(
     }
 
     /**
+     * Runs option [option] on [obj] again from the next tick's movement phase, as RS2's `p_opobj` does: the way lighting
+     * logs keeps going. As for a loc ([osrsps.game.loc.LocInteractions.repeat]), anything that replaces the player's
+     * interaction ends it, and so does the obj going. The handler gets an [Op] with [Op.repeat] set.
+     */
+    fun repeat(player: Player, obj: ZoneObj, option: Int) {
+        player.interaction = GroundObjInteraction(obj.id, obj.x, obj.z, obj.level, option, repeat = true)
+    }
+
+    /**
      * Walking to obj [id] on [x], [z] to use [option] on it. An obj on a tile the player can walk on is reached by
      * standing on it; one on a tile they can't (a table) from any tile beside it with no wall between, as a 1x1 ground
      * decoration is (see [Reach]). Inferred from how items on tables work on live and RSMod's reach rule, not measured.
      */
-    inner class GroundObjInteraction(val id: Int, val x: Int, val z: Int, val level: Int, val option: Int) : Interaction {
+    inner class GroundObjInteraction(
+        val id: Int,
+        val x: Int,
+        val z: Int,
+        val level: Int,
+        val option: Int,
+        /** Set by [repeat]: the handler asked to run again, the player didn't click. */
+        val repeat: Boolean = false,
+    ) : Interaction {
         /** Where the route goes; decided at the click, so a table put down meanwhile doesn't move it. */
         val target: RouteTarget =
             if (collision[x, z, level] and CollisionFlag.BLOCK_WALK == 0) RouteTarget.tile(x, z)
@@ -295,11 +313,12 @@ class GroundObjs(
 
         override fun tryInteract(player: Player): Boolean {
             if (player.level != level) return true
-            // Guessed: an obj that vanished while the player walked to it just ends the walk, with no message.
-            val obj = find(player, id, x, z, level) ?: return true
+            // Guessed: an obj that vanished while the player walked to it just ends the walk, with no message. A
+            // re-running action on it (lighting logs someone took) stops its animation, as for a loc.
+            val obj = find(player, id, x, z, level) ?: return true.also { if (repeat) player.anim(-1) }
             if (!Reach.reached(collision, level, player.x, player.z, target)) return false
             player.waypoints.clear()
-            run(player, obj, option, far = player.x != x || player.z != z)
+            run(player, obj, option, far = player.x != x || player.z != z, repeat = repeat)
             return true
         }
     }
@@ -308,8 +327,8 @@ class GroundObjs(
      * The player reached [obj]: the content handler for [option] runs if there is one, else Take for op3. Taking from
      * beside the tile waits a tick, then plays human_pickuptable (seq 832), as RSMod does (rev 233).
      */
-    private fun run(player: Player, obj: ZoneObj, option: Int, far: Boolean) {
-        if (scripts.trigger(player, Op(OpTarget.GROUND_OBJ, obj.id, option, groundObj = obj))) return
+    private fun run(player: Player, obj: ZoneObj, option: Int, far: Boolean, repeat: Boolean = false) {
+        if (scripts.trigger(player, Op(OpTarget.GROUND_OBJ, obj.id, option, groundObj = obj, repeat = repeat))) return
         if (option != TAKE_OPTION) {
             message(player, InventoryTab.NOTHING_INTERESTING)
             return
