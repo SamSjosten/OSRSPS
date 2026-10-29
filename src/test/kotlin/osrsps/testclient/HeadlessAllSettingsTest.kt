@@ -11,6 +11,8 @@ import osrsps.game.AllSettings
 import osrsps.game.AllSettings.Companion.CATEGORIES_CLICKZONE
 import osrsps.game.AllSettings.Companion.CLOSE
 import osrsps.game.AllSettings.Companion.DECLUTTER_TOGGLE
+import osrsps.game.AllSettings.Companion.DROPDOWN_BUTTONS
+import osrsps.game.AllSettings.Companion.DROPDOWN_CLOSE
 import osrsps.game.AllSettings.Companion.INTERFACE
 import osrsps.game.AllSettings.Companion.SEARCH
 import osrsps.game.AllSettings.Companion.SETTINGS_CLICKZONE
@@ -21,6 +23,7 @@ import osrsps.game.SettingRow
 import osrsps.game.SettingVar
 import osrsps.game.SettingsCatalog
 import osrsps.game.SettingsCategory
+import osrsps.game.GameFrame
 import osrsps.game.SettingsSide
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
@@ -154,6 +157,93 @@ class HeadlessAllSettingsTest {
         }
     }
 
+    @Test
+    fun `a dropdown or keybind stores the option picked from its list, and holds past a relog`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                open(client)
+                assertTrue(client.opEnabled(INTERFACE, DROPDOWN_BUTTONS, CATALOG.maxOptions * 3 - 1, 1))
+                // Tab 3 (Leagues has none): its rows from clickzone child 0.
+                client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 3)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 4, 4, CONTROLS)
+
+                // Chatbox scrollbar side, option 1 of 2 (its third child, 3 * 1 + 2).
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 0)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 5)
+                client.awaitBits(CHAT_FILTER_ASSIST, 28, 1, 1)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 8, 10, SCROLLBAR_SIDE)
+                // The list closed with the pick: another click on the options does nothing.
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 2)
+                // An option's other two children have no op, and "Close dropdown" closes the list.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 0)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 1)
+                client.ifButton(INTERFACE, DROPDOWN_CLOSE, 1)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 2)
+                client.awaitTicks(2)
+                assertEquals(1, (client.varp(CHAT_FILTER_ASSIST) ushr 28) and 1)
+
+                // Combat tab on F5, then prayer on F5 too: combat loses it. Option 14 is past the list's end.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 1)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 3 * 5 + 2)
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 0, 5, 5)
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 2)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 3 * 14 + 2)
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 2)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 3 * 5 + 2)
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 25, 5, 5)
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 0, 5, 0)
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 1)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 3 * 13 + 2)
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 0, 5, 13)
+
+                // Login/logout notifications, two varbits behind one getter.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 5)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 3 * 2 + 2)
+                client.awaitBits(CHAT_FILTER_ASSIST_2, 0, 2, 2)
+
+                // Run invert needs roofs hidden first; its list never opens until then.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 6)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 3 * 2 + 2)
+                client.awaitTicks(2)
+                assertEquals(0, (client.varp(SETTINGS_VARP_3) ushr 17) and 3)
+
+                client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.awaitNobodyOn()
+            server.login("erin").use { client ->
+                client.awaitBits(CHAT_FILTER_ASSIST, 28, 1, 1)
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 0, 5, 13)
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 25, 5, 5)
+                client.awaitBits(CHAT_FILTER_ASSIST_2, 0, 2, 2)
+            }
+        }
+    }
+
+    @Test
+    fun `the volume sliders and the layout dropdown reach the server`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { client ->
+                open(client)
+                client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 3)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 4, 4, CONTROLS)
+                // settings_master_volume_pos sends (319, volume) from the slider's clickzone child; a child that isn't
+                // that slider's is ignored.
+                client.ifScriptTrigger(INTERFACE, SETTINGS_CLICKZONE, VOLUME_SCRIPT, 319, 2, sub = 0)
+                client.ifScriptTrigger(INTERFACE, SETTINGS_CLICKZONE, VOLUME_SCRIPT, 319, 40, sub = 3)
+                client.await("master volume 40") { Unit.takeIf { client.varp(SettingsSide.VARP_MASTER_VOLUME) == 40 } }
+                client.ifScriptTrigger(INTERFACE, SETTINGS_CLICKZONE, VOLUME_SCRIPT, 319, 250, sub = 3)
+                client.await("master volume 100") { Unit.takeIf { client.varp(SettingsSide.VARP_MASTER_VOLUME) == 100 } }
+
+                // "Game client layout" option 1, resizable classic: the frame moves and the window with it.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 4)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 3 * 1 + 2)
+                client.await("the resizable frame") { Unit.takeIf { GameFrame.RESIZABLE_CLASSIC.interfaceId in client.openInterfaces() } }
+                assertTrue(INTERFACE in client.openInterfaces())
+            }
+        }
+    }
+
     private fun open(client: HeadlessClient) {
         client.await("the login rebuild") { client.position }
         client.ifButton(SettingsSide.INTERFACE, SettingsSide.SETTINGS_OPEN, 1)
@@ -184,25 +274,48 @@ class HeadlessAllSettingsTest {
         const val OPTIONS_VARP = 3552
         const val VARP_CHATFILTER_DISABLED = 1074
         const val LEAGUE_VARP = 4000
+        const val SIDESTONE_KEYBINDINGS_1 = 1224
+        const val CHAT_FILTER_ASSIST_2 = 3053
+        const val SETTINGS_VARP_3 = 3075
+        val VOLUME_SCRIPT = AllSettings.SCRIPT_TRIGGERS.keys.single()
 
         const val ROOFS = 7
         const val CHAT = 2
+        const val CONTROLS = 3
+        const val SCROLLBAR_SIDE = 1
 
         /** The 241 cache's option_hide_rooftops and wiki_icon_disabled, and a made-up one for the league row. */
         val TEST_VARBITS = mapOf(
             12378 to VarbitType(SETTINGS_VARP_2, 31, 31),
             10113 to VarbitType(MOBILE_OPTIONS_TRANSMIT, 6, 6),
             90000 to VarbitType(LEAGUE_VARP, 0, 0),
+            // chatbox_scrollbarside, stone_combat_key, stone_prayer_key, runinvert_mode.
+            6374 to VarbitType(CHAT_FILTER_ASSIST, 28, 28),
+            4675 to VarbitType(SIDESTONE_KEYBINDINGS_1, 0, 4),
+            4680 to VarbitType(SIDESTONE_KEYBINDINGS_1, 25, 29),
+            13132 to VarbitType(SETTINGS_VARP_3, 17, 18),
         )
 
-        fun row(struct: Int, id: Int, kind: Int = SettingRow.KIND_TOGGLE, vararg params: Pair<Int, Int>, requires: List<SettingDependency> = emptyList()) =
-            SettingRow(struct, mapOf(SettingRow.PARAM_ID to id, SettingRow.PARAM_KIND to kind) + params, requires)
+        /** enum 1161, the keybinds' key enum. */
+        val F_KEYS = (1..13).associateWith { it }
+
+        fun row(
+            struct: Int, id: Int, kind: Int = SettingRow.KIND_TOGGLE, vararg params: Pair<Int, Int>,
+            requires: List<SettingDependency> = emptyList(), options: Int = 0,
+        ) = SettingRow(struct, mapOf(SettingRow.PARAM_ID to id, SettingRow.PARAM_KIND to kind) + params, requires, options = options)
 
         val ROWS = listOf(
             row(1, ROOFS), row(2, 0, kind = 5), row(3, 8), row(4, 9),
             row(5, 100),
             row(6, 161), row(7, 162, requires = listOf(SettingDependency(6, 1))), row(8, 37),
             row(9, 300, SettingRow.KIND_TOGGLE, AllSettings.PARAM_LEAGUE_ONLY to 1),
+            // Controls: scrollbar side, two keybinds, master volume, client layout, login notifications, run invert.
+            row(10, SCROLLBAR_SIDE, SettingRow.KIND_DROPDOWN, options = 2),
+            row(11, 16, SettingRow.KIND_KEYBIND, options = 14), row(12, 17, SettingRow.KIND_KEYBIND, options = 14),
+            row(13, 319, SettingRow.KIND_SLIDER),
+            row(14, AllSettings.CLIENT_LAYOUT_DROPDOWN, SettingRow.KIND_DROPDOWN, options = 3),
+            row(15, AllSettings.LOGIN_LOGOUT_DROPDOWN, SettingRow.KIND_DROPDOWN, options = 3),
+            row(16, 207, SettingRow.KIND_DROPDOWN, options = 4, requires = listOf(SettingDependency(1, 1))),
         ).associateBy { it.struct }
 
         /** Shaped like enum 422: Activities, Popout (enhanced client only), Chat, Leagues. */
@@ -212,6 +325,7 @@ class HeadlessAllSettingsTest {
                 SettingsCategory(4494, 8, mapOf(AllSettings.PARAM_ENHANCED_ONLY to 1), listOf(ROWS.getValue(5))),
                 SettingsCategory(913, CHAT, emptyMap(), listOf(6, 7, 8).map(ROWS::getValue)),
                 SettingsCategory(AllSettings.LEAGUES_CATEGORY_STRUCT, 9, emptyMap(), listOf(ROWS.getValue(9))),
+                SettingsCategory(2000, CONTROLS, emptyMap(), (10..16).map(ROWS::getValue)),
             ),
             ROWS,
             mapOf(
@@ -224,7 +338,8 @@ class HeadlessAllSettingsTest {
                 37 to SettingVar.Varp(VARP_CHATFILTER_DISABLED),
                 300 to SettingVar.Varbit(90000),
             ),
-            emptyMap(),
+            mapOf(SCROLLBAR_SIDE to SettingVar.Varbit(6374), 207 to SettingVar.Varbit(13132)),
+            mapOf(16 to SettingVar.Mapped(SettingVar.Varbit(4675), F_KEYS, 0), 17 to SettingVar.Mapped(SettingVar.Varbit(4680), F_KEYS, 0)),
         )
     }
 }
