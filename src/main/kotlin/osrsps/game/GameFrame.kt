@@ -60,14 +60,16 @@ enum class GameFrame(
         const val SIDEBUTTON_SWITCH_SCRIPT = 915
         const val SIDE_TAB_COMBAT = 0
         const val SIDE_TAB_WORN = 4
+        const val SIDE_TAB_PRAYER = 5
 
         /** Varbit resizable_stone_arrangement (4607) is bit 8 of this varp in the 241 cache. */
         const val STONE_ARRANGEMENT_VARP = 1055
         const val STONE_ARRANGEMENT_BIT = 8
 
-        /** The minimap orbs and the run orb's button, orbs:runbutton. */
+        /** The minimap orbs, the run orb's button (orbs:runbutton) and the prayer orb's (orbs:prayerbutton: op 1 the quick prayers, op 2 Setup). */
         const val ORBS = 160
         const val ORBS_RUN_BUTTON = 28
+        const val ORBS_PRAYER_BUTTON = 20
 
         /** The settings side panel and its "Game client layout" dropdown, settings_side:display_dynamic_setting_1_buttons. */
         const val SETTINGS_SIDE = 116

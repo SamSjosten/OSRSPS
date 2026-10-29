@@ -106,6 +106,15 @@ data class PrayerBoosts(
  * Every account has Chivalry and Piety (Knight Waves, after King's Ransom) and Rigour, Augury and Preserve (the
  * Chambers of Xeric scrolls) unlocked, as every account has every quest done ([osrsps.game.Quests]); [unlockAll] sets
  * the varbits the client checks before it lets them be clicked.
+ *
+ * Quick prayers (OSRS Wiki, Prayer: the orb's left-click turns a chosen group on or off, its Setup picks the group):
+ * the group is varbit quickprayer_selected ([VARP_QUICK_PRAYERS]'s bits, the same bit per prayer as varp 83), kept
+ * with the account; the orb's state is varbit quickprayer_active ([VARP_QUICK_ACTIVE]'s bit 0). The client flips both
+ * itself when clicked (client scripts orbs_toggle_prayer and quickprayer_button_op), so the server's varps settle
+ * them. [toggleQuick] and [selectQuick] follow RSMod's QuickPrayerScript (rev 233), not checked on live: the group
+ * replaces the prayers on, turning the orb off turns every prayer off (the Wiki's "double left-clicking" turns all
+ * prayers off), every prayer going off turns the orb off, and picking a prayer for the group drops the ones it can't be
+ * on with. Its messages are RSMod's.
  */
 class Prayers(
     val all: List<Prayer>,
@@ -190,9 +199,76 @@ class Prayers(
     private fun refusal(player: Player, prayer: Prayer): String? = when {
         player.dead -> ""
         player.skills.currentLevel(Skill.PRAYER) <= 0 -> ""
+        else -> levelRefusal(player, prayer)
+    }
+
+    /** Why [player]'s levels don't let them use [prayer], null when they do. */
+    private fun levelRefusal(player: Player, prayer: Prayer): String? = when {
         player.skills.baseLevel(Skill.PRAYER) < prayer.level -> "You need a Prayer level of ${prayer.level} to use ${prayer.name}."
         player.skills.baseLevel(Skill.DEFENCE) < prayer.defence -> "You need a Prayer level of ${prayer.level} and a Defence level of ${prayer.defence} to use ${prayer.name}."
         else -> null
+    }
+
+    /** The quick prayers [player] picked, as varp 83's bits. */
+    fun quickSelected(player: Player): Int = player.vars[VARP_QUICK_PRAYERS] and ALL_BITS
+
+    /** Whether [player]'s quick prayer orb is on. */
+    fun quickActive(player: Player): Boolean = player.vars[VARP_QUICK_ACTIVE] and 1 != 0
+
+    private fun setQuickActive(player: Player, active: Boolean) {
+        player.vars[VARP_QUICK_ACTIVE] = (player.vars[VARP_QUICK_ACTIVE] and 1.inv()) or if (active) 1 else 0
+    }
+
+    /**
+     * The quick prayer orb's left-click: on, the picked prayers replace the ones on (those [player]'s levels still allow,
+     * each with its sound); off, every prayer goes off. Refused, the orb the client already flipped is put back.
+     */
+    fun toggleQuick(player: Player) {
+        if (quickActive(player)) {
+            set(player, 0)
+            sound(player, DEACTIVATE_SOUND)
+            return
+        }
+        val chosen = all.filter { quickSelected(player) and it.mask != 0 && levelRefusal(player, it) == null }
+        val reason = when {
+            player.dead -> ""
+            quickSelected(player) == 0 -> NO_QUICK_PRAYERS
+            player.skills.currentLevel(Skill.PRAYER) <= 0 -> QUICK_OUT_OF_POINTS
+            chosen.isEmpty() -> ""
+            else -> null
+        }
+        if (reason != null) {
+            player.vars.resend(VARP_QUICK_ACTIVE)
+            if (reason.isNotEmpty()) message(player, reason)
+            return
+        }
+        val bits = chosen.fold(0) { mask, it -> mask or it.mask }
+        player.prayersActivated = player.prayersActivated or (bits and active(player).inv())
+        set(player, bits)
+        setQuickActive(player, true)
+        for (prayer in chosen) sound(player, prayer.sound)
+    }
+
+    /**
+     * A prayer clicked in the quick prayer setup, by its [bit]: picked, the ones it can't be on with are dropped; refused
+     * for [player]'s levels, the client's copy is put back. Returns false when no prayer has that bit.
+     */
+    fun selectQuick(player: Player, bit: Int): Boolean {
+        val prayer = all.firstOrNull { it.bit == bit } ?: return false
+        val selected = quickSelected(player)
+        val after = if (selected and prayer.mask != 0) {
+            selected and prayer.mask.inv()
+        } else {
+            val reason = levelRefusal(player, prayer)
+            if (reason != null) {
+                player.vars.resend(VARP_QUICK_PRAYERS)
+                message(player, reason)
+                return true
+            }
+            (selected and conflicts.getValue(prayer).inv()) or prayer.mask
+        }
+        player.vars[VARP_QUICK_PRAYERS] = (player.vars[VARP_QUICK_PRAYERS] and ALL_BITS.inv()) or after
+        return true
     }
 
     private fun set(player: Player, bits: Int) {
@@ -202,7 +278,10 @@ class Prayers(
         if (rapidHeal != null && (before xor bits) and rapidHeal.mask != 0) {
             player.hitpointsRegenTicks = if (bits and rapidHeal.mask != 0) RAPID_HEAL_TICKS else MeleeCombat.REGEN_TICKS
         }
-        if (bits == 0) player.prayerDrainCounter = 0
+        if (bits == 0) {
+            player.prayerDrainCounter = 0
+            if (quickActive(player)) setQuickActive(player, false)
+        }
         val overhead = all.firstOrNull { it.overhead >= 0 && bits and it.mask != 0 }?.overhead ?: -1
         if (overhead != player.overheadIcon) {
             player.overheadIcon = overhead
@@ -261,6 +340,20 @@ class Prayers(
         /** prayer0: bits 0 to 28 are varbit prayer_allactive (4101), the standard book's prayers. */
         const val VARP_PRAYERS = 83
         const val ALL_BITS = (1 shl 29) - 1
+
+        /** prayer1: bits 0 to 28 are varbit quickprayer_selected (4102), with varp 83's bits. */
+        const val VARP_QUICK_PRAYERS = 84
+
+        /** armourhitsound: bit 0 is varbit quickprayer_active (4103). */
+        const val VARP_QUICK_ACTIVE = 375
+
+        /** The quick prayer setup (quickprayer), opened in the prayer book's place: its prayers (client-made children of buttons, by bit) and Done. */
+        const val QUICKPRAYER = 77
+        const val QUICKPRAYER_BUTTONS = 4
+        const val QUICKPRAYER_CLOSE = 5
+
+        const val NO_QUICK_PRAYERS = "You haven't selected any quick-prayers."
+        const val QUICK_OUT_OF_POINTS = "You've run out of prayer points."
 
         /** RuneLite's SoundEffectID: PRAYER_DEACTIVE_VWOOP and PRAYER_DEPLETE_TWINKLE. */
         const val DEACTIVATE_SOUND = 2663

@@ -1224,6 +1224,14 @@ class World(
             player.runEnabled = !player.runEnabled
             return@act
         }
+        if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_PRAYER_BUTTON) {
+            when (op) {
+                1 -> prayers.toggleQuick(player)
+                2 -> openQuickPrayerSetup(player)
+            }
+            return@act
+        }
+        if (interfaceId == Prayers.QUICKPRAYER && clickQuickPrayerSetup(player, componentId, sub)) return@act
         if (interfaceId == GameFrame.SETTINGS_SIDE && componentId == GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS) {
             val frame = GameFrame.forLayoutOption(sub)
             if (frame != null) interfaces.requestFrame(player, frame, tick)
@@ -1553,6 +1561,26 @@ class World(
             return
         }
         session.flush()
+    }
+
+    /**
+     * The prayer orb's Setup: the quick prayer setup in the prayer book's place, its prayers (one client-made child per
+     * bit, laid out by its onload script quickprayer_init) clickable, and the prayer tab shown. As RSMod opens it.
+     */
+    private fun openQuickPrayerSetup(player: Player) {
+        interfaces.openSide(player, FrameSlot.SIDE5, Prayers.QUICKPRAYER)
+        interfaces.setEvents(player, Prayers.QUICKPRAYER, Prayers.QUICKPRAYER_BUTTONS, 0, Prayers.ALL_BITS.countOneBits() - 1, Interfaces.IF_EVENT_OP1)
+        interfaces.switchSideTab(player, GameFrame.SIDE_TAB_PRAYER)
+    }
+
+    /** A click in the quick prayer setup: a prayer, by its bit, or Done, which puts the prayer book back. */
+    private fun clickQuickPrayerSetup(player: Player, component: Int, sub: Int): Boolean = when (component) {
+        Prayers.QUICKPRAYER_BUTTONS -> prayers.selectQuick(player, sub)
+        Prayers.QUICKPRAYER_CLOSE -> {
+            interfaces.openSide(player, FrameSlot.SIDE5, Prayers.PRAYERBOOK)
+            true
+        }
+        else -> false
     }
 
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
