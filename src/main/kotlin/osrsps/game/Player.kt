@@ -5,6 +5,7 @@ import net.rsprot.protocol.game.outgoing.info.Infos
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import osrsps.game.npc.Npc
 import osrsps.game.script.PlayerScripts
+import osrsps.game.shop.OpenShop
 import osrsps.game.zone.ZoneView
 import osrsps.map.Tile
 
@@ -141,6 +142,9 @@ class Player(
      * sends it all again. See [osrsps.game.bank.Bank].
      */
     val bank = Inventory(Inventory.BANK, Inventory.BANK_CAPACITY)
+
+    /** The shop the player has open, whose stock they are sent; see [osrsps.game.shop.ShopScreen]. Not saved. */
+    var openShop: OpenShop? = null
 
     /** What the player's charged items hold, such as a blowpipe's darts and scales; see [Charges]. */
     val charges = Charges()

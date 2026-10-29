@@ -49,6 +49,8 @@ import osrsps.game.bank.Bank
 import osrsps.game.bank.BankPinSettings
 import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
+import osrsps.game.shop.ShopScreen
+import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.Deaths
@@ -65,6 +67,7 @@ import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
+import osrsps.game.content.registerShops
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -141,6 +144,8 @@ class World(
     val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
     /** The combat spells [MagicCombat] casts; tests that cast pass their own. */
     val spells: Spells = Spells.NONE,
+    /** The shops and their stock; tests that shop pass their own. */
+    val shopTypes: ShopTypes = ShopTypes.NONE,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -206,6 +211,10 @@ class World(
     val bankPinSettings = BankPinSettings(interfaces::openModal)
 
     private val settingsSide = SettingsSide()
+
+    /** Shops and their shared stock; see [ShopScreen]. */
+    val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine)
+
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells)
 
     private val interactions = Interactions()
@@ -302,6 +311,8 @@ class World(
         registerBones(this)
         registerBanking(this)
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
+        registerShops(this)
+        interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         loadDialogue()
     }
 
@@ -565,6 +576,7 @@ class World(
         meleeCombat.process()
         deaths.process()
         npcs.process()
+        shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
         for (player in players) {
             if (player == null) continue
@@ -678,6 +690,7 @@ class World(
                 inventoryTab.flush(player)
                 equipmentTab.flush(player)
                 bankScreen.flush(player)
+                shopScreen.flush(player)
             }
         }
         for (npc in npcs.all) sendNpcEffects(npc)
@@ -1167,6 +1180,7 @@ class World(
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
+        if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act

@@ -37,6 +37,7 @@ import osrsps.game.SpotanimNames
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
+import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.RangedWeapons
 import osrsps.game.combat.Spells
 import osrsps.game.dialogue.ChatFont
@@ -162,6 +163,8 @@ class GameServer(
         logger.info { "Loaded ${rangedWeapons.weaponCount} bows and crossbows and ${rangedWeapons.ammoCount} kinds of ammunition" }
         val spells = Spells.load(objTypes, seqNames, spotanimNames)
         logger.info { "Loaded ${spells.size} combat spells" }
+        val shopTypes = ShopTypes.load(npcTypes, objTypes)
+        logger.info { "Loaded ${shopTypes.all.size} shops" }
                 val scenarios = Scenarios.load()
         for (name in scenarios.names) {
             // Checked again when started; warned about here so a bad item name shows in the deploy log.
@@ -177,7 +180,7 @@ class GameServer(
             Accounts(FileSaveStore(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
-            spells = spells, ipBans = ipBans,
+            spells = spells, shopTypes = shopTypes, ipBans = ipBans,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)
