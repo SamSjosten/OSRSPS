@@ -9,6 +9,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.combat.Autocast
+import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -270,6 +271,11 @@ class EquipmentTab(
             val spell = spells.autocast(sub)
             if (spell == null) {
                 logger.info { "${player.username} picked autocast slot $sub, which isn't a spell here" }
+                return true
+            }
+            if (spell.spellbook != Spellbook.of(player)) {
+                // The menu shows only the open book's spells.
+                logger.info { "${player.username} picked ${spell.name} to autocast from spellbook ${Spellbook.of(player)}, not its ${spell.spellbook}" }
                 return true
             }
             Autocast.set(player, spell, defensive)

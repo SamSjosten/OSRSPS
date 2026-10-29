@@ -13,6 +13,7 @@ import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.combat.Autocast
 import osrsps.game.combat.CombatSpell
 import osrsps.game.combat.RuneCost
+import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
@@ -228,6 +229,16 @@ class EquipmentTabTest {
         assertEquals(listOf(EquipmentTab.COMBAT), opened())
         assertNull(player.autocastMenu)
         assertEquals("Staff of fire", texts()[EquipmentTab.COMBAT_TITLE])
+    }
+
+    @Test
+    fun `a spell from a book the player doesn't have open isn't picked`() {
+        player.equipment[WearPos.WEAPON] = InvObj(staff.id, 1)
+        Spellbook.set(player, Spellbook.ANCIENT)
+        tab.updateCombatTab(player)
+        tab.clickCombatTab(player, EquipmentTab.COMBAT_AUTOCAST_NORMAL)
+        assertTrue(tab.clickAutocastMenu(player, EquipmentTab.AUTOCAST_SPELLS, 4))
+        assertEquals(0, Autocast.key(player))
     }
 
     @Test

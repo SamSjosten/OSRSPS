@@ -44,7 +44,13 @@ class HeadlessBankTest {
 
     private fun HeadlessClient.openBank() {
         locOp(BOOTH, 3225, 3218, 2)
-        await("the bank and its inventory") { openInterfaces().takeIf { BankScreen.MAIN in it && BankScreen.SIDE in it } }
+        // The slots' events come in packets after the opens, so wait for them too.
+        await("the bank and its inventory") {
+            openInterfaces().takeIf {
+                BankScreen.MAIN in it && BankScreen.SIDE in it &&
+                    opEnabled(BankScreen.MAIN, BankScreen.MAIN_ITEMS, 0, 1) && opEnabled(BankScreen.SIDE, BankScreen.SIDE_ITEMS, 0, 1)
+            }
+        }
     }
 
     private fun HeadlessClient.backpack() = inventory(Inventory.INV).filterNotNull()

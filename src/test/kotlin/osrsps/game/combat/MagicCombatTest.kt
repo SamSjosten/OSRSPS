@@ -566,6 +566,18 @@ class MagicCombatTest {
     }
 
     @Test
+    fun `a spell picked from one book isn't cast if the player opens another on the way to the NPC`() {
+        val npc = spawn(dummy, x = 3225)
+        cast(alice, npc)
+        tick()
+        Spellbook.set(alice, Spellbook.ANCIENT)
+        repeat(8) { tick() }
+        assertTrue(projectiles.isEmpty())
+        assertEquals(100, count(alice, MIND))
+        assertNull(alice.interaction)
+    }
+
+    @Test
     fun `Ice Barrage in multi-way combat hits each NPC in the 3x3 around its target, with the base XP once, and single-way only its target`() {
         alice.skills.setLevel(Skill.MAGIC, 94)
         alice.sureHits = true
