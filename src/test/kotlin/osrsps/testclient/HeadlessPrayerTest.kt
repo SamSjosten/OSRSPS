@@ -3,7 +3,6 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
@@ -76,11 +75,12 @@ class HeadlessPrayerTest {
                 assertEquals(0, client.prayers())
 
                 client.click(PROTECT_FROM_MELEE)
-                val on = client.await("Protect from Melee on") { if (client.prayers() == 1 shl 14) client.ticksSeen else null }
+                // Counted by the ticks the varp and the stat were sent in, not when the waits see them, which a slow machine
+                // makes late.
+                val on = client.await("Protect from Melee on") { if (client.prayers() == 1 shl 14) client.varpTick(Prayers.VARP_PRAYERS) else null }
+                val drained = client.await("the first point", timeoutMillis = 20_000) { if (client.points() == 42) client.statTick(PRAYER) else null }
                 // A point goes once the counter passes 60 at 12 a tick: on the 6th tick of draining.
-                val drained = client.await("the first point", timeoutMillis = 20_000) { if (client.points() == 42) client.ticksSeen else null }
-                // The varp and the stat come in their ticks' packets; the wait may only see one after its tick has ended.
-                assertTrue(drained - on in 6..7, "${drained - on} ticks from on to the first point")
+                assertEquals(6, drained - on, "ticks from on to the first point")
                 client.click(THICK_SKIN)
                 client.await("both on") { if (client.prayers() == (1 shl 14 or 1)) Unit else null }
 
