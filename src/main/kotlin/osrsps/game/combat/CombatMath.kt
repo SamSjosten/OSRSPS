@@ -96,6 +96,16 @@ object CombatMath {
      */
     fun playerMagicAttackRoll(magicLevel: Int, magicAttackBonus: Int): Int = (magicLevel + 8) * (magicAttackBonus + 64)
 
+    /** A powered staff's style bonus to effective Magic: +3 accurate, +1 longrange (OSRS Wiki, Damage per second/Magic). */
+    fun poweredStaffStanceBonus(stance: AttackStance): Int = when (stance) {
+        AttackStance.ACCURATE -> 3
+        AttackStance.LONGRANGE -> 1
+        else -> 0
+    }
+
+    /** Magic damage bonus can't pass 100% (OSRS Wiki, Tumeken's shadow), in tenths of a percent. */
+    const val MAGIC_DAMAGE_CAP = 1000
+
     /**
      * A spell's max hit: its base times 1 plus the magic damage bonus, rounded down (OSRS Wiki, Damage per second/Magic).
      * [magicDamageTenths] is in tenths of a percent, as [osrsps.game.EquipmentBonuses.magicDamage] is.

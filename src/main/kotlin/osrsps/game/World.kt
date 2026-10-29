@@ -53,6 +53,7 @@ import osrsps.game.combat.Deaths
 import osrsps.game.combat.MagicCombat
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MultiCombat
+import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.RangedCombat
@@ -226,12 +227,15 @@ class World(
         multi = multiCombat,
     )
 
+    /** Tumeken's shadow and the powered staves to come; see [PoweredStaves]. */
+    val poweredStaves = PoweredStaves(objTypes)
+
     /** Players casting combat spells on NPCs; see [MagicCombat]. */
     val magicCombat: MagicCombat = MagicCombat(
         npcs, collision, movement, combat, objTypes, spells, meleeCombat, random, { tick },
         projectile = zones::projectile,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        multi = multiCombat,
+        multi = multiCombat, poweredStaves = poweredStaves,
     )
 
     /** Player death and gravestones; see [Deaths]. */
@@ -276,6 +280,7 @@ class World(
     init {
         deaths.register(handlers)
         rangedCombat.blowpipe.register(handlers, Player::message)
+        poweredStaves.register(handlers, Player::message)
         registerHans(this)
         registerLumbridgeCastle(this)
         registerCombatTutors(this)

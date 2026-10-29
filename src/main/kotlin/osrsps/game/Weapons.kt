@@ -47,6 +47,7 @@ object Weapons {
     const val STAFF = 18
     const val THROWN = 19
     const val WHIP = 20
+    const val POWERED_STAFF = 24
     const val BANNER = 25
     const val BLUNT_BLUDGEON = 27
     const val BULWARK = 28
@@ -54,9 +55,9 @@ object Weapons {
 
     /**
      * The categories whose dbtable 78 row has buttons 0, 1 and 3. Besides the named ones: 13 polestaff, 21 and 22
-     * bladed staves, 24 and 29 self-powering staves and wands, 26 chargespear, 32 egg.
+     * bladed staves, 29 self-powering wands, 26 chargespear, 32 egg.
      */
-    private val THREE_STYLE = setOf(UNARMED, BLUNT, BLUNT_BLUDGEON, BOW, CROSSBOW, GRENADE, POLEARM, 13, 26, STAFF, 21, 22, THROWN, WHIP, 24, 29, 32)
+    private val THREE_STYLE = setOf(UNARMED, BLUNT, BLUNT_BLUDGEON, BOW, CROSSBOW, GRENADE, POLEARM, 13, 26, STAFF, 21, 22, THROWN, WHIP, POWERED_STAFF, 29, 32)
 
     /**
      * The attack style buttons [category] has, from dbtable 78's button column. Varp 43 (com_mode) holds the one the
@@ -115,8 +116,14 @@ object Weapons {
     fun category(weapon: ObjType?): Int {
         if (weapon == null) return UNARMED
         if (weapon.internalName == "abyssal_bludgeon") return BLUNT_BLUDGEON
+        // The cache puts powered staves in the staves' obj category; the combat tab has their own (Accurate, Accurate,
+        // Longrange).
+        if (weapon.internalName in POWERED_STAVES) return POWERED_STAFF
         return CATEGORY_BY_OBJ_CATEGORY[weapon.category] ?: UNARMED
     }
+
+    /** The powered staves that are in ([osrsps.game.combat.PoweredStaves]), charged and not, by their cache names. */
+    private val POWERED_STAVES = setOf("tumekens_shadow", "tumekens_shadow_uncharged")
 
     /** human_ready, human_turnonspot, human_walk_f, human_walk_b, human_walk_l, human_walk_r, human_running. */
     val HUMAN = Stance(808, 823, 819, 820, 821, 822, 824)
@@ -148,6 +155,9 @@ object Weapons {
     /** xbows_human_ready, xbows_human_walk_f and _b, xbows_human_run; the human turn and side steps. */
     val CROSSBOW_STANCE = Stance(4591, 823, 4226, 4227, 821, 822, 4228)
 
+    /** toa_sot_ready with the staff turn and walks; guessed: the stand from its name, the rest from the staves'. */
+    val TUMEKENS_SHADOW_STANCE = Stance(9494, 1209, 1205, 1206, 1207, 1208, 1210)
+
     /** human_chinchompa_ready, _walk and _run. */
     val CHINCHOMPA_STANCE = Stance(3175, 823, 3177, 3177, 3177, 3177, 3178)
 
@@ -163,6 +173,7 @@ object Weapons {
             name.startsWith("elder_maul") -> ELDER_MAUL_STANCE
             else -> when (category(weapon)) {
                 STAFF -> if (weapon.name.contains("staff", ignoreCase = true)) STAFF_STANCE else HUMAN
+                POWERED_STAFF -> if (name.startsWith("tumekens_shadow")) TUMEKENS_SHADOW_STANCE else STAFF_STANCE
                 POLEARM -> HALBERD_STANCE
                 HEAVYSWORD -> TWO_HANDED_STANCE
                 WHIP -> WHIP_STANCE
