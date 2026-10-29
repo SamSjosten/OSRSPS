@@ -140,6 +140,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `firemaking-lumbridge.json`: at the spawn, a tinderbox on oak logs (level 15 needed), then on logs (lit after a
   roll or more, a step west, 40 XP), Light on logs on the ground at level 43, and the first fire's ashes. Needs 0.10.0
   (`useItemOnItem`, `groundItemOption`).
+- `mining-lumbridge.json`: at the Lumbridge Swamp mine, Mine with no pickaxe, then a bronze pickaxe on copper (one
+  ore, the empty rock, the copper back) and tin, and mithril's level 55. Needs only 0.5.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
@@ -153,6 +155,11 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   (clicked by its clickzone child, the row's place in its category), the wiki button refused while the data orbs are
   off, and a search (its text set with `runClientScript` 5968), where children count across every category; then
   close, relog and check every one.
+- `settings-dropdowns.json`: dropdowns and F-key binds in the All Settings window, each picked from its list (the
+  row's clickzone child, then child 3n + 2 of dropdown_buttons for option n) and checked once the client has read it
+  again: attack priority, the combat and prayer tab keys (a key taken from the tab that had it), login/logout
+  notifications, chatbox scrollbar side and quest list sort; and the master and music sliders (a mouse click in the
+  middle of each one's notch, a settings_content child, 53%); then close, relog and check every one.
 
 ## Results
 

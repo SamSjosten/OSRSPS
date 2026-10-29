@@ -16,8 +16,9 @@ private val logger = KotlinLogging.logger {}
  * - settings_populate_settings walks enum 422 (or enum 423 at settings_category) for the categories, each category
  *   struct's param 745 for its rows enum, and each row struct's param 1077 (id) and 1078 (kind);
  * - settings_check_dependency follows a row's params 1080/1081 and 1082/1083 to other rows;
- * - settings_get_toggle (script 6716) and settings_get_dropdown (3962) are switches on the setting id whose cases
- *   read the setting's var, which is how the server learns where each value lives.
+ * - settings_get_toggle (script 6716), settings_get_dropdown (3962) and settings_get_keybind (3963) are switches on
+ *   the setting id whose cases read the setting's var, which is how the server learns where each value lives;
+ * - setting_show_dropdown lists as many options as the row's enum (param 1091) has outputs (script422).
  */
 object SettingsLoader {
     private const val CONFIG_INDEX = 2
@@ -29,6 +30,7 @@ object SettingsLoader {
     const val CATEGORIES_BY_ID_ENUM = 423
     const val TOGGLE_GETTER = 6716
     const val DROPDOWN_GETTER = 3962
+    const val KEYBIND_GETTER = 3963
 
     const val PARAM_CATEGORY_ID = 743
     const val PARAM_CATEGORY_ROWS = 745
@@ -40,6 +42,7 @@ object SettingsLoader {
     private const val PUSH_INT = 0
     private const val JUMP = 6
     private const val BRANCH_EQUALS = 8
+    private const val ENUM = 3408
     private const val SUB = 4001
     private const val TESTBIT = 4010
 
@@ -54,7 +57,8 @@ object SettingsLoader {
         logger.info {
             "Loaded ${catalog.categories.count { it != null }} settings categories, ${catalog.slotCount} rows, " +
                 "${catalog.toggles.size - unreadable.size} of ${catalog.toggles.size} toggles' vars and " +
-                "${catalog.dropdowns.count { it.value != SettingVar.Client }} of ${catalog.dropdowns.size} dropdowns'; " +
+                "${catalog.dropdowns.count { it.value != SettingVar.Client }} of ${catalog.dropdowns.size} dropdowns' and " +
+                "${catalog.keybinds.count { it.value != SettingVar.Client }} of ${catalog.keybinds.size} keybinds'; " +
                 "toggles the client keeps to itself: $unreadable"
         }
         val noGetter = toggleIds - catalog.toggles.keys - 0
@@ -83,10 +87,19 @@ object SettingsLoader {
             rows[id]?.let { return it }
             if (!visiting.add(id)) return null
             val params = decodeStructInts(struct(id) ?: return null)
+            // script422 also drops trailing disabled options for a row with param 2637; no row the desktop client
+            // shows has it. script7106 swaps the enum for row 318 (anti-aliasing), the enhanced client's.
+            val kind = params[SettingRow.PARAM_KIND] ?: SettingRow.KIND_TOGGLE
+            val options = if (kind == SettingRow.KIND_DROPDOWN || kind == SettingRow.KIND_KEYBIND) {
+                params[SettingRow.PARAM_OPTIONS_ENUM]?.let(::enumType)?.count ?: 0
+            } else {
+                0
+            }
             val loaded = SettingRow(
                 id, params,
                 dependencies(params, PARAM_REQUIRES, PARAM_REQUIRED_VALUES, ::row),
                 dependencies(params, PARAM_EXCLUDES, PARAM_EXCLUDED_VALUES, ::row),
+                options,
             )
             rows[id] = loaded
             return loaded
@@ -114,15 +127,17 @@ object SettingsLoader {
         val toggles = script(TOGGLE_GETTER)?.let { decodeGetter(it) } ?: emptyMap<Int, SettingVar>().also {
             logger.warn { "No client script $TOGGLE_GETTER (settings_get_toggle) in the cache; toggles won't be mirrored" }
         }
-        val dropdowns = script(DROPDOWN_GETTER)?.let { decodeGetter(it) } ?: emptyMap()
-        return SettingsCatalog(categories, rows, toggles, dropdowns)
+        val dropdowns = script(DROPDOWN_GETTER)?.let { decodeGetter(it, ::enumType) } ?: emptyMap()
+        val keybinds = script(KEYBIND_GETTER)?.let { decodeGetter(it, ::enumType) } ?: emptyMap()
+        return SettingsCatalog(categories, rows, toggles, dropdowns, keybinds)
     }
 
     /**
      * A settings_get_* switch: each case's instructions up to its `return`, matched against the shapes the 241 scripts
-     * use. Anything else (a device option, a client script, the window mode) is [SettingVar.Client].
+     * use. Anything else (a device option, a client script, the window mode) is [SettingVar.Client]. [enum] gives the
+     * enums an `enum(...)` case looks in.
      */
-    fun decodeGetter(data: ByteArray): Map<Int, SettingVar> {
+    fun decodeGetter(data: ByteArray, enum: (Int) -> EnumType? = { null }): Map<Int, SettingVar> {
         val script = ClientScript.decode(data)
         val switch = script.switches.singleOrNull() ?: error("Getter script has ${script.switches.size} switches, expected 1")
         val switchAt = script.opcodes.indexOf(ClientScript.SWITCH)
@@ -141,6 +156,9 @@ object SettingsLoader {
                 // get_varbit a; push v; branch_equals +1; jump (on); get_varbit b; return
                 shape(at, ClientScript.GET_VARBIT, PUSH_INT, BRANCH_EQUALS, JUMP, ClientScript.GET_VARBIT, ClientScript.RETURN) && args[at + 2] == 1 ->
                     SettingVar.Conditional(args[at], args[at + 1], SettingVar.Varbit(args[at + 4]))
+                // push input type; push output type; push enum; get_varbit v; enum; return
+                shape(at, PUSH_INT, PUSH_INT, PUSH_INT, ClientScript.GET_VARBIT, ENUM, ClientScript.RETURN) ->
+                    enum(args[at + 2])?.let { SettingVar.Mapped(SettingVar.Varbit(args[at + 3]), it.outputs, it.defaultInt) } ?: SettingVar.Client
                 else -> SettingVar.Client
             }
         }

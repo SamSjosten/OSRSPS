@@ -338,6 +338,22 @@ out. Ops on items on the ground can now re-run each tick too (`World.repeatOp`, 
 | The step off the fire is walked (2004Scape moves the player at once); fires allowed in banks | guessed |
 | Out: bows as tinderboxes, coloured logs, Forester's campfires, a tinderbox used on logs on the ground | out of scope |
 
+### Mining
+
+Mine on a rock mines it with the best pickaxe the player can use (`game/skill/Mining.kt`, words under `mining.*`):
+clay, copper, tin, iron, coal, mithril and adamantite rocks, with the bronze to crystal pickaxes. A mined rock turns into
+an empty rock (`rocks1`/`rocks2`) until it respawns.
+
+| Mining behaviour | Source |
+|------------------|--------|
+| Levels, XP, respawn times (clay 2 ticks, copper and tin 4, iron 9, coal 50, mithril 200, adamantite 400) | OSRS Wiki rock pages |
+| Each rock's success pair, fitted to and checked against the Wiki's chart points (`MiningTest`) | OSRS Wiki rock pages |
+| The pickaxe sets only the ticks between rolls (bronze 8 ... rune 3; dragon, infernal and 3rd age 3 with a 1/6 chance of 2, crystal 1/4) | OSRS Wiki, Pickaxe |
+| The mining gem table, 1/256 a roll: a gem (or nothing) in place of ore, no XP, the rock stays | OSRS Wiki, Mining |
+| The click starts the clock and the first roll comes a whole interval later; the swing message and animation | 2004Scape mining script |
+| Which empty rock each rock becomes (rockN to rocksN); swinging on the click's own tick | guessed |
+| Out: the glory's gem chance, mining gloves and other extra-ore items, the prospector kit, gem rocks, essence | out of scope |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
@@ -1016,8 +1032,16 @@ claim it first, then list it.
 Each account is `data/accounts/<name>.json` (on the VM, `/srv/rsps/OSRSPS/data/accounts/`), holding a salted
 PBKDF2-HMAC-SHA256 hash (600,000 rounds), never the password. Checking takes a fraction of a second, so it runs on its
 own login thread, not the game thread. A save with no account file (every save from before accounts) is claimed by its
-next login. To reset a forgotten password, delete that name's file on the VM; the next login claims it again (an
-admin's name must come off `OSRSPS_ADMINS` for that login, then go back on):
+next login. To change a password, or set one for a name nobody has claimed (an admin's included), run `set-password`
+on the VM in the running container. It asks twice without echoing, so the password stays out of shell history and
+logs, needs at least 12 characters, and takes effect at the next login with no restart:
+
+```bash
+cd /srv/rsps/OSRSPS && docker compose exec -e JAVA_OPTS=-Xmx64m osrsps bin/osrsps set-password <name>
+```
+
+Deleting that name's file on the VM also resets it, and the next login claims it again (an admin's name must come off
+`OSRSPS_ADMINS` for that login, then go back on):
 
 ```bash
 rm /srv/rsps/OSRSPS/data/accounts/<name>.json

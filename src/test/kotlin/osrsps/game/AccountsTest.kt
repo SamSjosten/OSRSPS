@@ -1,5 +1,9 @@
 package osrsps.game
 
+import java.nio.file.Files
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -72,5 +76,77 @@ class AccountsTest {
         accounts.check("boss", "pw".toCharArray())
         assertEquals(Accounts.Check.MATCHED, accounts.check("boss", "pw".toCharArray(), mayClaim = false))
         assertEquals(Accounts.Check.WRONG_PASSWORD, accounts.check("boss", "nope".toCharArray(), mayClaim = false))
+    }
+
+    @Test
+    fun `setting a password replaces the old one`() {
+        accounts.check("alice", "old".toCharArray())
+        assertTrue(accounts.setPassword("Alice", "new password".toCharArray()))
+        assertEquals(Accounts.Check.WRONG_PASSWORD, accounts.check("alice", "old".toCharArray()))
+        assertEquals(Accounts.Check.MATCHED, accounts.check("alice", "new password".toCharArray()))
+        assertFalse("new password" in store.saves.getValue("alice"))
+    }
+
+    @Test
+    fun `setting a password claims a name nobody has, even one a login may not claim`() {
+        assertEquals(Accounts.Check.NOT_CLAIMABLE, accounts.check("admin", "pw".toCharArray(), mayClaim = false))
+        assertTrue(accounts.setPassword("admin", "a long password".toCharArray()))
+        assertEquals(Accounts.Check.MATCHED, accounts.check("admin", "a long password".toCharArray(), mayClaim = false))
+    }
+
+    @Test
+    fun `setting a password refuses names a login would`() {
+        assertFalse(accounts.setPassword("sam@example.com", "a long password".toCharArray()))
+        assertFalse(accounts.setPassword("   ", "a long password".toCharArray()))
+        assertTrue(store.saves.isEmpty())
+    }
+
+    @Test
+    fun `a password set between a login's first read and its claim wins`() {
+        val dir = Files.createTempDirectory("accounts")
+        try {
+            val files = FileSaveStore(dir)
+            val tool = Accounts(files, iterations = 1_000, lock = FileAccountLock(dir))
+            // The login's first read finds no file; set-password writes one right then, before the claim.
+            var first = true
+            val racing = object : SaveStore {
+                override fun read(key: String): String? = files.read(key).also {
+                    if (first) {
+                        first = false
+                        assertTrue(tool.setPassword("bob", "the owner's password".toCharArray()))
+                    }
+                }
+
+                override fun write(key: String, text: String) = files.write(key, text)
+            }
+            val server = Accounts(racing, iterations = 1_000, lock = FileAccountLock(dir))
+            assertEquals(Accounts.Check.WRONG_PASSWORD, server.check("bob", "a stranger's".toCharArray()))
+            assertEquals(Accounts.Check.MATCHED, server.check("bob", "the owner's password".toCharArray()))
+        } finally {
+            dir.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `the account lock lets one writer in at a time`() {
+        val dir = Files.createTempDirectory("accounts")
+        try {
+            val holding = CountDownLatch(1)
+            val release = CountDownLatch(1)
+            val entered = CountDownLatch(1)
+            val first = thread { FileAccountLock(dir).withLock { holding.countDown(); release.await() } }
+            assertTrue(holding.await(5, TimeUnit.SECONDS))
+            val second = thread { FileAccountLock(dir).withLock { entered.countDown() } }
+            // Wait for the second writer to park on the lock (or, with no lock, to finish), not for a time to pass.
+            while (second.state != Thread.State.WAITING && second.state != Thread.State.TERMINATED) Thread.onSpinWait()
+            assertEquals(Thread.State.WAITING, second.state, "the second writer got through while the first held the lock")
+            assertEquals(1L, entered.count)
+            release.countDown()
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+            first.join()
+            second.join()
+        } finally {
+            dir.toFile().deleteRecursively()
+        }
     }
 }

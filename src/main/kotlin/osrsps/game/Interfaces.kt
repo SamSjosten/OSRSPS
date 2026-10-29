@@ -144,8 +144,8 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     }
 
     /** Enables [events] on slots [from] to [to] of a component: an interface's events go when it closes, so after opening it. */
-    fun setEvents(player: Player, interfaceId: Int, component: Int, from: Int, to: Int, events: Int) {
-        send(player, IfSetEventsV2(interfaceId, component, from, to, 0, events))
+    fun setEvents(player: Player, interfaceId: Int, component: Int, from: Int, to: Int, events: Int, scriptEvents: Int = 0) {
+        send(player, IfSetEventsV2(interfaceId, component, from, to, scriptEvents, events))
     }
 
     /**
