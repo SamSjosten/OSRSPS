@@ -211,6 +211,26 @@ class MagicCombatTest {
     }
 
     @Test
+    fun `with sure hits on, a spell the warded NPC would shrug off hits, and the accuracy roll is still drawn`() {
+        val npc = spawn(warded, x = 3212)
+        val before = random.draws
+        cast(alice, npc)
+        tick()
+        val missDraws = random.draws - before
+        repeat(3) { tick() }
+        assertEquals(85, npc.effects.pendingSpotanims.single().id)
+        repeat(2) { tick() }
+        alice.sureHits = true
+        val sureBefore = random.draws
+        cast(alice, npc)
+        tick()
+        // The accuracy roll's two draws as before, and the damage roll a hit adds.
+        assertEquals(missDraws + 1, random.draws - sureBefore)
+        repeat(3) { tick() }
+        assertEquals(101, npc.effects.pendingSpotanims.single().id)
+    }
+
+    @Test
     fun `out of range the player walks only until the NPC is within 10 tiles`() {
         val npc = spawn(dummy, x = 3225)
         cast(alice, npc)

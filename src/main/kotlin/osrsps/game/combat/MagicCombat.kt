@@ -222,7 +222,7 @@ class MagicCombat(
         val landTick = tick + HitDelay.MAGIC.ticks(distance) + HitDelay.ON_NPC
         if (spell.travel >= 0) projectile(flight(player, npc, spell.travel, landTick - tick))
         // Accuracy first, then damage, as for melee and ranged.
-        val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll)
+        val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits
         val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage

@@ -119,6 +119,11 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply(if (player.god) "You can't be hurt now (::god again to turn it off)." else "You can be hurt again.")
     }
 
+    register("sure", "::sure", admin = true) {
+        player.sureHits = !player.sureHits
+        reply(if (player.sureHits) "Your attacks can't miss now (::sure again to turn it off)." else "Your attacks can miss again.")
+    }
+
     register("heal", "::heal", admin = true) {
         player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
         reply("Healed to ${player.hitpoints} hitpoints.")
