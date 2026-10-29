@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.Equipment
+import osrsps.game.EquipmentTab
 import osrsps.game.GameRandom
 import osrsps.game.Interactions
 import osrsps.game.InvObj
@@ -59,7 +60,15 @@ class MagicCombatTest {
     // Obj category 1 is the staves (weapon category 18), as Weapons maps it; param 3 magic attack, 14 attack speed.
     private val staffOfFire = ObjType(1387, "Staff of fire", wearpos1 = WearPos.WEAPON, params = mapOf(3 to 10, 14 to 5), internalName = "staff_of_fire", category = 1)
     private val occult = ObjType(12002, "Occult necklace", wearpos1 = WearPos.NECK, params = mapOf(3 to 12, 299 to 50), internalName = "occult_necklace")
-    private val objTypes = ObjTypes.of(fireStrike, bind, snare, iceRush, iceBarrage, staffOfFire, occult, *runes.toTypedArray())
+
+    // As the 241 cache has them: in the staves' obj category, +35 magic attack, speed 5.
+    private val shadow = ObjType(SHADOW, "Tumeken's shadow", wearpos1 = WearPos.WEAPON, params = mapOf(3 to 35, 14 to 5), internalName = "tumekens_shadow", category = 1)
+    private val shadowUncharged = ObjType(SHADOW_UNCHARGED, "Tumeken's shadow (uncharged)", wearpos1 = WearPos.WEAPON, params = mapOf(3 to 35, 14 to 5), internalName = "tumekens_shadow_uncharged", category = 1)
+    private val harmonised = ObjType(MagicCombat.HARMONISED_STAFF, "Harmonised Nightmare staff", wearpos1 = WearPos.WEAPON, params = mapOf(3 to 16, 14 to 5), internalName = "nightmare_staff_harmonised", category = 1)
+
+    /** Far past the 100% cap once tripled. */
+    private val bigDamage = ObjType(12003, "Damage amulet", wearpos1 = WearPos.NECK, params = mapOf(299 to 500), internalName = "damage_amulet")
+    private val objTypes = ObjTypes.of(fireStrike, bind, snare, iceRush, iceBarrage, staffOfFire, occult, shadow, shadowUncharged, harmonised, bigDamage, *runes.toTypedArray())
 
     private val spells = Spells.parse(
         """{ "splash": "failedspell_impact", "spells": [ { "spell": "13_fire_strike", "autocast": 4, "element": "fire", "xp": 11.5, "anim": "human_caststrike",
@@ -103,7 +112,18 @@ class MagicCombatTest {
     private val messages = mutableListOf<Pair<Player, String>>()
     private val projectiles = mutableListOf<Pair<Long, Projectile>>()
     private val stopped = mutableListOf<Player>()
-    private val combat = Combat(Equipment(objTypes), AttackStyles.DEFAULT, npcCombat)
+    // The unarmed styles, and the powered staves' as dbtable 78 has them.
+    private val styles = AttackStyles(
+        mapOf(
+            0 to AttackStyles.DEFAULT.styles(0),
+            24 to listOf(
+                AttackStyles.parse(0, "Accurate", "(Accurate)<br>(Magic XP)"),
+                AttackStyles.parse(1, "Accurate", "(Accurate)<br>(Magic XP)"),
+                AttackStyles.parse(3, "Longrange", "(Longrange)<br>(Magic XP)<br>(Defence XP)"),
+            ),
+        ),
+    )
+    private val combat = Combat(Equipment(objTypes), styles, npcCombat)
     private lateinit var melee: MeleeCombat
     private val interactions = NpcInteractions(
         npcs, npcTypes, map, movement, handlers, scripts, { tick },
@@ -610,6 +630,102 @@ class MagicCombatTest {
         assertEquals(1, magic.castsInFlight)
     }
 
+    private fun wieldShadow(charges: Int, player: Player = alice) {
+        // So the dummy hitting back starts no cast once the fight is over.
+        player.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
+        player.skills.setLevel(Skill.MAGIC, 99)
+        player.equipment[WearPos.WEAPON] = InvObj(SHADOW, 1)
+        player.charges[PoweredStaves.TUMEKENS_SHADOW.charge] = charges
+    }
+
+    @Test
+    fun `Tumeken's shadow casts its own spell from Attack, a charge a cast and no runes, for 2 Magic XP a point of damage and none for the cast`() {
+        wieldShadow(10)
+        val npc = spawn(dummy)
+        assertEquals(AttackType.MAGIC, combat.style(alice).type)
+        val spell = magic.fightSpell(alice)!!
+        assertEquals(34, spell.maxHit, "99 / 3 + 1")
+        // (99 + 3 for accurate + 8) * (35 tripled + 64).
+        assertEquals(110 * 169, combat.magicMatchup(alice, npc, spell)!!.attackRoll)
+        val xpBefore = alice.skills.tenths(Skill.MAGIC)
+        assertTrue(melee.attackFromAfar(alice, npc))
+        repeat(11) { tick() }
+        assertEquals(listOf(1L, 6L, 11L), castTicks())
+        assertTrue(projectiles.all { it.second.id == PoweredStaves.TUMEKENS_SHADOW.travel })
+        assertEquals(7, alice.charges[PoweredStaves.TUMEKENS_SHADOW.charge])
+        assertEquals(listOf(100, 300, 200), listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR)))
+        alice.interaction = null
+        repeat(5) { tick() }
+        val damage = npc.effects.pendingHits.sumOf { it.value }
+        assertEquals(3, npc.effects.pendingHits.size)
+        assertEquals(damage * 20, alice.skills.tenths(Skill.MAGIC) - xpBefore)
+    }
+
+    @Test
+    fun `the shadow's last charge leaves it uncharged, and with none it casts nothing and the fight ends`() {
+        wieldShadow(1)
+        val npc = spawn(dummy)
+        melee.attackFromAfar(alice, npc)
+        tick()
+        assertEquals(SHADOW_UNCHARGED, alice.equipment[WearPos.WEAPON]?.id)
+        assertEquals(alice to "Your Tumeken's shadow has run out of charges.", messages.last())
+        repeat(5) { tick() }
+        assertEquals(1, castTicks().size)
+        assertEquals(alice to "Your Tumeken's shadow has no charges.", messages.last())
+        assertNull(alice.interaction)
+    }
+
+    @Test
+    fun `the shadow reaches 8 tiles on accurate and 10 on longrange, where Defence shares the damage XP`() {
+        wieldShadow(10)
+        val npc = spawn(dummy, x = 3220)
+        melee.attackFromAfar(alice, npc)
+        repeat(3) { tick() }
+        assertEquals(3212, alice.x, "walked until 8 tiles off")
+        assertEquals(1, castTicks().size)
+
+        // Bob, 10 tiles off on the row above, on longrange.
+        val far = spawn(dummy, x = 3220, z = 3212)
+        wieldShadow(10, bob)
+        bob.vars[EquipmentTab.VARP_COM_MODE] = 3
+        assertEquals(AttackStance.LONGRANGE, combat.style(bob).stance)
+        // (99 + 1 for longrange + 8) * (35 tripled + 64).
+        assertEquals(108 * 169, combat.magicMatchup(bob, far, magic.fightSpell(bob)!!)!!.attackRoll)
+        val magicBefore = bob.skills.tenths(Skill.MAGIC)
+        melee.attackFromAfar(bob, far)
+        tick(bob)
+        assertEquals(3210, bob.x, "cast from 10 tiles")
+        assertEquals(2, castTicks().size)
+        bob.interaction = null
+        repeat(5) { tick(bob) }
+        val damage = far.effects.pendingHits.sumOf { it.value }
+        assertEquals(damage * 40 / 3, bob.skills.tenths(Skill.MAGIC) - magicBefore)
+        assertEquals(damage * 10, bob.skills.tenths(Skill.DEFENCE))
+    }
+
+    @Test
+    fun `the shadow triples the worn magic damage for its own spell, up to 100%, and not for a spellbook spell`() {
+        wieldShadow(10)
+        alice.equipment[WearPos.NECK] = InvObj(occult.id, 1)
+        val npc = spawn(dummy)
+        val tripled = minOf(combat.bonuses(alice).magicDamage * 3, 1000)
+        assertEquals(34 * (1000 + tripled) / 1000, combat.magicMatchup(alice, npc, magic.fightSpell(alice)!!)!!.maxHit)
+        assertEquals(8 * (1000 + combat.bonuses(alice).magicDamage) / 1000, combat.magicMatchup(alice, npc, spells.spell(FIRE_STRIKE)!!)!!.maxHit)
+        alice.equipment[WearPos.NECK] = InvObj(bigDamage.id, 1)
+        assertEquals(68, combat.magicMatchup(alice, npc, magic.fightSpell(alice)!!)!!.maxHit, "doubled at the cap")
+    }
+
+    @Test
+    fun `the Harmonised staff autocasts a standard spell every 4 ticks, and a spell cast from the book takes the usual 5`() {
+        alice.equipment[WearPos.WEAPON] = InvObj(harmonised.id, 1)
+        Autocast.set(alice, spells.autocast(4)!!, defensive = false)
+        assertEquals(MagicCombat.HARMONISED_SPEED, combat.attackSpeed(alice))
+        val npc = spawn(dummy)
+        cast(alice, npc)
+        repeat(10) { tick() }
+        assertEquals(listOf(1L, 6L, 10L), castTicks())
+    }
+
     /** Magic XP in tenths at level 13, where every test starts. */
     private val xpAt13 = alice.skills.tenths(Skill.MAGIC)
 
@@ -631,6 +747,8 @@ class MagicCombatTest {
     companion object {
         const val SEED = 7L
         const val FIRE_STRIKE = 19
+        const val SHADOW = 27275
+        const val SHADOW_UNCHARGED = 27277
         const val BIND = 23
         const val SNARE = 42
         const val ICE_RUSH = 84

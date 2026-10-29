@@ -4,16 +4,28 @@ Starts the test client with nobody at the screen and waits until it is logged in
   .\test-runner\launch\start-client.ps1             # start it unless RuneLite already runs
   .\test-runner\launch\start-client.ps1 -Restart    # close RSProx and RuneLite first, e.g. after a plugin jar swap
   .\test-runner\launch\start-client.ps1 -Commit 3c1b194   # first wait until the server runs that commit
+  .\test-runner\launch\start-client.ps1 -Restart -Launcher [-LauncherVersion 0.1.0]   # through the Odin's Gate launcher
+
+Without -Launcher the client is RSProx's; with it, the Odin's Gate launcher's (launcher/README.md), started by the
+OdinsGate scheduled task (OdinsGate.cmd) and followed through its status file. The launcher's RuneLite has its own home
+under C:\RSPS\launcher\home, so unless given, -Task is OdinsGate and -Tests, -Results, -ClientLog and -Profiles move
+under C:\RSPS\launcher\home\.runelite. -LauncherVersion fails the run at once when the launcher that starts is
+another version, so a jar swap that didn't take is caught before the game runs.
 
 1. Waits for our server to answer on its game port and jav_config (after a redeploy the server takes a while). With
    -Commit, also until its /version (the commit of main deploy/auto-deploy.sh deployed) starts with that commit.
-2. Closes RSProx's and RuneLite's JVMs when -Restart is given, or when RSProx is open without a RuneLite (nobody pressed
-   Launch Session). With RuneLite already running and no -Restart, it only does step 4. RuneLite is asked to close its
-   window first, so plugins see the client exit (the Tick Recorder writes its stop line); one still running after
+2. Closes RSProx's, the launcher's and RuneLite's JVMs when -Restart is given, when RSProx or the launcher is open
+   without a RuneLite (nobody pressed Launch Session, or the launcher is still downloading), or when the RuneLite that
+   runs is the other one's (RSProx's with -Launcher, the launcher's without). With the right RuneLite already running
+   and no -Restart, it only does step 4. RuneLite is asked to close its window first, so plugins see the
+   client exit (the Tick Recorder writes its stop line) and the launcher exits by itself; one still running after
    -CloseSeconds is killed. Then each RuneLite profile in -Profiles gets Exit warning set to Never, as the warning
    popup would keep the next close from finishing.
-3. Runs the RSProx scheduled task, whose RSProx.cmd starts RSProx and presses Launch Session on the OSRSPS target
-   (RsproxAutoLaunch.java). Waits for its line in C:\RSPS\.rsprox\logs\autolaunch.txt and for the RuneLite JVM.
+3. Runs the scheduled task. RSProx's RSProx.cmd starts RSProx and presses Launch Session on the OSRSPS target
+   (RsproxAutoLaunch.java): waits for its line in C:\RSPS\.rsprox\logs\autolaunch.txt. The launcher's OdinsGate.cmd
+   starts the launcher with --auto --dev and a status file: waits for that file to say RUNNING
+   (start-client-functions.ps1), and fails with the launcher's own reason when it says FAILED. Then waits for the
+   RuneLite JVM.
 4. Writes a one-step waitForLogin script into the tests folder until the test runner has passed it, so the plugin has
    started, auto login has logged in and the next scripts dropped there will run. Rewritten every 20 s, because the
    runner ignores scripts that were there before it started watching the folder; the script gives up after 15 s, so
@@ -26,8 +38,15 @@ Each stage may take -TimeoutSeconds (600 by default). Exits with 0 when the clie
 param(
 	[switch] $Restart,
 	[string] $Commit,
+	# Start the client through the Odin's Gate launcher instead of RSProx.
+	[switch] $Launcher,
+	# With -Launcher: the launcher version the status file must name, e.g. 0.1.0; any when empty.
+	[string] $LauncherVersion,
+	# With -Launcher: the launcher's data folder (OdinsGate.cmd's --home), holding status.json and the game's home.
+	[string] $LauncherHome = 'C:\RSPS\launcher',
 	[string] $Server = '192.168.0.210',
 	[int] $GamePort = 43594,
+	# RSProx, or OdinsGate with -Launcher.
 	[string] $Task = 'RSProx',
 	[string] $Account = 'test',
 	[string] $Tests = 'C:\RSPS\.rlcustom\tests',
@@ -43,6 +62,17 @@ param(
 	[int] $TimeoutSeconds = 600
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'start-client-functions.ps1')
+if ($Launcher)
+{
+	# The launcher's RuneLite keeps its folder under the game home the launcher gives it, not under C:\RSPS\.rlcustom.
+	$runeliteDir = Join-Path $LauncherHome 'home\.runelite'
+	if (-not $PSBoundParameters.ContainsKey('Task')) { $Task = 'OdinsGate' }
+	if (-not $PSBoundParameters.ContainsKey('Tests')) { $Tests = Join-Path $runeliteDir 'tests' }
+	if (-not $PSBoundParameters.ContainsKey('Results')) { $Results = Join-Path $runeliteDir 'test-results' }
+	if (-not $PSBoundParameters.ContainsKey('ClientLog')) { $ClientLog = Join-Path $runeliteDir 'logs\client.log' }
+	if (-not $PSBoundParameters.ContainsKey('Profiles')) { $Profiles = Join-Path $runeliteDir 'profiles2' }
+}
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 function Reset-Deadline { $script:deadline = (Get-Date).AddSeconds($TimeoutSeconds) }
 
@@ -84,16 +114,11 @@ function Test-Port([string] $hostName, [int] $port)
 	finally { $client.Dispose() }
 }
 
-# RSProx's GUI (started by its launcher or by RsproxAutoLaunch.java) and the RuneLite it launches, told apart by their
-# command lines. Only JVMs of the client in $ClientHome: another RuneLite on this PC is left alone.
+# The client's JVMs (RSProx's GUI, the launcher, RuneLite under either), told apart by their command lines
+# (Select-ClientJvms in start-client-functions.ps1). Only JVMs of the client in $ClientHome.
 function Get-ClientJvms
 {
-	$all = @(Get-CimInstance Win32_Process -Filter "Name = 'java.exe' or Name = 'javaw.exe'" |
-		Where-Object { $_.CommandLine -and $_.CommandLine.IndexOf($ClientHome, [StringComparison]::OrdinalIgnoreCase) -ge 0 })
-	[pscustomobject]@{
-		RSProx   = @($all | Where-Object { $_.CommandLine -match 'net\.rsprox\.gui\.ProxyToolGuiKt|RsproxAutoLaunch|rsprox-launcher\.jar' })
-		RuneLite = @($all | Where-Object { $_.CommandLine -match 'net\.runelite\.|--socket_id=' })
-	}
+	Select-ClientJvms @(Get-CimInstance Win32_Process -Filter "Name = 'java.exe' or Name = 'javaw.exe'") $ClientHome
 }
 
 # 1. The server.
@@ -129,19 +154,25 @@ while ($true)
 }
 Step ('Server is up' + $(if ($Commit) { " and runs $running" } else { '' }))
 
-# 2. What is running already.
+# 2. What is running already. A RuneLite under the launcher has the launcher's Main beside it; one under RSProx hasn't.
 $jvms = Get-ClientJvms
-if ($jvms.RuneLite.Count -gt 0 -and -not $Restart)
+$ours = if ($Launcher) { $jvms.Launcher.Count -gt 0 } else { $jvms.Launcher.Count -eq 0 }
+if ($jvms.RuneLite.Count -gt 0 -and -not $ours)
+{
+	Step "The RuneLite running (pid $($jvms.RuneLite.ProcessId -join ', ')) is $(if ($Launcher) { "RSProx's" } else { "the launcher's" }); restarting"
+}
+if ($jvms.RuneLite.Count -gt 0 -and $ours -and -not $Restart)
 {
 	Step "RuneLite is already running (pid $($jvms.RuneLite.ProcessId -join ', ')); not restarting it"
 }
 else
 {
-	$stop = @($jvms.RSProx) + @($jvms.RuneLite)
+	$stop = @($jvms.RSProx) + @($jvms.Launcher) + @($jvms.RuneLite)
 	if ($stop.Count -gt 0)
 	{
-		Step "Closing RSProx/RuneLite (pid $($stop.ProcessId -join ', '))"
-		# RuneLite first, by its window: a kill skips its shutdown, so plugins never hear the client exit.
+		Step "Closing RSProx/launcher/RuneLite (pid $($stop.ProcessId -join ', '))"
+		# RuneLite first, by its window: a kill skips its shutdown, so plugins never hear the client exit. The launcher
+		# follows its game out by itself; what is left after that is killed.
 		$asked = @(foreach ($p in $jvms.RuneLite)
 		{
 			$process = Get-Process -Id $p.ProcessId -ErrorAction SilentlyContinue
@@ -163,10 +194,13 @@ else
 			Step "RuneLite (pid $($p.ProcessId)) $why; killing it"
 		}
 		Reset-Deadline
-		foreach ($p in @((Get-ClientJvms).RSProx) + $left) { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue }
-		while ((Get-ClientJvms).RSProx.Count + (Get-ClientJvms).RuneLite.Count -gt 0)
+		foreach ($p in @((Get-ClientJvms).RSProx) + @((Get-ClientJvms).Launcher) + $left)
 		{
-			if ((Get-Date) -gt $deadline) { Fail 'RSProx/RuneLite did not close' }
+			Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+		}
+		while (($jvms = Get-ClientJvms).RSProx.Count + $jvms.Launcher.Count + $jvms.RuneLite.Count -gt 0)
+		{
+			if ((Get-Date) -gt $deadline) { Fail 'RSProx/launcher/RuneLite did not close' }
 			Start-Sleep -Seconds 1
 		}
 	}
@@ -186,8 +220,8 @@ else
 	# What a closed client logged doesn't count: the new one's auto login starts afresh.
 	$logStart = Get-LogEnd
 
-	# 3. RSProx, which launches RuneLite by itself. The task ignores a run while its last run still counts as running,
-	# which lasts a moment after its JVM is gone.
+	# 3. The scheduled task: RSProx, which launches RuneLite by itself, or the launcher. The task ignores a run while its
+	# last run still counts as running, which lasts a moment after its JVM is gone.
 	Reset-Deadline
 	while ((schtasks /query /tn $Task /fo CSV /nh | ConvertFrom-Csv -Header Name, Next, Status).Status -eq 'Running')
 	{
@@ -199,26 +233,39 @@ else
 	schtasks /run /tn $Task | Out-Null
 	if ($LASTEXITCODE -ne 0) { Fail "schtasks /run /tn $Task exited with $LASTEXITCODE" }
 
-	while ($true)
+	if ($Launcher)
 	{
-		if ((Test-Path -LiteralPath $AutoLaunchStatus) -and (Get-Item -LiteralPath $AutoLaunchStatus).LastWriteTime -gt $launchedAfter)
+		# The launcher writes its status file whole at each state; RUNNING carries the game's PID.
+		$statusFile = Join-Path $LauncherHome 'status.json'
+		Step ("Waiting for the launcher's status file $statusFile to say RUNNING" +
+			$(if ($LauncherVersion) { " from version $LauncherVersion" } else { '' }))
+		try { $status = Wait-LauncherStatus $statusFile $launchedAfter $LauncherVersion $deadline }
+		catch { Fail "launcher: $($_.Exception.Message); its log is $(Join-Path $LauncherHome 'logs\launcher.log')" }
+		Step "Launcher $($status.version), revision $($status.revision): $($status.detail)"
+	}
+	else
+	{
+		while ($true)
 		{
-			$status = (Get-Content -LiteralPath $AutoLaunchStatus -Raw).Trim()
-			if ($status.StartsWith('launched')) { Step "RSProx: $status"; break }
-			Fail "RSProx: $status"
+			if ((Test-Path -LiteralPath $AutoLaunchStatus) -and (Get-Item -LiteralPath $AutoLaunchStatus).LastWriteTime -gt $launchedAfter)
+			{
+				$status = (Get-Content -LiteralPath $AutoLaunchStatus -Raw).Trim()
+				if ($status.StartsWith('launched')) { Step "RSProx: $status"; break }
+				Fail "RSProx: $status"
+			}
+			if ((Get-Date) -gt $deadline)
+			{
+				Fail "no new line in $AutoLaunchStatus within $TimeoutSeconds s (did RSProx.cmd fall back to its manual launcher?)"
+			}
+			Start-Sleep -Seconds 2
 		}
-		if ((Get-Date) -gt $deadline)
-		{
-			Fail "no new line in $AutoLaunchStatus within $TimeoutSeconds s (did RSProx.cmd fall back to its manual launcher?)"
-		}
-		Start-Sleep -Seconds 2
 	}
 	while ((Get-ClientJvms).RuneLite.Count -eq 0)
 	{
-		if ((Get-Date) -gt $deadline) { Fail 'RSProx pressed Launch Session but no RuneLite JVM started' }
+		if ((Get-Date) -gt $deadline) { Fail "$Task started but no RuneLite JVM is running" }
 		Start-Sleep -Seconds 2
 	}
-	Step 'RuneLite started'
+	Step "RuneLite started (pid $((Get-ClientJvms).RuneLite.ProcessId -join ', '))"
 }
 
 # 4. Logged in, with the test runner watching the tests folder.

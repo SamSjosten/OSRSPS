@@ -68,7 +68,21 @@ class Combat(
     fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
 
     /** Ticks between the player's attacks: the weapon's speed, 4 unarmed, and a combat spell's [MagicCombat.SPEED] when autocasting. */
-    fun attackSpeed(player: Player): Int = if (style(player).type == AttackType.MAGIC) MagicCombat.SPEED else bonuses(player).attackSpeed
+    fun attackSpeed(player: Player): Int {
+        val style = style(player)
+        if (style.type != AttackType.MAGIC) return bonuses(player).attackSpeed
+        // A powered staff's own speed is its weapon's (5 for Tumeken's shadow).
+        if (Weapons.category(equipment.weapon(player)) == Weapons.POWERED_STAFF) return bonuses(player).attackSpeed
+        return if (harmonisedAutocast(player, style)) MagicCombat.HARMONISED_SPEED else MagicCombat.SPEED
+    }
+
+    /**
+     * Whether [player] autocasts a standard spell with the Harmonised nightmare staff, which casts it every 4 ticks
+     * (OSRS Wiki, Harmonised nightmare staff: autocast only, standard spells only).
+     */
+    fun harmonisedAutocast(player: Player, style: AttackStyle = style(player)): Boolean =
+        (style === AUTOCAST || style === DEFENSIVE_AUTOCAST) && equipment.weapon(player)?.id == MagicCombat.HARMONISED_STAFF &&
+            Spellbook.of(player) == Spellbook.STANDARD
 
     /**
      * The melee attack type the player's style hits with: its own for a melee style, crush for a style with none (a
@@ -168,8 +182,19 @@ class Combat(
     fun magicMatchup(player: Player, npc: Npc, spell: CombatSpell): MagicMatchup? {
         val def = npcCombat[npc.type] ?: return null
         val bonuses = bonuses(player)
-        var attackRoll = CombatMath.playerMagicAttackRoll(player.skills.currentLevel(Skill.MAGIC), bonuses.magicAttack)
-        var maxHit = CombatMath.spellMaxHit(spell.maxHit, bonuses.magicDamage)
+        val staff = spell.staff
+        var attackRoll: Int
+        var maxHit: Int
+        if (staff == null) {
+            attackRoll = CombatMath.playerMagicAttackRoll(player.skills.currentLevel(Skill.MAGIC), bonuses.magicAttack)
+            maxHit = CombatMath.spellMaxHit(spell.maxHit, bonuses.magicDamage)
+        } else {
+            // A powered staff's spell: its styles' level bonus, and its multiplier on the worn bonuses (OSRS Wiki,
+            // Damage per second/Magic, Tumeken's shadow).
+            val level = player.skills.currentLevel(Skill.MAGIC) + CombatMath.poweredStaffStanceBonus(style(player).stance)
+            attackRoll = CombatMath.playerMagicAttackRoll(level, bonuses.magicAttack * staff.bonusMultiplier)
+            maxHit = CombatMath.spellMaxHit(spell.maxHit, minOf(bonuses.magicDamage * staff.bonusMultiplier, CombatMath.MAGIC_DAMAGE_CAP))
+        }
         val weakness = def.weakness?.takeIf { spell.element != null && it.element == spell.element }
         if (weakness != null) {
             attackRoll = CombatMath.weaknessAttackRoll(attackRoll, weakness.percent)
