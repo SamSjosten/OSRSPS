@@ -13,9 +13,10 @@ class BoostCycle {
     /**
      * Back to the cycle's start, from somewhere earlier in a tick than [StatRestore] (a login, a prayer clicked): that
      * tick's count brings it to 0, so the whole cycle comes after it, as the hitpoints countdown has it ([MeleeCombat]).
+     * Between ticks ([inTick] false, a command on a paused clock) no count is to come, so it starts at 0.
      */
-    fun restart() {
-        ticks = -1
+    fun restart(inTick: Boolean = true) {
+        ticks = if (inTick) -1 else 0
         lengthened = false
     }
 }

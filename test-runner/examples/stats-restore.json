@@ -27,6 +27,7 @@
   {"step": "waitTicks", "ticks": 30, "comment": "into the second of the combat cycle's five 12-second segments"},
   {"step": "logout"},
   {"step": "waitForLogin", "comment": "auto login"},
+  {"step": "waitTicks", "ticks": 1, "comment": "so the next ::stats can't land in the tick after the login, which would still say 80"},
   {"step": "command", "text": "::stats", "expectMessage": "next combat boost level in 7", "comment": "the segment kept: back at its start, 80 ticks from the login (a few gone by now); a cycle started afresh would say 9x"},
   {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "Hitpoints set to level 99"},
   {"step": "command", "text": "::boost hitpoints 110", "expectMessage": "Hitpoints is now 110/99"},

@@ -98,7 +98,7 @@ class SkillCommandsTest {
         timers.rapidRestore = 99
         run("statcycles")
         assertEquals(listOf("Boost and drain cycles started again: the next levels in 100 ticks"), replies)
-        // -1: the command's own tick counts them to 0; see BoostCycle.restart.
-        assertEquals(listOf(-1, -1, -1, -1, -1), listOf(timers.combatBoost.ticks, timers.skillBoost.ticks, timers.hitpoints.ticks, timers.restore, timers.rapidRestore))
+        // 0, as no tick is running here, as on a paused clock; in a tick's input, -1 (BoostCycle.restart).
+        assertEquals(listOf(0, 0, 0, 0, 0), listOf(timers.combatBoost.ticks, timers.skillBoost.ticks, timers.hitpoints.ticks, timers.restore, timers.rapidRestore))
     }
 }

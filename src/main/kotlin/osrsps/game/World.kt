@@ -378,7 +378,7 @@ class World(
         registerDevCommands(this@World)
         registerTickCommands(this@World)
         registerVarCommands()
-        registerSkillCommands()
+        registerSkillCommands { phase != null }
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
