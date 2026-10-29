@@ -105,7 +105,8 @@ class EquipmentTab(
             EquipResult.Done, EquipResult.Ignored -> return
             EquipResult.NoSpace -> listOf(NO_SPACE)
             is EquipResult.LevelTooLow -> {
-                val skill = result.requirement.skill.displayName
+                // Guessed for the combat level, which few items need: the skill line's wording with "combat".
+                val skill = result.requirement.skill?.displayName ?: "combat"
                 val article = if (skill.first().lowercaseChar() in "aeiou") "an" else "a"
                 listOf(LEVEL_TOO_LOW, "You need to have $article $skill level of ${result.requirement.level}.")
             }

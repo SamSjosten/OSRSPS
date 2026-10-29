@@ -5,6 +5,7 @@ import osrsps.cache.ObjTypeLoader
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.WearPos
+import osrsps.game.WearRequirements
 import java.nio.file.Files
 import kotlin.io.path.Path
 import kotlin.io.path.createDirectories
@@ -15,7 +16,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ItemAuditTest {
-    /** Made-up items, not the cache's: a sword with one wrong bonus, and a mithril helm the metal-tier rule misses. */
+    /** Made-up items, not the cache's: a sword with one wrong bonus, and a helm with no requirements listed. */
     private val sword = ObjType(
         id = 1, name = "Test sword", cost = 100, wearpos1 = WearPos.WEAPON, weight = 1800, internalName = "test_sword",
         params = mapOf(0 to 10, 1 to 5, 14 to 4),
@@ -36,6 +37,7 @@ class ItemAuditTest {
                 WikiItem(1, "Test sword", false, false, 100, 1800, true, emptyMap()),
                 WikiItem(2, "Test helm", false, false, 50, 900, true, mapOf("defence" to 20)),
             ),
+            WearRequirements.NONE,
         ).run()
         assertEquals(listOf("Bonus: stab attack" to "10/11", "Requirements" to "none/defence=20"), audit.findings.map { it.check to "${it.ours}/${it.wiki}" })
         assertTrue("2\tTest helm\tdefence=20" in audit.requirementCandidates())
@@ -92,6 +94,7 @@ class ItemAuditTest {
             objs,
             ItemAudit.parseEquipment(Path(System.getenv("OSRSPS_WIKI_EQUIPMENT")).readText()),
             ItemAudit.parseItems(Path(System.getenv("OSRSPS_WIKI_ITEMS")).readText()),
+            WearRequirements.load(objs),
         ).run()
         val out = Path("build", "item-audit").createDirectories()
         val source = "Cache: ${decoded.size} items from ${System.getenv("OSRSPS_FLATCACHE")}. " +

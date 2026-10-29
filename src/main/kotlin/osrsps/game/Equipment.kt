@@ -23,8 +23,12 @@ object WearPos {
     const val COUNT = 14
 }
 
-/** A skill level needed to wear an item. */
-data class WearRequirement(val skill: Skill, val level: Int)
+/** A level needed to wear an item: of [skill], or the combat level when [skill] is null. */
+data class WearRequirement(val skill: Skill?, val level: Int) {
+    /** Whether [player]'s base levels (boosts don't count) meet it. */
+    fun metBy(player: Player): Boolean =
+        (if (skill == null) player.skills.combatLevel else player.skills.baseLevel(skill)) >= level
+}
 
 /** What [Equipment.wear] or [Equipment.remove] did. */
 sealed interface EquipResult {
@@ -42,7 +46,11 @@ sealed interface EquipResult {
  * Wearing and removing items: moving them between the inventory and the worn inventory with the slot, level and
  * two-handed rules. Telling the player and updating their model is left to the caller ([EquipmentTab]).
  */
-class Equipment(val objTypes: ObjTypes) {
+class Equipment(
+    val objTypes: ObjTypes,
+    /** The levels each item needs; tests that check levels pass their own. */
+    val requirements: WearRequirements = WearRequirements.NONE,
+) {
     /**
      * Wears the item in inventory [slot]. What it replaces goes into the inventory slot it leaves; a two-handed weapon
      * worn over both a weapon and a shield needs one more free slot for the shield. Levels are checked against base
@@ -54,7 +62,7 @@ class Equipment(val objTypes: ObjTypes) {
         val held = inv[slot] ?: return EquipResult.Ignored
         val type = objTypes[held.id] ?: return EquipResult.Ignored
         if (!type.wearable) return EquipResult.Ignored
-        val missing = requirements(type).firstOrNull { player.skills.baseLevel(it.skill) < it.level }
+        val missing = requirements[type].firstOrNull { !it.metBy(player) }
         if (missing != null) return EquipResult.LevelTooLow(missing)
 
         val worn = player.equipment
@@ -140,60 +148,11 @@ class Equipment(val objTypes: ObjTypes) {
         /** Inventory options that wear the item when no content handler takes them. */
         val WEAR_OPTIONS = setOf("Wear", "Wield", "Equip")
 
-        /**
-         * Requirement params as RSMod names them (statreq1_skill, statreq2_skill, statreq1_level, statreq2_level):
-         * the skill's id and the level. Checked in the 241 cache: the abyssal whip has 0 (Attack) and 70, the
-         * granite maul 0/50 and 2 (Strength)/50.
-         */
-        const val PARAM_REQ1_SKILL = 434
-        const val PARAM_REQ2_SKILL = 435
-        const val PARAM_REQ1_LEVEL = 436
-        const val PARAM_REQ2_LEVEL = 437
-
         /** Ticks between attacks; a bronze sword has 4, a bronze 2h sword 7 in the cache. */
         const val PARAM_ATTACK_SPEED = 14
 
         /** Unarmed attacks every 4 ticks (OSRS Wiki, from memory). */
         const val UNARMED_ATTACK_SPEED = 4
-
-        /**
-         * Metal tiers by gameval prefix and the level their weapons (Attack) and armour (Defence) need. The 241 cache
-         * only carries requirement params on some items (rune scimitar, not rune dagger; no mithril item at all), so
-         * the rest of the standard metal sets come from this rule. From memory of the OSRS Wiki, not checked.
-         * Halberds are left out: they also need Strength.
-         */
-        private val METAL_TIERS = mapOf("steel" to 5, "black" to 10, "mithril" to 20, "adamant" to 30, "rune" to 40, "dragon" to 60)
-        private val METAL_WEAPONS = setOf(
-            "dagger", "sword", "longsword", "scimitar", "2h_sword", "mace", "warhammer", "battleaxe", "axe", "pickaxe",
-            "spear", "claws",
-        )
-        private val METAL_ARMOUR = setOf(
-            "full_helm", "med_helm", "chainbody", "platebody", "platelegs", "plateskirt", "sq_shield", "kiteshield",
-        )
-
-        /** The levels needed to wear [type]: from its params when it has them, else from the metal tier rule. */
-        fun requirements(type: ObjType): List<WearRequirement> {
-            val fromParams = listOfNotNull(
-                requirement(type, PARAM_REQ1_SKILL, PARAM_REQ1_LEVEL),
-                requirement(type, PARAM_REQ2_SKILL, PARAM_REQ2_LEVEL),
-            )
-            if (fromParams.isNotEmpty()) return fromParams
-            val name = type.internalName ?: return emptyList()
-            val metal = name.substringBefore('_')
-            val level = METAL_TIERS[metal] ?: return emptyList()
-            return when (name.substringAfter('_')) {
-                in METAL_WEAPONS -> listOf(WearRequirement(Skill.ATTACK, level))
-                in METAL_ARMOUR -> listOf(WearRequirement(Skill.DEFENCE, level))
-                else -> emptyList()
-            }
-        }
-
-        private fun requirement(type: ObjType, skillParam: Int, levelParam: Int): WearRequirement? {
-            val skillId = type.params[skillParam] as? Int ?: return null
-            val level = type.intParam(levelParam)
-            val skill = Skill.entries.getOrNull(skillId) ?: return null
-            return if (level > 1) WearRequirement(skill, level) else null
-        }
     }
 }
 

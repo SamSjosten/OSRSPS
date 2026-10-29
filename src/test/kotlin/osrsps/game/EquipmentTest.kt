@@ -2,6 +2,7 @@ package osrsps.game
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class EquipmentTest {
@@ -17,8 +18,18 @@ class EquipmentTest {
     private val coins = ObjType(995, "Coins", stackable = true)
     // Gear's ranged strength is param 189, not the ammunition's 12.
     private val pegasians = ObjType(13237, "Pegasian boots", wearpos1 = WearPos.FEET, params = mapOf(4 to 12, 189 to 1), internalName = "pegasian_boots")
-    private val types = ObjTypes.of(axe, sword, twoHander, shield, whip, mithrilHelm, arrows, occult, coins, pegasians)
-    private val equipment = Equipment(types)
+    private val cape = ObjType(2000, "Test cape", wearpos1 = WearPos.CAPE, internalName = "test_cape")
+    private val types = ObjTypes.of(axe, sword, twoHander, shield, whip, mithrilHelm, arrows, occult, coins, pegasians, cape)
+    private val requirements = WearRequirements.parse(
+        """
+        # A comment line, then made-up levels in the file's layout.
+        abyssal_whip	attack=70	Abyssal whip
+        mithril_full_helm	defence=20	Mithril full helm
+        test_cape	defence=5 combat=20	Made up: two levels, one of them combat
+        """.trimIndent(),
+        types,
+    )
+    private val equipment = Equipment(types, requirements)
     private val player = Player(1, "test", 3222, 3218, 0)
 
     @Test
@@ -86,7 +97,7 @@ class EquipmentTest {
     }
 
     @Test
-    fun `levels from the item's params are checked against base levels`() {
+    fun `levels from the requirements file are checked against base levels`() {
         player.inventory.add(whip, 1)
         assertEquals(EquipResult.LevelTooLow(WearRequirement(Skill.ATTACK, 70)), equipment.wear(player, 0))
         player.skills.setCurrentLevel(Skill.ATTACK, 70)
@@ -96,11 +107,31 @@ class EquipmentTest {
     }
 
     @Test
-    fun `metal items without params need their tier's level`() {
-        assertEquals(listOf(WearRequirement(Skill.DEFENCE, 20)), Equipment.requirements(mithrilHelm))
-        assertEquals(emptyList(), Equipment.requirements(axe))
-        assertEquals(listOf(WearRequirement(Skill.ATTACK, 30)), Equipment.requirements(ObjType(1, "Adamant scimitar", internalName = "adamant_scimitar")))
-        assertEquals(emptyList(), Equipment.requirements(ObjType(2, "Mithril halberd", internalName = "mithril_halberd")))
+    fun `every level an item lists is checked, the combat level too`() {
+        player.inventory.add(cape, 1)
+        player.skills.setLevel(Skill.DEFENCE, 5)
+        assertEquals(EquipResult.LevelTooLow(WearRequirement(null, 20)), equipment.wear(player, 0))
+        player.skills.setLevel(Skill.HITPOINTS, 20)
+        player.skills.setLevel(Skill.ATTACK, 25)
+        player.skills.setLevel(Skill.STRENGTH, 25)
+        assertEquals(EquipResult.Done, equipment.wear(player, 0), "combat level ${player.skills.combatLevel}")
+    }
+
+    @Test
+    fun `items the file doesn't list need nothing, whatever their params say`() {
+        // The cache's 434-437 params hold other things on some items (the Crafting level that makes a battlestaff).
+        val staff = ObjType(1393, "Fire battlestaff", wearpos1 = WearPos.WEAPON, params = mapOf(434 to 12, 436 to 62), internalName = "fire_battlestaff")
+        assertEquals(emptyList(), requirements[staff])
+        assertEquals(listOf(WearRequirement(Skill.DEFENCE, 20)), requirements[mithrilHelm])
+        assertEquals(emptyList(), requirements[axe])
+    }
+
+    @Test
+    fun `a bad line fails the file`() {
+        for (line in listOf("abyssal_whip\tattack", "abyssal_whip\tattack=100", "abyssal_whip\tcooking=0", "abyssal_whip\tluck=5", "abyssal_whip")) {
+            assertFailsWith<IllegalArgumentException>(line) { WearRequirements.parse(line, types) }
+        }
+        assertEquals(1, WearRequirements.parse("abyssal_whip\tattack=70\nno_such_item\tattack=1", types).size)
     }
 
     @Test
