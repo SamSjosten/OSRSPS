@@ -15,8 +15,9 @@ enum class MoveResult { NONE, WALKED, RAN }
  * Routes players to clicked tiles and moves them along the route: one tile a tick walking, two running.
  *
  * Run energy follows the OSRS Wiki "Energy" article: running drains ⌊60 + 67 × weight / 64⌋ × (1 − agility / 300)
- * units a tick, and any tick spent not running restores ⌊agility / 10⌋ + 15. Weight is 0 and Agility 1 until we have
- * items and stats.
+ * units a tick, and any tick spent not running restores ⌊agility / 10⌋ + 15. Weight is [Player.weight] in kilograms,
+ * counted from 0 to 64 (the Wiki's Weight article: lighter or heavier has no more effect). Agility is 1 until the skill
+ * is built.
  */
 class Movement(private val collision: CollisionMap) {
     private val routeFinder = RouteFinder(collision)
@@ -72,7 +73,7 @@ class Movement(private val collision: CollisionMap) {
     private fun updateEnergy(player: Player, result: MoveResult) {
         // Guessed: only a two-tile tick counts as running, and a single tile at the end of a run drains nothing.
         if (result == MoveResult.RAN) {
-            val base = 60 + 67 * WEIGHT.coerceIn(0, 64) / 64
+            val base = 60 + 67 * player.weight.coerceIn(0, 64) / 64
             val drain = base * (300 - AGILITY) / 300
             player.runEnergy = (player.runEnergy - drain).coerceAtLeast(0)
             // Guessed: run switches itself off when energy runs out, as the orb does on live.
@@ -85,6 +86,5 @@ class Movement(private val collision: CollisionMap) {
     companion object {
         const val MAX_ENERGY = 10_000
         private const val AGILITY = 1
-        private const val WEIGHT = 0
     }
 }

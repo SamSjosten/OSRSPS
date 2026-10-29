@@ -17,6 +17,7 @@ import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
+import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunWeight
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
 import net.rsprot.protocol.game.outgoing.sound.MidiJingle
 import net.rsprot.protocol.game.outgoing.sound.SynthSound
@@ -189,6 +190,7 @@ class World(
     val groundObjs = GroundObjs(zones, objTypes, scripts, collision, { findPlayer(it) != null }, { players.count { it != null } })
 
     private val equipment = Equipment(objTypes)
+    private val itemWeights = ItemWeights(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
     val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
@@ -616,6 +618,7 @@ class World(
     /** One player's part of the movement phase. */
     private fun movePhase(player: Player) {
         interfaces.processFrameMove(player, tick)
+        sendWeight(player)
         // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
         // after them for a follow that ended in them.
         sendFace(player)
@@ -953,8 +956,10 @@ class World(
         player.equipment.resendAll()
         player.sentRunEnabled = null
         player.sentRunEnergy = -1
+        player.sentWeight = Int.MIN_VALUE
         player.sentCombatLevel = -1
         sendRunState(player)
+        sendWeight(player)
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
@@ -1416,6 +1421,18 @@ class World(
     }
 
     private fun moveSpeed(player: Player) = if (player.runEnabled) MOVE_SPEED_RUN else MOVE_SPEED_WALK
+
+    /**
+     * Works out what [player] carries for this tick's run energy, and tells the client when the whole kilograms change
+     * (UPDATE_RUNWEIGHT, which the Equipment Stats screen and RuneLite show). Inferred: live sends it on a change only.
+     */
+    private fun sendWeight(player: Player) {
+        player.weight = ItemWeights.kilograms(itemWeights.total(player))
+        if (player.weight != player.sentWeight) {
+            player.session.queue(UpdateRunWeight(player.weight))
+            player.sentWeight = player.weight
+        }
+    }
 
     /** Sends the move speed that goes with the run orb, and the run energy, when they change. The orb is a varp. */
     private fun sendRunState(player: Player) {

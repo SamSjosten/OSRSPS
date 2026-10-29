@@ -225,6 +225,7 @@ server's answer instead of failing on what was there before.
 | `assertVarp` | `id`, `value` | (0.8.0) Waits until varp `id` holds `value` both as the server last sent it and in the client's own copy. The client's scripts change their copy first for most settings, so a setting the server ignored shows as the client alone holding it; the result shows both. |
 | `assertVarbit` | `id`, `value` | (0.8.0) The same for varbit `id`, worked out from both copies of its varp with the client's varbit definition. |
 | `runClientScript` | `id`, `args` | (0.8.0) Runs client script `id` from the cache with `args` (whole numbers and strings in the script's order; a component is interface × 65536 + component), as the client's interfaces would. For what the runner can't do by clicking, such as letting go of a slider: `settings_side_master_volume_drag_complete` is 9231. |
+| `assertWeight` | `kg` | (0.9.0) Waits until the carried weight the server last sent is `kg` whole kilograms (rounded toward zero, so -4.535 kg is -4), as RuneLite's weight shows it. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)

@@ -103,6 +103,7 @@ class HeadlessClient private constructor(
     private val statTicks = HashMap<Int, Int>()
     private val varpTicks = HashMap<Int, Int>()
     private var runEnergy = -1
+    private var runWeight: Int? = null
 
     /** Counts changes of [dialogue]; [dialogueMark] is its value when the last packet was sent. */
     private var dialogueGeneration = 0
@@ -197,6 +198,9 @@ class HeadlessClient private constructor(
 
     /** Run energy in hundredths of a percent (10000 is full), or -1 before the server sends it. */
     val runEnergyHundredths: Int get() = lock.withLock { runEnergy }
+
+    /** The carried weight in whole kilograms the server last sent (UPDATE_RUNWEIGHT), null before it sends one. */
+    val weightKg: Int? get() = lock.withLock { runWeight }
 
     /**
      * What the chatbox dialogue showed at the end of the last server tick, or null if none was open. Read at tick ends
@@ -585,6 +589,7 @@ class HeadlessClient private constructor(
             }
             GameServerProt.VARP_RESET -> varps.clear()
             GameServerProt.UPDATE_RUNENERGY -> runEnergy = buf.g2()
+            GameServerProt.UPDATE_RUNWEIGHT -> runWeight = buf.g2().toShort().toInt()
             GameServerProt.SERVER_TICK_END -> {
                 ticks++
                 val view = readDialogue()

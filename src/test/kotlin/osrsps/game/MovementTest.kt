@@ -55,6 +55,21 @@ class MovementTest {
     }
 
     @Test
+    fun `weight speeds up the drain, up to twice at 64 kg`() {
+        fun drainAt(kg: Int): Int {
+            val player = player().apply { runEnabled = true; runEnergy = 5000; weight = kg }
+            movement.request(player, 3220, 3210, invertRun = false)
+            movement.process(player)
+            return 5000 - player.runEnergy
+        }
+        // ⌊60 + 67 × weight / 64⌋ × (1 − 1/300), rounded down.
+        assertEquals(59, drainAt(-27))
+        assertEquals(92, drainAt(32))
+        assertEquals(126, drainAt(64))
+        assertEquals(126, drainAt(200))
+    }
+
+    @Test
     fun `run turns off when energy runs out`() {
         val player = player().apply { runEnabled = true; runEnergy = 30 }
         movement.request(player, 3220, 3210, invertRun = false)
