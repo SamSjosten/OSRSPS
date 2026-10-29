@@ -1,0 +1,16 @@
+{
+ "name": "Items step 4: the Grand Exchange snapshot on 214, and a note's examine from the dialogue file",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::itemprices", "expectMessage": "Grand Exchange prices (", "comment": "the server downloaded the Wiki's snapshot into data/item-prices.tsv on its first start after the merge; this reads it again and says how many and from when"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare."},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::item 1352 5", "expectMessage": "Added 5 x Bronze axe (1352, noted)"},
+  {"step": "waitTicks", "ticks": 2, "comment": "a click right after an item arrives goes out on an empty slot (seen on the VM 2026-10-28)"},
+  {"step": "itemOption", "itemId": 1352, "option": "Examine"},
+  {"step": "assertMessage", "contains": "examine.note", "comment": "the cache has no examine for notes; the server sends the dialogue file's line, here its key"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

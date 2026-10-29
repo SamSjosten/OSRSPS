@@ -50,10 +50,10 @@ class Grave(
  * From the Wiki: the message, three items kept (one more with Protect Item; fewer skulled, which isn't built), valued at
  * the Grand Exchange price or the alchemy value, 15 minutes that pause while logged out or with the interface open,
  * a second death adding to the grave, and death restoring stats and run energy. Guessed and marked below: the ticks
- * the body lies before the respawn, the value order ([ObjType.cost], as there is no Grand Exchange snapshot yet; ties
- * by worn then inventory slot), that each unit of a stack counts as an item, and what Check says. The free list is
- * the interface's: its client script puts slots from varbit [VARBIT_FREE_FROM] minus one in the free list and the
- * rest in the paid one (gravestone_generic_window_set); every item here is free.
+ * the body lies before the respawn, ties in the value order ([value]) going by worn then inventory slot, that each
+ * unit of a stack counts as an item, and what Check says. The free list is the interface's: its client script puts
+ * slots from varbit [VARBIT_FREE_FROM] minus one in the free list and the rest in the paid one
+ * (gravestone_generic_window_set); every item here is free.
  */
 class Deaths(
     private val objTypes: ObjTypes,
@@ -80,6 +80,8 @@ class Deaths(
     private val message: (Player, String) -> Unit = Player::message,
     /** Examine on a grave item: the inventory's examine. */
     private val examine: (Player, ObjType, Int) -> Unit = { _, _, _ -> },
+    /** What an item counts for when choosing the kept items ([osrsps.game.ItemPrices.deathValue]). */
+    private val value: (ObjType) -> Long = { it.cost.toLong() },
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -155,13 +157,13 @@ class Deaths(
      * stack of coins.
      */
     private fun dropItems(player: Player): List<InvObj> {
-        class Held(val inv: Inventory, val slot: Int, val obj: InvObj, val cost: Int)
+        class Held(val inv: Inventory, val slot: Int, val obj: InvObj, val value: Long)
         val held = ArrayList<Held>()
         for (inv in listOf(player.equipment, player.inventory)) {
-            for ((slot, obj) in inv.contents()) held += Held(inv, slot, obj, objTypes[obj.id]?.cost ?: 0)
+            for ((slot, obj) in inv.contents()) held += Held(inv, slot, obj, objTypes[obj.id]?.let(value) ?: 0)
         }
         // Stable, so ties keep worn-then-inventory slot order.
-        held.sortByDescending { it.cost }
+        held.sortByDescending { it.value }
         var keep = player.deathKeptItems
         val lost = ArrayList<InvObj>()
         for (item in held) {

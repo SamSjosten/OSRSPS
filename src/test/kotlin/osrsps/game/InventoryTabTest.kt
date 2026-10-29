@@ -94,8 +94,25 @@ class InventoryTabTest {
         tab.click(player, 1, 1351, 10)
         val scripts = sent.filterIsInstance<RunClientScript>()
         assertEquals(listOf(6003, 6003), scripts.map { it.id })
-        assertEquals(listOf<Any>(995, 250, "Lovely money!", 0, 1L, 1, 0, 0), scripts[0].values)
-        assertEquals(listOf<Any>(1351, 1, "A woodcutter's axe.", 1, 16L, 1, 9, 6), scripts[1].values)
+        assertEquals(listOf<Any>(995, 250, "Lovely money!", 0, 1L, 0, 0, 0), scripts[0].values)
+        assertEquals(listOf<Any>(1351, 1, "A woodcutter's axe.", 1, 16L, 0, 9, 6), scripts[1].values)
+    }
+
+    @Test
+    fun `examine sends the snapshot's Grand Exchange price, and a note the file's examine`() {
+        val note = ObjType(1352, "Bronze axe", cost = 16, stackable = true, tradeable = true, certlink = 1351, certtemplate = 799)
+        val prices = ItemPrices(mapOf(1351 to ItemPrices.Entry("Bronze axe", 21, 40)))
+        val priced = InventoryTab(
+            ObjTypes.of(axe, note), scripts, { modalsClosed++ }, send = { _, message -> sent += message },
+            price = prices::price, desc = { _, type -> if (type.isCert) "[examine.note]" else type.desc ?: "" },
+        )
+        player.inventory.add(axe, 1)
+        player.inventory.add(note, 5)
+        priced.click(player, 0, 1351, 10)
+        priced.click(player, 1, 1352, 10)
+        val scripts = sent.filterIsInstance<RunClientScript>()
+        assertEquals(listOf<Any>(1351, 1, "A woodcutter's axe.", 1, 21L, 0, 9, 6), scripts[0].values)
+        assertEquals(listOf<Any>(1352, 5, "[examine.note]", 1, 21L, 0, 9, 6), scripts[1].values)
     }
 
     @Test

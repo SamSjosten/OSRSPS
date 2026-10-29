@@ -22,6 +22,7 @@ import osrsps.game.EffectIds
 import osrsps.game.SettingsSide
 import osrsps.game.Accounts
 import osrsps.game.IpBans
+import osrsps.game.ItemPrices
 import osrsps.game.command.Admins
 import osrsps.game.FileSaveStore
 import osrsps.game.GameRandom
@@ -175,6 +176,9 @@ class GameServer(
         logger.info { "Loaded ${shopTypes.all.size} shops" }
         val wearRequirements = WearRequirements.load(objTypes)
         logger.info { "Loaded the wear requirements of ${wearRequirements.size} items" }
+        val itemPricesFile = dataDir.resolve(ItemPrices.FILE_NAME)
+        val itemPrices = ItemPrices.loadOrDownload(itemPricesFile)
+        logger.info { "Grand Exchange prices: ${itemPrices.size} (${itemPrices.snapshot ?: "none"}) in ${itemPricesFile.toAbsolutePath()}" }
                 val scenarios = Scenarios.load()
         for (name in scenarios.names) {
             // Checked again when started; warned about here so a bad item name shows in the deploy log.
@@ -191,6 +195,7 @@ class GameServer(
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, wearRequirements = wearRequirements,
+            itemPrices = itemPrices, itemPricesFile = itemPricesFile,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)

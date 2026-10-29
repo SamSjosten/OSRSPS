@@ -23,6 +23,15 @@ fun CommandRegistry.registerItemCommands(world: World) {
         }
     }
 
+    // The Grand Exchange price snapshot: read the file again after a hand edit, or download a new one.
+    register("itemprices", "::itemprices [refresh]", admin = true) {
+        when (args.singleOrNull()?.lowercase()) {
+            null -> reply(world.loadItemPrices())
+            "refresh" -> reply(world.refreshItemPrices())
+            else -> fail("Usage: ::itemprices [refresh]")
+        }
+    }
+
     register("empty", "::empty") {
         if (args.isNotEmpty()) fail("Usage: ::empty")
         player.inventory.clear()
