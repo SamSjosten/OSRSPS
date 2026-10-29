@@ -14,6 +14,7 @@ class NpcCombatTest {
     private val names = listOf(
         "man", "man2", "man3", "man4", "woman", "woman2", "woman3", "rat", "imp",
         "cow", "cow2", "cow3", "cow2_calf", "cow3_calf", "calf",
+        "chicken", "chicken_brown", "ramunsheered", "ramunsheered2", "ramunsheered3",
     )
     private val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name) }.toTypedArray())
 
@@ -24,6 +25,8 @@ class NpcCombatTest {
             "mouse_attack" to 2705, "mouse_defend" to 2706, "mouse_death" to 2707,
             "imp_attack" to 169, "imp_block" to 170, "imp_death" to 172,
             "cow_update_attack" to 5849, "cow_update_defend" to 5850, "cow_update_death" to 5851,
+            "chicken_attack" to 55, "chicken_block" to 56, "chicken_death" to 57,
+            "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252,
         ),
     )
 
@@ -39,9 +42,19 @@ class NpcCombatTest {
         assertEquals(25, man.respawnTicks)
         assertEquals(AttackType.STAB, combat[types.find("imp")!!]!!.attackType)
         assertEquals(2, combat[types.find("rat")!!]!!.respawnTicks)
-        // The imp alone has an elemental weakness among them (OSRS Wiki: the others say "No elemental weakness").
+        // The imp and the rams alone have an elemental weakness among them (OSRS Wiki: the others say "No elemental weakness").
         assertEquals(ElementalWeakness(Element.WATER, 10), combat[types.find("imp")!!]!!.weakness)
-        assertEquals(listOf("imp"), names.filter { combat[types.find(it)!!]!!.weakness != null })
+        assertEquals(ElementalWeakness(Element.FIRE, 20), combat[types.find("ramunsheered")!!]!!.weakness)
+        assertEquals(listOf("imp", "ramunsheered", "ramunsheered2", "ramunsheered3"), names.filter { combat[types.find(it)!!]!!.weakness != null })
+        // Fred's farm: a chicken stabs for nothing and comes back in 25 ticks, a ram crushes for 1 and takes 45.
+        val chicken = combat[types.find("chicken_brown")!!]!!
+        assertEquals(AttackType.STAB, chicken.attackType)
+        assertEquals(0, chicken.maxHit)
+        assertEquals(NpcCombatAnims(55, 56, 57), chicken.anims)
+        assertEquals(25, chicken.respawnTicks)
+        val ram = combat[types.find("ramunsheered2")!!]!!
+        assertEquals(1, ram.maxHit)
+        assertEquals(45, ram.respawnTicks)
     }
 
     @Test

@@ -83,7 +83,14 @@ class Npc(
     val index: Int,
     val spawn: NpcSpawn,
 ) {
-    val type: NpcType get() = spawn.type
+    val type: NpcType get() = transformedTo ?: spawn.type
+
+    /** The type it shows as for a while instead of its spawn's, as a sheared sheep does; see [Npcs.transform]. */
+    var transformedTo: NpcType? = null
+        internal set
+
+    /** Ticks until it changes back to its spawn's type. */
+    internal var transformTicks: Int = 0
 
     /** The south-west tile it covers; it covers [NpcType.size] tiles along each side from here. */
     var x: Int = spawn.x

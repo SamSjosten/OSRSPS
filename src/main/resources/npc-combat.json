@@ -49,6 +49,23 @@
       "anims": { "attack": "cow_update_attack", "defend": "cow_update_defend", "death": "cow_update_death" },
       "respawnTicks": 45,
       "source": "OSRS Wiki, Cow calf (ids 2792, 2794, 2801); calves stand with cow_just_ready_update and have no attack animation of their own by name, so the cow's are guessed"
+    },
+    {
+      "npcs": ["chicken", "chicken_brown"],
+      "attackSpeed": 4, "maxHit": 0, "attackType": "stab", "attackBonus": -47, "strengthBonus": -42,
+      "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
+      "anims": { "attack": "chicken_attack", "defend": "chicken_block", "death": "chicken_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Chicken (ids 1173, 1174), read 2026-10-29; they stand and walk with lore_chicken_ready and lore_chicken_walk, so the chicken_ attack, block and death animations are guessed"
+    },
+    {
+      "npcs": ["ramunsheered", "ramunsheered2", "ramunsheered3"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": -15, "strengthBonus": -15,
+      "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+      "anims": { "attack": "sheep_attack", "defend": "sheep_block", "death": "sheep_death" },
+      "respawnTicks": 45,
+      "weakness": { "element": "fire", "percent": 20 },
+      "source": "OSRS Wiki, Ram (id 1262; 1263 and 1264 are taken to match it, as the cache gives all three the same levels), read 2026-10-29; rams walk with the sheep_update animations, so the sheep_ fight animations are guessed"
     }
   ]
 }

@@ -1,6 +1,7 @@
 package osrsps.game.npc
 
 import osrsps.game.GameRandom
+import osrsps.game.NpcType
 import osrsps.game.Player
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
@@ -146,6 +147,28 @@ class Npcs(
             } else if (npc.freezeImmunityTicks > 0) {
                 npc.freezeImmunityTicks--
             }
+        }
+    }
+
+    /**
+     * Shows [npc] as [type] for [ticks], then as its spawn's type again: its options, name and examine are the new
+     * type's meanwhile, for every player (RSMod's npcChangeType; the NPC info's transformation block tells the client).
+     * Its hitpoints and fight stay as they were.
+     */
+    fun transform(npc: Npc, type: NpcType, ticks: Int) {
+        require(ticks > 0) { "a transformation of $ticks ticks" }
+        npc.transformedTo = type
+        npc.transformTicks = ticks
+        npc.avatar?.extendedInfo?.transformation(type.id)
+    }
+
+    /** Counts every transformed NPC down a tick, changing back those whose time is up. Once a tick, with the freezes. */
+    fun countDownTransforms() {
+        for (npc in npcs) {
+            if (npc == null || npc.transformedTo == null) continue
+            if (--npc.transformTicks > 0) continue
+            npc.transformedTo = null
+            npc.avatar?.extendedInfo?.transformation(npc.spawn.type.id)
         }
     }
 

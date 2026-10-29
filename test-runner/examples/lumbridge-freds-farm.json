@@ -1,0 +1,226 @@
+{
+ "name": "Rest of Lumbridge step 6: Fred's farm, Fred's talk (::keys on), picking an onion, shearing a sheep and killing chickens for their feathers",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3189 3271 0",
+   "expectMessage": "Teleported to 3189, 3271, 0",
+   "comment": "Fred's house, beside Fred (RSMod's spawn tile 3189 3273)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Fred the Farmer",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fred_the_farmer.my_land]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[fred_the_farmer.kill]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fred_the_farmer.kill]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fred_the_farmer.livestock]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Fred the Farmer",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fred_the_farmer.my_land]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[fred_the_farmer.lost]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fred_the_farmer.lost]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fred_the_farmer.road]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "loc": "Onion",
+   "option": "Pick",
+   "timeoutMs": 20000,
+   "comment": "the nearest onion of the patch by Fred's house"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You pick an onion."
+  },
+  {
+   "step": "assertInventory",
+   "item": "Onion",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::item shears",
+   "expectMessage": "Added 1 x Shears"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3201 3265 0",
+   "expectMessage": "Teleported to 3201, 3265, 0",
+   "comment": "inside Fred's sheep pen"
+  },
+  {
+   "step": "command",
+   "text": "::npc sheepunsheered",
+   "expectMessage": "Spawned Sheep (2693)",
+   "comment": "a sheep of a known type on this tile, so the steps below find it; ::delnpc mine takes it away"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2693,
+   "option": "Shear"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 893,
+   "comment": "human_shearing"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You get some wool."
+  },
+  {
+   "step": "assertInventory",
+   "item": "Wool",
+   "count": 1
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1178,
+   "option": "Examine",
+   "comment": "the client shows it as the sheared type (sheepsheered), which the NPC info's transformation tells it"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "examine.npc_1178"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3178 3297 0",
+   "expectMessage": "Teleported to 3178, 3297, 0",
+   "comment": "the chicken pen north of Fred's house"
+  },
+  {
+   "step": "command",
+   "text": "::kill chicken",
+   "expectMessage": "Killed Chicken #",
+   "comment": "four kills: each drops feathers 3 times in 4, so all four drop none 1 time in 256"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::kill chicken",
+   "expectMessage": "Killed Chicken #"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::kill chicken",
+   "expectMessage": "Killed Chicken #"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::kill chicken",
+   "expectMessage": "Killed Chicken #"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Raw chicken",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Feather",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "takeItem",
+   "item": "Feather"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Feather",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::delnpc mine",
+   "expectMessage": "Removed"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

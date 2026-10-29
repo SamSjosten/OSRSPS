@@ -11,6 +11,6 @@ object DialogueLines {
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines,
         // Rest of Lumbridge.
         ShopKeeperLines, ShopAssistantLines, BobLines, RamBartenderLines, ArthurLines, DonieLines, GeeLines, CookingTutorLines,
-        SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines,
+        SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines,
     )
 }
