@@ -4,8 +4,9 @@ import osrsps.game.GameRandom
 
 /**
  * The melee, ranged and magic formulas, from the OSRS Wiki's "Damage per second/Melee", "/Ranged" and "/Magic" and the Wiki's DPS calculator (weirdgloop's
- * osrs-dps-calc, PlayerVsNPCCalc and NPCVsPlayerCalc), which the Wiki keeps in line with Jagex's answers. Prayers,
- * potions' boosts aside from the current level, void and target-specific gear come with the pieces that add them.
+ * osrs-dps-calc, PlayerVsNPCCalc and NPCVsPlayerCalc), which the Wiki keeps in line with Jagex's answers. The levels
+ * passed in are the current levels with prayers' boosts ([PrayerBoosts], applied in [Combat]); potions' boosts aside
+ * from the current level, void and target-specific gear come with the pieces that add them.
  *
  * An attack hits when a roll of 0 to the attacker's attack roll beats a roll of 0 to the defender's defence roll; a hit
  * does 0 to the max hit, every value as likely. Both from the Wiki.

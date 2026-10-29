@@ -96,6 +96,29 @@ class HeadlessPrayerTest {
         }
     }
 
+    @Test
+    fun `Piety raises the combat command's numbers from the tick after it is clicked on`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
+                client.await("the login rebuild") { client.position }
+                for (skill in listOf("attack", "strength", "defence", "prayer")) client.commandReply("setlevel $skill 99") { it.contains("set to level 99") }
+                client.commandReply("combat man") { it.contains("attack roll 7040, max hit 11") }
+                client.click(PIETY)
+                client.await("Piety on") { if (client.prayers() == 1 shl 26) Unit else null }
+                client.awaitTicks(1)
+                // 99 * 1.2 = 118 and 99 * 1.23 = 121: (118 + 3 + 8) * 64 and ((121 + 8) * 64 + 320) / 640.
+                client.commandReply("combat man") { it.contains("attack roll 8256, max hit 13") }
+                // The reply's lines come together, so the third may be in before the wait starts.
+                client.await("Piety's defence") { if (client.messages().any { it.text.contains("vs your 8384") }) Unit else null }
+                client.click(PIETY)
+                client.await("Piety off") { if (client.prayers() == 0) Unit else null }
+                client.awaitTicks(1)
+                client.commandReply("combat man") { it.contains("attack roll 7040, max hit 11") }
+            }
+        }
+    }
+
     companion object {
         // prayerbook:prayer1 is 541:9, so prayer N is 9 + N - 1.
         private const val THICK_SKIN = 9

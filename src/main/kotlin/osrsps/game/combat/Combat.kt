@@ -36,6 +36,13 @@ data class NpcAttack(val attackRoll: Int, val defenceRoll: Int, val maxHit: Int)
 /**
  * Combat between players and NPCs: the numbers ([matchup], [rangedMatchup], [magicMatchup], [npcAttack]); the fighting
  * is [MeleeCombat], [RangedCombat] and [MagicCombat].
+ *
+ * The prayers that count this tick ([prayerBoosts]) multiply the levels before the style bonus and the +8, rounding
+ * down (OSRS Wiki, Damage per second/Melee, /Ranged, /Magic). A player's defence against a magic attack is 70% of
+ * their Magic and 30% of their Defence, each boosted by its prayer and rounded down on its own, before the style
+ * bonus (osrs-dps-calc's NPCVsPlayerCalc); against anything else it is their Defence. The magic prayers' damage bonus
+ * adds to the worn magic damage bonus, after a powered staff's multiplier and the cap (guessed: osrs-dps-calc adds it
+ * to the worn bonus, which the shadow has already multiplied).
  */
 class Combat(
     private val equipment: Equipment,
@@ -43,7 +50,23 @@ class Combat(
     val npcCombat: NpcCombat,
     /** The bows and crossbows, for a weapon whose numbers scale with its target (the twisted bow). */
     private val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
+    /** What the player's prayers add this tick; see [Prayers.boosts]. */
+    private val prayerBoosts: (Player) -> PrayerBoosts = { PrayerBoosts.NONE },
 ) {
+    /**
+     * The level [player] defends with against an attack of [type], before the style bonus: their Defence, or for magic
+     * 70% of their Magic and 30% of their Defence (see the class note), with their prayers' boosts.
+     */
+    fun defenceLevel(player: Player, type: AttackType, boosts: PrayerBoosts = prayerBoosts(player)): Int {
+        val defence = PrayerBoosts.boost(player.skills.currentLevel(Skill.DEFENCE), boosts.defence)
+        if (type != AttackType.MAGIC) return defence
+        val magic = PrayerBoosts.boost(player.skills.currentLevel(Skill.MAGIC), boosts.magicDefence)
+        return magic * 7 / 10 + defence * 3 / 10
+    }
+
+    private fun playerDefenceRoll(player: Player, style: AttackStyle, bonuses: EquipmentBonuses, type: AttackType, boosts: PrayerBoosts): Int =
+        CombatMath.playerDefenceRoll(defenceLevel(player, type, boosts), style.stance, defenceBonus(bonuses, type))
+
     /**
      * The attack style the player fights with: their weapon's category and the button picked on the combat tab (varp 43).
      * A button the category lacks falls back to its first style, as the equipment tab resets it; a category the table
@@ -106,15 +129,18 @@ class Combat(
         val type = meleeType(style) ?: return null
         val bonuses = bonuses(player)
         val skills = player.skills
-        val attackRoll = CombatMath.playerAttackRoll(skills.currentLevel(Skill.ATTACK), style.stance, attackBonus(bonuses, type))
+        val boosts = prayerBoosts(player)
+        val attack = PrayerBoosts.boost(skills.currentLevel(Skill.ATTACK), boosts.attack)
+        val strength = PrayerBoosts.boost(skills.currentLevel(Skill.STRENGTH), boosts.strength)
+        val attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type))
         val defenceRoll = CombatMath.npcDefenceRoll(stats.defence, def.defence.against(type))
         val npcAttackRoll = CombatMath.npcAttackRoll(stats.attack, def.attackBonus)
-        val playerDefenceRoll = CombatMath.playerDefenceRoll(skills.currentLevel(Skill.DEFENCE), style.stance, defenceBonus(bonuses, def.attackType))
+        val playerDefenceRoll = playerDefenceRoll(player, style, bonuses, def.attackType, boosts)
         return MeleeMatchup(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = CombatMath.playerMaxHit(skills.currentLevel(Skill.STRENGTH), style.stance, bonuses.meleeStrength),
+            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
             npcAttackRoll = npcAttackRoll,
             playerDefenceRoll = playerDefenceRoll,
@@ -138,7 +164,10 @@ class Combat(
         val style = style(player)
         if (style.type != AttackType.RANGED) return null
         val bonuses = bonuses(player)
-        val ranged = player.skills.currentLevel(Skill.RANGED)
+        val boosts = prayerBoosts(player)
+        val level = player.skills.currentLevel(Skill.RANGED)
+        val ranged = PrayerBoosts.boost(level, boosts.ranged)
+        val rangedStrengthLevel = maxOf(PrayerBoosts.boost(level, boosts.rangedStrength), level + boosts.minRangedStrengthGain)
         val weapon = rangedWeapons.weapon(equipment.weapon(player))
         var attackBonus = bonuses.rangedAttack
         if (weapon?.kind == AmmoKind.CHINCHOMPAS) {
@@ -156,7 +185,7 @@ class Combat(
             // Guessed: a thrown weapon is its own ammunition, so what is in the ammo slot adds nothing.
             strength -= rangedStrength(player.equipment[WearPos.AMMO]?.let { equipment.objTypes[it.id] })
         }
-        var maxHit = CombatMath.playerRangedMaxHit(ranged, style.stance, strength)
+        var maxHit = CombatMath.playerRangedMaxHit(rangedStrengthLevel, style.stance, strength)
         if (weapon?.scaling == RangedScaling.TWISTED_BOW) {
             val magic = maxOf(npc.type.stats.magic, def.magicAttack)
             attackRoll = attackRoll * CombatMath.twistedBowAccuracy(magic) / 100
@@ -182,18 +211,21 @@ class Combat(
     fun magicMatchup(player: Player, npc: Npc, spell: CombatSpell): MagicMatchup? {
         val def = npcCombat[npc.type] ?: return null
         val bonuses = bonuses(player)
+        val boosts = prayerBoosts(player)
+        val magic = PrayerBoosts.boost(player.skills.currentLevel(Skill.MAGIC), boosts.magic)
         val staff = spell.staff
         var attackRoll: Int
         var maxHit: Int
         if (staff == null) {
-            attackRoll = CombatMath.playerMagicAttackRoll(player.skills.currentLevel(Skill.MAGIC), bonuses.magicAttack)
-            maxHit = CombatMath.spellMaxHit(spell.maxHit, bonuses.magicDamage)
+            attackRoll = CombatMath.playerMagicAttackRoll(magic, bonuses.magicAttack)
+            maxHit = CombatMath.spellMaxHit(spell.maxHit, bonuses.magicDamage + boosts.magicDamage)
         } else {
             // A powered staff's spell: its styles' level bonus, and its multiplier on the worn bonuses (OSRS Wiki,
             // Damage per second/Magic, Tumeken's shadow).
-            val level = player.skills.currentLevel(Skill.MAGIC) + CombatMath.poweredStaffStanceBonus(style(player).stance)
+            val level = magic + CombatMath.poweredStaffStanceBonus(style(player).stance)
             attackRoll = CombatMath.playerMagicAttackRoll(level, bonuses.magicAttack * staff.bonusMultiplier)
-            maxHit = CombatMath.spellMaxHit(spell.maxHit, minOf(bonuses.magicDamage * staff.bonusMultiplier, CombatMath.MAGIC_DAMAGE_CAP))
+            val worn = minOf(bonuses.magicDamage * staff.bonusMultiplier, CombatMath.MAGIC_DAMAGE_CAP)
+            maxHit = CombatMath.spellMaxHit(spell.maxHit, worn + boosts.magicDamage)
         }
         val weakness = def.weakness?.takeIf { spell.element != null && it.element == spell.element }
         if (weakness != null) {
@@ -221,7 +253,7 @@ class Combat(
         val style = style(player)
         return NpcAttack(
             attackRoll = CombatMath.npcAttackRoll(npc.type.stats.attack, def.attackBonus),
-            defenceRoll = CombatMath.playerDefenceRoll(player.skills.currentLevel(Skill.DEFENCE), style.stance, defenceBonus(bonuses(player), def.attackType)),
+            defenceRoll = playerDefenceRoll(player, style, bonuses(player), def.attackType, prayerBoosts(player)),
             maxHit = def.maxHit,
         )
     }

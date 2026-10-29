@@ -21,8 +21,8 @@ private val logger = KotlinLogging.logger {}
  * varp 83 (prayer0, whose bits 0 to 28 are varbit prayer_allactive) and its [component] of the prayer book, and the
  * [sound] it makes when turned on. What the data file adds: its [drain] effect per tick, the [groups] of prayers it
  * can't be on with (each prayer turned on turns off every other prayer that shares a group with it), its [overhead]
- * icon (-1 for none), the attack type it [protects] against (null for none), and the Defence level it needs
- * ([defence], 1 for none).
+ * icon (-1 for none), the attack type it [protects] against (null for none), the Defence level it needs ([defence], 1
+ * for none), and what it adds to the combat formulas ([boosts]).
  */
 data class Prayer(
     val obj: Int,
@@ -36,8 +36,48 @@ data class Prayer(
     val overhead: Int = -1,
     val protects: AttackType? = null,
     val defence: Int = 1,
+    val boosts: PrayerBoosts = PrayerBoosts.NONE,
 ) {
     val mask: Int get() = 1 shl bit
+}
+
+/**
+ * What prayers add to the combat formulas, in percent of the level they multiply (100 for none) and, for
+ * [magicDamage], tenths of a percent of magic damage bonus. Each style has its own: Piety's strength is melee
+ * [strength] and Rigour's is [rangedStrength]. [defence] counts against every style and [magicDefence] against magic
+ * attacks alone (see [Combat]). [minRangedStrengthGain] is Sharp Eye's: its ranged strength boost is at least a level
+ * (the OSRS Wiki's DPS calculator, weirdgloop's osrs-dps-calc, PlayerVsNPCCalc, "force 1 level gain").
+ */
+data class PrayerBoosts(
+    val attack: Int = 100,
+    val strength: Int = 100,
+    val defence: Int = 100,
+    val ranged: Int = 100,
+    val rangedStrength: Int = 100,
+    val magic: Int = 100,
+    val magicDefence: Int = 100,
+    val magicDamage: Int = 0,
+    val minRangedStrengthGain: Int = 0,
+) {
+    /** Both together: the percentages add (osrs-dps-calc's prayers add, for a pair that boosts one level). */
+    operator fun plus(other: PrayerBoosts) = PrayerBoosts(
+        attack = attack + other.attack - 100,
+        strength = strength + other.strength - 100,
+        defence = defence + other.defence - 100,
+        ranged = ranged + other.ranged - 100,
+        rangedStrength = rangedStrength + other.rangedStrength - 100,
+        magic = magic + other.magic - 100,
+        magicDefence = magicDefence + other.magicDefence - 100,
+        magicDamage = magicDamage + other.magicDamage,
+        minRangedStrengthGain = maxOf(minRangedStrengthGain, other.minRangedStrengthGain),
+    )
+
+    companion object {
+        val NONE = PrayerBoosts()
+
+        /** [level] times [percent] / 100, rounded down: a prayer's boost to a level (OSRS Wiki, Damage per second). */
+        fun boost(level: Int, percent: Int): Int = level * percent / 100
+    }
 }
 
 /**
@@ -90,6 +130,12 @@ class Prayers(
     fun protects(player: Player, type: AttackType): Boolean {
         val against = if (type.melee) AttackType.CRUSH else type
         return all.any { it.protects == against && inEffect(player, it) }
+    }
+
+    /** What the prayers that count this tick ([inEffect]) add to [player]'s combat formulas. */
+    fun boosts(player: Player): PrayerBoosts {
+        if (player.prayersInEffect == 0) return PrayerBoosts.NONE
+        return all.filter { inEffect(player, it) }.fold(PrayerBoosts.NONE) { sum, it -> sum + it.boosts }
     }
 
     /** A click on the prayer book. Returns false when it isn't a prayer's component. */
@@ -236,8 +282,9 @@ class Prayers(
          * ```
          *
          * "prayer" is the prayer obj's gameval name and "name" what its param 1752 must say, so a cache where the obj
-         * has become something else fails the file. "groups", "overhead", "protects" ("melee", "ranged" or "magic") and
-         * "defence" may be left out. A prayer the cache doesn't have is skipped with a warning.
+         * has become something else fails the file. "groups", "overhead", "protects" ("melee", "ranged" or "magic"),
+         * "defence" and "boosts" ([PrayerBoosts]' fields, e.g. `{"attack": 120, "strength": 123, "defence": 125}`) may be
+         * left out. A prayer the cache doesn't have is skipped with a warning.
          */
         fun parse(text: String, objTypes: ObjTypes, fileName: String = RESOURCE): List<Prayer> {
             val root = Json.parseToJsonElement(text).jsonObject
@@ -275,6 +322,7 @@ class Prayers(
                             }
                         },
                         defence = entry["defence"]?.jsonPrimitive?.int ?: 1,
+                        boosts = entry["boosts"]?.jsonObject?.let(::parseBoosts) ?: PrayerBoosts.NONE,
                     )
                     require(prayers.none { it.bit == prayer.bit }) { "bit ${prayer.bit} is listed twice" }
                     require(prayers.none { it.component == prayer.component }) { "component ${prayer.component} is listed twice" }
@@ -285,6 +333,27 @@ class Prayers(
             }
             if (unknown.isNotEmpty()) logger.warn { "$fileName: skipped prayers the cache doesn't have: ${unknown.joinToString()}" }
             return prayers
+        }
+
+        private val BOOST_KEYS = setOf(
+            "attack", "strength", "defence", "ranged", "rangedStrength", "magic", "magicDefence", "magicDamage", "minRangedStrengthGain",
+        )
+
+        private fun parseBoosts(boosts: JsonObject): PrayerBoosts {
+            val unknown = boosts.keys - BOOST_KEYS
+            require(unknown.isEmpty()) { "unknown boosts ${unknown.joinToString()}" }
+            fun percent(key: String) = boosts[key]?.jsonPrimitive?.int?.also { require(it in 100..200) { "\"$key\": $it" } } ?: 100
+            return PrayerBoosts(
+                attack = percent("attack"),
+                strength = percent("strength"),
+                defence = percent("defence"),
+                ranged = percent("ranged"),
+                rangedStrength = percent("rangedStrength"),
+                magic = percent("magic"),
+                magicDefence = percent("magicDefence"),
+                magicDamage = boosts["magicDamage"]?.jsonPrimitive?.int ?: 0,
+                minRangedStrengthGain = boosts["minRangedStrengthGain"]?.jsonPrimitive?.int ?: 0,
+            )
         }
 
         private fun JsonObject.required(key: String): JsonElement = get(key) ?: throw IllegalArgumentException("no \"$key\"")
