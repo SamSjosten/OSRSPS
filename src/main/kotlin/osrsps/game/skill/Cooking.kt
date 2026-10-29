@@ -138,7 +138,9 @@ class Cooking(private val world: World) {
         // The box closes as cooking starts, rather than after this script, so the first tick doesn't see it open.
         world.interfaces.closeChatModal(player)
         jobs[player] = Job(food, quantity, loc)
-        cook(Op(OpTarget.LOC, loc.id, option, loc = loc, repeat = true))
+        // The first tick runs with the interactions rather than here: run here as well, it could cook a due piece that
+        // the interaction then cooks again on the same tick.
+        world.repeatOp(player, Op(OpTarget.LOC, loc.id, option, loc = loc, repeat = true))
     }
 
     /** Whether [player] can cook [food] on [loc], telling them why not. */
@@ -155,7 +157,7 @@ class Cooking(private val world: World) {
         return true
     }
 
-    /** One tick of cooking: the animation on the first, a piece every [CYCLE] ticks, then the re-run. */
+    /** One tick of cooking: the animation as each piece starts, a piece every [CYCLE] ticks, then the re-run. */
     private fun ScriptContext.cook(op: Op) {
         val loc = op.loc ?: return
         val job = jobs[player]
@@ -171,8 +173,8 @@ class Cooking(private val world: World) {
             ClockStep.DUE -> {
                 cookOne(job.food, loc)
                 job.left--
+                // The next piece's animation comes with the clock starting again next tick.
                 if (job.left <= 0 || player.inventory.count(job.food.raw) < 1) return finish(stopAnim = false)
-                player.anim(anim)
             }
         }
         world.repeatOp(player, op)
