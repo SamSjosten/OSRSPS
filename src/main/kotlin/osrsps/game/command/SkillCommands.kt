@@ -3,10 +3,12 @@ package osrsps.game.command
 import osrsps.game.Experience
 import osrsps.game.PlayerSkills
 import osrsps.game.Skill
+import osrsps.game.combat.StatRestore
 import java.math.BigDecimal
 import java.util.Locale
 
-/** Set the typing player's levels and XP. The client is sent any change at the end of the tick. */
+/** Set the typing player's levels and XP, and show their boosts and drains. The client is sent any change at the end of
+ * the tick. */
 fun CommandRegistry.registerSkillCommands() {
     register("setlevel", "::setlevel skill|all level") {
         if (args.size != 2) fail("Usage: ::setlevel skill|all level")
@@ -39,6 +41,19 @@ fun CommandRegistry.registerSkillCommands() {
         if (level !in 0..PlayerSkills.MAX_CURRENT_LEVEL) fail("Current levels are 0 to ${PlayerSkills.MAX_CURRENT_LEVEL}")
         player.skills.setCurrentLevel(skill, level)
         reply("${skill.displayName} is now $level/${player.skills.baseLevel(skill)}")
+    }
+
+    register("stats", "::stats", admin = false) {
+        val skills = player.skills
+        val changed = Skill.entries.filter { skills.currentLevel(it) != skills.baseLevel(it) }
+        val timers = player.statTimers
+        val cycles = "next combat boost level in ${StatRestore.CYCLE_TICKS - timers.combatBoost} ticks, other boosts " +
+            "${StatRestore.CYCLE_TICKS - timers.skillBoost}, drains ${StatRestore.CYCLE_TICKS - timers.restore}" +
+            if (timers.preserve > 0) "; Preserve on for ${timers.preserve} ticks" else ""
+        val levels = if (changed.isEmpty()) "Every stat is at its level" else changed.joinToString(", ") {
+            "${it.displayName} ${skills.currentLevel(it)}/${skills.baseLevel(it)}"
+        }
+        reply("$levels; $cycles")
     }
 }
 

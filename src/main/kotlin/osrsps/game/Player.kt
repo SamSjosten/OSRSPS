@@ -230,6 +230,9 @@ class Player(
     /** Ticks until the next hitpoint comes back, counted down at each tick's regeneration; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var hitpointsRegenTicks: Int = osrsps.game.combat.MeleeCombat.REGEN_TICKS
 
+    /** The boost, drain and Rapid Restore cycles; see [osrsps.game.combat.StatRestore]. Not saved. */
+    val statTimers = osrsps.game.combat.StatTimers()
+
     /** How many items a death keeps, decided as the player falls; see [osrsps.game.combat.Deaths]. */
     var deathKeptItems: Int = osrsps.game.combat.Deaths.KEPT_ITEMS
 
