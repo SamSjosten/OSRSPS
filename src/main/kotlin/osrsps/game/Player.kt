@@ -49,6 +49,10 @@ class Player(
     /** Open modal interfaces by where they are open. */
     val modals = LinkedHashMap<FrameSlot, Int>()
 
+    /** The interface open in the frame's floater (the All Settings window), -1 for none. See [Interfaces.openFloater]. */
+    var floater: Int = -1
+        internal set
+
     /** The dialogue (or other modal) open in the chatbox's chatmodal, -1 for none. See [Interfaces.openChatModal]. */
     var chatModal: Int = -1
         internal set

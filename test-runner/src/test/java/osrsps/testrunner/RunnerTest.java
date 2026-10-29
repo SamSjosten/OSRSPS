@@ -767,6 +767,26 @@ public class RunnerTest
 	}
 
 	@Test
+	public void useItemOnItemAndGroundItemOptionRetryThenClick() throws Exception
+	{
+		game.clickError = "no \"Logs\" in the inventory";
+		game.takeError = "no item \"Logs\" on the ground in the scene";
+		runner.start(script("{\"step\":\"useItemOnItem\",\"item\":\"Tinderbox\",\"onItem\":\"Logs\"},"
+			+ "{\"step\":\"groundItemOption\",\"item\":\"Logs\",\"op\":4,\"option\":\"Light\",\"x\":3222,\"y\":3218}"), "file");
+		assertNull(cycle());
+		assertTrue(game.actions.isEmpty());
+		game.clickError = null;
+		assertNull(cycle());
+		assertEquals(List.of("Use Tinderbox on Logs"), game.actions);
+		game.takeError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("Use Tinderbox on Logs", "Light op 4 Logs at 3222 3218"), game.actions);
+		assertEquals("use Tinderbox on Logs", r.steps.get(0).description);
+		assertEquals("Light (op 4) on Logs at 3222, 3218", r.steps.get(1).description);
+	}
+
+	@Test
 	public void equipmentSaysWhatIsWorn() throws Exception
 	{
 		game.worn.put(13, 884);

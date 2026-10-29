@@ -526,6 +526,44 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "interfaceId", "absent", "comment");
 				return new Steps.AssertInterface(timeout, id, absent);
 			}
+			case "groundItemOption":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String item = f.string("item", null);
+				int id = f.integer("itemId", -1);
+				if (item == null && id < 0)
+				{
+					throw new Invalid(f.where + " needs \"item\" (a name) or \"itemId\"");
+				}
+				int op = f.requiredInt("op");
+				if (op < 1 || op > 5)
+				{
+					throw new Invalid(f.where + " needs \"op\" 1 to 5");
+				}
+				String option = f.requiredString("option");
+				int x = f.integer("x", -1);
+				int y = f.integer("y", -1);
+				if ((x < 0) != (y < 0))
+				{
+					throw new Invalid(f.where + " needs both \"x\" and \"y\", or neither");
+				}
+				f.rejectUnknown("step", "timeoutMs", "item", "itemId", "op", "option", "x", "y", "comment");
+				return new Steps.GroundItemOption(timeout, item, id, op, option, x < 0 ? null : new Tile(x, y, -1));
+			}
+			case "useItemOnItem":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String item = f.string("item", null);
+				int id = f.integer("itemId", -1);
+				String onItem = f.string("onItem", null);
+				int onId = f.integer("onItemId", -1);
+				if ((item == null && id < 0) || (onItem == null && onId < 0))
+				{
+					throw new Invalid(f.where + " needs \"item\" or \"itemId\", and \"onItem\" or \"onItemId\"");
+				}
+				f.rejectUnknown("step", "timeoutMs", "item", "itemId", "onItem", "onItemId", "comment");
+				return new Steps.UseItemOnItem(timeout, item, id, onItem, onId);
+			}
 			case "itemOption":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
