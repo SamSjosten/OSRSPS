@@ -10,6 +10,7 @@ import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Chatbox
+import osrsps.game.shop.ShopScreen
 import java.nio.charset.Charset
 
 /**
@@ -44,7 +45,7 @@ object GameFrameCheck {
             val actual = names(overlay.interfaceId)?.name
             if (actual != overlay.cacheName) problems += "interface ${overlay.interfaceId} should be ${overlay.cacheName} but is $actual"
         }
-        for ((interfaceId, expected) in EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES + BankScreen.CACHE_NAMES + DepositBox.CACHE_NAMES + BankPinSettings.CACHE_NAMES + SettingsSide.CACHE_NAMES) {
+        for ((interfaceId, expected) in EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES + BankScreen.CACHE_NAMES + DepositBox.CACHE_NAMES + BankPinSettings.CACHE_NAMES + SettingsSide.CACHE_NAMES + ShopScreen.CACHE_NAMES) {
             val (name, components) = expected
             val interfaceNames = names(interfaceId)
             if (interfaceNames == null || interfaceNames.name != name) {

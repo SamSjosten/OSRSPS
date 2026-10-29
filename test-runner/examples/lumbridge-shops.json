@@ -1,0 +1,236 @@
+{
+ "name": "Rest of Lumbridge step 4: the Lumbridge General Store and Bob's Brilliant Axes, buying, selling, value checks and the Quantity buttons",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 100",
+   "expectMessage": "Added 100 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3211 3247 0",
+   "expectMessage": "Teleported to 3211, 3247, 0",
+   "comment": "inside the Lumbridge General Store, between the shop keeper and the assistant"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shop keeper",
+   "option": "Trade"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 1,
+   "comment": "Value on the pot, the first item (slot 1: sub 0 is the highlight)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "Pot: currently costs 1 coin."
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1: 130% of the pot's value of 1, rounded down"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 99
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 1,
+   "comment": "Value on the pot in the backpack (slot 1, after the coins)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "Pot: shop will buy for 0 coins."
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1: 40% of 1 is 0, as the Wiki's table has it"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 0
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 99
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 10,
+   "op": 1,
+   "comment": "the Quantity 5 button: op 1 on an item now buys 5"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 1,
+   "comment": "Buy 5 from op 1"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 5
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 94
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 5,
+   "op": 1,
+   "comment": "back to Value"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 5,
+   "comment": "Sell 50 sells all five"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 0
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "one pot to keep, for Bob to refuse"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3231 3203 0",
+   "expectMessage": "Teleported to 3231, 3203, 0",
+   "comment": "Bob's Brilliant Axes, next to Bob"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Bob",
+   "option": "Trade"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Bob buys only what he stocks"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "You can't sell this item to this shop."
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 2,
+   "op": 1,
+   "comment": "Value on the bronze axe, his second item"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "Bronze axe: currently costs"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 2,
+   "op": 2,
+   "comment": "Buy 1"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze axe",
+   "count": 1
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 2,
+   "op": 2,
+   "comment": "and sell it back"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze axe",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

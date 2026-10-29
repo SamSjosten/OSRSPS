@@ -18,6 +18,10 @@ class NpcSpawnFileTest {
         NpcType(3216, "Melee combat tutor", internalName = "aide_tutor_melee"),
         NpcType(3217, "Ranged combat tutor", internalName = "aide_tutor_ranging"),
         NpcType(3218, "Magic combat tutor", internalName = "aide_tutor_magic"),
+        // The 241 cache's ids (dump.npc).
+        NpcType(2813, "Shop keeper", internalName = "generalshopkeeper1"),
+        NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
+        NpcType(10619, "Bob", internalName = "bob"),
     )
 
     private fun file(name: String) = NpcSpawnFile::class.java.getResource("/npc-spawns/$name")!!.readText()

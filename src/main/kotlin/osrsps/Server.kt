@@ -43,6 +43,7 @@ import osrsps.game.combat.Spells
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
+import osrsps.game.shop.ShopTypes
 import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
 import osrsps.net.RelayAwareValidator
@@ -165,6 +166,8 @@ class GameServer(
         logger.info { "Loaded ${spells.size} combat spells" }
         val prayers = Prayers.load(objTypes)
         logger.info { "Loaded ${prayers.size} prayers" }
+        val shopTypes = ShopTypes.load(npcTypes, objTypes)
+        logger.info { "Loaded ${shopTypes.all.size} shops" }
                 val scenarios = Scenarios.load()
         for (name in scenarios.names) {
             // Checked again when started; warned about here so a bad item name shows in the deploy log.
@@ -180,7 +183,7 @@ class GameServer(
             Accounts(FileSaveStore(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
-            spells = spells, prayerList = prayers, ipBans = ipBans,
+            spells = spells, prayerList = prayers, shopTypes = shopTypes, ipBans = ipBans,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)

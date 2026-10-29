@@ -1,0 +1,170 @@
+{
+  "about": "Shops, as the OSRS Wiki's shop pages give them: what each sells at, buys at and changes by per item of stock (tenths of a percent: the Wiki's 130.0% is 1300), its stock in the Wiki's order with each item's count and restock time in ticks, and the NPCs whose Trade opens it. inv and size are the shop's inv in the 241 cache (dump.inv). The Wiki gives a slot order only as its table's; the cache doesn't say. Every price follows from these numbers (see Shop.price).",
+  "shops": [
+    {
+      "key": "lumbridge_general_store",
+      "title": "Lumbridge General Store",
+      "inv": 3,
+      "size": 40,
+      "general": true,
+      "sellAt": 1300,
+      "buyAt": 400,
+      "changePer": 30,
+      "npcs": [
+        "generalshopkeeper1",
+        "generalassistant1"
+      ],
+      "source": "OSRS Wiki, Lumbridge General Store, read 2026-10-29: Sells at 130.0%, Buys at 40.0%, Change per 3.0%, and the stock table",
+      "stock": [
+        {
+          "item": 1931,
+          "name": "Pot",
+          "count": 5,
+          "restock": 10
+        },
+        {
+          "item": 1935,
+          "name": "Jug",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 20742,
+          "name": "Empty jug pack",
+          "count": 5,
+          "restock": 20
+        },
+        {
+          "item": 1735,
+          "name": "Shears",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 946,
+          "name": "Knife",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1925,
+          "name": "Bucket",
+          "count": 3,
+          "restock": 10
+        },
+        {
+          "item": 22660,
+          "name": "Empty bucket pack",
+          "count": 15,
+          "restock": 10
+        },
+        {
+          "item": 1923,
+          "name": "Bowl",
+          "count": 2,
+          "restock": 50
+        },
+        {
+          "item": 1887,
+          "name": "Cake tin",
+          "count": 2,
+          "restock": 50
+        },
+        {
+          "item": 590,
+          "name": "Tinderbox",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1755,
+          "name": "Chisel",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 952,
+          "name": "Spade",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 2347,
+          "name": "Hammer",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 550,
+          "name": "Newcomer map",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 9003,
+          "name": "Security book",
+          "count": 5,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "bobs_brilliant_axes",
+      "title": "Bob's Brilliant Axes",
+      "inv": 1,
+      "size": 7,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 20,
+      "npcs": [
+        "bob"
+      ],
+      "source": "OSRS Wiki, Bob's Brilliant Axes, read 2026-10-29: Sells at 100.0%, Buys at 60.0%, Change per 2.0%, and the stock table",
+      "stock": [
+        {
+          "item": 1265,
+          "name": "Bronze pickaxe",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1351,
+          "name": "Bronze axe",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 1349,
+          "name": "Iron axe",
+          "count": 5,
+          "restock": 200
+        },
+        {
+          "item": 1353,
+          "name": "Steel axe",
+          "count": 3,
+          "restock": 400
+        },
+        {
+          "item": 1363,
+          "name": "Iron battleaxe",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1365,
+          "name": "Steel battleaxe",
+          "count": 2,
+          "restock": 200
+        },
+        {
+          "item": 1369,
+          "name": "Mithril battleaxe",
+          "count": 1,
+          "restock": 3000
+        }
+      ]
+    }
+  ]
+}
