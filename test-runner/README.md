@@ -146,6 +146,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `settings-side.json`: the settings side panel's three tabs, scroll-wheel zoom, accept aid, skull prevention, run,
   the player attack priority dropdown, the master and music sliders (a mouse click in the middle of each, 58%) and the
   master mute; every one checked in both the server's copy and the client's, then again after a relog.
+- `settings-toggles.json`: the All Settings window from the side panel's button; a toggle in each category but Popout
+  (clicked by its clickzone child, the row's place in its category), the wiki button refused while the data orbs are
+  off, and a search (its text set with `runClientScript` 5968), where children count across every category; then
+  close, relog and check every one.
 
 ## Results
 
