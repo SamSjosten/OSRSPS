@@ -29,8 +29,9 @@ import osrsps.map.CollisionMap
 /**
  * Tumeken's shadow through the headless client, with the real spells and NPC combat files: charged from the uncharged
  * staff with Charge and the count prompt, its runes taken; Check in the pack and worn; wielded, it kills a man with its
- * own spell from Attack alone, a charge a cast and no runes; and Uncharge gives the runes for what is left back. The
- * rl-client script test-runner/examples/combat-magic-shadow.json does the fight in the real client.
+ * own spell from Attack alone, a charge a cast and no runes; Uncharge gives the runes for what is left back; and a
+ * soul rune used on the uncharged staff charges it again. The rl-client script
+ * test-runner/examples/combat-magic-shadow.json does the fight in the real client.
  */
 class HeadlessShadowTest {
     private val man = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", "Pickpocket", null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
@@ -79,6 +80,9 @@ class HeadlessShadowTest {
     }
 
     private fun HeadlessClient.slot(id: Int) = await("item $id in the backpack") { inventory(BACKPACK).indexOfFirst { it?.id == id }.takeIf { it >= 0 } }
+
+    private fun HeadlessClient.useOn(id: Int, target: Int) =
+        ifButtonT(INVENTORY, INVENTORY_ITEMS, slot(id), id, INVENTORY, INVENTORY_ITEMS, slot(target), target)
 
     private fun HeadlessClient.itemOp(id: Int, iop: Int) = ifButton(INVENTORY, INVENTORY_ITEMS, IOP_BUTTON_OPS[iop - 1], slot(id), id)
 
@@ -136,6 +140,15 @@ class HeadlessShadowTest {
                 client.await("the staff uncharged") { client.carried(SHADOW_UNCHARGED).takeIf { it == 1 } }
                 client.await("the runes back") { if (client.carried(SOUL) == 11 + 2 * left && client.carried(CHAOS) == 25 + 5 * left) Unit else null }
                 client.commandReply("shadow") { it == "Your Tumeken's shadow has 0 charges remaining." }
+
+                // A soul rune used on the uncharged staff asks the same: one charge this time.
+                val prompts = client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 }
+                client.useOn(SOUL, SHADOW_UNCHARGED)
+                client.await("the second count prompt") { if (client.clientScripts().count { it.id == ScriptContext.MESLAYER_MODE7 } > prompts) Unit else null }
+                client.resumeCount(1)
+                client.await("the staff charged again") { client.carried(SHADOW).takeIf { it == 1 } }
+                assertEquals(9 + 2 * left to 20 + 5 * left, client.carried(SOUL) to client.carried(CHAOS))
+                client.commandReply("shadow") { it == "Your Tumeken's shadow has 1 charges remaining." }
             }
         }
     }
