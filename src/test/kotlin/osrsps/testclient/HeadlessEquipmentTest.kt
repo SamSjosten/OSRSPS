@@ -137,8 +137,8 @@ class HeadlessEquipmentTest {
                 client.await("the login rebuild") { client.position }
                 client.command("item $WHIP")
                 client.itemOp(WHIP, WIELD)
-                client.seen("You are not a high enough level to use this item.")
-                client.seen("You need to have an Attack level of 70.")
+                client.seen("[equipment.level_too_low]")
+                client.seen("[equipment.level article=an skill=Attack level=70]")
                 assertEquals(null, client.worn(WearPos.WEAPON))
 
                 client.command("setlevel attack 70")
