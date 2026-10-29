@@ -66,6 +66,7 @@ class GroundObjs(
         val type = requireNotNull(objTypes[spawn.id]) { "No obj type ${spawn.id} for $spawn" }
         require(type.stackable || spawn.count == 1) { "$spawn: only stackable objs can spawn more than one to a stack" }
         spawnList += spawn
+        makeRoom(spawn.x, spawn.z, spawn.level, 1)
         placeSpawn(spawn)
     }
 
@@ -236,10 +237,19 @@ class GroundObjs(
             // After the despawn count, so the others are sent the time that is really left.
             if (owner != null && !obj.neverPublic && --obj.ticksUntilPublic <= 0) zones.revealObj(obj)
         }
-        val due = respawns.filter { --it.ticksLeft <= 0 }
-        if (due.isEmpty()) return
-        respawns.removeAll(due)
-        for (respawn in due) placeSpawn(respawn.spawn)
+        val waiting = respawns.iterator()
+        while (waiting.hasNext()) {
+            val respawn = waiting.next()
+            if (--respawn.ticksLeft > 0) continue
+            val spawn = respawn.spawn
+            if (zones.objsAt(spawn.x, spawn.z, spawn.level).size >= MAX_PER_TILE) {
+                // Guessed: a spawn waits for room on a full tile rather than pushing a player's drop off it.
+                respawn.ticksLeft = 0
+                continue
+            }
+            waiting.remove()
+            placeSpawn(spawn)
+        }
     }
 
     /** The objs [player] can see on a tile, oldest first. */

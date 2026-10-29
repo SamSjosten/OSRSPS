@@ -94,6 +94,19 @@ class ZonesTest {
     }
 
     @Test
+    fun `a zone whose shared updates fail to encode is skipped for everyone watching, not thrown at each`() {
+        val failing = Zones { error("can't encode") }
+        failing.update(alice) {}
+        failing.update(bob) {}
+        failing.endCycle()
+        failing.mapAnim(3222, 3218, 0, id = 85)
+        val toAlice = mutableListOf<OutgoingGameMessage>().also { failing.update(alice, it::add) }
+        val toBob = mutableListOf<OutgoingGameMessage>().also { failing.update(bob, it::add) }
+        failing.endCycle()
+        assertTrue(toAlice.isEmpty() && toBob.isEmpty(), "nothing sent, and nobody thrown at")
+    }
+
+    @Test
     fun `objs, locs and projectiles only ever go out inside a zone header`() {
         // RSProt throws on ObjAdd, ObjDel and projectiles queued on their own, and the client drops area sounds.
         zones.addObj(ZoneObj(1351, 1, 3222 + 32, 3218, 0))
