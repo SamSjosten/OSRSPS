@@ -267,8 +267,7 @@ class Combat(
         val AUTOCAST = AttackStyle(Autocast.COM_MODE, "Spell", AttackStance.OTHER, AttackType.MAGIC, listOf(Skill.MAGIC))
         val DEFENSIVE_AUTOCAST = AttackStyle(Autocast.COM_MODE, "Spell (defensive)", AttackStance.OTHER, AttackType.MAGIC, listOf(Skill.MAGIC, Skill.DEFENCE))
 
-        private fun rangedStrength(type: ObjType?): Int =
-            type?.intParam(EquipmentBonuses.PARAMS[EquipmentBonuses.RANGED_STRENGTH]) ?: 0
+        private fun rangedStrength(type: ObjType?): Int = EquipmentBonuses.rangedStrength(type)
 
         fun attackBonus(bonuses: EquipmentBonuses, type: AttackType): Int = when (type) {
             AttackType.STAB -> bonuses.stabAttack

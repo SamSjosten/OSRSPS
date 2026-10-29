@@ -15,7 +15,9 @@ class EquipmentTest {
     private val arrows = ObjType(882, "Bronze arrow", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
     private val occult = ObjType(12002, "Occult necklace", wearpos1 = WearPos.NECK, params = mapOf(3 to 12, 299 to 50))
     private val coins = ObjType(995, "Coins", stackable = true)
-    private val types = ObjTypes.of(axe, sword, twoHander, shield, whip, mithrilHelm, arrows, occult, coins)
+    // Gear's ranged strength is param 189, not the ammunition's 12.
+    private val pegasians = ObjType(13237, "Pegasian boots", wearpos1 = WearPos.FEET, params = mapOf(4 to 12, 189 to 1), internalName = "pegasian_boots")
+    private val types = ObjTypes.of(axe, sword, twoHander, shield, whip, mithrilHelm, arrows, occult, coins, pegasians)
     private val equipment = Equipment(types)
     private val player = Player(1, "test", 3222, 3218, 0)
 
@@ -148,5 +150,15 @@ class EquipmentTest {
         assertEquals(5, bonuses.attackSpeed)
         player.equipment[WearPos.WEAPON] = null
         assertEquals(4, equipment.bonuses(player).attackSpeed, "unarmed")
+    }
+
+    @Test
+    fun `gear's ranged strength adds to the ammunition's`() {
+        player.equipment[WearPos.AMMO] = InvObj(882, 10)
+        player.equipment[WearPos.FEET] = InvObj(13237, 1)
+        assertEquals(8, equipment.bonuses(player).rangedStrength)
+        assertEquals(12, equipment.bonuses(player).rangedAttack)
+        assertEquals(1, EquipmentBonuses.rangedStrength(pegasians))
+        assertEquals(7, EquipmentBonuses.rangedStrength(arrows))
     }
 }
