@@ -80,6 +80,20 @@ class NpcCommandsTest {
     }
 
     @Test
+    fun `npchp sets the hitpoints of one NPC or every one you put in`() {
+        run("npc hans")
+        run("npc hans")
+        replies.clear()
+        run("npchp 500 mine")
+        run("npchp 9 1")
+        run("npchp 0 1")
+        run("npchp 9 99")
+        assertEquals(listOf("2 NPCs now on 500 hitpoints until they respawn.", "1 NPC now on 9 hitpoints until they respawn.",
+            "The hitpoints must be 1 to 100000", "No NPC #99"), replies)
+        assertEquals(listOf(9, 500), listOf(world.npcs[1]!!.hitpoints, world.npcs[2]!!.hitpoints))
+    }
+
+    @Test
     fun `follow makes an NPC follow the player, and again stops it`() {
         run("npc hans")
         run("follow 1")

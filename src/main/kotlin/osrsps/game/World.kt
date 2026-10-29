@@ -231,6 +231,7 @@ class World(
         npcs, collision, movement, combat, objTypes, spells, meleeCombat, random, { tick },
         projectile = zones::projectile,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
+        multi = multiCombat,
     )
 
     /** Player death and gravestones; see [Deaths]. */

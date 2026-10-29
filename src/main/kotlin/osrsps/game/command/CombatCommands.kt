@@ -14,6 +14,7 @@ import osrsps.game.combat.MagicInteraction
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
 import osrsps.game.combat.RangedInteraction
+import osrsps.game.combat.Spellbook
 import osrsps.game.npc.Npc
 import java.util.Locale
 import kotlin.math.abs
@@ -112,6 +113,20 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         multi.set(player.level, player.x, player.z, on)
         val zone = "the 8x8 zone from ${player.x and 7.inv()}, ${player.z and 7.inv()}"
         reply(if (on) "Combat is multi-way in $zone until the server restarts." else "Combat is single-way in $zone again.")
+    }
+
+    // In place of the altars that switch books, which come with their areas.
+    register("spellbook", "::spellbook [${Spellbook.NAMES.joinToString("|")}]") {
+        val usage = "Usage: ::spellbook [${Spellbook.NAMES.joinToString("|")}]"
+        if (args.size > 1) fail(usage)
+        val name = args.firstOrNull()?.lowercase()
+        if (name == null) {
+            reply("Your spellbook is ${Spellbook.NAMES[Spellbook.of(player)]}.")
+            return@register
+        }
+        val book = Spellbook.NAMES.indexOf(name).takeIf { it >= 0 } ?: fail(usage)
+        Spellbook.set(player, book)
+        reply("Your spellbook is $name now.")
     }
 
     register("god", "::god", admin = true) {
