@@ -43,6 +43,9 @@ class StatTimers {
 
     /** Ticks Preserve has been on for in a row, 0 while it is off. */
     var preserve = 0
+
+    /** Ticks left of a divine potion's hold on each skill, by [Skill.ordinal]; 0 for none. Not saved. */
+    val divine = IntArray(Skill.entries.size)
 }
 
 /**
@@ -61,14 +64,20 @@ class StatTimers {
  * that Preserve's "under 13 seconds" is the last 21 ticks counted from the end of the tick it was last on in, and turning
  * it off any earlier ends a cycle already past a minute at once; that a cycle saved past a minute, Preserve having lengthened it, comes back as its last segment; that
  * drained stats share one restore cycle, separate from the boost cycles, not lengthened by Preserve and not saved; and
- * where in the tick it happens (with the prayer drain, after the NPCs' attacks). Divine potions' fixed five minutes come
- * with the potions, step 6c.
+ * where in the tick it happens (with the prayer drain, after the NPCs' attacks). A divine potion's skills don't wear off
+ * for its five minutes ([StatTimers.divine]), and at the end go straight back to the base level (OSRS Wiki, Divine super
+ * combat potion: "return to their base level"; guessed: at once, rather than a level a minute, and the hold not kept over
+ * a logout).
  */
 class StatRestore(private val hasPrayer: (Player, String) -> Boolean = { _, _ -> false }) {
     /** Counts [player]'s timers on by a tick, moving stats a level toward their base where a cycle ends. */
     fun process(player: Player) {
         if (player.dead) return
         val timers = player.statTimers
+        for (skill in Skill.entries) {
+            if (timers.divine[skill.ordinal] == 0 || --timers.divine[skill.ordinal] > 0) continue
+            if (player.skills.currentLevel(skill) > player.skills.baseLevel(skill)) player.skills.setCurrentLevel(skill, player.skills.baseLevel(skill))
+        }
         timers.preserve = if (hasPrayer(player, Prayers.PRESERVE)) timers.preserve + 1 else 0
         val preserved = timers.preserve >= PRESERVE_DELAY
         if (advance(timers.combatBoost, preserved)) for (skill in COMBAT) decay(player, skill)
@@ -99,6 +108,7 @@ class StatRestore(private val hasPrayer: (Player, String) -> Boolean = { _, _ ->
     }
 
     private fun decay(player: Player, skill: Skill) {
+        if (player.statTimers.divine[skill.ordinal] > 0) return
         val current = player.skills.currentLevel(skill)
         if (current > player.skills.baseLevel(skill)) player.skills.setCurrentLevel(skill, current - 1)
     }

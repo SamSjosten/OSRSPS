@@ -1,0 +1,59 @@
+{
+ "_comment": "Potions by the stem of their doses' cache internal names, <n>dose<potion> for 4 to 1 doses. effects, in order: boost (skills raised by percent of the base level plus constant, up to that past the base), restore (toward the base level, over percent of it past; wrench more percent of Prayer with a holy wrench or prayer cape), drain (lowered by percent of the current level plus constant), damage (percent of the current hitpoints, leaving 1), energy (percent run energy). Skills 'all' is every skill but Hitpoints. message: drink_brew for the brews; otherwise drink or drink_potion by the name. divine: costs 10 hitpoints and holds its boosts for five minutes. From the OSRS Wiki's Potions page and each potion's own, read 2026-10-29.",
+ "vial": "vial_empty",
+ "wrenchCarried": ["deal_wrench_blessed", "skillcape_prayer", "skillcape_prayer_trimmed", "skillcape_max", "skillcape_max_worn"],
+ "wrenchWorn": ["nzone_rotg", "sw_rotg", "pvpa_rotg"],
+ "potions": [
+  {"potion": "1attack", "effects": [{"boost": ["attack"], "percent": 10, "constant": 3}]},
+  {"potion": "1strength", "effects": [{"boost": ["strength"], "percent": 10, "constant": 3}]},
+  {"potion": "1defense", "effects": [{"boost": ["defence"], "percent": 10, "constant": 3}]},
+  {"potion": "2attack", "effects": [{"boost": ["attack"], "percent": 15, "constant": 5}]},
+  {"potion": "2strength", "effects": [{"boost": ["strength"], "percent": 15, "constant": 5}]},
+  {"potion": "2defense", "effects": [{"boost": ["defence"], "percent": 15, "constant": 5}]},
+  {"potion": "rangerspotion", "effects": [{"boost": ["ranged"], "percent": 10, "constant": 4}]},
+  {"potion": "1magic", "effects": [{"boost": ["magic"], "constant": 4}]},
+  {"potion": "combat", "effects": [{"boost": ["attack", "strength"], "percent": 10, "constant": 3}]},
+  {"potion": "2combat", "effects": [{"boost": ["attack", "strength", "defence"], "percent": 15, "constant": 5}]},
+  {"potion": "bastion", "effects": [{"boost": ["ranged"], "percent": 10, "constant": 4}, {"boost": ["defence"], "percent": 15, "constant": 5}]},
+  {"potion": "battlemage", "effects": [{"boost": ["magic"], "constant": 4}, {"boost": ["defence"], "percent": 15, "constant": 5}]},
+  {"potion": "divineattack", "divine": true, "effects": [{"boost": ["attack"], "percent": 15, "constant": 5}]},
+  {"potion": "divinestrength", "divine": true, "effects": [{"boost": ["strength"], "percent": 15, "constant": 5}]},
+  {"potion": "divinedefence", "divine": true, "effects": [{"boost": ["defence"], "percent": 15, "constant": 5}]},
+  {"potion": "divinecombat", "divine": true, "effects": [{"boost": ["attack", "strength", "defence"], "percent": 15, "constant": 5}]},
+  {"potion": "divinerange", "divine": true, "effects": [{"boost": ["ranged"], "percent": 10, "constant": 4}]},
+  {"potion": "divinemagic", "divine": true, "effects": [{"boost": ["magic"], "constant": 4}]},
+  {"potion": "divinebastion", "divine": true, "effects": [{"boost": ["ranged"], "percent": 10, "constant": 4}, {"boost": ["defence"], "percent": 15, "constant": 5}]},
+  {"potion": "divinebattlemage", "divine": true, "effects": [{"boost": ["magic"], "constant": 4}, {"boost": ["defence"], "percent": 15, "constant": 5}]},
+  {"potion": "statrestore", "effects": [{"restore": ["attack", "strength", "defence", "ranged", "magic"], "percent": 30, "constant": 10}]},
+  {"potion": "2restore", "effects": [{"restore": ["all"], "percent": 25, "constant": 8, "wrench": 2}]},
+  {"potion": "prayerrestore", "effects": [{"restore": ["prayer"], "percent": 25, "constant": 7, "wrench": 2}]},
+  {"potion": "potionofsaradomin", "message": "drink_brew", "effects": [
+   {"boost": ["hitpoints"], "percent": 15, "constant": 2},
+   {"boost": ["defence"], "percent": 20, "constant": 2},
+   {"drain": ["attack", "strength", "magic", "ranged"], "percent": 10, "constant": 2}
+  ]},
+  {"potion": "potionofzamorak", "message": "drink_brew", "effects": [
+   {"boost": ["attack"], "percent": 20, "constant": 2},
+   {"boost": ["strength"], "percent": 12, "constant": 2},
+   {"drain": ["defence"], "percent": 10, "constant": 2},
+   {"damage": 12},
+   {"restore": ["prayer"], "percent": 10}
+  ]},
+  {"potion": "ancientbrew", "message": "drink_brew", "effects": [
+   {"boost": ["magic"], "percent": 5, "constant": 2},
+   {"restore": ["prayer"], "percent": 10, "constant": 2, "over": 5},
+   {"drain": ["attack", "strength", "defence"], "percent": 10, "constant": 2}
+  ]},
+  {"potion": "forgottenbrew", "message": "drink_brew", "effects": [
+   {"boost": ["magic"], "percent": 8, "constant": 3},
+   {"restore": ["prayer"], "percent": 10, "constant": 2, "over": 5},
+   {"drain": ["attack", "strength", "defence"], "percent": 10, "constant": 2}
+  ]},
+  {"potion": "1energy", "effects": [{"energy": 15}]},
+  {"potion": "2energy", "effects": [{"energy": 20}]},
+  {"potion": "1agility", "effects": [{"boost": ["agility"], "constant": 3}]},
+  {"potion": "fisherspotion", "effects": [{"boost": ["fishing"], "constant": 3}]},
+  {"potion": "hunting", "effects": [{"boost": ["hunter"], "constant": 3}]},
+  {"potion": "magicess", "effects": [{"boost": ["magic"], "constant": 3}]}
+ ]
+}
