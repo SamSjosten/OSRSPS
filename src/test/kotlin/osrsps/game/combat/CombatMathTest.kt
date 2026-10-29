@@ -118,4 +118,17 @@ class CombatMathTest {
             assertEquals(row, listOf(3, 6, 10).map { CombatMath.chinchompaAccuracy(fuse, it) }, "$fuse")
         }
     }
+
+    @Test
+    fun `magic accuracy and max hits follow the Wiki's formulas`() {
+        // Effective Magic is the level plus 8, with no style bonus for a spell cast from the book.
+        assertEquals((13 + 8) * (0 + 64), CombatMath.playerMagicAttackRoll(13, 0))
+        assertEquals((99 + 8) * (-21 + 64), CombatMath.playerMagicAttackRoll(99, -21))
+        // An occult necklace's 5% (50 tenths): Fire Surge's 24 becomes 25.2, rounded down to 25; Fire Strike's 8 stays 8.
+        assertEquals(25, CombatMath.spellMaxHit(24, 50))
+        assertEquals(8, CombatMath.spellMaxHit(8, 50))
+        assertEquals(24, CombatMath.spellMaxHit(24, 0))
+        // 2 Magic XP a point of damage, on top of the spell's own.
+        assertEquals(160, CombatMath.spellDamageXpTenths(8))
+    }
 }

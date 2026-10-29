@@ -3,7 +3,7 @@ package osrsps.game.combat
 import osrsps.game.GameRandom
 
 /**
- * The melee and ranged formulas, from the OSRS Wiki's "Damage per second/Melee" and "/Ranged" and the Wiki's DPS calculator (weirdgloop's
+ * The melee, ranged and magic formulas, from the OSRS Wiki's "Damage per second/Melee", "/Ranged" and "/Magic" and the Wiki's DPS calculator (weirdgloop's
  * osrs-dps-calc, PlayerVsNPCCalc and NPCVsPlayerCalc), which the Wiki keeps in line with Jagex's answers. Prayers,
  * potions' boosts aside from the current level, void and target-specific gear come with the pieces that add them.
  *
@@ -88,6 +88,22 @@ object CombatMath {
     private val SHORT_FUSE = intArrayOf(100, 75, 50)
     private val MEDIUM_FUSE = intArrayOf(75, 100, 75)
     private val LONG_FUSE = intArrayOf(50, 75, 100)
+
+    /**
+     * A player's magic attack roll with a spell cast from the spellbook: (Magic + 8) * (magic attack bonus + 64). Spells
+     * cast that way get no style bonus; only powered staves' accurate and longrange styles do (OSRS Wiki, Damage per
+     * second/Magic).
+     */
+    fun playerMagicAttackRoll(magicLevel: Int, magicAttackBonus: Int): Int = (magicLevel + 8) * (magicAttackBonus + 64)
+
+    /**
+     * A spell's max hit: its base times 1 plus the magic damage bonus, rounded down (OSRS Wiki, Damage per second/Magic).
+     * [magicDamageTenths] is in tenths of a percent, as [osrsps.game.EquipmentBonuses.magicDamage] is.
+     */
+    fun spellMaxHit(baseMaxHit: Int, magicDamageTenths: Int): Int = baseMaxHit * (1000 + magicDamageTenths) / 1000
+
+    /** Magic XP in tenths for [damage] dealt with a spell, on top of its base XP: 2 a point (OSRS Wiki, Magic). */
+    fun spellDamageXpTenths(damage: Int): Int = damage * 20
 
     /** Outside the Chambers of Xeric (350 there; OSRS Wiki, Twisted bow). */
     const val TWISTED_BOW_MAGIC_CAP = 250

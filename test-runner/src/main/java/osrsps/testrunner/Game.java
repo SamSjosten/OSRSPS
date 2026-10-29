@@ -162,6 +162,13 @@ interface Game
 	String clickWidget(int interfaceId, int component, int sub, int op);
 
 	/**
+	 * Picks a spell (any component that targets, as the spellbook's spells do) at {@code interfaceId}:{@code component}
+	 * and uses it on the nearest NPC with this name (or id, when the name is null), as clicking the spell and then
+	 * "Cast ... -> NPC" would. Null when both clicks were made; otherwise what is missing.
+	 */
+	String castOnNpc(int interfaceId, int component, String npc, int npcId);
+
+	/**
 	 * The text of a component and everything inside it, or of the whole interface when {@code component} is -1, with
 	 * colour tags removed and the pieces joined by " / "; null while the interface isn't open (loaded) in the client.
 	 */

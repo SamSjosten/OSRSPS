@@ -48,12 +48,14 @@ import osrsps.game.command.registerZoneCommands
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.Deaths
+import osrsps.game.combat.MagicCombat
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MultiCombat
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
+import osrsps.game.combat.Spells
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.registerHans
@@ -130,6 +132,8 @@ class World(
     val npcDrops: NpcDrops = NpcDrops.NONE,
     /** The bows, crossbows and ammunition [RangedCombat] fires; tests that shoot pass their own. */
     val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
+    /** The combat spells [MagicCombat] casts; tests that cast pass their own. */
+    val spells: Spells = Spells.NONE,
     /** Locks a name after repeated wrong passwords; see [LoginGuard]. */
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
@@ -208,6 +212,13 @@ class World(
         projectile = zones::projectile, dropAmmo = ::dropAmmo,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
         multi = multiCombat,
+    )
+
+    /** Players casting combat spells on NPCs; see [MagicCombat]. */
+    val magicCombat: MagicCombat = MagicCombat(
+        npcs, collision, movement, combat, objTypes, spells, meleeCombat, random, { tick },
+        projectile = zones::projectile,
+        face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
     )
 
     /** Player death and gravestones; see [Deaths]. */
@@ -461,8 +472,9 @@ class World(
         readInput(ticking = true)
         phase = TickPhase.NPCS
         npcInteractions.releaseNpcs()
-        // Shots land before NPCs fight, as melee hits from the last tick are already in; a shot NPC strikes from the next.
+        // Shots and spells land before NPCs fight, as melee hits from the last tick are already in; a shot NPC strikes from the next.
         rangedCombat.process()
+        magicCombat.process()
         meleeCombat.process()
         deaths.process()
         npcs.process()
@@ -934,6 +946,11 @@ class World(
      */
     fun onNpcTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
         if (player.scripts.delayed) return@act
+        if (interfaceId == Spells.SPELLBOOK) {
+            npcInteractions.castOn(player, index, ctrl) { npc -> magicCombat.cast(player, npc, componentId) }
+            follows.clickedElsewhere(player)
+            return@act
+        }
         if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
             logger.info { "${player.username} used $interfaceId:$componentId sub $sub on NPC $index (not handled)" }
             follows.clickedElsewhere(player)
@@ -1240,6 +1257,7 @@ class World(
             anim = { extendedInfo?.setSequence(it.id, it.delay) },
             hit = { extendedInfo?.addHitMark(it.source, it.selfType, it.otherType, it.value, it.delay) },
             headBar = { extendedInfo?.addHeadBar(it.source, it.type, it.type, it.fill) },
+            spotanim = { extendedInfo?.setSpotAnim(it.slot, it.id, it.delay, it.height) },
         )
     }
 

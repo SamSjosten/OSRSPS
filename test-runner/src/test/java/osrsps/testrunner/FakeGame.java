@@ -54,6 +54,8 @@ class FakeGame implements Game
 	final Map<String, String> widgetTexts = new HashMap<>();
 	/** What idlePose answers. */
 	int idlePose = 808;
+	/** When set, castOnNpc fails with this until cleared. */
+	String castError;
 	/** Whether logout logs out at once. */
 	boolean logoutWorks = true;
 
@@ -305,5 +307,12 @@ class FakeGame implements Game
 			loggedIn = false;
 		}
 		return null;
+	}
+
+	@Override
+	public String castOnNpc(int interfaceId, int component, String npc, int npcId)
+	{
+		actions.add("cast " + interfaceId + ":" + component + " on " + (npc != null ? npc : "npc " + npcId));
+		return castError;
 	}
 }

@@ -19,11 +19,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import net.runelite.api.Actor;
+import net.runelite.api.ActorSpotAnim;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.NPC;
 import net.runelite.api.events.AnimationChanged;
+import net.runelite.api.events.GraphicChanged;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameStateChanged;
@@ -370,6 +372,17 @@ public class TestRunnerPlugin extends Plugin
 	{
 		Actor actor = event.getActor();
 		runner.animation(actorIndex(actor), npcName(actor), actor.getAnimation());
+	}
+
+	@Subscribe
+	public void onGraphicChanged(GraphicChanged event)
+	{
+		Actor actor = event.getActor();
+		// The event doesn't say which slot changed: every spotanim the actor has now is reported, old ones again too.
+		for (ActorSpotAnim spot : actor.getSpotAnims())
+		{
+			runner.spotanim(actorIndex(actor), npcName(actor), spot.getId());
+		}
 	}
 
 	/** An NPC's index; {@link Run#SELF} for the local player; -2 for another player, which no step asks about. */

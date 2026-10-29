@@ -119,6 +119,20 @@ class NpcInteractions(
         start(player, NpcInteraction(npc, 0, this, obj = obj, slot = slot), invertRun)
     }
 
+    /**
+     * The player cast a spell on NPC [index]: as for Attack, whatever they were busy with is dropped and they turn to the
+     * NPC, then [cast] takes it from there. [invertRun] is the ctrl key, for the route the cast makes.
+     */
+    fun castOn(player: Player, index: Int, invertRun: Boolean, cast: (Npc) -> Unit) {
+        val npc = clickable(player, index) ?: return
+        scripts.interrupt(player)
+        npcs.leave(player, scripts::busy)
+        player.interaction = null
+        player.invertRun = invertRun
+        face(player, npc)
+        cast(npc)
+    }
+
     /** Whether [player]'s inventory slot [slot] holds [obj]. A slot out of range (a forged packet) holds nothing. */
     private fun holds(player: Player, slot: Int, obj: Int): Boolean =
         slot in 0 until Inventory.INV_CAPACITY && player.inventory[slot]?.id == obj

@@ -308,8 +308,7 @@ class RangedCombat(
      *
      * Guessed: that each NPC's damage is rolled on its own, 0 to the throw's max hit; that the cap counts the target;
      * which NPCs the cap leaves out (here the ones last in the NPC list); that an NPC is in the area when its south-west
-     * tile is; and that their XP comes as the blast lands. The explosion graphic isn't shown yet: NPCs have no spotanims
-     * here.
+     * tile is; and that their XP comes as the blast lands. The explosion graphic isn't shown yet.
      */
     private fun splash(shot: Shot, tick: Long) {
         val from = shot.npc
