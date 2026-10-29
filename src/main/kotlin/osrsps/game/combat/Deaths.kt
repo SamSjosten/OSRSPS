@@ -173,13 +173,14 @@ class Deaths(
 
     /**
      * A blowpipe's darts and scales, as items, when [lost] took [player]'s last blowpipe; its charges are then gone from
-     * the player. They are kept with a kept blowpipe. Charges are the player's, not the item's ([osrsps.game.Charges]),
+     * the player. They are kept with a kept or banked blowpipe. Charges are the player's, not the item's ([osrsps.game.Charges]),
      * so before this a death kept them all on top of the three kept items. Guessed: live keeps the charges on the
      * blowpipe in the grave; with no charges on items here, the grave holds them as the darts and scales.
      */
     private fun lostCharges(player: Player, lost: List<InvObj>): List<InvObj> {
         if (lost.none { it.id == Blowpipe.LOADED || it.id == Blowpipe.EMPTY }) return emptyList()
-        if (listOf(player.inventory, player.equipment).any { inv -> inv.contents().any { (_, obj) -> obj.id == Blowpipe.LOADED || obj.id == Blowpipe.EMPTY } }) {
+        // A blowpipe in the bank keeps them too: the charges are shared, so moving them would empty one never at risk.
+        if (listOf(player.inventory, player.equipment, player.bank).any { inv -> inv.contents().any { (_, obj) -> obj.id == Blowpipe.LOADED || obj.id == Blowpipe.EMPTY } }) {
             return emptyList()
         }
         val charges = ArrayList<InvObj>()

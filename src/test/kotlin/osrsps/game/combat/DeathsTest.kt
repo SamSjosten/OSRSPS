@@ -333,6 +333,21 @@ class DeathsTest {
     }
 
     @Test
+    fun `losing the carried blowpipe keeps the charges while another is in the bank`() {
+        alice.equipment[WearPos.WEAPON] = InvObj(pipe.id, 1)
+        alice.bank.add(pipe, 1)
+        alice.charges[Blowpipe.DART_TYPE] = dart.id
+        alice.charges[Blowpipe.DARTS] = 500
+        alice.inventory.add(lobster, 3)
+        deaths.die(alice)
+        tick(Deaths.DEATH_TICKS)
+        val grave = deaths.graveOf(alice) ?: error("Alice has no grave")
+        assertEquals(1L, grave.items.count(pipe.id))
+        assertEquals(0L, grave.items.count(dart.id))
+        assertEquals(500, alice.charges[Blowpipe.DARTS])
+    }
+
+    @Test
     fun `a death with no grave type loses the items`() {
         val noGraves = Deaths(
             objTypes, null, { tick }, { online.asSequence() }, { null }, { npcs.add(it) }, {}, {}, { _, _ -> }, {}, { _, _, _ -> },
