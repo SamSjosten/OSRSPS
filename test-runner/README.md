@@ -114,6 +114,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   settings screen.
 - `lumbridge-shops.json`: the Lumbridge General Store (Value, Buy 1 and selling a pot back for nothing, the Quantity 5
   button, Sell 50) and Bob's Brilliant Axes (a pot refused, a bronze axe bought and sold back).
+- `lumbridge-talk-shopkeepers.json`, `lumbridge-talk-sheared-ram.json`, `lumbridge-talk-donie-gee.json`,
+  `lumbridge-talk-tutors.json`, `lumbridge-talk-townsfolk.json`: talk to each of the town centre's NPCs through every
+  option with `::keys on`, checking each line's key (the Sheared Ram's needs 0.8.0 for `assertVarbit`).
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

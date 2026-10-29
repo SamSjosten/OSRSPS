@@ -40,7 +40,7 @@ class HeadlessShopTest {
 
     private val trade = listOf("Talk-to", null, "Trade", null, null)
     private val keeper = NpcSpawn(NpcType(KEEPER, "Shop keeper", ops = trade), 3221, 3220, source = "test")
-    private val bob = NpcSpawn(NpcType(BOB, "Bob", ops = trade), 3223, 3220, source = "test")
+    private val bob = NpcSpawn(NpcType(BOB, "Bob", ops = listOf("Talk-to", null, "Trade", "Repair", null)), 3223, 3220, source = "test")
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
@@ -146,6 +146,40 @@ class HeadlessShopTest {
         }
     }
 
+    @Test
+    fun `talking to a keeper or Bob opens the shop when asked what they sell`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                val keeperNpc = client.await("the keeper in view") { client.npcs().firstOrNull { it.id == KEEPER } }
+                client.npcOp(keeperNpc.index, TALK_TO)
+                client.awaitDialogue("the keeper's line") { it is DialogueView.Chat && it.text == "[lumbridge_shop_keeper.help]" }
+                client.continueDialogue()
+                client.awaitDialogue("the menu") { it is DialogueView.Menu }
+                client.chooseOption(1)
+                client.await("the store") { if (ShopScreen.MAIN in client.openInterfaces()) Unit else null }
+                client.awaitStock(STORE_INV, InvObj(POT, 5))
+            }
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                val bobNpc = client.await("Bob in view") { client.npcs().firstOrNull { it.id == BOB } }
+                client.npcOp(bobNpc.index, REPAIR)
+                client.awaitDialogue("nothing to repair") { it is DialogueView.Chat && it.text == "[bob.nothing_to_repair]" }
+                client.continueDialogue()
+                client.await("the line to close") { if (client.dialogueView == null) Unit else null }
+                client.npcOp(bobNpc.index, TALK_TO)
+                client.awaitDialogue("Bob's menu") { it is DialogueView.Menu }
+                client.chooseOption(2)
+                client.awaitDialogue("the player's question") { it is DialogueView.Chat && it.text == "[bob.sell]" }
+                client.continueDialogue()
+                client.awaitDialogue("Bob's answer") { it is DialogueView.Chat && it.text == "[bob.axes]" }
+                client.continueDialogue()
+                client.await("Bob's shop") { if (ShopScreen.MAIN in client.openInterfaces()) Unit else null }
+                client.awaitStock(AXE_INV, InvObj(AXE, 10))
+            }
+        }
+    }
+
     private companion object {
         const val COINS = 995
         const val POT = 1931
@@ -155,6 +189,8 @@ class HeadlessShopTest {
         const val KEEPER = 2813
         const val BOB = 10619
         const val TRADE = 3
+        const val TALK_TO = 1
+        const val REPAIR = 4
 
         /** shop_quantity sits alone on a spare varp here, so the varp is the quantity. */
         const val VARP_QUANTITY = 5_100

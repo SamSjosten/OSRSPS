@@ -353,12 +353,43 @@ their prices and stock are in `src/main/resources/shops.json` (the OSRS Wiki's s
 | Each stocked item comes back (or goes down when overstocked) by one every its restock time, as the Wiki gives it; an item the shop doesn't stock goes down by one every 100 ticks and its slot goes at 0, the later items moving up. A sold-out stocked item stays at 0 | the Wiki's restock times; the rest guessed (RSMod's 100 ticks) |
 | Messages: "Pot: currently costs 1 coin.", "...: shop will buy for N coins.", "The shop has run out of stock.", "You don't have enough coins.", "You don't have enough inventory space.", "The shop has run out of space.", "You can't sell this item to a shop.", "You can't sell this item.", "You can't sell this item to this shop." | 2004Scape (RS2), "coins" for its "gp" as RSMod has it; not checked against live |
 
-Not built yet: the shop keepers' Talk-to (the town centre's NPCs, next step), Bob's Repair, ironman stock, noted
-buying (Leagues only) and every other shop.
+Not built yet: Bob's Repair (he says there is nothing to repair, as there is no degrading equipment yet), ironman
+stock, noted buying (Leagues only) and every other shop.
 
 Check: `::item coins 100` in the Lumbridge General Store, Trade with the Shop keeper, Buy 1 on the pot: 99 coins. Sell
 it back for nothing (40% of 1). The Quantity 5 button makes a click buy five. At Bob's, a pot can't be sold and a
 bronze axe can (`test-runner/examples/lumbridge-shops.json`).
+
+## Lumbridge town centre
+
+The town west of the River Lum, outside the castle: `lumbridge.json` has its NPCs on RSMod's spawn tiles (rev 233),
+and the conversations are in `game/content/` (`LumbridgeShopkeepers.kt`, `ShearedRam.kt`, `DonieAndGee.kt`,
+`LumbridgeTutors.kt`, `LumbridgeTownsfolk.kt`), each from the OSRS Wiki's transcript as a player with every quest done
+sees it. The words are in the dialogue file, like every other line.
+
+| Who | What they do |
+|-----|--------------|
+| The General Store's Shop keeper and Shop assistant, Bob | Talk-to; "what do you sell" opens their shop. Bob's Repair and an item used on him answer that nothing needs repairing |
+| The Sheared Ram's Bartender | Sells a beer for 2 coins |
+| Arthur the Clue Hunter | Explains every clue type (three pages of them) and turns clue vessels on and off (varbit 9365) |
+| Donie and Gee | One of four opening menus at random, the quests, Lumbridge, and Gee's small monsters |
+| The Cooking tutor, Smithing apprentice and Woodsman tutor | Advice by your level; the Woodsman tutor gives an axe and tinderbox when you have none and sells the Woodcutting cape at 99 (trimmed with another 99) |
+| Abigaila, upstairs in the General Store | Her story; her scrying ball refuses a player carrying or wearing anything (the Theatre of Blood isn't built) |
+| The Ironman tutor | Explains Ironman; this game has no Ironmen, so his armour and the account modes are refused or end the talk |
+| Men, women and rats | As in the castle |
+
+| Behaviour | Source |
+|-----------|--------|
+| Every line, option and its order, and which ones the levels pick | OSRS Wiki transcripts, read 2026-10-29 |
+| The NPCs' tiles | RSMod's Lumbridge spawns (rev 233) |
+| The menus' paging, Donie and Gee's four openings picked at random, the tutors' level bands | RSMod's scripts for these NPCs |
+| Every chathead expression the Wiki doesn't give, that "what do you sell" opens the shop after the last line | guessed |
+
+Not built yet: Veos and Barfy Bill (quest and travel NPCs), the overhead lines some of them say, the Theatre of Blood
+and account modes, Bob's Repair.
+
+Check: `test-runner/examples/lumbridge-talk-*.json` talk to each of them through every option with `::keys on`, so
+the dialogue shows each line's key.
 
 ## Equipment
 
