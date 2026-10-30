@@ -32,7 +32,8 @@ the server on VM 214 (the deploy filter in `deploy/auto-deploy.sh`).
 ## Auto-merge
 
 A pull request merges by itself, with a merge commit, once auto-merge is on and branch protection on `main` is
-satisfied: every `build` job passes, the `codex-review` check passes, and the branch is up to date with `main`. The
+satisfied: every `build` job passes (jobs for parts a change doesn't touch, such as the launcher's installers, are
+skipped, which counts as passing), the `codex-review` check passes, and the branch is up to date with `main`. The
 thread that opens a pull request turns auto-merge on straight away; Sam stays its author and can still merge by hand
 or turn it off.
 
@@ -53,8 +54,16 @@ or turn it off.
   maintainer", which leaves the pull request blocked on checks that never start; the queue approves them (and only
   dispatches `build` when no runs show up). If GitHub refuses the approval, it comments **Runs waiting:** once, and
   Sam clicks "Approve workflows to run".
+- **Batches**: when two or more such pull requests are ready, with their own checks finished and green, the queue
+  merges up to six of them one after another onto `main` on the `automerge/batch` branch (leaving out any that
+  conflicts with those before it) and runs `build` there once for all of them. Green, that commit becomes the head of
+  the batch's last pull request, a fast-forward, with a `codex-review` that covers each member; auto-merge merges it,
+  and since every other member's head is then in `main`, GitHub marks those merged too. One merge, one deploy. Red,
+  the first half goes again, down to a single pull request, which goes the one-at-a-time way so its own checks show
+  the failure. The batch branch is the queue's own: never push to it.
 
-So a thread pulls its branch (`git pull`) before pushing, as the queue may have pushed a merge of `main` to it. A
+So a thread pulls its branch (`git pull`) before pushing, as the queue may have pushed a merge of `main` (or a whole
+batch) to it. A pull request that merged as part of a batch shows as merged with the batch's last pull request. A
 failing check or a Codex finding takes a pull request out of the queue until it is fixed. To run the queue now:
 Actions, **automerge**, **Run workflow**.
 

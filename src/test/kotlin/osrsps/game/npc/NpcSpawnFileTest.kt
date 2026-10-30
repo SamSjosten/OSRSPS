@@ -211,6 +211,7 @@ class NpcSpawnFileTest {
             3231 to "ellis_tanner", 4285 to "hassan", 4286 to "osman", 11645 to "prince_ali_palace",
             3292 to "al_kharid_warrior", 3261 to "al_kharid_man", 3024 to "scorpion", 2835 to "camel", 5949 to "al_the_camel",
             5950 to "elly_the_camel", 5951 to "ollie_the_camel", 5952 to "cam_the_camel", 5953 to "alice_the_camel_multinpc",
+            1528 to "0_51_49_saltfish",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
@@ -239,6 +240,8 @@ class NpcSpawnFileTest {
         assertEquals(1, spawns.count { it.type.id == 3024 && it.z < 3160 })
         // The plain Camel and the five named ones.
         for (id in listOf(2835, 5949, 5950, 5951, 5952, 5953)) assertEquals(1, spawns.count { it.type.id == id })
+        // Two fishing spots by the sea, south-west of the town.
+        assertEquals(2, spawns.count { it.type.id == 1528 && it.x in 3266..3277 && it.z in 3139..3148 })
         // Inside Al Kharid: east of the toll gate's fence line, south of the mine's north end.
         assertTrue(spawns.all { it.x in 3267..3330 && it.z in 3140..3320 && it.level == 0 && it.source.isNotBlank() })
         assertTrue(spawns.filter { it.type.id in listOf(4287, 4288, 3090, 3091) }.all { it.wander == 0 })
