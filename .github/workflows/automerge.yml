@@ -3,17 +3,20 @@ name: automerge
 # The `codex-review` check that branch protection requires on main, and the queue that merges main into the next pull
 # request with auto-merge on, one at a time (.github/scripts/automerge.js, CONTRIBUTING.md).
 #
-# pull_request_target and issue_comment run main's copy of this file with a token that can write, so it checks out
-# main only and never runs a pull request's code; the pull request's commits are fetched for `git patch-id` and
-# nothing else.
+# pull_request_target and issue_comment run main's copy of this file with a token that can write (pull_request_review
+# runs the pull request's merge with main, and only for Codex's own reviews), so it checks out main only and never runs
+# a pull request's code; the pull request's commits are fetched for `git patch-id` and nothing else.
 on:
   push:
     branches: [main]
   pull_request_target:
     types: [opened, reopened, synchronize, ready_for_review, auto_merge_enabled]
-  # Codex edits its summary comment when a review finishes.
+  # Codex edits its summary comment when a review finishes; older pull requests only get its receipts, some of them
+  # submitted as reviews.
   issue_comment:
     types: [created, edited]
+  pull_request_review:
+    types: [submitted]
   workflow_run:
     workflows: [build]
     types: [completed]
@@ -31,7 +34,8 @@ jobs:
     if: >-
       github.event_name == 'pull_request_target' ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
-       github.event.comment.user.login == 'chatgpt-codex-connector[bot]')
+       github.event.comment.user.login == 'chatgpt-codex-connector[bot]') ||
+      (github.event_name == 'pull_request_review' && github.event.review.user.login == 'chatgpt-codex-connector[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
@@ -52,7 +56,8 @@ jobs:
     if: >-
       always() &&
       (github.event_name != 'issue_comment' ||
-       (github.event.issue.pull_request && github.event.comment.user.login == 'chatgpt-codex-connector[bot]'))
+       (github.event.issue.pull_request && github.event.comment.user.login == 'chatgpt-codex-connector[bot]')) &&
+      (github.event_name != 'pull_request_review' || github.event.review.user.login == 'chatgpt-codex-connector[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # One queue at a time; a newer pending run replaces an older one, which is fine as each looks at every pull request.

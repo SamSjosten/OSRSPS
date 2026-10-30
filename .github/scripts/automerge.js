@@ -30,6 +30,7 @@ const REVIEWED = /\*\*Reviewed commit:\*\*\s*`([0-9a-f]{7,40})`/;
 const CLEAN = "Didn't find any major issues";
 const BAD = ['failure', 'cancelled', 'timed_out', 'action_required', 'stale', 'startup_failure'];
 const NOTICE = '<!-- automerge:review-again -->';
+const BUILD = 'build'; // build.yml's main job: no check of that name on a head means no CI ran on it
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -135,15 +136,19 @@ async function latestChecks(github, repo, sha) {
   return [...byName.values()];
 }
 
-async function gate(github, git, repo, core, number) {
+// `current` is the check already on the head, if any: an unchanged result isn't written again, so a queue run doesn't
+// wake the thread with the same failing check each time.
+async function gate(github, git, repo, core, number, current) {
   const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number: number });
   if (pr.state !== 'open') return;
   const result = await evaluate(github, git, repo, pr);
   core.info(`#${number}: ${CHECK} ${result.conclusion || result.status}: ${result.title}`);
-  await writeCheck(github, repo, pr.head.sha, result);
+  const same = current && current.status === result.status && (current.conclusion || null) === (result.conclusion || null)
+    && current.output && current.output.title === result.title;
+  if (!same) await writeCheck(github, repo, pr.head.sha, result);
 }
 
-async function advance(github, git, repo, core, sleep) {
+async function advance(github, git, repo, core, sleep, now) {
   const open = await github.paginate(github.rest.pulls.list, { ...repo, state: 'open', base: 'main', per_page: 100 });
   const queued = open.filter(pr => pr.auto_merge && !pr.draft).sort((a, b) => a.number - b.number);
 
@@ -152,9 +157,21 @@ async function advance(github, git, repo, core, sleep) {
     const { data: compare } = await github.rest.repos.compareCommits({ ...repo, base: 'main', head: pr.head.sha });
     const behind = compare.behind_by > 0;
     let checks = await latestChecks(github, repo, pr.head.sha);
-    if (!checks.some(run => run.name === CHECK)) { // opened before this workflow, or its event was missed
-      await gate(github, git, repo, core, pr.number);
+    const current = checks.find(run => run.name === CHECK);
+    // Missing (opened before this workflow, or an event was missed) or still waiting: Codex may have answered since.
+    if (!current || current.status !== 'completed') {
+      await gate(github, git, repo, core, pr.number, current);
       checks = await latestChecks(github, repo, pr.head.sha);
+    }
+    if (!behind && !checks.some(run => run.name === BUILD)) {
+      // An up-to-date head that no build ever ran on: a merge of main whose dispatch was lost (the update showed up
+      // after the wait below). Ten minutes, so a thread's fresh push gets its own pull_request build first.
+      const { data: commit } = await github.rest.repos.getCommit({ ...repo, ref: pr.head.sha });
+      if (now() - Date.parse(commit.commit.committer.date) > 10 * 60 * 1000) {
+        core.info(`#${pr.number}: no build on ${pr.head.sha.slice(0, 7)}; starting one`);
+        await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
+        return;
+      }
     }
     const failing = checks.some(run => run.status === 'completed' && BAD.includes(run.conclusion));
     const running = checks.some(run => run.name !== CHECK && run.status !== 'completed');
@@ -214,8 +231,8 @@ module.exports.gate = async function ({ github, context, core, git = shellGit })
 };
 
 // The `queue` job, after every event.
-module.exports.queue = async function ({ github, context, core, git = shellGit, sleep = wait }) {
-  await advance(github, git, context.repo, core, sleep);
+module.exports.queue = async function ({ github, context, core, git = shellGit, sleep = wait, now = Date.now }) {
+  await advance(github, git, context.repo, core, sleep, now);
 };
 
 module.exports.CHECK = CHECK;

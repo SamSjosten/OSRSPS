@@ -95,6 +95,10 @@ function fakeGitHub(prs) {
       createComment: async args => { calls.push(['comment', args.issue_number, args.body]); },
     },
     repos: {
+      getCommit: async ({ ref }) => {
+        const pr = Object.values(prs).find(p => p.head === ref);
+        return { data: { commit: { committer: { date: pr.committed || '2026-10-30T00:00:00Z' } } } };
+      },
       compareCommits: async ({ head }) => {
         const pr = Object.values(prs).find(p => p.head === head);
         return { data: { behind_by: pr.behind || 0 } };
@@ -105,7 +109,7 @@ function fakeGitHub(prs) {
       create: async args => {
         calls.push(['check', args.head_sha, args.conclusion || args.status]);
         const pr = Object.values(prs).find(p => p.head === args.head_sha);
-        pr.checks.push({ id: nextId++, name: args.name, status: args.status, conclusion: args.conclusion || null });
+        pr.checks.push({ id: nextId++, name: args.name, status: args.status, conclusion: args.conclusion || null, output: args.output });
       },
     },
     actions: {
@@ -130,7 +134,8 @@ const repo = { owner: 'SamSjosten', repo: 'OSRSPS' };
 const H = c => c.repeat(40);
 const green = [{ name: 'build', status: 'completed', conclusion: 'success' }];
 const codexPass = { name: CHECK, status: 'completed', conclusion: 'success' };
-const queue = (github, git) => automerge.queue({ github, context: { repo, payload: {} }, core, git, sleep: async () => {} });
+const NOW = Date.parse('2026-10-30T01:00:00Z');
+const queue = (github, git) => automerge.queue({ github, context: { repo, payload: {} }, core, git, sleep: async () => {}, now: () => NOW });
 const gate = (github, git, number) => automerge.gate({ github, context: { repo, payload: { pull_request: { number } } }, core, git });
 
 test('the gate passes a clean review of the head, fails findings and waits without one', async () => {
@@ -191,4 +196,26 @@ test('when merging main changes the diff, the thread is asked for a new Codex re
   assert.deepStrictEqual(calls.slice(0, 3), [['updateBranch', 6], ['dispatch', 'build.yml', 'branch-6'], ['check', H('a'), 'in_progress']]);
   assert.strictEqual(calls[3][0], 'comment');
   assert.ok(calls[3][2].startsWith(NOTICE));
+});
+
+test('a waiting check is looked at again on each queue run, and written only when it changes', async () => {
+  const waiting = { name: CHECK, status: 'in_progress', conclusion: null, output: { title: 'Waiting for a Codex review' } };
+  const { github, calls } = fakeGitHub({
+    1: { head: H('1'), behind: 0, checks: [...green, { ...waiting }], comments: [] },
+    2: { head: H('2'), behind: 0, checks: [...green, { ...waiting }], comments: [summary(H('2'), false)] },
+  });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls, [['check', H('2'), 'success']]);
+});
+
+test('an up-to-date head with no build gets one, once it is older than a fresh push', async () => {
+  const { github, calls } = fakeGitHub({
+    1: { head: H('1'), ref: 'b1', behind: 0, committed: '2026-10-30T00:30:00Z', checks: [codexPass] },
+  });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', 'b1']]);
+
+  const fresh = fakeGitHub({ 1: { head: H('1'), behind: 0, committed: '2026-10-30T00:55:00Z', checks: [codexPass] } });
+  await queue(fresh.github, fakeGit({}));
+  assert.deepStrictEqual(fresh.calls, []);
 });
