@@ -73,8 +73,10 @@ class HeadlessEdgevilleTest {
         await("the teleport to $x, $z, $level") { position?.takeIf { it == Coord(x, z, level) } }
     }
 
-    private fun HeadlessClient.awaitMessage(text: String) {
+    /** Does [action] and waits for [text], counting the messages from before the action so a quick reply isn't missed. */
+    private fun HeadlessClient.expectMessage(text: String, action: () -> Unit) {
         val before = messages().count { it.text == text }
+        action()
         await("the message '$text'") { if (messages().count { it.text == text } > before) Unit else null }
     }
 
@@ -120,17 +122,14 @@ class HeadlessEdgevilleTest {
                 val hitpoints = client.await("hitpoints") { client.stat(Skill.HITPOINTS.ordinal)?.level }
 
                 server.world.random.reseed(nothing)
-                client.locOp(HAYSTACK, 3093, 3509, Haystacks.SEARCH)
-                client.awaitMessage(DialogueText.NONE[HaystackLines.NOTHING])
+                client.expectMessage(DialogueText.NONE[HaystackLines.NOTHING]) { client.locOp(HAYSTACK, 3093, 3509, Haystacks.SEARCH) }
 
                 server.world.random.reseed(needle)
-                client.locOp(HAYSTACK, 3093, 3509, Haystacks.SEARCH)
-                client.awaitMessage(DialogueText.NONE[HaystackLines.NEEDLE])
+                client.expectMessage(DialogueText.NONE[HaystackLines.NEEDLE]) { client.locOp(HAYSTACK, 3093, 3509, Haystacks.SEARCH) }
                 client.await("a needle") { if (client.inventory(BACKPACK).count { it?.id == Haystacks.NEEDLE } == 1) Unit else null }
 
                 server.world.random.reseed(prick)
-                client.locOp(HAYSTACK, 3093, 3509, Haystacks.SEARCH)
-                client.awaitMessage(DialogueText.NONE[HaystackLines.PRICKED])
+                client.expectMessage(DialogueText.NONE[HaystackLines.PRICKED]) { client.locOp(HAYSTACK, 3093, 3509, Haystacks.SEARCH) }
                 assertEquals(hitpoints - 1, client.await("a hitpoint lost") {
                     client.stat(Skill.HITPOINTS.ordinal)?.level?.takeIf { it < hitpoints }
                 })
@@ -154,12 +153,10 @@ class HeadlessEdgevilleTest {
                 client.tele(3121, 3481, 0)
                 client.locOp(Edgeville.WARDROBE, 3120, 3481, 1)
                 client.await("the wardrobe open") { world.locs.find(Edgeville.WARDROBE_OPEN, 3120, 3481, 0) }
-                client.locOp(Edgeville.WARDROBE_OPEN, 3120, 3481, 2)
-                client.awaitMessage(DialogueText.NONE[EdgevilleLines.WARDROBE_EMPTY])
+                client.expectMessage(DialogueText.NONE[EdgevilleLines.WARDROBE_EMPTY]) { client.locOp(Edgeville.WARDROBE_OPEN, 3120, 3481, 2) }
 
                 client.tele(3090, 3520, 0)
-                client.locOp(Edgeville.DITCH, 3090, 3521, Edgeville.CROSS)
-                client.awaitMessage(DialogueText.NONE[EdgevilleLines.DITCH_CLOSED])
+                client.expectMessage(DialogueText.NONE[EdgevilleLines.DITCH_CLOSED]) { client.locOp(Edgeville.DITCH, 3090, 3521, Edgeville.CROSS) }
                 client.awaitTicks(2)
                 assertTrue(client.position!!.z < 3521, "still south of the ditch")
             }
