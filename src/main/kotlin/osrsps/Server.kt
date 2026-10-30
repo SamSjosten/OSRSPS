@@ -115,6 +115,7 @@ class GameServer(
         val attackStyles: AttackStyles
         val seqNames: SeqNames
         val spotanimNames: SpotanimNames
+        val specialAttackCosts: Map<Int, Int>
         val skillUnlocks: SkillUnlocks
         val settings: SettingsCatalog
         try {
@@ -129,6 +130,7 @@ class GameServer(
             attackStyles = CombatLoader.attackStyles(library)
             seqNames = CombatLoader.seqNames(library)
             spotanimNames = CombatLoader.spotanimNames(library)
+            specialAttackCosts = CombatLoader.specialAttackCosts(library)
             skillUnlocks = SkillUnlockLoader.load(library)
             settings = SettingsLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
@@ -207,6 +209,7 @@ class GameServer(
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
+            specialAttackCosts = specialAttackCosts,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)
