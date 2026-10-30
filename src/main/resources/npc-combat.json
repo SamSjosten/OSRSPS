@@ -91,6 +91,48 @@
       "respawnTicks": 30,
       "weakness": { "element": "fire", "percent": 50 },
       "source": "OSRS Wiki, Giant spider (Level 2, id 3017) and the DPS calculator, read 2026-10-30; it stands and walks with spider_update_ready and _walk, so the spider_update fight animations are taken. It is aggressive on live, which waits for NPC aggression (the Varrock piece)"
+    },
+    {
+      "npcs": ["giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_rat_update_attack", "defend": "giant_rat_update_defend", "death": "giant_rat_update_death" },
+      "respawnTicks": 30,
+      "source": "OSRS Wiki, Giant rat (Level 3, ids 2856 to 2861, and Level 6, 2862 to 2864, share the infobox's speed, style, bonuses and respawn) and the DPS calculator's 2856 and 2862, read 2026-10-30; they stand and walk with giant_rat_update_ready and _walk. They are aggressive on live, which waits for NPC aggression (the Varrock piece)"
+    },
+    {
+      "npcs": ["little_frog_nodrops"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_frog_attack", "defend": "giant_frog_block", "death": "giant_frog_death" },
+      "respawnTicks": 50,
+      "weakness": { "element": "earth", "percent": 40 },
+      "source": "OSRS Wiki, Frog (Level 5, id 8702) and the DPS calculator, read 2026-10-30; it stands and walks with giant_frog_ready and _walk, so it fights with the giant_frog animations"
+    },
+    {
+      "npcs": ["medium_frog_nodrops", "giant_frog_nodrops"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_frog_attack", "defend": "giant_frog_block", "death": "giant_frog_death" },
+      "respawnTicks": 50,
+      "weakness": { "element": "earth", "percent": 25 },
+      "source": "OSRS Wiki, Big frog (Level 10, id 8701) and Giant frog (Level 13, id 8700), and the DPS calculator, read 2026-10-30"
+    },
+    {
+      "npcs": ["goblin_armed"],
+      "attackSpeed": 6, "maxHit": 1, "attackType": "stab", "attackBonus": 12, "strengthBonus": 12,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "slice_surface_goblin_squat_attack_spear", "defend": "slice_surface_goblin_defend_spear", "death": "slice_surface_goblin_death_spear" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Goblin (the Level 5 infobox, id 3045 among them) and the DPS calculator's 3045, read 2026-10-30; it stands and walks with slice_surface_goblin_squat_ready_spear and _walk_spear, so the spear animations are taken"
+    },
+    {
+      "npcs": ["unicorn"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "unicorn_rework_attack", "defend": "unicorn_rework_defend", "death": "unicorn_rework_death" },
+      "respawnTicks": 90,
+      "source": "OSRS Wiki, Unicorn (id 2837) and the DPS calculator, read 2026-10-30; it stands and walks with unicorn_rework_ready and _walk"
     }
   ]
 }
