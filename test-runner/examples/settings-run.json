@@ -1,0 +1,19 @@
+{
+ "name": "Client settings: Energy threshold to re-enable running turns run back on once the energy that ran out is back to the threshold (ctrl+click's run mode setting is covered headless; the runner can't hold ctrl)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-run-low", "expectMessage": "Started scenario lumbridge-run-low.", "comment": "run on, 0.5% energy, threshold 1% (varbit 11031)"},
+  {"step": "assertVarbit", "id": 11031, "value": 1},
+  {"step": "walk", "x": 3226, "y": 3218, "comment": "the first running tick drains 59 of the 50 units"},
+  {"step": "assertVarp", "id": 173, "value": 0, "comment": "option_run: run went off when energy ran out"},
+  {"step": "waitTicks", "ticks": 9, "comment": "standing restores 15 units a tick, so 1% (100) takes 7"},
+  {"step": "assertVarp", "id": 173, "value": 1, "comment": "back on at the threshold"},
+
+  {"step": "command", "text": "::varp 173 0", "expectMessage": "Varp 173", "comment": "run turned off by hand"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "assertVarp", "id": 173, "value": 0, "comment": "stays off: only energy that ran out comes back on"},
+
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

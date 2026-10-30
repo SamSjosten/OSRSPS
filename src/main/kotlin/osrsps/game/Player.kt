@@ -243,8 +243,11 @@ class Player(
         get() = skills.currentLevel(Skill.HITPOINTS)
         set(value) = skills.setCurrentLevel(Skill.HITPOINTS, value)
 
-    /** Ctrl-click flips walk and run for the route it starts. */
+    /** Ctrl-click flips walk and run for the route it starts, as far as the setting allows; see [Movement]. */
     var invertRun: Boolean = false
+
+    /** Run went off because energy ran out, so the energy threshold setting may turn it back on; see [Movement]. */
+    var runRanOut: Boolean = false
 
     /** The first tick they may swing again; see [osrsps.game.combat.MeleeCombat]. */
     var nextAttackTick: Long = 0

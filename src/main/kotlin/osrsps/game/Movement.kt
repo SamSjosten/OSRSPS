@@ -36,7 +36,7 @@ class Movement(private val collision: CollisionMap) {
     }
 
     fun process(player: Player): MoveResult {
-        val wantsRun = player.runEnabled != player.invertRun
+        val wantsRun = player.runEnabled != (player.invertRun && ctrlInverts(player))
         // Inferred: a delayed player keeps their route but doesn't walk it until the delay ends. Energy still changes.
         val steps = if (player.scripts.delayed) 0 else if (wantsRun && player.runEnergy > 0) 2 else 1
         var taken = 0
@@ -70,21 +70,67 @@ class Movement(private val collision: CollisionMap) {
     /** The same checks the route finder makes for one step. */
     fun canStep(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean = Steps.canStep(collision, level, x, z, dx, dz)
 
+    /**
+     * Whether ctrl flips the run mode the player has now, by the All Settings dropdown "Ctrl+click to invert run mode"
+     * (varbit runinvert_mode, its options from enum 4074): Never, Walk -> Run only, Run -> Walk only, Always. Without
+     * the varbit (tests with no cache) ctrl always flips, as before the setting.
+     */
+    private fun ctrlInverts(player: Player): Boolean {
+        if (player.vars.types.varbit(VARBIT_RUN_INVERT_MODE) == null) return true
+        return when (player.vars.getVarbit(VARBIT_RUN_INVERT_MODE)) {
+            RUN_INVERT_NEVER -> false
+            RUN_INVERT_WALK_TO_RUN -> !player.runEnabled
+            RUN_INVERT_RUN_TO_WALK -> player.runEnabled
+            else -> true
+        }
+    }
+
+    /**
+     * The energy, in hundredths of a percent, at which run comes back on after running out, from the All Settings
+     * number "Energy threshold to re-enable running" (varbit runenergy_autoenable, a percentage; 0 turns it off). Its
+     * description in the cache: after energy has "naturally depleted, you will automatically start running again once
+     * you have this much energy". Guessed: values over 100 count as 100, as the orb can't go higher.
+     */
+    private fun autoEnableAt(player: Player): Int {
+        if (player.vars.types.varbit(VARBIT_RUN_AUTOENABLE) == null) return 0
+        return player.vars.getVarbit(VARBIT_RUN_AUTOENABLE).coerceAtMost(100) * (MAX_ENERGY / 100)
+    }
+
     private fun updateEnergy(player: Player, result: MoveResult) {
+        // Run turned back on by any other way (the orb, the side panel) isn't waiting on the threshold any more.
+        if (player.runEnabled) player.runRanOut = false
         // Guessed: only a two-tile tick counts as running, and a single tile at the end of a run drains nothing.
         if (result == MoveResult.RAN) {
             val grams = player.weightGrams.coerceIn(0, MAX_WEIGHT_GRAMS).toLong()
             val drain = ((60L * MAX_WEIGHT_GRAMS + 67 * grams) * (300 - AGILITY) / (MAX_WEIGHT_GRAMS * 300L)).toInt()
             player.runEnergy = (player.runEnergy - drain).coerceAtLeast(0)
             // Guessed: run switches itself off when energy runs out, as the orb does on live.
-            if (player.runEnergy == 0) player.runEnabled = false
+            if (player.runEnergy == 0) {
+                player.runEnabled = false
+                player.runRanOut = true
+            }
         } else {
             player.runEnergy = (player.runEnergy + AGILITY / 10 + 15).coerceAtMost(MAX_ENERGY)
+            val threshold = autoEnableAt(player)
+            if (player.runRanOut && threshold > 0 && player.runEnergy >= threshold) {
+                player.runEnabled = true
+                player.runRanOut = false
+            }
         }
     }
 
     companion object {
         const val MAX_ENERGY = 10_000
+
+        /** runinvert_mode and its values, enum 4074's order. */
+        const val VARBIT_RUN_INVERT_MODE = 13132
+        const val RUN_INVERT_NEVER = 0
+        const val RUN_INVERT_WALK_TO_RUN = 1
+        const val RUN_INVERT_RUN_TO_WALK = 2
+        const val RUN_INVERT_ALWAYS = 3
+
+        /** runenergy_autoenable, the percentage of energy that turns run back on after it ran out. */
+        const val VARBIT_RUN_AUTOENABLE = 11031
         private const val AGILITY = 1
 
         /** 64 kg, past which weight drains no faster. */
