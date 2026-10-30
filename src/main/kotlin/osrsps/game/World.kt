@@ -105,6 +105,7 @@ import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerBones
+import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
 import osrsps.game.dialogue.ChatFont
@@ -563,6 +564,7 @@ class World(
         registerLumbridgeCastle(this)
         registerCombatTutors(this)
         registerBones(this)
+        registerRottenPotato(this)
         foods.register(this)
         potions.register(this)
         registerBanking(this)
