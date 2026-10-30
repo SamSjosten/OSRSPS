@@ -23,7 +23,13 @@ class NpcDropsTest {
     private val ram = NpcType(1262, "Ram", combatLevel = 2, internalName = "ramunsheered")
     private val goblin = NpcType(3029, "Goblin", combatLevel = 2, internalName = "goblin_unarmed_melee_1")
     private val spider = NpcType(3017, "Giant spider", combatLevel = 2, internalName = "giantspider1")
-    private val types = NpcTypes.of(man, imp, cow, rat, chicken, ram, goblin, spider)
+    private val giantRat = NpcType(2863, "Giant rat", combatLevel = 6, internalName = "giantrat1_2")
+    private val frog = NpcType(8702, "Frog", combatLevel = 5, internalName = "little_frog_nodrops")
+    private val bigFrog = NpcType(8701, "Big frog", combatLevel = 10, internalName = "medium_frog_nodrops")
+    private val giantFrog = NpcType(8700, "Giant frog", combatLevel = 13, internalName = "giant_frog_nodrops")
+    private val armedGoblin = NpcType(3045, "Goblin", combatLevel = 5, internalName = "goblin_armed")
+    private val unicorn = NpcType(2837, "Unicorn", combatLevel = 15, internalName = "unicorn")
+    private val types = NpcTypes.of(man, imp, cow, rat, chicken, ram, goblin, spider, giantRat, frog, bigFrog, giantFrog, armedGoblin, unicorn)
     private val objTypes = DropTestItems.objTypes()
     private val drops = NpcDrops.load(types, objTypes)
 
@@ -31,7 +37,7 @@ class NpcDropsTest {
     fun `the file reads, naming every item as the cache does, and the tables add up`() {
         // The test's cache knows one man, cow and so on; every other warning would be a wrong item name.
         assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
-        assertEquals(8, drops.size)
+        assertEquals(14, drops.size)
         val def = drops[man]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })
         assertEquals(128, def.table!!.slots)
@@ -51,6 +57,18 @@ class NpcDropsTest {
         // A giant spider leaves no bones, only the odd beginner clue.
         assertEquals(emptyList(), drops[spider]!!.always)
         assertEquals(listOf("Clue scroll (beginner)" to 128), drops[spider]!!.tertiary.map { it.item.type.name to it.denominator })
+        // The swamp: a giant rat leaves bones and its meat, frogs bones (big bones for the giant one), a unicorn its horn.
+        assertEquals(listOf("Bones", "Raw rat meat"), drops[giantRat]!!.always.map { it.type.name })
+        assertNull(drops[giantRat]!!.table)
+        assertEquals(listOf("Clue scroll (beginner)" to 90), drops[frog]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Clue scroll (beginner)" to 70), drops[bigFrog]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals("Big bones", drops[giantFrog]!!.always.single().type.name)
+        assertEquals(
+            listOf("Clue scroll (beginner)" to 64, "Long bone" to 400, "Curved bone" to 5013),
+            drops[giantFrog]!!.tertiary.map { it.item.type.name to it.denominator },
+        )
+        assertEquals(listOf("Bones", "Unicorn horn"), drops[unicorn]!!.always.map { it.type.name })
+        assertEquals(128, drops[armedGoblin]!!.table!!.slots)
         // A rat drops nothing at all.
         val nothing = drops[rat]!!
         assertTrue(nothing.isEmpty)
@@ -195,6 +213,49 @@ class NpcDropsTest {
         expect("Coins x20", 2)
         expect("Goblin book x1", 2)
         expect("Brass necklace x1", 1)
+    }
+
+    @Test
+    fun `ten thousand level 5 goblins drop bones every time and the rest as the Wiki's drop table 2 says`() {
+        val def = drops[armedGoblin]!!
+        val random = GameRandom(12)
+        val counts = HashMap<String, Int>()
+        val tertiary = setOf("Clue scroll (beginner)", "Clue scroll (easy)", "Ensouled goblin head", "Goblin champion scroll")
+        var nothing = 0
+        var herbs = 0
+        repeat(KILLS) {
+            val kill = def.roll(random)
+            assertEquals("Bones", kill.first().type.name)
+            val table = kill.drop(1).filter { it.type.name !in tertiary }
+            assertTrue(table.size <= 1, kill.toString())
+            if (table.isEmpty()) nothing++
+            for (drop in table) {
+                if (drop.type.name.startsWith("Grimy")) herbs++
+                val key = if (drop.type.name == "Coins") "Coins x${drop.count}" else "${drop.type.name} x${drop.count}"
+                counts[key] = (counts[key] ?: 0) + 1
+            }
+        }
+        counts["nothing"] = nothing
+        counts["herbs"] = herbs
+        fun expect(key: String, weight: Int) {
+            val p = weight / 128.0
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        expect("Coins x8", 34)
+        expect("Energy potion(2) x1", 13)
+        expect("Goblin mail x1", 10)
+        expect("Bronze spear x1", 9)
+        expect("Hammer x1", 9)
+        expect("nothing", 8)
+        expect("Coins x5", 8)
+        expect("Coins x16", 7)
+        expect("Bronze arrow x7", 3)
+        expect("Bronze javelin x5", 2)
+        expect("herbs", 2)
+        expect("Tin ore x1", 1)
     }
 
     companion object {
