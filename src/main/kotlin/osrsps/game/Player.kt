@@ -279,6 +279,9 @@ class Player(
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
 
+    /** Where their ten minutes towards aggressive monsters' tolerance are counted; see [osrsps.game.combat.Aggression]. Saved. */
+    val tolerance = osrsps.game.combat.Tolerance()
+
     /** `::buttons`: every interface click the server gets from them is echoed to their chat. Not saved. */
     var echoButtons: Boolean = false
 

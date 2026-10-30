@@ -390,6 +390,9 @@ class MeleeCombat(
         npcs.follow(npc, player)
     }
 
+    /** [npc] goes for [player] unprovoked ([Aggression]), as if they had hit it. */
+    internal fun aggress(npc: Npc, player: Player, tick: Long) = retaliate(npc, player, tick)
+
     private fun die(npc: Npc, def: NpcCombatDef, killer: Player?, tick: Long) {
         npc.dead = true
         giveUp(npc)
