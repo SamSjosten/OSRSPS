@@ -190,6 +190,13 @@ class Npc(
     var freezeImmunityTicks: Int = 0
         internal set
 
+    /**
+     * Its poison or venom, as a player's poison varp counts them: 0 for neither, 1 to 999,999 poison, and
+     * [osrsps.game.combat.Poison.VENOM] and up venom; see [osrsps.game.combat.Poison]. Ticks to its next hit, -1 for none.
+     */
+    var poison: Int = 0
+    var poisonTicks: Int = -1
+
     /** The animation, hitsplats and health bars given this cycle; see [NpcEffects]. */
     val effects = NpcEffects()
 

@@ -40,7 +40,8 @@
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
       "anims": { "attack": "cow_update_attack", "defend": "cow_update_defend", "death": "cow_update_death" },
       "respawnTicks": 45,
-      "source": "OSRS Wiki, Cow (ids 2790, 2791, 2793); they stand and walk with the cow_update animations"
+      "immune": ["poison", "venom"],
+      "source": "OSRS Wiki, Cow (ids 2790, 2791, 2793); they stand and walk with the cow_update animations; immune to venom (OSRS Wiki, Venom) and to poison, whose timer cows use for mooing (OSRS Wiki, Poison), read 2026-10-30"
     },
     {
       "npcs": ["cow2_calf", "cow3_calf", "calf"],
@@ -48,7 +49,8 @@
       "defence": { "stab": -26, "slash": -26, "crush": -26, "magic": -26, "light": -26, "standard": -26, "heavy": -26 },
       "anims": { "attack": "cow_update_attack", "defend": "cow_update_defend", "death": "cow_update_death" },
       "respawnTicks": 45,
-      "source": "OSRS Wiki, Cow calf (ids 2792, 2794, 2801); calves stand with cow_just_ready_update and have no attack animation of their own by name, so the cow's are guessed"
+      "immune": ["poison", "venom"],
+      "source": "OSRS Wiki, Cow calf (ids 2792, 2794, 2801); calves stand with cow_just_ready_update and have no attack animation of their own by name, so the cow's are guessed; immune as cows are (guessed: they moo too)"
     },
     {
       "npcs": ["chicken", "chicken_brown"],
@@ -56,7 +58,8 @@
       "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
       "anims": { "attack": "chicken_attack", "defend": "chicken_block", "death": "chicken_death" },
       "respawnTicks": 25,
-      "source": "OSRS Wiki, Chicken (ids 1173, 1174), read 2026-10-29; they stand and walk with lore_chicken_ready and lore_chicken_walk, so the chicken_ attack, block and death animations are guessed"
+      "immune": ["venom"],
+      "source": "OSRS Wiki, Chicken (ids 1173, 1174), read 2026-10-29; they stand and walk with lore_chicken_ready and lore_chicken_walk, so the chicken_ attack, block and death animations are guessed; immune to venom (OSRS Wiki, Venom, read 2026-10-30)"
     },
     {
       "npcs": ["duck", "duck_female", "duckling"],
