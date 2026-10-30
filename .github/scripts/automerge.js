@@ -29,6 +29,8 @@ const REVIEWED = /\*\*Reviewed commit:\*\*\s*`([0-9a-f]{7,40})`/;
 const CLEAN = "Didn't find any major issues";
 const BAD = ['failure', 'cancelled', 'timed_out', 'action_required', 'stale', 'startup_failure'];
 const NOTICE = '<!-- automerge:review-again -->';
+// This workflow's own jobs: GitHub files them on the pull request's head too, and the queue mustn't wait on itself.
+const OWN = ['automerge-gate', 'automerge-queue'];
 const BUILD = 'build'; // build.yml's main job: no check of that name on a head means no CI ran on it
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -176,8 +178,9 @@ async function advance(github, git, repo, core, sleep, now) {
         return;
       }
     }
-    const failing = checks.some(run => run.status === 'completed' && BAD.includes(run.conclusion));
-    const running = checks.some(run => run.name !== CHECK && run.status !== 'completed');
+    const others = checks.filter(run => !OWN.includes(run.name));
+    const failing = others.some(run => run.status === 'completed' && BAD.includes(run.conclusion));
+    const running = others.some(run => run.name !== CHECK && run.status !== 'completed');
     const codex = checks.find(run => run.name === CHECK);
     const codexOk = codex && codex.conclusion === 'success';
     core.info(`#${pr.number}: ${behind ? 'behind main' : 'up to date'}, ${failing ? 'failing' : running ? 'checks running' : 'checks done'}, ${CHECK} ${codexOk ? 'passes' : 'not passing'}`);
@@ -241,5 +244,6 @@ module.exports.queue = async function ({ github, context, core, git = shellGit, 
 module.exports.CHECK = CHECK;
 module.exports.CODEX = CODEX;
 module.exports.NOTICE = NOTICE;
+module.exports.OWN = OWN;
 module.exports.verdict = verdict;
 module.exports.covers = covers;

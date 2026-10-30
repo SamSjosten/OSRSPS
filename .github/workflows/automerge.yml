@@ -28,7 +28,9 @@ permissions:
   pull-requests: write
 
 jobs:
-  gate:
+  # The job names are what automerge.js leaves out of a pull request's checks: GitHub files a pull_request_target run's
+  # jobs on the pull request's head, so the queue would otherwise wait on its own run.
+  automerge-gate:
     if: >-
       github.event_name == 'pull_request_target' ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
@@ -48,8 +50,8 @@ jobs:
           script: |
             await require('./.github/scripts/automerge.js').gate({ github, context, core });
 
-  queue:
-    needs: gate
+  automerge-queue:
+    needs: automerge-gate
     if: >-
       always() &&
       (github.event_name != 'issue_comment' ||
