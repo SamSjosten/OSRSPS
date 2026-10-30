@@ -161,7 +161,10 @@ class HeadlessFishingTest {
                 client.await("a full backpack") { if (client.inventory(BACKPACK).count { it != null } == 28) Unit else null }
                 client.npcOp(spot.index, 3)
                 client.seen("[fishing.cast_line]")
-                client.await("a fish", timeoutMillis = 30_000) { client.catches().firstOrNull() }
+                val fish = client.await("a fish", timeoutMillis = 30_000) { client.catches().firstOrNull() }
+                // The backpack's update comes after the message in the same tick: wait for the tick to end before
+                // counting, or a busy machine can count it before the update arrives.
+                client.await("the end of the catch's tick") { if (client.ticksSeen > fish.tick) Unit else null }
                 assertEquals(0, client.count(Fishing.FISHING_BAIT))
                 assertEquals(1, client.count(Fishing.SARDINE.obj) + client.count(Fishing.HERRING.obj))
                 // With no bait left the line comes in.
