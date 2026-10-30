@@ -62,6 +62,10 @@ class TestServer(
     fun login(username: String, password: String = "test", header: ByteArray = ByteArray(0)): HeadlessClient =
         HeadlessClient.login("127.0.0.1", port, rsaModulus, rsaExponent, username, password, header = header)
 
+    /** Reconnects [previous] as [username], as the client does after a dropped connection. */
+    fun reconnect(username: String, previous: HeadlessClient): HeadlessClient =
+        HeadlessClient.reconnect("127.0.0.1", port, rsaModulus, rsaExponent, username, previous)
+
     override fun close() {
         world.stop()
         factory.closeListeners()
