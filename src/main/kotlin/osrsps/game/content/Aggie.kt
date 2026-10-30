@@ -75,7 +75,6 @@ object AggieLines : Lines("aggie", "Transcript:Aggie") {
  * cache's coins_250, as 2004Scape has it).
  */
 object Aggie {
-    const val ID = 4284
     const val BEFORE_MET = 120
     const val AFTER_MET = 121
     const val TALK_TO = 1
