@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   probe:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER && fromJSON(vars.RUNNER) || github.event.repository.private && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

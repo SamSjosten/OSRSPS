@@ -77,10 +77,32 @@ or turn it off.
   the first half goes again, down to a single pull request, which goes the one-at-a-time way so its own checks show
   the failure. The batch branch is the queue's own: never push to it.
 
+- **Merging itself**: with no merge rules on `main` (a private repository without GitHub Pro has none, and GitHub then
+  enforces no checks and offers no auto-merge), the queue enforces them: it takes pull requests with the `automerge`
+  label as well as those with auto-merge on, and merges one that is up to date with `main`, whose `build` passed, with
+  every other check done and none failing, and a passing `codex-review`, with a merge commit. It moves `main` only as a
+  fast-forward from the `main` it checked, so two queue runs can't merge two pull requests that were each up to date
+  only with the old `main`; a green batch becomes `main` the same way. A merge made with the workflow's token starts no
+  workflows, so the queue starts `build`, `mergeable` and itself on `main` afterwards. Then a thread labels its pull
+  request `automerge` when it opens it, instead of turning auto-merge on.
+
 So a thread pulls its branch (`git pull`) before pushing, as the queue may have pushed a merge of `main` (or a whole
 batch) to it. A pull request that merged as part of a batch shows as merged with the batch's last pull request. A
 failing check or a Codex finding takes a pull request out of the queue until it is fixed. To run the queue now:
 Actions, **automerge**, **Run workflow**.
+
+## Where CI runs
+
+The Linux jobs (`build.yml`, `automerge.yml`, `mergeable.yml`, `probe.yml`) run on GitHub's `ubuntu-latest` while the
+repository is public, and on the self-hosted runner VM on pve (`ci-runner`, Ubuntu 24.04, labels `self-hosted` and
+`linux`) once it is private, as a private repository's 2,000 hosted minutes a month last a few days here. The
+repository variable `RUNNER` (Settings, Secrets and variables, Actions, Variables) overrides both: `["self-hosted",
+"linux"]` to try the VM early, `"ubuntu-latest"` to go back to GitHub's. The Windows and macOS installer jobs stay on
+GitHub's runners and leave with the launcher.
+
+The VM needs, besides the runner service: `git`, `curl`, `unzip`, Node.js 20 or newer (`node` on the path: the
+script checks call it directly), PowerShell 7 (`pwsh`, for `launch-scripts`); Java comes from `setup-java`. Two runner
+instances on it let two jobs run at once; more than one Gradle job a vCPU pair makes the tick-timing tests flaky.
 
 ## The staging server
 
