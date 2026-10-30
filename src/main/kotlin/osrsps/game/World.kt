@@ -62,6 +62,7 @@ import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.Prayer
 import osrsps.game.combat.Food
 import osrsps.game.combat.Foods
+import osrsps.game.combat.Poison
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
@@ -345,7 +346,7 @@ class World(
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
         prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) },
         examine = inventoryTab::examine, value = { this.itemPrices.deathValue(it) },
-        words = ::textFor,
+        words = ::textFor, cure = { poison.clear(it) },
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -378,7 +379,10 @@ class World(
 
     val foods = Foods(foodList, words = ::textFor)
 
-    val potions = Potions(potionData, words = ::textFor)
+    /** Poison and venom on players; see [Poison]. */
+    val poison = Poison(hit = { player, damage, hitsplat -> meleeCombat.statusHit(player, damage, hitsplat) }, words = ::textFor)
+
+    val potions = Potions(potionData, words = ::textFor, poison = poison)
 
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
@@ -750,6 +754,7 @@ class World(
             if (player == null) continue
             player.playedTicks++
             statRestore.process(player)
+            poison.process(player)
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
