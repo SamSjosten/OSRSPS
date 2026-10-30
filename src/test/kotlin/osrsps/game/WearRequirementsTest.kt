@@ -42,4 +42,16 @@ class WearRequirementsTest {
         // The Wiki's Pickaxe article: 20 Attack to wield a mithril pickaxe, 21 Mining to mine with it.
         assertEquals(listOf(WearRequirement(Skill.ATTACK, 20)), WearRequirements.load(types)[pickaxe])
     }
+
+    @Test
+    fun `every crossbow and bolt in the shipped table needs Ranged, not Attack`() {
+        // The iron crossbow read attack=26; the Wiki gives 26 Ranged (third review, 30 Oct 2026).
+        val text = WearRequirements::class.java.getResource(WearRequirements.RESOURCE)!!.readText()
+        val crossbows = text.lines().filter { it.startsWith("xbows_crossbow") }
+        assertTrue(crossbows.size > 10, "${crossbows.size} lines")
+        for (line in crossbows) {
+            val levels = line.split('\t')[1]
+            assertTrue("ranged=" in levels && "attack=" !in levels, line)
+        }
+    }
 }
