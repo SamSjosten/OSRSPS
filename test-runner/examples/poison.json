@@ -1,0 +1,30 @@
+{
+ "name": "Poison: ::poison 20 hitting 4 thirty ticks on, an antipoison dose curing it and leaving 5 periods of immunity, venom getting through poison immunity, and an anti-venom dose curing it with 41 periods, read off ::poison",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing carried, no poison; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "comment": "the messages show their keys, whatever words the dialogue file has"},
+  {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "Hitpoints set to level 99"},
+  {"step": "command", "text": "::poison 20", "expectMessage": "Poisoned, hitting 4", "comment": "a poisoned weapon's severity"},
+  {"step": "assertMessage", "contains": "[poison.poisoned]", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 33, "comment": "the first hit comes 30 ticks after the tick it was poisoned"},
+  {"step": "command", "text": "::poison", "expectMessage": "(poison varp 19)", "comment": "one hit of 4 taken; the HP orb is green"},
+  {"step": "command", "text": "::item 2446", "comment": "4doseantipoison, Antipoison(4)"},
+  {"step": "itemOption", "itemId": 2446, "option": "Drink"},
+  {"step": "assertMessage", "contains": "[potion.drink_potion potion=antipoison]", "timeoutMs": 10000},
+  {"step": "command", "text": "::poison", "expectMessage": "Immune to poison for ", "comment": "5 periods, or 4 if a period ended since; Timers & Buffs shows the antipoison timer"},
+  {"step": "command", "text": "::poison 20", "expectMessage": "Not poisoned: you are immune"},
+  {"step": "command", "text": "::poison venom", "expectMessage": "Envenomed, hitting 6", "comment": "poison immunity doesn't keep venom off"},
+  {"step": "assertMessage", "contains": "[poison.envenomed]", "timeoutMs": 10000},
+  {"step": "command", "text": "::item 12905", "comment": "antivenom4, Anti-venom(4)"},
+  {"step": "waitTicks", "ticks": 3, "comment": "the drink delay"},
+  {"step": "itemOption", "itemId": 12905, "option": "Drink"},
+  {"step": "assertMessage", "contains": "[potion.drink_potion potion=anti-venom]", "timeoutMs": 10000},
+  {"step": "command", "text": "::poison", "expectMessage": "Immune to poison and venom for ", "comment": "41 periods, or 40 if a period ended since"},
+  {"step": "command", "text": "::poison venom", "expectMessage": "Not envenomed: you are immune to venom"},
+  {"step": "command", "text": "::poison cure", "expectMessage": "Not poisoned or envenomed"},
+  {"step": "command", "text": "::keys off"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

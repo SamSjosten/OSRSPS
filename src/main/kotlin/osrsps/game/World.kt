@@ -64,6 +64,7 @@ import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.Prayer
 import osrsps.game.combat.Food
 import osrsps.game.combat.Foods
+import osrsps.game.combat.Poison
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
@@ -88,6 +89,7 @@ import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
+import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -96,6 +98,7 @@ import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
 import osrsps.game.loc.Doors
+import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.Locs
@@ -112,8 +115,11 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Making
 import osrsps.game.skill.Cooking
 import osrsps.game.skill.Fishing
+import osrsps.game.skill.Fletching
+import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
@@ -222,6 +228,9 @@ class World(
 
     val doors = Doors(locs)
 
+    /** Fence gates, both leaves at once; see [Gates]. */
+    val gates = Gates(locs)
+
     val npcs = Npcs(collision, random)
 
     /** What NPCs do on their own: timers, per-tick actions and deaths that content gives them; see [NpcScripts]. */
@@ -300,7 +309,7 @@ class World(
 
     private val follows = Follows(movement, { players[it.index] === it })
 
-    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, words = ::textFor)
+    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor)
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
@@ -354,7 +363,7 @@ class World(
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
         prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) },
         examine = inventoryTab::examine, value = { this.itemPrices.deathValue(it) },
-        words = ::textFor,
+        words = ::textFor, cure = { poison.clear(it) },
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -383,6 +392,10 @@ class World(
     val cooking = Cooking(this)
     val smithing = Smithing(this)
 
+    /** The Make-X loop the artisan skills share. */
+    val making = Making(this)
+    val fletching = Fletching(this, FletchingData.load())
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -390,7 +403,10 @@ class World(
 
     val foods = Foods(foodList, words = ::textFor)
 
-    val potions = Potions(potionData, words = ::textFor)
+    /** Poison and venom on players; see [Poison]. */
+    val poison = Poison(hit = { player, damage, hitsplat -> meleeCombat.statusHit(player, damage, hitsplat) }, words = ::textFor)
+
+    val potions = Potions(potionData, words = ::textFor, poison = poison)
 
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
@@ -427,6 +443,7 @@ class World(
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
         registerLumbridgeTown(this)
+        registerDraynorVillage(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -445,6 +462,7 @@ class World(
         fishing.register()
         cooking.register()
         smithing.register()
+        fletching.register()
         loadDialogue()
     }
 
@@ -769,6 +787,7 @@ class World(
             if (player == null) continue
             player.playedTicks++
             statRestore.process(player)
+            poison.process(player)
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)

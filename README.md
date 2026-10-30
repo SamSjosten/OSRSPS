@@ -232,6 +232,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
+| `::poison [severity\|venom\|cure]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -412,6 +413,24 @@ sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answe
 | Each bar's anvil items, levels, bars and counts | client scripts and enums 844 to 846 (cache 241), checked against the Wiki's bronze and iron tables (`SmithingTest`) |
 | The furnace box showing every free-to-play bar and suggesting All; Smith opening the best bar the level can use; a cancelled X smithing one; the rusted anvil's message for other bars; the messages' arguments | guessed |
 | Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, cannonballs, jewellery, blurite and lovakite | out of scope |
+
+### Fletching
+
+A knife used on logs, or logs on a knife (`game/skill/Fletching.kt`, words under `fletching.*`), opens the Make-X box
+over what those logs make: arrow shafts, javelin shafts, the shortbow and longbow (u), and the crossbow stock, from
+logs to magic logs, plus teak and mahogany stocks and redwood shafts. The numbers are in `skills/fletching.json`.
+
+The making itself is the loop all three artisan skills share (`game/skill/Making.kt`, the box's title under
+`make.title`): each product waits in a weak queue, so walking off, closing an interface or using something else ends
+it, as do running out, the count being done, the level being too low and a level-up.
+
+| Fletching behaviour | Source |
+|---------------------|--------|
+| Levels, XP and how many shafts a log makes | OSRS Wiki, Fletching and each product's page |
+| The first product 2 ticks after the choice, then one every 3 | OSRS Wiki, Arrow shaft ("Make-X is 2, then 3 ticks") and Wooden stock; the bows (u) inferred to match |
+| Animation `human_fletching` (1248) | cache 241 gamevals |
+| The box opening even for one log, its order, the quantity starting on as many as can be made, the animation as each product starts, a boost wearing off stopping it without a word | guessed |
+| Out: the redwood shield; the crossbows and javelins that stocks and javelin shafts go into | out of scope |
 
 ## Items and inventory
 
@@ -670,6 +689,30 @@ drops, then talks to Urhney, the adventurers, the candle seller and both tutors;
 giant rat to death, talks to Urhney and the camp's monk, buys a lit candle and gets a pickaxe and a net from the tutors
 through the headless client, with every branch of the talks in `SwampTalkTest` and `SwampTutorsTest`, the stats in
 `NpcCombatTest` and the drop rates in `NpcDropsTest`.
+## Draynor Village
+
+The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
+village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/content/DraynorVillage.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Three bankers (`banker1` 1613 twice, `banker2` 1618) behind the booths at 3091, 3242 to 3245, with the castle banker's talk and Bank option; the booths and the deposit box work as every booth does | the 241 cache's types; tiles from mejrs's data_osrs NPC list (NPCs seen on live); the Wiki's Banker page for the talk |
+| A man in the north-east house, a woman upstairs in Morgan's house, two rats by the farm gate, an imp west of the market, the pig pen's four pigs and three piglets, the farmer in the wheat field | as above, and the Wiki's Draynor Village page (seven pigs, the man and the woman) |
+| Morgan's and the Wise Old Man's straight stairs: up puts you past the top piece, down before the bottom piece (both run east) | read off the 241 map's walls; not seen on live |
+| Morgan's cupboard upstairs opens, gives a clove of garlic each Search, and shuts | the Wiki's Garlic page ("an unlimited supply"); opening and shutting as other furniture does |
+| Aggie's wardrobes and the drawers open and shut, and with the crates and the north-east house's bookcase say there is nothing in them | as the castle's furniture (`Searching`) |
+| A cheese and a tomato in Aggie's house, two logs in Spria's, back 100 ticks after taking | the Wiki's Draynor Village spawn list for the items and rooms; tiles and respawn guessed |
+| The pig pen's and the farm's gates | `Gates`, above |
+| Wander ranges (2 in the pig pen and indoors, 3 and 5 elsewhere) | guessed |
+
+Left out until their steps: the market and its stalls, the jail, Aggie's, Ned's, Morgan's and the Wise Old Man's talk,
+the bank guard, Miss Schism, the town crier, the dark wizards, the willows' fishing spots, the sewers' trapdoors and
+the rooftop course (Agility isn't built). The wheat field picks as Lumbridge's does (`Crops`).
+
+Check: `test-runner/examples/draynor-village.json` opens and shuts the pig pen's gate, climbs both staircases, takes
+garlic from Morgan's cupboard, opens Aggie's wardrobe and sees her cheese and tomato, and opens the bank from a banker
+and from a booth; `HeadlessDraynorTest` does the gate, the stairs, the cupboard and the bankers through the headless
+client, and `GatesTest` turns a gate every way round.
 
 ## Equipment
 
@@ -1058,6 +1101,18 @@ Lumbridge Castle's `poordoor` (1535), `elfdoor` (1543) and `poordoor_m` (56376) 
 takes over from this. Doors whose names don't pair (the castle kitchen door, 12348) and double doors are left to
 content, which can pair a door with `World.doors.register(closed, open)`.
 
+Fence gates open too: a left leaf `…fencegate_l` with an Open option pairs with `…openfencegate_l` (Close), and the
+right leaf `…fencegate_r` with `…openfencegate_r`, by the same gameval names (`game/loc/Gates.kt`). Opening either leaf
+opens both: each turns a quarter anticlockwise, the left one moving a tile outward and the right one two tiles outward
+and one back along the fence, so they stand together against the left leaf's hinge. Closing puts both back. That
+covers the plain picket gates (`fencegate_l`/`_r`, 1558/1560), the farming ones (1561/1562), the rustic ones and Fred
+the Farmer's (`qip_sheep_shearer_fencegate_*`), and the field gates north of Lumbridge (`fai_varrock_gate_l`/`_r`,
+which open into `_lc`/`_rc`): Draynor's pig pen and farm, and in and around Lumbridge the cow field's gates (3253, 3266
+and the west fence's), Fred's farm and sheep pen, the Groats' pens, the fields to the west (3145, 3291 to 3198, 3282)
+and north (3213, 3354 and 3254, 3347). Not covered: the cow field's `fencegate_*_cowboss_start` at 3262, 3294, whose
+option is Release (a content gate of its own). The rule is RSMod's picket gate script (rev 233), not yet watched on live; gates stay open until closed,
+as doors do (RSMod shuts them again after 500 ticks).
+
 | Loc behaviour | Source |
 |---------------|--------|
 | Loc type fields, map loc file format, shapes and layers | the 241 cache, decoded with RuneLite's loader's opcode table; all 62,534 loc types decode |
@@ -1070,6 +1125,7 @@ content, which can pair a door with `World.doors.register(closed, open)`.
 | Door pairs by gameval name | the 241 cache's own names |
 | Where an opened door goes (a quarter turn clockwise, onto the next tile) | RS2 engine rule; 151 of the 191 open doors the 241 maps place line up with it, 19 with the opposite turn (mostly double-door leaves) |
 | Doors stay open until closed, with no sound yet | guessed; the door sound ids aren't known yet (a recording will give them) |
+| Gates: both leaves together, where each goes, by gameval name | RSMod's picket gate script (rev 233); not checked on live |
 | Examine shows the loc's text from the dialogue file, as type 29 (object examine) chat; a loc not in `examines.json` shows its name and id | live's examine texts are not in the cache |
 | Timed loc changes run out at the start of the movement phase | guessed |
 
