@@ -391,6 +391,17 @@ class HeadlessClient private constructor(
         p1(trade)
     }
 
+    /** Option [op] on player [index]: 3 Follow, 4 Trade with (and a trade request's Accept trade), 8 Report. */
+    fun playerOp(index: Int, op: Int, ctrl: Boolean = false) {
+        val key = if (ctrl) 1 else 0
+        when (op) {
+            3 -> send(GameClientProt.OPPLAYER3) { p1Alt1(key); p2Alt2(index) }
+            4 -> send(GameClientProt.OPPLAYER4) { p2Alt3(index); p1Alt3(key) }
+            8 -> send(GameClientProt.OPPLAYER8) { p1Alt3(key); p2Alt2(index) }
+            else -> throw IllegalArgumentException("No player op $op here")
+        }
+    }
+
     /** The Add Friend box (FRIENDLIST_ADD). The real client refuses its own name, a duplicate and a full list first. */
     fun addFriend(name: String) = send(GameClientProt.FRIENDLIST_ADD) { pjstr(name) }
 
