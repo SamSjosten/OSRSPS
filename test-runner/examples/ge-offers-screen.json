@@ -1,0 +1,29 @@
+{
+ "name": "Grand Exchange step 2: the offers screen through ::ge, its slots drawn from the server, View offer, Back, Abort offer and an empty slot's Sell box",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack and no offers; ::reset at the end puts it back"},
+  {"step": "command", "text": "::gemarket off", "expectMessage": "The Grand Exchange market is off.", "comment": "so the offer stays open to view and abort"},
+  {"step": "command", "text": "::item coins 1000", "expectMessage": "Added 1,000 x Coins"},
+  {"step": "command", "text": "::geoffer buy feather 100 5", "expectMessage": "Placed: Slot 0: buy 100 x Feather (314) at 5"},
+  {"step": "command", "text": "::ge"},
+  {"step": "assertInterface", "interfaceId": 465, "timeoutMs": 10000, "comment": "ge_offers"},
+  {"step": "assertInterface", "interfaceId": 467, "timeoutMs": 10000, "comment": "ge_offers_side, the inventory beside it"},
+  {"step": "assertVarbit", "id": 4439, "value": 0, "comment": "ge_selectedslot: the index of eight slots"},
+  {"step": "clickWidget", "interfaceId": 465, "component": 7, "slot": 2, "op": 1, "comment": "View offer on slot 0's face (index_0 child 2)"},
+  {"step": "assertVarbit", "id": 4439, "value": 1, "comment": "slot 0's details"},
+  {"step": "clickWidget", "interfaceId": 465, "component": 4, "comment": "Back"},
+  {"step": "assertVarbit", "id": 4439, "value": 0},
+  {"step": "clickWidget", "interfaceId": 465, "component": 7, "slot": 2, "op": 2, "comment": "Abort offer"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::geoffer list", "expectMessage": "0/100 done for 0, aborted, to collect 0 items and 500 coins", "comment": "the slot face shows the red bar of a finished offer"},
+  {"step": "clickWidget", "interfaceId": 465, "component": 8, "slot": 4, "op": 1, "comment": "slot 1's Sell box (index_1 child 4)"},
+  {"step": "assertVarbit", "id": 4439, "value": 2},
+  {"step": "assertVarbit", "id": 4397, "value": 1, "comment": "ge_newoffer_type: selling; the setup panel itself comes in step 3"},
+  {"step": "command", "text": "::geoffer collect 0", "expectMessage": "Collected from slot 0."},
+  {"step": "assertInventory", "item": "Coins", "count": 1000},
+  {"step": "command", "text": "::gemarket on", "expectMessage": "The Grand Exchange market is on."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

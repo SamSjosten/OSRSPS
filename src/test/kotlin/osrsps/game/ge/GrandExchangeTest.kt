@@ -5,6 +5,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import net.rsprot.protocol.game.outgoing.misc.player.UpdateStockMarketSlotV2
+import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.InvObj
 import osrsps.game.ItemPrices
 import osrsps.game.ObjType
@@ -212,6 +214,34 @@ class GrandExchangeTest {
         assertEquals(1L, player.inventory.count(AXE))
         assertEquals(2, player.ge[0]!!.collectItems)
         assertEquals(InvObj(AXE, 1), player.inventory[27])
+    }
+
+    @Test
+    fun `a reconnect sends a reset for a slot emptied while the old connection was dying`() {
+        val sent = mutableListOf<OutgoingGameMessage>()
+        val screen = GrandExchangeScreen(ge, { _, _, _ -> }, send = { _, message -> sent += message })
+        fun slotsSent() = sent.filterIsInstance<UpdateStockMarketSlotV2>().map { it.slot }
+
+        // At login only slots in use go.
+        screen.flush(player)
+        assertEquals(emptyList(), slotsSent())
+
+        player.ge[0] = GeOffer(OfferType.BUY, AXE, 2, 50, placedTick = 0)
+        screen.flush(player)
+        assertEquals(listOf(0), slotsSent())
+
+        // The slot empties and its reset goes to a connection that dies before it arrives.
+        player.ge[0] = null
+        screen.flush(player)
+        sent.clear()
+        player.geSent.resendAll()
+        screen.flush(player)
+        assertEquals((0 until GeAccount.SLOTS).toList(), slotsSent())
+
+        // Once resynchronised, unchanged slots aren't sent again.
+        sent.clear()
+        screen.flush(player)
+        assertEquals(emptyList(), slotsSent())
     }
 
     private companion object {

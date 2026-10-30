@@ -98,6 +98,7 @@ class HeadlessClient private constructor(
     private val scripts = ArrayList<ClientScript>()
     private var dialogue: DialogueView? = null
     private val invs = HashMap<Int, MutableList<InvObj?>>()
+    private val stockMarket = HashMap<Int, StockMarketSlot>()
     private val stats = HashMap<Int, Stat>()
     private val varps = HashMap<Int, Int>()
     private val statTicks = HashMap<Int, Int>()
@@ -134,6 +135,9 @@ class HeadlessClient private constructor(
     val ticksSeen: Int get() = lock.withLock { ticks }
 
     fun packets(): List<ServerPacket> = lock.withLock { packets.toList() }
+
+    /** The Grand Exchange slot [slot] as UPDATE_STOCKMARKET_SLOT last set it; null while empty. */
+    fun stockMarketSlot(slot: Int): StockMarketSlot? = lock.withLock { stockMarket[slot] }
 
     fun messages(): List<GameMessage> = lock.withLock { messages.toList() }
 
@@ -598,6 +602,18 @@ class HeadlessClient private constructor(
                     if (id < 0) null else InvObj(id, count)
                 }
             }
+            GameServerProt.UPDATE_STOCKMARKET_SLOT_V2 -> {
+                val slot = buf.g1()
+                // A header RSProt writes as 7 then 2.
+                buf.g1()
+                buf.g1()
+                val status = buf.g1()
+                if (status == 0) {
+                    stockMarket.remove(slot)
+                } else {
+                    stockMarket[slot] = StockMarketSlot(status, buf.g2(), buf.g8(), buf.g4(), buf.g4(), buf.g8())
+                }
+            }
             GameServerProt.UPDATE_INV_PARTIAL -> {
                 buf.g4()
                 val slots = invs.getOrPut(buf.g2()) { ArrayList() }
@@ -766,3 +782,6 @@ class HeadlessClient private constructor(
         }
     }
 }
+
+/** A Grand Exchange slot as the client holds it: [status] (state in the low three bits, 8 for selling) and the offer. */
+data class StockMarketSlot(val status: Int, val obj: Int, val price: Long, val count: Int, val completed: Int, val gold: Long)
