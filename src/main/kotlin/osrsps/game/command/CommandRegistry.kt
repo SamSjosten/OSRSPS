@@ -53,7 +53,13 @@ class CommandRegistry(private val isAdmin: (Player) -> Boolean = { true }) {
         commands[key] = Command(key, usage, admin, run)
     }
 
-    /** Runs the command in [input], with or without its leading `::`. Answers go to [reply]. */
+    /** Whether [input] names an admin command (one that can change the world), with or without its leading `::`. */
+    fun isAdminCommand(input: String): Boolean {
+        val name = input.removePrefix("::").trim().split(WHITESPACE).firstOrNull()?.lowercase() ?: return false
+        return commands[name]?.admin == true
+    }
+
+        /** Runs the command in [input], with or without its leading `::`. Answers go to [reply]. */
     fun execute(player: Player, input: String, reply: (String) -> Unit) {
         val words = input.removePrefix("::").trim().split(WHITESPACE).filter { it.isNotEmpty() }
         if (words.isEmpty()) return
