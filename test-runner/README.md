@@ -138,9 +138,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
-- `al-kharid-bank.json`: Al Kharid step 2: a banker's talk (with `::keys on`) that opens the bank (logs deposited), Bank
-  on a booth (logs withdrawn), and after a relog a banker's Bank across the booth. The talk comes first because the
-  open bank hides the bankers from the mouse.
+- `al-kharid-bank.json`: Al Kharid step 2: Bank on a booth (logs deposited), a banker's talk (with `::keys on`) that
+  opens the bank (logs withdrawn), and a banker's Bank across the booth, with a relog between each to close the bank
+  (an open bank hides the bankers from the mouse).
 - `al-kharid-shops.json`: Al Kharid step 3: Trade with each of Al Kharid's seven shops (the General Store, Zeke,
   Dommik, Louie Legs, Ranael, the Gem trader and Ali Morrisane), buying one of the first item and selling it back,
   Ali's junk sold as his shop closes, then Louie Legs's talk (with `::keys on`) into his shop.
@@ -150,6 +150,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   tanning screen; Tan 1, then Trade and Tan All, turning three cowhides into soft leather for a coin each.
 - `al-kharid-palace.json`: Al Kharid step 5 (with `::keys on`): Chancellor Hassan's and Prince Ali's after-quest
   lines, a big window refused by Hassan, and a Keris bought from Osman for 20,000 coins.
+- `al-kharid-fighters.json`: Al Kharid step 6 (with `::keys on`): Examine on an Al Kharid warrior, a man and a
+  scorpion; a warrior killed for its bones and a scorpion killed, each put in on a quiet tile; Al the Camel's talk.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
