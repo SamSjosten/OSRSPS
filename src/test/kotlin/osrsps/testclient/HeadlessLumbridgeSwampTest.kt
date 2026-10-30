@@ -8,18 +8,22 @@ import osrsps.game.GameRandom
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
 import osrsps.game.SeqNames
 import osrsps.game.World
 import osrsps.game.combat.DropTestItems
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
+import osrsps.game.content.AdventurersCamp
+import osrsps.game.content.CandleSeller
 import osrsps.game.content.FatherUrhney
 import osrsps.game.npc.NpcSpawn
 import osrsps.map.CollisionMap
 
 /**
  * Rest of Lumbridge step 9 through the headless client, with the real combat and drop files: a giant rat killed leaves
- * its bones and raw rat meat, and Father Urhney talks. The rl-client script test-runner/examples/lumbridge-swamp.json does the same in the real
+ * its bones and raw rat meat, Father Urhney talks, the camp's monk talks and the candle seller sells a lit candle. The rl-client script test-runner/examples/lumbridge-swamp.json does the same in the real
  * client, in the swamp, and kills a giant frog for its big bones.
  */
 class HeadlessLumbridgeSwampTest {
@@ -80,7 +84,59 @@ class HeadlessLumbridgeSwampTest {
         }
     }
 
+    @Test
+    fun `the candle seller takes 1000 coins for a lit candle, and the camp's monk talks`(@TempDir dir: Path) {
+        val talkTo = listOf("Talk-to", null, null, null, null)
+        val seller = NpcType(CandleSeller.ID, "Candle seller", ops = talkTo, internalName = "swamp_candle_guy")
+        val monk = NpcType(AdventurersCamp.MONK, "Monk", ops = talkTo, internalName = "monkadventurerpg")
+        val coins = ObjType(CandleSeller.COINS, "Coins", cost = 1, stackable = true, tradeable = true)
+        val candle = ObjType(CandleSeller.LIT_CANDLE, "Lit candle", tradeable = true)
+        TestServer(dir) { crcs, millis ->
+            World(
+                crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(coins, candle),
+                npcTypes = NpcTypes.of(seller, monk),
+                npcSpawns = listOf(NpcSpawn(seller, 3220, 3218, wander = 0, source = "test"), NpcSpawn(monk, 3224, 3218, wander = 0, source = "test")),
+                cycleMillis = millis,
+            )
+        }.use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("item ${CandleSeller.COINS} 1500") { it.startsWith("Added") }
+                val npc = client.await("the candle seller in view") { client.npcs().firstOrNull { it.id == CandleSeller.ID } }
+                client.npcOp(npc.index, CandleSeller.TALK_TO)
+                client.awaitDialogue("the offer") { it is DialogueView.Chat && it.text == "[candle_seller.offer]" }
+                client.continueDialogue()
+                val menu = client.awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(listOf("[candle_seller.yes]", "[candle_seller.thousand]", "[candle_seller.curse]"), menu.options)
+                client.chooseOption(1)
+                client.awaitDialogue("the player's yes") { it is DialogueView.Chat && it.text == "[candle_seller.yes]" }
+                client.continueDialogue()
+                client.awaitDialogue("the sale") { it is DialogueView.Chat && it.text == "[candle_seller.here]" }
+                val bag = client.await("the candle in the bag and the coins taken") {
+                    client.inventory(INVENTORY).filterNotNull().takeIf { objs -> objs.any { it.id == CandleSeller.LIT_CANDLE } }
+                }
+                assertEquals(500, bag.single { it.id == CandleSeller.COINS }.count)
+                client.continueDialogue()
+                client.awaitDialogue("the warning") { it is DialogueView.Chat && it.text == "[candle_seller.careful]" }
+                client.continueDialogue()
+                client.awaitDialogue("the last menu") { it is DialogueView.Menu }
+                client.chooseOption(3)
+                client.awaitDialogue("goodbye") { it is DialogueView.Chat && it.text == "[candle_seller.thanks_bye]" }
+                client.continueDialogue()
+                client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
+
+                val camp = client.await("the monk in view") { client.npcs().firstOrNull { it.id == AdventurersCamp.MONK } }
+                client.npcOp(camp.index, AdventurersCamp.TALK_TO)
+                val line = client.awaitDialogue("the monk's line") { it is DialogueView.Chat } as DialogueView.Chat
+                assertEquals("Monk" to "[lost_city_monk.anymore]", line.name to line.text)
+                client.continueDialogue()
+                client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
+            }
+        }
+    }
+
     private companion object {
+        const val INVENTORY = 93
         const val GIANT_RAT = 2856
         const val BONES = 526
         const val RAW_RAT_MEAT = 2134
