@@ -1567,7 +1567,7 @@ class World(
         DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         sendRunState(player)
-        PlayerOps.send(player.session::queue)
+        PlayerOps.send(player.vars, player.session::queue)
         allowChat(player)
         // Guessed: live sends the saved filters at login; a new account's are all on.
         sendChatFilters(player)
@@ -1660,7 +1660,7 @@ class World(
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (held(player)) return
         trades.interrupt(player)
-        if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT) {
+        if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT || !PlayerOps.shown(player.vars, option)) {
             logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
         }

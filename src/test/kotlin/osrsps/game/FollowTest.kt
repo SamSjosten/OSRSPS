@@ -2,6 +2,7 @@ package osrsps.game
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -255,9 +256,27 @@ class FollowTest {
     @Test
     fun `players get Follow, Trade with and Report, none above Walk here`() {
         val sent = mutableListOf<OutgoingGameMessage>()
-        PlayerOps.send(sent::add)
+        PlayerOps.send(PlayerVars(VarTypes.NONE), sent::add)
         val ops = sent.map { it as net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp }
         assertEquals(listOf(2 to null, 3 to "Follow", 4 to "Trade with", 5 to null, 8 to "Report"), ops.map { it.id to it.op })
         assertTrue(ops.none { it.priority })
+    }
+
+    @Test
+    fun `the Player Trade and Report options settings leave those options off`() {
+        val vars = PlayerVars(VarTypes(6_000, AllSettings.VARBITS))
+        fun ops(): List<Pair<Int, String?>> {
+            val sent = mutableListOf<OutgoingGameMessage>()
+            PlayerOps.send(vars, sent::add)
+            return sent.map { it as net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp }.map { it.id to it.op }
+        }
+        vars.setVarbit(PlayerOps.VARBIT_TRADE_HIDDEN, 1)
+        assertEquals(listOf(2 to null, 3 to "Follow", 4 to null, 5 to null, 8 to "Report"), ops())
+        assertFalse(PlayerOps.shown(vars, PlayerOps.TRADE))
+        vars.setVarbit(PlayerOps.VARBIT_REPORT_HIDDEN, 1)
+        vars.setVarbit(PlayerOps.VARBIT_TRADE_HIDDEN, 0)
+        assertEquals(listOf(2 to null, 3 to "Follow", 4 to "Trade with", 5 to null, 8 to null), ops())
+        assertTrue(PlayerOps.shown(vars, PlayerOps.TRADE))
+        assertFalse(PlayerOps.shown(vars, PlayerOps.REPORT))
     }
 }
