@@ -92,6 +92,8 @@ class Trades(
             return false
         }
         player.interaction = null
+        // Arrived: the rest of a route to where they stood would walk past them (as on reaching an NPC).
+        player.waypoints.clear()
         request(player, target)
         return true
     }
