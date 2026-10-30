@@ -211,7 +211,7 @@ class MeleeCombat(
 
     private fun swing(player: Player, npc: Npc, tick: Long) {
         val style = combat.style(player)
-        val matchup = combat.matchup(player, npc) ?: run {
+        var matchup = combat.matchup(player, npc) ?: run {
             // The style changed on the way (the combat tab is open while walking): a bow carries on as a ranged fight.
             val next = ranged(player, npc)
             if (next == null) {
@@ -223,6 +223,7 @@ class MeleeCombat(
         }
         player.nextAttackTick = tick + combat.attackSpeed(player)
         val spec = special(player)
+        if (spec?.against != null) matchup = combat.matchup(player, npc, spec.against)!!
         if (spec == null) {
             player.effects.anim(combat.anims(player).attack(style), 0)
         } else {
