@@ -357,6 +357,9 @@ class AllSettings(
         // Guessed: the dropdown's enum (4074) defaults to Run -> Walk only, but the varbit's own default, 0, is Never.
         // Live's starting value isn't known; this keeps ctrl useful while running, the enum's choice.
         setVarbit(player, Movement.VARBIT_RUN_INVERT_MODE, Movement.RUN_INVERT_RUN_TO_WALK)
+        // OSRS Wiki, Drop: the drop item warning is on, at 30,000 coins, from the start.
+        setVarbit(player, VARBIT_DROP_WARNING, 1)
+        setVarbit(player, VARBIT_DROP_WARNING_VALUE, DropWarnings.DEFAULT_THRESHOLD)
     }
 
     /**
