@@ -27,11 +27,16 @@ class XpRate(private val file: Path? = null) {
 
     init {
         if (file != null && Files.exists(file)) {
-            val lines = Files.readAllLines(file).map(String::trim).filter { it.isNotEmpty() && !it.startsWith("#") }
+            val lines = try {
+                Files.readAllLines(file).map(String::trim).filter { it.isNotEmpty() && !it.startsWith("#") }
+            } catch (e: Exception) {
+                logger.warn(e) { "${file.fileName} can't be read; using 1x" }
+                emptyList()
+            }
             val line = lines.firstOrNull { !it.startsWith(PREVIOUS) }
             val read = line?.let(::parse)
             if (read == null) {
-                logger.warn { "${file.fileName}: '${line.orEmpty()}' isn't a rate from ${format(MIN)} to ${format(MAX)}; using 1x" }
+                if (line != null) logger.warn { "${file.fileName}: '$line' isn't a rate from ${format(MIN)} to ${format(MAX)}; using 1x" }
             } else {
                 tenths = read
                 previous = lines.firstOrNull { it.startsWith(PREVIOUS) }?.removePrefix(PREVIOUS)?.let(::parse) ?: read
@@ -42,12 +47,12 @@ class XpRate(private val file: Path? = null) {
     /** [amount] tenths of XP at this rate, rounded down to a whole tenth. At 1x it is [amount] exactly. */
     fun apply(amount: Int): Int = if (tenths == ONE) amount else (amount.toLong() * tenths / ONE).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
 
-    /** Sets the rate and writes the file. */
+    /** Writes the file, then sets the rate: if the write throws, the rate stays as it was, on disk and in the game. */
     fun set(value: Int) {
         require(value in MIN..MAX) { "XP rates are ${format(MIN)} to ${format(MAX)}" }
+        write(value, tenths)
         previous = tenths
         tenths = value
-        write()
     }
 
     /** Goes back to the rate before the last [set], and returns it. */
@@ -58,8 +63,8 @@ class XpRate(private val file: Path? = null) {
 
     override fun toString(): String = "${format(tenths)}x"
 
-    /** Writes the rate to a temporary file and moves it over [file], so a crash mid-write loses nothing. */
-    private fun write() {
+    /** Writes the rates to a temporary file and moves it over [file], so a crash mid-write loses nothing. */
+    private fun write(tenths: Int, previous: Int) {
         val file = file ?: return
         file.parent?.let(Files::createDirectories)
         val temp = file.resolveSibling("${file.fileName}.tmp")

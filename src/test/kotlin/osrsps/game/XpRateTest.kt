@@ -74,6 +74,22 @@ class XpRateTest {
         assertEquals(75, XpRate(file).tenths)
         Files.writeString(file, "lots\n")
         assertEquals(10, XpRate(file).tenths)
+        Files.write(file, byteArrayOf(0xC3.toByte(), 0x28))
+        assertEquals(10, XpRate(file).tenths, "not UTF-8")
+    }
+
+    @Test
+    fun `a rate that can't be written isn't set`(@TempDir dir: Path) {
+        val file = dir.resolve(XpRate.FILE_NAME)
+        val rate = XpRate(file).apply { set(20) }
+        // A folder where the temporary file goes makes the write fail.
+        val blocker = Files.createDirectories(dir.resolve("${XpRate.FILE_NAME}.tmp").resolve("x"))
+        assertFailsWith<java.io.IOException> { rate.set(50) }
+        assertEquals(20, rate.tenths)
+        assertEquals(20, XpRate(file).tenths)
+        Files.delete(blocker)
+        Files.delete(blocker.parent)
+        assertEquals(10, rate.restore(), "the rate before is still the one before 2x, not the 5x that failed")
     }
 
     @Test
