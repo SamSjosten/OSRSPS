@@ -50,6 +50,28 @@ const BOT = ['-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+g
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+// GitHub's API answers 5xx now and then (500s listing a commit's check runs, 14:21-14:25Z on 2026-10-30), and an
+// error left unhandled kills the run, the queue's and the gate's alike, with a codex-review possibly half written.
+// So each request is tried again on a 5xx, or no answer at all, after 2, 4 and 8 seconds.
+const RETRIES = [2000, 4000, 8000];
+const RETRYING = Symbol('automerge retries');
+
+function retrying(github, sleep) {
+  if (!github.hook || github[RETRYING]) return;
+  github[RETRYING] = true;
+  github.hook.wrap('request', async (request, options) => {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await request(options);
+      } catch (error) {
+        const transient = error.status === undefined || error.status >= 500;
+        if (!transient || attempt >= RETRIES.length) throw error;
+        await sleep(RETRIES[attempt]);
+      }
+    }
+  });
+}
+
 // Codex's latest verdict from a pull request's comments and reviews: { sha, clean }, { running: true } or null.
 function verdict(comments, reviews) {
   const codex = item => item.user && item.user.login === CODEX && item.body;
@@ -469,7 +491,8 @@ async function advance(github, git, repo, core, sleep, now) {
 }
 
 // The `gate` job: the check for the pull request the event is about.
-module.exports.gate = async function ({ github, context, core, git = shellGit, now = Date.now }) {
+module.exports.gate = async function ({ github, context, core, git = shellGit, sleep = wait, now = Date.now }) {
+  retrying(github, sleep);
   const payload = context.payload;
   const number = payload.pull_request ? payload.pull_request.number : payload.issue && payload.issue.number;
   if (number) await gate(github, git, context.repo, core, number, undefined, now);
@@ -477,6 +500,7 @@ module.exports.gate = async function ({ github, context, core, git = shellGit, n
 
 // The `queue` job, after every event.
 module.exports.queue = async function ({ github, context, core, git = shellGit, sleep = wait, now = Date.now }) {
+  retrying(github, sleep);
   await advance(github, git, context.repo, core, sleep, now);
 };
 
@@ -487,6 +511,7 @@ module.exports.APPROVE = APPROVE;
 module.exports.OWN = OWN;
 module.exports.verdict = verdict;
 module.exports.covers = covers;
+module.exports.retrying = retrying;
 module.exports.BATCH = BATCH;
 module.exports.parseBatch = parseBatch;
 module.exports.buildBatch = buildBatch;
