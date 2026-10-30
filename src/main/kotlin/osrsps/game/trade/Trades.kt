@@ -178,6 +178,9 @@ class Trades(
         if (player.trade != null) return
         // Guessed: nobody trades with a player lying dead, who couldn't decline (their clicks are dropped until the respawn).
         if (player.dead || target.dead) return
+        // Nor with one whose connection has dropped (waiting for a reconnect) or who is leaving: they couldn't see the
+        // screens. Guessed, as live's lingering player isn't known to refuse; nothing is said.
+        if (gone(player) || gone(target)) return
         // A delayed player (part way up a ladder) is busy too, or the climb would carry them off mid-trade.
         if (target.trade != null || target.modalOpen || target.scripts.delayed) {
             message(player, TradeLines.BUSY)
@@ -593,6 +596,8 @@ class Trades(
         if (player.trade?.confirming == true) return
         decline(player)
     }
+
+    private fun gone(player: Player) = player.loggedOut || player.connectionLost || player.connectionLostTick >= 0
 
     /** [player] is leaving the world: their trade ends and their standing request goes. */
     fun leave(player: Player) {
