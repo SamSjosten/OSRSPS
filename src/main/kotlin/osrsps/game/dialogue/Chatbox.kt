@@ -45,6 +45,22 @@ object Chatbox {
     const val OBJECTBOX_DOUBLE_MODEL2 = 3
     const val OBJECTBOX_DOUBLE_PAUSEBUTTON = 4
 
+    /**
+     * skillmulti: the Make-X box, "how many of which?". Script [SKILLMULTI_SETUP_SCRIPT] lays it out; item buttons a to r
+     * (components [SKILLMULTI_FIRST_ITEM] up) send resume_pausebutton with the quantity chosen as the slot.
+     */
+    const val SKILLMULTI = 270
+    const val SKILLMULTI_FIRST_ITEM = 15
+    const val SKILLMULTI_MAX_ITEMS = 18
+    const val SKILLMULTI_MAX_QUANTITY = 28
+
+    /**
+     * skillmulti_setup: mode, title, the most that can be made, 18 objs (-1 for none) and the quantity to start on.
+     * Mode 0 shows the quantity row with exact amounts (enums 5178 and 1810 in the 241 cache).
+     */
+    const val SKILLMULTI_SETUP_SCRIPT = 2046
+    const val SKILLMULTI_MODE_MAKE = 0
+
     /** Varbit chatmodal_unclamp (10670): 0 keeps the chatmodal to the chatbox's size, 1 lets it grow (RSMod's names). */
     const val VARBIT_CHATMODAL_UNCLAMP = 10670
     const val UNCLAMP_FIXED = 0
@@ -83,6 +99,7 @@ object Chatbox {
         CHATMENU to ("chatmenu" to mapOf(CHATMENU_OPTIONS to "options")),
         MESSAGEBOX to ("messagebox" to mapOf(MESSAGEBOX_TEXT to "text", MESSAGEBOX_CONTINUE to "continue")),
         OBJECTBOX to ("objectbox" to mapOf(OBJECTBOX_UNIVERSE to "universe", OBJECTBOX_ITEM to "item", OBJECTBOX_TEXT to "text")),
+        SKILLMULTI to ("skillmulti" to mapOf(SKILLMULTI_FIRST_ITEM to "a", SKILLMULTI_FIRST_ITEM + SKILLMULTI_MAX_ITEMS - 1 to "r")),
         OBJECTBOX_DOUBLE to (
             "objectbox_double" to mapOf(
                 OBJECTBOX_DOUBLE_MODEL1 to "model1", OBJECTBOX_DOUBLE_TEXT to "text", OBJECTBOX_DOUBLE_MODEL2 to "model2",

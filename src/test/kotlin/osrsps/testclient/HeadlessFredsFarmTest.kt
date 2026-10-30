@@ -13,6 +13,8 @@ import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.game.content.Crops
 import osrsps.game.content.FredsFarm
+import osrsps.game.content.SheepLines
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -60,13 +62,13 @@ class HeadlessFredsFarmTest {
                 fun shownAs() = server.world.npcs[npc.index]!!.type.id
 
                 client.npcOp(npc.index, FredsFarm.SHEAR)
-                client.seen(FredsFarm.NO_SHEARS)
+                client.seen(DialogueText.NONE[SheepLines.NO_SHEARS])
                 assertEquals(SHEEP, shownAs())
 
                 client.command("item ${FredsFarm.SHEARS}")
                 client.await("the shears") { if (client.count(FredsFarm.SHEARS) == 1) Unit else null }
                 client.npcOp(npc.index, FredsFarm.SHEAR)
-                client.seen(FredsFarm.GOT_WOOL)
+                client.seen(DialogueText.NONE[SheepLines.GOT_WOOL])
                 client.await("a wool") { if (client.count(FredsFarm.WOOL) == 1) Unit else null }
                 val shornAt = client.ticksSeen
                 assertEquals(SHEARED, shownAs())
@@ -74,7 +76,7 @@ class HeadlessFredsFarmTest {
                 // The shears used on it now: it has been shorn, and no more wool comes.
                 val slot = client.inventory(BACKPACK).indexOfFirst { it?.id == FredsFarm.SHEARS }
                 client.npcTarget(npc.index, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, FredsFarm.SHEARS)
-                client.seen(FredsFarm.ALREADY_SHORN)
+                client.seen(DialogueText.NONE[SheepLines.ALREADY_SHORN])
                 assertEquals(1, client.count(FredsFarm.WOOL))
 
                 val grown = client.await("the wool grown back", timeoutMillis = 30_000) { if (shownAs() == SHEEP) client.ticksSeen else null }
@@ -89,7 +91,7 @@ class HeadlessFredsFarmTest {
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.locOp(Crops.ONION_LOC, 3220, 3220, Crops.PICK)
-                client.seen(Crops.ONIONS.picked)
+                client.seen(DialogueText.NONE[Crops.ONIONS.picked])
                 client.await("an onion") { if (client.count(Crops.ONION) == 1) Unit else null }
                 val picked = client.ticksSeen
                 assertTrue(server.world.locs.find(Crops.ONION_LOC, 3220, 3220, 0) == null, "the onion is still there")

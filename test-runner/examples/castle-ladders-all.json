@@ -7,6 +7,11 @@
   },
   {
    "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
    "text": "::tele 3228 3224 0",
    "expectMessage": "Teleported to 3228, 3224, 0"
   },
@@ -64,7 +69,7 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "Climb up or down the ladder?"
+   "contains": "[climb.ladder_title]"
   },
   {
    "step": "chooseOption",
@@ -96,7 +101,7 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "Climb up or down the ladder?"
+   "contains": "[climb.ladder_title]"
   },
   {
    "step": "chooseOption",

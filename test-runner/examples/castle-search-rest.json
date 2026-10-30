@@ -7,6 +7,11 @@
   },
   {
    "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
    "text": "::tele 3228 3204 0",
    "expectMessage": "Teleported to 3228, 3204, 0"
   },
@@ -25,7 +30,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You search the crate but find nothing."
+   "contains": "[search.crate_empty]"
   },
   {
    "step": "command",
@@ -47,7 +52,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You search the crate but find nothing."
+   "contains": "[search.crate_empty]"
   },
   {
    "step": "command",
@@ -69,7 +74,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You search the crate but find nothing."
+   "contains": "[search.crate_empty]"
   },
   {
    "step": "command",
@@ -91,7 +96,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You search the crate but find nothing."
+   "contains": "[search.crate_empty]"
   },
   {
    "step": "command",
@@ -113,7 +118,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You search the crate but find nothing."
+   "contains": "[search.crate_empty]"
   },
   {
    "step": "command",
@@ -135,7 +140,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "There is nothing interesting in these sacks."
+   "contains": "[search.sacks_empty]"
   },
   {
    "step": "command",
@@ -157,7 +162,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "There is nothing interesting in these sacks."
+   "contains": "[search.sacks_empty]"
   },
   {
    "step": "command",
@@ -179,7 +184,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You search the crate but find nothing."
+   "contains": "[search.crate_empty]"
   },
   {
    "step": "locOption",
@@ -190,7 +195,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "There is nothing interesting in these sacks."
+   "contains": "[search.sacks_empty]"
   },
   {
    "step": "locOption",
@@ -201,7 +206,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "There is nothing interesting in these sacks."
+   "contains": "[search.sacks_empty]"
   }
  ]
 }

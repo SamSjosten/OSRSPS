@@ -12,9 +12,12 @@ import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.content.Crops
+import osrsps.game.content.DairyCowLines
 import osrsps.game.content.GroatsFarm
 import osrsps.game.content.MillLaneMill
+import osrsps.game.content.MillLines
 import osrsps.game.dialogue.Chatbox
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -77,41 +80,41 @@ class HeadlessMillTest {
                 client.await("the login rebuild") { client.position }
                 // Nothing in the hopper or the bin yet.
                 client.locOp(MillLaneMill.CONTROLS, 3226, 3220, MillLaneMill.OPERATE)
-                client.seen(MillLaneMill.EMPTY_HOPPER)
+                client.seen(DialogueText.NONE[MillLines.EMPTY_HOPPER])
                 // That message comes before the arrive delay, and a click while delayed is dropped.
                 client.awaitTicks(2)
                 client.locOp(MillLaneMill.FLOUR_BIN, 3226, 3214, MillLaneMill.EMPTY)
-                client.seen(MillLaneMill.BIN_EMPTY)
+                client.seen(DialogueText.NONE[MillLines.BIN_EMPTY])
                 client.locOp(MillLaneMill.HOPPER, 3226, 3222, MillLaneMill.FILL)
                 client.awaitDialogue("the no-grain item box") { it is DialogueView.Other && it.interfaceId == Chatbox.OBJECTBOX }
                 client.resumePause(Chatbox.OBJECTBOX, Chatbox.OBJECTBOX_UNIVERSE, 0)
 
                 client.locOp(WHEAT, 3220, 3220, Crops.PICK)
-                client.seen(Crops.WHEAT.picked)
+                client.seen(DialogueText.NONE[Crops.WHEAT.picked])
                 client.await("a grain") { if (client.count(Crops.GRAIN) == 1) Unit else null }
                 assertTrue(server.world.locs.find(WHEAT, 3220, 3220, 0) == null, "the wheat is still there")
 
                 client.locOp(MillLaneMill.HOPPER, 3226, 3222, MillLaneMill.FILL)
-                client.seen(MillLaneMill.PUT_GRAIN)
+                client.seen(DialogueText.NONE[MillLines.PUT_GRAIN])
                 client.await("the grain gone") { if (client.count(Crops.GRAIN) == 0) Unit else null }
                 client.command("item ${Crops.GRAIN}")
                 client.await("another grain") { if (client.count(Crops.GRAIN) == 1) Unit else null }
                 // One grain at a time.
                 client.locTarget(MillLaneMill.HOPPER, 3226, 3222, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(Crops.GRAIN), Crops.GRAIN)
-                client.seen(MillLaneMill.ALREADY_GRAIN)
+                client.seen(DialogueText.NONE[MillLines.ALREADY_GRAIN])
                 assertEquals(1, client.count(Crops.GRAIN))
 
                 client.locOp(MillLaneMill.CONTROLS, 3226, 3220, MillLaneMill.OPERATE)
-                client.seen(MillLaneMill.OPERATED)
+                client.seen(DialogueText.NONE[MillLines.OPERATED])
                 // One pot's worth in the bin, and the bin shows flour.
                 client.await("the flour varbits") { if (client.varp(VARP_FLOUR) == 1 && client.varp(VARP_SHOW_FLOUR) == 1) Unit else null }
 
                 client.locOp(MillLaneMill.FLOUR_BIN, 3226, 3214, MillLaneMill.EMPTY)
-                client.seen(MillLaneMill.NO_POT)
+                client.seen(DialogueText.NONE[MillLines.NO_POT])
                 client.command("item ${MillLaneMill.POT}")
                 val pot = client.slotOf(MillLaneMill.POT)
                 client.locTarget(MillLaneMill.FLOUR_BIN, 3226, 3214, InventoryTab.INTERFACE, InventoryTab.ITEMS, pot, MillLaneMill.POT)
-                client.seen(MillLaneMill.LAST_POT)
+                client.seen(DialogueText.NONE[MillLines.LAST_POT])
                 client.await("a pot of flour") { if (client.count(MillLaneMill.POT_OF_FLOUR) == 1 && client.count(MillLaneMill.POT) == 0) Unit else null }
                 client.await("the bin empty") { if (client.varp(VARP_FLOUR) == 0 && client.varp(VARP_SHOW_FLOUR) == 0) Unit else null }
             }
@@ -127,21 +130,21 @@ class HeadlessMillTest {
                 client.command("item ${Crops.GRAIN} 2")
                 client.await("two grain") { if (client.count(Crops.GRAIN) == 2) Unit else null }
                 client.locOp(MillLaneMill.HOPPER, 3226, 3222, MillLaneMill.FILL)
-                client.seen(MillLaneMill.PUT_GRAIN)
+                client.seen(DialogueText.NONE[MillLines.PUT_GRAIN])
                 client.locOp(MillLaneMill.CONTROLS, 3226, 3220, MillLaneMill.OPERATE)
-                client.seen(MillLaneMill.BIN_NOW_FULL)
+                client.seen(DialogueText.NONE[MillLines.BIN_NOW_FULL])
                 client.await("30 in the bin") { if (client.varp(VARP_FLOUR) == MillLaneMill.BIN_CAPACITY) Unit else null }
 
                 client.locOp(MillLaneMill.HOPPER, 3226, 3222, MillLaneMill.FILL)
                 client.await("the last grain in the hopper") { if (client.count(Crops.GRAIN) == 0) Unit else null }
                 client.locOp(MillLaneMill.CONTROLS, 3226, 3220, MillLaneMill.OPERATE)
-                client.seen(MillLaneMill.BIN_FULL)
+                client.seen(DialogueText.NONE[MillLines.BIN_FULL])
                 assertEquals(MillLaneMill.BIN_CAPACITY, client.varp(VARP_FLOUR))
 
                 // A pot of flour out makes room, and the grain still in the hopper goes down.
                 client.command("item ${MillLaneMill.POT}")
                 client.locTarget(MillLaneMill.FLOUR_BIN, 3226, 3214, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(MillLaneMill.POT), MillLaneMill.POT)
-                client.seen(MillLaneMill.FILLED_POT)
+                client.seen(DialogueText.NONE[MillLines.FILLED_POT])
                 client.await("29 in the bin") { if (client.varp(VARP_FLOUR) == 29) Unit else null }
                 client.locOp(MillLaneMill.CONTROLS, 3226, 3220, MillLaneMill.OPERATE)
                 client.await("30 again") { if (client.varp(VARP_FLOUR) == MillLaneMill.BIN_CAPACITY) Unit else null }
@@ -156,10 +159,10 @@ class HeadlessMillTest {
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.locOp(COW, 3217, 3214, GroatsFarm.MILK)
-                client.seen(GroatsFarm.NO_BUCKET)
+                client.seen(DialogueText.NONE[DairyCowLines.NO_BUCKET])
                 client.command("item ${MillLaneMill.POT}")
                 client.locTarget(COW, 3217, 3214, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(MillLaneMill.POT), MillLaneMill.POT)
-                client.seen(GroatsFarm.NOT_WANTED)
+                client.seen(DialogueText.NONE[DairyCowLines.NOT_WANTED])
 
                 client.command("item ${GroatsFarm.BUCKET} 3")
                 client.await("three buckets") { if (client.count(GroatsFarm.BUCKET) == 3) Unit else null }
@@ -169,7 +172,7 @@ class HeadlessMillTest {
                     if (client.count(GroatsFarm.BUCKET_OF_MILK) == 3) client.ticksSeen else null
                 }
                 assertTrue(last - first in 2 * GroatsFarm.MILK_TICKS - 2..2 * GroatsFarm.MILK_TICKS + 2, "${last - first} ticks for two more")
-                assertEquals(3, client.messages().count { it.text == GroatsFarm.MILKED })
+                assertEquals(3, client.messages().count { it.text == DialogueText.NONE[DairyCowLines.MILKED] })
                 assertEquals(0, client.count(GroatsFarm.BUCKET))
             }
         }

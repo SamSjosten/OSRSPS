@@ -130,9 +130,9 @@ class ScriptRunner(
     fun resumePauseButton(player: Player, component: Int, sub: Int): Boolean {
         val state = player.scripts
         val paused = state.paused ?: return false
-        if (paused.component != component || sub !in paused.subs) return false
+        if (component !in paused.components || sub !in paused.subs) return false
         state.paused = null
-        paused.continuation.resume(sub)
+        paused.continuation.resume(component to sub)
         return true
     }
 
@@ -227,11 +227,14 @@ class ScriptRunner(
         }
     }
 
-    internal suspend fun pauseButton(player: Player, component: Int, subs: IntRange): Int {
+    internal suspend fun pauseButton(player: Player, component: Int, subs: IntRange): Int =
+        pauseButtons(player, setOf(component), subs).second
+
+    internal suspend fun pauseButtons(player: Player, components: Set<Int>, subs: IntRange): Pair<Int, Int> {
         val state = player.scripts
         // Only one dialogue shows at a time: a script that opens another drops the one waiting on the old.
         if (state.paused != null) logger.debug { "Dropping ${player.username}'s script waiting on a dialogue for a new one" }
-        return suspendCoroutine { continuation -> state.paused = PausedScript(component, subs, continuation) }
+        return suspendCoroutine { continuation -> state.paused = PausedScript(components, subs, continuation) }
     }
 
     internal suspend fun countDialog(player: Player): Int {

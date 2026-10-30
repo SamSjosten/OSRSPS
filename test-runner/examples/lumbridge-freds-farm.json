@@ -104,7 +104,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You pick an onion."
+   "contains": "[crop.onion_picked]"
   },
   {
    "step": "assertInventory",
@@ -140,7 +140,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You get some wool."
+   "contains": "[sheep.got_wool]"
   },
   {
    "step": "assertInventory",

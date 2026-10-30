@@ -1,0 +1,28 @@
+{
+ "name": "Gathering skills step 6: Cook on the Lumbridge Castle kitchen range with nothing, then the Make-X box over three shrimps cooks them all at 99 (::keys on; the runner can't use an item on a loc yet, so the fire, bread and level checks are headless only)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3211 3215 0", "comment": "beside the kitchen's Cooking range"},
+  {"step": "assertLocation", "x": 3211, "y": 3215, "plane": 0},
+
+  {"step": "locOption", "locId": 114, "option": "Cook", "x": 3212, "y": 3215},
+  {"step": "assertMessage", "contains": "game.nothing_interesting", "comment": "guessed: nothing raw to cook"},
+
+  {"step": "command", "text": "::setlevel cooking 99", "expectMessage": "Cooking set to level 99", "comment": "so none burn"},
+  {"step": "command", "text": "::item 317 3", "expectMessage": "Added 3 x Raw shrimps"},
+  {"step": "locOption", "locId": 114, "option": "Cook", "x": 3212, "y": 3215},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti, the Make-X box"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the shrimps; the box suggests all 3"},
+  {"step": "assertAnimation", "id": 896, "comment": "human_cooking"},
+  {"step": "assertInventory", "item": "Shrimps", "count": 3, "timeoutMs": 20000, "comment": "4 ticks each"},
+  {"step": "assertInventory", "item": "Raw shrimps", "count": 0},
+  {"step": "assertMessage", "contains": "cooking.cooked_shrimps"},
+  {"step": "assertStat", "skill": "Cooking", "level": 99, "xp": 13034521, "comment": "30 XP a shrimp"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

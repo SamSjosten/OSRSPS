@@ -11,7 +11,9 @@ import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.shop.ShopLines
 import osrsps.game.shop.ShopScreen
 import osrsps.game.shop.ShopStock
 import osrsps.game.shop.ShopType
@@ -90,7 +92,7 @@ class HeadlessShopTest {
 
                 // Value (op 1 while the Quantity is Value), then Buy 1 (op 2) at 130% of 1, one coin.
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 1, 1, POT)
-                client.awaitMessage("the pot's price") { it == "Pot: currently costs 1 coin." }
+                client.awaitMessage("the pot's price") { it == DialogueText.NONE[ShopLines.COSTS_ONE, "item" to "Pot"] }
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 2, 1, POT)
                 client.awaitHeld(POT, 1)
                 client.awaitHeld(COINS, 99)
@@ -100,7 +102,7 @@ class HeadlessShopTest {
                 client.ifButton(ShopScreen.MAIN, ShopScreen.QUANTITY_5, 1)
                 client.await("Quantity 5") { if (client.varp(VARP_QUANTITY) == ShopScreen.QUANTITY_BUY_5) Unit else null }
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 1, 1, POT)
-                client.awaitMessage("out of stock") { it == ShopScreen.OUT_OF_STOCK }
+                client.awaitMessage("out of stock") { it == DialogueText.NONE[ShopLines.OUT_OF_STOCK] }
                 client.awaitHeld(POT, 5)
                 client.awaitHeld(COINS, 95)
                 // Sold out, the pot stays at 0.
@@ -108,13 +110,13 @@ class HeadlessShopTest {
 
                 // The store buys an axe it doesn't stock at 40% of 16, into the next slot.
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 1, client.slotOf(AXE), AXE)
-                client.awaitMessage("the axe's price") { it == "Bronze axe: shop will buy for 6 coins." }
+                client.awaitMessage("the axe's price") { it == DialogueText.NONE[ShopLines.BUYS_FOR, "item" to "Bronze axe", "price" to "6"] }
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(AXE), AXE)
                 client.awaitHeld(AXE, 0)
                 client.awaitHeld(COINS, 101)
                 // Coins can't be sold.
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(COINS), COINS)
-                client.awaitMessage("no selling coins") { it == ShopScreen.CANT_SELL_COINS }
+                client.awaitMessage("no selling coins") { it == DialogueText.NONE[ShopLines.CANT_SELL_COINS] }
 
                 // Pots come back one every 10 ticks.
                 client.await("a pot restocked", timeoutMillis = 30_000) { client.inventory(STORE_INV).firstOrNull()?.takeIf { it.id == POT && it.count >= 1 } }
@@ -133,10 +135,10 @@ class HeadlessShopTest {
                 client.open(BOB)
                 client.awaitStock(AXE_INV, InvObj(AXE, 10))
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(POT), POT)
-                client.awaitMessage("not this shop") { it == ShopScreen.WRONG_SHOP }
+                client.awaitMessage("not this shop") { it == DialogueText.NONE[ShopLines.WRONG_SHOP] }
                 // Buy 5 at 16, 16 and more: 20 coins buy one.
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 3, 1, AXE)
-                client.awaitMessage("not enough coins") { it == ShopScreen.NOT_ENOUGH_COINS }
+                client.awaitMessage("not enough coins") { it == DialogueText.NONE[ShopLines.NOT_ENOUGH_COINS] }
                 client.awaitHeld(AXE, 1)
                 client.awaitHeld(COINS, 4)
                 client.awaitStock(AXE_INV, InvObj(AXE, 9))
@@ -192,7 +194,7 @@ class HeadlessShopTest {
                 client.open(BOB)
                 client.awaitStock(AXE_INV, InvObj(AXE, 10))
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(LOOSE_NOTE), LOOSE_NOTE)
-                client.awaitMessage("not this shop") { it == ShopScreen.WRONG_SHOP }
+                client.awaitMessage("not this shop") { it == DialogueText.NONE[ShopLines.WRONG_SHOP] }
                 assertEquals(5, client.held(LOOSE_NOTE))
                 assertEquals(0, client.held(COINS))
             }

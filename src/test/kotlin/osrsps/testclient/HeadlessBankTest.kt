@@ -12,7 +12,9 @@ import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.bank.Bank
+import osrsps.game.bank.BankLines
 import osrsps.game.bank.BankScreen
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -202,7 +204,7 @@ class HeadlessBankTest {
                 client.awaitBank(InvObj(LOGS, 2), InvObj(AXE, 1), InvObj(COINS, 100))
                 client.await("tab 1 holding two") { if (client.tabSize(1) == 2) Unit else null }
                 client.ifButton(BankScreen.MAIN, BankScreen.TABS, 1, BankScreen.TAB_SUB_MAIN + 2)
-                client.awaitMessage("how to make a tab") { it == BankScreen.NEW_TAB }
+                client.awaitMessage("how to make a tab") { it == DialogueText.NONE[BankLines.NEW_TAB] }
 
                 // Placeholder (op 10) takes both logs out and keeps their slot; Release (op 8) lets it go.
                 client.ifButton(BankScreen.MAIN, BankScreen.MAIN_ITEMS, 10, 0, LOGS)
@@ -235,7 +237,7 @@ class HeadlessBankTest {
                 client.openBank()
                 client.ifButton(BankScreen.MAIN, BankScreen.FILLER_10, 1)
                 client.ifButton(BankScreen.MAIN, BankScreen.FILLER_CONFIRM, 1)
-                client.awaitMessage("the fillers") { it == "You add 10 bank fillers to your bank." }
+                client.awaitMessage("the fillers") { it == DialogueText.NONE[BankLines.FILLERS_ADDED, "count" to 10] }
                 client.await("ten fillers") { if (client.bank() == List(10) { InvObj(FILLER, 1) }) Unit else null }
 
                 // Clear (op 7) takes one; Clear-All (op 8) opens popupoverlay, whose Cancel (0) leaves the rest.

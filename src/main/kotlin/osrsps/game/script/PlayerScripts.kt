@@ -67,7 +67,8 @@ class ScriptTimer(val name: String, val type: TimerType, val interval: Int, inte
 }
 
 /**
- * A script waiting for the client's resume_pausebutton on component [component] (packed), with a slot in [subs]: a
- * dialogue's "Click here to continue" (slot -1) or a chat menu option (slots 1 up).
+ * A script waiting for the client's resume_pausebutton on one of [components] (packed), with a slot in [subs]: a
+ * dialogue's "Click here to continue" (slot -1), a chat menu option (slots 1 up) or a Make-X item (the quantity). It
+ * carries on with the component and slot clicked.
  */
-class PausedScript(val component: Int, val subs: IntRange, internal val continuation: Continuation<Int>)
+class PausedScript(val components: Set<Int>, val subs: IntRange, internal val continuation: Continuation<Pair<Int, Int>>)

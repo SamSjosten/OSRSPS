@@ -99,10 +99,10 @@ fun registerLumbridgeCastle(world: World) {
     registerHatius(world)
     registerLumbridgeGuide(world)
     with(LumbridgeCastle) {
-        for (crate in listOf(CRATE, CRATE_2, CRATE_3)) registerSearch(world, crate, 1, Searching.CRATE_EMPTY)
-        registerSearch(world, SACKS, 1, Searching.SACKS_EMPTY)
-        registerOpenable(world, CHEST, CHEST_OPEN, Searching.CHEST_EMPTY)
-        registerOpenable(world, DRAWERS, DRAWERS_OPEN, Searching.DRAWERS_EMPTY)
+        for (crate in listOf(CRATE, CRATE_2, CRATE_3)) registerSearch(world, crate, 1, SearchLines.CRATE_EMPTY)
+        registerSearch(world, SACKS, 1, SearchLines.SACKS_EMPTY)
+        registerOpenable(world, CHEST, CHEST_OPEN, SearchLines.CHEST_EMPTY)
+        registerOpenable(world, DRAWERS, DRAWERS_OPEN, SearchLines.DRAWERS_EMPTY)
 
         world.doors.addClosedType(KITCHEN_DOOR, DOOR_OPEN)
         world.doors.registerDouble(LARGE_DOOR_LEFT, LARGE_DOOR_LEFT_OPEN, LARGE_DOOR_RIGHT, LARGE_DOOR_RIGHT_OPEN)

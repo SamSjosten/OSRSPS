@@ -374,6 +374,23 @@ Fishing spots are NPCs (`game/skill/Fishing.kt`, words under `fishing.*`): the L
 | The swamp spots' area (their spawn tiles, so they stay put); the player stopping when the spot moves | guessed |
 | Out: pearl and barbarian rods, stripy feathers, big nets, harpoons, cages, outfits and other catch boosts, whirlpools | out of scope |
 
+### Cooking
+
+Raw food used on a fire or range, or Cook on a range, cooks it (`game/skill/Cooking.kt`, words under `cooking.*`):
+shrimps, anchovies, sardines, herring, trout, pike, salmon, beef, rat and bear meat, chicken, and bread dough (range
+only). With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
+range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
+
+| Cooking behaviour | Source |
+|-------------------|--------|
+| Levels and XP | OSRS Wiki food pages |
+| 4 ticks a piece | OSRS Wiki, Raw shrimps |
+| Each food's burn pair on a fire or range and on the Lumbridge range, fitted to and checked against the Wiki's charts (`CookingTest`) | OSRS Wiki food pages |
+| The Make-X box: its components, client script 2046's arguments and the pause button carrying the quantity | decompiled client scripts (osrs-dumps) |
+| Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
+| Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
@@ -390,7 +407,7 @@ as `Op.sub`. The inventory is saved with the player.
 | Notes: the item's name and value, stackable, "Swap this note at any bank for the equivalent item." | client genCert; the text from memory of live |
 | Dragging swaps two slots; a click on a slot that holds something else is dropped | RSMod / inferred |
 | An option or "Use" nothing handles says live's "nothing interesting" message (`game.nothing_interesting`) | from memory of live |
-| Bury on bones: "You dig a hole in the ground...", seq 827, the player stops; a tick later the bones go, the Prayer XP comes and "You bury the bones." (bones, burnt bones 4.5 XP, big bones 15, dragon bones 72) | XP from the Wiki; the steps from the 2004Scape project's script; no sound yet (its 241 synth id isn't known) |
+| Bury on bones: a message (`bones.dig`), seq 827, the player stops; a tick later the bones go, the Prayer XP comes and a second message (`bones.buried`) (bones, burnt bones 4.5 XP, big bones 15, dragon bones 72) | XP from the Wiki; the steps from the 2004Scape project's script; no sound yet (its 241 synth id isn't known) |
 | Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
 
 Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it. `::item bones 2`, then Bury both: Prayer XP goes to 9
@@ -409,19 +426,19 @@ client's own scripts', built from the varbits the buttons set.
 | Withdraw-1, -5, -10, -X, -All, -All-but-1 and the requested amount (ops 1 to 8, the left-click one by the quantity buttons); Examine is op 11 | 241 client scripts (script669, script2579) |
 | Deposit-1, -5, -10, -X, -All (ops 2 to 8) on the inventory beside it; Examine op 10. A deposit takes from the item's other slots too | 241 client script bankside_drawitem; RSMod |
 | -X asks "Enter amount:" (client script meslayer_mode7); the amount becomes the requested quantity the menus offer next. Walking or closing the bank closes the prompt | client scripts; closing the prompt is guessed |
-| Everything stacks; notes go in as their item; Note withdraws a noted stack, or the item itself with "This item cannot be withdrawn as a note." | RSMod |
+| Everything stacks; notes go in as their item; Note withdraws a noted stack, or the item itself with a message (`bank.cannot_note`) | RSMod |
 | Tabs 1 to 9 come first, then the main tab; their sizes are varbits bank_tab_1 to 9, and bank_currenttab is the tab viewed (0 shows all) | 241 client scripts (bank_gettabrange, bankmain_build) |
 | The bank has no gaps: every change closes them, and a tab that empties goes, the later ones moving down; the tab viewed follows its tab | RSMod; RSMod's main tab can keep a gap after a drag, ours can't |
 | A new item goes at the end of the tab viewed (the main tab when viewing all) | RSMod |
 | Drag an item onto a tab, onto the space after a tab's last item, or onto New tab (the icon after the last tab); an insert into another tab goes in front of the item dropped on | 241 client scripts (bankmain_tabicon, script509); RSMod |
-| Tab ops: View tab, Collapse tab (its items go to the end of the main tab), Remove placeholders (that tab's only, the main tab's too); drag a tab onto another to move it; a click on New tab says "To create a new tab, drag items from your bank onto this tab." | 241 client scripts; RSMod |
+| Tab ops: View tab, Collapse tab (its items go to the end of the main tab), Remove placeholders (that tab's only, the main tab's too); drag a tab onto another to move it; a click on New tab says how to make one (`bank.new_tab`) | 241 client scripts; RSMod |
 | Search filters in the client alone (meslayer mode 11); the server views all items and closes the search line with the bank | 241 client scripts; RSMod |
 | Settings menu: the toggles, tab display, Release all placeholders and the fillers (1, 10, 50, X, All, then Fill), each "are you sure" in popupoverlay. Fillers fill free space at the end of the main tab; Clear and Clear-All take them | 241 client scripts (script1428, enum_1907, script4212); RSMod's messages |
 | The incinerator burns the item it is given | RSMod |
 | Placeholders: the Placeholder option, or Always set placeholders, leave one; a deposit fills it; Release takes it away | 241 client scripts; RSMod |
 | Swap or Insert for drags; a drag past the end moves the item to the end. Drags in the inventory beside it swap | 241 client script bankmain_reorder; RSMod |
-| Deposit inventory and Deposit worn items, "You have nothing to deposit." when empty | RSMod |
-| Messages: "You don't have enough inventory space.", "...to withdraw that many.", "A magical force prevents you from banking this item!", "You already have a full stack of that item in the bank.", "Your bank cannot hold your items." | RSMod, from live |
+| Deposit inventory and Deposit worn items, a message (`bank.nothing_to_deposit`) when empty | RSMod |
+| Messages and the confirm boxes' words: keys under `bank.` (`BankLines`), with the words in `data/dialogue.txt` on 214, outside git | RSMod, from live |
 | Opening the bank always starts on withdrawing items, not notes | RSMod; not checked |
 | A member's bank holds 900 | OSRS Wiki, Bank (2026-10-29) |
 | Worn items view: the client switches to it itself; the server fills in the bonus lines ("Melee STR", "Magic DMG", "Undead: +0% ") and answers the worn slots (Remove, Bank, Examine) and the inventory beside it (Wear, Deposit, Examine) | 241 client scripts (bankmain_viewbuttons, wear_updateslot, bankside_worn_drawitem); the labels RSMod's |
@@ -457,7 +474,7 @@ their prices and stock are in `src/main/resources/shops.json` (the OSRS Wiki's s
 | A price is the shop's percentage of the item's value, less its change for each item over its starting stock (more for each under), held between -500% and +100%, never under 10%; buying costs at least 1 coin. Each item of a Buy 5 or Sell 5 is priced at the stock it meets | 2004Scape's calc_shop_value; every price on the Wiki's two pages and its Bob example agree |
 | A general store buys anything tradeable, into the first free slot; a specialist shop only what it stocks. Coins and untradeable items can't be sold; notes sell as their item | 2004Scape |
 | Each stocked item comes back (or goes down when overstocked) by one every its restock time, as the Wiki gives it; an item the shop doesn't stock goes down by one every 100 ticks and its slot goes at 0, the later items moving up. A sold-out stocked item stays at 0 | the Wiki's restock times; the rest guessed (RSMod's 100 ticks) |
-| Messages: "Pot: currently costs 1 coin.", "...: shop will buy for N coins.", "The shop has run out of stock.", "You don't have enough coins.", "You don't have enough inventory space.", "The shop has run out of space.", "You can't sell this item to a shop.", "You can't sell this item.", "You can't sell this item to this shop." | 2004Scape (RS2), "coins" for its "gp" as RSMod has it; not checked against live |
+| Messages: keys under `shop.` (`ShopLines`): the value checks (a price of 1 coin has its own line), out of stock, not enough coins or space, the shop full, and the three refusals to buy; words in `data/dialogue.txt` on 214 | 2004Scape (RS2), "coins" for its "gp" as RSMod has it; not checked against live |
 
 Not built yet: Bob's Repair (he says there is nothing to repair, as there is no degrading equipment yet), ironman
 stock, noted buying (Leagues only) and every other shop.
@@ -511,7 +528,7 @@ chickens and rams fight and drop through `npc-combat.json` and `npc-drops.json`.
 | Chickens: level 1, 3 hitpoints, stab for 0, back in 25 ticks; always bones and raw chicken, 5 feathers 64/128, 15 feathers 32/128, a beginner clue 1/300 | OSRS Wiki, Chicken |
 | Rams: level 2, 8 hitpoints, crush for 1, back in 45 ticks, weak to fire (20%); always bones | OSRS Wiki, Ram |
 | Pick on an onion takes it for 50 ticks and gives an onion, or says there's no room (`Crops.kt`) | the 2004Scape project's pickables script; the Wiki's Onion page (fields respawn in 30 seconds) |
-| Messages: "You need a set of shears to do this.", "You get some wool.", "This sheep has already been shorn.", "You pick an onion.", "You don't have room for this onion." | RSMod and the 2004Scape project, not checked against live |
+| Messages: keys under `sheep.` (`SheepLines`: no shears, wool got, already shorn) and `crop.` (`CropLines`: picked, no room, for each crop); words in `data/dialogue.txt` on 214 | RSMod and the 2004Scape project, not checked against live |
 | Fred's expressions, the chickens' and rams' fight animations (by name), every wander range (5) | guessed |
 
 Not built yet: the onion seed members sometimes get from a field, the sheep's overhead bleat, The Thing and the penguin of Cold
@@ -530,10 +547,10 @@ map's locs. Wheat, potatoes and onions are picked through `game/content/Crops.kt
 | Behaviour | Source |
 |-----------|--------|
 | Gillie's talk: who she is, how to milk a cow, or nothing; with no bucket, a dairy cow in her pen gets her talk under the name "Gillie Groats the Milkmaid" | OSRS Wiki, Transcript:Gillie Groats, read 2026-10-29 |
-| Milk (or a bucket used on a dairy cow): two ticks, then a bucket of milk, milkit and "You milk the cow.", every eight ticks while buckets are left, until the player does anything else; anything else used on one: "The cow doesn't want that." | RSMod's dairy cow script |
+| Milk (or a bucket used on a dairy cow): two ticks, then a bucket of milk, milkit and a message (`dairy_cow.milked`), every eight ticks while buckets are left, until the player does anything else; anything else used on one: `dairy_cow.not_wanted` | RSMod's dairy cow script |
 | Millie's talk: who she is, what the mill is, how to mill flour (three ways in), or nothing | OSRS Wiki, Transcript:Millie Miller, read 2026-10-29 |
 | Pick on wheat gives a grain and takes it for 20 ticks; on a potato, a potato for 50 | OSRS Wiki, Wheat (20 ticks); the 2004Scape project's pickables script and RSMod (potato 50, and every message) |
-| Fill on the hopper (or grain used on it) puts one grain in; Operate on the controls sends it to the flour bin; the bin holds 30 pots; Empty on the bin (or a pot used on it) fills a pot | OSRS Wiki, Windmill and Transcript:Hopper; the 2004Scape project's windmill script |
+| Fill on the hopper (or grain used on it) puts one grain in; Operate on the controls sends it to the flour bin; the bin holds 30 pots; Empty on the bin (or a pot used on it) fills a pot; the messages are keys under `mill.` (`MillLines`) | OSRS Wiki, Windmill and Transcript:Hopper; the 2004Scape project's windmill script |
 | The bin's flour is the player's own, shared by every windmill: varbit mill_flour (4920), and mill_showflour (5325) shows the bin with flour in it | the 241 cache's flour bin (multivar mill_showflour) and varbits; OSRS Wiki, Windmill |
 | The ladders: Climb-up, a Climb menu on the middle floor, Climb-down | the castle's ladders (RSMod) |
 | The grain in the hopper is kept with the account by name, as charges are, since no var for it is known; Gillie's and Millie's expressions; human_pickuptable for filling and operating | guessed |

@@ -7,6 +7,11 @@
   },
   {
    "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
    "text": "::tele 3206 3208 0",
    "expectMessage": "Teleported to 3206, 3208, 0"
   },
@@ -77,11 +82,11 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "Climb up or down the stairs?"
+   "contains": "[climb.stairs_title]"
   },
   {
    "step": "chooseOption",
-   "text": "Climb down the stairs."
+   "text": "[climb.stairs_down]"
   },
   {
    "step": "assertLocation",
@@ -148,11 +153,11 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "Climb up or down the stairs?"
+   "contains": "[climb.stairs_title]"
   },
   {
    "step": "chooseOption",
-   "text": "Climb up the stairs."
+   "text": "[climb.stairs_up]"
   },
   {
    "step": "assertLocation",

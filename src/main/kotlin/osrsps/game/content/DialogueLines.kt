@@ -2,11 +2,18 @@ package osrsps.game.content
 
 import osrsps.game.EquipmentLines
 import osrsps.game.GameLines
+import osrsps.game.Player
+import osrsps.game.World
+import osrsps.game.bank.BankLines
 import osrsps.game.combat.CombatLines
 import osrsps.game.combat.FoodLines
+import osrsps.game.combat.PotionLines
 import osrsps.game.combat.PrayerLines
+import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
+import osrsps.game.shop.ShopLines
 import osrsps.game.skill.BirdNestLines
+import osrsps.game.skill.CookingLines
 import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.FishingLines
 import osrsps.game.skill.LevelUpLines
@@ -20,11 +27,16 @@ object DialogueLines {
         // Gathering skills after woodcutting and firemaking, one a line.
         MiningLines,
         FishingLines,
+        CookingLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
-        BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines,
+        BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines,
         // Rest of Lumbridge.
         ShopKeeperLines, ShopAssistantLines, BobLines, RamBartenderLines, ArthurLines, DonieLines, GeeLines, CookingTutorLines,
         SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines, GillieLines, MillieLines,
-        HopperLines, DuckLines,
+        HopperLines, DuckLines, SheepLines, CropLines, DairyCowLines, MillLines, BonesLines, SearchLines, ClimbLines,
+        BankLines, ShopLines,
     )
 }
+
+/** Sends [player] the game message [line] in the dialogue file's words, or its key. */
+fun World.message(player: Player, line: Line, vararg values: Pair<String, Any>) = player.message(textFor(player).get(line, *values))
