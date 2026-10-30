@@ -166,9 +166,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-examine.json`: Examine (with `::keys on`) on scenery outside the castle: the church's altar, organ,
   pews and candles, and the graveyard's two gravestones.
 - `lumbridge-walk.json`: Rest of Lumbridge step 12: walks from the castle courtyard to each area outside the castle in
-  stages of at most 8 tiles, on the server's own pathing, teleporting back to the castle between three legs: the
-  general store, Fred's farmhouse and Mill Lane Mill; Bob's axes, the church's west door, over the bridge and north
-  to the Groats' farm; the swamp, its east and west mines and the adventurers' camp. Takes about six minutes.
+  stages of at most 4 tiles (straight line), on the server's own pathing, teleporting back to the castle between three
+  legs: the general store, Fred's farmhouse and Mill Lane Mill; Bob's axes, the church's west door, over the bridge
+  and north to the Groats' farm; the swamp, its east and west mines and the adventurers' camp. Takes about six
+  minutes.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
