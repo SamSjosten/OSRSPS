@@ -169,12 +169,13 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn and its talking NPCs, and rats west of the castle`() {
+    fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",
             2864 to "giantrat1_3", 2854 to "rat", 8700 to "giant_frog_nodrops", 8701 to "medium_frog_nodrops", 8702 to "little_frog_nodrops",
             3045 to "goblin_armed", 2837 to "unicorn", 238 to "butterfly_viceroy", 923 to "father_urhney", 1157 to "archeradventurerpg",
             1158 to "warrioradventurerpg", 1159 to "monkadventurerpg", 1160 to "wizardadventuterpg", 1896 to "swamp_candle_guy",
+            3222 to "aide_tutor_mining", 3221 to "aide_tutor_fishing",
         )
         val swampTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("lumbridge-swamp.json"), swampTypes, "lumbridge-swamp.json")
@@ -195,7 +196,22 @@ class NpcSpawnFileTest {
         assertTrue(urhney.x in 3144..3149 && urhney.z in 3172..3177 && urhney.restrict == MoveRestrict.INDOORS)
         assertEquals(4, spawns.count { it.type.id in 1157..1160 && it.x in 3148..3153 && it.z in 3204..3208 })
         assertEquals(Tile(3170, 3176), spawns.single { it.type.id == 1896 }.let { Tile(it.x, it.z) })
-        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == if (it.type.id == 1896) 2 else 5 })
+        // The mining tutor by the east mine and the fishing tutor by the shore.
+        assertEquals(Tile(3227, 3146), spawns.single { it.type.id == 3222 }.let { Tile(it.x, it.z) })
+        assertEquals(Tile(3246, 3157), spawns.single { it.type.id == 3221 }.let { Tile(it.x, it.z) })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == if (it.type.id in setOf(1896, 3221, 3222)) 2 else 5 })
+    }
+
+    @Test
+    fun `the toll gate has two Border Guards each side, standing still`() {
+        val types = NpcTypes.of(NpcType(4287, "borderguard1", internalName = "borderguard1"), NpcType(4288, "borderguard2", internalName = "borderguard2"))
+        val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        // borderguard1 on the Lumbridge side (west of the gate's x 3268), borderguard2 on the Al Kharid side.
+        assertEquals(setOf(Tile(3267, 3226), Tile(3267, 3229)), spawns.filter { it.type.id == 4287 }.map { Tile(it.x, it.z) }.toSet())
+        assertEquals(setOf(Tile(3268, 3226), Tile(3268, 3229)), spawns.filter { it.type.id == 4288 }.map { Tile(it.x, it.z) }.toSet())
+        assertTrue(spawns.all { it.wander == 0 && it.level == 0 && it.source.isNotBlank() })
     }
 
     @Test

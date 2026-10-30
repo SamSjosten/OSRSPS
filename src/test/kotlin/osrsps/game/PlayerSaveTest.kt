@@ -119,6 +119,23 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `the friends list is saved in order, kept over a reset, and a save without one loads empty`() {
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), friends = listOf("Zezima", "bob")).toJson("test")
+        assertEquals(listOf("Zezima", "bob"), PlayerSave.fromJson(text).friends)
+        saves.write("test", text)
+        val player = world.loadPlayer(1, "test")
+        assertEquals(listOf("Zezima", "bob"), player.friends)
+        // ::reset puts a save's state back but not its header, the friends list included.
+        PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).restoreTo(player)
+        assertEquals(listOf("Zezima", "bob"), player.friends)
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("friends" !in none)
+        assertTrue(PlayerSave.fromJson(none).friends.isEmpty())
+        val tooMany = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), friends = List(401) { "p$it" }).toJson("test")
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(tooMany) }
+    }
+
+    @Test
     fun `the bank is saved, and a save without one loads with an empty bank`() {
         val player = world.loadPlayer(1, "Test")
         player.bank[0] = InvObj(995, 2_000_000_000)

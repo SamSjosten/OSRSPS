@@ -1,5 +1,5 @@
 {
- "about": "Fletching, as the OSRS Wiki's item pages give it (read 2026-10-30). knifeOnLogs: what a knife on each kind of log makes, in the Make-X box's order (guessed: shafts, javelin shafts, the bows, the stock), with the level, the XP in tenths, how many one log makes and the message key in FletchingLines. Every product takes 'first' ticks after the choice, then 'interval' ticks each: the Arrow shaft page's 'Make-X is 2, then 3 ticks' and the Wooden stock page's 'Make-all is 2, then 3 ticks'; the bow (u) pages give 3 ticks with no note, so they are taken to work the same (inferred). Ids are the 241 cache's; names are its gamevals. Redwood logs make only shafts here: the redwood shield is out.",
+ "about": "Fletching, as the OSRS Wiki's item pages give it (read 2026-10-30). knifeOnLogs: what a knife on each kind of log makes, in the Make-X box's order (guessed: shafts, javelin shafts, the bows, the stock), with the level, the XP in tenths, how many one log makes and the message key in FletchingLines. Every product takes 'first' ticks after the choice, then 'interval' ticks each: the Arrow shaft page's 'Make-X is 2, then 3 ticks' and the Wooden stock page's 'Make-all is 2, then 3 ticks'; the bow (u) pages give 3 ticks with no note, so they are taken to work the same (inferred). Ids are the 241 cache's; names are its gamevals. Redwood logs make only shafts here: the redwood shield is out. stringing: a bow string on each unstrung bow, 2 ticks each (the bows' pages; the first after 2 ticks is inferred), with the levels and XP of the unstrung bow and the stringing animation the cache names for each. arrows: feathers on arrow shafts make headless arrows and arrowtips on headless arrows make arrows, up to 15 at a time (fewer when fewer are left), 2 ticks a set, XP per arrow in tenths (Headless arrow, Bronze arrow and Arrows pages). darts: a feather on dart tips makes 10 darts at once with every click, no box and no wait (the Wiki gives them 0 ticks), XP per dart in tenths (Dart page). Amethyst arrows and darts are in: their tips come from amethyst crafting, which is out, so only ::item gives them.",
  "knife": 946,
  "anim": 1248,
  "first": 2,
@@ -51,5 +51,39 @@
   {"log": 19669, "name": "redwood_logs", "products": [
    {"obj": 52, "name": "arrow_shaft", "amount": 105, "level": 90, "xpTenths": 350, "message": "shafts"}
   ]}
- ]
+ ],
+ "stringing": {"bowString": 1777, "first": 2, "interval": 2, "bows": [
+  {"unstrung": 50, "bow": 841, "name": "shortbow", "level": 5, "xpTenths": 50, "anim": 6678, "animName": "stringing_shortbow"},
+  {"unstrung": 48, "bow": 839, "name": "longbow", "level": 10, "xpTenths": 100, "anim": 6684, "animName": "stringing_longbow"},
+  {"unstrung": 54, "bow": 843, "name": "oak_shortbow", "level": 20, "xpTenths": 165, "anim": 6679, "animName": "stringing_oak_shortbow"},
+  {"unstrung": 56, "bow": 845, "name": "oak_longbow", "level": 25, "xpTenths": 250, "anim": 6685, "animName": "stringing_oak_longbow"},
+  {"unstrung": 60, "bow": 849, "name": "willow_shortbow", "level": 35, "xpTenths": 333, "anim": 6680, "animName": "stringing_willow_shortbow"},
+  {"unstrung": 58, "bow": 847, "name": "willow_longbow", "level": 40, "xpTenths": 415, "anim": 6686, "animName": "stringing_willow_longbow"},
+  {"unstrung": 64, "bow": 853, "name": "maple_shortbow", "level": 50, "xpTenths": 500, "anim": 6681, "animName": "stringing_maple_shortbow"},
+  {"unstrung": 62, "bow": 851, "name": "maple_longbow", "level": 55, "xpTenths": 583, "anim": 6687, "animName": "stringing_maple_longbow"},
+  {"unstrung": 68, "bow": 857, "name": "yew_shortbow", "level": 65, "xpTenths": 675, "anim": 6682, "animName": "stringing_yew_shortbow"},
+  {"unstrung": 66, "bow": 855, "name": "yew_longbow", "level": 70, "xpTenths": 750, "anim": 6688, "animName": "stringing_yew_longbow"},
+  {"unstrung": 72, "bow": 861, "name": "magic_shortbow", "level": 80, "xpTenths": 833, "anim": 6683, "animName": "stringing_magic_shortbow"},
+  {"unstrung": 70, "bow": 859, "name": "magic_longbow", "level": 85, "xpTenths": 915, "anim": 6689, "animName": "stringing_magic_longbow"}
+ ]},
+ "arrows": {"feather": 314, "shaft": 52, "headless": 53, "headlessLevel": 1, "headlessXpTenths": 10, "amount": 15, "first": 2, "interval": 2, "tipped": [
+  {"tips": 39, "arrow": 882, "name": "bronze_arrow", "level": 1, "xpTenths": 13},
+  {"tips": 40, "arrow": 884, "name": "iron_arrow", "level": 15, "xpTenths": 25},
+  {"tips": 41, "arrow": 886, "name": "steel_arrow", "level": 30, "xpTenths": 50},
+  {"tips": 42, "arrow": 888, "name": "mithril_arrow", "level": 45, "xpTenths": 75},
+  {"tips": 43, "arrow": 890, "name": "adamant_arrow", "level": 60, "xpTenths": 100},
+  {"tips": 44, "arrow": 892, "name": "rune_arrow", "level": 75, "xpTenths": 125},
+  {"tips": 21350, "arrow": 21326, "name": "amethyst_arrow", "level": 82, "xpTenths": 135},
+  {"tips": 11237, "arrow": 11212, "name": "dragon_arrow", "level": 90, "xpTenths": 150}
+ ]},
+ "darts": {"feather": 314, "amount": 10, "darts": [
+  {"tips": 819, "dart": 806, "name": "bronze_dart", "level": 10, "xpTenths": 18},
+  {"tips": 820, "dart": 807, "name": "iron_dart", "level": 22, "xpTenths": 38},
+  {"tips": 821, "dart": 808, "name": "steel_dart", "level": 37, "xpTenths": 75},
+  {"tips": 822, "dart": 809, "name": "mithril_dart", "level": 52, "xpTenths": 112},
+  {"tips": 823, "dart": 810, "name": "adamant_dart", "level": 67, "xpTenths": 150},
+  {"tips": 824, "dart": 811, "name": "rune_dart", "level": 81, "xpTenths": 188},
+  {"tips": 25853, "dart": 25849, "name": "amethyst_dart", "level": 90, "xpTenths": 210},
+  {"tips": 11232, "dart": 11230, "name": "dragon_dart", "level": 95, "xpTenths": 250}
+ ]}
 }

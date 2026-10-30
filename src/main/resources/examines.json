@@ -75,7 +75,10 @@
     {"npc": 1157, "name": "Archer", "wiki": "Archer (Lost City) page, infobox"},
     {"npc": 1159, "name": "Monk", "wiki": "Monk (Lost City) page, infobox"},
     {"npc": 1160, "name": "Wizard", "wiki": "Wizard (Lost City) page, infobox"},
-    {"npc": 1896, "name": "Candle seller"}
+    {"npc": 1896, "name": "Candle seller"},
+    {"npc": 3222, "name": "Mining tutor"},
+    {"npc": 3221, "name": "Fishing tutor"},
+    {"npc": 4287, "name": "Border Guard", "also": [4288], "wiki": "Border Guard page, infobox (one examine for both)"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},
@@ -214,6 +217,7 @@
     {"loc": 14880, "name": "Trapdoor"},
     {"loc": 1278, "name": "Tree"},
     {"loc": 255, "name": "Winch"},
-    {"loc": 824, "name": "Wooden defence"}
+    {"loc": 824, "name": "Wooden defence"},
+    {"loc": 44050, "name": "Gate", "also": [44051, 44052, 44053], "wiki": "Toll gate page, infobox (Al Kharid's toll gate; the player sees 44050/44051 after Prince Ali Rescue)"}
   ]
 }

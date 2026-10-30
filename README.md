@@ -139,8 +139,8 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
   signed manifest carries the table, and RSProx's target names the same build). RuneLite moves to each new revision
   within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
   revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
-- Nothing to install until the first release is published, which needs Sam's one-time key setup (`launcher/README.md`,
-  "Releases").
+- The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
+  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases").
 
 ### Files for our own launcher
 
@@ -233,6 +233,8 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
+| `::friends` | **everyone.** Your friends list as the server keeps it, each friend's world or offline |
+| `::clearfriends` | Empties your friends list, for tests that start from none (the Friends tab shows it after a relog) |
 | `::poison [severity\|venom\|cure]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
@@ -419,7 +421,9 @@ sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answe
 
 A knife used on logs, or logs on a knife (`game/skill/Fletching.kt`, words under `fletching.*`), opens the Make-X box
 over what those logs make: arrow shafts, javelin shafts, the shortbow and longbow (u), and the crossbow stock, from
-logs to magic logs, plus teak and mahogany stocks and redwood shafts. The numbers are in `skills/fletching.json`.
+logs to magic logs, plus teak and mahogany stocks and redwood shafts. A bow string on an unstrung bow strings it. Feathers on arrow shafts
+make headless arrows, and arrowtips on those make arrows, up to 15 at a time (the box counts sets). A feather on dart
+tips makes 10 darts on every click, with no box. The numbers are in `skills/fletching.json`.
 
 The making itself is the loop all three artisan skills share (`game/skill/Making.kt`, the box's title under
 `make.title`): each product waits in a weak queue, so walking off, closing an interface or using something else ends
@@ -429,7 +433,9 @@ it, as do running out, the count being done, the level being too low and a level
 |---------------------|--------|
 | Levels, XP and how many shafts a log makes | OSRS Wiki, Fletching and each product's page |
 | The first product 2 ticks after the choice, then one every 3 | OSRS Wiki, Arrow shaft ("Make-X is 2, then 3 ticks") and Wooden stock; the bows (u) inferred to match |
-| Animation `human_fletching` (1248) | cache 241 gamevals |
+| Stringing 2 ticks a bow; arrows 2 ticks a set of 15 with XP per arrow; darts 10 a click with no wait | OSRS Wiki, Shortbow, Headless arrow, Bronze arrow, Arrows, Dart and Bronze dart |
+| Animations `human_fletching` (1248) and each bow's `stringing_*` (6678 to 6689) | cache 241 gamevals |
+| No animation for arrows and darts; the first bow strung 2 ticks after the choice | guessed |
 | The box opening even for one log, its order, the quantity starting on as many as can be made, the animation as each product starts, a boost wearing off stopping it without a word | guessed |
 | Out: the redwood shield; the crossbows and javelins that stocks and javelin shafts go into | out of scope |
 
@@ -658,9 +664,9 @@ every branch of Bill's talk in `BarfyBillTest` and the drop rates in `NpcDropsTe
 
 The swamp's surface south of the castle, and the land just west of the castle, in `npc-spawns/lumbridge-swamp.json` on
 RSMod's tiles (each checked against the 241 map's floor): the giant rats, the frogs, a level 5 goblin, the unicorn and
-a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs. The fighters fight through
+a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs and tutors. The fighters fight through
 `npc-combat.json` and drop through `npc-drops.json`; the talks are `game/content/FatherUrhney.kt`,
-`AdventurersCamp.kt` and `CandleSeller.kt`.
+`AdventurersCamp.kt`, `CandleSeller.kt` and `SwampTutors.kt`.
 
 | Behaviour | Source |
 |-----------|--------|
@@ -671,19 +677,24 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 | Father Urhney (923), in his house, as after The Restless Ghost: he sends the player off, and hands a spare ghostspeak amulet to one who has none carried, worn or banked and has a free slot | the Wiki's Transcript:Father Urhney |
 | The adventurers' camp: the warrior (1158), archer (1157), monk (1159) and wizard (1160), each with their standard talk after Lost City | the Wiki's transcripts of each |
 | The candle seller (1896) by the swamp caves sells a lit candle for 1000 coins, and tells how lanterns are made, which the first menu then offers again | the Wiki's Transcript:Candle seller |
+| The Mining tutor (3222) by the east mine: the basics (Mining 1-24), tips (25-38) or advice (39-99), the quests (Doric and, on a members' world, the Dig Site), and the rocks and pickaxes menus; a bronze pickaxe for a player with none and a free slot | the Wiki's Transcript:Mining tutor |
+| The Fishing tutor (3221) by the shore: the basics (Fishing 1-28), tips (29-38, with the trawler) or advice (39-99, naming no quest as every one is done), the fish menu and where to fish by level, as on a members' world; a small fishing net for a player with none and a free slot | the Wiki's Transcript:Fishing tutor |
 | The fight animations (by the stand and walk animations each type has: the updated giant rat's, the giant frog's for all three frogs, the spear goblin's, the updated unicorn's), the curved bone's 1/5,012.5 kept as 1/5013, and every wander range (5) | guessed |
+| For the tutors: that a banked pickaxe or net counts as owned (as for the Woodsman tutor's axe); the items in the boxes the Wiki doesn't name; the fish menu's one slot for the lobster pot (Fishing 29-38) or the harpoon (39 and up), as a menu holds five options; the fishing tutor one tile east of RSMod's, which the 241 map has as water; their wander ranges (2) | guessed |
 | Every chathead expression; that a worn ghostspeak amulet counts as carried; the bank as the only store Urhney checks (no Death's Office or item retrieval yet); the candle landing at the player's feet with no free slot; having heard about lanterns kept with the account by name | guessed |
 
 Left out: giant rats are aggressive on live and the unicorn retreats at low hitpoints, which wait for NPC aggression
-and retreat (the Varrock piece; both are ranges from the spawn point). The fishing and mining tutors are the next step;
-the fishing spots and the mines are the gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache
-shows by quest varbits, are left out for now. What the talking NPCs say and each new NPC's examine are in the dialogue
-file (keys `father_urhney.*`, `lost_city_warrior.*`, `lost_city_archer.*`, `lost_city_monk.*`, `lost_city_wizard.*`,
-`candle_seller.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
+and retreat (the Varrock piece; both are ranges from the spawn point). The tutors' offers to show a place on the world
+map lead back to the first menu without opening the map, which isn't built yet; the fishing spots and the mines are the
+gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
+now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
+`lost_city_warrior.*`, `lost_city_archer.*`, `lost_city_monk.*`, `lost_city_wizard.*`, `candle_seller.*`,
+`mining_tutor.*`, `fishing_tutor.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
 
 Check: `test-runner/examples/lumbridge-swamp.json` examines each kind and kills a giant rat and a giant frog for their
-drops, then talks to Urhney, the adventurers and the candle seller; `HeadlessLumbridgeSwampTest` fights a giant rat to
-death and talks to Urhney through the headless client, with every branch of the talks in `SwampTalkTest`, the stats in
+drops, then talks to Urhney, the adventurers, the candle seller and both tutors; `HeadlessLumbridgeSwampTest` fights a
+giant rat to death, talks to Urhney and the camp's monk, buys a lit candle and gets a pickaxe and a net from the tutors
+through the headless client, with every branch of the talks in `SwampTalkTest` and `SwampTutorsTest`, the stats in
 `NpcCombatTest` and the drop rates in `NpcDropsTest`.
 ## Draynor Village
 
@@ -709,6 +720,29 @@ Check: `test-runner/examples/draynor-village.json` opens and shuts the pig pen's
 garlic from Morgan's cupboard, opens Aggie's wardrobe and sees her cheese and tomato, and opens the bank from a banker
 and from a booth; `HeadlessDraynorTest` does the gate, the stairs, the cupboard and the bankers through the headless
 client, and `GatesTest` turns a gate every way round.
+
+## Al Kharid
+
+The Misthalin roadmap's Al Kharid piece, built a step at a time ([plan](https://claude.ai/artifact/Q7H1GLiHSg5A342NfsZn3f)).
+Content is in `game/content/AlKharid.kt`, spawns in `npc-spawns/al-kharid.json`. Every account has finished every
+quest, so Al Kharid is as after Prince Ali Rescue.
+
+| Behaviour | Source |
+|-----------|--------|
+| The toll gate (multilocs 44598/44599 at 3268, 3227 and 3268, 3228) shows as 44050/44051, Open only, once varp 273 is 100 or more; the Pay-toll(10gp) types 44052/44053 are the before-quest ones | 241 cache; OSRS Wiki, Toll gate |
+| After the quest Open takes the player through free with no talk, either way | OSRS Wiki, Toll gate (changed 27 April 2022) |
+| Talk-to on a Border Guard (4287 Lumbridge side, 4288 Al Kharid side): the player asks to come through, the guard says they're a friend of Al-Kharid, and the player goes through free | OSRS Wiki, Transcript:Border Guard |
+| Going through: both leaves swing open for 3 ticks as `inacmetalgateopenl`/`r` (1573/1574), the player moves to the far side at once; a player who talked to a guard first steps up to the gate | 2004Scape's border_gate.rs2; guessed until recorded |
+| Four Border Guards, two each side, standing still | 2004Scape map m51_50 spawns; standing still guessed |
+| The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
+
+Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only). The words of
+the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
+`examine.npc_4287`, `examine.loc_44050`).
+
+Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
+Guard's talk, and opens and shuts the palace's west doors and a curtain; `HeadlessAlKharidTest` does the same through the headless
+client, with the talk in `BorderGuardTest`.
 
 ## Equipment
 

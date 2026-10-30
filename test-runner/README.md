@@ -132,7 +132,12 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-swamp.json`: Lumbridge Swamp: Examine (with `::keys on`) on a level 6 giant rat, a frog, a big frog, a
   giant frog, the level 5 goblin and the unicorn; `::kill` on a giant rat (its death animation, then its raw rat meat
   taken) and a giant frog (its big bones taken); Father Urhney's spare ghostspeak amulet, given once; the four
-  adventurers' talks; and the candle seller refusing a player with no coins, then selling a lit candle for 1000.
+  adventurers' talks; the candle seller refusing a player with no coins, then selling a lit candle for 1000; and the
+  Mining and Fishing tutors' basics (with a pickaxe and a net carried), the Mining tutor's quests and the small net
+  fish.
+- `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
+  Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
+  opened together and shut again, and the curtain upstairs in the palace opened and shut.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
@@ -163,6 +168,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   anvil needs a hammer and hammers the bar into a dagger. Needs 0.8.0 (`assertVarbit`).
 - `fletching-logs.json`: a knife on three logs at 99 cuts three shortbows (u) through the Make-X box (15 XP), then at
   level 1 a longbow needs 10. Needs 0.10.0 (`useItemOnItem`).
+- `fletching-arrows.json`: at 99, feathers on 20 arrow shafts make headless arrows in sets (15, then 5), bronze
+  arrowtips make 15 bronze arrows, a bow string strings a shortbow and a feather on dart tips makes 10 darts. Needs
+  0.10.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
@@ -181,6 +189,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   again: attack priority, the combat and prayer tab keys (a key taken from the tab that had it), login/logout
   notifications and quest list sort; and the master and music sliders (a mouse click in the middle of each one's
   clickzone, a settings_content child, 53%); then close, relog and check every one.
+- `social-friends-test.json` and `social-friends-test2.json` (need 0.13.0): two players at once, `test` on one VM
+  and `test2` on the other, started together. Each empties its friends list (`::clearfriends`), logs out and in, and
+  adds the other; `test` sees `test2` come online on world 301, go offline at `test2`'s logout and come back. Run alone,
+  each waits up to 3 minutes for the other and then fails.
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
   number prompt with `enterAmount`, public chat's colour picked in the colour picker and saved, then a cancelled pick,
   and the public chat filter set to friends; then close, relog and check every one, the filter by its label.
@@ -292,6 +304,8 @@ server's answer instead of failing on what was there before.
 | `groundItemOption` | `item` (name) or `itemId`, `op`, `option`, `x`+`y` | (0.10.0) Clicks ground op `op` (1 to 5; Take is 3, logs' Light is 4) on the nearest such item on the ground, as `takeItem` does Take; `option` is the menu text. RuneLite doesn't give an item's ground options, so the script names the op. |
 | `useItemOnItem` | `item` (name) or `itemId`, `onItem` or `onItemId` | (0.10.0) Clicks Use on the first such item in the inventory, then the first other slot holding the second item, as the server reads it (IF_BUTTONT). Retries until both are there; doesn't wait for the result. |
 | `enterAmount` | `amount` | (0.11.0) Waits for the chatbox's number prompt (meslayer mode 7, as after Withdraw-X or a settings number), puts the amount in it and presses Enter, then waits until the prompt has closed. |
+| `addFriend`, `deleteFriend` | `name` | (0.13.0) Clicks the Friends tab's Add Friend (or Delete Friend) button, waits for its chatbox prompt, types the name and presses Enter, as a player does; the client's own scripts then check it and tell the server. Waits for the list to arrive first and for the prompt to close after. Doesn't wait for the server's answer; follow it with `assertFriend`. |
+| `assertFriend` | `name`, `world` or `absent` | (0.13.0) Waits until the friends list shows the name (case and spaces against underscores don't matter) on world `world`, 0 for offline; or, with `absent: true`, until the name isn't on it. The result lists the whole list. |
 | `typeText` | `text` | (0.12.0) Types the text as key presses, one character at a time (press, typed, release on the client's canvas), for what reads the keyboard itself, such as the All Settings search box after its Search. Passes a game tick after the keys reach the canvas, so the client has taken them before the next step; check their effect with that step. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 

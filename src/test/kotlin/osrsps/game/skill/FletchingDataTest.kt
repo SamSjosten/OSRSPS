@@ -46,7 +46,27 @@ class FletchingDataTest {
     }
 
     @Test
-    fun `a recipe counts what the inventory can make, and removeObj takes from several slots`() {
+    fun `stringing, arrows and darts match the Wiki`() {
+        assertEquals(12, data.stringing.size)
+        assertEquals(Triple(841, 5, 50), data.stringing.getValue(50).let { Triple(it.product, it.level, it.xpTenths) })
+        assertEquals(Triple(859, 85, 915), data.stringing.getValue(70).let { Triple(it.product, it.level, it.xpTenths) })
+        assertTrue(data.stringing.values.all { it.first == 2 && it.interval == 2 && it.inputs.last() == ObjCount(1777, 1) })
+        val headless = data.headless!!
+        assertEquals(listOf(ObjCount(52, 1), ObjCount(314, 1)), headless.inputs)
+        assertTrue(headless.batch && headless.amount == 15 && headless.xpTenths == 10)
+        val arrows = data.arrows.mapValues { (_, it) -> Triple(it.product, it.level, it.xpTenths) }
+        assertEquals(Triple(882, 1, 13), arrows[39])
+        assertEquals(Triple(892, 75, 125), arrows[44])
+        assertEquals(Triple(11212, 90, 150), arrows[11237])
+        val darts = data.darts.mapValues { (_, it) -> Triple(it.product, it.level, it.xpTenths) }
+        assertEquals(Triple(806, 10, 18), darts[819])
+        assertEquals(Triple(811, 81, 188), darts[824])
+        assertEquals(Triple(11230, 95, 250), darts[11232])
+        assertTrue(data.darts.values.all { it.batch && it.amount == 10 })
+    }
+
+    @Test
+    fun `a batch counts short sets, and a recipe counts what the inventory can make, and removeObj takes from several slots`() {
         val inventory = Inventory(93, 28)
         val logs = ObjType(1511, "Logs")
         val recipe = product(1511, 50)
@@ -56,5 +76,9 @@ class FletchingDataTest {
         assertEquals(3, recipe.times(inventory))
         Making.removeObj(inventory, 1511, 2)
         assertEquals(1L, inventory.count(1511))
+        val sets = data.headless!!
+        inventory.add(ObjType(52, "Arrow shaft", stackable = true), 20)
+        inventory.add(ObjType(314, "Feather", stackable = true), 31)
+        assertEquals(2, sets.times(inventory), "15 and 5")
     }
 }
