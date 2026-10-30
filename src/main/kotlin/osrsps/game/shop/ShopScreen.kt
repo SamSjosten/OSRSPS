@@ -210,7 +210,9 @@ class ShopScreen(
         repeat(amount) {
             val stock = shop.count(type.id)
             if (stock <= 0) return message(player, ShopLines.OUT_OF_STOCK)
-            if (shop.type.onePerPlayer(type.id) && inv.count(type.id) + player.bank.count(type.id) > 0) {
+            // Worn counts too, or wielding the one held lets a player buy another (fourth review, 30 Oct 2026).
+            val owned = inv.count(type.id) + player.equipment.count(type.id) + player.bank.count(type.id)
+            if (shop.type.onePerPlayer(type.id) && owned > 0) {
                 return message(player, ShopLines.ALREADY_HAVE, "item" to type.name)
             }
             val price = shop.buyPrice(type.id, type.cost, stock)
