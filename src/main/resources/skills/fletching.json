@@ -1,0 +1,55 @@
+{
+ "about": "Fletching, as the OSRS Wiki's item pages give it (read 2026-10-30). knifeOnLogs: what a knife on each kind of log makes, in the Make-X box's order (guessed: shafts, javelin shafts, the bows, the stock), with the level, the XP in tenths, how many one log makes and the message key in FletchingLines. Every product takes 'first' ticks after the choice, then 'interval' ticks each: the Arrow shaft page's 'Make-X is 2, then 3 ticks' and the Wooden stock page's 'Make-all is 2, then 3 ticks'; the bow (u) pages give 3 ticks with no note, so they are taken to work the same (inferred). Ids are the 241 cache's; names are its gamevals. Redwood logs make only shafts here: the redwood shield is out.",
+ "knife": 946,
+ "anim": 1248,
+ "first": 2,
+ "interval": 3,
+ "knifeOnLogs": [
+  {"log": 1511, "name": "logs", "products": [
+   {"obj": 52, "name": "arrow_shaft", "amount": 15, "level": 1, "xpTenths": 50, "message": "shafts"},
+   {"obj": 19584, "name": "javelin_shaft", "amount": 15, "level": 3, "xpTenths": 50, "message": "javelin_shafts"},
+   {"obj": 50, "name": "unstrung_shortbow", "amount": 1, "level": 5, "xpTenths": 50, "message": "bow"},
+   {"obj": 48, "name": "unstrung_longbow", "amount": 1, "level": 10, "xpTenths": 100, "message": "bow"},
+   {"obj": 9440, "name": "xbows_crossbow_stock_wood", "amount": 1, "level": 9, "xpTenths": 60, "message": "stock"}
+  ]},
+  {"log": 1521, "name": "oak_logs", "products": [
+   {"obj": 52, "name": "arrow_shaft", "amount": 30, "level": 15, "xpTenths": 100, "message": "shafts"},
+   {"obj": 54, "name": "unstrung_oak_shortbow", "amount": 1, "level": 20, "xpTenths": 165, "message": "bow"},
+   {"obj": 56, "name": "unstrung_oak_longbow", "amount": 1, "level": 25, "xpTenths": 250, "message": "bow"},
+   {"obj": 9442, "name": "xbows_crossbow_stock_oak", "amount": 1, "level": 24, "xpTenths": 160, "message": "stock"}
+  ]},
+  {"log": 1519, "name": "willow_logs", "products": [
+   {"obj": 52, "name": "arrow_shaft", "amount": 45, "level": 30, "xpTenths": 150, "message": "shafts"},
+   {"obj": 60, "name": "unstrung_willow_shortbow", "amount": 1, "level": 35, "xpTenths": 333, "message": "bow"},
+   {"obj": 58, "name": "unstrung_willow_longbow", "amount": 1, "level": 40, "xpTenths": 415, "message": "bow"},
+   {"obj": 9444, "name": "xbows_crossbow_stock_willow", "amount": 1, "level": 39, "xpTenths": 220, "message": "stock"}
+  ]},
+  {"log": 6333, "name": "teak_logs", "products": [
+   {"obj": 9446, "name": "xbows_crossbow_stock_teak", "amount": 1, "level": 46, "xpTenths": 270, "message": "stock"}
+  ]},
+  {"log": 1517, "name": "maple_logs", "products": [
+   {"obj": 52, "name": "arrow_shaft", "amount": 60, "level": 45, "xpTenths": 200, "message": "shafts"},
+   {"obj": 64, "name": "unstrung_maple_shortbow", "amount": 1, "level": 50, "xpTenths": 500, "message": "bow"},
+   {"obj": 62, "name": "unstrung_maple_longbow", "amount": 1, "level": 55, "xpTenths": 583, "message": "bow"},
+   {"obj": 9448, "name": "xbows_crossbow_stock_maple", "amount": 1, "level": 54, "xpTenths": 320, "message": "stock"}
+  ]},
+  {"log": 6332, "name": "mahogany_logs", "products": [
+   {"obj": 9450, "name": "xbows_crossbow_stock_mahogany", "amount": 1, "level": 61, "xpTenths": 410, "message": "stock"}
+  ]},
+  {"log": 1515, "name": "yew_logs", "products": [
+   {"obj": 52, "name": "arrow_shaft", "amount": 75, "level": 60, "xpTenths": 250, "message": "shafts"},
+   {"obj": 68, "name": "unstrung_yew_shortbow", "amount": 1, "level": 65, "xpTenths": 675, "message": "bow"},
+   {"obj": 66, "name": "unstrung_yew_longbow", "amount": 1, "level": 70, "xpTenths": 750, "message": "bow"},
+   {"obj": 9452, "name": "xbows_crossbow_stock_yew", "amount": 1, "level": 69, "xpTenths": 500, "message": "stock"}
+  ]},
+  {"log": 1513, "name": "magic_logs", "products": [
+   {"obj": 52, "name": "arrow_shaft", "amount": 90, "level": 75, "xpTenths": 300, "message": "shafts"},
+   {"obj": 72, "name": "unstrung_magic_shortbow", "amount": 1, "level": 80, "xpTenths": 833, "message": "bow"},
+   {"obj": 70, "name": "unstrung_magic_longbow", "amount": 1, "level": 85, "xpTenths": 915, "message": "bow"},
+   {"obj": 21952, "name": "xbows_crossbow_stock_magic", "amount": 1, "level": 78, "xpTenths": 700, "message": "stock"}
+  ]},
+  {"log": 19669, "name": "redwood_logs", "products": [
+   {"obj": 52, "name": "arrow_shaft", "amount": 105, "level": 90, "xpTenths": 350, "message": "shafts"}
+  ]}
+ ]
+}

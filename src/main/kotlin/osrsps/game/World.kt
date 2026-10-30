@@ -114,8 +114,11 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Making
 import osrsps.game.skill.Cooking
 import osrsps.game.skill.Fishing
+import osrsps.game.skill.Fletching
+import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
@@ -388,6 +391,10 @@ class World(
     val cooking = Cooking(this)
     val smithing = Smithing(this)
 
+    /** The Make-X loop the artisan skills share. */
+    val making = Making(this)
+    val fletching = Fletching(this, FletchingData.load())
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -453,6 +460,7 @@ class World(
         fishing.register()
         cooking.register()
         smithing.register()
+        fletching.register()
         loadDialogue()
     }
 

@@ -1,0 +1,32 @@
+{
+ "name": "Artisan step 1: a knife on logs opens the Make-X box and cuts three shortbows (u) at 99, then a longbow needs level 10 (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel fletching 99", "expectMessage": "Fletching set to level 99"},
+  {"step": "command", "text": "::item 946", "expectMessage": "Added 1 x Knife"},
+  {"step": "command", "text": "::item 1511 3", "expectMessage": "Added 3 x Logs"},
+
+  {"step": "useItemOnItem", "item": "Knife", "onItem": "Logs"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti, the Make-X box: shafts, javelin shafts, shortbow, longbow, stock"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 17, "comment": "the third item, the shortbow (u); the box suggests all 3"},
+  {"step": "assertAnimation", "id": 1248, "comment": "human_fletching"},
+  {"step": "assertInventory", "item": "Shortbow (u)", "count": 3, "timeoutMs": 15000, "comment": "2 ticks, then 3 each"},
+  {"step": "assertInventory", "item": "Logs", "count": 0},
+  {"step": "assertMessage", "contains": "fletching.bow"},
+  {"step": "assertStat", "skill": "Fletching", "level": 99, "xp": 13034446, "comment": "5 XP a shortbow"},
+
+  {"step": "command", "text": "::setlevel fletching 1", "expectMessage": "Fletching set to level 1"},
+  {"step": "command", "text": "::item 1511 1", "expectMessage": "Added 1 x Logs"},
+  {"step": "useItemOnItem", "item": "Knife", "onItem": "Logs"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 18, "comment": "the longbow (u)"},
+  {"step": "assertMessage", "contains": "fletching.level level=10"},
+  {"step": "assertInventory", "item": "Logs", "count": 1},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
