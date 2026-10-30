@@ -15,10 +15,17 @@ import osrsps.game.ObjTypes
 private val logger = KotlinLogging.logger {}
 
 /** One item a shop starts with: [count] of [type], one more (or less) every [restockTicks] until it is back at [count]. */
-class ShopStock(val type: ObjType, val count: Int, val restockTicks: Int) {
+class ShopStock(
+    val type: ObjType,
+    val count: Int,
+    val restockTicks: Int,
+    /** A price the shop charges whatever the item's value, where the Wiki gives one that the percentages don't. */
+    val fixedPrice: Int? = null,
+) {
     init {
         require(count >= 0) { "Bad stock count $count of $type" }
         require(restockTicks >= 1) { "Bad restock time $restockTicks for $type" }
+        require(fixedPrice == null || fixedPrice >= 1) { "Bad fixed price $fixedPrice for $type" }
     }
 }
 
@@ -50,6 +57,9 @@ class ShopType(
 
     fun stocks(obj: Int): Boolean = stock.any { it.type.id == obj }
 
+    /** The fixed price [obj] sells at, if its stock entry has one. */
+    fun fixedPrice(obj: Int): Int? = stock.firstOrNull { it.type.id == obj }?.fixedPrice
+
     override fun toString(): String = "$title ($key)"
 }
 
@@ -76,7 +86,7 @@ class ShopTypes(val all: List<ShopType>, /** What the loader warned about, for t
         /**
          * Reads the shop file: each `shops` entry has a `key`, `title`, `inv` (id) and `size`, `general`, `sellAt`,
          * `buyAt` and `changePer` in tenths of a percent, the `npcs` that run it (ids, gameval names or menu names, as
-         * spawn files take) and its `stock`, each an `item` id with its `name`, `count` and `restock` ticks. An item
+         * spawn files take) and its `stock`, each an `item` id with its `name`, `count` and `restock` ticks, and an optional fixed `price`. An item
          * whose name the cache doesn't agree with is warned about; a shop with an item or NPC the cache lacks is left
          * out with a warning, so a test cache with few items still starts.
          */
@@ -100,7 +110,10 @@ class ShopTypes(val all: List<ShopType>, /** What the loader warned about, for t
                             return@mapNotNull null
                         }
                         if (!type.name.equals(name, ignoreCase = true)) warnings += "$key: $id is ${type.name}, not $name"
-                        ShopStock(type, item.required("count").jsonPrimitive.int, item.required("restock").jsonPrimitive.int)
+                        ShopStock(
+                            type, item.required("count").jsonPrimitive.int, item.required("restock").jsonPrimitive.int,
+                            item["price"]?.jsonPrimitive?.int,
+                        )
                     }
                     val npcs = entry.required("npcs").jsonArray.mapNotNull { npc ->
                         val name = npc.jsonPrimitive.content

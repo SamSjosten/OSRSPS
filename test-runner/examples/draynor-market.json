@@ -1,0 +1,250 @@
+{
+ "name": "Draynor piece step 3: Fortunato's, Olivia's and Diango's talks (::keys on) and their shops: a jug of vinegar, a potato seed and a Disk of Returning at the Wiki's prices",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 30000",
+   "expectMessage": "Added 30,000 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3083 3250 0",
+   "expectMessage": "Teleported to 3083, 3250, 0",
+   "comment": "in the market, between Fortunato, Olivia and Diango"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Fortunato",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fortunato.help]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fortunato.back]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fortunato.please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fortunato.just_looking]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fortunato.wonderful]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fortunato.stock]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fortunato.something]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[fortunato.yes]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fortunato.yes]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "the Wine Shop"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 5,
+   "op": 2,
+   "comment": "Buy 1 on the jug of vinegar, the fifth item: 1 coin, in stock since Rag and Bone Man I counts as done"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Jug of vinegar",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 29999
+  },
+  {
+   "step": "npcOption",
+   "npc": "Olivia",
+   "option": "Talk-to",
+   "comment": "clicking her closes the Wine Shop"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[olivia.seeds]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[olivia.where]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[olivia.where]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[olivia.honest]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Olivia",
+   "option": "Trade"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "the Draynor Seed Market"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 potato seed: 120% of 2, rounded down"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Potato seed",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 29997
+  },
+  {
+   "step": "npcOption",
+   "npc": "Diango",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[diango.howdy]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[diango.selling]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[diango.selling]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "Diango's Toy Store"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 30,
+   "op": 2,
+   "comment": "Buy 1 Disk of Returning, the 30th item, at the Wiki's fixed 21,000"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Disk of Returning",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 8997
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

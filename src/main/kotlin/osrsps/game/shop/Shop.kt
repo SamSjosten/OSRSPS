@@ -83,8 +83,12 @@ class Shop(val type: ShopType) {
         version++
     }
 
-    /** What the shop charges for one [obj] of value [cost] while it holds [stock]: at least 1 coin. */
-    fun buyPrice(obj: Int, cost: Int, stock: Int): Int = maxOf(1, price(cost, type.sellAt, type.changePer, stock - type.baseStock(obj)))
+    /**
+     * What the shop charges for one [obj] of value [cost] while it holds [stock]: at least 1 coin, or the item's fixed
+     * price when the shop file gives one (guessed: a fixed price doesn't move with the stock).
+     */
+    fun buyPrice(obj: Int, cost: Int, stock: Int): Int =
+        type.fixedPrice(obj) ?: maxOf(1, price(cost, type.sellAt, type.changePer, stock - type.baseStock(obj)))
 
     /** What the shop pays for one [obj] of value [cost] while it holds [stock]. */
     fun sellPrice(obj: Int, cost: Int, stock: Int): Int = price(cost, type.buyAt, type.changePer, stock - type.baseStock(obj))

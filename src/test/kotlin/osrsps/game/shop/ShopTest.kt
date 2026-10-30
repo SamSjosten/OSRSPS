@@ -16,6 +16,14 @@ class ShopTest {
         1931 to 1, 1935 to 1, 20742 to 140, 1735 to 1, 946 to 6, 1925 to 2, 22660 to 500, 1923 to 4, 1887 to 10, 590 to 1,
         1755 to 1, 952 to 3, 2347 to 1, 550 to 1, 9003 to 2,
         1265 to 1, 1351 to 16, 1349 to 56, 1353 to 200, 1363 to 182, 1365 to 650, 1369 to 1690,
+        // Draynor's market.
+        1993 to 1, 7919 to 500, 7810 to 1,
+        5318 to 2, 5319 to 3, 5324 to 3, 5322 to 4, 5320 to 8, 5323 to 18, 5321 to 56, 5305 to 2, 5306 to 5, 5097 to 4, 5096 to 2,
+        5307 to 2, 5308 to 3, 5309 to 6, 5310 to 8, 5311 to 14,
+        2520 to 100, 2522 to 100, 2524 to 100, 2526 to 100, 4613 to 50, 11705 to 50, 11706 to 50, 11707 to 30, 11708 to 30,
+        11709 to 30, 12727 to 150, 13188 to 500, 13328 to 49, 13660 to 200, 13658 to 100, 13679 to 100, 13681 to 200, 13215 to 100,
+        13216 to 100, 13217 to 100, 13218 to 100, 21314 to 80, 22355 to 1, 22358 to 1, 22361 to 1, 19699 to 10, 21354 to 0,
+        13203 to 1, 12600 to 1, 981 to 120, 22364 to 40,
     )
 
     private val shopFile = ShopTest::class.java.getResource(ShopTypes.RESOURCE)!!.readText()
@@ -28,6 +36,9 @@ class ShopTest {
             NpcType(2813, "Shop keeper", internalName = "generalshopkeeper1"),
             NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
             NpcType(10619, "Bob", internalName = "bob"),
+            NpcType(1260, "Fortunato", internalName = "rag_wine_merchant"),
+            NpcType(500, "Olivia", internalName = "seed_merchant"),
+            NpcType(8693, "Diango", internalName = "aprilfoolshorsesalesman"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -38,19 +49,37 @@ class ShopTest {
             1 to 0, 1 to 0, 182 to 56, 1 to 0, 7 to 2, 2 to 0, 650 to 200, 5 to 1, 13 to 4, 1 to 0, 1 to 0, 3 to 1, 1 to 0, 1 to 0, 2 to 0,
         ),
         "bobs_brilliant_axes" to listOf(1 to 0, 16 to 9, 56 to 33, 200 to 120, 182 to 109, 650 to 390, 1690 to 1014),
+        // Read 2026-10-30.
+        "draynor_wine_shop" to listOf(1 to 0, 1 to 0, 140 to 84, 500 to 300, 1 to 0),
+        "draynor_seed_market" to listOf(
+            2 to 1, 3 to 1, 3 to 1, 4 to 2, 9 to 4, 21 to 10, 67 to 33, 2 to 1, 6 to 3, 4 to 2, 2 to 1, 2 to 1, 3 to 1, 7 to 3, 9 to 4, 16 to 8,
+        ),
+        // The Wiki's N/A (untradeable, so never bought) is null.
+        "diangos_toy_store" to listOf(
+            150 to 50, 150 to 50, 150 to 50, 150 to 50, 75 to null, 75 to null, 75 to null, 45 to null, 45 to null, 45 to null,
+            225 to null, 750 to null, 73 to null, 300 to null, 150 to 50, 150 to null, 300 to null, 150 to null, 150 to null,
+            150 to null, 150 to null, 120 to null, 1 to 0, 1 to 0, 1 to 0, 15 to 5, 1 to 0, 1 to 0, 1 to 0, 21000 to 60, 60 to null,
+        ),
     )
 
     @Test
     fun `the shop file reads with every item and keeper, and its prices are the Wiki's`() {
         val shops = realShops()
         assertEquals(emptyList(), shops.warnings)
-        assertEquals(listOf("lumbridge_general_store", "bobs_brilliant_axes"), shops.all.map { it.key })
+        assertEquals(
+            listOf("lumbridge_general_store", "bobs_brilliant_axes", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store"),
+            shops.all.map { it.key },
+        )
+        assertEquals(shops["diangos_toy_store"], shops.ofNpc(8693))
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
         assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
         for (type in shops.all) {
             val shop = Shop(type)
-            val prices = type.stock.map { shop.buyPrice(it.type.id, it.type.cost, it.count) to shop.sellPrice(it.type.id, it.type.cost, it.count) }
-            assertEquals(wikiPrices.getValue(type.key), prices, type.key)
+            val wiki = wikiPrices.getValue(type.key)
+            val prices = type.stock.mapIndexed { i, it ->
+                shop.buyPrice(it.type.id, it.type.cost, it.count) to wiki[i].second?.let { _ -> shop.sellPrice(it.type.id, it.type.cost, it.count) }
+            }
+            assertEquals(wiki, prices, type.key)
         }
     }
 
@@ -58,7 +87,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(2, shops.warnings.size)
+        assertEquals(5, shops.warnings.size)
     }
 
     @Test
