@@ -50,6 +50,20 @@ class HeadlessCombatTest {
     }
 
     @Test
+    fun `a drained man's defence roll falls with his Defence, and the NPC list shows it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dana").use { client ->
+                val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
+                assertEquals("Drained Man #${npc.index}'s defence by 1 to 0/1.", client.commandReply("drain defence 1 man") { it.startsWith("Drained") })
+                client.command("combat man")
+                client.await("the drained defence roll") { client.messages().firstOrNull { it.text.startsWith("vs Man #${npc.index} (level 2, 7 hp): defence roll 387,") } }
+                client.command("npcs 5")
+                client.await("the drain in ::npcs") { client.messages().firstOrNull { it.text.contains("; drained defence 0/1, a level back in ") } }
+            }
+        }
+    }
+
+    @Test
     fun `attacking a man punches him to death, with XP for every point, and he comes back`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->

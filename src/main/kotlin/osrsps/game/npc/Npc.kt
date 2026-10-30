@@ -2,6 +2,7 @@ package osrsps.game.npc
 
 import net.rsprot.protocol.game.outgoing.info.npcinfo.NpcAvatar
 import osrsps.game.Facing
+import osrsps.game.NpcStat
 import osrsps.game.NpcType
 import osrsps.game.Player
 import osrsps.map.Tile
@@ -203,6 +204,16 @@ class Npc(
      */
     var poison: Int = 0
     var poisonTicks: Int = -1
+
+    /**
+     * How many levels of each [NpcStat] it has been drained by, by ordinal; see [osrsps.game.combat.NpcDrains]. Ticks to
+     * its next level back, -1 with nothing drained.
+     */
+    val drained = IntArray(NpcStat.entries.size)
+    var drainRestoreTicks: Int = -1
+
+    /** Its level of [stat] now: its type's, less what has been drained. */
+    fun level(stat: NpcStat): Int = maxOf(0, type.stats[stat] - drained[stat.ordinal])
 
     /** The animation, hitsplats and health bars given this cycle; see [NpcEffects]. */
     val effects = NpcEffects()
