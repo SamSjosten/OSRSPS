@@ -17,6 +17,8 @@ class Player(
     var z: Int,
     var level: Int,
     varTypes: VarTypes = VarTypes.NONE,
+    /** The server's XP rate ([World.xpRate]); 1x for players tests make on their own. */
+    xpRate: XpRate = XpRate(),
 ) {
     lateinit var session: Session<Player>
 
@@ -155,7 +157,7 @@ class Player(
             vars[World.VARP_RUN] = if (value) 1 else 0
         }
 
-    val skills = PlayerSkills()
+    val skills = PlayerSkills(xpRate)
 
     /** The 28-slot inventory, inv 93. Changes are sent at the end of the cycle. */
     val inventory = Inventory(Inventory.INV, Inventory.INV_CAPACITY)
