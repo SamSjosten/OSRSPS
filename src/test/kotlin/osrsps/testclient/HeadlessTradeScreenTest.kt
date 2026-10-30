@@ -47,6 +47,12 @@ class HeadlessTradeScreenTest {
     }
 
     @Test
+    fun `the offer panels give ops 1 to 5 and Examine, op 10`() {
+        assertEquals(0b10_0001_1111, Trades.OFFER_OPS)
+        assertEquals(1 shl 9, Trades.EXAMINE_OP)
+    }
+
+    @Test
     fun `offered items leave the inventory, show on both screens with their value, and come back on a decline`(@TempDir dir: Path) {
         server(dir).use { server ->
             trading(server) { alice, bob ->

@@ -221,6 +221,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   each waits up to 3 minutes for the other and then fails.
 - `social-pm-test.json` and `social-pm-test2.json` (need 0.14.0): two players at once like the friends pair; each adds the
   other, `test` messages `test2` and `test2` answers.
+- `social-trade-offer-test.json` and `social-trade-offer-test2.json` (need 0.16.0): two players at once; `test` offers
+  10 coins, sees `test2`'s bronze axe on offer, takes 5 coins back and declines, and both get their items back. Each
+  starts from `lumbridge-bare` and ends with `::reset`.
 - `social-trade-request-test.json` and `social-trade-request-test2.json` (need 0.16.0): two players at once; `test` asks
   `test2` to trade, `test2` accepts, both trade screens open and `test` declines.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.

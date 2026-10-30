@@ -491,8 +491,8 @@ class Trades(
         const val EXAMINE = 10
 
         /** Ops 1 to 5 and 10 (op n is bit n - 1), and Examine alone. */
-        const val OFFER_OPS = 0b1_0001_1111
         const val EXAMINE_OP = 1 shl (EXAMINE - 1)
+        const val OFFER_OPS = 0b1_1111 or EXAMINE_OP
 
         private const val OP_COLOUR = "<col=ff9040>"
 
