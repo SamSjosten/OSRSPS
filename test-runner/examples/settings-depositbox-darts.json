@@ -1,0 +1,29 @@
+{
+ "name": "Client settings: Bank Deposit Box item quantity check off deposits a whole stack used on the box without asking, and Make-X for darts on opens the Make-X box for darts (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack and bank; ::reset at the end puts both back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+
+  {"step": "command", "text": "::varbit 15958 1", "expectMessage": "Varbit 15958", "comment": "bank_depositbox_oplocu_askquantity 1: the row shows unticked (inverted), so no asking"},
+  {"step": "command", "text": "::item logs 3", "expectMessage": "Added 3 x Logs"},
+  {"step": "command", "text": "::tele 3209 3220 2", "expectMessage": "Teleported to 3209, 3220, 2", "comment": "the castle's top floor deposit box"},
+  {"step": "useItemOnLoc", "item": "Logs", "loc": "Bank Deposit Box"},
+  {"step": "assertInventory", "item": "Logs", "count": 0, "comment": "all three, with no amount prompt"},
+  {"step": "command", "text": "::varbit 15958 0", "expectMessage": "Varbit 15958", "comment": "back to asking, the default"},
+
+  {"step": "command", "text": "::setlevel fletching 99", "expectMessage": "Fletching set to level 99"},
+  {"step": "command", "text": "::varbit 10971 1", "expectMessage": "Varbit 10971", "comment": "option_fletch_dart_or_bolt_makex on"},
+  {"step": "command", "text": "::item 314 20", "expectMessage": "Added 20 x Feather"},
+  {"step": "command", "text": "::item 819 20", "expectMessage": "Added 20 x Bronze dart tip"},
+  {"step": "useItemOnItem", "item": "Feather", "onItem": "Bronze dart tip"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti, titled fletching.dart_sets_title"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "bronze darts; the box suggests both sets"},
+  {"step": "assertInventory", "item": "Bronze dart", "count": 20, "timeoutMs": 10000},
+  {"step": "command", "text": "::varbit 10971 0", "expectMessage": "Varbit 10971"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
