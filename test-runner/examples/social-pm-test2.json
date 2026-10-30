@@ -1,0 +1,17 @@
+{
+ "name": "Private messages, two players (run with social-pm-test.json on the other VM at the same time): test2 adds test, gets test's message and answers it",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::clearfriends", "expectMessage": "Friends list emptied"},
+  {"step": "command", "text": "::clearignores", "expectMessage": "Ignore list emptied"},
+  {"step": "logout", "comment": "so the Friends tab starts empty"},
+  {"step": "waitForLogin", "comment": "auto login"},
+  {"step": "addFriend", "name": "test"},
+  {"step": "assertFriend", "name": "test", "world": 301, "timeoutMs": 180000, "comment": "waits for test on the other VM"},
+  {"step": "assertMessage", "contains": "pm one from test", "timeoutMs": 120000},
+  {"step": "privateMessage", "name": "test", "text": "pm two from test2"},
+  {"step": "waitTicks", "ticks": 10, "comment": "so test has it"},
+  {"step": "deleteFriend", "name": "test"}
+ ]
+}

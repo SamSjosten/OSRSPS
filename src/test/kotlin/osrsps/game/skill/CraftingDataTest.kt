@@ -32,4 +32,25 @@ class CraftingDataTest {
         assertEquals(Triple(1133, 41, 400), data.studded.getValue(1129).let { Triple(it.product, it.level, it.xpTenths) })
         assertEquals(Triple(1097, 44, 420), data.studded.getValue(1095).let { Triple(it.product, it.level, it.xpTenths) })
     }
+
+    @Test
+    fun `gems match the Wiki, and the crush pairs give each page's chart`() {
+        assertEquals(10, data.gems.size)
+        assertEquals(Triple(1607, 20, 500), data.gems.getValue(1623).let { Triple(it.product, it.level, it.xpTenths) })
+        assertEquals(Triple(19493, 89, 2000), data.gems.getValue(19496).let { Triple(it.product, it.level, it.xpTenths) })
+        assertTrue(data.gems.values.all { it.tools == listOf(1755) && it.first == 2 && it.interval == 2 })
+        assertEquals(setOf(1625, 1627, 1629), data.gems.filterValues { it.chance != null }.keys)
+        // The charts' points, in 256ths: opal 1, 50, 99; jade 1, 13, 50, 99; red topaz 1, 2, 16, 49, 50, 99.
+        val points = mapOf(
+            1625 to mapOf(1 to 129, 50 to 190, 99 to 251),
+            1627 to mapOf(1 to 101, 13 to 119, 50 to 174, 99 to 246),
+            1629 to mapOf(1 to 91, 2 to 93, 16 to 114, 49 to 164, 50 to 166, 99 to 241),
+        )
+        for ((uncut, chart) in points) {
+            val chance = data.gems.getValue(uncut).chance!!
+            for ((level, expected) in chart) assertEquals(expected, SuccessRoll.chance(chance.low, chance.high, level), "gem $uncut at $level")
+        }
+        assertEquals(listOf(38, 50, 63), listOf(1625, 1627, 1629).map { data.gems.getValue(it).chance!!.failedXpTenths })
+        assertTrue(data.gems.values.mapNotNull { it.chance }.all { it.failed == 1633 })
+    }
 }

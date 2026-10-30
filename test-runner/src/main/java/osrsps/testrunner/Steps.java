@@ -1626,6 +1626,7 @@ final class Steps
 		final String text;
 		/** Opens the prompt: null when done, else why not yet. */
 		private final java.util.function.Function<Game, String> open;
+		private boolean listsArrived;
 		private boolean opened;
 		private boolean sent;
 
@@ -1648,13 +1649,43 @@ final class Steps
 			return new PromptEntry("deleteFriend", timeoutMs, "delete friend " + name, 3, name, g -> g.clickWidget(FRIENDS, DELETE_FRIEND, -1, 1));
 		}
 
+		static PromptEntry addIgnore(long timeoutMs, String name)
+		{
+			return new PromptEntry("addIgnore", timeoutMs, "add ignore " + name, 4, name, g -> ignoreTab(g, ADD_IGNORE));
+		}
+
+		static PromptEntry deleteIgnore(long timeoutMs, String name)
+		{
+			return new PromptEntry("deleteIgnore", timeoutMs, "delete ignore " + name, 5, name, g -> ignoreTab(g, DELETE_IGNORE));
+		}
+
+		/** A friend's Message option: the private message prompt for {@code name}, then the message. */
+		static PromptEntry privateMessage(long timeoutMs, String name, String text)
+		{
+			return new PromptEntry("privateMessage", timeoutMs, "message " + name + ": " + text, 6, text, g -> g.runClientScript(MESSAGE_SCRIPT, new Object[] {name}));
+		}
+
+		/** Clicks {@code button} on the ignore tab, first opening the tab from the Friends tab when it isn't. */
+		private static String ignoreTab(Game game, int button)
+		{
+			if (game.interfaceOpen(IGNORES))
+			{
+				return game.clickWidget(IGNORES, button, -1, 1);
+			}
+			String error = game.clickWidget(FRIENDS, 1, -1, 1);
+			return error != null ? error : "opening the ignore tab";
+		}
+
 		@Override
 		Poll poll(Run run)
 		{
 			int now = run.game.promptMode();
 			if (!opened)
 			{
-				if (run.game.friends() == null)
+				// The ignore tab replaces the Friends tab, whose widgets friends() reads, so an open ignore tab counts
+				// as the lists having arrived, and so does a list seen before this step switched tabs.
+				listsArrived = listsArrived || run.game.friends() != null || run.game.interfaceOpen(IGNORES);
+				if (!listsArrived)
 				{
 					return Poll.waiting("the friends list hasn't arrived");
 				}
@@ -1733,7 +1764,7 @@ final class Steps
 			return seen != null && seen == world ? Poll.pass(list) : Poll.waiting(list);
 		}
 
-		private static String key(String name)
+		static String key(String name)
 		{
 			return name.trim().toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replace('\u00a0', '_');
 		}
@@ -1742,6 +1773,42 @@ final class Steps
 		String describe()
 		{
 			return absent ? "assert " + name + " is not a friend" : "assert friend " + name + (world == 0 ? " offline" : " on world " + world);
+		}
+	}
+
+	/**
+	 * Passes when the ignore list holds {@code name} (matched as {@link AssertFriend} matches), or, with {@code absent},
+	 * when it doesn't.
+	 */
+	static final class AssertIgnore extends Step
+	{
+		final String name;
+		final boolean absent;
+
+		AssertIgnore(long timeoutMs, String name, boolean absent)
+		{
+			super("assertIgnore", timeoutMs, false);
+			this.name = name;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			java.util.List<String> ignores = run.game.ignores();
+			if (ignores == null)
+			{
+				return Poll.waiting("the ignore list hasn't arrived");
+			}
+			boolean seen = ignores.stream().anyMatch(n -> AssertFriend.key(n).equals(AssertFriend.key(name)));
+			String list = "ignored " + ignores;
+			return seen != absent ? Poll.pass(list) : Poll.waiting(list);
+		}
+
+		@Override
+		String describe()
+		{
+			return absent ? "assert " + name + " is not ignored" : "assert " + name + " is ignored";
 		}
 	}
 }

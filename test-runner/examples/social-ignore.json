@@ -1,0 +1,21 @@
+{
+ "name": "Ignore list: test ignores test2 through the ignore tab's Add Name prompt (opened from the Friends tab), the server keeps it (::ignores) and it's deleted again; the ignore tab's friends button goes back to the Friends tab",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::clearfriends", "expectMessage": "Friends list emptied", "comment": "a friend can't be ignored"},
+  {"step": "command", "text": "::clearignores", "expectMessage": "Ignore list emptied"},
+  {"step": "logout", "comment": "so the Friends tab starts empty"},
+  {"step": "waitForLogin", "comment": "auto login"},
+  {"step": "addIgnore", "name": "test2"},
+  {"step": "assertInterface", "interfaceId": 432},
+  {"step": "assertIgnore", "name": "test2"},
+  {"step": "command", "text": "::ignores", "expectMessage": "Ignored: test2"},
+  {"step": "deleteIgnore", "name": "test2"},
+  {"step": "assertIgnore", "name": "test2", "absent": true},
+  {"step": "command", "text": "::ignores", "expectMessage": "Your ignore list is empty"},
+  {"step": "clickWidget", "interfaceId": 432, "component": 1, "comment": "View Friends List"},
+  {"step": "assertInterface", "interfaceId": 432, "absent": true},
+  {"step": "assertInterface", "interfaceId": 429}
+ ]
+}

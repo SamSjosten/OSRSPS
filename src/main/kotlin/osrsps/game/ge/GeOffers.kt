@@ -47,6 +47,9 @@ class GeAccount {
     /** By item id; entries whose window has passed are dropped when next looked at. */
     val limits = LinkedHashMap<Int, BuyLimitUse>()
 
+    /** Offers collected to nothing since the screen last flushed, by slot; see GrandExchange.collect. Not saved. */
+    val collected = arrayOfNulls<GeOffer>(SLOTS)
+
     operator fun get(slot: Int): GeOffer? = offers[checkSlot(slot)]
 
     operator fun set(slot: Int, offer: GeOffer?) {
@@ -61,6 +64,7 @@ class GeAccount {
 
     fun clear() {
         offers.fill(null)
+        collected.fill(null)
         limits.clear()
     }
 

@@ -236,6 +236,8 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::friends` | **everyone.** Your friends list as the server keeps it, each friend's world or offline |
 | `::clearfriends` | Empties your friends list, for tests that start from none (the Friends tab shows it after a relog) |
 | `::poison [severity\|venom\|cure]`, `::poison npc severity\|venom [index\|name]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity. `npc` poisons or envenoms an NPC instead (by index from `::npcs` or by name, the nearest one you can fight by default), unless it is immune: it is hit every 30 ticks with no XP, and `::npcs` shows it |
+| `::ignores` | **everyone.** Your ignore list as the server keeps it |
+| `::clearignores` | Empties your ignore list, for tests that start from none |
 | `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
@@ -446,7 +448,8 @@ Spin on a spinning wheel (every loc the cache calls one, Lumbridge Castle's firs
 Make-X box over the wool and flax held; either used on a wheel opens it over that alone (`game/skill/Crafting.kt`,
 words under `crafting.*`, numbers in `skills/crafting.json`). A needle on leather, hard leather or green to black dragon
 leather opens the box over what it makes; thread is held, and one is used up every 5 items (the count is kept with the
-account). Steel studs on a leather body or chaps stud them. The making is the artisan loop in `Making.kt`.
+account). Steel studs on a leather body or chaps stud them. A chisel on an uncut gem cuts it; opal, jade and red topaz
+can crush into a crushed gemstone, rolled as the gathering skills roll. The making is the artisan loop in `Making.kt`.
 
 | Crafting behaviour | Source |
 |--------------------|--------|
@@ -455,8 +458,10 @@ account). Steel studs on a leather body or chaps stud them. The making is the ar
 | Animation 466 (`spinningwheel`) as the player's | inferred from its gameval name |
 | Leather and d'hide levels, XP, leathers per item; 3 ticks an item, hard leather 2; thread's 5 uses | OSRS Wiki, Leather, Hardleather body, Green dragon leather and the d'hide pages, Thread |
 | Studs 3 ticks; studded body 41, 40 XP; studded chaps 44, 42 XP | OSRS Wiki, Studded body and Studded chaps |
+| Gem levels, XP, 2 ticks a gem; opal, jade and red topaz's crush chances (pairs worked back from each page's formula and checked against its chart, `CraftingDataTest`) and crushed XP | OSRS Wiki, each gem's page |
+| Each gem's cutting animation (`human_*cutting`) | cache 241 gamevals |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle | out of scope |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst | out of scope |
 
 ## Items and inventory
 
@@ -1060,7 +1065,9 @@ words for it further down the file count too.
 Each conversation declares its lines in a `Lines` object (`object HansLines : Lines("hans", "Transcript:Hans")`), with
 where on the Wiki page each line is, and is listed in `DialogueLines.ALL`. Examine texts of NPCs and locs are in the same
 file, `examine.npc_<id>` and `examine.loc_<id>` (the `Examines` object, from `src/main/resources/examines.json`), each
-with its name and where on the Wiki its text is. To get a file with every key in it:
+with its name and where on the Wiki its text is. The locs listed are every named type in the castle and, outside it,
+every named type in the rest of Lumbridge (map squares 49 to 51 by 49 to 51, west of the Al Kharid fence). To get a
+file with every key in it:
 
 ```bash
 docker compose run --rm osrsps dialogue-keys   # on 214; or ./gradlew run --args=dialogue-keys

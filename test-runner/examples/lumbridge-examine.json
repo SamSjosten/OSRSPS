@@ -1,0 +1,99 @@
+{
+ "name": "Rest of Lumbridge step 11: Examine (::keys on) on the scenery outside the castle: the church's altar, organ, pews and candles, and the graveyard's two gravestones",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3242 3206 0",
+   "expectMessage": "Teleported to 3242, 3206, 0",
+   "comment": "in the church, before the altar"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3242,
+   "y": 3206,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "loc": "Altar",
+   "option": "Examine",
+   "x": 3243,
+   "y": 3207
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_409]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Church organ",
+   "option": "Examine",
+   "x": 3243,
+   "y": 3204
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_3500]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Church pew",
+   "option": "Examine",
+   "x": 3241,
+   "y": 3209
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_5788]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Candles",
+   "option": "Examine",
+   "x": 3240,
+   "y": 3204
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_9160]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3242 3201 0",
+   "expectMessage": "Teleported to 3242, 3201, 0",
+   "comment": "the graveyard"
+  },
+  {
+   "step": "locOption",
+   "loc": "Gravestone",
+   "option": "Examine",
+   "x": 3241,
+   "y": 3200,
+   "comment": "one of the two gravestone types; 405 stands beside it"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_404]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Gravestone",
+   "option": "Examine",
+   "x": 3243,
+   "y": 3202
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_405]"
+  }
+ ]
+}
