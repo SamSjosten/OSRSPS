@@ -134,7 +134,7 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   its raw rat meat taken) and a giant frog (its big bones taken).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
-  opened together and shut again.
+  opened together and shut again, and the curtain upstairs in the palace opened and shut.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

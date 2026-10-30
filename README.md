@@ -680,7 +680,7 @@ the guards' talk and the examines of the guards and the gate are in the dialogue
 `examine.npc_4287`, `examine.loc_44050`).
 
 Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
-Guard's talk, and opens and shuts the palace's west doors; `HeadlessAlKharidTest` does the same through the headless
+Guard's talk, and opens and shuts the palace's west doors and a curtain; `HeadlessAlKharidTest` does the same through the headless
 client, with the talk in `BorderGuardTest`.
 
 ## Equipment
