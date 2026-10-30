@@ -74,9 +74,20 @@
   },
   {
    "step": "command",
+   "text": "::tele 3235 3218 0",
+   "expectMessage": "Teleported to 3235, 3218, 0",
+   "comment": "a quiet tile in the town, with no goblin, giant rat or giant frog about, so the NPC put in below is the nearest of its name both to ::kill and to the client"
+  },
+  {
+   "step": "command",
+   "text": "::npc giantrat",
+   "expectMessage": "Spawned Giant rat (2856)",
+   "comment": "a giant rat of our own on this tile: in the swamp, ::kill's nearest and the client's nearest could differ"
+  },
+  {
+   "step": "command",
    "text": "::kill giant rat",
-   "expectMessage": "Killed Giant rat #",
-   "comment": "the nearest giant rat, as the client's nearest Giant rat below"
+   "expectMessage": "Killed Giant rat #"
   },
   {
    "step": "assertAnimation",
@@ -99,6 +110,11 @@
    "step": "assertInventory",
    "item": "Raw rat meat",
    "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::npc giant_frog_nodrops",
+   "expectMessage": "Spawned Giant frog (8700)"
   },
   {
    "step": "command",
@@ -126,6 +142,11 @@
    "step": "assertInventory",
    "item": "Big bones",
    "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::delnpc mine",
+   "expectMessage": "Removed"
   },
   {
    "step": "command",
