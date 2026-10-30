@@ -136,6 +136,8 @@ import osrsps.game.skill.CraftingData
 import osrsps.game.skill.Fishing
 import osrsps.game.skill.Fletching
 import osrsps.game.skill.FletchingData
+import osrsps.game.skill.Herblore
+import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
@@ -482,6 +484,7 @@ class World(
     val making = Making(this)
     val fletching = Fletching(this, FletchingData.load())
     val crafting = Crafting(this, CraftingData.load())
+    val herblore = Herblore(this, HerbloreData.load())
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -582,6 +585,7 @@ class World(
         smithing.register()
         fletching.register()
         crafting.register()
+        herblore.register()
         loadDialogue()
     }
 

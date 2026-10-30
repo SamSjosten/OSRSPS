@@ -1,5 +1,5 @@
 {
- "name": "Artisan step 7: at Lumbridge's furnace at 99, soda ash and sand make two molten glass (buckets back), a pipe blows two vials; water softens clay; at Barbarian Village's potter's wheel the soft clay shapes four unfired cups and the oven fires them (::keys on). Wheel and oven tiles from 2004Scape's map m48_53 (unchecked against the 241 cache)",
+ "name": "Artisan step 7: at Lumbridge's furnace at 99, soda ash and sand make two molten glass (buckets back), a pipe blows two vials; water softens clay; at Barbarian Village's potter's wheel the soft clay shapes four unfired cups and the oven fires them (::keys on). Wheel 14887 and oven 11601 as ::locs lists them there",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -39,7 +39,7 @@
   {"step": "assertInterface", "interfaceId": 270, "comment": "the six unfired items"},
   {"step": "clickWidget", "interfaceId": 270, "component": 16, "comment": "the second item, the cup"},
   {"step": "assertInventory", "item": "Unfired cup", "count": 4, "timeoutMs": 10000, "comment": "four cups to a soft clay"},
-  {"step": "useItemOnLoc", "item": "Unfired cup", "locId": 14888, "x": 3084, "y": 3407},
+  {"step": "useItemOnLoc", "item": "Unfired cup", "locId": 11601, "x": 3084, "y": 3407},
   {"step": "assertInterface", "interfaceId": 270},
   {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the cup; the box suggests all 4"},
   {"step": "assertInventory", "item": "Empty cup", "count": 4, "timeoutMs": 40000, "comment": "7 ticks each; none crack at 99"},

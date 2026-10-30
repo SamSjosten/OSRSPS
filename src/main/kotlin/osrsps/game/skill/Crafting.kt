@@ -338,7 +338,7 @@ class Crafting(private val world: World, val data: CraftingData) {
 
         /** Lumbridge has none: Barbarian Village's potter's wheel and pottery oven. */
         const val POTTERS_WHEEL = 14887
-        const val POTTERY_OVEN = 14888
+        const val POTTERY_OVEN = 11601
 
         /** Every loc the cache calls a spinning wheel that has a Spin option. */
         fun wheels(world: World) = locsNamed(world, "Spinning wheel", SPIN)
