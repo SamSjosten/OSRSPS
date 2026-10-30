@@ -219,7 +219,7 @@ class GrandExchangeTest {
     @Test
     fun `a reconnect sends a reset for a slot emptied while the old connection was dying`() {
         val sent = mutableListOf<OutgoingGameMessage>()
-        val screen = GrandExchangeScreen(ge, { _, _, _ -> }, { _, message -> sent += message })
+        val screen = GrandExchangeScreen(ge, { _, _, _ -> }, send = { _, message -> sent += message })
         fun slotsSent() = sent.filterIsInstance<UpdateStockMarketSlotV2>().map { it.slot }
 
         // At login only slots in use go.
