@@ -1,0 +1,17 @@
+{
+ "name": "Drained NPC stats: ::drain defence 1 on a man spawned east of the castle, his defence roll in ::combat falling from 430 to 387, read off ::npcs, and the level back a minute on",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's unarmed punch; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle, away from the courtyard's men"},
+  {"step": "command", "text": "::npc man", "expectMessage": "Spawned Man"},
+  {"step": "command", "text": "::combat man", "expectMessage": "(level 2, 7 hp): defence roll 430,", "comment": "(1 + 9) x (-21 + 64)"},
+  {"step": "command", "text": "::drain defence 1 man", "expectMessage": "'s defence by 1 to 0/1."},
+  {"step": "command", "text": "::combat man", "expectMessage": "(level 2, 7 hp): defence roll 387,", "comment": "(0 + 9) x 43"},
+  {"step": "command", "text": "::npcs 3", "expectMessage": "; drained defence 0/1, a level back in "},
+  {"step": "waitTicks", "ticks": 102, "comment": "a level back each minute"},
+  {"step": "command", "text": "::combat man", "expectMessage": "(level 2, 7 hp): defence roll 430,"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

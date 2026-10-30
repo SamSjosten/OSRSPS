@@ -41,7 +41,8 @@ fun CommandRegistry.registerNpcCommands(world: World) {
             val max = npc.type.stats.hitpoints
             val hurt = if (npc.hitpoints < max) "; ${npc.hitpoints}/$max hp" else ""
             val poison = world.poison.describe(npc)?.let { "; $it" }.orEmpty()
-            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$freeze$hurt$poison")
+            val drained = world.npcDrains.describe(npc)?.let { "; $it" }.orEmpty()
+            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$freeze$hurt$poison$drained")
         }
         if (near.size > MAX_LISTED) reply("...and ${near.size - MAX_LISTED} more.")
     }

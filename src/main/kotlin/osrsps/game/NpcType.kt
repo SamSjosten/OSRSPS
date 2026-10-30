@@ -94,6 +94,25 @@ data class NpcStats(
         /** From the six levels in opcode order (74 attack to 79 magic). */
         fun of(levels: IntArray): NpcStats = NpcStats(levels[0], levels[1], levels[2], levels[3], levels[4], levels[5])
     }
+
+    /** The level of [stat]. */
+    operator fun get(stat: NpcStat): Int = when (stat) {
+        NpcStat.ATTACK -> attack
+        NpcStat.DEFENCE -> defence
+        NpcStat.STRENGTH -> strength
+        NpcStat.RANGED -> ranged
+        NpcStat.MAGIC -> magic
+    }
+}
+
+/** A monster's levels that can be drained ([osrsps.game.combat.NpcDrains]); its Hitpoints are its health instead. */
+enum class NpcStat {
+    ATTACK, DEFENCE, STRENGTH, RANGED, MAGIC;
+
+    companion object {
+        fun parse(text: String): NpcStat = entries.firstOrNull { it.name.equals(text, ignoreCase = true) }
+            ?: throw IllegalArgumentException("no stat '$text': ${entries.joinToString { it.name.lowercase() }}")
+    }
 }
 
 /**

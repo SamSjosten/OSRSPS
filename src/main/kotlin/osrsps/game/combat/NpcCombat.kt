@@ -9,6 +9,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import osrsps.game.NpcStat
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
@@ -92,6 +93,8 @@ data class NpcCombatDef(
     /** The Wiki's immunities: poison and venom from players' weapons do nothing to it. */
     val poisonImmune: Boolean = false,
     val venomImmune: Boolean = false,
+    /** The most of each stat's level drains can take, in percent ([NpcDrains]); a stat not listed can be drained to 0. */
+    val drainCaps: Map<NpcStat, Int> = emptyMap(),
 )
 
 /** NPC combat definitions by NPC type id. An NPC with none can't be attacked. */
@@ -127,7 +130,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * ```
          *
          * An animation may be `null` for none. An entry may add `"magicAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
-         * `"poison"` (the Wiki's starting damage of the poison its attacks give) and `"immune": ["poison", "venom"]`.
+         * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom"]` and
+         * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent).
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
          * [seqs] turns into ids; a name it doesn't know fails the file, unless it knows no names at all (a cache with
@@ -196,6 +200,9 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 poison = (entry["poison"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..Poison.VENOM_MAX) { "poison starting at $it" } } * 5,
                 poisonImmune = "poison" in immune,
                 venomImmune = "venom" in immune,
+                drainCaps = entry["drainCap"]?.jsonObject?.entries?.associate { (stat, percent) ->
+                    NpcStat.parse(stat) to percent.jsonPrimitive.int.also { require(it in 0..100) { "a drain cap of $it%" } }
+                }.orEmpty(),
             )
         }
 
