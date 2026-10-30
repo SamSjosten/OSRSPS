@@ -139,8 +139,8 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
   signed manifest carries the table, and RSProx's target names the same build). RuneLite moves to each new revision
   within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
   revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
-- Nothing to install until the first release is published, which needs Sam's one-time key setup (`launcher/README.md`,
-  "Releases").
+- The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
+  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases").
 
 ### Files for our own launcher
 
@@ -233,6 +233,8 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
+| `::friends` | **everyone.** Your friends list as the server keeps it, each friend's world or offline |
+| `::clearfriends` | Empties your friends list, for tests that start from none (the Friends tab shows it after a relog) |
 | `::poison [severity\|venom\|cure]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |

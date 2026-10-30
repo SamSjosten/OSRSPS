@@ -1,0 +1,19 @@
+{
+ "name": "Friends list, two players (run with social-friends-test2.json on the other VM at the same time): test adds test2, sees test2 come online on world 301, go offline at test2's logout and come back; the list is kept by the server (::friends)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::clearfriends", "expectMessage": "Friends list emptied"},
+  {"step": "logout", "comment": "so the Friends tab starts empty"},
+  {"step": "waitForLogin", "comment": "auto login"},
+  {"step": "assertFriend", "name": "test2", "absent": true},
+  {"step": "addFriend", "name": "test2"},
+  {"step": "assertFriend", "name": "test2", "world": 301, "timeoutMs": 180000, "comment": "waits for test2 to log in on the other VM"},
+  {"step": "command", "text": "::friends", "expectMessage": "test2 (world 301)"},
+  {"step": "assertFriend", "name": "test2", "world": 0, "timeoutMs": 180000, "comment": "test2 logs out"},
+  {"step": "assertFriend", "name": "test2", "world": 301, "timeoutMs": 120000, "comment": "test2's auto login"},
+  {"step": "deleteFriend", "name": "test2"},
+  {"step": "assertFriend", "name": "test2", "absent": true},
+  {"step": "command", "text": "::friends", "expectMessage": "Your friends list is empty"}
+ ]
+}
