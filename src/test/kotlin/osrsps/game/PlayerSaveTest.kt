@@ -7,6 +7,7 @@ import kotlin.io.path.name
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
@@ -93,6 +94,18 @@ class PlayerSaveTest {
         val fromOld = world.loadPlayer(3, "old")
         assertEquals(0, fromOld.playedTicks)
         assertTrue(fromOld.createdAt >= before)
+    }
+
+    @Test
+    fun `run waiting on the energy threshold is kept, and a save without it isn't waiting`() {
+        val player = world.loadPlayer(1, "Test")
+        player.runEnergy = 0
+        player.runRanOut = true
+        assertTrue(world.save(player))
+        assertTrue(world.loadPlayer(2, "test").runRanOut, "a logout doesn't lose the wait")
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("runRanOut" !in none)
+        assertFalse(PlayerSave.fromJson(none).runRanOut)
     }
 
     @Test
