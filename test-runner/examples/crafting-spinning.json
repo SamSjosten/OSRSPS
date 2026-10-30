@@ -1,0 +1,33 @@
+{
+ "name": "Artisan step 3: Spin on Lumbridge Castle's spinning wheel with nothing does nothing, then at 99 spins two wool into balls; flax used on the wheel at level 1 needs 10 (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3210 3213 1", "comment": "beside the castle's first-floor spinning wheel"},
+  {"step": "assertLocation", "x": 3210, "y": 3213, "plane": 1},
+
+  {"step": "locOption", "locId": 14889, "option": "Spin", "x": 3209, "y": 3212},
+  {"step": "assertMessage", "contains": "game.nothing_interesting", "comment": "guessed: nothing to spin"},
+
+  {"step": "command", "text": "::setlevel crafting 99", "expectMessage": "Crafting set to level 99"},
+  {"step": "command", "text": "::item 1737 2", "expectMessage": "Added 2 x Wool"},
+  {"step": "locOption", "locId": 14889, "option": "Spin", "x": 3209, "y": 3212},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti over the wool"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "ball of wool; the box suggests both"},
+  {"step": "assertInventory", "item": "Ball of wool", "count": 2, "timeoutMs": 10000, "comment": "2 ticks, then 3"},
+  {"step": "assertMessage", "contains": "crafting.spin"},
+  {"step": "assertStat", "skill": "Crafting", "level": 99, "xp": 13034436, "comment": "2.5 XP a ball"},
+
+  {"step": "command", "text": "::setlevel crafting 1", "expectMessage": "Crafting set to level 1"},
+  {"step": "command", "text": "::item 1779 1", "expectMessage": "Added 1 x Flax"},
+  {"step": "locOption", "locId": 14889, "option": "Spin", "x": 3209, "y": 3212},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "only the flax is left to spin"},
+  {"step": "assertMessage", "contains": "crafting.level level=10"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

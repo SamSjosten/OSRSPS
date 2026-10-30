@@ -182,6 +182,7 @@ class Player(
 
     /** What the client was last sent of [ge]. Not saved. */
     val geSent = osrsps.game.ge.GeSent()
+    val geSetup = osrsps.game.ge.GeSetup()
 
     /** The chatbox's public, private and trade filters, as the client last set them. Saved. */
     var chatFilters: ChatFilters = ChatFilters.DEFAULT
@@ -230,6 +231,9 @@ class Player(
 
     /** Ticks to the next poison hit or immunity step, -1 while the poison varp is 0; see [osrsps.game.combat.Poison]. Not saved. */
     var poisonTicks: Int = -1
+
+    /** The first tick they aren't stunned on; see [osrsps.game.combat.StatusEffects]. Not saved. */
+    var stunnedUntil: Long = 0
 
     /** The NPC that hit them last, and the tick it did; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var attackedBy: Npc? = null

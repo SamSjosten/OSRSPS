@@ -68,6 +68,7 @@ import osrsps.game.combat.Prayer
 import osrsps.game.combat.Food
 import osrsps.game.combat.Foods
 import osrsps.game.combat.Poison
+import osrsps.game.combat.StatusEffects
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
@@ -94,6 +95,7 @@ import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerDraynorVillage
+import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -123,6 +125,8 @@ import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
 import osrsps.game.skill.Making
 import osrsps.game.skill.Cooking
+import osrsps.game.skill.Crafting
+import osrsps.game.skill.CraftingData
 import osrsps.game.skill.Fishing
 import osrsps.game.skill.Fletching
 import osrsps.game.skill.FletchingData
@@ -313,7 +317,11 @@ class World(
     val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
 
     /** The Grand Exchange's offers screen; see [GrandExchangeScreen]. */
-    val grandExchangeScreen = GrandExchangeScreen(grandExchange, interfaces::openModal)
+    val grandExchangeScreen = GrandExchangeScreen(
+        grandExchange, interfaces::openModal, scripts,
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        words = ::textFor,
+    )
 
     /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
@@ -378,7 +386,10 @@ class World(
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
         prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) },
         examine = inventoryTab::examine, value = { this.itemPrices.deathValue(it) },
-        words = ::textFor, cure = { poison.clear(it) },
+        words = ::textFor, cure = {
+            poison.clear(it)
+            statusEffects.clear(it)
+        },
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -413,6 +424,7 @@ class World(
     /** The Make-X loop the artisan skills share. */
     val making = Making(this)
     val fletching = Fletching(this, FletchingData.load())
+    val crafting = Crafting(this, CraftingData.load())
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -425,6 +437,18 @@ class World(
     val poison = Poison(hit = { player, damage, hitsplat -> meleeCombat.statusHit(player, damage, hitsplat) }, words = ::textFor)
 
     val potions = Potions(potionData, words = ::textFor, poison = poison)
+
+    /** Stuns on players; see [StatusEffects]. */
+    val statusEffects = StatusEffects(
+        currentTick = { tick },
+        stop = { player ->
+            player.waypoints.clear()
+            player.interaction = null
+            npcInteractions.leave(player)
+            player.session.queue(SetMapFlagV2.RESET)
+        },
+        hit = { player, npc, damage -> meleeCombat.hitPlayer(player, npc, damage, tick) },
+    )
 
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
@@ -465,6 +489,7 @@ class World(
         registerShops(this)
         registerLumbridgeTown(this)
         registerDraynorVillage(this)
+        registerAxeLogs(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -486,6 +511,7 @@ class World(
         cooking.register()
         smithing.register()
         fletching.register()
+        crafting.register()
         loadDialogue()
     }
 
@@ -837,7 +863,14 @@ class World(
         // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
         // after them for a follow that ended in them.
         sendFace(player)
-        follows.process(player, move = { move(player) }) { interactions.process(player) { move(player) } }
+        // A stunned player neither walks nor uses anything; the stun ended their route and interaction already. The
+        // standing still is still a move, so run energy comes back as it does while delayed.
+        if (statusEffects.isStunned(player, tick)) {
+            player.waypoints.clear()
+            move(player)
+        } else {
+            follows.process(player, move = { move(player) }) { interactions.process(player) { move(player) } }
+        }
         sendFace(player)
         // A loc or obj used after the player's step (a ladder on arrival) can teleport them once move() has run.
         if (player.teleported) {
@@ -978,6 +1011,18 @@ class World(
             return
         }
         player.heldActions.addLast(action)
+    }
+
+    /**
+     * Whether [player]'s click on the map, an NPC, a loc, an obj on the ground or a player is dropped: while delayed
+     * (inferred: a delayed player can't walk away, as on an agility obstacle) or stunned ([StatusEffects]). A stunned
+     * player's map flag is put back down, as the click goes nowhere (guessed).
+     */
+    private fun held(player: Player): Boolean {
+        if (player.scripts.delayed) return true
+        if (!statusEffects.isStunned(player, tick)) return false
+        player.session.queue(SetMapFlagV2.RESET)
+        return true
     }
 
     /**
@@ -1277,7 +1322,7 @@ class World(
     /** A click on the game view or minimap. [keyCombination] is 1 with ctrl held, 2 with ctrl and shift. */
     fun onMoveClick(player: Player, x: Int, z: Int, keyCombination: Int) = act(player) {
         // Inferred: a delayed player can't walk away, as on an agility obstacle.
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
         scripts.interrupt(player)
         player.interaction = null
         npcInteractions.leave(player)
@@ -1298,7 +1343,7 @@ class World(
      */
     fun onGroundObjOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
         // Delayed players can't walk off, as for a move click.
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
         val interaction = groundObjs.click(player, id, x, z, option)
         if (interaction == null) {
             follows.clickedElsewhere(player)
@@ -1326,7 +1371,7 @@ class World(
     /** [clicked] is who held the slot when the packet was read, null if nobody did. */
     private fun playerOp(player: Player, clicked: Player?, option: Int, ctrl: Boolean) {
         // Inferred, as for a walk: a delayed player's clicks do nothing.
-        if (player.scripts.delayed) return
+        if (held(player)) return
         if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT) {
             logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
@@ -1380,7 +1425,7 @@ class World(
     /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
     fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
         // Inferred, as for a walk: a delayed player's clicks do nothing.
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
         npcInteractions.leave(player)
         locInteractions.click(player, id, x, z, option, ctrl)
         // A loc that had gone by the time the click was read leaves any follow behind; the click still ends it.
@@ -1392,7 +1437,7 @@ class World(
      * [interfaceId]:[componentId], or a spell. Only inventory items are handled; spells on locs come later.
      */
     fun onLocTarget(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
         if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
             logger.info { "${player.username} used $interfaceId:$componentId sub $sub on loc $id (not handled)" }
             follows.clickedElsewhere(player)
@@ -1409,7 +1454,7 @@ class World(
      */
     fun onNpcOp(player: Player, index: Int, option: Int, sub: Int, ctrl: Boolean) = act(player) {
         // Inferred, as for a walk: a delayed player's clicks do nothing.
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
         npcInteractions.click(player, index, option, sub, ctrl)
         follows.clickedElsewhere(player)
     }
@@ -1419,7 +1464,7 @@ class World(
      * Only inventory items are handled; spells come with magic.
      */
     fun onNpcTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
         if (interfaceId == Spells.SPELLBOOK) {
             npcInteractions.castOn(player, index, ctrl) { npc -> magicCombat.cast(player, npc, componentId) }
             follows.clickedElsewhere(player)
@@ -1491,7 +1536,7 @@ class World(
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
         if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
-        if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op)) return@act
+        if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
@@ -1671,6 +1716,11 @@ class World(
      * The player typed an amount into a prompt (resume_p_countdialog). A script waiting for it carries on now; with none
      * waiting (the prompt was closed) it does nothing. Dropped while delayed, as other clicks are.
      */
+    /** The client picked [obj] in the chatbox's item search (resume_p_objdialog). */
+    fun onResumeObj(player: Player, obj: Int) = act(player) {
+        if (!grandExchangeScreen.chooseItem(player, obj)) logger.debug { "${player.username} picked item $obj, which nothing waits for" }
+    }
+
     fun onResumeCount(player: Player, count: Int) = act(player) {
         if (player.scripts.delayed) return@act
         if (!scripts.resumeCount(player, count)) logger.debug { "${player.username} entered $count, which nothing waits for" }

@@ -55,8 +55,7 @@ class AllSettings(
     /** The side panel's All Settings button. RSMod (rev 233) opens the window as an overlay in the floater. */
     fun open(player: Player) {
         // Guess (live not seen): the window opens on its category, never mid-search. A search left on when the window
-        // closed (or saved over a relog) would otherwise reopen with no search op, and searchbar_keypress ignores keys
-        // until searchbar_op sets %floater_search_listen_for_keyboard again, which a relog clears.
+        // closed (and saved over a relog) would otherwise reopen it searching, where searchbar_setup_op gives no op.
         setVarbit(player, VARBIT_SEARCHING, 0)
         // settings_init draws the window from settings_tracking as it loads, so the client gets the server's copy first.
         interfaces.sendVarpNow(player, VARP_SETTINGS_TRACKING)
@@ -92,10 +91,13 @@ class AllSettings(
             // script3829 and settings_declutter_op: the "Less info" and "Hide locked" buttons.
             TOOLTIP_TOGGLE -> flipVarbit(player, VARBIT_TOOLTIPS_HIDDEN)
             DECLUTTER_TOGGLE -> flipVarbit(player, VARBIT_DECLUTTER)
-            // searchbar_op, which does nothing while a search is on (the client also takes the op away then).
+            // searchbar_op, which does nothing while a search is on (the client also takes the op away then). It also
+            // turns on floater_search_listen_for_keyboard, the next bit of settings_tracking, which searchbar_keypress
+            // needs: the server sends the whole varp, so it must copy both or the client's copy of that bit goes to 0.
             SEARCH -> if (varbit(player, VARBIT_SEARCHING) == 0) {
                 player.settingsDropdown = -1
                 setVarbit(player, VARBIT_SEARCHING, 1)
+                setVarbit(player, VARBIT_SEARCH_KEYBOARD, 1)
             }
             CATEGORIES_CLICKZONE -> clickTab(player, sub)
             SETTINGS_CLICKZONE -> clickRow(player, sub, op)
@@ -164,6 +166,8 @@ class AllSettings(
         }
         // One input at a time: an unanswered prompt or picker goes first, so its answer can't land on this one.
         interfaces.dropCount(player)
+        // settings_input_op hands the keyboard from the search to the prompt; copied for the same reason as SEARCH's.
+        setVarbit(player, VARBIT_SEARCH_KEYBOARD, 0)
         setVarbit(player, VARBIT_SELECTED_SETTING, row.id)
         val prompt = SettingsLines.NUMBER_PROMPTS[row.id] ?: SettingsLines.NUMBER_PROMPT
         player.settingsInputOpen = true
@@ -567,6 +571,7 @@ class AllSettings(
         const val VARP_SETTINGS_TRACKING = 2855
 
         const val VARBIT_SEARCHING = 16073
+        const val VARBIT_SEARCH_KEYBOARD = 16074
         const val VARBIT_CATEGORY = 9656
         const val VARBIT_SELECTED_SETTING = 9657
         const val VARBIT_DECLUTTER = 17796
@@ -652,6 +657,7 @@ class AllSettings(
         /** Each varbit's place in the 241 cache (config/dump.varbit), checked against the cache at start. */
         val VARBITS: Map<Int, VarbitType> = mapOf(
             VARBIT_SEARCHING to VarbitType(VARP_SETTINGS_TRACKING, 0, 0),
+            VARBIT_SEARCH_KEYBOARD to VarbitType(VARP_SETTINGS_TRACKING, 1, 1),
             VARBIT_CATEGORY to VarbitType(VARP_SETTINGS_TRACKING, 4, 7),
             VARBIT_SELECTED_SETTING to VarbitType(VARP_SETTINGS_TRACKING, 8, 17),
             VARBIT_DECLUTTER to VarbitType(3552, 27, 27),
