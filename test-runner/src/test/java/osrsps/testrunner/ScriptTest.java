@@ -117,6 +117,7 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"groundItemOption\",\"item\":\"Logs\",\"option\":\"Light\"}]}", "step 1 needs \"op\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"groundItemOption\",\"item\":\"Logs\",\"op\":6,\"option\":\"Light\"}]}", "needs \"op\" 1 to 5");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"useItemOnItem\",\"item\":\"Tinderbox\"}]}", "and \"onItem\" or \"onItemId\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"useItemOnLoc\",\"item\":\"Gold bar\"}]}", "and \"loc\" or \"locId\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"itemOption\",\"option\":\"Wield\"}]}", "needs \"item\" (a name) or \"itemId\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"wornOption\",\"slot\":\"tail\",\"option\":\"Remove\"}]}", "must be one of head, cape, neck, weapon");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertEquipment\",\"slot\":\"weapon\"}]}", "or \"empty\": true");

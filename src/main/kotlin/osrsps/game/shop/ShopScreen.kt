@@ -95,9 +95,18 @@ class ShopScreen(
         send(player, IfSetEventsV2(SIDE, SIDE_ITEMS, 0, Inventory.INV_CAPACITY - 1, 0, BankScreen.opMask(1..5) or BankScreen.opMask(10..10)))
     }
 
+    private val closeHooks = HashMap<String, (Player) -> Unit>()
+
+    /** Runs [block] when a player closes the shop called [key], as Ali Morrisane's basic stock sells junk. */
+    fun onClose(key: String, block: (Player) -> Unit) {
+        closeHooks[key] = block
+    }
+
     /** The shop closed: the player stops getting its stock. */
     fun closed(player: Player) {
+        val key = player.openShop?.shop?.type?.key
         player.openShop = null
+        key?.let { closeHooks[it]?.invoke(player) }
     }
 
     /** Moves every shop's stock a step back to its start. Run once a tick. */
@@ -201,7 +210,9 @@ class ShopScreen(
         repeat(amount) {
             val stock = shop.count(type.id)
             if (stock <= 0) return message(player, ShopLines.OUT_OF_STOCK)
-            if (shop.type.onePerPlayer(type.id) && inv.count(type.id) + player.bank.count(type.id) > 0) {
+            // Worn counts too, or wielding the one held lets a player buy another (fourth review, 30 Oct 2026).
+            val owned = inv.count(type.id) + player.equipment.count(type.id) + player.bank.count(type.id)
+            if (shop.type.onePerPlayer(type.id) && owned > 0) {
                 return message(player, ShopLines.ALREADY_HAVE, "item" to type.name)
             }
             val price = shop.buyPrice(type.id, type.cost, stock)
@@ -244,7 +255,7 @@ class ShopScreen(
         val refusal = when {
             base.id == COINS -> ShopLines.CANT_SELL_COINS
             !base.tradeable -> ShopLines.CANT_SELL
-            !shop.type.general && !shop.type.stocks(base.id) -> ShopLines.WRONG_SHOP
+            !shop.type.general && !shop.type.stocks(base.id) || base.id in shop.type.refuses -> ShopLines.WRONG_SHOP
             else -> null
         }
         refusal?.let { message(player, it) }

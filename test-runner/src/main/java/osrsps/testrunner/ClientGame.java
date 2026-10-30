@@ -1162,6 +1162,82 @@ final class ClientGame implements Game
 		return null;
 	}
 
+	@Override
+	public String useItemOnLoc(String name, int id, String locName, int locId, osrsps.testrunner.Tile at)
+	{
+		ItemContainer inventory = client.getItemContainer(InventoryID.INV);
+		if (inventory == null)
+		{
+			return "no inventory yet";
+		}
+		Item[] items = inventory.getItems();
+		int slot = inventorySlot(items, name, id, -1);
+		if (slot < 0)
+		{
+			return "no " + (name != null ? "\"" + name + "\"" : "item " + id) + " in the inventory";
+		}
+		if (client.getWidget(InterfaceID.Inventory.ITEMS) == null)
+		{
+			return "the inventory panel is not open";
+		}
+		Player me = client.getLocalPlayer();
+		if (me == null)
+		{
+			return "no local player";
+		}
+		WorldView wv = client.getTopLevelWorldView();
+		LocalPoint target = at == null ? null : LocalPoint.fromWorld(wv, at.x, at.y);
+		if (at != null && target == null)
+		{
+			return "tile " + at.x + ", " + at.y + " is not in the loaded scene";
+		}
+		// As locOption finds a loc, without an option to match: the nearest one.
+		WorldPoint here = me.getWorldLocation();
+		TileObject best = null;
+		int bestDistance = Integer.MAX_VALUE;
+		for (net.runelite.api.Tile[] column : wv.getScene().getTiles()[wv.getPlane()])
+		{
+			for (net.runelite.api.Tile tile : column)
+			{
+				if (tile == null)
+				{
+					continue;
+				}
+				List<TileObject> objects = new ArrayList<>(Arrays.asList(tile.getGameObjects()));
+				objects.add(tile.getWallObject());
+				objects.add(tile.getDecorativeObject());
+				objects.add(tile.getGroundObject());
+				for (TileObject o : objects)
+				{
+					if (o == null || !locMatches(o, locName, locId) || (target != null && !covers(o, tile, target)))
+					{
+						continue;
+					}
+					int d = o.getWorldLocation().distanceTo(here);
+					if (d < bestDistance)
+					{
+						best = o;
+						bestDistance = d;
+					}
+				}
+			}
+		}
+		if (best == null)
+		{
+			return "no loc " + (locName != null ? "\"" + locName + "\"" : "id " + locId) + (at == null ? "" : " at " + at.x + ", " + at.y)
+				+ " in the scene";
+		}
+		String itemName = client.getItemDefinition(items[slot].getId()).getName();
+		ObjectComposition c = locComposition(best.getId());
+		Point p = best instanceof GameObject ? ((GameObject) best).getSceneMinLocation() : sceneTile(best);
+		// Use on the slot selects it; the click on the loc sends OPLOCT with the item, as useItemOnItem's second click
+		// sends IF_BUTTONT. Not yet seen in the client: whether these params are what a real click on the loc gives.
+		client.menuAction(slot, InterfaceID.Inventory.ITEMS, MenuAction.WIDGET_TARGET, 0, items[slot].getId(), "Use", itemName);
+		client.menuAction(p.getX(), p.getY(), MenuAction.WIDGET_TARGET_ON_GAME_OBJECT, best.getId(), -1, "Use",
+			itemName + " -> " + (c == null ? "" : c.getName()));
+		return null;
+	}
+
 	/** The first slot holding the item, skipping [skip]; -1 if none. */
 	private int inventorySlot(Item[] items, String name, int id, int skip)
 	{

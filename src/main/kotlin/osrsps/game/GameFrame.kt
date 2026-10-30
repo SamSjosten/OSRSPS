@@ -71,6 +71,9 @@ enum class GameFrame(
         const val ORBS_RUN_BUTTON = 28
         const val ORBS_PRAYER_BUTTON = 20
 
+        /** orbs:specbutton, the special attack orb's button. */
+        const val ORBS_SPEC_BUTTON = 36
+
         /** The settings side panel and its "Game client layout" dropdown, settings_side:display_dynamic_setting_1_buttons. */
         const val SETTINGS_SIDE = 116
         const val SETTINGS_CLIENT_LAYOUT_BUTTONS = 40
