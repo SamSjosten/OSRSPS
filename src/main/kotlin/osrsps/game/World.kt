@@ -72,6 +72,7 @@ import osrsps.game.combat.StatusEffects
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
@@ -97,6 +98,7 @@ import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerAxeLogs
+import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -467,6 +469,9 @@ class World(
 
     val potions = Potions(potionData, words = ::textFor, poison = poison)
 
+    /** Monsters' drained stats; see [NpcDrains]. */
+    val npcDrains = NpcDrains { combat.npcCombat[it.type] }
+
     /** Stuns on players; see [StatusEffects]. */
     val statusEffects = StatusEffects(
         currentTick = { tick },
@@ -519,6 +524,7 @@ class World(
         registerLumbridgeTown(this)
         registerDraynorVillage(this)
         registerAxeLogs(this)
+        registerDraynorMarket(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -856,7 +862,10 @@ class World(
         rangedCombat.process()
         magicCombat.process()
         meleeCombat.process()
-        for (npc in npcs.all) poison.process(npc)
+        for (npc in npcs.all) {
+            poison.process(npc)
+            npcDrains.process(npc)
+        }
         deaths.process()
         npcScripts.process()
         npcs.process()

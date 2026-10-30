@@ -31,7 +31,10 @@ class HeadlessShopTest {
     private val axe = ObjType(AXE, "Bronze axe", cost = 16, tradeable = true)
     // A note that claims to note the axe, which doesn't link back: a bad cache link, not anything live has.
     private val looseNote = ObjType(LOOSE_NOTE, "Pot", stackable = true, tradeable = true, certlink = AXE, certtemplate = 799)
-    private val objs = ObjTypes.of(coins, pot, axe, looseNote)
+    // Untradeable, as Diango's spinning plate is: no shop buys it.
+    private val plate = ObjType(PLATE, "Spinning plate", cost = 50)
+    private val chronicle = ObjType(CHRONICLE, "Chronicle", cost = 100)
+    private val objs = ObjTypes.of(coins, pot, axe, looseNote, plate, chronicle)
 
     private val store = ShopType(
         "store", "Test General Store", invId = STORE_INV, size = 40, general = true, sellAt = 1300, buyAt = 400, changePer = 30,
@@ -41,15 +44,21 @@ class HeadlessShopTest {
         "axes", "Test Axes", invId = AXE_INV, size = 1, general = false, sellAt = 1000, buyAt = 600, changePer = 20,
         stock = listOf(ShopStock(axe, 10, 100)), npcs = listOf(BOB),
     )
+    // Diango's Chronicle: one each, so a player holding or banking one is refused. A slow restock keeps the counts still.
+    private val toys = ShopType(
+        "toys", "Test Toys", invId = TOY_INV, size = 1, general = false, sellAt = 1500, buyAt = 500, changePer = 2,
+        stock = listOf(ShopStock(chronicle, 5, 1_000, onePerPlayer = true)), npcs = listOf(DIANGO),
+    )
 
     private val trade = listOf("Talk-to", null, "Trade", null, null)
     private val keeper = NpcSpawn(NpcType(KEEPER, "Shop keeper", ops = trade), 3221, 3220, source = "test")
     private val bob = NpcSpawn(NpcType(BOB, "Bob", ops = listOf("Talk-to", null, "Trade", "Repair", null)), 3223, 3220, source = "test")
+    private val diango = NpcSpawn(NpcType(DIANGO, "Diango", ops = trade), 3221, 3222, source = "test")
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = objs, npcSpawns = listOf(keeper, bob),
-            shopTypes = ShopTypes(listOf(store, axes)), varTypes = VARS, cycleMillis = millis,
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = objs, npcSpawns = listOf(keeper, bob, diango),
+            shopTypes = ShopTypes(listOf(store, axes, toys)), varTypes = VARS, cycleMillis = millis,
         )
     }
 
@@ -117,6 +126,12 @@ class HeadlessShopTest {
                 // Coins can't be sold.
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(COINS), COINS)
                 client.awaitMessage("no selling coins") { it == DialogueText.NONE[ShopLines.CANT_SELL_COINS] }
+                // Nor can an untradeable item, even to a general store.
+                client.command("item $PLATE")
+                client.awaitHeld(PLATE, 1)
+                client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(PLATE), PLATE)
+                client.awaitMessage("no selling the plate") { it == DialogueText.NONE[ShopLines.CANT_SELL] }
+                client.awaitHeld(PLATE, 1)
 
                 // Pots come back one every 10 ticks.
                 client.await("a pot restocked", timeoutMillis = 30_000) { client.inventory(STORE_INV).firstOrNull()?.takeIf { it.id == POT && it.count >= 1 } }
@@ -146,6 +161,45 @@ class HeadlessShopTest {
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(AXE), AXE)
                 client.awaitHeld(COINS, 13)
                 client.awaitStock(AXE_INV, InvObj(AXE, 10))
+            }
+        }
+    }
+
+    @Test
+    fun `a one-per-player item isn't sold to a player who holds or banks one`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $COINS 1000")
+                client.awaitHeld(COINS, 1000)
+                client.open(DIANGO)
+                client.awaitStock(TOY_INV, InvObj(CHRONICLE, 5))
+                // The first sells at 150% of 100.
+                client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 2, 1, CHRONICLE)
+                client.awaitHeld(CHRONICLE, 1)
+                client.awaitHeld(COINS, 850)
+                client.awaitStock(TOY_INV, InvObj(CHRONICLE, 4))
+                // Holding it, a second is refused and nothing moves.
+                client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 2, 1, CHRONICLE)
+                client.awaitMessage("already held") { it == DialogueText.NONE[ShopLines.ALREADY_HAVE, "item" to "Chronicle"] }
+                assertEquals(1, client.held(CHRONICLE))
+                assertEquals(850, client.held(COINS))
+                assertEquals(4, client.inventory(TOY_INV).single()!!.count)
+            }
+            // Banked counts too: a player with one in the bank and none held is refused.
+            server.login("frank").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $COINS 1000")
+                client.awaitHeld(COINS, 1000)
+                server.world.playerNamed("frank")!!.bank.add(chronicle, 1)
+                client.open(DIANGO)
+                client.await("the shop's stock") { client.inventory(TOY_INV).singleOrNull() }
+                val stock = client.inventory(TOY_INV).single()!!.count
+                client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 2, 1, CHRONICLE)
+                client.awaitMessage("already banked") { it == DialogueText.NONE[ShopLines.ALREADY_HAVE, "item" to "Chronicle"] }
+                assertEquals(0, client.held(CHRONICLE))
+                assertEquals(1000, client.held(COINS))
+                assertEquals(stock, client.inventory(TOY_INV).single()!!.count)
             }
         }
     }
@@ -206,6 +260,10 @@ class HeadlessShopTest {
         const val POT = 1931
         const val AXE = 1351
         const val LOOSE_NOTE = 1932
+        const val PLATE = 4613
+        const val CHRONICLE = 13660
+        const val TOY_INV = 137
+        const val DIANGO = 1308
         const val STORE_INV = 3
         const val AXE_INV = 1
         const val KEEPER = 2813
