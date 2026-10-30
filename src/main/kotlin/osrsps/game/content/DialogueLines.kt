@@ -55,6 +55,7 @@ object DialogueLines {
         GemTraderLines, KarimLines, SilkTraderLines, KebabLines, EllisLines, TanningLines,
         HassanLines, OsmanLines, PrinceAliLines, CamelLines,
         ShantayLines, ShantayGuardLines, ShantayGateLines, IrenaLines, PortSarimJailLines,
+        DalburLines, DuelGuideLines, TournamentGuideLines, FronkLines, ArenaStubLines,
         // Draynor Village.
         DraynorSearchLines,
     )
