@@ -1059,7 +1059,9 @@ words for it further down the file count too.
 Each conversation declares its lines in a `Lines` object (`object HansLines : Lines("hans", "Transcript:Hans")`), with
 where on the Wiki page each line is, and is listed in `DialogueLines.ALL`. Examine texts of NPCs and locs are in the same
 file, `examine.npc_<id>` and `examine.loc_<id>` (the `Examines` object, from `src/main/resources/examines.json`), each
-with its name and where on the Wiki its text is. To get a file with every key in it:
+with its name and where on the Wiki its text is. The locs listed are every named type in the castle and, outside it,
+every named type in the rest of Lumbridge (map squares 49 to 51 by 49 to 51, west of the Al Kharid fence). To get a
+file with every key in it:
 
 ```bash
 docker compose run --rm osrsps dialogue-keys   # on 214; or ./gradlew run --args=dialogue-keys
