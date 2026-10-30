@@ -746,6 +746,8 @@ quest, so Al Kharid is as after Prince Ali Rescue.
 | Osman (4286) outside the palace, as after Contact!: the Sophanem talk with a Keris (10581) for 20,000 coins and Menaphos, and the Sorceress's Garden talk; he takes every sq'irk juice held for Thieving experience (350, 1,350, 2,350, 3,000 a glass of winter, spring, autumn, summer); no free Keris (every account counts as having taken Kaleef's, guessed) | OSRS Wiki, Transcript:Osman and Sq'irk juice; tile from 2004Scape map m51_49; a full backpack refused only when paying won't free a slot, guessed |
 | Prince Ali home in the throne room: the map's `prince_ali_palace` (11645) shows as Prince Ali (11580) once varp 273 is 100 or more; two lines and the player's answer | 241 cache; OSRS Wiki, Transcript:Prince Ali Rescue; his tile guessed (the Wiki gives none) |
 | The palace's item spawns: a cabbage in the west room, a jug of water in the east room; its chests, drawers and ladder work as Lumbridge Castle's | OSRS Wiki, Cabbage and Jug of water; tiles from 2004Scape map m51_49; respawn guessed |
+| Fighters: nine Al Kharid warriors (3292) in the palace (slash, max hit 2, back in 25 ticks), six men (`al_kharid_man` 3261, fighting and dropping as any man), nine level 14 scorpions (3024) in the mine and one south of the bank (stab, max hit 2, back in 35 ticks); the warriors drop the man's table, scorpions only an ensouled head (1/25) and a beginner clue (1/100) | OSRS Wiki, Al Kharid warrior, Man and Scorpion, and the DPS calculator; tiles from 2004Scape maps m51_49 to m51_51; the warrior's block animation and the level 14 scorpion's respawn guessed |
+| Camels: the plain Camel (2835) north of town and Al, Elly, Ollie, Cam and Alice (Alice is `alice_the_camel_multinpc` 5953, by varbit 1353); Talk-to without a camulet is a menu of three: dung (it doesn't understand), something unpleasant (one of three lines and one of three reactions, at random) or neither | OSRS Wiki, Camel, each camel's page and Transcript:Camel; tiles are 2004Scape's camel tiles matched to the Wiki's words for each (guessed) |
 | The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
 
 Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only); Ali
@@ -754,14 +756,14 @@ keeper, and the keepers' treasure trail steps. The words of
 the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
 `examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`), as are the shop keepers' (`al_kharid_shop_keeper.*`,
 `al_kharid_shop_assistant.*`, `zeke.*`, `dommik.*`, `louie_legs.*`, `ranael.*`, `gem_trader.*` and each keeper's examine), Karim's and the Silk trader's (`karim.*`, `silk_trader.*`) and the kebab's
-messages (`kebab.*`), and Ellis's talk and the tanning screen's words (`ellis.*`, `tanning.*`), and the palace's (`hassan.*`, `osman.*`, `prince_ali.*`).
-Also left out from the palace: filling vessels at the fountain (no water sources are built yet), the big-window shortcut itself, Osman's Crack the Clue step, and the Emir, who is never seen.
+messages (`kebab.*`), and Ellis's talk and the tanning screen's words (`ellis.*`, `tanning.*`), the palace's (`hassan.*`, `osman.*`, `prince_ali.*`), and the camels' (`camel.*`).
+Also left out from the palace: filling vessels at the fountain (no water sources are built yet), the big-window shortcut itself, Osman's Crack the Clue step, and the Emir, who is never seen. From the fighters and camels: Pickpocket on men and warriors (Thieving comes with the Draynor piece), the warriors joining in when one is attacked (NPC aggression, the Varrock piece), the camulet's talk and camel dung (members, Enakhra's Lament and My Arm's Big Adventure), and Cam's treasure trail step.
 
 Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
 Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
 Bank and through a banker's talk; `al-kharid-shops.json` buys and sells at every shop; `al-kharid-traders.json` buys and eats a kebab and haggles for
-silk; `al-kharid-tanning.json` tans cowhides at Ellis's; `al-kharid-palace.json` talks to Hassan and Prince Ali, tries a big window and buys a Keris from Osman; `HeadlessAlKharidTest` does the same through the headless client, with the talk in
-`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest`, the palace's talk in `AlKharidPalaceTest`, and
+silk; `al-kharid-tanning.json` tans cowhides at Ellis's; `al-kharid-palace.json` talks to Hassan and Prince Ali, tries a big window and buys a Keris from Osman; `al-kharid-fighters.json` examines and kills the fighters and talks to Al the Camel; `HeadlessAlKharidTest` and `HeadlessAlKharidFightersTest` does the same through the headless client, with the talk in
+`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest`, the palace's talk in `AlKharidPalaceTest`, the camels' in `AlKharidCamelsTest`, combat and drops in `NpcCombatTest` and `NpcDropsTest`, and
 the prices in `ShopTest`.
 
 ## Equipment

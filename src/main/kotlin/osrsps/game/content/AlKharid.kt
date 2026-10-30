@@ -103,6 +103,7 @@ fun registerAlKharid(world: World) {
     registerAlKharidTraders(world)
     Ellis.register(world)
     registerAlKharidPalace(world)
+    registerAlKharidCamels(world)
     with(AlKharid) {
         world.doors.registerDouble(PALACE_DOOR_LEFT, PALACE_DOOR_LEFT_OPEN, PALACE_DOOR_RIGHT, PALACE_DOOR_RIGHT_OPEN)
         world.doors.register(CURTAIN, CURTAIN_OPEN)
