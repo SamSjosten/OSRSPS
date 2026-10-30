@@ -18,6 +18,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.StatRestore
 import osrsps.game.social.FriendLists
 import osrsps.game.ge.BuyLimitUse
@@ -37,7 +38,7 @@ class PlayerSave(
     val z: Int,
     val level: Int,
     val runEnergy: Int,
-    /** Varps that aren't 0, by id. */
+    /** Varps that aren't 0, by id, and the special attack energy ([SpecialAttacks.VARP_ENERGY]) whatever it is. */
     val varps: Map<Int, Int>,
     val skills: Map<Skill, SkillSave>,
     /** The inventory's filled slots, by slot. */
@@ -129,6 +130,7 @@ class PlayerSave(
             }
             player.vars[varp] = value
         }
+        if (SpecialAttacks.VARP_ENERGY !in varps) player.vars[SpecialAttacks.VARP_ENERGY] = SpecialAttacks.FULL
         for ((skill, save) in skills) {
             player.skills.setTenths(skill, save.tenths)
             player.skills.setCurrentLevel(skill, save.currentLevel)
@@ -239,6 +241,8 @@ class PlayerSave(
         fun of(player: Player): PlayerSave {
             val varps = LinkedHashMap<Int, Int>()
             player.vars.forEachNonZero { varp, value -> varps[varp] = value }
+            // Kept at 0 too, so a save without it is one from before special attacks, whose energy starts full.
+            varps[SpecialAttacks.VARP_ENERGY] = player.vars[SpecialAttacks.VARP_ENERGY]
             val skills = Skill.entries.associateWith { SkillSave(player.skills.tenths(it), player.skills.currentLevel(it)) }
             val inventory = player.inventory.contents().toMap()
             val equipment = player.equipment.contents().toMap()

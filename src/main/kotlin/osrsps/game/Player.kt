@@ -238,6 +238,9 @@ class Player(
     /** The first tick they aren't stunned on; see [osrsps.game.combat.StatusEffects]. Not saved. */
     var stunnedUntil: Long = 0
 
+    /** Ticks since special attack energy last came back; see [osrsps.game.combat.SpecialAttacks]. Not saved: a login starts it again. */
+    var specRegenTicks: Int = 0
+
     /** The NPC that hit them last, and the tick it did; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var attackedBy: Npc? = null
     var attackedTick: Long = -1

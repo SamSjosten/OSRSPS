@@ -25,7 +25,7 @@ import kotlin.math.max
 
 /**
  * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`
- * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::stun`, `::drain`, `::multi` and `::blowpipe` change the world,
+ * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::stun`, `::drain`, `::spec`, `::multi` and `::blowpipe` change the world,
  * so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
@@ -62,6 +62,10 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("${style.name} ($stance, $attackType), speed ${combat.attackSpeed(player)}: attack roll ${m.attackRoll}, max hit ${m.maxHit}")
         reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${type.stats.hitpoints} hp): defence roll ${m.defenceRoll}, you hit ${percent(m.hitChance)}")
         reply("It: attack roll ${m.npcAttackRoll} vs your ${m.playerDefenceRoll}, hits ${percent(m.npcHitChance)}, max hit ${m.npcMaxHit}")
+        world.specialAttacks.special(combat.weapon(player))?.let { spec ->
+            val attackRoll = spec.attackRoll(m.attackRoll)
+            reply("Special (${spec.name}): attack roll $attackRoll, max hit ${spec.maxHit(m.maxHit)}, you hit ${percent(CombatMath.hitChance(attackRoll, m.defenceRoll))}")
+        }
     }
 
     register("fight", "::fight", admin = false) {
@@ -218,6 +222,15 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             }
         }
         reply(effects.describe(player))
+    }
+
+    register("spec", "::spec [percent]", admin = true) {
+        val specials = world.specialAttacks
+        if (args.isNotEmpty()) {
+            val percent = args.singleOrNull()?.toIntOrNull()?.takeIf { it in 0..100 } ?: fail("Usage: ::spec [percent], 0 to 100")
+            specials.setEnergy(player, percent * 10)
+        }
+        reply(specials.describe(player))
     }
 
     register("heal", "::heal", admin = true) {

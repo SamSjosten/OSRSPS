@@ -100,6 +100,10 @@ class MeleeCombat(
     private val envenomNpc: (Npc) -> Unit = {},
     /** Poisons a player at a severity ([Poison.poison]), for an NPC whose attacks poison. */
     private val poisonPlayer: (Player, Int) -> Unit = { _, _ -> },
+    /** The special attack a swing uses, if the bar is lit and paid for ([SpecialAttacks.use]); null for an ordinary swing. */
+    private val special: (Player) -> SpecialAttack? = { null },
+    /** A special attack's hit landed, with the damage it dealt ([SpecialAttacks.landed]). */
+    private val specialLanded: (Npc, Int, SpecialAttack) -> Unit = { _, _, _ -> },
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -218,21 +222,29 @@ class MeleeCombat(
             return
         }
         player.nextAttackTick = tick + combat.attackSpeed(player)
-        player.effects.anim(combat.anims(player).attack(style), 0)
+        val spec = special(player)
+        if (spec == null) {
+            player.effects.anim(combat.anims(player).attack(style), 0)
+        } else {
+            player.effects.anim(spec.anim, 0)
+            player.spotanim(spec.spotanim)
+        }
         face(player, npc)
+        val attackRoll = spec?.attackRoll(matchup.attackRoll) ?: matchup.attackRoll
+        val maxHit = spec?.maxHit(matchup.maxHit) ?: matchup.maxHit
         // Accuracy first, then damage, as the Wiki describes a hit; the attack's random draws are always these two.
-        val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits) CombatMath.rollDamage(random, matchup.maxHit) else 0
+        val rolled = if (CombatMath.rollHits(random, attackRoll, matchup.defenceRoll) || player.sureHits) CombatMath.rollDamage(random, maxHit) else 0
         // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way.
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
         val poison = PoisonedWeapons.melee(combat.weapon(player))
-        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison)
+        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec)
     }
 
-    /** A player's swing on its way to an NPC: it lands on [landTick], poisoning at [poison] if over 0. */
-    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int)
+    /** A player's swing on its way to an NPC: it lands on [landTick], poisoning at [poison] if over 0, with [special]'s effect if it was one. */
+    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?)
 
     private val landing = ArrayList<Swing>()
 
@@ -253,6 +265,7 @@ class MeleeCombat(
             npc.incoming -= swing.damage
             if (npcs[npc.index] !== npc || npc.dead) continue
             val dealt = hit(npc, swing.player, swing.damage, tick)
+            if (swing.special != null) specialLanded(npc, dealt, swing.special)
             weaponPoison(npc, dealt, swing.poison, venom = false, ranged = false)
         }
     }
