@@ -81,8 +81,8 @@ class Tolerance {
  * - one it may fight: in single-way combat, not while another player's hits still hold it ([MeleeCombat.foughtByAnother]),
  *   as the player couldn't fight back.
  * It picks the nearest by its south-west tile, ties at random, then chases and fights them as if they had hit it.
- * Guessed (the Wiki gives none of these): that it hunts every tick, that it picks the nearest, and the tie rule. Not
- * here yet: line of sight (a hunt mode's check_vis), retreat, and attacks from afar.
+ * Guessed (the Wiki gives none of these): that it hunts every tick, that it picks the nearest, and the tie rule. An NPC
+ * retreating ([MeleeCombat]) doesn't hunt. Not here yet: line of sight (a hunt mode's check_vis), and attacks from afar.
  */
 class Aggression(
     private val npcs: Npcs,
@@ -123,7 +123,7 @@ class Aggression(
     private fun hunt(npc: Npc, tick: Long) {
         val def = npcCombat(npc) ?: return
         val aggression = def.aggression ?: return
-        if (npc.dead || npc.target != null || npc.engagedWith != null) return
+        if (npc.dead || npc.target != null || npc.engagedWith != null || npc.retreatingFrom != null) return
         var nearest = Int.MAX_VALUE
         val chosen = ArrayList<Player>(1)
         for (player in players()) {
@@ -145,18 +145,10 @@ class Aggression(
     fun huntable(npc: Npc, aggression: NpcAggression, player: Player): Boolean {
         if (player.loggedOut || player.dead || player.hitpoints <= 0 || player.level != npc.level) return false
         if (max(abs(player.x - npc.x), abs(player.z - npc.z)) > aggression.huntRange) return false
-        if (!inAggressionRange(npc, player)) return false
+        if (!inAggressionRange(npc, player.x, player.z)) return false
         if (!aggression.ignoresLevels && npc.type.combatLevel < ALWAYS_LEVEL && player.skills.combatLevel > 2 * npc.type.combatLevel) return false
         if (aggression.tolerant && player.tolerance.tolerant) return false
         return !melee.underAttackByAnother(player, npc) && !melee.fightingAnother(player, npc) && !melee.foughtByAnother(player, npc)
-    }
-
-    /** Whether [player] stands within [npc]'s max range plus attack range of its spawn point, counting its size. */
-    private fun inAggressionRange(npc: Npc, player: Player): Boolean {
-        val range = Npcs.MAX_RANGE + ATTACK_RANGE
-        val size = npc.type.size
-        val spawn = npc.spawn
-        return player.x in spawn.x - range until spawn.x + size + range && player.z in spawn.z - range until spawn.z + size + range
     }
 
     /** What `::aggro` says of [player]'s tolerance. */
@@ -186,6 +178,14 @@ class Aggression(
 
         /** Melee's reach, the attack range in [inAggressionRange]. */
         const val ATTACK_RANGE = 1
+
+        /** Whether [x], [z] is within [npc]'s max range plus attack range of its spawn point, counting its size. */
+        fun inAggressionRange(npc: Npc, x: Int, z: Int): Boolean {
+            val range = Npcs.MAX_RANGE + ATTACK_RANGE
+            val size = npc.type.size
+            val spawn = npc.spawn
+            return x in spawn.x - range until spawn.x + size + range && z in spawn.z - range until spawn.z + size + range
+        }
 
         private fun chebyshev(a: Tile, b: Tile) = max(abs(a.x - b.x), abs(a.z - b.z))
 
