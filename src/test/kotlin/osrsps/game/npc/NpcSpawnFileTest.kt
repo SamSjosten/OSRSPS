@@ -338,7 +338,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers and the Grand Exchange's`() {
+    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's and the weapon and armour keepers`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -347,7 +347,8 @@ class NpcSpawnFileTest {
             2922 to "dog_stray2", 2897 to "banker1_new", 2898 to "banker2_new", 6521 to "deadman_banker_blue_west",
             6522 to "deadman_banker_blue_north", 8666 to "varrock_bank_doorguard", 1633 to "banker1_west",
             6528 to "deadman_banker_grey_west", 1634 to "banker1_east", 3089 to "banker2_east", 2148 to "ge_clerk_1",
-            2149 to "ge_clerk_2", 2150 to "ge_clerk_3", 2151 to "ge_clerk_4",
+            2149 to "ge_clerk_2", 2150 to "ge_clerk_3", 2151 to "ge_clerk_4", 2884 to "swordshop1", 2885 to "swordshop2",
+            2882 to "horvik_the_armourer", 2883 to "lowe", 2880 to "zaff",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -369,6 +370,10 @@ class NpcSpawnFileTest {
         assertEquals(4, exchange.count { it.type.id in 2148..2151 && it.x in 3164..3165 && it.z in listOf(3488, 3491) })
         assertEquals(4, exchange.count { it.type.id !in 2148..2151 && it.x in listOf(3163, 3166) && it.z in 3489..3490 })
         assertTrue(exchange.all { it.wander == 0 })
+        // One of each weapon and armour keeper (the Swordshop has two), kept indoors.
+        val keepers = spawns.filter { it.type.id in listOf(2880, 2882, 2883, 2884, 2885) }
+        assertEquals(listOf(2880, 2882, 2883, 2884, 2885), keepers.map { it.type.id }.sorted())
+        assertTrue(keepers.all { it.restrict == MoveRestrict.INDOORS })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
         assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
         assertTrue((spawns - bankers.toSet() - exchange.toSet()).all { it.wander > 0 })
