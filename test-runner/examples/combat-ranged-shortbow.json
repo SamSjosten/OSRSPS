@@ -19,12 +19,13 @@
   {"step": "command", "text": "::fight", "expectMessage": "You are fighting Man #"},
   {"step": "assertMessage", "contains": "[combat.no_ammo]", "timeoutMs": 30000, "comment": "three arrows, one every 4 ticks, then the empty quiver"},
   {"step": "assertEquipment", "slot": "ammo", "empty": true},
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "the man fights back once shot; kill him (::kill picks the man attacking you), or a click on another man is refused for him"},
+  {"step": "waitTicks", "ticks": 6, "comment": "his body stays 4 ticks, and the next Attack would pick it as the nearest man"},
   {"step": "command", "text": "::item steel arrow 5", "expectMessage": "Added 5 x Steel arrow"},
   {"step": "itemOption", "item": "Steel arrow", "option": "Wield"},
   {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000},
   {"step": "assertMessage", "contains": "[combat.wrong_arrows]", "timeoutMs": 20000, "comment": "a plain shortbow fires bronze and iron arrows only; guessed wording"},
   {"step": "assertEquipment", "slot": "ammo", "item": "Steel arrow"},
-  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #", "comment": "the man fights back once shot; kill him (::kill picks the man attacking you) so the next script finds no fight going on"},
   {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
