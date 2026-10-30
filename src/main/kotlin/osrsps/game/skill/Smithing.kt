@@ -112,11 +112,13 @@ class Smithing(private val world: World) {
         }
         if (!world.locs.exists(loc)) return
         world.interfaces.closeChatModal(player)
-        jobs[player] = Job(bar, null, picked.second, loc)
+        val job = Job(bar, null, picked.second, loc)
+        jobs[player] = job
         // The Wiki's Bronze bar: "Make-X is 4, then 5. A single bar is 6." The 5-tick clock gives 4 then 5.
         if (picked.second == 1) {
             player.actionDelay = tick + SINGLE_BAR_TICKS
             player.anim(FURNACE_ANIM)
+            job.animated = true
         }
         // As cooking's: the first tick runs with the interactions, so a due bar can't be taken twice on one tick.
         world.repeatOp(player, Op(OpTarget.LOC, loc.id, option, loc = loc, repeat = true))
