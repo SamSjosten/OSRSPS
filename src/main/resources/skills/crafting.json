@@ -1,7 +1,45 @@
 {
- "about": "Crafting, as the OSRS Wiki's item pages give it (read 2026-10-30). spinning: what a spinning wheel spins, in the Make-X box's order, with the level and XP in tenths; 3 ticks each (Ball of wool and Bow string pages), the first 2 ticks after the choice inferred from fletching's 'Make-X is 2, then 3 ticks'. The wheels are every loc the cache names Spinning wheel with a Spin option. anim 466 is the cache's 'spinningwheel' seq, taken to be the player's (inferred from the name; the wheels have no animation of their own). Ids are the 241 cache's; names are its gamevals.",
+ "about": "Crafting, as the OSRS Wiki's item pages give it (read 2026-10-30). spinning: what a spinning wheel spins, in the Make-X box's order, with the level and XP in tenths; 3 ticks each (Ball of wool and Bow string pages), the first 2 ticks after the choice inferred from fletching's 'Make-X is 2, then 3 ticks'. The wheels are every loc the cache names Spinning wheel with a Spin option. anim 466 is the cache's 'spinningwheel' seq, taken to be the player's (inferred from the name; the wheels have no animation of their own). leather: a needle on leather, hard leather or dragon leather opens the Make-X box over what it makes, with how many leathers each takes (Leather, Hardleather body, Green dragon leather and the d'hide pages); thread is held and one is used up every 5 items (Thread: 'Each thread spool has 5 uses before it is consumed'). 3 ticks an item, hard leather 2 (each item's page); the first 2 ticks after the choice is inferred as for spinning. The Wiki gives leather boots 16.3 XP (16.25 elsewhere): 163 tenths. anim 1249 is human_leather_crafting. studs: steel studs on a leather body or chaps, 3 ticks (Studded body). Out: d'hide shields (they need a maple shield and nails), snakeskin, spiky vambraces and the costume needle. Ids are the 241 cache's; names are its gamevals.",
  "spinning": {"first": 2, "interval": 3, "anim": 466, "recipes": [
   {"input": 1737, "product": 1759, "name": "ball_of_wool", "level": 1, "xpTenths": 25},
   {"input": 1779, "product": 1777, "name": "bow_string", "level": 10, "xpTenths": 150}
+ ]},
+ "leather": {"needle": 1733, "thread": 1734, "threadUses": 5, "anim": 1249, "first": 2, "hides": [
+  {"leather": 1741, "name": "leather", "interval": 3, "products": [
+   {"obj": 1059, "name": "leather_gloves", "leather": 1, "level": 1, "xpTenths": 138},
+   {"obj": 1061, "name": "leather_boots", "leather": 1, "level": 7, "xpTenths": 163},
+   {"obj": 1167, "name": "leather_cowl", "leather": 1, "level": 9, "xpTenths": 185},
+   {"obj": 1063, "name": "leather_vambraces", "leather": 1, "level": 11, "xpTenths": 220},
+   {"obj": 1129, "name": "leather_armour", "leather": 1, "level": 14, "xpTenths": 250},
+   {"obj": 1095, "name": "leather_chaps", "leather": 1, "level": 18, "xpTenths": 270},
+   {"obj": 1169, "name": "coif", "leather": 1, "level": 38, "xpTenths": 370}
+  ]},
+  {"leather": 1743, "name": "hard_leather", "interval": 2, "products": [
+   {"obj": 1131, "name": "hardleather_body", "leather": 1, "level": 28, "xpTenths": 350}
+  ]},
+  {"leather": 1745, "name": "dragon_leather", "interval": 3, "products": [
+   {"obj": 1065, "name": "dragon_vambraces", "leather": 1, "level": 57, "xpTenths": 620},
+   {"obj": 1099, "name": "dragonhide_chaps", "leather": 2, "level": 60, "xpTenths": 1240},
+   {"obj": 1135, "name": "dragonhide_body", "leather": 3, "level": 63, "xpTenths": 1860}
+  ]},
+  {"leather": 2505, "name": "dragon_leather_blue", "interval": 3, "products": [
+   {"obj": 2487, "name": "blue_dragon_vambraces", "leather": 1, "level": 66, "xpTenths": 700},
+   {"obj": 2493, "name": "blue_dragonhide_chaps", "leather": 2, "level": 68, "xpTenths": 1400},
+   {"obj": 2499, "name": "blue_dragonhide_body", "leather": 3, "level": 71, "xpTenths": 2100}
+  ]},
+  {"leather": 2507, "name": "dragon_leather_red", "interval": 3, "products": [
+   {"obj": 2489, "name": "red_dragon_vambraces", "leather": 1, "level": 73, "xpTenths": 780},
+   {"obj": 2495, "name": "red_dragonhide_chaps", "leather": 2, "level": 75, "xpTenths": 1560},
+   {"obj": 2501, "name": "red_dragonhide_body", "leather": 3, "level": 77, "xpTenths": 2340}
+  ]},
+  {"leather": 2509, "name": "dragon_leather_black", "interval": 3, "products": [
+   {"obj": 2491, "name": "black_dragon_vambraces", "leather": 1, "level": 79, "xpTenths": 860},
+   {"obj": 2497, "name": "black_dragonhide_chaps", "leather": 2, "level": 82, "xpTenths": 1720},
+   {"obj": 2503, "name": "black_dragonhide_body", "leather": 3, "level": 84, "xpTenths": 2580}
+  ]}
+ ]},
+ "studs": {"studs": 2370, "anim": 1249, "first": 2, "interval": 3, "items": [
+  {"item": 1129, "product": 1133, "name": "studded_body", "level": 41, "xpTenths": 400},
+  {"item": 1095, "product": 1097, "name": "studded_chaps", "level": 44, "xpTenths": 420}
  ]}
 }
