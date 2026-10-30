@@ -1020,7 +1020,7 @@ public class RunnerTest
 			r = cycle();
 		}
 		assertEquals(Result.PASS, r.result);
-		assertEquals("test2 in test's friends chat", r.steps.get(2).detail);
+		assertEquals("test2 in Test's friends chat", r.steps.get(2).detail);
 		assertEquals("test3 not in test's friends chat", r.steps.get(3).description);
 	}
 
