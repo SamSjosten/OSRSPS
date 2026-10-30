@@ -27,6 +27,7 @@ import osrsps.game.ge.GeOffer
 import osrsps.game.ge.GeTrade
 import osrsps.game.ge.OfferType
 import osrsps.game.social.IgnoreLists
+import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.offeredBy
 
 private val logger = KotlinLogging.logger {}
@@ -73,6 +74,8 @@ class PlayerSave(
     val ignores: List<String> = emptyList(),
     /** The Grand Exchange's trade history, newest first. */
     val geHistory: List<GeTrade> = emptyList(),
+    /** The last trade the player completed, which a leftover trade journal is checked against; see [TradeJournal]. */
+    val lastTrade: String? = null,
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -100,6 +103,7 @@ class PlayerSave(
         player.chatFilters = chatFilters
         player.friends.addAll(friends)
         player.ignores.addAll(ignores)
+        player.lastTrade = lastTrade
         applyState(player)
     }
 
@@ -175,6 +179,7 @@ class PlayerSave(
             }
             if (friends.isNotEmpty()) putJsonArray("friends") { for (name in friends) add(name) }
             if (ignores.isNotEmpty()) putJsonArray("ignores") { for (name in ignores) add(name) }
+            if (lastTrade != null) put("lastTrade", lastTrade)
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -281,6 +286,7 @@ class PlayerSave(
                 player.ge.contents().toMap(), player.ge.limits.values.toList(),
                 player.ignores.toList(),
                 player.ge.history.toList(),
+                player.lastTrade,
             )
         }
 
@@ -345,6 +351,7 @@ class PlayerSave(
                     state.geOffers, state.geLimits,
                     ignores,
                     state.geHistory,
+                    root["lastTrade"]?.jsonPrimitive?.contentOrNull,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -417,6 +424,13 @@ class PlayerSave(
                 x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank,
                 geOffers = geOffers, geLimits = geLimits, geHistory = geHistory,
             )
+        }
+
+        /** The last trade a save records, or null if it records none or [text] isn't a save. */
+        fun lastTradeIn(text: String): String? = try {
+            Json.parseToJsonElement(text).jsonObject["lastTrade"]?.jsonPrimitive?.contentOrNull
+        } catch (_: Exception) {
+            null
         }
 
         /** The username a save was written for, or null if [text] isn't a save that names one. */

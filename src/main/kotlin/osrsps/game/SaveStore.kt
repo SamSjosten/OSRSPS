@@ -17,6 +17,18 @@ interface SaveStore {
 
     fun write(key: String, text: String)
 
+    /**
+     * The trade journal: two saves that must land together (see [osrsps.game.trade.TradeJournal]), or null when there
+     * is none. Kept beside the saves under a name no save key can have.
+     */
+    fun readJournal(): String? = null
+
+    /** Writes the journal, forced to the disk before this returns. */
+    fun writeJournal(text: String) {}
+
+    /** Removes the journal once both its saves are written. */
+    fun clearJournal() {}
+
     companion object {
         /** Saves longer than this are refused, as a file name can only be so long. */
         const val MAX_KEY_LENGTH = 200
@@ -55,10 +67,23 @@ class FileSaveStore(private val dir: Path) : SaveStore {
      * save is a few KB, and doing it in place keeps a quick logout and login from reading a save that hasn't been
      * written yet.
      */
-    override fun write(key: String, text: String) {
+    override fun write(key: String, text: String) = writeFile(file(key), dir.resolve("$key.json.tmp"), text)
+
+    override fun readJournal(): String? = try {
+        Files.readString(dir.resolve(JOURNAL))
+    } catch (_: NoSuchFileException) {
+        null
+    }
+
+    override fun writeJournal(text: String) = writeFile(dir.resolve(JOURNAL), dir.resolve("$JOURNAL.tmp"), text)
+
+    override fun clearJournal() {
+        Files.deleteIfExists(dir.resolve(JOURNAL))
+        forceDir()
+    }
+
+    private fun writeFile(target: Path, temp: Path, text: String) {
         Files.createDirectories(dir)
-        val target = file(key)
-        val temp = dir.resolve("$key.json.tmp")
         FileChannel.open(temp, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING).use { channel ->
             val bytes = ByteBuffer.wrap(text.toByteArray(Charsets.UTF_8))
             while (bytes.hasRemaining()) channel.write(bytes)
@@ -81,6 +106,11 @@ class FileSaveStore(private val dir: Path) : SaveStore {
     }
 
     private fun file(key: String): Path = dir.resolve("$key.json")
+
+    private companion object {
+        /** Saves are `<key>.json`; a key never has a dot (see [SaveStore.saveKey]), so this can't be one. */
+        const val JOURNAL = "trade.journal"
+    }
 }
 
 /** Keeps saves in memory, for tests and for a world with nowhere to write. */
@@ -91,5 +121,17 @@ class MemorySaveStore : SaveStore {
 
     override fun write(key: String, text: String) {
         saves[key] = text
+    }
+
+    var journal: String? = null
+
+    override fun readJournal(): String? = journal
+
+    override fun writeJournal(text: String) {
+        journal = text
+    }
+
+    override fun clearJournal() {
+        journal = null
     }
 }
