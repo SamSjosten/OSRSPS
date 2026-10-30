@@ -26,9 +26,14 @@ dependencies {
 }
 
 group = 'osrsps'
-version = '0.17.0'
+version = '0.18.0'
 
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
 	options.release.set(11)
+}
+
+// The tests read the example scripts: an input, so CI's build cache never hands back a pass from before a change to them.
+tasks.named('test') {
+	inputs.dir('examples').withPathSensitivity(PathSensitivity.RELATIVE)
 }
