@@ -1,0 +1,28 @@
+{
+ "name": "Rotten potato step 1: Eat's menu in the real client, Set all stats, Heal me and Wipe inventory",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "the menu shows its keys, as live's words aren't in git"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::item 5733", "expectMessage": "Added 1 x Rotten potato"},
+  {"step": "itemOption", "item": "Rotten potato", "option": "Eat"},
+  {"step": "chooseOption", "text": "[rotten_potato.set_all_stats]"},
+  {"step": "enterAmount", "amount": 50},
+  {"step": "assertMessage", "contains": "[rotten_potato.setstat skill=attack level=50]", "comment": "one skill a tick, each with its message"},
+  {"step": "assertMessage", "contains": "[rotten_potato.finished]", "timeoutMs": 30000, "comment": "every skill done, about 24 ticks on"},
+  {"step": "assertStat", "skill": "Attack", "level": 50},
+  {"step": "assertStat", "skill": "Hitpoints", "level": 50},
+  {"step": "assertStat", "skill": "Construction", "level": 50},
+  {"step": "command", "text": "::hit 10 me", "expectMessage": "Hit yourself for 10"},
+  {"step": "itemOption", "item": "Rotten potato", "option": "Eat"},
+  {"step": "chooseOption", "text": "Heal me", "comment": "ours, in place of live's Setup POH"},
+  {"step": "assertMessage", "contains": "Healed to 50 hitpoints."},
+  {"step": "command", "text": "::item coins 100", "expectMessage": "Added 100 x Coins"},
+  {"step": "itemOption", "item": "Rotten potato", "option": "Eat"},
+  {"step": "chooseOption", "text": "[rotten_potato.wipe_inventory]"},
+  {"step": "assertInventory", "item": "Coins", "count": 0, "timeoutMs": 5000},
+  {"step": "assertInventory", "item": "Rotten potato", "count": 1},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

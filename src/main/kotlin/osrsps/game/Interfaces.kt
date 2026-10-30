@@ -193,6 +193,16 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         player.closedWhileAway.clear()
     }
 
+    /**
+     * After a reconnect, closes every modal slot the server has empty, and the chatbox's dialogue if none is open: a
+     * close sent before the server noticed the drop never arrived, and isn't in [Player.closedWhileAway].
+     */
+    fun closeEmptyModalSlots(player: Player) {
+        val frame = player.frame
+        for (slot in MODAL_SLOTS) if (slot !in player.modals) send(player, IfCloseSub(frame.interfaceId, frame.component(slot)))
+        if (player.chatModal < 0) send(player, IfCloseSub(Chatbox.CHATBOX, Chatbox.CHATMODAL))
+    }
+
     /** Runs client script [id] with [args] (ints, and strings in the script's order). */
     fun runClientScript(player: Player, id: Int, args: List<Any>) {
         send(player, RunClientScript(id, args))
@@ -313,6 +323,9 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     }
 
     companion object {
+        /** The slots [openModal] opens into. */
+        val MODAL_SLOTS = listOf(FrameSlot.MAINMODAL, FrameSlot.SIDEMODAL)
+
         const val MODAL = 0
         const val OVERLAY = 1
 

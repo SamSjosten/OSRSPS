@@ -12,6 +12,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.game.outgoing.varp.VarpLarge
 import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.dialogue.Chatbox
 
 class InterfacesTest {
     private val sent = mutableListOf<OutgoingGameMessage>()
@@ -195,5 +196,17 @@ class InterfacesTest {
         sent.clear()
         interfaces.resendClosesWhileAway(player)
         assertEquals(emptyList(), sent)
+    }
+
+    @Test
+    fun `after a reconnect every modal slot the server has empty is closed, and the open ones are left`() {
+        val player = player(GameFrame.FIXED)
+        interfaces.openModal(player, FrameSlot.SIDEMODAL, 336)
+        sent.clear()
+        interfaces.closeEmptyModalSlots(player)
+        assertEquals(
+            listOf<OutgoingGameMessage>(IfCloseSub(548, player.frame.component(FrameSlot.MAINMODAL)), IfCloseSub(Chatbox.CHATBOX, Chatbox.CHATMODAL)),
+            sent,
+        )
     }
 }

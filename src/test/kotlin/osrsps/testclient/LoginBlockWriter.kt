@@ -26,6 +26,8 @@ internal object LoginBlockWriter {
         rsaExponent: BigInteger,
         seed: IntArray,
         resizable: Boolean = false,
+        /** For a GAMERECONNECT: the lost connection's seed, sent in place of the password. */
+        previousSeed: IntArray? = null,
     ): ByteArray {
         val out = buffer()
         out.p4(Revision.MAJOR)
@@ -39,10 +41,14 @@ internal object LoginBlockWriter {
         rsa.p1(1) // RSA check byte
         seed.forEach(rsa::p4)
         rsa.p8(sessionId)
-        rsa.p1(OTP_NONE)
-        rsa.p4(0)
-        rsa.p1(PASSWORD_AUTHENTICATION)
-        rsa.pjstr(password)
+        if (previousSeed != null) {
+            previousSeed.forEach(rsa::p4)
+        } else {
+            rsa.p1(OTP_NONE)
+            rsa.p4(0)
+            rsa.p1(PASSWORD_AUTHENTICATION)
+            rsa.pjstr(password)
+        }
         val encrypted = BigInteger(rsa.bytes()).modPow(rsaExponent, rsaModulus).toByteArray()
         out.p2(encrypted.size)
         out.pdata(encrypted)

@@ -104,6 +104,7 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   whip still worn after a logout, and Remove.
 - `ground-drop-take.json`: drop an axe, see it on the ground, take it back.
 - `lumbridge-bury-bones.json`: bury two bones, 4.5 Prayer XP each.
+- `rotten-potato-eat.json`: the rotten potato's Eat menu: Set all stats to 50 one skill a tick, Heal me after a `::hit`, and Wipe inventory keeping the potato. Teleport to player and Spawn NPC ask for text (meslayer mode 9), which no runner step types yet; the headless tests cover them.
 - `lumbridge-bank.json`: at a castle bank booth, deposit, withdraw 5 and as notes, deposit the inventory, log out and
   back in and take out what is still banked. It can't type an amount, so Withdraw-X isn't in it.
 - `lumbridge-bank-tabs.json`: from `::scenario lumbridge-bank-tabs`, a tab with a placeholder that takes the logs back
