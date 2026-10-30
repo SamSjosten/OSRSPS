@@ -71,7 +71,7 @@ class HeadlessGrandExchangeScreenTest {
                 val aborted = client.await("the abort") { client.stockMarketSlot(0)?.takeIf { it.status == GrandExchangeScreen.STATUS_FINISHED } }
                 assertEquals(0, aborted.completed)
                 client.await("the collection box") {
-                    if (client.inventory(GrandExchangeScreen.COLLECT_INVS[0]) == listOf(null, InvObj(COINS, 500))) Unit else null
+                    if (client.inventory(GrandExchangeScreen.COLLECT_INVS[0]) == listOf(null, InvObj(COINS, 500), null)) Unit else null
                 }
 
                 // An empty slot's Sell box: the setup panel's vars.

@@ -89,30 +89,61 @@ class GrandExchange(
 
     /**
      * Moves what [slot] holds into the inventory, as far as it fits: items as notes when there is more than one of an
-     * item that doesn't stack and [notes] is set (live's Collect-notes), coins onto the coin stack. The slot empties once
-     * the offer is finished and nothing is left. Returns whether anything moved. GUESSED: that a part that doesn't fit
-     * stays in the slot rather than the collect failing whole.
+     * item that doesn't stack and [notes] is set (live's Collect-notes), coins onto the coin stack. [items] and [coins]
+     * pick the parts, as the screen's two boxes take one each. With [toBank], the parts go to the bank instead: it is
+     * handed an item and a count and returns how many went in. The slot empties once the offer is finished and nothing
+     * is left. Returns whether anything moved. GUESSED: that a part that doesn't fit stays in the slot rather than the
+     * collect failing whole.
      */
-    fun collect(player: Player, slot: Int, notes: Boolean = true): Boolean {
+    fun collect(
+        player: Player,
+        slot: Int,
+        notes: Boolean = true,
+        items: Boolean = true,
+        coins: Boolean = true,
+        toBank: ((Player, Int, Int) -> Int)? = null,
+    ): Boolean {
         var offer = player.ge[slot] ?: return false
         var moved = false
-        if (offer.collectItems > 0) {
+        if (items && offer.collectItems > 0) {
             val type = objTypes[offer.item]!!
-            val giveAs = if (!type.stackable && notes && offer.collectItems > 1) noteOf(type) ?: type else type
-            val added = player.inventory.add(giveAs, offer.collectItems)
+            val added = if (toBank != null) {
+                toBank(player, offer.item, offer.collectItems)
+            } else {
+                val giveAs = if (!type.stackable && notes && offer.collectItems > 1) noteOf(type) ?: type else type
+                player.inventory.add(giveAs, offer.collectItems)
+            }
             if (added > 0) moved = true
             offer = offer.copy(collectItems = offer.collectItems - added)
         }
-        if (offer.collectCoins > 0) {
-            val added = player.inventory.add(objTypes[COINS] ?: ObjType(COINS, stackable = true), minOf(offer.collectCoins, Int.MAX_VALUE.toLong()).toInt())
-            if (added > 0) moved = true
-            offer = offer.copy(collectCoins = offer.collectCoins - added)
+        if (coins && offer.collectCoins > 0) {
+            val (coinPart, tokenPart) = payout(offer.collectCoins)
+            var paid = 0L
+            if (tokenPart > 0) {
+                val added = give(player, PLATINUM_TOKEN, tokenPart.toInt(), toBank)
+                paid += added * TOKEN_VALUE
+            }
+            if (coinPart > 0 && paid == tokenPart * TOKEN_VALUE) paid += give(player, COINS, coinPart.toInt(), toBank)
+            if (paid > 0) moved = true
+            offer = offer.copy(collectCoins = offer.collectCoins - paid)
         }
         player.ge[slot] = offer.takeUnless { it.done }
         return moved
     }
 
-    /** Fills [player]'s offers the bot market takes, once a tick. */
+    /** Collects every slot, as Collect to inventory or to bank does. Returns whether anything moved. */
+    fun collectAll(player: Player, toBank: ((Player, Int, Int) -> Int)? = null): Boolean {
+        var moved = false
+        for (slot in 0 until GeAccount.SLOTS) {
+            if (collect(player, slot, toBank = toBank)) moved = true
+        }
+        return moved
+    }
+
+    private fun give(player: Player, id: Int, count: Int, toBank: ((Player, Int, Int) -> Int)?): Int =
+        toBank?.invoke(player, id, count) ?: player.inventory.add(objTypes[id] ?: ObjType(id, stackable = true), count)
+
+        /** Fills [player]'s offers the bot market takes, once a tick. */
     fun process(player: Player) {
         if (!marketOpen) return
         val tick = currentTick()
@@ -268,6 +299,14 @@ class GrandExchange(
     private fun noteOf(type: ObjType): ObjType? = objTypes[type.certlink]?.takeIf { it.isCert && it.certlink == type.id }
 
     companion object {
+        /**
+         * How [coins] to collect are paid: as coins while they fit in a stack, else as platinum tokens for the
+         * thousands and coins for the rest. The collection box's third slot holds the tokens (script818 and
+         * script9910 draw coins and tokens as one, "coins_and_platinum"). GUESSED: where the split falls.
+         */
+        fun payout(coins: Long): Pair<Long, Long> =
+            if (coins <= Int.MAX_VALUE) coins to 0L else coins % TOKEN_VALUE to coins / TOKEN_VALUE
+
         const val COINS = 995
         const val PLATINUM_TOKEN = 13204
         const val TOKEN_VALUE = 1000L

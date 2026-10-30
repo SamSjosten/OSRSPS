@@ -321,7 +321,19 @@ class World(
         grandExchange, interfaces::openModal, scripts,
         examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
         words = ::textFor,
+        toBank = ::bankItems,
     )
+
+    /** Puts [count] of [id] into [player]'s bank as a deposit would, a note as its item; returns how many went in. */
+    private fun bankItems(player: Player, id: Int, count: Int): Int {
+        val from = Inventory(-1, 1)
+        from[0] = InvObj(id, count)
+        return when (val deposit = bank.deposit(player.bank, bankScreen.tabs(player), from, 0, count)) {
+            is Bank.Deposit.Done -> deposit.count
+            is Bank.Deposit.Partly -> deposit.count
+            else -> 0
+        }
+    }
 
     /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)

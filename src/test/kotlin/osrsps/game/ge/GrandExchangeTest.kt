@@ -244,6 +244,38 @@ class GrandExchangeTest {
         assertEquals(emptyList(), slotsSent())
     }
 
+    @Test
+    fun `the two boxes collect apart, and to the bank`() {
+        give(COINS, 1000)
+        ge.buy(player, AXE, 2, 50)
+        nextTick()
+        // The refund only: the axes stay.
+        assertTrue(ge.collect(player, 0, items = false))
+        assertEquals(920L, player.inventory.count(COINS))
+        assertEquals(2, player.ge[0]!!.collectItems)
+        // Then the axes, to a bank that takes one.
+        val banked = mutableListOf<Pair<Int, Int>>()
+        assertTrue(ge.collect(player, 0, coins = false, toBank = { _, id, count -> banked += id to count; 1 }))
+        assertEquals(listOf(AXE to 2), banked)
+        assertEquals(1, player.ge[0]!!.collectItems)
+        assertTrue(ge.collectAll(player, toBank = { _, _, count -> count }))
+        assertNull(player.ge[0])
+    }
+
+    @Test
+    fun `coins past what a stack holds are paid as platinum tokens and the rest in coins`() {
+        assertEquals(500L to 0L, GrandExchange.payout(500))
+        assertEquals(Int.MAX_VALUE.toLong() to 0L, GrandExchange.payout(Int.MAX_VALUE.toLong()))
+        assertEquals(647L to 2_149_631_130L, GrandExchange.payout(GrandExchange.MAX_TOTAL))
+        give(TOKEN, 3_000_000)
+        ge.buy(player, WHIP, 2, 1_500_000_000)
+        assertTrue(ge.abort(player, 0))
+        assertTrue(ge.collect(player, 0))
+        assertEquals(3_000_000L, player.inventory.count(TOKEN))
+        assertEquals(0L, player.inventory.count(COINS))
+        assertNull(player.ge[0])
+    }
+
     private companion object {
         const val COINS = 995
         const val TOKEN = 13204
