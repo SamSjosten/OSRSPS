@@ -106,7 +106,19 @@
     {"npc": 5950, "name": "Elly the Camel"},
     {"npc": 5951, "name": "Ollie the Camel"},
     {"npc": 5952, "name": "Cam the Camel"},
-    {"npc": 5954, "name": "Alice the Camel"}
+    {"npc": 5954, "name": "Alice the Camel"},
+    {"npc": 3014, "name": "Man", "wiki": "Man page, infobox (the Blue Moon Inn version, 3014)"},
+    {"npc": 3015, "name": "Woman", "wiki": "Woman page, infobox (Varrock's, 3015; guessed to be its own version)"},
+    {"npc": 11911, "name": "Guard", "wiki": "Guard page, Varrock 1"},
+    {"npc": 11912, "name": "Guard", "wiki": "Guard page, Varrock 2"},
+    {"npc": 11913, "name": "Guard", "wiki": "Guard page, Varrock 3"},
+    {"npc": 11914, "name": "Guard", "wiki": "Guard page, Varrock 4 (female)"},
+    {"npc": 11915, "name": "Guard", "wiki": "Guard page, Varrock 5 (female)"},
+    {"npc": 11916, "name": "Guard", "wiki": "Guard page, Varrock 6 (female)"},
+    {"npc": 11917, "name": "Guard", "wiki": "Guard page, Varrock 7"},
+    {"npc": 2902, "name": "Stray dog", "wiki": "Stray dog page, infobox (grey)"},
+    {"npc": 2922, "name": "Stray dog", "wiki": "Stray dog page, infobox (brown)"},
+    {"npc": 2855, "name": "Rat"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},

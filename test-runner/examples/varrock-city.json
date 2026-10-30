@@ -1,0 +1,269 @@
+{
+ "name": "Varrock piece step 1: in through the south gate, a house's door, two straight staircases (north- and south-climbing), a ladder, drawers, a stray dog's Pet and a man's talk (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3211 3376 0",
+   "expectMessage": "Teleported to 3211, 3376, 0",
+   "comment": "on the road south of Varrock's south gate"
+  },
+  {
+   "step": "walk",
+   "x": 3211,
+   "y": 3380
+  },
+  {
+   "step": "walk",
+   "x": 3211,
+   "y": 3384
+  },
+  {
+   "step": "walk",
+   "x": 3211,
+   "y": 3388
+  },
+  {
+   "step": "walk",
+   "x": 3211,
+   "y": 3392
+  },
+  {
+   "step": "assertLocation",
+   "x": 3211,
+   "y": 3392,
+   "plane": 0,
+   "comment": "through the south gate (the gap at x 3210 to 3212) and into the city"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3191 3384 0",
+   "expectMessage": "Teleported to 3191, 3384, 0",
+   "comment": "east of the poor door of the house south-west of the square"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3190,
+   "y": 3384,
+   "comment": "fai_varrock_poor_door, paired by name"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Door",
+   "x": 3189,
+   "y": 3384,
+   "option": "Close",
+   "comment": "swung west onto 3189 3384"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Close",
+   "x": 3189,
+   "y": 3384
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Door",
+   "x": 3190,
+   "y": 3384,
+   "option": "Open",
+   "comment": "back in the wall"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3189 3388 0",
+   "expectMessage": "Teleported to 3189, 3388, 0",
+   "comment": "inside that house, south of its straight stairs"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3188,
+   "y": 3389,
+   "comment": "fai_varrock_stairs, climbing north"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3189,
+   "y": 3392,
+   "plane": 1,
+   "comment": "off the north end, in the same column"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3188,
+   "y": 3390,
+   "comment": "the top piece"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3189,
+   "y": 3388,
+   "plane": 0,
+   "comment": "before the south end"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3230 3386 0",
+   "expectMessage": "Teleported to 3230, 3386, 0",
+   "comment": "in the house by the south gate, north of its stairs"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3230,
+   "y": 3383,
+   "comment": "fai_varrock_stairs_taller, climbing south"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3230,
+   "y": 3382,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3230,
+   "y": 3383
+  },
+  {
+   "step": "assertLocation",
+   "x": 3230,
+   "y": 3386,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3215 3410 0",
+   "expectMessage": "Teleported to 3215, 3410, 0",
+   "comment": "beside the ladder in the house north of the square"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3214,
+   "y": 3410
+  },
+  {
+   "step": "assertLocation",
+   "x": 3215,
+   "y": 3410,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-down",
+   "x": 3214,
+   "y": 3410
+  },
+  {
+   "step": "assertLocation",
+   "x": 3215,
+   "y": 3410,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3248 3382 0",
+   "expectMessage": "Teleported to 3248, 3382, 0",
+   "comment": "beside the drawers in the house south of the east bank's road"
+  },
+  {
+   "step": "locOption",
+   "loc": "Drawers",
+   "option": "Open",
+   "x": 3247,
+   "y": 3382
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Drawers",
+   "x": 3247,
+   "y": 3382,
+   "option": "Search"
+  },
+  {
+   "step": "locOption",
+   "loc": "Drawers",
+   "option": "Search",
+   "x": 3247,
+   "y": 3382
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[search.drawers_empty]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Drawers",
+   "option": "Close",
+   "x": 3247,
+   "y": 3382
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Drawers",
+   "x": 3247,
+   "y": 3382,
+   "option": "Open"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3200 3399 0",
+   "expectMessage": "Teleported to 3200, 3399, 0",
+   "comment": "where a grey stray dog wanders, west of the square"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2902,
+   "option": "Pet",
+   "timeoutMs": 20000,
+   "comment": "it barks Woof! over its head (stray_dog.woof); the overhead text isn't checked"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3106,
+   "option": "Talk-to",
+   "timeoutMs": 30000,
+   "comment": "a man in the city"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[man.hello]"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

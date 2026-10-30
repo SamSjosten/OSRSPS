@@ -67,6 +67,8 @@ object DialogueLines {
         DraynorSearchLines, AxeLogsLines, FortunatoLines, OliviaLines, DiangoLines,
         // The Grand Exchange.
         GrandExchangeLines, PriceCheckerLines,
+        // Varrock.
+        VarrockSearchLines, StrayDogLines,
         // Admin tools.
         RottenPotatoLines,
     )
