@@ -444,15 +444,19 @@ it, as do running out, the count being done, the level being too low and a level
 
 Spin on a spinning wheel (every loc the cache calls one, Lumbridge Castle's first-floor wheel among them) opens the
 Make-X box over the wool and flax held; either used on a wheel opens it over that alone (`game/skill/Crafting.kt`,
-words under `crafting.*`, numbers in `skills/crafting.json`). The making is the artisan loop in `Making.kt`.
+words under `crafting.*`, numbers in `skills/crafting.json`). A needle on leather, hard leather or green to black dragon
+leather opens the box over what it makes; thread is held, and one is used up every 5 items (the count is kept with the
+account). Steel studs on a leather body or chaps stud them. The making is the artisan loop in `Making.kt`.
 
 | Crafting behaviour | Source |
 |--------------------|--------|
 | Ball of wool level 1, 2.5 XP; bow string level 10, 15 XP; 3 ticks each | OSRS Wiki, Ball of wool and Bow string |
 | The first 2 ticks after the choice | inferred from fletching's "Make-X is 2, then 3 ticks" |
 | Animation 466 (`spinningwheel`) as the player's | inferred from its gameval name |
+| Leather and d'hide levels, XP, leathers per item; 3 ticks an item, hard leather 2; thread's 5 uses | OSRS Wiki, Leather, Hardleather body, Green dragon leather and the d'hide pages, Thread |
+| Studs 3 ticks; studded body 41, 40 XP; studded chaps 44, 42 XP | OSRS Wiki, Studded body and Studded chaps |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning | out of scope |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle | out of scope |
 
 ## Items and inventory
 
