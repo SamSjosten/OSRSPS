@@ -88,7 +88,7 @@ class HeadlessDraynorMarketTest {
                 client.pick(2)
                 client.page("olivia.no_thanks")
                 client.await("the talk to end") { if (client.dialogueView == null) Unit else null }
-                Thread.sleep(200)
+                client.awaitTicks(2)
                 assertTrue(ShopScreen.MAIN !in client.openInterfaces())
                 client.talkTo(DraynorMarket.OLIVIA)
                 client.page("olivia.seeds")
