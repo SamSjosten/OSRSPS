@@ -86,9 +86,8 @@
   },
   {
    "step": "assertInterface",
-   "id": 300,
-   "timeoutMs": 10000,
-   "comment": "the shop (the Shantay Pass Shop)"
+   "comment": "the shop (the Shantay Pass Shop)",
+   "interfaceId": 300
   },
   {
    "step": "command",
@@ -131,9 +130,8 @@
   },
   {
    "step": "assertInterface",
-   "id": 12,
-   "timeoutMs": 10000,
-   "comment": "the bank"
+   "comment": "the bank",
+   "interfaceId": 12
   },
   {
    "step": "command",
