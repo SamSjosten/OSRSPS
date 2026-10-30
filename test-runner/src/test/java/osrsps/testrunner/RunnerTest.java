@@ -941,4 +941,31 @@ public class RunnerTest
 		Script.Invalid e = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"assertFriend\",\"name\":\"a\"}"));
 		assertTrue(e.getMessage(), e.getMessage().contains("world"));
 	}
+
+	@Test
+	public void ignoresAndPrivateMessages() throws Exception
+	{
+		runner.start(script("{\"step\":\"addIgnore\",\"name\":\"test2\"},"
+			+ "{\"step\":\"assertIgnore\",\"name\":\"Test2\"},"
+			+ "{\"step\":\"privateMessage\",\"name\":\"test2\",\"text\":\"hi there\"}"), "file");
+		// The ignore tab isn't open: the Friends tab's ignore button first.
+		assertNull(cycle());
+		assertEquals(List.of("click 429:1 op 1"), game.actions);
+		game.openInterfaces.add(432);
+		assertNull(cycle());
+		assertEquals("click 432:12 op 1", game.actions.get(1));
+		game.promptMode = 4;
+		assertNull(cycle());
+		assertEquals("text test2", game.actions.get(2));
+		game.ignores.add("test2");
+		assertNull(cycle());
+		// Then the Message option's script with the name, and the message once its prompt (mode 6) shows.
+		assertEquals(List.of("107 [test2]"), game.scriptsRun);
+		game.promptMode = 6;
+		assertNull(cycle());
+		assertEquals("text hi there", game.actions.get(3));
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("ignored [test2]", r.steps.get(1).detail);
+	}
 }

@@ -26,6 +26,7 @@ import net.rsprot.protocol.game.incoming.buttons.IfScriptTrigger
 import net.rsprot.protocol.game.incoming.locs.OpLoc6
 import net.rsprot.protocol.game.incoming.locs.OpLocT
 import net.rsprot.protocol.game.incoming.locs.OpLocV2
+import net.rsprot.protocol.game.incoming.messaging.MessagePrivate
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.incoming.objs.OpObj6
 import net.rsprot.protocol.game.incoming.objs.OpObjV2
@@ -40,6 +41,8 @@ import net.rsprot.protocol.game.incoming.npcs.OpNpcV2
 import net.rsprot.protocol.game.incoming.players.OpPlayer
 import net.rsprot.protocol.game.incoming.social.FriendListAdd
 import net.rsprot.protocol.game.incoming.social.FriendListDel
+import net.rsprot.protocol.game.incoming.social.IgnoreListAdd
+import net.rsprot.protocol.game.incoming.social.IgnoreListDel
 import net.rsprot.protocol.game.incoming.resumed.ResumePCountDialog
 import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton
 import net.rsprot.protocol.loginprot.incoming.pow.NopProofOfWorkProvider
@@ -192,6 +195,9 @@ class NetworkFactory(
         })
         builder.addListener(FriendListAdd::class.java, MessageConsumer { player, message -> world.onFriendAdd(player, message.name) })
         builder.addListener(FriendListDel::class.java, MessageConsumer { player, message -> world.onFriendDelete(player, message.name) })
+        builder.addListener(MessagePrivate::class.java, MessageConsumer { player, message -> world.onPrivateMessage(player, message.name, message.message) })
+        builder.addListener(IgnoreListAdd::class.java, MessageConsumer { player, message -> world.onIgnoreAdd(player, message.name) })
+        builder.addListener(IgnoreListDel::class.java, MessageConsumer { player, message -> world.onIgnoreDelete(player, message.name) })
         builder.addListener(CloseModal::class.java, MessageConsumer { player, _ -> world.onCloseModal(player) })
         return DefaultGameMessageConsumerRepositoryProvider(builder.build())
     }

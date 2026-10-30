@@ -236,6 +236,8 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::friends` | **everyone.** Your friends list as the server keeps it, each friend's world or offline |
 | `::clearfriends` | Empties your friends list, for tests that start from none (the Friends tab shows it after a relog) |
 | `::poison [severity\|venom\|cure]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity |
+| `::ignores` | **everyone.** Your ignore list as the server keeps it |
+| `::clearignores` | Empties your ignore list, for tests that start from none |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
