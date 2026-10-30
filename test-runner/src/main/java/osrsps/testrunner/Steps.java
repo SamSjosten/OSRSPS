@@ -53,6 +53,8 @@ final class Steps
 		private int enterTick;
 		private int retries;
 		private String focusNote;
+		/** Set once a chatbox prompt has been closed for this line. */
+		private String promptNote;
 
 		Chat(String type, long timeoutMs, String text, String expectMessage)
 		{
@@ -83,10 +85,24 @@ final class Steps
 				{
 					retries++;
 					enterTick = run.gameTicks();
-					focusNote = run.game.pressEnterAgain();
+					// An open chatbox prompt takes the Enter, so the line stays however often it is pressed, and the
+					// next scripts' commands too (two nightly runs on 30 Oct 2026 stuck until a client restart; that a
+					// prompt was the cause is a guess). Close it, and press Enter again on the next try.
+					int mode = run.game.promptMode();
+					if (mode != 0 && promptNote == null)
+					{
+						run.game.closePrompt();
+						promptNote = "closed a chatbox prompt, meslayermode " + mode;
+						focusNote = promptNote;
+					}
+					else
+					{
+						String note = run.game.pressEnterAgain();
+						focusNote = promptNote == null ? note : promptNote + "; " + note;
+					}
 				}
 				return Poll.waiting("the chat input still holds the text: the client has not taken the Enter key"
-					+ (retries == 0 ? "" : " after " + (retries + 1) + " presses (" + focusNote + ")"));
+					+ (retries == 0 ? "" : " after " + (retries + 1) + " tries (" + focusNote + ")"));
 			}
 			if (expectMessage == null)
 			{

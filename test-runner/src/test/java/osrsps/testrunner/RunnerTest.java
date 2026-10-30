@@ -400,7 +400,31 @@ public class RunnerTest
 		now.addAndGet(100);
 		Result r = cycle();
 		assertEquals(Result.FAIL, r.result);
-		assertEquals("timed out after 40 ms: the chat input still holds the text: the client has not taken the Enter key after 2 presses (fake focus)", r.steps.get(0).detail);
+		assertEquals("timed out after 40 ms: the chat input still holds the text: the client has not taken the Enter key after 2 tries (fake focus)", r.steps.get(0).detail);
+	}
+
+	@Test
+	public void chatClosesAPromptThatHoldsTheLine() throws Exception
+	{
+		// A chatbox prompt takes the Enter: the line stays until the prompt is closed (two nightly runs, 30 Oct 2026).
+		game.chatPending = true;
+		game.promptMode = 7;
+		runner.start(script("{\"step\":\"chat\",\"text\":\"one\",\"timeoutMs\":70}"), "file");
+		assertNull(cycle());
+		runner.gameTick();
+		runner.gameTick();
+		assertNull(cycle());
+		assertEquals(List.of("chat one", "close prompt"), game.actions);
+		runner.gameTick();
+		runner.gameTick();
+		assertNull(cycle());
+		// Closed once; the next try presses Enter again.
+		assertEquals(List.of("chat one", "close prompt", "enter again"), game.actions);
+		now.addAndGet(100);
+		Result r = cycle();
+		assertEquals(Result.FAIL, r.result);
+		assertEquals("timed out after 70 ms: the chat input still holds the text: the client has not taken the Enter key after 3 tries"
+			+ " (closed a chatbox prompt, meslayermode 7; fake focus)", r.steps.get(0).detail);
 	}
 
 	@Test

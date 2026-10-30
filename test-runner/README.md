@@ -372,7 +372,10 @@ objectbox_double, the box with two items.
 - Chat is sent by putting the text in the chat input and sending an Enter key to the client's canvas. If a key
   remapping plugin is on, it may swallow the Enter. When the client leaves the line in the input, the runner asks for
   the canvas's keyboard focus and presses Enter again, up to five times two ticks apart (0.5.1); the result says
-  whether the canvas had focus.
+  whether the canvas had focus. (0.17.0) An open chatbox prompt takes the Enter for itself, so one of those tries
+  closes it instead (once per line), and the result also says whether the Swing thread had sent the last Enter,
+  where the keyboard focus was, whether the window was active and any prompt still open. If the line still stays,
+  restart the client and keep that result: its detail is what will find the cause.
 - `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles. When the tile
   is off screen it turns the camera toward it, so a script can leave the camera however it finds it.
 - Auto login starts the login by setting the client's game state to LOGGING_IN, as RuneLite's developer tools do.

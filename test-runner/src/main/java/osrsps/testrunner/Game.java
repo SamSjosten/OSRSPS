@@ -31,9 +31,16 @@ interface Game
 
 	/**
 	 * Presses Enter once more for a line the client has left in its chat input, asking for the canvas's keyboard focus
-	 * first when it lacks it. Returns a note on the focus for the result file.
+	 * first when it lacks it. Returns a note for the result file on what may have kept the Enter from the chat input:
+	 * the focus, (0.17.0) whether the Swing thread had sent the last Enter, the window and an open chatbox prompt.
 	 */
 	String pressEnterAgain();
+
+	/**
+	 * (0.17.0) Closes the chatbox prompt that is open (an "Enter amount" box and the like), which takes the Enter for
+	 * itself and so keeps a chat line in the input.
+	 */
+	void closePrompt();
 
 	/** Clicks "Walk here" on a tile in the loaded scene. */
 	String walk(int x, int y);

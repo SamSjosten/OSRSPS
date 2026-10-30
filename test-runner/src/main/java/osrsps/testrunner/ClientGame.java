@@ -1,7 +1,10 @@
 package osrsps.testrunner;
 
 import java.awt.Canvas;
+import java.awt.Component;
+import java.awt.KeyboardFocusManager;
 import java.awt.Rectangle;
+import java.awt.Window;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -97,6 +100,8 @@ final class ClientGame implements Game
 	private static final int MOUSE_SLACK = 2;
 
 	private final Client client;
+	/** Closes the chatbox prompt that is open: RuneLite's own way, which knows the close script's arguments. */
+	private final Runnable closePrompt;
 	/** The line {@link #sendChat} last put in the chat input, until the client has sent it. */
 	private String chatLine;
 	/** Set on the Swing thread once the Enter key events for {@link #chatLine} have gone to the canvas. */
@@ -106,9 +111,10 @@ final class ClientGame implements Game
 	/** Walk calls in a row that found the mouse on the walk's spot. */
 	private int mouseFrames;
 
-	ClientGame(Client client)
+	ClientGame(Client client, Runnable closePrompt)
 	{
 		this.client = client;
+		this.closePrompt = closePrompt;
 	}
 
 	@Override
@@ -175,10 +181,46 @@ final class ClientGame implements Game
 			return "the client has no canvas";
 		}
 		// A 0.5.0 run left "::combat man" in the input after a 30-tick wait, the Enter never taken, while the same
-		// run's earlier commands went fine. Whether the canvas had lost keyboard focus is unknown; the note says.
-		boolean focused = canvas.isFocusOwner();
+		// run's earlier commands went fine. Two nightly runs (30 Oct 2026) had every command stay until the client
+		// restarted. The cause is unknown; the note says what the client looked like.
+		List<String> note = new ArrayList<>();
+		if (!enterDelivered)
+		{
+			note.add("the Swing thread had not sent the last Enter yet");
+		}
+		if (canvas.isFocusOwner())
+		{
+			note.add("the canvas has keyboard focus");
+		}
+		else
+		{
+			Component owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+			note.add("the canvas had no keyboard focus, asked for it (focus on "
+				+ (owner == null ? "nothing in this client" : owner.getClass().getSimpleName()) + ")");
+		}
+		if (!canvas.isShowing() || !canvas.isEnabled() || !canvas.isFocusable())
+		{
+			note.add("the canvas is " + (canvas.isShowing() ? "" : "not showing, ") + (canvas.isEnabled() ? "" : "disabled, ")
+				+ (canvas.isFocusable() ? "focusable" : "not focusable"));
+		}
+		Window window = SwingUtilities.getWindowAncestor(canvas);
+		if (window != null && !window.isActive())
+		{
+			note.add("the window is not active");
+		}
+		int mode = client.getVarcIntValue(VarClientID.MESLAYERMODE);
+		if (mode != 0)
+		{
+			note.add("a chatbox prompt is open, meslayermode " + mode);
+		}
 		pressEnter(canvas);
-		return focused ? "the canvas has keyboard focus" : "the canvas had no keyboard focus, asked for it";
+		return String.join("; ", note);
+	}
+
+	@Override
+	public void closePrompt()
+	{
+		closePrompt.run();
 	}
 
 	/** Sends the Enter key to the canvas on the Swing thread, as a key press does, taking keyboard focus first. */

@@ -118,6 +118,13 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public void closePrompt()
+	{
+		actions.add("close prompt");
+		promptMode = 0;
+	}
+
+	@Override
 	public String walk(int x, int y)
 	{
 		actions.add("walk " + x + " " + y);
