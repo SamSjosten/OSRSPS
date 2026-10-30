@@ -136,6 +136,83 @@ class HeadlessAllSettingsTest {
     }
 
     @Test
+    fun `a new account gets the defaults at its first login, with the settings sent before the interfaces`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hank").use { client ->
+                client.await("tut2_default_settings") { client.clientScripts().firstOrNull { it.id == AllSettings.TUT2_DEFAULT_SETTINGS_SCRIPT } }
+                // Combat on F1 and prayer on F5, the volumes script9255 unmutes to, the teleport warnings shown.
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 0, 5, 1)
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 25, 5, 5)
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 15, 5, 13)
+                assertEquals(100, client.varp(SettingsSide.VARP_MASTER_VOLUME))
+                assertEquals(20, client.varp(SettingsSide.VARP_MUSIC_VOLUME))
+                assertEquals(3, (client.varp(RAIDS_PERM_TRANSMIT) ushr 10) and 3)
+                // The resizable frame follows, as from the layout dropdown.
+                client.await("the resizable frame") { Unit.takeIf { GameFrame.RESIZABLE_CLASSIC.interfaceId in client.openInterfaces() } }
+                val prots = client.packets().map { it.prot.name }
+                assertTrue(prots.indexOfFirst { it.startsWith("VARP_") } in 0 until prots.indexOf("IF_OPENTOP"), "varps before IF_OPENTOP: $prots")
+
+                client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.awaitNobodyOn()
+            // The next login isn't a new account's: no defaults again, and what was saved stays.
+            server.login("hank").use { client ->
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 0, 5, 1)
+                client.awaitTicks(3)
+                assertEquals(0, client.clientScripts().count { it.id == AllSettings.TUT2_DEFAULT_SETTINGS_SCRIPT })
+            }
+        }
+    }
+
+    @Test
+    fun `the buttons switch their section's warnings, reset its colours, and restore the keys and volumes`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivy").use { client ->
+                open(client)
+                // Warnings, the fifth tab drawn: off, then on again, each button made the selected setting.
+                client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 4)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 4, 4, WARNINGS)
+                client.awaitBits(RAIDS_PERM_TRANSMIT, 10, 2, 3)
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 4)
+                client.awaitBits(RAIDS_PERM_TRANSMIT, 10, 2, 0)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 8, 10, AllSettings.DISABLE_TELEPORT_WARNINGS)
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 3)
+                client.awaitBits(RAIDS_PERM_TRANSMIT, 10, 2, 3)
+
+                // A colour picked, then reset by its section's button.
+                client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 5)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 4, 4, AUDIO)
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 1)
+                client.await("the colour picker") { Unit.takeIf { AllSettings.COLOUR_PALLET in client.openInterfaces() } }
+                client.resumeCount(0x123456)
+                client.await("the colour saved") { Unit.takeIf { client.varp(CHAT_COLOUR_TRADE_OPAQUE) == 0x123457 } }
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 2)
+                client.await("the colour reset") { Unit.takeIf { client.varp(CHAT_COLOUR_TRADE_OPAQUE) == 0 } }
+
+                // Master muted from the side panel and combat's key taken off, then both restored.
+                client.ifButton(SettingsSide.INTERFACE, SettingsSide.MASTER_ICON, 1)
+                client.await("master muted") { Unit.takeIf { client.varp(SettingsSide.VARP_MASTER_VOLUME) == 0 } }
+                client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 3)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 4, 4, CONTROLS)
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 1)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 2)
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 0, 5, 0)
+                client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 5)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 4, 4, AUDIO)
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 4)
+                client.await("master back") { Unit.takeIf { client.varp(SettingsSide.VARP_MASTER_VOLUME) == 100 } }
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 5)
+                client.awaitBits(SIDESTONE_KEYBINDINGS_1, 0, 5, 1)
+                // Wiping an empty playlist leaves it empty.
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 6)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 8, 10, 490)
+                assertEquals(0, client.varp(PLAYLIST_1_FIRST))
+            }
+        }
+    }
+
+    @Test
     fun `the info and locked buttons flip, and close shuts the window`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
@@ -398,11 +475,17 @@ class HeadlessAllSettingsTest {
         const val CHAT_COLOUR_PUBLIC_OPAQUE = 2992
         const val LOOT_VALUE = 39
         const val PUBLIC_CHAT_COLOUR = 87
+        const val TRADE_CHAT_COLOUR = 89
+        const val CHAT_COLOUR_TRADE_OPAQUE = 2993
+        const val RAIDS_PERM_TRANSMIT = 4001
+        const val PLAYLIST_1_FIRST = AllSettings.PLAYLIST_VARPS_START
         val VOLUME_SCRIPT = AllSettings.SCRIPT_TRIGGERS.keys.single()
 
         const val ROOFS = 7
         const val CHAT = 2
         const val CONTROLS = 3
+        const val WARNINGS = 7
+        const val AUDIO = 1
         const val SCROLLBAR_SIDE = 1
 
         /** The 241 cache's option_hide_rooftops and wiki_icon_disabled, and a made-up one for the league row. */
@@ -415,6 +498,9 @@ class HeadlessAllSettingsTest {
             4675 to VarbitType(SIDESTONE_KEYBINDINGS_1, 0, 4),
             4680 to VarbitType(SIDESTONE_KEYBINDINGS_1, 25, 29),
             13132 to VarbitType(SETTINGS_VARP_3, 17, 18),
+            // bounty_teleport_warning and dareeyak_teleport_warning.
+            236 to VarbitType(RAIDS_PERM_TRANSMIT, 10, 10),
+            6284 to VarbitType(RAIDS_PERM_TRANSMIT, 11, 11),
         )
 
         /** enum 1161, the keybinds' key enum. */
@@ -439,6 +525,14 @@ class HeadlessAllSettingsTest {
             row(16, 207, SettingRow.KIND_DROPDOWN, options = 4, requires = listOf(SettingDependency(1, 1))),
             // Then a number (the loot notification value) and a colour (public chat, opaque).
             row(17, LOOT_VALUE, SettingRow.KIND_NUMBER), row(18, PUBLIC_CHAT_COLOUR, SettingRow.KIND_COLOUR),
+            // Warnings: a header, two teleport warnings and the buttons that switch them all.
+            row(19, 0, SettingRow.KIND_HEADER), row(20, 60), row(21, 61),
+            row(22, AllSettings.ENABLE_TELEPORT_WARNINGS, SettingRow.KIND_BUTTON),
+            row(23, AllSettings.DISABLE_TELEPORT_WARNINGS, SettingRow.KIND_BUTTON),
+            // A colour and its reset button in one section; the volume, keybind and playlist buttons in the next.
+            row(24, 0, SettingRow.KIND_HEADER), row(25, TRADE_CHAT_COLOUR, SettingRow.KIND_COLOUR), row(26, 107, SettingRow.KIND_BUTTON),
+            row(27, 0, SettingRow.KIND_HEADER), row(28, AllSettings.RESET_VOLUMES, SettingRow.KIND_BUTTON),
+            row(29, AllSettings.RESTORE_KEYBINDS, SettingRow.KIND_BUTTON), row(30, 490, SettingRow.KIND_BUTTON),
         ).associateBy { it.struct }
 
         /** Shaped like enum 422: Activities, Popout (enhanced client only), Chat, Leagues. */
@@ -449,6 +543,8 @@ class HeadlessAllSettingsTest {
                 SettingsCategory(913, CHAT, emptyMap(), listOf(6, 7, 8).map(ROWS::getValue)),
                 SettingsCategory(AllSettings.LEAGUES_CATEGORY_STRUCT, 9, emptyMap(), listOf(ROWS.getValue(9))),
                 SettingsCategory(2000, CONTROLS, emptyMap(), (10..18).map(ROWS::getValue)),
+                SettingsCategory(2100, WARNINGS, emptyMap(), (19..23).map(ROWS::getValue)),
+                SettingsCategory(2200, AUDIO, emptyMap(), (24..30).map(ROWS::getValue)),
             ),
             ROWS,
             mapOf(
@@ -460,11 +556,16 @@ class HeadlessAllSettingsTest {
                 162 to SettingVar.Conditional(AllSettings.VARBIT_CA_FAILURE, 1, SettingVar.Varbit(AllSettings.VARBIT_CA_REFAILURE)),
                 37 to SettingVar.Varp(VARP_CHATFILTER_DISABLED),
                 300 to SettingVar.Varbit(90000),
+                60 to SettingVar.Varbit(236),
+                61 to SettingVar.Varbit(6284),
             ),
             mapOf(SCROLLBAR_SIDE to SettingVar.Varbit(6374), 207 to SettingVar.Varbit(13132)),
             mapOf(16 to SettingVar.Mapped(SettingVar.Varbit(4675), F_KEYS, 0), 17 to SettingVar.Mapped(SettingVar.Varbit(4680), F_KEYS, 0)),
             numbers = mapOf(LOOT_VALUE to SettingVar.Varbit(AllSettings.VARBIT_LOOT_NOTIFICATION_VALUE)),
-            colours = mapOf(PUBLIC_CHAT_COLOUR to SettingVar.Offset(SettingVar.Varp(CHAT_COLOUR_PUBLIC_OPAQUE), -1)),
+            colours = mapOf(
+                PUBLIC_CHAT_COLOUR to SettingVar.Offset(SettingVar.Varp(CHAT_COLOUR_PUBLIC_OPAQUE), -1),
+                TRADE_CHAT_COLOUR to SettingVar.Offset(SettingVar.Varp(CHAT_COLOUR_TRADE_OPAQUE), -1),
+            ),
         )
     }
 }

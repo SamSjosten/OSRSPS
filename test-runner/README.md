@@ -162,11 +162,17 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `settings-dropdowns.json`: dropdowns and F-key binds in the All Settings window, each picked from its list (the
   row's clickzone child, then child 3n + 2 of dropdown_buttons for option n) and checked once the client has read it
   again: attack priority, the combat and prayer tab keys (a key taken from the tab that had it), login/logout
-  notifications, chatbox scrollbar side and quest list sort; and the master and music sliders (a mouse click in the
-  middle of each one's notch, a settings_content child, 53%); then close, relog and check every one.
+  notifications and quest list sort; and the master and music sliders (a mouse click in the middle of each one's
+  clickzone, a settings_content child, 53%); then close, relog and check every one.
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
   number prompt with `enterAmount`, public chat's colour picked in the colour picker and saved, then a cancelled pick,
   and the public chat filter set to friends; then close, relog and check every one, the filter by its label.
+- `settings-buttons.json`: the All Settings window's buttons. The Wilderness teleport and tablet warnings switched on
+  and off a section at a time, the opaque chat colours reset, the keybinds restored and the volumes reset; then close,
+  relog and check, and the keys put back to none.
+- `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
+  it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
+  after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
 
 ## Results
 
