@@ -17,6 +17,7 @@ import osrsps.game.ge.GrandExchangeLines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.CookingLines
+import osrsps.game.skill.CraftingLines
 import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.FishingLines
 import osrsps.game.skill.FletchingLines
@@ -39,6 +40,7 @@ object DialogueLines {
         // Crafting, fletching and herblore.
         MakeLines,
         FletchingLines,
+        CraftingLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
         BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines, SettingsLines,
         // The raid's combat foundations, one a line.
@@ -54,7 +56,7 @@ object DialogueLines {
         // Al Kharid.
         BorderGuardLines,
         // Draynor Village.
-        DraynorSearchLines,
+        DraynorSearchLines, AxeLogsLines,
         // The Grand Exchange.
         GrandExchangeLines,
     )
