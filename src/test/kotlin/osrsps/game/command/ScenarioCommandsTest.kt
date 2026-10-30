@@ -21,6 +21,7 @@ import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.MeleeInteraction
+import osrsps.game.combat.SpecialAttacks
 import osrsps.game.ge.BuyLimitUse
 import osrsps.game.ge.GeOffer
 import osrsps.game.ge.OfferType
@@ -53,7 +54,7 @@ class ScenarioCommandsTest {
     )
     private val ghost = Scenario.parse("ghost", """{ "position": { "x": 3259, "z": 3263 }, "inventory": [ { "item": "ectoplasm" } ] }""")
     private val upstairs = Scenario.parse("upstairs", """{ "position": { "x": 3208, "z": 3220, "level": 2 } }""")
-    private val varTypes = VarTypes(5000, mapOf(9 to VarbitType(300, 2, 4)))
+    private val varTypes = VarTypes(5000, mapOf(9 to VarbitType(310, 2, 4)))
     private val saves = MemorySaveStore()
 
     // Lumbridge's map square (50, 50) exists; nothing else does.
@@ -65,7 +66,7 @@ class ScenarioCommandsTest {
         skills.setLevel(Skill.COOKING, 50)
         skills.setCurrentLevel(Skill.HITPOINTS, 7)
         runEnergy = 4_000
-        vars[300] = 1
+        vars[310] = 1
         vars[1000] = 77
         inventory[5] = InvObj(1351, 1)
         equipment[WearPos.WEAPON] = InvObj(1351, 1)
@@ -92,8 +93,10 @@ class ScenarioCommandsTest {
         assertEquals(listOf(WearPos.HEAD to InvObj(1153, 1), WearPos.WEAPON to InvObj(1323, 1)), player.equipment.contents())
         assertEquals(3, player.vars[43])
         assertEquals(5, player.vars.getVarbit(9))
-        // Varps the scenario doesn't name are kept: bits of 300 outside varbit 9, and 1000.
-        assertEquals(1 or (5 shl 2), player.vars[300])
+        // Varps the scenario doesn't name are kept: bits of 310 outside varbit 9, and 1000.
+        assertEquals(1 or (5 shl 2), player.vars[310])
+        // But the special attack energy is full, as the run energy is.
+        assertEquals(SpecialAttacks.FULL, player.vars[SpecialAttacks.VARP_ENERGY])
         assertEquals(77, player.vars[1000])
         assertEquals("cows", player.scenario)
     }
@@ -117,7 +120,8 @@ class ScenarioCommandsTest {
         assertEquals(4_000, player.runEnergy)
         assertFalse(player.runEnabled)
         assertEquals(0, player.vars[43])
-        assertEquals(1, player.vars[300])
+        assertEquals(1, player.vars[310])
+        assertEquals(0, player.vars[SpecialAttacks.VARP_ENERGY], "the energy from before")
         assertEquals(listOf(5 to InvObj(1351, 1)), player.inventory.contents())
         assertEquals(listOf(WearPos.WEAPON to InvObj(1351, 1)), player.equipment.contents())
         assertEquals(listOf(0 to InvObj(995, 500)), player.bank.contents())

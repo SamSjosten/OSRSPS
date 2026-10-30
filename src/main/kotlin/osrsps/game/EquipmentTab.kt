@@ -378,6 +378,9 @@ class EquipmentTab(
         val STYLE_BUTTONS = intArrayOf(6, 10, 14, 18)
         const val COMBAT_RETALIATE = 32
 
+        /** combat_interface:special_attack, the special attack bar's button; see [osrsps.game.combat.SpecialAttacks]. */
+        const val COMBAT_SPECIAL = 41
+
         /** combat_interface's two "Choose spell" buttons: the shield one (defensive) and the other. */
         const val COMBAT_AUTOCAST_DEFENSIVE = 23
         const val COMBAT_AUTOCAST_NORMAL = 28
@@ -430,6 +433,7 @@ class EquipmentTab(
                 put(COMBAT_CATEGORY, "category")
                 STYLE_BUTTONS.forEachIndexed { button, component -> put(component, "$button") }
                 put(COMBAT_RETALIATE, "retaliate")
+                put(COMBAT_SPECIAL, "special_attack")
                 put(COMBAT_AUTOCAST_DEFENSIVE, "autocast_defensive")
                 put(COMBAT_AUTOCAST_NORMAL, "autocast_normal")
             }),

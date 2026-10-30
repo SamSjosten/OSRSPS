@@ -10,6 +10,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.combat.SpecialAttacks
 import osrsps.map.CollisionMap
 
 class PlayerSaveTest {
@@ -194,7 +195,7 @@ class PlayerSaveTest {
     }
 
     @Test
-    fun `the save is readable JSON with only the varps that aren't 0`() {
+    fun `the save is readable JSON with only the varps that aren't 0, and the special attack energy`() {
         val player = world.loadPlayer(1, "Test")
         player.vars[173] = 1
         world.save(player)
@@ -202,7 +203,21 @@ class PlayerSaveTest {
         assertTrue("\"version\": 1" in text)
         assertTrue("\"username\": \"Test\"" in text)
         assertTrue("\"173\": 1" in text)
-        assertEquals(1, PlayerSave.fromJson(text).varps.size)
+        assertEquals(mapOf(173 to 1, SpecialAttacks.VARP_ENERGY to SpecialAttacks.FULL), PlayerSave.fromJson(text).varps)
+    }
+
+    @Test
+    fun `special attack energy is saved at 0 too, and a save from before it was kept starts full`() {
+        val player = world.loadPlayer(1, "Test")
+        assertEquals(SpecialAttacks.FULL, player.vars[SpecialAttacks.VARP_ENERGY], "a new account's")
+        player.vars[SpecialAttacks.VARP_ENERGY] = 0
+        world.save(player)
+        val text = saves.saves.getValue("test")
+        assertTrue("\"${SpecialAttacks.VARP_ENERGY}\": 0" in text)
+        assertEquals(0, world.loadPlayer(2, "Test").vars[SpecialAttacks.VARP_ENERGY])
+        val old = text.replace("\"${SpecialAttacks.VARP_ENERGY}\": 0", "\"1\": 0")
+        saves.saves["test"] = old
+        assertEquals(SpecialAttacks.FULL, world.loadPlayer(3, "Test").vars[SpecialAttacks.VARP_ENERGY])
     }
 
     @Test
@@ -212,7 +227,7 @@ class PlayerSaveTest {
         world.save(player)
         val sent = mutableListOf<Pair<Int, Int>>()
         world.loadPlayer(2, "Test").vars.flush { varp, value -> sent += varp to value }
-        assertEquals(listOf(173 to 1), sent)
+        assertEquals(listOf(173 to 1, SpecialAttacks.VARP_ENERGY to SpecialAttacks.FULL), sent)
     }
 
     @Test

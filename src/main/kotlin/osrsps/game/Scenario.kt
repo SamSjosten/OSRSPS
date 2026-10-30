@@ -30,7 +30,7 @@ import osrsps.game.bank.Bank
  *
  * Only `position` is required; other keys, such as `notes`, are ignored. A scenario is a whole loadout, so what it
  * leaves out is reset rather than kept: skills it doesn't name are a new account's (1, Hitpoints 10), run energy is
- * full, the inventory, equipment and bank hold only what it lists. Varps and varbits it doesn't name, and the run orb
+ * full and so is special attack energy (unless its varps set varp 300), the inventory, equipment and bank hold only what it lists. Varps and varbits it doesn't name, and the run orb
  * unless `run` is given, are left as they are: they hold settings and the quest states every account gets.
  *
  * `item` is a gameval name (`bronze_axe`) or an id. Inventory items go in as `::item` puts them: a stackable item on one
