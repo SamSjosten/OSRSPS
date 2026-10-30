@@ -196,6 +196,40 @@ class GrandExchangeTest {
         save.applyTo(loaded)
         assertEquals(player.ge.contents().map { it.first to it.second.copy(placedTick = -1) }, loaded.ge.contents())
         assertEquals(player.ge.limits, loaded.ge.limits)
+        assertEquals(player.ge.history.toList(), loaded.ge.history.toList())
+    }
+
+    @Test
+    fun `finished offers go in the history, newest first, with a sale's tax`() {
+        give(COINS, 1000)
+        give(PRAYER_4, 3)
+        ge.marketOpen = false
+        ge.buy(player, AXE, 2, 50)
+        ge.sell(player, PRAYER_4, 3, 150)
+        // Aborted with nothing bought: no trade.
+        ge.buy(player, AXE, 1, 40)
+        ge.abort(player, 2)
+        assertTrue(player.ge.history.isEmpty())
+        ge.fill(player, 0, 2)
+        assertEquals(listOf(GeTrade(OfferType.BUY, AXE, 2, 100)), player.ge.history.toList())
+        // Two potions sold at 150, 3 tax each, then the rest aborted: in as the two sold.
+        ge.fill(player, 1, 2)
+        ge.abort(player, 1)
+        assertEquals(GeTrade(OfferType.SELL, PRAYER_4, 2, 300, 6), player.ge.history.first())
+        assertEquals(6L, player.ge[1]!!.taxPaid)
+        // A save keeps the tax paid.
+        val loaded = Player(2, "test", 0, 0, 0)
+        PlayerSave.fromJson(PlayerSave.of(player).toJson("test")).applyTo(loaded)
+        assertEquals(6L, loaded.ge[1]!!.taxPaid)
+        assertEquals(player.ge.history.toList(), loaded.ge.history.toList())
+    }
+
+    @Test
+    fun `the history keeps the last 20`() {
+        repeat(25) { player.ge.record(GeTrade(OfferType.BUY, AXE, it + 1, 40)) }
+        assertEquals(GeAccount.HISTORY_SIZE, player.ge.history.size)
+        assertEquals(25, player.ge.history.first().count)
+        assertEquals(6, player.ge.history.last().count)
     }
 
     @Test

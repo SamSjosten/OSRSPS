@@ -415,6 +415,9 @@ class HeadlessClient private constructor(
         send(GameClientProt.IGNORELIST_DEL) { pjstr(name) }
     }
 
+    /** The client closing its modals (CLOSE_MODAL), as Esc or a close button does. */
+    fun closeModal() = send(GameClientProt.CLOSE_MODAL) {}
+
     /** An item picked in the chatbox's item search (RESUME_P_OBJDIALOG). */
     fun resumeObj(obj: Int) = send(GameClientProt.RESUME_P_OBJDIALOG) { p2(obj) }
 
