@@ -1,5 +1,5 @@
 {
- "name": "Al Kharid step 1: the toll gate opens free both ways, a Border Guard's talk (::keys on) lets the player through, and the palace's large doors open together",
+ "name": "Al Kharid step 1: the toll gate opens free both ways, a Border Guard's talk (::keys on) lets the player through, the palace's large doors open together, and a curtain opens and shuts",
  "account": "test",
  "steps": [
   {
@@ -134,6 +134,42 @@
    "x": 3287,
    "y": 3171,
    "comment": "both shut again"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3289 3173 1",
+   "expectMessage": "Teleported to 3289, 3173, 1",
+   "comment": "upstairs in the palace, by its closed curtain"
+  },
+  {
+   "step": "locOption",
+   "loc": "Curtain",
+   "option": "Open",
+   "x": 3288,
+   "y": 3173
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Curtain",
+   "option": "Close",
+   "x": 3287,
+   "y": 3173,
+   "comment": "swung open onto the tile to the west"
+  },
+  {
+   "step": "locOption",
+   "loc": "Curtain",
+   "option": "Close",
+   "x": 3287,
+   "y": 3173
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Curtain",
+   "option": "Open",
+   "x": 3288,
+   "y": 3173,
+   "comment": "shut again"
   },
   {
    "step": "command",

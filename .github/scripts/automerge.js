@@ -142,14 +142,23 @@ async function latestChecks(github, repo, sha) {
 }
 
 // `current` is the check already on the head, if any: an unchanged result isn't written again, so a queue run doesn't
-// wake the thread with the same failing check each time.
-async function gate(github, git, repo, core, number, current) {
+// wake the thread with the same failing check each time. Gate runs aren't serialized (see automerge.yml), so a run
+// whose evaluation started before the newest check on the head was written leaves that check alone; the queue looks
+// again at any check that isn't passing, so a run that lost such a race to a stale one is put right there.
+async function gate(github, git, repo, core, number, current, now = Date.now) {
+  const started = now();
   const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number: number });
   if (pr.state !== 'open') return;
   const result = await evaluate(github, git, repo, pr);
   core.info(`#${number}: ${CHECK} ${result.conclusion || result.status}: ${result.title}`);
-  const same = current && current.status === result.status && (current.conclusion || null) === (result.conclusion || null)
-    && current.output && current.output.title === result.title;
+  const latest = (await latestChecks(github, repo, pr.head.sha)).find(run => run.name === CHECK);
+  if (latest && latest.started_at && Date.parse(latest.started_at) > started) {
+    core.info(`#${number}: a newer ${CHECK} was written meanwhile; leaving it`);
+    return;
+  }
+  const seen = current || latest;
+  const same = seen && seen.status === result.status && (seen.conclusion || null) === (result.conclusion || null)
+    && seen.output && seen.output.title === result.title;
   if (!same) await writeCheck(github, repo, pr.head.sha, result);
 }
 
@@ -163,9 +172,10 @@ async function advance(github, git, repo, core, sleep, now) {
     const behind = compare.behind_by > 0;
     let checks = await latestChecks(github, repo, pr.head.sha);
     const current = checks.find(run => run.name === CHECK);
-    // Missing (opened before this workflow, or an event was missed) or still waiting: Codex may have answered since.
-    if (!current || current.status !== 'completed') {
-      await gate(github, git, repo, core, pr.number, current);
+    // Missing (opened before this workflow, or an event was missed), waiting or failing: Codex may have answered
+    // since, or a slower gate run may have written a stale result. Written again only when it changes.
+    if (!current || current.conclusion !== 'success') {
+      await gate(github, git, repo, core, pr.number, current, now);
       checks = await latestChecks(github, repo, pr.head.sha);
     }
     if (!behind && !checks.some(run => run.name === BUILD)) {
@@ -230,10 +240,10 @@ branch, check the merge, and comment \`@codex review\`.`,
 }
 
 // The `gate` job: the check for the pull request the event is about.
-module.exports.gate = async function ({ github, context, core, git = shellGit }) {
+module.exports.gate = async function ({ github, context, core, git = shellGit, now = Date.now }) {
   const payload = context.payload;
   const number = payload.pull_request ? payload.pull_request.number : payload.issue && payload.issue.number;
-  if (number) await gate(github, git, context.repo, core, number);
+  if (number) await gate(github, git, context.repo, core, number, undefined, now);
 };
 
 // The `queue` job, after every event.

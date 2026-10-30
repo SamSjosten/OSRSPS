@@ -129,9 +129,12 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-east.json`: east of the River Lum: Barfy Bill's talk (with `::keys on`) for a player below level 12
   Woodcutting, Examine on Bill, a giant spider and a goblin, and `::kill goblin` showing the goblin's death animation
   and leaving its bones, which are then taken.
+- `lumbridge-swamp.json`: Lumbridge Swamp's fighters: Examine (with `::keys on`) on a level 6 giant rat, a frog, a
+  big frog, a giant frog, the level 5 goblin and the unicorn, and `::kill` on a giant rat (its death animation, then
+  its raw rat meat taken) and a giant frog (its big bones taken).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
-  opened together and shut again.
+  opened together and shut again, and the curtain upstairs in the palace opened and shut.
 - `al-kharid-bank.json`: Al Kharid step 2: Bank on a booth (logs deposited), a banker's Bank across the booth (logs
   withdrawn), and a banker's talk (with `::keys on`) that opens the bank.
 - `al-kharid-shops.json`: Al Kharid step 3: Trade with each of Al Kharid's seven shops (the General Store, Zeke,

@@ -45,6 +45,8 @@ class HeadlessAlKharidTest {
             wall(AlKharid.PALACE_DOOR_RIGHT, "Large door", "Open"),
             wall(AlKharid.PALACE_DOOR_RIGHT_OPEN, "Large door", "Close"),
             LocType(BOOTH, "Bank booth", ops = listOf(null, "Bank", "Collect", null, null), collision = LocCollisionType(blocksProjectile = false)),
+            wall(AlKharid.CURTAIN, "Curtain", "Open"),
+            wall(AlKharid.CURTAIN_OPEN, "Curtain", "Close"),
         ).associateBy { it.id },
     )
 
@@ -57,6 +59,8 @@ class HeadlessAlKharidTest {
     private val palace = listOf(
         ZoneLoc(AlKharid.PALACE_DOOR_LEFT, LocShape.WALL_STRAIGHT, 0, 3287, 3171, 0),
         ZoneLoc(AlKharid.PALACE_DOOR_RIGHT, LocShape.WALL_STRAIGHT, 0, 3287, 3172, 0),
+        // The closed curtain upstairs in the palace.
+        ZoneLoc(AlKharid.CURTAIN, LocShape.WALL_STRAIGHT, 0, 3288, 3173, 1),
     )
 
     /** One of the bank's booths, with a banker behind it, as the map and 2004Scape's spawns have them. */
@@ -146,6 +150,23 @@ class HeadlessAlKharidTest {
                 val world = server.world
                 client.await("the left leaf open") { world.locs[3286, 3171, 0, 0]?.takeIf { it.id == AlKharid.PALACE_DOOR_LEFT_OPEN } }
                 assertEquals(AlKharid.PALACE_DOOR_RIGHT_OPEN, world.locs[3286, 3172, 0, 0]?.id)
+            }
+        }
+    }
+
+    @Test
+    fun `a curtain opens and closes as a door does`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele 3289 3173 1")
+                client.await("the teleport upstairs") { client.position?.takeIf { it == Coord(3289, 3173, 1) } }
+                client.locOp(AlKharid.CURTAIN, 3288, 3173, 1)
+                val world = server.world
+                client.await("the curtain open") { world.locs[3287, 3173, 1, 0]?.takeIf { it.id == AlKharid.CURTAIN_OPEN } }
+                client.locOp(AlKharid.CURTAIN_OPEN, 3287, 3173, 1)
+                client.await("the curtain shut") { world.locs[3288, 3173, 1, 0]?.takeIf { it.id == AlKharid.CURTAIN } }
+                assertNull(world.locs[3287, 3173, 1, 0])
             }
         }
     }
