@@ -4,14 +4,18 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.NpcType
+import osrsps.game.NpcTypes
 import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.game.content.SearchLines
 import osrsps.game.content.Varrock
+import osrsps.game.content.WestBankDoorLines
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -19,7 +23,7 @@ import osrsps.map.LocShape
 
 /**
  * Varrock piece step 1 through the headless client: two straight staircases (one climbing north, one south), a ladder
- * and a chest of drawers, placed as the 241 cache has them (types, sizes, angles and options) on open ground. The
+ * a chest of drawers and the West Bank's locked door with its banker, placed as the 241 cache has them (types, sizes, angles and options) on open ground. The
  * rl-client script test-runner/examples/varrock-city.json does the same on the real map.
  */
 class HeadlessVarrockTest {
@@ -35,6 +39,7 @@ class HeadlessVarrockTest {
             type(Varrock.LADDER_TOP, "Ladder", 1, 1, "Climb-down"),
             type(Varrock.DRAWERS, "Drawers", 1, 1, "Open"),
             type(Varrock.DRAWERS_OPEN, "Drawers", 1, 1, "Search", "Close"),
+            type(Varrock.WEST_BANK_LOCKED_DOOR, "Door", 1, 1, "Knock-at"),
         ).associateBy { it.id },
     )
 
@@ -48,15 +53,24 @@ class HeadlessVarrockTest {
         ZoneLoc(Varrock.LADDER, LocShape.CENTREPIECE_STRAIGHT, 0, 3214, 3410, 0),
         ZoneLoc(Varrock.LADDER_TOP, LocShape.CENTREPIECE_STRAIGHT, 0, 3214, 3410, 1),
         ZoneLoc(Varrock.DRAWERS, LocShape.CENTREPIECE_STRAIGHT, 0, 3247, 3382, 0),
+        // The West Bank's locked door, on its tile's west edge, with the banker behind it to the east.
+        ZoneLoc(Varrock.WEST_BANK_LOCKED_DOOR, LocShape.WALL_STRAIGHT, 0, 3186, 3446, 0),
     )
+
+    private val doorguard = NpcType(Varrock.WEST_BANK_DOORGUARD, "Banker", ops = listOf(null, null, null, null, null), internalName = "varrock_bank_doorguard")
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             markLoaded(3188 shr 6, 3389 shr 6)
             markLoaded(3230 shr 6, 3383 shr 6)
             markLoaded(3214 shr 6, 3410 shr 6)
+            markLoaded(3186 shr 6, 3446 shr 6)
         }
-        World(crcs, map, objTypes = ObjTypes(arrayOfNulls(1)), locTypes = types, staticLocs = StaticLocs().apply { locs.forEach(::add) }, cycleMillis = millis)
+        World(
+            crcs, map, objTypes = ObjTypes(arrayOfNulls(1)), locTypes = types, staticLocs = StaticLocs().apply { locs.forEach(::add) },
+            npcTypes = NpcTypes.of(doorguard), npcSpawns = listOf(NpcSpawn(doorguard, 3187, 3446, wander = 0, source = "test")),
+            cycleMillis = millis,
+        )
     }
 
     private fun HeadlessClient.tele(x: Int, z: Int, level: Int) {
@@ -118,7 +132,27 @@ class HeadlessVarrockTest {
         }
     }
 
+    @Test
+    fun `Knock-at on the West Bank's locked door has the banker behind it turn the player away`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3185, 3446, 0)
+                client.locOp(Varrock.WEST_BANK_LOCKED_DOOR, 3186, 3446, Varrock.KNOCK_AT)
+                val knock = DialogueText.NONE[WestBankDoorLines.KNOCK]
+                val view = client.await("the banker's answer") { client.dialogueView as? DialogueView.Chat }
+                assertEquals(knock, view.text)
+                assertEquals("Banker", view.name)
+                client.continueDialogue()
+                client.await("the dialogue closed") { if (client.dialogueView == null) Unit else null }
+                // The door stays shut: the player is still outside it.
+                assertEquals(Coord(3185, 3446, 0), client.position)
+            }
+        }
+    }
+
     private companion object {
+
         /** fai_varrock_stairs and fai_varrock_stairs_taller. */
         const val STAIRS = 11796
         const val STAIRS_TALLER = 11797

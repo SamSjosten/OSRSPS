@@ -61,6 +61,12 @@
    "step": "waitForLogin"
   },
   {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "keys don't last past a logout"
+  },
+  {
    "step": "npcOption",
    "npc": "Banker",
    "option": "Talk-to",
@@ -101,6 +107,12 @@
   },
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "keys don't last past a logout"
   },
   {
    "step": "command",
@@ -146,6 +158,12 @@
   },
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "keys don't last past a logout"
   },
   {
    "step": "locOption",

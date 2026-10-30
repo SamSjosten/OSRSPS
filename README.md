@@ -895,7 +895,7 @@ file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`).
 
 Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
 both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `HeadlessVarrockTest`
-does the stairs, the ladder and the drawers through the headless client, `VarrockTest` the stairs' rule each way round,
+does the stairs, the ladder, the drawers and Knock-at on the locked door through the headless client, `VarrockTest` the stairs' rule each way round and a stray dog's Shoo-away and Pet (overhead text and sound),
 `GatesTest` the Grand Exchange's fence gate and `NpcSpawnFileTest` the counts.
 
 ## Equipment
