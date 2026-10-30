@@ -96,6 +96,9 @@ object AlKharid {
     const val PALACE_DOOR_RIGHT_OPEN = 1512
     const val CURTAIN = 1533
     const val CURTAIN_OPEN = 1534
+
+    /** boxes3 (Search), by Ali Morrisane's stall (3308, 3206). */
+    const val BOXES = 361
 }
 
 fun registerAlKharid(world: World) {
@@ -107,6 +110,7 @@ fun registerAlKharid(world: World) {
     with(AlKharid) {
         world.doors.registerDouble(PALACE_DOOR_LEFT, PALACE_DOOR_LEFT_OPEN, PALACE_DOOR_RIGHT, PALACE_DOOR_RIGHT_OPEN)
         world.doors.register(CURTAIN, CURTAIN_OPEN)
+        registerSearch(world, BOXES, 1, SearchLines.BOXES_EMPTY)
     }
     with(TollGate) {
         for (leaf in listOf(LEFT, RIGHT)) {
