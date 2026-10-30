@@ -148,6 +148,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   eaten, and silk haggled down to 2 gp from the Silk trader.
 - `al-kharid-tanning.json`: Al Kharid step 4b: Ellis's talk (with `::keys on`) with cowhides carried, into the
   tanning screen; Tan 1, then Trade and Tan All, turning three cowhides into soft leather for a coin each.
+- `al-kharid-palace.json`: Al Kharid step 5 (with `::keys on`): Chancellor Hassan's and Prince Ali's after-quest
+  lines, a big window refused by Hassan, and a Keris bought from Osman for 20,000 coins.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
