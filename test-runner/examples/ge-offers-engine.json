@@ -1,0 +1,28 @@
+{
+ "name": "Grand Exchange step 1: the offer engine through ::geoffer, buying and selling feathers against the guide-price market",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack and no offers; ::reset at the end puts it back"},
+  {"step": "command", "text": "::gemarket on", "expectMessage": "The Grand Exchange market is on."},
+  {"step": "command", "text": "::item coins 10k", "expectMessage": "Added 10,000 x Coins"},
+  {"step": "command", "text": "::geoffer buy feather 100 50", "expectMessage": "Placed: Slot 0: buy 100 x Feather (314) at 50", "comment": "50 each is far over the feather's guide price, so the market fills it on the next tick at the guide price"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::geoffer list", "expectMessage": "Slot 0: buy 100 x Feather (314) at 50, 100/100 done for"},
+  {"step": "command", "text": "::geoffer collect 0", "expectMessage": "Collected from slot 0."},
+  {"step": "assertInventory", "item": "Feather", "count": 100},
+  {"step": "command", "text": "::geoffer list", "expectMessage": "No offers.", "comment": "a finished, collected offer frees its slot"},
+  {"step": "command", "text": "::gemarket off", "expectMessage": "The Grand Exchange market is off."},
+  {"step": "command", "text": "::geoffer sell feather 100 1", "expectMessage": "Placed: Slot 0: sell 100 x Feather (314) at 1"},
+  {"step": "assertInventory", "item": "Feather", "count": 0},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::geoffer list", "expectMessage": "0/100 done for 0,", "comment": "the market is off, so nothing fills"},
+  {"step": "command", "text": "::gefill 0 40", "expectMessage": "Filled 40 in slot 0."},
+  {"step": "command", "text": "::geoffer abort 0", "expectMessage": "Aborted slot 0."},
+  {"step": "command", "text": "::geoffer list", "expectMessage": "40/100 done for 40, aborted, to collect 60 items and 40 coins", "comment": "40 sold at 1 each, under 50 so no tax; the other 60 come back"},
+  {"step": "command", "text": "::geoffer collect 0", "expectMessage": "Collected from slot 0."},
+  {"step": "assertInventory", "item": "Feather", "count": 60},
+  {"step": "command", "text": "::gemarket on", "expectMessage": "The Grand Exchange market is on."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

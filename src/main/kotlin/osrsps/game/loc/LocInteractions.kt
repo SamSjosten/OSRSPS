@@ -53,6 +53,8 @@ class LocInteractions(
     private val handlers: Handlers,
     private val scripts: ScriptRunner,
     private val doors: Doors,
+    /** Fence gates; none unless given, for the tests that only need doors. */
+    private val gates: Gates? = null,
     /** What the player is told and shown; tests swap these for recorders, as they have no client. */
     private val message: (Player, String) -> Unit = Player::message,
     private val faceLoc: (Player, RouteTarget) -> Unit = ::faceLoc,
@@ -144,7 +146,7 @@ class LocInteractions(
         val op = Op(OpTarget.LOC, loc.id, interaction.option, loc = loc, repeat = interaction.repeat)
         if (handlers.find(op) != null) {
             scripts.trigger(player, op)
-        } else if (doors.toggle(loc, interaction.option) == null) {
+        } else if (doors.toggle(loc, interaction.option) == null && gates?.toggle(loc, interaction.option) == null) {
             logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }
             message(player, words(player)[GameLines.NOTHING_INTERESTING])
         }

@@ -133,6 +133,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   giant frog, the level 5 goblin and the unicorn; `::kill` on a giant rat (its death animation, then its raw rat meat
   taken) and a giant frog (its big bones taken); Father Urhney's spare ghostspeak amulet, given once; the four
   adventurers' talks; and the candle seller refusing a player with no coins, then selling a lit candle for 1000.
+- `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
+  down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
+  ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
@@ -155,6 +158,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   box over three raw shrimps cooks all three (90 XP).
 - `smithing-lumbridge.json`: north of Lumbridge Castle, the furnace's Make-X box smelts a bronze bar, then the rusted
   anvil needs a hammer and hammers the bar into a dagger. Needs 0.8.0 (`assertVarbit`).
+- `fletching-logs.json`: a knife on three logs at 99 cuts three shortbows (u) through the Make-X box (15 XP), then at
+  level 1 a longbow needs 10. Needs 0.10.0 (`useItemOnItem`).
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 

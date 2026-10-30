@@ -38,6 +38,7 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerIpCommands
+import osrsps.game.command.registerGrandExchangeCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerLocCommands
 import osrsps.game.command.registerNpcCommands
@@ -89,6 +90,7 @@ import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
+import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -96,7 +98,9 @@ import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
+import osrsps.game.ge.GrandExchange
 import osrsps.game.loc.Doors
+import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.Locs
@@ -113,8 +117,11 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Making
 import osrsps.game.skill.Cooking
 import osrsps.game.skill.Fishing
+import osrsps.game.skill.Fletching
+import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
@@ -224,6 +231,9 @@ class World(
 
     val doors = Doors(locs)
 
+    /** Fence gates, both leaves at once; see [Gates]. */
+    val gates = Gates(locs)
+
     val npcs = Npcs(collision, random)
 
     /** What NPCs do on their own: timers, per-tick actions and deaths that content gives them; see [NpcScripts]. */
@@ -294,6 +304,9 @@ class World(
     private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
 
     /** Shops and their shared stock; see [ShopScreen]. */
+    /** Grand Exchange offers; see [GrandExchange]. */
+    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
+
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
@@ -302,7 +315,7 @@ class World(
 
     private val follows = Follows(movement, { players[it.index] === it })
 
-    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, words = ::textFor)
+    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor)
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
@@ -388,6 +401,10 @@ class World(
     val cooking = Cooking(this)
     val smithing = Smithing(this)
 
+    /** The Make-X loop the artisan skills share. */
+    val making = Making(this)
+    val fletching = Fletching(this, FletchingData.load())
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -413,6 +430,7 @@ class World(
         registerZoneCommands(this@World, collision)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
+        registerGrandExchangeCommands(this@World)
         registerGroundObjCommands(this@World)
         registerLocCommands(this@World)
         registerNpcCommands(this@World)
@@ -436,6 +454,7 @@ class World(
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
         registerLumbridgeTown(this)
+        registerDraynorVillage(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -453,6 +472,7 @@ class World(
         fishing.register()
         cooking.register()
         smithing.register()
+        fletching.register()
         loadDialogue()
     }
 
@@ -781,6 +801,7 @@ class World(
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
+            grandExchange.process(player)
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
