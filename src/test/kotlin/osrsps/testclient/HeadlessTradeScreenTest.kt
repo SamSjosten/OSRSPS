@@ -19,7 +19,8 @@ import org.junit.jupiter.api.io.TempDir
 class HeadlessTradeScreenTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(QUEST_ITEM + 1)
-        objs[COINS] = ObjType(COINS, "Coins", stackable = true, tradeable = true)
+        // As in the cache: coins lack the Grand Exchange flag (opcode 65), yet players trade them.
+        objs[COINS] = ObjType(COINS, "Coins", stackable = true)
         objs[AXE] = ObjType(AXE, "Bronze axe", tradeable = true)
         objs[QUEST_ITEM] = ObjType(QUEST_ITEM, "Ghostspeak amulet")
         World(

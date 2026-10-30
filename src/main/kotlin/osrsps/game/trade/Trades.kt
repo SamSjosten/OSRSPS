@@ -277,6 +277,13 @@ class Trades(
     private fun value(offer: Inventory): Long =
         offer.contents().sumOf { (_, obj) -> (unitValue(obj.id) ?: 0L) * obj.count }
 
+    /**
+     * Whether players can trade [type]. The cache's flag (opcode 65) is the Grand Exchange's, which coins and platinum
+     * tokens lack though players trade them (OSRS Wiki, Coins and Platinum token).
+     */
+    private fun tradeable(type: ObjType): Boolean =
+        type.tradeable || type.id == GrandExchange.COINS || type.id == GrandExchange.PLATINUM_TOKEN
+
     /** Coins and platinum tokens aren't on the Grand Exchange: 1 and 1,000 coins each (OSRS Wiki, Platinum token). */
     private fun unitValue(id: Int): Long? = when (id) {
         GrandExchange.COINS -> 1L
@@ -296,7 +303,7 @@ class Trades(
         if (trade.over || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
         val held = player.inventory[slot]?.takeIf { it.id == obj } ?: return
         val type = objTypes[held.id] ?: return
-        if (!type.tradeable) {
+        if (!tradeable(type)) {
             message(player, TradeLines.UNTRADEABLE)
             return
         }
