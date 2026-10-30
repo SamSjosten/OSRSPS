@@ -94,8 +94,9 @@ object Experience {
 /**
  * One player's skills: XP and the current level of each, where the current level is the boosted or drained one
  * (current hitpoints are the Hitpoints skill's current level). Changed skills are sent once a tick by [flush].
+ * [rate] is the server's XP rate ([World.xpRate]), which [addTenths] multiplies by; 1x unless one is given.
  */
-class PlayerSkills {
+class PlayerSkills(private val rate: XpRate = XpRate()) {
     private val tenths = IntArray(Skill.COUNT)
     private val current = IntArray(Skill.COUNT) { 1 }
 
@@ -145,10 +146,20 @@ class PlayerSkills {
     }
 
     /**
-     * Adds XP, capped at 200M, and returns the levels gained. Each level gained also raises the current level by one,
-     * so a boost or drain carries over. Inferred from how live behaves when levelling while boosted; not measured.
+     * Adds XP the game grants, times the server's XP rate ([XpRate.apply]), capped at 200M, and returns the levels
+     * gained. Every XP drop goes through here: combat, skilling, burying bones.
      */
     fun addTenths(skill: Skill, amount: Int): Int {
+        require(amount >= 0) { "XP can only be added, not $amount" }
+        return addExactTenths(skill, rate.apply(amount))
+    }
+
+    /**
+     * Adds exactly [amount] XP, whatever the rate, capped at 200M, and returns the levels gained: `::addxp`. Each level
+     * gained also raises the current level by one, so a boost or drain carries over. Inferred from how live behaves when
+     * levelling while boosted; not measured.
+     */
+    fun addExactTenths(skill: Skill, amount: Int): Int {
         require(amount >= 0) { "XP can only be added, not $amount" }
         val before = baseLevel(skill)
         val combatBefore = combatLevel
@@ -162,7 +173,7 @@ class PlayerSkills {
         return gained
     }
 
-    /** Skills levelled by [addTenths] since the last call, in the order they levelled, for the level-up. */
+    /** Skills levelled by [addTenths] or [addExactTenths] since the last call, in the order they levelled, for the level-up. */
     fun takeAdvanced(): List<Skill> = advanced.toList().also { advanced.clear() }
 
     /**
