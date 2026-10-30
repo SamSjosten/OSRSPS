@@ -20,6 +20,12 @@ object MakeLines : Lines("make", "Make-X") {
 data class ObjCount(val obj: Int, val count: Int)
 
 /**
+ * A material that lasts several actions: one [obj] is used up every [uses] actions, counted in the player's [charge]
+ * ([osrsps.game.Charges], so it survives a logout), with [usedUp] as the message. Thread, which the Wiki says lasts 5.
+ */
+data class WearingMaterial(val obj: Int, val uses: Int, val charge: String, val usedUp: Line)
+
+/**
  * One thing an artisan skill makes: [amount] of [product] from [inputs], with [tools] held but kept, at [level] in
  * [skill] for [xpTenths]. The first comes [first] ticks after the choice, the rest every [interval] ticks, each with
  * [anim] (-1 for none). [made] is the message on making it and [tooLow] the one when the level is too low; both are
@@ -27,6 +33,7 @@ data class ObjCount(val obj: Int, val count: Int)
  *
  * A [batch] recipe makes up to [amount] at a time, each one taking [inputs] once and giving [xpTenths]: arrows come 15 at
  * a time, or fewer when fewer are left. Otherwise each action takes [inputs] and gives [amount] and [xpTenths] once.
+ * [wears] is held like a tool and used up every so many actions.
  */
 class MakeRecipe(
     val key: String,
@@ -43,6 +50,7 @@ class MakeRecipe(
     val made: Line,
     val tooLow: Line,
     val batch: Boolean = false,
+    val wears: WearingMaterial? = null,
 ) {
     init {
         require(amount >= 1 && level in 1..99 && xpTenths >= 0) { "Bad numbers in recipe $key" }
@@ -59,6 +67,7 @@ class MakeRecipe(
     /** How many times [inventory] holds every input, tools included. */
     fun units(inventory: Inventory): Long {
         if (tools.any { inventory.count(it) == 0L }) return 0
+        if (wears != null && inventory.count(wears.obj) == 0L) return 0
         return inputs.minOf { inventory.count(it.obj) / it.count }
     }
 }
@@ -155,7 +164,20 @@ class Making(private val world: World) {
         }
         player.skills.addTenths(recipe.skill, recipe.xpTenths * units)
         player.message(world.textFor(player).get(recipe.made, *args(recipe, recipe.made, made)))
+        recipe.wears?.let { wear(player, it) }
         return true
+    }
+
+    /** One more action on [material]: every [WearingMaterial.uses]th uses one up. */
+    private fun wear(player: Player, material: WearingMaterial) {
+        val used = player.charges[material.charge] + 1
+        if (used < material.uses) {
+            player.charges[material.charge] = used
+            return
+        }
+        player.charges[material.charge] = 0
+        removeObj(player.inventory, material.obj, 1)
+        player.message(world.textFor(player)[material.usedUp])
     }
 
     /** Whether [player]'s level is enough for [recipe], telling them if not and [tell]. */

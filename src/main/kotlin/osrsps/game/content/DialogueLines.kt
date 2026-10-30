@@ -13,6 +13,7 @@ import osrsps.game.combat.PotionLines
 import osrsps.game.combat.PrayerLines
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
+import osrsps.game.ge.GrandExchangeLines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.CookingLines
@@ -49,13 +50,16 @@ object DialogueLines {
         SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines, GillieLines, MillieLines,
         HopperLines, DuckLines, SheepLines, CropLines, DairyCowLines, MillLines, BonesLines, SearchLines, ClimbLines,
         BankLines, ShopLines, BarfyBillLines, UrhneyLines, CampWarriorLines, CampArcherLines, CampMonkLines, CampWizardLines,
-        CandleSellerLines, MiningTutorLines, FishingTutorLines,
+        CandleSellerLines, MiningTutorLines, FishingTutorLines, AereckLines, PrayerTutorLines, NigelLines, CountCheckLines,
+        AltarLines,
         // Social systems.
         SocialLines,
         // Al Kharid.
         BorderGuardLines,
         // Draynor Village.
         DraynorSearchLines, AxeLogsLines,
+        // The Grand Exchange.
+        GrandExchangeLines,
     )
 }
 

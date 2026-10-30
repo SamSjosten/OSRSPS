@@ -105,6 +105,7 @@ class HeadlessClient private constructor(
     private val stockMarket = HashMap<Int, StockMarketSlot>()
     private val stats = HashMap<Int, Stat>()
     private val varps = HashMap<Int, Int>()
+    private val longVarps = HashMap<Int, Long>()
     private val statTicks = HashMap<Int, Int>()
     private val varpTicks = HashMap<Int, Int>()
     private var runEnergy = -1
@@ -225,6 +226,9 @@ class HeadlessClient private constructor(
 
     /** Varp [id] as the server last set it; 0, as in the client, if it never has. */
     fun varp(id: Int): Int = lock.withLock { varps[id] ?: 0 }
+
+    /** A long varp's value (VARP_LONG), 0 until one comes. */
+    fun longVarp(id: Int): Long = lock.withLock { longVarps[id] ?: 0L }
 
     /** [ticksSeen] when skill [skill] last came, so the tick it was sent in whenever the test looks; null if never. */
     fun statTick(skill: Int): Int? = lock.withLock { statTicks[skill] }
@@ -410,6 +414,9 @@ class HeadlessClient private constructor(
         lock.withLock { ignoreList.removeIf { it.equals(name, ignoreCase = true) } }
         send(GameClientProt.IGNORELIST_DEL) { pjstr(name) }
     }
+
+    /** An item picked in the chatbox's item search (RESUME_P_OBJDIALOG). */
+    fun resumeObj(obj: Int) = send(GameClientProt.RESUME_P_OBJDIALOG) { p2(obj) }
 
     /** An amount typed into a prompt (RESUME_P_COUNTDIALOG), as after Withdraw-X. */
     fun resumeCount(count: Int) = send(GameClientProt.RESUME_P_COUNTDIALOG) { p4(count) }
@@ -678,6 +685,11 @@ class HeadlessClient private constructor(
                 val id = buf.g2Alt3()
                 varps[id] = buf.g4Alt3()
                 varpTicks[id] = ticks
+            }
+            GameServerProt.VARP_LONG -> {
+                val high = buf.g4Alt3().toLong()
+                val low = buf.g4Alt3().toLong() and 0xFFFFFFFFL
+                longVarps[buf.g2()] = (high shl 32) or low
             }
             GameServerProt.VARP_RESET -> varps.clear()
             GameServerProt.FRIENDLIST_LOADED -> friendListLoaded = true
