@@ -458,6 +458,16 @@ test('a green batch becomes the last member\'s head, with a codex-review that co
   assert.deepStrictEqual(gated.calls, [['check', B, 'success']]);
 });
 
+test('a head that gets a build dispatched does not hold back promoting a green batch', async () => {
+  const { github, calls } = fakeGitHub({
+    1: ready(1),
+    2: ready(2),
+    3: { head: H('3'), ref: 'b3', behind: 0, committed: '2026-10-30T00:30:00Z', checks: [codexPass] },
+  }, { batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] } });
+  await queue(github, fakeGit(batchTrees, [], { [B]: { tree: 't2', second: H('2') } }));
+  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', 'b3'], ['updateRef', 'heads/branch-2', B, false], ['check', B, 'success']]);
+});
+
 test('batch trailers on a commit the queue would not build count for nothing', async () => {
   // The same trailers on a head whose tree isn't main with the members merged in, or isn't on the last member.
   for (const forged of [{ tree: 'something else', second: H('2') }, { tree: 't2', second: H('9') }]) {
