@@ -27,6 +27,7 @@ import osrsps.game.ge.GeOffer
 import osrsps.game.ge.GeTrade
 import osrsps.game.ge.OfferType
 import osrsps.game.social.IgnoreLists
+import osrsps.game.trade.offeredBy
 
 private val logger = KotlinLogging.logger {}
 
@@ -258,7 +259,7 @@ class PlayerSave(
 
         private val format = Json { prettyPrint = true }
 
-        /** [player]'s state, with [inventory] as what they hold: by default their inventory as it is. */
+        /** [player]'s state, with [inventory] as what they hold (by default their inventory as it is), plus anything they have on offer in a trade. */
         fun of(
             player: Player,
             inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
@@ -271,7 +272,7 @@ class PlayerSave(
             val skills = Skill.entries.associateWith { SkillSave(player.skills.tenths(it), player.skills.currentLevel(it)) }
             val equipment = player.equipment.contents().toMap()
             return PlayerSave(
-                player.x, player.z, player.level, player.runEnergy, varps, skills, inventory, equipment,
+                player.x, player.z, player.level, player.runEnergy, varps, skills, withOffer(player, inventory), equipment,
                 player.scenario, player.beforeScenario, player.createdAt, player.playedTicks, player.charges.contents(),
                 bank,
                 BoostSegments(StatRestore.segment(player.statTimers.combatBoost), StatRestore.segment(player.statTimers.skillBoost)),
@@ -281,6 +282,24 @@ class PlayerSave(
                 player.ignores.toList(),
                 player.ge.history.toList(),
             )
+        }
+
+        /**
+         * [player]'s inventory with anything they have offered in a trade put back in it, as a decline would: a save made
+         * mid-trade (an autosave, a crash) must not lose the offer, and the offer is only ever in one place. Nothing else
+         * can change the inventory while trading (see [osrsps.game.trade.Trades.interrupt]), so it fits; whatever somehow
+         * doesn't is logged and left out rather than written twice.
+         */
+        private fun withOffer(player: Player, inventory: Map<Int, InvObj>): Map<Int, InvObj> {
+            val offered = offeredBy(player)
+            if (offered.isEmpty()) return inventory
+            val copy = Inventory(player.inventory.type, player.inventory.capacity)
+            for ((slot, obj) in inventory) copy[slot] = obj
+            for ((obj, stackable) in offered) {
+                val added = copy.add(ObjType(obj.id, stackable = stackable), obj.count)
+                if (added < obj.count) logger.error { "Saving ${player.username} mid-trade: no room for ${obj.count - added} of offered ${obj.id}" }
+            }
+            return copy.contents().toMap()
         }
 
         /** Reads a save written by [toJson]. Throws [IllegalArgumentException] if it can't be used as it is. */
