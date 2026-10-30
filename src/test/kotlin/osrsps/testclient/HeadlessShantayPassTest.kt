@@ -4,8 +4,11 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.Inventory
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.game.bank.BankScreen
 import osrsps.game.content.PortSarimJailLines
@@ -51,7 +54,7 @@ class HeadlessShantayPassTest {
                 add(ZoneLoc(ShantayPass.CELL_DOOR, LocShape.WALL_STRAIGHT, 2, 3297, 3124, 0))
                 add(ZoneLoc(ShantayPass.PRISON_DOOR, LocShape.WALL_STRAIGHT, 3, ShantayPass.PRISON_X, ShantayPass.PRISON_Z, 0))
             },
-            npcTypes = NpcTypes.of(shantay, gateGuard),
+            npcTypes = NpcTypes.of(shantay, gateGuard), objTypes = ObjTypes.of(ObjType(COINS, "Coins", stackable = true)),
             npcSpawns = listOf(NpcSpawn(shantay, 3304, 3123, source = "test"), NpcSpawn(gateGuard, 3303, 3118, source = "test")),
             cycleMillis = millis,
         )
@@ -123,6 +126,26 @@ class HeadlessShantayPassTest {
     }
 
     @Test
+    fun `the outlaw who pays steps out through the cell door, which stays shut`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $COINS 5")
+                client.await("the coins") { client.inventory(Inventory.INV).filterNotNull().firstOrNull { it.id == COINS && it.count == 5 } }
+                client.arrested()
+                listOf("shantay.arrested", "shantay.pay_now").forEach { client.line(it) }
+                client.choose(1)
+                listOf("shantay.yes_okay", "shantay.senses", "shantay.hands_over", "shantay.keep_peace", "shantay.unlocks").forEach { client.line(it) }
+                client.locOp(ShantayPass.CELL_DOOR, 3297, 3124, 1)
+                client.await("out of the cell") { client.position?.takeIf { it == Coord(3298, 3124, 0) } }
+                // Back in from outside, as anyone can: the door still doesn't stay open behind them.
+                client.locOp(ShantayPass.CELL_DOOR, 3297, 3124, 1)
+                client.await("in the cell") { client.position?.takeIf { it == Coord(3297, 3124, 0) } }
+            }
+        }
+    }
+
+    @Test
     fun `with no coins the jailed outlaw goes to Port Sarim and picks the lock out`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
@@ -156,5 +179,6 @@ class HeadlessShantayPassTest {
 
     private companion object {
         const val THIEVING = 17
+        const val COINS = 995
     }
 }

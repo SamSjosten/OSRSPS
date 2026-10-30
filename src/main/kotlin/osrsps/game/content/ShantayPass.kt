@@ -140,7 +140,6 @@ object ShantayPass {
     const val GATE_Z = 3116
 
     const val CELL_DOOR = 2692
-    const val CELL_DOOR_OPEN = 1541
     /** The cell: x 3295 to 3297, z 3123 to 3125, its door on the east edge of 3297, 3124. */
     val CELL_X = 3295..3297
     val CELL_Z = 3123..3125
@@ -437,9 +436,12 @@ fun registerShantayPass(world: World) {
                 world.dialogues.start(this) { cellDoor(shantay, actions) }
                 return@onLoc
             }
-            world.doors.toggle(op.loc!!, op.option)
+            // Guess (the Wiki doesn't say how a released player leaves): the door never opens for everyone, since an
+            // open door would let a later prisoner walk out; Open steps the player through it and it stays shut.
+            val door = op.loc!!
+            if (player.x <= door.x) world.teleport(player, door.x + 1, door.z, door.level)
+            else world.teleport(player, door.x, door.z, door.level)
         }
-        world.doors.register(CELL_DOOR, CELL_DOOR_OPEN)
         world.handlers.onLoc(PRISON_DOOR, 1) { world.message(player, PortSarimJailLines.LOCKED) }
         world.handlers.onLoc(PRISON_DOOR, PICK_LOCK) { op -> pickLock(world, op.loc!!.x, op.loc.z) }
     }
