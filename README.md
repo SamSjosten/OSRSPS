@@ -645,7 +645,7 @@ a butterfly, with the rats west of the castle wall. They fight through `npc-comb
 | The unicorn (2837): level 15, stabs for 2, back in 90 ticks; bones and a unicorn horn every time, the ensouled head at 1/35 | OSRS Wiki, Unicorn |
 | The fight animations (by the stand and walk animations each type has: the updated giant rat's, the giant frog's for all three frogs, the spear goblin's, the updated unicorn's), the curved bone's 1/5,012.5 kept as 1/5013, and every wander range (5) | guessed |
 
-Left out: giant rats are aggressive on live, which waits for NPC aggression (the Varrock piece). The swamp's talking
+Left out: giant rats are aggressive on live and the unicorn retreats at low hitpoints, which wait for NPC aggression and retreat (the Varrock piece; both are ranges from the spawn point). The swamp's talking
 NPCs (Father Urhney, the traveller's camp, the fishing and mining tutors, the candle seller) are the next step; the
 fishing spots and the mines are the gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache
 shows by quest varbits, are left out for now. Each new NPC's examine is in the dialogue file (keys
