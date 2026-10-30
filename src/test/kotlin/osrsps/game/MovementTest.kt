@@ -137,6 +137,15 @@ class MovementTest {
     }
 
     @Test
+    fun `run turned on with no energy goes off, and that standing tick still restores energy`() {
+        val player = player().apply { runEnabled = true; runEnergy = 0 }
+        assertEquals(MoveResult.NONE, movement.process(player))
+        assertFalse(player.runEnabled)
+        assertTrue(player.runRanOut)
+        assertEquals(15, player.runEnergy)
+    }
+
+    @Test
     fun `energy never goes above 100 percent`() {
         val player = player().apply { runEnergy = Movement.MAX_ENERGY - 5 }
         movement.process(player)

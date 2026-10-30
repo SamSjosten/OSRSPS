@@ -110,7 +110,9 @@ class Movement(private val collision: CollisionMap) {
         if (player.runEnabled && player.runEnergy == 0) {
             player.runEnabled = false
             player.runRanOut = true
-        } else if (result != MoveResult.RAN) {
+        }
+        // Every tick that isn't a run restores energy, the one that turned run off too.
+        if (result != MoveResult.RAN) {
             player.runEnergy = (player.runEnergy + AGILITY / 10 + 15).coerceAtMost(MAX_ENERGY)
             val threshold = autoEnableAt(player)
             if (player.runRanOut && threshold > 0 && player.runEnergy >= threshold) {
