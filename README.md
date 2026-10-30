@@ -444,15 +444,19 @@ it, as do running out, the count being done, the level being too low and a level
 
 Spin on a spinning wheel (every loc the cache calls one, Lumbridge Castle's first-floor wheel among them) opens the
 Make-X box over the wool and flax held; either used on a wheel opens it over that alone (`game/skill/Crafting.kt`,
-words under `crafting.*`, numbers in `skills/crafting.json`). The making is the artisan loop in `Making.kt`.
+words under `crafting.*`, numbers in `skills/crafting.json`). A needle on leather, hard leather or green to black dragon
+leather opens the box over what it makes; thread is held, and one is used up every 5 items (the count is kept with the
+account). Steel studs on a leather body or chaps stud them. The making is the artisan loop in `Making.kt`.
 
 | Crafting behaviour | Source |
 |--------------------|--------|
 | Ball of wool level 1, 2.5 XP; bow string level 10, 15 XP; 3 ticks each | OSRS Wiki, Ball of wool and Bow string |
 | The first 2 ticks after the choice | inferred from fletching's "Make-X is 2, then 3 ticks" |
 | Animation 466 (`spinningwheel`) as the player's | inferred from its gameval name |
+| Leather and d'hide levels, XP, leathers per item; 3 ticks an item, hard leather 2; thread's 5 uses | OSRS Wiki, Leather, Hardleather body, Green dragon leather and the d'hide pages, Thread |
+| Studs 3 ticks; studded body 41, 40 XP; studded chaps 44, 42 XP | OSRS Wiki, Studded body and Studded chaps |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning | out of scope |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle | out of scope |
 
 ## Items and inventory
 
@@ -741,6 +745,32 @@ and from a booth; `HeadlessDraynorTest` does the gate, the stairs, the cupboard 
 client, and `GatesTest` turns a gate every way round. `test-runner/examples/draynor-willows.json` takes the axe off
 the logs, chops a willow, nets a shrimp and cooks it on the permanent fire; `HeadlessFishingTest` and `HeadlessCookingTest`
 do the Small Net spots and the fire.
+
+## Lumbridge church
+
+The church east of the castle and its graveyard, in `npc-spawns/lumbridge-church.json` on RSMod's tiles, with the
+altar's Pray-at; the talks and the altar are `game/content/Church.kt`. Every account is a member and has every quest
+done.
+
+| Behaviour | Source |
+|-----------|--------|
+| The altar (409) in the church: Pray-at fills prayer points up to the Prayer level and resets the drain counter; an item used on it is refused with a message | OSRS Wiki, Altar |
+| Father Aereck (2812), as after The Restless Ghost: his thanks, and he has no other quest | the Wiki's Transcript:Father Aereck |
+| The Prayer tutor (3223): how to train Prayer (with the 99 Prayer lines) and what it is for (which opens the prayer tab), as on a members' world; each answer offers the other | the Wiki's Transcript:Prayer tutor |
+| Nigel (6093, a multi-NPC that shows as 8391 on a normal world) in the graveyard: the two pages of Deadman Mode questions, and the rewards store, which is shut | the Wiki's Transcript:Nigel |
+| Count Check (7414): his advice counted out (with the questioned THREE), who he is and the Salve after Priest in Peril, the Stronghold of Security, to which he sends the player once (varbit `sos_teleported_by_count`), and his check, which fails | the Wiki's Transcript:Count Check |
+| Nigel's normal world menu leaving out the Deadman worlds' options, his Trade saying the store is shut, and the check failing as no account is a Jagex Account and the bank has no PIN (so his lamp never comes) | readings |
+| Every chathead expression; each answer going back to the menu it came from; the kneel (human_pray, 645) and the altar's messages; points above the level kept; the Stronghold tile (beside its entrance, 3081, 3421) and no teleport animation; the wander ranges (2, Father Aereck 5) | guessed |
+
+Left out: the lightning on Count Check's square, whose spotanim isn't known; the church organ; the treasure trail
+and Wise Old Man parts of Father Aereck's talk. What they say, the altar's messages and each new NPC's and the altar's
+examine are in the dialogue file (keys `father_aereck.*`, `prayer_tutor.*`, `nigel.*`, `count_check.*`, `altar.*`,
+`examine.npc_<id>` and `examine.loc_409`).
+
+Check: `test-runner/examples/lumbridge-church.json` examines the four NPCs, prays at the altar with drained points,
+and talks to each NPC; `HeadlessLumbridgeChurchTest` prays at an altar, talks to Father Aereck and Nigel (through his
+multi-NPC) and is sent to the Stronghold by Count Check through the headless client, with every branch in
+`ChurchTest`.
 
 ## Al Kharid
 

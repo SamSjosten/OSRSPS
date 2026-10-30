@@ -131,17 +131,23 @@ class HeadlessAllSettingsTest {
                 // The Leagues row is only for league worlds.
                 client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 7)
                 // settings_tab_op ends the search and clears the category and selected setting, and leaves bit 1 alone.
+                // The chat gets its keys back, which searchbar_op took.
                 client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 0)
                 client.awaitBits(VARP_SETTINGS_TRACKING, 0, 1, 0)
+                client.await("chatdefault_restoreinput") {
+                    client.clientScripts().count { it.id == AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT }.takeIf { it == 1 }
+                }
                 client.awaitBits(VARP_SETTINGS_TRACKING, 4, 14, 0)
                 assertEquals(1, (client.varp(VARP_SETTINGS_TRACKING) ushr 1) and 1)
                 assertEquals(0, client.varp(LEAGUE_VARP))
 
-                // A window closed mid-search opens on its category again, so its Search op is back.
+                // A window closed mid-search gives the chat its keys back, and opens on its category again, so its
+                // Search op is back.
                 client.ifButton(INTERFACE, SEARCH, 1)
                 client.awaitBits(VARP_SETTINGS_TRACKING, 0, 1, 1)
                 client.ifButton(INTERFACE, CLOSE, 1)
                 client.await("the window closed") { Unit.takeIf { INTERFACE !in client.openInterfaces() } }
+                assertEquals(2, client.clientScripts().count { it.id == AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT })
                 open(client)
                 client.awaitBits(VARP_SETTINGS_TRACKING, 0, 1, 0)
             }
