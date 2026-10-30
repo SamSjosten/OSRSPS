@@ -883,6 +883,8 @@ Village piece's.
 | Furniture: chests (5108/5109), drawers (7194/7195) and posh drawers (7442/7443) open, search empty and shut; crates (5106, 5107, 5110, 5113, 5115), boxes (5111), bookshelves (7170, 7171) and bookcases (7176 to 7181, 7431) search empty | as the castle's furniture (2004Scape's timings); the bookshelves' and bookcases' words from the Wiki |
 | Townsfolk: 37 guards (the six 2022 `fai_varrock_guard02` looks and the captain's, 13 in the city, 2 on the walls, 22 in the palace), men and women (Varrock's own `varrock_man1`/`varrock_woman1` talk, fight and drop as any man or woman), imps, rats and the five stray dogs | OSRS Wiki, Guard (counts) and Stray dog (three grey, two brown); tiles from mejrs's live NPC list (recorded before November 2022, when the guards still showed as 3010/3011), so which guard look stands where and every wander range are guessed |
 | Step 2: the West Bank's six bankers (five behind its booths at x 3186, `banker1_new`/`banker2_new` 2897/2898 and the Deadman booth's multi-NPC 6521 showing 2897, and one behind its locked door, 8666, who has no options) and the East Bank's six (behind its booths at z 3419, 6522 at the Deadman booth); booths and the deposit box by name; they talk and bank as the castle's banker | OSRS Wiki, Varrock West Bank (six bankers) and Transcript:Banker; tiles from mejrs's live NPC list |
+| Step 3: the Grand Exchange's four clerks (`ge_clerk_1` to `_4`, 2148 to 2151, behind the north and south booths): Exchange opens the offers screen, History the trade history, Talk-to their menu (how to use the Exchange, seven pages then the question again; setting up offers; item sets and "I'm fine" end the talk) | OSRS Wiki, Transcript:Grand Exchange Clerk; expressions and which options the player says guessed |
+| The Grand Exchange's four bankers (`banker1_west` 1633, the Deadman booth's 6528 showing 1613, `banker1_east` 1634, `banker2_east` 3089) talk and bank as the castle's; every standard banker's Collect (op4, and the talk's collect option) and every bank booth's or Grand Exchange booth's Collect open the Grand Exchange collection box, and an exchange booth's Exchange the offers screen | OSRS Wiki, Grand Exchange and Banker; tiles from mejrs's live NPC list |
 | Knock-at on the West Bank's locked door (`fai_varrock_bank_locked_door` 11788): the banker behind it won't let the player in (`varrock_bank_door.knock`) | OSRS Wiki, Varrock West Bank; one line and its expression guessed |
 | Guards: Varrock's seven (`fai_varrock_guard02` and its looks, the captain) crush and Edgeville's `guard1` (3254) stabs, each for up to 3, attack speed 4, back in 50 ticks; both drop bones and one roll on a shared table (coins, iron bolts, runes and arrows, an iron dagger, a body talisman, 18/128 the general seed table, 8/128 nothing) and a medium clue 1 in 128 | OSRS Wiki, Guard and the DPS calculator; the coins and weapons lines from the osrsreboxed copy of the page (2023) and the 8/128 of nothing what is left of 128 (guessed); the animations guessed from the attack styles |
 | The general seed table: its first subtable (4 potato, onion or cabbage seeds, 3 tomato or sweetcorn, 2 strawberry, watermelon or snape grass), which is all a monster below level 49 ever rolls | OSRS Wiki, Drop table (General seed drop table) |
@@ -892,14 +894,14 @@ Left out from step 1: the guards' Pickpocket (Thieving, step 13) and their joini
 the general seed table's higher subtables (no monster yet is level 49 or more), the player's own overhead lines when shooing or petting a dog, the dog
 following the player after Pet or after being fed and running off when shooed, the trainee guards and their captain
 (the palace, step 6), the staircases down to basements and the sewers (`fai_varrock_bank_stairs`, `fai_varrock_ladder_deep`,
-the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, and the Phoenix and Black Arm gangs' doors. The furniture's and dogs' words are in the dialogue
+the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. The furniture's and dogs' words are in the dialogue
 file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`).
 
 Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
-both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `varrock-guards.json` kills a Varrock and an Edgeville guard for their bones; `HeadlessVarrockTest`
+both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `varrock-guards.json` kills a Varrock and an Edgeville guard for their bones; `varrock-grand-exchange.json` uses the Grand Exchange's clerks, booths and a banker; `HeadlessVarrockTest`
 does the stairs, the ladder, the drawers and Knock-at on the locked door through the headless client, `VarrockTest` the stairs' rule each way round and a stray dog's Shoo-away and Pet (overhead text and sound),
 `GatesTest` the Grand Exchange's fence gate, `NpcSpawnFileTest` the counts, `NpcCombatTest` and `NpcDropsTest` the
-guards' numbers and 10,000 kills against the table, and `HeadlessGuardsTest` a guard of each kind attacked through the
+guards' numbers and 10,000 kills against the table, and `HeadlessGrandExchangeBuildingTest` the clerks', a banker's and a booth's options, and `HeadlessGuardsTest` a guard of each kind attacked through the
 headless client, fought to its death and leaving its bones.
 
 ## Equipment
@@ -1119,8 +1121,8 @@ Lumbridge Castle's Cook (`Cook.kt`), Duke Horacio (`DukeHoracio.kt`), men and wo
 (`Doomsayer.kt`), Hatius Cosaintus (`Hatius.kt`) and the Lumbridge Guide (`LumbridgeGuide.kt`) talk as they do once
 every quest is done, since every account here has done them all. The Duke gives an anti-dragon shield to a player
 carrying or wearing none, one talk with a man or woman in 128 hands over a flier, and the Guide gives a security book to
-a player carrying none. Not built yet, so their options end the talk or do nothing: the collection box and bank
-space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings); achievement diaries; Attack
+a player carrying none. The bankers' collect (asked or op4 Collect) opens the Grand Exchange collection box (since
+the Varrock piece's step 3). Not built yet, so their options end the talk or do nothing: bank space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings); achievement diaries; Attack
 and Pickpocket; the Guide opening the account management tab's links, and his lost amulet, locket, clue and random
 event talks.
 
