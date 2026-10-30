@@ -1510,7 +1510,7 @@ you were with your own stats and items.
 
 Live's J-Mod tool, obj 5733, as an admins' tool: `::item 5733` gives one. The cache gives it Eat, Slice, Peel and Mash,
 as live, so RuneLite shows it as it does there. Each option opens a menu of testing tools that run the `::` commands, so
-every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat and Peel are done.
+every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat, Slice and Peel are done.
 
 | Eat | What it does | Source |
 |-----|--------------|--------|
@@ -1528,8 +1528,16 @@ every pick is logged and a non-admin is refused as for a typed command. Built a 
 
 Live's AMEs for all! is left out: there are no random events.
 
+| Slice | What it does | Source |
+|-------|--------------|--------|
+| God mode on/off | `::god` | ours: live's Slice starts random events, which there are none of |
+| Sure hits on/off | `::sure` | ours |
+| Set the XP rate | Asks for a rate or `restore`, then `::xprate` (for everyone) | ours |
+| Start a scenario | Asks for a name, then `::scenario`; the potato goes back in the inventory the scenario sets | ours |
+| Reset (end the scenario) | `::reset` | ours |
+
 A non-admin who clicks one loses it with a message (guessed: what live does isn't known). The options' words are live's,
-so they are keys under `rotten_potato.` in the dialogue file, except our own (Heal me, Teleport to a tile, Spawn an item).
+so they are keys under `rotten_potato.` in the dialogue file, except our own (Heal me, Peel's Teleport to a tile and Spawn an item, and all of Slice).
 
 Check: `::item 5733`, then Eat. Set all stats with 50 sets each skill to 50 one a tick; Wipe inventory leaves only the
 potato; Teleport to player with a name online puts you on them; Spawn aggressive NPC with `goblin` spawns one on your

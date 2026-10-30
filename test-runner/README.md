@@ -109,6 +109,7 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-bury-bones.json`: bury two bones, 4.5 Prayer XP each.
 - `rotten-potato-eat.json`: the rotten potato's Eat menu: Set all stats to 50 one skill a tick, Heal me after a `::hit`, and Wipe inventory keeping the potato. Teleport to player and Spawn NPC ask for text (meslayer mode 9), which no runner step types yet; the headless tests cover them.
 - `rotten-potato-peel.json`: the rotten potato's Peel, Bank menu opening the bank on the Lumbridge spawn. Its tile and item prompts are text, covered headless as above.
+- `rotten-potato-slice.json`: the rotten potato's Slice, God mode and Sure hits on and off, then Reset ending the scenario. The XP rate and scenario prompts are text, covered headless.
 - `lumbridge-bank.json`: at a castle bank booth, deposit, withdraw 5 and as notes, deposit the inventory, log out and
   back in and take out what is still banked. It can't type an amount, so Withdraw-X isn't in it.
 - `lumbridge-bank-tabs.json`: from `::scenario lumbridge-bank-tabs`, a tab with a placeholder that takes the logs back

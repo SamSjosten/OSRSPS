@@ -32,12 +32,14 @@ object RottenPotatoLines : Lines("rotten_potato", "Rotten potato") {
  * which run the `::` commands, so each is logged and refused to non-admins as typed ones are. The cache gives the
  * potato Eat, Slice, Peel and Mash; Eat's options are from the OSRS Wiki's page (read 2026-10-30). Live's third, Setup
  * POH, is Heal me here, as there are no houses. Peel (iop3) keeps its Bank menu; with no rares or random events, Teleport
- * to RARE! and Spawn RARE! become Teleport to a tile and Spawn an item, and AMEs for all! is left out.
+ * to RARE! and Spawn RARE! become Teleport to a tile and Spawn an item, and AMEs for all! is left out. Slice (iop2),
+ * live's random events, holds our testing tools.
  */
 object RottenPotato {
     const val OBJ = 5733
 
     const val EAT = 1
+    const val SLICE = 2
     const val PEEL = 3
 
     /** Our own, in place of Setup POH; not live's words, so not in the dialogue file. */
@@ -48,12 +50,25 @@ object RottenPotato {
     const val TILE_PROMPT = "Teleport to x z [level]:"
     const val SPAWN_ITEM = "Spawn an item"
     const val ITEM_PROMPT = "Spawn item, id|name [count]:"
+
+    /**
+     * Slice's menu, all ours: live's Slice starts random events (AMEs), which there are none of, so it holds the testing
+     * tools instead.
+     */
+    const val GOD = "God mode on/off"
+    const val SURE = "Sure hits on/off"
+    const val XP_RATE = "Set the XP rate"
+    const val XP_RATE_PROMPT = "XP rate (or restore):"
+    const val SCENARIO = "Start a scenario"
+    const val SCENARIO_PROMPT = "Scenario name:"
+    const val RESET = "Reset (end the scenario)"
 }
 
 fun registerRottenPotato(world: World) {
     val type = world.objTypes[RottenPotato.OBJ] ?: return
     if (type.iop(RottenPotato.EAT) != "Eat") return
     world.handlers.onObj(RottenPotato.OBJ, RottenPotato.EAT) { op -> if (admin(world, op.sub)) eat(world) }
+    world.handlers.onObj(RottenPotato.OBJ, RottenPotato.SLICE) { op -> if (admin(world, op.sub)) slice(world) }
     world.handlers.onObj(RottenPotato.OBJ, RottenPotato.PEEL) { op -> if (admin(world, op.sub)) peel(world) }
 }
 
@@ -95,6 +110,25 @@ private suspend fun ScriptContext.peel(world: World) {
         1 -> command(world, "bank")
         2 -> command(world, "tele " + stringDialog(RottenPotato.TILE_PROMPT))
         3 -> command(world, "item " + stringDialog(RottenPotato.ITEM_PROMPT))
+    }
+}
+
+private suspend fun ScriptContext.slice(world: World) {
+    var picked = 0
+    world.dialogues.start(this) {
+        picked = choice(RottenPotato.GOD, RottenPotato.SURE, RottenPotato.XP_RATE, RottenPotato.SCENARIO, RottenPotato.RESET)
+    }
+    when (picked) {
+        1 -> command(world, "god")
+        2 -> command(world, "sure")
+        3 -> command(world, "xprate " + stringDialog(RottenPotato.XP_RATE_PROMPT))
+        4 -> {
+            command(world, "scenario " + stringDialog(RottenPotato.SCENARIO_PROMPT))
+            // Ours: a scenario sets the inventory, so the potato goes back in, to Slice again for Reset.
+            val potato = world.objTypes[RottenPotato.OBJ]
+            if (potato != null && player.inventory.count(RottenPotato.OBJ) == 0L) player.inventory.add(potato, 1)
+        }
+        5 -> command(world, "reset")
     }
 }
 
