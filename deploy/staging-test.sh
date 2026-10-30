@@ -383,6 +383,13 @@ expect_status 0
 expect_output "Another staging run is going"
 expect_no_calls
 
+step="the timer's units"
+units=$(dirname "$script")
+grep -q '^ExecStart=/srv/rsps/OSRSPS/deploy/staging.sh auto$' "$units/osrsps-staging.service" \
+	|| fail "osrsps-staging.service doesn't run staging.sh auto"
+grep -q '^User=sam$' "$units/osrsps-staging.service" || fail "osrsps-staging.service doesn't run as sam"
+grep -q '^OnUnitInactiveSec=1min$' "$units/osrsps-staging.timer" || fail "osrsps-staging.timer isn't every minute"
+
 if ((failures)); then
 	echo "$failures check(s) failed"
 	exit 1
