@@ -149,6 +149,7 @@ import osrsps.game.script.ScriptRunner
 import osrsps.game.social.FriendLists
 import osrsps.game.social.IgnoreLists
 import osrsps.game.social.PrivateMessages
+import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.Trades
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
@@ -458,6 +459,7 @@ class World(
         examine = { player, type, count -> inventoryTab.examine(player, type, count) },
         overflow = { player, obj -> objTypes[obj.id]?.let { groundObjs.give(player, it, obj.count) } },
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
+        commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
     )
 
     /** Private messages; see [PrivateMessages]. */
@@ -549,6 +551,7 @@ class World(
     }
 
     init {
+        replayTradeJournal()
         deaths.register(handlers)
         rangedCombat.blowpipe.register(handlers, Player::message)
         poweredStaves.register(handlers, Player::message)
@@ -579,8 +582,9 @@ class World(
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
-        interfaces.onClose(Trades.MAIN, trades::decline)
+        interfaces.onClose(Trades.MAIN, trades::mainClosed)
         interfaces.onClose(PriceChecker.MAIN, priceChecker::closed)
+        interfaces.onClose(Trades.CONFIRM, trades::decline)
         woodcutting.register()
         birdNests.register()
         firemaking.register()
@@ -926,7 +930,8 @@ class World(
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
-            grandExchange.process(player)
+            // Outside a player's own scripts, so a failure here would otherwise skip the rest of the tick for everyone.
+            perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
@@ -1267,6 +1272,124 @@ class World(
         false
     }
 
+    /**
+     * The id of a trade between [a] and [b], from their saves as they stand before it: a SHA-256 of both save keys and
+     * both saves. No clock and no randomness, so a seeded run replays it exactly, and no two trades share one: each
+     * save names the player's last trade, so after a trade neither player can stand as they did before it. Ids are
+     * only ever compared for equality; see [TradeJournal].
+     */
+    private fun tradeId(a: Player, b: Player): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        for (player in listOf(a, b)) {
+            digest.update(player.saveKey.toByteArray())
+            digest.update(0)
+            digest.update(PlayerSave.of(player).toJson(player.username).toByteArray())
+            digest.update(0)
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    /**
+     * Completes a trade: [apply] swaps the offers between [a] and [b] in memory, and then both new saves go out through
+     * the [TradeJournal] so they land together. Runs on the game thread inside the click that completed it. Fails
+     * closed: when an earlier trade's journal is still unresolved, or this one's can't be written, [undo] puts the swap
+     * back and this returns false, so no trade is ever saved one file at a time.
+     */
+    internal fun commitTrade(a: Player, b: Player, apply: () -> Unit, undo: () -> Unit = {}): Boolean {
+        if (!journalResolved()) {
+            logger.error { "Trade between ${a.username} and ${b.username} refused: an earlier trade's journal is unresolved" }
+            return false
+        }
+        val id = try {
+            tradeId(a, b)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't make the saves for a trade between ${a.username} and ${b.username}; refusing it" }
+            return false
+        }
+        val lastA = a.lastTrade
+        val lastB = b.lastTrade
+        apply()
+        a.lastTrade = id
+        b.lastTrade = id
+        val texts = try {
+            val texts = mapOf(a.saveKey to PlayerSave.of(a).toJson(a.username), b.saveKey to PlayerSave.of(b).toJson(b.username))
+            saves.writeJournal(TradeJournal(id, texts).toJson())
+            texts
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't journal trade $id between ${a.username} and ${b.username}; undoing it" }
+            undo()
+            a.lastTrade = lastA
+            b.lastTrade = lastB
+            return false
+        }
+        var written = true
+        for ((key, text) in texts) written = write(key, text) && written
+        if (written) {
+            try {
+                saves.clearJournal()
+            } catch (e: Exception) {
+                // Left behind, it is resolved before the next trade or skipped at the next start: both saves record it.
+                logger.error(e) { "Couldn't clear the journal for trade $id" }
+            }
+        }
+        // A save that failed is kept in memory and the journal stays: the next trade or the next start finishes it.
+        logger.info { "Trade $id between ${a.username} and ${b.username} saved" }
+        return true
+    }
+
+    /**
+     * Whether no earlier trade's journal is left unfinished, so a new one can be written over it. A journal stays when
+     * one of its saves couldn't be written; this writes such a save again (from memory) and clears the journal once
+     * every save it names records that trade. A journal that can't be read or finished stops trades.
+     */
+    private fun journalResolved(): Boolean {
+        try {
+            val text = saves.readJournal() ?: return true
+            val journal = try {
+                TradeJournal.fromJson(text)
+            } catch (e: IllegalArgumentException) {
+                logger.error(e) { "The trade journal can't be read; no trades until it is looked at" }
+                return false
+            }
+            for (key in journal.saves.keys) {
+                unwritten[key]?.let { write(key, it) }
+                val last = saves.read(key)?.let(PlayerSave::lastTradeIn)
+                if (last != journal.id) return false
+            }
+            saves.clearJournal()
+            return true
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't finish the last trade's journal" }
+            return false
+        }
+    }
+
+    /**
+     * A journal left by a crash mid-trade: writes its saves, except over a save that already records that trade (one
+     * written since, by the trade or an autosave after it; no other trade can come after an unfinished journal, see
+     * [journalResolved]). A journal that can't be read or replayed stops the server starting, rather than letting both
+     * players in with the trade on one side only. See [TradeJournal].
+     */
+    private fun replayTradeJournal() {
+        val text = try {
+            saves.readJournal()
+        } catch (e: Exception) {
+            throw IllegalStateException("Couldn't read the trade journal; fix or remove it before starting", e)
+        } ?: return
+        val journal = try {
+            TradeJournal.fromJson(text)
+        } catch (e: IllegalArgumentException) {
+            throw IllegalStateException("The trade journal can't be read; fix or remove it before starting", e)
+        }
+        for ((key, save) in journal.saves) {
+            val current = saves.read(key)
+            if (current?.let(PlayerSave::lastTradeIn) == journal.id) continue
+            saves.write(key, save)
+            logger.warn { "Trade ${journal.id}: wrote $key's save from the journal" }
+        }
+        saves.clearJournal()
+    }
+
     /** Saves that are still only in memory, for tests. */
     internal val unwrittenSaves: Set<String> get() = unwritten.keys
 
@@ -1555,7 +1678,6 @@ class World(
     fun onLocTarget(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
         if (held(player)) return@act
         trades.interrupt(player)
-        if (player.scripts.delayed) return@act
         if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
             logger.info { "${player.username} used $interfaceId:$componentId sub $sub on loc $id (not handled)" }
             follows.clickedElsewhere(player)
@@ -1585,7 +1707,6 @@ class World(
     fun onNpcTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
         if (held(player)) return@act
         trades.interrupt(player)
-        if (player.scripts.delayed) return@act
         if (interfaceId == Spells.SPELLBOOK) {
             npcInteractions.castOn(player, index, ctrl) { npc -> magicCombat.cast(player, npc, componentId) }
             follows.clickedElsewhere(player)

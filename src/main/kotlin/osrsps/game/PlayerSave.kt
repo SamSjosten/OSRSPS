@@ -28,6 +28,7 @@ import osrsps.game.ge.GeOffer
 import osrsps.game.ge.GeTrade
 import osrsps.game.ge.OfferType
 import osrsps.game.social.IgnoreLists
+import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.offeredBy
 import osrsps.map.Tile
 
@@ -77,6 +78,8 @@ class PlayerSave(
     val geHistory: List<GeTrade> = emptyList(),
     /** Where aggressive monsters' tolerance is counted and how far it has got ([Tolerance]); part of the header. */
     val tolerance: ToleranceSave = ToleranceSave(null, null, 0),
+    /** The last trade the player completed, which a leftover trade journal is checked against; see [TradeJournal]. */
+    val lastTrade: String? = null,
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -107,6 +110,7 @@ class PlayerSave(
         player.friends.addAll(friends)
         player.ignores.addAll(ignores)
         player.tolerance.restore(tolerance.older, tolerance.newer, tolerance.ticks)
+        player.lastTrade = lastTrade
         applyState(player)
     }
 
@@ -196,6 +200,7 @@ class PlayerSave(
                     put("ticks", tolerance.ticks)
                 }
             }
+            if (lastTrade != null) put("lastTrade", lastTrade)
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -303,6 +308,7 @@ class PlayerSave(
                 player.ignores.toList(),
                 player.ge.history.toList(),
                 player.tolerance.let { ToleranceSave(it.older, it.newer, it.ticks) },
+                player.lastTrade,
             )
         }
 
@@ -379,6 +385,7 @@ class PlayerSave(
                     ignores,
                     state.geHistory,
                     tolerance,
+                    root["lastTrade"]?.jsonPrimitive?.contentOrNull,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -451,6 +458,13 @@ class PlayerSave(
                 x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank,
                 geOffers = geOffers, geLimits = geLimits, geHistory = geHistory,
             )
+        }
+
+        /** The last trade a save records, or null if it records none or [text] isn't a save. */
+        fun lastTradeIn(text: String): String? = try {
+            Json.parseToJsonElement(text).jsonObject["lastTrade"]?.jsonPrimitive?.contentOrNull
+        } catch (_: Exception) {
+            null
         }
 
         /** The username a save was written for, or null if [text] isn't a save that names one. */

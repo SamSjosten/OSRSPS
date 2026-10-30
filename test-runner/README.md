@@ -146,6 +146,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Ali's junk sold as his shop closes, then Louie Legs's talk (with `::keys on`) into his shop.
 - `al-kharid-traders.json`: Al Kharid step 4: a kebab bought from Karim through his talk (with `::keys on`) and
   eaten, and silk haggled down to 2 gp from the Silk trader.
+- `al-kharid-tanning.json`: Al Kharid step 4b: Ellis's talk (with `::keys on`) with cowhides carried, into the
+  tanning screen; Tan 1, then Trade and Tan All, turning three cowhides into soft leather for a coin each.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
@@ -206,6 +208,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `herblore-basics.json`: at level 1 a grimy guam needs 3; at 99 two clean (5 XP), go into vials of water as
   unfinished potions, a pestle grinds two unicorn horns, and two vials fill at Lumbridge Castle's kitchen sink. Needs
   0.15.0 (`useItemOnLoc`).
+- `herblore-potions.json`: at level 1 an attack potion needs 3; at 99 eye of newt on two guam potions (unf) makes
+  two attack potions(3) (50 XP), and unicorn horn dust on a marrentill potion (unf) makes an antipoison. Needs 0.10.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
@@ -235,6 +239,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   starts from `lumbridge-bare` and ends with `::reset`.
 - `social-trade-request-test.json` and `social-trade-request-test2.json` (need 0.16.0): two players at once; `test` asks
   `test2` to trade, `test2` accepts, both trade screens open and `test` declines.
+- `social-trade-test.json` and `social-trade-test2.json` (need 0.16.0): two players at once; `test` offers 10 coins for
+  `test2`'s bronze axe, both accept on both screens and the items swap. Each starts from `lumbridge-bare` and ends with
+  `::reset`.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
   number prompt with `enterAmount`, public chat's colour picked in the colour picker and saved, then a cancelled pick,
