@@ -162,6 +162,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
+- `varrock-city.json`: Varrock step 1 (with `::keys on`): in through the south gate, a house's poor door opened and
+  shut, a north-climbing and a south-climbing straight staircase up and down, a ladder, drawers opened, searched and
+  shut, Pet on a stray dog and a man's talk.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
   a willow chopped at level 30, a shrimp netted at the shore's Small Net spots and cooked on the permanent fire.
 - `draynor-market.json`: Draynor step 3: Fortunato's, Olivia's and Diango's talks (`::keys on`) into their shops, and

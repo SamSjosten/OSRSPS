@@ -358,4 +358,27 @@ class NpcSpawnFileTest {
         assertTrue(fails("""{ "npc": "hans", "x": 1, "z": 2, "restrict": "underground", "source": "a" }""").contains("restrict 'underground'"))
         assertTrue(fails("""{ "npc": "hans", "z": 2, "source": "a" }""").contains("no \"x\""))
     }
+
+    @Test
+    fun `Varrock has its 37 guards, the five stray dogs and its men and women`() {
+        val names = mapOf(
+            11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
+            11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
+            11917 to "fai_varrock_guard_captain02", 3106 to "man", 3107 to "man2", 3108 to "man3", 3014 to "varrock_man1",
+            3015 to "varrock_woman1", 3112 to "woman2", 5007 to "imp", 2854 to "rat", 2855 to "rat_indoors", 2902 to "dog_stray",
+            2922 to "dog_stray2",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        // The Wiki's Guard page: 13 in the city, 2 on the walls and 22 in the palace (7, 4 and 11 a floor).
+        assertEquals(37, spawns.count { it.type.id in 11911..11917 })
+        assertEquals(22, spawns.count { it.type.id in 11911..11917 && it.x in 3200..3225 && it.z in 3460..3500 })
+        // Five stray dogs, three grey and two brown (Wiki).
+        assertEquals(3, spawns.count { it.type.id == 2902 })
+        assertEquals(2, spawns.count { it.type.id == 2922 })
+        // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
+        assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() && it.wander > 0 })
+    }
 }

@@ -6,6 +6,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import net.rsprot.protocol.game.outgoing.prot.GameServerProt
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.AllSettings
+import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -30,6 +32,7 @@ class HeadlessSkillingTest {
             locTypes = LocTypes(mapOf(TREE to tree)),
             staticLocs = StaticLocs().apply { add(ZoneLoc(TREE, LocShape.CENTREPIECE_STRAIGHT, 0, 3225, 3218, 0)) },
             cycleMillis = millis,
+            varTypes = VarTypes(6_000, AllSettings.VARBITS),
         ).apply {
             val world = this
             // A stand-in gathering action: say where the clock is each tick, and keep going.
@@ -99,6 +102,32 @@ class HeadlessSkillingTest {
                 client.await("the combat message") { client.messages().firstOrNull { it.text == "[levelup.combat_message level=6]" } }
                 client.resumePause(LevelUps.INTERFACE, LevelUps.CONTINUE)
                 client.await("the box closed") { if (LevelUps.INTERFACE !in client.openInterfaces()) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `with level-up pop-ups disabled there is no box, but the messages and jingle still come`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                // What the All Settings dropdown's Disabled sets (script1105).
+                client.command("varbit ${AllSettings.VARBIT_LEVEL_UP_MESSAGE_DISABLED} 1")
+                client.awaitTicks(1)
+                // Attack 9 and combat level 6: the skill's and the combat level's level-ups both leave their box out.
+                client.command("addxp attack 1000")
+                client.await("the level-up message") { client.messages().firstOrNull { it.text == "[levelup.message skill=Attack level=9]" } }
+                client.await("the combat message") { client.messages().firstOrNull { it.text == "[levelup.combat_message level=6]" } }
+                client.awaitTicks(3)
+                // With no box to wait on, both run in one cycle, and the client plays one jingle at a time (PlayerEffects).
+                assertTrue(client.packets().any { it.prot == GameServerProt.MIDI_JINGLE }, "no jingle")
+                assertTrue(LevelUps.INTERFACE !in client.openInterfaces(), "the level-up box opened")
+
+                // Back to Enabled: the next level-up shows its box again.
+                client.command("varbit ${AllSettings.VARBIT_LEVEL_UP_MESSAGE_DISABLED} 0")
+                client.awaitTicks(1)
+                client.command("addxp woodcutting 83")
+                client.await("levelup_display open") { if (LevelUps.INTERFACE in client.openInterfaces()) Unit else null }
             }
         }
     }

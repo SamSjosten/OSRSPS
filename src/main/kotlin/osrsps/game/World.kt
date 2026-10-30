@@ -99,6 +99,7 @@ import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
+import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerHaystacks
@@ -586,6 +587,7 @@ class World(
         registerAlKharid(this)
         registerEdgeville(this)
         registerHaystacks(this)
+        registerVarrock(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
