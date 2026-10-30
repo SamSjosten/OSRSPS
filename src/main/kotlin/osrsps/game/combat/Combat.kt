@@ -147,7 +147,7 @@ class Combat(
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
             npcAttackRoll = npcAttackRoll,
             playerDefenceRoll = playerDefenceRoll,
-            npcMaxHit = def.maxHit,
+            npcMaxHit = npcMaxHit(npc, def),
             npcHitChance = CombatMath.hitChance(npcAttackRoll, playerDefenceRoll),
         )
     }
@@ -257,8 +257,19 @@ class Combat(
         return NpcAttack(
             attackRoll = CombatMath.npcAttackRoll(npc.level(NpcStat.ATTACK), def.attackBonus),
             defenceRoll = playerDefenceRoll(player, style, bonuses(player), def.attackType, prayerBoosts(player)),
-            maxHit = def.maxHit,
+            maxHit = npcMaxHit(npc, def),
         )
+    }
+
+    /**
+     * [npc]'s melee max hit: its file's, less what its drained Strength takes off by [CombatMath.npcMaxHit], so the file
+     * still decides the max hit of an undrained monster. Guessed: that a monster whose file max hit isn't the formula's
+     * loses the same as the formula would.
+     */
+    private fun npcMaxHit(npc: Npc, def: NpcCombatDef): Int {
+        if (npc.drained[NpcStat.STRENGTH.ordinal] == 0) return def.maxHit
+        val lost = CombatMath.npcMaxHit(npc.type.stats.strength, def.strengthBonus) - CombatMath.npcMaxHit(npc.level(NpcStat.STRENGTH), def.strengthBonus)
+        return (def.maxHit - lost).coerceAtLeast(0)
     }
 
     companion object {

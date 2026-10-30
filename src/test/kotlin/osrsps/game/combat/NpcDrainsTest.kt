@@ -64,6 +64,11 @@ class NpcDrainsTest {
         val npc = npc(ogre)
         drains.drain(npc, NpcStat.DEFENCE, 2)
         drains.drain(npc, NpcStat.ATTACK, 1)
+        assertEquals(-1, npc.drainRestoreTicks, "the timer waits for the tick")
+        assertEquals("drained attack 42/43, defence 73/75, a level back in 100 ticks", drains.describe(npc))
+        // The drain's own tick starts the timer without counting it, then a full minute.
+        drains.process(npc)
+        assertEquals(NpcDrains.RESTORE_TICKS, npc.drainRestoreTicks)
         repeat(NpcDrains.RESTORE_TICKS - 1) { drains.process(npc) }
         assertEquals(73, npc.level(NpcStat.DEFENCE))
         drains.process(npc)
@@ -94,5 +99,20 @@ class NpcDrainsTest {
         assertEquals(CombatMath.npcAttackRoll(43, 0), before)
         drains.drain(npc, NpcStat.MAGIC, 10)
         assertEquals(20, npc.level(NpcStat.MAGIC))
+    }
+
+    @Test
+    fun `a drained Strength lowers the max hit by what the formula takes off`() {
+        val combat = Combat(Equipment(ObjTypes.of()), AttackStyles.fromRows(emptyList()), npcCombat)
+        val npc = npc(ogre)
+        val player = Player(1, "alice", 3222, 3218, 0)
+        // The file's max hit of 1 stands while the Strength does: the formula gives 5 from 43.
+        assertEquals(1, combat.npcAttack(npc, player)!!.maxHit)
+        drains.drain(npc, NpcStat.STRENGTH, 10)
+        assertEquals(CombatMath.npcMaxHit(43, 0) - CombatMath.npcMaxHit(33, 0), 1)
+        assertEquals(0, combat.npcAttack(npc, player)!!.maxHit)
+        assertEquals(0, combat.matchup(player, npc)!!.npcMaxHit)
+        drains.drain(npc, NpcStat.STRENGTH, 33)
+        assertEquals(0, combat.npcAttack(npc, player)!!.maxHit, "never below 0")
     }
 }

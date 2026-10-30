@@ -34,8 +34,8 @@ class NpcDrains(
         val floor = base - base * cap / 100
         val drained = minOf(levels, npc.level(stat) - floor).coerceAtLeast(0)
         if (drained == 0) return 0
+        // The timer starts at the next [process], which may run later this tick, so the minute isn't a tick short.
         npc.drained[stat.ordinal] += drained
-        if (npc.drainRestoreTicks < 0) npc.drainRestoreTicks = RESTORE_TICKS
         return drained
     }
 
@@ -45,9 +45,17 @@ class NpcDrains(
         return drain(npc, stat, npc.level(stat) * percent / 100)
     }
 
-    /** Counts [npc]'s restore timer down by a tick: each [RESTORE_TICKS], every drained stat comes back a level. */
+    /**
+     * Counts [npc]'s restore timer down by a tick: each [RESTORE_TICKS], every drained stat comes back a level. On the
+     * tick of its first drain the timer starts at [RESTORE_TICKS] without counting down, as [Poison]'s does, so the
+     * first level comes back a full minute after the drain.
+     */
     fun process(npc: Npc) {
-        if (npc.drainRestoreTicks < 0 || npc.dead) return
+        if (npc.dead) return
+        if (npc.drainRestoreTicks < 0) {
+            if (npc.drained.any { it > 0 }) npc.drainRestoreTicks = RESTORE_TICKS
+            return
+        }
         if (--npc.drainRestoreTicks > 0) return
         for (i in npc.drained.indices) if (npc.drained[i] > 0) npc.drained[i]--
         npc.drainRestoreTicks = if (npc.drained.any { it > 0 }) RESTORE_TICKS else -1
@@ -58,8 +66,11 @@ class NpcDrains(
         val drained = NpcStat.entries.filter { npc.drained[it.ordinal] > 0 }
         if (drained.isEmpty()) return null
         return "drained " + drained.joinToString { "${it.name.lowercase()} ${npc.level(it)}/${npc.type.stats[it]}" } +
-            ", a level back in ${npc.drainRestoreTicks} ticks"
+            ", a level back in ${ticksToRestore(npc)} ticks"
     }
+
+    /** Ticks until [npc]'s next level comes back; a full [RESTORE_TICKS] before its timer has started. */
+    private fun ticksToRestore(npc: Npc): Int = if (npc.drainRestoreTicks < 0) RESTORE_TICKS else npc.drainRestoreTicks
 
     companion object {
         /** A level back each minute. */

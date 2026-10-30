@@ -207,7 +207,7 @@ class Npc(
 
     /**
      * How many levels of each [NpcStat] it has been drained by, by ordinal; see [osrsps.game.combat.NpcDrains]. Ticks to
-     * its next level back, -1 with nothing drained.
+     * its next level back, -1 with nothing drained or before the timer's first tick.
      */
     val drained = IntArray(NpcStat.entries.size)
     var drainRestoreTicks: Int = -1
