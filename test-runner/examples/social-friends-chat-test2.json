@@ -1,0 +1,17 @@
+{
+ "name": "Friends chat, two players (run with social-friends-chat-test.json on the other VM at the same time): test2 joins test's channel, sees test's line, answers it, and leaves",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "waitTicks", "ticks": 30, "comment": "time for test to name its channel"},
+  {"step": "joinFriendsChat", "owner": "test"},
+  {"step": "assertFriendsChat", "owner": "test", "member": "test2", "timeoutMs": 180000, "comment": "a join before test named the channel says it doesn't exist; this times out then"},
+  {"step": "assertMessage", "contains": "hello hut", "timeoutMs": 120000},
+  {"step": "chat", "text": "/hello back"},
+  {"step": "waitTicks", "ticks": 5},
+  {"step": "clickWidget", "interfaceId": 7, "component": 18, "comment": "Leave Chat"},
+  {"step": "assertMessage", "contains": "[friends_chat.left]"},
+  {"step": "assertFriendsChat", "absent": true}
+ ]
+}

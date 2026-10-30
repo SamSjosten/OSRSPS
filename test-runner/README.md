@@ -246,6 +246,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `social-trade-test.json` and `social-trade-test2.json` (need 0.16.0): two players at once; `test` offers 10 coins for
   `test2`'s bronze axe, both accept on both screens and the items swap. Each starts from `lumbridge-bare` and ends with
   `::reset`.
+- `social-friends-chat-test.json` and `social-friends-chat-test2.json` (need 0.17.0): two players at once; `test` names
+  its friends chat channel through Setup and joins it, `test2` joins by `test`'s name, each sees the other's `/` line,
+  and both leave.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
 - `social-ignore-2.json` (needs 0.14.0): the same with the names swapped, for a client logged in as `test2` (the nightly run's account).
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
@@ -367,6 +370,9 @@ server's answer instead of failing on what was there before.
 | `assertIgnore` | `name`, `absent` | (0.14.0) Waits until the ignore list holds the name, or, with `absent: true`, doesn't. |
 | `privateMessage` | `name`, `text` | (0.14.0) Opens the private message prompt for `name` (client script 107, meslayer_mode6, which a friend's Message option runs), types `text` and presses Enter. Check delivery with `assertMessage` on the other client. |
 | `playerOption` | `player`, `option`, `x`+`y` | (0.16.0) Clicks an option on the other player with that name, as their right-click menu does ("Trade with", "Follow"); retries until they are in view, and with `x` and `y` until they stand on that tile (a two-VM script's sign that the other side has finished its setup). A trade request's Accept trade is Trade with on its sender, so this accepts one too. |
+| `setFriendsChatName` | `name` | (0.17.0) Opens the friends chat Setup screen (its button on the Chat-channel tab's friends chat panel) if it isn't open, picks Set prefix, and types `name` into the server's text prompt. Check it with `assertWidgetText` on 94:10. |
+| `joinFriendsChat` | `owner` | (0.17.0) Opens Join Chat's prompt (client script 111, meslayer_mode10, which the Join Chat button runs) and types the owner's name. Leave Chat is `clickWidget` on 7:18. Talk with `chat` and a `/` in front. |
+| `assertFriendsChat` | `owner`, `member`, `absent` | (0.17.0) Passes when the client is in `owner`'s friends chat, with `member` listed when given (or, with `absent`, not listed). `absent` alone passes when it is in no channel. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)
