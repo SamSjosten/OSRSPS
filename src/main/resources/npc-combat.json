@@ -187,6 +187,18 @@
       "anims": { "attack": "unicorn_rework_attack", "defend": "unicorn_rework_defend", "death": "unicorn_rework_death" },
       "respawnTicks": 90,
       "source": "OSRS Wiki, Unicorn (id 2837) and the DPS calculator, read 2026-10-30; it stands and walks with unicorn_rework_ready and _walk"
+    },
+    {
+      "npcs": ["jailguard", "jailguard_two_patrol", "jailguard_three_patrol", "jailguard_four_patrol"],
+      "attackSpeed": 5,
+      "maxHit": 3,
+      "attackType": "crush",
+      "attackBonus": 9,
+      "strengthBonus": 5,
+      "defence": {"stab": 8, "slash": 9, "crush": 10, "magic": 4, "light": 9, "standard": 9, "heavy": 9},
+      "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
+      "respawnTicks": 30,
+      "source": "OSRS Wiki, Jail guard (id 4276; the DPS calculator has 4277 to 4279 the same), read 2026-10-30. The animations are guessed: the Wiki has none and 2004Scape's jailguard none of its own"
     }
   ]
 }

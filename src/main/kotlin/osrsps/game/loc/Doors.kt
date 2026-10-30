@@ -151,6 +151,12 @@ class Doors(private val locs: Locs) {
         }
     }
 
+    /** Swings [door], a door [toggle] doesn't pair by name, open as [openType], as a single door opens. */
+    fun openAs(door: ZoneLoc, openType: Int): ZoneLoc = open(door, openType)
+
+    /** Swings [door], opened by [openAs], shut again as [closedType]. */
+    fun closeAs(door: ZoneLoc, closedType: Int): ZoneLoc = close(door, closedType)
+
     /** Swings [door] open as [openType], turned [turn] quarters clockwise. */
     private fun open(door: ZoneLoc, openType: Int, turn: Int = RIGHT_TURN): ZoneLoc {
         val (dx, dz) = SWING[door.angle]

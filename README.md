@@ -783,11 +783,16 @@ village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/co
 | Step 4: Ned (`game/content/Ned.kt`) sells a rope for 15 coins or makes one from 4 balls of wool; after buying (or trying to) he tells the yak hair story and gives a free rope with a slot for it, as after Dragon Slayer I and The Fremennik Isles; Trade opens Ned's Handmade Rope at its post-Isles 90% (16 coins) | the Wiki's Transcript:Ned and shop page (read 2026-10-30); the shop's inv is borrowed (`dmm_all_star_friends_shop`), since no 241 inv is plainly Ned's |
 | Aggie (`game/content/Aggie.kt`) makes red, yellow and blue dye for 3 redberries, 2 onions or 2 woad leaves and 5 coins, from her talk, her Dyes option or an ingredient used on her, and takes 5 coins (21 to 100 held), 20 coins (101 or more) or a pot of flour for an insult | the Wiki's Transcript:Aggie; the coin check and using ingredients on her from 2004Scape's script |
 | Every account has met Aggie (varbit 13597, `gobdip_met_aggie`, set at login with the quests in `Quests.AFTER_QUESTS`), so her multi-NPC shows `aggie_2ops` with Dyes | the 241 cache's NPC 4284 |
+| Step 5: the jail's four guards (`jailguard` 4276 and its three patrol types, Attack only in 241) fight as `npc-combat.json` has them (Wiki infobox) and drop bones; they wander, as the patrols' routes aren't known, and aren't aggressive yet | the Wiki's Jail guard page; tiles from mejrs's list; animations guessed |
+| Joe, Lady Keli and the jailed Prince Ali aren't spawned: the 241 cache's `joe`, `lady_keli` and `prince_ali_prison` show nothing after Prince Ali Rescue (varp 273) | the 241 cache's multi-NPCs |
+| The cell door (`alidoor` 2881, `game/content/DraynorJail.kt`) lets the player out from inside, swinging as `poshdooropen` and shutting behind them, and is locked from outside | 2004Scape's quest_prince script; the swing and two ticks open guessed |
+| Leela's talk after Prince Ali Rescue; Morgan's first talk after Vampyre Slayer, then his later one (multi-NPC on varbit 15611, `morgan_postquest_dialogue`) | the Wiki's transcripts; the varbit's use inferred from its name |
 
-Left out until their steps: the market's stalls and guards, the jail, Morgan's and the Wise Old Man's talk,
+Left out until their steps: the market's stalls and guards, the Wise Old Man's talk,
 the bank guard, Miss Schism, the town crier, the dark wizards, the sewers' trapdoors and
 the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
 holiday items to reclaim), and Olivia's refusal after a theft comes with thieving. The wheat field picks as Lumbridge's does (`Crops`).
+Spria isn't spawned: after A Porcine of Interest she is a Slayer master (`slayer_master_9_active`), and Slayer isn't built.
 
 Check: `test-runner/examples/draynor-village.json` opens and shuts the pig pen's gate, climbs both staircases, takes
 garlic from Morgan's cupboard, opens Aggie's wardrobe and sees her cheese and tomato, and opens the bank from a banker
@@ -795,7 +800,8 @@ and from a booth; `HeadlessDraynorTest` does the gate, the stairs, the cupboard 
 client, and `GatesTest` turns a gate every way round. `test-runner/examples/draynor-willows.json` takes the axe off
 the logs, chops a willow, nets a shrimp and cooks it on the permanent fire; `HeadlessFishingTest` and `HeadlessCookingTest`
 do the Small Net spots and the fire. `test-runner/examples/draynor-ned-aggie.json` buys Ned's rope both ways and gets
-Aggie's red dye and fine; `NedAndAggieTest` walks every branch of both talks.
+Aggie's red dye and fine; `NedAndAggieTest` walks every branch of both talks. `test-runner/examples/draynor-jail.json`
+does Leela, the cell door, a jail guard and Morgan; `DraynorTalkTest` and `HeadlessDraynorTest` cover them too.
 
 ## Lumbridge church
 
