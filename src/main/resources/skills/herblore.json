@@ -1,5 +1,5 @@
 {
-  "_source": "OSRS Wiki: each grimy herb's page (level, XP, Clean), each herb's unfinished potion page (level, 0 XP, 1 tick), Unicorn horn dust and the other ground items (0 ticks; auto-crushing 0, then 2, then 3), Vial of water (1 tick, any water but a well); read 2026-10-30.",
+  "_source": "OSRS Wiki: each grimy herb's page (level, XP, Clean), each herb's unfinished potion page (level, 0 XP, 1 tick), Unicorn horn dust and the other ground items (0 ticks; auto-crushing 0, then 2, then 3), Vial of water (1 tick, any water but a well); each finished potion's page and the Herblore page's table (level, XP, 2 ticks, a (3) dose); read 2026-10-30.",
   "cleaning": {
     "herbs": [
       { "name": "guam", "grimy": 199, "clean": 249, "level": 3, "xpTenths": 25 },
@@ -64,5 +64,35 @@
     "first": 1,
     "interval": 1,
     "sources": ["Sink", "Fountain", "Water pump", "Waterpump"]
+  },
+  "potions": {
+    "anim": 363,
+    "first": 2,
+    "interval": 2,
+    "potions": [
+      { "name": "attack", "unf": 91, "secondary": 221, "potion": 121, "level": 3, "xpTenths": 250 },
+      { "name": "antipoison", "unf": 93, "secondary": 235, "potion": 175, "level": 5, "xpTenths": 375 },
+      { "name": "strength", "unf": 95, "secondary": 225, "potion": 115, "level": 12, "xpTenths": 500 },
+      { "name": "restore", "unf": 97, "secondary": 223, "potion": 127, "level": 22, "xpTenths": 625 },
+      { "name": "energy", "unf": 97, "secondary": 1975, "potion": 3010, "level": 26, "xpTenths": 675 },
+      { "name": "defence", "unf": 99, "secondary": 239, "potion": 133, "level": 30, "xpTenths": 750 },
+      { "name": "agility", "unf": 3002, "secondary": 2152, "potion": 3034, "level": 34, "xpTenths": 800 },
+      { "name": "combat", "unf": 97, "secondary": 9736, "potion": 9741, "level": 36, "xpTenths": 840 },
+      { "name": "prayer", "unf": 99, "secondary": 231, "potion": 139, "level": 38, "xpTenths": 875 },
+      { "name": "super_attack", "unf": 101, "secondary": 221, "potion": 145, "level": 45, "xpTenths": 1000 },
+      { "name": "superantipoison", "unf": 101, "secondary": 235, "potion": 181, "level": 48, "xpTenths": 1063 },
+      { "name": "fishing", "unf": 103, "secondary": 231, "potion": 151, "level": 50, "xpTenths": 1125 },
+      { "name": "super_energy", "unf": 103, "secondary": 2970, "potion": 3018, "level": 52, "xpTenths": 1175 },
+      { "name": "hunter", "unf": 103, "secondary": 10111, "potion": 10000, "level": 53, "xpTenths": 1200 },
+      { "name": "super_strength", "unf": 105, "secondary": 225, "potion": 157, "level": 55, "xpTenths": 1250 },
+      { "name": "weapon_poison", "unf": 105, "secondary": 241, "potion": 187, "level": 60, "xpTenths": 1375 },
+      { "name": "super_restore", "unf": 3004, "secondary": 223, "potion": 3026, "level": 63, "xpTenths": 1425 },
+      { "name": "super_defence", "unf": 107, "secondary": 239, "potion": 163, "level": 66, "xpTenths": 1500 },
+      { "name": "antifire", "unf": 2483, "secondary": 241, "potion": 2454, "level": 69, "xpTenths": 1575 },
+      { "name": "ranging", "unf": 109, "secondary": 245, "potion": 169, "level": 72, "xpTenths": 1625 },
+      { "name": "magic", "unf": 2483, "secondary": 3138, "potion": 3042, "level": 76, "xpTenths": 1725 },
+      { "name": "zamorak_brew", "unf": 111, "secondary": 247, "potion": 189, "level": 78, "xpTenths": 1750 },
+      { "name": "saradomin_brew", "unf": 3002, "secondary": 6693, "potion": 6687, "level": 81, "xpTenths": 1800 }
+    ]
   }
 }
