@@ -7,7 +7,8 @@ import osrsps.game.ObjType
  * Dinh's bulwark's own rules (OSRS Wiki, Dinh's bulwark, read 2026-10-30), besides its special ([SpecialAttacks.SHIELD_BASH]):
  * its Pummel hits harder the better the defence worn, by [strengthBonus]; and on its Block style the player can't attack
  * ("players lose the ability to attack") but takes 20% less damage, from 8 ticks after the bulwark is wielded ("an 8-tick
- * delay before the damage reduction applies after switching to the bulwark"). Guessed: that the reduced damage rounds
+ * delay before the damage reduction applies after switching to the bulwark"). Leaving Block for Pummel puts the next
+ * attack 8 ticks off, whatever weapon makes it (World, at the combat tab's click). Guessed: that the reduced damage rounds
  * down, and that the 8 ticks also run from a login with it worn. Only monsters' melee hits are reduced so far, as they are
  * the only ones that hit players yet.
  */

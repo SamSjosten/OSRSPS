@@ -27,9 +27,11 @@ class SpecialAttacksTest {
 
     private val ogre = NpcType(2095, "Ogre", combatLevel = 53, internalName = "ogre", stats = NpcStats(attack = 43, defence = 75, strength = 43, hitpoints = 60))
     private val boss = NpcType(16659, "Archive Guardian", combatLevel = 400, internalName = "archive_guardian", stats = NpcStats(attack = 200, defence = 75, hitpoints = 1000))
+    private val evenMage = NpcType(1, "Even", combatLevel = 50, internalName = "even", stats = NpcStats(attack = 40, strength = 40, ranged = 40, magic = 40, hitpoints = 50))
+    private val caster = NpcType(2, "Caster", combatLevel = 50, internalName = "caster", stats = NpcStats(attack = 1, strength = 1, ranged = 40, magic = 40, hitpoints = 50))
     private val npcCombat = NpcCombat.parse(
-        """{ "npcs": [ ${entry("ogre")}, ${entry("archive_guardian", """"drainCap": { "defence": 60 },""")} ] }""",
-        NpcTypes.of(ogre, boss), SeqNames.NONE,
+        """{ "npcs": [ ${entry("ogre")}, ${entry("archive_guardian", """"drainCap": { "defence": 60 },""")}, ${entry("even")}, ${entry("caster")} ] }""",
+        NpcTypes.of(ogre, boss, evenMage, caster), SeqNames.NONE,
     )
 
     private fun entry(name: String, extra: String = "") = """{ "npcs": ["$name"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush",
@@ -164,7 +166,7 @@ class SpecialAttacksTest {
     }
 
     @Test
-    fun `Shield Bash drains 5 percent of the highest offensive stat, every one tied for it, on a hit that deals damage`() {
+    fun `Shield Bash drains 5 percent of the highest offensive stat, Attack and Strength both when they tie, on a hit that deals damage`() {
         val ogre = npc(ogre)
         specials.landed(ogre, 0, SpecialAttacks.SHIELD_BASH)
         assertEquals(43, ogre.level(NpcStat.ATTACK))
@@ -174,6 +176,16 @@ class SpecialAttacksTest {
         val boss = npc(boss)
         specials.landed(boss, 3, SpecialAttacks.SHIELD_BASH)
         assertEquals(listOf(190, 1), listOf(boss.level(NpcStat.ATTACK), boss.level(NpcStat.STRENGTH)))
+    }
+
+    @Test
+    fun `Shield Bash settles a tie of all four with Attack and Strength, and Ranged before Magic`() {
+        val even = npc(evenMage)
+        specials.landed(even, 3, SpecialAttacks.SHIELD_BASH)
+        assertEquals(listOf(38, 38, 40, 40), listOf(NpcStat.ATTACK, NpcStat.STRENGTH, NpcStat.RANGED, NpcStat.MAGIC).map { even.level(it) })
+        val caster = npc(caster)
+        specials.landed(caster, 3, SpecialAttacks.SHIELD_BASH)
+        assertEquals(listOf(1, 1, 38, 40), listOf(NpcStat.ATTACK, NpcStat.STRENGTH, NpcStat.RANGED, NpcStat.MAGIC).map { caster.level(it) })
     }
 
     @Test

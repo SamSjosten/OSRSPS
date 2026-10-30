@@ -3,10 +3,12 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.EquipmentTab
 import osrsps.game.GameRandom
+import osrsps.game.InvObj
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -18,6 +20,7 @@ import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.AttackStyles
+import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.SpecialAttacks
 import osrsps.game.npc.NpcSpawn
@@ -26,7 +29,8 @@ import osrsps.map.CollisionMap
 /**
  * Dinh's bulwark through the headless client: Block refuses an attack; in multi-way combat Shield Bash hits the target
  * and the NPCs within 5 tiles, draining 5% of the highest offensive stat of each it hurts (the target's once, though it
- * is hit twice), and not one 6 tiles off; in single-way combat it hits the target alone. The rl-client script
+ * is hit twice), and not one 6 tiles off or one standing in single-way combat; in single-way combat it hits the target
+ * alone. Off Block the next attack waits 8 ticks, and Block cuts hits 8 ticks after the tick the bulwark is wielded on. The rl-client script
  * test-runner/examples/spec-bulwark.json does the multi-way bash in the real client.
  */
 class HeadlessBulwarkTest {
@@ -58,8 +62,9 @@ class HeadlessBulwarkTest {
         objs[BULWARK] = bulwark
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), objTypes = ObjTypes(objs), npcTypes = types,
-            // The target east of the login tile, two more within 5 tiles of where the player stands to hit it, one 6 off.
-            npcSpawns = listOf(3224 to 3218, 3221 to 3221, 3226 to 3222, 3229 to 3218).map { (x, z) -> NpcSpawn(ogre, x, z, source = "test") },
+            // The target east of the login tile, two more within 5 tiles of where the player stands to hit it, one 6 off,
+            // and one within 5 but in the zone south, which stays single-way.
+            npcSpawns = listOf(3224 to 3218, 3221 to 3221, 3226 to 3222, 3229 to 3218, 3221 to 3214).map { (x, z) -> NpcSpawn(ogre, x, z, source = "test") },
             varTypes = VarTypes(6_000, mapOf(VARBIT_WEAPON_CATEGORY to VarbitType(VARP_WEAPON_CATEGORY, 0, 5))),
             attackStyles = styles,
             npcCombat = NpcCombat.parse(
@@ -71,6 +76,11 @@ class HeadlessBulwarkTest {
             ),
             specialAttackCosts = mapOf(BULWARK to 500), cycleMillis = millis,
         )
+    }
+
+    private fun HeadlessClient.tele(x: Int, z: Int) {
+        command("tele $x $z 0")
+        await("the teleport to $x, $z") { position?.takeIf { it == Coord(x, z, 0) } }
     }
 
     private fun HeadlessClient.slot(id: Int) = await("item $id in the backpack") { inventory(BACKPACK).indexOfFirst { it?.id == id }.takeIf { it >= 0 } }
@@ -119,19 +129,74 @@ class HeadlessBulwarkTest {
     }
 
     @Test
+    fun `off Block, the next attack waits 8 ticks`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                val npc = client.await("an ogre in view") { client.npcs().firstOrNull { it.id == ogre.id && it.coord.x == 3224 } }
+                client.await("the login rebuild") { client.position }
+                client.wieldBulwark()
+                client.ifButton(EquipmentTab.COMBAT, EquipmentTab.STYLE_BUTTONS[3], 1)
+                client.await("Block picked") { Unit.takeIf { client.varp(EquipmentTab.VARP_COM_MODE) == 3 } }
+                // Paused, so the attack goes in on the tick Pummel is picked, and the swing is counted in game ticks.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                client.ifButton(EquipmentTab.COMBAT, EquipmentTab.STYLE_BUTTONS[0], 1)
+                client.npcOp(npc.index, 2)
+                client.stepTicks(1)
+                val world = server.world
+                val picked = world.tick
+                assertEquals(picked + DinhsBulwark.BLOCK_DELAY, world.playerNamed("alice")!!.nextAttackTick)
+                client.stepTicks(DinhsBulwark.BLOCK_DELAY - 1)
+                assertEquals(5000, world.npcs[npc.index]!!.hitpoints, "no swing before the 8 ticks are up")
+                client.stepTicks(2)
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                client.await("the first swing", timeoutMillis = 15_000) { world.npcs[npc.index]!!.takeIf { it.hitpoints < 5000 } }
+            }
+        }
+    }
+
+    @Test
+    fun `Block cuts hits only once the tick the bulwark is wielded on has ended, and 8 ticks after it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.awaitTicks(DinhsBulwark.BLOCK_DELAY + 2)
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                val world = server.world
+                val player = world.playerNamed("alice")!!
+                // Wielded and on Block by the input phase of the next tick, as the NPCs that tick see it.
+                player.equipment[WearPos.WEAPON] = InvObj(BULWARK, 1)
+                player.vars[EquipmentTab.VARP_COM_MODE] = 3
+                assertFalse(world.combat.bulwarkBlocking(player, world.tick + 1), "on the tick it is wielded")
+                client.stepTicks(1)
+                // The tick's end records it, and Block counts its 8 ticks from that tick.
+                assertEquals(BULWARK, player.weaponId)
+                assertTrue(player.weaponSince > DinhsBulwark.BLOCK_DELAY, "wielded on tick ${player.weaponSince}")
+                assertFalse(world.combat.bulwarkBlocking(player, player.weaponSince + DinhsBulwark.BLOCK_DELAY - 1))
+                assertTrue(world.combat.bulwarkBlocking(player, player.weaponSince + DinhsBulwark.BLOCK_DELAY))
+                client.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
     fun `in multi-way combat Shield Bash hits everything within 5 tiles, and drains each it hurts once`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
-                client.await("the ogres in view") { client.npcs().filter { it.id == ogre.id }.takeIf { it.size == 4 } }
+                client.await("the ogres in view") { client.npcs().filter { it.id == ogre.id }.takeIf { it.size == 5 } }
                 client.await("the login rebuild") { client.position }
                 client.wieldBulwark()
+                // Multi-way in the login tile's zone and the one east, where the target and one of the near two stand.
                 client.commandReply("multi on") { it.startsWith("Combat is multi-way") }
+                client.tele(3226, 3222)
+                client.commandReply("multi on") { it.startsWith("Combat is multi-way") }
+                client.tele(3222, 3218)
                 val indexes = client.npcs().filter { it.id == ogre.id }.associate { (it.coord.x to it.coord.z) to it.index }
                 val target = indexes.getValue(3224 to 3218)
                 val near = listOf(indexes.getValue(3221 to 3221), indexes.getValue(3226 to 3222))
                 val far = indexes.getValue(3229 to 3218)
+                val single = indexes.getValue(3221 to 3214)
                 client.bash(target)
-                val lines = client.ogres(listOf(target) + near + far)
+                val lines = client.ogres(listOf(target) + near + far + single)
                 assertTrue((listOf(target) + near).any { hurt(lines.getValue(it)) }, "the bash hurt something: $lines")
                 for (index in listOf(target) + near) {
                     val line = lines.getValue(index)
@@ -139,6 +204,7 @@ class HeadlessBulwarkTest {
                     if (hurt(line)) assertTrue(line.contains("drained attack 95/100,"), line) else assertTrue("drained" !in line, line)
                 }
                 assertEquals(false, hurt(lines.getValue(far)) || "drained" in lines.getValue(far), lines.getValue(far))
+                assertEquals(false, hurt(lines.getValue(single)) || "drained" in lines.getValue(single), "single-way: ${lines.getValue(single)}")
             }
         }
     }
@@ -147,7 +213,7 @@ class HeadlessBulwarkTest {
     fun `in single-way combat Shield Bash hits its target alone`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
-                client.await("the ogres in view") { client.npcs().filter { it.id == ogre.id }.takeIf { it.size == 4 } }
+                client.await("the ogres in view") { client.npcs().filter { it.id == ogre.id }.takeIf { it.size == 5 } }
                 client.await("the login rebuild") { client.position }
                 client.wieldBulwark()
                 val target = client.npcs().first { it.id == ogre.id && it.coord.x == 3224 && it.coord.z == 3218 }.index

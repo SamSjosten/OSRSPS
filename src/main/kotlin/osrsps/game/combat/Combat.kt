@@ -162,8 +162,13 @@ class Combat(
     /** Whether [player] holds Dinh's bulwark on its Block style, which can't attack ([DinhsBulwark]). */
     fun bulwarkBlock(player: Player): Boolean = DinhsBulwark.isBulwark(equipment.weapon(player)) && style(player).type == AttackType.NONE
 
-    /** Whether Block cuts the hits [player] takes on [tick]: on it, with the bulwark wielded [DinhsBulwark.BLOCK_DELAY] ticks. */
-    fun bulwarkBlocking(player: Player, tick: Long): Boolean = bulwarkBlock(player) && tick - player.weaponSince >= DinhsBulwark.BLOCK_DELAY
+    /**
+     * Whether Block cuts the hits [player] takes on [tick]: on it, with the bulwark wielded [DinhsBulwark.BLOCK_DELAY]
+     * ticks. [Player.weaponId] is brought up to date only at the end of the tick, so a bulwark wielded this tick, which
+     * it doesn't name yet, doesn't count.
+     */
+    fun bulwarkBlocking(player: Player, tick: Long): Boolean =
+        bulwarkBlock(player) && player.weaponId == equipment.weapon(player)?.id && tick - player.weaponSince >= DinhsBulwark.BLOCK_DELAY
 
     /**
      * The player's ranged numbers against [npc], or null when it has no combat definition or the player's style isn't

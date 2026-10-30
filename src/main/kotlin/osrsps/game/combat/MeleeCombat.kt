@@ -254,7 +254,8 @@ class MeleeCombat(
 
     /**
      * The fightable NPCs other than [target] within [radius] tiles of [player] on either axis, by any tile they cover,
-     * nearest first. Guessed: nothing in the way stops the hit, and the nearest are hit first when there are too many.
+     * standing in multi-way combat themselves (by their south-west tile, as a barrage's splash goes), nearest first.
+     * Guessed: nothing in the way stops the hit, and the nearest are hit first when there are too many.
      */
     private fun around(player: Player, target: Npc, radius: Int): List<Npc> {
         fun distance(npc: Npc): Int {
@@ -263,7 +264,10 @@ class MeleeCombat(
             return maxOf(dx, dz)
         }
         return npcs.near(player.x, player.z, player.level, radius + MAX_NPC_SIZE)
-            .filter { it !== target && !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && distance(it) <= radius }
+            .filter {
+                it !== target && !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && distance(it) <= radius &&
+                    multi.at(it.level, it.x, it.z)
+            }
             .sortedBy(::distance)
     }
 

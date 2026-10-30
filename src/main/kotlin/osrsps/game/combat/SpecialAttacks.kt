@@ -51,8 +51,9 @@ sealed interface SpecialEffect {
 
     /**
      * Drains [percent] of the NPC's highest offensive stat (Attack, Strength, Ranged or Magic) as it is now, if the hit
-     * dealt damage (Dinh's bulwark's Shield Bash). Guessed from the Wiki's "If all stats are equal, it will drain both
-     * Attack and Strength, then Ranged, then Magic": every stat tied for the highest is drained.
+     * dealt damage (Dinh's bulwark's Shield Bash). For a tie the Wiki gives "If all stats are equal, it will drain both
+     * Attack and Strength, then Ranged, then Magic": of the stats tied for the highest, Attack and Strength go first (both
+     * when both are tied), else Ranged, else Magic. Guessed: that the same order settles a tie of two or three of them.
      */
     data class DrainHighestOffensive(val percent: Int) : SpecialEffect
 }
@@ -136,8 +137,7 @@ class SpecialAttacks(
             SpecialEffect.None -> {}
             is SpecialEffect.DrainDefence -> if (dealt > 0) drains.drainPercent(npc, NpcStat.DEFENCE, effect.percent)
             is SpecialEffect.DrainHighestOffensive -> if (dealt > 0) {
-                val top = OFFENSIVE.maxOf { npc.level(it) }
-                for (stat in OFFENSIVE) if (npc.level(stat) == top) drains.drainPercent(npc, stat, effect.percent)
+                for (stat in highestOffensive(npc)) drains.drainPercent(npc, stat, effect.percent)
             }
             is SpecialEffect.DrainByDamage -> {
                 var left = dealt
@@ -147,6 +147,14 @@ class SpecialAttacks(
                 }
             }
         }
+    }
+
+    /** The stats [SpecialEffect.DrainHighestOffensive] drains on [npc]: the highest, ties settled as it says. */
+    private fun highestOffensive(npc: Npc): List<NpcStat> {
+        val top = OFFENSIVE.maxOf { npc.level(it) }
+        val tied = OFFENSIVE.filter { npc.level(it) == top }
+        val melee = tied.filter { it == NpcStat.ATTACK || it == NpcStat.STRENGTH }
+        return melee.ifEmpty { listOf(tied.first()) }
     }
 
     /** The weapon changed: the bar goes out under one with no special (guessed). */
