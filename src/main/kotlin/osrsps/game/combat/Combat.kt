@@ -113,7 +113,7 @@ class Combat(
 
     /**
      * The melee attack type the player's style hits with: its own for a melee style, crush for a style with none (a
-     * bulwark's block; those weapons come later), and null for a ranged or magic style, which this piece doesn't fight
+     * gun's "Aim and Fire"; Dinh's bulwark's Block can't attack at all, see [bulwarkBlock]), and null for a ranged or magic style, which this piece doesn't fight
      * with.
      */
     fun meleeType(style: AttackStyle): AttackType? = when (style.type) {
@@ -146,7 +146,7 @@ class Combat(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength),
+            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses)),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
             npcAttackRoll = npcAttackRoll,
             playerDefenceRoll = playerDefenceRoll,
@@ -154,6 +154,16 @@ class Combat(
             npcHitChance = CombatMath.hitChance(npcAttackRoll, playerDefenceRoll),
         )
     }
+
+    /** What Dinh's bulwark adds to the melee strength bonus ([DinhsBulwark.strengthBonus]); 0 with any other weapon. */
+    private fun bulwarkStrength(player: Player, bonuses: EquipmentBonuses): Int =
+        if (DinhsBulwark.isBulwark(equipment.weapon(player))) DinhsBulwark.strengthBonus(bonuses) else 0
+
+    /** Whether [player] holds Dinh's bulwark on its Block style, which can't attack ([DinhsBulwark]). */
+    fun bulwarkBlock(player: Player): Boolean = DinhsBulwark.isBulwark(equipment.weapon(player)) && style(player).type == AttackType.NONE
+
+    /** Whether Block cuts the hits [player] takes on [tick]: on it, with the bulwark wielded [DinhsBulwark.BLOCK_DELAY] ticks. */
+    fun bulwarkBlocking(player: Player, tick: Long): Boolean = bulwarkBlock(player) && tick - player.weaponSince >= DinhsBulwark.BLOCK_DELAY
 
     /**
      * The player's ranged numbers against [npc], or null when it has no combat definition or the player's style isn't

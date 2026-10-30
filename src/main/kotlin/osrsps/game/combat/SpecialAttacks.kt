@@ -10,8 +10,8 @@ import osrsps.game.npc.Npc
 private val logger = KotlinLogging.logger {}
 
 /**
- * One weapon's special attack, as far as a melee swing goes: [anim] and the [spotanim] on the player in place of the
- * style's swing (at height 0, guessed), the attack roll raised by [accuracyPercent], the max hit by each of [damagePercents] in turn (rounding
+ * One weapon's special attack, as far as a melee swing goes: [anim] and the [spotanim] (-1 for none) on the player in
+ * place of the style's swing (at height 0, guessed), the attack roll raised by [accuracyPercent], the max hit by each of [damagePercents] in turn (rounding
  * down after each, as the Wiki gives the Bandos godsword's two 10%), and [effect] on the NPC once the hit lands.
  */
 class SpecialAttack(
@@ -23,6 +23,13 @@ class SpecialAttack(
     /** The attack type whose defence the NPC rolls with, in place of the style's; null for the style's. The attack bonus stays the style's. */
     val against: AttackType? = null,
     val effect: SpecialEffect = SpecialEffect.None,
+    /**
+     * In multi-way combat, how far around the player it also hits (0 for only its target), how many NPCs it hits in
+     * all, and how many times it hits its target.
+     */
+    val radius: Int = 0,
+    val targets: Int = 1,
+    val targetHits: Int = 1,
 ) {
     fun attackRoll(roll: Int): Int = (roll.toLong() * (100 + accuracyPercent) / 100).toInt()
 
@@ -41,6 +48,13 @@ sealed interface SpecialEffect {
      * (the Bandos godsword's Warstrike).
      */
     data class DrainByDamage(val order: List<NpcStat>) : SpecialEffect
+
+    /**
+     * Drains [percent] of the NPC's highest offensive stat (Attack, Strength, Ranged or Magic) as it is now, if the hit
+     * dealt damage (Dinh's bulwark's Shield Bash). Guessed from the Wiki's "If all stats are equal, it will drain both
+     * Attack and Strength, then Ranged, then Magic": every stat tied for the highest is drained.
+     */
+    data class DrainHighestOffensive(val percent: Int) : SpecialEffect
 }
 
 /**
@@ -121,6 +135,10 @@ class SpecialAttacks(
         when (val effect = special.effect) {
             SpecialEffect.None -> {}
             is SpecialEffect.DrainDefence -> if (dealt > 0) drains.drainPercent(npc, NpcStat.DEFENCE, effect.percent)
+            is SpecialEffect.DrainHighestOffensive -> if (dealt > 0) {
+                val top = OFFENSIVE.maxOf { npc.level(it) }
+                for (stat in OFFENSIVE) if (npc.level(stat) == top) drains.drainPercent(npc, stat, effect.percent)
+            }
             is SpecialEffect.DrainByDamage -> {
                 var left = dealt
                 for (stat in effect.order) {
@@ -195,12 +213,27 @@ class SpecialAttacks(
             effect = SpecialEffect.DrainByDamage(listOf(NpcStat.DEFENCE, NpcStat.STRENGTH, NpcStat.ATTACK, NpcStat.MAGIC, NpcStat.RANGED)),
         )
 
+        /**
+         * Shield Bash (OSRS Wiki, Dinh's bulwark): 20% more accurate, against crush, and in multi-way combat it hits up to
+         * 10 NPCs within 5 tiles of the player (an 11 by 11 area), its target twice; each hit that deals damage drains 5%
+         * of the NPC's highest offensive stat, but for the target's second. Animation human_dinhs_bulwark_bash (7511),
+         * with no spotanim (guessed). In single-way combat it hits its target once (guessed).
+         */
+        val SHIELD_BASH = SpecialAttack(
+            "Shield Bash", anim = 7511, spotanim = -1, accuracyPercent = 20, against = AttackType.CRUSH,
+            effect = SpecialEffect.DrainHighestOffensive(5), radius = 5, targets = 10, targetHits = 2,
+        )
+
+        private val OFFENSIVE = listOf(NpcStat.ATTACK, NpcStat.STRENGTH, NpcStat.RANGED, NpcStat.MAGIC)
+
         /** The specials that are in, by their weapons' gameval names. */
         private val BY_WEAPON = mapOf(
             "dragon_warhammer" to DRAGON_WARHAMMER,
             "dragon_warhammer_ornament" to DRAGON_WARHAMMER,
             "bgs" to BANDOS_GODSWORD,
             "bgsg" to BANDOS_GODSWORD_ORNAMENT,
+            "dinhs_bulwark" to SHIELD_BASH,
+            "dinhs_bulwark_ornament" to SHIELD_BASH,
         )
     }
 }

@@ -1018,7 +1018,14 @@ class World(
         for (player in players) {
             if (player == null) continue
             perPlayer(player, "updates") {
-                if (player.equipment.hasChanges) specialAttacks.weaponChanged(player, combat.weapon(player))
+                if (player.equipment.hasChanges) {
+                    val weapon = combat.weapon(player)
+                    if ((weapon?.id ?: -1) != player.weaponId) {
+                        player.weaponId = weapon?.id ?: -1
+                        player.weaponSince = tick
+                    }
+                    specialAttacks.weaponChanged(player, weapon)
+                }
                 equipmentTab.updateVars(player)
                 bankScreen.updateVars(player)
                 depositBox.updateVars(player)

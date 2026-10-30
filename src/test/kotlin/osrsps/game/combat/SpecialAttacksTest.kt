@@ -6,6 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import osrsps.game.EquipmentBonuses
 import osrsps.game.NpcStat
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -160,6 +161,35 @@ class SpecialAttacksTest {
         // 45 of the 75 Defence, the 1 Strength, then 4 of the 200 Attack.
         specials.landed(boss, 50, SpecialAttacks.BANDOS_GODSWORD)
         assertEquals(listOf(30, 0, 196), listOf(boss.level(NpcStat.DEFENCE), boss.level(NpcStat.STRENGTH), boss.level(NpcStat.ATTACK)))
+    }
+
+    @Test
+    fun `Shield Bash drains 5 percent of the highest offensive stat, every one tied for it, on a hit that deals damage`() {
+        val ogre = npc(ogre)
+        specials.landed(ogre, 0, SpecialAttacks.SHIELD_BASH)
+        assertEquals(43, ogre.level(NpcStat.ATTACK))
+        // Attack and Strength tie at 43: both lose 2.
+        specials.landed(ogre, 3, SpecialAttacks.SHIELD_BASH)
+        assertEquals(listOf(41, 41, 75), listOf(ogre.level(NpcStat.ATTACK), ogre.level(NpcStat.STRENGTH), ogre.level(NpcStat.DEFENCE)))
+        val boss = npc(boss)
+        specials.landed(boss, 3, SpecialAttacks.SHIELD_BASH)
+        assertEquals(listOf(190, 1), listOf(boss.level(NpcStat.ATTACK), boss.level(NpcStat.STRENGTH)))
+    }
+
+    @Test
+    fun `the bulwark's strength bonus comes from the four defences over an average of 314, and Block lets 80 percent through`() {
+        fun bonuses(each: Int) = EquipmentBonuses(IntArray(EquipmentBonuses.PARAMS.size).also {
+            it[EquipmentBonuses.STAB_DEFENCE] = each
+            it[EquipmentBonuses.SLASH_DEFENCE] = each
+            it[EquipmentBonuses.CRUSH_DEFENCE] = each
+            it[EquipmentBonuses.RANGED_DEFENCE] = each
+        }, attackSpeed = 5)
+        assertEquals(0, DinhsBulwark.strengthBonus(bonuses(0)))
+        assertEquals(0, DinhsBulwark.strengthBonus(bonuses(314)))
+        // 4 x 375 = 1,500: 700 / 12 = 58, less 38.
+        assertEquals(20, DinhsBulwark.strengthBonus(bonuses(375)))
+        assertEquals(8, DinhsBulwark.blocked(10))
+        assertEquals(0, DinhsBulwark.blocked(1))
     }
 
     private fun npc(type: NpcType) = Npc(1, NpcSpawn(type, 3222, 3218, source = "test"))
