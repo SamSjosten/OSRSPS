@@ -130,7 +130,7 @@ server_changed() {
 	local files
 	files=$(git diff --no-renames --name-only "$1" "$2" --) || return 0
 	[[ -n $files ]] || return 1
-	grep -qvE '^((test-runner|tick-recorder|launcher|deploy|\.github)/|src/test/|[^/]+\.md$)' <<<"$files"
+	grep -qvE '^((test-runner|tick-recorder|launcher|deploy|docs|\.github)/|src/test/|[^/]+\.md$)' <<<"$files"
 }
 
 # Writes .deploy/$1 whole, as the server reads `built` and `deployed` for its /version while this runs.

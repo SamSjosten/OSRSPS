@@ -10,8 +10,9 @@ VM with cron, a line in `sam`'s crontab) runs it, and when `origin/main` has mov
   starts once the merge is live.
 - When the merges since the running server's build change nothing it is built from, the script only fast-forwards
   the checkout, and the server keeps running with its players in. That is a merge whose files are all docs at the top
-  of the repo, tests (`src/test/`), the RuneLite plugins (`test-runner/`, `tick-recorder/`), the launcher
-  (`launcher/`), CI (`.github/`) or this folder. Any other file, or one moved out of the server, rebuilds it.
+  of the repo, the friend page (`docs/`), tests (`src/test/`), the RuneLite plugins (`test-runner/`,
+  `tick-recorder/`), the launcher (`launcher/`), CI (`.github/`) or this folder. Any other file, or one moved out of
+  the server, rebuilds it.
   `.deploy/built` keeps the running server's commit and `.deploy/deployed` the merge's, and compose mounts `.deploy/`
   read-only into the container, so `/version` answers with the merge's commit anyway and `/status` adds a
   `built from <commit>` line under it. `.deploy/built` is empty from a new build, or a restart, until the server is up,
