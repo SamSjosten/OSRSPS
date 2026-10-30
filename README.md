@@ -1466,7 +1466,7 @@ so they are keys under `rotten_potato.` in the dialogue file, except Heal me.
 
 Check: `::item 5733`, then Eat. Set all stats with 50 sets each skill to 50 one a tick; Wipe inventory leaves only the
 potato; Teleport to player with a name online puts you on them; Spawn aggressive NPC with `goblin` spawns one on your
-tile.
+tile. `test-runner/examples/rotten-potato-eat.json` runs Set all stats, Heal me and Wipe inventory in the real client.
 
 ## Headless test client
 
