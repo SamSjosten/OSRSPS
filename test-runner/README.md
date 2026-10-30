@@ -139,6 +139,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `skills-levelup.json`: `::addxp` past a Woodcutting level, then an Attack level that raises the combat level: the
   chat message, the fireworks, the level-up box with each line's key (`::keys on`), and the combat level's box after
   the skill's. Walking closes each box. Needs only 0.7.0.
+- `xp-rate.json`: `::xprate 2`, then a bone buried for 9 Prayer XP (4.5 at 1x), then `::xprate restore` back to the
+  server's rate. It changes the rate for everyone on the server for a few seconds; a failure part way leaves it at 2x,
+  so check `::xprate` after one. Needs only 0.5.0.
 - `woodcutting-lumbridge.json`: Chop down with no axe, then a bronze axe on a tree north of the castle (one log, the
   stump, the tree back), then a level 99 dragon axe on the oak south of the castle (12 logs before its timer fells it).
   Needs only 0.5.0.
