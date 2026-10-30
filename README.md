@@ -258,6 +258,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::areasound id [radius] [loops]` | Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
 | `::jingle id` | **everyone.** Plays jingle `id` to you alone |
 | `::item id\|name [count]` | Puts items in your inventory, by id, menu name or gameval name: `::item 1351`, `::item bronze axe 2`, `::item coins 10k`. Adds what fits |
+| `::bank` | Opens your bank wherever you are |
 | `::empty` | Empties your inventory |
 | `::locs [radius]` | **everyone.** Lists the locs within radius tiles of you (default 1): id, name, tile, shape and angle, and whether they differ from the cache |
 | `::addloc id [shape] [angle]` | Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
@@ -266,6 +267,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
 | `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
+| `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
 | `::reset` | Puts you back as you were before your first `::scenario` |
@@ -869,6 +871,35 @@ talk, tries silk at the General Store and buys Ali's junk; `HeadlessAlKharidTrad
 and haggles for silk; `HeadlessAlKharidTest` and `HeadlessAlKharidFightersTest` do the same through the headless client, with the talk in
 `BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, the palace's talk in `AlKharidPalaceTest` and Osman's Keris in `HeadlessOsmanTest`, the camels' in `AlKharidCamelsTest`, combat and drops in `NpcCombatTest` and `NpcDropsTest`, the rocks' chances in `MiningTest` and their ores in `HeadlessMiningTest`, the boxes in `HeadlessAlKharidBoxesTest`, Small Net in `HeadlessFishingTest`, and
 the prices in `ShopTest`.
+
+## Edgeville
+
+The Misthalin roadmap's Edgeville and Barbarian Village piece, built a step at a time
+([plan](https://claude.ai/artifact/VuHFKCTxpc1H5eMeBBP6LS)). Step 1 is the town and its bank: `npc-spawns/edgeville.json`,
+`obj-spawns/edgeville.tsv`, `game/content/Edgeville.kt` and, for every haystack, `game/content/Haystacks.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Four bankers (`banker1` 1613, `banker2` 1618) behind the booths at 3095, 3489 to 3491 and 3096 to 3098, 3493, with the castle banker's talk and Bank option; the booths and the deposit box work as every booth does | the 241 cache's types and booths; tiles from mejrs's data_osrs NPC list (NPCs seen on live); the Wiki's Edgeville page for the count |
+| Seven men in the grange north of the bank, three rats and three level 2 giant spiders round the house east of the willows, four imps round the town | as above; the Wiki's Edgeville page (seven men) |
+| The grange's front doors (`castledoubledoorl`/`r` 1521/1524, open 1522/1525) open together | 241 cache names; the double-door swing is the engine's (see Doors) |
+| Search on a haystack or hay bales (`haystack`, `haystack2`, `haystack3`, `haybail`: 298 to 300 and 304), here and on the farms north of Lumbridge: a needle 10% of the time, a prick for 1 hitpoint 2% of the time, else nothing | OSRS Wiki, Haystack (it names haystacks; the hay bales sharing it is inferred); one roll for all three, prick first, no needle with a full backpack, no animation: guessed |
+| The mausoleum's coffins (`coffin` 398) open into `coffin_open` (3577, Close only) and close again; the east house's wardrobes (`spookywardrobe` 388/389) open, are empty and shut | 241 cache; opening and shutting as other furniture does (`Searching`) |
+| A pair of leather gloves south of the bank and an iron mace in the jail, back 100 ticks after taking | the Wiki's Edgeville spawn list; tiles from 2004Scape's map m48_54; respawn guessed |
+| Cross on the Wilderness Ditch (`ditch_wilderness_cover` 23271, along the whole southern border) refuses with a message of our own: the Wilderness isn't built | ours, as Shantay Pass refuses the desert |
+| Evil Dave's and the other houses' doors, Doris's yard gate, the grange's ladders, crates and boxes, the bookcases | the engine's doors by name, `Gates`, and the castle's and Draynor's types |
+| Wander ranges (3 indoors in the grange, 5 outside) | guessed |
+
+Left out until their steps: the guards by the ditch (their drop table is the Varrock piece's Guard table too), the
+General Store, Oziach, Richard, Perdu, the furnace, the yews, willow and nettles, the well, Doris, Lucien and Hari, the
+outlaws, the Basement of Doom, the monastery, the trapdoor to the Edgeville Dungeon, and the lever, fairy ring, Soul
+Wars portal, Death's Domain and canoe station. The words are in the dialogue file (keys `edgeville.*`, `haystack.*`).
+
+Check: `test-runner/examples/edgeville-town.json` opens the grange's doors, searches the haystack, shuts the doors,
+opens and shuts a coffin, takes the leather gloves, opens and searches a wardrobe, is refused at the ditch, and opens
+the bank from a banker's talk and from a booth; `HeadlessEdgevilleTest` does the doors, all three haystack outcomes by
+seed, the coffin, the wardrobe and the ditch through the headless client, `NpcSpawnFileTest` the spawns and
+`ObjSpawnFilesTest` the item spawns.
 
 ## Varrock
 
@@ -1503,7 +1534,7 @@ you were with your own stats and items.
 
 Live's J-Mod tool, obj 5733, as an admins' tool: `::item 5733` gives one. The cache gives it Eat, Slice, Peel and Mash,
 as live, so RuneLite shows it as it does there. Each option opens a menu of testing tools that run the `::` commands, so
-every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat is done.
+every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat and Peel are done.
 
 | Eat | What it does | Source |
 |-----|--------------|--------|
@@ -1513,12 +1544,20 @@ every pick is logged and a non-admin is refused as for a typed command. Built a 
 | Teleport to player | Asks for a name, then `::teleto` | Wiki |
 | Spawn aggressive NPC | Asks for an id or name, then `::npc`; the NPC is as aggressive as its type is | Wiki; the prompts' words are guessed |
 
+| Peel | What it does | Source |
+|------|--------------|--------|
+| Bank menu | `::bank`: opens your bank wherever you are | Wiki |
+| Teleport to a tile | Asks for `x z [level]`, then `::tele` | ours, in place of Teleport to RARE!: there are no rares |
+| Spawn an item | Asks for `id\|name [count]`, then `::item` | ours, in place of Spawn RARE! |
+
+Live's AMEs for all! is left out: there are no random events.
+
 A non-admin who clicks one loses it with a message (guessed: what live does isn't known). The options' words are live's,
-so they are keys under `rotten_potato.` in the dialogue file, except Heal me.
+so they are keys under `rotten_potato.` in the dialogue file, except our own (Heal me, Teleport to a tile, Spawn an item).
 
 Check: `::item 5733`, then Eat. Set all stats with 50 sets each skill to 50 one a tick; Wipe inventory leaves only the
 potato; Teleport to player with a name online puts you on them; Spawn aggressive NPC with `goblin` spawns one on your
-tile. `test-runner/examples/rotten-potato-eat.json` runs Set all stats, Heal me and Wipe inventory in the real client.
+tile. Peel's Bank menu opens the bank. `test-runner/examples/rotten-potato-eat.json` runs Set all stats, Heal me and Wipe inventory in the real client.
 
 ## Headless test client
 

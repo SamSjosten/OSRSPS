@@ -501,13 +501,14 @@ class MeleeCombat(
     /**
      * [player] takes [damage] of poison or venom ([Poison]) with [hitsplat], capped at their hitpoints and 0 under
      * `::god`: no one hits them, so there is no block animation, no attacker and no retaliation, but it can kill and
-     * Redemption counts it (guessed). Returns the damage dealt.
+     * Redemption counts it (guessed). Others see [otherHitsplat], the same unless the caller says. Returns the damage
+     * dealt.
      */
-    fun statusHit(player: Player, damage: Int, hitsplat: Int): Int {
+    fun statusHit(player: Player, damage: Int, hitsplat: Int, otherHitsplat: Int = hitsplat): Int {
         if (player.hitpoints <= 0 || player.dead) return 0
         val dealt = if (player.god) 0 else damage.coerceIn(0, player.hitpoints)
         player.hitpoints -= dealt
-        player.effects.hit(-1, hitsplat, hitsplat, hitsplat, dealt)
+        player.effects.hit(-1, hitsplat, otherHitsplat, otherHitsplat, dealt)
         player.effects.headBar(-1, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
         if (player.hitpoints <= 0) died(player) else redemption(player)
         return dealt
@@ -625,6 +626,10 @@ class MeleeCombat(
 
     /** The NPCs dead and waiting to come back, for tests and commands. */
     val respawning: Int get() = dying.size
+
+    /** The spawns of the dead NPCs that will come back, with the tick each comes back on, soonest first. */
+    fun pendingRespawns(): List<Pair<NpcSpawn, Long>> =
+        dying.filter { it.npc.spawn.respawns }.map { it.npc.spawn to it.respawnTick }.sortedBy { it.second }
 
     companion object {
         /** Not a live message: magic and the other ranged weapons come with later pieces. */

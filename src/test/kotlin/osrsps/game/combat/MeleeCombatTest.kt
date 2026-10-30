@@ -291,6 +291,20 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `the pending respawns list each dead NPC's spawn and tick, soonest first, leaving out ones that won't come back`() {
+        val first = spawn()
+        val second = spawn(rat, x = 3215)
+        val once = npcs.add(NpcSpawn(man, 3216, 3210, source = "::npc by alice", respawns = false))!!
+        tick = 10
+        melee.hit(first, alice, 100, tick)
+        tick = 12
+        melee.hit(second, alice, 100, tick)
+        melee.hit(once, alice, 100, tick)
+        // The man's 25 from tick 10; the rat's 2 is held to the body's 4 from tick 12.
+        assertEquals(listOf(second.spawn to 16L, first.spawn to 35L), melee.pendingRespawns())
+    }
+
+    @Test
     fun `an NPC put in with the npc command stays dead`() {
         val npc = npcs.add(NpcSpawn(man, 3213, 3210, source = "::npc by alice", respawns = false))!!
         tick = 10

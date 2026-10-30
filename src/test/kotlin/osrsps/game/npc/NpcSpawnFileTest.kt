@@ -248,6 +248,28 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `Edgeville has four bankers behind the booths, the grange's seven men, and its rats, giant spiders and imps`() {
+        val names = mapOf(1613 to "banker1", 1618 to "banker2", 3106 to "man", 3107 to "man2", 3108 to "man3", 2854 to "rat", 3017 to "giantspider1", 5007 to "imp")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("edgeville.json"), types, "edgeville.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        // Four bankers (the Wiki's count), behind the booths at x 3095 and z 3493, standing still.
+        val bankers = spawns.filter { it.type.id == 1613 || it.type.id == 1618 }
+        assertEquals(4, bankers.size)
+        assertTrue(bankers.all { it.x in 3096..3098 && it.z in 3489..3492 && it.wander == 0 })
+        // Seven men (the Wiki's count), indoors in the grange north of the bank.
+        val men = spawns.filter { it.type.id in 3106..3108 }
+        assertEquals(7, men.size)
+        assertTrue(men.all { it.x in 3092..3101 && it.z in 3508..3512 && it.restrict == MoveRestrict.INDOORS })
+        assertEquals(3, spawns.count { it.type.id == 2854 })
+        assertEquals(3, spawns.count { it.type.id == 3017 })
+        assertEquals(4, spawns.count { it.type.id == 5007 })
+        // South of the Wilderness Ditch (z 3521), within map square 48,54.
+        assertTrue(spawns.all { it.x in 3072..3135 && it.z in 3456..3520 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `Draynor has three bankers, its townsfolk, seven pigs, the farmer and two fishing spots`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3111 to "woman", 2854 to "rat", 5007 to "imp", 2796 to "pig_1",
