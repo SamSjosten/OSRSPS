@@ -53,6 +53,8 @@ class FishingMethod(
     val levelLine: Line?,
     /** The Wiki's pike: 1 in 5 rolls recasts, so the next roll is a tick later. */
     val recasts: Boolean = false,
+    /** Another option text for the same method on some spots, as Al Kharid's "Small Net". */
+    val alsoNamed: String? = null,
 ) {
     val level: Int get() = fish.minOf { it.level }
 }
@@ -85,7 +87,7 @@ class Fishing(private val world: World) {
         for (spot in SPOTS) {
             val type = world.npcTypes[spot.npc] ?: continue
             for (method in spot.methods) {
-                val option = (1..5).firstOrNull { type.op(it) == method.name } ?: continue
+                val option = (1..5).firstOrNull { type.op(it).let { op -> op == method.name || (op != null && op == method.alsoNamed) } } ?: continue
                 world.handlers.onNpc(spot.npc, option) { op -> fish(op, method) }
                 world.handlers.onObjOnNpc(spot.npc, method.tool) { op ->
                     // A tool used on a spot fishes it, as clicking the option does (2004Scape).
@@ -228,6 +230,7 @@ class Fishing(private val world: World) {
 
         val SMALL_NET = FishingMethod(
             "Net", NET, FishingLines.NO_NET, null, FishingLines.CAST_NET, NET_ANIM, NET_ANIM, listOf(ANCHOVIES, SHRIMPS), null,
+            alsoNamed = "Small Net",
         )
         val SEA_BAIT = FishingMethod(
             "Bait", FISHING_ROD, FishingLines.NO_ROD, BAIT, FishingLines.CAST_LINE, CAST_ANIM, ROD_ANIM, listOf(HERRING, SARDINE),
@@ -246,20 +249,26 @@ class Fishing(private val world: World) {
         const val SWAMP_SPOT = 1530
         const val RIVER_SPOT = 1527
 
+        /** Al Kharid's Small Net/Bait spots (`0_51_49_saltfish`), south-west of the town by the sea. */
+        const val AL_KHARID_SPOT = 1528
+
         val SPOTS = listOf(
             SpotType(SWAMP_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(RIVER_SPOT, listOf(LURE, RIVER_BAIT)),
+            SpotType(AL_KHARID_SPOT, listOf(SMALL_NET, SEA_BAIT)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 
         /**
          * The tiles each group of spots moves between. The river's are 2004Scape's (`fishing_movement_lumbridge_river`),
-         * which hold RSMod's two spawn tiles; the swamp's are its five spawn tiles (guessed).
+         * which hold RSMod's two spawn tiles; the swamp's are its five spawn tiles (guessed); Al Kharid's are below.
          */
         val AREAS: List<List<Tile>> = listOf(
             listOf(Tile(3239, 3241), Tile(3239, 3242), Tile(3239, 3243), Tile(3239, 3244), Tile(3238, 3251), Tile(3238, 3252),
                 Tile(3238, 3254), Tile(3238, 3255)),
             listOf(Tile(3240, 3146), Tile(3240, 3147), Tile(3244, 3150), Tile(3245, 3152), Tile(3246, 3155)),
+            // Al Kharid's: the six tiles 2004Scape's fishing_movement_al_kharid_enum notes as live's since March 2021.
+            listOf(Tile(3266, 3148), Tile(3267, 3148), Tile(3268, 3147), Tile(3275, 3140), Tile(3276, 3140), Tile(3277, 3139)),
         )
     }
 }
