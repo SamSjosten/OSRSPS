@@ -22,6 +22,9 @@ class PublicChat(
     companion object {
         const val MAX_LENGTH = 80
 
+        /** A line starting with `/`, for the player's friends chat channel; see [osrsps.game.social.FriendChats]. */
+        const val TYPE_FRIENDS_CHAT = 2
+
         private const val TYPE_NORMAL = 0
         private const val TYPE_AUTOTYPER = 1
         private const val MAX_COLOUR = 20

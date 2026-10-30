@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.InventoryTab
@@ -108,6 +109,28 @@ class HeadlessFiremakingTest {
                 // Sure from level 43: lit on the first roll, 3 ticks after the strike.
                 client.seen("[firemaking.catches]")
                 client.await("the fire") { if (client.locAt(at.x, at.z) == Firemaking.FIRE) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `logs lit while another skill's clock still runs strike and say so at once`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${Firemaking.TINDERBOX}")
+                client.command("item $LOGS")
+                client.command("setlevel firemaking 43")
+                client.slotOf(LOGS)
+                // As if chopping the logs had set the shared skill clock a moment ago: its roll is still to come.
+                server.world.playerNamed("dave")!!.actionDelay = server.world.tick + 30
+                val before = client.ticksSeen
+                client.use(Firemaking.TINDERBOX, LOGS)
+                // Before the fix, nothing was said until the clock ran out (the first roll, sure at 43, lit them).
+                val attempt = client.seen("[firemaking.attempt]")
+                assertTrue(attempt.tick - before < 5, "attempt after ${attempt.tick - before} ticks")
+                client.seen("[firemaking.catches]", timeoutMillis = 30_000)
+                assertEquals(1, client.messages().count { it.text == "[firemaking.attempt]" })
             }
         }
     }

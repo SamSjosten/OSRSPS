@@ -203,12 +203,14 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Al Kharid has two Border Guards each side of the toll gate, five bankers and a keeper for each shop`() {
+    fun `Al Kharid has two Border Guards each side of the toll gate, five bankers, a keeper for each shop, its fighters and camels`() {
         val names = mapOf(
             4287 to "borderguard1", 4288 to "borderguard2", 3090 to "kharidbanker1", 3091 to "kharidbanker2",
             2817 to "generalshopkeeper3", 2818 to "generalassistant3", 2875 to "zeke", 2879 to "dommik", 2876 to "louie_legs",
             2878 to "ranael", 2874 to "gem_trader", 3533 to "feud_ali_m", 2877 to "kebab_seller", 2873 to "silk_trader",
-            3231 to "ellis_tanner",
+            3231 to "ellis_tanner", 4285 to "hassan", 4286 to "osman", 11645 to "prince_ali_palace",
+            3292 to "al_kharid_warrior", 3261 to "al_kharid_man", 3024 to "scorpion", 2835 to "camel", 5949 to "al_the_camel",
+            5950 to "elly_the_camel", 5951 to "ollie_the_camel", 5952 to "cam_the_camel", 5953 to "alice_the_camel_multinpc",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
@@ -227,8 +229,18 @@ class NpcSpawnFileTest {
         assertEquals(1, spawns.count { it.type.id == 2877 })
         assertEquals(1, spawns.count { it.type.id == 2873 })
         assertEquals(MoveRestrict.INDOORS, spawns.single { it.type.id == 3231 }.restrict)
-        // Inside Al Kharid: east of the toll gate's fence line, north of the bank, south of the mine.
-        assertTrue(spawns.all { it.x in 3267..3330 && it.z in 3160..3230 && it.level == 0 && it.source.isNotBlank() })
+        // The palace: Hassan and Prince Ali in the throne room, Osman outside.
+        for (id in listOf(4285, 11645)) assertTrue(spawns.single { it.type.id == id }.let { it.x in 3298..3303 && it.z in 3159..3166 })
+        assertEquals(1, spawns.count { it.type.id == 4286 })
+        // Fighters: nine warriors in the palace, six men, nine scorpions in the mine and one south of the bank (the Wiki's counts).
+        assertEquals(9, spawns.count { it.type.id == 3292 && it.x in 3281..3303 && it.z in 3159..3178 })
+        assertEquals(6, spawns.count { it.type.id == 3261 })
+        assertEquals(9, spawns.count { it.type.id == 3024 && it.z > 3270 })
+        assertEquals(1, spawns.count { it.type.id == 3024 && it.z < 3160 })
+        // The plain Camel and the five named ones.
+        for (id in listOf(2835, 5949, 5950, 5951, 5952, 5953)) assertEquals(1, spawns.count { it.type.id == id })
+        // Inside Al Kharid: east of the toll gate's fence line, south of the mine's north end.
+        assertTrue(spawns.all { it.x in 3267..3330 && it.z in 3140..3320 && it.level == 0 && it.source.isNotBlank() })
         assertTrue(spawns.filter { it.type.id in listOf(4287, 4288, 3090, 3091) }.all { it.wander == 0 })
     }
 

@@ -7,9 +7,13 @@ import kotlin.test.assertNull
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.Quest
+import osrsps.game.QuestVar
+import osrsps.game.Quests
 import osrsps.game.World
 import osrsps.game.bank.BankScreen
 import osrsps.game.content.AlKharid
+import osrsps.game.content.AlKharidPalace
 import osrsps.game.content.Bankers
 import osrsps.game.content.TollGate
 import osrsps.game.loc.LocType
@@ -47,6 +51,7 @@ class HeadlessAlKharidTest {
             wall(AlKharid.CURTAIN, "Curtain", "Open"),
             wall(AlKharid.CURTAIN_OPEN, "Curtain", "Close"),
             LocType(BOOTH, "Bank booth", ops = listOf(null, "Bank", "Collect", null, null), collision = LocCollisionType(blocksProjectile = false)),
+            wall(AlKharidPalace.BIG_WINDOW, "Big window", "Enter"),
         ).associateBy { it.id },
     )
 
@@ -61,6 +66,8 @@ class HeadlessAlKharidTest {
         ZoneLoc(AlKharid.PALACE_DOOR_RIGHT, LocShape.WALL_STRAIGHT, 0, 3287, 3172, 0),
         // The closed curtain upstairs in the palace.
         ZoneLoc(AlKharid.CURTAIN, LocShape.WALL_STRAIGHT, 0, 3288, 3173, 1),
+        // A big window in the palace's south wall.
+        ZoneLoc(AlKharidPalace.BIG_WINDOW, LocShape.WALL_STRAIGHT, 1, 3290, 3158, 0),
     )
 
     /** One of the bank's booths, with a banker behind it, as the map and 2004Scape's spawns have them. */
@@ -70,18 +77,34 @@ class HeadlessAlKharidTest {
 
     private val guard = NpcType(TollGate.BORDER_GUARD_WEST, "Border Guard", ops = listOf("Talk-to", null, null, null, null), internalName = "borderguard1")
 
+    private val hassan = NpcType(AlKharidPalace.HASSAN, "Chancellor Hassan", ops = listOf("Talk-to", null, null, null, null), internalName = "hassan")
+
+    private val princeAli = NpcType(AlKharidPalace.PRINCE_ALI, "Prince Ali", ops = listOf("Talk-to", null, null, null, null), internalName = "prince_ali_vis")
+
+    /** The map's Prince Ali: nothing until varp 273 (Prince Ali Rescue) is 100 or more, then [princeAli]. */
+    private val princeAliPalace = NpcType(
+        AlKharidPalace.PRINCE_ALI_PALACE, multiVarp = PRINCE_ALI_RESCUE_VARP,
+        multiNpcs = IntArray(100) { -1 } + IntArray(11) { AlKharidPalace.PRINCE_ALI } + intArrayOf(-1), internalName = "prince_ali_palace",
+    )
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             markLoaded(TollGate.X shr 6, TollGate.Z_LEFT shr 6)
             markLoaded(3287 shr 6, 3171 shr 6)
             markLoaded(3268 shr 6, 3166 shr 6)
+            markLoaded(3301 shr 6, 3165 shr 6)
             // The booth blocks walking but not reaching across, as the map's booths do; static locs add no collision here.
             LocCollision(this).addLoc(LocCollisionType(blocksProjectile = false), 3268, 3166, 0, LocShape.CENTREPIECE_STRAIGHT, 1)
         }
         World(
             crcs, map, locTypes = types, staticLocs = StaticLocs().apply { (gate + palace + booth).forEach(::add) },
-            npcTypes = NpcTypes.of(guard, banker),
-            npcSpawns = listOf(NpcSpawn(guard, 3267, 3226, source = "test"), NpcSpawn(banker, 3267, 3166, source = "test")),
+            npcTypes = NpcTypes.of(guard, banker, hassan, princeAli, princeAliPalace),
+            npcSpawns = listOf(
+                NpcSpawn(guard, 3267, 3226, source = "test"), NpcSpawn(banker, 3267, 3166, source = "test"),
+                NpcSpawn(princeAliPalace, 3301, 3165, source = "test"),
+            ),
+            // Every account has every quest done; here only Prince Ali Rescue, whose end value is guessed at 110.
+            quests = Quests(listOf(Quest(0, "Prince Ali Rescue", QuestVar.Varp(PRINCE_ALI_RESCUE_VARP), 110, 3))),
             cycleMillis = millis,
         )
     }
@@ -172,6 +195,40 @@ class HeadlessAlKharidTest {
     }
 
     @Test
+    fun `Prince Ali is home in the palace once Prince Ali Rescue is done, and talks`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("henry").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3299, 3165)
+                val npc = client.await("Prince Ali in view") { client.npcs().firstOrNull { it.id == AlKharidPalace.PRINCE_ALI_PALACE } }
+                client.npcOp(npc.index, AlKharidPalace.TALK_TO)
+                for ((name, key) in listOf("Prince Ali" to "prince_ali.good_to_see", "Prince Ali" to "prince_ali.resting", "henry" to "prince_ali.best")) {
+                    val page = client.awaitDialogue(key) { it is DialogueView.Chat && it.text == "[$key]" } as DialogueView.Chat
+                    assertEquals(name, page.name)
+                    client.continueDialogue()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a big window gets Hassan's refusal, and the player stays outside`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("iris").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3290, 3156)
+                client.locOp(AlKharidPalace.BIG_WINDOW, 3290, 3158, AlKharidPalace.ENTER)
+                val page = client.awaitDialogue("hassan.not_a_thief") { it is DialogueView.Chat && it.text == "[hassan.not_a_thief]" } as DialogueView.Chat
+                assertEquals("Chancellor Hassan", page.name)
+                client.continueDialogue()
+                client.awaitDialogue("hassan.window_needs") { it is DialogueView.Message && it.text == "[hassan.window_needs]" }
+                // The window is on the north edge of 3290, 3158 (angle 1): the palace is north of it, and the player stays south.
+                assertEquals(true, client.position!!.z <= 3158)
+            }
+        }
+    }
+
+    @Test
     fun `an Al Kharid banker banks across the booth, by Bank and through the banker's talk`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
@@ -212,5 +269,6 @@ class HeadlessAlKharidTest {
     private companion object {
         /** bankbooth: the booths the 241 map places in Al Kharid's bank (Bank is op2, Collect op3). */
         const val BOOTH = 10355
+        const val PRINCE_ALI_RESCUE_VARP = 273
     }
 }

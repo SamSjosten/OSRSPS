@@ -2,12 +2,28 @@
   "about": "What NPCs fight with beyond the levels in their cache types. Speeds, max hits, attack styles, bonuses and respawn times are the OSRS Wiki infoboxes' (read 2026-10-26), cross-checked with the Wiki's DPS calculator data (weirdgloop/osrs-dps-calc monsters.json). Animations are gameval names: attack and death are the NPC's own by name; which of an NPC's block or def animations it defends with is guessed.",
   "npcs": [
     {
-      "npcs": ["man", "man2", "man3", "man4"],
+      "npcs": ["man", "man2", "man3", "man4", "al_kharid_man"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
       "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
       "respawnTicks": 25,
-      "source": "OSRS Wiki, Man (ids 3106 to 3109 share the infobox)"
+      "source": "OSRS Wiki, Man (ids 3106 to 3109 share the infobox; Al Kharid's man, 3261, is a version of the same page and shares it too, though the DPS calculator gives it 0 defence bonuses)"
+    },
+    {
+      "npcs": ["al_kharid_warrior"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "slash", "attackBonus": 10, "strengthBonus": 9,
+      "defence": { "stab": 12, "slash": 15, "crush": 10, "magic": -1, "light": 12, "standard": 12, "heavy": 12 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Al Kharid warrior and the DPS calculator's 3292, read 2026-10-30; the scimitar it holds slashes as a sword does (human_sword_slash; its block guessed). Warriors that join in when one is attacked wait for NPC aggression (the Varrock piece)"
+    },
+    {
+      "npcs": ["scorpion"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 5, "slash": 15, "crush": 15, "magic": 0, "light": 5, "standard": 5, "heavy": 5 },
+      "anims": { "attack": "scorpion_update_attack_tail", "defend": "scorpion_update_defend", "death": "scorpion_update_death" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Scorpion (Level 14) and the DPS calculator's 3024, read 2026-10-30; it stands and walks with scorpion_update_ready and _walk. The respawn is the page's only infobox's (its level 1 version), so guessed for level 14"
     },
     {
       "npcs": ["woman", "woman2", "woman3"],

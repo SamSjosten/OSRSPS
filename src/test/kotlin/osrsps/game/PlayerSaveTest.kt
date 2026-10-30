@@ -168,6 +168,25 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `the friends chat channel and the channel the player was in are saved, and bad ranks are refused`() {
+        val settings = osrsps.game.social.FriendsChatSettings("Hut", enter = 0, talk = 1, kick = 7)
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), friendsChat = settings, friendsChatOwner = "Zezima").toJson("test")
+        val back = PlayerSave.fromJson(text)
+        assertEquals(settings, back.friendsChat)
+        assertEquals("Zezima", back.friendsChatOwner)
+        saves.write("test", text)
+        val player = world.loadPlayer(1, "test")
+        assertEquals(settings, player.friendsChat)
+        assertEquals("Zezima", player.friendsChatOwner)
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("friendsChat" !in none)
+        assertEquals(osrsps.game.social.FriendsChatSettings.DEFAULT, PlayerSave.fromJson(none).friendsChat)
+        val bad = text.replace("\"kick\": 7", "\"kick\": 99")
+        check(bad != text)
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(bad) }
+    }
+
+    @Test
     fun `the bank is saved, and a save without one loads with an empty bank`() {
         val player = world.loadPlayer(1, "Test")
         player.bank[0] = InvObj(995, 2_000_000_000)

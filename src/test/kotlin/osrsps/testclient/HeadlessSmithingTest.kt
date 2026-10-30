@@ -94,6 +94,28 @@ class HeadlessSmithingTest {
     }
 
     @Test
+    fun `the first bar animates at once while another skill's clock still runs`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.give(COPPER, 2)
+                client.give(TIN, 2)
+                client.locOp(Smithing.FURNACE, FURNACE_X, FURNACE_Z, 2)
+                client.smeltBox()
+                // As if mining had set the shared skill clock a moment ago: its roll is still to come.
+                server.world.playerNamed("dave")!!.actionDelay = server.world.tick + 30
+                val picked = client.ticksSeen
+                client.resumePause(Chatbox.SKILLMULTI, barButton(Smithing.BRONZE), 2)
+                // Before the fix, nothing animated until the clock ran out and the first bar was made.
+                val anim = client.await("the furnace animation") { client.animationTicks().firstOrNull { it >= picked } }
+                assertTrue(anim - picked < 4, "animated ${anim - picked} ticks after the pick")
+                val bar = client.seen("[smithing.smelted bar=bronze]")
+                assertTrue(anim < bar.tick, "animated at ${anim - picked}, the bar at ${bar.tick - picked}")
+            }
+        }
+    }
+
+    @Test
     fun `one bar takes 6 ticks, and the box checks the level and the ore`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->

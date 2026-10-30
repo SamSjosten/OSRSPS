@@ -138,9 +138,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
-- `al-kharid-bank.json`: Al Kharid step 2: a banker's talk (with `::keys on`) that opens the bank (logs deposited), Bank
-  on a booth (logs withdrawn), and after a relog a banker's Bank across the booth. The talk comes first because the
-  open bank hides the bankers from the mouse.
+- `al-kharid-bank.json`: Al Kharid step 2: Bank on a booth (logs deposited), a banker's talk (with `::keys on`) that
+  opens the bank (logs withdrawn), and a banker's Bank across the booth, with a relog between each to close the bank
+  (an open bank hides the bankers from the mouse).
 - `al-kharid-shops.json`: Al Kharid step 3: Trade with each of Al Kharid's seven shops (the General Store, Zeke,
   Dommik, Louie Legs, Ranael, the Gem trader and Ali Morrisane), buying one of the first item and selling it back,
   Ali's junk sold as his shop closes, then Louie Legs's talk (with `::keys on`) into his shop.
@@ -148,6 +148,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   eaten, and silk haggled down to 2 gp from the Silk trader.
 - `al-kharid-tanning.json`: Al Kharid step 4b: Ellis's talk (with `::keys on`) with cowhides carried, into the
   tanning screen; Tan 1, then Trade and Tan All, turning three cowhides into soft leather for a coin each.
+- `al-kharid-palace.json`: Al Kharid step 5 (with `::keys on`): Chancellor Hassan's and Prince Ali's after-quest
+  lines, a big window refused by Hassan, and a Keris bought from Osman for 20,000 coins.
+- `al-kharid-fighters.json`: Al Kharid step 6 (with `::keys on`): Examine on an Al Kharid warrior, a man and a
+  scorpion; a warrior killed for its bones and a scorpion killed, each put in on a quiet tile; Al the Camel's talk.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
@@ -175,6 +179,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Needs only 0.5.0.
 - `woodcutting-nests.json`: `::nest seeds` and `::nest ring` drop a nest next to the player as a log's 1/256 roll does;
   each is taken and searched, leaving an empty nest and the seed or ring. Needs only 0.6.0.
+- `firemaking-after-chopping.json`: chops the oak south of the castle at 99 and lights the first oak logs straight
+  away, while the woodcutting clock still runs; the tinderbox strikes (animation 733) and the attempt message shows at
+  once, which the shared skill clock skipped before 30 Oct 2026. Needs 0.10.0.
 - `firemaking-lumbridge.json`: at the spawn, a tinderbox on oak logs (level 15 needed), then on logs (lit after a
   roll or more, a step west, 40 XP), Light on logs on the ground at level 43, and the first fire's ashes. Needs 0.10.0
   (`useItemOnItem`, `groundItemOption`).
@@ -242,7 +249,11 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `social-trade-test.json` and `social-trade-test2.json` (need 0.16.0): two players at once; `test` offers 10 coins for
   `test2`'s bronze axe, both accept on both screens and the items swap. Each starts from `lumbridge-bare` and ends with
   `::reset`.
+- `social-friends-chat-test.json` and `social-friends-chat-test2.json` (need 0.17.0): two players at once; `test` names
+  its friends chat channel through Setup and joins it, `test2` joins by `test`'s name, each sees the other's `/` line,
+  and both leave.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
+- `social-ignore-2.json` (needs 0.14.0): the same with the names swapped, for a client logged in as `test2` (the nightly run's account).
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
   number prompt with `enterAmount`, public chat's colour picked in the colour picker and saved, then a cancelled pick,
   and the public chat filter set to friends; then close, relog and check every one, the filter by its label.
@@ -326,10 +337,10 @@ server's answer instead of failing on what was there before.
 | `takeItem` | `item` (name) or `itemId`, `x`+`y` | Clicks Take on the nearest such item on the ground on the player's plane, retrying until one is in the scene. With `x` and `y`, only an item on that tile. Take is the third ground option, as the server has it. Doesn't wait for the result: follow it with `assertInventory`. |
 | `assertInventory` | `item` (name) or `itemId`, `count` | Waits until the inventory holds exactly `count` of the item (all stacks added up), or any at all without `count`. `count` 0 waits until there are none. |
 | `assertDialogue` | `contains`, `speaker` | Waits until an open dialogue's text contains `contains` and its name is `speaker` (both optional). Colour tags and line breaks are removed first. |
-| `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. |
+| `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. (0.17.0) The level-up box counts too. |
 | `chooseOption` | `text` | Waits for an option menu, clicks the option equal to `text` (else the first containing it), and waits until the menu has gone. |
 | `assertNoDialogue` | | Waits until no dialogue is open. |
-| `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. |
+| `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. (0.17.0) Clicks a level-up box away too; `assertDialogue` and `assertNoDialogue` still ignore it. |
 | `assertMessage` | `contains` | Waits for a chat message containing `contains`, counting only messages since the last step that acted. |
 | `waitTicks` | `ticks` | Waits that many game ticks. |
 | `assertHitsplat` | `npc` (name) or `self: true`, `amount` | Waits for a hitsplat on the NPC of that name (the one the player is fighting or talking to, else the nearest; several castle NPCs are a `Man`), or on the player, counting only hitsplats since the last step that acted. With `amount`, one showing exactly that; a miss shows 0. |
@@ -362,6 +373,9 @@ server's answer instead of failing on what was there before.
 | `assertIgnore` | `name`, `absent` | (0.14.0) Waits until the ignore list holds the name, or, with `absent: true`, doesn't. |
 | `privateMessage` | `name`, `text` | (0.14.0) Opens the private message prompt for `name` (client script 107, meslayer_mode6, which a friend's Message option runs), types `text` and presses Enter. Check delivery with `assertMessage` on the other client. |
 | `playerOption` | `player`, `option`, `x`+`y` | (0.16.0) Clicks an option on the other player with that name, as their right-click menu does ("Trade with", "Follow"); retries until they are in view, and with `x` and `y` until they stand on that tile (a two-VM script's sign that the other side has finished its setup). A trade request's Accept trade is Trade with on its sender, so this accepts one too. |
+| `setFriendsChatName` | `name` | (0.17.0) Opens the friends chat Setup screen (its button on the Chat-channel tab's friends chat panel) if it isn't open, picks Set prefix, and types `name` into the server's text prompt. Check it with `assertWidgetText` on 94:10. |
+| `joinFriendsChat` | `owner` | (0.17.0) Opens Join Chat's prompt (client script 111, meslayer_mode10, which the Join Chat button runs) and types the owner's name. Leave Chat is `clickWidget` on 7:18. Talk with `chat` and a `/` in front. |
+| `assertFriendsChat` | `owner`, `member`, `absent` | (0.17.0) Passes when the client is in `owner`'s friends chat, with `member` listed when given (or, with `absent`, not listed). `absent` alone passes when it is in no channel. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)
@@ -372,7 +386,10 @@ objectbox_double, the box with two items.
 - Chat is sent by putting the text in the chat input and sending an Enter key to the client's canvas. If a key
   remapping plugin is on, it may swallow the Enter. When the client leaves the line in the input, the runner asks for
   the canvas's keyboard focus and presses Enter again, up to five times two ticks apart (0.5.1); the result says
-  whether the canvas had focus.
+  whether the canvas had focus. (0.17.0) An open chatbox prompt takes the Enter for itself, so one of those tries
+  closes it instead (once per line), and the result also says whether the Swing thread had sent the last Enter,
+  where the keyboard focus was, whether the window was active and any prompt still open. If the line still stays,
+  restart the client and keep that result: its detail is what will find the cause.
 - `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles. When the tile
   is off screen it turns the camera toward it, so a script can leave the camera however it finds it.
 - Auto login starts the login by setting the client's game state to LOGGING_IN, as RuneLite's developer tools do.
