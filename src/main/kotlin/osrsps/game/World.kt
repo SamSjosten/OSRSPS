@@ -55,6 +55,7 @@ import osrsps.game.bank.Bank
 import osrsps.game.bank.BankPinSettings
 import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
+import osrsps.game.bank.getVarbitIfKnown
 import osrsps.game.bank.setVarbitIfKnown
 import osrsps.game.shop.ShopScreen
 import osrsps.game.shop.ShopTypes
@@ -458,6 +459,7 @@ class World(
         examine = { player, type, count -> inventoryTab.examine(player, type, count) },
         overflow = { player, obj -> objTypes[obj.id]?.let { groundObjs.give(player, it, obj.count) } },
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
+        varbit = { player, id -> player.vars.getVarbitIfKnown(id) },
         commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
     )
 
