@@ -130,9 +130,21 @@
   },
   {
    "step": "command",
+   "text": "::tele 3235 3218 0",
+   "expectMessage": "Teleported to 3235, 3218, 0",
+   "comment": "a quiet tile in the town, with no goblin, giant rat or giant frog about, so the NPC put in below is the nearest of its name both to ::kill and to the client"
+  },
+  {
+   "step": "command",
+   "text": "::npc goblin_unarmed_melee_1",
+   "expectMessage": "Spawned Goblin (3029)",
+   "comment": "a goblin of our own on this tile: among the 50 east of the river, ::kill's nearest and the client's nearest could differ (the nightly run of 2026-10-30)"
+  },
+  {
+   "step": "command",
    "text": "::kill goblin",
    "expectMessage": "Killed Goblin #",
-   "comment": "the nearest goblin, as the client's nearest Goblin below"
+   "comment": "the goblin just put in, on the player's tile"
   },
   {
    "step": "assertAnimation",
@@ -155,6 +167,11 @@
    "step": "assertInventory",
    "item": "Bones",
    "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::delnpc mine",
+   "expectMessage": "Removed"
   },
   {
    "step": "command",

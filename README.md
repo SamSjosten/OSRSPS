@@ -634,6 +634,32 @@ Check: `test-runner/examples/lumbridge-east.json` talks to Bill, examines the th
 for its bones; `HeadlessLumbridgeEastTest` fights a goblin to death and talks to Bill through the headless client, with
 every branch of Bill's talk in `BarfyBillTest` and the drop rates in `NpcDropsTest`.
 
+## Lumbridge Swamp
+
+The swamp's surface south of the castle, and the land just west of the castle, in `npc-spawns/lumbridge-swamp.json` on
+RSMod's tiles (each checked against the 241 map's floor): the giant rats, the frogs, a level 5 goblin, the unicorn and
+a butterfly, with the rats west of the castle wall. They fight through `npc-combat.json` and drop through
+`npc-drops.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| 23 giant rats: 10 of level 3 (`giantrat`, 2856, 5 hitpoints) and 13 of level 6 (`giantrat1_2` and `_3`, 2863 and 2864, 10 hitpoints), with 4 more of level 3 (the grey `giantrat_grey` to `3`) and 4 rats west of the castle; they stab for 1 at speed 4 and come back in 30 ticks; bones and raw rat meat every time, the beginner clue at 1/128 | OSRS Wiki, Giant rat (Level 3 and 6); the DPS calculator |
+| 82 frogs: 45 Frogs (level 5, 8702, max hit 1, 40% weak to earth), 29 Big frogs (level 10, 8701) and 8 Giant frogs (level 13, 8700), both max hit 2 and 25% weak to earth; all crush at speed 4 and come back in 50 ticks. Frogs and big frogs drop bones, a giant frog big bones, with their beginner clues (1/90, 1/70, 1/64) and the giant frog's long and curved bones | OSRS Wiki, Frog, Big frog and Giant frog; the DPS calculator |
+| The level 5 goblin (`goblin_armed`, 3045): 12 hitpoints, stabs for 1 at speed 6 with +12 attack and strength, back in 35 ticks; bones and drop table 2 (with the herb table at 2/128) | OSRS Wiki, Goblin (Level 5, drop table 2); the DPS calculator |
+| The unicorn (2837): level 15, stabs for 2, back in 90 ticks; bones and a unicorn horn every time, the ensouled head at 1/35 | OSRS Wiki, Unicorn |
+| The fight animations (by the stand and walk animations each type has: the updated giant rat's, the giant frog's for all three frogs, the spear goblin's, the updated unicorn's), the curved bone's 1/5,012.5 kept as 1/5013, and every wander range (5) | guessed |
+
+Left out: giant rats are aggressive on live and the unicorn retreats at low hitpoints, which wait for NPC aggression
+and retreat (the Varrock piece; both are ranges from the spawn point). The swamp's talking NPCs (Father Urhney, the
+traveller's camp, the fishing and mining tutors, the candle seller) are the next step; the fishing spots and the mines
+are the gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are
+left out for now. Each new NPC's examine is in the dialogue file (keys `examine.npc_<id>`, one for the level 3 giant
+rats and one for the level 6).
+
+Check: `test-runner/examples/lumbridge-swamp.json` examines each kind and kills a giant rat and a giant frog for their
+drops; `HeadlessLumbridgeSwampTest` fights a giant rat to death through the headless client, with the stats in
+`NpcCombatTest` and the drop rates in `NpcDropsTest`.
+
 ## Al Kharid
 
 The Misthalin roadmap's Al Kharid piece, built a step at a time ([plan](https://claude.ai/artifact/Q7H1GLiHSg5A342NfsZn3f)).
