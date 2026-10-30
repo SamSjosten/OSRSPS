@@ -138,8 +138,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
-- `al-kharid-bank.json`: Al Kharid step 2: Bank on a booth (logs deposited), a banker's Bank across the booth (logs
-  withdrawn), and a banker's talk (with `::keys on`) that opens the bank.
+- `al-kharid-bank.json`: Al Kharid step 2: a banker's talk (with `::keys on`) that opens the bank (logs deposited), Bank
+  on a booth (logs withdrawn), and after a relog a banker's Bank across the booth. The talk comes first because the
+  open bank hides the bankers from the mouse.
 - `al-kharid-shops.json`: Al Kharid step 3: Trade with each of Al Kharid's seven shops (the General Store, Zeke,
   Dommik, Louie Legs, Ranael, the Gem trader and Ali Morrisane), buying one of the first item and selling it back,
   then Louie Legs's talk (with `::keys on`) into his shop.
