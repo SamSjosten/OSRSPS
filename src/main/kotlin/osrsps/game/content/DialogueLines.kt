@@ -65,6 +65,9 @@ object DialogueLines {
         HassanLines, OsmanLines, PrinceAliLines, CamelLines,
         // Draynor Village.
         DraynorSearchLines, AxeLogsLines, FortunatoLines, OliviaLines, DiangoLines,
+        // Edgeville and Barbarian Village, one a line.
+        EdgevilleLines,
+        HaystackLines,
         // The Grand Exchange.
         GrandExchangeLines, PriceCheckerLines,
         // Admin tools.

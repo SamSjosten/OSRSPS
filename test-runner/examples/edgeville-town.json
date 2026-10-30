@@ -1,0 +1,245 @@
+{
+ "name": "Edgeville piece step 1: the grange's doors and haystack, the mausoleum's coffin, the leather gloves, the east house's wardrobe, the Wilderness Ditch's refusal, and the Edgeville bank's bankers and booths (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3102 3509 0",
+   "expectMessage": "Teleported to 3102, 3509, 0",
+   "comment": "outside the grange's front doors, east of them"
+  },
+  {
+   "step": "locOption",
+   "loc": "Large door",
+   "option": "Open",
+   "x": 3101,
+   "y": 3509,
+   "comment": "the left leaf; both open"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Large door",
+   "option": "Close",
+   "comment": "an opened leaf (where they swing to isn't recorded yet, so any tile)"
+  },
+  {
+   "step": "walk",
+   "x": 3099,
+   "y": 3509,
+   "comment": "through the doorway into the grange"
+  },
+  {
+   "step": "walk",
+   "x": 3095,
+   "y": 3509
+  },
+  {
+   "step": "locOption",
+   "loc": "Haystack",
+   "option": "Search",
+   "x": 3093,
+   "y": 3509
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[haystack.",
+   "comment": "nothing, a needle or a prick, by the roll"
+  },
+  {
+   "step": "walk",
+   "x": 3099,
+   "y": 3509
+  },
+  {
+   "step": "locOption",
+   "loc": "Large door",
+   "option": "Close",
+   "comment": "the nearest opened leaf; both shut"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Large door",
+   "x": 3101,
+   "y": 3509,
+   "option": "Open"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Large door",
+   "x": 3101,
+   "y": 3510,
+   "option": "Open"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3092 3477 0",
+   "expectMessage": "Teleported to 3092, 3477, 0",
+   "comment": "inside the ruined mausoleum south of the bank"
+  },
+  {
+   "step": "locOption",
+   "loc": "Coffin",
+   "option": "Open",
+   "x": 3090,
+   "y": 3476
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Coffin",
+   "x": 3090,
+   "y": 3476,
+   "option": "Close"
+  },
+  {
+   "step": "locOption",
+   "loc": "Coffin",
+   "option": "Close",
+   "x": 3090,
+   "y": 3476
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Coffin",
+   "x": 3090,
+   "y": 3476,
+   "option": "Open"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3097 3485 0",
+   "expectMessage": "Teleported to 3097, 3485, 0",
+   "comment": "south of the bank, by the leather gloves"
+  },
+  {
+   "step": "takeItem",
+   "item": "Leather gloves",
+   "x": 3097,
+   "y": 3486
+  },
+  {
+   "step": "assertInventory",
+   "item": "Leather gloves",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3121 3482 0",
+   "expectMessage": "Teleported to 3121, 3482, 0",
+   "comment": "inside the house east of the willows"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wardrobe",
+   "option": "Open",
+   "x": 3120,
+   "y": 3481
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Wardrobe",
+   "x": 3120,
+   "y": 3481,
+   "option": "Search"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wardrobe",
+   "option": "Search",
+   "x": 3120,
+   "y": 3481
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[edgeville.wardrobe_empty]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wardrobe",
+   "option": "Close",
+   "x": 3120,
+   "y": 3481
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Wardrobe",
+   "x": 3120,
+   "y": 3481,
+   "option": "Open"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3090 3519 0",
+   "expectMessage": "Teleported to 3090, 3519, 0",
+   "comment": "south of the Wilderness Ditch, north of the bank"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wilderness Ditch",
+   "option": "Cross",
+   "x": 3090,
+   "y": 3521
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[edgeville.ditch_closed]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3094 3490 0",
+   "expectMessage": "Teleported to 3094, 3490, 0",
+   "comment": "in front of the west booths"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[banker.open_bank]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "comment": "bankmain"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank booth",
+   "option": "Bank",
+   "x": 3095,
+   "y": 3489,
+   "comment": "clicking the booth closes the bank the banker opened (a loc click closes modals) and opens it again"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

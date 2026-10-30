@@ -100,6 +100,8 @@ import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerDraynorVillage
+import osrsps.game.content.registerEdgeville
+import osrsps.game.content.registerHaystacks
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerBones
@@ -582,6 +584,8 @@ class World(
         registerSwampTutors(this)
         registerChurch(this)
         registerAlKharid(this)
+        registerEdgeville(this)
+        registerHaystacks(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)

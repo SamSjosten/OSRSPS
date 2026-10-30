@@ -155,6 +155,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   scorpion; a warrior killed for its bones and a scorpion killed, each put in on a quiet tile; Al the Camel's talk.
 - `al-kharid-mine-fish.json`: Al Kharid step 7: gold and silver ore mined at 99 in the Al Kharid mine, shrimps netted
   at a Small Net spot by the sea, and the boxes at Ali Morrisane's stall searched (with `::keys on`).
+- `edgeville-town.json`: Edgeville step 1 (with `::keys on`): the grange's large doors opened and shut, its haystack
+  searched (any of the three outcomes), a coffin in the mausoleum opened and shut, the leather gloves taken, a wardrobe
+  in the east house opened, searched and shut, Cross on the Wilderness Ditch refused, and the bank opened from a
+  banker's talk and from a booth.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
