@@ -180,6 +180,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-traders.json`: Varrock step 5b (with `::keys on`): Benny's newspaper bought for 50 coins, a fur bought
   from Baraek for 20 and sold back to him for 12, the Apothecary's hair potion topic and back to his menu, and (step
   5c) a strength potion bought on his potions screen.
+- `varrock-palace.json`: Varrock step 6 (with `::keys on`): King Roald, Aeonisig Raispher, Sir Prysin, Queen
+  Ellamaria, Reldo and three of the library's bookcases, the altar, Ambassador Ferrnook, Captain Rovin, the roof by
+  ladder and the training Captain, then down the spiral stairs to the ground floor.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
