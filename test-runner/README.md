@@ -145,6 +145,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   a willow chopped at level 30, a shrimp netted at the shore's Small Net spots and cooked on the permanent fire.
 - `draynor-market.json`: Draynor step 3: Fortunato's, Olivia's and Diango's talks (`::keys on`) into their shops, and
   one buy in each at the Wiki's price (a jug of wine for 1, a potato seed for 2, a Disk of Returning for 21,000).
+- `lumbridge-church.json`: Lumbridge church: Examine (with `::keys on`) on Father Aereck, the Prayer tutor, Nigel and
+  Count Check; Pray-at the altar with drained prayer points (then again, full); Father Aereck's thanks, the Prayer
+  tutor's two answers, Nigel's Deadman questions and his Trade, and Count Check's advice, who he is, the Salve, the
+  Stronghold offer turned down and his check.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
@@ -179,6 +183,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   0.10.0.
 - `crafting-spinning.json`: at Lumbridge Castle's first-floor spinning wheel, Spin with nothing does nothing, then at
   99 two wool spin into balls (5 XP), and at level 1 flax needs 10. Needs only 0.5.0.
+- `crafting-leather.json`: at 99, a needle on leather makes two pairs of gloves with one thread (one left), steel
+  studs stud a leather body, and at level 1 green d'hide chaps need 60. Needs 0.10.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 

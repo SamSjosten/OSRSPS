@@ -26,12 +26,20 @@ class ShopTest {
         13203 to 1, 12600 to 1, 981 to 120, 22364 to 40,
     )
 
+    /**
+     * Diango's items the 241 cache has untradeable (the Wiki's N/A for "bought at"): the spinning plate to the Chronicle,
+     * the cabbage cape to the rainbow scarf, and the Oculus orb.
+     */
+    private val untradeable = setOf(
+        4613, 11705, 11706, 11707, 11708, 11709, 12727, 13188, 13328, 13660, 13679, 13681, 13215, 13216, 13217, 13218, 21314, 22364,
+    )
+
     private val shopFile = ShopTest::class.java.getResource(ShopTypes.RESOURCE)!!.readText()
 
     /** The shop file read against item and NPC types made up from its own names, as the 241 cache has them. */
     private fun realShops(): ShopTypes {
         val names = Regex("\"item\": (\\d+),\\s*\"name\": \"([^\"]+)\"").findAll(shopFile).associate { it.groupValues[1].toInt() to it.groupValues[2] }
-        val objs = ObjTypes.of(*names.map { (id, name) -> ObjType(id, name, cost = values.getValue(id)) }.toTypedArray())
+        val objs = ObjTypes.of(*names.map { (id, name) -> ObjType(id, name, cost = values.getValue(id), tradeable = id !in untradeable) }.toTypedArray())
         val npcs = NpcTypes.of(
             NpcType(2813, "Shop keeper", internalName = "generalshopkeeper1"),
             NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
@@ -76,8 +84,9 @@ class ShopTest {
         for (type in shops.all) {
             val shop = Shop(type)
             val wiki = wikiPrices.getValue(type.key)
-            val prices = type.stock.mapIndexed { i, it ->
-                shop.buyPrice(it.type.id, it.type.cost, it.count) to wiki[i].second?.let { _ -> shop.sellPrice(it.type.id, it.type.cost, it.count) }
+            val prices = type.stock.map {
+                // ShopScreen.canSell refuses an untradeable item, so it has no "bought at" price.
+                shop.buyPrice(it.type.id, it.type.cost, it.count) to if (it.type.tradeable) shop.sellPrice(it.type.id, it.type.cost, it.count) else null
             }
             assertEquals(wiki, prices, type.key)
         }

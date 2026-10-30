@@ -31,7 +31,9 @@ class HeadlessShopTest {
     private val axe = ObjType(AXE, "Bronze axe", cost = 16, tradeable = true)
     // A note that claims to note the axe, which doesn't link back: a bad cache link, not anything live has.
     private val looseNote = ObjType(LOOSE_NOTE, "Pot", stackable = true, tradeable = true, certlink = AXE, certtemplate = 799)
-    private val objs = ObjTypes.of(coins, pot, axe, looseNote)
+    // Untradeable, as Diango's spinning plate is: no shop buys it.
+    private val plate = ObjType(PLATE, "Spinning plate", cost = 50)
+    private val objs = ObjTypes.of(coins, pot, axe, looseNote, plate)
 
     private val store = ShopType(
         "store", "Test General Store", invId = STORE_INV, size = 40, general = true, sellAt = 1300, buyAt = 400, changePer = 30,
@@ -117,6 +119,12 @@ class HeadlessShopTest {
                 // Coins can't be sold.
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(COINS), COINS)
                 client.awaitMessage("no selling coins") { it == DialogueText.NONE[ShopLines.CANT_SELL_COINS] }
+                // Nor can an untradeable item, even to a general store.
+                client.command("item $PLATE")
+                client.awaitHeld(PLATE, 1)
+                client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(PLATE), PLATE)
+                client.awaitMessage("no selling the plate") { it == DialogueText.NONE[ShopLines.CANT_SELL] }
+                client.awaitHeld(PLATE, 1)
 
                 // Pots come back one every 10 ticks.
                 client.await("a pot restocked", timeoutMillis = 30_000) { client.inventory(STORE_INV).firstOrNull()?.takeIf { it.id == POT && it.count >= 1 } }
@@ -206,6 +214,7 @@ class HeadlessShopTest {
         const val POT = 1931
         const val AXE = 1351
         const val LOOSE_NOTE = 1932
+        const val PLATE = 4613
         const val STORE_INV = 3
         const val AXE_INV = 1
         const val KEEPER = 2813
