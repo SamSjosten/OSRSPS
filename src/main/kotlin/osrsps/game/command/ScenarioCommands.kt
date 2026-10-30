@@ -81,6 +81,8 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     player.charges.clear()
     world.bankScreen.clear(player)
     for ((slot, obj) in loadout.bank) player.bank[slot] = obj
+    // A scenario starts with no Grand Exchange offers or buy limits used; ::reset puts them back.
+    player.ge.clear()
     val tabs = world.bankScreen.tabs(player)
     loadout.bankTabs.forEachIndexed { i, size -> tabs[i + 1] = size }
     for ((varp, value) in scenario.varps) vars[varp] = value
