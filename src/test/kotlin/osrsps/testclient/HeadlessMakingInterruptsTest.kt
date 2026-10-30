@@ -3,7 +3,6 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.InventoryTab
@@ -75,12 +74,14 @@ class HeadlessMakingInterruptsTest {
 
                 client.locOp(Smithing.FURNACE, FURNACE_X, FURNACE_Z, 2)
                 client.await("the smelting box") { client.clientScripts().firstOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } }
+                // Stepped from here, so the first bar comes in on a known tick whatever the test thread's speed.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + Smithing.BARS.indexOf(Smithing.BRONZE), 4)
-                client.await("the first bar", timeoutMillis = 20_000) { client.said("[smithing.smelted").firstOrNull() }
+                repeat(10) { if (client.said("[smithing.smelted").isEmpty()) client.stepTicks(1) }
+                val bars = client.said("[smithing.smelted").size
+                assertEquals(1, bars)
 
                 // The use and the box's answer land in one tick.
-                client.commandReply("pause") { it.startsWith("Paused after tick") }
-                val bars = client.said("[smithing.smelted").size
                 val newt = client.slotOf(EYE_OF_NEWT)
                 val unf = client.slotOf(GUAM_UNF)
                 client.ifButtonT(InventoryTab.INTERFACE, InventoryTab.ITEMS, newt, EYE_OF_NEWT, InventoryTab.INTERFACE, InventoryTab.ITEMS, unf, GUAM_UNF)
@@ -89,7 +90,6 @@ class HeadlessMakingInterruptsTest {
                 client.commandReply("resume") { it.startsWith("Resumed") }
 
                 client.await("four potions", timeoutMillis = 20_000) { client.said("[herblore.mix").takeIf { it.size >= 4 } }
-                assertTrue(bars < 4, "smelting finished before the use, $bars bars")
                 assertEquals(bars, client.said("[smithing.smelted").size)
                 assertEquals(bars, client.count(Smithing.BRONZE.obj))
                 assertEquals(4, client.count(ATTACK_POTION))
