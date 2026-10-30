@@ -150,6 +150,7 @@ class HeadlessClient private constructor(
     private val npcSaid = ArrayList<NpcSaid>()
     private val moves = ArrayList<TickMove>()
     private var ticks = 0
+    private var cycles = 0
     private var failure: Throwable? = null
     private var closed = false
 
@@ -567,6 +568,15 @@ class HeadlessClient private constructor(
         }
     }
 
+    /**
+     * Waits for [count] more server cycles' PLAYER_INFO, which the server sends every cycle, paused or not. A world
+     * paused with `::pause` ends no ticks, so this is how a test sees its paused cycles go by.
+     */
+    fun awaitCycles(count: Int, timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS) {
+        val target = lock.withLock { cycles } + count
+        await("cycle $target", timeoutMillis) { if (cycles >= target) Unit else null }
+    }
+
     /** Waits for [count] more server ticks to end. */
     fun awaitTicks(count: Int, timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS) {
         val target = ticksSeen + count
@@ -663,6 +673,7 @@ class HeadlessClient private constructor(
                 zones.rebuild(centreX = buf.g2Alt1(), centreZ = zoneZ)
             }
             GameServerProt.PLAYER_INFO -> {
+                cycles++
                 for (move in playerInfo.read(packet.payload)) {
                     if (move.index == index) moves += TickMove(ticks, move)
                 }
