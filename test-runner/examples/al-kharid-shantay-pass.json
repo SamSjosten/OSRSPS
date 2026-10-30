@@ -1,0 +1,144 @@
+{
+ "name": "Al Kharid step 8: the Shantay Pass (::keys on): the gate refused without a pass, a pass bought from Shantay, his shop, the gate with a pass (the desert not built yet), and the bank chest",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 10",
+   "expectMessage": "Added 10 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3303 3119 0",
+   "expectMessage": "Teleported to 3303, 3119, 0",
+   "comment": "north of the Shantay Pass gate, by its guard"
+  },
+  {
+   "step": "locOption",
+   "loc": "Shantay pass",
+   "option": "Go-through",
+   "x": 3302,
+   "y": 3116,
+   "comment": "no pass yet"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[shantay_guard.need_pass]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3304 3122 0",
+   "expectMessage": "Teleported to 3304, 3122, 0",
+   "comment": "in Shantay's hut, beside him (3304 3123)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shantay",
+   "option": "Buy-pass",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[shantay.buy_pass]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[shantay.bought]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Shantay pass",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 5
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shantay",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "id": 300,
+   "timeoutMs": 10000,
+   "comment": "the shop (the Shantay Pass Shop)"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3303 3119 0",
+   "expectMessage": "Teleported to 3303, 3119, 0"
+  },
+  {
+   "step": "locOption",
+   "loc": "Shantay pass",
+   "option": "Go-through",
+   "x": 3302,
+   "y": 3116,
+   "comment": "with a pass: the desert isn't built yet"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[shantay_gate.desert_closed]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Shantay pass",
+   "count": 1,
+   "comment": "the pass is kept"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3308 3120 0",
+   "expectMessage": "Teleported to 3308, 3120, 0",
+   "comment": "by the bank chest (3309 3120)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank chest",
+   "option": "Use",
+   "x": 3309,
+   "y": 3120
+  },
+  {
+   "step": "assertInterface",
+   "id": 12,
+   "timeoutMs": 10000,
+   "comment": "the bank"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

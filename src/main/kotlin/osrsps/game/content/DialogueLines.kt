@@ -51,6 +51,7 @@ object DialogueLines {
         BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
         GemTraderLines, KarimLines, SilkTraderLines, KebabLines, EllisLines, TanningLines,
         HassanLines, OsmanLines, PrinceAliLines, CamelLines,
+        ShantayLines, ShantayGuardLines, ShantayGateLines, IrenaLines, PortSarimJailLines,
         // Draynor Village.
         DraynorSearchLines,
     )
