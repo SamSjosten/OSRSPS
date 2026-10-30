@@ -1,0 +1,24 @@
+{
+ "name": "Rotten potato step 3: Slice's testing tools in the real client, god mode and sure hits on and off",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "::reset at the end puts the account back"},
+  {"step": "command", "text": "::item 5733", "expectMessage": "Added 1 x Rotten potato"},
+  {"step": "itemOption", "item": "Rotten potato", "option": "Slice"},
+  {"step": "chooseOption", "text": "God mode on/off"},
+  {"step": "assertMessage", "contains": "You can't be hurt now"},
+  {"step": "itemOption", "item": "Rotten potato", "option": "Slice"},
+  {"step": "chooseOption", "text": "God mode on/off"},
+  {"step": "assertMessage", "contains": "You can be hurt again."},
+  {"step": "itemOption", "item": "Rotten potato", "option": "Slice"},
+  {"step": "chooseOption", "text": "Sure hits on/off"},
+  {"step": "assertMessage", "contains": "Your attacks can't miss now"},
+  {"step": "itemOption", "item": "Rotten potato", "option": "Slice"},
+  {"step": "chooseOption", "text": "Sure hits on/off"},
+  {"step": "assertMessage", "contains": "Your attacks can miss again."},
+  {"step": "itemOption", "item": "Rotten potato", "option": "Slice"},
+  {"step": "chooseOption", "text": "Reset (end the scenario)"},
+  {"step": "assertMessage", "contains": "Back to how you were"}
+ ]
+}
