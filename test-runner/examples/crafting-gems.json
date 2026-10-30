@@ -1,0 +1,37 @@
+{
+ "name": "Artisan step 5: at 99 a chisel on two uncut sapphires cuts both (100 XP); at level 1 a sapphire needs 20, and three uncut opals end up cut or crushed (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel crafting 99", "expectMessage": "Crafting set to level 99"},
+  {"step": "command", "text": "::item 1755", "expectMessage": "Added 1 x Chisel"},
+  {"step": "command", "text": "::item 1623 2", "expectMessage": "Added 2 x Uncut sapphire"},
+
+  {"step": "useItemOnItem", "item": "Chisel", "onItem": "Uncut sapphire"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the sapphire; the box suggests both"},
+  {"step": "assertAnimation", "id": 888, "comment": "human_sapphirecutting"},
+  {"step": "assertInventory", "item": "Sapphire", "count": 2, "timeoutMs": 10000, "comment": "2 ticks a gem"},
+  {"step": "assertMessage", "contains": "crafting.cut"},
+  {"step": "assertStat", "skill": "Crafting", "level": 99, "xp": 13034531, "comment": "50 XP a sapphire"},
+
+  {"step": "command", "text": "::setlevel crafting 1", "expectMessage": "Crafting set to level 1"},
+  {"step": "command", "text": "::item 1623 1", "expectMessage": "Added 1 x Uncut sapphire"},
+  {"step": "useItemOnItem", "item": "Chisel", "onItem": "Uncut sapphire"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertMessage", "contains": "crafting.level level=20"},
+  {"step": "assertInventory", "item": "Uncut sapphire", "count": 1},
+
+  {"step": "command", "text": "::item 1625 3", "expectMessage": "Added 3 x Uncut opal"},
+  {"step": "useItemOnItem", "item": "Chisel", "onItem": "Uncut opal"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Uncut opal", "count": 0, "timeoutMs": 10000, "comment": "about half crush at level 1; which ones depends on the random seed, so only the uncut ones are counted"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

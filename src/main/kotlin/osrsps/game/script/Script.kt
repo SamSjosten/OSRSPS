@@ -86,6 +86,16 @@ class ScriptContext internal constructor(val player: Player, private val runner:
     }
 
     /**
+     * Asks the player for a line of text, with [prompt] over the chatbox's input line (client script meslayer_mode9,
+     * layer mode 9), and stops the script until they enter it, which it returns. Closing their interfaces closes the
+     * prompt and drops the script, as [countDialog]'s.
+     */
+    suspend fun stringDialog(prompt: String): String {
+        player.session.queue(RunClientScript(MESLAYER_MODE9, listOf(prompt, 0)))
+        return runner.stringDialog(player)
+    }
+
+    /**
      * Stops the script until the client sends a resume_p_countdialog, without opening a prompt: for an interface whose
      * own buttons send one, as popupoverlay's two buttons send 0 and 1. Dropped like [countDialog]'s.
      */
@@ -104,6 +114,10 @@ class ScriptContext internal constructor(val player: Player, private val runner:
     companion object {
         /** meslayer_mode7 in the 241 cache: a prompt for a number. */
         const val MESLAYER_MODE7 = 108
+
+        /** meslayer_mode9: a prompt for a line of text, answered with resume_p_stringdialog. */
+        const val MESLAYER_MODE9 = 110
+        const val MESLAYER_STRING = 9
 
         /** meslayer_close, which closes the prompt of the layer mode it is given (7 for a number) or any (0). */
         const val MESLAYER_CLOSE = 101

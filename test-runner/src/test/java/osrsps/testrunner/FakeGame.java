@@ -11,6 +11,8 @@ class FakeGame implements Game
 	boolean loggedIn = true;
 	/** What weight answers while logged in. */
 	int weight;
+	/** What typingPending answers: the typed keys not yet sent. */
+	boolean typingPending;
 	/** What promptMode answers; entering an amount closes the prompt. */
 	int promptMode;
 	String name = "test";
@@ -18,6 +20,8 @@ class FakeGame implements Game
 	/** Where the client draws the player; null for the tile in {@link #location}. */
 	Tile drawn;
 	Dialogue dialogue;
+	/** What levelUp answers. */
+	Dialogue levelUp;
 	final List<String> actions = new ArrayList<>();
 	/** When set, npcOption fails with this until cleared. */
 	String npcError;
@@ -116,6 +120,13 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public void closePrompt()
+	{
+		actions.add("close prompt");
+		promptMode = 0;
+	}
+
+	@Override
 	public String walk(int x, int y)
 	{
 		actions.add("walk " + x + " " + y);
@@ -141,6 +152,17 @@ class FakeGame implements Game
 			return locError;
 		}
 		actions.add(option + " " + (name != null ? name : "loc " + id) + (at == null ? "" : " at " + at.x + " " + at.y));
+		return null;
+	}
+
+	@Override
+	public String playerOption(String name, String option, Tile at)
+	{
+		if (npcError != null)
+		{
+			return npcError;
+		}
+		actions.add(option + " " + name + (at != null ? " at " + at.x + "," + at.y : ""));
 		return null;
 	}
 
@@ -196,6 +218,18 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public String useItemOnLoc(String name, int id, String locName, int locId, Tile at)
+	{
+		if (clickError != null)
+		{
+			return clickError;
+		}
+		actions.add("Use " + (name != null ? name : "item " + id) + " on loc " + (locName != null ? locName : "id " + locId)
+			+ (at == null ? "" : " at " + at.x + " " + at.y));
+		return null;
+	}
+
+	@Override
 	public int inventoryCount(String name, int id)
 	{
 		return inventory == null ? -1 : inventory.getOrDefault(name != null ? name : "item " + id, 0);
@@ -205,6 +239,12 @@ class FakeGame implements Game
 	public Dialogue dialogue()
 	{
 		return dialogue;
+	}
+
+	@Override
+	public Dialogue levelUp()
+	{
+		return levelUp;
 	}
 
 	@Override
@@ -289,6 +329,19 @@ class FakeGame implements Game
 	public int promptMode()
 	{
 		return promptMode;
+	}
+
+	@Override
+	public String typeText(String text)
+	{
+		actions.add("type " + text);
+		return null;
+	}
+
+	@Override
+	public boolean typingPending()
+	{
+		return typingPending;
 	}
 
 	@Override
@@ -402,5 +455,47 @@ class FakeGame implements Game
 	{
 		actions.add("cast " + interfaceId + ":" + component + " on " + (npc != null ? npc : "npc " + npcId));
 		return castError;
+	}
+
+	/** The friends list, world by name; null for not loaded. */
+	java.util.Map<String, Integer> friends = new java.util.LinkedHashMap<>();
+
+	@Override
+	public java.util.Map<String, Integer> friends()
+	{
+		return friends == null ? null : new java.util.LinkedHashMap<>(friends);
+	}
+
+	/** The ignore list; null for not loaded. */
+	java.util.List<String> ignores = new java.util.ArrayList<>();
+
+	@Override
+	public java.util.List<String> ignores()
+	{
+		return ignores == null ? null : new java.util.ArrayList<>(ignores);
+	}
+
+	/** The friends chat channel's owner, null for none, and its members. */
+	String friendsChatOwner;
+	java.util.List<String> friendsChatMembers = new java.util.ArrayList<>();
+
+	@Override
+	public String friendsChatOwner()
+	{
+		return friendsChatOwner;
+	}
+
+	@Override
+	public java.util.List<String> friendsChatMembers()
+	{
+		return new java.util.ArrayList<>(friendsChatMembers);
+	}
+
+	@Override
+	public String enterText(String text)
+	{
+		actions.add("text " + text);
+		promptMode = 0;
+		return null;
 	}
 }

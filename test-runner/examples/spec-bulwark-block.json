@@ -1,0 +1,33 @@
+{
+ "name": "Dinh's bulwark's Block: the combat tab's Block button refusing an attack on a giant frog east of the castle, then Pummel hitting it once the 8 ticks off Block are up",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing worn; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "comment": "the messages show their keys, whatever words the dialogue file has"},
+  {"step": "command", "text": "::setlevel attack 75", "expectMessage": "75", "comment": "the bulwark needs 75 Attack and 75 Defence"},
+  {"step": "command", "text": "::setlevel defence 75", "expectMessage": "75"},
+  {"step": "command", "text": "::item dinhs_bulwark", "expectMessage": "Added 1 x Dinh's bulwark"},
+  {"step": "itemOption", "item": "Dinh's bulwark", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "itemId": 21015},
+  {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now"},
+  {"step": "command", "text": "::sure", "expectMessage": "Your attacks can't miss", "comment": "so Pummel's first swing shows a hit, not a miss"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle, away from the courtyard's men"},
+  {"step": "command", "text": "::npc giant_frog_nodrops", "expectMessage": "Spawned Giant frog"},
+  {"step": "command", "text": "::npchp 100 mine", "expectMessage": "1 NPC now on 100 hitpoints", "comment": "so it lives through the hit"},
+  {"step": "clickWidget", "interfaceId": 548, "component": 64, "comment": "toplevel:stone0, the combat tab, in the fixed frame the VM's client uses"},
+  {"step": "clickWidget", "interfaceId": 593, "component": 18, "comment": "the fourth style button: Block"},
+  {"step": "assertVarp", "id": 43, "value": 3, "timeoutMs": 5000, "comment": "com_mode, the style picked"},
+  {"step": "npcOption", "npc": "Giant frog", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[combat.bulwark_block]", "timeoutMs": 10000, "comment": "Block can't attack"},
+  {"step": "clickWidget", "interfaceId": 593, "component": 6, "comment": "the first style button: Pummel"},
+  {"step": "assertVarp", "id": 43, "value": 0, "timeoutMs": 5000},
+  {"step": "npcOption", "npc": "Giant frog", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertHitsplat", "npc": "Giant frog", "timeoutMs": 20000, "comment": "Pummel's first swing, 8 ticks after leaving Block"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in."},
+  {"step": "command", "text": "::sure", "expectMessage": "Your attacks can miss again"},
+  {"step": "command", "text": "::god", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::keys off"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

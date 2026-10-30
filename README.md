@@ -139,8 +139,8 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
   signed manifest carries the table, and RSProx's target names the same build). RuneLite moves to each new revision
   within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
   revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
-- Nothing to install until the first release is published, which needs Sam's one-time key setup (`launcher/README.md`,
-  "Releases").
+- The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
+  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases").
 
 ### Files for our own launcher
 
@@ -228,11 +228,19 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::keys [on\|off]` | **everyone.** Your dialogue and examine lines show their keys (`[cook.greeting]`) instead of the file's words, until off or logout; no argument flips it. Test scripts in git turn it on, so they pass with or without words |
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
-| `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too |
+| `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
+| `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
-| `::poison [severity\|venom\|cure]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity |
+| `::friends` | **everyone.** Your friends list as the server keeps it, each friend's world or offline |
+| `::clearfriends` | Empties your friends list, for tests that start from none (the Friends tab shows it after a relog) |
+| `::poison [severity\|venom\|cure]`, `::poison npc severity\|venom [index\|name]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity. `npc` poisons or envenoms an NPC instead (by index from `::npcs` or by name, the nearest one you can fight by default), unless it is immune: it is hit every 30 ticks with no XP, and `::npcs` shows it |
+| `::ignores` | **everyone.** Your ignore list as the server keeps it |
+| `::clearignores` | Empties your ignore list, for tests that start from none |
+| `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
+| `::drain stat levels\|percent% [index\|name]` | Drains an NPC's attack, defence, strength, ranged or magic (the one you fight, or by index from `::npcs` or by name) by that many levels, or by a percentage of its level now, as far as its drain cap lets it, and says its level now. Its combat rolls use the drained level (`::combat` shows them), it gets a level back a minute, and `::npcs` shows its drained stats |
+| `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap) and the Bandos godsword's Warstrike (50%: double accuracy against slash, the max hit up 10% twice, and the target's Defence, Strength, Attack, Magic and Ranged drained by the damage in turn) and Dinh's bulwark's Shield Bash (50%: 20% more accurate against crush, and in a multi-way area up to 10 NPCs within 5 tiles hit, the target twice, each losing 5% of its highest offensive stat) are in. The bulwark's Block style can't attack and, 8 ticks after it is wielded, lets 80% of monsters' melee hits through, and `::combat` shows a special's attack roll and max hit |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -253,7 +261,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
@@ -413,6 +421,81 @@ sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answe
 | Each bar's anvil items, levels, bars and counts | client scripts and enums 844 to 846 (cache 241), checked against the Wiki's bronze and iron tables (`SmithingTest`) |
 | The furnace box showing every free-to-play bar and suggesting All; Smith opening the best bar the level can use; a cancelled X smithing one; the rusted anvil's message for other bars; the messages' arguments | guessed |
 | Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, cannonballs, jewellery, blurite and lovakite | out of scope |
+
+### Fletching
+
+A knife used on logs, or logs on a knife (`game/skill/Fletching.kt`, words under `fletching.*`), opens the Make-X box
+over what those logs make: arrow shafts, javelin shafts, the shortbow and longbow (u), and the crossbow stock, from
+logs to magic logs, plus teak and mahogany stocks and redwood shafts. A bow string on an unstrung bow strings it. Feathers on arrow shafts
+make headless arrows, and arrowtips on those make arrows, up to 15 at a time (the box counts sets). A feather on dart
+tips makes 10 darts on every click, with no box. The numbers are in `skills/fletching.json`.
+
+The making itself is the loop all three artisan skills share (`game/skill/Making.kt`, the box's title under
+`make.title`): each product waits in a weak queue, so walking off, closing an interface or using something else ends
+it, as do running out, the count being done, the level being too low and a level-up.
+
+| Fletching behaviour | Source |
+|---------------------|--------|
+| Levels, XP and how many shafts a log makes | OSRS Wiki, Fletching and each product's page |
+| The first product 2 ticks after the choice, then one every 3 | OSRS Wiki, Arrow shaft ("Make-X is 2, then 3 ticks") and Wooden stock; the bows (u) inferred to match |
+| Stringing 2 ticks a bow; arrows 2 ticks a set of 15 with XP per arrow; darts 10 a click with no wait | OSRS Wiki, Shortbow, Headless arrow, Bronze arrow, Arrows, Dart and Bronze dart |
+| Animations `human_fletching` (1248) and each bow's `stringing_*` (6678 to 6689) | cache 241 gamevals |
+| No animation for arrows and darts; the first bow strung 2 ticks after the choice | guessed |
+| The box opening even for one log, its order, the quantity starting on as many as can be made, the animation as each product starts, a boost wearing off stopping it without a word | guessed |
+| Out: the redwood shield; the crossbows and javelins that stocks and javelin shafts go into | out of scope |
+
+### Crafting
+
+Spin on a spinning wheel (every loc the cache calls one, Lumbridge Castle's first-floor wheel among them) opens the
+Make-X box over the wool and flax held; either used on a wheel opens it over that alone (`game/skill/Crafting.kt`,
+words under `crafting.*`, numbers in `skills/crafting.json`). A needle on leather, hard leather or green to black dragon
+leather opens the box over what it makes; thread is held, and one is used up every 5 items (the count is kept with the
+account). Steel studs on a leather body or chaps stud them. A chisel on an uncut gem cuts it; opal, jade and red topaz
+can crush into a crushed gemstone, rolled as the gathering skills roll. A gold bar or a mould used on a furnace opens
+`crafting_gold` (interface 446), and a silver bar or silver mould `silver_crafting` (6): both lay themselves out from
+the inventory, so the server answers the item buttons and keeps the quantity buttons' choice in `makexcrafting`, as at
+the anvil. A ball of wool strings an amulet. Soda ash or a bucket of sand on a furnace makes molten glass (the bucket
+comes back), and a glassblowing pipe blows it. Water on clay softens it; soft clay on a potter's wheel shapes pots,
+cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, some cracking below level 13. The making is the artisan loop in `Making.kt`.
+
+| Crafting behaviour | Source |
+|--------------------|--------|
+| Ball of wool level 1, 2.5 XP; bow string level 10, 15 XP; 3 ticks each | OSRS Wiki, Ball of wool and Bow string |
+| The first 2 ticks after the choice | inferred from fletching's "Make-X is 2, then 3 ticks" |
+| Animation 466 (`spinningwheel`) as the player's | inferred from its gameval name |
+| Leather and d'hide levels, XP, leathers per item; 3 ticks an item, hard leather 2; thread's 5 uses | OSRS Wiki, Leather, Hardleather body, Green dragon leather and the d'hide pages, Thread |
+| Studs 3 ticks; studded body 41, 40 XP; studded chaps 44, 42 XP | OSRS Wiki, Studded body and Studded chaps |
+| Gem levels, XP, 2 ticks a gem; opal, jade and red topaz's crush chances (pairs worked back from each page's formula and checked against its chart, `CraftingDataTest`) and crushed XP | OSRS Wiki, each gem's page |
+| Each gem's cutting animation (`human_*cutting`) | cache 241 gamevals |
+| Gold and silver jewellery levels and XP; 3 ticks an item; stringing an amulet 4 XP, 2 ticks | OSRS Wiki, Jewellery, Silver bar, Gold ring, Gold amulet |
+| The two furnace interfaces' item and quantity buttons | decompiled interfaces crafting_gold and silver_crafting (osrs-dumps) |
+| The furnace animation, silver taking gold's ticks, which interface a shared mould opens | guessed |
+| Molten glass 1, 20 XP, 2 ticks; glassblowing levels and XP, 3 ticks; soft clay 2 ticks, no XP | OSRS Wiki, Molten glass, Glassblowing pipe, Vial, Soft clay |
+| Pottery levels and both XPs; 3 ticks at the wheel, 7 in the oven, firing at any level; the oven's crack chart, which the pair 180/800 gives exactly (`CraftingDataTest`) | OSRS Wiki, Crafting (Pottery), Unfired pie dish, Pie dish and the other pots' pages |
+| A cracked pot lost with no XP; the oven animation; the other glassblowing items' ticks | guessed |
+| Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
+
+### Herblore
+
+Clean on a grimy herb cleans that one at once (`game/skill/Herblore.kt`, words under `herblore.*`, numbers in
+`skills/herblore.json`). A clean herb and a vial of water, either used on the other, open the Make-X box for its
+unfinished potion. A pestle and mortar on a unicorn horn, chocolate bar, kebbit teeth, bird nest, desert goat horn or
+blue dragon scale opens the box for the ground item; the first is ground as the choice is made. An empty vial used on a
+sink, fountain or water pump fills every vial held, one a tick. A secondary on its unfinished potion opens the box for
+the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose each. Making goes through `Making.kt`.
+
+| Herblore behaviour | Source |
+|--------------------|--------|
+| The 15 herbs' cleaning levels and XP; Clean taking no time | OSRS Wiki, each grimy herb's page |
+| The cleaning message naming the grimy herb | OSRS Wiki, Grimy guam leaf |
+| Unfinished potions' levels, no XP, 1 tick | OSRS Wiki, each unfinished potion's page |
+| Grinding 0, then 2, then 3 ticks | OSRS Wiki, Unicorn horn dust ("Auto-crushing ... is 0, then 2, then 3 ticks") |
+| A vial fills in 1 tick at any water but a well | OSRS Wiki, Vial of water |
+| Animations 363 (`human_herbing_vial`) and 364 (`human_herbing_grind`) | cache 241 gamevals |
+| Finished potions' levels, XP, secondaries, 2 ticks, a (3) dose | OSRS Wiki, Herblore (potions table) and each potion's page |
+| Which locs count as water; filling with no box; the filling animation (832); no animation for cleaning; the first potion 2 ticks after the choice | guessed |
+| Out: potions of three or more ingredients (super combat, stamina, sanfew, divine), coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
 
 ## Items and inventory
 
@@ -639,9 +722,9 @@ every branch of Bill's talk in `BarfyBillTest` and the drop rates in `NpcDropsTe
 
 The swamp's surface south of the castle, and the land just west of the castle, in `npc-spawns/lumbridge-swamp.json` on
 RSMod's tiles (each checked against the 241 map's floor): the giant rats, the frogs, a level 5 goblin, the unicorn and
-a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs. The fighters fight through
+a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs and tutors. The fighters fight through
 `npc-combat.json` and drop through `npc-drops.json`; the talks are `game/content/FatherUrhney.kt`,
-`AdventurersCamp.kt` and `CandleSeller.kt`.
+`AdventurersCamp.kt`, `CandleSeller.kt` and `SwampTutors.kt`.
 
 | Behaviour | Source |
 |-----------|--------|
@@ -652,20 +735,133 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 | Father Urhney (923), in his house, as after The Restless Ghost: he sends the player off, and hands a spare ghostspeak amulet to one who has none carried, worn or banked and has a free slot | the Wiki's Transcript:Father Urhney |
 | The adventurers' camp: the warrior (1158), archer (1157), monk (1159) and wizard (1160), each with their standard talk after Lost City | the Wiki's transcripts of each |
 | The candle seller (1896) by the swamp caves sells a lit candle for 1000 coins, and tells how lanterns are made, which the first menu then offers again | the Wiki's Transcript:Candle seller |
+| The Mining tutor (3222) by the east mine: the basics (Mining 1-24), tips (25-38) or advice (39-99), the quests (Doric and, on a members' world, the Dig Site), and the rocks and pickaxes menus; a bronze pickaxe for a player with none and a free slot | the Wiki's Transcript:Mining tutor |
+| The Fishing tutor (3221) by the shore: the basics (Fishing 1-28), tips (29-38, with the trawler) or advice (39-99, naming no quest as every one is done), the fish menu and where to fish by level, as on a members' world; a small fishing net for a player with none and a free slot | the Wiki's Transcript:Fishing tutor |
 | The fight animations (by the stand and walk animations each type has: the updated giant rat's, the giant frog's for all three frogs, the spear goblin's, the updated unicorn's), the curved bone's 1/5,012.5 kept as 1/5013, and every wander range (5) | guessed |
+| For the tutors: that a banked pickaxe or net counts as owned (as for the Woodsman tutor's axe); the items in the boxes the Wiki doesn't name; the fish menu's one slot for the lobster pot (Fishing 29-38) or the harpoon (39 and up), as a menu holds five options; the fishing tutor one tile east of RSMod's, which the 241 map has as water; their wander ranges (2) | guessed |
 | Every chathead expression; that a worn ghostspeak amulet counts as carried; the bank as the only store Urhney checks (no Death's Office or item retrieval yet); the candle landing at the player's feet with no free slot; having heard about lanterns kept with the account by name | guessed |
 
 Left out: giant rats are aggressive on live and the unicorn retreats at low hitpoints, which wait for NPC aggression
-and retreat (the Varrock piece; both are ranges from the spawn point). The fishing and mining tutors are the next step;
-the fishing spots and the mines are the gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache
-shows by quest varbits, are left out for now. What the talking NPCs say and each new NPC's examine are in the dialogue
-file (keys `father_urhney.*`, `lost_city_warrior.*`, `lost_city_archer.*`, `lost_city_monk.*`, `lost_city_wizard.*`,
-`candle_seller.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
+and retreat (the Varrock piece; both are ranges from the spawn point). The tutors' offers to show a place on the world
+map lead back to the first menu without opening the map, which isn't built yet; the fishing spots and the mines are the
+gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
+now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
+`lost_city_warrior.*`, `lost_city_archer.*`, `lost_city_monk.*`, `lost_city_wizard.*`, `candle_seller.*`,
+`mining_tutor.*`, `fishing_tutor.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
 
 Check: `test-runner/examples/lumbridge-swamp.json` examines each kind and kills a giant rat and a giant frog for their
-drops, then talks to Urhney, the adventurers and the candle seller; `HeadlessLumbridgeSwampTest` fights a giant rat to
-death and talks to Urhney through the headless client, with every branch of the talks in `SwampTalkTest`, the stats in
+drops, then talks to Urhney, the adventurers, the candle seller and both tutors; `HeadlessLumbridgeSwampTest` fights a
+giant rat to death, talks to Urhney and the camp's monk, buys a lit candle and gets a pickaxe and a net from the tutors
+through the headless client, with every branch of the talks in `SwampTalkTest` and `SwampTutorsTest`, the stats in
 `NpcCombatTest` and the drop rates in `NpcDropsTest`.
+## Draynor Village
+
+The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
+village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/content/DraynorVillage.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Three bankers (`banker1` 1613 twice, `banker2` 1618) behind the booths at 3091, 3242 to 3245, with the castle banker's talk and Bank option; the booths and the deposit box work as every booth does | the 241 cache's types; tiles from mejrs's data_osrs NPC list (NPCs seen on live); the Wiki's Banker page for the talk |
+| A man in the north-east house, a woman upstairs in Morgan's house, two rats by the farm gate, an imp west of the market, the pig pen's four pigs and three piglets, the farmer in the wheat field | as above, and the Wiki's Draynor Village page (seven pigs, the man and the woman) |
+| Morgan's and the Wise Old Man's straight stairs: up puts you past the top piece, down before the bottom piece (both run east) | read off the 241 map's walls; not seen on live |
+| Morgan's cupboard upstairs opens, gives a clove of garlic each Search, and shuts | the Wiki's Garlic page ("an unlimited supply"); opening and shutting as other furniture does |
+| Aggie's wardrobes and the drawers open and shut, and with the crates and the north-east house's bookcase say there is nothing in them | as the castle's furniture (`Searching`) |
+| A cheese and a tomato in Aggie's house, two logs in Spria's, back 100 ticks after taking | the Wiki's Draynor Village spawn list for the items and rooms; tiles and respawn guessed |
+| The pig pen's and the farm's gates | `Gates`, above |
+| Wander ranges (2 in the pig pen and indoors, 3 and 5 elsewhere) | guessed |
+| Step 3: the market's shops in `shops.json`: Fortunato's Fine Wine (without the jug of vinegar, as after Rag and Bone Man II), Diango's Chronicle one to a player and the Seed Market's 1% overstock decay, the Draynor Seed Market (Olivia) and Diango's Toy Store, with their talks (`game/content/DraynorMarket.kt`) | the Wiki's shop pages and transcripts (read 2026-10-30); the shops' invs and sizes the 241 cache's |
+| Diango's Disk of Returning sells at the Wiki's 21,000 coins, a fixed `price` in the shop file (the percentages give 180) | the Wiki's Diango's Toy Store; that the price doesn't move with the stock is guessed |
+| Step 2: the shore's two Net/Bait spots (`0_48_50_saltfish`, 1525, whose net option is "Small Net"), fished as the swamp's, moving between four tiles | tiles from mejrs's list; the move tiles 2004Scape's `fishing_movement_draynor_village_enum` |
+| The five willows by the shore chop with Woodcutting's willow data | the 241 map (ids 10819, 10829, 10831, 10833) |
+| Draynor's permanent fire south of the bank (`fire_cook`, 43475): Cook asks which food as a range does, then cooks over the fire (fire burn chart and animation) | the Wiki's Permanent fire page (a Draynor fire with Cook, free-to-play) |
+| Take-axe on the logs by the willows (`log_withaxe`, 5581) gives a bronze axe and leaves plain logs for 30 seconds; the same type works wherever the map has it | the Wiki's Bronze axe page ("Bronze axes on logs respawn in 30 seconds"); no message and a full inventory keeping the axe on the logs are guessed |
+
+Left out until their steps: the market's stalls and guards, the jail, Aggie's, Ned's, Morgan's and the Wise Old Man's talk,
+the bank guard, Miss Schism, the town crier, the dark wizards, the sewers' trapdoors and
+the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
+holiday items to reclaim), and Olivia's refusal after a theft comes with thieving. The wheat field picks as Lumbridge's does (`Crops`).
+
+Check: `test-runner/examples/draynor-village.json` opens and shuts the pig pen's gate, climbs both staircases, takes
+garlic from Morgan's cupboard, opens Aggie's wardrobe and sees her cheese and tomato, and opens the bank from a banker
+and from a booth; `HeadlessDraynorTest` does the gate, the stairs, the cupboard and the bankers through the headless
+client, and `GatesTest` turns a gate every way round. `test-runner/examples/draynor-willows.json` takes the axe off
+the logs, chops a willow, nets a shrimp and cooks it on the permanent fire; `HeadlessFishingTest` and `HeadlessCookingTest`
+do the Small Net spots and the fire.
+
+## Lumbridge church
+
+The church east of the castle and its graveyard, in `npc-spawns/lumbridge-church.json` on RSMod's tiles, with the
+altar's Pray-at; the talks and the altar are `game/content/Church.kt`. Every account is a member and has every quest
+done.
+
+| Behaviour | Source |
+|-----------|--------|
+| The altar (409) in the church: Pray-at fills prayer points up to the Prayer level and resets the drain counter; an item used on it is refused with a message | OSRS Wiki, Altar |
+| Father Aereck (2812), as after The Restless Ghost: his thanks, and he has no other quest | the Wiki's Transcript:Father Aereck |
+| The Prayer tutor (3223): how to train Prayer (with the 99 Prayer lines) and what it is for (which opens the prayer tab), as on a members' world; each answer offers the other | the Wiki's Transcript:Prayer tutor |
+| Nigel (6093, a multi-NPC that shows as 8391 on a normal world) in the graveyard: the two pages of Deadman Mode questions, and the rewards store, which is shut | the Wiki's Transcript:Nigel |
+| Count Check (7414): his advice counted out (with the questioned THREE), who he is and the Salve after Priest in Peril, the Stronghold of Security, to which he sends the player once (varbit `sos_teleported_by_count`), and his check, which fails | the Wiki's Transcript:Count Check |
+| Nigel's normal world menu leaving out the Deadman worlds' options, his Trade saying the store is shut, and the check failing as no account is a Jagex Account and the bank has no PIN (so his lamp never comes) | readings |
+| Every chathead expression; each answer going back to the menu it came from; the kneel (human_pray, 645) and the altar's messages; points above the level kept; the Stronghold tile (beside its entrance, 3081, 3421) and no teleport animation; the wander ranges (2, Father Aereck 5) | guessed |
+
+Left out: the lightning on Count Check's square, whose spotanim isn't known; the church organ; the treasure trail
+and Wise Old Man parts of Father Aereck's talk. What they say, the altar's messages and each new NPC's and the altar's
+examine are in the dialogue file (keys `father_aereck.*`, `prayer_tutor.*`, `nigel.*`, `count_check.*`, `altar.*`,
+`examine.npc_<id>` and `examine.loc_409`).
+
+Check: `test-runner/examples/lumbridge-church.json` examines the four NPCs, prays at the altar with drained points,
+and talks to each NPC; `HeadlessLumbridgeChurchTest` prays at an altar, talks to Father Aereck and Nigel (through his
+multi-NPC) and is sent to the Stronghold by Count Check through the headless client, with every branch in
+`ChurchTest`.
+
+## Al Kharid
+
+The Misthalin roadmap's Al Kharid piece, built a step at a time ([plan](https://claude.ai/artifact/Q7H1GLiHSg5A342NfsZn3f)).
+Content is in `game/content/AlKharid.kt`, spawns in `npc-spawns/al-kharid.json`. Every account has finished every
+quest, so Al Kharid is as after Prince Ali Rescue.
+
+| Behaviour | Source |
+|-----------|--------|
+| The toll gate (multilocs 44598/44599 at 3268, 3227 and 3268, 3228) shows as 44050/44051, Open only, once varp 273 is 100 or more; the Pay-toll(10gp) types 44052/44053 are the before-quest ones | 241 cache; OSRS Wiki, Toll gate |
+| After the quest Open takes the player through free with no talk, either way | OSRS Wiki, Toll gate (changed 27 April 2022) |
+| Talk-to on a Border Guard (4287 Lumbridge side, 4288 Al Kharid side): the player asks to come through, the guard says they're a friend of Al-Kharid, and the player goes through free | OSRS Wiki, Transcript:Border Guard |
+| Going through: both leaves swing open for 3 ticks as `inacmetalgateopenl`/`r` (1573/1574), the player moves to the far side at once; a player who talked to a guard first steps up to the gate | 2004Scape's border_gate.rs2; guessed until recorded |
+| Four Border Guards, two each side, standing still | 2004Scape map m51_50 spawns; standing still guessed |
+| The bank: Bank on any booth (`bankbooth` 10355) opens it; five Bankers (`kharidbanker1`/`2`, 3090/3091) behind the booths at x 3267 bank across them, by Bank or through their talk, which is the castle banker's | the engine's booths (any loc with Bank); OSRS Wiki, Banker and Transcript:Banker; 2004Scape map m51_49 spawns |
+| Seven shops: the General Store (Shop keeper 2817, Shop assistant 2818), Zeke's Superior Scimitars, Dommik's Crafting Store, Louie's Armoured Legs Bazaar, Ranael's Super Skirt Store, the Gem Trader and Ali's Discount Wares (Ali Morrisane's basic stock), each with its stock, restock times and percentages; the General Store won't buy silk; leaving Ali's basic stock with 10 coins and a free slot buys one of his five pieces of junk at random (`ali_morrisane.junk`; the 10-coin price and that it happens as the shop closes are guessed) | OSRS Wiki, each shop's page; invs from the 241 cache (the General Store's generalshop3 inferred from its keepers' names) |
+| Talk-to on each keeper but Ali Morrisane, as after Monkey Madness I and Rogue Trader, opening the shop where the Wiki has it open; Zeke's "Do you want to trade?" ends with his answer, as the Wiki has it | OSRS Wiki, each keeper's transcript; expressions from 2004Scape where it has the line, else guessed |
+| The keepers on 2004Scape's tiles, indoors; Ali Morrisane by his stall | 2004Scape maps m51_49/m51_50; Ali's tile guessed from the 241 map's stall and The Feud's quest icon |
+| Karim (`kebab_seller`, 2877) sells a kebab for 1 coin through his talk; the Silk trader (2873) sells silk for 3 gp, or 2 after haggling; both as after Rogue Trader; no message when Karim sells | OSRS Wiki, Transcript:Karim and Transcript:Silk trader; tiles from 2004Scape map m51_49/m51_50 |
+| Eating a kebab: "You eat the kebab", then out of 32: 1 heals 7 + 24% of the Hitpoints level and raises melee by 2, 8 heal 6 + 14%, 20 heal 3 + 7%, 1 does nothing, 1 drains a random skill by 3, 1 drains melee by 3 and a random skill by 4; with the eat and attack delays of other food | OSRS Wiki, Kebab (also the random skill's floor of 2 and no "heals some health" at full Hitpoints); rounding down, the +2 cap at base + 2 and the melee drain's floor of 1 guessed |
+| Ellis (`ellis_tanner`, 3231): his talk (with hides carried, an offer to tan them; without, two topics and Ali Morrisane); Trade, or a hide used on him, opens the tanning screen (interface 324); leather or any other item used on him gets a line | OSRS Wiki, Ellis and Transcript:Ellis; tile from 2004Scape map m51_49 |
+| Tanning: soft leather 1, hard leather 3, snakeskin 15 (snake hide) or 20 (swamp snake hide), each dragon leather 20 coins a hide; Tan 1, 5, X and All take as many of the slot's hides as held and paid for, at once | OSRS Wiki, Ellis; 2004Scape's tan_leather and its messages; the screen's components by their 241 names; the slots' order, model zoom, names, price form and closing the screen after a tanning guessed |
+| Chancellor Hassan (4285) in the throne room: his one line after Prince Ali Rescue; Enter on a big window (`kharid_bigwindow` 33348) gets his refusal and a box saying the shortcut needs the hard Desert diary and 70 Agility (diaries aren't built, so it always refuses) | OSRS Wiki, Transcript:Chancellor Hassan; tile from 2004Scape map m51_49 |
+| Osman (4286) outside the palace, as after Contact!: the Sophanem talk with a Keris (10581) for 20,000 coins and Menaphos, and the Sorceress's Garden talk; he takes every sq'irk juice held for Thieving experience (350, 1,350, 2,350, 3,000 a glass of winter, spring, autumn, summer); no free Keris (every account counts as having taken Kaleef's, guessed) | OSRS Wiki, Transcript:Osman and Sq'irk juice; tile from 2004Scape map m51_49; a full backpack refused only when paying won't free a slot, guessed |
+| Prince Ali home in the throne room: the map's `prince_ali_palace` (11645) shows as Prince Ali (11580) once varp 273 is 100 or more; two lines and the player's answer | 241 cache; OSRS Wiki, Transcript:Prince Ali Rescue; his tile guessed (the Wiki gives none) |
+| The palace's item spawns: a cabbage in the west room, a jug of water in the east room; its chests, drawers and ladder work as Lumbridge Castle's | OSRS Wiki, Cabbage and Jug of water; tiles from 2004Scape map m51_49; respawn guessed |
+| Fighters: nine Al Kharid warriors (3292) in the palace (slash, max hit 2, back in 25 ticks), six men (`al_kharid_man` 3261, fighting and dropping as any man), nine level 14 scorpions (3024) in the mine and one south of the bank (stab, max hit 2, back in 35 ticks); the warriors drop the man's table, scorpions only an ensouled head (1/25) and a beginner clue (1/100) | OSRS Wiki, Al Kharid warrior, Man and Scorpion, and the DPS calculator; tiles from 2004Scape maps m51_49 to m51_51; the warrior's block animation and the level 14 scorpion's respawn guessed |
+| Camels: the plain Camel (2835) north of town and Al, Elly, Ollie, Cam and Alice (Alice is `alice_the_camel_multinpc` 5953, by varbit 1353); Talk-to without a camulet is a menu of three: dung (it doesn't understand), something unpleasant (one of three lines and one of three reactions, at random) or neither | OSRS Wiki, Camel, each camel's page and Transcript:Camel; tiles are 2004Scape's camel tiles matched to the Wiki's words for each (guessed) |
+| The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
+
+Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only); Ali
+Morrisane's talk and his Rogue Trader shops (blackjacks, runes, desert and Menaphite gear); the Al Kharid flyer used on a
+keeper, and the keepers' treasure trail steps. The words of
+the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
+`examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`), as are the shop keepers' (`al_kharid_shop_keeper.*`,
+`al_kharid_shop_assistant.*`, `zeke.*`, `dommik.*`, `louie_legs.*`, `ranael.*`, `gem_trader.*` and each keeper's examine), Karim's and the Silk trader's (`karim.*`, `silk_trader.*`) and the kebab's
+messages (`kebab.*`), and Ellis's talk and the tanning screen's words (`ellis.*`, `tanning.*`), the palace's (`hassan.*`, `osman.*`, `prince_ali.*`), and the camels' (`camel.*`).
+Also left out from the palace: filling vessels at the fountain (no water sources are built yet), the big-window shortcut itself, Osman's Crack the Clue step, and the Emir, who is never seen. From the fighters and camels: Pickpocket on men and warriors (Thieving comes with the Draynor piece), the warriors joining in when one is attacked (NPC aggression, the Varrock piece), the camulet's talk and camel dung (members, Enakhra's Lament and My Arm's Big Adventure), and Cam's treasure trail step.
+
+Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
+Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
+Bank and through a banker's talk; `al-kharid-shops.json` buys and sells at every shop; `al-kharid-traders.json` buys and eats a kebab and haggles for
+silk; `al-kharid-tanning.json` tans cowhides at Ellis's; `al-kharid-palace.json` talks to Hassan and Prince Ali, tries a big
+window and buys a Keris from Osman; `al-kharid-fighters.json` examines and kills the fighters and talks to Al the Camel;
+`HeadlessAlKharidShopsTest` opens the Gem trader's shop from his
+talk, tries silk at the General Store and buys Ali's junk; `HeadlessAlKharidTradersTest` buys a kebab from Karim and eats it,
+and haggles for silk; `HeadlessAlKharidTest` and `HeadlessAlKharidFightersTest` do the same through the headless client, with the talk in
+`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, the palace's talk in `AlKharidPalaceTest` and Osman's Keris in `HeadlessOsmanTest`, the camels' in `AlKharidCamelsTest`, combat and drops in `NpcCombatTest` and `NpcDropsTest`, and
+the prices in `ShopTest`.
 
 ## Equipment
 
@@ -924,7 +1120,9 @@ words for it further down the file count too.
 Each conversation declares its lines in a `Lines` object (`object HansLines : Lines("hans", "Transcript:Hans")`), with
 where on the Wiki page each line is, and is listed in `DialogueLines.ALL`. Examine texts of NPCs and locs are in the same
 file, `examine.npc_<id>` and `examine.loc_<id>` (the `Examines` object, from `src/main/resources/examines.json`), each
-with its name and where on the Wiki its text is. To get a file with every key in it:
+with its name and where on the Wiki its text is. The locs listed are every named type in the castle and, outside it,
+every named type in the rest of Lumbridge (map squares 49 to 51 by 49 to 51, west of the Al Kharid fence). To get a
+file with every key in it:
 
 ```bash
 docker compose run --rm osrsps dialogue-keys   # on 214; or ./gradlew run --args=dialogue-keys
@@ -1054,6 +1252,18 @@ Lumbridge Castle's `poordoor` (1535), `elfdoor` (1543) and `poordoor_m` (56376) 
 takes over from this. Doors whose names don't pair (the castle kitchen door, 12348) and double doors are left to
 content, which can pair a door with `World.doors.register(closed, open)`.
 
+Fence gates open too: a left leaf `…fencegate_l` with an Open option pairs with `…openfencegate_l` (Close), and the
+right leaf `…fencegate_r` with `…openfencegate_r`, by the same gameval names (`game/loc/Gates.kt`). Opening either leaf
+opens both: each turns a quarter anticlockwise, the left one moving a tile outward and the right one two tiles outward
+and one back along the fence, so they stand together against the left leaf's hinge. Closing puts both back. That
+covers the plain picket gates (`fencegate_l`/`_r`, 1558/1560), the farming ones (1561/1562), the rustic ones and Fred
+the Farmer's (`qip_sheep_shearer_fencegate_*`), and the field gates north of Lumbridge (`fai_varrock_gate_l`/`_r`,
+which open into `_lc`/`_rc`): Draynor's pig pen and farm, and in and around Lumbridge the cow field's gates (3253, 3266
+and the west fence's), Fred's farm and sheep pen, the Groats' pens, the fields to the west (3145, 3291 to 3198, 3282)
+and north (3213, 3354 and 3254, 3347). Not covered: the cow field's `fencegate_*_cowboss_start` at 3262, 3294, whose
+option is Release (a content gate of its own). The rule is RSMod's picket gate script (rev 233), not yet watched on live; gates stay open until closed,
+as doors do (RSMod shuts them again after 500 ticks).
+
 | Loc behaviour | Source |
 |---------------|--------|
 | Loc type fields, map loc file format, shapes and layers | the 241 cache, decoded with RuneLite's loader's opcode table; all 62,534 loc types decode |
@@ -1066,6 +1276,7 @@ content, which can pair a door with `World.doors.register(closed, open)`.
 | Door pairs by gameval name | the 241 cache's own names |
 | Where an opened door goes (a quarter turn clockwise, onto the next tile) | RS2 engine rule; 151 of the 191 open doors the 241 maps place line up with it, 19 with the opposite turn (mostly double-door leaves) |
 | Doors stay open until closed, with no sound yet | guessed; the door sound ids aren't known yet (a recording will give them) |
+| Gates: both leaves together, where each goes, by gameval name | RSMod's picket gate script (rev 233); not checked on live |
 | Examine shows the loc's text from the dialogue file, as type 29 (object examine) chat; a loc not in `examines.json` shows its name and id | live's examine texts are not in the cache |
 | Timed loc changes run out at the start of the movement phase | guessed |
 

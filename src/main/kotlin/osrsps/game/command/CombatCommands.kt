@@ -1,5 +1,6 @@
 package osrsps.game.command
 
+import osrsps.game.NpcStat
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -16,6 +17,7 @@ import osrsps.game.combat.Poison
 import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.RangedInteraction
 import osrsps.game.combat.Spellbook
+import osrsps.game.combat.StatusEffects
 import osrsps.game.npc.Npc
 import java.util.Locale
 import kotlin.math.abs
@@ -23,7 +25,7 @@ import kotlin.math.max
 
 /**
  * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`
- * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::multi` and `::blowpipe` change the world,
+ * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::stun`, `::drain`, `::spec`, `::multi` and `::blowpipe` change the world,
  * so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
@@ -60,6 +62,12 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("${style.name} ($stance, $attackType), speed ${combat.attackSpeed(player)}: attack roll ${m.attackRoll}, max hit ${m.maxHit}")
         reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${type.stats.hitpoints} hp): defence roll ${m.defenceRoll}, you hit ${percent(m.hitChance)}")
         reply("It: attack roll ${m.npcAttackRoll} vs your ${m.playerDefenceRoll}, hits ${percent(m.npcHitChance)}, max hit ${m.npcMaxHit}")
+        world.specialAttacks.special(combat.weapon(player))?.let { spec ->
+            val s = spec.against?.let { combat.matchup(player, target, it) } ?: m
+            val attackRoll = spec.attackRoll(s.attackRoll)
+            val against = spec.against?.let { " (${it.name.lowercase()})" }.orEmpty()
+            reply("Special (${spec.name})$against: attack roll $attackRoll, max hit ${spec.maxHit(s.maxHit)}, defence roll ${s.defenceRoll}, you hit ${percent(CombatMath.hitChance(attackRoll, s.defenceRoll))}")
+        }
     }
 
     register("fight", "::fight", admin = false) {
@@ -146,9 +154,22 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply(if (player.god) "You can't be hurt now (::god again to turn it off)." else "You can be hurt again.")
     }
 
-    register("sure", "::sure", admin = true) {
-        player.sureHits = !player.sureHits
-        reply(if (player.sureHits) "Your attacks can't miss now (::sure again to turn it off)." else "Your attacks can miss again.")
+    register("sure", "::sure [max]", admin = true) {
+        // max: melee hits deal their max too, so a test can count on a hit doing damage.
+        val max = when (args.singleOrNull()) {
+            null -> false
+            "max" -> true
+            else -> fail("Usage: ::sure [max]")
+        }
+        player.sureHits = max || !player.sureHits
+        player.sureMaxHits = max
+        reply(
+            when {
+                max -> "Your attacks can't miss and your melee hits deal their max now (::sure to turn it off)."
+                player.sureHits -> "Your attacks can't miss now (::sure again to turn it off)."
+                else -> "Your attacks can miss again."
+            },
+        )
     }
 
     register("prayers", "::prayers", admin = false) {
@@ -167,8 +188,18 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("Prayer points set to $points.")
     }
 
-    register("poison", "::poison [severity|venom|cure]", admin = true) {
+    register("poison", "::poison [severity|venom|cure] or ::poison npc severity|venom [index|name]", admin = true) {
         val poison = world.poison
+        if (args.firstOrNull()?.lowercase() == "npc") {
+            val usage = "Usage: ::poison npc severity|venom [index|name]"
+            val how = args.getOrNull(1)?.lowercase() ?: fail(usage)
+            val severity = if (how == "venom") 0 else how.toIntOrNull()?.takeIf { it in 1 until Poison.VENOM } ?: fail(usage)
+            val npc = target(world, player, args.drop(2), "::poison npc $how")
+            val done = if (severity == 0) poison.envenom(npc) else poison.poison(npc, severity)
+            if (!done) fail("${npc.type.name} #${npc.index} can't be: it is immune, envenomed or more strongly poisoned already, or can't be fought.")
+            reply("${npc.type.name} #${npc.index} is ${poison.describe(npc)}.")
+            return@register
+        }
         when (val arg = args.singleOrNull()?.lowercase()) {
             null -> if (args.isNotEmpty()) fail("Usage: ::poison [severity|venom|cure]")
             "venom" -> if (!poison.envenom(player)) fail("Not envenomed: you are immune to venom or envenomed already. ${poison.describe(player)}")
@@ -179,6 +210,42 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             }
         }
         reply(poison.describe(player))
+    }
+
+    register("drain", "::drain stat levels|percent% [index|name]", admin = true) {
+        val usage = "Usage: ::drain stat levels|percent% [index|name], a stat being ${NpcStat.entries.joinToString { it.name.lowercase() }}"
+        if (args.size < 2) fail(usage)
+        val stat = runCatching { NpcStat.parse(args[0]) }.getOrElse { fail(usage) }
+        val amount = args[1]
+        val npc = target(world, player, args.drop(2), "::drain ${args[0]} $amount")
+        val drained = if (amount.endsWith("%")) {
+            world.npcDrains.drainPercent(npc, stat, amount.dropLast(1).toIntOrNull()?.takeIf { it in 0..100 } ?: fail(usage))
+        } else {
+            world.npcDrains.drain(npc, stat, amount.toIntOrNull()?.takeIf { it >= 0 } ?: fail(usage))
+        }
+        reply("Drained ${npc.type.name} #${npc.index}'s ${stat.name.lowercase()} by $drained to ${npc.level(stat)}/${npc.type.stats[stat]}.")
+    }
+
+    register("stun", "::stun [ticks|end]", admin = true) {
+        val effects = world.statusEffects
+        when (val arg = args.singleOrNull()?.lowercase()) {
+            null -> if (args.isNotEmpty()) fail("Usage: ::stun [ticks|end]")
+            "end" -> effects.clear(player)
+            else -> {
+                val ticks = arg.toIntOrNull()?.takeIf { it in 1..MAX_STUN_TICKS } ?: fail("Usage: ::stun [ticks|end]; ticks are 1 to $MAX_STUN_TICKS, ${StatusEffects.PICKPOCKET_TICKS} for a failed pickpocket")
+                if (!effects.stun(player, ticks)) fail("Not stunned: you are stunned already. ${effects.describe(player)}")
+            }
+        }
+        reply(effects.describe(player))
+    }
+
+    register("spec", "::spec [percent]", admin = true) {
+        val specials = world.specialAttacks
+        if (args.isNotEmpty()) {
+            val percent = args.singleOrNull()?.toIntOrNull()?.takeIf { it in 0..100 } ?: fail("Usage: ::spec [percent], 0 to 100")
+            specials.setEnergy(player, percent * 10)
+        }
+        reply(specials.describe(player))
     }
 
     register("heal", "::heal", admin = true) {
@@ -261,3 +328,6 @@ private fun nearest(world: World, x: Int, z: Int, level: Int, filter: (Npc) -> B
 private fun percent(chance: Double): String = String.format(Locale.ROOT, "%.1f%%", chance * 100)
 
 private const val SEARCH_RADIUS = 15
+
+/** A minute, so a mistyped `::stun` can't hold an account for long. */
+private const val MAX_STUN_TICKS = 100

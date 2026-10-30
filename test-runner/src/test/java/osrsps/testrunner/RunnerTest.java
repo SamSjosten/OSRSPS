@@ -296,6 +296,25 @@ public class RunnerTest
 	}
 
 	@Test
+	public void finishDialogueClicksThroughALevelUp() throws Exception
+	{
+		// A special attack's XP opened the level-up box: the raid's scripts were left with it over the chatbox.
+		game.levelUp = new Dialogue(Dialogue.Kind.LEVEL_UP, "[levelup.title article=an skill=Attack]", "[levelup.body skill=Attack level=2]", null);
+		runner.start(script("{\"step\":\"finishDialogue\"}"), "file");
+		assertNull(cycle());
+		assertEquals(List.of("continue"), game.actions);
+		game.levelUp = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("closed after 1 clicks", r.steps.get(0).detail);
+
+		// assertNoDialogue still sees only dialogues, as before.
+		game.levelUp = new Dialogue(Dialogue.Kind.LEVEL_UP, "x", "y", null);
+		runner.start(script("{\"step\":\"assertNoDialogue\"}"), "file");
+		assertEquals(Result.PASS, cycle().result);
+	}
+
+	@Test
 	public void finishDialogueClicksAgainWhenTheNextPageLooksTheSame() throws Exception
 	{
 		game.dialogue = npc("[man.help]");
@@ -400,7 +419,31 @@ public class RunnerTest
 		now.addAndGet(100);
 		Result r = cycle();
 		assertEquals(Result.FAIL, r.result);
-		assertEquals("timed out after 40 ms: the chat input still holds the text: the client has not taken the Enter key after 2 presses (fake focus)", r.steps.get(0).detail);
+		assertEquals("timed out after 40 ms: the chat input still holds the text: the client has not taken the Enter key after 2 tries (fake focus)", r.steps.get(0).detail);
+	}
+
+	@Test
+	public void chatClosesAPromptThatHoldsTheLine() throws Exception
+	{
+		// A chatbox prompt takes the Enter: the line stays until the prompt is closed (two nightly runs, 30 Oct 2026).
+		game.chatPending = true;
+		game.promptMode = 7;
+		runner.start(script("{\"step\":\"chat\",\"text\":\"one\",\"timeoutMs\":70}"), "file");
+		assertNull(cycle());
+		runner.gameTick();
+		runner.gameTick();
+		assertNull(cycle());
+		assertEquals(List.of("chat one", "close prompt"), game.actions);
+		runner.gameTick();
+		runner.gameTick();
+		assertNull(cycle());
+		// Closed once; the next try presses Enter again.
+		assertEquals(List.of("chat one", "close prompt", "enter again"), game.actions);
+		now.addAndGet(100);
+		Result r = cycle();
+		assertEquals(Result.FAIL, r.result);
+		assertEquals("timed out after 70 ms: the chat input still holds the text: the client has not taken the Enter key after 3 tries"
+			+ " (closed a chatbox prompt, meslayermode 7; fake focus)", r.steps.get(0).detail);
 	}
 
 	@Test
@@ -674,6 +717,28 @@ public class RunnerTest
 	}
 
 	@Test
+	public void typeTextTypesOnceAndPassesATickAfterTheKeysGo() throws Exception
+	{
+		runner.start(script("{\"step\":\"typeText\",\"text\":\"roof\"},{\"step\":\"assertNoDialogue\"}"), "file");
+		game.typingPending = true;
+		assertNull(cycle());
+		assertNull(cycle());
+		assertEquals(List.of("type roof"), game.actions);
+		game.typingPending = false;
+		assertNull(cycle());
+		runner.gameTick();
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals(List.of("type roof"), game.actions);
+		assertEquals("type \"roof\"", r.steps.get(0).description);
+		assertEquals("typed", r.steps.get(0).detail);
+		assertEquals(Result.PASS, r.result);
+	}
+
+	@Test
 	public void groundItemWaitsForTheItemOrForItToGo() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertGroundItem\",\"item\":\"Bones\",\"x\":3213,\"y\":3210},"
@@ -806,6 +871,20 @@ public class RunnerTest
 	}
 
 	@Test
+	public void useItemOnLocRetriesThenClicks() throws Exception
+	{
+		game.clickError = "no \"Gold bar\" in the inventory";
+		runner.start(script("{\"step\":\"useItemOnLoc\",\"item\":\"Gold bar\",\"locId\":24009,\"x\":3226,\"y\":3256}"), "file");
+		assertNull(cycle());
+		assertTrue(game.actions.isEmpty());
+		game.clickError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("Use Gold bar on loc id 24009 at 3226 3256"), game.actions);
+		assertEquals("use Gold bar on loc 24009 at 3226, 3256", r.steps.get(0).description);
+	}
+
+	@Test
 	public void equipmentSaysWhatIsWorn() throws Exception
 	{
 		game.worn.put(13, 884);
@@ -873,5 +952,150 @@ public class RunnerTest
 		assertEquals(Result.PASS, r.result);
 		assertEquals("stands in 2561", r.steps.get(0).detail);
 		assertEquals("logged out", r.steps.get(1).detail);
+	}
+
+	@Test
+	public void friends() throws Exception
+	{
+		runner.start(script("{\"step\":\"addFriend\",\"name\":\"test2\"},"
+			+ "{\"step\":\"assertFriend\",\"name\":\"Test2\",\"world\":301},"
+			+ "{\"step\":\"deleteFriend\",\"name\":\"test2\"},"
+			+ "{\"step\":\"assertFriend\",\"name\":\"test2\",\"absent\":true}"), "file");
+		game.friends = null;
+		assertNull(cycle());
+		assertEquals(List.of(), game.actions);
+		game.friends = new java.util.LinkedHashMap<>();
+		assertNull(cycle());
+		// The Add Friend button, then the name once its prompt (mode 2) shows.
+		assertEquals(List.of("click 429:14 op 1"), game.actions);
+		assertNull(cycle());
+		assertEquals(List.of("click 429:14 op 1"), game.actions);
+		game.promptMode = 2;
+		assertNull(cycle());
+		assertEquals(List.of("click 429:14 op 1", "text test2"), game.actions);
+		// The prompt closed: the step passes and the assert waits for the server.
+		game.friends.put("test2", 0);
+		assertNull(cycle());
+		game.friends.put("test2", 301);
+		assertNull(cycle());
+		assertEquals("click 429:16 op 1", game.actions.get(2));
+		game.promptMode = 3;
+		game.friends.remove("test2");
+		Result r = null;
+		for (int i = 0; i < 5 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("click 429:14 op 1", "text test2", "click 429:16 op 1", "text test2"), game.actions);
+		assertEquals("friends {test2=301}", r.steps.get(1).detail);
+		assertEquals("assert friend Test2 on world 301", r.steps.get(1).description);
+	}
+
+	@Test
+	public void assertFriendNeedsAWorld()
+	{
+		Script.Invalid e = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"assertFriend\",\"name\":\"a\"}"));
+		assertTrue(e.getMessage(), e.getMessage().contains("world"));
+	}
+
+	@Test
+	public void ignoresAndPrivateMessages() throws Exception
+	{
+		runner.start(script("{\"step\":\"addIgnore\",\"name\":\"test2\"},"
+			+ "{\"step\":\"assertIgnore\",\"name\":\"Test2\"},"
+			+ "{\"step\":\"privateMessage\",\"name\":\"test2\",\"text\":\"hi there\"}"), "file");
+		// The ignore tab isn't open: the Friends tab's ignore button first.
+		assertNull(cycle());
+		assertEquals(List.of("click 429:1 op 1"), game.actions);
+		// The ignore tab replaces the Friends tab, so friends() can no longer read the list.
+		game.openInterfaces.add(432);
+		game.friends = null;
+		assertNull(cycle());
+		assertEquals("click 432:12 op 1", game.actions.get(1));
+		game.promptMode = 4;
+		assertNull(cycle());
+		assertEquals("text test2", game.actions.get(2));
+		game.ignores.add("test2");
+		assertNull(cycle());
+		// Then the Message option's script with the name, and the message once its prompt (mode 6) shows.
+		assertEquals(List.of("107 [test2]"), game.scriptsRun);
+		game.promptMode = 6;
+		assertNull(cycle());
+		assertEquals("text hi there", game.actions.get(3));
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("ignored [test2]", r.steps.get(1).detail);
+	}
+
+	@Test
+	public void friendsChat() throws Exception
+	{
+		runner.start(script("{\"step\":\"setFriendsChatName\",\"name\":\"Hut\"},"
+			+ "{\"step\":\"joinFriendsChat\",\"owner\":\"test\"},"
+			+ "{\"step\":\"assertFriendsChat\",\"owner\":\"Test\",\"member\":\"test2\"},"
+			+ "{\"step\":\"assertFriendsChat\",\"owner\":\"test\",\"member\":\"test3\",\"absent\":true}"), "file");
+		// The setup screen isn't open: its Setup button first, then Set prefix, then the name in the server's prompt.
+		assertNull(cycle());
+		assertEquals(List.of("click 7:20 op 1"), game.actions);
+		game.openInterfaces.add(94);
+		assertNull(cycle());
+		assertEquals("click 94:10 op 1", game.actions.get(1));
+		game.promptMode = 9;
+		assertNull(cycle());
+		assertEquals("text Hut", game.actions.get(2));
+		// Then Join Chat's prompt, by its script, and the owner's name.
+		for (int i = 0; i < 3 && game.scriptsRun.isEmpty(); i++)
+		{
+			assertNull(cycle());
+		}
+		assertEquals(List.of("111 []"), game.scriptsRun);
+		game.promptMode = 10;
+		assertNull(cycle());
+		assertEquals("text test", game.actions.get(3));
+		game.friendsChatOwner = "test";
+		game.friendsChatMembers.add("test");
+		assertNull(cycle());
+		game.friendsChatMembers.add("Test2");
+		Result r = null;
+		for (int i = 0; i < 5 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals(Result.PASS, r.result);
+		assertEquals("test2 in Test's friends chat", r.steps.get(2).detail);
+		assertEquals("test3 not in test's friends chat", r.steps.get(3).description);
+	}
+
+	@Test
+	public void assertFriendsChatNeedsAnOwner()
+	{
+		Script.Invalid e = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"assertFriendsChat\",\"member\":\"a\"}"));
+		assertTrue(e.getMessage(), e.getMessage().contains("owner"));
+	}
+
+	@Test
+	public void playerOption() throws Exception
+	{
+		runner.start(script("{\"step\":\"playerOption\",\"player\":\"test2\",\"option\":\"Trade with\"}"), "file");
+		game.npcError = "no player \"test2\" in view";
+		assertNull(cycle());
+		game.npcError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("Trade with test2"), game.actions);
+		assertEquals("Trade with on player test2", r.steps.get(0).description);
+	}
+
+	@Test
+	public void playerOptionAtATile() throws Exception
+	{
+		runner.start(script("{\"step\":\"playerOption\",\"player\":\"test2\",\"option\":\"Trade with\",\"x\":3224,\"y\":3218}"), "file");
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("Trade with test2 at 3224,3218"), game.actions);
+		Script.Invalid e = org.junit.Assert.assertThrows(Script.Invalid.class,
+			() -> script("{\"step\":\"playerOption\",\"player\":\"a\",\"option\":\"Follow\",\"x\":1}"));
+		assertTrue(e.getMessage(), e.getMessage().contains("\"y\""));
 	}
 }

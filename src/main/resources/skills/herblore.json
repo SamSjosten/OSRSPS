@@ -1,0 +1,98 @@
+{
+  "_source": "OSRS Wiki: each grimy herb's page (level, XP, Clean), each herb's unfinished potion page (level, 0 XP, 1 tick), Unicorn horn dust and the other ground items (0 ticks; auto-crushing 0, then 2, then 3), Vial of water (1 tick, any water but a well); each finished potion's page and the Herblore page's table (level, XP, 2 ticks, a (3) dose); read 2026-10-30.",
+  "cleaning": {
+    "herbs": [
+      { "name": "guam", "grimy": 199, "clean": 249, "level": 3, "xpTenths": 25 },
+      { "name": "marrentill", "grimy": 201, "clean": 251, "level": 5, "xpTenths": 38 },
+      { "name": "tarromin", "grimy": 203, "clean": 253, "level": 11, "xpTenths": 50 },
+      { "name": "harralander", "grimy": 205, "clean": 255, "level": 20, "xpTenths": 63 },
+      { "name": "ranarr", "grimy": 207, "clean": 257, "level": 25, "xpTenths": 75 },
+      { "name": "toadflax", "grimy": 3049, "clean": 2998, "level": 30, "xpTenths": 80 },
+      { "name": "irit", "grimy": 209, "clean": 259, "level": 40, "xpTenths": 88 },
+      { "name": "avantoe", "grimy": 211, "clean": 261, "level": 48, "xpTenths": 100 },
+      { "name": "kwuarm", "grimy": 213, "clean": 263, "level": 54, "xpTenths": 113 },
+      { "name": "huasca", "grimy": 30094, "clean": 30097, "level": 58, "xpTenths": 118 },
+      { "name": "snapdragon", "grimy": 3051, "clean": 3000, "level": 59, "xpTenths": 118 },
+      { "name": "cadantine", "grimy": 215, "clean": 265, "level": 65, "xpTenths": 125 },
+      { "name": "lantadyme", "grimy": 2485, "clean": 2481, "level": 67, "xpTenths": 131 },
+      { "name": "dwarf_weed", "grimy": 217, "clean": 267, "level": 70, "xpTenths": 138 },
+      { "name": "torstol", "grimy": 219, "clean": 269, "level": 75, "xpTenths": 150 }
+    ]
+  },
+  "unfinished": {
+    "vialOfWater": 227,
+    "anim": 363,
+    "first": 1,
+    "interval": 1,
+    "potions": [
+      { "name": "guam", "herb": 249, "unf": 91, "level": 3 },
+      { "name": "marrentill", "herb": 251, "unf": 93, "level": 5 },
+      { "name": "tarromin", "herb": 253, "unf": 95, "level": 12 },
+      { "name": "harralander", "herb": 255, "unf": 97, "level": 22 },
+      { "name": "ranarr", "herb": 257, "unf": 99, "level": 30 },
+      { "name": "toadflax", "herb": 2998, "unf": 3002, "level": 34 },
+      { "name": "irit", "herb": 259, "unf": 101, "level": 45 },
+      { "name": "avantoe", "herb": 261, "unf": 103, "level": 50 },
+      { "name": "kwuarm", "herb": 263, "unf": 105, "level": 55 },
+      { "name": "huasca", "herb": 30097, "unf": 30100, "level": 58 },
+      { "name": "snapdragon", "herb": 3000, "unf": 3004, "level": 63 },
+      { "name": "cadantine", "herb": 265, "unf": 107, "level": 66 },
+      { "name": "lantadyme", "herb": 2481, "unf": 2483, "level": 69 },
+      { "name": "dwarf_weed", "herb": 267, "unf": 109, "level": 72 },
+      { "name": "torstol", "herb": 269, "unf": 111, "level": 78 }
+    ]
+  },
+  "grinding": {
+    "pestle": 233,
+    "anim": 364,
+    "first": 0,
+    "second": 2,
+    "interval": 3,
+    "items": [
+      { "name": "unicorn_horn", "from": 237, "to": 235 },
+      { "name": "chocolate_bar", "from": 1973, "to": 1975 },
+      { "name": "kebbit_teeth", "from": 10109, "to": 10111 },
+      { "name": "bird_nest", "from": 5075, "to": 6693 },
+      { "name": "desert_goat_horn", "from": 9735, "to": 9736 },
+      { "name": "blue_dragon_scale", "from": 243, "to": 241 }
+    ]
+  },
+  "vials": {
+    "empty": 229,
+    "full": 227,
+    "anim": 832,
+    "first": 1,
+    "interval": 1,
+    "sources": ["Sink", "Fountain", "Water pump", "Waterpump"]
+  },
+  "potions": {
+    "anim": 363,
+    "first": 2,
+    "interval": 2,
+    "potions": [
+      { "name": "attack", "unf": 91, "secondary": 221, "potion": 121, "level": 3, "xpTenths": 250 },
+      { "name": "antipoison", "unf": 93, "secondary": 235, "potion": 175, "level": 5, "xpTenths": 375 },
+      { "name": "strength", "unf": 95, "secondary": 225, "potion": 115, "level": 12, "xpTenths": 500 },
+      { "name": "restore", "unf": 97, "secondary": 223, "potion": 127, "level": 22, "xpTenths": 625 },
+      { "name": "energy", "unf": 97, "secondary": 1975, "potion": 3010, "level": 26, "xpTenths": 675 },
+      { "name": "defence", "unf": 99, "secondary": 239, "potion": 133, "level": 30, "xpTenths": 750 },
+      { "name": "agility", "unf": 3002, "secondary": 2152, "potion": 3034, "level": 34, "xpTenths": 800 },
+      { "name": "combat", "unf": 97, "secondary": 9736, "potion": 9741, "level": 36, "xpTenths": 840 },
+      { "name": "prayer", "unf": 99, "secondary": 231, "potion": 139, "level": 38, "xpTenths": 875 },
+      { "name": "super_attack", "unf": 101, "secondary": 221, "potion": 145, "level": 45, "xpTenths": 1000 },
+      { "name": "superantipoison", "unf": 101, "secondary": 235, "potion": 181, "level": 48, "xpTenths": 1063 },
+      { "name": "fishing", "unf": 103, "secondary": 231, "potion": 151, "level": 50, "xpTenths": 1125 },
+      { "name": "super_energy", "unf": 103, "secondary": 2970, "potion": 3018, "level": 52, "xpTenths": 1175 },
+      { "name": "hunter", "unf": 103, "secondary": 10111, "potion": 10000, "level": 53, "xpTenths": 1200 },
+      { "name": "super_strength", "unf": 105, "secondary": 225, "potion": 157, "level": 55, "xpTenths": 1250 },
+      { "name": "weapon_poison", "unf": 105, "secondary": 241, "potion": 187, "level": 60, "xpTenths": 1375 },
+      { "name": "super_restore", "unf": 3004, "secondary": 223, "potion": 3026, "level": 63, "xpTenths": 1425 },
+      { "name": "super_defence", "unf": 107, "secondary": 239, "potion": 163, "level": 66, "xpTenths": 1500 },
+      { "name": "antifire", "unf": 2483, "secondary": 241, "potion": 2454, "level": 69, "xpTenths": 1575 },
+      { "name": "ranging", "unf": 109, "secondary": 245, "potion": 169, "level": 72, "xpTenths": 1625 },
+      { "name": "magic", "unf": 2483, "secondary": 3138, "potion": 3042, "level": 76, "xpTenths": 1725 },
+      { "name": "zamorak_brew", "unf": 111, "secondary": 247, "potion": 189, "level": 78, "xpTenths": 1750 },
+      { "name": "saradomin_brew", "unf": 3002, "secondary": 6693, "potion": 6687, "level": 81, "xpTenths": 1800 }
+    ]
+  }
+}

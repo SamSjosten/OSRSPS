@@ -3,6 +3,7 @@ package osrsps.game.combat
 import osrsps.game.Equipment
 import osrsps.game.EquipmentBonuses
 import osrsps.game.EquipmentTab
+import osrsps.game.NpcStat
 import osrsps.game.ObjType
 import osrsps.game.Player
 import osrsps.game.Skill
@@ -84,6 +85,9 @@ class Combat(
 
     fun bonuses(player: Player): EquipmentBonuses = equipment.bonuses(player)
 
+    /** What [player] wields, null for nothing. */
+    fun weapon(player: Player): ObjType? = equipment.weapon(player)
+
     /** The category of the weapon the player wields ([Weapons]), [Weapons.UNARMED] for none. */
     fun weaponCategory(player: Player): Int = Weapons.category(equipment.weapon(player))
 
@@ -109,7 +113,7 @@ class Combat(
 
     /**
      * The melee attack type the player's style hits with: its own for a melee style, crush for a style with none (a
-     * bulwark's block; those weapons come later), and null for a ranged or magic style, which this piece doesn't fight
+     * gun's "Aim and Fire"; Dinh's bulwark's Block can't attack at all, see [bulwarkBlock]), and null for a ranged or magic style, which this piece doesn't fight
      * with.
      */
     fun meleeType(style: AttackStyle): AttackType? = when (style.type) {
@@ -120,11 +124,13 @@ class Combat(
 
     /**
      * The player's melee numbers against [npc], or null when it has no combat definition (it can't be attacked) or the
-     * player's style isn't melee (see [meleeType]).
+     * player's style isn't melee (see [meleeType]). [against] rolls against the NPC's defence for that attack type
+     * instead of the style's, as the Bandos godsword's Warstrike always rolls against slash ([SpecialAttack.against]);
+     * the attack roll keeps the style's own bonus (OSRS Wiki, Bandos godsword: "always rolls against the opponent's
+     * slash defence roll"; the Wiki's DPS calculator does the same).
      */
-    fun matchup(player: Player, npc: Npc): MeleeMatchup? {
+    fun matchup(player: Player, npc: Npc, against: AttackType? = null): MeleeMatchup? {
         val def = npcCombat[npc.type] ?: return null
-        val stats = npc.type.stats
         val style = style(player)
         val type = meleeType(style) ?: return null
         val bonuses = bonuses(player)
@@ -133,21 +139,36 @@ class Combat(
         val attack = PrayerBoosts.boost(skills.currentLevel(Skill.ATTACK), boosts.attack)
         val strength = PrayerBoosts.boost(skills.currentLevel(Skill.STRENGTH), boosts.strength)
         val attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type))
-        val defenceRoll = CombatMath.npcDefenceRoll(stats.defence, def.defence.against(type))
-        val npcAttackRoll = CombatMath.npcAttackRoll(stats.attack, def.attackBonus)
+        val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(against ?: type))
+        val npcAttackRoll = CombatMath.npcAttackRoll(npc.level(NpcStat.ATTACK), def.attackBonus)
         val playerDefenceRoll = playerDefenceRoll(player, style, bonuses, def.attackType, boosts)
         return MeleeMatchup(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength),
+            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses)),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
             npcAttackRoll = npcAttackRoll,
             playerDefenceRoll = playerDefenceRoll,
-            npcMaxHit = def.maxHit,
+            npcMaxHit = npcMaxHit(npc, def),
             npcHitChance = CombatMath.hitChance(npcAttackRoll, playerDefenceRoll),
         )
     }
+
+    /** What Dinh's bulwark adds to the melee strength bonus ([DinhsBulwark.strengthBonus]); 0 with any other weapon. */
+    private fun bulwarkStrength(player: Player, bonuses: EquipmentBonuses): Int =
+        if (DinhsBulwark.isBulwark(equipment.weapon(player))) DinhsBulwark.strengthBonus(bonuses) else 0
+
+    /** Whether [player] holds Dinh's bulwark on its Block style, which can't attack ([DinhsBulwark]). */
+    fun bulwarkBlock(player: Player): Boolean = DinhsBulwark.isBulwark(equipment.weapon(player)) && style(player).type == AttackType.NONE
+
+    /**
+     * Whether Block cuts the hits [player] takes on [tick]: on it, with the bulwark wielded [DinhsBulwark.BLOCK_DELAY]
+     * ticks. [Player.weaponId] is brought up to date only at the end of the tick, so a bulwark wielded this tick, which
+     * it doesn't name yet, doesn't count.
+     */
+    fun bulwarkBlocking(player: Player, tick: Long): Boolean =
+        bulwarkBlock(player) && player.weaponId == equipment.weapon(player)?.id && tick - player.weaponSince >= DinhsBulwark.BLOCK_DELAY
 
     /**
      * The player's ranged numbers against [npc], or null when it has no combat definition or the player's style isn't
@@ -187,7 +208,7 @@ class Combat(
         }
         var maxHit = CombatMath.playerRangedMaxHit(rangedStrengthLevel, style.stance, strength)
         if (weapon?.scaling == RangedScaling.TWISTED_BOW) {
-            val magic = maxOf(npc.type.stats.magic, def.magicAttack)
+            val magic = maxOf(npc.level(NpcStat.MAGIC), def.magicAttack)
             attackRoll = attackRoll * CombatMath.twistedBowAccuracy(magic) / 100
             maxHit = maxHit * CombatMath.twistedBowDamage(magic) / 100
         }
@@ -232,7 +253,7 @@ class Combat(
             attackRoll = CombatMath.weaknessAttackRoll(attackRoll, weakness.percent)
             maxHit += CombatMath.weaknessMaxHit(spell.maxHit, weakness.percent)
         }
-        val defenceRoll = CombatMath.npcDefenceRoll(npc.type.stats.magic, def.defence.magic)
+        val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.MAGIC), def.defence.magic)
         return MagicMatchup(
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
@@ -244,7 +265,7 @@ class Combat(
     /** [npc]'s defence roll against a ranged [style], or null when it has no combat definition. */
     fun rangedDefenceRoll(npc: Npc, style: AttackStyle): Int? {
         val def = npcCombat[npc.type] ?: return null
-        return CombatMath.npcDefenceRoll(npc.type.stats.defence, def.defence.against(AttackType.RANGED, style.weight))
+        return CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(AttackType.RANGED, style.weight))
     }
 
     /** [npc]'s melee numbers against [player], or null when it has no combat definition. */
@@ -252,10 +273,21 @@ class Combat(
         val def = npcCombat[npc.type] ?: return null
         val style = style(player)
         return NpcAttack(
-            attackRoll = CombatMath.npcAttackRoll(npc.type.stats.attack, def.attackBonus),
+            attackRoll = CombatMath.npcAttackRoll(npc.level(NpcStat.ATTACK), def.attackBonus),
             defenceRoll = playerDefenceRoll(player, style, bonuses(player), def.attackType, prayerBoosts(player)),
-            maxHit = def.maxHit,
+            maxHit = npcMaxHit(npc, def),
         )
+    }
+
+    /**
+     * [npc]'s melee max hit: its file's, less what its drained Strength takes off by [CombatMath.npcMaxHit], so the file
+     * still decides the max hit of an undrained monster. Guessed: that a monster whose file max hit isn't the formula's
+     * loses the same as the formula would.
+     */
+    private fun npcMaxHit(npc: Npc, def: NpcCombatDef): Int {
+        if (npc.drained[NpcStat.STRENGTH.ordinal] == 0) return def.maxHit
+        val lost = CombatMath.npcMaxHit(npc.type.stats.strength, def.strengthBonus) - CombatMath.npcMaxHit(npc.level(NpcStat.STRENGTH), def.strengthBonus)
+        return (def.maxHit - lost).coerceAtLeast(0)
     }
 
     companion object {

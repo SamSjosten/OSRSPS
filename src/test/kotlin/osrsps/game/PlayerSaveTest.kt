@@ -10,6 +10,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.combat.SpecialAttacks
 import osrsps.map.CollisionMap
 
 class PlayerSaveTest {
@@ -119,6 +120,54 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `the friends list is saved in order, kept over a reset, and a save without one loads empty`() {
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), friends = listOf("Zezima", "bob")).toJson("test")
+        assertEquals(listOf("Zezima", "bob"), PlayerSave.fromJson(text).friends)
+        saves.write("test", text)
+        val player = world.loadPlayer(1, "test")
+        assertEquals(listOf("Zezima", "bob"), player.friends)
+        // ::reset puts a save's state back but not its header, the friends list included.
+        PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).restoreTo(player)
+        assertEquals(listOf("Zezima", "bob"), player.friends)
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("friends" !in none)
+        assertTrue(PlayerSave.fromJson(none).friends.isEmpty())
+        val tooMany = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), friends = List(401) { "p$it" }).toJson("test")
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(tooMany) }
+    }
+
+    @Test
+    fun `the ignore list is saved in order, and a save without one loads empty`() {
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), ignores = listOf("Zezima", "bob")).toJson("test")
+        assertEquals(listOf("Zezima", "bob"), PlayerSave.fromJson(text).ignores)
+        saves.write("test", text)
+        assertEquals(listOf("Zezima", "bob"), world.loadPlayer(1, "test").ignores)
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("ignores" !in none)
+        val tooMany = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), ignores = List(401) { "p$it" }).toJson("test")
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(tooMany) }
+    }
+
+    @Test
+    fun `the friends chat channel and the channel the player was in are saved, and bad ranks are refused`() {
+        val settings = osrsps.game.social.FriendsChatSettings("Hut", enter = 0, talk = 1, kick = 7)
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), friendsChat = settings, friendsChatOwner = "Zezima").toJson("test")
+        val back = PlayerSave.fromJson(text)
+        assertEquals(settings, back.friendsChat)
+        assertEquals("Zezima", back.friendsChatOwner)
+        saves.write("test", text)
+        val player = world.loadPlayer(1, "test")
+        assertEquals(settings, player.friendsChat)
+        assertEquals("Zezima", player.friendsChatOwner)
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("friendsChat" !in none)
+        assertEquals(osrsps.game.social.FriendsChatSettings.DEFAULT, PlayerSave.fromJson(none).friendsChat)
+        val bad = text.replace("\"kick\": 7", "\"kick\": 99")
+        check(bad != text)
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(bad) }
+    }
+
+    @Test
     fun `the bank is saved, and a save without one loads with an empty bank`() {
         val player = world.loadPlayer(1, "Test")
         player.bank[0] = InvObj(995, 2_000_000_000)
@@ -165,7 +214,7 @@ class PlayerSaveTest {
     }
 
     @Test
-    fun `the save is readable JSON with only the varps that aren't 0`() {
+    fun `the save is readable JSON with only the varps that aren't 0, and the special attack energy`() {
         val player = world.loadPlayer(1, "Test")
         player.vars[173] = 1
         world.save(player)
@@ -173,7 +222,21 @@ class PlayerSaveTest {
         assertTrue("\"version\": 1" in text)
         assertTrue("\"username\": \"Test\"" in text)
         assertTrue("\"173\": 1" in text)
-        assertEquals(1, PlayerSave.fromJson(text).varps.size)
+        assertEquals(mapOf(173 to 1, SpecialAttacks.VARP_ENERGY to SpecialAttacks.FULL), PlayerSave.fromJson(text).varps)
+    }
+
+    @Test
+    fun `special attack energy is saved at 0 too, and a save from before it was kept starts full`() {
+        val player = world.loadPlayer(1, "Test")
+        assertEquals(SpecialAttacks.FULL, player.vars[SpecialAttacks.VARP_ENERGY], "a new account's")
+        player.vars[SpecialAttacks.VARP_ENERGY] = 0
+        world.save(player)
+        val text = saves.saves.getValue("test")
+        assertTrue("\"${SpecialAttacks.VARP_ENERGY}\": 0" in text)
+        assertEquals(0, world.loadPlayer(2, "Test").vars[SpecialAttacks.VARP_ENERGY])
+        val old = text.replace("\"${SpecialAttacks.VARP_ENERGY}\": 0", "\"1\": 0")
+        saves.saves["test"] = old
+        assertEquals(SpecialAttacks.FULL, world.loadPlayer(3, "Test").vars[SpecialAttacks.VARP_ENERGY])
     }
 
     @Test
@@ -183,7 +246,7 @@ class PlayerSaveTest {
         world.save(player)
         val sent = mutableListOf<Pair<Int, Int>>()
         world.loadPlayer(2, "Test").vars.flush { varp, value -> sent += varp to value }
-        assertEquals(listOf(173 to 1), sent)
+        assertEquals(listOf(173 to 1, SpecialAttacks.VARP_ENERGY to SpecialAttacks.FULL), sent)
     }
 
     @Test

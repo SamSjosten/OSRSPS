@@ -1,0 +1,176 @@
+{
+ "name": "Al Kharid step 6: the fighters and camels. Examine (::keys on) on a warrior, a man and a scorpion; a warrior killed for its bones and a scorpion killed; Al the Camel's talk",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3290 3172 0",
+   "expectMessage": "Teleported to 3290, 3172, 0",
+   "comment": "the palace courtyard, among the Al Kharid warriors"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3292,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "an Al Kharid warrior"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3292]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3290 3200 0",
+   "expectMessage": "Teleported to 3290, 3200, 0",
+   "comment": "the middle of town, among the men"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3261,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "a Man of Al Kharid (al_kharid_man)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3261]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3299 3295 0",
+   "expectMessage": "Teleported to 3299, 3295, 0",
+   "comment": "the Al Kharid mine, among its scorpions"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3024,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "a level 14 scorpion"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3024]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3318 3228 0",
+   "expectMessage": "Teleported to 3318, 3228, 0",
+   "comment": "a quiet tile in the town's north-east, with no warrior, man or scorpion about, so the NPC put in below is the nearest of its name both to ::kill and to the client"
+  },
+  {
+   "step": "command",
+   "text": "::npc al_kharid_warrior",
+   "expectMessage": "Spawned Al Kharid warrior (3292)"
+  },
+  {
+   "step": "command",
+   "text": "::kill al kharid warrior",
+   "expectMessage": "Killed Al Kharid warrior #"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Al Kharid warrior",
+   "id": 836,
+   "timeoutMs": 10000,
+   "comment": "human_death"
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Bones",
+   "timeoutMs": 15000,
+   "comment": "a warrior always drops bones; the rest of its table is the man's, checked in NpcDropsTest"
+  },
+  {
+   "step": "takeItem",
+   "item": "Bones"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bones",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::npc scorpion",
+   "expectMessage": "Spawned Scorpion (3024)"
+  },
+  {
+   "step": "command",
+   "text": "::kill scorpion",
+   "expectMessage": "Killed Scorpion #"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Scorpion",
+   "id": 6256,
+   "timeoutMs": 10000,
+   "comment": "scorpion_update_death; a scorpion leaves only the odd tertiary, so no ground item is checked"
+  },
+  {
+   "step": "command",
+   "text": "::delnpc mine",
+   "expectMessage": "Removed"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3275 3169 0",
+   "expectMessage": "Teleported to 3275, 3169, 0",
+   "comment": "in front of the bank, by Al the Camel (3274 3167)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Al the Camel",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "chooseOption",
+   "text": "[camel.dung]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[camel.dung]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[camel.dung_no]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Al the Camel",
+   "option": "Examine",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_5949]"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

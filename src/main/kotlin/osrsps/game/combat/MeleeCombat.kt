@@ -95,6 +95,15 @@ class MeleeCombat(
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     /** Told of an NPC on the tick it is killed; see [osrsps.game.npc.NpcScripts.onDeath]. */
     private val npcDied: (Npc) -> Unit = {},
+    /** Poisons an NPC at a severity, or envenoms it, as [Poison] does; false when it is immune or poisoned already. */
+    private val poisonNpc: (Npc, Int) -> Unit = { _, _ -> },
+    private val envenomNpc: (Npc) -> Unit = {},
+    /** Poisons a player at a severity ([Poison.poison]), for an NPC whose attacks poison. */
+    private val poisonPlayer: (Player, Int) -> Unit = { _, _ -> },
+    /** The special attack a swing uses, if the bar is lit and paid for ([SpecialAttacks.use]); null for an ordinary swing. */
+    private val special: (Player) -> SpecialAttack? = { null },
+    /** A special attack's hit landed, with the damage it dealt ([SpecialAttacks.landed]). */
+    private val specialLanded: (Npc, Int, SpecialAttack) -> Unit = { _, _, _ -> },
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -119,6 +128,10 @@ class MeleeCombat(
     /** Starts a fight with [npc], tried at once when [now]. False when the NPC can't be fought; see [attack]. */
     private fun start(player: Player, npc: Npc, now: Boolean): Boolean {
         combat.npcCombat[npc.type] ?: return false
+        if (combat.bulwarkBlock(player)) {
+            message(player, words(player)[CombatLines.BULWARK_BLOCK])
+            return true
+        }
         val fight = fight(player, npc)
         if (fight == null) {
             message(player, MELEE_ONLY)
@@ -202,7 +215,14 @@ class MeleeCombat(
 
     private fun swing(player: Player, npc: Npc, tick: Long) {
         val style = combat.style(player)
-        val matchup = combat.matchup(player, npc) ?: run {
+        if (combat.bulwarkBlock(player)) {
+            // Block picked on the way (the combat tab is open while walking).
+            message(player, words(player)[CombatLines.BULWARK_BLOCK])
+            stopFacing(player)
+            player.interaction = null
+            return
+        }
+        var matchup = combat.matchup(player, npc) ?: run {
             // The style changed on the way (the combat tab is open while walking): a bow carries on as a ranged fight.
             val next = ranged(player, npc)
             if (next == null) {
@@ -213,20 +233,69 @@ class MeleeCombat(
             return
         }
         player.nextAttackTick = tick + combat.attackSpeed(player)
-        player.effects.anim(combat.anims(player).attack(style), 0)
+        val spec = special(player)
+        if (spec?.against != null) matchup = combat.matchup(player, npc, spec.against)!!
+        if (spec == null) {
+            player.effects.anim(combat.anims(player).attack(style), 0)
+        } else {
+            player.effects.anim(spec.anim, 0)
+            if (spec.spotanim >= 0) player.spotanim(spec.spotanim)
+        }
         face(player, npc)
+        strike(player, npc, matchup, spec, tick)
+        // A special that hits around the player does so only in multi-way combat; in single-way it is one hit (guessed).
+        if (spec == null || spec.radius <= 0 || !multi.at(player.level, player.x, player.z)) return
+        // The second hit on the target doesn't drain (OSRS Wiki, Dinh's bulwark: the 1 December 2021 update).
+        repeat(spec.targetHits - 1) { strike(player, npc, matchup, spec, tick, effect = false) }
+        for (other in around(player, npc, spec.radius).take(spec.targets - 1)) {
+            strike(player, other, combat.matchup(player, other, spec.against) ?: continue, spec, tick)
+        }
+    }
+
+    /**
+     * The fightable NPCs other than [target] within [radius] tiles of [player] on either axis, by any tile they cover,
+     * standing in multi-way combat themselves (by their south-west tile, as a barrage's splash goes), nearest first.
+     * Guessed: nothing in the way stops the hit, and the nearest are hit first when there are too many.
+     */
+    private fun around(player: Player, target: Npc, radius: Int): List<Npc> {
+        fun distance(npc: Npc): Int {
+            val dx = maxOf(npc.x - player.x, player.x - (npc.x + npc.type.size - 1), 0)
+            val dz = maxOf(npc.z - player.z, player.z - (npc.z + npc.type.size - 1), 0)
+            return maxOf(dx, dz)
+        }
+        return npcs.near(player.x, player.z, player.level, radius + MAX_NPC_SIZE)
+            .filter {
+                it !== target && !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && distance(it) <= radius &&
+                    multi.at(it.level, it.x, it.z)
+            }
+            .sortedBy(::distance)
+    }
+
+    /**
+     * One hit of [player]'s swing on [npc] with [matchup]'s numbers, raised by [spec]'s if it is a special: rolled now,
+     * its XP given now, and landing in the next tick's NPC phase with [spec]'s effect unless not [effect].
+     */
+    private fun strike(player: Player, npc: Npc, matchup: MeleeMatchup, spec: SpecialAttack?, tick: Long, effect: Boolean = true) {
+        val style = matchup.style
+        val attackRoll = spec?.attackRoll(matchup.attackRoll) ?: matchup.attackRoll
+        val maxHit = spec?.maxHit(matchup.maxHit) ?: matchup.maxHit
         // Accuracy first, then damage, as the Wiki describes a hit; the attack's random draws are always these two.
-        val rolled = if (CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits) CombatMath.rollDamage(random, matchup.maxHit) else 0
+        val rolled = if (CombatMath.rollHits(random, attackRoll, matchup.defenceRoll) || player.sureHits) {
+            CombatMath.rollDamage(random, maxHit).let { if (player.sureMaxHits) maxHit else it }
+        } else {
+            0
+        }
         // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way.
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
-        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC)
+        val poison = PoisonedWeapons.melee(combat.weapon(player))
+        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect })
     }
 
-    /** A player's swing on its way to an NPC: it lands on [landTick]. */
-    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long)
+    /** A player's swing on its way to an NPC: it lands on [landTick], poisoning at [poison] if over 0, with [special]'s effect if it was one. */
+    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?)
 
     private val landing = ArrayList<Swing>()
 
@@ -245,7 +314,25 @@ class MeleeCombat(
             iterator.remove()
             val npc = swing.npc
             npc.incoming -= swing.damage
-            if (npcs[npc.index] === npc && !npc.dead) hit(npc, swing.player, swing.damage, tick)
+            if (npcs[npc.index] !== npc || npc.dead) continue
+            val dealt = hit(npc, swing.player, swing.damage, tick)
+            if (swing.special != null) specialLanded(npc, dealt, swing.special)
+            weaponPoison(npc, dealt, swing.poison, venom = false, ranged = false)
+        }
+    }
+
+    /**
+     * After a player's hit on [npc] that [dealt] damage: one with a poisoned weapon or ammunition ([poison] its
+     * severity, 0 for none) poisons it one time in four for melee and in eight for [ranged], and a toxic blowpipe's
+     * ([venom]) envenoms it one time in four ([PoisonedWeapons]). A hit of 0, or one that killed it, does neither, and
+     * rolls no dice.
+     */
+    fun weaponPoison(npc: Npc, dealt: Int, poison: Int, venom: Boolean, ranged: Boolean) {
+        if (dealt <= 0 || npc.dead) return
+        if (venom) {
+            if (random.chance(1, PoisonedWeapons.VENOM_CHANCE)) envenomNpc(npc)
+        } else if (poison > 0) {
+            if (random.chance(1, if (ranged) PoisonedWeapons.RANGED_CHANCE else PoisonedWeapons.MELEE_CHANCE)) poisonNpc(npc, poison)
         }
     }
 
@@ -289,6 +376,7 @@ class MeleeCombat(
     /** [npc] is in combat with [source] (null for none) from [tick], and faces them. */
     private fun attacked(npc: Npc, source: Player?, tick: Long) {
         npc.attacker = source
+        if (source != null) npc.lastAttacker = source
         npc.attackedTick = tick
         npc.holdTicks = IN_COMBAT_TICKS
         if (source != null) npc.face(source)
@@ -369,7 +457,11 @@ class MeleeCombat(
         val roll = combat.npcAttack(npc, player) ?: return
         val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, roll.maxHit) else 0
         // The dice are rolled either way, so a prayer doesn't change what comes after (World.random is shared).
-        hitPlayer(player, npc, if (protects(player, def.attackType)) 0 else damage, tick)
+        val blocked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
+        hitPlayer(player, npc, if (protects(player, def.attackType)) 0 else blocked, tick)
+        // Its poison comes whatever the hit did, through a protection prayer too (OSRS Wiki, Poison). Guessed: one
+        // attack in four, as for a player's poisoned melee weapon; the Wiki gives no chance for monsters.
+        if (def.poison > 0 && !player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(player, def.poison)
     }
 
     /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis. */
@@ -400,7 +492,7 @@ class MeleeCombat(
             return dealt
         }
         redemption(player)
-        if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen) {
+        if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
             retaliate(player, source, tick)
         }
         return dealt
@@ -418,6 +510,23 @@ class MeleeCombat(
         player.effects.hit(-1, hitsplat, hitsplat, hitsplat, dealt)
         player.effects.headBar(-1, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
         if (player.hitpoints <= 0) died(player) else redemption(player)
+        return dealt
+    }
+
+    /**
+     * [npc] takes [damage] of poison or venom with [hitsplat], capped at what it has left: the hitsplat and health bar,
+     * but no block animation, no XP and no one to turn on. Killed by it, its drops go to whoever fought it last, even
+     * once that fight is over ([Npc.lastAttacker]).
+     * Returns the damage dealt.
+     */
+    fun statusHit(npc: Npc, damage: Int, hitsplat: Int): Int {
+        val def = combat.npcCombat[npc.type] ?: return 0
+        if (npc.dead || npc.hitpoints <= 0) return 0
+        val dealt = damage.coerceIn(0, npc.hitpoints)
+        npc.hitpoints -= dealt
+        npc.effects.hit(-1, hitsplat, hitsplat, dealt)
+        npc.effects.headBar(-1, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.type.stats.hitpoints))
+        if (npc.hitpoints <= 0) die(npc, def, npc.attacker ?: npc.lastAttacker, currentTick())
         return dealt
     }
 
@@ -463,12 +572,13 @@ class MeleeCombat(
     /**
      * Auto retaliate: [player] turns on [npc], which hit them on [tick]. OSRS Wiki, Auto Retaliate: the character
      * retaliates one tick after being attacked, with the attack delay set to the weapon's speed halved and rounded up
-     * whatever it was. The fight starts now and the first swing comes with that delay.
+     * whatever it was, but never before [Player.attackLockedUntil]. The fight starts now and the first swing comes with
+     * that delay. A stunned player doesn't retaliate ([StatusEffects], guessed).
      */
     private fun retaliate(player: Player, npc: Npc, tick: Long) {
         if (foughtByAnother(player, npc)) return
         player.interaction = fight(player, npc) ?: return
-        player.nextAttackTick = tick + (combat.attackSpeed(player) + 1) / 2
+        player.nextAttackTick = maxOf(tick + (combat.attackSpeed(player) + 1) / 2, player.attackLockedUntil)
     }
 
     /** "Oh dear, you are dead!": every fight with the player ends, and [Deaths] has them from here. */
@@ -534,6 +644,9 @@ class MeleeCombat(
          * range (7) plus its interaction range (11). Guessed that chasing uses the same numbers.
          */
         const val CHASE_RANGE = Npcs.MAX_RANGE + 11
+
+        /** Wider than any NPC, so one whose south-west tile is this far off can still cover a tile in range. */
+        private const val MAX_NPC_SIZE = 16
 
         /** Ticks between hitpoints coming back: one a minute (OSRS Wiki, Hitpoints). */
         const val REGEN_TICKS = 100

@@ -18,12 +18,15 @@ import osrsps.game.combat.NpcDrops
 import osrsps.game.content.AdventurersCamp
 import osrsps.game.content.CandleSeller
 import osrsps.game.content.FatherUrhney
+import osrsps.game.content.SwampTutors
+import osrsps.game.dialogue.Chatbox
 import osrsps.game.npc.NpcSpawn
 import osrsps.map.CollisionMap
 
 /**
  * Rest of Lumbridge step 9 through the headless client, with the real combat and drop files: a giant rat killed leaves
- * its bones and raw rat meat, Father Urhney talks, the camp's monk talks and the candle seller sells a lit candle. The rl-client script test-runner/examples/lumbridge-swamp.json does the same in the real
+ * its bones and raw rat meat, Father Urhney talks, the camp's monk talks, the candle seller sells a lit candle, and the
+ * Mining and Fishing tutors hand over a pickaxe and a net. The rl-client script test-runner/examples/lumbridge-swamp.json does the same in the real
  * client, in the swamp, and kills a giant frog for its big bones.
  */
 class HeadlessLumbridgeSwampTest {
@@ -131,6 +134,66 @@ class HeadlessLumbridgeSwampTest {
                 assertEquals("Monk" to "[lost_city_monk.anymore]", line.name to line.text)
                 client.continueDialogue()
                 client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `the Mining tutor teaches the basics and hands over a bronze pickaxe`(@TempDir dir: Path) {
+        val tutor = NpcType(SwampTutors.MINING_TUTOR, "Mining tutor", ops = listOf("Talk-to", null, null, null, null), internalName = "aide_tutor_mining")
+        val pickaxe = ObjType(SwampTutors.BRONZE_PICKAXE, "Bronze pickaxe", tradeable = true)
+        TestServer(dir) { crcs, millis ->
+            World(
+                crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(pickaxe),
+                npcTypes = NpcTypes.of(tutor), npcSpawns = listOf(NpcSpawn(tutor, 3220, 3218, source = "test")), cycleMillis = millis,
+            )
+        }.use { server ->
+            server.login("carol").use { client ->
+                val npc = client.await("the Mining tutor in view") { client.npcs().firstOrNull { it.id == SwampTutors.MINING_TUTOR } }
+                client.npcOp(npc.index, SwampTutors.TALK_TO)
+                val menu = client.awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(
+                    listOf("[mining_tutor.basics]", "[mining_tutor.quests]", "[mining_tutor.rocks_and_picks]", "[mining_tutor.goodbye]"),
+                    menu.options,
+                )
+                client.chooseOption(1)
+                client.awaitDialogue("the player's question") { it is DialogueView.Chat && it.text == "[mining_tutor.basics]" }
+                client.continueDialogue()
+                assertEquals(DialogueView.Other(Chatbox.OBJECTBOX), client.awaitDialogue("the mining site box") { it is DialogueView.Other })
+                client.resumePause(Chatbox.OBJECTBOX, Chatbox.OBJECTBOX_UNIVERSE, 0)
+                client.awaitDialogue("the pickaxe line") { it is DialogueView.Chat && it.text == "[mining_tutor.have_a_pick]" }
+                client.await("the pickaxe in the bag") {
+                    client.inventory(INVENTORY).firstOrNull { it?.id == SwampTutors.BRONZE_PICKAXE }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the Fishing tutor teaches the basics and hands over a small fishing net`(@TempDir dir: Path) {
+        val tutor = NpcType(SwampTutors.FISHING_TUTOR, "Fishing tutor", ops = listOf("Talk-to", null, null, null, null), internalName = "aide_tutor_fishing")
+        val net = ObjType(SwampTutors.SMALL_FISHING_NET, "Small fishing net", tradeable = true)
+        TestServer(dir) { crcs, millis ->
+            World(
+                crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(net),
+                npcTypes = NpcTypes.of(tutor), npcSpawns = listOf(NpcSpawn(tutor, 3220, 3218, source = "test")), cycleMillis = millis,
+            )
+        }.use { server ->
+            server.login("erin").use { client ->
+                val npc = client.await("the Fishing tutor in view") { client.npcs().firstOrNull { it.id == SwampTutors.FISHING_TUTOR } }
+                client.npcOp(npc.index, SwampTutors.TALK_TO)
+                val menu = client.awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(
+                    listOf("[fishing_tutor.basics]", "[fishing_tutor.fish]", "[fishing_tutor.where]", "[fishing_tutor.goodbye]"),
+                    menu.options,
+                )
+                client.chooseOption(1)
+                client.awaitDialogue("the player's question") { it is DialogueView.Chat && it.text == "[fishing_tutor.basics]" }
+                client.continueDialogue()
+                client.awaitDialogue("the net line") { it is DialogueView.Chat && it.text == "[fishing_tutor.lost_net]" }
+                client.await("the net in the bag") {
+                    client.inventory(INVENTORY).firstOrNull { it?.id == SwampTutors.SMALL_FISHING_NET }
+                }
             }
         }
     }

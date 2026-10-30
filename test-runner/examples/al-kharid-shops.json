@@ -1,0 +1,441 @@
+{
+ "name": "Al Kharid step 3: every Al Kharid shop's Trade, one of its first item bought and sold back, and Louie Legs's talk (::keys on) into his shop",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 10000",
+   "expectMessage": "Added 10,000 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3316 3184 0",
+   "expectMessage": "Teleported to 3316, 3184, 0",
+   "comment": "the Al Kharid General Store's shop keeper's spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shop keeper",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 of the first item, Pot"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3288 3190 0",
+   "expectMessage": "Teleported to 3288, 3190, 0",
+   "comment": "Zeke's Superior Scimitars"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Zeke",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 of the first item, Bronze scimitar"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze scimitar",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze scimitar",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3322 3194 0",
+   "expectMessage": "Teleported to 3322, 3194, 0",
+   "comment": "Dommik's Crafting Store"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Dommik",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 of the first item, Chisel"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Chisel",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Chisel",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3316 3175 0",
+   "expectMessage": "Teleported to 3316, 3175, 0",
+   "comment": "Louie's Armoured Legs Bazaar"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Louie Legs",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 of the first item, Bronze platelegs"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze platelegs",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze platelegs",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3316 3164 0",
+   "expectMessage": "Teleported to 3316, 3164, 0",
+   "comment": "Ranael's Super Skirt Store"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ranael",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 of the first item, Bronze plateskirt"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze plateskirt",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze plateskirt",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3288 3211 0",
+   "expectMessage": "Teleported to 3288, 3211, 0",
+   "comment": "the Gem trader's stall, a tile south of him"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Gem trader",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 of the first item, Uncut sapphire"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Uncut sapphire",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Uncut sapphire",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3304 3212 0",
+   "expectMessage": "Teleported to 3304, 3212, 0",
+   "comment": "Ali Morrisane's stall, a tile north of him"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ali Morrisane",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 of the first item, Pot"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3316 3175 0",
+   "expectMessage": "Teleported to 3316, 3175, 0",
+   "comment": "Louie Legs again, for his talk"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[ali_morrisane.junk]",
+   "comment": "the teleport closed Ali's basic stock, so he sells a piece of junk for 10 coins"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Louie Legs",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[louie_legs.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[louie_legs.what_got]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[louie_legs.what_got]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[louie_legs.legs]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "his talk ends in his shop"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

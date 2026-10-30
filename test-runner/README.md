@@ -81,7 +81,7 @@ never words: the words are Jagex's and stay out of git (see the main README's Di
 `takeItem`, `assertInventory`, `finishDialogue` and Examine in 0.4.0; `assertLoc` in 0.4.2). The combat checks
 (`combat-attack-man.json`) need 0.5.0, which brought `assertHitsplat`, `assertNpcHealth`, `assertStat`,
 `assertGroundItem` and `assertAnimation`; `combat-die-grave.json` needs 0.6.1 (`assertInterface`, and `clickWidget` from 0.6.0). `combat-harlan.json` needs 0.6.3, which reads and continues the two-item box (objectbox_double). `combat-raid-bows.json`
-(the twisted bow, and the Venator bow's bounce in a zone `::multi` makes multi-way) needs 0.5.0. `combat-blowpipe.json` (charged with `::blowpipe`, shot, checked worn, then taken off and uncharged) needs 0.6.0 for `wornOption`. `combat-chinchompa.json` (black chinchompas thrown at a man, and their blast catching the man beside him in a `::multi` zone) needs 0.5.0. `combat-magic-strike.json` (Fire Strike from the spellbook on a man: its animation, graphics, runes and XP, the refusals for too low a level and too few runes, and a staff of fire standing in for the fire runes) needs 0.7.0 for `castOnNpc` and `assertSpotanim`. `combat-magic-autocast.json` (Wind Strike picked for autocast on the combat tab with a staff of fire, a man fought from one Attack click, defensive autocast's Defence XP, and a style button turning autocast off) needs 0.7.0 for `assertSpotanim`. `combat-magic-weakness.json` (the courtyard imp's 10% water weakness raising autocast Water Bolt's max hit from 10 to 11 in `::combat`, then the bolt cast on the imp) needs 0.7.0 for `assertSpotanim`. `combat-magic-bind.json` (Bind holding a man where he stands, a second Bind refused while he is held, and the immunity after, read off `::npcs`) needs 0.7.0 for `castOnNpc` and `assertSpotanim`. `combat-magic-ice.json` (Ice Barrage from the Ancient book, switched to with `::spellbook`, on one of two imps spawned side by side in a `::multi` zone, both frozen, read off `::npcs`) needs 0.7.0 for `castOnNpc` and `assertSpotanim`. `combat-magic-shadow.json` (Tumeken's shadow charged with `::shadow`, checked, wielded, its own spell cast on a man from one Attack click with a charge a cast and no runes, then taken off and uncharged for the runes back) needs 0.7.0 for `assertSpotanim`. `prayer-protect.json` (Protect from Melee clicked on in the prayer book, a man's punches blocked, its drain, Thick Skin alongside, the Piety refusal, and every prayer off at no points, read off `::prayers`) needs 0.6.0 for `clickWidget`. `prayer-boosts.json` (Piety clicked on raising a man fight's attack roll, max hit and defence roll in `::combat` from the next tick, and back once it is off) needs 0.6.0 for `clickWidget`. `prayer-redemption.json` (Redemption clicked on, a `::hit` leaving 9 of 99 hitpoints healed by 24, and every prayer point gone) needs 0.6.0 for `clickWidget`. `prayer-quick.json` (quick prayers: the prayer orb refused with nothing picked, Piety and Protect from Melee picked in its Setup, Done putting the prayer book back, and the orb turning both on and every prayer off, read off `::prayers` and `::varbit 4103`) needs 0.6.1 for `clickWidget` with `op` and `assertInterface`. `food-combo.json` (a shark and a karambwan eaten one after the other healing 38, then a meat pie in two bites leaving its dish, read off `::hp`) needs 0.6.0 for `itemOption`. `potions.json` (a super combat dose boosting the three stats by 19 and leaving 3 doses, a Saradomin brew healing past 99 and lowering Attack and Strength, a super restore bringing a drained Attack back, and a divine dose costing 10 hitpoints, read off `::stats` and `::hp` with `::keys on`) needs 0.6.0 for `itemOption`. `poison.json` (`::poison 20` hitting 4 thirty ticks on, an antipoison dose curing it and leaving 5 periods of immunity, venom getting through that immunity, and an anti-venom dose curing it and keeping venom off, read off `::poison` with `::keys on`) needs 0.6.0 for `itemOption`. `stats-restore.json` (a Strength boost losing a level and a Mining drain getting one back in a minute, Rapid Restore clicked on bringing the drain back twice as fast, a boost's 12-second segment kept over a `logout`, and Rapid Heal clicked on holding boosted Hitpoints a minute from the click, read off `::stats` and `::hp`) needs 0.6.0 for `clickWidget`.
+(the twisted bow, and the Venator bow's bounce in a zone `::multi` makes multi-way) needs 0.5.0. `combat-blowpipe.json` (charged with `::blowpipe`, shot, checked worn, then taken off and uncharged) needs 0.6.0 for `wornOption`. `combat-chinchompa.json` (black chinchompas thrown at a man, and their blast catching the man beside him in a `::multi` zone) needs 0.5.0. `combat-magic-strike.json` (Fire Strike from the spellbook on a man: its animation, graphics, runes and XP, the refusals for too low a level and too few runes, and a staff of fire standing in for the fire runes) needs 0.7.0 for `castOnNpc` and `assertSpotanim`. `combat-magic-autocast.json` (Wind Strike picked for autocast on the combat tab with a staff of fire, a man fought from one Attack click, defensive autocast's Defence XP, and a style button turning autocast off) needs 0.7.0 for `assertSpotanim`. `combat-magic-weakness.json` (the courtyard imp's 10% water weakness raising autocast Water Bolt's max hit from 10 to 11 in `::combat`, then the bolt cast on the imp) needs 0.7.0 for `assertSpotanim`. `combat-magic-bind.json` (Bind holding a man where he stands, a second Bind refused while he is held, and the immunity after, read off `::npcs`) needs 0.7.0 for `castOnNpc` and `assertSpotanim`. `combat-magic-ice.json` (Ice Barrage from the Ancient book, switched to with `::spellbook`, on one of two imps spawned side by side in a `::multi` zone, both frozen, read off `::npcs`) needs 0.7.0 for `castOnNpc` and `assertSpotanim`. `combat-magic-shadow.json` (Tumeken's shadow charged with `::shadow`, checked, wielded, its own spell cast on a man from one Attack click with a charge a cast and no runes, then taken off and uncharged for the runes back) needs 0.7.0 for `assertSpotanim`. `prayer-protect.json` (Protect from Melee clicked on in the prayer book, a man's punches blocked, its drain, Thick Skin alongside, the Piety refusal, and every prayer off at no points, read off `::prayers`) needs 0.6.0 for `clickWidget`. `prayer-boosts.json` (Piety clicked on raising a man fight's attack roll, max hit and defence roll in `::combat` from the next tick, and back once it is off) needs 0.6.0 for `clickWidget`. `prayer-redemption.json` (Redemption clicked on, a `::hit` leaving 9 of 99 hitpoints healed by 24, and every prayer point gone) needs 0.6.0 for `clickWidget`. `prayer-quick.json` (quick prayers: the prayer orb refused with nothing picked, Piety and Protect from Melee picked in its Setup, Done putting the prayer book back, and the orb turning both on and every prayer off, read off `::prayers` and `::varbit 4103`) needs 0.6.1 for `clickWidget` with `op` and `assertInterface`. `food-combo.json` (a shark and a karambwan eaten one after the other healing 38, then a meat pie in two bites leaving its dish, read off `::hp`) needs 0.6.0 for `itemOption`. `potions.json` (a super combat dose boosting the three stats by 19 and leaving 3 doses, a Saradomin brew healing past 99 and lowering Attack and Strength, a super restore bringing a drained Attack back, and a divine dose costing 10 hitpoints, read off `::stats` and `::hp` with `::keys on`) needs 0.6.0 for `itemOption`. `poison.json` (`::poison 20` hitting 4 thirty ticks on, an antipoison dose curing it and leaving 5 periods of immunity, venom getting through that immunity, and an anti-venom dose curing it and keeping venom off, read off `::poison` with `::keys on`) needs 0.6.0 for `itemOption`. `poison-npc.json` (`::poison npc 30` on a man spawned east of the castle, his 6 thirty ticks on read off `::npcs`, and the second 6 killing him with no XP) needs 0.5.0. `drain-npc.json` (`::drain defence 1` on a man spawned east of the castle, his defence roll in `::combat` falling from 430 to 387, read off `::npcs`, and the level back a minute on) needs 0.5.0. `spec-warhammer.json` (the spec orb lighting the bar, a dragon warhammer's Smash on a giant frog spawned east of the castle taking half the energy, its animation and graphic, the frog's Defence drained from 6 to 5 read off `::npcs`, and the combat tab's bar refused at 0%) needs 0.8.0 for `assertVarp` (and `assertSpotanim`). `spec-godsword.json` (the combat tab's bar lit, `::combat` showing Warstrike's doubled attack roll against slash, the godsword's animation and graphic on a giant frog spawned east of the castle, half the energy taken, and the frog's Defence drained by the damage, read off `::npcs`) needs 0.8.0 for `assertVarp` (and `assertSpotanim`). `spec-bulwark.json` (the combat tab's bar lit in a `::multi` zone east of the castle, a giant frog on 100 hitpoints attacked with Dinh's bulwark, and Shield Bash's animation and a hitsplat on a man beside it who was never attacked, for half the energy) needs 0.8.0 for `assertVarp`. `spec-bulwark-block.json` (the combat tab's Block button refusing an attack on a giant frog spawned east of the castle, read with `::keys on`, then Pummel hitting it once the 8 ticks off Block are up) needs 0.8.0 for `assertVarp`. `stun.json` (`::stun 9` showing the birds, a second stun refused, the stun over nine ticks on and the player walking again, then `::stun end`) needs 0.7.0 for `assertSpotanim`. `stats-restore.json` (a Strength boost losing a level and a Mining drain getting one back in a minute, Rapid Restore clicked on bringing the drain back twice as fast, a boost's 12-second segment kept over a `logout`, and Rapid Heal clicked on holding boosted Hitpoints a minute from the click, read off `::stats` and `::hp`) needs 0.6.0 for `clickWidget`.
 
 - `lumbridge-castle-doors.json` (the smallest, run it first) and `castle-doors-rest.json`: every door.
 - `lumbridge-castle-travel.json`, `castle-stairs-all.json` and `castle-ladders-all.json`: every option on the stairs,
@@ -132,21 +132,61 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-swamp.json`: Lumbridge Swamp: Examine (with `::keys on`) on a level 6 giant rat, a frog, a big frog, a
   giant frog, the level 5 goblin and the unicorn; `::kill` on a giant rat (its death animation, then its raw rat meat
   taken) and a giant frog (its big bones taken); Father Urhney's spare ghostspeak amulet, given once; the four
-  adventurers' talks; and the candle seller refusing a player with no coins, then selling a lit candle for 1000.
+  adventurers' talks; the candle seller refusing a player with no coins, then selling a lit candle for 1000; and the
+  Mining and Fishing tutors' basics (with a pickaxe and a net carried), the Mining tutor's quests and the small net
+  fish.
+- `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
+  Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
+  opened together and shut again, and the curtain upstairs in the palace opened and shut.
+- `al-kharid-bank.json`: Al Kharid step 2: Bank on a booth (logs deposited), a banker's talk (with `::keys on`) that
+  opens the bank (logs withdrawn), and a banker's Bank across the booth, with a relog between each to close the bank
+  (an open bank hides the bankers from the mouse).
+- `al-kharid-shops.json`: Al Kharid step 3: Trade with each of Al Kharid's seven shops (the General Store, Zeke,
+  Dommik, Louie Legs, Ranael, the Gem trader and Ali Morrisane), buying one of the first item and selling it back,
+  Ali's junk sold as his shop closes, then Louie Legs's talk (with `::keys on`) into his shop.
+- `al-kharid-traders.json`: Al Kharid step 4: a kebab bought from Karim through his talk (with `::keys on`) and
+  eaten, and silk haggled down to 2 gp from the Silk trader.
+- `al-kharid-tanning.json`: Al Kharid step 4b: Ellis's talk (with `::keys on`) with cowhides carried, into the
+  tanning screen; Tan 1, then Trade and Tan All, turning three cowhides into soft leather for a coin each.
+- `al-kharid-palace.json`: Al Kharid step 5 (with `::keys on`): Chancellor Hassan's and Prince Ali's after-quest
+  lines, a big window refused by Hassan, and a Keris bought from Osman for 20,000 coins.
+- `al-kharid-fighters.json`: Al Kharid step 6 (with `::keys on`): Examine on an Al Kharid warrior, a man and a
+  scorpion; a warrior killed for its bones and a scorpion killed, each put in on a quiet tile; Al the Camel's talk.
+- `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
+  down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
+  ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
+- `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
+  a willow chopped at level 30, a shrimp netted at the shore's Small Net spots and cooked on the permanent fire.
+- `draynor-market.json`: Draynor step 3: Fortunato's, Olivia's and Diango's talks (`::keys on`) into their shops, and
+  one buy in each at the Wiki's price (a jug of wine for 1, a potato seed for 2, a Disk of Returning for 21,000, a Chronicle for 300), then a second Chronicle refused while one is held.
+- `lumbridge-church.json`: Lumbridge church: Examine (with `::keys on`) on Father Aereck, the Prayer tutor, Nigel and
+  Count Check; Pray-at the altar with drained prayer points (then again, full); Father Aereck's thanks, the Prayer
+  tutor's two answers, Nigel's Deadman questions and his Trade, and Count Check's advice, who he is, the Salve, the
+  Stronghold offer turned down and his check.
+- `lumbridge-examine.json`: Examine (with `::keys on`) on scenery outside the castle: the church's altar, organ,
+  pews and candles, and the graveyard's two gravestones.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
 - `skills-levelup.json`: `::addxp` past a Woodcutting level, then an Attack level that raises the combat level: the
   chat message, the fireworks, the level-up box with each line's key (`::keys on`), and the combat level's box after
   the skill's. Walking closes each box. Needs only 0.7.0.
+- `xp-rate.json`: `::xprate 2`, then a bone buried for 9 Prayer XP (4.5 at 1x), then `::xprate restore` back to the
+  server's rate. It changes the rate for everyone on the server for a few seconds; a failure part way leaves it at 2x,
+  so check `::xprate` after one. Needs only 0.5.0.
 - `woodcutting-lumbridge.json`: Chop down with no axe, then a bronze axe on a tree north of the castle (one log, the
   stump, the tree back), then a level 99 dragon axe on the oak south of the castle (12 logs before its timer fells it).
   Needs only 0.5.0.
 - `woodcutting-nests.json`: `::nest seeds` and `::nest ring` drop a nest next to the player as a log's 1/256 roll does;
   each is taken and searched, leaving an empty nest and the seed or ring. Needs only 0.6.0.
+- `firemaking-after-chopping.json`: chops the oak south of the castle at 99 and lights the first oak logs straight
+  away, while the woodcutting clock still runs; the tinderbox strikes (animation 733) and the attempt message shows at
+  once, which the shared skill clock skipped before 30 Oct 2026. Needs 0.10.0.
 - `firemaking-lumbridge.json`: at the spawn, a tinderbox on oak logs (level 15 needed), then on logs (lit after a
   roll or more, a step west, 40 XP), Light on logs on the ground at level 43, and the first fire's ashes. Needs 0.10.0
   (`useItemOnItem`, `groundItemOption`).
+- `firemaking-picked-crop.json`: picks an onion in Fred's patch, stands on its tile and uses a tinderbox on logs; the
+  fire is refused, the logs stay in the backpack and the onion grows back (third exploit review). Needs 0.10.0.
 - `mining-lumbridge.json`: at the Lumbridge Swamp mine, Mine with no pickaxe, then a bronze pickaxe on copper (one
   ore, the empty rock, the copper back) and tin, and mithril's level 55. Needs only 0.5.0.
 - `fishing-lumbridge.json`: at the Lumbridge Swamp, Net with no net, then a net nets a shrimp (10 XP); Bait's
@@ -155,6 +195,28 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   box over three raw shrimps cooks all three (90 XP).
 - `smithing-lumbridge.json`: north of Lumbridge Castle, the furnace's Make-X box smelts a bronze bar, then the rusted
   anvil needs a hammer and hammers the bar into a dagger. Needs 0.8.0 (`assertVarbit`).
+- `fletching-logs.json`: a knife on three logs at 99 cuts three shortbows (u) through the Make-X box (15 XP), then at
+  level 1 a longbow needs 10. Needs 0.10.0 (`useItemOnItem`).
+- `fletching-arrows.json`: at 99, feathers on 20 arrow shafts make headless arrows in sets (15, then 5), bronze
+  arrowtips make 15 bronze arrows, a bow string strings a shortbow and a feather on dart tips makes 10 darts. Needs
+  0.10.0.
+- `crafting-spinning.json`: at Lumbridge Castle's first-floor spinning wheel, Spin with nothing does nothing, then at
+  99 two wool spin into balls (5 XP), and at level 1 flax needs 10. Needs only 0.5.0.
+- `crafting-leather.json`: at 99, a needle on leather makes two pairs of gloves with one thread (one left), steel
+  studs stud a leather body, and at level 1 green d'hide chaps need 60. Needs 0.10.0.
+- `crafting-gems.json`: at 99 a chisel cuts two sapphires (100 XP); at level 1 a sapphire needs 20 and three uncut
+  opals are all cut or crushed. Needs 0.10.0.
+- `crafting-jewellery.json`: at the furnace north of Lumbridge Castle, a gold bar opens `crafting_gold` and All makes
+  two sapphire rings, a tiara mould opens `silver_crafting` and makes a tiara, and a ball of wool strings a gold
+  amulet. Needs 0.15.0 (`useItemOnLoc`).
+- `crafting-glass.json`: at the furnace north of Lumbridge Castle, soda ash and sand make molten glass (the buckets
+  back), a pipe blows two vials, and water softens clay; at Barbarian Village's potter's wheel one soft clay shapes four
+  unfired cups, which the oven fires. Needs 0.15.0.
+- `herblore-basics.json`: at level 1 a grimy guam needs 3; at 99 two clean (5 XP), go into vials of water as
+  unfinished potions, a pestle grinds two unicorn horns, and two vials fill at Lumbridge Castle's kitchen sink. Needs
+  0.15.0 (`useItemOnLoc`).
+- `herblore-potions.json`: at level 1 an attack potion needs 3; at 99 eye of newt on two guam potions (unf) makes
+  two attack potions(3) (50 XP), and unicorn horn dust on a marrentill potion (unf) makes an antipoison. Needs 0.10.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
@@ -173,12 +235,33 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   again: attack priority, the combat and prayer tab keys (a key taken from the tab that had it), login/logout
   notifications and quest list sort; and the master and music sliders (a mouse click in the middle of each one's
   clickzone, a settings_content child, 53%); then close, relog and check every one.
+- `social-friends-test.json` and `social-friends-test2.json` (need 0.13.0): two players at once, `test` on one VM
+  and `test2` on the other, started together. Each empties its friends list (`::clearfriends`), logs out and in, and
+  adds the other; `test` sees `test2` come online on world 301, go offline at `test2`'s logout and come back. Run alone,
+  each waits up to 3 minutes for the other and then fails.
+- `social-pm-test.json` and `social-pm-test2.json` (need 0.14.0): two players at once like the friends pair; each adds the
+  other, `test` messages `test2` and `test2` answers.
+- `social-trade-offer-test.json` and `social-trade-offer-test2.json` (need 0.16.0): two players at once; `test` offers
+  10 coins, sees `test2`'s bronze axe on offer, takes 5 coins back and declines, and both get their items back. Each
+  starts from `lumbridge-bare` and ends with `::reset`.
+- `social-trade-request-test.json` and `social-trade-request-test2.json` (need 0.16.0): two players at once; `test` asks
+  `test2` to trade, `test2` accepts, both trade screens open and `test` declines.
+- `social-trade-test.json` and `social-trade-test2.json` (need 0.16.0): two players at once; `test` offers 10 coins for
+  `test2`'s bronze axe, both accept on both screens and the items swap. Each starts from `lumbridge-bare` and ends with
+  `::reset`.
+- `social-friends-chat-test.json` and `social-friends-chat-test2.json` (need 0.17.0): two players at once; `test` names
+  its friends chat channel through Setup and joins it, `test2` joins by `test`'s name, each sees the other's `/` line,
+  and both leave.
+- `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
+- `social-ignore-2.json` (needs 0.14.0): the same with the names swapped, for a client logged in as `test2` (the nightly run's account).
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
   number prompt with `enterAmount`, public chat's colour picked in the colour picker and saved, then a cancelled pick,
   and the public chat filter set to friends; then close, relog and check every one, the filter by its label.
 - `settings-buttons.json`: the All Settings window's buttons. The Wilderness teleport and tablet warnings switched on
   and off a section at a time, the opaque chat colours reset, the keybinds restored and the volumes reset; then close,
   relog and check, and the keys put back to none.
+- `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
+  and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
@@ -254,10 +337,10 @@ server's answer instead of failing on what was there before.
 | `takeItem` | `item` (name) or `itemId`, `x`+`y` | Clicks Take on the nearest such item on the ground on the player's plane, retrying until one is in the scene. With `x` and `y`, only an item on that tile. Take is the third ground option, as the server has it. Doesn't wait for the result: follow it with `assertInventory`. |
 | `assertInventory` | `item` (name) or `itemId`, `count` | Waits until the inventory holds exactly `count` of the item (all stacks added up), or any at all without `count`. `count` 0 waits until there are none. |
 | `assertDialogue` | `contains`, `speaker` | Waits until an open dialogue's text contains `contains` and its name is `speaker` (both optional). Colour tags and line breaks are removed first. |
-| `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. |
+| `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. (0.17.0) The level-up box counts too. |
 | `chooseOption` | `text` | Waits for an option menu, clicks the option equal to `text` (else the first containing it), and waits until the menu has gone. |
 | `assertNoDialogue` | | Waits until no dialogue is open. |
-| `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. |
+| `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. (0.17.0) Clicks a level-up box away too; `assertDialogue` and `assertNoDialogue` still ignore it. |
 | `assertMessage` | `contains` | Waits for a chat message containing `contains`, counting only messages since the last step that acted. |
 | `waitTicks` | `ticks` | Waits that many game ticks. |
 | `assertHitsplat` | `npc` (name) or `self: true`, `amount` | Waits for a hitsplat on the NPC of that name (the one the player is fighting or talking to, else the nearest; several castle NPCs are a `Man`), or on the player, counting only hitsplats since the last step that acted. With `amount`, one showing exactly that; a miss shows 0. |
@@ -281,7 +364,18 @@ server's answer instead of failing on what was there before.
 | `assertWeight` | `kg` | (0.9.0) Waits until the carried weight the server last sent is `kg` whole kilograms (rounded toward zero, so -4.535 kg is -4), as RuneLite's weight shows it. |
 | `groundItemOption` | `item` (name) or `itemId`, `op`, `option`, `x`+`y` | (0.10.0) Clicks ground op `op` (1 to 5; Take is 3, logs' Light is 4) on the nearest such item on the ground, as `takeItem` does Take; `option` is the menu text. RuneLite doesn't give an item's ground options, so the script names the op. |
 | `useItemOnItem` | `item` (name) or `itemId`, `onItem` or `onItemId` | (0.10.0) Clicks Use on the first such item in the inventory, then the first other slot holding the second item, as the server reads it (IF_BUTTONT). Retries until both are there; doesn't wait for the result. |
+| `useItemOnLoc` | `item` (name) or `itemId`, `loc` (name) or `locId`, `x`+`y` | (0.15.0) Clicks Use on the first such item in the inventory, then the nearest such loc (on that tile, when given), as the server reads it (OPLOCT). Retries until both are there; doesn't wait for the result. |
 | `enterAmount` | `amount` | (0.11.0) Waits for the chatbox's number prompt (meslayer mode 7, as after Withdraw-X or a settings number), puts the amount in it and presses Enter, then waits until the prompt has closed. |
+| `addFriend`, `deleteFriend` | `name` | (0.13.0) Clicks the Friends tab's Add Friend (or Delete Friend) button, waits for its chatbox prompt, types the name and presses Enter, as a player does; the client's own scripts then check it and tell the server. Waits for the list to arrive first and for the prompt to close after. Doesn't wait for the server's answer; follow it with `assertFriend`. |
+| `assertFriend` | `name`, `world` or `absent` | (0.13.0) Waits until the friends list shows the name (case and spaces against underscores don't matter) on world `world`, 0 for offline; or, with `absent: true`, until the name isn't on it. The result lists the whole list. |
+| `typeText` | `text` | (0.12.0) Types the text as key presses, one character at a time (press, typed, release on the client's canvas), for what reads the keyboard itself, such as the All Settings search box after its Search. Passes a game tick after the keys reach the canvas, so the client has taken them before the next step; check their effect with that step. |
+| `addIgnore`, `deleteIgnore` | `name` | (0.14.0) The same through the ignore tab's Add Name and Delete Name buttons (prompts 4 and 5), opening the ignore tab from the Friends tab first when it isn't open. |
+| `assertIgnore` | `name`, `absent` | (0.14.0) Waits until the ignore list holds the name, or, with `absent: true`, doesn't. |
+| `privateMessage` | `name`, `text` | (0.14.0) Opens the private message prompt for `name` (client script 107, meslayer_mode6, which a friend's Message option runs), types `text` and presses Enter. Check delivery with `assertMessage` on the other client. |
+| `playerOption` | `player`, `option`, `x`+`y` | (0.16.0) Clicks an option on the other player with that name, as their right-click menu does ("Trade with", "Follow"); retries until they are in view, and with `x` and `y` until they stand on that tile (a two-VM script's sign that the other side has finished its setup). A trade request's Accept trade is Trade with on its sender, so this accepts one too. |
+| `setFriendsChatName` | `name` | (0.17.0) Opens the friends chat Setup screen (its button on the Chat-channel tab's friends chat panel) if it isn't open, picks Set prefix, and types `name` into the server's text prompt. Check it with `assertWidgetText` on 94:10. |
+| `joinFriendsChat` | `owner` | (0.17.0) Opens Join Chat's prompt (client script 111, meslayer_mode10, which the Join Chat button runs) and types the owner's name. Leave Chat is `clickWidget` on 7:18. Talk with `chat` and a `/` in front. |
+| `assertFriendsChat` | `owner`, `member`, `absent` | (0.17.0) Passes when the client is in `owner`'s friends chat, with `member` listed when given (or, with `absent`, not listed). `absent` alone passes when it is in no channel. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)
@@ -292,7 +386,10 @@ objectbox_double, the box with two items.
 - Chat is sent by putting the text in the chat input and sending an Enter key to the client's canvas. If a key
   remapping plugin is on, it may swallow the Enter. When the client leaves the line in the input, the runner asks for
   the canvas's keyboard focus and presses Enter again, up to five times two ticks apart (0.5.1); the result says
-  whether the canvas had focus.
+  whether the canvas had focus. (0.17.0) An open chatbox prompt takes the Enter for itself, so one of those tries
+  closes it instead (once per line), and the result also says whether the Swing thread had sent the last Enter,
+  where the keyboard focus was, whether the window was active and any prompt still open. If the line still stays,
+  restart the client and keep that result: its detail is what will find the cause.
 - `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles. When the tile
   is off screen it turns the camera toward it, so a script can leave the camera however it finds it.
 - Auto login starts the login by setting the client's game state to LOGGING_IN, as RuneLite's developer tools do.

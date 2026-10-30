@@ -53,6 +53,8 @@ final class Steps
 		private int enterTick;
 		private int retries;
 		private String focusNote;
+		/** Set once a chatbox prompt has been closed for this line. */
+		private String promptNote;
 
 		Chat(String type, long timeoutMs, String text, String expectMessage)
 		{
@@ -83,10 +85,24 @@ final class Steps
 				{
 					retries++;
 					enterTick = run.gameTicks();
-					focusNote = run.game.pressEnterAgain();
+					// An open chatbox prompt takes the Enter, so the line stays however often it is pressed, and the
+					// next scripts' commands too (two nightly runs on 30 Oct 2026 stuck until a client restart; that a
+					// prompt was the cause is a guess). Close it, and press Enter again on the next try.
+					int mode = run.game.promptMode();
+					if (mode != 0 && promptNote == null)
+					{
+						run.game.closePrompt();
+						promptNote = "closed a chatbox prompt, meslayermode " + mode;
+						focusNote = promptNote;
+					}
+					else
+					{
+						String note = run.game.pressEnterAgain();
+						focusNote = promptNote == null ? note : promptNote + "; " + note;
+					}
 				}
 				return Poll.waiting("the chat input still holds the text: the client has not taken the Enter key"
-					+ (retries == 0 ? "" : " after " + (retries + 1) + " presses (" + focusNote + ")"));
+					+ (retries == 0 ? "" : " after " + (retries + 1) + " tries (" + focusNote + ")"));
 			}
 			if (expectMessage == null)
 			{
@@ -264,6 +280,41 @@ final class Steps
 		}
 	}
 
+	/**
+	 * Clicks an option on another player, once they are in view (and, with a tile, standing on it); does not wait for the
+	 * result.
+	 */
+	static final class PlayerOption extends Step
+	{
+		final String player;
+		final String option;
+		/** Where the player must stand first, or null for anywhere: a two-VM script's sign the other side is ready. */
+		final Tile at;
+
+		PlayerOption(long timeoutMs, String player, String option, Tile at)
+		{
+			super("playerOption", timeoutMs, false);
+			this.player = player;
+			this.option = option;
+			this.at = at;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.playerOption(player, option, at);
+			// The other player may not be in view yet (still logging in on the other VM): keep trying until the timeout.
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return option + " on player " + player;
+		}
+	}
+
 	/** Clicks a loc option. Waits (to the timeout) for such a loc to be in the scene; does not wait for the result. */
 	static final class LocOption extends Step
 	{
@@ -430,6 +481,41 @@ final class Steps
 		String describe()
 		{
 			return "use " + (item != null ? item : "item " + itemId) + " on " + (onItem != null ? onItem : "item " + onItemId);
+		}
+	}
+
+	/** (0.12.0) Uses an inventory item on a loc. Waits (to the timeout) for both; does not wait for the result. */
+	static final class UseItemOnLoc extends Step
+	{
+		final String item;
+		final int itemId;
+		final String loc;
+		final int locId;
+		final Tile at;
+
+		UseItemOnLoc(long timeoutMs, String item, int itemId, String loc, int locId, Tile at)
+		{
+			super("useItemOnLoc", timeoutMs, false);
+			this.item = item;
+			this.itemId = itemId;
+			this.loc = loc;
+			this.locId = locId;
+			this.at = at;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.useItemOnLoc(item, itemId, loc, locId, at);
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "use " + (item != null ? item : "item " + itemId) + " on " + (loc != null ? loc : "loc " + locId)
+				+ (at == null ? "" : " at " + at.x + ", " + at.y);
 		}
 	}
 
@@ -665,6 +751,53 @@ final class Steps
 		}
 	}
 
+	/**
+	 * (0.12.0) Types text as key presses, for what reads the keyboard itself, such as the All Settings search. Passes a
+	 * game tick after the keys reach the canvas, so the client has run its key scripts before the next step acts.
+	 */
+	static final class TypeText extends Step
+	{
+		final String text;
+		private boolean sent;
+		private int deliveredTick = -1;
+
+		TypeText(long timeoutMs, String text)
+		{
+			super("typeText", timeoutMs, false);
+			this.text = text;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			if (!sent)
+			{
+				run.markAction();
+				String error = run.game.typeText(text);
+				if (error != null)
+				{
+					return Poll.waiting(error);
+				}
+				sent = true;
+			}
+			if (deliveredTick < 0)
+			{
+				if (run.game.typingPending())
+				{
+					return Poll.waiting("the keys aren't sent yet");
+				}
+				deliveredTick = run.gameTicks();
+			}
+			return run.gameTicks() > deliveredTick ? Poll.pass("typed") : Poll.waiting("typed, waiting a tick for the client to take the keys");
+		}
+
+		@Override
+		String describe()
+		{
+			return "type \"" + text + "\"";
+		}
+	}
+
 	static final class AssertDialogue extends Step
 	{
 		final String contains;
@@ -718,7 +851,17 @@ final class Steps
 		}
 	}
 
-	/** Waits for a dialogue with a continue button, clicks it, then waits until that dialogue has gone. */
+	/**
+	 * The dialogue open in the chatbox, or else (0.17.0) the level-up box: XP from a step (a special attack's hit) can
+	 * open one over the chatbox, and finishDialogue left it there, holding up the steps after it (the raid's scripts).
+	 */
+	static Dialogue chatbox(Run run)
+	{
+		Dialogue d = run.game.dialogue();
+		return d != null ? d : run.game.levelUp();
+	}
+
+	/** Waits for a dialogue with a continue button, or (0.17.0) the level-up box, clicks it, then waits until it has gone. */
 	static final class ContinueDialogue extends Step
 	{
 		private String clicked;
@@ -731,7 +874,7 @@ final class Steps
 		@Override
 		Poll poll(Run run)
 		{
-			Dialogue d = run.game.dialogue();
+			Dialogue d = chatbox(run);
 			if (clicked == null)
 			{
 				if (d == null || d.kind == Dialogue.Kind.OPTIONS)
@@ -782,7 +925,7 @@ final class Steps
 		@Override
 		Poll poll(Run run)
 		{
-			Dialogue d = run.game.dialogue();
+			Dialogue d = chatbox(run);
 			if (clicked != null && d != null && d.toString().equals(clicked) && run.gameTicks() - clickedTick < SAME_PAGE_TICKS)
 			{
 				return Poll.waiting("clicked, " + clicked + " still open");
@@ -1553,6 +1696,297 @@ final class Steps
 		String describe()
 		{
 			return "log out";
+		}
+	}
+
+	/**
+	 * Types a name or a message into one of the chatbox's prompts the way a player does: opens the prompt (a click on a
+	 * button, or the client script a menu option runs), waits for it to show in {@code mode}, enters the text and waits
+	 * for it to close. The client's own scripts then check the text and tell the server, as for a typed one. Doesn't wait
+	 * for the server's answer; an assert after it does.
+	 */
+	static final class PromptEntry extends Step
+	{
+		/** The Friends tab (429) and ignore tab (432) buttons and the prompt mode each opens (meslayer_enter). */
+		static final int FRIENDS = 429;
+		static final int ADD_FRIEND = 14;
+		static final int DELETE_FRIEND = 16;
+		static final int IGNORES = 432;
+		static final int ADD_IGNORE = 12;
+		static final int DELETE_IGNORE = 14;
+		/** meslayer_mode6, the proc a friend's Message option runs, opening the private message prompt (mode 6). */
+		static final int MESSAGE_SCRIPT = 107;
+		/** meslayer_mode10, the proc Join Chat runs (joinchat_onop), opening the channel name prompt (mode 10). */
+		static final int JOIN_CHAT_SCRIPT = 111;
+		/** chatchannel_current's Setup button, and chatchannel_setup's channel name option (Set prefix). */
+		static final int FRIENDS_CHAT = 7;
+		static final int FRIENDS_CHAT_SETUP = 20;
+		static final int FRIENDS_CHAT_SETUP_SCREEN = 94;
+		static final int FRIENDS_CHAT_PREFIX = 10;
+
+		final String what;
+		final int mode;
+		final String text;
+		/** Opens the prompt: null when done, else why not yet. */
+		private final java.util.function.Function<Game, String> open;
+		private boolean listsArrived;
+		private boolean opened;
+		private boolean sent;
+
+		private PromptEntry(String type, long timeoutMs, String what, int mode, String text, java.util.function.Function<Game, String> open)
+		{
+			super(type, timeoutMs, false);
+			this.what = what;
+			this.mode = mode;
+			this.text = text;
+			this.open = open;
+		}
+
+		static PromptEntry addFriend(long timeoutMs, String name)
+		{
+			return new PromptEntry("addFriend", timeoutMs, "add friend " + name, 2, name, g -> g.clickWidget(FRIENDS, ADD_FRIEND, -1, 1));
+		}
+
+		static PromptEntry deleteFriend(long timeoutMs, String name)
+		{
+			return new PromptEntry("deleteFriend", timeoutMs, "delete friend " + name, 3, name, g -> g.clickWidget(FRIENDS, DELETE_FRIEND, -1, 1));
+		}
+
+		static PromptEntry addIgnore(long timeoutMs, String name)
+		{
+			return new PromptEntry("addIgnore", timeoutMs, "add ignore " + name, 4, name, g -> ignoreTab(g, ADD_IGNORE));
+		}
+
+		static PromptEntry deleteIgnore(long timeoutMs, String name)
+		{
+			return new PromptEntry("deleteIgnore", timeoutMs, "delete ignore " + name, 5, name, g -> ignoreTab(g, DELETE_IGNORE));
+		}
+
+		/** A friend's Message option: the private message prompt for {@code name}, then the message. */
+		static PromptEntry privateMessage(long timeoutMs, String name, String text)
+		{
+			return new PromptEntry("privateMessage", timeoutMs, "message " + name + ": " + text, 6, text, g -> g.runClientScript(MESSAGE_SCRIPT, new Object[] {name}));
+		}
+
+		/** Join Chat: the channel name prompt, then the owner's name. */
+		static PromptEntry joinFriendsChat(long timeoutMs, String owner)
+		{
+			return new PromptEntry("joinFriendsChat", timeoutMs, "join " + owner + "'s friends chat", 10, owner, g -> g.runClientScript(JOIN_CHAT_SCRIPT, new Object[0]));
+		}
+
+		/** The friends chat Setup screen's Set prefix: the server's text prompt (mode 9), then the channel's name. */
+		static PromptEntry setFriendsChatName(long timeoutMs, String name)
+		{
+			return new PromptEntry("setFriendsChatName", timeoutMs, "name the friends chat " + name, 9, name, g ->
+			{
+				if (!g.interfaceOpen(FRIENDS_CHAT_SETUP_SCREEN))
+				{
+					String error = g.clickWidget(FRIENDS_CHAT, FRIENDS_CHAT_SETUP, -1, 1);
+					return error != null ? error : "opening the setup screen";
+				}
+				return g.clickWidget(FRIENDS_CHAT_SETUP_SCREEN, FRIENDS_CHAT_PREFIX, -1, 1);
+			});
+		}
+
+		/** Clicks {@code button} on the ignore tab, first opening the tab from the Friends tab when it isn't. */
+		private static String ignoreTab(Game game, int button)
+		{
+			if (game.interfaceOpen(IGNORES))
+			{
+				return game.clickWidget(IGNORES, button, -1, 1);
+			}
+			String error = game.clickWidget(FRIENDS, 1, -1, 1);
+			return error != null ? error : "opening the ignore tab";
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int now = run.game.promptMode();
+			if (!opened)
+			{
+				// The ignore tab replaces the Friends tab, whose widgets friends() reads, so an open ignore tab counts
+				// as the lists having arrived, and so does a list seen before this step switched tabs.
+				listsArrived = listsArrived || run.game.friends() != null || run.game.interfaceOpen(IGNORES);
+				if (!listsArrived)
+				{
+					return Poll.waiting("the friends list hasn't arrived");
+				}
+				run.markAction();
+				String error = open.apply(run.game);
+				if (error != null)
+				{
+					return Poll.waiting(error);
+				}
+				opened = true;
+				return Poll.waiting("opened the prompt");
+			}
+			if (!sent)
+			{
+				if (now != mode)
+				{
+					return Poll.waiting("no prompt in mode " + mode + " (meslayermode " + now + ")");
+				}
+				String error = run.game.enterText(text);
+				if (error != null)
+				{
+					return Poll.fail(error);
+				}
+				sent = true;
+				return Poll.waiting("entered, waiting for the prompt to close");
+			}
+			return now == mode ? Poll.waiting("the prompt is still open") : Poll.pass(what);
+		}
+
+		@Override
+		String describe()
+		{
+			return what;
+		}
+	}
+
+	/**
+	 * Passes when the client is in {@code owner}'s friends chat channel, with {@code member} listed in it when given; or,
+	 * with {@code absent}, when it is in no channel ({@code owner} and {@code member} unset) or {@code member} isn't
+	 * listed. Names match without regard to case, spaces as underscores.
+	 */
+	static final class AssertFriendsChat extends Step
+	{
+		final String owner;
+		final String member;
+		final boolean absent;
+
+		AssertFriendsChat(long timeoutMs, String owner, String member, boolean absent)
+		{
+			super("assertFriendsChat", timeoutMs, false);
+			this.owner = owner;
+			this.member = member;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			String now = run.game.friendsChatOwner();
+			if (owner == null)
+			{
+				return now == null ? Poll.pass("in no friends chat") : Poll.waiting("in " + now + "'s friends chat");
+			}
+			if (now == null || !AssertFriend.key(now).equals(AssertFriend.key(owner)))
+			{
+				return Poll.waiting(now == null ? "in no friends chat" : "in " + now + "'s friends chat");
+			}
+			if (member == null)
+			{
+				return Poll.pass("in " + owner + "'s friends chat");
+			}
+			java.util.List<String> members = run.game.friendsChatMembers();
+			boolean listed = members.stream().anyMatch(m -> AssertFriend.key(m).equals(AssertFriend.key(member)));
+			if (listed != absent)
+			{
+				return Poll.pass(member + (absent ? " not" : "") + " in " + owner + "'s friends chat");
+			}
+			return Poll.waiting("members " + members);
+		}
+
+		@Override
+		String describe()
+		{
+			if (owner == null)
+			{
+				return "in no friends chat";
+			}
+			return member == null ? "in " + owner + "'s friends chat" : member + (absent ? " not" : "") + " in " + owner + "'s friends chat";
+		}
+	}
+
+	/**
+	 * Passes when the friends list shows {@code name} (matched without regard to case, spaces as underscores) on
+	 * {@code world}, 0 for offline; or, with {@code absent}, when the name isn't on it.
+	 */
+	static final class AssertFriend extends Step
+	{
+		final String name;
+		final int world;
+		final boolean absent;
+
+		AssertFriend(long timeoutMs, String name, int world, boolean absent)
+		{
+			super("assertFriend", timeoutMs, false);
+			this.name = name;
+			this.world = world;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			java.util.Map<String, Integer> friends = run.game.friends();
+			if (friends == null)
+			{
+				return Poll.waiting("the friends list hasn't arrived");
+			}
+			Integer seen = null;
+			for (java.util.Map.Entry<String, Integer> e : friends.entrySet())
+			{
+				if (key(e.getKey()).equals(key(name)))
+				{
+					seen = e.getValue();
+				}
+			}
+			String list = "friends " + friends;
+			if (absent)
+			{
+				return seen == null ? Poll.pass(list) : Poll.waiting(list);
+			}
+			return seen != null && seen == world ? Poll.pass(list) : Poll.waiting(list);
+		}
+
+		static String key(String name)
+		{
+			return name.trim().toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replace('\u00a0', '_');
+		}
+
+		@Override
+		String describe()
+		{
+			return absent ? "assert " + name + " is not a friend" : "assert friend " + name + (world == 0 ? " offline" : " on world " + world);
+		}
+	}
+
+	/**
+	 * Passes when the ignore list holds {@code name} (matched as {@link AssertFriend} matches), or, with {@code absent},
+	 * when it doesn't.
+	 */
+	static final class AssertIgnore extends Step
+	{
+		final String name;
+		final boolean absent;
+
+		AssertIgnore(long timeoutMs, String name, boolean absent)
+		{
+			super("assertIgnore", timeoutMs, false);
+			this.name = name;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			java.util.List<String> ignores = run.game.ignores();
+			if (ignores == null)
+			{
+				return Poll.waiting("the ignore list hasn't arrived");
+			}
+			boolean seen = ignores.stream().anyMatch(n -> AssertFriend.key(n).equals(AssertFriend.key(name)));
+			String list = "ignored " + ignores;
+			return seen != absent ? Poll.pass(list) : Poll.waiting(list);
+		}
+
+		@Override
+		String describe()
+		{
+			return absent ? "assert " + name + " is not ignored" : "assert " + name + " is ignored";
 		}
 	}
 }

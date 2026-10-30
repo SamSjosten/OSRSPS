@@ -5,7 +5,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArrayBuilder
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -16,7 +18,19 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.StatRestore
+import osrsps.game.social.FriendChats
+import osrsps.game.social.FriendLists
+import osrsps.game.ge.BuyLimitUse
+import osrsps.game.ge.GeAccount
+import osrsps.game.ge.GeOffer
+import osrsps.game.ge.GeTrade
+import osrsps.game.ge.OfferType
+import osrsps.game.social.FriendsChatSettings
+import osrsps.game.social.IgnoreLists
+import osrsps.game.trade.TradeJournal
+import osrsps.game.trade.offeredBy
 
 private val logger = KotlinLogging.logger {}
 
@@ -29,7 +43,7 @@ class PlayerSave(
     val z: Int,
     val level: Int,
     val runEnergy: Int,
-    /** Varps that aren't 0, by id. */
+    /** Varps that aren't 0, by id, and the special attack energy ([SpecialAttacks.VARP_ENERGY]) whatever it is. */
     val varps: Map<Int, Int>,
     val skills: Map<Skill, SkillSave>,
     /** The inventory's filled slots, by slot. */
@@ -52,6 +66,22 @@ class PlayerSave(
     val boostSegments: BoostSegments = BoostSegments(0, 0),
     /** The chatbox's filters. Like the boost segments, part of the header rather than the state ::reset puts back. */
     val chatFilters: ChatFilters = ChatFilters.DEFAULT,
+    /** The friends list, oldest first. Part of the header too: ::reset doesn't touch it. */
+    val friends: List<String> = emptyList(),
+    /** Grand Exchange offers, by slot. */
+    val geOffers: Map<Int, GeOffer> = emptyMap(),
+    /** What the Grand Exchange buy limits have counted, by item. */
+    val geLimits: List<BuyLimitUse> = emptyList(),
+    /** The ignore list, oldest first, in the header like the friends list. */
+    val ignores: List<String> = emptyList(),
+    /** The Grand Exchange's trade history, newest first. */
+    val geHistory: List<GeTrade> = emptyList(),
+    /** The last trade the player completed, which a leftover trade journal is checked against; see [TradeJournal]. */
+    val lastTrade: String? = null,
+    /** The player's own friends chat channel, in the header too. */
+    val friendsChat: FriendsChatSettings = FriendsChatSettings.DEFAULT,
+    /** Whose friends chat channel the player was in, to join again at login. */
+    val friendsChatOwner: String? = null,
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -77,6 +107,11 @@ class PlayerSave(
         StatRestore.resume(player.statTimers.skillBoost, boostSegments.other, inTick)
         player.statTimers.hitpoints.restart(inTick)
         player.chatFilters = chatFilters
+        player.friends.addAll(friends)
+        player.ignores.addAll(ignores)
+        player.lastTrade = lastTrade
+        player.friendsChat = friendsChat
+        player.friendsChatOwner = friendsChatOwner
         applyState(player)
     }
 
@@ -94,9 +129,12 @@ class PlayerSave(
             }
         }
         player.inventory.clear()
+        // A save counts the items in the guide prices screen as in the inventory, so they go from the screen.
+        player.priceChecker.clear()
         player.equipment.clear()
         player.bank.clear()
         player.charges.clear()
+        player.ge.clear()
         applyState(player)
     }
 
@@ -110,6 +148,7 @@ class PlayerSave(
             }
             player.vars[varp] = value
         }
+        if (SpecialAttacks.VARP_ENERGY !in varps) player.vars[SpecialAttacks.VARP_ENERGY] = SpecialAttacks.FULL
         for ((skill, save) in skills) {
             player.skills.setTenths(skill, save.tenths)
             player.skills.setCurrentLevel(skill, save.currentLevel)
@@ -120,6 +159,9 @@ class PlayerSave(
         for ((slot, obj) in equipment) player.equipment[slot] = obj
         for ((slot, obj) in bank) player.bank[slot] = obj
         for ((name, count) in charges) player.charges[name] = count
+        for ((slot, offer) in geOffers) player.ge[slot] = offer
+        for (use in geLimits) player.ge.limits[use.item] = use
+        player.ge.history.addAll(geHistory)
     }
 
     fun toJson(username: String): String {
@@ -143,6 +185,18 @@ class PlayerSave(
                     put("trade", chatFilters.trade)
                 }
             }
+            if (friends.isNotEmpty()) putJsonArray("friends") { for (name in friends) add(name) }
+            if (ignores.isNotEmpty()) putJsonArray("ignores") { for (name in ignores) add(name) }
+            if (lastTrade != null) put("lastTrade", lastTrade)
+            if (friendsChat != FriendsChatSettings.DEFAULT) {
+                putJsonObject("friendsChat") {
+                    if (friendsChat.name != null) put("name", friendsChat.name)
+                    put("enter", friendsChat.enter)
+                    put("talk", friendsChat.talk)
+                    put("kick", friendsChat.kick)
+                }
+            }
+            if (friendsChatOwner != null) put("friendsChatOwner", friendsChatOwner)
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -173,6 +227,49 @@ class PlayerSave(
         putJsonArray("equipment") { putObjs(equipment) }
         if (bank.isNotEmpty()) putJsonArray("bank") { putObjs(bank) }
         if (charges.isNotEmpty()) putJsonObject("charges") { for ((name, count) in charges) put(name, count) }
+        if (geOffers.isNotEmpty()) {
+            putJsonArray("geOffers") {
+                for ((slot, offer) in geOffers.toSortedMap()) {
+                    addJsonObject {
+                        put("slot", slot)
+                        put("type", offer.type.name.lowercase())
+                        put("item", offer.item)
+                        put("quantity", offer.quantity)
+                        put("price", offer.price)
+                        put("completed", offer.completed)
+                        put("exchanged", offer.exchanged)
+                        if (offer.aborted) put("aborted", true)
+                        put("collectItems", offer.collectItems)
+                        put("collectCoins", offer.collectCoins)
+                        if (offer.taxPaid > 0) put("taxPaid", offer.taxPaid)
+                    }
+                }
+            }
+        }
+        if (geLimits.isNotEmpty()) {
+            putJsonArray("geLimits") {
+                for (use in geLimits) {
+                    addJsonObject {
+                        put("item", use.item)
+                        put("windowStart", use.windowStart)
+                        put("bought", use.bought)
+                    }
+                }
+            }
+        }
+        if (geHistory.isNotEmpty()) {
+            putJsonArray("geHistory") {
+                for (trade in geHistory) {
+                    addJsonObject {
+                        put("type", trade.type.name.lowercase())
+                        put("item", trade.item)
+                        put("count", trade.count)
+                        put("coins", trade.coins)
+                        if (trade.tax > 0) put("tax", trade.tax)
+                    }
+                }
+            }
+        }
     }
 
     companion object {
@@ -184,19 +281,50 @@ class PlayerSave(
 
         private val format = Json { prettyPrint = true }
 
-        fun of(player: Player): PlayerSave {
+        /** [player]'s state, with [inventory] as what they hold (by default their inventory as it is), plus anything they have on offer in a trade. */
+        fun of(
+            player: Player,
+            inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
+            bank: Map<Int, InvObj> = player.bank.contents().toMap(),
+        ): PlayerSave {
             val varps = LinkedHashMap<Int, Int>()
             player.vars.forEachNonZero { varp, value -> varps[varp] = value }
+            // Kept at 0 too, so a save without it is one from before special attacks, whose energy starts full.
+            varps[SpecialAttacks.VARP_ENERGY] = player.vars[SpecialAttacks.VARP_ENERGY]
             val skills = Skill.entries.associateWith { SkillSave(player.skills.tenths(it), player.skills.currentLevel(it)) }
-            val inventory = player.inventory.contents().toMap()
             val equipment = player.equipment.contents().toMap()
             return PlayerSave(
-                player.x, player.z, player.level, player.runEnergy, varps, skills, inventory, equipment,
+                player.x, player.z, player.level, player.runEnergy, varps, skills, withOffer(player, inventory), equipment,
                 player.scenario, player.beforeScenario, player.createdAt, player.playedTicks, player.charges.contents(),
-                player.bank.contents().toMap(),
+                bank,
                 BoostSegments(StatRestore.segment(player.statTimers.combatBoost), StatRestore.segment(player.statTimers.skillBoost)),
                 player.chatFilters,
+                player.friends.toList(),
+                player.ge.contents().toMap(), player.ge.limits.values.toList(),
+                player.ignores.toList(),
+                player.ge.history.toList(),
+                player.lastTrade,
+                player.friendsChat,
+                player.friendsChatOwner,
             )
+        }
+
+        /**
+         * [player]'s inventory with anything they have offered in a trade put back in it, as a decline would: a save made
+         * mid-trade (an autosave, a crash) must not lose the offer, and the offer is only ever in one place. Nothing else
+         * can change the inventory while trading (see [osrsps.game.trade.Trades.interrupt]), so it fits; whatever somehow
+         * doesn't is logged and left out rather than written twice.
+         */
+        private fun withOffer(player: Player, inventory: Map<Int, InvObj>): Map<Int, InvObj> {
+            val offered = offeredBy(player)
+            if (offered.isEmpty()) return inventory
+            val copy = Inventory(player.inventory.type, player.inventory.capacity)
+            for ((slot, obj) in inventory) copy[slot] = obj
+            for ((obj, stackable) in offered) {
+                val added = copy.add(ObjType(obj.id, stackable = stackable), obj.count)
+                if (added < obj.count) logger.error { "Saving ${player.username} mid-trade: no room for ${obj.count - added} of offered ${obj.id}" }
+            }
+            return copy.contents().toMap()
         }
 
         /** Reads a save written by [toJson]. Throws [IllegalArgumentException] if it can't be used as it is. */
@@ -229,10 +357,21 @@ class PlayerSave(
                     }
                     ChatFilters(public, private, trade)
                 } ?: ChatFilters.DEFAULT
+                // Optional: saves from before the friends list, and saves with an empty one, have none.
+                val friends = root["friends"]?.jsonArray.orEmpty().map { it.jsonPrimitive.content }
+                require(friends.size <= FriendLists.MAX_FRIENDS) { "${friends.size} friends is more than ${FriendLists.MAX_FRIENDS}" }
+                val ignores = root["ignores"]?.jsonArray.orEmpty().map { it.jsonPrimitive.content }
+                require(ignores.size <= IgnoreLists.MAX_IGNORES) { "${ignores.size} ignored names is more than ${IgnoreLists.MAX_IGNORES}" }
                 val state = readState(root, scenario, beforeScenario)
                 return PlayerSave(
                     state.x, state.z, state.level, state.runEnergy, state.varps, state.skills, state.inventory, state.equipment,
                     scenario, beforeScenario, createdAt, playedTicks, state.charges, state.bank, boostSegments, chatFilters,
+                    friends,
+                    state.geOffers, state.geLimits,
+                    ignores,
+                    state.geHistory,
+                    root["lastTrade"]?.jsonPrimitive?.contentOrNull,
+                    readFriendsChat(root), root["friendsChatOwner"]?.jsonPrimitive?.contentOrNull,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -278,10 +417,69 @@ class PlayerSave(
                 require(count >= 0) { "Charge $name is negative" }
                 charges[name] = count
             }
-            return PlayerSave(x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank)
+            // Optional: saves from before the Grand Exchange, and saves with no offers, have none.
+            val geOffers = LinkedHashMap<Int, GeOffer>()
+            for (element in root["geOffers"]?.jsonArray.orEmpty()) {
+                val entry = element.jsonObject
+                val slot = entry.int("slot")
+                require(slot in 0 until GeAccount.SLOTS) { "Grand Exchange slot $slot is out of range" }
+                require(slot !in geOffers) { "Grand Exchange slot $slot is saved twice" }
+                val type = offerType(entry)
+                // GeOffer's own checks throw IllegalArgumentException for values out of range.
+                geOffers[slot] = GeOffer(
+                    type, entry.int("item"), entry.int("quantity"), entry.long("price"), entry.int("completed"), entry.long("exchanged"),
+                    entry["aborted"]?.jsonPrimitive?.boolean ?: false, entry.int("collectItems"), entry.long("collectCoins"),
+                    entry["taxPaid"]?.jsonPrimitive?.long ?: 0,
+                )
+            }
+            val geHistory = root["geHistory"]?.jsonArray.orEmpty().map {
+                val entry = it.jsonObject
+                GeTrade(offerType(entry), entry.int("item"), entry.int("count"), entry.long("coins"), entry["tax"]?.jsonPrimitive?.long ?: 0)
+            }
+            val geLimits = root["geLimits"]?.jsonArray.orEmpty().map {
+                val entry = it.jsonObject
+                BuyLimitUse(entry.int("item"), entry.long("windowStart"), entry.int("bought"))
+            }
+            return PlayerSave(
+                x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank,
+                geOffers = geOffers, geLimits = geLimits, geHistory = geHistory,
+            )
+        }
+
+        /** Optional: saves from before friends chat, and saves of players who never set theirs up, have none. */
+        private fun readFriendsChat(root: JsonObject): FriendsChatSettings {
+            val fc = root["friendsChat"]?.jsonObject ?: return FriendsChatSettings.DEFAULT
+            val ranks = FriendChats.RANK_ANYONE..FriendChats.RANK_OWNER
+            val (enter, talk, kick) = listOf("enter", "talk", "kick").map { name ->
+                fc.int(name).also { require(it in ranks) { "Friends chat $name rank $it is out of range" } }
+            }
+            val name = fc["name"]?.jsonPrimitive?.contentOrNull
+            require(name == null || name.length <= FriendLists.MAX_NAME_LENGTH) { "Friends chat name '$name' is too long" }
+            return FriendsChatSettings(name, enter, talk, kick)
+        }
+
+        /** The last trade a save records, or null if it records none or [text] isn't a save. */
+        fun lastTradeIn(text: String): String? = try {
+            Json.parseToJsonElement(text).jsonObject["lastTrade"]?.jsonPrimitive?.contentOrNull
+        } catch (_: Exception) {
+            null
+        }
+
+        /** The username a save was written for, or null if [text] isn't a save that names one. */
+        fun usernameIn(text: String): String? = try {
+            Json.parseToJsonElement(text).jsonObject["username"]?.jsonPrimitive?.contentOrNull
+        } catch (_: Exception) {
+            null
         }
 
         private fun JsonObject.int(key: String): Int = getValue(key).jsonPrimitive.int
+
+        private fun JsonObject.long(key: String): Long = getValue(key).jsonPrimitive.long
+
+        private fun offerType(entry: JsonObject): OfferType {
+            val name = entry.getValue("type").jsonPrimitive.content
+            return OfferType.entries.firstOrNull { it.name.lowercase() == name } ?: throw IllegalArgumentException("No offer type '$name'")
+        }
 
         private fun JsonArrayBuilder.putObjs(objs: Map<Int, InvObj>) {
             for ((slot, obj) in objs.toSortedMap()) {

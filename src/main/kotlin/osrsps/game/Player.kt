@@ -17,6 +17,8 @@ class Player(
     var z: Int,
     var level: Int,
     varTypes: VarTypes = VarTypes.NONE,
+    /** The server's XP rate ([World.xpRate]); 1x for players tests make on their own. */
+    xpRate: XpRate = XpRate(),
 ) {
     lateinit var session: Session<Player>
 
@@ -115,6 +117,9 @@ class Player(
     /** The tick the lost connection was noticed on, or -1 while connected. */
     var connectionLostTick: Long = -1
 
+    /** Interface components (parent to component) closed while the connection was lost; see [Interfaces.resendClosesWhileAway]. */
+    val closedWhileAway = LinkedHashSet<Pair<Int, Int>>()
+
     /** Turning points of the current route, next one first. */
     val waypoints = ArrayDeque<Tile>()
 
@@ -155,7 +160,7 @@ class Player(
             vars[World.VARP_RUN] = if (value) 1 else 0
         }
 
-    val skills = PlayerSkills()
+    val skills = PlayerSkills(xpRate)
 
     /** The 28-slot inventory, inv 93. Changes are sent at the end of the cycle. */
     val inventory = Inventory(Inventory.INV, Inventory.INV_CAPACITY)
@@ -175,8 +180,42 @@ class Player(
     /** What the player's charged items hold, such as a blowpipe's darts and scales; see [Charges]. */
     val charges = Charges()
 
+    /** Grand Exchange offers and buy limits; see [osrsps.game.ge.GrandExchange]. */
+    val ge = osrsps.game.ge.GeAccount()
+
+    /** What the client was last sent of [ge]. Not saved. */
+    val geSent = osrsps.game.ge.GeSent()
+    val geSetup = osrsps.game.ge.GeSetup()
+
+    /** The items in the Grand Exchange guide prices screen, out of the inventory while it is open; see [osrsps.game.ge.PriceChecker]. */
+    val priceChecker = Inventory(osrsps.game.ge.PriceChecker.INV, Inventory.INV_CAPACITY)
+
+    /** Whether the guide prices screen's item search is open, waiting on resume_p_objdialog. */
+    var priceCheckSearching = false
+
     /** The chatbox's public, private and trade filters, as the client last set them. Saved. */
     var chatFilters: ChatFilters = ChatFilters.DEFAULT
+
+    /** The friends list's display names, oldest first; see [osrsps.game.social.FriendLists]. Saved. */
+    val friends = ArrayList<String>()
+
+    /** The ignore list's display names, oldest first; see [osrsps.game.social.IgnoreLists]. Saved. */
+    val ignores = ArrayList<String>()
+
+    /** The trade this player is in, null when none; see [osrsps.game.trade.Trades]. Not saved. */
+    var trade: osrsps.game.trade.Trade? = null
+
+    /** The id of the last trade this player completed; see [osrsps.game.trade.TradeJournal]. Saved. */
+    var lastTrade: String? = null
+
+    /** This player's own friends chat channel; see [osrsps.game.social.FriendChats]. Saved. */
+    var friendsChat = osrsps.game.social.FriendsChatSettings.DEFAULT
+
+    /** The owner of the friends chat channel this player is in, kept over a logout to join again at login. Saved. */
+    var friendsChatOwner: String? = null
+
+    /** Who this player last asked to trade, while the request stands; see [osrsps.game.trade.Trades]. Not saved. */
+    var tradeRequestTo: Player? = null
 
     /** The `::scenario` the player last started, null when they aren't in one. Saved. */
     var scenario: String? = null
@@ -220,6 +259,22 @@ class Player(
     /** Ticks to the next poison hit or immunity step, -1 while the poison varp is 0; see [osrsps.game.combat.Poison]. Not saved. */
     var poisonTicks: Int = -1
 
+    /** The first tick they aren't stunned on; see [osrsps.game.combat.StatusEffects]. Not saved. */
+    var stunnedUntil: Long = 0
+
+    /** Ticks since special attack energy last came back; see [osrsps.game.combat.SpecialAttacks]. Not saved: a login starts it again. */
+    var specRegenTicks: Int = 0
+
+    /**
+     * No attack starts before this tick, whatever sets the attack delay meanwhile, auto retaliate included: leaving
+     * Dinh's bulwark's Block. Not saved.
+     */
+    var attackLockedUntil: Long = 0
+
+    /** The weapon worn, by obj id (-1 for none), and the tick it was wielded on, for Dinh's bulwark's Block. Not saved. */
+    var weaponId: Int = -1
+    var weaponSince: Long = 0
+
     /** The NPC that hit them last, and the tick it did; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
@@ -232,6 +287,9 @@ class Player(
 
     /** `::sure`: their attacks on NPCs always pass the accuracy roll, which is still drawn. Not saved. */
     var sureHits: Boolean = false
+
+    /** `::sure max`: as [sureHits], and their melee hits deal their max hit, the damage roll still drawn. Not saved. */
+    var sureMaxHits: Boolean = false
 
     /** The tick they died on, -1 while alive: they lie dead, taking no input, until [osrsps.game.combat.Deaths] respawns them. Not saved. */
     var deathTick: Long = -1

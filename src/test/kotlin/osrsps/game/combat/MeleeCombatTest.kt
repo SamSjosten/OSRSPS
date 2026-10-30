@@ -36,7 +36,8 @@ class MeleeCombatTest {
     private val man = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", "Pickpocket", null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
     private val hans = NpcType(3105, "Hans", ops = listOf("Talk-to", null, "Attack", null, null), internalName = "hans")
     private val rat = NpcType(2854, "Rat", ops = listOf(null, "Attack", null, null, null), combatLevel = 1, internalName = "rat", stats = NpcStats(hitpoints = 2))
-    private val npcTypes = NpcTypes.of(man, hans, rat)
+    private val spider = NpcType(3019, "Poison spider", ops = listOf(null, "Attack", null, null, null), combatLevel = 64, internalName = "poison_spider", stats = NpcStats(hitpoints = 64))
+    private val npcTypes = NpcTypes.of(man, hans, rat, spider)
     private val shortbow = ObjType(841, "Shortbow", wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, params = mapOf(14 to 5), internalName = "shortbow", category = 64)
     private val styles = AttackStyles.fromRows(
         listOf(
@@ -55,7 +56,11 @@ class MeleeCombatTest {
             "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" },
             { "npcs": ["rat"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
             "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
-            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 2, "source": "test" } ] }""",
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 2, "source": "test" },
+            { "npcs": ["poison_spider"], "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+            "poison": 6,
+            "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" } ] }""",
         npcTypes, SeqNames(mapOf("punch" to 422, "block" to 424, "death" to 836)),
     )
     private val map = CollisionMap().apply { markLoaded(50, 50) }
@@ -70,7 +75,8 @@ class MeleeCombatTest {
     private val respawned = mutableListOf<NpcSpawn>()
     private val deadPlayers = mutableListOf<Player>()
     private val looted = mutableListOf<Pair<Npc, Player?>>()
-    private val combat = Combat(Equipment(ObjTypes.of(shortbow)), styles, npcCombat)
+    private val poisonedDagger = ObjType(5688, "Bronze dagger(p++)", wearpos1 = WearPos.WEAPON, internalName = "bronze_dagger_p++")
+    private val combat = Combat(Equipment(ObjTypes.of(shortbow, poisonedDagger)), styles, npcCombat)
     private lateinit var melee: MeleeCombat
     private val interactions = NpcInteractions(
         npcs, npcTypes, map, movement, handlers, scripts, { tick },
@@ -88,6 +94,8 @@ class MeleeCombatTest {
     private var prayersOffs = 0
     private val sounds = mutableListOf<Int>()
     private val multi = MultiCombat()
+    private val poisonedPlayers = mutableListOf<Pair<Player, Int>>()
+    private val poisonedNpcs = mutableListOf<Pair<Npc, Int>>()
 
     init {
         melee = MeleeCombat(
@@ -102,6 +110,8 @@ class MeleeCombatTest {
             prayersOff = { prayerEffects.clear(); prayersOffs++ },
             sound = { _, id -> sounds += id },
             multi = multi,
+            poisonPlayer = { player, severity -> poisonedPlayers += player to severity },
+            poisonNpc = { npc, severity -> poisonedNpcs += npc to severity },
         )
     }
 
@@ -387,6 +397,56 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `a monster whose attacks poison poisons at five times its starting damage, through a protection prayer too`() {
+        protectFromMelee = true
+        alice.god = true
+        val npc = spawn(spider)
+        attack(alice, npc)
+        // It strikes every 4 ticks, and one strike in four poisons.
+        repeat(160) { tick() }
+        assertTrue(poisonedPlayers.size in 3..20, "poisoned ${poisonedPlayers.size} times in about 40 strikes")
+        assertTrue(poisonedPlayers.all { it == alice to 30 })
+    }
+
+    @Test
+    fun `a (p++) dagger's damaging hits poison at 30 about one time in four, and an unpoisoned weapon's never`() {
+        alice.god = true
+        alice.sureHits = true
+        val npc = spawn(spider)
+        attack(alice, npc)
+        repeat(160) { tick() }
+        assertTrue(poisonedNpcs.isEmpty(), "punches don't poison")
+        alice.equipment[WearPos.WEAPON] = InvObj(poisonedDagger.id, 1)
+        repeat(160) { tick() }
+        assertTrue(poisonedNpcs.size in 3..20, "poisoned ${poisonedNpcs.size} times in about 40 hits")
+        assertTrue(poisonedNpcs.all { it == npc to 30 })
+    }
+
+    @Test
+    fun `a poison kill's drops go to whoever hit the NPC last, even once it has given up on them`() {
+        val npc = spawn()
+        tick = 10
+        melee.hit(npc, alice, 1, tick)
+        // She walks off out of its reach; it gives up and the fight is over for it.
+        alice.x += 40
+        var ticks = 0
+        while (npc.attacker != null && ticks++ < 200) tick()
+        assertNull(npc.attacker, "the man gave up on her")
+        melee.statusHit(npc, 100, Poison.POISON_HITSPLAT)
+        repeat(5) { tick() }
+        assertEquals(listOf<Pair<Npc, Player?>>(npc to alice), looted)
+    }
+
+    @Test
+    fun `an NPC whose attacks don't poison never poisons`() {
+        alice.god = true
+        val npc = spawn()
+        attack(alice, npc)
+        repeat(80) { tick() }
+        assertTrue(poisonedPlayers.isEmpty())
+    }
+
+    @Test
     fun `a protection prayer blocks the NPC's hits, and the dice roll on as they would have`() {
         protectFromMelee = true
         val npc = spawn()
@@ -429,6 +489,19 @@ class MeleeCombatTest {
         assertEquals(9L, alice.nextAttackTick)
         tick()
         assertEquals(1, npc.effects.pendingHits.size)
+    }
+
+    @Test
+    fun `a retaliation doesn't shorten the wait after leaving the bulwark's Block`() {
+        val npc = spawn()
+        attack(alice, npc)
+        tick()
+        alice.interaction = null
+        // Off Block on tick 1: no attack before tick 9, though the man's hit on tick 3 would have her swing on 5.
+        alice.attackLockedUntil = 9
+        repeat(2) { tick() }
+        assertIs<MeleeInteraction>(alice.interaction)
+        assertEquals(9L, alice.nextAttackTick)
     }
 
     @Test

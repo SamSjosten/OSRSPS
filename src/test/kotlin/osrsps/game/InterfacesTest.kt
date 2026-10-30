@@ -32,11 +32,14 @@ class InterfacesTest {
     fun `fixed mode opens every overlay into the fixed top-level`() {
         interfaces.openGameFrame(player(GameFrame.FIXED))
         assertEquals(IfOpenTop(548), sent.first())
-        val subs = sentOf<IfOpenSub>().filter { it.destinationInterfaceId != JournalTab.SIDE_JOURNAL }
+        val inside = setOf(JournalTab.SIDE_JOURNAL, osrsps.game.social.FriendChats.SIDE_CHANNELS)
+        val subs = sentOf<IfOpenSub>().filter { it.destinationInterfaceId !in inside }
         assertEquals(GameFrame.overlays.size, subs.size)
         assertTrue(subs.all { it.destinationInterfaceId == 548 })
         // With no tab remembered, the quest tab shows the character summary.
         assertTrue(IfOpenSub(629, 43, 712, Interfaces.OVERLAY) in sent)
+        // And the Chat-channel tab the friends chat panel.
+        assertTrue(IfOpenSub(707, 7, 7, Interfaces.OVERLAY) in sent)
         // The inventory goes into side3, which is component 84 in fixed and 79 in resizable classic.
         assertTrue(IfOpenSub(548, 84, 149, Interfaces.OVERLAY) in subs)
         assertTrue(RunClientScript(GameFrame.ZOOM_LIMITS_DEFAULT_SCRIPT, emptyList()) in sent)
@@ -156,5 +159,41 @@ class InterfacesTest {
         sent.clear()
         interfaces.openGameFrame(after)
         assertTrue(IfOpenSub(629, 43, 399, Interfaces.OVERLAY) in sent)
+    }
+
+    @Test
+    fun `a modal replaced by another runs its close hook, once`() {
+        val player = player(GameFrame.FIXED)
+        val closed = mutableListOf<Int>()
+        interfaces.onClose(100) { closed += 100 }
+        interfaces.openModal(player, FrameSlot.MAINMODAL, 100)
+        interfaces.openModal(player, FrameSlot.MAINMODAL, 100)
+        assertEquals(emptyList(), closed)
+        interfaces.openModal(player, FrameSlot.MAINMODAL, 200)
+        assertEquals(listOf(100), closed)
+        interfaces.closeModals(player)
+        assertEquals(listOf(100), closed)
+    }
+
+
+    @Test
+    fun `a close sent while the connection is lost goes again after the reconnect, unless reopened since`() {
+        val player = player(GameFrame.FIXED)
+        interfaces.openModal(player, FrameSlot.MAINMODAL, 335)
+        interfaces.openModal(player, FrameSlot.SIDEMODAL, 336)
+        player.connectionLostTick = 5
+        interfaces.closeModals(player)
+        // The side panel opens again before the client is back, so only the main modal's close goes again.
+        interfaces.openModal(player, FrameSlot.SIDEMODAL, 336)
+        player.connectionLostTick = -1
+        sent.clear()
+        interfaces.resendClosesWhileAway(player)
+        assertEquals(listOf<OutgoingGameMessage>(IfCloseSub(548, player.frame.component(FrameSlot.MAINMODAL))), sent)
+        // Once sent, they don't go again, and closes while connected aren't kept.
+        sent.clear()
+        interfaces.closeModals(player)
+        sent.clear()
+        interfaces.resendClosesWhileAway(player)
+        assertEquals(emptyList(), sent)
     }
 }

@@ -1,7 +1,10 @@
 package osrsps.testrunner;
 
 import java.awt.Canvas;
+import java.awt.Component;
+import java.awt.KeyboardFocusManager;
 import java.awt.Rectangle;
+import java.awt.Window;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -93,20 +96,29 @@ final class ClientGame implements Game
 		InterfaceID.Wornitems.SLOT4, InterfaceID.Wornitems.SLOT5, 0, InterfaceID.Wornitems.SLOT7, 0,
 		InterfaceID.Wornitems.SLOT9, InterfaceID.Wornitems.SLOT10, 0, InterfaceID.Wornitems.SLOT12, InterfaceID.Wornitems.SLOT13,
 	};
+	/** The level-up box (levelup) and its components, as our server's LevelUps sends them. */
+	private static final int LEVEL_UP_TITLE = 233 << 16 | 1;
+	private static final int LEVEL_UP_TEXT = 233 << 16 | 2;
+	private static final int LEVEL_UP_CONTINUE = 233 << 16 | 3;
 	/** How far, in pixels, the mouse may be from a walk's spot: the spot drifts while the camera eases. */
 	private static final int MOUSE_SLACK = 2;
 
 	private final Client client;
+	/** Closes the chatbox prompt that is open: RuneLite's own way, which knows the close script's arguments. */
+	private final Runnable closePrompt;
 	/** The line {@link #sendChat} last put in the chat input, until the client has sent it. */
 	private String chatLine;
 	/** Set on the Swing thread once the Enter key events for {@link #chatLine} have gone to the canvas. */
 	private volatile boolean enterDelivered;
+	/** False from typeText until the Swing thread has sent its key events. */
+	private volatile boolean typingDelivered = true;
 	/** Walk calls in a row that found the mouse on the walk's spot. */
 	private int mouseFrames;
 
-	ClientGame(Client client)
+	ClientGame(Client client, Runnable closePrompt)
 	{
 		this.client = client;
+		this.closePrompt = closePrompt;
 	}
 
 	@Override
@@ -173,10 +185,46 @@ final class ClientGame implements Game
 			return "the client has no canvas";
 		}
 		// A 0.5.0 run left "::combat man" in the input after a 30-tick wait, the Enter never taken, while the same
-		// run's earlier commands went fine. Whether the canvas had lost keyboard focus is unknown; the note says.
-		boolean focused = canvas.isFocusOwner();
+		// run's earlier commands went fine. Two nightly runs (30 Oct 2026) had every command stay until the client
+		// restarted. The cause is unknown; the note says what the client looked like.
+		List<String> note = new ArrayList<>();
+		if (!enterDelivered)
+		{
+			note.add("the Swing thread had not sent the last Enter yet");
+		}
+		if (canvas.isFocusOwner())
+		{
+			note.add("the canvas has keyboard focus");
+		}
+		else
+		{
+			Component owner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+			note.add("the canvas had no keyboard focus, asked for it (focus on "
+				+ (owner == null ? "nothing in this client" : owner.getClass().getSimpleName()) + ")");
+		}
+		if (!canvas.isShowing() || !canvas.isEnabled() || !canvas.isFocusable())
+		{
+			note.add("the canvas is " + (canvas.isShowing() ? "" : "not showing, ") + (canvas.isEnabled() ? "" : "disabled, ")
+				+ (canvas.isFocusable() ? "focusable" : "not focusable"));
+		}
+		Window window = SwingUtilities.getWindowAncestor(canvas);
+		if (window != null && !window.isActive())
+		{
+			note.add("the window is not active");
+		}
+		int mode = client.getVarcIntValue(VarClientID.MESLAYERMODE);
+		if (mode != 0)
+		{
+			note.add("a chatbox prompt is open, meslayermode " + mode);
+		}
 		pressEnter(canvas);
-		return focused ? "the canvas has keyboard focus" : "the canvas had no keyboard focus, asked for it";
+		return String.join("; ", note);
+	}
+
+	@Override
+	public void closePrompt()
+	{
+		closePrompt.run();
 	}
 
 	/** Sends the Enter key to the canvas on the Swing thread, as a key press does, taking keyboard focus first. */
@@ -332,6 +380,54 @@ final class ClientGame implements Game
 			client.getCameraFpX(), client.getCameraFpY(), client.getCameraFpZ(),
 			client.getCameraFocalPointX(), client.getCameraFocalPointY(),
 			here == null ? "none" : here.getX() + "," + here.getY(), target.getX(), target.getY());
+	}
+
+	/** The menu actions of the eight options on other players, op 1 to 8. */
+	private static final MenuAction[] PLAYER_OPTIONS = {
+		MenuAction.PLAYER_FIRST_OPTION, MenuAction.PLAYER_SECOND_OPTION, MenuAction.PLAYER_THIRD_OPTION,
+		MenuAction.PLAYER_FOURTH_OPTION, MenuAction.PLAYER_FIFTH_OPTION, MenuAction.PLAYER_SIXTH_OPTION,
+		MenuAction.PLAYER_SEVENTH_OPTION, MenuAction.PLAYER_EIGHTH_OPTION,
+	};
+
+	@Override
+	public String playerOption(String name, String option, osrsps.testrunner.Tile at)
+	{
+		Player me = client.getLocalPlayer();
+		if (me == null)
+		{
+			return "no local player";
+		}
+		Player target = null;
+		for (Player p : client.getTopLevelWorldView().players())
+		{
+			if (p != null && p != me && p.getName() != null
+				&& net.runelite.client.util.Text.toJagexName(p.getName()).equalsIgnoreCase(net.runelite.client.util.Text.toJagexName(name)))
+			{
+				target = p;
+			}
+		}
+		if (target == null)
+		{
+			return "no player \"" + name + "\" in view";
+		}
+		if (at != null)
+		{
+			net.runelite.api.coords.WorldPoint where = target.getWorldLocation();
+			if (where.getX() != at.x || where.getY() != at.y)
+			{
+				return name + " is on " + where.getX() + ", " + where.getY() + ", not " + at.x + ", " + at.y;
+			}
+		}
+		String[] options = client.getPlayerOptions();
+		for (int i = 0; options != null && i < options.length && i < PLAYER_OPTIONS.length; i++)
+		{
+			if (options[i] != null && net.runelite.client.util.Text.removeTags(options[i]).equalsIgnoreCase(option))
+			{
+				client.menuAction(0, 0, PLAYER_OPTIONS[i], target.getId(), -1, options[i], target.getName());
+				return null;
+			}
+		}
+		return "players have no option \"" + option + "\"";
 	}
 
 	@Override
@@ -891,6 +987,42 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String typeText(String text)
+	{
+		Canvas canvas = client.getCanvas();
+		if (canvas == null)
+		{
+			return "the client has no canvas";
+		}
+		// The client queues each press and each typed character for the interfaces' onkey scripts (searchbar_keypress
+		// reads the character), so every character gets the press, typed and release a real key makes.
+		typingDelivered = false;
+		SwingUtilities.invokeLater(() ->
+		{
+			if (!canvas.isFocusOwner())
+			{
+				canvas.requestFocusInWindow();
+			}
+			long now = System.currentTimeMillis();
+			for (char c : text.toCharArray())
+			{
+				int code = KeyEvent.getExtendedKeyCodeForChar(c);
+				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_PRESSED, now, 0, code, c));
+				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_TYPED, now, 0, KeyEvent.VK_UNDEFINED, c));
+				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_RELEASED, now, 0, code, c));
+			}
+			typingDelivered = true;
+		});
+		return null;
+	}
+
+	@Override
+	public boolean typingPending()
+	{
+		return !typingDelivered;
+	}
+
+	@Override
 	public int skillLevel(String skill)
 	{
 		Skill s = skill(skill);
@@ -978,6 +1110,13 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public Dialogue levelUp()
+	{
+		Widget text = visible(LEVEL_UP_TEXT);
+		return text == null ? null : new Dialogue(Dialogue.Kind.LEVEL_UP, widgetText(LEVEL_UP_TITLE), Dialogue.clean(text.getText()), null);
+	}
+
+	@Override
 	public String continueDialogue()
 	{
 		int component;
@@ -1004,6 +1143,10 @@ final class ClientGame implements Game
 		{
 			// Two items beside the text: its continue is a pausebutton of its own, as our server's Chatbox.OBJECTBOX_DOUBLE.
 			component = InterfaceID.ObjectboxDouble.PAUSEBUTTON;
+		}
+		else if (visible(LEVEL_UP_TEXT) != null)
+		{
+			component = LEVEL_UP_CONTINUE;
 		}
 		else
 		{
@@ -1121,6 +1264,82 @@ final class ClientGame implements Game
 		client.menuAction(slot, InterfaceID.Inventory.ITEMS, MenuAction.WIDGET_TARGET, 0, items[slot].getId(), "Use", itemName);
 		client.menuAction(onSlot, InterfaceID.Inventory.ITEMS, MenuAction.WIDGET_TARGET_ON_WIDGET, 0, items[onSlot].getId(), "Use",
 			itemName + " -> " + onItemName);
+		return null;
+	}
+
+	@Override
+	public String useItemOnLoc(String name, int id, String locName, int locId, osrsps.testrunner.Tile at)
+	{
+		ItemContainer inventory = client.getItemContainer(InventoryID.INV);
+		if (inventory == null)
+		{
+			return "no inventory yet";
+		}
+		Item[] items = inventory.getItems();
+		int slot = inventorySlot(items, name, id, -1);
+		if (slot < 0)
+		{
+			return "no " + (name != null ? "\"" + name + "\"" : "item " + id) + " in the inventory";
+		}
+		if (client.getWidget(InterfaceID.Inventory.ITEMS) == null)
+		{
+			return "the inventory panel is not open";
+		}
+		Player me = client.getLocalPlayer();
+		if (me == null)
+		{
+			return "no local player";
+		}
+		WorldView wv = client.getTopLevelWorldView();
+		LocalPoint target = at == null ? null : LocalPoint.fromWorld(wv, at.x, at.y);
+		if (at != null && target == null)
+		{
+			return "tile " + at.x + ", " + at.y + " is not in the loaded scene";
+		}
+		// As locOption finds a loc, without an option to match: the nearest one.
+		WorldPoint here = me.getWorldLocation();
+		TileObject best = null;
+		int bestDistance = Integer.MAX_VALUE;
+		for (net.runelite.api.Tile[] column : wv.getScene().getTiles()[wv.getPlane()])
+		{
+			for (net.runelite.api.Tile tile : column)
+			{
+				if (tile == null)
+				{
+					continue;
+				}
+				List<TileObject> objects = new ArrayList<>(Arrays.asList(tile.getGameObjects()));
+				objects.add(tile.getWallObject());
+				objects.add(tile.getDecorativeObject());
+				objects.add(tile.getGroundObject());
+				for (TileObject o : objects)
+				{
+					if (o == null || !locMatches(o, locName, locId) || (target != null && !covers(o, tile, target)))
+					{
+						continue;
+					}
+					int d = o.getWorldLocation().distanceTo(here);
+					if (d < bestDistance)
+					{
+						best = o;
+						bestDistance = d;
+					}
+				}
+			}
+		}
+		if (best == null)
+		{
+			return "no loc " + (locName != null ? "\"" + locName + "\"" : "id " + locId) + (at == null ? "" : " at " + at.x + ", " + at.y)
+				+ " in the scene";
+		}
+		String itemName = client.getItemDefinition(items[slot].getId()).getName();
+		ObjectComposition c = locComposition(best.getId());
+		Point p = best instanceof GameObject ? ((GameObject) best).getSceneMinLocation() : sceneTile(best);
+		// Use on the slot selects it; the click on the loc sends OPLOCT with the item, as useItemOnItem's second click
+		// sends IF_BUTTONT. Not yet seen in the client: whether these params are what a real click on the loc gives.
+		client.menuAction(slot, InterfaceID.Inventory.ITEMS, MenuAction.WIDGET_TARGET, 0, items[slot].getId(), "Use", itemName);
+		client.menuAction(p.getX(), p.getY(), MenuAction.WIDGET_TARGET_ON_GAME_OBJECT, best.getId(), -1, "Use",
+			itemName + " -> " + (c == null ? "" : c.getName()));
 		return null;
 	}
 
@@ -1341,6 +1560,115 @@ final class ClientGame implements Game
 			return "the logout tab is not open";
 		}
 		client.menuAction(-1, InterfaceID.Logout.LOGOUT, MenuAction.CC_OP, 1, -1, "Logout", "");
+		return null;
+	}
+
+	/** friends:list_container and friends:loading, the Friends tab's list and the line shown over it while empty. */
+	private static final int FRIENDS_TAB = 429;
+	private static final int FRIENDS_LIST_CONTAINER = 5;
+	private static final int FRIENDS_LOADING = 13;
+
+	/**
+	 * Whether the client is still waiting for the friends list. The container exists before the list arrives, so it
+	 * can't tell; the Friends tab can: friend_update hides the list and puts its loading line in friends:loading
+	 * while friend_count is below 0, and a different line once an empty list has arrived. The tab must have been
+	 * built (it is at login); until then this says loading.
+	 */
+	private boolean friendsLoading()
+	{
+		Widget list = client.getWidget(FRIENDS_TAB << 16 | FRIENDS_LIST_CONTAINER);
+		Widget line = client.getWidget(FRIENDS_TAB << 16 | FRIENDS_LOADING);
+		if (list == null || line == null)
+		{
+			return true;
+		}
+		if (!list.isHidden())
+		{
+			return false;
+		}
+		String text = line.getText();
+		return text == null || text.isEmpty() || text.startsWith("Loading");
+	}
+
+	@Override
+	public java.util.Map<String, Integer> friends()
+	{
+		net.runelite.api.NameableContainer<net.runelite.api.Friend> container = client.getFriendContainer();
+		if (!loggedIn() || container == null || friendsLoading())
+		{
+			return null;
+		}
+		java.util.Map<String, Integer> friends = new java.util.LinkedHashMap<>();
+		for (net.runelite.api.Friend friend : container.getMembers())
+		{
+			if (friend != null && friend.getName() != null)
+			{
+				friends.put(net.runelite.client.util.Text.toJagexName(friend.getName()), friend.getWorld());
+			}
+		}
+		return friends;
+	}
+
+	@Override
+	public String friendsChatOwner()
+	{
+		net.runelite.api.FriendsChatManager chat = client.getFriendsChatManager();
+		if (!loggedIn() || chat == null || chat.getOwner() == null)
+		{
+			return null;
+		}
+		return net.runelite.client.util.Text.toJagexName(chat.getOwner());
+	}
+
+	@Override
+	public java.util.List<String> friendsChatMembers()
+	{
+		java.util.List<String> names = new java.util.ArrayList<>();
+		net.runelite.api.FriendsChatManager chat = client.getFriendsChatManager();
+		if (!loggedIn() || chat == null)
+		{
+			return names;
+		}
+		for (net.runelite.api.FriendsChatMember member : chat.getMembers())
+		{
+			if (member != null && member.getName() != null)
+			{
+				names.add(net.runelite.client.util.Text.toJagexName(member.getName()));
+			}
+		}
+		return names;
+	}
+
+	@Override
+	public java.util.List<String> ignores()
+	{
+		net.runelite.api.NameableContainer<net.runelite.api.Ignore> container = client.getIgnoreContainer();
+		if (!loggedIn() || container == null)
+		{
+			return null;
+		}
+		java.util.List<String> names = new java.util.ArrayList<>();
+		for (net.runelite.api.Ignore ignore : container.getMembers())
+		{
+			if (ignore != null && ignore.getName() != null)
+			{
+				names.add(net.runelite.client.util.Text.toJagexName(ignore.getName()));
+			}
+		}
+		return names;
+	}
+
+	@Override
+	public String enterText(String text)
+	{
+		Canvas canvas = client.getCanvas();
+		if (canvas == null)
+		{
+			return "the client has no canvas";
+		}
+		// As enterAmount: meslayer_enter reads this varc and acts on the prompt's mode (friend_add for mode 2).
+		client.setVarcStrValue(VarClientID.MESLAYERINPUT, text);
+		pressEnter(canvas);
 		return null;
 	}
 }

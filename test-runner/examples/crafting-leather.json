@@ -1,0 +1,39 @@
+{
+ "name": "Artisan step 4: at 99, a needle on leather opens the Make-X box and makes two pairs of leather gloves with one thread, then steel studs on a leather body; green d'hide chaps at level 1 need 60 (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel crafting 99", "expectMessage": "Crafting set to level 99"},
+  {"step": "command", "text": "::item 1733", "expectMessage": "Added 1 x Needle"},
+  {"step": "command", "text": "::item 1734 1", "expectMessage": "Added 1 x Thread"},
+  {"step": "command", "text": "::item 1741 2", "expectMessage": "Added 2 x Leather"},
+
+  {"step": "useItemOnItem", "item": "Needle", "onItem": "Leather"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti: gloves, boots, cowl, vambraces, body, chaps, coif"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "leather gloves; the box suggests both"},
+  {"step": "assertAnimation", "id": 1249, "comment": "human_leather_crafting"},
+  {"step": "assertInventory", "item": "Leather gloves", "count": 2, "timeoutMs": 10000, "comment": "2 ticks, then 3"},
+  {"step": "assertInventory", "item": "Thread", "count": 1, "comment": "two of the thread's five uses"},
+  {"step": "assertMessage", "contains": "crafting.leather"},
+
+  {"step": "command", "text": "::item 2370", "expectMessage": "Added 1 x Steel studs"},
+  {"step": "command", "text": "::item 1129", "expectMessage": "Added 1 x Leather body"},
+  {"step": "useItemOnItem", "item": "Steel studs", "onItem": "Leather body"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Studded body", "count": 1, "timeoutMs": 10000},
+  {"step": "assertStat", "skill": "Crafting", "level": 99, "xp": 13034498, "comment": "13.8 x 2 + 40 = 67.6 XP"},
+
+  {"step": "command", "text": "::setlevel crafting 1", "expectMessage": "Crafting set to level 1"},
+  {"step": "command", "text": "::item 1745 2", "expectMessage": "Added 2 x Green dragon leather"},
+  {"step": "useItemOnItem", "item": "Needle", "onItem": "Green dragon leather"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 16, "comment": "green d'hide chaps"},
+  {"step": "assertMessage", "contains": "crafting.level level=60"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

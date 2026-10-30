@@ -43,7 +43,19 @@ class RangedWeaponsTest {
     fun `the file lists every bow, crossbow and ammunition it names`() {
         assertEquals(names.size, weapons.weaponCount + weapons.ammoCount)
         assertEquals(33, weapons.weaponCount)
-        assertEquals(25, weapons.ammoCount)
+        // 25 kinds, and (p), (p+) and (p++) of each arrow and bolt.
+        assertEquals(25 + 16 * 3, weapons.ammoCount)
+    }
+
+    @Test
+    fun `poisoned arrows and bolts fire from what fires their plain ones`() {
+        assertTrue(fires("shortbow", "iron_arrow_p++"))
+        assertFalse(fires("shortbow", "steel_arrow_p"))
+        assertTrue(fires("darkbow", "dragon_arrow_p+"))
+        assertTrue(fires("crossbow", "poison_bolt"))
+        assertTrue(fires("xbows_crossbow_runite", "xbows_crossbow_bolts_runite_poisoned++"))
+        assertFalse(fires("xbows_crossbow_runite", "dragon_bolts_p"))
+        assertTrue(fires("acb", "dragon_bolts_p++"))
     }
 
     @Test

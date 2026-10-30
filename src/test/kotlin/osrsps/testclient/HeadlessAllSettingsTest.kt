@@ -120,17 +120,36 @@ class HeadlessAllSettingsTest {
                 client.awaitBits(MOBILE_OPTIONS_TRANSMIT, 16, 4, 0)
 
                 // Searching numbers every row of every category that isn't blocked: Activities 0-3, Chat 4-6, Leagues 7.
+                // The server's copy of settings_tracking keeps searchbar_op's keyboard bit (1) on as well as the search
+                // (0): the client takes the whole varp, and searchbar_keypress drops every key while bit 1 is off.
                 client.ifButton(INTERFACE, SEARCH, 1)
-                client.awaitBits(VARP_SETTINGS_TRACKING, 0, 1, 1)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 0, 2, 3)
                 client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 6)
                 client.await("the profanity filter back on") { Unit.takeIf { client.varp(VARP_CHATFILTER_DISABLED) == 0 } }
                 client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 0)
                 client.awaitBits(SETTINGS_VARP_2, 31, 1, 1)
                 // The Leagues row is only for league worlds.
                 client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 7)
+                // settings_tab_op ends the search and clears the category and selected setting, and leaves bit 1 alone.
+                // The chat gets its keys back, which searchbar_op took.
                 client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 0)
-                client.awaitBits(VARP_SETTINGS_TRACKING, 0, 18, 0)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 0, 1, 0)
+                client.await("chatdefault_restoreinput") {
+                    client.clientScripts().count { it.id == AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT }.takeIf { it == 1 }
+                }
+                client.awaitBits(VARP_SETTINGS_TRACKING, 4, 14, 0)
+                assertEquals(1, (client.varp(VARP_SETTINGS_TRACKING) ushr 1) and 1)
                 assertEquals(0, client.varp(LEAGUE_VARP))
+
+                // A window closed mid-search gives the chat its keys back, and opens on its category again, so its
+                // Search op is back.
+                client.ifButton(INTERFACE, SEARCH, 1)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 0, 1, 1)
+                client.ifButton(INTERFACE, CLOSE, 1)
+                client.await("the window closed") { Unit.takeIf { INTERFACE !in client.openInterfaces() } }
+                assertEquals(2, client.clientScripts().count { it.id == AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT })
+                open(client)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 0, 1, 0)
             }
         }
     }

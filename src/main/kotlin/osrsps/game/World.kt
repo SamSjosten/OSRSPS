@@ -38,6 +38,7 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerIpCommands
+import osrsps.game.command.registerGrandExchangeCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerLocCommands
 import osrsps.game.command.registerNpcCommands
@@ -45,6 +46,8 @@ import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
+import osrsps.game.command.registerSocialCommands
+import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
@@ -52,11 +55,13 @@ import osrsps.game.bank.Bank
 import osrsps.game.bank.BankPinSettings
 import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
+import osrsps.game.bank.setVarbitIfKnown
 import osrsps.game.shop.ShopScreen
 import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.Deaths
+import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.MagicCombat
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MultiCombat
@@ -65,12 +70,15 @@ import osrsps.game.combat.Prayer
 import osrsps.game.combat.Food
 import osrsps.game.combat.Foods
 import osrsps.game.combat.Poison
+import osrsps.game.combat.StatusEffects
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
+import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
 import osrsps.game.content.DialogueLines
@@ -78,7 +86,9 @@ import osrsps.game.content.Examines
 import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerCandleSeller
+import osrsps.game.content.registerChurch
 import osrsps.game.content.registerFatherUrhney
+import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
@@ -88,6 +98,10 @@ import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
+import osrsps.game.content.registerAlKharid
+import osrsps.game.content.registerDraynorVillage
+import osrsps.game.content.registerAxeLogs
+import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -95,7 +109,11 @@ import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
+import osrsps.game.ge.GrandExchange
+import osrsps.game.ge.GrandExchangeScreen
+import osrsps.game.ge.PriceChecker
 import osrsps.game.loc.Doors
+import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.Locs
@@ -112,14 +130,28 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Making
 import osrsps.game.skill.Cooking
+import osrsps.game.skill.Crafting
+import osrsps.game.skill.CraftingData
 import osrsps.game.skill.Fishing
+import osrsps.game.skill.Fletching
+import osrsps.game.skill.FletchingData
+import osrsps.game.skill.Herblore
+import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
+import osrsps.game.social.FriendChats
+import osrsps.game.social.FriendsChatLines
+import osrsps.game.social.FriendLists
+import osrsps.game.social.IgnoreLists
+import osrsps.game.social.PrivateMessages
+import osrsps.game.trade.TradeJournal
+import osrsps.game.trade.Trades
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
@@ -198,8 +230,12 @@ class World(
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
     val ipBans: IpBans = IpBans(),
+    /** The server-wide XP multiplier every player's XP drops are multiplied by; see [XpRate]. */
+    val xpRate: XpRate = XpRate(),
     /** The All Settings window's settings, from the cache; tests that click them pass their own. */
     settings: SettingsCatalog = SettingsCatalog.NONE,
+    /** Each weapon's special attack cost, by obj id, from the cache's enum 906 ([SpecialAttacks]); tests that spec pass their own. */
+    specialAttackCosts: Map<Int, Int> = emptyMap(),
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -221,6 +257,9 @@ class World(
     val locs = Locs(locTypes, staticLocs, collision, zones) { tick }
 
     val doors = Doors(locs)
+
+    /** Fence gates, both leaves at once; see [Gates]. */
+    val gates = Gates(locs)
 
     val npcs = Npcs(collision, random)
 
@@ -291,6 +330,37 @@ class World(
     private val settingsSide = SettingsSide()
     private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
 
+    /** Grand Exchange offers; see [GrandExchange]. */
+    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
+
+    /** The Grand Exchange's offers screen; see [GrandExchangeScreen]. */
+    val grandExchangeScreen = GrandExchangeScreen(
+        grandExchange, interfaces::openModal, scripts,
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        words = ::textFor,
+        toBank = ::bankItems,
+        closeModals = interfaces::closeModals,
+    )
+
+    /** The Grand Exchange guide prices screen; see [PriceChecker]. */
+    val priceChecker = PriceChecker(
+        grandExchange, objTypes, interfaces::openModal, interfaces::closeModals, scripts,
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        words = ::textFor,
+        drop = { player, type, count -> dropUnder(player, type, count) },
+    )
+
+    /** Puts [count] of [id] into [player]'s bank as a deposit would, a note as its item; returns how many went in. */
+    private fun bankItems(player: Player, id: Int, count: Int): Int {
+        val from = Inventory(-1, 1)
+        from[0] = InvObj(id, count)
+        return when (val deposit = bank.deposit(player.bank, bankScreen.tabs(player), from, 0, count)) {
+            is Bank.Deposit.Done -> deposit.count
+            is Bank.Deposit.Partly -> deposit.count
+            else -> 0
+        }
+    }
+
     /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
 
@@ -300,7 +370,7 @@ class World(
 
     private val follows = Follows(movement, { players[it.index] === it })
 
-    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, words = ::textFor)
+    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor)
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
@@ -323,6 +393,10 @@ class World(
         multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
         words = ::textFor,
         npcDied = { npcScripts.died(it) },
+        poisonNpc = { npc, severity -> poison.poison(npc, severity) }, envenomNpc = { poison.envenom(it) },
+        poisonPlayer = { player, severity -> poison.poison(player, severity) },
+        special = { specialAttacks.use(it, combat.weapon(it)) },
+        specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -354,7 +428,11 @@ class World(
         closeModals = interfaces::closeModals, setVarbitNow = interfaces::setVarbitNow, cancelScripts = scripts::clearAll,
         prayersOff = prayers::deactivateAll, protectItem = { prayers.has(it, Prayers.PROTECT_ITEM) },
         examine = inventoryTab::examine, value = { this.itemPrices.deathValue(it) },
-        words = ::textFor, cure = { poison.clear(it) },
+        words = ::textFor, cure = {
+            poison.clear(it)
+            statusEffects.clear(it)
+            specialAttacks.refill(it)
+        },
     )
 
     /** The words of every dialogue line now; see [loadDialogue]. */
@@ -363,6 +441,34 @@ class World(
 
     /** The words [player] sees: none, so every line shows its key, while they have `::keys` on. */
     fun textFor(player: Player): DialogueText = if (player.showDialogueKeys) DialogueText.NONE else dialogueText
+
+    /** The friends lists; see [FriendLists]. */
+    val friendLists = FriendLists({ onlinePlayers }, ::accountName) { player, line -> player.message(textFor(player)[line]) }
+
+    /** The ignore lists; see [IgnoreLists]. */
+    val ignoreLists = IgnoreLists(::accountName) { player, line -> player.message(textFor(player)[line]) }
+
+    /** Trading between players; see [Trades]. */
+    val trades = Trades(
+        collision, movement, { players[it.index] === it }, ignoreLists, ::textFor, interfaces::openModal, interfaces::closeModals,
+        objTypes = objTypes,
+        price = { itemPrices.price(it) },
+        startScript = { player, script -> if (!player.scripts.delayed) scripts.start(player, script) },
+        examine = { player, type, count -> inventoryTab.examine(player, type, count) },
+        overflow = { player, obj -> objTypes[obj.id]?.let { groundObjs.give(player, it, obj.count) } },
+        setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
+        commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
+    )
+
+    /** Private messages; see [PrivateMessages]. */
+    val friendChats = FriendChats(
+        { onlinePlayers }, ::channelOwner, ignoreLists, ::textFor, { privateMessages.nextCounter() },
+    )
+
+    val privateMessages = PrivateMessages(
+        friendLists, ignoreLists, { onlinePlayers }, { player, line -> player.message(textFor(player)[line]) }, ::sendChatFilters,
+        PrivateMessages.counterStart(java.time.Instant.now()),
+    )
 
     /** Bird nests that fall from trees. */
     val birdNests = BirdNests(this, collision)
@@ -383,6 +489,12 @@ class World(
     val cooking = Cooking(this)
     val smithing = Smithing(this)
 
+    /** The Make-X loop the artisan skills share. */
+    val making = Making(this)
+    val fletching = Fletching(this, FletchingData.load())
+    val crafting = Crafting(this, CraftingData.load())
+    val herblore = Herblore(this, HerbloreData.load())
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -391,9 +503,30 @@ class World(
     val foods = Foods(foodList, words = ::textFor)
 
     /** Poison and venom on players; see [Poison]. */
-    val poison = Poison(hit = { player, damage, hitsplat -> meleeCombat.statusHit(player, damage, hitsplat) }, words = ::textFor)
+    val poison = Poison(
+        hit = { player, damage, hitsplat -> meleeCombat.statusHit(player, damage, hitsplat) }, words = ::textFor,
+        hitNpc = { npc, damage, hitsplat -> meleeCombat.statusHit(npc, damage, hitsplat) }, npcCombat = { combat.npcCombat[it.type] },
+    )
 
     val potions = Potions(potionData, words = ::textFor, poison = poison)
+
+    /** Monsters' drained stats; see [NpcDrains]. */
+    val npcDrains = NpcDrains { combat.npcCombat[it.type] }
+
+    /** The special attack bar and the specials that are in; see [SpecialAttacks]. */
+    val specialAttacks = SpecialAttacks(specialAttackCosts, npcDrains, words = ::textFor)
+
+    /** Stuns on players; see [StatusEffects]. */
+    val statusEffects = StatusEffects(
+        currentTick = { tick },
+        stop = { player ->
+            player.waypoints.clear()
+            player.interaction = null
+            npcInteractions.leave(player)
+            player.session.queue(SetMapFlagV2.RESET)
+        },
+        hit = { player, npc, damage -> meleeCombat.hitPlayer(player, npc, damage, tick) },
+    )
 
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
@@ -403,20 +536,24 @@ class World(
         registerTickCommands(this@World)
         registerVarCommands()
         registerSkillCommands { phase != null }
+        registerXpRateCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
+        registerGrandExchangeCommands(this@World)
         registerGroundObjCommands(this@World)
         registerLocCommands(this@World)
         registerNpcCommands(this@World)
         registerScenarioCommands(this@World)
         registerCombatCommands(this@World)
         registerIpCommands(this@World)
+        registerSocialCommands(this@World)
     }
 
     init {
+        replayTradeJournal()
         deaths.register(handlers)
         rangedCombat.blowpipe.register(handlers, Player::message)
         poweredStaves.register(handlers, Player::message)
@@ -430,6 +567,9 @@ class World(
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
         registerLumbridgeTown(this)
+        registerDraynorVillage(this)
+        registerAxeLogs(this)
+        registerDraynorMarket(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -437,9 +577,16 @@ class World(
         registerFatherUrhney(this)
         registerAdventurersCamp(this)
         registerCandleSeller(this)
+        registerSwampTutors(this)
+        registerChurch(this)
+        registerAlKharid(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
+        interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
+        interfaces.onClose(Trades.MAIN, trades::mainClosed)
+        interfaces.onClose(PriceChecker.MAIN, priceChecker::closed)
+        interfaces.onClose(Trades.CONFIRM, trades::decline)
         woodcutting.register()
         birdNests.register()
         firemaking.register()
@@ -447,6 +594,9 @@ class World(
         fishing.register()
         cooking.register()
         smithing.register()
+        fletching.register()
+        crafting.register()
+        herblore.register()
         loadDialogue()
     }
 
@@ -761,6 +911,10 @@ class World(
         rangedCombat.process()
         magicCombat.process()
         meleeCombat.process()
+        for (npc in npcs.all) {
+            poison.process(npc)
+            npcDrains.process(npc)
+        }
         deaths.process()
         npcScripts.process()
         npcs.process()
@@ -772,9 +926,12 @@ class World(
             player.playedTicks++
             statRestore.process(player)
             poison.process(player)
+            specialAttacks.process(player)
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
+            // Outside a player's own scripts, so a failure here would otherwise skip the rest of the tick for everyone.
+            perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
@@ -797,7 +954,14 @@ class World(
         // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
         // after them for a follow that ended in them.
         sendFace(player)
-        follows.process(player, move = { move(player) }) { interactions.process(player) { move(player) } }
+        // A stunned player neither walks nor uses anything; the stun ended their route and interaction already. The
+        // standing still is still a move, so run energy comes back as it does while delayed.
+        if (statusEffects.isStunned(player, tick)) {
+            player.waypoints.clear()
+            move(player)
+        } else {
+            follows.process(player, move = { move(player) }) { interactions.process(player) { move(player) } }
+        }
         sendFace(player)
         // A loc or obj used after the player's step (a ladder on arrival) can teleport them once move() has run.
         if (player.teleported) {
@@ -876,6 +1040,14 @@ class World(
         for (player in players) {
             if (player == null) continue
             perPlayer(player, "updates") {
+                if (player.equipment.hasChanges) {
+                    val weapon = combat.weapon(player)
+                    if ((weapon?.id ?: -1) != player.weaponId) {
+                        player.weaponId = weapon?.id ?: -1
+                        player.weaponSince = tick
+                    }
+                    specialAttacks.weaponChanged(player, weapon)
+                }
                 equipmentTab.updateVars(player)
                 bankScreen.updateVars(player)
                 depositBox.updateVars(player)
@@ -886,8 +1058,12 @@ class World(
                 equipmentTab.flush(player)
                 bankScreen.flush(player)
                 shopScreen.flush(player)
+                grandExchangeScreen.flush(player)
+                priceChecker.flush(player)
+                trades.flush(player)
             }
         }
+        for (player in players) if (player != null) trades.flushed(player)
         for (npc in npcs.all) sendNpcEffects(npc)
         network.infoProtocols.update()
         try {
@@ -939,9 +1115,32 @@ class World(
         player.heldActions.addLast(action)
     }
 
+    /**
+     * Whether [player]'s click on the map, an NPC, a loc, an obj on the ground or a player is dropped: while delayed
+     * (inferred: a delayed player can't walk away, as on an agility obstacle) or stunned ([StatusEffects]). A stunned
+     * player's map flag is put back down, as the click goes nowhere (guessed).
+     */
+    private fun held(player: Player): Boolean {
+        if (player.scripts.delayed) return true
+        if (!statusEffects.isStunned(player, tick)) return false
+        player.session.queue(SetMapFlagV2.RESET)
+        return true
+    }
+
+    /**
+     * Input that goes through while the player is dead: side panel lists the client has already changed for itself,
+     * which dropping would leave out of step with the server.
+     */
+    private class WhileDead(val action: () -> Unit) : () -> Unit {
+        override fun invoke() = action()
+    }
+
+    /** [act] for input that still counts while dead; see [WhileDead]. */
+    private fun actWhileDead(player: Player, action: () -> Unit) = act(player, WhileDead(action))
+
     /** A dead player's clicks, buttons and chat do nothing until they respawn; see [Deaths]. */
     private fun guarded(player: Player, action: () -> Unit) {
-        if (player.dead) {
+        if (player.dead && action !is WhileDead) {
             logger.debug { "Dropping input from ${player.username}: dead" }
             return
         }
@@ -968,6 +1167,9 @@ class World(
         if (player.connectionLostTick < 0) {
             player.connectionLostTick = tick
             logger.info { "${player.username} lost their connection; keeping them for $LINGER_TICKS ticks for a reconnect" }
+            // Guessed: their trade ends now, everything given back, rather than holding the partner on the screen for
+            // a minute. Not checked against a live disconnect mid-trade.
+            trades.decline(player)
         }
         return tick - player.connectionLostTick >= LINGER_TICKS
     }
@@ -1026,9 +1228,12 @@ class World(
      * Throws if the save can't be read.
      */
     internal fun loadPlayer(index: Int, username: String): Player {
-        val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
+        val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes, xpRate)
         // A save that couldn't be written is newer than the file, which would hand back what the player had before.
-        val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player.also { it.newAccount = true }
+        val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player.also {
+            it.newAccount = true
+            specialAttacks.refill(it)
+        }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
@@ -1043,10 +1248,16 @@ class World(
      */
     private val unwritten = HashMap<String, String>()
 
+    /** [player]'s state as a save has it, the items in the guide prices screen counted as in the inventory. */
+    fun snapshot(player: Player): PlayerSave {
+        val (inventory, bank) = priceChecker.saved(player)
+        return PlayerSave.of(player, inventory, bank)
+    }
+
     /** Writes [player]'s save. Returns false, after logging why, if it couldn't be written; see [unwritten]. */
     internal fun save(player: Player): Boolean {
         val text = try {
-            PlayerSave.of(player).toJson(player.username)
+            snapshot(player).toJson(player.username)
         } catch (e: Exception) {
             logger.error(e) { "Couldn't save ${player.username}" }
             return false
@@ -1062,6 +1273,124 @@ class World(
         unwritten[key] = text
         logger.error(e) { "Couldn't write the save for $key; keeping it in memory to write again" }
         false
+    }
+
+    /**
+     * The id of a trade between [a] and [b], from their saves as they stand before it: a SHA-256 of both save keys and
+     * both saves. No clock and no randomness, so a seeded run replays it exactly, and no two trades share one: each
+     * save names the player's last trade, so after a trade neither player can stand as they did before it. Ids are
+     * only ever compared for equality; see [TradeJournal].
+     */
+    private fun tradeId(a: Player, b: Player): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        for (player in listOf(a, b)) {
+            digest.update(player.saveKey.toByteArray())
+            digest.update(0)
+            digest.update(PlayerSave.of(player).toJson(player.username).toByteArray())
+            digest.update(0)
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    /**
+     * Completes a trade: [apply] swaps the offers between [a] and [b] in memory, and then both new saves go out through
+     * the [TradeJournal] so they land together. Runs on the game thread inside the click that completed it. Fails
+     * closed: when an earlier trade's journal is still unresolved, or this one's can't be written, [undo] puts the swap
+     * back and this returns false, so no trade is ever saved one file at a time.
+     */
+    internal fun commitTrade(a: Player, b: Player, apply: () -> Unit, undo: () -> Unit = {}): Boolean {
+        if (!journalResolved()) {
+            logger.error { "Trade between ${a.username} and ${b.username} refused: an earlier trade's journal is unresolved" }
+            return false
+        }
+        val id = try {
+            tradeId(a, b)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't make the saves for a trade between ${a.username} and ${b.username}; refusing it" }
+            return false
+        }
+        val lastA = a.lastTrade
+        val lastB = b.lastTrade
+        apply()
+        a.lastTrade = id
+        b.lastTrade = id
+        val texts = try {
+            val texts = mapOf(a.saveKey to PlayerSave.of(a).toJson(a.username), b.saveKey to PlayerSave.of(b).toJson(b.username))
+            saves.writeJournal(TradeJournal(id, texts).toJson())
+            texts
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't journal trade $id between ${a.username} and ${b.username}; undoing it" }
+            undo()
+            a.lastTrade = lastA
+            b.lastTrade = lastB
+            return false
+        }
+        var written = true
+        for ((key, text) in texts) written = write(key, text) && written
+        if (written) {
+            try {
+                saves.clearJournal()
+            } catch (e: Exception) {
+                // Left behind, it is resolved before the next trade or skipped at the next start: both saves record it.
+                logger.error(e) { "Couldn't clear the journal for trade $id" }
+            }
+        }
+        // A save that failed is kept in memory and the journal stays: the next trade or the next start finishes it.
+        logger.info { "Trade $id between ${a.username} and ${b.username} saved" }
+        return true
+    }
+
+    /**
+     * Whether no earlier trade's journal is left unfinished, so a new one can be written over it. A journal stays when
+     * one of its saves couldn't be written; this writes such a save again (from memory) and clears the journal once
+     * every save it names records that trade. A journal that can't be read or finished stops trades.
+     */
+    private fun journalResolved(): Boolean {
+        try {
+            val text = saves.readJournal() ?: return true
+            val journal = try {
+                TradeJournal.fromJson(text)
+            } catch (e: IllegalArgumentException) {
+                logger.error(e) { "The trade journal can't be read; no trades until it is looked at" }
+                return false
+            }
+            for (key in journal.saves.keys) {
+                unwritten[key]?.let { write(key, it) }
+                val last = saves.read(key)?.let(PlayerSave::lastTradeIn)
+                if (last != journal.id) return false
+            }
+            saves.clearJournal()
+            return true
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't finish the last trade's journal" }
+            return false
+        }
+    }
+
+    /**
+     * A journal left by a crash mid-trade: writes its saves, except over a save that already records that trade (one
+     * written since, by the trade or an autosave after it; no other trade can come after an unfinished journal, see
+     * [journalResolved]). A journal that can't be read or replayed stops the server starting, rather than letting both
+     * players in with the trade on one side only. See [TradeJournal].
+     */
+    private fun replayTradeJournal() {
+        val text = try {
+            saves.readJournal()
+        } catch (e: Exception) {
+            throw IllegalStateException("Couldn't read the trade journal; fix or remove it before starting", e)
+        } ?: return
+        val journal = try {
+            TradeJournal.fromJson(text)
+        } catch (e: IllegalArgumentException) {
+            throw IllegalStateException("The trade journal can't be read; fix or remove it before starting", e)
+        }
+        for ((key, save) in journal.saves) {
+            val current = saves.read(key)
+            if (current?.let(PlayerSave::lastTradeIn) == journal.id) continue
+            saves.write(key, save)
+            logger.warn { "Trade ${journal.id}: wrote $key's save from the journal" }
+        }
+        saves.clearJournal()
     }
 
     /** Saves that are still only in memory, for tests. */
@@ -1150,25 +1479,30 @@ class World(
      * After a reconnect, sends again what the client may have missed: anything queued for the old connection after
      * it really died never arrived. Every varp the client may hold, every stat, the inventory and the run state go
      * again, and the map is rebuilt around the player. Inferred, not checked against a live reconnect: the client is taken to keep
-     * its interfaces over a reconnect, so they aren't reopened.
+     * its interfaces over a reconnect, so they aren't reopened; only what was closed while it was away is closed again.
      */
     internal fun resync(player: Player) {
         player.vars.resendAll()
         player.skills.resendAll()
         player.inventory.resendAll()
         player.equipment.resendAll()
+        player.geSent.resendAll()
         player.sentRunEnabled = null
         player.sentRunEnergy = -1
         player.sentWeight = Int.MIN_VALUE
         player.sentCombatLevel = -1
         sendRunState(player)
         sendWeight(player)
+        ignoreLists.sendAll(player)
+        friendLists.sendAll(player)
+        friendChats.resend(player)
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
         player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
         // The ground items and loc changes it missed go again too, as after any rebuild.
         player.zoneView.reset()
+        interfaces.resendClosesWhileAway(player)
     }
 
     private fun enterWorld(player: Player) {
@@ -1189,6 +1523,8 @@ class World(
         allowChat(player)
         // Guessed: live sends the saved filters at login; a new account's are all on.
         sendChatFilters(player)
+        ignoreLists.sendAll(player)
+        friendLists.login(player)
         quests.completeAll(player.vars)
         prayers.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -1199,6 +1535,7 @@ class World(
         sendVars(player)
         interfaces.openGameFrame(player)
         inventoryTab.open(player)
+        friendChats.rejoin(player)
         if (player.newAccount) {
             // Tutorial Island's end on live: resizable mode and the default zoom, and the frame to match. Nobody here
             // does the tutorial, so a new account gets them at its first login.
@@ -1221,8 +1558,9 @@ class World(
 
     /** A click on the game view or minimap. [keyCombination] is 1 with ctrl held, 2 with ctrl and shift. */
     fun onMoveClick(player: Player, x: Int, z: Int, keyCombination: Int) = act(player) {
+        trades.interrupt(player)
         // Inferred: a delayed player can't walk away, as on an agility obstacle.
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
         scripts.interrupt(player)
         player.interaction = null
         npcInteractions.leave(player)
@@ -1242,8 +1580,9 @@ class World(
      * they reach it; see [GroundObjs]. [ctrl] flips walk and run, as on a move click.
      */
     fun onGroundObjOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+        trades.interrupt(player)
         // Delayed players can't walk off, as for a move click.
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
         val interaction = groundObjs.click(player, id, x, z, option)
         if (interaction == null) {
             follows.clickedElsewhere(player)
@@ -1271,7 +1610,8 @@ class World(
     /** [clicked] is who held the slot when the packet was read, null if nobody did. */
     private fun playerOp(player: Player, clicked: Player?, option: Int, ctrl: Boolean) {
         // Inferred, as for a walk: a delayed player's clicks do nothing.
-        if (player.scripts.delayed) return
+        if (held(player)) return
+        trades.interrupt(player)
         if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT) {
             logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
@@ -1290,10 +1630,14 @@ class World(
         }
         when (option) {
             PlayerOps.FOLLOW -> follows.click(player, target, ctrl)
+            PlayerOps.TRADE -> {
+                interfaces.closeModals(player)
+                trades.click(player, target, ctrl)
+            }
             else -> {
                 // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
                 player.session.queue(SetMapFlagV2.RESET)
-                player.message(if (option == PlayerOps.TRADE) PlayerOps.TRADE_NOT_BUILT else PlayerOps.REPORT_NOT_BUILT)
+                player.message(PlayerOps.REPORT_NOT_BUILT)
             }
         }
     }
@@ -1324,8 +1668,9 @@ class World(
 
     /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
     fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+        trades.interrupt(player)
         // Inferred, as for a walk: a delayed player's clicks do nothing.
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
         npcInteractions.leave(player)
         locInteractions.click(player, id, x, z, option, ctrl)
         // A loc that had gone by the time the click was read leaves any follow behind; the click still ends it.
@@ -1337,7 +1682,8 @@ class World(
      * [interfaceId]:[componentId], or a spell. Only inventory items are handled; spells on locs come later.
      */
     fun onLocTarget(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
+        trades.interrupt(player)
         if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
             logger.info { "${player.username} used $interfaceId:$componentId sub $sub on loc $id (not handled)" }
             follows.clickedElsewhere(player)
@@ -1353,8 +1699,9 @@ class World(
      * and run.
      */
     fun onNpcOp(player: Player, index: Int, option: Int, sub: Int, ctrl: Boolean) = act(player) {
+        trades.interrupt(player)
         // Inferred, as for a walk: a delayed player's clicks do nothing.
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
         npcInteractions.click(player, index, option, sub, ctrl)
         follows.clickedElsewhere(player)
     }
@@ -1364,7 +1711,8 @@ class World(
      * Only inventory items are handled; spells come with magic.
      */
     fun onNpcTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
-        if (player.scripts.delayed) return@act
+        if (held(player)) return@act
+        trades.interrupt(player)
         if (interfaceId == Spells.SPELLBOOK) {
             npcInteractions.castOn(player, index, ctrl) { npc -> magicCombat.cast(player, npc, componentId) }
             follows.clickedElsewhere(player)
@@ -1397,6 +1745,8 @@ class World(
 
     /** A `::` command typed in the chatbox, without the `::`. Commands run straight away, even while paused. */
     fun onCommand(player: Player, input: String) {
+        // A command that changes things (an admin one) leaves a trade first, so nothing changes the inventory under it.
+        if (player.trade != null && commands.isAdminCommand(input)) trades.interrupt(player)
         commands.execute(player, input, player::message)
     }
 
@@ -1423,7 +1773,14 @@ class World(
     fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
 
     /** Public chat is game input like a click, so while paused it is held for the next tick. */
-    fun onPublicChat(player: Player, message: MessagePublic) = act(player) { sayPublicChat(player, message) }
+    fun onPublicChat(player: Player, message: MessagePublic) = act(player) {
+        if (message.type == PublicChat.TYPE_FRIENDS_CHAT) friendChats.talk(player, message.message) else sayPublicChat(player, message)
+    }
+
+    /** Join Chat's typed name, or Leave Chat (no name). Works while dead, as the client changes its panel at once. */
+    fun onFriendsChatJoinLeave(player: Player, name: String?) = actWhileDead(player) {
+        if (name == null) friendChats.leave(player) else friendChats.join(player, name)
+    }
 
     /** A click on an interface component. [obj] is the item the client showed there, -1 if none. */
     fun onButton(player: Player, interfaceId: Int, componentId: Int, sub: Int, op: Int, obj: Int = -1) = act(player) {
@@ -1432,13 +1789,35 @@ class World(
             inventoryTab.click(player, sub, obj, op)
             return@act
         }
+        if (trades.click(player, interfaceId, componentId, sub, obj, op)) return@act
+        trades.interrupt(player)
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
         if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
+        if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
+            priceChecker.open(player)
+            return@act
+        }
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
-        if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
+        if (interfaceId == EquipmentTab.COMBAT && componentId == EquipmentTab.COMBAT_SPECIAL || interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_SPEC_BUTTON) {
+            specialAttacks.toggle(player, combat.weapon(player))
+            return@act
+        }
+        if (interfaceId == EquipmentTab.COMBAT) {
+            val wasBlock = combat.bulwarkBlock(player)
+            if (equipmentTab.clickCombatTab(player, componentId)) {
+                // Off the bulwark's Block, the next attack waits 8 ticks, whatever weapon makes it (OSRS Wiki, Dinh's bulwark).
+                if (wasBlock && !combat.bulwarkBlock(player)) {
+                    player.attackLockedUntil = tick + DinhsBulwark.BLOCK_DELAY
+                    player.nextAttackTick = maxOf(player.nextAttackTick, player.attackLockedUntil)
+                }
+                return@act
+            }
+        }
         if (interfaceId == EquipmentTab.AUTOCAST && equipmentTab.clickAutocastMenu(player, componentId, sub)) return@act
         if (interfaceId == Prayers.PRAYERBOOK && prayers.click(player, componentId, op)) return@act
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
@@ -1464,12 +1843,43 @@ class World(
         }
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.click(player, componentId, sub, op)) return@act
         if (interfaceId == AllSettings.INTERFACE && allSettings.click(player, componentId, sub, op, tick)) return@act
+        if (interfaceId == FriendChats.CURRENT && componentId == FriendChats.CURRENT_SETUP) {
+            openFriendsChatSetup(player)
+            return@act
+        }
+        if (interfaceId == FriendChats.SETUP && componentId == FriendChats.SETUP_PREFIX) {
+            when (op) {
+                1 -> scripts.start(player) {
+                    val name = stringDialog(textFor(player)[FriendsChatLines.SET_PREFIX]).trim()
+                    if (!friendChats.validName(name)) {
+                        player.message(textFor(player)[FriendsChatLines.BAD_NAME])
+                        return@start
+                    }
+                    friendChats.setName(player, name)
+                    friendChats.showSetup(player)
+                }
+                2 -> {
+                    friendChats.disable(player)
+                    friendChats.showSetup(player)
+                }
+            }
+            return@act
+        }
         if (interfaceId == JournalTab.SIDE_JOURNAL) {
             val tab = JournalTab.forButton(componentId)
             if (tab != null) {
                 interfaces.openJournalTab(player, tab)
                 return@act
             }
+        }
+        // The Friends tab and the ignore tab swap places in the side panel (RSMod opens them the same way).
+        if (interfaceId == IgnoreLists.FRIENDS_TAB && componentId == IgnoreLists.FRIENDS_TAB_IGNORE_BUTTON) {
+            interfaces.openSide(player, FrameSlot.SIDE9, IgnoreLists.IGNORE_TAB)
+            return@act
+        }
+        if (interfaceId == IgnoreLists.IGNORE_TAB && componentId == IgnoreLists.IGNORE_TAB_FRIENDS_BUTTON) {
+            interfaces.openSide(player, FrameSlot.SIDE9, IgnoreLists.FRIENDS_TAB)
+            return@act
         }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
             if (inCombat(player)) {
@@ -1489,6 +1899,7 @@ class World(
      * with [args] decoded by the types [SettingsSide.SCRIPT_TRIGGERS] or [AllSettings.SCRIPT_TRIGGERS] give for its id.
      */
     fun onScriptTrigger(player: Player, interfaceId: Int, componentId: Int, sub: Int, args: List<Any>) = act(player) {
+        trades.interrupt(player)
         if (player.echoButtons) player.message("Script trigger $interfaceId:$componentId slot $sub args ${args.toList()}")
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.scriptTrigger(player, componentId, args)) return@act
         if (interfaceId == AllSettings.INTERFACE && allSettings.scriptTrigger(player, componentId, sub, args)) return@act
@@ -1503,6 +1914,7 @@ class World(
 
     /** The player dragged a component's item, from slot [fromSub] onto [toComponentId]'s slot [toSub]. */
     fun onButtonDrag(player: Player, interfaceId: Int, componentId: Int, fromSub: Int, fromObj: Int, toInterfaceId: Int, toComponentId: Int, toSub: Int) = act(player) {
+        trades.interrupt(player)
         val inventory = interfaceId == InventoryTab.INTERFACE && componentId == InventoryTab.ITEMS
         if (inventory && toInterfaceId == interfaceId && toComponentId == componentId) {
             inventoryTab.drag(player, fromSub, fromObj, toSub)
@@ -1515,6 +1927,7 @@ class World(
 
     /** The player used one component's item on another's ("Use" then a click). */
     fun onButtonTarget(player: Player, interfaceId: Int, componentId: Int, fromSub: Int, fromObj: Int, toInterfaceId: Int, toComponentId: Int, toSub: Int, toObj: Int) = act(player) {
+        trades.interrupt(player)
         val fromInventory = interfaceId == InventoryTab.INTERFACE && componentId == InventoryTab.ITEMS
         if (fromInventory && toInterfaceId == interfaceId && toComponentId == componentId) {
             inventoryTab.use(player, fromSub, fromObj, toSub, toObj)
@@ -1582,6 +1995,14 @@ class World(
      * [GroundObjs.DROP_DESPAWN_TICKS]; everyone's from the start when they have left. Guessed: the Wiki gives no timers
      * for fired ammunition, so these are a drop's.
      */
+    /** Drops [count] of [type] under [player], theirs alone at first, as an item dropped from the backpack is. */
+    private fun dropUnder(player: Player, type: ObjType, count: Int) {
+        val stacks = if (type.stackable) listOf(count) else List(count) { 1 }
+        for (n in stacks) {
+            groundObjs.addPrivate(type, n, player.x, player.z, player.level, player.saveKey, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
+        }
+    }
+
     private fun dropAmmo(type: ObjType, x: Int, z: Int, level: Int, owner: Player) {
         // Lost in water: the Wiki's Duck page, for ducks off land, taken to hold on any floor that can't be walked on.
         if (collision[x, z, level] and CollisionFlag.FLOOR != 0) return
@@ -1605,6 +2026,7 @@ class World(
      * See [Dialogues.resume]. A click while delayed is dropped, as other clicks are.
      */
     fun onResumePauseButton(player: Player, interfaceId: Int, componentId: Int, sub: Int) = act(player) {
+        trades.interrupt(player)
         if (player.scripts.delayed) return@act
         if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId)) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
@@ -1615,9 +2037,19 @@ class World(
      * The player typed an amount into a prompt (resume_p_countdialog). A script waiting for it carries on now; with none
      * waiting (the prompt was closed) it does nothing. Dropped while delayed, as other clicks are.
      */
+    /** The client picked [obj] in the chatbox's item search (resume_p_objdialog). */
+    fun onResumeObj(player: Player, obj: Int) = act(player) {
+        if (!grandExchangeScreen.chooseItem(player, obj) && !priceChecker.chooseItem(player, obj)) logger.debug { "${player.username} picked item $obj, which nothing waits for" }
+    }
+
     fun onResumeCount(player: Player, count: Int) = act(player) {
         if (player.scripts.delayed) return@act
         if (!scripts.resumeCount(player, count)) logger.debug { "${player.username} entered $count, which nothing waits for" }
+    }
+
+    fun onResumeString(player: Player, text: String) = act(player) {
+        if (player.scripts.delayed) return@act
+        if (!scripts.resumeString(player, text)) logger.debug { "${player.username} typed text nothing waits for" }
     }
 
     /**
@@ -1625,8 +2057,69 @@ class World(
      * filters back. They are saved and sent again at login; nothing filters chat on the server yet.
      */
     fun onChatFilters(player: Player, filters: ChatFilters) = act(player) {
+        val old = player.chatFilters.private
         player.chatFilters = filters
         sendChatFilters(player)
+        friendLists.privateFilterChanged(player, old)
+    }
+
+    /** The player added [name] to their friends list. Kept while dead: the death animation doesn't close the tab. */
+    fun onFriendAdd(player: Player, name: String) = actWhileDead(player) {
+        friendLists.add(player, name)
+        friendChats.ownerFriendsChanged(player)
+    }
+
+    /** The player deleted [name] from their friends list, which their client has already done. Kept while dead. */
+    fun onFriendDelete(player: Player, name: String) = actWhileDead(player) {
+        friendLists.delete(player, name)
+        friendChats.ownerFriendsChanged(player)
+    }
+
+    /** The player sent [name] a private message. Guessed: kept while dead, as the side panel's lists are. */
+    fun onPrivateMessage(player: Player, name: String, text: String) = actWhileDead(player) { privateMessages.send(player, name, text) }
+
+    /** The player added [name] to their ignore list. Kept while dead, as friends are. */
+    fun onIgnoreAdd(player: Player, name: String) = actWhileDead(player) { ignoreLists.add(player, name) }
+
+    /** The player deleted [name] from their ignore list, which their client has already done. Kept while dead, as friends are. */
+    fun onIgnoreDelete(player: Player, name: String) = actWhileDead(player) { ignoreLists.delete(player, name) }
+
+    /**
+     * The display name of the account [name] is: the player's if they are here, else the one in their save. Null when
+     * there is no such account, or no save to tell.
+     */
+    internal fun accountName(name: String): String? {
+        val key = SaveStore.saveKey(name) ?: return null
+        findPlayer(key)?.let { return it.username }
+        val text = unwritten[key] ?: try {
+            saves.read(key)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't read the save for $key" }
+            null
+        } ?: return null
+        return PlayerSave.usernameIn(text) ?: name.trim()
+    }
+
+    /**
+     * The owner of a friends chat channel called by [name]: from them if they are here, else from their save. Null when
+     * there is no such account.
+     */
+    private fun channelOwner(name: String): FriendChats.ChannelOwner? {
+        val key = SaveStore.saveKey(name) ?: return null
+        findPlayer(key)?.let { return FriendChats.ChannelOwner(it.username, it.friendsChat, it.friends.toList()) }
+        val text = unwritten[key] ?: try {
+            saves.read(key)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't read the save for $key" }
+            null
+        } ?: return null
+        val save = try {
+            PlayerSave.fromJson(text)
+        } catch (e: IllegalArgumentException) {
+            logger.error(e) { "The save for $key can't be read" }
+            return null
+        }
+        return FriendChats.ChannelOwner(PlayerSave.usernameIn(text) ?: name.trim(), save.friendsChat, save.friends)
     }
 
     private fun sendChatFilters(player: Player) {
@@ -1841,6 +2334,13 @@ class World(
         else -> false
     }
 
+    /** The friends chat panel's Setup: the setup screen, as the owner's settings are, with its options clickable. */
+    private fun openFriendsChatSetup(player: Player) {
+        interfaces.openModal(player, FrameSlot.MAINMODAL, FriendChats.SETUP)
+        friendChats.showSetup(player)
+        interfaces.setEvents(player, FriendChats.SETUP, FriendChats.SETUP_PREFIX, -1, -1, Interfaces.IF_EVENT_OP1 or Interfaces.IF_EVENT_OP2)
+    }
+
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
     private fun inCombat(player: Player): Boolean = player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS
 
@@ -1849,6 +2349,8 @@ class World(
         try {
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
+            trades.leave(player)
+            friendChats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {
@@ -1857,6 +2359,12 @@ class World(
             freedSlots[player.index] = cycles
             network.infoProtocols.dealloc(player.infos)
             player.session.clear()
+        }
+        // Once they are out of the world, so they show as offline.
+        try {
+            friendLists.changed(player)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't tell ${player.username}'s friends they left" }
         }
         logger.info { "${player.username} logged out" + if (player.loggedOut) "" else " (connection lost)" }
     }

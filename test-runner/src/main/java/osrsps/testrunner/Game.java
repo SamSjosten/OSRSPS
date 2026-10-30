@@ -31,15 +31,28 @@ interface Game
 
 	/**
 	 * Presses Enter once more for a line the client has left in its chat input, asking for the canvas's keyboard focus
-	 * first when it lacks it. Returns a note on the focus for the result file.
+	 * first when it lacks it. Returns a note for the result file on what may have kept the Enter from the chat input:
+	 * the focus, (0.17.0) whether the Swing thread had sent the last Enter, the window and an open chatbox prompt.
 	 */
 	String pressEnterAgain();
+
+	/**
+	 * (0.17.0) Closes the chatbox prompt that is open (an "Enter amount" box and the like), which takes the Enter for
+	 * itself and so keeps a chat line in the input.
+	 */
+	void closePrompt();
 
 	/** Clicks "Walk here" on a tile in the loaded scene. */
 	String walk(int x, int y);
 
 	/** The tile the client's walk flag marks, where the player is heading, or null when there is none. */
 	Tile walkDestination();
+
+	/**
+	 * Clicks an option (such as "Trade with") on the other player with this name, as their right-click menu would; with
+	 * {@code at}, only while they stand on that tile. Null when clicked; otherwise what is missing.
+	 */
+	String playerOption(String name, String option, Tile at);
 
 	/** Clicks an option on the nearest NPC with this name (or id, when the name is null). Examine works on any NPC. */
 	String npcOption(String name, int id, String option);
@@ -71,13 +84,25 @@ interface Game
 	/** Uses the first such item in the inventory on the first other slot holding the second item, as Use then a click does. */
 	String useItemOnItem(String name, int id, String onName, int onId);
 
+	/**
+	 * (0.12.0) Uses the first such item in the inventory on the nearest loc with this name (or id) on the player's
+	 * plane, on the tile when given, as Use then a click on the loc does.
+	 */
+	String useItemOnLoc(String name, int id, String locName, int locId, Tile at);
+
 	/** How many of the item (by name, or id when the name is null) the inventory holds; -1 while the client has none. */
 	int inventoryCount(String name, int id);
 
 	/** The dialogue open in the chatbox, or null when none is. */
 	Dialogue dialogue();
 
-	/** Clicks "Click here to continue" on the open dialogue. */
+	/**
+	 * (0.17.0) The level-up box (levelup, interface 233) when it is open, or null. Kept apart from {@link #dialogue}, so
+	 * assertDialogue and assertNoDialogue see what they always did; continueDialogue and finishDialogue click it.
+	 */
+	Dialogue levelUp();
+
+	/** Clicks "Click here to continue" on the open dialogue, or (0.17.0) the level-up box. */
 	String continueDialogue();
 
 	/** Clicks an option of the open option menu, by the slot {@link Dialogue#options} gives. */
@@ -137,6 +162,12 @@ interface Game
 
 	/** Puts the amount in the open prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
 	String enterAmount(int amount);
+
+	/** (0.12.0) Types the text into the client as key presses, one character at a time, as a player's keyboard does. */
+	String typeText(String text);
+
+	/** True from {@link #typeText} until its key events have gone to the canvas. */
+	boolean typingPending();
 
 	/** The player's real (unboosted) level in the skill, as the stats tab shows it; -1 for a skill the client doesn't know. */
 	int skillLevel(String skill);
@@ -219,4 +250,22 @@ interface Game
 
 	/** Clicks "Click here to logout" in the logout tab. */
 	String logout();
+
+	/**
+	 * The client's friends list: each friend's world by name (spaces as in the name, no tags), 0 when offline. Null when
+	 * logged out or the list hasn't arrived.
+	 */
+	java.util.Map<String, Integer> friends();
+
+	/** The client's ignore list's names (no tags); null when logged out or the list hasn't arrived. */
+	java.util.List<String> ignores();
+
+	/** The owner of the friends chat channel the client is in (no tags), or null when in none. */
+	String friendsChatOwner();
+
+	/** The names (no tags) listed in the client's friends chat channel; empty when in none. */
+	java.util.List<String> friendsChatMembers();
+
+	/** Puts {@code text} in the open prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
+	String enterText(String text);
 }

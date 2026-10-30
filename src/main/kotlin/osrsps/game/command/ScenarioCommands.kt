@@ -60,13 +60,18 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     }
     if (!world.hasMap(scenario.x, scenario.z)) fail("Scenario ${scenario.name} can't start: no map at ${scenario.x}, ${scenario.z}")
 
-    if (player.beforeScenario == null) player.beforeScenario = PlayerSave.of(player)
+    if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
+    // The snapshot holds the items in the guide prices screen; the scenario's inventory replaces them.
+    player.priceChecker.clear()
     world.scripts.clearAll(player)
     world.meleeCombat.endFights(player)
     // A divine potion drunk before would hold the scenario's boosts and then drop them; ::reset puts its varbits back.
     world.potions.clearDivine(player)
     // Nor poison, venom or an antipoison's immunity from before; ::reset puts the poison varp back with the rest.
     world.poison.clear(player)
+    world.statusEffects.clear(player)
+    // Full special attack energy, as the run energy is full; a scenario's varps can set it otherwise.
+    world.specialAttacks.refill(player)
     for (skill in Skill.entries) {
         val set = scenario.skills[skill]
         val level = set?.level ?: PlayerSkills.newLevel(skill)
@@ -83,6 +88,8 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     player.charges.clear()
     world.bankScreen.clear(player)
     for ((slot, obj) in loadout.bank) player.bank[slot] = obj
+    // A scenario starts with no Grand Exchange offers or buy limits used; ::reset puts them back.
+    player.ge.clear()
     val tabs = world.bankScreen.tabs(player)
     loadout.bankTabs.forEachIndexed { i, size -> tabs[i + 1] = size }
     for ((varp, value) in scenario.varps) vars[varp] = value

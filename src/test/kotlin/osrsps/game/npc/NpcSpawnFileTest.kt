@@ -169,12 +169,13 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn and its talking NPCs, and rats west of the castle`() {
+    fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",
             2864 to "giantrat1_3", 2854 to "rat", 8700 to "giant_frog_nodrops", 8701 to "medium_frog_nodrops", 8702 to "little_frog_nodrops",
             3045 to "goblin_armed", 2837 to "unicorn", 238 to "butterfly_viceroy", 923 to "father_urhney", 1157 to "archeradventurerpg",
             1158 to "warrioradventurerpg", 1159 to "monkadventurerpg", 1160 to "wizardadventuterpg", 1896 to "swamp_candle_guy",
+            3222 to "aide_tutor_mining", 3221 to "aide_tutor_fishing",
         )
         val swampTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("lumbridge-swamp.json"), swampTypes, "lumbridge-swamp.json")
@@ -195,7 +196,95 @@ class NpcSpawnFileTest {
         assertTrue(urhney.x in 3144..3149 && urhney.z in 3172..3177 && urhney.restrict == MoveRestrict.INDOORS)
         assertEquals(4, spawns.count { it.type.id in 1157..1160 && it.x in 3148..3153 && it.z in 3204..3208 })
         assertEquals(Tile(3170, 3176), spawns.single { it.type.id == 1896 }.let { Tile(it.x, it.z) })
-        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == if (it.type.id == 1896) 2 else 5 })
+        // The mining tutor by the east mine and the fishing tutor by the shore.
+        assertEquals(Tile(3227, 3146), spawns.single { it.type.id == 3222 }.let { Tile(it.x, it.z) })
+        assertEquals(Tile(3246, 3157), spawns.single { it.type.id == 3221 }.let { Tile(it.x, it.z) })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == if (it.type.id in setOf(1896, 3221, 3222)) 2 else 5 })
+    }
+
+    @Test
+    fun `Al Kharid has two Border Guards each side of the toll gate, five bankers, a keeper for each shop, its fighters and camels`() {
+        val names = mapOf(
+            4287 to "borderguard1", 4288 to "borderguard2", 3090 to "kharidbanker1", 3091 to "kharidbanker2",
+            2817 to "generalshopkeeper3", 2818 to "generalassistant3", 2875 to "zeke", 2879 to "dommik", 2876 to "louie_legs",
+            2878 to "ranael", 2874 to "gem_trader", 3533 to "feud_ali_m", 2877 to "kebab_seller", 2873 to "silk_trader",
+            3231 to "ellis_tanner", 4285 to "hassan", 4286 to "osman", 11645 to "prince_ali_palace",
+            3292 to "al_kharid_warrior", 3261 to "al_kharid_man", 3024 to "scorpion", 2835 to "camel", 5949 to "al_the_camel",
+            5950 to "elly_the_camel", 5951 to "ollie_the_camel", 5952 to "cam_the_camel", 5953 to "alice_the_camel_multinpc",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        // borderguard1 on the Lumbridge side (west of the gate's x 3268), borderguard2 on the Al Kharid side.
+        assertEquals(setOf(Tile(3267, 3226), Tile(3267, 3229)), spawns.filter { it.type.id == 4287 }.map { Tile(it.x, it.z) }.toSet())
+        assertEquals(setOf(Tile(3268, 3226), Tile(3268, 3229)), spawns.filter { it.type.id == 4288 }.map { Tile(it.x, it.z) }.toSet())
+        // Five bankers behind the bank's booths (x 3268), as the Wiki counts them.
+        assertEquals(5, spawns.count { it.type.id == 3090 || it.type.id == 3091 })
+        assertTrue(spawns.filter { it.type.id == 3090 || it.type.id == 3091 }.all { it.x == 3267 && it.z in 3164..3169 })
+        // One of each shop keeper, inside their shops.
+        for (id in listOf(2817, 2818, 2875, 2879, 2876, 2878)) assertEquals(MoveRestrict.INDOORS, spawns.single { it.type.id == id }.restrict)
+        assertEquals(1, spawns.count { it.type.id == 2874 })
+        assertEquals(1, spawns.count { it.type.id == 3533 })
+        assertEquals(1, spawns.count { it.type.id == 2877 })
+        assertEquals(1, spawns.count { it.type.id == 2873 })
+        assertEquals(MoveRestrict.INDOORS, spawns.single { it.type.id == 3231 }.restrict)
+        // The palace: Hassan and Prince Ali in the throne room, Osman outside.
+        for (id in listOf(4285, 11645)) assertTrue(spawns.single { it.type.id == id }.let { it.x in 3298..3303 && it.z in 3159..3166 })
+        assertEquals(1, spawns.count { it.type.id == 4286 })
+        // Fighters: nine warriors in the palace, six men, nine scorpions in the mine and one south of the bank (the Wiki's counts).
+        assertEquals(9, spawns.count { it.type.id == 3292 && it.x in 3281..3303 && it.z in 3159..3178 })
+        assertEquals(6, spawns.count { it.type.id == 3261 })
+        assertEquals(9, spawns.count { it.type.id == 3024 && it.z > 3270 })
+        assertEquals(1, spawns.count { it.type.id == 3024 && it.z < 3160 })
+        // The plain Camel and the five named ones.
+        for (id in listOf(2835, 5949, 5950, 5951, 5952, 5953)) assertEquals(1, spawns.count { it.type.id == id })
+        // Inside Al Kharid: east of the toll gate's fence line, south of the mine's north end.
+        assertTrue(spawns.all { it.x in 3267..3330 && it.z in 3140..3320 && it.level == 0 && it.source.isNotBlank() })
+        assertTrue(spawns.filter { it.type.id in listOf(4287, 4288, 3090, 3091) }.all { it.wander == 0 })
+    }
+
+    @Test
+    fun `Draynor has three bankers, its townsfolk, seven pigs, the farmer and two fishing spots`() {
+        val names = mapOf(
+            1613 to "banker1", 1618 to "banker2", 3106 to "man", 3111 to "woman", 2854 to "rat", 5007 to "imp", 2796 to "pig_1",
+            2797 to "pig_2", 2798 to "piglet_1", 2799 to "piglet_2", 2800 to "piglet_3", 3251 to "farmer_farming_on_48_51", Fishing.DRAYNOR_SPOT to "0_48_50_saltfish",
+            1260 to "rag_wine_merchant", 500 to "seed_merchant", 8693 to "aprilfoolshorsesalesman",
+        )
+        val draynorTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("draynor.json"), draynorTypes, "draynor.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(3, spawns.count { it.type.id in setOf(1613, 1618) })
+        assertTrue(spawns.filter { it.type.id in setOf(1613, 1618) }.all { it.x == 3090 && it.z in 3242..3245 && it.wander == 0 })
+        assertEquals(7, spawns.count { it.type.id in 2796..2800 })
+        // The pig pen, fenced in at x 3075 to 3079, z 3259 to 3261.
+        assertTrue(spawns.filter { it.type.id in 2796..2800 }.all { it.x in 3075..3079 && it.z in 3259..3261 })
+        assertEquals(1, spawns.single { it.type.id == 3111 }.level, "the woman upstairs in Morgan's house")
+        assertTrue(spawns.all { it.x in 3070..3135 && it.z in 3225..3300 && it.source.isNotBlank() })
+        // The shore's two Net/Bait spots, each on a tile of Draynor's fishing area.
+        val spots = spawns.filter { it.type.id == Fishing.DRAYNOR_SPOT }
+        assertEquals(2, spots.size)
+        assertTrue(spots.all { spot -> Fishing.AREAS.any { Tile(spot.x, spot.z) in it } && spot.wander == 0 })
+    }
+
+    @Test
+    fun `the church has Father Aereck and the Prayer tutor inside, Nigel in the graveyard and Count Check by it`() {
+        val names = mapOf(2812 to "father_aereck", 3223 to "aide_tutor_prayer", 6093 to "deadman_nigel", 7414 to "count_check")
+        val churchTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-church.json"), churchTypes, "lumbridge-church.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns.associateBy { it.type.id }
+        assertEquals(setOf(2812, 3223, 6093, 7414), spawns.keys)
+        assertEquals(4, result.spawns.size)
+        // The church's floor is 3239 to 3247 by 3205 to 3215.
+        for (id in listOf(2812, 3223)) {
+            val npc = spawns.getValue(id)
+            assertTrue(npc.x in 3239..3247 && npc.z in 3205..3215 && npc.restrict == MoveRestrict.INDOORS)
+        }
+        assertEquals(Tile(3243, 3201), spawns.getValue(6093).let { Tile(it.x, it.z) })
+        assertEquals(Tile(3238, 3199), spawns.getValue(7414).let { Tile(it.x, it.z) })
+        assertTrue(result.spawns.all { it.source.isNotBlank() && it.level == 0 && it.wander == if (it.type.id == 2812) 5 else 2 })
     }
 
     @Test

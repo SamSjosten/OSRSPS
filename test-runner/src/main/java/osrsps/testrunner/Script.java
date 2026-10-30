@@ -168,6 +168,20 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "npc", "npcId", "option", "comment");
 				return new Steps.NpcOption(timeout, npc, id, option);
 			}
+			case "playerOption":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String player = f.requiredString("player");
+				String option = f.requiredString("option");
+				int x = f.integer("x", -1);
+				int y = f.integer("y", -1);
+				if ((x < 0) != (y < 0))
+				{
+					throw new Invalid(f.where + " needs both \"x\" and \"y\", or neither");
+				}
+				f.rejectUnknown("step", "timeoutMs", "player", "option", "x", "y", "comment");
+				return new Steps.PlayerOption(timeout, player, option, x < 0 ? null : new Tile(x, y, -1));
+			}
 			case "locOption":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
@@ -522,6 +536,17 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "amount", "comment");
 				return new Steps.EnterAmount(timeout, amount);
 			}
+			case "typeText":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String text = f.requiredString("text");
+				if (text.isEmpty())
+				{
+					throw new Invalid(f.where + ": \"text\" must not be empty");
+				}
+				f.rejectUnknown("step", "timeoutMs", "text", "comment");
+				return new Steps.TypeText(timeout, text);
+			}
 			case "assertWeight":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
@@ -574,6 +599,26 @@ final class Script
 				}
 				f.rejectUnknown("step", "timeoutMs", "item", "itemId", "onItem", "onItemId", "comment");
 				return new Steps.UseItemOnItem(timeout, item, id, onItem, onId);
+			}
+			case "useItemOnLoc":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String item = f.string("item", null);
+				int id = f.integer("itemId", -1);
+				String loc = f.string("loc", null);
+				int locId = f.integer("locId", -1);
+				int x = f.integer("x", -1);
+				int y = f.integer("y", -1);
+				if ((item == null && id < 0) || (loc == null && locId < 0))
+				{
+					throw new Invalid(f.where + " needs \"item\" or \"itemId\", and \"loc\" or \"locId\"");
+				}
+				if ((x < 0) != (y < 0))
+				{
+					throw new Invalid(f.where + " needs both \"x\" and \"y\", or neither");
+				}
+				f.rejectUnknown("step", "timeoutMs", "item", "itemId", "loc", "locId", "x", "y", "comment");
+				return new Steps.UseItemOnLoc(timeout, item, id, loc, locId, x < 0 ? null : new Tile(x, y, -1));
 			}
 			case "itemOption":
 			{
@@ -661,6 +706,78 @@ final class Script
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
 				f.rejectUnknown("step", "timeoutMs", "comment");
 				return new Steps.Logout(timeout);
+			}
+			case "addFriend":
+			case "deleteFriend":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				f.rejectUnknown("step", "timeoutMs", "name", "comment");
+				return type.equals("addFriend") ? Steps.PromptEntry.addFriend(timeout, name) : Steps.PromptEntry.deleteFriend(timeout, name);
+			}
+			case "addIgnore":
+			case "deleteIgnore":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				f.rejectUnknown("step", "timeoutMs", "name", "comment");
+				return type.equals("addIgnore") ? Steps.PromptEntry.addIgnore(timeout, name) : Steps.PromptEntry.deleteIgnore(timeout, name);
+			}
+			case "assertIgnore":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				boolean absent = f.bool("absent", false);
+				f.rejectUnknown("step", "timeoutMs", "name", "absent", "comment");
+				return new Steps.AssertIgnore(timeout, name, absent);
+			}
+			case "joinFriendsChat":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String owner = f.requiredString("owner");
+				f.rejectUnknown("step", "timeoutMs", "owner", "comment");
+				return Steps.PromptEntry.joinFriendsChat(timeout, owner);
+			}
+			case "setFriendsChatName":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				f.rejectUnknown("step", "timeoutMs", "name", "comment");
+				return Steps.PromptEntry.setFriendsChatName(timeout, name);
+			}
+			case "assertFriendsChat":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String owner = f.string("owner", null);
+				String member = f.string("member", null);
+				boolean absent = f.bool("absent", false);
+				if (owner == null && (member != null || !absent))
+				{
+					throw new Invalid(f.where + " needs \"owner\", or \"absent\": true alone for no channel");
+				}
+				f.rejectUnknown("step", "timeoutMs", "owner", "member", "absent", "comment");
+				return new Steps.AssertFriendsChat(timeout, owner, member, absent);
+			}
+			case "privateMessage":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				String text = f.requiredString("text");
+				f.rejectUnknown("step", "timeoutMs", "name", "text", "comment");
+				return Steps.PromptEntry.privateMessage(timeout, name, text);
+			}
+			case "assertFriend":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				boolean absent = f.bool("absent", false);
+				int world = absent ? 0 : f.requiredInt("world");
+				if (world < 0)
+				{
+					throw new Invalid(f.where + ": \"world\" must be 0 (offline) or a world number");
+				}
+				f.rejectUnknown("step", "timeoutMs", "name", "world", "absent", "comment");
+				return new Steps.AssertFriend(timeout, name, world, absent);
 			}
 			default:
 				throw new Invalid(f.where + ": unknown step \"" + type + "\"");

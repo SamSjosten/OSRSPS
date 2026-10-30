@@ -79,11 +79,11 @@ class Cooking(private val world: World) {
     private val jobs = WeakHashMap<Player, Job>()
 
     fun register() {
-        for (loc in FIRES + RANGES) {
+        for (loc in FIRES + COOK_FIRES + RANGES) {
             val option = cookOption(loc)
             // A fire has no options: the re-run uses option 1, which the client never sends for it.
             world.handlers.onLoc(loc, option) { op ->
-                if (op.repeat) cook(op) else if (loc in RANGES) chooseAtRange(op)
+                if (op.repeat) cook(op) else if (loc in RANGES || loc in COOK_FIRES) chooseAtRange(op)
             }
             for (food in FOODS) {
                 world.handlers.onObjOnLoc(loc, food.raw) { op -> chooseFood(op.loc ?: return@onObjOnLoc, option, food) }
@@ -218,6 +218,14 @@ class Cooking(private val world: World) {
 
         /** The fire Firemaking lights. */
         val FIRES = setOf(Firemaking.FIRE)
+
+        /**
+         * Permanent fires with a Cook option (`fire_cook`, Draynor Village's south of the bank): a fire for the burn
+         * chart and the animation, but Cook asks which food as a range does (the Wiki's Permanent fire page lists it
+         * with the fires that have Cook).
+         */
+        const val DRAYNOR_FIRE = 43475
+        val COOK_FIRES = setOf(DRAYNOR_FIRE)
 
         /** Lumbridge Castle's kitchen range (cooksquestrange) and the plain range (range), by gameval name. */
         const val LUMBRIDGE_RANGE = 114

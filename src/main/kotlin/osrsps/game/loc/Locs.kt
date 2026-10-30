@@ -47,6 +47,9 @@ class Locs(
     /** The loc of type [id] whose south-west tile is [x], [z], or null if there is none now. */
     fun find(id: Int, x: Int, z: Int, level: Int): ZoneLoc? = at(x, z, level).firstOrNull { it.id == id }
 
+    /** Whether any layer of a tile has a timed change still to run, such as a picked crop waiting to grow back. */
+    fun reverting(x: Int, z: Int, level: Int): Boolean = (0 until LAYERS).any { slot(x, z, level, it) in reverts }
+
     /** Whether [loc] is still in the world, exactly as given. */
     fun exists(loc: ZoneLoc): Boolean = get(loc.x, loc.z, loc.level, loc.layer) == loc
 

@@ -38,6 +38,7 @@ import osrsps.game.Quests
 import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.XpRate
 import osrsps.game.WearRequirements
 import osrsps.game.SeqNames
 import osrsps.game.SpotanimNames
@@ -114,6 +115,7 @@ class GameServer(
         val attackStyles: AttackStyles
         val seqNames: SeqNames
         val spotanimNames: SpotanimNames
+        val specialAttackCosts: Map<Int, Int>
         val skillUnlocks: SkillUnlocks
         val settings: SettingsCatalog
         try {
@@ -128,6 +130,7 @@ class GameServer(
             attackStyles = CombatLoader.attackStyles(library)
             seqNames = CombatLoader.seqNames(library)
             spotanimNames = CombatLoader.spotanimNames(library)
+            specialAttackCosts = CombatLoader.specialAttackCosts(library)
             skillUnlocks = SkillUnlockLoader.load(library)
             settings = SettingsLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
@@ -166,6 +169,8 @@ class GameServer(
         logger.info { "Accounts in ${accountDir.toAbsolutePath()}" }
         val ipBans = IpBans(dataDir.resolve(IpBans.FILE_NAME), relays)
         logger.info { "IP bans: ${ipBans.size} in ${dataDir.resolve(IpBans.FILE_NAME).toAbsolutePath()}" }
+        val xpRate = XpRate(dataDir.resolve(XpRate.FILE_NAME))
+        logger.info { "XP rate $xpRate (::xprate changes it; kept in ${dataDir.resolve(XpRate.FILE_NAME).toAbsolutePath()})" }
         if (admins.everyone) logger.warn { "Every player is an admin; set OSRSPS_ADMINS to the names that should be" }
         else logger.info { "Admins: $admins" }
         val npcSpawns = NpcSpawnFile.loadAll(npcTypes)
@@ -202,8 +207,9 @@ class GameServer(
             Accounts(FileSaveStore(accountDir), lock = FileAccountLock(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
-            spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans,
+            spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
+            specialAttackCosts = specialAttackCosts,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)

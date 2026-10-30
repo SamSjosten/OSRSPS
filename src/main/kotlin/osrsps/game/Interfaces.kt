@@ -12,6 +12,7 @@ import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.script.ScriptContext
+import osrsps.game.social.FriendChats
 
 /**
  * Opens, moves and closes interfaces in a player's game frame.
@@ -32,6 +33,10 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
             send(player, IfOpenSub(frame.interfaceId, frame.component(overlay.slot), overlay.interfaceId, OVERLAY))
         }
         openJournalTab(player, JournalTab.forValue(journalTabVarbit(player)?.let { player.vars.getVarbit(it) } ?: 0))
+        // The Chat-channel tab's friends chat panel, in side_channels' contents as the journal's tabs sit in theirs, and
+        // its Setup button. Guessed: the other three channel tabs (clans, grouping) aren't built, so this one stays.
+        send(player, IfOpenSub(FriendChats.SIDE_CHANNELS, FriendChats.SIDE_CHANNELS_CONTENTS, FriendChats.CURRENT, OVERLAY))
+        send(player, IfSetEventsV2(FriendChats.CURRENT, FriendChats.CURRENT_SETUP, -1, -1, 0, IF_EVENT_OP1))
         // Lets the client send clicks on the "Game client layout" dropdown's three options.
         send(player, IfSetEventsV2(GameFrame.SETTINGS_SIDE, GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS, 1, 3, 0, IF_EVENT_OP1))
         // And on the attack priority dropdowns' options: client-made children 1 to n of their buttons components.
@@ -155,17 +160,37 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     fun openFloater(player: Player, interfaceId: Int) {
         player.floater = interfaceId
         val frame = player.frame
+        player.closedWhileAway -= frame.interfaceId to frame.component(FrameSlot.FLOATER)
         send(player, IfOpenSub(frame.interfaceId, frame.component(FrameSlot.FLOATER), interfaceId, OVERLAY))
     }
 
     /** Opens [interfaceId] as an overlay inside component [component] of [parent], an interface that is open. */
     fun openInside(player: Player, parent: Int, component: Int, interfaceId: Int) {
+        player.closedWhileAway -= parent to component
         send(player, IfOpenSub(parent, component, interfaceId, OVERLAY))
     }
 
     /** Closes what [openInside] opened in [component] of [parent]. */
     fun closeInside(player: Player, parent: Int, component: Int) {
+        sendClose(player, parent, component)
+    }
+
+    /**
+     * Sends a close of [component] of [parent]. One sent while the connection is lost may never arrive, so it is kept
+     * for [resendClosesWhileAway].
+     */
+    private fun sendClose(player: Player, parent: Int, component: Int) {
         send(player, IfCloseSub(parent, component))
+        if (player.connectionLost || player.connectionLostTick >= 0) player.closedWhileAway += parent to component
+    }
+
+    /**
+     * After a reconnect, closes again what was closed while the connection was lost (a trade ended by the drop, say),
+     * so the client doesn't keep showing an interface the server has shut. Opened again since, it is left alone.
+     */
+    fun resendClosesWhileAway(player: Player) {
+        for ((parent, component) in player.closedWhileAway) send(player, IfCloseSub(parent, component))
+        player.closedWhileAway.clear()
     }
 
     /** Runs client script [id] with [args] (ints, and strings in the script's order). */
@@ -177,14 +202,17 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     fun closeFloater(player: Player) {
         if (player.floater < 0) return
         val frame = player.frame
-        send(player, IfCloseSub(frame.interfaceId, frame.component(FrameSlot.FLOATER)))
+        sendClose(player, frame.interfaceId, frame.component(FrameSlot.FLOATER))
         player.floater = -1
     }
 
     /** Opens [interfaceId] as a modal in [slot], replacing whatever modal was there. */
     fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) {
-        player.modals[slot] = interfaceId
+        val replaced = player.modals.put(slot, interfaceId)
+        // The one it replaces is gone from the client too, so whatever it held is let go as on a close.
+        if (replaced != null && replaced != interfaceId && replaced !in player.modals.values) closeHooks[replaced]?.invoke(player)
         val frame = player.frame
+        player.closedWhileAway -= frame.interfaceId to frame.component(slot)
         send(player, IfOpenSub(frame.interfaceId, frame.component(slot), interfaceId, MODAL))
     }
 
@@ -205,13 +233,14 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         }
         player.chatModal = interfaceId
         player.chatModalOpens++
+        player.closedWhileAway -= Chatbox.CHATBOX to Chatbox.CHATMODAL
         send(player, IfOpenSub(Chatbox.CHATBOX, Chatbox.CHATMODAL, interfaceId, MODAL))
     }
 
     /** Closes the dialogue in the chatbox, if any; a script waiting on it is dropped. */
     fun closeChatModal(player: Player) {
         if (player.chatModal >= 0) {
-            send(player, IfCloseSub(Chatbox.CHATBOX, Chatbox.CHATMODAL))
+            sendClose(player, Chatbox.CHATBOX, Chatbox.CHATMODAL)
             player.chatModal = -1
         }
         dropDialogueScript(player)
@@ -225,9 +254,10 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         closeChatModal(player)
         // Guessed, after RSMod closing the bank's search prompt: an amount prompt closes with the interfaces it was for.
         dropCount(player)
+        if (player.scripts.dropTyping()) send(player, RunClientScript(ScriptContext.MESLAYER_CLOSE, listOf(ScriptContext.MESLAYER_STRING)))
         if (player.modals.isEmpty()) return
         val frame = player.frame
-        for (slot in player.modals.keys) send(player, IfCloseSub(frame.interfaceId, frame.component(slot)))
+        for (slot in player.modals.keys) sendClose(player, frame.interfaceId, frame.component(slot))
         val closed = player.modals.values.toList()
         player.modals.clear()
         for (interfaceId in closed) closeHooks[interfaceId]?.invoke(player)
@@ -292,6 +322,7 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
          * while op 1 was set only in the first word.
          */
         const val IF_EVENT_OP1 = 1 shl 0
+        const val IF_EVENT_OP2 = 1 shl 1
 
         /**
          * IF_SETEVENTS_V2 first word: the component may send IF_SCRIPT_TRIGGER (cs2 `if_runscript`). Without it the 241
