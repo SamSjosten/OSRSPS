@@ -24,6 +24,7 @@ import osrsps.game.ge.BuyLimitUse
 import osrsps.game.ge.GeAccount
 import osrsps.game.ge.GeOffer
 import osrsps.game.ge.OfferType
+import osrsps.game.social.IgnoreLists
 
 private val logger = KotlinLogging.logger {}
 
@@ -65,6 +66,8 @@ class PlayerSave(
     val geOffers: Map<Int, GeOffer> = emptyMap(),
     /** What the Grand Exchange buy limits have counted, by item. */
     val geLimits: List<BuyLimitUse> = emptyList(),
+    /** The ignore list, oldest first, in the header like the friends list. */
+    val ignores: List<String> = emptyList(),
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -91,6 +94,7 @@ class PlayerSave(
         player.statTimers.hitpoints.restart(inTick)
         player.chatFilters = chatFilters
         player.friends.addAll(friends)
+        player.ignores.addAll(ignores)
         applyState(player)
     }
 
@@ -161,6 +165,7 @@ class PlayerSave(
                 }
             }
             if (friends.isNotEmpty()) putJsonArray("friends") { for (name in friends) add(name) }
+            if (ignores.isNotEmpty()) putJsonArray("ignores") { for (name in ignores) add(name) }
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -245,6 +250,7 @@ class PlayerSave(
                 player.chatFilters,
                 player.friends.toList(),
                 player.ge.contents().toMap(), player.ge.limits.values.toList(),
+                player.ignores.toList(),
             )
         }
 
@@ -281,12 +287,15 @@ class PlayerSave(
                 // Optional: saves from before the friends list, and saves with an empty one, have none.
                 val friends = root["friends"]?.jsonArray.orEmpty().map { it.jsonPrimitive.content }
                 require(friends.size <= FriendLists.MAX_FRIENDS) { "${friends.size} friends is more than ${FriendLists.MAX_FRIENDS}" }
+                val ignores = root["ignores"]?.jsonArray.orEmpty().map { it.jsonPrimitive.content }
+                require(ignores.size <= IgnoreLists.MAX_IGNORES) { "${ignores.size} ignored names is more than ${IgnoreLists.MAX_IGNORES}" }
                 val state = readState(root, scenario, beforeScenario)
                 return PlayerSave(
                     state.x, state.z, state.level, state.runEnergy, state.varps, state.skills, state.inventory, state.equipment,
                     scenario, beforeScenario, createdAt, playedTicks, state.charges, state.bank, boostSegments, chatFilters,
                     friends,
                     state.geOffers, state.geLimits,
+                    ignores,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
