@@ -48,7 +48,10 @@ class Bar(
  * smithing, 312, which the client lays out itself from varbit smithing_bar_type and its own enums).
  */
 class Smithing(private val world: World) {
-    private class Job(val bar: Bar, val item: AnvilItem?, var left: Int, val loc: ZoneLoc)
+    private class Job(val bar: Bar, val item: AnvilItem?, var left: Int, val loc: ZoneLoc) {
+        /** Whether the first bar or item's animation was played. */
+        var animated = false
+    }
 
     /** What each player is smelting or smithing. */
     private val jobs = WeakHashMap<Player, Job>()
@@ -228,9 +231,15 @@ class Smithing(private val world: World) {
         if (player.modalOpen) return finish()
         if (job.left <= 0 || !canDoOne(job)) return finish()
         val anim = if (job.item == null) FURNACE_ANIM else ANVIL_ANIM
-        when (SkillClock.step(player, tick, CYCLE)) {
-            ClockStep.STARTED -> player.anim(anim)
-            ClockStep.WAITING -> {}
+        val step = SkillClock.step(player, tick, CYCLE)
+        // The clock is shared, so one still running from the last skill skips STARTED: the first one animates anyway
+        // (found 30 Oct 2026, as Draynor found for cooking).
+        if (step == ClockStep.STARTED || !job.animated) {
+            player.anim(anim)
+            job.animated = true
+        }
+        when (step) {
+            ClockStep.STARTED, ClockStep.WAITING -> {}
             ClockStep.DUE -> {
                 if (job.item == null) smeltOne(job.bar) else smithOne(job.bar, job.item)
                 job.left--
