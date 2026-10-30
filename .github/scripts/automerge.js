@@ -1,11 +1,11 @@
 // Auto-merge (see CONTRIBUTING.md), run by .github/workflows/automerge.yml through actions/github-script. Two parts:
 //
 // The `codex-review` check, which branch protection requires on main: it passes when Codex's latest review found
-// nothing and covers the pull request's changes as they are now. Codex keeps a summary comment on each pull request
-// with its state in a marker, `<!-- codex-review-state:v1 {...} -->`: the commit it last reviewed and whether that
-// review had findings. Older pull requests only have its receipts ("Didn't find any major issues" or suggestions,
-// each naming the reviewed commit), so the latest receipt is the fallback. Inferred: the marker's `has_any_findings`
-// is about the latest review only (on #207 it is false after earlier reviews that had findings).
+// nothing and covers the pull request's changes as they are now. Each Codex review leaves a receipt naming the commit
+// it reviewed: a comment saying "Didn't find any major issues", or a review with suggestions. The latest receipt is
+// the verdict. Codex's summary comment carries a marker, `<!-- codex-review-state:v1 {...} -->`, used for whether a
+// review is running, and as the verdict only when there is no receipt: its `has_any_findings` isn't about the latest
+// review alone (#212 has it true beside a clean receipt for the same commit).
 //
 // A review covers the head when it is the head, or when the reviewed commit merged with main gives the same tree as
 // the head merged with main (`git merge-tree`): merging main in doesn't need Codex again, any other change does,
@@ -36,23 +36,28 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 // Codex's latest verdict from a pull request's comments and reviews: { sha, clean }, { running: true } or null.
 function verdict(comments, reviews) {
   const codex = item => item.user && item.user.login === CODEX && item.body;
+  let state = null;
   for (const comment of comments.filter(codex)) {
     const match = STATE.exec(comment.body);
     if (!match) continue;
-    let review;
-    try { review = JSON.parse(match[1]).code_review; } catch { continue; }
-    if (!review || !review.status) continue;
-    if (review.status !== 'completed') return { running: true };
-    if (review.commit_sha) return { sha: review.commit_sha, clean: review.has_any_findings === false };
+    try { state = JSON.parse(match[1]).code_review; } catch { continue; }
+    if (state && state.status) break;
+    state = null;
   }
+  if (state && state.status !== 'completed') return { running: true };
   const receipts = [
     ...comments.filter(codex).map(c => ({ at: c.created_at, body: c.body })),
     ...reviews.filter(codex).map(r => ({ at: r.submitted_at, body: r.body })),
   ].filter(r => r.body.includes(RECEIPT) && REVIEWED.test(r.body));
-  if (!receipts.length) return null;
-  receipts.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
-  const last = receipts[receipts.length - 1];
-  return { sha: REVIEWED.exec(last.body)[1], clean: last.body.includes(CLEAN) };
+  if (receipts.length) {
+    receipts.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+    const last = receipts[receipts.length - 1];
+    return { sha: REVIEWED.exec(last.body)[1], clean: last.body.includes(CLEAN) };
+  }
+  if (state && state.commit_sha) {
+    return { sha: state.commit_sha, clean: state.has_any_findings === false && state.has_unresolved_findings === false };
+  }
+  return null;
 }
 
 // Git in the workflow's checkout of main, for the tree comparison.

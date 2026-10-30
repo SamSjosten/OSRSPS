@@ -5,10 +5,10 @@ const assert = require('node:assert');
 const automerge = require('./automerge.js');
 const { CHECK, CODEX, NOTICE, verdict, covers } = automerge;
 
-const summary = (sha, findings, status = 'completed') => ({
+const summary = (sha, findings, status = 'completed') => ({ // has_unresolved_findings follows findings
   user: { login: CODEX },
   created_at: '2026-10-29T22:00:00Z',
-  body: `<!-- codex-pull-request-review-summary -->\n<!-- codex-review-state:v1 {"code_review":{"commit_sha":"${sha}","has_any_findings":${findings},"has_unresolved_findings":false,"status":"${status}"},"security_review":{"commit_sha":null}} -->\n## Codex Review Summary`,
+  body: `<!-- codex-pull-request-review-summary -->\n<!-- codex-review-state:v1 {"code_review":{"commit_sha":"${sha}","has_any_findings":${findings},"has_unresolved_findings":${findings},"status":"${status}"},"security_review":{"commit_sha":null}} -->\n## Codex Review Summary`,
 });
 const receipt = (sha, clean, at) => ({
   user: { login: CODEX },
@@ -17,10 +17,13 @@ const receipt = (sha, clean, at) => ({
   body: `<!-- codex-review-receipt:v1 -->\n\n${clean ? "Codex Review: Didn't find any major issues. Hooray!" : '### 💡 Codex Review\n\nHere are some automated review suggestions'}\n\n**Reviewed commit:** \`${sha.slice(0, 10)}\``,
 });
 
-test('the summary marker gives the reviewed commit and whether it had findings', () => {
+test('the summary marker says when a review runs, and is the verdict only without a receipt', () => {
   assert.deepStrictEqual(verdict([summary('a'.repeat(40), false)], []), { sha: 'a'.repeat(40), clean: true });
   assert.deepStrictEqual(verdict([summary('a'.repeat(40), true)], []), { sha: 'a'.repeat(40), clean: false });
-  assert.deepStrictEqual(verdict([summary('a'.repeat(40), false, 'in_progress')], []), { running: true });
+  const clean = receipt('b'.repeat(40), true, '2026-10-29T23:00:00Z');
+  assert.deepStrictEqual(verdict([summary('a'.repeat(40), false, 'running'), clean], []), { running: true });
+  assert.deepStrictEqual(verdict([summary('b'.repeat(40), true), clean], []), { sha: 'b'.repeat(10), clean: true },
+    'as on #212: has_any_findings true beside a clean receipt');
 });
 
 test('without a summary the latest receipt decides, comment or review', () => {
