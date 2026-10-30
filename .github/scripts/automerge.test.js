@@ -421,6 +421,18 @@ test('two or more ready pull requests go in one batch on the batch branch, and b
   assert.deepStrictEqual(parseBatch(pushed.commits[sha]).members.map(m => m.number), [1, 2], '#3 still has its own checks running');
 });
 
+test('a pull request up to date with checks running holds back the one-at-a-time way, not a batch of the others', async () => {
+  const { github, calls } = fakeGitHub({
+    1: ready(1),
+    2: ready(2),
+    3: { head: H('3'), behind: 0, checks: [{ name: 'build', status: 'in_progress' }, codexPass] },
+  });
+  const pushed = [];
+  await queue(github, fakeGit({ [H('1')]: 't1', [H('2')]: 't2' }, pushed));
+  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', BATCH]]);
+  assert.deepStrictEqual(parseBatch(pushed.commits[pushed[0].split(':')[0]]).members.map(m => m.number), [1, 2]);
+});
+
 test('the queue waits while the batch builds', async () => {
   const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2) }, {
     batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [{ name: 'build', status: 'in_progress' }] },
@@ -474,6 +486,13 @@ test('a red batch goes again with its first half, and a half of one goes the one
   const two = fakeGitHub({ 1: ready(1, { mergedHead: H('a') }), 2: ready(2) }, { batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: red } });
   await queue(two.github, fakeGit({ [H('1')]: 'p', [H('a')]: 'p' }));
   assert.deepStrictEqual(two.calls, [['updateBranch', 1], ['dispatch', 'build.yml', 'branch-1'], ['check', H('a'), 'success']]);
+  const held = fakeGitHub({
+    1: ready(1, { mergedHead: H('a') }),
+    2: ready(2),
+    4: { head: H('4'), behind: 0, checks: [{ name: 'build', status: 'in_progress' }, codexPass] },
+  }, { batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: red } });
+  await queue(held.github, fakeGit({ [H('1')]: 'p', [H('a')]: 'p' }));
+  assert.deepStrictEqual(held.calls, [], 'a half of one waits while another pull request is up to date with checks running');
 });
 
 test('a batch on an older main, or whose member moved, is built again', async () => {

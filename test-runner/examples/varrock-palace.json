@@ -1,0 +1,504 @@
+{
+ "name": "Varrock step 6 (with ::keys on): the palace's King Roald, Aeonisig Raispher, Sir Prysin, Queen Ellamaria, Reldo and his library's bookcases, the altar, Ambassador Ferrnook, Captain Rovin, the roof by ladder and the training Captain, then down the spiral stairs",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3220 3474 0",
+   "expectMessage": "Teleported to 3220, 3474, 0",
+   "comment": "the throne room, beside King Roald and Aeonisig Raispher"
+  },
+  {
+   "step": "npcOption",
+   "npc": "King Roald",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[king_roald.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[king_roald.not_really]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[king_roald.not_really"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[king_roald.busy"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Aeonisig Raispher",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aeonisig.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[aeonisig.fair_enough]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aeonisig.fair_enough"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3204 3474 0",
+   "expectMessage": "Teleported to 3204, 3474, 0",
+   "comment": "Sir Prysin's room"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Sir Prysin",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prysin.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[prysin.thats_right]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prysin.thats_right"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prysin.good_job"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prysin.thanks"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3228 3475 0",
+   "expectMessage": "Teleported to 3228, 3475, 0",
+   "comment": "the Queen's garden"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Queen Ellamaria",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ellamaria.farming"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ellamaria.refuse"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ellamaria.sorry"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ellamaria.white_tree"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3213 3494 0",
+   "expectMessage": "Teleported to 3213, 3494, 0",
+   "comment": "the library, between its bookcases"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Reldo",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[reldo.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[reldo.going]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[reldo.going"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[reldo.goodbye"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bookcase",
+   "option": "Search",
+   "x": 3215,
+   "y": 3494,
+   "comment": "surok_bookcase, guessed as the north-east alcove's west one"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[palace_library.ants]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bookcase",
+   "option": "Search",
+   "x": 3216,
+   "y": 3494,
+   "comment": "surok_bookcase2, guessed as the alcove's east one"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[palace_library.titles]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bookcase",
+   "option": "Search",
+   "x": 3212,
+   "y": 3493,
+   "comment": "questbookcase"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[palace_library.nothing]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3203 3496 0",
+   "expectMessage": "Teleported to 3203, 3496, 0",
+   "comment": "beside the north-west spiral staircase"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3202,
+   "y": 3497
+  },
+  {
+   "step": "assertLocation",
+   "x": 3204,
+   "y": 3497,
+   "plane": 1,
+   "comment": "out on the stairs' east side"
+  },
+  {
+   "step": "locOption",
+   "loc": "Altar",
+   "option": "Pray-at",
+   "x": 3208,
+   "y": 3494
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[altar.",
+   "comment": "altar.full or altar.recharge: Lumbridge church's altar, the same loc"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 3476 1",
+   "expectMessage": "Teleported to 3209, 3476, 1",
+   "comment": "beside Ambassador Ferrnook, over the throne room"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ambassador Ferrnook",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ferrnook.hello"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ferrnook.sort_of"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ferrnook.not_bothered"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ferrnook.patience"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ferrnook.remember"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3204 3497 1",
+   "expectMessage": "Teleported to 3204, 3497, 1",
+   "comment": "back by the spiral staircase"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3202,
+   "y": 3497
+  },
+  {
+   "step": "assertLocation",
+   "x": 3204,
+   "y": 3497,
+   "plane": 2
+  },
+  {
+   "step": "npcOption",
+   "npc": "Captain Rovin",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[rovin.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[rovin.king]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[rovin.king"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[rovin.king_may"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[rovin.not_king"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3205,
+   "y": 3497,
+   "comment": "up to the roof"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Ladder",
+   "x": 3205,
+   "y": 3497,
+   "option": "Climb-down",
+   "comment": "the ladder's top: the player is on the roof"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-down",
+   "x": 3205,
+   "y": 3497
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Ladder",
+   "x": 3205,
+   "y": 3497,
+   "option": "Climb-up",
+   "comment": "back on the floor below"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3213 3489 2",
+   "expectMessage": "Teleported to 3213, 3489, 2",
+   "comment": "by the training dummies"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Captain",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[guard_captain.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[guard_captain.nothing]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[guard_captain.nothing"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[guard_captain.lucky"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3203 3497 2",
+   "expectMessage": "Teleported to 3203, 3497, 2",
+   "comment": "on the spiral staircase's top"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3202,
+   "y": 3497
+  },
+  {
+   "step": "assertLocation",
+   "x": 3203,
+   "y": 3496,
+   "plane": 1,
+   "comment": "out on the stairs' south side"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3202,
+   "y": 3497
+  },
+  {
+   "step": "assertLocation",
+   "x": 3203,
+   "y": 3496,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

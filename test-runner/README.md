@@ -159,6 +159,12 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   scorpion; a warrior killed for its bones and a scorpion killed, each put in on a quiet tile; Al the Camel's talk.
 - `al-kharid-mine-fish.json`: Al Kharid step 7: gold and silver ore mined at 99 in the Al Kharid mine, shrimps netted
   at a Small Net spot by the sea, and the boxes at Ali Morrisane's stall searched (with `::keys on`).
+- `al-kharid-shantay-pass.json`: Al Kharid step 8 (with `::keys on`): the outlaw's arrest with no coins, which ends
+  in Port Sarim's prison, and its lock picked at Thieving 99; the Shantay Pass gate refused without a pass, a pass bought with Buy-pass, Shantay's shop, the gate with a pass (the desert isn't built yet), and the bank chest.
+  Needs 0.6.1 for `assertInterface`.
+- `al-kharid-arena-glider.json`: Al Kharid step 9 (with `::keys on`): Captain Dalbur's Glider and his talk's glider
+  answer end at the stub message, Arena Guard Fronk, the Duel Guide and the 1v1 Tournament Guide talk, and the
+  recruitment board and the staging area steps say the Arena isn't open yet.
 - `edgeville-town.json`: Edgeville step 1 (with `::keys on`): the grange's large doors opened and shut, its haystack
   searched (any of the three outcomes), a coffin in the mausoleum opened and shut, the leather gloves taken, a wardrobe
   in the east house opened, searched and shut, Cross on the Wilderness Ditch refused, and the bank opened from a
@@ -181,6 +187,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-traders.json`: Varrock step 5b (with `::keys on`): Benny's newspaper bought for 50 coins, a fur bought
   from Baraek for 20 and sold back to him for 12, the Apothecary's hair potion topic and back to his menu, and (step
   5c) a strength potion bought on his potions screen.
+- `varrock-palace.json`: Varrock step 6 (with `::keys on`): King Roald, Aeonisig Raispher, Sir Prysin, Queen
+  Ellamaria, Reldo and three of the library's bookcases, the altar, Ambassador Ferrnook, Captain Rovin, the roof by
+  ladder and the training Captain, then down the spiral stairs to the ground floor.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,

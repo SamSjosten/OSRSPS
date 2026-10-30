@@ -15,7 +15,8 @@
 // requests can't break main together, and GitHub's merge queue isn't offered on a personal account's private
 // repository. So after each event this picks the oldest pull request with auto-merge on that is behind main, has no
 // failing check and a passing `codex-review`, merges main into it (update-branch) and starts `build` on it. One at a
-// time: while a pull request that is up to date still has checks running, it waits for that one. GitHub runs no
+// time: while a pull request that is up to date still has checks running, it waits for that one (a batch of the others
+// may still start, below). GitHub runs no
 // workflow for a push made with the workflow's own token, hence the dispatch, and the `codex-review` check for the new
 // head is written here.
 //
@@ -389,7 +390,7 @@ branch, check the merge, and comment \`@codex review\`.`,
 
 // What to do about the batch on its branch, if it is still about main and its members: true when the queue is done
 // for this run (the batch is building, was promoted or went again), false to go on as if there were none.
-async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha, scanned) {
+async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha, scanned, waiting) {
   if (!batch || batch.base !== mainSha) return false;
   const carrier = batch.members[batch.members.length - 1];
   const carrierState = scanned.get(carrier.number);
@@ -439,6 +440,7 @@ async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha,
   core.info(`batch ${batch.sha.slice(0, 7)} failed: ${half.map(m => `#${m.number}`).join(', ')} go again`);
   if (half.length >= 2 && await startBatch(github, git, repo, core, half)) return true;
   const first = scanned.get(half[0].number);
+  if (waiting) return true; // the one-at-a-time way waits for it; the failed batch stays until then
   return first.ready ? updateOne(github, git, repo, core, sleep, first.pr) : false;
 }
 
@@ -447,6 +449,7 @@ async function advance(github, git, repo, core, sleep, now) {
   const queued = open.filter(pr => pr.auto_merge && !pr.draft).sort((a, b) => a.number - b.number);
 
   const scanned = new Map();
+  let waiting = null; // an up-to-date pull request whose checks are still running: no other gets main merged in meanwhile
   for (const pr of queued) {
     const { data: compare } = await github.rest.repos.compareCommits({ ...repo, base: 'main', head: pr.head.sha });
     const behind = compare.behind_by > 0;
@@ -460,7 +463,8 @@ async function advance(github, git, repo, core, sleep, now) {
     if (held.waiting) {
       if (held.approved === held.waiting) {
         core.info(`#${pr.number}: approved its waiting runs; waiting for them`);
-        return;
+        waiting = waiting || pr;
+        continue;
       }
       await askForApproval(github, repo, pr.number, pr.head.sha);
       continue;
@@ -489,20 +493,27 @@ async function advance(github, git, repo, core, sleep, now) {
     const codex = checks.find(run => run.name === CHECK);
     const codexOk = codex && codex.conclusion === 'success';
     core.info(`#${pr.number}: ${behind ? 'behind main' : 'up to date'}, ${failing ? 'failing' : running ? 'checks running' : 'checks done'}, ${CHECK} ${codexOk ? 'passes' : 'not passing'}`);
+    // Waiting for it holds back only the one-at-a-time way: the scan goes on, so a batch of the others can still start.
+    // Stopping here instead starved every older ready pull request whenever any thread pushed (#292, #308, 2026-10-30).
     if (!behind && running && !failing) {
-      core.info(`#${pr.number} is up to date with checks running: waiting for it`);
-      return;
+      core.info(`#${pr.number} is up to date with checks running`);
+      waiting = waiting || pr;
+      continue;
     }
     const ready = behind && !failing && codexOk;
     scanned.set(pr.number, { pr, failing, ready, batchable: ready && !running && checks.some(run => run.name === BUILD) });
   }
 
   const { data: main } = await github.rest.repos.getBranch({ ...repo, branch: 'main' });
-  if (await advanceBatch(github, git, repo, core, sleep, now, await readBatch(github, repo), main.commit.sha, scanned)) return;
+  if (await advanceBatch(github, git, repo, core, sleep, now, await readBatch(github, repo), main.commit.sha, scanned, waiting)) return;
 
   const batchable = [...scanned.values()].filter(state => state.batchable).slice(0, BATCH_MAX);
   if (batchable.length >= 2 && await startBatch(github, git, repo, core, batchable.map(state => ({ number: state.pr.number, sha: state.pr.head.sha })))) return;
 
+  if (waiting) {
+    core.info(`waiting for #${waiting.number}`);
+    return;
+  }
   for (const state of scanned.values()) {
     if (state.ready && await updateOne(github, git, repo, core, sleep, state.pr)) return;
   }

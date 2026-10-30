@@ -19,13 +19,13 @@ class NpcCombatTest {
     ) + (1..8).map { "goblin_unarmed_melee_$it" } + "giantspider1" + listOf(
         "giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3",
         "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops", "goblin_armed", "unicorn",
-        "al_kharid_man", "al_kharid_warrior", "scorpion", "guard1",
+        "al_kharid_man", "al_kharid_warrior", "scorpion", "shantay_guard", "spider", "guard1",
     ) + VARROCK_GUARDS
     // The cache's Strength levels where they aren't 1, for the max hit check.
     private val strength = mapOf(
         "giantrat" to 3, "giantrat_grey" to 3, "giantrat_grey2" to 3, "giantrat_grey3" to 3, "giantrat1_2" to 5, "giantrat1_3" to 5,
         "little_frog_nodrops" to 4, "medium_frog_nodrops" to 6, "giant_frog_nodrops" to 8, "unicorn" to 13,
-        "al_kharid_warrior" to 5, "scorpion" to 12, "guard1" to 18,
+        "al_kharid_warrior" to 5, "scorpion" to 12, "shantay_guard" to 16, "guard1" to 18,
     ) + VARROCK_GUARDS.associateWith { 18 }
     private val types = NpcTypes.of(
         *names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name, stats = NpcStats(strength = strength[name] ?: 1)) }.toTypedArray(),
@@ -71,7 +71,7 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.FIRE, 20), combat[types.find("ramunsheered")!!]!!.weakness)
         assertEquals(ElementalWeakness(Element.FIRE, 50), combat[types.find("giantspider1")!!]!!.weakness)
         assertEquals(
-            listOf("imp", "ramunsheered", "ramunsheered2", "ramunsheered3", "giantspider1", "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops"),
+            listOf("imp", "ramunsheered", "ramunsheered2", "ramunsheered3", "giantspider1", "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops", "spider"),
             names.filter { combat[types.find(it)!!]!!.weakness != null },
         )
         assertEquals(ElementalWeakness(Element.EARTH, 40), combat[types.find("little_frog_nodrops")!!]!!.weakness)
@@ -127,6 +127,11 @@ class NpcCombatTest {
         assertEquals(2, scorpion.maxHit)
         assertEquals(NpcCombatAnims(6254, 6255, 6256), scorpion.anims)
         assertEquals(35, scorpion.respawnTicks)
+        // The Shantay Guard stabs for 3 and comes back in 50 ticks.
+        val guard = combat[types.find("shantay_guard")!!]!!
+        assertEquals(AttackType.STAB, guard.attackType)
+        assertEquals(3, guard.maxHit)
+        assertEquals(50, guard.respawnTicks)
         // Varrock's guards crush for 3 and Edgeville's stab for 3, each back in 50 ticks.
         for (name in VARROCK_GUARDS) {
             val guard = combat[types.find(name)!!]!!
