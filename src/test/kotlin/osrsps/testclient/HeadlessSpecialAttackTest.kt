@@ -38,10 +38,16 @@ class HeadlessSpecialAttackTest {
         params = mapOf(14 to 6), internalName = "dragon_warhammer",
     )
 
+    private val godsword = ObjType(
+        GODSWORD, "Bandos godsword", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON,
+        params = mapOf(14 to 6), internalName = "bgs",
+    )
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val types = NpcTypes.of(boss)
         val objs = arrayOfNulls<ObjType>(WARHAMMER + 1)
         objs[WARHAMMER] = warhammer
+        objs[GODSWORD] = godsword
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), objTypes = ObjTypes(objs), npcTypes = types,
             npcSpawns = listOf(NpcSpawn(boss, 3224, 3218, source = "test")),
@@ -52,7 +58,7 @@ class HeadlessSpecialAttackTest {
                     "anims": { "attack": null, "defend": null, "death": null }, "respawnTicks": 25, "source": "test" } ] }""",
                 types, SeqNames.NONE,
             ),
-            specialAttackCosts = mapOf(WARHAMMER to 500), cycleMillis = millis,
+            specialAttackCosts = mapOf(WARHAMMER to 500, GODSWORD to 500), cycleMillis = millis,
         )
     }
 
@@ -104,8 +110,42 @@ class HeadlessSpecialAttackTest {
         }
     }
 
+    @Test
+    fun `Warstrike rolls double against slash and drains the Defence by the damage`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                val npc = client.await("the boss in view") { client.npcs().firstOrNull { it.id == boss.id } }
+                client.await("the login rebuild") { client.position }
+                client.command("item $GODSWORD 1")
+                client.ifButton(INVENTORY, INVENTORY_ITEMS, WIELD_BUTTON, client.slot(GODSWORD), GODSWORD)
+                client.await("the godsword wielded") { client.inventory(WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == GODSWORD } }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("sure") { it.startsWith("Your attacks can't miss") }
+                client.commandReply("setlevel strength 99") { it.contains("99") }
+                // Punching (no styles in this cache) with nothing but levels: (1 + 3 + 8) x 64 = 768, doubled; 11 at 99 Strength, then 12, then 13.
+                client.commandReply("combat ${npc.index}") { it.startsWith("Special (Warstrike) (slash)") }.let {
+                    assertEquals(true, it.startsWith("Special (Warstrike) (slash): attack roll 1536, max hit 13,"), it)
+                }
+                client.ifButton(EquipmentTab.COMBAT, EquipmentTab.COMBAT_SPECIAL, 1)
+                client.await("the bar lit") { Unit.takeIf { client.lit() } }
+                client.npcOp(npc.index, 2)
+                client.await("the special swung", timeoutMillis = 15_000) { Unit.takeIf { !client.lit() && client.energy() == 500 } }
+                client.awaitTicks(2)
+                val line = client.commandReply("npcs 5") { it.startsWith("#${npc.index} Archive Guardian") }
+                val hp = Regex("; (\\d+)/5000 hp").find(line)?.groupValues?.get(1)?.toInt() ?: 5000
+                val damage = 5000 - hp
+                if (damage == 0) {
+                    assertEquals(false, line.contains("drained"), line)
+                } else {
+                    assertEquals(true, line.contains("drained defence ${75 - damage}/75,"), line)
+                }
+            }
+        }
+    }
+
     companion object {
         const val WARHAMMER = 13576
+        const val GODSWORD = 11804
 
         // As HeadlessEquipmentTest has them.
         private const val BACKPACK = 93

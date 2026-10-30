@@ -28,6 +28,7 @@ import osrsps.game.skill.MiningLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.WoodcuttingLines
 import osrsps.game.social.SocialLines
+import osrsps.game.trade.TradeLines
 
 /** Every conversation's lines, which the dialogue file is read and written against. Each new [Lines] object goes here. */
 object DialogueLines {
@@ -54,7 +55,7 @@ object DialogueLines {
         CandleSellerLines, MiningTutorLines, FishingTutorLines, AereckLines, PrayerTutorLines, NigelLines, CountCheckLines,
         AltarLines,
         // Social systems.
-        SocialLines,
+        SocialLines, TradeLines,
         // Al Kharid.
         BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
         GemTraderLines, AliMorrisaneLines, KarimLines, SilkTraderLines, KebabLines,

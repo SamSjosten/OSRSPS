@@ -240,7 +240,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::clearignores` | Empties your ignore list, for tests that start from none |
 | `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
 | `::drain stat levels\|percent% [index\|name]` | Drains an NPC's attack, defence, strength, ranged or magic (the one you fight, or by index from `::npcs` or by name) by that many levels, or by a percentage of its level now, as far as its drain cap lets it, and says its level now. Its combat rolls use the drained level (`::combat` shows them), it gets a level back a minute, and `::npcs` shows its drained stats |
-| `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash is in (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap), and `::combat` shows a special's attack roll and max hit |
+| `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap) and the Bandos godsword's Warstrike (50%: double accuracy against slash, the max hit up 10% twice, and the target's Defence, Strength, Attack, Magic and Ranged drained by the damage in turn) are in, and `::combat` shows a special's attack roll and max hit |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -454,7 +454,9 @@ account). Steel studs on a leather body or chaps stud them. A chisel on an uncut
 can crush into a crushed gemstone, rolled as the gathering skills roll. A gold bar or a mould used on a furnace opens
 `crafting_gold` (interface 446), and a silver bar or silver mould `silver_crafting` (6): both lay themselves out from
 the inventory, so the server answers the item buttons and keeps the quantity buttons' choice in `makexcrafting`, as at
-the anvil. A ball of wool strings an amulet. The making is the artisan loop in `Making.kt`.
+the anvil. A ball of wool strings an amulet. Soda ash or a bucket of sand on a furnace makes molten glass (the bucket
+comes back), and a glassblowing pipe blows it. Water on clay softens it; soft clay on a potter's wheel shapes pots,
+cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, some cracking below level 13. The making is the artisan loop in `Making.kt`.
 
 | Crafting behaviour | Source |
 |--------------------|--------|
@@ -468,6 +470,9 @@ the anvil. A ball of wool strings an amulet. The making is the artisan loop in `
 | Gold and silver jewellery levels and XP; 3 ticks an item; stringing an amulet 4 XP, 2 ticks | OSRS Wiki, Jewellery, Silver bar, Gold ring, Gold amulet |
 | The two furnace interfaces' item and quantity buttons | decompiled interfaces crafting_gold and silver_crafting (osrs-dumps) |
 | The furnace animation, silver taking gold's ticks, which interface a shared mould opens | guessed |
+| Molten glass 1, 20 XP, 2 ticks; glassblowing levels and XP, 3 ticks; soft clay 2 ticks, no XP | OSRS Wiki, Molten glass, Glassblowing pipe, Vial, Soft clay |
+| Pottery levels and both XPs; 3 ticks at the wheel, 7 in the oven, firing at any level; the oven's crack chart, which the pair 180/800 gives exactly (`CraftingDataTest`) | OSRS Wiki, Crafting (Pottery), Unfired pie dish, Pie dish and the other pots' pages |
+| A cracked pot lost with no XP; the oven animation; the other glassblowing items' ticks | guessed |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
 | Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
 

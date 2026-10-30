@@ -63,8 +63,10 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${type.stats.hitpoints} hp): defence roll ${m.defenceRoll}, you hit ${percent(m.hitChance)}")
         reply("It: attack roll ${m.npcAttackRoll} vs your ${m.playerDefenceRoll}, hits ${percent(m.npcHitChance)}, max hit ${m.npcMaxHit}")
         world.specialAttacks.special(combat.weapon(player))?.let { spec ->
-            val attackRoll = spec.attackRoll(m.attackRoll)
-            reply("Special (${spec.name}): attack roll $attackRoll, max hit ${spec.maxHit(m.maxHit)}, you hit ${percent(CombatMath.hitChance(attackRoll, m.defenceRoll))}")
+            val s = spec.against?.let { combat.matchup(player, target, it) } ?: m
+            val attackRoll = spec.attackRoll(s.attackRoll)
+            val against = spec.against?.let { " (${it.name.lowercase()})" }.orEmpty()
+            reply("Special (${spec.name})$against: attack roll $attackRoll, max hit ${spec.maxHit(s.maxHit)}, defence roll ${s.defenceRoll}, you hit ${percent(CombatMath.hitChance(attackRoll, s.defenceRoll))}")
         }
     }
 
