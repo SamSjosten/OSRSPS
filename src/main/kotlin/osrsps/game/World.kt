@@ -920,7 +920,8 @@ class World(
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
-            grandExchange.process(player)
+            // Outside a player's own scripts, so a failure here would otherwise skip the rest of the tick for everyone.
+            perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.

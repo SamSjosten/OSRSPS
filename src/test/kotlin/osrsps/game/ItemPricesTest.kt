@@ -49,6 +49,16 @@ class ItemPricesTest {
     }
 
     @Test
+    fun `a price below 1 counts as none, so the Grand Exchange never fills for free`() {
+        val prices = ItemPrices.parse("1351\tBronze axe\t0\t40\n6570\tFire cape\t-5\t\n")
+        assertNull(prices.price(axe))
+        assertNull(prices.price(axeNote))
+        assertNull(prices.price(cape))
+        assertEquals(40, prices.limit(axe))
+        assertEquals(18_000L, prices.deathValue(cape))
+    }
+
+    @Test
     fun `on death an item counts its price, or its high alchemy value without one`() {
         val prices = ItemPrices.download(::wiki)
         assertEquals(21L, prices.deathValue(axe))
