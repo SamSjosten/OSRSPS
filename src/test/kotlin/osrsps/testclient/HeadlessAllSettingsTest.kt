@@ -162,7 +162,7 @@ class HeadlessAllSettingsTest {
         server(dir).use { server ->
             server.login("erin").use { client ->
                 open(client)
-                assertTrue(client.opEnabled(INTERFACE, DROPDOWN_BUTTONS, CATALOG.maxOptions * 3 - 1, 1))
+                assertTrue(client.opEnabled(INTERFACE, DROPDOWN_BUTTONS, 2, 1))
                 // Tab 3 (Leagues has none): its rows from clickzone child 0.
                 client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 3)
                 client.awaitBits(VARP_SETTINGS_TRACKING, 4, 4, CONTROLS)
@@ -247,7 +247,10 @@ class HeadlessAllSettingsTest {
     private fun open(client: HeadlessClient) {
         client.await("the login rebuild") { client.position }
         client.ifButton(SettingsSide.INTERFACE, SettingsSide.SETTINGS_OPEN, 1)
-        client.await("the window") { Unit.takeIf { INTERFACE in client.openInterfaces() && client.opEnabled(INTERFACE, SETTINGS_CLICKZONE, 0, 1) } }
+        // The dropdown list's events are the last the window sets, so once they're in, every row and tab is clickable.
+        client.await("the window") {
+            Unit.takeIf { INTERFACE in client.openInterfaces() && client.opEnabled(INTERFACE, DROPDOWN_BUTTONS, CATALOG.maxOptions * 3 - 1, 1) }
+        }
     }
 
     /** Waits until [width] bits of varp [varp], from bit [start], hold [value]. */
