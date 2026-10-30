@@ -511,6 +511,17 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "id", "value", "comment");
 				return new Steps.AssertVar(timeout, type.equals("assertVarbit"), id, value);
 			}
+			case "enterAmount":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int amount = f.requiredInt("amount");
+				if (amount < 0)
+				{
+					throw new Invalid(f.where + ": \"amount\" must be 0 or more");
+				}
+				f.rejectUnknown("step", "timeoutMs", "amount", "comment");
+				return new Steps.EnterAmount(timeout, amount);
+			}
 			case "assertWeight":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

@@ -49,6 +49,7 @@ class SettingsLoaderTest {
                 5 to SettingVar.Conditional(103, 1, SettingVar.Varbit(104)),
                 6 to SettingVar.Client,
                 7 to SettingVar.Mapped(SettingVar.Varbit(105), mapOf(1 to 1, 2 to 2), 0),
+                8 to SettingVar.Offset(SettingVar.Varp(201), -1),
             ),
             SettingsLoader.decodeGetter(getterScript()) { if (it == 700) SettingsLoader.decodeEnum(intEnum(1 to 1, 2 to 2)) else null },
         )
@@ -124,13 +125,20 @@ class SettingsLoaderTest {
         // Enum 3506: None, F1 to F12, Esc.
         assertEquals(14, catalog.rows.getValue(2739).options)
         assertEquals(12, catalog.rows.getValue(3107).options) // quest list sort
+        // Number inputs: a varbit or a varp each.
+        assertEquals(SettingVar.Varbit(5400), catalog.numbers[39]) // option_lootnotification_value
+        assertEquals(SettingVar.Varp(3800), catalog.numbers[328]) // ground_items_t5_threshold
+        // Colours: 50 cases, each a varp holding the colour plus 1.
+        assertEquals(50, catalog.colours.size)
+        assertEquals(SettingVar.Offset(SettingVar.Varp(2992), -1), catalog.colours[87]) // option_chat_colour_public_opaque
+        assertEquals(emptyList(), catalog.colours.filterValues { it !is SettingVar.Offset }.keys.toList())
         val varbits = cache.group(2, 14).mapValues { VarTypeLoader.decodeVarbit(it.value) }
         assertEquals(emptyList(), AllSettings.checkVarbits(VarTypes(6_000, varbits)))
     }
 
     /**
      * `iload 0; switch; jump end` then one case per shape: get_varbit; get_varp; 1 - get_varbit; testbit;
-     * a conditional; a device option; an enum lookup. Cases 1 to 7 in that order.
+     * a conditional; a device option; an enum lookup; get_varp - 1. Cases 1 to 8 in that order.
      */
     private fun getterScript(): ByteArray = bytes {
         writeByte(0)
@@ -147,9 +155,10 @@ class SettingsLoaderTest {
         op(0, 17); op(3214); op(21) // 21
         op(0, 0); op(21) // 24
         op(0, 105); op(0, 105); op(0, 700); op(25, 105); op(3408); op(21) // 26
-        writeInt(32)
+        op(1, 201); op(0, 1); op(4001); op(21) // 32
+        writeInt(36)
         repeat(6) { writeShort(if (it == 3) 1 else 0) }
-        val targets = listOf(3, 5, 7, 11, 15, 21, 26)
+        val targets = listOf(3, 5, 7, 11, 15, 21, 26, 32)
         writeByte(1); writeShort(targets.size)
         targets.forEachIndexed { index, target -> writeInt(index + 1); writeInt(target - 2) }
         writeShort(1 + 2 + 8 * targets.size)

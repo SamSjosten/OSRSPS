@@ -60,6 +60,14 @@ class Player(
     var settingsDropdown: Int = -1
         internal set
 
+    /** Whether the All Settings window's colour picker is open, waiting on a colour. See [AllSettings]. */
+    var colourPickerOpen: Boolean = false
+        internal set
+
+    /** Whether a number prompt or the colour picker of the All Settings window is waiting on an amount. */
+    var settingsInputOpen: Boolean = false
+        internal set
+
     /** The dialogue (or other modal) open in the chatbox's chatmodal, -1 for none. See [Interfaces.openChatModal]. */
     var chatModal: Int = -1
         internal set
@@ -162,6 +170,9 @@ class Player(
 
     /** What the player's charged items hold, such as a blowpipe's darts and scales; see [Charges]. */
     val charges = Charges()
+
+    /** The chatbox's public, private and trade filters, as the client last set them. Saved. */
+    var chatFilters: ChatFilters = ChatFilters.DEFAULT
 
     /** The `::scenario` the player last started, null when they aren't in one. Saved. */
     var scenario: String? = null
@@ -305,5 +316,15 @@ class Player(
 
     private companion object {
         const val CHATTYPE_GAMEMESSAGE = 0
+    }
+}
+
+/**
+ * The chatbox tabs' filters (SET_CHATFILTERSETTINGS): public, private and trade, each the client's own number for its
+ * choice. All 0, on, for a new account (guessed).
+ */
+data class ChatFilters(val public: Int, val private: Int, val trade: Int) {
+    companion object {
+        val DEFAULT = ChatFilters(0, 0, 0)
     }
 }

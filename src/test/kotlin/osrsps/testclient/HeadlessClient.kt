@@ -351,6 +351,13 @@ class HeadlessClient private constructor(
         }
     }
 
+    /** The chatbox tabs' filters changed (SET_CHATFILTERSETTINGS), each the client's number for its choice. */
+    fun setChatFilters(public: Int, private: Int, trade: Int) = send(GameClientProt.SET_CHATFILTERSETTINGS) {
+        p1(public)
+        p1(private)
+        p1(trade)
+    }
+
     /** An amount typed into a prompt (RESUME_P_COUNTDIALOG), as after Withdraw-X. */
     fun resumeCount(count: Int) = send(GameClientProt.RESUME_P_COUNTDIALOG) { p4(count) }
 

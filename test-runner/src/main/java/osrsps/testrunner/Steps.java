@@ -621,6 +621,50 @@ final class Steps
 		}
 	}
 
+	/** (0.11.0) Types an amount into the chatbox's number prompt, as Withdraw-X or a settings number asks for one. */
+	static final class EnterAmount extends Step
+	{
+		/** meslayer_mode7's mode: the chatbox asks for a number. */
+		static final int NUMBER_PROMPT = 7;
+
+		final int amount;
+		private boolean sent;
+
+		EnterAmount(long timeoutMs, int amount)
+		{
+			super("enterAmount", timeoutMs, false);
+			this.amount = amount;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int mode = run.game.promptMode();
+			if (!sent)
+			{
+				if (mode != NUMBER_PROMPT)
+				{
+					return Poll.waiting("no number prompt open (meslayermode " + mode + ")");
+				}
+				run.markAction();
+				String error = run.game.enterAmount(amount);
+				if (error != null)
+				{
+					return Poll.fail(error);
+				}
+				sent = true;
+				return Poll.waiting("entered, waiting for the prompt to close");
+			}
+			return mode == NUMBER_PROMPT ? Poll.waiting("the prompt is still open") : Poll.pass("entered " + amount);
+		}
+
+		@Override
+		String describe()
+		{
+			return "enter amount " + amount;
+		}
+	}
+
 	static final class AssertDialogue extends Step
 	{
 		final String contains;

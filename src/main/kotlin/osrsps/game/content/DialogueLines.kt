@@ -3,6 +3,7 @@ package osrsps.game.content
 import osrsps.game.EquipmentLines
 import osrsps.game.GameLines
 import osrsps.game.Player
+import osrsps.game.SettingsLines
 import osrsps.game.World
 import osrsps.game.bank.BankLines
 import osrsps.game.combat.CombatLines
@@ -29,7 +30,7 @@ object DialogueLines {
         FishingLines,
         CookingLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
-        BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines,
+        BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines, SettingsLines,
         // Rest of Lumbridge.
         ShopKeeperLines, ShopAssistantLines, BobLines, RamBartenderLines, ArthurLines, DonieLines, GeeLines, CookingTutorLines,
         SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines, GillieLines, MillieLines,

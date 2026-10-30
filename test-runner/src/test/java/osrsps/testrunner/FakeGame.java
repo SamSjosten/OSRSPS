@@ -11,6 +11,8 @@ class FakeGame implements Game
 	boolean loggedIn = true;
 	/** What weight answers while logged in. */
 	int weight;
+	/** What promptMode answers; entering an amount closes the prompt. */
+	int promptMode;
 	String name = "test";
 	Tile location = new Tile(3200, 3200, 0);
 	/** Where the client draws the player; null for the tile in {@link #location}. */
@@ -281,6 +283,20 @@ class FakeGame implements Game
 	public int weight()
 	{
 		return loggedIn ? weight : Integer.MIN_VALUE;
+	}
+
+	@Override
+	public int promptMode()
+	{
+		return promptMode;
+	}
+
+	@Override
+	public String enterAmount(int amount)
+	{
+		actions.add("amount " + amount);
+		promptMode = 0;
+		return null;
 	}
 
 	@Override
