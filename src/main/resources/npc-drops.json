@@ -130,6 +130,46 @@
       "npcs": ["ramunsheered", "ramunsheered2", "ramunsheered3"],
       "always": [{"item": 526, "name": "Bones"}],
       "source": "OSRS Wiki, Ram, read 2026-10-29 (its ram skull drops only during Rag and Bone Man I, which every account has done)"
+    },
+    {
+      "npcs": ["goblin_unarmed_melee_1", "goblin_unarmed_melee_2", "goblin_unarmed_melee_3", "goblin_unarmed_melee_4", "goblin_unarmed_melee_5", "goblin_unarmed_melee_6", "goblin_unarmed_melee_7", "goblin_unarmed_melee_8"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 1173, "name": "Bronze sq shield", "weight": 3},
+          {"item": 1237, "name": "Bronze spear", "weight": 4},
+          {"item": 555, "name": "Water rune", "count": 6, "weight": 6},
+          {"item": 559, "name": "Body rune", "count": 7, "weight": 5},
+          {"item": 557, "name": "Earth rune", "count": 4, "weight": 3},
+          {"item": 877, "name": "Bronze bolts", "count": 8, "weight": 3},
+          {"item": 995, "name": "Coins", "count": 15, "weight": 28},
+          {"item": 995, "name": "Coins", "count": 20, "weight": 2},
+          {"item": 995, "name": "Coins", "count": 1, "weight": 1},
+          {"nothing": true, "weight": 38},
+          {"item": 2347, "name": "Hammer", "weight": 15},
+          {"item": 288, "name": "Goblin mail", "weight": 5},
+          {"item": 1949, "name": "Chef's hat", "weight": 3},
+          {"item": 3010, "name": "Energy potion(3)", "weight": 3},
+          {"item": 3008, "name": "Energy potion(4)", "weight": 3},
+          {"item": 10999, "name": "Goblin book", "weight": 2},
+          {"item": 1917, "name": "Beer", "weight": 2},
+          {"item": 1009, "name": "Brass necklace", "weight": 1},
+          {"item": 1438, "name": "Air talisman", "weight": 1}
+        ]
+      },
+      "tertiary": [
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/64"},
+        {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"},
+        {"item": 13447, "name": "Ensouled goblin head", "chance": "1/35"},
+        {"item": 6801, "name": "Goblin champion scroll", "chance": "1/5000"}
+      ],
+      "source": "OSRS Wiki, Goblin, drop table 1 (most level 2 goblins), read 2026-10-30 (the goblin skull drops only during Rag and Bone Man I, which every account has done)"
+    },
+    {
+      "npcs": ["giantspider1"],
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Giant spider, read 2026-10-30: no bones; the looting bag, Larran's key and slayer's enchantment drop only in the Wilderness or on Krystilia's tasks"
     }
   ]
 }
