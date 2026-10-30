@@ -165,6 +165,497 @@
           "restock": 3000
         }
       ]
+    },
+    {
+      "key": "al_kharid_general_store",
+      "title": "Al Kharid General Store",
+      "inv": 13,
+      "size": 40,
+      "general": true,
+      "sellAt": 1300,
+      "buyAt": 400,
+      "changePer": 30,
+      "npcs": [
+        "generalshopkeeper3",
+        "generalassistant3"
+      ],
+      "source": "OSRS Wiki, Al Kharid General Store, read 2026-10-30: Sells at 130.0%, Buys at 40.0%, Change per 3.0%, and the stock table. inv generalshop3 is inferred from its keepers' names (generalshopkeeper3), as Lumbridge's generalshop1 has generalshopkeeper1",
+      "stock": [
+        {
+          "item": 1931,
+          "name": "Pot",
+          "count": 5,
+          "restock": 10
+        },
+        {
+          "item": 1935,
+          "name": "Jug",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 20742,
+          "name": "Empty jug pack",
+          "count": 5,
+          "restock": 20
+        },
+        {
+          "item": 1735,
+          "name": "Shears",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1925,
+          "name": "Bucket",
+          "count": 3,
+          "restock": 10
+        },
+        {
+          "item": 22660,
+          "name": "Empty bucket pack",
+          "count": 15,
+          "restock": 10
+        },
+        {
+          "item": 1923,
+          "name": "Bowl",
+          "count": 2,
+          "restock": 50
+        },
+        {
+          "item": 1887,
+          "name": "Cake tin",
+          "count": 2,
+          "restock": 50
+        },
+        {
+          "item": 590,
+          "name": "Tinderbox",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1755,
+          "name": "Chisel",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 2347,
+          "name": "Hammer",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 550,
+          "name": "Newcomer map",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 9003,
+          "name": "Security book",
+          "count": 5,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "zekes_superior_scimitars",
+      "title": "Zeke's Superior Scimitars",
+      "inv": 11,
+      "size": 4,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 550,
+      "changePer": 20,
+      "npcs": [
+        "zeke"
+      ],
+      "source": "OSRS Wiki, Zeke's Superior Scimitars, read 2026-10-30: Sells at 100.0%, Buys at 55.0%, Change per 2.0%, and the stock table",
+      "stock": [
+        {
+          "item": 1321,
+          "name": "Bronze scimitar",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1323,
+          "name": "Iron scimitar",
+          "count": 3,
+          "restock": 200
+        },
+        {
+          "item": 1325,
+          "name": "Steel scimitar",
+          "count": 2,
+          "restock": 600
+        },
+        {
+          "item": 1329,
+          "name": "Mithril scimitar",
+          "count": 1,
+          "restock": 4000
+        }
+      ]
+    },
+    {
+      "key": "dommiks_crafting_store",
+      "title": "Dommik's Crafting Store",
+      "inv": 27,
+      "size": 11,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 650,
+      "changePer": 20,
+      "npcs": [
+        "dommik"
+      ],
+      "source": "OSRS Wiki, Dommik's Crafting Store, read 2026-10-30: Sells at 100.0%, Buys at 65.0%, Change per 2.0%, and the stock table (sickle, bolt and bracelet moulds are members stock; accounts count as members)",
+      "stock": [
+        {
+          "item": 1755,
+          "name": "Chisel",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1592,
+          "name": "Ring mould",
+          "count": 4,
+          "restock": 100
+        },
+        {
+          "item": 1597,
+          "name": "Necklace mould",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1595,
+          "name": "Amulet mould",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1733,
+          "name": "Needle",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1734,
+          "name": "Thread",
+          "count": 100,
+          "restock": 5
+        },
+        {
+          "item": 1599,
+          "name": "Holy mould",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 2976,
+          "name": "Sickle mould",
+          "count": 6,
+          "restock": 15
+        },
+        {
+          "item": 5523,
+          "name": "Tiara mould",
+          "count": 10,
+          "restock": 10
+        },
+        {
+          "item": 9434,
+          "name": "Bolt mould",
+          "count": 10,
+          "restock": 10
+        },
+        {
+          "item": 11065,
+          "name": "Bracelet mould",
+          "count": 5,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "louies_armoured_legs_bazaar",
+      "title": "Louie's Armoured Legs Bazaar",
+      "inv": 12,
+      "size": 40,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 650,
+      "changePer": 10,
+      "npcs": [
+        "louie_legs"
+      ],
+      "source": "OSRS Wiki, Louie's Armoured Legs Bazaar, read 2026-10-30: Sells at 100.0%, Buys at 65.0%, Change per 1.0%, and the stock table",
+      "stock": [
+        {
+          "item": 1075,
+          "name": "Bronze platelegs",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1067,
+          "name": "Iron platelegs",
+          "count": 3,
+          "restock": 400
+        },
+        {
+          "item": 1069,
+          "name": "Steel platelegs",
+          "count": 2,
+          "restock": 900
+        },
+        {
+          "item": 1077,
+          "name": "Black platelegs",
+          "count": 1,
+          "restock": 1200
+        },
+        {
+          "item": 1071,
+          "name": "Mithril platelegs",
+          "count": 1,
+          "restock": 2000
+        },
+        {
+          "item": 1073,
+          "name": "Adamant platelegs",
+          "count": 1,
+          "restock": 13000
+        }
+      ]
+    },
+    {
+      "key": "ranaels_super_skirt_store",
+      "title": "Ranael's Super Skirt Store",
+      "inv": 16,
+      "size": 40,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 650,
+      "changePer": 10,
+      "npcs": [
+        "ranael"
+      ],
+      "source": "OSRS Wiki, Ranael's Super Skirt Store, read 2026-10-30: Sells at 100.0%, Buys at 65.0%, Change per 1.0%, and the stock table",
+      "stock": [
+        {
+          "item": 1087,
+          "name": "Bronze plateskirt",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1081,
+          "name": "Iron plateskirt",
+          "count": 3,
+          "restock": 400
+        },
+        {
+          "item": 1083,
+          "name": "Steel plateskirt",
+          "count": 2,
+          "restock": 900
+        },
+        {
+          "item": 1089,
+          "name": "Black plateskirt",
+          "count": 1,
+          "restock": 1200
+        },
+        {
+          "item": 1085,
+          "name": "Mithril plateskirt",
+          "count": 1,
+          "restock": 2000
+        },
+        {
+          "item": 1091,
+          "name": "Adamant plateskirt",
+          "count": 1,
+          "restock": 13000
+        }
+      ]
+    },
+    {
+      "key": "gem_trader",
+      "title": "Gem Trader",
+      "inv": 26,
+      "size": 8,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 700,
+      "changePer": 30,
+      "npcs": [
+        "gem_trader"
+      ],
+      "source": "OSRS Wiki, Gem Trader, read 2026-10-30: Sells at 100.0%, Buys at 70.0%, Change per 3.0%, and the stock table",
+      "stock": [
+        {
+          "item": 1623,
+          "name": "Uncut sapphire",
+          "count": 1,
+          "restock": 25000
+        },
+        {
+          "item": 1621,
+          "name": "Uncut emerald",
+          "count": 1,
+          "restock": 40000
+        },
+        {
+          "item": 1619,
+          "name": "Uncut ruby",
+          "count": 0,
+          "restock": 2000
+        },
+        {
+          "item": 1617,
+          "name": "Uncut diamond",
+          "count": 0,
+          "restock": 4000
+        },
+        {
+          "item": 1607,
+          "name": "Sapphire",
+          "count": 1,
+          "restock": 15000
+        },
+        {
+          "item": 1605,
+          "name": "Emerald",
+          "count": 1,
+          "restock": 35000
+        },
+        {
+          "item": 1603,
+          "name": "Ruby",
+          "count": 0,
+          "restock": 2000
+        },
+        {
+          "item": 1601,
+          "name": "Diamond",
+          "count": 0,
+          "restock": 4000
+        }
+      ]
+    },
+    {
+      "key": "alis_discount_wares",
+      "title": "Ali's Discount Wares",
+      "inv": 252,
+      "size": 40,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 550,
+      "changePer": 10,
+      "npcs": [
+        "feud_ali_m"
+      ],
+      "source": "OSRS Wiki, Ali's Discount Wares, read 2026-10-30: the basic stock (Sells at 100.0%, Buys at 55.0%, Change per 1.0%), inv feud_morrisanes. The Rogue Trader stock (blackjacks, runes, desert and Menaphite gear) is other shops of his, left out for now",
+      "stock": [
+        {
+          "item": 1931,
+          "name": "Pot",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1935,
+          "name": "Jug",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 20742,
+          "name": "Empty jug pack",
+          "count": 4,
+          "restock": 25
+        },
+        {
+          "item": 1825,
+          "name": "Waterskin(3)",
+          "count": 10,
+          "restock": 300
+        },
+        {
+          "item": 1833,
+          "name": "Desert shirt",
+          "count": 3,
+          "restock": 12
+        },
+        {
+          "item": 1837,
+          "name": "Desert boots",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1925,
+          "name": "Bucket",
+          "count": 19,
+          "restock": 400
+        },
+        {
+          "item": 22660,
+          "name": "Empty bucket pack",
+          "count": 10,
+          "restock": 10
+        },
+        {
+          "item": 4593,
+          "name": "Fake beard",
+          "count": 11,
+          "restock": 10
+        },
+        {
+          "item": 4591,
+          "name": "Kharidian headpiece",
+          "count": 12,
+          "restock": 10
+        },
+        {
+          "item": 970,
+          "name": "Papyrus",
+          "count": 50,
+          "restock": 10
+        },
+        {
+          "item": 946,
+          "name": "Knife",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 590,
+          "name": "Tinderbox",
+          "count": 11,
+          "restock": 100
+        },
+        {
+          "item": 1265,
+          "name": "Bronze pickaxe",
+          "count": 23,
+          "restock": 100
+        },
+        {
+          "item": 2138,
+          "name": "Raw chicken",
+          "count": 15,
+          "restock": 100
+        }
+      ]
     }
   ]
 }
