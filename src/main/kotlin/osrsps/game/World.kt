@@ -934,9 +934,20 @@ class World(
         player.heldActions.addLast(action)
     }
 
+    /**
+     * Input that goes through while the player is dead: side panel lists the client has already changed for itself,
+     * which dropping would leave out of step with the server.
+     */
+    private class WhileDead(val action: () -> Unit) : () -> Unit {
+        override fun invoke() = action()
+    }
+
+    /** [act] for input that still counts while dead; see [WhileDead]. */
+    private fun actWhileDead(player: Player, action: () -> Unit) = act(player, WhileDead(action))
+
     /** A dead player's clicks, buttons and chat do nothing until they respawn; see [Deaths]. */
     private fun guarded(player: Player, action: () -> Unit) {
-        if (player.dead) {
+        if (player.dead && action !is WhileDead) {
             logger.debug { "Dropping input from ${player.username}: dead" }
             return
         }
@@ -1628,11 +1639,11 @@ class World(
         friendLists.privateFilterChanged(player, old)
     }
 
-    /** The player added [name] to their friends list. Dropped while dead, like other input. */
-    fun onFriendAdd(player: Player, name: String) = act(player) { friendLists.add(player, name) }
+    /** The player added [name] to their friends list. Kept while dead: the death animation doesn't close the tab. */
+    fun onFriendAdd(player: Player, name: String) = actWhileDead(player) { friendLists.add(player, name) }
 
-    /** The player deleted [name] from their friends list. */
-    fun onFriendDelete(player: Player, name: String) = act(player) { friendLists.delete(player, name) }
+    /** The player deleted [name] from their friends list, which their client has already done. Kept while dead. */
+    fun onFriendDelete(player: Player, name: String) = actWhileDead(player) { friendLists.delete(player, name) }
 
     /**
      * The display name of the account [name] is: the player's if they are here, else the one in their save. Null when

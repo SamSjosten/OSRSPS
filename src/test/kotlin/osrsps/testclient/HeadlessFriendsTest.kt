@@ -6,6 +6,7 @@ import osrsps.game.social.FriendLists
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 
 /** The friends list over the real protocol: adding, online status, the private chat setting, and the saved list. */
@@ -89,6 +90,27 @@ class HeadlessFriendsTest {
                     // His list was sent at login and then grew; hers shows to him as On.
                     bob.await("alice online for bob") { bob.friends()["alice"]?.takeIf { it == world } }
                     assertFalse(alice.friends().containsKey("alice"))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `adds and deletes made during the death animation still count`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            server.login("bob").use { _ ->
+                server.login("alice").use { alice ->
+                    alice.addFriend("bob")
+                    alice.await("bob a friend") { alice.friends()["bob"] }
+                    alice.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    alice.await("[combat.dead]") { alice.messages().firstOrNull { it.text == "[combat.dead]" } }
+                    assertTrue(server.world.playerNamed("alice")!!.dead)
+                    alice.deleteFriend("bob")
+                    alice.awaitTicks(2)
+                    assertEquals(emptyList(), server.world.playerNamed("alice")!!.friends)
+                    alice.addFriend("bob")
+                    alice.await("bob back") { alice.friends()["bob"] }
+                    assertTrue(server.world.playerNamed("alice")!!.dead)
                 }
             }
         }
