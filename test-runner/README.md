@@ -165,6 +165,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   banker's talk, Knock-at on the West Bank's locked door, and the East Bank opened through a banker's Bank and a booth.
 - `varrock-grand-exchange.json`: Varrock step 3 (with `::keys on`): a Grand Exchange clerk's Exchange, History and
   Talk-to (setting up offers), an exchange booth's Collect, a banker's Collect and a bank booth's Bank.
+- `varrock-shops.json`: Varrock step 4: Trade at the Swordshop, Horvik's, Lowe's and Zaff's, buying one item at each
+  and selling it back, then each keeper's talk (with `::keys on`) into their shop.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
