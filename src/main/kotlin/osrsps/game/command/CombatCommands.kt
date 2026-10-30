@@ -168,8 +168,18 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("Prayer points set to $points.")
     }
 
-    register("poison", "::poison [severity|venom|cure]", admin = true) {
+    register("poison", "::poison [severity|venom|cure] or ::poison npc severity|venom [index|name]", admin = true) {
         val poison = world.poison
+        if (args.firstOrNull()?.lowercase() == "npc") {
+            val usage = "Usage: ::poison npc severity|venom [index|name]"
+            val how = args.getOrNull(1)?.lowercase() ?: fail(usage)
+            val severity = if (how == "venom") 0 else how.toIntOrNull()?.takeIf { it in 1 until Poison.VENOM } ?: fail(usage)
+            val npc = target(world, player, args.drop(2), "::poison npc $how")
+            val done = if (severity == 0) poison.envenom(npc) else poison.poison(npc, severity)
+            if (!done) fail("${npc.type.name} #${npc.index} can't be: it is immune, envenomed or more strongly poisoned already, or can't be fought.")
+            reply("${npc.type.name} #${npc.index} is ${poison.describe(npc)}.")
+            return@register
+        }
         when (val arg = args.singleOrNull()?.lowercase()) {
             null -> if (args.isNotEmpty()) fail("Usage: ::poison [severity|venom|cure]")
             "venom" -> if (!poison.envenom(player)) fail("Not envenomed: you are immune to venom or envenomed already. ${poison.describe(player)}")

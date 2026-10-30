@@ -136,6 +136,18 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `the ignore list is saved in order, and a save without one loads empty`() {
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), ignores = listOf("Zezima", "bob")).toJson("test")
+        assertEquals(listOf("Zezima", "bob"), PlayerSave.fromJson(text).ignores)
+        saves.write("test", text)
+        assertEquals(listOf("Zezima", "bob"), world.loadPlayer(1, "test").ignores)
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("ignores" !in none)
+        val tooMany = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), ignores = List(401) { "p$it" }).toJson("test")
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(tooMany) }
+    }
+
+    @Test
     fun `the bank is saved, and a save without one loads with an empty bank`() {
         val player = world.loadPlayer(1, "Test")
         player.bank[0] = InvObj(995, 2_000_000_000)

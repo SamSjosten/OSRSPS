@@ -13,6 +13,7 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import net.rsprot.buffer.JagByteBuf
 import net.rsprot.buffer.extensions.toJagByteBuf
+import net.rsprot.compression.HuffmanCodec
 import net.rsprot.crypto.cipher.IsaacRandom
 import net.rsprot.protocol.Prot
 import net.rsprot.protocol.game.incoming.prot.GameClientProt
@@ -25,6 +26,9 @@ class ServerPacket(val prot: GameServerProt, val payload: ByteArray) {
 }
 
 /** A game message the server sent (MESSAGE_GAME): the chatbox line and its type, 0 for a plain game message. */
+/** A private message: [from] someone to us, or our own echoed back [to] its recipient. */
+data class PrivateMessage(val from: String?, val to: String?, val text: String, val world: Int = 0, val counter: Int = 0)
+
 data class GameMessage(
     val type: Int,
     val text: String,
@@ -109,6 +113,11 @@ class HeadlessClient private constructor(
     /** The friends list as the client holds it: world by name, 0 for offline, in the order first sent. */
     private val friendList = LinkedHashMap<String, Int>()
     private var friendListLoaded = false
+
+    private val privateMessages = ArrayList<PrivateMessage>()
+
+    /** The ignore list as the client holds it, in the order sent. */
+    private val ignoreList = ArrayList<String>()
     private var runWeight: Int? = null
 
     /** Counts changes of [dialogue]; [dialogueMark] is its value when the last packet was sent. */
@@ -144,6 +153,12 @@ class HeadlessClient private constructor(
 
     /** The friends list: each friend's world by name, 0 for offline. */
     fun friends(): Map<String, Int> = lock.withLock { LinkedHashMap(friendList) }
+
+    /** Private messages received and echoed, in order. */
+    fun privateMessages(): List<PrivateMessage> = lock.withLock { privateMessages.toList() }
+
+    /** The ignore list's names. */
+    fun ignores(): List<String> = lock.withLock { ignoreList.toList() }
 
     /** Whether the server has sent the friends list (FRIENDLIST_LOADED or UPDATE_FRIENDLIST). */
     val friendsLoaded: Boolean get() = lock.withLock { friendListLoaded }
@@ -385,6 +400,21 @@ class HeadlessClient private constructor(
         send(GameClientProt.FRIENDLIST_DEL) { pjstr(name) }
     }
 
+    /** A private message typed to [name] (MESSAGE_PRIVATE). */
+    fun privateMessage(name: String, text: String) = send(GameClientProt.MESSAGE_PRIVATE) {
+        pjstr(name)
+        HUFFMAN.encode(this, text)
+    }
+
+    /** The ignore tab's Add Name box (IGNORELIST_ADD). */
+    fun addIgnore(name: String) = send(GameClientProt.IGNORELIST_ADD) { pjstr(name) }
+
+    /** Delete on an ignored name (IGNORELIST_DEL), which the real client takes off its own list first. */
+    fun deleteIgnore(name: String) {
+        lock.withLock { ignoreList.removeIf { it.equals(name, ignoreCase = true) } }
+        send(GameClientProt.IGNORELIST_DEL) { pjstr(name) }
+    }
+
     /** An item picked in the chatbox's item search (RESUME_P_OBJDIALOG). */
     fun resumeObj(obj: Int) = send(GameClientProt.RESUME_P_OBJDIALOG) { p2(obj) }
 
@@ -478,6 +508,18 @@ class HeadlessClient private constructor(
     fun awaitTicks(count: Int, timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS) {
         val target = ticksSeen + count
         await("tick $target", timeoutMillis) { if (ticks >= target) Unit else null }
+    }
+
+    /**
+     * Runs [count] ticks of a world paused with `::pause` and waits for all of their updates, so a test counts game ticks
+     * and not test-thread time. The run ends with "Paused after tick n" and then its tick end; waiting on the message,
+     * not just a tick end, keeps a late tick end from before the steps from passing for the last one.
+     */
+    fun stepTicks(count: Int) {
+        val from = lock.withLock { messages.size }
+        command("step $count")
+        val done = await("the steps to finish") { messages.drop(from).firstOrNull { it.text.matches(STEPPED) } }
+        await("the last stepped tick's end") { if (ticks > done.tick) Unit else null }
     }
 
     /** Waits for a game message matching [predicate] that arrives after this call, and returns it. */
@@ -663,6 +705,30 @@ class HeadlessClient private constructor(
             }
             GameServerProt.VARP_RESET -> varps.clear()
             GameServerProt.FRIENDLIST_LOADED -> friendListLoaded = true
+            GameServerProt.MESSAGE_PRIVATE -> {
+                val from = buf.gjstr()
+                val world = buf.g2()
+                val counter = buf.g3()
+                buf.g1() // chat crown
+                privateMessages += PrivateMessage(from, null, HUFFMAN.decode(buf), world, counter)
+            }
+            GameServerProt.MESSAGE_PRIVATE_ECHO -> {
+                val to = buf.gjstr()
+                privateMessages += PrivateMessage(null, to, HUFFMAN.decode(buf))
+            }
+            GameServerProt.UPDATE_IGNORELIST -> {
+                while (buf.isReadable) {
+                    val flags = buf.g1()
+                    val name = buf.gjstr()
+                    if (flags and 0x4 != 0) {
+                        ignoreList.remove(name)
+                        continue
+                    }
+                    buf.gjstr() // previous name
+                    buf.gjstr() // note
+                    if (name !in ignoreList) ignoreList += name
+                }
+            }
             GameServerProt.UPDATE_FRIENDLIST -> {
                 friendListLoaded = true
                 while (buf.isReadable) {
@@ -728,10 +794,16 @@ class HeadlessClient private constructor(
     companion object {
         const val DEFAULT_TIMEOUT_MILLIS = 10_000L
 
+        /** What a finished `::step` says; the `::pause` reply has more after the number. */
+        private val STEPPED = Regex("Paused after tick \\d+")
+
         private const val INIT_GAME_CONNECTION = 14
         private const val GAMELOGIN = 16
         private const val LOGIN_SUCCESSFUL = 0
         private const val LOGIN_OK = 2
+
+        /** TestServer's Huffman table: 256 eight-bit codewords. */
+        val HUFFMAN: HuffmanCodec = HuffmanCodec.create(Unpooled.wrappedBuffer(ByteArray(256) { 8 }))
 
         private val SERVER_PROTS: Map<Int, GameServerProt> = GameServerProt.entries.associateBy { it.opcode }
 

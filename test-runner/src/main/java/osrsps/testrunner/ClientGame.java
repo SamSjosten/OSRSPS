@@ -1429,6 +1429,25 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public java.util.List<String> ignores()
+	{
+		net.runelite.api.NameableContainer<net.runelite.api.Ignore> container = client.getIgnoreContainer();
+		if (!loggedIn() || container == null)
+		{
+			return null;
+		}
+		java.util.List<String> names = new java.util.ArrayList<>();
+		for (net.runelite.api.Ignore ignore : container.getMembers())
+		{
+			if (ignore != null && ignore.getName() != null)
+			{
+				names.add(net.runelite.client.util.Text.toJagexName(ignore.getName()));
+			}
+		}
+		return names;
+	}
+
+	@Override
 	public String enterText(String text)
 	{
 		Canvas canvas = client.getCanvas();
