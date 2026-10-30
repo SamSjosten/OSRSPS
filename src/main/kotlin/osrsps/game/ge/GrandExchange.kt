@@ -34,25 +34,24 @@ class GrandExchange(
     var marketOpen: Boolean = true
 
     /**
-     * Places a buy offer for [quantity] of [item] at [price] each in the first free slot, taking the coins now: coins
+     * Places a buy offer for [quantity] of [item] at [price] each in [slot], the first free one unless given, taking the coins now: coins
      * first, then platinum tokens, from the inventory. Inferred from the Wiki ("prioritising inventory"): the bank is
      * drawn on after the inventory; not yet, as the bank isn't reachable from the commands.
      */
-    fun buy(player: Player, item: Int, quantity: Int, price: Long): PlaceResult {
+    fun buy(player: Player, item: Int, quantity: Int, price: Long, slot: Int = player.ge.freeSlot()): PlaceResult {
         val type = objTypes[item]
-        val check = checkPlace(player, type, quantity, price)
+        val check = checkPlace(player, slot, type, quantity, price)
         if (check != PlaceResult.PLACED) return check
-        val slot = player.ge.freeSlot()
         val pay = pay(player.inventory, quantity * price)
         if (pay != PlaceResult.PLACED) return pay
         player.ge[slot] = GeOffer(OfferType.BUY, type!!.id, quantity, price, placedTick = currentTick())
         return PlaceResult.PLACED
     }
 
-    /** Places a sell offer, taking the items now from the inventory, unnoted ones first and then notes. */
-    fun sell(player: Player, item: Int, quantity: Int, price: Long): PlaceResult {
+    /** Places a sell offer in [slot], taking the items now from the inventory, unnoted ones first and then notes. */
+    fun sell(player: Player, item: Int, quantity: Int, price: Long, slot: Int = player.ge.freeSlot()): PlaceResult {
         val type = objTypes[item]?.let { unnoted(it) }
-        val check = checkPlace(player, type, quantity, price)
+        val check = checkPlace(player, slot, type, quantity, price)
         if (check != PlaceResult.PLACED) return check
         val ids = listOfNotNull(type!!.id, noteOf(type)?.id)
         if (ids.sumOf { player.inventory.count(it) } < quantity) return PlaceResult.NOT_ENOUGH_ITEMS
@@ -63,12 +62,12 @@ class GrandExchange(
                 if (obj.id == id) left -= player.inventory.remove(slot, left)
             }
         }
-        player.ge[player.ge.freeSlot()] = GeOffer(OfferType.SELL, type.id, quantity, price, placedTick = currentTick())
+        player.ge[slot] = GeOffer(OfferType.SELL, type.id, quantity, price, placedTick = currentTick())
         return PlaceResult.PLACED
     }
 
-    private fun checkPlace(player: Player, type: ObjType?, quantity: Int, price: Long): PlaceResult = when {
-        player.ge.freeSlot() < 0 -> PlaceResult.NO_FREE_SLOT
+    private fun checkPlace(player: Player, slot: Int, type: ObjType?, quantity: Int, price: Long): PlaceResult = when {
+        slot !in 0 until GeAccount.SLOTS || player.ge[slot] != null -> PlaceResult.NO_FREE_SLOT
         type == null || type.isCert || !type.tradeable -> PlaceResult.NOT_TRADEABLE
         // Only items with a guide price are on the Exchange here; the Wiki's snapshot has every one live lists.
         prices().price(type) == null -> PlaceResult.NOT_ON_EXCHANGE
@@ -238,6 +237,30 @@ class GrandExchange(
             if (obj.id == id) left -= inv.remove(slot, minOf(left, Int.MAX_VALUE.toLong()).toInt())
         }
     }
+
+    /** [item]'s guide price, null when it isn't on the Exchange: noted, untradeable or with no price. */
+    fun guidePrice(item: Int): Long? {
+        val type = objTypes[item]?.takeIf { !it.isCert && it.tradeable } ?: return null
+        return prices().price(type)
+    }
+
+    /** [item]'s name, for messages. */
+    fun itemName(item: Int): String = objTypes[item]?.name ?: "item $item"
+
+    /** The item an offer for [item] trades: its unnoted form. */
+    fun offerItem(item: Int): Int = objTypes[item]?.let { unnoted(it).id } ?: item
+
+    /** What [item] and its note add up to in [inv], as many as a sell offer can take. */
+    fun available(inv: Inventory, item: Int): Long {
+        val type = objTypes[item]?.let { unnoted(it) } ?: return 0
+        return listOfNotNull(type.id, noteOf(type)?.id).sumOf { inv.count(it) }
+    }
+
+    /** The coins a buy offer can draw on in [inv]: its coins and platinum tokens. */
+    fun spendable(inv: Inventory): Long = inv.count(COINS) + inv.count(PLATINUM_TOKEN) * TOKEN_VALUE
+
+    /** The tax per mille on selling [item], as varbit ge_transmit_taxrate tells the client: none for the exempt items. */
+    fun taxRate(item: Int): Int = if (item in taxExempt) 0 else TAX_PER_MILLE.toInt()
 
     private fun unnoted(type: ObjType): ObjType =
         if (type.isCert) objTypes[type.certlink]?.takeIf { !it.isCert } ?: type else type

@@ -182,6 +182,7 @@ class Player(
 
     /** What the client was last sent of [ge]. Not saved. */
     val geSent = osrsps.game.ge.GeSent()
+    val geSetup = osrsps.game.ge.GeSetup()
 
     /** The chatbox's public, private and trade filters, as the client last set them. Saved. */
     var chatFilters: ChatFilters = ChatFilters.DEFAULT
