@@ -162,12 +162,12 @@ object AlKharidTraders {
  * Eating a kebab (OSRS Wiki, Kebab, read 2026-10-30): "You eat the kebab", then one of six outcomes out of 32. 1: heals
  * 7 + 24% of the Hitpoints level and raises Attack, Strength and Defence by 2; 8: heals 6 + 14%; 20: heals 3 + 7%; 1: no
  * effect; 1: drains a random skill other than Hitpoints by 3; 1: drains the three melee stats by 3 and a random skill
- * by 4. It eats as other food does (the eat delay and the attack delay of [Foods]).
+ * by 4. It eats as other food does (the eat delay and the attack delay of [Foods]). Also from the Wiki's table: the
+ * random skill is not drained below level 2, and at level 2 or lower only the first message shows; the smallest heal's
+ * message ("heals some health") does not show at full Hitpoints.
  *
- * Guessed: percentages round down; the +2 raises each stat to at most 2 over its base, never lowering a boost; a drain
- * stops at level 2 (the Wiki: a random skill is "not drained below level 2", and at level 2 or lower only the first
- * message shows), and the melee drain at level 1; "heals some health" follows only the smallest heal, and only when it
- * gave hitpoints back.
+ * Guessed: percentages round down; the +2 raises each stat to at most 2 over its base, never lowering a boost; the
+ * melee drain stops at level 1.
  */
 object Kebab {
     const val ROLLS = 32
