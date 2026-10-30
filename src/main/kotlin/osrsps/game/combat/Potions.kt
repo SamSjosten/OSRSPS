@@ -40,7 +40,8 @@ object PotionLines : Lines("potion", "Potions") {
  * that much past the base and never lowering one already higher; [Restore] raises them toward the base level ([over]
  * percent of it past, for the brews' prayer points), and [wrench] more percent of Prayer with a holy wrench or a prayer
  * cape; [Drain] lowers them by [percent] of the current level plus [constant], to 0 at the least; [Damage] takes
- * [percent] of the current hitpoints, down to 1 at the least; [Energy] gives back [percent] run energy.
+ * [percent] of the current hitpoints, down to 1 at the least; [Energy] gives back [percent] run energy; [Antipoison]
+ * and [Antivenom] cure as [Poison.cure] and [Poison.cureVenom], leaving [periods] of immunity.
  */
 sealed interface PotionEffect {
     data class Boost(val skills: List<Skill>, val percent: Int, val constant: Int) : PotionEffect
@@ -52,6 +53,10 @@ sealed interface PotionEffect {
     data class Damage(val percent: Int) : PotionEffect
 
     data class Energy(val percent: Int) : PotionEffect
+
+    data class Antipoison(val periods: Int) : PotionEffect
+
+    data class Antivenom(val periods: Int) : PotionEffect
 }
 
 /**
@@ -90,12 +95,13 @@ data class DivineHold(val varbit: Int, val skills: Set<Skill>)
  * Prayer restores going by the base Prayer level where the Wiki says "current Prayer level"; the hitsplats for the
  * divine and Zamorak brew hitpoints, from no one; that a divine dose drunk during the effect starts the five minutes
  * again, and the hold carrying on over a logout; the animation (human_eat, as for food), and no sound, as the 241 synth id for drinking isn't known. Stamina
- * potions, antifire and the antipoisons (step 6d) aren't here yet, nor barbarian mixes, which share the food timer.
+ * potions and antifire aren't here yet, nor barbarian mixes, which share the food timer.
  */
 class Potions(
     private val data: Data,
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     private val message: (Player, String) -> Unit = Player::message,
+    private val poison: Poison = Poison(),
 ) {
     /** The potions, by dose obj. */
     val all: Map<Int, Potion> get() = data.potions
@@ -160,6 +166,8 @@ class Potions(
             }
             is PotionEffect.Damage -> damage(player, minOf(player.hitpoints * effect.percent / 100, player.hitpoints - 1))
             is PotionEffect.Energy -> player.runEnergy = minOf(Movement.MAX_ENERGY, player.runEnergy + Movement.MAX_ENERGY * effect.percent / 100)
+            is PotionEffect.Antipoison -> poison.cure(player, effect.periods)
+            is PotionEffect.Antivenom -> poison.cureVenom(player, effect.periods)
         }
     }
 
@@ -217,8 +225,9 @@ class Potions(
         }
 
         /**
-         * The potions in [text], their doses found by cache internal name as `<n>dose<potion>`; a potion the cache has no
-         * dose of is left out with a warning, as are wrench objs and a vial it doesn't have.
+         * The potions in [text], their doses found by cache internal name as `<n>dose<potion>`, or with `{n}` in it for
+         * the count where the names go otherwise (`antidote+{n}`); a potion the cache has no dose of is left out with a
+         * warning, as are wrench objs and a vial it doesn't have.
          */
         fun parse(text: String, objTypes: ObjTypes, fileName: String = RESOURCE): Data {
             val root = Json.parseToJsonElement(text).jsonObject
@@ -234,9 +243,10 @@ class Potions(
                     val unknownKeys = entry.keys - KEYS
                     require(unknownKeys.isEmpty()) { "unknown keys ${unknownKeys.joinToString()}" }
                     val stem = entry.required("potion").jsonPrimitive.content
-                    val types = (4 downTo 1).mapNotNull { objTypes.find("${it}dose$stem") }
+                    fun dose(n: Int) = if ("{n}" in stem) stem.replace("{n}", n.toString()) else "${n}dose$stem"
+                    val types = (4 downTo 1).mapNotNull { objTypes.find(dose(it)) }
                     if (types.isEmpty()) {
-                        unknown += "4dose$stem"
+                        unknown += dose(4)
                         return@forEachIndexed
                     }
                     for (type in types) {
@@ -273,13 +283,16 @@ class Potions(
             val unknownKeys = entry.keys - EFFECT_KEYS - kind
             require(unknownKeys.isEmpty()) { "unknown effect keys ${unknownKeys.joinToString()}" }
             fun number(key: String, default: Int = 0) = entry[key]?.jsonPrimitive?.int?.also { require(it in 0..100) { "\"$key\": $it" } } ?: default
+            fun periods() = entry.getValue(kind).jsonPrimitive.int.also { require(it in 1..100) { "\"$kind\": $it" } }
             val skills by lazy { skills(entry.getValue(kind)) }
             return when (kind) {
                 "boost" -> PotionEffect.Boost(skills, number("percent"), number("constant"))
                 "restore" -> PotionEffect.Restore(skills, number("percent"), number("constant"), number("over"), number("wrench"))
                 "drain" -> PotionEffect.Drain(skills, number("percent"), number("constant"))
                 "damage" -> PotionEffect.Damage(entry.getValue(kind).jsonPrimitive.int.also { require(it in 0..100) { "\"damage\": $it" } })
-                else -> PotionEffect.Energy(entry.getValue(kind).jsonPrimitive.int.also { require(it in 0..100) { "\"energy\": $it" } })
+                "energy" -> PotionEffect.Energy(entry.getValue(kind).jsonPrimitive.int.also { require(it in 0..100) { "\"energy\": $it" } })
+                "antipoison" -> PotionEffect.Antipoison(periods())
+                else -> PotionEffect.Antivenom(periods())
             }
         }
 
@@ -291,7 +304,7 @@ class Potions(
         }
 
         private val KEYS = setOf("potion", "effects", "message", "divine")
-        private val EFFECTS = listOf("boost", "restore", "drain", "damage", "energy")
+        private val EFFECTS = listOf("boost", "restore", "drain", "damage", "energy", "antipoison", "antivenom")
         private val EFFECT_KEYS = setOf("percent", "constant", "over", "wrench")
 
         private fun JsonObject.required(key: String): JsonElement = get(key) ?: throw IllegalArgumentException("no \"$key\"")

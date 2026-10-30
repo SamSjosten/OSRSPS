@@ -12,6 +12,7 @@ import osrsps.game.combat.DropItem
 import osrsps.game.combat.MagicInteraction
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
+import osrsps.game.combat.Poison
 import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.RangedInteraction
 import osrsps.game.combat.Spellbook
@@ -22,8 +23,8 @@ import kotlin.math.max
 
 /**
  * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`
- * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::multi` and `::blowpipe` change the world, so admins
- * only.
+ * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::multi` and `::blowpipe` change the world,
+ * so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
     register("combat", "::combat [index|name]", admin = false) {
@@ -164,6 +165,20 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         val points = args.singleOrNull()?.toIntOrNull()?.takeIf { it in 0..base } ?: fail("Usage: ::pray points (0 to $base)")
         player.skills.setCurrentLevel(Skill.PRAYER, points)
         reply("Prayer points set to $points.")
+    }
+
+    register("poison", "::poison [severity|venom|cure]", admin = true) {
+        val poison = world.poison
+        when (val arg = args.singleOrNull()?.lowercase()) {
+            null -> if (args.isNotEmpty()) fail("Usage: ::poison [severity|venom|cure]")
+            "venom" -> if (!poison.envenom(player)) fail("Not envenomed: you are immune to venom or envenomed already. ${poison.describe(player)}")
+            "cure" -> poison.clear(player)
+            else -> {
+                val severity = arg.toIntOrNull()?.takeIf { it in 1 until Poison.VENOM } ?: fail("Usage: ::poison [severity|venom|cure]; a severity is 1 to ${Poison.VENOM - 1}, 20 for a poisoned weapon")
+                if (!poison.poison(player, severity)) fail("Not poisoned: you are immune, envenomed or poisoned as strongly already. ${poison.describe(player)}")
+            }
+        }
+        reply(poison.describe(player))
     }
 
     register("heal", "::heal", admin = true) {

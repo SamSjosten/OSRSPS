@@ -49,7 +49,10 @@ or turn it off.
   workflow takes the oldest pull request with auto-merge on that is behind `main`, has no failing check and a passing
   `codex-review`, merges `main` into it and starts `build` on it. One at a time: while an up-to-date pull request still
   has checks running, it waits for that one. If that merge of `main` changes the diff, it comments **Main merged in:**
-  asking the thread for a new Codex review.
+  asking the thread for a new Codex review. GitHub may hold that merge's `pull_request` runs for "approval from a
+  maintainer", which leaves the pull request blocked on checks that never start; the queue approves them (and only
+  dispatches `build` when no runs show up). If GitHub refuses the approval, it comments **Runs waiting:** once, and
+  Sam clicks "Approve workflows to run".
 
 So a thread pulls its branch (`git pull`) before pushing, as the queue may have pushed a merge of `main` to it. A
 failing check or a Codex finding takes a pull request out of the queue until it is fixed. To run the queue now:

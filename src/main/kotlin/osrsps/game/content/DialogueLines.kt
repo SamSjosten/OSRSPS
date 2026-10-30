@@ -8,6 +8,7 @@ import osrsps.game.World
 import osrsps.game.bank.BankLines
 import osrsps.game.combat.CombatLines
 import osrsps.game.combat.FoodLines
+import osrsps.game.combat.PoisonLines
 import osrsps.game.combat.PotionLines
 import osrsps.game.combat.PrayerLines
 import osrsps.game.dialogue.Line
@@ -33,6 +34,8 @@ object DialogueLines {
         SmithingLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
         BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines, SettingsLines,
+        // The raid's combat foundations, one a line.
+        PoisonLines,
         // Rest of Lumbridge.
         ShopKeeperLines, ShopAssistantLines, BobLines, RamBartenderLines, ArthurLines, DonieLines, GeeLines, CookingTutorLines,
         SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines, GillieLines, MillieLines,
