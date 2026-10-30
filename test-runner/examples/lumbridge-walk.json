@@ -1,0 +1,443 @@
+{
+ "name": "Rest of Lumbridge step 12: a walk from the castle to each area, in stages of at most 8 tiles, on the server's own pathing: the general store, Fred's farm and the mill; Bob's axes, the church, the bridge and the Groats' farm; the swamp, its two mines and the adventurers' camp",
+ "account": "test",
+ "timeoutMs": 30000,
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "leg north-west: the general store, Fred's farm and Mill Lane Mill"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3222,
+   "y": 3218,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3230,
+   "y": 3219
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3227
+  },
+  {
+   "step": "walk",
+   "x": 3227,
+   "y": 3235
+  },
+  {
+   "step": "walk",
+   "x": 3225,
+   "y": 3243
+  },
+  {
+   "step": "walk",
+   "x": 3217,
+   "y": 3245
+  },
+  {
+   "step": "walk",
+   "x": 3211,
+   "y": 3247,
+   "comment": "in the general store"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3211,
+   "y": 3247,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3203,
+   "y": 3254
+  },
+  {
+   "step": "walk",
+   "x": 3195,
+   "y": 3255
+  },
+  {
+   "step": "walk",
+   "x": 3191,
+   "y": 3263
+  },
+  {
+   "step": "walk",
+   "x": 3185,
+   "y": 3269,
+   "comment": "by Fred's farmhouse"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3185,
+   "y": 3269,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3182,
+   "y": 3277
+  },
+  {
+   "step": "walk",
+   "x": 3182,
+   "y": 3285
+  },
+  {
+   "step": "walk",
+   "x": 3174,
+   "y": 3287
+  },
+  {
+   "step": "walk",
+   "x": 3167,
+   "y": 3295
+  },
+  {
+   "step": "walk",
+   "x": 3166,
+   "y": 3302,
+   "comment": "outside Mill Lane Mill"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3166,
+   "y": 3302,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "leg east: Bob's axes, the church, over the bridge, then north to the Groats' farm"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3222,
+   "y": 3218,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3230,
+   "y": 3218
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3210
+  },
+  {
+   "step": "walk",
+   "x": 3231,
+   "y": 3203,
+   "comment": "in Bob's Brilliant Axes"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3231,
+   "y": 3203,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3237,
+   "y": 3210,
+   "comment": "outside the church's west door"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3237,
+   "y": 3210,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3237,
+   "y": 3218
+  },
+  {
+   "step": "walk",
+   "x": 3245,
+   "y": 3226
+  },
+  {
+   "step": "walk",
+   "x": 3253,
+   "y": 3226
+  },
+  {
+   "step": "walk",
+   "x": 3259,
+   "y": 3224,
+   "comment": "east of the river, over the bridge"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3259,
+   "y": 3224,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3259,
+   "y": 3232
+  },
+  {
+   "step": "walk",
+   "x": 3259,
+   "y": 3240
+  },
+  {
+   "step": "walk",
+   "x": 3259,
+   "y": 3248
+  },
+  {
+   "step": "walk",
+   "x": 3252,
+   "y": 3256
+  },
+  {
+   "step": "walk",
+   "x": 3251,
+   "y": 3264
+  },
+  {
+   "step": "walk",
+   "x": 3251,
+   "y": 3272,
+   "comment": "by the Groats' farm"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3251,
+   "y": 3272,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "leg south: the swamp, the east mine, the west mine and the adventurers' camp"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3222,
+   "y": 3218,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3230,
+   "y": 3218
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3210
+  },
+  {
+   "step": "walk",
+   "x": 3234,
+   "y": 3202
+  },
+  {
+   "step": "walk",
+   "x": 3239,
+   "y": 3194
+  },
+  {
+   "step": "walk",
+   "x": 3231,
+   "y": 3187
+  },
+  {
+   "step": "walk",
+   "x": 3223,
+   "y": 3184
+  },
+  {
+   "step": "walk",
+   "x": 3215,
+   "y": 3185
+  },
+  {
+   "step": "walk",
+   "x": 3207,
+   "y": 3186
+  },
+  {
+   "step": "walk",
+   "x": 3199,
+   "y": 3178,
+   "comment": "the swamp"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3199,
+   "y": 3178,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3199,
+   "y": 3170
+  },
+  {
+   "step": "walk",
+   "x": 3199,
+   "y": 3162
+  },
+  {
+   "step": "walk",
+   "x": 3199,
+   "y": 3154
+  },
+  {
+   "step": "walk",
+   "x": 3207,
+   "y": 3153
+  },
+  {
+   "step": "walk",
+   "x": 3215,
+   "y": 3153
+  },
+  {
+   "step": "walk",
+   "x": 3223,
+   "y": 3153
+  },
+  {
+   "step": "walk",
+   "x": 3227,
+   "y": 3148,
+   "comment": "the swamp's east mine"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3227,
+   "y": 3148,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3219,
+   "y": 3151
+  },
+  {
+   "step": "walk",
+   "x": 3211,
+   "y": 3149
+  },
+  {
+   "step": "walk",
+   "x": 3203,
+   "y": 3149
+  },
+  {
+   "step": "walk",
+   "x": 3195,
+   "y": 3149
+  },
+  {
+   "step": "walk",
+   "x": 3187,
+   "y": 3149
+  },
+  {
+   "step": "walk",
+   "x": 3179,
+   "y": 3149
+  },
+  {
+   "step": "walk",
+   "x": 3171,
+   "y": 3149
+  },
+  {
+   "step": "walk",
+   "x": 3163,
+   "y": 3149
+  },
+  {
+   "step": "walk",
+   "x": 3155,
+   "y": 3149
+  },
+  {
+   "step": "walk",
+   "x": 3147,
+   "y": 3147
+  },
+  {
+   "step": "walk",
+   "x": 3144,
+   "y": 3146,
+   "comment": "the swamp's west mine"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3144,
+   "y": 3146,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3151,
+   "y": 3154
+  },
+  {
+   "step": "walk",
+   "x": 3151,
+   "y": 3162
+  },
+  {
+   "step": "walk",
+   "x": 3151,
+   "y": 3170
+  },
+  {
+   "step": "walk",
+   "x": 3152,
+   "y": 3178
+  },
+  {
+   "step": "walk",
+   "x": 3151,
+   "y": 3186
+  },
+  {
+   "step": "walk",
+   "x": 3151,
+   "y": 3194
+  },
+  {
+   "step": "walk",
+   "x": 3151,
+   "y": 3202
+  },
+  {
+   "step": "walk",
+   "x": 3149,
+   "y": 3206,
+   "comment": "by the adventurers' camp"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3149,
+   "y": 3206,
+   "plane": 0
+  }
+ ]
+}
