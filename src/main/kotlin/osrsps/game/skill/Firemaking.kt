@@ -116,7 +116,10 @@ class Firemaking(private val world: World, private val collision: CollisionMap) 
             player.message(text[FiremakingLines.LEVEL, "level" to log.level, "logs" to name])
             return false
         }
-        if (world.locs.at(x, z, player.level).isNotEmpty() || collision[x, z, player.level] and CollisionFlag.BLOCK_WALK != 0) {
+        // Nor where a loc is due back, such as a picked crop: the fire would take over the tile and the crop would
+        // never return (third review, 30 Oct 2026). Guessed; whether live allows a fire there is unchecked.
+        val occupied = world.locs.at(x, z, player.level).isNotEmpty() || world.locs.reverting(x, z, player.level)
+        if (occupied || collision[x, z, player.level] and CollisionFlag.BLOCK_WALK != 0) {
             player.message(text[FiremakingLines.CANT_HERE])
             return false
         }
