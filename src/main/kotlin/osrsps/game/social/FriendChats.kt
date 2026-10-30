@@ -116,9 +116,13 @@ class FriendChats(
     /** [player] is leaving the world: out of the channel, remembered for the next login. */
     fun logout(player: Player) = leave(player, quiet = true)
 
-    /** After a reconnect: the channel's whole list again. */
+    /**
+     * After a reconnect: the channel's whole list again, or, out of every channel, the leave, in case the player was
+     * sent out (a disabled channel) while the old connection was dying.
+     */
     fun resend(player: Player) {
-        channelOf(player)?.let { player.session.queue(fullUpdate(it)) }
+        val channel = channelOf(player)
+        player.session.queue(if (channel != null) fullUpdate(channel) else UpdateFriendChatChannelFullV2(UpdateFriendChatChannelFullV2.LeaveUpdate))
     }
 
     /** At login: back into the channel the player was in at logout. */
@@ -154,7 +158,7 @@ class FriendChats(
         owner.friendsChat = owner.friendsChat.copy(name = name)
         val channel = channels[owner.saveKey] ?: return
         channel.settings = owner.friendsChat
-        for (member in channel.members) member.session.queue(fullUpdate(channel))
+        broadcastFull(channel)
     }
 
     /** The owner disabled their channel: everyone in it is sent out (words guessed), and nobody can join. */
@@ -173,7 +177,7 @@ class FriendChats(
     fun ownerFriendsChanged(owner: Player) {
         val channel = channels[owner.saveKey] ?: return
         channel.ownerFriends = owner.friends.toList()
-        for (member in channel.members) member.session.queue(fullUpdate(channel))
+        broadcastFull(channel)
     }
 
     /** Fills in the setup screen's options as [owner]'s settings are. */
@@ -197,10 +201,10 @@ class FriendChats(
         return Channel(key, owner.name, owner.settings, owner.friends)
     }
 
-    /** [player]'s rank in [channel]: owner, a friend of the owner, or none. */
-    fun rank(channel: Channel, player: Player): Int = when {
+    /** [player]'s rank in [channel]: owner, a friend of the owner, or none. Pass [friends] when ranking many at once. */
+    fun rank(channel: Channel, player: Player, friends: List<String> = ownerFriends(channel)): Int = when {
         player.saveKey == channel.ownerKey -> RANK_OWNER
-        ownerFriends(channel).any { sameName(it, player.username) } -> RANK_FRIEND
+        friends.any { sameName(it, player.username) } -> RANK_FRIEND
         else -> RANK_NONE
     }
 
@@ -208,12 +212,22 @@ class FriendChats(
     private fun ownerFriends(channel: Channel): List<String> =
         online().firstOrNull { it.saveKey == channel.ownerKey }?.friends ?: channel.ownerFriends
 
-    private fun fullUpdate(channel: Channel) = UpdateFriendChatChannelFullV2(
-        UpdateFriendChatChannelFullV2.JoinUpdate(
-            channel.ownerName, channel.settings.name!!, channel.settings.kick,
-            channel.members.map { UpdateFriendChatChannelFull.FriendChatEntry(it.username, FriendLists.WORLD, rank(channel, it), "") },
-        ),
-    )
+    /** The whole list to everyone in [channel], built once: a channel can hold 500. */
+    private fun broadcastFull(channel: Channel) {
+        val update = fullUpdate(channel)
+        for (member in channel.members) member.session.queue(update)
+    }
+
+    private fun fullUpdate(channel: Channel): UpdateFriendChatChannelFullV2 {
+        // The owner's friends are looked up once, not once a member.
+        val friends = ownerFriends(channel)
+        return UpdateFriendChatChannelFullV2(
+            UpdateFriendChatChannelFullV2.JoinUpdate(
+                channel.ownerName, channel.settings.name!!, channel.settings.kick,
+                channel.members.map { UpdateFriendChatChannelFull.FriendChatEntry(it.username, FriendLists.WORLD, rank(channel, it, friends), "") },
+            ),
+        )
+    }
 
     private fun added(channel: Channel, player: Player) =
         UpdateFriendChatChannelSingleUser.AddedFriendChatUser(player.username, FriendLists.WORLD, rank(channel, player), "")
