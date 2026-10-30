@@ -19,7 +19,7 @@ import kotlinx.serialization.json.putJsonObject
  * trade whole: both players keep what they had.
  */
 class TradeJournal(
-    /** Unique across restarts (a UUID), so a save's lastTrade names this trade alone. */
+    /** Unique across restarts (a hash of both players' saves before the trade), so a save's lastTrade names this trade alone. */
     val id: String,
     /** Each player's new save, by save key. */
     val saves: Map<String, String>,

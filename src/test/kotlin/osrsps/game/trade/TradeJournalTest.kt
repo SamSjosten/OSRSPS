@@ -78,6 +78,17 @@ class TradeJournalTest {
     }
 
     @Test
+    fun `a trade's id comes from the players as they stood, so a replay gets the same one`() {
+        val ids = List(2) {
+            // As loaded from the same saves: createdAt is otherwise the clock's.
+            val alice = player("alice").apply { createdAt = 1 }
+            assertTrue(world(MemorySaveStore()).commitTrade(alice, player("bob").apply { createdAt = 2 }, apply = {}))
+            alice.lastTrade!!
+        }
+        assertEquals(ids[0], ids[1])
+    }
+
+    @Test
     fun `a crash after the first save leaves the journal, and the next start writes the second`() {
         val store = CrashingStore()
         store.inner.write("bob", PlayerSave.of(player("bob")).toJson("bob"))

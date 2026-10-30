@@ -1254,10 +1254,21 @@ class World(
     }
 
     /**
-     * Gives each completed trade an id no other trade, before or after a restart, has: a random UUID, so a clock that
-     * moves backward can't repeat one. Ids are only ever compared for equality; see [TradeJournal].
+     * The id of a trade between [a] and [b], from their saves as they stand before it: a SHA-256 of both save keys and
+     * both saves. No clock and no randomness, so a seeded run replays it exactly, and no two trades share one: each
+     * save names the player's last trade, so after a trade neither player can stand as they did before it. Ids are
+     * only ever compared for equality; see [TradeJournal].
      */
-    private fun newTradeId(): String = java.util.UUID.randomUUID().toString()
+    private fun tradeId(a: Player, b: Player): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        for (player in listOf(a, b)) {
+            digest.update(player.saveKey.toByteArray())
+            digest.update(0)
+            digest.update(PlayerSave.of(player).toJson(player.username).toByteArray())
+            digest.update(0)
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
 
     /**
      * Completes a trade: [apply] swaps the offers between [a] and [b] in memory, and then both new saves go out through
@@ -1270,7 +1281,12 @@ class World(
             logger.error { "Trade between ${a.username} and ${b.username} refused: an earlier trade's journal is unresolved" }
             return false
         }
-        val id = newTradeId()
+        val id = try {
+            tradeId(a, b)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't make the saves for a trade between ${a.username} and ${b.username}; refusing it" }
+            return false
+        }
         val lastA = a.lastTrade
         val lastB = b.lastTrade
         apply()
