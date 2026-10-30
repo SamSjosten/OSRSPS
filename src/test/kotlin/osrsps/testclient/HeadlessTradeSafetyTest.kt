@@ -128,9 +128,11 @@ class HeadlessTradeSafetyTest {
                         bob.await("the countdown") { bob.varp(VARP_DELAY).takeIf { it > 0 } }
                         // Carol, out of the trade, pauses the world: its paused cycles mustn't count.
                         carol.commandReply("pause") { it.startsWith("Paused after tick") }
-                        Thread.sleep(300) // the last tick's packets to Bob, which can trail Carol's reply
+                        // Two of Bob's cycles after her reply: the second is paused, and comes after the last tick's
+                        // packets to him.
+                        bob.awaitCycles(2)
                         val left = bob.varp(VARP_DELAY)
-                        Thread.sleep(1_000) // ten paused cycles
+                        bob.awaitCycles(10) // ten paused cycles
                         assertEquals(left, bob.varp(VARP_DELAY))
                         carol.stepTicks(left)
                         bob.await("the countdown's end") { bob.varp(VARP_DELAY).takeIf { it == 0 } }

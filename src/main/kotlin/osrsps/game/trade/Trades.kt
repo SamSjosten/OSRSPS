@@ -253,18 +253,13 @@ class Trades(
 
     /**
      * Sends each side of [player]'s trade that changed: the offers (theirs as tradeoffer, the partner's mirrored), the
-     * headers with each offer's value, the partner's free slots and the accept status. Run at the end of every cycle;
-     * the Accept trade delay counts down only at the end of a game tick ([tickEnd]), not on a paused world's cycles.
+     * headers with each offer's value, the partner's free slots and the accept status. Run at the end of every cycle.
      */
-    fun flush(player: Player, tickEnd: Boolean = true) {
+    fun flush(player: Player) {
         val trade = player.trade ?: return
         if (trade.over) return
         val mine = trade.sideOf(player)
         val theirs = trade.partnerSideOf(player)
-        if (tickEnd && mine.acceptDelay > 0) {
-            mine.acceptDelay--
-            setVarbit(player, VARBIT_ACCEPT_DELAY, mine.acceptDelay)
-        }
         if (!mine.dirty && !theirs.dirty) return
         val partner = theirs.player
         val text = words(player)
@@ -289,6 +284,19 @@ class Trades(
             else -> ""
         }
         send(player, IfSetText(MAIN, MAIN_STATUS, status))
+    }
+
+    /**
+     * Counts [player]'s Accept trade delay down one game tick. Run at the end of each game tick, not a paused world's
+     * cycles, and before the varps are sent so the client sees the new value the same tick.
+     */
+    fun tickDelay(player: Player) {
+        val trade = player.trade ?: return
+        if (trade.over) return
+        val mine = trade.sideOf(player)
+        if (mine.acceptDelay <= 0) return
+        mine.acceptDelay--
+        setVarbit(player, VARBIT_ACCEPT_DELAY, mine.acceptDelay)
     }
 
     /** Clears the dirty marks once both sides have been sent; run after every player's [flush]. */

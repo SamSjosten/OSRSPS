@@ -1055,6 +1055,7 @@ class World(
                 equipmentTab.updateVars(player)
                 bankScreen.updateVars(player)
                 depositBox.updateVars(player)
+                if (tickEnd) trades.tickDelay(player)
                 sendVars(player)
                 sendStats(player)
                 sendEffects(player)
@@ -1064,7 +1065,7 @@ class World(
                 shopScreen.flush(player)
                 grandExchangeScreen.flush(player)
                 priceChecker.flush(player)
-                trades.flush(player, tickEnd)
+                trades.flush(player)
             }
         }
         for (player in players) if (player != null) trades.flushed(player)
