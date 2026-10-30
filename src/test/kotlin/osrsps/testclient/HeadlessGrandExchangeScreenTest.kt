@@ -60,6 +60,9 @@ class HeadlessGrandExchangeScreenTest {
                         null
                     }
                 }
+                // No slot holds an item sold to the item sink: the client starts those obj varps at 0, an item.
+                assertEquals(List(8) { -1 }, GrandExchangeScreen.ITEM_SINK_OBJ_VARPS.map { client.varp(it) })
+
                 // View offer, then Back.
                 client.ifButton(GrandExchangeScreen.MAIN, GrandExchangeScreen.INDEX_FIRST, 1, GrandExchangeScreen.SUB_FACE)
                 client.await("slot 1 selected") { if (client.selectedSlot() == 1) Unit else null }
@@ -107,7 +110,7 @@ class HeadlessGrandExchangeScreenTest {
         /** A made-up varp holding both varbits; the cache's base varps aren't in the tests. */
         const val VARP = 1_000
         val VARS = VarTypes(
-            2_000,
+            6_000,
             mapOf(
                 GrandExchangeScreen.VARBIT_SELECTED_SLOT to VarbitType(VARP, 0, 3),
                 GrandExchangeScreen.VARBIT_NEWOFFER_TYPE to VarbitType(VARP, 4, 4),
