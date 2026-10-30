@@ -1,7 +1,9 @@
 name: automerge
 
-# The `codex-review` check that branch protection requires on main, and the queue that merges main into the next pull
-# request with auto-merge on, one at a time (.github/scripts/automerge.js, CONTRIBUTING.md).
+# The `codex-review` check that branch protection requires on main, and the queue that merges main into the pull
+# requests with auto-merge on: several at once on the automerge/batch branch when more than one is ready, else one at a
+# time (.github/scripts/automerge.js, CONTRIBUTING.md). The queue pushes the batch branch with this workflow's token,
+# from the checkout of main below.
 #
 # pull_request_target and issue_comment run main's copy of this file with a token that can write, so it checks out
 # main only and never runs a pull request's code; the pull request's commits are fetched for `git merge-tree` and

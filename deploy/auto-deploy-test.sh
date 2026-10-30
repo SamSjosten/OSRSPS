@@ -240,6 +240,23 @@ expect_calls "compose build OSRSPS_COMMIT=$head" 1
 expect_calls "compose up -d OSRSPS_COMMIT=$head" 1
 expect_state built "$head"
 
+step="a checkout with local changes says so, and builds nothing"
+merge src/main/Other.kt=7
+echo "edited on the VM" >"$tmp/vm/README.md"
+deploy
+expect_status 1
+expect_no_calls
+grep -q "the checkout has local changes" "$tmp/out" || fail "the log doesn't name the local changes"
+grep -q "README.md" "$tmp/out" || fail "the log doesn't list the changed file"
+expect_state failed "$head"
+
+step="cleared, --force deploys it"
+git -C "$tmp/vm" reset -q --hard HEAD
+deploy --force
+expect_status 0
+expect_calls "compose build OSRSPS_COMMIT=$head" 1
+expect_checkout "$head"
+
 if ((failures)); then
 	echo "$failures check(s) failed"
 	exit 1
