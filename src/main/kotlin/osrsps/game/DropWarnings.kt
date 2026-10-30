@@ -13,9 +13,10 @@ object DropLines : Lines("drop", "Drop") {
 
 /**
  * The All Settings "Drop item warning" (varbit option_dropwarning_on) and its "Minimum item value needed for drop item
- * warning" (option_dropwarning_value): with the warning on, dropping an item whose alchemy value is at least that much
+ * warning" (option_dropwarning_value): with the warning on, dropping a stack whose alchemy value is at least that much
  * asks first. OSRS Wiki, Drop: the warning compares the alchemy value, at or above the threshold, 30,000 coins by
- * default. Guessed: high alchemy, one item of a stack, and a two-option chat menu.
+ * default. The whole stack counts, as players report a big stack of cheap items warning on live. Guessed: high
+ * alchemy, and a two-option chat menu.
  */
 class DropWarnings(
     private val objTypes: ObjTypes,
@@ -28,13 +29,14 @@ class DropWarnings(
         val held = player.inventory[slot] ?: return
         val type = objTypes[held.id]
         val threshold = threshold(player)
-        if (type == null || threshold == null || type.highAlch < threshold) {
+        val value = (type?.highAlch ?: 0).toLong() * held.count
+        if (type == null || threshold == null || value < threshold) {
             dropNow(player, slot)
             return
         }
         scripts.start(player) {
             dialogues().start(this) {
-                val title = text(DropLines.TITLE, "item" to type.name, "value" to "%,d".format(type.highAlch))
+                val title = text(DropLines.TITLE, "item" to type.name, "value" to "%,d".format(value))
                 if (choice(DropLines.YES, DropLines.NO, title = title) != 1) return@start
                 // The menu waited: only the same stack, still in its slot, is dropped.
                 if (player.inventory[slot] == held) dropNow(player, slot)
