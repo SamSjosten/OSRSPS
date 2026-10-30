@@ -7,10 +7,9 @@
 // each naming the reviewed commit), so the latest receipt is the fallback. Inferred: the marker's `has_any_findings`
 // is about the latest review only (on #207 it is false after earlier reviews that had findings).
 //
-// A review covers the head when it is the head, or when the pull request's own diff against main is the same patch
-// (`git patch-id --verbatim`, whitespace kept, as it can matter inside a string) at both: merging main in doesn't
-// need Codex again, a conflict resolution that changes the diff does. patch-id hashes the context lines too, so a main
-// change right next to the pull request's lines asks again.
+// A review covers the head when it is the head, or when the reviewed commit merged with main gives the same tree as
+// the head merged with main (`git merge-tree`): merging main in doesn't need Codex again, any other change does,
+// a conflict resolution included, and a reviewed commit that conflicts with main covers nothing.
 //
 // The queue: branch protection wants a pull request up to date with main before it merges, so two green pull
 // requests can't break main together, and GitHub's merge queue isn't offered on a personal account's private
@@ -56,16 +55,14 @@ function verdict(comments, reviews) {
   return { sha: REVIEWED.exec(last.body)[1], clean: last.body.includes(CLEAN) };
 }
 
-// Git in the workflow's checkout of main, for the patch-id test. Output as it comes: a diff's trailing whitespace is
-// part of the patch, so only the callers that read one value trim it.
+// Git in the workflow's checkout of main, for the tree comparison.
 function shellGit(args, input) {
   return execFileSync('git', args, { input, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
 }
 
-function patchId(git, sha) {
-  const base = git(['merge-base', 'origin/main', sha]).trim();
-  const diff = git(['diff', base, sha]);
-  return diff ? git(['patch-id', '--verbatim'], diff).trim().split(' ')[0] : '';
+// The tree a commit makes merged with main. merge-tree exits 1 on a conflict, which throws.
+function treeWithMain(git, sha) {
+  return git(['merge-tree', '--write-tree', 'origin/main', sha]).split('\n')[0].trim();
 }
 
 // Whether the review of `reviewed` still covers pull request `number` at `head`.
@@ -78,7 +75,7 @@ function covers(git, number, reviewed, head) {
       git(['fetch', '--no-tags', '--quiet', 'origin', reviewed]);
       full = git(['rev-parse', '--verify', `${reviewed}^{commit}`]).trim();
     }
-    return patchId(git, full) === patchId(git, head);
+    return treeWithMain(git, full) === treeWithMain(git, head);
   } catch {
     return false; // a commit that can't be fetched any more (force-pushed away) needs a new review
   }

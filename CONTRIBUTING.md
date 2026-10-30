@@ -39,10 +39,11 @@ or turn it off.
 `.github/workflows/automerge.yml` (`.github/scripts/automerge.js`) does two things:
 
 - **`codex-review`** passes when Codex's latest review found nothing and covers the pull request as it is now: the
-  reviewed commit is the head, or the pull request's own diff against `main` is the same patch (`git patch-id`), so
-  merging `main` in needs no new review. It fails while Codex has findings, and waits (in progress) until Codex has
-  reviewed, or when the diff has changed since its last review: comment `@codex review` then. It's worked out from
-  Codex's summary comment, written again each time Codex comments, and on every push.
+  reviewed commit is the head, or the reviewed commit merged with `main` makes the same tree as the head merged with
+  `main` (`git merge-tree`), so merging `main` in needs no new review. It fails while Codex has findings, and waits
+  (in progress) until Codex has reviewed, or when the pull request has changed since its last review: comment
+  `@codex review` then. It's worked out from Codex's summary comment, written again each time Codex comments, and on
+  every push.
 - **The queue**: "up to date with `main`" keeps two green pull requests from breaking `main` together, but GitHub's
   merge queue isn't offered on this repository, so after each push to `main`, `build` run and Codex comment the
   workflow takes the oldest pull request with auto-merge on that is behind `main`, has no failing check and a passing

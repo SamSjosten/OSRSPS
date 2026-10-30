@@ -4,7 +4,7 @@ name: automerge
 # request with auto-merge on, one at a time (.github/scripts/automerge.js, CONTRIBUTING.md).
 #
 # pull_request_target and issue_comment run main's copy of this file with a token that can write, so it checks out
-# main only and never runs a pull request's code; the pull request's commits are fetched for `git patch-id` and
+# main only and never runs a pull request's code; the pull request's commits are fetched for `git merge-tree` and
 # nothing else. No pull_request_review trigger: that runs the pull request's own copy, and its jobs land on the pull
 # request's head as checks of their own. The queue looks again at every waiting `codex-review` instead.
 on:

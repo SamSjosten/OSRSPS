@@ -36,28 +36,31 @@ test('only Codex counts, and no review is null', () => {
   assert.strictEqual(verdict([], []), null);
 });
 
-// A git that knows each commit's patch-id against main.
-function fakeGit(patches) {
-  return (args, input) => {
+// A git that knows the tree each commit makes merged with main (null: it conflicts).
+function fakeGit(trees) {
+  return args => {
     if (args[0] === 'fetch') return '';
     if (args[0] === 'rev-parse') {
-      const sha = Object.keys(patches).find(s => s.startsWith(args[2].replace('^{commit}', '')));
+      const sha = Object.keys(trees).find(s => s.startsWith(args[2].replace('^{commit}', '')));
       if (!sha) throw new Error('unknown commit');
-      return sha;
+      return `${sha}\n`;
     }
-    if (args[0] === 'merge-base') return 'base';
-    if (args[0] === 'diff') return `diff of ${args[2]}`;
-    if (args[0] === 'patch-id') return `${patches[input.replace('diff of ', '')]} x\n`;
+    if (args[0] === 'merge-tree') {
+      const tree = trees[args[3]];
+      if (!tree) throw new Error('conflict');
+      return `${tree}\n`;
+    }
     throw new Error(`git ${args.join(' ')}`);
   };
 }
 
-test('a review covers the head when it is the head or the same patch', () => {
-  const git = fakeGit({ ['1'.repeat(40)]: 'p1', ['2'.repeat(40)]: 'p1', ['3'.repeat(40)]: 'p2' });
+test('a review covers the head when it is the head or makes the same tree with main', () => {
+  const git = fakeGit({ ['1'.repeat(40)]: 't1', ['2'.repeat(40)]: 't1', ['3'.repeat(40)]: 't2', ['4'.repeat(40)]: null });
   assert.ok(covers(git, 5, '1'.repeat(10), '1'.repeat(40)));
   assert.ok(covers(git, 5, '1'.repeat(10), '2'.repeat(40)), 'main merged in, same diff');
   assert.ok(!covers(git, 5, '1'.repeat(10), '3'.repeat(40)), 'the diff changed');
   assert.ok(!covers(git, 5, '9'.repeat(10), '3'.repeat(40)), 'a reviewed commit that is gone');
+  assert.ok(!covers(git, 5, '4'.repeat(10), '3'.repeat(40)), 'a reviewed commit that conflicts with main');
 });
 
 // A repository whose pull requests are { number: { head, ref, behind, checks: [{ name, status, conclusion }],
@@ -220,7 +223,7 @@ test('an up-to-date head with no build gets one, once it is older than a fresh p
   assert.deepStrictEqual(fresh.calls, []);
 });
 
-test('the real git tells a trailing space apart, and a merge of main from the same patch', () => {
+test('the real git: a merge of main is covered; a trailing space or the same edit elsewhere is not', () => {
   const { execFileSync } = require('node:child_process');
   const fs = require('node:fs');
   const os = require('node:os');
@@ -249,9 +252,26 @@ test('the real git tells a trailing space apart, and a merge of main from the sa
   write('a\nb\nc\nd\ne\nf\ng\nh\nhello world \n');
   sh('commit', '-qam', 'trailing space');
   const spaced = sh('rev-parse', 'HEAD');
-  const git = (args, input) => execFileSync('git', ['-C', dir, ...args], { input, encoding: 'utf8' });
+  const git = (args, input) => execFileSync('git', ['-C', dir, ...args], { input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
   const noFetch = (args, input) => (args[0] === 'fetch' ? '' : git(args, input));
-  assert.ok(covers(noFetch, 1, reviewed, merged), 'main merged in, same patch');
+  assert.ok(covers(noFetch, 1, reviewed, merged), 'main merged in');
   assert.ok(!covers(noFetch, 1, merged, spaced), 'a trailing space added');
+  // Two blocks with the same lines around them: the same edit in either has the same patch-id.
+  const block = 'x\ny\nz\nreturn true\nx\ny\nz\n';
+  const blocks = edit => fs.writeFileSync(path.join(dir, 'g'), `alpha\n${edit === 0 ? block.replace('true', 'false') : block}beta\n${edit === 1 ? block.replace('true', 'false') : block}`);
+  blocks(-1);
+  sh('add', 'g');
+  sh('commit', '-qm', 'blocks');
+  sh('checkout', '-q', 'main');
+  sh('merge', '-q', 'pr', '-m', 'blocks on main');
+  sh('update-ref', 'refs/remotes/origin/main', 'main');
+  sh('checkout', '-q', 'pr');
+  blocks(0);
+  sh('commit', '-qam', 'edit alpha');
+  const edited = sh('rev-parse', 'HEAD');
+  blocks(1);
+  sh('commit', '-qam', 'edit beta instead');
+  const moved = sh('rev-parse', 'HEAD');
+  assert.ok(!covers(noFetch, 1, edited, moved), 'the same edit in another place');
   fs.rmSync(dir, { recursive: true, force: true });
 });
