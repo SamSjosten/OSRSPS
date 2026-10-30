@@ -6,6 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import osrsps.game.EquipmentBonuses
 import osrsps.game.NpcStat
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -26,9 +27,11 @@ class SpecialAttacksTest {
 
     private val ogre = NpcType(2095, "Ogre", combatLevel = 53, internalName = "ogre", stats = NpcStats(attack = 43, defence = 75, strength = 43, hitpoints = 60))
     private val boss = NpcType(16659, "Archive Guardian", combatLevel = 400, internalName = "archive_guardian", stats = NpcStats(attack = 200, defence = 75, hitpoints = 1000))
+    private val evenMage = NpcType(1, "Even", combatLevel = 50, internalName = "even", stats = NpcStats(attack = 40, strength = 40, ranged = 40, magic = 40, hitpoints = 50))
+    private val caster = NpcType(2, "Caster", combatLevel = 50, internalName = "caster", stats = NpcStats(attack = 1, strength = 1, ranged = 40, magic = 40, hitpoints = 50))
     private val npcCombat = NpcCombat.parse(
-        """{ "npcs": [ ${entry("ogre")}, ${entry("archive_guardian", """"drainCap": { "defence": 60 },""")} ] }""",
-        NpcTypes.of(ogre, boss), SeqNames.NONE,
+        """{ "npcs": [ ${entry("ogre")}, ${entry("archive_guardian", """"drainCap": { "defence": 60 },""")}, ${entry("even")}, ${entry("caster")} ] }""",
+        NpcTypes.of(ogre, boss, evenMage, caster), SeqNames.NONE,
     )
 
     private fun entry(name: String, extra: String = "") = """{ "npcs": ["$name"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush",
@@ -160,6 +163,45 @@ class SpecialAttacksTest {
         // 45 of the 75 Defence, the 1 Strength, then 4 of the 200 Attack.
         specials.landed(boss, 50, SpecialAttacks.BANDOS_GODSWORD)
         assertEquals(listOf(30, 0, 196), listOf(boss.level(NpcStat.DEFENCE), boss.level(NpcStat.STRENGTH), boss.level(NpcStat.ATTACK)))
+    }
+
+    @Test
+    fun `Shield Bash drains 5 percent of the highest offensive stat, Attack and Strength both when they tie, on a hit that deals damage`() {
+        val ogre = npc(ogre)
+        specials.landed(ogre, 0, SpecialAttacks.SHIELD_BASH)
+        assertEquals(43, ogre.level(NpcStat.ATTACK))
+        // Attack and Strength tie at 43: both lose 2.
+        specials.landed(ogre, 3, SpecialAttacks.SHIELD_BASH)
+        assertEquals(listOf(41, 41, 75), listOf(ogre.level(NpcStat.ATTACK), ogre.level(NpcStat.STRENGTH), ogre.level(NpcStat.DEFENCE)))
+        val boss = npc(boss)
+        specials.landed(boss, 3, SpecialAttacks.SHIELD_BASH)
+        assertEquals(listOf(190, 1), listOf(boss.level(NpcStat.ATTACK), boss.level(NpcStat.STRENGTH)))
+    }
+
+    @Test
+    fun `Shield Bash settles a tie of all four with Attack and Strength, and Ranged before Magic`() {
+        val even = npc(evenMage)
+        specials.landed(even, 3, SpecialAttacks.SHIELD_BASH)
+        assertEquals(listOf(38, 38, 40, 40), listOf(NpcStat.ATTACK, NpcStat.STRENGTH, NpcStat.RANGED, NpcStat.MAGIC).map { even.level(it) })
+        val caster = npc(caster)
+        specials.landed(caster, 3, SpecialAttacks.SHIELD_BASH)
+        assertEquals(listOf(1, 1, 38, 40), listOf(NpcStat.ATTACK, NpcStat.STRENGTH, NpcStat.RANGED, NpcStat.MAGIC).map { caster.level(it) })
+    }
+
+    @Test
+    fun `the bulwark's strength bonus comes from the four defences over an average of 314, and Block lets 80 percent through`() {
+        fun bonuses(each: Int) = EquipmentBonuses(IntArray(EquipmentBonuses.PARAMS.size).also {
+            it[EquipmentBonuses.STAB_DEFENCE] = each
+            it[EquipmentBonuses.SLASH_DEFENCE] = each
+            it[EquipmentBonuses.CRUSH_DEFENCE] = each
+            it[EquipmentBonuses.RANGED_DEFENCE] = each
+        }, attackSpeed = 5)
+        assertEquals(0, DinhsBulwark.strengthBonus(bonuses(0)))
+        assertEquals(0, DinhsBulwark.strengthBonus(bonuses(314)))
+        // 4 x 375 = 1,500: 700 / 12 = 58, less 38.
+        assertEquals(20, DinhsBulwark.strengthBonus(bonuses(375)))
+        assertEquals(8, DinhsBulwark.blocked(10))
+        assertEquals(0, DinhsBulwark.blocked(1))
     }
 
     private fun npc(type: NpcType) = Npc(1, NpcSpawn(type, 3222, 3218, source = "test"))

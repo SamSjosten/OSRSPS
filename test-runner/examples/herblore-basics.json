@@ -1,0 +1,46 @@
+{
+ "name": "Artisan step 8: at level 1 a grimy guam needs 3; at 99 two clean (5 XP), go into vials of water as unfinished potions, a pestle grinds two unicorn horns, and two vials fill at Lumbridge Castle's kitchen sink (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::item 199 2", "expectMessage": "Added 2 x Grimy guam leaf"},
+  {"step": "itemOption", "item": "Grimy guam leaf", "option": "Clean"},
+  {"step": "assertMessage", "contains": "herblore.clean_level level=3"},
+  {"step": "assertInventory", "item": "Grimy guam leaf", "count": 2},
+
+  {"step": "command", "text": "::setlevel herblore 99", "expectMessage": "Herblore set to level 99"},
+  {"step": "itemOption", "item": "Grimy guam leaf", "option": "Clean"},
+  {"step": "assertInventory", "item": "Guam leaf", "count": 1},
+  {"step": "itemOption", "item": "Grimy guam leaf", "option": "Clean"},
+  {"step": "assertInventory", "item": "Guam leaf", "count": 2},
+  {"step": "assertMessage", "contains": "herblore.clean"},
+  {"step": "assertStat", "skill": "Herblore", "level": 99, "xp": 13034436, "comment": "2.5 XP a guam"},
+
+  {"step": "command", "text": "::item 227 2", "expectMessage": "Added 2 x Vial of water"},
+  {"step": "useItemOnItem", "item": "Guam leaf", "onItem": "Vial of water"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "Guam potion (unf); the box suggests both"},
+  {"step": "assertAnimation", "id": 363, "comment": "human_herbing_vial"},
+  {"step": "assertInventory", "item": "Guam potion (unf)", "count": 2, "timeoutMs": 10000, "comment": "a tick each"},
+  {"step": "assertMessage", "contains": "herblore.unfinished"},
+
+  {"step": "command", "text": "::item 233", "expectMessage": "Added 1 x Pestle and mortar"},
+  {"step": "command", "text": "::item 237 2", "expectMessage": "Added 2 x Unicorn horn"},
+  {"step": "useItemOnItem", "item": "Pestle and mortar", "onItem": "Unicorn horn"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertAnimation", "id": 364, "comment": "human_herbing_grind"},
+  {"step": "assertInventory", "item": "Unicorn horn dust", "count": 2, "timeoutMs": 10000, "comment": "the first at once, the second 2 ticks later"},
+
+  {"step": "command", "text": "::tele 3206 3214 0", "comment": "Lumbridge Castle's kitchen, by the sink"},
+  {"step": "command", "text": "::item 229 2", "expectMessage": "Added 2 x Vial"},
+  {"step": "useItemOnLoc", "item": "Vial", "loc": "Sink", "x": 3205, "y": 3215},
+  {"step": "assertInventory", "item": "Vial of water", "count": 2, "timeoutMs": 10000, "comment": "every vial held, a tick each, no box"},
+  {"step": "assertMessage", "contains": "herblore.fill"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "name": "First trade screen, two players (run with social-trade-offer-test.json on the other VM at the same time): test2 accepts test's request, offers a bronze axe, and gets it back when test declines; ::reset puts the account back",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3222 3216 0", "expectMessage": "Teleported", "comment": "off the meeting tile first: test waits for us there before it asks (::reset brings us back here)"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing carried"},
+  {"step": "command", "text": "::item 1351", "expectMessage": "Added"},
+  {"step": "command", "text": "::tele 3224 3218 0", "expectMessage": "Teleported", "comment": "the meeting tile, test's sign that we're ready"},
+  {"step": "assertMessage", "contains": "[trade.request name=test]", "timeoutMs": 180000},
+  {"step": "playerOption", "player": "test", "option": "Trade with", "comment": "as the request's Accept trade does"},
+  {"step": "assertInterface", "interfaceId": 335},
+  {"step": "clickWidget", "interfaceId": 336, "component": 0, "slot": 0, "op": 1, "comment": "Offer on the axe"},
+  {"step": "assertInventory", "itemId": 1351, "count": 0},
+  {"step": "assertMessage", "contains": "[trade.declined]", "timeoutMs": 60000, "comment": "test declined"},
+  {"step": "assertInterface", "interfaceId": 335, "absent": true},
+  {"step": "assertInventory", "itemId": 1351, "count": 1, "comment": "the axe came back"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

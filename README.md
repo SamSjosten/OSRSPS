@@ -240,7 +240,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::clearignores` | Empties your ignore list, for tests that start from none |
 | `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
 | `::drain stat levels\|percent% [index\|name]` | Drains an NPC's attack, defence, strength, ranged or magic (the one you fight, or by index from `::npcs` or by name) by that many levels, or by a percentage of its level now, as far as its drain cap lets it, and says its level now. Its combat rolls use the drained level (`::combat` shows them), it gets a level back a minute, and `::npcs` shows its drained stats |
-| `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap) and the Bandos godsword's Warstrike (50%: double accuracy against slash, the max hit up 10% twice, and the target's Defence, Strength, Attack, Magic and Ranged drained by the damage in turn) are in, and `::combat` shows a special's attack roll and max hit |
+| `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap) and the Bandos godsword's Warstrike (50%: double accuracy against slash, the max hit up 10% twice, and the target's Defence, Strength, Attack, Magic and Ranged drained by the damage in turn) and Dinh's bulwark's Shield Bash (50%: 20% more accurate against crush, and in a multi-way area up to 10 NPCs within 5 tiles hit, the target twice, each losing 5% of its highest offensive stat) are in. The bulwark's Block style can't attack and, 8 ticks after it is wielded, lets 80% of monsters' melee hits through, and `::combat` shows a special's attack roll and max hit |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -475,6 +475,25 @@ cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, som
 | A cracked pot lost with no XP; the oven animation; the other glassblowing items' ticks | guessed |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
 | Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
+
+### Herblore
+
+Clean on a grimy herb cleans that one at once (`game/skill/Herblore.kt`, words under `herblore.*`, numbers in
+`skills/herblore.json`). A clean herb and a vial of water, either used on the other, open the Make-X box for its
+unfinished potion. A pestle and mortar on a unicorn horn, chocolate bar, kebbit teeth, bird nest, desert goat horn or
+blue dragon scale opens the box for the ground item; the first is ground as the choice is made. An empty vial used on a
+sink, fountain or water pump fills every vial held, one a tick. Making goes through `Making.kt`.
+
+| Herblore behaviour | Source |
+|--------------------|--------|
+| The 15 herbs' cleaning levels and XP; Clean taking no time | OSRS Wiki, each grimy herb's page |
+| The cleaning message naming the grimy herb | OSRS Wiki, Grimy guam leaf |
+| Unfinished potions' levels, no XP, 1 tick | OSRS Wiki, each unfinished potion's page |
+| Grinding 0, then 2, then 3 ticks | OSRS Wiki, Unicorn horn dust ("Auto-crushing ... is 0, then 2, then 3 ticks") |
+| A vial fills in 1 tick at any water but a well | OSRS Wiki, Vial of water |
+| Animations 363 (`human_herbing_vial`) and 364 (`human_herbing_grind`) | cache 241 gamevals |
+| Which locs count as water; filling with no box; the filling animation (832); no animation for cleaning | guessed |
+| Out: finished potions (step 9), herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
 
 ## Items and inventory
 

@@ -32,8 +32,11 @@ class ItemPrices(private val byId: Map<Int, Entry>, val snapshot: String? = null
 
     val size: Int get() = byId.size
 
-    /** [type]'s guide price, a note's being its item's; null for an item with none in the snapshot. */
-    fun price(type: ObjType): Long? = byId[itemId(type)]?.price
+    /**
+     * [type]'s guide price, a note's being its item's; null for an item with none in the snapshot, or with a price below
+     * 1, which the Grand Exchange would fill for free (fourth review, 30 Oct 2026).
+     */
+    fun price(type: ObjType): Long? = byId[itemId(type)]?.price?.takeIf { it >= 1 }
 
     /** [type]'s Grand Exchange buy limit per four hours, null for none in the snapshot. */
     fun limit(type: ObjType): Int? = byId[itemId(type)]?.limit
