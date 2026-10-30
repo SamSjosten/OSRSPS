@@ -72,7 +72,8 @@ function retrying(github, sleep) {
   });
 }
 
-// Codex's latest verdict from a pull request's comments and reviews: { sha, clean }, { running: true } or null.
+// Codex's latest verdict from a pull request's comments and reviews: { sha, clean }, { running: true }, { unsaid: true }
+// or null.
 function verdict(comments, reviews) {
   const codex = item => item.user && item.user.login === CODEX && item.body;
   let state = null;
@@ -94,6 +95,9 @@ function verdict(comments, reviews) {
     return { sha: REVIEWED.exec(last.body)[1], clean: last.body.includes(CLEAN) };
   }
   if (state && state.commit_sha) {
+    // A finished review whose flags are both null said nothing (on #298 the receipt never came, during GitHub's 500s):
+    // no verdict yet, not findings.
+    if (state.has_any_findings == null && state.has_unresolved_findings == null) return { unsaid: true };
     return { sha: state.commit_sha, clean: state.has_any_findings === false && state.has_unresolved_findings === false };
   }
   return null;
@@ -150,6 +154,13 @@ async function evaluateAt(github, git, repo, number, head) {
     return { status: 'in_progress', title: 'Waiting for a Codex review', summary: 'Codex hasn\'t reviewed this pull request yet.' };
   }
   if (found.running) return { status: 'in_progress', title: 'Codex is reviewing', summary: 'A Codex review is running.' };
+  if (found.unsaid) {
+    return {
+      status: 'in_progress',
+      title: 'Waiting for a Codex receipt',
+      summary: 'Codex\'s last review finished without saying whether it found anything: comment `@codex review`.',
+    };
+  }
   const short = found.sha.slice(0, 7);
   if (!covers(git, number, found.sha, head)) {
     return {

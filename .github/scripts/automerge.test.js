@@ -564,3 +564,15 @@ test('a request GitHub answers with a 5xx or not at all is tried again, three ti
   assert.deepStrictEqual(await run([err(404)]), { error: 404, calls: 1, slept: [] });
   assert.deepStrictEqual(await run([err(422)]), { error: 422, calls: 1, slept: [] });
 });
+
+test('a finished review whose flags are both null, with no receipt, is no verdict yet, not findings', async () => {
+  const unsaid = {
+    user: { login: CODEX },
+    created_at: '2026-10-30T14:22:00Z',
+    body: `<!-- codex-review-state:v1 {"code_review":{"commit_sha":"${H('1')}","has_any_findings":null,"has_unresolved_findings":null,"status":"completed"}} -->`,
+  };
+  assert.deepStrictEqual(automerge.verdict([unsaid], []), { unsaid: true });
+  const { github, calls } = fakeGitHub({ 1: { head: H('1'), checks: [], comments: [unsaid] } });
+  await gate(github, fakeGit({}), 1);
+  assert.deepStrictEqual(calls, [['check', H('1'), 'in_progress']]);
+});
