@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.math.abs
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import osrsps.game.Follows
+import osrsps.game.ge.GrandExchange
 import net.rsprot.protocol.common.game.outgoing.inv.InventoryObject
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
@@ -274,7 +275,14 @@ class Trades(
 
     /** An offer's worth at Grand Exchange prices, items without one counting nothing. */
     private fun value(offer: Inventory): Long =
-        offer.contents().sumOf { (_, obj) -> (objTypes[obj.id]?.let(price) ?: 0L) * obj.count }
+        offer.contents().sumOf { (_, obj) -> (unitValue(obj.id) ?: 0L) * obj.count }
+
+    /** Coins and platinum tokens aren't on the Grand Exchange: 1 and 1,000 coins each (OSRS Wiki, Platinum token). */
+    private fun unitValue(id: Int): Long? = when (id) {
+        GrandExchange.COINS -> 1L
+        GrandExchange.PLATINUM_TOKEN -> 1_000L
+        else -> objTypes[id]?.let(price)
+    }
 
     /** Inferred, from the Wiki's 10,435,672 in full on the second screen: whole numbers with commas. */
     private fun format(value: Long): String = "%,d".format(value)

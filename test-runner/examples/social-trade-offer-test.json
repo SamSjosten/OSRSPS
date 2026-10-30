@@ -11,7 +11,7 @@
   {"step": "assertInterface", "interfaceId": 335, "timeoutMs": 60000, "comment": "test2 accepted"},
   {"step": "clickWidget", "interfaceId": 336, "component": 0, "slot": 0, "op": 3, "comment": "Offer-10 on the coins"},
   {"step": "assertInventory", "itemId": 995, "count": 90},
-  {"step": "assertWidgetText", "interfaceId": 335, "component": 27, "contains": "[trade.other_offer name=test2", "timeoutMs": 60000, "comment": "test2's axe is on offer"},
+  {"step": "assertWidgetText", "interfaceId": 335, "component": 9, "contains": "[trade.free_slots name=test2 count=28]", "timeoutMs": 60000, "comment": "test2 offered its only item, its axe: all 28 slots free"},
   {"step": "clickWidget", "interfaceId": 335, "component": 25, "slot": 0, "op": 2, "comment": "Remove-5 on the offered coins"},
   {"step": "assertInventory", "itemId": 995, "count": 95},
   {"step": "waitTicks", "ticks": 3},

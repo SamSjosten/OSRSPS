@@ -24,7 +24,8 @@ class HeadlessTradeScreenTest {
         objs[QUEST_ITEM] = ObjType(QUEST_ITEM, "Ghostspeak amulet")
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), cycleMillis = millis,
-            itemPrices = ItemPrices(mapOf(AXE to ItemPrices.Entry("Bronze axe", 16, null), COINS to ItemPrices.Entry("Coins", 1, null))),
+            // Coins have no Grand Exchange price: they count 1 each anyway.
+            itemPrices = ItemPrices(mapOf(AXE to ItemPrices.Entry("Bronze axe", 16, null))),
         )
     }
 
@@ -63,7 +64,7 @@ class HeadlessTradeScreenTest {
                 val other = bob.await("bob's view of it") { bob.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).filterNotNull().takeIf { it.size == 3 } }
                 assertEquals(listOf(InvObj(COINS, 5), InvObj(AXE, 1), InvObj(AXE, 1)), other)
                 alice.await("her inventory") { alice.inventory(Inventory.INV).takeIf { it.getOrNull(0) == InvObj(COINS, 995) && it.getOrNull(1) == null } }
-                // 5 coins at 1 and two axes at 16.
+                // 5 coins at 1 (fixed, as they aren't on the Grand Exchange) and two axes at 16.
                 bob.await("the value") { bob.text(Trades.MAIN, Trades.MAIN_OTHER_HEADER)?.takeIf { it == "[trade.other_offer name=alice value=37]" } }
                 assertEquals("[trade.your_offer value=0]", bob.text(Trades.MAIN, Trades.MAIN_YOUR_HEADER))
                 // Alice now has three free slots more: 27 - 4 + 3... her inventory has coins and the quest item left.
