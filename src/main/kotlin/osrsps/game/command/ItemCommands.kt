@@ -32,6 +32,13 @@ fun CommandRegistry.registerItemCommands(world: World) {
         }
     }
 
+    // Bank anywhere; the rotten potato's Peel runs it too.
+    register("bank", "::bank") {
+        if (args.isNotEmpty()) fail("Usage: ::bank")
+        world.scripts.interrupt(player)
+        world.bankScreen.open(player)
+    }
+
     register("empty", "::empty") {
         if (args.isNotEmpty()) fail("Usage: ::empty")
         player.inventory.clear()

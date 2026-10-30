@@ -258,6 +258,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::areasound id [radius] [loops]` | Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
 | `::jingle id` | **everyone.** Plays jingle `id` to you alone |
 | `::item id\|name [count]` | Puts items in your inventory, by id, menu name or gameval name: `::item 1351`, `::item bronze axe 2`, `::item coins 10k`. Adds what fits |
+| `::bank` | Opens your bank wherever you are |
 | `::empty` | Empties your inventory |
 | `::locs [radius]` | **everyone.** Lists the locs within radius tiles of you (default 1): id, name, tile, shape and angle, and whether they differ from the cache |
 | `::addloc id [shape] [angle]` | Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
@@ -266,6 +267,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
 | `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
+| `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
 | `::reset` | Puts you back as you were before your first `::scenario` |
@@ -1507,7 +1509,7 @@ you were with your own stats and items.
 
 Live's J-Mod tool, obj 5733, as an admins' tool: `::item 5733` gives one. The cache gives it Eat, Slice, Peel and Mash,
 as live, so RuneLite shows it as it does there. Each option opens a menu of testing tools that run the `::` commands, so
-every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat is done.
+every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat and Peel are done.
 
 | Eat | What it does | Source |
 |-----|--------------|--------|
@@ -1517,12 +1519,20 @@ every pick is logged and a non-admin is refused as for a typed command. Built a 
 | Teleport to player | Asks for a name, then `::teleto` | Wiki |
 | Spawn aggressive NPC | Asks for an id or name, then `::npc`; the NPC is as aggressive as its type is | Wiki; the prompts' words are guessed |
 
+| Peel | What it does | Source |
+|------|--------------|--------|
+| Bank menu | `::bank`: opens your bank wherever you are | Wiki |
+| Teleport to a tile | Asks for `x z [level]`, then `::tele` | ours, in place of Teleport to RARE!: there are no rares |
+| Spawn an item | Asks for `id\|name [count]`, then `::item` | ours, in place of Spawn RARE! |
+
+Live's AMEs for all! is left out: there are no random events.
+
 A non-admin who clicks one loses it with a message (guessed: what live does isn't known). The options' words are live's,
-so they are keys under `rotten_potato.` in the dialogue file, except Heal me.
+so they are keys under `rotten_potato.` in the dialogue file, except our own (Heal me, Teleport to a tile, Spawn an item).
 
 Check: `::item 5733`, then Eat. Set all stats with 50 sets each skill to 50 one a tick; Wipe inventory leaves only the
 potato; Teleport to player with a name online puts you on them; Spawn aggressive NPC with `goblin` spawns one on your
-tile. `test-runner/examples/rotten-potato-eat.json` runs Set all stats, Heal me and Wipe inventory in the real client.
+tile. Peel's Bank menu opens the bank. `test-runner/examples/rotten-potato-eat.json` runs Set all stats, Heal me and Wipe inventory in the real client.
 
 ## Headless test client
 
