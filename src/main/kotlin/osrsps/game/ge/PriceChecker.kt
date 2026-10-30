@@ -75,9 +75,13 @@ class PriceChecker(
         update(player)
     }
 
-    /** The screen closed: the items checked go back to the inventory. */
+    /**
+     * The screen closed: the items checked go back to the inventory. Not on a death, which closes it: they stay here for
+     * the death to sort with the rest of what the player carries ([osrsps.game.combat.Deaths.respawn]).
+     */
     fun closed(player: Player) {
         player.priceCheckSearching = false
+        if (player.dead) return
         giveBack(player, player.inventory)
     }
 
