@@ -32,10 +32,11 @@ class NpcDropsTest {
     private val warrior = NpcType(3292, "Al Kharid warrior", combatLevel = 9, internalName = "al_kharid_warrior")
     private val kharidMan = NpcType(3261, "Man", combatLevel = 2, internalName = "al_kharid_man")
     private val scorpion = NpcType(3024, "Scorpion", combatLevel = 14, internalName = "scorpion")
+    private val shantayGuard = NpcType(4643, "Shantay Guard", combatLevel = 22, internalName = "shantay_guard")
     private val varrockGuard = NpcType(11911, "Guard", combatLevel = 21, internalName = "fai_varrock_guard02")
     private val edgevilleGuard = NpcType(3254, "Guard", combatLevel = 21, internalName = "guard1")
     private val types = NpcTypes.of(
-        man, imp, cow, rat, chicken, ram, goblin, spider, giantRat, frog, bigFrog, giantFrog, armedGoblin, unicorn, warrior, kharidMan, scorpion,
+        man, imp, cow, rat, chicken, ram, goblin, spider, giantRat, frog, bigFrog, giantFrog, armedGoblin, unicorn, warrior, kharidMan, scorpion, shantayGuard,
         varrockGuard, edgevilleGuard,
     )
     private val objTypes = DropTestItems.objTypes()
@@ -45,7 +46,7 @@ class NpcDropsTest {
     fun `the file reads, naming every item as the cache does, and the tables add up`() {
         // The test's cache knows one man, cow and so on; every other warning would be a wrong item name.
         assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
-        assertEquals(19, drops.size)
+        assertEquals(20, drops.size)
         val def = drops[man]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })
         assertEquals(128, def.table!!.slots)
@@ -86,6 +87,7 @@ class NpcDropsTest {
             listOf("Ensouled scorpion head" to 25, "Clue scroll (beginner)" to 100),
             drops[scorpion]!!.tertiary.map { it.item.type.name to it.denominator },
         )
+        assertEquals(listOf("Bones"), drops[shantayGuard]!!.always.map { it.type.name })
         // Varrock's and Edgeville's guards share one table, with a medium clue now and then.
         assertEquals(drops[varrockGuard]!!.table, drops[edgevilleGuard]!!.table)
         assertEquals(listOf("Clue scroll (medium)" to 128), drops[edgevilleGuard]!!.tertiary.map { it.item.type.name to it.denominator })
