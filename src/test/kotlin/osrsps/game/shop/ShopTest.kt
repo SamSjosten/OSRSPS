@@ -75,6 +75,8 @@ class ShopTest {
         assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
         assertEquals(shops["al_kharid_general_store"], shops.ofNpc(2818))
         assertEquals(shops["alis_discount_wares"], shops.ofNpc(3533))
+        // The Al Kharid General Store won't buy silk (the Wiki's page); no other shop refuses anything.
+        assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         for (type in shops.all) {
             val shop = Shop(type)
             val sold = wikiSoldAt[type.key]

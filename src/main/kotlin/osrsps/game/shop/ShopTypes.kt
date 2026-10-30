@@ -39,6 +39,8 @@ class ShopType(
     val stock: List<ShopStock>,
     /** The NPCs whose Trade opens it. */
     val npcs: List<Int>,
+    /** Items it won't buy although it would otherwise (the Al Kharid General Store's silk). */
+    val refuses: Set<Int> = emptySet(),
 ) {
     init {
         require(stock.size <= size) { "$key has ${stock.size} items but $size slots" }
@@ -76,7 +78,7 @@ class ShopTypes(val all: List<ShopType>, /** What the loader warned about, for t
         /**
          * Reads the shop file: each `shops` entry has a `key`, `title`, `inv` (id) and `size`, `general`, `sellAt`,
          * `buyAt` and `changePer` in tenths of a percent, the `npcs` that run it (ids, gameval names or menu names, as
-         * spawn files take) and its `stock`, each an `item` id with its `name`, `count` and `restock` ticks. An item
+         * spawn files take), optionally the item ids it `refuses` to buy, and its `stock`, each an `item` id with its `name`, `count` and `restock` ticks. An item
          * whose name the cache doesn't agree with is warned about; a shop with an item or NPC the cache lacks is left
          * out with a warning, so a test cache with few items still starts.
          */
@@ -122,6 +124,7 @@ class ShopTypes(val all: List<ShopType>, /** What the loader warned about, for t
                         changePer = entry.required("changePer").jsonPrimitive.int,
                         stock = stock,
                         npcs = npcs,
+                        refuses = entry["refuses"]?.jsonArray?.map { it.jsonPrimitive.int }?.toSet() ?: emptySet(),
                     )
                 } catch (e: Exception) {
                     throw IllegalArgumentException("$fileName: shop $key: ${e.message}", e)

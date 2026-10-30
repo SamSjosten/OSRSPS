@@ -56,7 +56,7 @@ object DialogueLines {
         SocialLines,
         // Al Kharid.
         BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
-        GemTraderLines,
+        GemTraderLines, AliMorrisaneLines,
         // Draynor Village.
         DraynorSearchLines, AxeLogsLines,
         // The Grand Exchange.

@@ -172,6 +172,7 @@
       "inv": 13,
       "size": 40,
       "general": true,
+      "refuses": [950],
       "sellAt": 1300,
       "buyAt": 400,
       "changePer": 30,
@@ -179,7 +180,7 @@
         "generalshopkeeper3",
         "generalassistant3"
       ],
-      "source": "OSRS Wiki, Al Kharid General Store, read 2026-10-30: Sells at 130.0%, Buys at 40.0%, Change per 3.0%, and the stock table. inv generalshop3 is inferred from its keepers' names (generalshopkeeper3), as Lumbridge's generalshop1 has generalshopkeeper1",
+      "source": "OSRS Wiki, Al Kharid General Store, read 2026-10-30: Sells at 130.0%, Buys at 40.0%, Change per 3.0%, and the stock table. inv generalshop3 is inferred from its keepers' names (generalshopkeeper3), as Lumbridge's generalshop1 has generalshopkeeper1. It refuses silk (950), as the Wiki's page says",
       "stock": [
         {
           "item": 1931,
@@ -563,7 +564,7 @@
       "npcs": [
         "feud_ali_m"
       ],
-      "source": "OSRS Wiki, Ali's Discount Wares, read 2026-10-30: the basic stock (Sells at 100.0%, Buys at 55.0%, Change per 1.0%), inv feud_morrisanes. The Rogue Trader stock (blackjacks, runes, desert and Menaphite gear) is other shops of his, left out for now",
+      "source": "OSRS Wiki, Ali's Discount Wares, read 2026-10-30: the basic stock (Sells at 100.0%, Buys at 55.0%, Change per 1.0%), inv feud_morrisanes. The Rogue Trader stock (blackjacks, runes, desert and Menaphite gear) is other shops of his, left out for now. Closing the basic stock sells junk: AlKharidShopkeepers.aliJunk",
       "stock": [
         {
           "item": 1931,

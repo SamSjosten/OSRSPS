@@ -1,10 +1,12 @@
 package osrsps.game.content
 
+import osrsps.game.GameRandom
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
+import osrsps.game.shop.ShopScreen
 
 /**
  * The lines of an Al Kharid General Store keeper's Talk-to, from that keeper's transcript (read 2026-10-30). The shop
@@ -86,6 +88,11 @@ object GemTraderLines : Lines("gem_trader", "Transcript:Gem trader") {
     val SUIT_YOURSELF = line("suit_yourself", "option 2: his answer")
 }
 
+/** Ali Morrisane's game message when he sells junk; the words are in the dialogue file, from the Wiki's Ali's Discount Wares. */
+object AliMorrisaneLines : Lines("ali_morrisane", "Ali's Discount Wares") {
+    val JUNK = line("junk", "game message: he has sold the player a piece of junk after they viewed his basic stock")
+}
+
 /**
  * Al Kharid's shop keepers' Talk-to (Al Kharid step 3): the General Store's Shop keeper (2817) and Shop assistant
  * (2818), Zeke (2875), Dommik (2879), Louie Legs (2876), Ranael (2878) and the Gem trader (2874). Trade is
@@ -99,6 +106,31 @@ object GemTraderLines : Lines("gem_trader", "Transcript:Gem trader") {
  * conversations follow The Feud and Rogue Trader at length (its own step).
  */
 object AlKharidShopkeepers {
+    /** Ali's basic stock (shops.json). */
+    const val ALIS_WARES = "alis_discount_wares"
+
+    /** The junk Ali sells, each 1 in 5 (the Wiki's Junk table): bronze pickaxe, bucket, knife, raw chicken, tinderbox. */
+    val JUNK = listOf(1265, 1925, 946, 2138, 590)
+
+    /** What the junk costs. Guessed: the Wiki says only that the player needs 10 coins. */
+    const val JUNK_PRICE = 10
+
+    /**
+     * After the player has viewed Ali's basic stock: with [JUNK_PRICE] coins and a free slot, he sells them one of
+     * [JUNK] at random for those coins. Guessed: that it happens as the shop closes.
+     */
+    fun aliJunk(player: Player, random: GameRandom, give: (Player, Int) -> Unit, message: (Player) -> Unit) {
+        val inv = player.inventory
+        if (inv.count(ShopScreen.COINS) < JUNK_PRICE || inv.freeSlots == 0) return
+        var left = JUNK_PRICE
+        for ((slot, held) in inv.contents()) {
+            if (left == 0) break
+            if (held.id == ShopScreen.COINS) left -= inv.remove(slot, left)
+        }
+        give(player, random.pick(JUNK))
+        message(player)
+    }
+
     const val SHOP_KEEPER = 2817
     const val SHOP_ASSISTANT = 2818
     const val ZEKE = 2875
@@ -245,6 +277,13 @@ fun registerAlKharidShopkeepers(world: World) {
                 world.dialogues.start(this, op.npc) { trade = talk() }
                 if (trade) openShop(player, id)
             }
+        }
+        world.shopScreen.onClose(ALIS_WARES) { player ->
+            aliJunk(
+                player, world.random,
+                give = { p, obj -> world.objTypes[obj]?.let { p.inventory.add(it, 1) } },
+                message = { p -> world.message(p, AliMorrisaneLines.JUNK) },
+            )
         }
     }
 }

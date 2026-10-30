@@ -392,6 +392,11 @@
    "comment": "Louie Legs again, for his talk"
   },
   {
+   "step": "assertMessage",
+   "contains": "[ali_morrisane.junk]",
+   "comment": "the teleport closed Ali's basic stock, so he sells a piece of junk for 10 coins"
+  },
+  {
    "step": "npcOption",
    "npc": "Louie Legs",
    "option": "Talk-to",

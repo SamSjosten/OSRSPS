@@ -4,12 +4,15 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import osrsps.game.GameRandom
+import osrsps.game.ObjType
 import osrsps.game.content.AlKharidShopkeepers.dommik
 import osrsps.game.content.AlKharidShopkeepers.gemTrader
 import osrsps.game.content.AlKharidShopkeepers.keeper
 import osrsps.game.content.AlKharidShopkeepers.louieLegs
 import osrsps.game.content.AlKharidShopkeepers.ranael
 import osrsps.game.content.AlKharidShopkeepers.zeke
+import osrsps.game.shop.ShopScreen
 
 /** Al Kharid step 3: the shop keepers' talk, with no dialogue file, so every line shows its key. */
 class AlKharidShopkeepersTest {
@@ -150,5 +153,21 @@ class AlKharidShopkeepersTest {
     @Test
     fun `every Al Kharid shop keeper has an examine`() {
         for (id in listOf(2817, 2818, 2875, 2879, 2876, 2878, 2874, 3533)) assertEquals("examine.npc_$id", Examines.npc(id)?.key)
+    }
+
+    @Test
+    fun `Ali sells junk for 10 coins to a player with the coins and a free slot`() {
+        val given = mutableListOf<Int>()
+        var told = 0
+        fun junk() = AlKharidShopkeepers.aliJunk(h.player, GameRandom(3), { _, obj -> given += obj }, { told++ })
+        h.player.inventory.add(ObjType(ShopScreen.COINS, "Coins", stackable = true), 9)
+        junk()
+        assertEquals(emptyList(), given)
+        h.player.inventory.add(ObjType(ShopScreen.COINS, "Coins", stackable = true), 6)
+        junk()
+        assertEquals(1, given.size)
+        assertTrue(given.single() in AlKharidShopkeepers.JUNK)
+        assertEquals(5L, h.player.inventory.count(ShopScreen.COINS))
+        assertEquals(1, told)
     }
 }
