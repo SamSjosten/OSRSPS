@@ -1038,6 +1038,142 @@
       ]
     },
     {
+      "key": "shantay_pass_shop",
+      "title": "Shantay Pass Shop",
+      "inv": 78,
+      "size": 20,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 700,
+      "changePer": 10,
+      "npcs": [
+        "shantay"
+      ],
+      "source": "OSRS Wiki, Shantay Pass Shop, read 2026-10-30: Sells at 100.0%, Buys at 70.0%, Change per 1.0%, and the stock table (restocks in ticks); inv shantayshop 78 from the 241 cache. Members only on live; every world here counts as members",
+      "stock": [
+        {
+          "item": 1823,
+          "name": "Waterskin(4)",
+          "count": 100,
+          "restock": 10
+        },
+        {
+          "item": 1831,
+          "name": "Waterskin(0)",
+          "count": 100,
+          "restock": 10
+        },
+        {
+          "item": 1937,
+          "name": "Jug of water",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 1921,
+          "name": "Bowl of water",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 1929,
+          "name": "Bucket of water",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 946,
+          "name": "Knife",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 1833,
+          "name": "Desert shirt",
+          "count": 10,
+          "restock": 500
+        },
+        {
+          "item": 1835,
+          "name": "Desert robe",
+          "count": 10,
+          "restock": 500
+        },
+        {
+          "item": 1837,
+          "name": "Desert boots",
+          "count": 10,
+          "restock": 500
+        },
+        {
+          "item": 2349,
+          "name": "Bronze bar",
+          "count": 10,
+          "restock": 500
+        },
+        {
+          "item": 314,
+          "name": "Feather",
+          "count": 500,
+          "restock": 50
+        },
+        {
+          "item": 11881,
+          "name": "Feather pack",
+          "count": 50,
+          "restock": 20
+        },
+        {
+          "item": 2347,
+          "name": "Hammer",
+          "count": 10,
+          "restock": 500
+        },
+        {
+          "item": 22660,
+          "name": "Empty bucket pack",
+          "count": 15,
+          "restock": 10
+        },
+        {
+          "item": 1925,
+          "name": "Bucket",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1923,
+          "name": "Bowl",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1935,
+          "name": "Jug",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 20742,
+          "name": "Empty jug pack",
+          "count": 0,
+          "restock": 50
+        },
+        {
+          "item": 1854,
+          "name": "Shantay pass",
+          "count": 500,
+          "restock": 1
+        },
+        {
+          "item": 954,
+          "name": "Rope",
+          "count": 20,
+          "restock": 200
+        }
+      ]
+    },
+    {
       "key": "varrock_swordshop",
       "title": "Varrock Swordshop",
       "inv": 6,

@@ -33,6 +33,8 @@ class ShopTest {
         1087 to 80, 1081 to 280, 1083 to 1000, 1089 to 1920, 1085 to 2600, 1091 to 6400,
         1623 to 25, 1621 to 50, 1619 to 100, 1617 to 200, 1607 to 250, 1605 to 500, 1603 to 1000, 1601 to 2000,
         1825 to 27, 1833 to 40, 1837 to 20, 4593 to 1, 4591 to 1, 970 to 10, 2138 to 1,
+        // The Shantay Pass Shop.
+        1823 to 30, 1831 to 15, 1937 to 1, 1921 to 4, 1929 to 6, 1835 to 40, 2349 to 8, 314 to 2, 11881 to 200, 1854 to 5, 954 to 18,
         // Varrock's weapon and armour shops.
         1277 to 26, 1279 to 91, 1281 to 325, 1283 to 624, 1285 to 845, 1287 to 2080,
         1291 to 40, 1293 to 140, 1295 to 500, 1297 to 960, 1299 to 1300, 1301 to 3200,
@@ -80,6 +82,7 @@ class ShopTest {
             NpcType(2878, "Ranael", internalName = "ranael"),
             NpcType(2874, "Gem trader", internalName = "gem_trader"),
             NpcType(3533, "Ali Morrisane", internalName = "feud_ali_m"),
+            NpcType(4642, "Shantay", internalName = "shantay"),
             NpcType(2884, "Shop keeper", internalName = "swordshop1"),
             NpcType(2885, "Shop assistant", internalName = "swordshop2"),
             NpcType(2882, "Horvik", internalName = "horvik_the_armourer"),
@@ -127,6 +130,7 @@ class ShopTest {
         "ranaels_super_skirt_store" to listOf(80, 280, 1000, 1920, 2600, 6400),
         "gem_trader" to listOf(25, 50, 100, 200, 250, 500, 1000, 2000),
         "alis_discount_wares" to listOf(1, 1, 140, 27, 40, 20, 2, 500, 1, 1, 10, 6, 1, 1, 1),
+        "shantay_pass_shop" to listOf(30, 15, 1, 4, 6, 6, 40, 40, 20, 8, 2, 200, 1, 500, 2, 4, 1, 140, 5, 18),
         // Varrock's weapon and armour shops, read 2026-10-30.
         "varrock_swordshop" to listOf(26, 91, 325, 624, 845, 2080, 40, 140, 500, 960, 1300, 3200, 10, 35, 125, 240, 325, 800),
         "horviks_armour_shop" to listOf(60, 210, 750, 1950, 160, 560, 2000, 3840, 5200, 280, 850, 750),

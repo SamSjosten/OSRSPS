@@ -211,7 +211,8 @@ class NpcSpawnFileTest {
             3231 to "ellis_tanner", 4285 to "hassan", 4286 to "osman", 11645 to "prince_ali_palace",
             3292 to "al_kharid_warrior", 3261 to "al_kharid_man", 3024 to "scorpion", 2835 to "camel", 5949 to "al_the_camel",
             5950 to "elly_the_camel", 5951 to "ollie_the_camel", 5952 to "cam_the_camel", 5953 to "alice_the_camel_multinpc",
-            1528 to "0_51_49_saltfish",
+            1528 to "0_51_49_saltfish", 4642 to "shantay", 4643 to "shantay_guard", 4648 to "shantay_guard_still",
+            4641 to "tourtrap_qip_irena_happy", 3106 to "man", 3107 to "man2", 3108 to "man3", 3019 to "spider",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
@@ -233,17 +234,21 @@ class NpcSpawnFileTest {
         // The palace: Hassan and Prince Ali in the throne room, Osman outside.
         for (id in listOf(4285, 11645)) assertTrue(spawns.single { it.type.id == id }.let { it.x in 3298..3303 && it.z in 3159..3166 })
         assertEquals(1, spawns.count { it.type.id == 4286 })
-        // Fighters: nine warriors in the palace, six men, nine scorpions in the mine and one south of the bank (the Wiki's counts).
+        // Fighters: nine warriors in the palace, six men, three spiders, nine scorpions in the mine and one south of the bank (the Wiki's counts).
         assertEquals(9, spawns.count { it.type.id == 3292 && it.x in 3281..3303 && it.z in 3159..3178 })
-        assertEquals(6, spawns.count { it.type.id == 3261 })
+        assertEquals(6, spawns.count { it.type.id in listOf(3261, 3106, 3107, 3108) })
+        assertEquals(3, spawns.count { it.type.id == 3019 })
         assertEquals(9, spawns.count { it.type.id == 3024 && it.z > 3270 })
         assertEquals(1, spawns.count { it.type.id == 3024 && it.z < 3160 })
         // The plain Camel and the five named ones.
         for (id in listOf(2835, 5949, 5950, 5951, 5952, 5953)) assertEquals(1, spawns.count { it.type.id == id })
         // Two fishing spots by the sea, south-west of the town.
         assertEquals(2, spawns.count { it.type.id == 1528 && it.x in 3266..3277 && it.z in 3139..3148 })
-        // Inside Al Kharid: east of the toll gate's fence line, south of the mine's north end.
-        assertTrue(spawns.all { it.x in 3267..3330 && it.z in 3140..3320 && it.level == 0 && it.source.isNotBlank() })
+        // The Shantay Pass: Shantay, the gate guard, three guards and Irena.
+        assertEquals(3, spawns.count { it.type.id == 4643 })
+        for (id in listOf(4642, 4648, 4641)) assertEquals(1, spawns.count { it.type.id == id && it.z in 3110..3130 })
+        // Al Kharid: east of the toll gate's fence line, from the Shantay Pass to the mine's north end.
+        assertTrue(spawns.all { it.x in 3267..3330 && it.z in 3110..3320 && it.level == 0 && it.source.isNotBlank() })
         assertTrue(spawns.filter { it.type.id in listOf(4287, 4288, 3090, 3091) }.all { it.wander == 0 })
     }
 
