@@ -1161,6 +1161,8 @@ class World(
         if (player.connectionLostTick < 0) {
             player.connectionLostTick = tick
             logger.info { "${player.username} lost their connection; keeping them for $LINGER_TICKS ticks for a reconnect" }
+            // Their trade ends now, everything given back, rather than holding the partner on the screen for a minute.
+            trades.decline(player)
         }
         return tick - player.connectionLostTick >= LINGER_TICKS
     }
