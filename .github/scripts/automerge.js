@@ -137,7 +137,7 @@ async function evaluate(github, git, repo, pr) {
   if (batch && batch.members[batch.members.length - 1].number === pr.number && isBatch(git, pr.number, batch, pr.head.sha)) {
     for (const member of batch.members) {
       const result = await evaluateAt(github, git, repo, member.number, member.sha);
-      if (result.conclusion !== 'success') return { ...result, title: `#${member.number} in the batch: ${result.title}` };
+      if (result.conclusion !== 'success') return { ...result, title: `#${member.number} in the batch: ${result.title}`, member, own: result };
     }
     const numbers = batch.members.map(member => `#${member.number}`).join(', ');
     return { status: 'completed', conclusion: 'success', title: `Codex found nothing in ${numbers}`, summary: 'Clean Codex reviews of each pull request in the batch.' };
@@ -419,7 +419,15 @@ async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha,
   if (!failing) {
     const result = await evaluate(github, git, repo, { number: carrier.number, head: { sha: batch.sha } });
     if (result.conclusion !== 'success') {
-      core.info(`batch ${batch.sha.slice(0, 7)}: ${result.title}; building again`);
+      // The member's own codex-review passed against an older main, and no longer does: it is written again on the
+      // member's head and the member leaves the queue until Codex covers it, so the batch is built without it instead
+      // of the same batch again and again (#296, 2026-10-30).
+      if (result.member) {
+        await writeCheck(github, repo, result.member.sha, result.own);
+        const state = scanned.get(result.member.number);
+        if (state) Object.assign(state, { ready: false, batchable: false });
+      }
+      core.info(`batch ${batch.sha.slice(0, 7)}: ${result.title}; building again without it`);
       return false;
     }
     core.info(`batch ${batch.sha.slice(0, 7)} is green: it becomes #${carrier.number}'s head`);
