@@ -105,6 +105,7 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Cooking
 import osrsps.game.skill.Fishing
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
@@ -371,6 +372,8 @@ class World(
 
     val fishing = Fishing(this)
 
+    val cooking = Cooking(this)
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -426,6 +429,7 @@ class World(
         firemaking.register()
         mining.register()
         fishing.register()
+        cooking.register()
         loadDialogue()
     }
 

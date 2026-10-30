@@ -144,6 +144,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   ore, the empty rock, the copper back) and tin, and mithril's level 55. Needs only 0.5.0.
 - `fishing-lumbridge.json`: at the Lumbridge Swamp, Net with no net, then a net nets a shrimp (10 XP); Bait's
   level 5, and on the River Lum, Lure's level 20. Needs only 0.5.0.
+- `cooking-lumbridge.json`: in the Lumbridge Castle kitchen, Cook on the range with nothing raw, then at 99 the Make-X
+  box over three raw shrimps cooks all three (90 XP).
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 

@@ -13,6 +13,7 @@ import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.BirdNestLines
+import osrsps.game.skill.CookingLines
 import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.FishingLines
 import osrsps.game.skill.LevelUpLines
@@ -26,6 +27,7 @@ object DialogueLines {
         // Gathering skills after woodcutting and firemaking, one a line.
         MiningLines,
         FishingLines,
+        CookingLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
         BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines,
         // Rest of Lumbridge.
