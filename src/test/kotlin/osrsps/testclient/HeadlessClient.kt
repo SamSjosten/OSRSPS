@@ -657,8 +657,10 @@ class HeadlessClient private constructor(
             }
             GameServerProt.RUNCLIENTSCRIPT -> scripts += readClientScript(buf)
             GameServerProt.UPDATE_INV_FULL -> {
-                buf.g4() // the interface component it is shown on, or -1
-                val inventoryId = buf.g2()
+                // The interface component it is shown on, or -1; under -70000 for the "other" copy of an inventory, as
+                // a trade partner's offer is sent. That copy is kept here under the inventory id + OTHER_INV.
+                val combined = buf.g4()
+                val inventoryId = buf.g2() + if (combined < -70000) OTHER_INV else 0
                 invs[inventoryId] = MutableList(buf.g2()) {
                     val id = buf.g2Alt1() - 1
                     var count = buf.g1Alt3()
@@ -819,6 +821,9 @@ class HeadlessClient private constructor(
         private const val GAMELOGIN = 16
         private const val LOGIN_SUCCESSFUL = 0
         private const val LOGIN_OK = 2
+
+        /** Added to an inventory's id for its "other" copy (invother, a trade partner's offer); see [inventory]. */
+        const val OTHER_INV = 1 shl 16
 
         /** TestServer's Huffman table: 256 eight-bit codewords. */
         val HUFFMAN: HuffmanCodec = HuffmanCodec.create(Unpooled.wrappedBuffer(ByteArray(256) { 8 }))

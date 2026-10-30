@@ -55,11 +55,13 @@ import osrsps.game.bank.Bank
 import osrsps.game.bank.BankPinSettings
 import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
+import osrsps.game.bank.setVarbitIfKnown
 import osrsps.game.shop.ShopScreen
 import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.Deaths
+import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.MagicCombat
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MultiCombat
@@ -135,6 +137,8 @@ import osrsps.game.skill.CraftingData
 import osrsps.game.skill.Fishing
 import osrsps.game.skill.Fletching
 import osrsps.game.skill.FletchingData
+import osrsps.game.skill.Herblore
+import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
@@ -444,6 +448,12 @@ class World(
     /** Trading between players; see [Trades]. */
     val trades = Trades(
         collision, movement, { players[it.index] === it }, ignoreLists, ::textFor, interfaces::openModal, interfaces::closeModals,
+        objTypes = objTypes,
+        price = { itemPrices.price(it) },
+        startScript = { player, script -> if (!player.scripts.delayed) scripts.start(player, script) },
+        examine = { player, type, count -> inventoryTab.examine(player, type, count) },
+        overflow = { player, obj -> objTypes[obj.id]?.let { groundObjs.give(player, it, obj.count) } },
+        setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
     )
 
     /** Private messages; see [PrivateMessages]. */
@@ -475,6 +485,7 @@ class World(
     val making = Making(this)
     val fletching = Fletching(this, FletchingData.load())
     val crafting = Crafting(this, CraftingData.load())
+    val herblore = Herblore(this, HerbloreData.load())
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -575,6 +586,7 @@ class World(
         smithing.register()
         fletching.register()
         crafting.register()
+        herblore.register()
         loadDialogue()
     }
 
@@ -1018,7 +1030,14 @@ class World(
         for (player in players) {
             if (player == null) continue
             perPlayer(player, "updates") {
-                if (player.equipment.hasChanges) specialAttacks.weaponChanged(player, combat.weapon(player))
+                if (player.equipment.hasChanges) {
+                    val weapon = combat.weapon(player)
+                    if ((weapon?.id ?: -1) != player.weaponId) {
+                        player.weaponId = weapon?.id ?: -1
+                        player.weaponSince = tick
+                    }
+                    specialAttacks.weaponChanged(player, weapon)
+                }
                 equipmentTab.updateVars(player)
                 bankScreen.updateVars(player)
                 depositBox.updateVars(player)
@@ -1031,8 +1050,10 @@ class World(
                 shopScreen.flush(player)
                 grandExchangeScreen.flush(player)
                 priceChecker.flush(player)
+                trades.flush(player)
             }
         }
+        for (player in players) if (player != null) trades.flushed(player)
         for (npc in npcs.all) sendNpcEffects(npc)
         network.infoProtocols.update()
         try {
@@ -1403,6 +1424,7 @@ class World(
 
     /** A click on the game view or minimap. [keyCombination] is 1 with ctrl held, 2 with ctrl and shift. */
     fun onMoveClick(player: Player, x: Int, z: Int, keyCombination: Int) = act(player) {
+        trades.interrupt(player)
         // Inferred: a delayed player can't walk away, as on an agility obstacle.
         if (held(player)) return@act
         scripts.interrupt(player)
@@ -1424,6 +1446,7 @@ class World(
      * they reach it; see [GroundObjs]. [ctrl] flips walk and run, as on a move click.
      */
     fun onGroundObjOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+        trades.interrupt(player)
         // Delayed players can't walk off, as for a move click.
         if (held(player)) return@act
         val interaction = groundObjs.click(player, id, x, z, option)
@@ -1454,6 +1477,7 @@ class World(
     private fun playerOp(player: Player, clicked: Player?, option: Int, ctrl: Boolean) {
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (held(player)) return
+        trades.interrupt(player)
         if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT) {
             logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
@@ -1510,6 +1534,7 @@ class World(
 
     /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
     fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+        trades.interrupt(player)
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (held(player)) return@act
         npcInteractions.leave(player)
@@ -1524,6 +1549,8 @@ class World(
      */
     fun onLocTarget(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
         if (held(player)) return@act
+        trades.interrupt(player)
+        if (player.scripts.delayed) return@act
         if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
             logger.info { "${player.username} used $interfaceId:$componentId sub $sub on loc $id (not handled)" }
             follows.clickedElsewhere(player)
@@ -1539,6 +1566,7 @@ class World(
      * and run.
      */
     fun onNpcOp(player: Player, index: Int, option: Int, sub: Int, ctrl: Boolean) = act(player) {
+        trades.interrupt(player)
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (held(player)) return@act
         npcInteractions.click(player, index, option, sub, ctrl)
@@ -1551,6 +1579,8 @@ class World(
      */
     fun onNpcTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
         if (held(player)) return@act
+        trades.interrupt(player)
+        if (player.scripts.delayed) return@act
         if (interfaceId == Spells.SPELLBOOK) {
             npcInteractions.castOn(player, index, ctrl) { npc -> magicCombat.cast(player, npc, componentId) }
             follows.clickedElsewhere(player)
@@ -1583,6 +1613,8 @@ class World(
 
     /** A `::` command typed in the chatbox, without the `::`. Commands run straight away, even while paused. */
     fun onCommand(player: Player, input: String) {
+        // A command that changes things (an admin one) leaves a trade first, so nothing changes the inventory under it.
+        if (player.trade != null && commands.isAdminCommand(input)) trades.interrupt(player)
         commands.execute(player, input, player::message)
     }
 
@@ -1618,7 +1650,7 @@ class World(
             inventoryTab.click(player, sub, obj, op)
             return@act
         }
-        if (trades.click(player, interfaceId, componentId)) return@act
+        if (trades.click(player, interfaceId, componentId, sub, obj, op)) return@act
         trades.interrupt(player)
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
@@ -1636,7 +1668,17 @@ class World(
             specialAttacks.toggle(player, combat.weapon(player))
             return@act
         }
-        if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
+        if (interfaceId == EquipmentTab.COMBAT) {
+            val wasBlock = combat.bulwarkBlock(player)
+            if (equipmentTab.clickCombatTab(player, componentId)) {
+                // Off the bulwark's Block, the next attack waits 8 ticks, whatever weapon makes it (OSRS Wiki, Dinh's bulwark).
+                if (wasBlock && !combat.bulwarkBlock(player)) {
+                    player.attackLockedUntil = tick + DinhsBulwark.BLOCK_DELAY
+                    player.nextAttackTick = maxOf(player.nextAttackTick, player.attackLockedUntil)
+                }
+                return@act
+            }
+        }
         if (interfaceId == EquipmentTab.AUTOCAST && equipmentTab.clickAutocastMenu(player, componentId, sub)) return@act
         if (interfaceId == Prayers.PRAYERBOOK && prayers.click(player, componentId, op)) return@act
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
@@ -1696,6 +1738,7 @@ class World(
      * with [args] decoded by the types [SettingsSide.SCRIPT_TRIGGERS] or [AllSettings.SCRIPT_TRIGGERS] give for its id.
      */
     fun onScriptTrigger(player: Player, interfaceId: Int, componentId: Int, sub: Int, args: List<Any>) = act(player) {
+        trades.interrupt(player)
         if (player.echoButtons) player.message("Script trigger $interfaceId:$componentId slot $sub args ${args.toList()}")
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.scriptTrigger(player, componentId, args)) return@act
         if (interfaceId == AllSettings.INTERFACE && allSettings.scriptTrigger(player, componentId, sub, args)) return@act
@@ -1710,6 +1753,7 @@ class World(
 
     /** The player dragged a component's item, from slot [fromSub] onto [toComponentId]'s slot [toSub]. */
     fun onButtonDrag(player: Player, interfaceId: Int, componentId: Int, fromSub: Int, fromObj: Int, toInterfaceId: Int, toComponentId: Int, toSub: Int) = act(player) {
+        trades.interrupt(player)
         val inventory = interfaceId == InventoryTab.INTERFACE && componentId == InventoryTab.ITEMS
         if (inventory && toInterfaceId == interfaceId && toComponentId == componentId) {
             inventoryTab.drag(player, fromSub, fromObj, toSub)
@@ -1722,6 +1766,7 @@ class World(
 
     /** The player used one component's item on another's ("Use" then a click). */
     fun onButtonTarget(player: Player, interfaceId: Int, componentId: Int, fromSub: Int, fromObj: Int, toInterfaceId: Int, toComponentId: Int, toSub: Int, toObj: Int) = act(player) {
+        trades.interrupt(player)
         val fromInventory = interfaceId == InventoryTab.INTERFACE && componentId == InventoryTab.ITEMS
         if (fromInventory && toInterfaceId == interfaceId && toComponentId == componentId) {
             inventoryTab.use(player, fromSub, fromObj, toSub, toObj)
@@ -1820,6 +1865,7 @@ class World(
      * See [Dialogues.resume]. A click while delayed is dropped, as other clicks are.
      */
     fun onResumePauseButton(player: Player, interfaceId: Int, componentId: Int, sub: Int) = act(player) {
+        trades.interrupt(player)
         if (player.scripts.delayed) return@act
         if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId)) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }

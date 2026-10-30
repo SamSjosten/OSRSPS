@@ -253,6 +253,16 @@ class Player(
     /** Ticks since special attack energy last came back; see [osrsps.game.combat.SpecialAttacks]. Not saved: a login starts it again. */
     var specRegenTicks: Int = 0
 
+    /**
+     * No attack starts before this tick, whatever sets the attack delay meanwhile, auto retaliate included: leaving
+     * Dinh's bulwark's Block. Not saved.
+     */
+    var attackLockedUntil: Long = 0
+
+    /** The weapon worn, by obj id (-1 for none), and the tick it was wielded on, for Dinh's bulwark's Block. Not saved. */
+    var weaponId: Int = -1
+    var weaponSince: Long = 0
+
     /** The NPC that hit them last, and the tick it did; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
