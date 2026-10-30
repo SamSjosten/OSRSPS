@@ -95,6 +95,11 @@ class MeleeCombat(
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     /** Told of an NPC on the tick it is killed; see [osrsps.game.npc.NpcScripts.onDeath]. */
     private val npcDied: (Npc) -> Unit = {},
+    /** Poisons an NPC at a severity, or envenoms it, as [Poison] does; false when it is immune or poisoned already. */
+    private val poisonNpc: (Npc, Int) -> Unit = { _, _ -> },
+    private val envenomNpc: (Npc) -> Unit = {},
+    /** Poisons a player at a severity ([Poison.poison]), for an NPC whose attacks poison. */
+    private val poisonPlayer: (Player, Int) -> Unit = { _, _ -> },
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -222,11 +227,12 @@ class MeleeCombat(
         npc.incoming += damage
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
-        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC)
+        val poison = PoisonedWeapons.melee(combat.weapon(player))
+        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison)
     }
 
-    /** A player's swing on its way to an NPC: it lands on [landTick]. */
-    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long)
+    /** A player's swing on its way to an NPC: it lands on [landTick], poisoning at [poison] if over 0. */
+    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int)
 
     private val landing = ArrayList<Swing>()
 
@@ -245,7 +251,24 @@ class MeleeCombat(
             iterator.remove()
             val npc = swing.npc
             npc.incoming -= swing.damage
-            if (npcs[npc.index] === npc && !npc.dead) hit(npc, swing.player, swing.damage, tick)
+            if (npcs[npc.index] !== npc || npc.dead) continue
+            val dealt = hit(npc, swing.player, swing.damage, tick)
+            weaponPoison(npc, dealt, swing.poison, venom = false, ranged = false)
+        }
+    }
+
+    /**
+     * After a player's hit on [npc] that [dealt] damage: one with a poisoned weapon or ammunition ([poison] its
+     * severity, 0 for none) poisons it one time in four for melee and in eight for [ranged], and a toxic blowpipe's
+     * ([venom]) envenoms it one time in four ([PoisonedWeapons]). A hit of 0, or one that killed it, does neither, and
+     * rolls no dice.
+     */
+    fun weaponPoison(npc: Npc, dealt: Int, poison: Int, venom: Boolean, ranged: Boolean) {
+        if (dealt <= 0 || npc.dead) return
+        if (venom) {
+            if (random.chance(1, PoisonedWeapons.VENOM_CHANCE)) envenomNpc(npc)
+        } else if (poison > 0) {
+            if (random.chance(1, if (ranged) PoisonedWeapons.RANGED_CHANCE else PoisonedWeapons.MELEE_CHANCE)) poisonNpc(npc, poison)
         }
     }
 
@@ -289,6 +312,7 @@ class MeleeCombat(
     /** [npc] is in combat with [source] (null for none) from [tick], and faces them. */
     private fun attacked(npc: Npc, source: Player?, tick: Long) {
         npc.attacker = source
+        if (source != null) npc.lastAttacker = source
         npc.attackedTick = tick
         npc.holdTicks = IN_COMBAT_TICKS
         if (source != null) npc.face(source)
@@ -370,6 +394,9 @@ class MeleeCombat(
         val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, roll.maxHit) else 0
         // The dice are rolled either way, so a prayer doesn't change what comes after (World.random is shared).
         hitPlayer(player, npc, if (protects(player, def.attackType)) 0 else damage, tick)
+        // Its poison comes whatever the hit did, through a protection prayer too (OSRS Wiki, Poison). Guessed: one
+        // attack in four, as for a player's poisoned melee weapon; the Wiki gives no chance for monsters.
+        if (def.poison > 0 && !player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(player, def.poison)
     }
 
     /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis. */
@@ -418,6 +445,23 @@ class MeleeCombat(
         player.effects.hit(-1, hitsplat, hitsplat, hitsplat, dealt)
         player.effects.headBar(-1, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
         if (player.hitpoints <= 0) died(player) else redemption(player)
+        return dealt
+    }
+
+    /**
+     * [npc] takes [damage] of poison or venom with [hitsplat], capped at what it has left: the hitsplat and health bar,
+     * but no block animation, no XP and no one to turn on. Killed by it, its drops go to whoever fought it last, even
+     * once that fight is over ([Npc.lastAttacker]).
+     * Returns the damage dealt.
+     */
+    fun statusHit(npc: Npc, damage: Int, hitsplat: Int): Int {
+        val def = combat.npcCombat[npc.type] ?: return 0
+        if (npc.dead || npc.hitpoints <= 0) return 0
+        val dealt = damage.coerceIn(0, npc.hitpoints)
+        npc.hitpoints -= dealt
+        npc.effects.hit(-1, hitsplat, hitsplat, dealt)
+        npc.effects.headBar(-1, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.type.stats.hitpoints))
+        if (npc.hitpoints <= 0) die(npc, def, npc.attacker ?: npc.lastAttacker, currentTick())
         return dealt
     }
 

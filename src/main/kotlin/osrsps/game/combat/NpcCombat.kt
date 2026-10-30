@@ -87,6 +87,11 @@ data class NpcCombatDef(
     val magicAttack: Int = 0,
     /** The Wiki's elemental weakness, null for "No elemental weakness". */
     val weakness: ElementalWeakness? = null,
+    /** The poison severity its attacks give ([Poison]), 0 for none: five times the Wiki's starting damage. */
+    val poison: Int = 0,
+    /** The Wiki's immunities: poison and venom from players' weapons do nothing to it. */
+    val poisonImmune: Boolean = false,
+    val venomImmune: Boolean = false,
 )
 
 /** NPC combat definitions by NPC type id. An NPC with none can't be attacked. */
@@ -121,7 +126,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * ] }
          * ```
          *
-         * An animation may be `null` for none. An entry may add `"magicAttack"` and `"weakness": { "element": "water", "percent": 10 }`.
+         * An animation may be `null` for none. An entry may add `"magicAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
+         * `"poison"` (the Wiki's starting damage of the poison its attacks give) and `"immune": ["poison", "venom"]`.
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
          * [seqs] turns into ids; a name it doesn't know fails the file, unless it knows no names at all (a cache with
@@ -164,6 +170,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 val name = value.jsonPrimitive.content
                 return seqs[name] ?: throw IllegalArgumentException("no animation called $name")
             }
+            val immune = entry["immune"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty().toSet()
+            require(immune.all { it == "poison" || it == "venom" }) { "immune to ${immune.joinToString()}: only poison and venom" }
             val attackType = entry.required("attackType").jsonPrimitive.content.let { text ->
                 AttackType.entries.firstOrNull { it.name.equals(text, ignoreCase = true) }
                     ?: throw IllegalArgumentException("unknown attack type '$text'")
@@ -185,6 +193,9 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                         weakness.required("percent").jsonPrimitive.int.also { require(it in 1..100) { "weakness of $it%" } },
                     )
                 },
+                poison = (entry["poison"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..Poison.VENOM_MAX) { "poison starting at $it" } } * 5,
+                poisonImmune = "poison" in immune,
+                venomImmune = "venom" in immune,
             )
         }
 
