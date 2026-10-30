@@ -179,6 +179,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Needs only 0.5.0.
 - `woodcutting-nests.json`: `::nest seeds` and `::nest ring` drop a nest next to the player as a log's 1/256 roll does;
   each is taken and searched, leaving an empty nest and the seed or ring. Needs only 0.6.0.
+- `firemaking-after-chopping.json`: chops the oak south of the castle at 99 and lights the first oak logs straight
+  away, while the woodcutting clock still runs; the tinderbox strikes (animation 733) and the attempt message shows at
+  once, which the shared skill clock skipped before 30 Oct 2026. Needs 0.10.0.
 - `firemaking-lumbridge.json`: at the spawn, a tinderbox on oak logs (level 15 needed), then on logs (lit after a
   roll or more, a step west, 40 XP), Light on logs on the ground at level 43, and the first fire's ashes. Needs 0.10.0
   (`useItemOnItem`, `groundItemOption`).
