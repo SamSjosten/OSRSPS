@@ -99,7 +99,7 @@ class GeAccount {
         /** A member's slots (the Wiki); every account here counts as a member. */
         const val SLOTS = 8
 
-        /** GUESSED: how many trades the history keeps; ge_history_addline draws as many as it is sent. */
-        const val HISTORY_SIZE = 20
+        /** How many trades the history keeps: 40 since 7 March 2019 (the Wiki's Grand Exchange changes). */
+        const val HISTORY_SIZE = 40
     }
 }

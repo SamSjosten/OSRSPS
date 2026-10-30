@@ -230,10 +230,10 @@ class GrandExchangeTest {
     }
 
     @Test
-    fun `the history keeps the last 20`() {
-        repeat(25) { player.ge.record(GeTrade(OfferType.BUY, AXE, it + 1, 40)) }
-        assertEquals(GeAccount.HISTORY_SIZE, player.ge.history.size)
-        assertEquals(25, player.ge.history.first().count)
+    fun `the history keeps the last 40`() {
+        repeat(45) { player.ge.record(GeTrade(OfferType.BUY, AXE, it + 1, 40)) }
+        assertEquals(40, player.ge.history.size)
+        assertEquals(45, player.ge.history.first().count)
         assertEquals(6, player.ge.history.last().count)
     }
 
