@@ -318,7 +318,11 @@ class World(
     val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
 
     /** The Grand Exchange's offers screen; see [GrandExchangeScreen]. */
-    val grandExchangeScreen = GrandExchangeScreen(grandExchange, interfaces::openModal)
+    val grandExchangeScreen = GrandExchangeScreen(
+        grandExchange, interfaces::openModal, scripts,
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        words = ::textFor,
+    )
 
     /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
@@ -1534,7 +1538,7 @@ class World(
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
         if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
-        if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op)) return@act
+        if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
@@ -1714,6 +1718,11 @@ class World(
      * The player typed an amount into a prompt (resume_p_countdialog). A script waiting for it carries on now; with none
      * waiting (the prompt was closed) it does nothing. Dropped while delayed, as other clicks are.
      */
+    /** The client picked [obj] in the chatbox's item search (resume_p_objdialog). */
+    fun onResumeObj(player: Player, obj: Int) = act(player) {
+        if (!grandExchangeScreen.chooseItem(player, obj)) logger.debug { "${player.username} picked item $obj, which nothing waits for" }
+    }
+
     fun onResumeCount(player: Player, count: Int) = act(player) {
         if (player.scripts.delayed) return@act
         if (!scripts.resumeCount(player, count)) logger.debug { "${player.username} entered $count, which nothing waits for" }
