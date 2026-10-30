@@ -103,7 +103,8 @@
     {"npc": 5954, "name": "Alice the Camel"},
     {"npc": 4642, "name": "Shantay"},
     {"npc": 4643, "name": "Shantay Guard", "also": [4648]},
-    {"npc": 4641, "name": "Irena"}
+    {"npc": 4641, "name": "Irena"},
+    {"npc": 3019, "name": "Spider", "wiki": "Spider page, level 1"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},

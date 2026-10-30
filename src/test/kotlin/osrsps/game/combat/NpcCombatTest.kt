@@ -19,7 +19,7 @@ class NpcCombatTest {
     ) + (1..8).map { "goblin_unarmed_melee_$it" } + "giantspider1" + listOf(
         "giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3",
         "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops", "goblin_armed", "unicorn",
-        "al_kharid_man", "al_kharid_warrior", "scorpion", "shantay_guard",
+        "al_kharid_man", "al_kharid_warrior", "scorpion", "shantay_guard", "spider",
     )
     // The cache's Strength levels where they aren't 1, for the max hit check.
     private val strength = mapOf(
@@ -70,7 +70,7 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.FIRE, 20), combat[types.find("ramunsheered")!!]!!.weakness)
         assertEquals(ElementalWeakness(Element.FIRE, 50), combat[types.find("giantspider1")!!]!!.weakness)
         assertEquals(
-            listOf("imp", "ramunsheered", "ramunsheered2", "ramunsheered3", "giantspider1", "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops"),
+            listOf("imp", "ramunsheered", "ramunsheered2", "ramunsheered3", "giantspider1", "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops", "spider"),
             names.filter { combat[types.find(it)!!]!!.weakness != null },
         )
         assertEquals(ElementalWeakness(Element.EARTH, 40), combat[types.find("little_frog_nodrops")!!]!!.weakness)

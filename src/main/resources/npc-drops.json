@@ -122,6 +122,11 @@
       "source": "OSRS Wiki, Shantay Guard, read 2026-10-30: bones only"
     },
     {
+      "npcs": ["spider"],
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Spider, read 2026-10-30: the looting bag, Larran's key and slayer's enchantment drop only in the Wilderness or on Krystilia's tasks"
+    },
+    {
       "npcs": ["rat"],
       "source": "OSRS Wiki, Rat: no drops outside quests, the Wilderness and the Stronghold of Security"
     },
