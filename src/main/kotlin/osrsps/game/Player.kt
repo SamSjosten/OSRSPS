@@ -180,6 +180,9 @@ class Player(
     /** Grand Exchange offers and buy limits; see [osrsps.game.ge.GrandExchange]. */
     val ge = osrsps.game.ge.GeAccount()
 
+    /** What the client was last sent of [ge]. Not saved. */
+    val geSent = osrsps.game.ge.GeSent()
+
     /** The chatbox's public, private and trade filters, as the client last set them. Saved. */
     var chatFilters: ChatFilters = ChatFilters.DEFAULT
 
