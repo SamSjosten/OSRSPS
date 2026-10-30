@@ -1565,7 +1565,7 @@ you were with your own stats and items.
 
 Live's J-Mod tool, obj 5733, as an admins' tool: `::item 5733` gives one. The cache gives it Eat, Slice, Peel and Mash,
 as live, so RuneLite shows it as it does there. Each option opens a menu of testing tools that run the `::` commands, so
-every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat, Slice and Peel are done.
+every pick is logged and a non-admin is refused as for a typed command. Every menu is done; Use (an item on the potato, the potato on a player) comes next.
 
 | Eat | What it does | Source |
 |-----|--------------|--------|
@@ -1590,6 +1590,13 @@ Live's AMEs for all! is left out: there are no random events.
 | Set the XP rate | Asks for a rate or `restore`, then `::xprate` (for everyone) | ours |
 | Start a scenario | Asks for a name, then `::scenario`; the potato goes back in the inventory the scenario sets, or with no room there you are told `::reset` ends it | ours |
 | Reset (end the scenario) | `::reset` | ours |
+
+| Mash | What it does | Source |
+|------|--------------|--------|
+| Kick me out | Logs you out as the logout button does: at the end of the tick, and not within 16 ticks of a hit | Wiki; the combat lock is guessed |
+| Kill me | `::hit` of every hitpoint you have, so the death is the game's own (grave, items kept); `::god` stops it | Wiki |
+
+Live's Keep me logged in turns off an idle logout we don't have, and Transmogrify me isn't built.
 
 A non-admin who clicks one loses it with a message (guessed: what live does isn't known). The options' words are live's,
 so they are keys under `rotten_potato.` in the dialogue file, except our own (Heal me, Peel's Teleport to a tile and Spawn an item, and all of Slice).
