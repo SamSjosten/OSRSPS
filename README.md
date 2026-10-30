@@ -1533,7 +1533,7 @@ Live's AMEs for all! is left out: there are no random events.
 | God mode on/off | `::god` | ours: live's Slice starts random events, which there are none of |
 | Sure hits on/off | `::sure` | ours |
 | Set the XP rate | Asks for a rate or `restore`, then `::xprate` (for everyone) | ours |
-| Start a scenario | Asks for a name, then `::scenario`; the potato goes back in the inventory the scenario sets | ours |
+| Start a scenario | Asks for a name, then `::scenario`; the potato goes back in the inventory the scenario sets, or with no room there you are told `::reset` ends it | ours |
 | Reset (end the scenario) | `::reset` | ours |
 
 A non-admin who clicks one loses it with a message (guessed: what live does isn't known). The options' words are live's,

@@ -62,6 +62,7 @@ object RottenPotato {
     const val SCENARIO = "Start a scenario"
     const val SCENARIO_PROMPT = "Scenario name:"
     const val RESET = "Reset (end the scenario)"
+    const val NO_ROOM = "The scenario fills your inventory, so the rotten potato couldn't go back in; ::reset ends it."
 }
 
 fun registerRottenPotato(world: World) {
@@ -124,9 +125,12 @@ private suspend fun ScriptContext.slice(world: World) {
         3 -> command(world, "xprate " + stringDialog(RottenPotato.XP_RATE_PROMPT))
         4 -> {
             command(world, "scenario " + stringDialog(RottenPotato.SCENARIO_PROMPT))
-            // Ours: a scenario sets the inventory, so the potato goes back in, to Slice again for Reset.
+            // Ours: a scenario sets the inventory, so the potato goes back in, to Slice again for Reset. A scenario that
+            // fills every slot keeps its items, and the player is told how to end it instead.
             val potato = world.objTypes[RottenPotato.OBJ]
-            if (potato != null && player.inventory.count(RottenPotato.OBJ) == 0L) player.inventory.add(potato, 1)
+            if (potato != null && player.inventory.count(RottenPotato.OBJ) == 0L && player.inventory.add(potato, 1) == 0) {
+                player.message(RottenPotato.NO_ROOM)
+            }
         }
         5 -> command(world, "reset")
     }

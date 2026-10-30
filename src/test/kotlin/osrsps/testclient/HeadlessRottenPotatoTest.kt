@@ -28,15 +28,17 @@ import osrsps.map.CollisionMap
 class HeadlessRottenPotatoTest {
     private val potato = ObjType(RottenPotato.OBJ, "Rotten potato", iops = listOf("Eat", "Slice", "Peel", "Mash", "Drop"), internalName = "rotten_potato")
     private val coins = ObjType(COINS, "Coins", stackable = true)
+    private val bones = ObjType(BONES, "Bones")
+    private val full = Scenario.parse("full", """{ "position": { "x": 3222, "z": 3218 }, "inventory": [ { "item": "$BONES", "count": 28 } ] }""")
     private val gift = Scenario.parse("gift", """{ "position": { "x": 3220, "z": 3216 }, "inventory": [ { "item": "$COINS", "count": 100 } ] }""")
 
     /** Only [ADMIN] is an admin; its name is claimed up front, as a listed admin's name can't be claimed by a login. */
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val accounts = Accounts(MemorySaveStore(), iterations = 1_000).apply { check(ADMIN, "test".toCharArray()) }
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(potato, coins),
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(potato, coins, bones),
             npcTypes = NpcTypes.of(NpcType(GOBLIN, "Goblin", internalName = "goblin")),
-            scenarios = Scenarios(listOf(gift)), admins = Admins.parse(ADMIN), accounts = accounts, cycleMillis = millis,
+            scenarios = Scenarios(listOf(gift, full)), admins = Admins.parse(ADMIN), accounts = accounts, cycleMillis = millis,
         )
     }
 
@@ -206,6 +208,23 @@ class HeadlessRottenPotatoTest {
         }
     }
 
+    @Test
+    fun `a scenario that fills the inventory keeps its items and says how to end it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login(ADMIN).use { boss ->
+                boss.ready()
+                boss.command("item ${RottenPotato.OBJ}")
+                boss.pick(4)
+                boss.prompted(ScriptContext.MESLAYER_MODE9)
+                boss.resumeString("full")
+                boss.seen(RottenPotato.NO_ROOM)
+                assertEquals(List(28) { BONES }, boss.inventory(BACKPACK).map { it?.id })
+                assertTrue(boss.commandReply("reset") { it.startsWith("Back to") }.startsWith("Back to"))
+                boss.slotOf(RottenPotato.OBJ)
+            }
+        }
+    }
+
     /** Slice, then option [option] of its menu. */
     private fun HeadlessClient.pick(option: Int) {
         slice()
@@ -237,6 +256,7 @@ class HeadlessRottenPotatoTest {
     private companion object {
         const val ADMIN = "boss"
         const val COINS = 995
+        const val BONES = 526
         const val GOBLIN = 3029
         const val BACKPACK = 93
 
