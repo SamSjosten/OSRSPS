@@ -868,6 +868,34 @@ and haggles for silk; `HeadlessAlKharidTest` and `HeadlessAlKharidFightersTest` 
 `BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, the palace's talk in `AlKharidPalaceTest` and Osman's Keris in `HeadlessOsmanTest`, the camels' in `AlKharidCamelsTest`, combat and drops in `NpcCombatTest` and `NpcDropsTest`, the rocks' chances in `MiningTest` and their ores in `HeadlessMiningTest`, the boxes in `HeadlessAlKharidBoxesTest`, Small Net in `HeadlessFishingTest`, and
 the prices in `ShopTest`.
 
+## Varrock
+
+The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
+Content is in `game/content/Varrock.kt`, spawns in `npc-spawns/varrock.json`. Every account has finished every quest.
+Everything west of the Grand Exchange and the west gate (the Cooks' Guild among it) is the Edgeville and Barbarian
+Village piece's.
+
+| Behaviour | Source |
+|-----------|--------|
+| Step 1: the city's doors (`fai_varrock_door`, `_poor_door`, `_castle_door`, `_shanty_door`, `_door_taller`) open and close by name; the fence gate by the Grand Exchange (`ii_fencegate_l`/`_r` 15510/15512) opens into `ii_fencegate_lc`/`_rc`, the rule for any fence gate with no `…openfencegate_…` type | 241 cache names; the swings are the engine's (see Locs and doors) |
+| Straight stairs (`fai_varrock_stairs` 11796, `_taller` 11797, `_woodenstairs_castle` 11798, `_taller_new_fix` 11807, top `fai_varrock_stairs_top` 11799) climb the way their angle points (north, east, south, west for 0 to 3): up onto the tile past the far end, down onto the tile before the near end, in the player's column | the 241 map's eleven straight staircases, whose tops all sit where this puts them; not watched on live (inferred) |
+| Spiral stairs (`varrock_spiralstairs` 11789, `_taller` 11790, `_middle_taller` 11792 with its Climb menu, top 11793) and ladders (`fai_varrock_ladder` 11794/11795, `_taller` 11801/11802) work as Lumbridge's | as Lumbridge Castle's stairs and ladders (RSMod) |
+| Furniture: chests (5108/5109), drawers (7194/7195) and posh drawers (7442/7443) open, search empty and shut; crates (5106, 5107, 5110, 5113, 5115), boxes (5111), bookshelves (7170, 7171) and bookcases (7176 to 7181, 7431) search empty | as the castle's furniture (2004Scape's timings); the bookshelves' and bookcases' words from the Wiki |
+| Townsfolk: 37 guards (the six 2022 `fai_varrock_guard02` looks and the captain's, 13 in the city, 2 on the walls, 22 in the palace), men and women (Varrock's own `varrock_man1`/`varrock_woman1` talk, fight and drop as any man or woman), imps, rats and the five stray dogs | OSRS Wiki, Guard (counts) and Stray dog (three grey, two brown); tiles from mejrs's live NPC list (recorded before November 2022, when the guards still showed as 3010/3011), so which guard look stands where and every wander range are guessed |
+| A stray dog's Shoo-away whines (`stray_dog.whine`, sound 911) and Pet barks (`stray_dog.woof`, sound 652) | OSRS Wiki, Stray dog |
+
+Left out from step 1: the guards' Attack and Pickpocket (their stats, drops and the seed table come with the city's
+fighters, step 12; Thieving with step 13), the player's own overhead lines when shooing or petting a dog, the dog
+following the player after Pet or after being fed and running off when shooed, the trainee guards and their captain
+(the palace, step 6), the staircases down to basements and the sewers (`fai_varrock_bank_stairs`, `fai_varrock_ladder_deep`,
+the sewers' step 15), and the Phoenix and Black Arm gangs' doors. The furniture's and dogs' words are in the dialogue
+file (`varrock_search.*`, `stray_dog.*`).
+
+Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
+both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `HeadlessVarrockTest`
+does the stairs, the ladder and the drawers through the headless client, `VarrockTest` the stairs' rule each way round,
+`GatesTest` the Grand Exchange's fence gate and `NpcSpawnFileTest` the counts.
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and
