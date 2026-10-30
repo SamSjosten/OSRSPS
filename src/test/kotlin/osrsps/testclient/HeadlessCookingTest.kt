@@ -37,12 +37,13 @@ class HeadlessCookingTest {
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(7),
             locTypes = LocTypes(
-                listOf(loc(Cooking.RANGE, "Range", cook), loc(Cooking.LUMBRIDGE_RANGE, "Cooking range", cook), loc(Firemaking.FIRE, "Fire", none))
+                listOf(loc(Cooking.RANGE, "Range", cook), loc(Cooking.LUMBRIDGE_RANGE, "Cooking range", cook), loc(Firemaking.FIRE, "Fire", none), loc(Cooking.DRAYNOR_FIRE, "Fire", cook))
                     .associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(Cooking.RANGE, LocShape.CENTREPIECE_STRAIGHT, 0, RANGE_X, RANGE_Z, 0))
                 add(ZoneLoc(Firemaking.FIRE, LocShape.CENTREPIECE_STRAIGHT, 0, FIRE_X, FIRE_Z, 0))
+                add(ZoneLoc(Cooking.DRAYNOR_FIRE, LocShape.CENTREPIECE_STRAIGHT, 0, DRAYNOR_X, DRAYNOR_Z, 0))
             },
             cycleMillis = millis,
         )
@@ -173,7 +174,27 @@ class HeadlessCookingTest {
         }
     }
 
+    @Test
+    fun `Cook on Draynor's permanent fire asks which food, as a range does, and cooks it over the fire`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel cooking 99")
+                client.give(Cooking.SHRIMPS.raw, 1)
+                client.give(Cooking.SARDINE.raw, 1)
+                client.locOp(Cooking.DRAYNOR_FIRE, DRAYNOR_X, DRAYNOR_Z, 1)
+                val setup = client.await("the Make-X box") { client.clientScripts().firstOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } }
+                assertTrue(Cooking.SHRIMPS.raw in setup.args && Cooking.SARDINE.raw in setup.args, "both foods: ${setup.args}")
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.await("a cooked shrimp", timeoutMillis = 30_000) { if (client.count(Cooking.SHRIMPS.cooked) == 1) Unit else null }
+                assertEquals(1, client.count(Cooking.SARDINE.raw))
+            }
+        }
+    }
+
     private companion object {
+        const val DRAYNOR_X = 3216
+        const val DRAYNOR_Z = 3222
         const val RANGE_X = 3224
         const val RANGE_Z = 3218
         const val FIRE_X = 3220
