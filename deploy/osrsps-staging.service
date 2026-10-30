@@ -1,0 +1,14 @@
+# Runs deploy/staging.sh auto once; started every minute by osrsps-staging.timer. Log: journalctl -u osrsps-staging
+# (quiet while there is nothing to do: auto says nothing then).
+[Unit]
+Description=Keep the OSRSPS staging server on origin's staging branch
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+User=sam
+WorkingDirectory=/srv/rsps/OSRSPS
+ExecStart=/srv/rsps/OSRSPS/deploy/staging.sh auto
+# An up waits up to 15 minutes for a live deploy's build, then fetches a cache if the commit asks for one and builds.
+TimeoutStartSec=45min
