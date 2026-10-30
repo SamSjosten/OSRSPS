@@ -22,12 +22,14 @@ on:
       - .github/workflows/pin-health.yml
 permissions:
   contents: read
-  issues: write
 concurrency:
   group: pin-health-${{ github.event.pull_request.number || 'scheduled' }}
   cancel-in-progress: false
 jobs:
   pin-health:
+    permissions:
+      contents: read
+      issues: write
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -36,7 +38,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
       - id: check
         # On a pull request the failing step fails the check; on a schedule the alert step below reports it. bash
         # for pipefail, so tee can't hide the check's exit code (the unnamed shell has no pipefail); its own time

@@ -77,10 +77,45 @@ or turn it off.
   the first half goes again, down to a single pull request, which goes the one-at-a-time way so its own checks show
   the failure. The batch branch is the queue's own: never push to it.
 
+- **Merging itself**: with no merge rules on `main` (a private repository without GitHub Pro has none, and GitHub then
+  enforces no checks and offers no auto-merge), the queue enforces them: it takes pull requests with the `automerge`
+  label as well as those with auto-merge on, and merges one that is up to date with `main`, whose `build` passed, with
+  every other check done and none failing, and a passing `codex-review`, with a merge commit. It moves `main` only as a
+  fast-forward from the `main` it checked, so two queue runs can't merge two pull requests that were each up to date
+  only with the old `main`; a green batch becomes `main` the same way. A merge made with the workflow's token starts no
+  workflows, so the queue starts `build`, `mergeable` and itself on `main` afterwards. Then a thread labels its pull
+  request `automerge` when it opens it, instead of turning auto-merge on.
+
 So a thread pulls its branch (`git pull`) before pushing, as the queue may have pushed a merge of `main` (or a whole
 batch) to it. A pull request that merged as part of a batch shows as merged with the batch's last pull request. A
 failing check or a Codex finding takes a pull request out of the queue until it is fixed. To run the queue now:
 Actions, **automerge**, **Run workflow**.
+
+## Where CI runs
+
+The server's Linux jobs (`build.yml` but the launcher's jobs, `probe.yml`, and once private `automerge.yml` and
+`mergeable.yml`) can run on the self-hosted runner VM on pve (`ci-runner`, VM 218, Ubuntu 24.04, labels `self-hosted`
+and `linux`, internet only), as a private repository's 2,000 hosted minutes a month last a few days here:
+
+- **Public repository**: pull requests, and every `pull_request_target` workflow, run on GitHub's `ubuntu-latest`,
+  so no fork's code reaches the VM. Main's own code (a push to `main`, a dispatch or schedule on `main`) runs on the VM
+  only with the repository variable `RUNNER` set to `self-hosted` (Settings, Secrets and variables, Actions,
+  Variables).
+- **Private repository**: all of them run on the VM. Keep `RUNNER` set then too: a scheduled run's event may not say
+  the repository is private.
+
+The launcher's jobs stay on GitHub's runners and leave with the launcher. The jobs on the VM get only the workflow's
+own token, with each workflow reading by default and writing only in the jobs that need it; no other secrets. The VM
+is persistent, so a job checks out cleanly (`actions/checkout`'s default) and relies on nothing an earlier job left,
+Gradle's caches aside.
+
+A pull request that changes `.github/workflows/` needs Sam's review (CODEOWNERS): without merge rules the queue
+leaves such a pull request for Sam to merge by hand.
+
+The VM needs, besides the runner service: `git`, `curl`, `unzip`, Node.js 20 or newer (`node` on the path: the
+script checks call it directly) and PowerShell 7 (`pwsh`, for `launch-scripts`). Java 21 comes from `setup-java`
+and Gradle 9.8.1 from the wrapper. No Docker: the deploy scripts' tests use a stand-in. Two runner instances on it let
+two jobs run at once; more Gradle jobs than that make the tick-timing tests flaky.
 
 ## The staging server
 
