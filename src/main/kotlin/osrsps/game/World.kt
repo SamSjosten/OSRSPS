@@ -61,6 +61,7 @@ import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.Deaths
+import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.MagicCombat
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MultiCombat
@@ -1028,7 +1029,14 @@ class World(
         for (player in players) {
             if (player == null) continue
             perPlayer(player, "updates") {
-                if (player.equipment.hasChanges) specialAttacks.weaponChanged(player, combat.weapon(player))
+                if (player.equipment.hasChanges) {
+                    val weapon = combat.weapon(player)
+                    if ((weapon?.id ?: -1) != player.weaponId) {
+                        player.weaponId = weapon?.id ?: -1
+                        player.weaponSince = tick
+                    }
+                    specialAttacks.weaponChanged(player, weapon)
+                }
                 equipmentTab.updateVars(player)
                 bankScreen.updateVars(player)
                 depositBox.updateVars(player)
@@ -1659,7 +1667,17 @@ class World(
             specialAttacks.toggle(player, combat.weapon(player))
             return@act
         }
-        if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
+        if (interfaceId == EquipmentTab.COMBAT) {
+            val wasBlock = combat.bulwarkBlock(player)
+            if (equipmentTab.clickCombatTab(player, componentId)) {
+                // Off the bulwark's Block, the next attack waits 8 ticks, whatever weapon makes it (OSRS Wiki, Dinh's bulwark).
+                if (wasBlock && !combat.bulwarkBlock(player)) {
+                    player.attackLockedUntil = tick + DinhsBulwark.BLOCK_DELAY
+                    player.nextAttackTick = maxOf(player.nextAttackTick, player.attackLockedUntil)
+                }
+                return@act
+            }
+        }
         if (interfaceId == EquipmentTab.AUTOCAST && equipmentTab.clickAutocastMenu(player, componentId, sub)) return@act
         if (interfaceId == Prayers.PRAYERBOOK && prayers.click(player, componentId, op)) return@act
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
