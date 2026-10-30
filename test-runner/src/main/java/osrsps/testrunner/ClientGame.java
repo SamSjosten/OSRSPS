@@ -96,6 +96,10 @@ final class ClientGame implements Game
 		InterfaceID.Wornitems.SLOT4, InterfaceID.Wornitems.SLOT5, 0, InterfaceID.Wornitems.SLOT7, 0,
 		InterfaceID.Wornitems.SLOT9, InterfaceID.Wornitems.SLOT10, 0, InterfaceID.Wornitems.SLOT12, InterfaceID.Wornitems.SLOT13,
 	};
+	/** The level-up box (levelup) and its components, as our server's LevelUps sends them. */
+	private static final int LEVEL_UP_TITLE = 233 << 16 | 1;
+	private static final int LEVEL_UP_TEXT = 233 << 16 | 2;
+	private static final int LEVEL_UP_CONTINUE = 233 << 16 | 3;
 	/** How far, in pixels, the mouse may be from a walk's spot: the spot drifts while the camera eases. */
 	private static final int MOUSE_SLACK = 2;
 
@@ -1106,6 +1110,13 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public Dialogue levelUp()
+	{
+		Widget text = visible(LEVEL_UP_TEXT);
+		return text == null ? null : new Dialogue(Dialogue.Kind.LEVEL_UP, widgetText(LEVEL_UP_TITLE), Dialogue.clean(text.getText()), null);
+	}
+
+	@Override
 	public String continueDialogue()
 	{
 		int component;
@@ -1132,6 +1143,10 @@ final class ClientGame implements Game
 		{
 			// Two items beside the text: its continue is a pausebutton of its own, as our server's Chatbox.OBJECTBOX_DOUBLE.
 			component = InterfaceID.ObjectboxDouble.PAUSEBUTTON;
+		}
+		else if (visible(LEVEL_UP_TEXT) != null)
+		{
+			component = LEVEL_UP_CONTINUE;
 		}
 		else
 		{

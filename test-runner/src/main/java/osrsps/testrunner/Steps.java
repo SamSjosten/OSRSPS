@@ -851,7 +851,17 @@ final class Steps
 		}
 	}
 
-	/** Waits for a dialogue with a continue button, clicks it, then waits until that dialogue has gone. */
+	/**
+	 * The dialogue open in the chatbox, or else (0.17.0) the level-up box: XP from a step (a special attack's hit) can
+	 * open one over the chatbox, and finishDialogue left it there, holding up the steps after it (the raid's scripts).
+	 */
+	static Dialogue chatbox(Run run)
+	{
+		Dialogue d = run.game.dialogue();
+		return d != null ? d : run.game.levelUp();
+	}
+
+	/** Waits for a dialogue with a continue button, or (0.17.0) the level-up box, clicks it, then waits until it has gone. */
 	static final class ContinueDialogue extends Step
 	{
 		private String clicked;
@@ -864,7 +874,7 @@ final class Steps
 		@Override
 		Poll poll(Run run)
 		{
-			Dialogue d = run.game.dialogue();
+			Dialogue d = chatbox(run);
 			if (clicked == null)
 			{
 				if (d == null || d.kind == Dialogue.Kind.OPTIONS)
@@ -915,7 +925,7 @@ final class Steps
 		@Override
 		Poll poll(Run run)
 		{
-			Dialogue d = run.game.dialogue();
+			Dialogue d = chatbox(run);
 			if (clicked != null && d != null && d.toString().equals(clicked) && run.gameTicks() - clickedTick < SAME_PAGE_TICKS)
 			{
 				return Poll.waiting("clicked, " + clicked + " still open");

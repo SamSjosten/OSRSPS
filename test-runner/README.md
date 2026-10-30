@@ -326,10 +326,10 @@ server's answer instead of failing on what was there before.
 | `takeItem` | `item` (name) or `itemId`, `x`+`y` | Clicks Take on the nearest such item on the ground on the player's plane, retrying until one is in the scene. With `x` and `y`, only an item on that tile. Take is the third ground option, as the server has it. Doesn't wait for the result: follow it with `assertInventory`. |
 | `assertInventory` | `item` (name) or `itemId`, `count` | Waits until the inventory holds exactly `count` of the item (all stacks added up), or any at all without `count`. `count` 0 waits until there are none. |
 | `assertDialogue` | `contains`, `speaker` | Waits until an open dialogue's text contains `contains` and its name is `speaker` (both optional). Colour tags and line breaks are removed first. |
-| `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. |
+| `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. (0.17.0) The level-up box counts too. |
 | `chooseOption` | `text` | Waits for an option menu, clicks the option equal to `text` (else the first containing it), and waits until the menu has gone. |
 | `assertNoDialogue` | | Waits until no dialogue is open. |
-| `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. |
+| `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. (0.17.0) Clicks a level-up box away too; `assertDialogue` and `assertNoDialogue` still ignore it. |
 | `assertMessage` | `contains` | Waits for a chat message containing `contains`, counting only messages since the last step that acted. |
 | `waitTicks` | `ticks` | Waits that many game ticks. |
 | `assertHitsplat` | `npc` (name) or `self: true`, `amount` | Waits for a hitsplat on the NPC of that name (the one the player is fighting or talking to, else the nearest; several castle NPCs are a `Man`), or on the player, counting only hitsplats since the last step that acted. With `amount`, one showing exactly that; a miss shows 0. |

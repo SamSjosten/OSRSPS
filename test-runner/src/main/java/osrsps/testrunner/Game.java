@@ -96,7 +96,13 @@ interface Game
 	/** The dialogue open in the chatbox, or null when none is. */
 	Dialogue dialogue();
 
-	/** Clicks "Click here to continue" on the open dialogue. */
+	/**
+	 * (0.17.0) The level-up box (levelup, interface 233) when it is open, or null. Kept apart from {@link #dialogue}, so
+	 * assertDialogue and assertNoDialogue see what they always did; continueDialogue and finishDialogue click it.
+	 */
+	Dialogue levelUp();
+
+	/** Clicks "Click here to continue" on the open dialogue, or (0.17.0) the level-up box. */
 	String continueDialogue();
 
 	/** Clicks an option of the open option menu, by the slot {@link Dialogue#options} gives. */

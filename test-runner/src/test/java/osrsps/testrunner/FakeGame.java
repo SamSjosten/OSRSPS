@@ -20,6 +20,8 @@ class FakeGame implements Game
 	/** Where the client draws the player; null for the tile in {@link #location}. */
 	Tile drawn;
 	Dialogue dialogue;
+	/** What levelUp answers. */
+	Dialogue levelUp;
 	final List<String> actions = new ArrayList<>();
 	/** When set, npcOption fails with this until cleared. */
 	String npcError;
@@ -237,6 +239,12 @@ class FakeGame implements Game
 	public Dialogue dialogue()
 	{
 		return dialogue;
+	}
+
+	@Override
+	public Dialogue levelUp()
+	{
+		return levelUp;
 	}
 
 	@Override
