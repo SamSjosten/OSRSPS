@@ -33,7 +33,7 @@ class NpcPoisonTest {
         """{ "npcs": [
             ${entry("man")},
             ${entry("cow", """"immune": ["poison", "venom"],""")},
-            ${entry("chicken", """"immune": ["venom"],""")},
+            ${entry("chicken", """"immune": ["poison", "venom"],""")},
             ${entry("poison_spider", """"poison": 6,""")}
         ] }""",
         types, SeqNames.NONE,
@@ -62,7 +62,7 @@ class NpcPoisonTest {
         assertEquals(30, npcCombat[spider]!!.poison)
         assertEquals(0, npcCombat[man]!!.poison)
         assertTrue(npcCombat[cow]!!.poisonImmune && npcCombat[cow]!!.venomImmune)
-        assertTrue(!npcCombat[chicken]!!.poisonImmune && npcCombat[chicken]!!.venomImmune)
+        assertTrue(npcCombat[chicken]!!.poisonImmune && npcCombat[chicken]!!.venomImmune)
     }
 
     @Test
@@ -108,10 +108,10 @@ class NpcPoisonTest {
     }
 
     @Test
-    fun `cows can't be poisoned or envenomed, and chickens can't be envenomed`() {
+    fun `cows and chickens can't be poisoned or envenomed`() {
         assertFalse(poison.poison(npc(cow), 20))
         assertFalse(poison.envenom(npc(cow)))
-        assertTrue(poison.poison(npc(chicken), 20))
+        assertFalse(poison.poison(npc(chicken), 20))
         assertFalse(poison.envenom(npc(chicken)))
     }
 

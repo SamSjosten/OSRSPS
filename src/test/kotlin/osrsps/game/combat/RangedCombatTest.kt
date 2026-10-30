@@ -486,6 +486,20 @@ class RangedCombatTest {
     }
 
     @Test
+    fun `a Venator shot's bounces poison as its first impact does`() {
+        alice.god = true
+        alice.sureHits = true
+        wield(alice, venator, poisonedArrow, 1000)
+        val first = spawn(type = dummy, x = 3214)
+        val second = spawn(type = dummy, x = 3214, z = 3212)
+        multi.set(0, 3214, 3210, true)
+        attack(alice, first)
+        repeat(400) { tick() }
+        assertTrue(poisonedNpcs.any { it.first === second }, "a bounce poisoned the second dummy: $poisonedNpcs")
+        assertTrue(poisonedNpcs.all { it.second == 16 })
+    }
+
+    @Test
     fun `a Venator shot in the air bounces with what it was fired with`() {
         alice.god = true
         wield(alice, venator, steelArrow, 100)

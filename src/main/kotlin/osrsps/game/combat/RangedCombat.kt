@@ -305,7 +305,7 @@ class RangedCombat(
         val rolled = if (CombatMath.rollHits(random, shot.attackRoll, defenceRoll) || shot.player.sureHits) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0
         val damage = reserve(shot.player, next, style, rolled)
         if (shot.travel >= 0) projectile(bounceFlight(from, next, shot.travel))
-        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel)
+        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel, poison = shot.poison, venom = shot.venom)
     }
 
     /**
