@@ -72,9 +72,9 @@ class TradeJournalTest {
         assertEquals(id, PlayerSave.lastTradeIn(store.saves.getValue("alice")))
         assertEquals(id, PlayerSave.lastTradeIn(store.saves.getValue("bob")))
         assertNull(store.journal)
-        // The next trade's id sorts after this one's.
+        // Every trade has its own id.
         assertTrue(world.commitTrade(alice, bob, apply = {}))
-        assertTrue(alice.lastTrade!! > id)
+        assertTrue(alice.lastTrade != id)
     }
 
     @Test
@@ -136,22 +136,26 @@ class TradeJournalTest {
     }
 
     @Test
-    fun `a journal that can't be read stops trades`() {
+    fun `a journal that turns up unreadable while running stops trades`() {
         val store = MemorySaveStore()
+        val world = world(store)
         store.writeJournal("half a jour")
-        assertFalse(world(store).commitTrade(player("alice"), player("bob"), apply = {}))
+        assertFalse(world.commitTrade(player("alice"), player("bob"), apply = {}))
         assertEquals("half a jour", store.journal)
     }
 
     @Test
-    fun `a journal never rolls back a save that already has that trade or a later one`() {
+    fun `a journal never rolls back a save that already records its trade, and finishes an older one`() {
         val store = MemorySaveStore()
-        val alice = player("alice").apply { lastTrade = "0000000000002-000000001" }
+        // Alice's save records the trade and has moved on since (an autosave after it): it stays.
+        val alice = player("alice").apply { lastTrade = "trade-2"; runEnergy = 1234 }
         val newer = PlayerSave.of(alice).toJson("alice")
         store.write("alice", newer)
-        val old = PlayerSave.of(player("alice").apply { lastTrade = "0000000000001-000000001" }).toJson("alice")
-        val bobsSave = PlayerSave.of(player("bob").apply { lastTrade = "0000000000001-000000001" }).toJson("bob")
-        store.writeJournal(TradeJournal("0000000000001-000000001", mapOf("alice" to old, "bob" to bobsSave)).toJson())
+        // Bob's names the trade before: the crash came before his save, so the journal's is written.
+        store.write("bob", PlayerSave.of(player("bob").apply { lastTrade = "trade-1" }).toJson("bob"))
+        val old = PlayerSave.of(player("alice").apply { lastTrade = "trade-2" }).toJson("alice")
+        val bobsSave = PlayerSave.of(player("bob").apply { lastTrade = "trade-2" }).toJson("bob")
+        store.writeJournal(TradeJournal("trade-2", mapOf("alice" to old, "bob" to bobsSave)).toJson())
         world(store)
         assertEquals(newer, store.saves["alice"])
         assertEquals(bobsSave, store.saves["bob"])
@@ -159,10 +163,10 @@ class TradeJournalTest {
     }
 
     @Test
-    fun `a journal that can't be read is left for a look`() {
+    fun `a journal that can't be read stops the server starting, and is left for a look`() {
         val store = MemorySaveStore()
         store.writeJournal("half a jour")
-        world(store)
+        assertFailsWith<IllegalStateException> { world(store) }
         assertEquals("half a jour", store.journal)
     }
 

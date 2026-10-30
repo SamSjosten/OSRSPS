@@ -1254,11 +1254,10 @@ class World(
     }
 
     /**
-     * Gives each completed trade an id no other trade, before or after a restart, has, and that sorts after every
-     * earlier one (the start time, then a count, both zero-padded); see [TradeJournal].
+     * Gives each completed trade an id no other trade, before or after a restart, has: a random UUID, so a clock that
+     * moves backward can't repeat one. Ids are only ever compared for equality; see [TradeJournal].
      */
-    private val tradeIds = "%013d-".format(System.currentTimeMillis())
-    private var tradeCount = 0
+    private fun newTradeId(): String = java.util.UUID.randomUUID().toString()
 
     /**
      * Completes a trade: [apply] swaps the offers between [a] and [b] in memory, and then both new saves go out through
@@ -1271,7 +1270,7 @@ class World(
             logger.error { "Trade between ${a.username} and ${b.username} refused: an earlier trade's journal is unresolved" }
             return false
         }
-        val id = tradeIds + "%09d".format(++tradeCount)
+        val id = newTradeId()
         val lastA = a.lastTrade
         val lastB = b.lastTrade
         apply()
@@ -1306,7 +1305,7 @@ class World(
     /**
      * Whether no earlier trade's journal is left unfinished, so a new one can be written over it. A journal stays when
      * one of its saves couldn't be written; this writes such a save again (from memory) and clears the journal once
-     * every save it names records that trade or a later one. A journal that can't be read or finished stops trades.
+     * every save it names records that trade. A journal that can't be read or finished stops trades.
      */
     private fun journalResolved(): Boolean {
         try {
@@ -1320,7 +1319,7 @@ class World(
             for (key in journal.saves.keys) {
                 unwritten[key]?.let { write(key, it) }
                 val last = saves.read(key)?.let(PlayerSave::lastTradeIn)
-                if (last == null || last < journal.id) return false
+                if (last != journal.id) return false
             }
             saves.clearJournal()
             return true
@@ -1331,26 +1330,25 @@ class World(
     }
 
     /**
-     * A journal left by a crash mid-trade: writes its saves, except over a save that already records that trade (or a
-     * later one, which a newer save than the journal's would). See [TradeJournal].
+     * A journal left by a crash mid-trade: writes its saves, except over a save that already records that trade (one
+     * written since, by the trade or an autosave after it; no other trade can come after an unfinished journal, see
+     * [journalResolved]). A journal that can't be read or replayed stops the server starting, rather than letting both
+     * players in with the trade on one side only. See [TradeJournal].
      */
     private fun replayTradeJournal() {
         val text = try {
             saves.readJournal()
         } catch (e: Exception) {
-            logger.error(e) { "Couldn't read the trade journal" }
-            null
+            throw IllegalStateException("Couldn't read the trade journal; fix or remove it before starting", e)
         } ?: return
         val journal = try {
             TradeJournal.fromJson(text)
         } catch (e: IllegalArgumentException) {
-            logger.error(e) { "The trade journal can't be read; leaving it for a look" }
-            return
+            throw IllegalStateException("The trade journal can't be read; fix or remove it before starting", e)
         }
         for ((key, save) in journal.saves) {
             val current = saves.read(key)
-            val last = current?.let(PlayerSave::lastTradeIn)
-            if (last != null && last >= journal.id) continue
+            if (current?.let(PlayerSave::lastTradeIn) == journal.id) continue
             saves.write(key, save)
             logger.warn { "Trade ${journal.id}: wrote $key's save from the journal" }
         }

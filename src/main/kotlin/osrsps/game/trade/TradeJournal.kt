@@ -14,11 +14,12 @@ import kotlinx.serialization.json.putJsonObject
  * other with theirs still: a dupe. Instead the trade's two new saves go into this journal, forced to the disk, before
  * either save file is written; the journal goes once both are. A server that starts and finds a journal writes its
  * saves again, skipping a player whose save already records the trade (their [osrsps.game.Player.lastTrade] is its
- * [id], or a later one: ids sort in time order), so a journal that couldn't be cleared never rolls anyone back. A crash before the journal is
- * written loses the trade whole: both players keep what they had.
+ * [id]), so a journal that couldn't be cleared never rolls anyone back. No new trade is journaled while one is left
+ * unfinished, so a save naming any other trade is older than this one. A crash before the journal is written loses the
+ * trade whole: both players keep what they had.
  */
 class TradeJournal(
-    /** Unique across restarts, so a save's lastTrade names this trade alone. */
+    /** Unique across restarts (a UUID), so a save's lastTrade names this trade alone. */
     val id: String,
     /** Each player's new save, by save key. */
     val saves: Map<String, String>,
