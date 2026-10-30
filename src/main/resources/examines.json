@@ -106,7 +106,11 @@
     {"npc": 5950, "name": "Elly the Camel"},
     {"npc": 5951, "name": "Ollie the Camel"},
     {"npc": 5952, "name": "Cam the Camel"},
-    {"npc": 5954, "name": "Alice the Camel"}
+    {"npc": 5954, "name": "Alice the Camel"},
+    {"npc": 4642, "name": "Shantay"},
+    {"npc": 4643, "name": "Shantay Guard", "also": [4648]},
+    {"npc": 4641, "name": "Irena"},
+    {"npc": 3019, "name": "Spider", "wiki": "Spider page, level 1"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},
@@ -337,9 +341,12 @@
     {"loc": 2383, "name": "Soil"},
     {"loc": 2406, "name": "Door"},
     {"loc": 2409, "name": "Tree"},
+    {"loc": 2692, "name": "Prison door"},
+    {"loc": 2693, "name": "Bank chest"},
     {"loc": 3466, "name": "Hanging meat"},
     {"loc": 3467, "name": "Hanging meat"},
     {"loc": 3500, "name": "Church organ"},
+    {"loc": 4031, "name": "Shantay pass"},
     {"loc": 5539, "name": "Bullrushes"},
     {"loc": 5540, "name": "Bullrushes"},
     {"loc": 5541, "name": "Bullrushes"},
@@ -379,6 +386,7 @@
     {"loc": 9159, "name": "Candles"},
     {"loc": 9160, "name": "Candles"},
     {"loc": 9523, "name": "Bookcase"},
+    {"loc": 9565, "name": "Door", "wiki": "Door (Port Sarim jail) page"},
     {"loc": 10371, "name": "Barrel"},
     {"loc": 10374, "name": "Crates"},
     {"loc": 10375, "name": "Tools"},

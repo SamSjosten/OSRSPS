@@ -31,6 +31,8 @@ class ShopTest {
         1087 to 80, 1081 to 280, 1083 to 1000, 1089 to 1920, 1085 to 2600, 1091 to 6400,
         1623 to 25, 1621 to 50, 1619 to 100, 1617 to 200, 1607 to 250, 1605 to 500, 1603 to 1000, 1601 to 2000,
         1825 to 27, 1833 to 40, 1837 to 20, 4593 to 1, 4591 to 1, 970 to 10, 2138 to 1,
+        // The Shantay Pass Shop.
+        1823 to 30, 1831 to 15, 1937 to 1, 1921 to 4, 1929 to 6, 1835 to 40, 2349 to 8, 314 to 2, 11881 to 200, 1854 to 5, 954 to 18,
     )
 
     /**
@@ -62,6 +64,7 @@ class ShopTest {
             NpcType(2878, "Ranael", internalName = "ranael"),
             NpcType(2874, "Gem trader", internalName = "gem_trader"),
             NpcType(3533, "Ali Morrisane", internalName = "feud_ali_m"),
+            NpcType(4642, "Shantay", internalName = "shantay"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -94,6 +97,7 @@ class ShopTest {
         "ranaels_super_skirt_store" to listOf(80, 280, 1000, 1920, 2600, 6400),
         "gem_trader" to listOf(25, 50, 100, 200, 250, 500, 1000, 2000),
         "alis_discount_wares" to listOf(1, 1, 140, 27, 40, 20, 2, 500, 1, 1, 10, 6, 1, 1, 1),
+        "shantay_pass_shop" to listOf(30, 15, 1, 4, 6, 6, 40, 40, 20, 8, 2, 200, 1, 500, 2, 4, 1, 140, 5, 18),
     )
 
     @Test
@@ -131,7 +135,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(12, shops.warnings.size)
+        assertEquals(13, shops.warnings.size)
     }
 
     @Test
