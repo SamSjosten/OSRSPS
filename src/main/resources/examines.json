@@ -61,7 +61,21 @@
     {"npc": 2004, "name": "Drake", "wiki": "Drake (bird) page, infobox"},
     {"npc": 3029, "name": "Goblin", "also": [3030, 3031, 3032, 3033, 3034, 3035, 3036], "wiki": "Goblin page, infobox, Level 2 (one examine for the eight unarmed goblins)"},
     {"npc": 3017, "name": "Giant spider", "wiki": "Giant spider page, infobox, Level 2"},
-    {"npc": 1326, "name": "Barfy Bill"}
+    {"npc": 1326, "name": "Barfy Bill"},
+    {"npc": 2856, "name": "Giant rat", "also": [2859, 2860, 2861], "wiki": "Giant rat page, infobox, Level 3"},
+    {"npc": 2863, "name": "Giant rat", "also": [2864], "wiki": "Giant rat page, infobox, Level 6"},
+    {"npc": 8702, "name": "Frog"},
+    {"npc": 8701, "name": "Big frog", "wiki": "Big frog page, infobox, Level 10"},
+    {"npc": 8700, "name": "Giant frog", "wiki": "Giant frog page, infobox, Level 13"},
+    {"npc": 3045, "name": "Goblin", "wiki": "Goblin page, infobox, Level 5"},
+    {"npc": 2837, "name": "Unicorn"},
+    {"npc": 238, "name": "Butterfly"},
+    {"npc": 923, "name": "Father Urhney"},
+    {"npc": 1158, "name": "Warrior", "wiki": "Warrior (Lost City) page, infobox"},
+    {"npc": 1157, "name": "Archer", "wiki": "Archer (Lost City) page, infobox"},
+    {"npc": 1159, "name": "Monk", "wiki": "Monk (Lost City) page, infobox"},
+    {"npc": 1160, "name": "Wizard", "wiki": "Wizard (Lost City) page, infobox"},
+    {"npc": 1896, "name": "Candle seller"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},

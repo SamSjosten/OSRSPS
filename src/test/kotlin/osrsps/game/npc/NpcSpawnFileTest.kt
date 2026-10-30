@@ -169,6 +169,36 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn and its talking NPCs, and rats west of the castle`() {
+        val names = mapOf(
+            2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",
+            2864 to "giantrat1_3", 2854 to "rat", 8700 to "giant_frog_nodrops", 8701 to "medium_frog_nodrops", 8702 to "little_frog_nodrops",
+            3045 to "goblin_armed", 2837 to "unicorn", 238 to "butterfly_viceroy", 923 to "father_urhney", 1157 to "archeradventurerpg",
+            1158 to "warrioradventurerpg", 1159 to "monkadventurerpg", 1160 to "wizardadventuterpg", 1896 to "swamp_candle_guy",
+        )
+        val swampTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-swamp.json"), swampTypes, "lumbridge-swamp.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        assertEquals(10, count(2856))
+        assertEquals(13, count(2863, 2864))
+        assertEquals(4, count(2859, 2860, 2861))
+        assertEquals(4, count(2854))
+        assertEquals(listOf(45, 29, 8), listOf(count(8702), count(8701), count(8700)))
+        assertEquals(1, count(3045))
+        assertEquals(1, count(2837))
+        // South of the castle and the church, west of the river, north of the swamp's south coast; all on the ground.
+        assertTrue(spawns.all { it.x in 3130..3260 && it.z in 3140..3214 && it.level == 0 })
+        // Father Urhney in his house, the four adventurers at their camp, the candle seller by the caves.
+        val urhney = spawns.single { it.type.id == 923 }
+        assertTrue(urhney.x in 3144..3149 && urhney.z in 3172..3177 && urhney.restrict == MoveRestrict.INDOORS)
+        assertEquals(4, spawns.count { it.type.id in 1157..1160 && it.x in 3148..3153 && it.z in 3204..3208 })
+        assertEquals(Tile(3170, 3176), spawns.single { it.type.id == 1896 }.let { Tile(it.x, it.z) })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == if (it.type.id == 1896) 2 else 5 })
+    }
+
+    @Test
     fun `every file names only NPCs it can find in a full cache`() {
         // With no types at all every spawn is skipped by name, not dropped silently.
         for (file in NpcSpawnFile.FILES) {

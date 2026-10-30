@@ -170,6 +170,79 @@
       "npcs": ["giantspider1"],
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
       "source": "OSRS Wiki, Giant spider, read 2026-10-30: no bones; the looting bag, Larran's key and slayer's enchantment drop only in the Wilderness or on Krystilia's tasks"
+    },
+    {
+      "npcs": ["giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3"],
+      "always": [{"item": 526, "name": "Bones"}, {"item": 2134, "name": "Raw rat meat"}],
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Giant rat, the Level 3 and 6 table, read 2026-10-30 (the giant rat bone drops only during Rag and Bone Man I, which every account has done; the looting bag only in the Wilderness)"
+    },
+    {
+      "npcs": ["little_frog_nodrops"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}],
+      "source": "OSRS Wiki, Frog (Level 5), read 2026-10-30"
+    },
+    {
+      "npcs": ["medium_frog_nodrops"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/70"}],
+      "source": "OSRS Wiki, Big frog (Level 10), read 2026-10-30 (the big frog leg drops only during Rag and Bone Man I)"
+    },
+    {
+      "npcs": ["giant_frog_nodrops"],
+      "always": [{"item": 532, "name": "Big bones"}],
+      "tertiary": [
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/64"},
+        {"item": 10976, "name": "Long bone", "chance": "1/400"},
+        {"item": 10977, "name": "Curved bone", "chance": "1/5013"}
+      ],
+      "source": "OSRS Wiki, Giant frog (Level 13), read 2026-10-30: the curved bone's 1/5,012.5 rounded to 1/5013, as a tertiary chance is 1/N"
+    },
+    {
+      "npcs": ["goblin_armed"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 1351, "name": "Bronze axe", "weight": 3},
+          {"item": 1321, "name": "Bronze scimitar", "weight": 1},
+          {"item": 1237, "name": "Bronze spear", "weight": 9},
+          {"item": 882, "name": "Bronze arrow", "count": 7, "weight": 3},
+          {"item": 558, "name": "Mind rune", "count": 2, "weight": 3},
+          {"item": 557, "name": "Earth rune", "count": 4, "weight": 3},
+          {"item": 559, "name": "Body rune", "count": 2, "weight": 3},
+          {"item": 825, "name": "Bronze javelin", "count": 5, "weight": 2},
+          {"item": 562, "name": "Chaos rune", "weight": 1},
+          {"item": 561, "name": "Nature rune", "weight": 1},
+          {"table": "herbs", "weight": 2},
+          {"item": 995, "name": "Coins", "count": 8, "weight": 34},
+          {"item": 995, "name": "Coins", "count": 5, "weight": 8},
+          {"item": 995, "name": "Coins", "count": 16, "weight": 7},
+          {"item": 995, "name": "Coins", "count": 24, "weight": 3},
+          {"item": 3012, "name": "Energy potion(2)", "weight": 13},
+          {"item": 288, "name": "Goblin mail", "weight": 10},
+          {"item": 2347, "name": "Hammer", "weight": 9},
+          {"nothing": true, "weight": 8},
+          {"item": 10999, "name": "Goblin book", "weight": 2},
+          {"item": 1987, "name": "Grapes", "weight": 1},
+          {"item": 1007, "name": "Red cape", "weight": 1},
+          {"item": 438, "name": "Tin ore", "weight": 1}
+        ]
+      },
+      "tertiary": [
+        {"item": 13447, "name": "Ensouled goblin head", "chance": "1/30"},
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/80"},
+        {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"},
+        {"item": 6801, "name": "Goblin champion scroll", "chance": "1/5000"}
+      ],
+      "source": "OSRS Wiki, Goblin, drop table 2 (some level 5 goblins), read 2026-10-30; the free-to-play lines (Coins x10, the larger nothing) are out"
+    },
+    {
+      "npcs": ["unicorn"],
+      "always": [{"item": 526, "name": "Bones"}, {"item": 237, "name": "Unicorn horn"}],
+      "tertiary": [{"item": 13465, "name": "Ensouled unicorn head", "chance": "1/35"}],
+      "source": "OSRS Wiki, Unicorn, read 2026-10-30 (the unicorn bone drops only during Rag and Bone Man I)"
     }
   ]
 }
