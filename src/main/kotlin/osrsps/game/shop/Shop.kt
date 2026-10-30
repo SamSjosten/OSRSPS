@@ -68,9 +68,13 @@ class Shop(val type: ShopType) {
             if (held.count == base) continue
             val every = start?.restockTicks ?: NON_STOCK_TICKS
             if (tick % every != 0L) continue
-            set(slot, if (held.count > base) held.count - 1 else held.count + 1)
+            set(slot, if (held.count > base) held.count - step(held.count - base) else held.count + 1)
         }
     }
+
+    /** How far an item [over] its starting count comes down in one step: one, or the shop's share of a large excess. */
+    private fun step(over: Int): Int =
+        if (type.overstockPercent > 0 && over > type.overstockAbove) maxOf(1, over * type.overstockPercent / 100) else 1
 
     private fun set(slot: Int, count: Int) {
         val held = slots[slot]!!
@@ -83,8 +87,12 @@ class Shop(val type: ShopType) {
         version++
     }
 
-    /** What the shop charges for one [obj] of value [cost] while it holds [stock]: at least 1 coin. */
-    fun buyPrice(obj: Int, cost: Int, stock: Int): Int = maxOf(1, price(cost, type.sellAt, type.changePer, stock - type.baseStock(obj)))
+    /**
+     * What the shop charges for one [obj] of value [cost] while it holds [stock]: at least 1 coin, or the item's fixed
+     * price when the shop file gives one (guessed: a fixed price doesn't move with the stock).
+     */
+    fun buyPrice(obj: Int, cost: Int, stock: Int): Int =
+        type.fixedPrice(obj) ?: maxOf(1, price(cost, type.sellAt, type.changePer, stock - type.baseStock(obj)))
 
     /** What the shop pays for one [obj] of value [cost] while it holds [stock]. */
     fun sellPrice(obj: Int, cost: Int, stock: Int): Int = price(cost, type.buyAt, type.changePer, stock - type.baseStock(obj))
