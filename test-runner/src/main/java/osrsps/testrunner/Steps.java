@@ -1555,4 +1555,90 @@ final class Steps
 			return "log out";
 		}
 	}
+
+	/** Adds or deletes a friend once, then passes: assertFriend waits for the server's answer. */
+	static final class FriendChange extends Step
+	{
+		final String name;
+		final boolean add;
+
+		FriendChange(long timeoutMs, String name, boolean add)
+		{
+			super(add ? "addFriend" : "deleteFriend", timeoutMs, false);
+			this.name = name;
+			this.add = add;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			if (run.game.friends() == null)
+			{
+				return Poll.waiting("the friends list hasn't arrived");
+			}
+			run.markAction();
+			String error = add ? run.game.addFriend(name) : run.game.deleteFriend(name);
+			return error == null ? Poll.pass((add ? "added " : "deleted ") + name) : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return (add ? "add friend " : "delete friend ") + name;
+		}
+	}
+
+	/**
+	 * Passes when the friends list shows {@code name} (matched without regard to case, spaces as underscores) on
+	 * {@code world}, 0 for offline; or, with {@code absent}, when the name isn't on it.
+	 */
+	static final class AssertFriend extends Step
+	{
+		final String name;
+		final int world;
+		final boolean absent;
+
+		AssertFriend(long timeoutMs, String name, int world, boolean absent)
+		{
+			super("assertFriend", timeoutMs, false);
+			this.name = name;
+			this.world = world;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			java.util.Map<String, Integer> friends = run.game.friends();
+			if (friends == null)
+			{
+				return Poll.waiting("the friends list hasn't arrived");
+			}
+			Integer seen = null;
+			for (java.util.Map.Entry<String, Integer> e : friends.entrySet())
+			{
+				if (key(e.getKey()).equals(key(name)))
+				{
+					seen = e.getValue();
+				}
+			}
+			String list = "friends " + friends;
+			if (absent)
+			{
+				return seen == null ? Poll.pass(list) : Poll.waiting(list);
+			}
+			return seen != null && seen == world ? Poll.pass(list) : Poll.waiting(list);
+		}
+
+		private static String key(String name)
+		{
+			return name.trim().toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replace('\u00a0', '_');
+		}
+
+		@Override
+		String describe()
+		{
+			return absent ? "assert " + name + " is not a friend" : "assert friend " + name + (world == 0 ? " offline" : " on world " + world);
+		}
+	}
 }

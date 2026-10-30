@@ -1343,4 +1343,45 @@ final class ClientGame implements Game
 		client.menuAction(-1, InterfaceID.Logout.LOGOUT, MenuAction.CC_OP, 1, -1, "Logout", "");
 		return null;
 	}
+
+	@Override
+	public java.util.Map<String, Integer> friends()
+	{
+		net.runelite.api.NameableContainer<net.runelite.api.Friend> container = client.getFriendContainer();
+		if (!loggedIn() || container == null)
+		{
+			return null;
+		}
+		java.util.Map<String, Integer> friends = new java.util.LinkedHashMap<>();
+		for (net.runelite.api.Friend friend : container.getMembers())
+		{
+			if (friend != null && friend.getName() != null)
+			{
+				friends.put(net.runelite.client.util.Text.toJagexName(friend.getName()), friend.getWorld());
+			}
+		}
+		return friends;
+	}
+
+	@Override
+	public String addFriend(String name)
+	{
+		if (!loggedIn())
+		{
+			return "not logged in";
+		}
+		client.addFriend(name);
+		return null;
+	}
+
+	@Override
+	public String deleteFriend(String name)
+	{
+		if (!loggedIn())
+		{
+			return "not logged in";
+		}
+		client.removeFriend(name);
+		return null;
+	}
 }

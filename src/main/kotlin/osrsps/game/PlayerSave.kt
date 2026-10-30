@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArrayBuilder
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
@@ -17,6 +18,7 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import osrsps.game.combat.StatRestore
+import osrsps.game.social.FriendLists
 
 private val logger = KotlinLogging.logger {}
 
@@ -52,6 +54,8 @@ class PlayerSave(
     val boostSegments: BoostSegments = BoostSegments(0, 0),
     /** The chatbox's filters. Like the boost segments, part of the header rather than the state ::reset puts back. */
     val chatFilters: ChatFilters = ChatFilters.DEFAULT,
+    /** The friends list, oldest first. Part of the header too: ::reset doesn't touch it. */
+    val friends: List<String> = emptyList(),
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -77,6 +81,7 @@ class PlayerSave(
         StatRestore.resume(player.statTimers.skillBoost, boostSegments.other, inTick)
         player.statTimers.hitpoints.restart(inTick)
         player.chatFilters = chatFilters
+        player.friends.addAll(friends)
         applyState(player)
     }
 
@@ -143,6 +148,7 @@ class PlayerSave(
                     put("trade", chatFilters.trade)
                 }
             }
+            if (friends.isNotEmpty()) putJsonArray("friends") { for (name in friends) add(name) }
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -196,6 +202,7 @@ class PlayerSave(
                 player.bank.contents().toMap(),
                 BoostSegments(StatRestore.segment(player.statTimers.combatBoost), StatRestore.segment(player.statTimers.skillBoost)),
                 player.chatFilters,
+                player.friends.toList(),
             )
         }
 
@@ -229,10 +236,14 @@ class PlayerSave(
                     }
                     ChatFilters(public, private, trade)
                 } ?: ChatFilters.DEFAULT
+                // Optional: saves from before the friends list, and saves with an empty one, have none.
+                val friends = root["friends"]?.jsonArray.orEmpty().map { it.jsonPrimitive.content }
+                require(friends.size <= FriendLists.MAX_FRIENDS) { "${friends.size} friends is more than ${FriendLists.MAX_FRIENDS}" }
                 val state = readState(root, scenario, beforeScenario)
                 return PlayerSave(
                     state.x, state.z, state.level, state.runEnergy, state.varps, state.skills, state.inventory, state.equipment,
                     scenario, beforeScenario, createdAt, playedTicks, state.charges, state.bank, boostSegments, chatFilters,
+                    friends,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -279,6 +290,13 @@ class PlayerSave(
                 charges[name] = count
             }
             return PlayerSave(x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank)
+        }
+
+        /** The username a save was written for, or null if [text] isn't a save that names one. */
+        fun usernameIn(text: String): String? = try {
+            Json.parseToJsonElement(text).jsonObject["username"]?.jsonPrimitive?.contentOrNull
+        } catch (_: Exception) {
+            null
         }
 
         private fun JsonObject.int(key: String): Int = getValue(key).jsonPrimitive.int

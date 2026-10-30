@@ -874,4 +874,38 @@ public class RunnerTest
 		assertEquals("stands in 2561", r.steps.get(0).detail);
 		assertEquals("logged out", r.steps.get(1).detail);
 	}
+
+	@Test
+	public void friends() throws Exception
+	{
+		runner.start(script("{\"step\":\"addFriend\",\"name\":\"test2\"},"
+			+ "{\"step\":\"assertFriend\",\"name\":\"Test2\",\"world\":301},"
+			+ "{\"step\":\"deleteFriend\",\"name\":\"test2\"},"
+			+ "{\"step\":\"assertFriend\",\"name\":\"test2\",\"absent\":true}"), "file");
+		game.friends = null;
+		assertNull(cycle());
+		assertEquals(List.of(), game.actions);
+		game.friends = new java.util.LinkedHashMap<>();
+		assertNull(cycle());
+		assertEquals(List.of("addFriend test2"), game.actions);
+		// Offline until the server says otherwise.
+		assertNull(cycle());
+		game.friends.put("test2", 301);
+		Result r = null;
+		for (int i = 0; i < 5 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("addFriend test2", "deleteFriend test2"), game.actions);
+		assertEquals("friends {test2=301}", r.steps.get(1).detail);
+		assertEquals("assert friend Test2 on world 301", r.steps.get(1).description);
+	}
+
+	@Test
+	public void assertFriendNeedsAWorld()
+	{
+		Script.Invalid e = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"assertFriend\",\"name\":\"a\"}"));
+		assertTrue(e.getMessage(), e.getMessage().contains("world"));
+	}
 }

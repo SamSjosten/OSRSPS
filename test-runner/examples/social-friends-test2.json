@@ -1,0 +1,19 @@
+{
+ "name": "Friends list, two players (run with social-friends-test.json on the other VM at the same time): test2 adds test, sees test online on world 301, then logs out so test sees test2 go offline, and back in",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::clearfriends", "expectMessage": "Friends list emptied"},
+  {"step": "logout", "comment": "so the Friends tab starts empty"},
+  {"step": "waitForLogin", "comment": "auto login"},
+  {"step": "addFriend", "name": "test"},
+  {"step": "assertFriend", "name": "test", "world": 301, "timeoutMs": 180000, "comment": "waits for test on the other VM"},
+  {"step": "waitTicks", "ticks": 10, "comment": "so test has seen test2 online"},
+  {"step": "logout"},
+  {"step": "waitForLogin", "comment": "auto login, after at least 3 s logged out"},
+  {"step": "assertFriend", "name": "test", "world": 301, "comment": "the list came back from the save, test still on"},
+  {"step": "waitTicks", "ticks": 10},
+  {"step": "deleteFriend", "name": "test"},
+  {"step": "command", "text": "::friends", "expectMessage": "Your friends list is empty"}
+ ]
+}

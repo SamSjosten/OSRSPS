@@ -169,6 +169,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   again: attack priority, the combat and prayer tab keys (a key taken from the tab that had it), login/logout
   notifications and quest list sort; and the master and music sliders (a mouse click in the middle of each one's
   clickzone, a settings_content child, 53%); then close, relog and check every one.
+- `social-friends-test.json` and `social-friends-test2.json` (need 0.12.0): two players at once, `test` on one VM
+  and `test2` on the other, started together. Each empties its friends list (`::clearfriends`), logs out and in, and
+  adds the other; `test` sees `test2` come online on world 301, go offline at `test2`'s logout and come back. Run alone,
+  each waits up to 3 minutes for the other and then fails.
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
   number prompt with `enterAmount`, public chat's colour picked in the colour picker and saved, then a cancelled pick,
   and the public chat filter set to friends; then close, relog and check every one, the filter by its label.
@@ -278,6 +282,8 @@ server's answer instead of failing on what was there before.
 | `groundItemOption` | `item` (name) or `itemId`, `op`, `option`, `x`+`y` | (0.10.0) Clicks ground op `op` (1 to 5; Take is 3, logs' Light is 4) on the nearest such item on the ground, as `takeItem` does Take; `option` is the menu text. RuneLite doesn't give an item's ground options, so the script names the op. |
 | `useItemOnItem` | `item` (name) or `itemId`, `onItem` or `onItemId` | (0.10.0) Clicks Use on the first such item in the inventory, then the first other slot holding the second item, as the server reads it (IF_BUTTONT). Retries until both are there; doesn't wait for the result. |
 | `enterAmount` | `amount` | (0.11.0) Waits for the chatbox's number prompt (meslayer mode 7, as after Withdraw-X or a settings number), puts the amount in it and presses Enter, then waits until the prompt has closed. |
+| `addFriend`, `deleteFriend` | `name` | (0.12.0) Adds the name to the friends list, as the Friends tab's Add Friend box does, or deletes it, as Delete on a friend does; once the list has arrived. Doesn't wait for the server; follow it with `assertFriend`. |
+| `assertFriend` | `name`, `world` or `absent` | (0.12.0) Waits until the friends list shows the name (case and spaces against underscores don't matter) on world `world`, 0 for offline; or, with `absent: true`, until the name isn't on it. The result lists the whole list. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)

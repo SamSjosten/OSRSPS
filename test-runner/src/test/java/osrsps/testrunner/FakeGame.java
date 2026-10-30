@@ -403,4 +403,35 @@ class FakeGame implements Game
 		actions.add("cast " + interfaceId + ":" + component + " on " + (npc != null ? npc : "npc " + npcId));
 		return castError;
 	}
+
+	/** The friends list, world by name; null for not loaded. addFriend puts a friend in offline. */
+	java.util.Map<String, Integer> friends = new java.util.LinkedHashMap<>();
+
+	@Override
+	public java.util.Map<String, Integer> friends()
+	{
+		return friends == null ? null : new java.util.LinkedHashMap<>(friends);
+	}
+
+	@Override
+	public String addFriend(String name)
+	{
+		actions.add("addFriend " + name);
+		if (friends != null)
+		{
+			friends.putIfAbsent(name, 0);
+		}
+		return null;
+	}
+
+	@Override
+	public String deleteFriend(String name)
+	{
+		actions.add("deleteFriend " + name);
+		if (friends != null)
+		{
+			friends.remove(name);
+		}
+		return null;
+	}
 }
