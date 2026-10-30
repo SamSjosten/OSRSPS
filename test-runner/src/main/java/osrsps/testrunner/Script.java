@@ -668,7 +668,7 @@ final class Script
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
 				String name = f.requiredString("name");
 				f.rejectUnknown("step", "timeoutMs", "name", "comment");
-				return new Steps.FriendChange(timeout, name, type.equals("addFriend"));
+				return type.equals("addFriend") ? Steps.PromptEntry.addFriend(timeout, name) : Steps.PromptEntry.deleteFriend(timeout, name);
 			}
 			case "assertFriend":
 			{

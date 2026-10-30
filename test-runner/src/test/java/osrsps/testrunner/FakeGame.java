@@ -404,7 +404,7 @@ class FakeGame implements Game
 		return castError;
 	}
 
-	/** The friends list, world by name; null for not loaded. addFriend puts a friend in offline. */
+	/** The friends list, world by name; null for not loaded. */
 	java.util.Map<String, Integer> friends = new java.util.LinkedHashMap<>();
 
 	@Override
@@ -414,24 +414,10 @@ class FakeGame implements Game
 	}
 
 	@Override
-	public String addFriend(String name)
+	public String enterText(String text)
 	{
-		actions.add("addFriend " + name);
-		if (friends != null)
-		{
-			friends.putIfAbsent(name, 0);
-		}
-		return null;
-	}
-
-	@Override
-	public String deleteFriend(String name)
-	{
-		actions.add("deleteFriend " + name);
-		if (friends != null)
-		{
-			friends.remove(name);
-		}
+		actions.add("text " + text);
+		promptMode = 0;
 		return null;
 	}
 }

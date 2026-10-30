@@ -1364,24 +1364,16 @@ final class ClientGame implements Game
 	}
 
 	@Override
-	public String addFriend(String name)
+	public String enterText(String text)
 	{
-		if (!loggedIn())
+		Canvas canvas = client.getCanvas();
+		if (canvas == null)
 		{
-			return "not logged in";
+			return "the client has no canvas";
 		}
-		client.addFriend(name);
-		return null;
-	}
-
-	@Override
-	public String deleteFriend(String name)
-	{
-		if (!loggedIn())
-		{
-			return "not logged in";
-		}
-		client.removeFriend(name);
+		// As enterAmount: meslayer_enter reads this varc and acts on the prompt's mode (friend_add for mode 2).
+		client.setVarcStrValue(VarClientID.MESLAYERINPUT, text);
+		pressEnter(canvas);
 		return null;
 	}
 }

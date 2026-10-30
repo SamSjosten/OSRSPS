@@ -887,17 +887,28 @@ public class RunnerTest
 		assertEquals(List.of(), game.actions);
 		game.friends = new java.util.LinkedHashMap<>();
 		assertNull(cycle());
-		assertEquals(List.of("addFriend test2"), game.actions);
-		// Offline until the server says otherwise.
+		// The Add Friend button, then the name once its prompt (mode 2) shows.
+		assertEquals(List.of("click 429:14 op 1"), game.actions);
+		assertNull(cycle());
+		assertEquals(List.of("click 429:14 op 1"), game.actions);
+		game.promptMode = 2;
+		assertNull(cycle());
+		assertEquals(List.of("click 429:14 op 1", "text test2"), game.actions);
+		// The prompt closed: the step passes and the assert waits for the server.
+		game.friends.put("test2", 0);
 		assertNull(cycle());
 		game.friends.put("test2", 301);
+		assertNull(cycle());
+		assertEquals("click 429:16 op 1", game.actions.get(2));
+		game.promptMode = 3;
+		game.friends.remove("test2");
 		Result r = null;
 		for (int i = 0; i < 5 && r == null; i++)
 		{
 			r = cycle();
 		}
 		assertEquals(Result.PASS, r.result);
-		assertEquals(List.of("addFriend test2", "deleteFriend test2"), game.actions);
+		assertEquals(List.of("click 429:14 op 1", "text test2", "click 429:16 op 1", "text test2"), game.actions);
 		assertEquals("friends {test2=301}", r.steps.get(1).detail);
 		assertEquals("assert friend Test2 on world 301", r.steps.get(1).description);
 	}

@@ -226,9 +226,6 @@ interface Game
 	 */
 	java.util.Map<String, Integer> friends();
 
-	/** Adds {@code name} as the Friends tab's Add Friend box does. Null when sent, else why not. */
-	String addFriend(String name);
-
-	/** Deletes {@code name} as Delete on a friend does. Null when sent, else why not. */
-	String deleteFriend(String name);
+	/** Puts {@code text} in the open prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
+	String enterText(String text);
 }
