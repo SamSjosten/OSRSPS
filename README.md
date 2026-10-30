@@ -404,8 +404,9 @@ sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answe
 | Bar levels, ores and smelting XP; iron's 50% at a furnace, the ore lost | OSRS Wiki, Smelting and Iron bar |
 | Smelting 4 ticks then 5 a bar, a single bar 6 | OSRS Wiki, Bronze bar |
 | 5 ticks an item on the anvil; a hammer needed; 12.5 XP a bar a tier | OSRS Wiki, Smithing |
+| Lumbridge's rusted anvil smiths only bronze | OSRS Wiki, Anvil |
 | Each bar's anvil items, levels, bars and counts | client scripts and enums 844 to 846 (cache 241), checked against the Wiki's bronze and iron tables (`SmithingTest`) |
-| The furnace box showing every free-to-play bar and suggesting All; Smith opening the best bar the level can use; a cancelled X smithing one; the messages' arguments | guessed |
+| The furnace box showing every free-to-play bar and suggesting All; Smith opening the best bar the level can use; a cancelled X smithing one; the rusted anvil's message for other bars; the messages' arguments | guessed |
 | Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, cannonballs, jewellery, blurite and lovakite | out of scope |
 
 ## Items and inventory
