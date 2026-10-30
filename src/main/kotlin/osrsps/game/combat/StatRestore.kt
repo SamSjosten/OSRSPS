@@ -59,16 +59,24 @@ class StatTimers {
  * Guessed and not checked on live: which skills are the combat ones (Attack, Strength, Defence, Ranged, Magic and
  * Prayer); that boosted Prayer goes down on the combat cycle and boosted Hitpoints' cycle is lengthened by Preserve too;
  * that Preserve's "under 13 seconds" is the last 21 ticks counted from the end of the tick it was last on in, and turning
- * it off any earlier ends a cycle already past a minute at once; that a cycle saved past a minute, Preserve having lengthened it, comes back as its last segment; that
- * drained stats share one restore cycle, separate from the boost cycles, not lengthened by Preserve and not saved; and
- * where in the tick it happens (with the prayer drain, after the NPCs' attacks). Divine potions' fixed five minutes come
- * with the potions, step 6c.
+ * it off any earlier ends a cycle already past a minute at once; that a cycle saved past a minute, Preserve having
+ * lengthened it, comes back as its last segment; that drained stats share one restore cycle, separate from the boost
+ * cycles, not lengthened by Preserve and not saved; and where in the tick it happens (with the prayer drain, after the
+ * NPCs' attacks).
+ *
+ * A divine potion's skills don't wear off while its [DivineHold] varbit counts down its five minutes, and at the end go
+ * straight back to the base level unless another hold still has them (OSRS Wiki, Divine super combat potion: "return
+ * to their base level"; guessed: at once, rather than a level a minute). The countdown stops while the player is dead.
  */
-class StatRestore(private val hasPrayer: (Player, String) -> Boolean = { _, _ -> false }) {
+class StatRestore(
+    private val hasPrayer: (Player, String) -> Boolean = { _, _ -> false },
+    private val divineHolds: List<DivineHold> = emptyList(),
+) {
     /** Counts [player]'s timers on by a tick, moving stats a level toward their base where a cycle ends. */
     fun process(player: Player) {
         if (player.dead) return
         val timers = player.statTimers
+        countDownDivine(player)
         timers.preserve = if (hasPrayer(player, Prayers.PRESERVE)) timers.preserve + 1 else 0
         val preserved = timers.preserve >= PRESERVE_DELAY
         if (advance(timers.combatBoost, preserved)) for (skill in COMBAT) decay(player, skill)
@@ -98,7 +106,29 @@ class StatRestore(private val hasPrayer: (Player, String) -> Boolean = { _, _ ->
         return true
     }
 
+    private fun countDownDivine(player: Player) {
+        val vars = player.vars
+        for (hold in divineHolds) {
+            val left = ticksLeft(player, hold)
+            if (left == 0) continue
+            vars.setVarbit(hold.varbit, left - 1)
+            if (left > 1) continue
+            for (skill in hold.skills) {
+                val base = player.skills.baseLevel(skill)
+                if (!held(player, skill) && player.skills.currentLevel(skill) > base) player.skills.setCurrentLevel(skill, base)
+            }
+        }
+    }
+
+    /** Ticks left of [hold] on [player], 0 when the cache has no such varbit. */
+    private fun ticksLeft(player: Player, hold: DivineHold): Int =
+        if (player.vars.types.varbit(hold.varbit) == null) 0 else player.vars.getVarbit(hold.varbit)
+
+    /** Whether a divine potion holds [skill] up on [player]. */
+    fun held(player: Player, skill: Skill): Boolean = divineHolds.any { skill in it.skills && ticksLeft(player, it) > 0 }
+
     private fun decay(player: Player, skill: Skill) {
+        if (held(player, skill)) return
         val current = player.skills.currentLevel(skill)
         if (current > player.skills.baseLevel(skill)) player.skills.setCurrentLevel(skill, current - 1)
     }

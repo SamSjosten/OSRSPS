@@ -62,6 +62,7 @@ import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.Prayer
 import osrsps.game.combat.Food
 import osrsps.game.combat.Foods
+import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
@@ -172,6 +173,8 @@ class World(
     prayerList: List<Prayer> = emptyList(),
     /** What can be eaten, by obj type id ([Foods]); tests that eat pass their own. */
     foodList: Map<Int, Food> = emptyMap(),
+    /** What can be drunk ([Potions]); tests that drink pass their own. */
+    potionData: Potions.Data = Potions.Data.NONE,
     /** The shops and their stock; tests that shop pass their own. */
     val shopTypes: ShopTypes = ShopTypes.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
@@ -369,11 +372,13 @@ class World(
     val fishing = Fishing(this)
 
     /** Boosted and drained stats going back; see [StatRestore]. */
-    private val statRestore = StatRestore(prayers::has)
+    private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
     val foods = Foods(foodList, words = ::textFor)
+
+    val potions = Potions(potionData, words = ::textFor)
 
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
@@ -405,6 +410,7 @@ class World(
         registerCombatTutors(this)
         registerBones(this)
         foods.register(this)
+        potions.register(this)
         registerBanking(this)
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
