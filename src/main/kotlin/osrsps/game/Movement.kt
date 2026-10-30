@@ -104,17 +104,17 @@ class Movement(private val collision: CollisionMap) {
             val grams = player.weightGrams.coerceIn(0, MAX_WEIGHT_GRAMS).toLong()
             val drain = ((60L * MAX_WEIGHT_GRAMS + 67 * grams) * (300 - AGILITY) / (MAX_WEIGHT_GRAMS * 300L)).toInt()
             player.runEnergy = (player.runEnergy - drain).coerceAtLeast(0)
-            // Guessed: run switches itself off when energy runs out, as the orb does on live.
-            if (player.runEnergy == 0) {
-                player.runEnabled = false
-                player.runRanOut = true
-            }
-        } else {
+        }
+        // Guessed: run switches itself off when energy runs out, as the orb does on live; also when it is turned on
+        // with none left. The setter clears runRanOut, so it is set after.
+        if (player.runEnabled && player.runEnergy == 0) {
+            player.runEnabled = false
+            player.runRanOut = true
+        } else if (result != MoveResult.RAN) {
             player.runEnergy = (player.runEnergy + AGILITY / 10 + 15).coerceAtMost(MAX_ENERGY)
             val threshold = autoEnableAt(player)
             if (player.runRanOut && threshold > 0 && player.runEnergy >= threshold) {
                 player.runEnabled = true
-                player.runRanOut = false
             }
         }
     }

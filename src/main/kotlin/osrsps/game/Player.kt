@@ -153,11 +153,15 @@ class Player(
 
     val vars = PlayerVars(varTypes)
 
-    /** The run orb, which is varp 173 (option_run), so `::varp 173 1` turns it on too. */
+    /**
+     * The run orb, which is varp 173 (option_run), so `::varp 173 1` turns it on too. Setting it either way ends any
+     * wait for the energy threshold ([runRanOut]): run turned off by hand stays off.
+     */
     var runEnabled: Boolean
         get() = vars[World.VARP_RUN] != 0
         set(value) {
             vars[World.VARP_RUN] = if (value) 1 else 0
+            runRanOut = false
         }
 
     val skills = PlayerSkills(xpRate)

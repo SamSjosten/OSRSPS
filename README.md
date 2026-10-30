@@ -1444,8 +1444,8 @@ the clean start the equipment test scripts use.
 `lumbridge-bank-tabs` stands you by the castle's top floor bank booths (3209, 3220, 2) carrying nothing, with logs and
 a bronze axe in bank tab 1 and 1,000 coins in the main tab: for the tab script, as the test runner can't drag.
 
-`lumbridge-run-low` stands you on the Lumbridge spawn with run on and 0.5% run energy, the energy threshold to re-enable
-running at 1% and Ctrl+click to invert run mode on Run -> Walk only: for the run settings script, as nothing else sets
+`lumbridge-run-low` stands you on the Lumbridge spawn with run on and no run energy, the energy threshold to re-enable
+running at 5% and Ctrl+click to invert run mode on Run -> Walk only: for the run settings script, as nothing else sets
 run energy.
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where

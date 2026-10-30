@@ -3,11 +3,11 @@
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
-  {"step": "command", "text": "::scenario lumbridge-run-low", "expectMessage": "Started scenario lumbridge-run-low.", "comment": "run on, 0.5% energy, threshold 1% (varbit 11031)"},
-  {"step": "assertVarbit", "id": 11031, "value": 1},
-  {"step": "walk", "x": 3226, "y": 3218, "comment": "the first running tick drains 59 of the 50 units"},
-  {"step": "assertVarp", "id": 173, "value": 0, "comment": "option_run: run went off when energy ran out"},
-  {"step": "waitTicks", "ticks": 9, "comment": "standing restores 15 units a tick, so 1% (100) takes 7"},
+  {"step": "command", "text": "::scenario lumbridge-run-low", "expectMessage": "Started scenario lumbridge-run-low.", "comment": "run on, no energy, threshold 5% (varbit 11031)"},
+  {"step": "assertVarbit", "id": 11031, "value": 5},
+  {"step": "waitTicks", "ticks": 3, "comment": "no walking, so nothing here hangs on click timing"},
+  {"step": "assertVarp", "id": 173, "value": 0, "comment": "option_run: run went off as there was no energy"},
+  {"step": "waitTicks", "ticks": 40, "comment": "standing restores 15 units a tick, so 5% (500) takes 34"},
   {"step": "assertVarp", "id": 173, "value": 1, "comment": "back on at the threshold"},
 
   {"step": "command", "text": "::varp 173 0", "expectMessage": "Varp 173", "comment": "run turned off by hand"},

@@ -1,7 +1,7 @@
 {
-  "about": "On the Lumbridge spawn with run on and 0.5% run energy, energy threshold to re-enable running at 1% and Ctrl+click to invert run mode on Run -> Walk only.",
-  "notes": "For test-runner/examples/settings-run.json: a few running steps run the energy out, and standing brings run back on at 1%.",
+  "about": "On the Lumbridge spawn with run on and no run energy, energy threshold to re-enable running at 5% and Ctrl+click to invert run mode on Run -> Walk only.",
+  "notes": "For test-runner/examples/settings-run.json: run goes off on the next tick as there is no energy, and standing brings it back on at 5%.",
   "position": { "x": 3222, "z": 3218, "level": 0 },
-  "runEnergy": 50, "run": true,
-  "varbits": { "11031": 1, "13132": 2 }
+  "runEnergy": 0, "run": true,
+  "varbits": { "11031": 5, "13132": 2 }
 }
