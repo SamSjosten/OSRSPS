@@ -242,7 +242,7 @@
    "component": 16,
    "slot": 14,
    "op": 2,
-   "comment": "Buy 1 Chronicle, the 14th item, at the Wiki's 200"
+   "comment": "Buy 1 Chronicle, the 14th item, at the Wiki's 300"
   },
   {
    "step": "assertInventory",
@@ -252,7 +252,7 @@
   {
    "step": "assertInventory",
    "item": "Coins",
-   "count": 8797
+   "count": 8697
   },
   {
    "step": "clickWidget",
@@ -275,7 +275,7 @@
   {
    "step": "assertInventory",
    "item": "Coins",
-   "count": 8797
+   "count": 8697
   },
   {
    "step": "command",
