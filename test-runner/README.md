@@ -129,9 +129,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-east.json`: east of the River Lum: Barfy Bill's talk (with `::keys on`) for a player below level 12
   Woodcutting, Examine on Bill, a giant spider and a goblin, and `::kill goblin` showing the goblin's death animation
   and leaving its bones, which are then taken.
-- `lumbridge-swamp.json`: Lumbridge Swamp's fighters: Examine (with `::keys on`) on a level 6 giant rat, a frog, a
-  big frog, a giant frog, the level 5 goblin and the unicorn, and `::kill` on a giant rat (its death animation, then
-  its raw rat meat taken) and a giant frog (its big bones taken).
+- `lumbridge-swamp.json`: Lumbridge Swamp: Examine (with `::keys on`) on a level 6 giant rat, a frog, a big frog, a
+  giant frog, the level 5 goblin and the unicorn; `::kill` on a giant rat (its death animation, then its raw rat meat
+  taken) and a giant frog (its big bones taken); Father Urhney's spare ghostspeak amulet, given once; the four
+  adventurers' talks; and the candle seller refusing a player with no coins, then selling a lit candle for 1000.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

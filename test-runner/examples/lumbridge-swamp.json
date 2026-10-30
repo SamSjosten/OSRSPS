@@ -1,5 +1,5 @@
 {
- "name": "Rest of Lumbridge step 9: the swamp's fighters. Examine (::keys on) on a level 6 giant rat, the three frogs, the level 5 goblin and the unicorn, and a giant rat and a giant frog killed for their drops",
+ "name": "Rest of Lumbridge step 9: the swamp. Examine (::keys on) on a level 6 giant rat, the three frogs, the level 5 goblin and the unicorn; a giant rat and a giant frog killed for their drops; Father Urhney's spare ghostspeak amulet, the adventurers' camp, and a lit candle bought",
  "account": "test",
  "steps": [
   {
@@ -180,6 +180,361 @@
   {
    "step": "assertMessage",
    "contains": "[examine.npc_2837]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3147 3174 0",
+   "expectMessage": "Teleported to 3147, 3174, 0",
+   "comment": "inside Father Urhney's house"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Father Urhney",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_urhney.go_away]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[father_urhney.lost_amulet]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_urhney.lost_amulet]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_urhney.spare]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_urhney.hands_amulet]",
+   "comment": "the item box with the amulet; the scenario's backpack is empty, so a spare comes"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_urhney.careful]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_urhney.okay]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Ghostspeak amulet",
+   "count": 1
+  },
+  {
+   "step": "npcOption",
+   "npc": "Father Urhney",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_urhney.go_away]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[father_urhney.lost_amulet]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_urhney.lost_amulet]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_urhney.have_it]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue",
+   "comment": "now carried, so no second one"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Ghostspeak amulet",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3150 3206 0",
+   "expectMessage": "Teleported to 3150, 3206, 0",
+   "comment": "the adventurers' camp"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Warrior",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_warrior.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_warrior.party]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_warrior.asks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_warrior.secret]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Archer",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_archer.found_it]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_archer.dont]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_archer.yep]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_archer.not]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_archer.believe]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Monk",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_monk.anymore]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Wizard",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_wizard.laugh]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_wizard.go]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lost_city_wizard.right]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3169 3175 0",
+   "expectMessage": "Teleported to 3169, 3175, 0",
+   "comment": "by the entrance to the swamp caves"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Candle seller",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[candle_seller.offer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[candle_seller.yes]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[candle_seller.yes]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[candle_seller.cant_afford]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[candle_seller.no_candle]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 1000",
+   "expectMessage": "Added"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Candle seller",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[candle_seller.offer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[candle_seller.yes]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[candle_seller.yes]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[candle_seller.here]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[candle_seller.careful]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[candle_seller.thanks_bye]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[candle_seller.thanks_bye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Lit candle",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "comment": "the 1000 coins paid"
   },
   {
    "step": "command",
