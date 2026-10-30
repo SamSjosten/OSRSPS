@@ -247,6 +247,12 @@ interface Game
 	/** The client's ignore list's names (no tags); null when logged out or the list hasn't arrived. */
 	java.util.List<String> ignores();
 
+	/** The owner of the friends chat channel the client is in (no tags), or null when in none. */
+	String friendsChatOwner();
+
+	/** The names (no tags) listed in the client's friends chat channel; empty when in none. */
+	java.util.List<String> friendsChatMembers();
+
 	/** Puts {@code text} in the open prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
 	String enterText(String text);
 }

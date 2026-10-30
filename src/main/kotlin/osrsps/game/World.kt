@@ -145,6 +145,8 @@ import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
+import osrsps.game.social.FriendChats
+import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.FriendLists
 import osrsps.game.social.IgnoreLists
 import osrsps.game.social.PrivateMessages
@@ -459,6 +461,10 @@ class World(
     )
 
     /** Private messages; see [PrivateMessages]. */
+    val friendChats = FriendChats(
+        { onlinePlayers }, ::channelOwner, ignoreLists, ::textFor, { privateMessages.nextCounter() },
+    )
+
     val privateMessages = PrivateMessages(
         friendLists, ignoreLists, { onlinePlayers }, { player, line -> player.message(textFor(player)[line]) }, ::sendChatFilters,
         PrivateMessages.counterStart(java.time.Instant.now()),
@@ -1489,6 +1495,7 @@ class World(
         sendWeight(player)
         ignoreLists.sendAll(player)
         friendLists.sendAll(player)
+        friendChats.resend(player)
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
@@ -1528,6 +1535,7 @@ class World(
         sendVars(player)
         interfaces.openGameFrame(player)
         inventoryTab.open(player)
+        friendChats.rejoin(player)
         if (player.newAccount) {
             // Tutorial Island's end on live: resizable mode and the default zoom, and the frame to match. Nobody here
             // does the tutorial, so a new account gets them at its first login.
@@ -1765,7 +1773,14 @@ class World(
     fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
 
     /** Public chat is game input like a click, so while paused it is held for the next tick. */
-    fun onPublicChat(player: Player, message: MessagePublic) = act(player) { sayPublicChat(player, message) }
+    fun onPublicChat(player: Player, message: MessagePublic) = act(player) {
+        if (message.type == PublicChat.TYPE_FRIENDS_CHAT) friendChats.talk(player, message.message) else sayPublicChat(player, message)
+    }
+
+    /** Join Chat's typed name, or Leave Chat (no name). Works while dead, as the client changes its panel at once. */
+    fun onFriendsChatJoinLeave(player: Player, name: String?) = actWhileDead(player) {
+        if (name == null) friendChats.leave(player) else friendChats.join(player, name)
+    }
 
     /** A click on an interface component. [obj] is the item the client showed there, -1 if none. */
     fun onButton(player: Player, interfaceId: Int, componentId: Int, sub: Int, op: Int, obj: Int = -1) = act(player) {
@@ -1828,6 +1843,28 @@ class World(
         }
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.click(player, componentId, sub, op)) return@act
         if (interfaceId == AllSettings.INTERFACE && allSettings.click(player, componentId, sub, op, tick)) return@act
+        if (interfaceId == FriendChats.CURRENT && componentId == FriendChats.CURRENT_SETUP) {
+            openFriendsChatSetup(player)
+            return@act
+        }
+        if (interfaceId == FriendChats.SETUP && componentId == FriendChats.SETUP_PREFIX) {
+            when (op) {
+                1 -> scripts.start(player) {
+                    val name = stringDialog(textFor(player)[FriendsChatLines.SET_PREFIX]).trim()
+                    if (!friendChats.validName(name)) {
+                        player.message(textFor(player)[FriendsChatLines.BAD_NAME])
+                        return@start
+                    }
+                    friendChats.setName(player, name)
+                    friendChats.showSetup(player)
+                }
+                2 -> {
+                    friendChats.disable(player)
+                    friendChats.showSetup(player)
+                }
+            }
+            return@act
+        }
         if (interfaceId == JournalTab.SIDE_JOURNAL) {
             val tab = JournalTab.forButton(componentId)
             if (tab != null) {
@@ -2010,6 +2047,11 @@ class World(
         if (!scripts.resumeCount(player, count)) logger.debug { "${player.username} entered $count, which nothing waits for" }
     }
 
+    fun onResumeString(player: Player, text: String) = act(player) {
+        if (player.scripts.delayed) return@act
+        if (!scripts.resumeString(player, text)) logger.debug { "${player.username} typed text nothing waits for" }
+    }
+
     /**
      * The player changed a chatbox tab's filter. Inferred: the tab's label changes only when the server sends the
      * filters back. They are saved and sent again at login; nothing filters chat on the server yet.
@@ -2022,10 +2064,16 @@ class World(
     }
 
     /** The player added [name] to their friends list. Kept while dead: the death animation doesn't close the tab. */
-    fun onFriendAdd(player: Player, name: String) = actWhileDead(player) { friendLists.add(player, name) }
+    fun onFriendAdd(player: Player, name: String) = actWhileDead(player) {
+        friendLists.add(player, name)
+        friendChats.ownerFriendsChanged(player)
+    }
 
     /** The player deleted [name] from their friends list, which their client has already done. Kept while dead. */
-    fun onFriendDelete(player: Player, name: String) = actWhileDead(player) { friendLists.delete(player, name) }
+    fun onFriendDelete(player: Player, name: String) = actWhileDead(player) {
+        friendLists.delete(player, name)
+        friendChats.ownerFriendsChanged(player)
+    }
 
     /** The player sent [name] a private message. Guessed: kept while dead, as the side panel's lists are. */
     fun onPrivateMessage(player: Player, name: String, text: String) = actWhileDead(player) { privateMessages.send(player, name, text) }
@@ -2050,6 +2098,28 @@ class World(
             null
         } ?: return null
         return PlayerSave.usernameIn(text) ?: name.trim()
+    }
+
+    /**
+     * The owner of a friends chat channel called by [name]: from them if they are here, else from their save. Null when
+     * there is no such account.
+     */
+    private fun channelOwner(name: String): FriendChats.ChannelOwner? {
+        val key = SaveStore.saveKey(name) ?: return null
+        findPlayer(key)?.let { return FriendChats.ChannelOwner(it.username, it.friendsChat, it.friends.toList()) }
+        val text = unwritten[key] ?: try {
+            saves.read(key)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't read the save for $key" }
+            null
+        } ?: return null
+        val save = try {
+            PlayerSave.fromJson(text)
+        } catch (e: IllegalArgumentException) {
+            logger.error(e) { "The save for $key can't be read" }
+            return null
+        }
+        return FriendChats.ChannelOwner(PlayerSave.usernameIn(text) ?: name.trim(), save.friendsChat, save.friends)
     }
 
     private fun sendChatFilters(player: Player) {
@@ -2264,6 +2334,13 @@ class World(
         else -> false
     }
 
+    /** The friends chat panel's Setup: the setup screen, as the owner's settings are, with its options clickable. */
+    private fun openFriendsChatSetup(player: Player) {
+        interfaces.openModal(player, FrameSlot.MAINMODAL, FriendChats.SETUP)
+        friendChats.showSetup(player)
+        interfaces.setEvents(player, FriendChats.SETUP, FriendChats.SETUP_PREFIX, -1, -1, Interfaces.IF_EVENT_OP1 or Interfaces.IF_EVENT_OP2)
+    }
+
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
     private fun inCombat(player: Player): Boolean = player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS
 
@@ -2273,6 +2350,7 @@ class World(
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
             trades.leave(player)
+            friendChats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

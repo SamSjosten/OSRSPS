@@ -986,6 +986,52 @@ public class RunnerTest
 	}
 
 	@Test
+	public void friendsChat() throws Exception
+	{
+		runner.start(script("{\"step\":\"setFriendsChatName\",\"name\":\"Hut\"},"
+			+ "{\"step\":\"joinFriendsChat\",\"owner\":\"test\"},"
+			+ "{\"step\":\"assertFriendsChat\",\"owner\":\"Test\",\"member\":\"test2\"},"
+			+ "{\"step\":\"assertFriendsChat\",\"owner\":\"test\",\"member\":\"test3\",\"absent\":true}"), "file");
+		// The setup screen isn't open: its Setup button first, then Set prefix, then the name in the server's prompt.
+		assertNull(cycle());
+		assertEquals(List.of("click 7:20 op 1"), game.actions);
+		game.openInterfaces.add(94);
+		assertNull(cycle());
+		assertEquals("click 94:10 op 1", game.actions.get(1));
+		game.promptMode = 9;
+		assertNull(cycle());
+		assertEquals("text Hut", game.actions.get(2));
+		// Then Join Chat's prompt, by its script, and the owner's name.
+		for (int i = 0; i < 3 && game.scriptsRun.isEmpty(); i++)
+		{
+			assertNull(cycle());
+		}
+		assertEquals(List.of("111 []"), game.scriptsRun);
+		game.promptMode = 10;
+		assertNull(cycle());
+		assertEquals("text test", game.actions.get(3));
+		game.friendsChatOwner = "test";
+		game.friendsChatMembers.add("test");
+		assertNull(cycle());
+		game.friendsChatMembers.add("Test2");
+		Result r = null;
+		for (int i = 0; i < 5 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals(Result.PASS, r.result);
+		assertEquals("test2 in test's friends chat", r.steps.get(2).detail);
+		assertEquals("test3 not in test's friends chat", r.steps.get(3).description);
+	}
+
+	@Test
+	public void assertFriendsChatNeedsAnOwner()
+	{
+		Script.Invalid e = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"assertFriendsChat\",\"member\":\"a\"}"));
+		assertTrue(e.getMessage(), e.getMessage().contains("owner"));
+	}
+
+	@Test
 	public void playerOption() throws Exception
 	{
 		runner.start(script("{\"step\":\"playerOption\",\"player\":\"test2\",\"option\":\"Trade with\"}"), "file");

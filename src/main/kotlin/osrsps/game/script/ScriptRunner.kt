@@ -126,6 +126,7 @@ class ScriptRunner(
         state.delayedUntil = 0
         state.paused = null
         state.counting = null
+        state.typing = null
     }
 
     /**
@@ -149,6 +150,17 @@ class ScriptRunner(
         val continuation = player.scripts.counting ?: return false
         player.scripts.counting = null
         continuation.resume(count)
+        return true
+    }
+
+    /**
+     * The client sent the text the player typed (resume_p_stringdialog). Carries on the script waiting for it, now,
+     * and returns true; returns false when none waits.
+     */
+    fun resumeString(player: Player, text: String): Boolean {
+        val continuation = player.scripts.typing ?: return false
+        player.scripts.typing = null
+        continuation.resume(text)
         return true
     }
 
@@ -250,6 +262,13 @@ class ScriptRunner(
             for (hook in countReplacedHooks) hook(player)
         }
         return suspendCoroutine { continuation -> state.counting = continuation }
+    }
+
+    internal suspend fun stringDialog(player: Player): String {
+        val state = player.scripts
+        // One prompt at a time, as with amounts: a new one drops the script waiting on the old.
+        if (state.dropTyping()) logger.debug { "Dropping ${player.username}'s script waiting on text for a new one" }
+        return suspendCoroutine { continuation -> state.typing = continuation }
     }
 
     private val countReplacedHooks = ArrayList<(Player) -> Unit>()

@@ -20,12 +20,14 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.StatRestore
+import osrsps.game.social.FriendChats
 import osrsps.game.social.FriendLists
 import osrsps.game.ge.BuyLimitUse
 import osrsps.game.ge.GeAccount
 import osrsps.game.ge.GeOffer
 import osrsps.game.ge.GeTrade
 import osrsps.game.ge.OfferType
+import osrsps.game.social.FriendsChatSettings
 import osrsps.game.social.IgnoreLists
 import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.offeredBy
@@ -76,6 +78,10 @@ class PlayerSave(
     val geHistory: List<GeTrade> = emptyList(),
     /** The last trade the player completed, which a leftover trade journal is checked against; see [TradeJournal]. */
     val lastTrade: String? = null,
+    /** The player's own friends chat channel, in the header too. */
+    val friendsChat: FriendsChatSettings = FriendsChatSettings.DEFAULT,
+    /** Whose friends chat channel the player was in, to join again at login. */
+    val friendsChatOwner: String? = null,
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -104,6 +110,8 @@ class PlayerSave(
         player.friends.addAll(friends)
         player.ignores.addAll(ignores)
         player.lastTrade = lastTrade
+        player.friendsChat = friendsChat
+        player.friendsChatOwner = friendsChatOwner
         applyState(player)
     }
 
@@ -180,6 +188,15 @@ class PlayerSave(
             if (friends.isNotEmpty()) putJsonArray("friends") { for (name in friends) add(name) }
             if (ignores.isNotEmpty()) putJsonArray("ignores") { for (name in ignores) add(name) }
             if (lastTrade != null) put("lastTrade", lastTrade)
+            if (friendsChat != FriendsChatSettings.DEFAULT) {
+                putJsonObject("friendsChat") {
+                    if (friendsChat.name != null) put("name", friendsChat.name)
+                    put("enter", friendsChat.enter)
+                    put("talk", friendsChat.talk)
+                    put("kick", friendsChat.kick)
+                }
+            }
+            if (friendsChatOwner != null) put("friendsChatOwner", friendsChatOwner)
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -287,6 +304,8 @@ class PlayerSave(
                 player.ignores.toList(),
                 player.ge.history.toList(),
                 player.lastTrade,
+                player.friendsChat,
+                player.friendsChatOwner,
             )
         }
 
@@ -352,6 +371,7 @@ class PlayerSave(
                     ignores,
                     state.geHistory,
                     root["lastTrade"]?.jsonPrimitive?.contentOrNull,
+                    readFriendsChat(root), root["friendsChatOwner"]?.jsonPrimitive?.contentOrNull,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -424,6 +444,18 @@ class PlayerSave(
                 x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank,
                 geOffers = geOffers, geLimits = geLimits, geHistory = geHistory,
             )
+        }
+
+        /** Optional: saves from before friends chat, and saves of players who never set theirs up, have none. */
+        private fun readFriendsChat(root: JsonObject): FriendsChatSettings {
+            val fc = root["friendsChat"]?.jsonObject ?: return FriendsChatSettings.DEFAULT
+            val ranks = FriendChats.RANK_ANYONE..FriendChats.RANK_OWNER
+            val (enter, talk, kick) = listOf("enter", "talk", "kick").map { name ->
+                fc.int(name).also { require(it in ranks) { "Friends chat $name rank $it is out of range" } }
+            }
+            val name = fc["name"]?.jsonPrimitive?.contentOrNull
+            require(name == null || name.length <= FriendLists.MAX_NAME_LENGTH) { "Friends chat name '$name' is too long" }
+            return FriendsChatSettings(name, enter, talk, kick)
         }
 
         /** The last trade a save records, or null if it records none or [text] isn't a save. */

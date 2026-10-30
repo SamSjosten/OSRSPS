@@ -460,6 +460,22 @@ class FakeGame implements Game
 		return ignores == null ? null : new java.util.ArrayList<>(ignores);
 	}
 
+	/** The friends chat channel's owner, null for none, and its members. */
+	String friendsChatOwner;
+	java.util.List<String> friendsChatMembers = new java.util.ArrayList<>();
+
+	@Override
+	public String friendsChatOwner()
+	{
+		return friendsChatOwner;
+	}
+
+	@Override
+	public java.util.List<String> friendsChatMembers()
+	{
+		return new java.util.ArrayList<>(friendsChatMembers);
+	}
+
 	@Override
 	public String enterText(String text)
 	{
