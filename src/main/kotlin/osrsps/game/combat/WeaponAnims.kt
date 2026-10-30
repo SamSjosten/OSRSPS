@@ -42,12 +42,16 @@ class WeaponAnims(private val attackAnim: (AttackStyle) -> Int, val defend: Int)
         /** human_spear_spike, human_spear_lunge for Lunge; human_spear_def. */
         private val SPEAR = WeaponAnims({ if (it.name == "Lunge") 429 else 428 }, 431)
 
+        /** human_dinhs_bulwark_crush for Pummel; human_dinhs_bulwark_block. Guessed from the names, as above. */
+        private val BULWARK = WeaponAnims({ 7507 }, 7512)
+
         private val BY_CATEGORY = mapOf(
             Weapons.UNARMED to UNARMED,
             Weapons.STABSWORD to SWORD,
             Weapons.HACKSWORD to SWORD,
             Weapons.AXE to AXE,
             Weapons.SPEAR to SPEAR,
+            Weapons.BULWARK to BULWARK,
         )
 
         /** The animations of weapon [category] (varbit 357's value); [UNARMED] for one not filled in. */
