@@ -172,6 +172,33 @@ class HeadlessCombatTest {
         }
     }
 
+    @Test
+    fun `a killed man stays gone for the Wiki's 25 ticks, and the respawns command counts them down`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fred").use { client ->
+                val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
+                client.await("the login rebuild") { client.position }
+                assertEquals("No NPCs waiting to respawn.", client.commandReply("respawns") { it.startsWith("No NPCs") })
+                // Paused and stepped, so the checks count game ticks: killed after tick n, the body goes on tick n + 4
+                // and the man is back on tick n + 25.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                assertEquals("Killed Man #${npc.index}.", client.commandReply("kill man") { it.startsWith("Killed") })
+                assertEquals("Man (3106) back at 3224, 3218 in 25 ticks", client.commandReply("respawns") { it.startsWith("Man (") })
+                client.stepTicks(3)
+                assertTrue(client.npcs().any { it.id == man.id }, "the body lies 4 ticks")
+                client.stepTicks(1)
+                assertTrue(client.npcs().none { it.id == man.id }, "the body gone on the 4th tick")
+                client.stepTicks(20)
+                assertTrue(client.npcs().none { it.id == man.id }, "still gone a tick before the 25th")
+                assertEquals("Man (3106) back at 3224, 3218 in 1 tick", client.commandReply("respawns") { it.startsWith("Man (") })
+                client.stepTicks(1)
+                assertTrue(client.npcs().any { it.id == man.id }, "back on the 25th tick")
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                assertEquals("No NPCs waiting to respawn.", client.commandReply("respawns") { it.startsWith("No NPCs") })
+            }
+        }
+    }
+
     companion object {
         /** Skill ids as the stat packet carries them. */
         private const val ATTACK = 0
