@@ -21,8 +21,10 @@ on:
   # Codex edits its summary comment when a review finishes.
   issue_comment:
     types: [created, edited]
+  # Every workflow whose checks land on a pull request's head: merging by itself, the queue waits for all of them, and
+  # nothing else wakes it when the last one to finish isn't build.
   workflow_run:
-    workflows: [build]
+    workflows: [build, mergeable, pin-health, release]
     types: [completed]
   workflow_dispatch:
 
