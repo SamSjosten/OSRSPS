@@ -46,6 +46,7 @@ import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
+import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -91,6 +92,7 @@ import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
+import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
@@ -100,6 +102,7 @@ import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
 import osrsps.game.ge.GrandExchange
+import osrsps.game.ge.GrandExchangeScreen
 import osrsps.game.loc.Doors
 import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
@@ -129,6 +132,7 @@ import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
+import osrsps.game.social.FriendLists
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
@@ -305,10 +309,13 @@ class World(
     private val settingsSide = SettingsSide()
     private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
 
-    /** Shops and their shared stock; see [ShopScreen]. */
     /** Grand Exchange offers; see [GrandExchange]. */
     val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
 
+    /** The Grand Exchange's offers screen; see [GrandExchangeScreen]. */
+    val grandExchangeScreen = GrandExchangeScreen(grandExchange, interfaces::openModal)
+
+    /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
@@ -381,6 +388,9 @@ class World(
     /** The words [player] sees: none, so every line shows its key, while they have `::keys` on. */
     fun textFor(player: Player): DialogueText = if (player.showDialogueKeys) DialogueText.NONE else dialogueText
 
+    /** The friends lists; see [FriendLists]. */
+    val friendLists = FriendLists({ onlinePlayers }, ::accountName) { player, line -> player.message(textFor(player)[line]) }
+
     /** Bird nests that fall from trees. */
     val birdNests = BirdNests(this, collision)
 
@@ -437,6 +447,7 @@ class World(
         registerScenarioCommands(this@World)
         registerCombatCommands(this@World)
         registerIpCommands(this@World)
+        registerSocialCommands(this@World)
     }
 
     init {
@@ -462,9 +473,11 @@ class World(
         registerAdventurersCamp(this)
         registerCandleSeller(this)
         registerSwampTutors(this)
+        registerAlKharid(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
+        interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
         woodcutting.register()
         birdNests.register()
         firemaking.register()
@@ -913,6 +926,7 @@ class World(
                 equipmentTab.flush(player)
                 bankScreen.flush(player)
                 shopScreen.flush(player)
+                grandExchangeScreen.flush(player)
             }
         }
         for (npc in npcs.all) sendNpcEffects(npc)
@@ -966,9 +980,20 @@ class World(
         player.heldActions.addLast(action)
     }
 
+    /**
+     * Input that goes through while the player is dead: side panel lists the client has already changed for itself,
+     * which dropping would leave out of step with the server.
+     */
+    private class WhileDead(val action: () -> Unit) : () -> Unit {
+        override fun invoke() = action()
+    }
+
+    /** [act] for input that still counts while dead; see [WhileDead]. */
+    private fun actWhileDead(player: Player, action: () -> Unit) = act(player, WhileDead(action))
+
     /** A dead player's clicks, buttons and chat do nothing until they respawn; see [Deaths]. */
     private fun guarded(player: Player, action: () -> Unit) {
-        if (player.dead) {
+        if (player.dead && action !is WhileDead) {
             logger.debug { "Dropping input from ${player.username}: dead" }
             return
         }
@@ -1184,12 +1209,14 @@ class World(
         player.skills.resendAll()
         player.inventory.resendAll()
         player.equipment.resendAll()
+        player.geSent.resendAll()
         player.sentRunEnabled = null
         player.sentRunEnergy = -1
         player.sentWeight = Int.MIN_VALUE
         player.sentCombatLevel = -1
         sendRunState(player)
         sendWeight(player)
+        friendLists.sendAll(player)
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
@@ -1216,6 +1243,7 @@ class World(
         allowChat(player)
         // Guessed: live sends the saved filters at login; a new account's are all on.
         sendChatFilters(player)
+        friendLists.login(player)
         quests.completeAll(player.vars)
         prayers.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -1463,6 +1491,7 @@ class World(
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
         if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
+        if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
@@ -1652,8 +1681,32 @@ class World(
      * filters back. They are saved and sent again at login; nothing filters chat on the server yet.
      */
     fun onChatFilters(player: Player, filters: ChatFilters) = act(player) {
+        val old = player.chatFilters.private
         player.chatFilters = filters
         sendChatFilters(player)
+        friendLists.privateFilterChanged(player, old)
+    }
+
+    /** The player added [name] to their friends list. Kept while dead: the death animation doesn't close the tab. */
+    fun onFriendAdd(player: Player, name: String) = actWhileDead(player) { friendLists.add(player, name) }
+
+    /** The player deleted [name] from their friends list, which their client has already done. Kept while dead. */
+    fun onFriendDelete(player: Player, name: String) = actWhileDead(player) { friendLists.delete(player, name) }
+
+    /**
+     * The display name of the account [name] is: the player's if they are here, else the one in their save. Null when
+     * there is no such account, or no save to tell.
+     */
+    internal fun accountName(name: String): String? {
+        val key = SaveStore.saveKey(name) ?: return null
+        findPlayer(key)?.let { return it.username }
+        val text = unwritten[key] ?: try {
+            saves.read(key)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't read the save for $key" }
+            null
+        } ?: return null
+        return PlayerSave.usernameIn(text) ?: name.trim()
     }
 
     private fun sendChatFilters(player: Player) {
@@ -1884,6 +1937,12 @@ class World(
             freedSlots[player.index] = cycles
             network.infoProtocols.dealloc(player.infos)
             player.session.clear()
+        }
+        // Once they are out of the world, so they show as offline.
+        try {
+            friendLists.changed(player)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't tell ${player.username}'s friends they left" }
         }
         logger.info { "${player.username} logged out" + if (player.loggedOut) "" else " (connection lost)" }
     }
