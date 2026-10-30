@@ -147,9 +147,10 @@ object VarrockTraders {
                     chatNpc(ChatAnim.NEUTRAL, CHEAPER)
                     return@with
                 }
-                if (pay(player, FUR_PRICE)) {
+                if (player.inventory.count(ShopScreen.COINS) >= FUR_PRICE) {
                     chatPlayer(ChatAnim.HAPPY, YES)
-                    sellFur(give)
+                    // Paid only after the line, with nothing suspending between the coins and the fur.
+                    if (pay(player, FUR_PRICE)) sellFur(give)
                     return@with
                 }
                 chatPlayer(ChatAnim.SAD, NOT_ENOUGH)
