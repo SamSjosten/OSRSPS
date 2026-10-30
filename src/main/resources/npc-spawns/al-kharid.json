@@ -1,9 +1,14 @@
 {
-  "about": "Al Kharid, the Misthalin roadmap's Al Kharid piece. Step 1: the toll gate's four Border Guards, borderguard1 (4287) on the Lumbridge side and borderguard2 (4288) on the Al Kharid side, two each side of the gate (3268, 3227 to 3228). Tiles from 2004Scape's map m51_50 (its npc 925 borderguard1 and 926 borderguard2), checked against the 241 map floor and the Wiki's Toll gate map. They stand still, as 2004Scape has them (it only turns them now and then; left out, guessed).",
+  "about": "Al Kharid, the Misthalin roadmap's Al Kharid piece. Step 2: the bank's five Bankers behind their booths (x 3267), kharidbanker1 (3090) and kharidbanker2 (3091) as 2004Scape's map m51_49 places them; the Wiki counts 5. Step 1: the toll gate's four Border Guards, borderguard1 (4287) on the Lumbridge side and borderguard2 (4288) on the Al Kharid side, two each side of the gate (3268, 3227 to 3228). Tiles from 2004Scape's map m51_50 (its npc 925 borderguard1 and 926 borderguard2), checked against the 241 map floor and the Wiki's Toll gate map. They stand still, as 2004Scape has them (it only turns them now and then; left out, guessed).",
   "spawns": [
     {"npc": "borderguard1", "x": 3267, "z": 3226, "wander": 0, "source": "Border Guard, Lumbridge side of the toll gate, south. 2004Scape map m51_50"},
     {"npc": "borderguard1", "x": 3267, "z": 3229, "wander": 0, "source": "Border Guard, Lumbridge side of the toll gate, north. 2004Scape map m51_50"},
     {"npc": "borderguard2", "x": 3268, "z": 3226, "wander": 0, "source": "Border Guard, Al Kharid side of the toll gate, south. 2004Scape map m51_50"},
-    {"npc": "borderguard2", "x": 3268, "z": 3229, "wander": 0, "source": "Border Guard, Al Kharid side of the toll gate, north. 2004Scape map m51_50"}
+    {"npc": "borderguard2", "x": 3268, "z": 3229, "wander": 0, "source": "Border Guard, Al Kharid side of the toll gate, north. 2004Scape map m51_50"},
+    {"npc": "kharidbanker1", "x": 3267, "z": 3164, "wander": 0, "source": "Banker, Al Kharid bank, behind the booths. 2004Scape map m51_49"},
+    {"npc": "kharidbanker2", "x": 3267, "z": 3166, "wander": 0, "source": "Banker, Al Kharid bank, behind the booths. 2004Scape map m51_49"},
+    {"npc": "kharidbanker1", "x": 3267, "z": 3167, "wander": 0, "source": "Banker, Al Kharid bank, behind the booths. 2004Scape map m51_49"},
+    {"npc": "kharidbanker2", "x": 3267, "z": 3168, "wander": 0, "source": "Banker, Al Kharid bank, behind the booths. 2004Scape map m51_49"},
+    {"npc": "kharidbanker1", "x": 3267, "z": 3169, "wander": 0, "source": "Banker, Al Kharid bank, behind the booths. 2004Scape map m51_49"}
   ]
 }

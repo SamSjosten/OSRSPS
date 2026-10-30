@@ -95,6 +95,7 @@ class FriendLists(
         return when (player.chatFilters.private) {
             PRIVATE_ON -> true
             PRIVATE_FRIENDS -> player.friends.any { sameName(it, viewer.username) }
+            // Off, and anything the client can't have sent.
             else -> false
         }
     }
@@ -127,6 +128,7 @@ class FriendLists(
         /** The private chat setting, as the chat filter packet carries it: On, Friends, Off. */
         const val PRIVATE_ON = 0
         const val PRIVATE_FRIENDS = 1
+        const val PRIVATE_OFF = 2
 
         /** Our one world, as the world list names it (ClientConfig.WORLD_ID). */
         const val WORLD = 301
@@ -151,4 +153,6 @@ class FriendLists(
 /** The friends and ignore lists' game messages. */
 object SocialLines : Lines("social", "Friends List") {
     val UNKNOWN_FRIEND = line("unknown_friend", "adding a name that isn't an account; words from memory")
+    val PLAYER_OFFLINE = line("player_offline", "a private message to a player who is out, hidden, or ignoring the sender; the Friends tab's own words for an offline friend (client script friend_op)")
+    val UNKNOWN_IGNORE = line("unknown_ignore", "ignoring a name that isn't an account; words from memory")
 }

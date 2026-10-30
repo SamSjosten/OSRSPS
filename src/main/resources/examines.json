@@ -82,7 +82,8 @@
     {"npc": 3223, "name": "Prayer tutor"},
     {"npc": 8391, "name": "Nigel", "also": [6093], "wiki": "Nigel page, infobox, Normal"},
     {"npc": 7414, "name": "Count Check"},
-    {"npc": 4287, "name": "Border Guard", "also": [4288], "wiki": "Border Guard page, infobox (one examine for both)"}
+    {"npc": 4287, "name": "Border Guard", "also": [4288], "wiki": "Border Guard page, infobox (one examine for both)"},
+    {"npc": 3090, "name": "Banker", "also": [3091], "wiki": "Banker page, infobox (Al Kharid's bankers)"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},
