@@ -56,9 +56,6 @@ class Gates(private val locs: Locs) {
 
     private fun open(stem: String): String = stem.replace("fencegate", "openfencegate")
 
-    /** Whether [id] is a gate leaf, open or closed. */
-    fun isGate(id: Int): Boolean = id in leaves
-
     /**
      * Opens or closes the gate [loc] is a leaf of, with its other leaf when that is in place, if [option] is the leaf's
      * Open or Close. Returns the clicked leaf as it is now, or null if [loc] isn't a gate that option works on.
