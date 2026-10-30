@@ -16,6 +16,7 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.skill.Crafting
 import osrsps.game.skill.CraftingData
+import osrsps.game.skill.Smithing
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -29,7 +30,8 @@ class HeadlessCraftingTest {
     private val data = CraftingData.load()
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
-        val recipes = data.spinning + data.leather.values.flatten() + data.studded.values + data.gems.values
+        val recipes = data.spinning + data.leather.values.flatten() + data.studded.values + data.gems.values +
+            data.jewellery.flatMap { it.items.values } + data.amulets.values
         val ids = recipes.flatMap { r -> r.inputs.map { it.obj } + r.product + r.tools + listOfNotNull(r.wears?.obj, r.chance?.failed) } + data.studs
         val objs = arrayOfNulls<ObjType>(ids.max() + 1)
         for (id in ids) objs[id] = ObjType(id, "Item $id", tradeable = true)
@@ -43,14 +45,24 @@ class HeadlessCraftingTest {
         objs[STUDDED_BODY] = ObjType(STUDDED_BODY, "Studded body", tradeable = true)
         objs[OPAL] = ObjType(OPAL, "Opal", tradeable = true)
         objs[SAPPHIRE] = ObjType(SAPPHIRE, "Sapphire", tradeable = true)
+        objs[TIARA] = ObjType(TIARA, "Tiara", tradeable = true)
+        objs[SAPPHIRE_RING] = ObjType(SAPPHIRE_RING, "Sapphire ring", tradeable = true)
+        objs[STRUNG_GOLD] = ObjType(STRUNG_GOLD, "Gold amulet", tradeable = true)
+        objs[UNSTRUNG_GOLD] = ObjType(UNSTRUNG_GOLD, "Gold amulet (u)", tradeable = true)
         objs[GREEN_BODY] = ObjType(GREEN_BODY, "Green d'hide body", tradeable = true)
         val spin = listOf(null, Crafting.SPIN, null, null, null)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(5),
             locTypes = LocTypes(
-                mapOf(Crafting.LUMBRIDGE_WHEEL to LocType(Crafting.LUMBRIDGE_WHEEL, "Spinning wheel", spin, LocCollisionType(width = 1, length = 1))),
+                mapOf(
+                    Crafting.LUMBRIDGE_WHEEL to LocType(Crafting.LUMBRIDGE_WHEEL, "Spinning wheel", spin, LocCollisionType(width = 1, length = 1)),
+                    Smithing.FURNACE to LocType(Smithing.FURNACE, "Furnace", listOf(null, "Smelt", null, null, null), LocCollisionType(width = 1, length = 1)),
+                ),
             ),
-            staticLocs = StaticLocs().apply { add(ZoneLoc(Crafting.LUMBRIDGE_WHEEL, LocShape.CENTREPIECE_STRAIGHT, 0, WHEEL_X, WHEEL_Z, 0)) },
+            staticLocs = StaticLocs().apply {
+                add(ZoneLoc(Crafting.LUMBRIDGE_WHEEL, LocShape.CENTREPIECE_STRAIGHT, 0, WHEEL_X, WHEEL_Z, 0))
+                add(ZoneLoc(Smithing.FURNACE, LocShape.CENTREPIECE_STRAIGHT, 0, FURNACE_X, FURNACE_Z, 0))
+            },
             cycleMillis = millis,
         )
     }
@@ -224,7 +236,91 @@ class HeadlessCraftingTest {
         }
     }
 
+    @Test
+    fun `a gold bar on a furnace opens the jewellery interface, and All makes two sapphire rings 3 ticks apart`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.give(GOLD_BAR, 2)
+                client.give(RING_MOULD)
+                client.give(AMULET_MOULD)
+                client.give(SAPPHIRE, 2)
+                client.locTarget(Smithing.FURNACE, FURNACE_X, FURNACE_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(GOLD_BAR), GOLD_BAR)
+                client.await("crafting_gold") { if (Crafting.JEWELLERY_INTERFACE in client.openInterfaces()) Unit else null }
+                // Level 1: a gold amulet needs 8.
+                client.ifButton(Crafting.JEWELLERY_INTERFACE, GOLD_AMULET_BUTTON, 1)
+                client.seen("[crafting.level level=8 item=gold amulet (u)]")
+                client.command("setlevel crafting 99")
+                client.await("level 99") { client.stat(CRAFTING)?.takeIf { it.level == 99 } }
+                client.locTarget(Smithing.FURNACE, FURNACE_X, FURNACE_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(RING_MOULD), RING_MOULD)
+                client.await("crafting_gold again") { if (Crafting.JEWELLERY_INTERFACE in client.openInterfaces()) Unit else null }
+                client.ifButton(Crafting.JEWELLERY_INTERFACE, MAKE_ALL, 1)
+                client.await("All") { if (client.varp(Smithing.VARP_QUANTITY) == Smithing.MAX_QUANTITY) Unit else null }
+                client.ifButton(Crafting.JEWELLERY_INTERFACE, SAPPHIRE_RING_BUTTON, 1)
+                val rings = client.await("two rings") { client.messages().filter { it.text == "[crafting.jewellery item=sapphire ring]" }.takeIf { it.size >= 2 } }
+                assertEquals(3, rings[1].tick - rings[0].tick)
+                assertTrue(Crafting.JEWELLERY_INTERFACE !in client.openInterfaces(), "the interface closes as the making starts")
+                client.await("the rings") { if (client.count(SAPPHIRE_RING) == 2) Unit else null }
+                assertEquals(0, client.count(GOLD_BAR))
+                assertEquals(0, client.count(SAPPHIRE))
+                assertEquals(1, client.count(RING_MOULD))
+                assertEquals(80, client.await("80 XP") { client.xpOver99().takeIf { it >= 80 } })
+            }
+        }
+    }
+
+    @Test
+    fun `a tiara mould on a furnace opens the silver interface, which makes a tiara for 52,5 XP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivy").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel crafting 99")
+                client.give(SILVER_BAR)
+                client.give(TIARA_MOULD)
+                client.locTarget(Smithing.FURNACE, FURNACE_X, FURNACE_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(TIARA_MOULD), TIARA_MOULD)
+                client.await("silver_crafting") { if (Crafting.SILVER_INTERFACE in client.openInterfaces()) Unit else null }
+                client.ifButton(Crafting.SILVER_INTERFACE, TIARA_BUTTON, 1)
+                client.seen("[crafting.jewellery item=tiara]")
+                client.await("the tiara") { if (client.count(TIARA) == 1) Unit else null }
+                assertEquals(0, client.count(SILVER_BAR))
+                assertEquals(52, client.await("52 XP") { client.xpOver99().takeIf { it >= 52 } })
+            }
+        }
+    }
+
+    @Test
+    fun `a ball of wool strings an amulet for 4 XP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hank").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.give(UNSTRUNG_GOLD)
+                client.give(BALL_OF_WOOL)
+                client.use(BALL_OF_WOOL, UNSTRUNG_GOLD)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.seen("[crafting.string_amulet item=gold amulet]")
+                client.await("the amulet") { if (client.count(STRUNG_GOLD) == 1) Unit else null }
+                assertEquals(4, client.await("4 XP") { client.stat(CRAFTING)?.xp?.takeIf { it >= 4 } })
+            }
+        }
+    }
+
     private companion object {
+        const val SILVER_BAR = 2355
+        const val TIARA_MOULD = 5523
+        const val TIARA = 5525
+        const val TIARA_BUTTON = 28
+        const val FURNACE_X = 3220
+        const val FURNACE_Z = 3218
+        const val GOLD_BAR = 2357
+        const val RING_MOULD = 1592
+        const val AMULET_MOULD = 1595
+        const val SAPPHIRE_RING = 1637
+        const val UNSTRUNG_GOLD = 1673
+        const val STRUNG_GOLD = 1692
+        const val SAPPHIRE_RING_BUTTON = 9
+        const val GOLD_AMULET_BUTTON = 37
+        const val MAKE_ALL = 64
         const val CHISEL = 1755
         const val UNCUT_OPAL = 1625
         const val OPAL = 1609

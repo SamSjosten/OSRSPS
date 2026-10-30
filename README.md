@@ -450,7 +450,10 @@ Make-X box over the wool and flax held; either used on a wheel opens it over tha
 words under `crafting.*`, numbers in `skills/crafting.json`). A needle on leather, hard leather or green to black dragon
 leather opens the box over what it makes; thread is held, and one is used up every 5 items (the count is kept with the
 account). Steel studs on a leather body or chaps stud them. A chisel on an uncut gem cuts it; opal, jade and red topaz
-can crush into a crushed gemstone, rolled as the gathering skills roll. The making is the artisan loop in `Making.kt`.
+can crush into a crushed gemstone, rolled as the gathering skills roll. A gold bar or a mould used on a furnace opens
+`crafting_gold` (interface 446), and a silver bar or silver mould `silver_crafting` (6): both lay themselves out from
+the inventory, so the server answers the item buttons and keeps the quantity buttons' choice in `makexcrafting`, as at
+the anvil. A ball of wool strings an amulet. The making is the artisan loop in `Making.kt`.
 
 | Crafting behaviour | Source |
 |--------------------|--------|
@@ -461,8 +464,11 @@ can crush into a crushed gemstone, rolled as the gathering skills roll. The maki
 | Studs 3 ticks; studded body 41, 40 XP; studded chaps 44, 42 XP | OSRS Wiki, Studded body and Studded chaps |
 | Gem levels, XP, 2 ticks a gem; opal, jade and red topaz's crush chances (pairs worked back from each page's formula and checked against its chart, `CraftingDataTest`) and crushed XP | OSRS Wiki, each gem's page |
 | Each gem's cutting animation (`human_*cutting`) | cache 241 gamevals |
+| Gold and silver jewellery levels and XP; 3 ticks an item; stringing an amulet 4 XP, 2 ticks | OSRS Wiki, Jewellery, Silver bar, Gold ring, Gold amulet |
+| The two furnace interfaces' item and quantity buttons | decompiled interfaces crafting_gold and silver_crafting (osrs-dumps) |
+| The furnace animation, silver taking gold's ticks, which interface a shared mould opens | guessed |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst | out of scope |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
 
 ## Items and inventory
 

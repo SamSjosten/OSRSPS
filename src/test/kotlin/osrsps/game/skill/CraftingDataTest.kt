@@ -53,4 +53,25 @@ class CraftingDataTest {
         assertEquals(listOf(38, 50, 63), listOf(1625, 1627, 1629).map { data.gems.getValue(it).chance!!.failedXpTenths })
         assertTrue(data.gems.values.mapNotNull { it.chance }.all { it.failed == 1633 })
     }
+
+    @Test
+    fun `gold and silver jewellery match the Wiki, by their buttons`() {
+        val (gold, silver) = data.jewellery
+        assertEquals(446 to 32, gold.id to gold.items.size)
+        assertEquals(6 to 16, silver.id to silver.items.size)
+        fun of(furnace: JewelleryInterface, component: Int) = furnace.items.getValue(component).let { Triple(it.product, it.level, it.xpTenths) }
+        assertEquals(Triple(1635, 5, 150), of(gold, 8))
+        assertEquals(Triple(19538, 89, 1500), of(gold, 15))
+        assertEquals(Triple(1662, 56, 900), of(gold, 27))
+        assertEquals(Triple(1683, 80, 1500), of(gold, 42))
+        assertEquals(Triple(11069, 7, 250), of(gold, 50))
+        assertEquals(Triple(19532, 95, 1800), of(gold, 58))
+        assertEquals(Triple(21081, 1, 100), of(silver, 7))
+        assertEquals(Triple(21105, 45, 800), of(silver, 17))
+        assertEquals(Triple(5525, 23, 525), of(silver, 28))
+        assertEquals(listOf(ObjCount(2357, 1), ObjCount(1607, 1)), gold.items.getValue(9).inputs)
+        assertEquals(listOf(1592), gold.items.getValue(9).tools)
+        assertEquals(11, data.amulets.size)
+        assertTrue(data.amulets.values.all { it.level == 1 && it.xpTenths == 40 && it.inputs.last() == ObjCount(1759, 1) })
+    }
 }

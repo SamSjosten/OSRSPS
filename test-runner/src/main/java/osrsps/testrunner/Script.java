@@ -586,6 +586,26 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "item", "itemId", "onItem", "onItemId", "comment");
 				return new Steps.UseItemOnItem(timeout, item, id, onItem, onId);
 			}
+			case "useItemOnLoc":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String item = f.string("item", null);
+				int id = f.integer("itemId", -1);
+				String loc = f.string("loc", null);
+				int locId = f.integer("locId", -1);
+				int x = f.integer("x", -1);
+				int y = f.integer("y", -1);
+				if ((item == null && id < 0) || (loc == null && locId < 0))
+				{
+					throw new Invalid(f.where + " needs \"item\" or \"itemId\", and \"loc\" or \"locId\"");
+				}
+				if ((x < 0) != (y < 0))
+				{
+					throw new Invalid(f.where + " needs both \"x\" and \"y\", or neither");
+				}
+				f.rejectUnknown("step", "timeoutMs", "item", "itemId", "loc", "locId", "x", "y", "comment");
+				return new Steps.UseItemOnLoc(timeout, item, id, loc, locId, x < 0 ? null : new Tile(x, y, -1));
+			}
 			case "itemOption":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
