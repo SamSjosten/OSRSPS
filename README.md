@@ -240,6 +240,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::clearignores` | Empties your ignore list, for tests that start from none |
 | `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
 | `::drain stat levels\|percent% [index\|name]` | Drains an NPC's attack, defence, strength, ranged or magic (the one you fight, or by index from `::npcs` or by name) by that many levels, or by a percentage of its level now, as far as its drain cap lets it, and says its level now. Its combat rolls use the drained level (`::combat` shows them), it gets a level back a minute, and `::npcs` shows its drained stats |
+| `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash is in (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap), and `::combat` shows a special's attack roll and max hit |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -801,16 +802,22 @@ quest, so Al Kharid is as after Prince Ali Rescue.
 | Going through: both leaves swing open for 3 ticks as `inacmetalgateopenl`/`r` (1573/1574), the player moves to the far side at once; a player who talked to a guard first steps up to the gate | 2004Scape's border_gate.rs2; guessed until recorded |
 | Four Border Guards, two each side, standing still | 2004Scape map m51_50 spawns; standing still guessed |
 | The bank: Bank on any booth (`bankbooth` 10355) opens it; five Bankers (`kharidbanker1`/`2`, 3090/3091) behind the booths at x 3267 bank across them, by Bank or through their talk, which is the castle banker's | the engine's booths (any loc with Bank); OSRS Wiki, Banker and Transcript:Banker; 2004Scape map m51_49 spawns |
+| Seven shops: the General Store (Shop keeper 2817, Shop assistant 2818), Zeke's Superior Scimitars, Dommik's Crafting Store, Louie's Armoured Legs Bazaar, Ranael's Super Skirt Store, the Gem Trader and Ali's Discount Wares (Ali Morrisane's basic stock), each with its stock, restock times and percentages; the General Store won't buy silk; leaving Ali's basic stock with 10 coins and a free slot buys one of his five pieces of junk at random (`ali_morrisane.junk`; the 10-coin price and that it happens as the shop closes are guessed) | OSRS Wiki, each shop's page; invs from the 241 cache (the General Store's generalshop3 inferred from its keepers' names) |
+| Talk-to on each keeper but Ali Morrisane, as after Monkey Madness I and Rogue Trader, opening the shop where the Wiki has it open; Zeke's "Do you want to trade?" ends with his answer, as the Wiki has it | OSRS Wiki, each keeper's transcript; expressions from 2004Scape where it has the line, else guessed |
+| The keepers on 2004Scape's tiles, indoors; Ali Morrisane by his stall | 2004Scape maps m51_49/m51_50; Ali's tile guessed from the 241 map's stall and The Feud's quest icon |
 | The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
 
-Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only). The words of
+Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only); Ali
+Morrisane's talk and his Rogue Trader shops (blackjacks, runes, desert and Menaphite gear); the Al Kharid flyer used on a
+keeper, and the keepers' treasure trail steps. The words of
 the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
-`examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`).
+`examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`), as are the shop keepers' (`al_kharid_shop_keeper.*`,
+`al_kharid_shop_assistant.*`, `zeke.*`, `dommik.*`, `louie_legs.*`, `ranael.*`, `gem_trader.*` and each keeper's examine).
 
 Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
 Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
-Bank and through a banker's talk; `HeadlessAlKharidTest` does the same through the headless client, with the talk in
-`BorderGuardTest`.
+Bank and through a banker's talk; `al-kharid-shops.json` buys and sells at every shop; `HeadlessAlKharidShopsTest` opens the Gem trader's shop from his talk, tries silk at the General Store and buys Ali's junk; `HeadlessAlKharidTest` does the same through the headless client, with the talk in
+`BorderGuardTest` and `AlKharidShopkeepersTest` and the prices in `ShopTest`.
 
 ## Equipment
 

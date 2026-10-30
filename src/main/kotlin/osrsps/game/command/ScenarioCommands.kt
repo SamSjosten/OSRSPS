@@ -70,6 +70,8 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     // Nor poison, venom or an antipoison's immunity from before; ::reset puts the poison varp back with the rest.
     world.poison.clear(player)
     world.statusEffects.clear(player)
+    // Full special attack energy, as the run energy is full; a scenario's varps can set it otherwise.
+    world.specialAttacks.refill(player)
     for (skill in Skill.entries) {
         val set = scenario.skills[skill]
         val level = set?.level ?: PlayerSkills.newLevel(skill)

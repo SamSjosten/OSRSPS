@@ -250,6 +250,9 @@ class Player(
     /** The first tick they aren't stunned on; see [osrsps.game.combat.StatusEffects]. Not saved. */
     var stunnedUntil: Long = 0
 
+    /** Ticks since special attack energy last came back; see [osrsps.game.combat.SpecialAttacks]. Not saved: a login starts it again. */
+    var specRegenTicks: Int = 0
+
     /** The NPC that hit them last, and the tick it did; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
@@ -262,6 +265,9 @@ class Player(
 
     /** `::sure`: their attacks on NPCs always pass the accuracy roll, which is still drawn. Not saved. */
     var sureHits: Boolean = false
+
+    /** `::sure max`: as [sureHits], and their melee hits deal their max hit, the damage roll still drawn. Not saved. */
+    var sureMaxHits: Boolean = false
 
     /** The tick they died on, -1 while alive: they lie dead, taking no input, until [osrsps.game.combat.Deaths] respawns them. Not saved. */
     var deathTick: Long = -1
