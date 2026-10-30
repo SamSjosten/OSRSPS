@@ -596,6 +596,8 @@ test('a finished review whose flags are both null, with no receipt, is no verdic
   const { github, calls } = fakeGitHub({ 1: { head: H('1'), checks: [], comments: [unsaid] } });
   await gate(github, fakeGit({}), 1);
   assert.deepStrictEqual(calls, [['check', H('1'), 'in_progress']]);
+});
+
 // Merging itself, when GitHub enforces no merge rules on main.
 const afterMerge = [['dispatch', 'build.yml', 'main'], ['dispatch', 'mergeable.yml', 'main'], ['dispatch', 'automerge.yml', 'main']];
 const merged = n => [
