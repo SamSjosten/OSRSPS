@@ -1,0 +1,29 @@
+{
+ "name": "All Settings window (settings piece, step 5): the sweep of Display, every toggle with no dependency, guard or shared var turned on, held by the server and kept over a relog, then put back to 0. Generated from the 241 cache's catalog",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::varp 2855 0", "expectMessage": "Varp 2855", "comment": "settings_tracking: Activities, not searching"},
+  {"step": "command", "text": "::varbit 12378 0", "expectMessage": "Varbit 12378"},
+  {"step": "command", "text": "::varbit 6357 0", "expectMessage": "Varbit 6357"},
+  {"step": "clickWidget", "interfaceId": 548, "component": 52, "comment": "toplevel:stone11, the settings tab, in the fixed frame the VM's client uses"},
+  {"step": "clickWidget", "interfaceId": 116, "component": 32, "comment": "settings_side:settings_open, All Settings"},
+  {"step": "assertInterface", "interfaceId": 134},
+  {"step": "clickWidget", "interfaceId": 134, "component": 24, "slot": 4, "comment": "categories_clickzone child 4: Display"},
+  {"step": "assertVarbit", "id": 9656, "value": 4},
+  {"step": "clickWidget", "interfaceId": 134, "component": 20, "slot": 4, "comment": "toggle 7"},
+  {"step": "assertVarbit", "id": 12378, "value": 1},
+  {"step": "clickWidget", "interfaceId": 134, "component": 20, "slot": 5, "comment": "toggle 13"},
+  {"step": "assertVarbit", "id": 6357, "value": 1},
+  {"step": "clickWidget", "interfaceId": 134, "component": 4, "comment": "settings:close"},
+  {"step": "assertInterface", "interfaceId": 134, "absent": true},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "logout"},
+  {"step": "waitForLogin"},
+  {"step": "assertVarbit", "id": 12378, "value": 1},
+  {"step": "assertVarbit", "id": 6357, "value": 1},
+  {"step": "command", "text": "::varbit 12378 0", "expectMessage": "Varbit 12378"},
+  {"step": "command", "text": "::varbit 6357 0", "expectMessage": "Varbit 6357"},
+  {"step": "command", "text": "::varp 2855 0", "expectMessage": "Varp 2855"}
+ ]
+}

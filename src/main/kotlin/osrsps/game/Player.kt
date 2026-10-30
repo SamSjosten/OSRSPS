@@ -68,6 +68,10 @@ class Player(
     var settingsInputOpen: Boolean = false
         internal set
 
+    /** Whether this login made the account: there was no save. Not saved; see [World.loadPlayer]. */
+    var newAccount: Boolean = false
+        internal set
+
     /** The dialogue (or other modal) open in the chatbox's chatmodal, -1 for none. See [Interfaces.openChatModal]. */
     var chatModal: Int = -1
         internal set
