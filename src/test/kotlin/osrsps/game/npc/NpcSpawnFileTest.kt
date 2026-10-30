@@ -169,14 +169,18 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the toll gate has two Border Guards each side, standing still`() {
-        val types = NpcTypes.of(NpcType(4287, "borderguard1", internalName = "borderguard1"), NpcType(4288, "borderguard2", internalName = "borderguard2"))
+    fun `Al Kharid has two Border Guards each side of the toll gate and five bankers, all standing still`() {
+        val names = mapOf(4287 to "borderguard1", 4288 to "borderguard2", 3090 to "kharidbanker1", 3091 to "kharidbanker2")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
         assertEquals(emptyList(), result.unknown)
         val spawns = result.spawns
         // borderguard1 on the Lumbridge side (west of the gate's x 3268), borderguard2 on the Al Kharid side.
         assertEquals(setOf(Tile(3267, 3226), Tile(3267, 3229)), spawns.filter { it.type.id == 4287 }.map { Tile(it.x, it.z) }.toSet())
         assertEquals(setOf(Tile(3268, 3226), Tile(3268, 3229)), spawns.filter { it.type.id == 4288 }.map { Tile(it.x, it.z) }.toSet())
+        // Five bankers behind the bank's booths (x 3268), as the Wiki counts them.
+        assertEquals(5, spawns.count { it.type.id == 3090 || it.type.id == 3091 })
+        assertTrue(spawns.filter { it.type.id == 3090 || it.type.id == 3091 }.all { it.x == 3267 && it.z in 3164..3169 })
         assertTrue(spawns.all { it.wander == 0 && it.level == 0 && it.source.isNotBlank() })
     }
 

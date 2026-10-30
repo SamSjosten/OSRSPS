@@ -8,7 +8,9 @@ import org.junit.jupiter.api.io.TempDir
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.World
+import osrsps.game.bank.BankScreen
 import osrsps.game.content.AlKharid
+import osrsps.game.content.Bankers
 import osrsps.game.content.TollGate
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -16,6 +18,7 @@ import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
+import osrsps.map.LocCollision
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 
@@ -41,6 +44,7 @@ class HeadlessAlKharidTest {
             wall(AlKharid.PALACE_DOOR_LEFT_OPEN, "Large door", "Close"),
             wall(AlKharid.PALACE_DOOR_RIGHT, "Large door", "Open"),
             wall(AlKharid.PALACE_DOOR_RIGHT_OPEN, "Large door", "Close"),
+            LocType(BOOTH, "Bank booth", ops = listOf(null, "Bank", "Collect", null, null), collision = LocCollisionType(blocksProjectile = false)),
         ).associateBy { it.id },
     )
 
@@ -55,18 +59,31 @@ class HeadlessAlKharidTest {
         ZoneLoc(AlKharid.PALACE_DOOR_RIGHT, LocShape.WALL_STRAIGHT, 0, 3287, 3172, 0),
     )
 
+    /** One of the bank's booths, with a banker behind it, as the map and 2004Scape's spawns have them. */
+    private val booth = ZoneLoc(BOOTH, LocShape.CENTREPIECE_STRAIGHT, 1, 3268, 3166, 0)
+
+    private val banker = NpcType(Bankers.AL_KHARID_BANKER_2, "Banker", ops = listOf("Talk-to", null, "Bank", "Collect", null), internalName = "kharidbanker2")
+
     private val guard = NpcType(TollGate.BORDER_GUARD_WEST, "Border Guard", ops = listOf("Talk-to", null, null, null, null), internalName = "borderguard1")
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             markLoaded(TollGate.X shr 6, TollGate.Z_LEFT shr 6)
             markLoaded(3287 shr 6, 3171 shr 6)
+            markLoaded(3268 shr 6, 3166 shr 6)
+            // The booth blocks walking but not reaching across, as the map's booths do; static locs add no collision here.
+            LocCollision(this).addLoc(LocCollisionType(blocksProjectile = false), 3268, 3166, 0, LocShape.CENTREPIECE_STRAIGHT, 1)
         }
         World(
-            crcs, map, locTypes = types, staticLocs = StaticLocs().apply { (gate + palace).forEach(::add) },
-            npcTypes = NpcTypes.of(guard), npcSpawns = listOf(NpcSpawn(guard, 3267, 3226, source = "test")), cycleMillis = millis,
+            crcs, map, locTypes = types, staticLocs = StaticLocs().apply { (gate + palace + booth).forEach(::add) },
+            npcTypes = NpcTypes.of(guard, banker),
+            npcSpawns = listOf(NpcSpawn(guard, 3267, 3226, source = "test"), NpcSpawn(banker, 3267, 3166, source = "test")),
+            cycleMillis = millis,
         )
     }
+
+    private fun HeadlessClient.awaitBank() =
+        await("the bank") { openInterfaces().takeIf { BankScreen.MAIN in it } }
 
     private fun HeadlessClient.tele(x: Int, z: Int) {
         command("tele $x $z 0")
@@ -131,5 +148,48 @@ class HeadlessAlKharidTest {
                 assertEquals(AlKharid.PALACE_DOOR_RIGHT_OPEN, world.locs[3286, 3172, 0, 0]?.id)
             }
         }
+    }
+
+    @Test
+    fun `an Al Kharid banker banks across the booth, by Bank and through the banker's talk`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3269, 3166)
+                val npc = client.await("the banker in view") { client.npcs().firstOrNull { it.id == Bankers.AL_KHARID_BANKER_2 } }
+                client.npcOp(npc.index, Bankers.BANK)
+                client.awaitBank()
+                // The player stays on their side of the booth.
+                assertEquals(Coord(3269, 3166, 0), client.position)
+            }
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3269, 3166)
+                val npc = client.await("the banker in view") { client.npcs().firstOrNull { it.id == Bankers.AL_KHARID_BANKER_2 } }
+                client.npcOp(npc.index, Bankers.TALK_TO)
+                client.awaitDialogue("banker.greeting") { it is DialogueView.Chat && it.text == "[banker.greeting]" }
+                client.continueDialogue()
+                client.awaitDialogue("the banker's menu") { it is DialogueView.Menu }
+                client.chooseOption(1)
+                client.awaitBank()
+            }
+        }
+    }
+
+    @Test
+    fun `a bank booth's Bank opens the bank`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3269, 3166)
+                client.locOp(BOOTH, 3268, 3166, 2)
+                client.awaitBank()
+            }
+        }
+    }
+
+    private companion object {
+        /** bankbooth: the booths the 241 map places in Al Kharid's bank (Bank is op2, Collect op3). */
+        const val BOOTH = 10355
     }
 }

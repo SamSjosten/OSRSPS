@@ -132,6 +132,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again.
+- `al-kharid-bank.json`: Al Kharid step 2: Bank on a booth (logs deposited), a banker's Bank across the booth (logs
+  withdrawn), and a banker's talk (with `::keys on`) that opens the bank.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

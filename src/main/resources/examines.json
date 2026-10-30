@@ -62,7 +62,8 @@
     {"npc": 3029, "name": "Goblin", "also": [3030, 3031, 3032, 3033, 3034, 3035, 3036], "wiki": "Goblin page, infobox, Level 2 (one examine for the eight unarmed goblins)"},
     {"npc": 3017, "name": "Giant spider", "wiki": "Giant spider page, infobox, Level 2"},
     {"npc": 1326, "name": "Barfy Bill"},
-    {"npc": 4287, "name": "Border Guard", "also": [4288], "wiki": "Border Guard page, infobox (one examine for both)"}
+    {"npc": 4287, "name": "Border Guard", "also": [4288], "wiki": "Border Guard page, infobox (one examine for both)"},
+    {"npc": 3090, "name": "Banker", "also": [3091], "wiki": "Banker page, infobox (Al Kharid's bankers)"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},

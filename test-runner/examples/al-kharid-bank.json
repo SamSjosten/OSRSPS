@@ -1,0 +1,118 @@
+{
+ "name": "Al Kharid step 2: the bank: a booth's Bank, a banker's Bank across the booth, and a banker's talk (::keys on) that opens the bank",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack and an empty bank; ::reset at the end puts both back"
+  },
+  {
+   "step": "command",
+   "text": "::item logs 3",
+   "expectMessage": "Added 3 x Logs"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3270 3166 0",
+   "expectMessage": "Teleported to 3270, 3166, 0",
+   "comment": "Al Kharid's bank, in front of the booths (x 3268); the bankers stand behind them at x 3267"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank booth",
+   "option": "Bank",
+   "x": 3268,
+   "y": 3166
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "comment": "bankmain"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 15,
+   "component": 3,
+   "slot": 0,
+   "op": 8,
+   "comment": "Deposit-All on the logs"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 0
+  },
+  {
+   "step": "walk",
+   "x": 3271,
+   "y": 3166,
+   "comment": "walking away closes the bank"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker",
+   "option": "Bank",
+   "timeoutMs": 20000,
+   "comment": "a banker's own Bank, across the booth"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 0,
+   "op": 8,
+   "comment": "Withdraw-All on the logs, the bank's first slot"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 3
+  },
+  {
+   "step": "walk",
+   "x": 3270,
+   "y": 3167
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[banker.open_bank]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "comment": "asking for the bank opens it"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
