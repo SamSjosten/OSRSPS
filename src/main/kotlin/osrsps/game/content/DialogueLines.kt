@@ -25,6 +25,7 @@ import osrsps.game.skill.MakeLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.WoodcuttingLines
+import osrsps.game.social.SocialLines
 
 /** Every conversation's lines, which the dialogue file is read and written against. Each new [Lines] object goes here. */
 object DialogueLines {
@@ -49,6 +50,10 @@ object DialogueLines {
         HopperLines, DuckLines, SheepLines, CropLines, DairyCowLines, MillLines, BonesLines, SearchLines, ClimbLines,
         BankLines, ShopLines, BarfyBillLines, UrhneyLines, CampWarriorLines, CampArcherLines, CampMonkLines, CampWizardLines,
         CandleSellerLines, MiningTutorLines, FishingTutorLines,
+        // Social systems.
+        SocialLines,
+        // Al Kharid.
+        BorderGuardLines,
         // Draynor Village.
         DraynorSearchLines,
     )

@@ -19,7 +19,7 @@
   {"step": "assertSpotanim", "id": 2125, "timeoutMs": 20000, "comment": "tumekens_shadow_casting on the player"},
   {"step": "assertSpotanim", "npc": "Man", "ids": [2127, 85], "timeoutMs": 20000, "comment": "tumekens_shadow_impact if it hit, failedspell_impact if it splashed"},
   {"step": "waitTicks", "ticks": 15, "comment": "a man has 7 hitpoints and the spell's max hit is 34 here, so the fight is over or nearly; ::kill isn't used, as it would fail on his corpse"},
-  {"step": "command", "text": "::shadow", "expectMessage": "Your Tumeken's shadow has 9", "comment": "99 or fewer: a charge a cast"},
+  {"step": "command", "text": "::shadow", "expectMessage": "[combat.staff_check staff=Tumeken's shadow charges=9", "comment": "99 or fewer: a charge a cast; a key, as ::keys is on"},
   {"step": "wornOption", "slot": "weapon", "option": "Remove", "comment": "worn Check is in the headless test: the real client doesn't show members' worn ops here yet (the blowpipe's either)"},
   {"step": "assertInventory", "itemId": 27275, "timeoutMs": 10000},
   {"step": "itemOption", "item": "Tumeken's shadow", "option": "Uncharge"},
