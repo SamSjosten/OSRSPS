@@ -1,0 +1,9 @@
+# Draynor Village's item spawns (Draynor piece step 1). Items and rooms are the OSRS Wiki's Draynor Village spawn list
+# (read 2026-10-30): a cheese and a tomato in Aggie's house, two logs in Spria's house. The Wiki gives the room, not the
+# tile, so each tile is guessed: the cheese and tomato on the house's two tables, the logs on open floor. Every respawn
+# is the 100 ticks the Lumbridge files use; the Wiki gives none. Morgan's garlic is the cupboard's (DraynorVillage).
+obj	count	x	z	level	respawn
+cheese	1	3083	3260	0	100	# Aggie's house, west table; tile guessed
+tomato	1	3085	3261	0	100	# Aggie's house, east table; tile guessed
+logs	1	3092	3266	0	100	# Spria's house; tile guessed
+logs	1	3093	3266	0	100	# Spria's house; tile guessed

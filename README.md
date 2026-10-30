@@ -228,7 +228,8 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::keys [on\|off]` | **everyone.** Your dialogue and examine lines show their keys (`[cook.greeting]`) instead of the file's words, until off or logout; no argument flips it. Test scripts in git turn it on, so they pass with or without words |
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
-| `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too |
+| `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
+| `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
@@ -657,9 +658,9 @@ every branch of Bill's talk in `BarfyBillTest` and the drop rates in `NpcDropsTe
 
 The swamp's surface south of the castle, and the land just west of the castle, in `npc-spawns/lumbridge-swamp.json` on
 RSMod's tiles (each checked against the 241 map's floor): the giant rats, the frogs, a level 5 goblin, the unicorn and
-a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs. The fighters fight through
+a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs and tutors. The fighters fight through
 `npc-combat.json` and drop through `npc-drops.json`; the talks are `game/content/FatherUrhney.kt`,
-`AdventurersCamp.kt` and `CandleSeller.kt`.
+`AdventurersCamp.kt`, `CandleSeller.kt` and `SwampTutors.kt`.
 
 | Behaviour | Source |
 |-----------|--------|
@@ -670,20 +671,49 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 | Father Urhney (923), in his house, as after The Restless Ghost: he sends the player off, and hands a spare ghostspeak amulet to one who has none carried, worn or banked and has a free slot | the Wiki's Transcript:Father Urhney |
 | The adventurers' camp: the warrior (1158), archer (1157), monk (1159) and wizard (1160), each with their standard talk after Lost City | the Wiki's transcripts of each |
 | The candle seller (1896) by the swamp caves sells a lit candle for 1000 coins, and tells how lanterns are made, which the first menu then offers again | the Wiki's Transcript:Candle seller |
+| The Mining tutor (3222) by the east mine: the basics (Mining 1-24), tips (25-38) or advice (39-99), the quests (Doric and, on a members' world, the Dig Site), and the rocks and pickaxes menus; a bronze pickaxe for a player with none and a free slot | the Wiki's Transcript:Mining tutor |
+| The Fishing tutor (3221) by the shore: the basics (Fishing 1-28), tips (29-38, with the trawler) or advice (39-99, naming no quest as every one is done), the fish menu and where to fish by level, as on a members' world; a small fishing net for a player with none and a free slot | the Wiki's Transcript:Fishing tutor |
 | The fight animations (by the stand and walk animations each type has: the updated giant rat's, the giant frog's for all three frogs, the spear goblin's, the updated unicorn's), the curved bone's 1/5,012.5 kept as 1/5013, and every wander range (5) | guessed |
+| For the tutors: that a banked pickaxe or net counts as owned (as for the Woodsman tutor's axe); the items in the boxes the Wiki doesn't name; the fish menu's one slot for the lobster pot (Fishing 29-38) or the harpoon (39 and up), as a menu holds five options; the fishing tutor one tile east of RSMod's, which the 241 map has as water; their wander ranges (2) | guessed |
 | Every chathead expression; that a worn ghostspeak amulet counts as carried; the bank as the only store Urhney checks (no Death's Office or item retrieval yet); the candle landing at the player's feet with no free slot; having heard about lanterns kept with the account by name | guessed |
 
 Left out: giant rats are aggressive on live and the unicorn retreats at low hitpoints, which wait for NPC aggression
-and retreat (the Varrock piece; both are ranges from the spawn point). The fishing and mining tutors are the next step;
-the fishing spots and the mines are the gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache
-shows by quest varbits, are left out for now. What the talking NPCs say and each new NPC's examine are in the dialogue
-file (keys `father_urhney.*`, `lost_city_warrior.*`, `lost_city_archer.*`, `lost_city_monk.*`, `lost_city_wizard.*`,
-`candle_seller.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
+and retreat (the Varrock piece; both are ranges from the spawn point). The tutors' offers to show a place on the world
+map lead back to the first menu without opening the map, which isn't built yet; the fishing spots and the mines are the
+gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
+now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
+`lost_city_warrior.*`, `lost_city_archer.*`, `lost_city_monk.*`, `lost_city_wizard.*`, `candle_seller.*`,
+`mining_tutor.*`, `fishing_tutor.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
 
 Check: `test-runner/examples/lumbridge-swamp.json` examines each kind and kills a giant rat and a giant frog for their
-drops, then talks to Urhney, the adventurers and the candle seller; `HeadlessLumbridgeSwampTest` fights a giant rat to
-death and talks to Urhney through the headless client, with every branch of the talks in `SwampTalkTest`, the stats in
+drops, then talks to Urhney, the adventurers, the candle seller and both tutors; `HeadlessLumbridgeSwampTest` fights a
+giant rat to death, talks to Urhney and the camp's monk, buys a lit candle and gets a pickaxe and a net from the tutors
+through the headless client, with every branch of the talks in `SwampTalkTest` and `SwampTutorsTest`, the stats in
 `NpcCombatTest` and the drop rates in `NpcDropsTest`.
+## Draynor Village
+
+The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
+village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/content/DraynorVillage.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Three bankers (`banker1` 1613 twice, `banker2` 1618) behind the booths at 3091, 3242 to 3245, with the castle banker's talk and Bank option; the booths and the deposit box work as every booth does | the 241 cache's types; tiles from mejrs's data_osrs NPC list (NPCs seen on live); the Wiki's Banker page for the talk |
+| A man in the north-east house, a woman upstairs in Morgan's house, two rats by the farm gate, an imp west of the market, the pig pen's four pigs and three piglets, the farmer in the wheat field | as above, and the Wiki's Draynor Village page (seven pigs, the man and the woman) |
+| Morgan's and the Wise Old Man's straight stairs: up puts you past the top piece, down before the bottom piece (both run east) | read off the 241 map's walls; not seen on live |
+| Morgan's cupboard upstairs opens, gives a clove of garlic each Search, and shuts | the Wiki's Garlic page ("an unlimited supply"); opening and shutting as other furniture does |
+| Aggie's wardrobes and the drawers open and shut, and with the crates and the north-east house's bookcase say there is nothing in them | as the castle's furniture (`Searching`) |
+| A cheese and a tomato in Aggie's house, two logs in Spria's, back 100 ticks after taking | the Wiki's Draynor Village spawn list for the items and rooms; tiles and respawn guessed |
+| The pig pen's and the farm's gates | `Gates`, above |
+| Wander ranges (2 in the pig pen and indoors, 3 and 5 elsewhere) | guessed |
+
+Left out until their steps: the market and its stalls, the jail, Aggie's, Ned's, Morgan's and the Wise Old Man's talk,
+the bank guard, Miss Schism, the town crier, the dark wizards, the willows' fishing spots, the sewers' trapdoors and
+the rooftop course (Agility isn't built). The wheat field picks as Lumbridge's does (`Crops`).
+
+Check: `test-runner/examples/draynor-village.json` opens and shuts the pig pen's gate, climbs both staircases, takes
+garlic from Morgan's cupboard, opens Aggie's wardrobe and sees her cheese and tomato, and opens the bank from a banker
+and from a booth; `HeadlessDraynorTest` does the gate, the stairs, the cupboard and the bankers through the headless
+client, and `GatesTest` turns a gate every way round.
 
 ## Equipment
 
@@ -1072,6 +1102,18 @@ Lumbridge Castle's `poordoor` (1535), `elfdoor` (1543) and `poordoor_m` (56376) 
 takes over from this. Doors whose names don't pair (the castle kitchen door, 12348) and double doors are left to
 content, which can pair a door with `World.doors.register(closed, open)`.
 
+Fence gates open too: a left leaf `…fencegate_l` with an Open option pairs with `…openfencegate_l` (Close), and the
+right leaf `…fencegate_r` with `…openfencegate_r`, by the same gameval names (`game/loc/Gates.kt`). Opening either leaf
+opens both: each turns a quarter anticlockwise, the left one moving a tile outward and the right one two tiles outward
+and one back along the fence, so they stand together against the left leaf's hinge. Closing puts both back. That
+covers the plain picket gates (`fencegate_l`/`_r`, 1558/1560), the farming ones (1561/1562), the rustic ones and Fred
+the Farmer's (`qip_sheep_shearer_fencegate_*`), and the field gates north of Lumbridge (`fai_varrock_gate_l`/`_r`,
+which open into `_lc`/`_rc`): Draynor's pig pen and farm, and in and around Lumbridge the cow field's gates (3253, 3266
+and the west fence's), Fred's farm and sheep pen, the Groats' pens, the fields to the west (3145, 3291 to 3198, 3282)
+and north (3213, 3354 and 3254, 3347). Not covered: the cow field's `fencegate_*_cowboss_start` at 3262, 3294, whose
+option is Release (a content gate of its own). The rule is RSMod's picket gate script (rev 233), not yet watched on live; gates stay open until closed,
+as doors do (RSMod shuts them again after 500 ticks).
+
 | Loc behaviour | Source |
 |---------------|--------|
 | Loc type fields, map loc file format, shapes and layers | the 241 cache, decoded with RuneLite's loader's opcode table; all 62,534 loc types decode |
@@ -1084,6 +1126,7 @@ content, which can pair a door with `World.doors.register(closed, open)`.
 | Door pairs by gameval name | the 241 cache's own names |
 | Where an opened door goes (a quarter turn clockwise, onto the next tile) | RS2 engine rule; 151 of the 191 open doors the 241 maps place line up with it, 19 with the opposite turn (mostly double-door leaves) |
 | Doors stay open until closed, with no sound yet | guessed; the door sound ids aren't known yet (a recording will give them) |
+| Gates: both leaves together, where each goes, by gameval name | RSMod's picket gate script (rev 233); not checked on live |
 | Examine shows the loc's text from the dialogue file, as type 29 (object examine) chat; a loc not in `examines.json` shows its name and id | live's examine texts are not in the cache |
 | Timed loc changes run out at the start of the movement phase | guessed |
 

@@ -17,6 +17,8 @@ class Player(
     var z: Int,
     var level: Int,
     varTypes: VarTypes = VarTypes.NONE,
+    /** The server's XP rate ([World.xpRate]); 1x for players tests make on their own. */
+    xpRate: XpRate = XpRate(),
 ) {
     lateinit var session: Session<Player>
 
@@ -155,7 +157,7 @@ class Player(
             vars[World.VARP_RUN] = if (value) 1 else 0
         }
 
-    val skills = PlayerSkills()
+    val skills = PlayerSkills(xpRate)
 
     /** The 28-slot inventory, inv 93. Changes are sent at the end of the cycle. */
     val inventory = Inventory(Inventory.INV, Inventory.INV_CAPACITY)
@@ -174,6 +176,9 @@ class Player(
 
     /** What the player's charged items hold, such as a blowpipe's darts and scales; see [Charges]. */
     val charges = Charges()
+
+    /** Grand Exchange offers and buy limits; see [osrsps.game.ge.GrandExchange]. */
+    val ge = osrsps.game.ge.GeAccount()
 
     /** The chatbox's public, private and trade filters, as the client last set them. Saved. */
     var chatFilters: ChatFilters = ChatFilters.DEFAULT
