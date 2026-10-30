@@ -111,6 +111,7 @@ import osrsps.game.skill.Cooking
 import osrsps.game.skill.Fishing
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
+import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
@@ -375,6 +376,7 @@ class World(
     val fishing = Fishing(this)
 
     val cooking = Cooking(this)
+    val smithing = Smithing(this)
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -432,6 +434,7 @@ class World(
         mining.register()
         fishing.register()
         cooking.register()
+        smithing.register()
         loadDialogue()
     }
 
