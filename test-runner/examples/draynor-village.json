@@ -263,16 +263,12 @@
    "comment": "bankmain"
   },
   {
-   "step": "command",
-   "text": "::reset",
-   "expectMessage": "Back to how you were"
-  },
-  {
    "step": "locOption",
    "loc": "Bank booth",
    "option": "Bank",
    "x": 3091,
-   "y": 3243
+   "y": 3243,
+   "comment": "clicking the booth closes the bank the banker opened (a loc click closes modals) and opens it again"
   },
   {
    "step": "assertInterface",
