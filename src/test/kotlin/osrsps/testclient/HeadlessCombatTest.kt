@@ -139,19 +139,21 @@ class HeadlessCombatTest {
                 val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
                 client.await("the login rebuild") { client.position }
                 assertEquals("No NPCs waiting to respawn.", client.commandReply("respawns") { it.startsWith("No NPCs") })
+                // Paused and stepped, so the checks count game ticks: killed after tick n, the body goes on tick n + 4
+                // and the man is back on tick n + 25.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 assertEquals("Killed Man #${npc.index}.", client.commandReply("kill man") { it.startsWith("Killed") })
-                val killed = client.ticksSeen
-                val line = client.commandReply("respawns") { it.startsWith("Man (") }
-                assertTrue(line.startsWith("Man (3106) back at 3224, 3218 in "), line)
-                val left = line.substringAfter(" in ").substringBefore(" tick").toInt()
-                assertTrue(left in 20..25, line)
-                client.await("the body gone", timeoutMillis = 10_000) { if (client.npcs().none { it.id == man.id }) Unit else null }
-                val gone = client.ticksSeen
-                client.await("the man's return", timeoutMillis = 20_000) { client.npcs().firstOrNull { it.id == man.id } }
-                val back = client.ticksSeen
-                // Ticks as the client counts them: a packet can land a tick either side of the server's.
-                assertTrue(gone - killed in 3..6, "gone ${gone - killed} ticks after the kill")
-                assertTrue(back - killed in 23..27, "back ${back - killed} ticks after the kill")
+                assertEquals("Man (3106) back at 3224, 3218 in 25 ticks", client.commandReply("respawns") { it.startsWith("Man (") })
+                client.stepTicks(3)
+                assertTrue(client.npcs().any { it.id == man.id }, "the body lies 4 ticks")
+                client.stepTicks(1)
+                assertTrue(client.npcs().none { it.id == man.id }, "the body gone on the 4th tick")
+                client.stepTicks(20)
+                assertTrue(client.npcs().none { it.id == man.id }, "still gone a tick before the 25th")
+                assertEquals("Man (3106) back at 3224, 3218 in 1 tick", client.commandReply("respawns") { it.startsWith("Man (") })
+                client.stepTicks(1)
+                assertTrue(client.npcs().any { it.id == man.id }, "back on the 25th tick")
+                client.commandReply("resume") { it.startsWith("Resumed") }
                 assertEquals("No NPCs waiting to respawn.", client.commandReply("respawns") { it.startsWith("No NPCs") })
             }
         }
