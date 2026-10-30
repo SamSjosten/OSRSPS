@@ -731,6 +731,33 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "name", "absent", "comment");
 				return new Steps.AssertIgnore(timeout, name, absent);
 			}
+			case "joinFriendsChat":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String owner = f.requiredString("owner");
+				f.rejectUnknown("step", "timeoutMs", "owner", "comment");
+				return Steps.PromptEntry.joinFriendsChat(timeout, owner);
+			}
+			case "setFriendsChatName":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				f.rejectUnknown("step", "timeoutMs", "name", "comment");
+				return Steps.PromptEntry.setFriendsChatName(timeout, name);
+			}
+			case "assertFriendsChat":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String owner = f.string("owner", null);
+				String member = f.string("member", null);
+				boolean absent = f.bool("absent", false);
+				if (owner == null && (member != null || !absent))
+				{
+					throw new Invalid(f.where + " needs \"owner\", or \"absent\": true alone for no channel");
+				}
+				f.rejectUnknown("step", "timeoutMs", "owner", "member", "absent", "comment");
+				return new Steps.AssertFriendsChat(timeout, owner, member, absent);
+			}
 			case "privateMessage":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

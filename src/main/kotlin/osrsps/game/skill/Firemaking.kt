@@ -88,12 +88,15 @@ class Firemaking(private val world: World, private val collision: CollisionMap) 
         // Checked before every try, as 2004Scape does: the tinderbox may have been dropped, or a fire lit on the tile.
         if (!canLight(log, obj.x, obj.z)) return player.anim(-1)
         val text = world.textFor(player)
-        when (SkillClock.step(player, tick, CYCLE)) {
-            ClockStep.STARTED -> {
-                player.anim(ANIM)
-                player.message(text[FiremakingLines.ATTEMPT])
-            }
-            ClockStep.WAITING -> {}
+        val step = SkillClock.step(player, tick, CYCLE)
+        // The clock is shared, so one still running from the last skill (chopping the logs just before) skips STARTED:
+        // the first try strikes and says so anyway (found 30 Oct 2026, as Draynor found for cooking).
+        if (step == ClockStep.STARTED || !repeat) {
+            player.anim(ANIM)
+            player.message(text[FiremakingLines.ATTEMPT])
+        }
+        when (step) {
+            ClockStep.STARTED, ClockStep.WAITING -> {}
             ClockStep.DUE -> {
                 if (SuccessRoll.roll(world.random, LOW, HIGH, player.skills.currentLevel(Skill.FIREMAKING))) {
                     player.actionDelay = tick + CYCLE

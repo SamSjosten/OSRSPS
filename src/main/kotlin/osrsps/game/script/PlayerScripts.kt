@@ -47,6 +47,16 @@ class PlayerScripts {
         return had
     }
 
+    /** The script waiting for the player to type a line of text, if any; see [ScriptContext.stringDialog]. */
+    internal var typing: Continuation<String>? = null
+
+    /** Drops the script waiting for typed text, which never carries on. Returns whether there was one. */
+    internal fun dropTyping(): Boolean {
+        val had = typing != null
+        typing = null
+        return had
+    }
+
     val queued: List<QueuedScript> get() = queue + weakQueue
     val activeTimers: Collection<ScriptTimer> get() = timers.values
 }
