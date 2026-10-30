@@ -35,6 +35,20 @@ object HopperLines : Lines("hopper", "Transcript:Hopper") {
     val NOTHING_TO_FILL = line("nothing_to_fill", "Fill with no grain: an item box with the grain")
 }
 
+/** Making flour's messages, those the 2004Scape project lists from live. */
+object MillLines : Lines("mill", "Windmill") {
+    val PUT_GRAIN = line("put_grain", "Fill on the hopper, or grain used on it")
+    val ALREADY_GRAIN = line("already_grain", "Fill with grain in the hopper already")
+    val EMPTY_HOPPER = line("empty_hopper", "Operate on the controls with nothing in the hopper")
+    val OPERATED = line("operated", "Operate sending the grain down")
+    val BIN_FULL = line("bin_full", "Operate with the flour bin full")
+    val BIN_NOW_FULL = line("bin_now_full", "Operate filling the bin's last pot's worth")
+    val BIN_EMPTY = line("bin_empty", "Empty on an empty flour bin")
+    val NO_POT = line("no_pot", "Empty on the bin with no empty pot")
+    val FILLED_POT = line("filled_pot", "a pot filled, with flour left in the bin")
+    val LAST_POT = line("last_pot", "a pot filled with the bin's last flour")
+}
+
 /**
  * Mill Lane Mill, north-west of Lumbridge by the wheat field: Millie Miller (4627) on the ground floor, the hopper and
  * its controls on the top floor, the flour bin on the ground floor, and the ladders between them.
@@ -86,17 +100,6 @@ object MillLaneMill {
 
     /** human_pickuptable. */
     const val ANIM_USE = 832
-
-    const val PUT_GRAIN = "You put the grain in the hopper. You should now pull the lever nearby to operate the hopper."
-    const val ALREADY_GRAIN = "There is already grain in the hopper."
-    const val EMPTY_HOPPER = "You operate the empty hopper. Nothing interesting happens."
-    const val OPERATED = "You operate the hopper. The grain slides down the chute."
-    const val BIN_FULL = "The flour bin downstairs is full, I should empty it first."
-    const val BIN_NOW_FULL = "The flour bin downstairs is now full."
-    const val BIN_EMPTY = "The flour bin is already empty. You need to place wheat in the hopper upstairs first."
-    const val NO_POT = "You need an empty pot to hold the flour in."
-    const val FILLED_POT = "You fill a pot with flour from the bin."
-    const val LAST_POT = "You fill a pot with the last of the flour in the bin."
 
     fun flour(player: Player): Int = player.vars.getVarbit(VARBIT_FLOUR)
 
@@ -159,15 +162,15 @@ fun registerMillLaneMill(world: World) {
 
     world.handlers.onLoc(MillLaneMill.HOPPER, MillLaneMill.FILL) { fillHopper(world) }
     world.handlers.onObjOnLoc(MillLaneMill.HOPPER, MillLaneMill.GRAIN) { fillHopper(world) }
-    world.handlers.onLoc(MillLaneMill.CONTROLS, MillLaneMill.OPERATE) { operate() }
-    world.handlers.onLoc(MillLaneMill.FLOUR_BIN, MillLaneMill.EMPTY) { emptyBin() }
-    world.handlers.onObjOnLoc(MillLaneMill.FLOUR_BIN, MillLaneMill.POT) { emptyBin() }
+    world.handlers.onLoc(MillLaneMill.CONTROLS, MillLaneMill.OPERATE) { operate(world) }
+    world.handlers.onLoc(MillLaneMill.FLOUR_BIN, MillLaneMill.EMPTY) { emptyBin(world) }
+    world.handlers.onObjOnLoc(MillLaneMill.FLOUR_BIN, MillLaneMill.POT) { emptyBin(world) }
 }
 
 private suspend fun ScriptContext.fillHopper(world: World) {
     arriveDelay()
     if (MillLaneMill.hopperFull(player)) {
-        player.message(MillLaneMill.ALREADY_GRAIN)
+        world.message(player, MillLines.ALREADY_GRAIN)
         return
     }
     val slot = slotOf(MillLaneMill.GRAIN)
@@ -178,40 +181,40 @@ private suspend fun ScriptContext.fillHopper(world: World) {
     player.inventory.remove(slot, 1)
     player.charges[MillLaneMill.HOPPER_GRAIN] = 1
     player.anim(MillLaneMill.ANIM_USE)
-    player.message(MillLaneMill.PUT_GRAIN)
+    world.message(player, MillLines.PUT_GRAIN)
 }
 
-private suspend fun ScriptContext.operate() {
+private suspend fun ScriptContext.operate(world: World) {
     // 2004Scape: this message comes before the arrive delay, the animation after it.
-    if (!MillLaneMill.hopperFull(player)) player.message(MillLaneMill.EMPTY_HOPPER)
+    if (!MillLaneMill.hopperFull(player)) world.message(player, MillLines.EMPTY_HOPPER)
     arriveDelay()
     player.anim(MillLaneMill.ANIM_USE)
     if (!MillLaneMill.hopperFull(player)) return
     val flour = MillLaneMill.flour(player)
     if (flour >= MillLaneMill.BIN_CAPACITY) {
-        player.message(MillLaneMill.BIN_FULL)
+        world.message(player, MillLines.BIN_FULL)
         return
     }
-    player.message(MillLaneMill.OPERATED)
+    world.message(player, MillLines.OPERATED)
     player.charges[MillLaneMill.HOPPER_GRAIN] = 0
     MillLaneMill.setFlour(player, flour + 1)
-    if (flour + 1 == MillLaneMill.BIN_CAPACITY) player.message(MillLaneMill.BIN_NOW_FULL)
+    if (flour + 1 == MillLaneMill.BIN_CAPACITY) world.message(player, MillLines.BIN_NOW_FULL)
 }
 
-private fun ScriptContext.emptyBin() {
+private fun ScriptContext.emptyBin(world: World) {
     val flour = MillLaneMill.flour(player)
     if (flour == 0) {
-        player.message(MillLaneMill.BIN_EMPTY)
+        world.message(player, MillLines.BIN_EMPTY)
         return
     }
     val slot = slotOf(MillLaneMill.POT)
     if (slot == null) {
-        player.message(MillLaneMill.NO_POT)
+        world.message(player, MillLines.NO_POT)
         return
     }
     player.inventory[slot] = InvObj(MillLaneMill.POT_OF_FLOUR, 1)
     MillLaneMill.setFlour(player, flour - 1)
-    player.message(if (flour > 1) MillLaneMill.FILLED_POT else MillLaneMill.LAST_POT)
+    world.message(player, if (flour > 1) MillLines.FILLED_POT else MillLines.LAST_POT)
 }
 
 private fun ScriptContext.slotOf(id: Int): Int? = player.inventory.contents().firstOrNull { it.second.id == id }?.first

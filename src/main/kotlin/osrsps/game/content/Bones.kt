@@ -2,7 +2,14 @@ package osrsps.game.content
 
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
+
+/** Burying's messages, the 2004Scape project's, not checked against live. */
+object BonesLines : Lines("bones", "Bones") {
+    val DIG = line("dig", "Bury, at once")
+    val BURIED = line("buried", "Bury, a tick later as the bones go")
+}
 
 /**
  * Burying bones: Bury (iop1) on bones gives Prayer XP.
@@ -26,21 +33,18 @@ object Bones {
 
     /** human_pickupfloor. */
     const val ANIM_BURY = 827
-
-    const val DIG = "You dig a hole in the ground..."
-    const val BURIED = "You bury the bones."
 }
 
 fun registerBones(world: World) {
     for ((id, xp) in Bones.XP_TENTHS) {
         val type = world.objTypes[id] ?: continue
         if (type.iop(Bones.BURY) != "Bury") continue
-        world.handlers.onObj(id, Bones.BURY) { op -> bury(op.sub, id, xp) }
+        world.handlers.onObj(id, Bones.BURY) { op -> bury(world, op.sub, id, xp) }
     }
 }
 
-private suspend fun ScriptContext.bury(slot: Int, id: Int, xp: Int) {
-    player.message(Bones.DIG)
+private suspend fun ScriptContext.bury(world: World, slot: Int, id: Int, xp: Int) {
+    world.message(player, BonesLines.DIG)
     player.anim(Bones.ANIM_BURY)
     player.interaction = null
     player.waypoints.clear()
@@ -49,5 +53,5 @@ private suspend fun ScriptContext.bury(slot: Int, id: Int, xp: Int) {
     if (player.inventory[slot]?.id != id) return
     player.inventory.remove(slot, 1)
     player.skills.addTenths(Skill.PRAYER, xp)
-    player.message(Bones.BURIED)
+    world.message(player, BonesLines.BURIED)
 }

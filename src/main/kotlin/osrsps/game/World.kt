@@ -64,6 +64,7 @@ import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.Prayer
 import osrsps.game.combat.Food
 import osrsps.game.combat.Foods
+import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
@@ -106,6 +107,7 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Cooking
 import osrsps.game.skill.Fishing
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
@@ -174,6 +176,8 @@ class World(
     prayerList: List<Prayer> = emptyList(),
     /** What can be eaten, by obj type id ([Foods]); tests that eat pass their own. */
     foodList: Map<Int, Food> = emptyMap(),
+    /** What can be drunk ([Potions]); tests that drink pass their own. */
+    potionData: Potions.Data = Potions.Data.NONE,
     /** The shops and their stock; tests that shop pass their own. */
     val shopTypes: ShopTypes = ShopTypes.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
@@ -266,6 +270,7 @@ class World(
         bonuses = equipment::bonuses,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
         remove = { player, wearpos -> equipmentTab.remove(player, wearpos) },
+        words = ::textFor,
     )
 
     /** Bank deposit boxes; see [DepositBox]. */
@@ -281,7 +286,7 @@ class World(
     private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
 
     /** Shops and their shared stock; see [ShopScreen]. */
-    val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine)
+    val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
 
@@ -369,12 +374,16 @@ class World(
 
     val fishing = Fishing(this)
 
+    val cooking = Cooking(this)
+
     /** Boosted and drained stats going back; see [StatRestore]. */
-    private val statRestore = StatRestore(prayers::has)
+    private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
     val foods = Foods(foodList, words = ::textFor)
+
+    val potions = Potions(potionData, words = ::textFor)
 
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
@@ -406,6 +415,7 @@ class World(
         registerCombatTutors(this)
         registerBones(this)
         foods.register(this)
+        potions.register(this)
         registerBanking(this)
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
@@ -421,6 +431,7 @@ class World(
         firemaking.register()
         mining.register()
         fishing.register()
+        cooking.register()
         loadDialogue()
     }
 

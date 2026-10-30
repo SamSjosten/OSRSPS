@@ -1,11 +1,20 @@
 package osrsps.game.content
 
 import osrsps.game.World
+import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
 import osrsps.game.zone.ZoneLoc
 
 /** Where a climb puts the player. */
 data class Destination(val x: Int, val z: Int, val level: Int)
+
+/** The Climb menus' title and the stairs' options, RSMod's (rev 233). A ladder's options are its own ops' names. */
+object ClimbLines : Lines("climb", "Staircase") {
+    val STAIRS_TITLE = line("stairs_title", "Climb on stairs with a floor above and below: the menu's title")
+    val STAIRS_UP = line("stairs_up", "that menu's first option")
+    val STAIRS_DOWN = line("stairs_down", "that menu's second option")
+    val LADDER_TITLE = line("ladder_title", "Climb on a ladder with a floor above and below: the menu's title (the Ladder page)")
+}
 
 /**
  * Stairs and ladders. Spiral stairs move the player at once to the tile beside the stairs on the next level; ladders
@@ -23,10 +32,6 @@ object Climbing {
     /** How far apart in z a dungeon is from the ground above it. */
     const val DUNGEON_OFFSET = 6400
 
-    const val STAIRS_MENU_TITLE = "Climb up or down the stairs?"
-    const val STAIRS_UP = "Climb up the stairs."
-    const val STAIRS_DOWN = "Climb down the stairs."
-    const val LADDER_MENU_TITLE = "Climb up or down the ladder?"
     const val LADDER_UP = "Climb-up"
     const val LADDER_DOWN = "Climb-down"
 
@@ -81,7 +86,7 @@ fun ScriptContext.climbStairs(world: World, loc: ZoneLoc, levels: Int) {
 suspend fun ScriptContext.climbStairsMenu(world: World, loc: ZoneLoc) {
     var levels = 0
     world.dialogues.start(this) {
-        levels = if (choice(Climbing.STAIRS_UP, Climbing.STAIRS_DOWN, title = Climbing.STAIRS_MENU_TITLE) == 1) 1 else -1
+        levels = if (choice(ClimbLines.STAIRS_UP, ClimbLines.STAIRS_DOWN, title = text(ClimbLines.STAIRS_TITLE)) == 1) 1 else -1
     }
     climbStairs(world, loc, levels)
 }
@@ -106,7 +111,7 @@ suspend fun ScriptContext.climbLadderMenu(world: World, loc: ZoneLoc) {
     arriveDelay()
     var levels = 0
     world.dialogues.start(this) {
-        levels = if (choice(Climbing.LADDER_UP, Climbing.LADDER_DOWN, title = Climbing.LADDER_MENU_TITLE) == 1) 1 else -1
+        levels = if (choice(Climbing.LADDER_UP, Climbing.LADDER_DOWN, title = text(ClimbLines.LADDER_TITLE)) == 1) 1 else -1
     }
     player.anim(Climbing.ANIM_REACH_FOR_LADDER)
     delay(2)

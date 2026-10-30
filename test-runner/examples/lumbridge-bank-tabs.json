@@ -7,6 +7,11 @@
   },
   {
    "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
    "text": "::scenario lumbridge-bank-tabs",
    "expectMessage": "Started scenario lumbridge-bank-tabs.",
    "comment": "at the castle's booths with logs and a bronze axe in tab 1 and coins in the main tab (slots 0, 1, 2); ::reset at the end puts the bank back"
@@ -138,7 +143,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You add 10 bank fillers to your bank."
+   "contains": "[bank.fillers_added count=10]"
   },
   {
    "step": "waitTicks",
@@ -162,7 +167,7 @@
    "interfaceId": 289,
    "component": 8,
    "op": 1,
-   "comment": "Clear them all"
+   "comment": "the confirm button"
   },
   {
    "step": "assertInterface",
@@ -185,7 +190,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "You add 897 bank fillers to your bank.",
+   "contains": "[bank.fillers_added count=897]",
    "comment": "900 less the three items: the ten fillers were cleared"
   },
   {

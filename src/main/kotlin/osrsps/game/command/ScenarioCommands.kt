@@ -63,6 +63,8 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     if (player.beforeScenario == null) player.beforeScenario = PlayerSave.of(player)
     world.scripts.clearAll(player)
     world.meleeCombat.endFights(player)
+    // A divine potion drunk before would hold the scenario's boosts and then drop them; ::reset puts its varbits back.
+    world.potions.clearDivine(player)
     for (skill in Skill.entries) {
         val set = scenario.skills[skill]
         val level = set?.level ?: PlayerSkills.newLevel(skill)

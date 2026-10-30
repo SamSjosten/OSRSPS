@@ -1,8 +1,21 @@
 package osrsps.game.content
 
 import osrsps.game.World
+import osrsps.game.dialogue.Line
+import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
 import osrsps.game.zone.ZoneLoc
+
+/**
+ * What searching furniture says. RSMod and 2004Scape agree on the crate's; the sacks' is RSMod's (2004Scape's differs
+ * a little), the chest's a constant RSMod defines but never uses (2004Scape guesses another), the drawers' 2004Scape's.
+ */
+object SearchLines : Lines("search", "Crate") {
+    val CRATE_EMPTY = line("crate_empty", "Search on a crate")
+    val SACKS_EMPTY = line("sacks_empty", "Search on sacks")
+    val CHEST_EMPTY = line("chest_empty", "Search on an open chest")
+    val DRAWERS_EMPTY = line("drawers_empty", "Search on open drawers")
+}
 
 /**
  * Crates, sacks, chests and drawers that a player searches and finds nothing in. RS2 once gave a random item now and
@@ -14,18 +27,6 @@ import osrsps.game.zone.ZoneLoc
  * defines but never uses. All guessed until a recording settles them.
  */
 object Searching {
-    /** RSMod and 2004Scape agree. */
-    const val CRATE_EMPTY = "You search the crate but find nothing."
-
-    /** RSMod's; 2004Scape has "There's nothing interesting in these sacks." */
-    const val SACKS_EMPTY = "There is nothing interesting in these sacks."
-
-    /** RSMod's constant; 2004Scape guesses "You find nothing." */
-    const val CHEST_EMPTY = "You search the chest but find nothing."
-
-    /** 2004Scape's. */
-    const val DRAWERS_EMPTY = "The drawers are empty."
-
     /** human_openchest, for drawers too. */
     const val ANIM_OPEN = 536
 
@@ -41,12 +42,12 @@ object Searching {
 }
 
 /** Option [option] on loc [id] says [message]. */
-fun registerSearch(world: World, id: Int, option: Int, message: String) {
-    world.handlers.onLoc(id, option) { player.message(message) }
+fun registerSearch(world: World, id: Int, option: Int, message: Line) {
+    world.handlers.onLoc(id, option) { world.message(player, message) }
 }
 
 /** Furniture whose [closed] type opens into [open], which has Search, saying [searchMessage], and Shut. */
-fun registerOpenable(world: World, closed: Int, open: Int, searchMessage: String) {
+fun registerOpenable(world: World, closed: Int, open: Int, searchMessage: Line) {
     world.handlers.onLoc(closed, Searching.OPEN) { op -> swap(world, op.loc!!, open, Searching.ANIM_OPEN) }
     registerSearch(world, open, Searching.SEARCH, searchMessage)
     world.handlers.onLoc(open, Searching.SHUT) { op -> swap(world, op.loc!!, closed, Searching.ANIM_SHUT) }

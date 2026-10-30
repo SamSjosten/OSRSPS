@@ -210,6 +210,9 @@ class Player(
     var foodDelayUntil: Long = 0
     var comboFoodDelayUntil: Long = 0
 
+    /** The first tick they may drink again; see [osrsps.game.combat.Potions]. Not saved. */
+    var potionDelayUntil: Long = 0
+
     /** The NPC that hit them last, and the tick it did; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
