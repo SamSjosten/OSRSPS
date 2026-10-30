@@ -1,6 +1,8 @@
 package osrsps.game.content
 
+import kotlin.math.abs
 import osrsps.game.World
+import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
 import osrsps.game.zone.ZoneLoc
@@ -9,6 +11,11 @@ import osrsps.game.zone.ZoneLoc
 object VarrockSearchLines : Lines("varrock_search", "Bookcase") {
     val BOOKCASE_EMPTY = line("bookcase_empty", "Search on a bookcase in a Varrock house")
     val SHELVES_EMPTY = line("shelves_empty", "Search on bookshelves in a Varrock house (the Shelves page)")
+}
+
+/** The banker behind the West Bank's locked door (the Varrock West Bank page). */
+object WestBankDoorLines : Lines("varrock_bank_door", "Varrock West Bank") {
+    val KNOCK = line("knock", "Knock-at on the locked door: the banker behind it won't let the player in")
 }
 
 /** What a stray dog and its player say over their heads (the Stray dog page). */
@@ -85,6 +92,11 @@ object Varrock {
     const val SHOO_SOUND = 911
     const val PET_SOUND = 652
 
+    /** `fai_varrock_bank_locked_door`, the West Bank's door to its basement room, and the banker behind it. */
+    const val WEST_BANK_LOCKED_DOOR = 11788
+    const val KNOCK_AT = 1
+    const val WEST_BANK_DOORGUARD = 8666
+
     /** Where straight stairs [loc] (a bottom when [up], else a top) put a player standing at [x], [z]. */
     fun straightStairs(loc: ZoneLoc, up: Boolean, x: Int, z: Int): Destination {
         val angle = loc.angle and 3
@@ -131,6 +143,17 @@ fun registerVarrock(world: World) {
         registerSearch(world, BOXES, 1, SearchLines.BOXES_EMPTY)
         for (shelves in SHELVES) registerSearch(world, shelves, 1, VarrockSearchLines.SHELVES_EMPTY)
         for (bookcase in BOOKCASES) registerSearch(world, bookcase, 1, VarrockSearchLines.BOOKCASE_EMPTY)
+
+        // The banker answers from behind the door; one line, and its chathead expression, guessed.
+        world.handlers.onLoc(WEST_BANK_LOCKED_DOOR, KNOCK_AT) { op ->
+            val door = op.loc!!
+            val banker = world.npcs.all.firstOrNull { it.type.id == WEST_BANK_DOORGUARD && it.level == door.level && abs(it.x - door.x) <= 3 && abs(it.z - door.z) <= 3 }
+            if (banker == null) {
+                world.message(player, WestBankDoorLines.KNOCK)
+            } else {
+                world.dialogues.start(this, banker) { chatNpc(ChatAnim.NEUTRAL, WestBankDoorLines.KNOCK) }
+            }
+        }
 
         for (dog in STRAY_DOGS) {
             world.handlers.onNpc(dog, SHOO_AWAY) { op ->

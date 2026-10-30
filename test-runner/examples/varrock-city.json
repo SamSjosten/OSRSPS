@@ -250,6 +250,12 @@
    "ticks": 2
   },
   {
+   "step": "command",
+   "text": "::tele 3235 3401 0",
+   "expectMessage": "Teleported to 3235, 3401, 0",
+   "comment": "east of the square, between the men (3106) spawned at 3234 3398 and 3237 3406, so one is in view"
+  },
+  {
    "step": "npcOption",
    "npcId": 3106,
    "option": "Talk-to",
