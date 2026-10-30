@@ -66,6 +66,11 @@ fun CommandRegistry.registerGrandExchangeCommands(world: World) {
         world.grandExchangeScreen.open(player)
     }
 
+    register("gecollect", "::gecollect") {
+        if (args.isNotEmpty()) fail("Usage: ::gecollect")
+        world.grandExchangeScreen.openCollectionBox(player)
+    }
+
     register("gefill", "::gefill slot [amount]") {
         val slot = args.firstOrNull()?.toIntOrNull()?.takeIf { it in 0 until GeAccount.SLOTS } ?: fail("Usage: ::gefill slot [amount]")
         val amount = args.getOrNull(1)?.let { parseCount(it) ?: fail("'$it' is not an amount") } ?: Int.MAX_VALUE
