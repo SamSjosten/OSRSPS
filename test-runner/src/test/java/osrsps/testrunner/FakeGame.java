@@ -11,6 +11,8 @@ class FakeGame implements Game
 	boolean loggedIn = true;
 	/** What weight answers while logged in. */
 	int weight;
+	/** What typingPending answers: the typed keys not yet sent. */
+	boolean typingPending;
 	/** What promptMode answers; entering an amount closes the prompt. */
 	int promptMode;
 	String name = "test";
@@ -289,6 +291,19 @@ class FakeGame implements Game
 	public int promptMode()
 	{
 		return promptMode;
+	}
+
+	@Override
+	public String typeText(String text)
+	{
+		actions.add("type " + text);
+		return null;
+	}
+
+	@Override
+	public boolean typingPending()
+	{
+		return typingPending;
 	}
 
 	@Override
