@@ -155,17 +155,37 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     fun openFloater(player: Player, interfaceId: Int) {
         player.floater = interfaceId
         val frame = player.frame
+        player.closedWhileAway -= frame.interfaceId to frame.component(FrameSlot.FLOATER)
         send(player, IfOpenSub(frame.interfaceId, frame.component(FrameSlot.FLOATER), interfaceId, OVERLAY))
     }
 
     /** Opens [interfaceId] as an overlay inside component [component] of [parent], an interface that is open. */
     fun openInside(player: Player, parent: Int, component: Int, interfaceId: Int) {
+        player.closedWhileAway -= parent to component
         send(player, IfOpenSub(parent, component, interfaceId, OVERLAY))
     }
 
     /** Closes what [openInside] opened in [component] of [parent]. */
     fun closeInside(player: Player, parent: Int, component: Int) {
+        sendClose(player, parent, component)
+    }
+
+    /**
+     * Sends a close of [component] of [parent]. One sent while the connection is lost may never arrive, so it is kept
+     * for [resendClosesWhileAway].
+     */
+    private fun sendClose(player: Player, parent: Int, component: Int) {
         send(player, IfCloseSub(parent, component))
+        if (player.connectionLost || player.connectionLostTick >= 0) player.closedWhileAway += parent to component
+    }
+
+    /**
+     * After a reconnect, closes again what was closed while the connection was lost (a trade ended by the drop, say),
+     * so the client doesn't keep showing an interface the server has shut. Opened again since, it is left alone.
+     */
+    fun resendClosesWhileAway(player: Player) {
+        for ((parent, component) in player.closedWhileAway) send(player, IfCloseSub(parent, component))
+        player.closedWhileAway.clear()
     }
 
     /** Runs client script [id] with [args] (ints, and strings in the script's order). */
@@ -177,7 +197,7 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     fun closeFloater(player: Player) {
         if (player.floater < 0) return
         val frame = player.frame
-        send(player, IfCloseSub(frame.interfaceId, frame.component(FrameSlot.FLOATER)))
+        sendClose(player, frame.interfaceId, frame.component(FrameSlot.FLOATER))
         player.floater = -1
     }
 
@@ -187,6 +207,7 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         // The one it replaces is gone from the client too, so whatever it held is let go as on a close.
         if (replaced != null && replaced != interfaceId && replaced !in player.modals.values) closeHooks[replaced]?.invoke(player)
         val frame = player.frame
+        player.closedWhileAway -= frame.interfaceId to frame.component(slot)
         send(player, IfOpenSub(frame.interfaceId, frame.component(slot), interfaceId, MODAL))
     }
 
@@ -207,13 +228,14 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         }
         player.chatModal = interfaceId
         player.chatModalOpens++
+        player.closedWhileAway -= Chatbox.CHATBOX to Chatbox.CHATMODAL
         send(player, IfOpenSub(Chatbox.CHATBOX, Chatbox.CHATMODAL, interfaceId, MODAL))
     }
 
     /** Closes the dialogue in the chatbox, if any; a script waiting on it is dropped. */
     fun closeChatModal(player: Player) {
         if (player.chatModal >= 0) {
-            send(player, IfCloseSub(Chatbox.CHATBOX, Chatbox.CHATMODAL))
+            sendClose(player, Chatbox.CHATBOX, Chatbox.CHATMODAL)
             player.chatModal = -1
         }
         dropDialogueScript(player)
@@ -229,7 +251,7 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         dropCount(player)
         if (player.modals.isEmpty()) return
         val frame = player.frame
-        for (slot in player.modals.keys) send(player, IfCloseSub(frame.interfaceId, frame.component(slot)))
+        for (slot in player.modals.keys) sendClose(player, frame.interfaceId, frame.component(slot))
         val closed = player.modals.values.toList()
         player.modals.clear()
         for (interfaceId in closed) closeHooks[interfaceId]?.invoke(player)

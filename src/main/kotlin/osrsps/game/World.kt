@@ -1161,6 +1161,9 @@ class World(
         if (player.connectionLostTick < 0) {
             player.connectionLostTick = tick
             logger.info { "${player.username} lost their connection; keeping them for $LINGER_TICKS ticks for a reconnect" }
+            // Guessed: their trade ends now, everything given back, rather than holding the partner on the screen for
+            // a minute. Not checked against a live disconnect mid-trade.
+            trades.decline(player)
         }
         return tick - player.connectionLostTick >= LINGER_TICKS
     }
@@ -1470,7 +1473,7 @@ class World(
      * After a reconnect, sends again what the client may have missed: anything queued for the old connection after
      * it really died never arrived. Every varp the client may hold, every stat, the inventory and the run state go
      * again, and the map is rebuilt around the player. Inferred, not checked against a live reconnect: the client is taken to keep
-     * its interfaces over a reconnect, so they aren't reopened.
+     * its interfaces over a reconnect, so they aren't reopened; only what was closed while it was away is closed again.
      */
     internal fun resync(player: Player) {
         player.vars.resendAll()
@@ -1492,6 +1495,7 @@ class World(
         player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
         // The ground items and loc changes it missed go again too, as after any rebuild.
         player.zoneView.reset()
+        interfaces.resendClosesWhileAway(player)
     }
 
     private fun enterWorld(player: Player) {
