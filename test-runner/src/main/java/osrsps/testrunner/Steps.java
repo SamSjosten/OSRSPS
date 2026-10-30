@@ -665,6 +665,53 @@ final class Steps
 		}
 	}
 
+	/**
+	 * (0.12.0) Types text as key presses, for what reads the keyboard itself, such as the All Settings search. Passes a
+	 * game tick after the keys reach the canvas, so the client has run its key scripts before the next step acts.
+	 */
+	static final class TypeText extends Step
+	{
+		final String text;
+		private boolean sent;
+		private int deliveredTick = -1;
+
+		TypeText(long timeoutMs, String text)
+		{
+			super("typeText", timeoutMs, false);
+			this.text = text;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			if (!sent)
+			{
+				run.markAction();
+				String error = run.game.typeText(text);
+				if (error != null)
+				{
+					return Poll.waiting(error);
+				}
+				sent = true;
+			}
+			if (deliveredTick < 0)
+			{
+				if (run.game.typingPending())
+				{
+					return Poll.waiting("the keys aren't sent yet");
+				}
+				deliveredTick = run.gameTicks();
+			}
+			return run.gameTicks() > deliveredTick ? Poll.pass("typed") : Poll.waiting("typed, waiting a tick for the client to take the keys");
+		}
+
+		@Override
+		String describe()
+		{
+			return "type \"" + text + "\"";
+		}
+	}
+
 	static final class AssertDialogue extends Step
 	{
 		final String contains;

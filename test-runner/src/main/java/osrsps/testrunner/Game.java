@@ -138,6 +138,12 @@ interface Game
 	/** Puts the amount in the open prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
 	String enterAmount(int amount);
 
+	/** (0.12.0) Types the text into the client as key presses, one character at a time, as a player's keyboard does. */
+	String typeText(String text);
+
+	/** True from {@link #typeText} until its key events have gone to the canvas. */
+	boolean typingPending();
+
 	/** The player's real (unboosted) level in the skill, as the stats tab shows it; -1 for a skill the client doesn't know. */
 	int skillLevel(String skill);
 
