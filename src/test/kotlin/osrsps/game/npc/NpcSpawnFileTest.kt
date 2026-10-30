@@ -215,10 +215,10 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Draynor has three bankers, its townsfolk, seven pigs and the farmer`() {
+    fun `Draynor has three bankers, its townsfolk, seven pigs, the farmer and two fishing spots`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3111 to "woman", 2854 to "rat", 5007 to "imp", 2796 to "pig_1",
-            2797 to "pig_2", 2798 to "piglet_1", 2799 to "piglet_2", 2800 to "piglet_3", 3251 to "farmer_farming_on_48_51",
+            2797 to "pig_2", 2798 to "piglet_1", 2799 to "piglet_2", 2800 to "piglet_3", 3251 to "farmer_farming_on_48_51", Fishing.DRAYNOR_SPOT to "0_48_50_saltfish",
         )
         val draynorTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("draynor.json"), draynorTypes, "draynor.json")
@@ -231,6 +231,10 @@ class NpcSpawnFileTest {
         assertTrue(spawns.filter { it.type.id in 2796..2800 }.all { it.x in 3075..3079 && it.z in 3259..3261 })
         assertEquals(1, spawns.single { it.type.id == 3111 }.level, "the woman upstairs in Morgan's house")
         assertTrue(spawns.all { it.x in 3070..3135 && it.z in 3225..3300 && it.source.isNotBlank() })
+        // The shore's two Net/Bait spots, each on a tile of Draynor's fishing area.
+        val spots = spawns.filter { it.type.id == Fishing.DRAYNOR_SPOT }
+        assertEquals(2, spots.size)
+        assertTrue(spots.all { spot -> Fishing.AREAS.any { Tile(spot.x, spot.z) in it } && spot.wander == 0 })
     }
 
     @Test

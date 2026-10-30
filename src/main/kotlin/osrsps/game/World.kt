@@ -95,6 +95,7 @@ import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerDraynorVillage
+import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -124,6 +125,8 @@ import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
 import osrsps.game.skill.Making
 import osrsps.game.skill.Cooking
+import osrsps.game.skill.Crafting
+import osrsps.game.skill.CraftingData
 import osrsps.game.skill.Fishing
 import osrsps.game.skill.Fletching
 import osrsps.game.skill.FletchingData
@@ -414,6 +417,7 @@ class World(
     /** The Make-X loop the artisan skills share. */
     val making = Making(this)
     val fletching = Fletching(this, FletchingData.load())
+    val crafting = Crafting(this, CraftingData.load())
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -466,6 +470,7 @@ class World(
         registerShops(this)
         registerLumbridgeTown(this)
         registerDraynorVillage(this)
+        registerAxeLogs(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -488,6 +493,7 @@ class World(
         cooking.register()
         smithing.register()
         fletching.register()
+        crafting.register()
         loadDialogue()
     }
 
