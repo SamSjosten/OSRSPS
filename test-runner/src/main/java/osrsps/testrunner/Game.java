@@ -42,10 +42,10 @@ interface Game
 	Tile walkDestination();
 
 	/**
-	 * Clicks an option (such as "Trade with") on the other player with this name, as their right-click menu would. Null
-	 * when clicked; otherwise what is missing.
+	 * Clicks an option (such as "Trade with") on the other player with this name, as their right-click menu would; with
+	 * {@code at}, only while they stand on that tile. Null when clicked; otherwise what is missing.
 	 */
-	String playerOption(String name, String option);
+	String playerOption(String name, String option, Tile at);
 
 	/** Clicks an option on the nearest NPC with this name (or id, when the name is null). Examine works on any NPC. */
 	String npcOption(String name, int id, String option);

@@ -344,7 +344,7 @@ final class ClientGame implements Game
 	};
 
 	@Override
-	public String playerOption(String name, String option)
+	public String playerOption(String name, String option, osrsps.testrunner.Tile at)
 	{
 		Player me = client.getLocalPlayer();
 		if (me == null)
@@ -363,6 +363,14 @@ final class ClientGame implements Game
 		if (target == null)
 		{
 			return "no player \"" + name + "\" in view";
+		}
+		if (at != null)
+		{
+			net.runelite.api.coords.WorldPoint where = target.getWorldLocation();
+			if (where.getX() != at.x || where.getY() != at.y)
+			{
+				return name + " is on " + where.getX() + ", " + where.getY() + ", not " + at.x + ", " + at.y;
+			}
 		}
 		String[] options = client.getPlayerOptions();
 		for (int i = 0; options != null && i < options.length && i < PLAYER_OPTIONS.length; i++)

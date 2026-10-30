@@ -77,7 +77,7 @@ class Trades(
     /** Walks [player] on toward [interaction]'s target, and asks once beside them. Returns true once it's over. */
     internal fun approach(player: Player, interaction: TradeInteraction): Boolean {
         val target = interaction.target
-        if (!inWorld(target) || target.level != player.level) {
+        if (!inWorld(target) || target.dead || target.level != player.level) {
             // Guessed, as for an NPC that goes away: the player finishes their walk and gives up.
             player.interaction = null
             return true
@@ -101,6 +101,8 @@ class Trades(
     /** [player], beside [target], asks to trade. */
     fun request(player: Player, target: Player) {
         if (player.trade != null) return
+        // Guessed: nobody trades with a player lying dead, who couldn't decline (their clicks are dropped until the respawn).
+        if (player.dead || target.dead) return
         if (target.trade != null || target.modalOpen) {
             message(player, TradeLines.BUSY)
             return
@@ -136,6 +138,9 @@ class Trades(
         val trade = Trade(partner, player)
         for (side in listOf(player, partner)) {
             closeModals(side)
+            // A walk or an approach started before the trade would carry on under the screens: both stop.
+            side.interaction = null
+            side.waypoints.clear()
             side.trade = trade
             facePlayer(side, null)
             openModal(side, FrameSlot.MAINMODAL, MAIN)

@@ -147,13 +147,13 @@ class FakeGame implements Game
 	}
 
 	@Override
-	public String playerOption(String name, String option)
+	public String playerOption(String name, String option, Tile at)
 	{
 		if (npcError != null)
 		{
 			return npcError;
 		}
-		actions.add(option + " " + name);
+		actions.add(option + " " + name + (at != null ? " at " + at.x + "," + at.y : ""));
 		return null;
 	}
 

@@ -3,13 +3,15 @@
  "account": "test2",
  "steps": [
   {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3222 3216 0", "expectMessage": "Teleported", "comment": "off the meeting tile first: test waits for us there before it asks"},
   {"step": "command", "text": "::keys on", "expectMessage": "keys"},
-  {"step": "command", "text": "::tele 3224 3218 0", "expectMessage": "Teleported"},
+  {"step": "command", "text": "::tele 3224 3218 0", "expectMessage": "Teleported", "comment": "the meeting tile, test's sign that we're ready"},
   {"step": "assertMessage", "contains": "[trade.request name=test]", "timeoutMs": 180000},
   {"step": "playerOption", "player": "test", "option": "Trade with", "comment": "as the request's Accept trade does"},
   {"step": "assertInterface", "interfaceId": 335},
   {"step": "assertInterface", "interfaceId": 336},
   {"step": "assertMessage", "contains": "[trade.declined]", "timeoutMs": 60000},
-  {"step": "assertInterface", "interfaceId": 335, "absent": true}
+  {"step": "assertInterface", "interfaceId": 335, "absent": true},
+  {"step": "command", "text": "::tele 3222 3216 0", "expectMessage": "Teleported", "comment": "off the meeting tile, so the next run starts away from it"}
  ]
 }

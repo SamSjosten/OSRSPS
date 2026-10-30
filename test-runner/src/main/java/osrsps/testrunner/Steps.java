@@ -264,24 +264,30 @@ final class Steps
 		}
 	}
 
-	/** Clicks an option on another player, once they are in view; does not wait for the result. */
+	/**
+	 * Clicks an option on another player, once they are in view (and, with a tile, standing on it); does not wait for the
+	 * result.
+	 */
 	static final class PlayerOption extends Step
 	{
 		final String player;
 		final String option;
+		/** Where the player must stand first, or null for anywhere: a two-VM script's sign the other side is ready. */
+		final Tile at;
 
-		PlayerOption(long timeoutMs, String player, String option)
+		PlayerOption(long timeoutMs, String player, String option, Tile at)
 		{
 			super("playerOption", timeoutMs, false);
 			this.player = player;
 			this.option = option;
+			this.at = at;
 		}
 
 		@Override
 		Poll poll(Run run)
 		{
 			run.markAction();
-			String error = run.game.playerOption(player, option);
+			String error = run.game.playerOption(player, option, at);
 			// The other player may not be in view yet (still logging in on the other VM): keep trying until the timeout.
 			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
 		}

@@ -23,8 +23,8 @@ class HeadlessTradeRequestTest {
                     bob.await("bob's walk") { bob.position?.takeIf { it.x == 3226 } }
                     alice.playerOp(bob.index, 4)
                     alice.awaitMessage("sending") { it == "[trade.sending]" }
-                    // She walked up beside him.
-                    assertEquals(3225, alice.position!!.x)
+                    // She walked up beside him (her last step can reach the client after the message).
+                    alice.await("alice beside bob") { alice.position?.takeIf { it.x == 3225 } }
                     val request = bob.await("the request") { bob.messages().firstOrNull { it.type == Trades.CHATTYPE_TRADEREQ } }
                     assertEquals("alice", request.name)
                     assertEquals("[trade.request name=alice]", request.text)
@@ -98,6 +98,28 @@ class HeadlessTradeRequestTest {
                     bob.awaitTicks(2)
                     alice.playerOp(bob.index, 4)
                     bob.await("the request") { bob.messages().firstOrNull { it.type == Trades.CHATTYPE_TRADEREQ } }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a request from a player who then died can't be accepted while they lie dead`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    bob.walk(3226, 3218)
+                    bob.await("bob's walk") { bob.position?.takeIf { it.x == 3226 } }
+                    alice.playerOp(bob.index, 4)
+                    bob.await("the request") { bob.messages().firstOrNull { it.type == Trades.CHATTYPE_TRADEREQ } }
+                    alice.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    alice.await("[combat.dead]") { alice.messages().firstOrNull { it.text == "[combat.dead]" } }
+                    assertTrue(server.world.playerNamed("alice")!!.dead)
+                    bob.playerOp(alice.index, 4)
+                    bob.awaitTicks(3)
+                    assertFalse(bob.trading())
+                    assertFalse(alice.trading())
+                    assertTrue(server.world.playerNamed("bob")!!.trade == null)
                 }
             }
         }

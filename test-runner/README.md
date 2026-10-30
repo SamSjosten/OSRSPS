@@ -329,7 +329,7 @@ server's answer instead of failing on what was there before.
 | `addIgnore`, `deleteIgnore` | `name` | (0.14.0) The same through the ignore tab's Add Name and Delete Name buttons (prompts 4 and 5), opening the ignore tab from the Friends tab first when it isn't open. |
 | `assertIgnore` | `name`, `absent` | (0.14.0) Waits until the ignore list holds the name, or, with `absent: true`, doesn't. |
 | `privateMessage` | `name`, `text` | (0.14.0) Opens the private message prompt for `name` (client script 107, meslayer_mode6, which a friend's Message option runs), types `text` and presses Enter. Check delivery with `assertMessage` on the other client. |
-| `playerOption` | `player`, `option` | (0.15.0) Clicks an option on the other player with that name, as their right-click menu does ("Trade with", "Follow"); retries until they are in view. A trade request's Accept trade is Trade with on its sender, so this accepts one too. |
+| `playerOption` | `player`, `option`, `x`+`y` | (0.15.0) Clicks an option on the other player with that name, as their right-click menu does ("Trade with", "Follow"); retries until they are in view, and with `x` and `y` until they stand on that tile (a two-VM script's sign that the other side has finished its setup). A trade request's Accept trade is Trade with on its sender, so this accepts one too. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)

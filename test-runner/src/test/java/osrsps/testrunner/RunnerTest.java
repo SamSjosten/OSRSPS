@@ -983,4 +983,16 @@ public class RunnerTest
 		assertEquals(List.of("Trade with test2"), game.actions);
 		assertEquals("Trade with on player test2", r.steps.get(0).description);
 	}
+
+	@Test
+	public void playerOptionAtATile() throws Exception
+	{
+		runner.start(script("{\"step\":\"playerOption\",\"player\":\"test2\",\"option\":\"Trade with\",\"x\":3224,\"y\":3218}"), "file");
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("Trade with test2 at 3224,3218"), game.actions);
+		Script.Invalid e = org.junit.Assert.assertThrows(Script.Invalid.class,
+			() -> script("{\"step\":\"playerOption\",\"player\":\"a\",\"option\":\"Follow\",\"x\":1}"));
+		assertTrue(e.getMessage(), e.getMessage().contains("\"y\""));
+	}
 }
