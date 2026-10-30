@@ -1,0 +1,180 @@
+{
+ "name": "Al Kharid step 1: the toll gate opens free both ways, a Border Guard's talk (::keys on) lets the player through, the palace's large doors open together, and a curtain opens and shuts",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "a new account with an empty backpack, so no coins: the gate must be free; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3265 3227 0",
+   "expectMessage": "Teleported to 3265, 3227, 0",
+   "comment": "the Lumbridge side of the toll gate"
+  },
+  {
+   "step": "locOption",
+   "loc": "Gate",
+   "option": "Open",
+   "x": 3268,
+   "y": 3227,
+   "comment": "the left leaf; after Prince Ali Rescue its only option is Open"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3268,
+   "y": 3227,
+   "plane": 0,
+   "comment": "through to the Al Kharid side, no talk and no toll"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3270 3228 0",
+   "expectMessage": "Teleported to 3270, 3228, 0",
+   "comment": "the Al Kharid side"
+  },
+  {
+   "step": "locOption",
+   "loc": "Gate",
+   "option": "Open",
+   "x": 3268,
+   "y": 3228,
+   "comment": "the right leaf"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3267,
+   "y": 3228,
+   "plane": 0,
+   "comment": "back on the Lumbridge side"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3265 3226 0",
+   "expectMessage": "Teleported to 3265, 3226, 0",
+   "comment": "beside the Lumbridge side's south Border Guard (3267 3226)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Border Guard",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[border_guard.come_through]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[border_guard.friend]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3268,
+   "y": 3227,
+   "plane": 0,
+   "comment": "the guard lets the player through free"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3285 3171 0",
+   "expectMessage": "Teleported to 3285, 3171, 0",
+   "comment": "outside the palace's west doors"
+  },
+  {
+   "step": "locOption",
+   "loc": "Large door",
+   "option": "Open",
+   "x": 3287,
+   "y": 3171
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Large door",
+   "option": "Close",
+   "x": 3286,
+   "y": 3171,
+   "comment": "the left leaf swung open"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Large door",
+   "option": "Close",
+   "x": 3286,
+   "y": 3172,
+   "comment": "and the right leaf with it"
+  },
+  {
+   "step": "locOption",
+   "loc": "Large door",
+   "option": "Close",
+   "x": 3286,
+   "y": 3171
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Large door",
+   "option": "Open",
+   "x": 3287,
+   "y": 3171,
+   "comment": "both shut again"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3289 3173 1",
+   "expectMessage": "Teleported to 3289, 3173, 1",
+   "comment": "upstairs in the palace, by its closed curtain"
+  },
+  {
+   "step": "locOption",
+   "loc": "Curtain",
+   "option": "Open",
+   "x": 3288,
+   "y": 3173
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Curtain",
+   "option": "Close",
+   "x": 3287,
+   "y": 3173,
+   "comment": "swung open onto the tile to the west"
+  },
+  {
+   "step": "locOption",
+   "loc": "Curtain",
+   "option": "Close",
+   "x": 3287,
+   "y": 3173
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Curtain",
+   "option": "Open",
+   "x": 3288,
+   "y": 3173,
+   "comment": "shut again"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

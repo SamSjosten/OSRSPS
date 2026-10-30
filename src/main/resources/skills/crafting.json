@@ -1,0 +1,7 @@
+{
+ "about": "Crafting, as the OSRS Wiki's item pages give it (read 2026-10-30). spinning: what a spinning wheel spins, in the Make-X box's order, with the level and XP in tenths; 3 ticks each (Ball of wool and Bow string pages), the first 2 ticks after the choice inferred from fletching's 'Make-X is 2, then 3 ticks'. The wheels are every loc the cache names Spinning wheel with a Spin option. anim 466 is the cache's 'spinningwheel' seq, taken to be the player's (inferred from the name; the wheels have no animation of their own). Ids are the 241 cache's; names are its gamevals.",
+ "spinning": {"first": 2, "interval": 3, "anim": 466, "recipes": [
+  {"input": 1737, "product": 1759, "name": "ball_of_wool", "level": 1, "xpTenths": 25},
+  {"input": 1779, "product": 1777, "name": "bow_string", "level": 10, "xpTenths": 150}
+ ]}
+}
