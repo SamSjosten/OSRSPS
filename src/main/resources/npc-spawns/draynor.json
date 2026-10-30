@@ -1,5 +1,5 @@
 {
-  "about": "Draynor Village (Draynor piece step 1): the bank's three bankers, the town's man, woman, rats and imp, the G.A.G. pig pen's four pigs and three piglets, and the farmer in the wheat field. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Draynor Village page (three bankers, seven pigs, a man in the north-east house, a woman upstairs in Morgan's house). Every wander range is guessed until recorded. The market's guards and stalls, the jail, Aggie, Ned, Morgan, the Wise Old Man and his household, and the dark wizards come with their own steps. The shore's two Net/Bait fishing spots came with step 2.",
+  "about": "Draynor Village (Draynor piece step 1): the bank's three bankers, the town's man, woman, rats and imp, the G.A.G. pig pen's four pigs and three piglets, and the farmer in the wheat field. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Draynor Village page (three bankers, seven pigs, a man in the north-east house, a woman upstairs in Morgan's house). Every wander range is guessed until recorded. The market's guards and stalls, the jail, Morgan, the Wise Old Man and his household, and the dark wizards come with their own steps. The shore's two Net/Bait fishing spots came with step 2, the market's traders with step 3, Ned and Aggie with step 4.",
   "spawns": [
     {"npc": 1613, "x": 3090, "z": 3242, "direction": "E", "source": "Banker (banker1), Draynor bank, behind the booth at 3091,3242. mejrs NPCList_OSRS"},
     {"npc": 1618, "x": 3090, "z": 3243, "direction": "E", "source": "Banker (banker2), Draynor bank, behind the booth at 3091,3243. mejrs NPCList_OSRS"},
@@ -21,6 +21,8 @@
     {"npc": "rag_wine_merchant", "x": 3085, "z": 3251, "source": "Fortunato, behind his wine stall in the market (step 3). mejrs NPCList_OSRS; standing still and facing south guessed"},
     {"npc": "seed_merchant", "x": 3078, "z": 3251, "source": "Olivia, by the seed stalls in the market (step 3). mejrs NPCList_OSRS; standing still guessed"},
     {"npc": "aprilfoolshorsesalesman", "x": 3081, "z": 3247, "source": "Diango, at his stall in the market (step 3). mejrs NPCList_OSRS; standing still guessed"},
+    {"npc": "ned", "x": 3100, "z": 3258, "wander": 2, "restrict": "indoors", "source": "Ned, in his house on the market's east side (step 4). mejrs NPCList_OSRS"},
+    {"npc": "aggie", "x": 3086, "z": 3259, "wander": 2, "restrict": "indoors", "source": "Aggie, in her house north of the market (step 4); a multi-NPC showing aggie_1op or aggie_2ops. mejrs NPCList_OSRS"},
     {"npc": 3251, "x": 3119, "z": 3276, "wander": 5, "source": "Farmer (no options), the wheat field north-east of the village. mejrs NPCList_OSRS"}
   ]
 }

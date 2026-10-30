@@ -1,0 +1,400 @@
+{
+ "name": "Draynor piece step 4: Ned's rope for coins with the free one after The Fremennik Isles, his shop at 16 coins, Aggie's red dye from her Dyes option and her 5-coin fine (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 100",
+   "expectMessage": "Added 100 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3100 3258 0",
+   "expectMessage": "Teleported to 3100, 3258, 0",
+   "comment": "Ned's house"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ned",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ned.rope]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.rope]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.price]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.rope_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.rope_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.rope_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.rope_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ned.sell]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.sell]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.here]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_smell]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_what]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_isles]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_well]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_trader]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_so]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_accuse]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_confess]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_brand]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_accept]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_sample]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_secret]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_rope]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_jofridr]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.yak_bye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Rope",
+   "count": 2,
+   "comment": "the rope bought for 15 coins and the free one"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 85
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ned",
+   "option": "Trade"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "Ned's Handmade Rope"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 on the rope: 16 coins after The Fremennik Isles"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Rope",
+   "count": 3
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 69
+  },
+  {
+   "step": "command",
+   "text": "::item redberries 3",
+   "expectMessage": "Added 3 x Redberries"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3086 3259 0",
+   "expectMessage": "Teleported to 3086, 3259, 0",
+   "comment": "Aggie's house; closes the shop"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 13597,
+   "value": 1,
+   "comment": "gobdip_met_aggie: every account has met her, so she shows Dyes"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Aggie",
+   "option": "Dyes"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aggie.which]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[aggie.red]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aggie.red]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aggie.red_cost]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[aggie.make_red]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aggie.make_red]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aggie.got_red]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Red dye",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Redberries",
+   "count": 0
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 64
+  },
+  {
+   "step": "npcOption",
+   "npc": "Aggie",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aggie.help]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[aggie.witch]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aggie.witch]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aggie.oh]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aggie.five_coins]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aggie.respect]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 59,
+   "comment": "21 to 100 coins: Aggie takes 5"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
