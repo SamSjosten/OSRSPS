@@ -124,7 +124,8 @@ class GrandExchange(
                 val added = give(player, PLATINUM_TOKEN, tokenPart.toInt(), toBank)
                 paid += added * TOKEN_VALUE
             }
-            if (coinPart > 0 && paid == tokenPart * TOKEN_VALUE) paid += give(player, COINS, coinPart.toInt(), toBank)
+            // The coins go whether or not every token fit: each part takes what room it finds.
+            if (coinPart > 0) paid += give(player, COINS, coinPart.toInt(), toBank)
             if (paid > 0) moved = true
             offer = offer.copy(collectCoins = offer.collectCoins - paid)
         }

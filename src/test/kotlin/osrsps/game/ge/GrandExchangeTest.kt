@@ -320,6 +320,20 @@ class GrandExchangeTest {
         assertEquals(3_920_000_000_000L - 2_149_631_130_647L, player.ge[0]!!.collectCoins)
     }
 
+    @Test
+    fun `the coins collect even when the tokens don't fit`() {
+        give(COINS, 1_000)
+        ge.buy(player, AXE, 1, 1_000)
+        player.ge[0] = player.ge[0]!!.copy(collectCoins = 3_000_000_001L)
+        // A full backpack with a stack of coins in it and no tokens.
+        give(COINS, 5)
+        while (player.inventory.contents().size < player.inventory.capacity) give(LOBSTER, 1)
+        assertTrue(ge.collect(player, 0, items = false))
+        assertEquals(6L, player.inventory.count(COINS))
+        assertEquals(0L, player.inventory.count(TOKEN))
+        assertEquals(3_000_000_000L, player.ge[0]!!.collectCoins)
+    }
+
     private companion object {
         const val COINS = 995
         const val TOKEN = 13204
