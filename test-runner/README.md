@@ -138,11 +138,14 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
-- `al-kharid-bank.json`: Al Kharid step 2: Bank on a booth (logs deposited), a banker's Bank across the booth (logs
-  withdrawn), and a banker's talk (with `::keys on`) that opens the bank.
+- `al-kharid-bank.json`: Al Kharid step 2: a banker's talk (with `::keys on`) that opens the bank (logs deposited), Bank
+  on a booth (logs withdrawn), and after a relog a banker's Bank across the booth. The talk comes first because the
+  open bank hides the bankers from the mouse.
 - `al-kharid-shops.json`: Al Kharid step 3: Trade with each of Al Kharid's seven shops (the General Store, Zeke,
   Dommik, Louie Legs, Ranael, the Gem trader and Ali Morrisane), buying one of the first item and selling it back,
   Ali's junk sold as his shop closes, then Louie Legs's talk (with `::keys on`) into his shop.
+- `al-kharid-traders.json`: Al Kharid step 4: a kebab bought from Karim through his talk (with `::keys on`) and
+  eaten, and silk haggled down to 2 gp from the Silk trader.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
@@ -200,6 +203,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `crafting-glass.json`: at the furnace north of Lumbridge Castle, soda ash and sand make molten glass (the buckets
   back), a pipe blows two vials, and water softens clay; at Barbarian Village's potter's wheel one soft clay shapes four
   unfired cups, which the oven fires. Needs 0.15.0.
+- `herblore-basics.json`: at level 1 a grimy guam needs 3; at 99 two clean (5 XP), go into vials of water as
+  unfinished potions, a pestle grinds two unicorn horns, and two vials fill at Lumbridge Castle's kitchen sink. Needs
+  0.15.0 (`useItemOnLoc`).
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
@@ -224,6 +230,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   each waits up to 3 minutes for the other and then fails.
 - `social-pm-test.json` and `social-pm-test2.json` (need 0.14.0): two players at once like the friends pair; each adds the
   other, `test` messages `test2` and `test2` answers.
+- `social-trade-offer-test.json` and `social-trade-offer-test2.json` (need 0.16.0): two players at once; `test` offers
+  10 coins, sees `test2`'s bronze axe on offer, takes 5 coins back and declines, and both get their items back. Each
+  starts from `lumbridge-bare` and ends with `::reset`.
 - `social-trade-request-test.json` and `social-trade-request-test2.json` (need 0.16.0): two players at once; `test` asks
   `test2` to trade, `test2` accepts, both trade screens open and `test` declines.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.

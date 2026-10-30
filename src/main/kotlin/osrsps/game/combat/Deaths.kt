@@ -142,7 +142,7 @@ class Deaths(
      */
     fun respawn(player: Player) {
         player.deathTick = -1
-        val lost = dropItems(player)
+        val lost = dropItems(player) + unchecked(player)
         player.deathKeptItems = KEPT_ITEMS
         val charges = lostCharges(player, lost)
         if (lost.isNotEmpty() || charges.isNotEmpty()) bury(player, lost + charges)
@@ -165,7 +165,8 @@ class Deaths(
     private fun dropItems(player: Player): List<InvObj> {
         class Held(val inv: Inventory, val slot: Int, val obj: InvObj, val value: Long)
         val held = ArrayList<Held>()
-        for (inv in listOf(player.equipment, player.inventory)) {
+        // The price checker's items are carried too: the death closed the screen without giving them back.
+        for (inv in listOf(player.equipment, player.inventory, player.priceChecker)) {
             for ((slot, obj) in inv.contents()) held += Held(inv, slot, obj, objTypes[obj.id]?.let(value) ?: 0)
         }
         // Stable, so ties keep worn-then-inventory slot order.
@@ -181,6 +182,22 @@ class Deaths(
             lost += InvObj(item.obj.id, gone)
         }
         return lost
+    }
+
+    /**
+     * Puts the items [dropItems] kept out of the price checker back in [player]'s backpack, which the death has all but
+     * emptied; returns any that still don't fit, for the grave. Before this, closing the screen on a death put them in
+     * the bank, out of the grave (fourth exploit review, 30 Oct 2026).
+     */
+    private fun unchecked(player: Player): List<InvObj> {
+        val left = ArrayList<InvObj>()
+        for ((slot, obj) in player.priceChecker.contents()) {
+            player.priceChecker[slot] = null
+            val type = objTypes[obj.id] ?: ObjType(obj.id)
+            val over = obj.count - player.inventory.add(type, obj.count)
+            if (over > 0) left += InvObj(obj.id, over)
+        }
+        return left
     }
 
     /**

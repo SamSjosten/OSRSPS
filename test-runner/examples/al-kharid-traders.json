@@ -1,0 +1,175 @@
+{
+ "name": "Al Kharid step 4: a kebab bought from Karim (::keys on) and eaten, and silk haggled down to 2 gp from the Silk trader",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 10",
+   "expectMessage": "Added 10 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3273 3182 0",
+   "expectMessage": "Teleported to 3273, 3182, 0",
+   "comment": "Karim's kitchen, beside him (3272 3182)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Karim",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[karim.offer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[karim.yes_please]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[karim.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Kebab",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 9
+  },
+  {
+   "step": "itemOption",
+   "item": "Kebab",
+   "option": "Eat"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[food.eat food=kebab]",
+   "comment": "then one of the six outcomes, by the roll"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Kebab",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3299 3205 0",
+   "expectMessage": "Teleported to 3299, 3205, 0",
+   "comment": "the Silk trader's stall, a tile north of him (3299 3204)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Silk trader",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[silk_trader.offer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[silk_trader.how_much]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[silk_trader.how_much]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[silk_trader.three_gp]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[silk_trader.too_much]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[silk_trader.too_much]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[silk_trader.two_gp]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[silk_trader.varrock]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[silk_trader.two_gp_good]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[silk_trader.two_gp_good]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[silk_trader.bought price=2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Silk",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 7
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

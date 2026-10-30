@@ -177,10 +177,12 @@ class GrandExchangeScreen(
     /**
      * Sets every slot's ge_itemsink_obj to no item. They are obj varps, and the client starts every varp at 0, which is
      * an item (dwarf remains): left at 0, the client's Buy and Sell (script 805) take each empty slot for an item sold to
-     * the item sink and show that instead of the setup (VM, 2026-10-30).
+     * the item sink and show that instead of the setup (VM, 2026-10-30). ge_last_searched is one too: never set, the
+     * item search offered dwarf remains as the previous search, so a 0 there becomes no item as well.
      */
     private fun clearItemSink(player: Player) {
         for (varp in ITEM_SINK_OBJ_VARPS) player.vars[varp] = NO_ITEM
+        if (player.vars[VARP_LAST_SEARCHED] == 0) player.vars[VARP_LAST_SEARCHED] = NO_ITEM
     }
 
     /** The screen closed: back to the index for the next opening. */

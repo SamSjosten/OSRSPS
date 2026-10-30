@@ -91,7 +91,9 @@
     {"npc": 2876, "name": "Louie Legs"},
     {"npc": 2878, "name": "Ranael"},
     {"npc": 2874, "name": "Gem trader", "wiki": "Gem trader page, infobox (Al Kharid)"},
-    {"npc": 3533, "name": "Ali Morrisane"}
+    {"npc": 3533, "name": "Ali Morrisane"},
+    {"npc": 2877, "name": "Karim"},
+    {"npc": 2873, "name": "Silk trader"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},
