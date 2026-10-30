@@ -91,6 +91,7 @@ object DialogueLines {
         FredLines,
         FriendsChatLines,
         GameLines,
+        GeClerkLines,
         GeeLines,
         GemTraderLines,
         GillieLines,
