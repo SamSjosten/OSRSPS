@@ -132,7 +132,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-swamp.json`: Lumbridge Swamp: Examine (with `::keys on`) on a level 6 giant rat, a frog, a big frog, a
   giant frog, the level 5 goblin and the unicorn; `::kill` on a giant rat (its death animation, then its raw rat meat
   taken) and a giant frog (its big bones taken); Father Urhney's spare ghostspeak amulet, given once; the four
-  adventurers' talks; and the candle seller refusing a player with no coins, then selling a lit candle for 1000.
+  adventurers' talks; the candle seller refusing a player with no coins, then selling a lit candle for 1000; and the
+  Mining and Fishing tutors' basics (with a pickaxe and a net carried), the Mining tutor's quests and the small net
+  fish.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
