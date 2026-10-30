@@ -1,0 +1,58 @@
+# Items the Grand Exchange takes no tax on: the OSRS Wiki's Grand Exchange page, read 2026-10-30, under its headings.
+# One item name a line; a name also covers its doses or charges, "Energy potion" taking in Energy potion(1) to (4).
+# The page's list may be short of the "additional low-value and early-game items" exempted on 29 May 2025.
+
+# Bonds
+Old school bond
+
+# Low level combat consumables
+Energy potion
+Bronze arrow
+Bronze dart
+Iron arrow
+Iron dart
+Mind rune
+Steel arrow
+Steel dart
+
+# Low level food
+Bass
+Bread
+Cake
+Cooked chicken
+Cooked meat
+Herring
+Lobster
+Mackerel
+Meat pie
+Pike
+Salmon
+Shrimps
+Tuna
+
+# Teleport items
+Ardougne teleport
+Camelot teleport
+Civitas illa fortis teleport
+Falador teleport
+Games necklace(8)
+Kourend castle teleport
+Lumbridge teleport
+Ring of dueling(8)
+Teleport to house
+Varrock teleport
+
+# Tools
+Chisel
+Gardening trowel
+Glassblowing pipe
+Hammer
+Needle
+Pestle and mortar
+Rake
+Saw
+Secateurs
+Seed dibber
+Shears
+Spade
+Watering can

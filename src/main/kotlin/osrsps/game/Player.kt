@@ -175,6 +175,9 @@ class Player(
     /** What the player's charged items hold, such as a blowpipe's darts and scales; see [Charges]. */
     val charges = Charges()
 
+    /** Grand Exchange offers and buy limits; see [osrsps.game.ge.GrandExchange]. */
+    val ge = osrsps.game.ge.GeAccount()
+
     /** The chatbox's public, private and trade filters, as the client last set them. Saved. */
     var chatFilters: ChatFilters = ChatFilters.DEFAULT
 
