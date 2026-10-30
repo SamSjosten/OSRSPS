@@ -1,5 +1,5 @@
 {
- "name": "Al Kharid step 2: the bank: a banker's talk (::keys on) that opens the bank, a booth's Bank, and a banker's Bank across the booth",
+ "name": "Al Kharid step 2: the bank: a booth's Bank, a banker's talk (::keys on) that opens the bank, and a banker's Bank across the booth",
  "account": "test",
  "steps": [
   {
@@ -28,11 +28,43 @@
    "comment": "Al Kharid's bank, in front of the booths (x 3268); the bankers stand behind them at x 3267"
   },
   {
+   "step": "locOption",
+   "loc": "Bank booth",
+   "option": "Bank",
+   "x": 3268,
+   "y": 3166,
+   "comment": "a booth's Bank, with nothing open"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "comment": "bankmain"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 15,
+   "component": 3,
+   "slot": 0,
+   "op": 8,
+   "comment": "Deposit-All on the logs"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 0
+  },
+  {
+   "step": "logout",
+   "comment": "closes the bank: the open bank hides the bankers from the mouse (VM 215, 2026-10-30), and reopening it with a click while open lost the next click (nightly run on 217, 2026-10-30)"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
    "step": "npcOption",
    "npc": "Banker",
    "option": "Talk-to",
-   "timeoutMs": 20000,
-   "comment": "first, while nothing covers the game view: the open bank hides the bankers from the mouse (VM 215, 2026-10-30)"
+   "timeoutMs": 20000
   },
   {
    "step": "assertDialogue",
@@ -52,32 +84,6 @@
   },
   {
    "step": "clickWidget",
-   "interfaceId": 15,
-   "component": 3,
-   "slot": 0,
-   "op": 8,
-   "comment": "Deposit-All on the logs"
-  },
-  {
-   "step": "assertInventory",
-   "item": "Logs",
-   "count": 0
-  },
-  {
-   "step": "locOption",
-   "loc": "Bank booth",
-   "option": "Bank",
-   "x": 3268,
-   "y": 3166,
-   "comment": "a booth's Bank; a loc click closes the open bank and opens it again, as in draynor-village.json"
-  },
-  {
-   "step": "assertInterface",
-   "interfaceId": 12,
-   "comment": "bankmain"
-  },
-  {
-   "step": "clickWidget",
    "interfaceId": 12,
    "component": 12,
    "slot": 0,
@@ -91,7 +97,7 @@
   },
   {
    "step": "logout",
-   "comment": "closes the bank, so the bankers can be clicked again"
+   "comment": "closes the bank again"
   },
   {
    "step": "waitForLogin"

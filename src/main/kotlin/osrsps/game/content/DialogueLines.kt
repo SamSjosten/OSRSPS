@@ -62,7 +62,7 @@ object DialogueLines {
         // Al Kharid.
         BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
         GemTraderLines, AliMorrisaneLines, KarimLines, SilkTraderLines, KebabLines, EllisLines, TanningLines,
-        HassanLines, OsmanLines, PrinceAliLines,
+        HassanLines, OsmanLines, PrinceAliLines, CamelLines,
         // Draynor Village.
         DraynorSearchLines, AxeLogsLines, FortunatoLines, OliviaLines, DiangoLines,
         // The Grand Exchange.

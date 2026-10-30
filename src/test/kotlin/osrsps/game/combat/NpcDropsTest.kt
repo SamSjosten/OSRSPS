@@ -29,7 +29,12 @@ class NpcDropsTest {
     private val giantFrog = NpcType(8700, "Giant frog", combatLevel = 13, internalName = "giant_frog_nodrops")
     private val armedGoblin = NpcType(3045, "Goblin", combatLevel = 5, internalName = "goblin_armed")
     private val unicorn = NpcType(2837, "Unicorn", combatLevel = 15, internalName = "unicorn")
-    private val types = NpcTypes.of(man, imp, cow, rat, chicken, ram, goblin, spider, giantRat, frog, bigFrog, giantFrog, armedGoblin, unicorn)
+    private val warrior = NpcType(3292, "Al Kharid warrior", combatLevel = 9, internalName = "al_kharid_warrior")
+    private val kharidMan = NpcType(3261, "Man", combatLevel = 2, internalName = "al_kharid_man")
+    private val scorpion = NpcType(3024, "Scorpion", combatLevel = 14, internalName = "scorpion")
+    private val types = NpcTypes.of(
+        man, imp, cow, rat, chicken, ram, goblin, spider, giantRat, frog, bigFrog, giantFrog, armedGoblin, unicorn, warrior, kharidMan, scorpion,
+    )
     private val objTypes = DropTestItems.objTypes()
     private val drops = NpcDrops.load(types, objTypes)
 
@@ -37,7 +42,7 @@ class NpcDropsTest {
     fun `the file reads, naming every item as the cache does, and the tables add up`() {
         // The test's cache knows one man, cow and so on; every other warning would be a wrong item name.
         assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
-        assertEquals(14, drops.size)
+        assertEquals(17, drops.size)
         val def = drops[man]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })
         assertEquals(128, def.table!!.slots)
@@ -69,6 +74,15 @@ class NpcDropsTest {
         )
         assertEquals(listOf("Bones", "Unicorn horn"), drops[unicorn]!!.always.map { it.type.name })
         assertEquals(128, drops[armedGoblin]!!.table!!.slots)
+        // Al Kharid: its man and its warriors drop as any man; a scorpion leaves only its tertiaries.
+        assertEquals(drops[man]!!.table!!.slots, drops[warrior]!!.table!!.slots)
+        assertEquals(drops[man]!!.tertiary.map { it.item.type.name }, drops[kharidMan]!!.tertiary.map { it.item.type.name })
+        assertEquals(emptyList(), drops[scorpion]!!.always)
+        assertNull(drops[scorpion]!!.table)
+        assertEquals(
+            listOf("Ensouled scorpion head" to 25, "Clue scroll (beginner)" to 100),
+            drops[scorpion]!!.tertiary.map { it.item.type.name to it.denominator },
+        )
         // A rat drops nothing at all.
         val nothing = drops[rat]!!
         assertTrue(nothing.isEmpty)

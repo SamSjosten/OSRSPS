@@ -35,6 +35,7 @@ import net.runelite.client.RuneLite;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.game.chatbox.ChatboxPanelManager;
 import net.runelite.client.input.KeyListener;
 import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
@@ -86,6 +87,9 @@ public class TestRunnerPlugin extends Plugin
 
 	@Inject
 	private KeyManager keyManager;
+
+	@Inject
+	private ChatboxPanelManager chatboxPanelManager;
 
 	private final AutoLogin autoLogin = new AutoLogin();
 	/** A key on the login screen means a person is at this client, so auto login leaves it to them. */
@@ -163,7 +167,7 @@ public class TestRunnerPlugin extends Plugin
 		Path base = RuneLite.RUNELITE_DIR.toPath();
 		folder = new ScriptFolder(base.resolve("tests"));
 		writer = new ResultWriter(base.resolve("test-results"), gson.newBuilder().setPrettyPrinting().disableHtmlEscaping().create(), RUNNER_VERSION);
-		runner = new Runner(new ClientGame(client), System::currentTimeMillis, this::accounts);
+		runner = new Runner(new ClientGame(client, chatboxPanelManager::close), System::currentTimeMillis, this::accounts);
 		loggedIn = client.getGameState() == GameState.LOGGED_IN;
 		if (client.getGameState() == GameState.LOGIN_SCREEN)
 		{

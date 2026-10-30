@@ -17,7 +17,9 @@ final class Dialogue
 		/** messagebox: text with no head. */
 		MESSAGE,
 		/** objectbox: an item and text. */
-		OBJECT
+		OBJECT,
+		/** levelup: the level-up box, its title as the name; only from {@link Game#levelUp}. */
+		LEVEL_UP
 	}
 
 	static final class Option
