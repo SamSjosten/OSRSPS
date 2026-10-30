@@ -4,6 +4,18 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlin.math.abs
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import osrsps.game.Follows
+import osrsps.game.ge.GrandExchange
+import net.rsprot.protocol.common.game.outgoing.inv.InventoryObject
+import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
+import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
+import net.rsprot.protocol.game.outgoing.inv.UpdateInvFull
+import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
+import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.InvObj
+import osrsps.game.Inventory
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
+import osrsps.game.script.ScriptContext
 import osrsps.game.FrameSlot
 import osrsps.game.Interaction
 import osrsps.game.Movement
@@ -22,13 +34,46 @@ import osrsps.map.Tile
 
 private val logger = KotlinLogging.logger {}
 
-/** A trade between two players, from the moment both screens open until it ends. */
+/**
+ * A trade between two players, from the moment both screens open until it ends. Each player's offer is held here,
+ * out of their inventory: an item is in one place or the other, never both, and whatever ends the trade short of
+ * completing it puts every offered item back ([Trades.decline]). A save made meanwhile counts the offer as still in the
+ * inventory ([offeredBy]).
+ */
 class Trade(val first: Player, val second: Player) {
+    /** One player's side: what they offer and whether they have accepted this screen. */
+    class Side(val player: Player) {
+        val offer = Inventory(Trades.TRADEOFFER, Inventory.INV_CAPACITY)
+        /** The offered items that stack, so a save can put the offer back as the inventory would hold it. */
+        val stackable = HashSet<Int>()
+        var accepted = false
+        /** The offer or the partner's changed since the screens' texts and inventories were last sent. */
+        var dirty = true
+    }
+
+    val firstSide = Side(first)
+    val secondSide = Side(second)
+
     /** Over: declined, closed or completed. Nothing may touch it after. */
     var over = false
         internal set
 
     fun partnerOf(player: Player): Player = if (player === first) second else first
+
+    fun sideOf(player: Player): Side = if (player === first) firstSide else secondSide
+
+    fun partnerSideOf(player: Player): Side = if (player === first) secondSide else firstSide
+}
+
+/**
+ * What [player] has offered in their trade, if they are in one, each with whether it stacks: their save counts it as
+ * still in the inventory.
+ */
+fun offeredBy(player: Player): List<Pair<InvObj, Boolean>> {
+    val trade = player.trade ?: return emptyList()
+    if (trade.over) return emptyList()
+    val side = trade.sideOf(player)
+    return side.offer.contents().map { (_, obj) -> obj to (obj.id in side.stackable) }
 }
 
 /** "Trade with" clicked on [target]: the player walks up to them, then asks. */
@@ -64,6 +109,18 @@ class Trades(
     private val openModal: (Player, FrameSlot, Int) -> Unit,
     /** Closes every modal the player has open. */
     private val closeModals: (Player) -> Unit,
+    private val objTypes: ObjTypes = ObjTypes.NONE,
+    /** The Grand Exchange price of an item, for the offers' values; null when it has none. */
+    private val price: (ObjType) -> Long? = { null },
+    private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
+    /** Starts a script for the player, for Offer-X's amount prompt. */
+    private val startScript: (Player, suspend ScriptContext.() -> Unit) -> Unit = { _, _ -> },
+    /** Examine on an item in either offer, as in the inventory. */
+    private val examine: (Player, ObjType, Int) -> Unit = { _, _, _ -> },
+    /** Where an offered item goes that can't go back into its owner's inventory; logged, never expected. */
+    private val overflow: (Player, InvObj) -> Unit = { _, _ -> },
+    /** Sets a varbit for the player; nothing when the cache lacks it (tests). */
+    private val setVarbit: (Player, Int, Int) -> Unit = { _, _, _ -> },
 ) {
     /** A click on Trade with [target]. */
     fun click(player: Player, target: Player, invertRun: Boolean) {
@@ -141,7 +198,11 @@ class Trades(
         }
     }
 
-    /** Opens the trade screens for both players. */
+    /**
+     * Opens the trade screens for both players: trademain with both offers (the partner's as a mirror of the same
+     * inventory, a combined id under -70000, RSProt's UpdateInvFull) and tradeside with the inventory and its Offer
+     * options (interface_inv_init, as the shops' side does). The ops' words are guessed from the Wiki's list.
+     */
     private fun open(player: Player, partner: Player) {
         player.tradeRequestTo = null
         partner.tradeRequestTo = null
@@ -152,10 +213,183 @@ class Trades(
             side.interaction = null
             side.waypoints.clear()
             side.trade = trade
+            setVarbit(side, VARBIT_THIS_REMOVED, 0)
+            setVarbit(side, VARBIT_OTHER_REMOVED, 0)
             openModal(side, FrameSlot.MAINMODAL, MAIN)
             openModal(side, FrameSlot.SIDEMODAL, SIDE)
+            send(side, RunClientScript(TRADE_PARTNER_SET_SCRIPT, listOf(trade.partnerOf(side).username)))
+            send(side, IfSetText(MAIN, MAIN_TITLE, words(side).get(TradeLines.TITLE, "name" to trade.partnerOf(side).username)))
+            send(side, IfSetText(MAIN, MAIN_STATUS, ""))
+            send(side, IfSetEventsV2(MAIN, MAIN_YOUR_OFFER, 0, Inventory.INV_CAPACITY - 1, 0, OFFER_OPS))
+            send(side, IfSetEventsV2(MAIN, MAIN_OTHER_OFFER, 0, Inventory.INV_CAPACITY - 1, 0, EXAMINE_OP))
+            send(
+                side,
+                RunClientScript(
+                    INTERFACE_INV_INIT_SCRIPT,
+                    listOf(SIDE shl 16 or SIDE_ITEMS, Inventory.INV, 4, 7, 0, -1, "Offer$OP_COLOUR", "Offer-5$OP_COLOUR", "Offer-10$OP_COLOUR", "Offer-All$OP_COLOUR", "Offer-X$OP_COLOUR"),
+                ),
+            )
+            send(side, IfSetEventsV2(SIDE, SIDE_ITEMS, 0, Inventory.INV_CAPACITY - 1, 0, OFFER_OPS))
         }
         logger.info { "${partner.username} and ${player.username} are trading" }
+    }
+
+    /**
+     * Sends each side of [player]'s trade that changed: the offers (theirs as tradeoffer, the partner's mirrored), the
+     * headers with each offer's value, the partner's free slots and the accept status. Run at the end of every cycle.
+     */
+    fun flush(player: Player) {
+        val trade = player.trade ?: return
+        if (trade.over) return
+        val mine = trade.sideOf(player)
+        val theirs = trade.partnerSideOf(player)
+        if (!mine.dirty && !theirs.dirty) return
+        val partner = theirs.player
+        val text = words(player)
+        send(player, UpdateInvFull(TRADEOFFER, Inventory.INV_CAPACITY, objects(mine.offer)))
+        send(player, UpdateInvFull(MIRROR, TRADEOFFER, Inventory.INV_CAPACITY, objects(theirs.offer)))
+        send(player, IfSetText(MAIN, MAIN_YOUR_HEADER, text.get(TradeLines.YOUR_OFFER, "value" to format(value(mine.offer)))))
+        send(player, IfSetText(MAIN, MAIN_OTHER_HEADER, text.get(TradeLines.OTHER_OFFER, "name" to partner.username, "value" to format(value(theirs.offer)))))
+        val free = partner.inventory.freeSlots
+        send(player, IfSetText(MAIN, MAIN_FREE_SPACE, text.get(TradeLines.FREE_SLOTS, "name" to partner.username, "count" to free)))
+        val status = when {
+            mine.accepted -> text[TradeLines.WAITING]
+            theirs.accepted -> text[TradeLines.OTHER_ACCEPTED]
+            else -> ""
+        }
+        send(player, IfSetText(MAIN, MAIN_STATUS, status))
+    }
+
+    /** Clears the dirty marks once both sides have been sent; run after every player's [flush]. */
+    fun flushed(player: Player) {
+        val trade = player.trade ?: return
+        if (player === trade.second || trade.second.trade !== trade) {
+            trade.firstSide.dirty = false
+            trade.secondSide.dirty = false
+        }
+    }
+
+    private fun objects(inv: Inventory): UpdateInvFull.ObjectProvider = UpdateInvFull.ObjectProvider { slot ->
+        inv[slot]?.let { InventoryObject(slot, it.id, it.count) } ?: InventoryObject.NULL
+    }
+
+    /** An offer's worth at Grand Exchange prices, items without one counting nothing. */
+    private fun value(offer: Inventory): Long =
+        offer.contents().sumOf { (_, obj) -> (unitValue(obj.id) ?: 0L) * obj.count }
+
+    /**
+     * Whether players can trade [type]. The cache's flag (opcode 65) is the Grand Exchange's, which coins and platinum
+     * tokens lack though players trade them (OSRS Wiki, Coins and Platinum token).
+     */
+    private fun tradeable(type: ObjType): Boolean =
+        type.tradeable || type.id == GrandExchange.COINS || type.id == GrandExchange.PLATINUM_TOKEN
+
+    /** Coins and platinum tokens aren't on the Grand Exchange: 1 and 1,000 coins each (OSRS Wiki, Platinum token). */
+    private fun unitValue(id: Int): Long? = when (id) {
+        GrandExchange.COINS -> 1L
+        GrandExchange.PLATINUM_TOKEN -> 1_000L
+        else -> objTypes[id]?.let(price)
+    }
+
+    /** Inferred, from the Wiki's 10,435,672 in full on the second screen: whole numbers with commas. */
+    private fun format(value: Long): String = "%,d".format(value)
+
+    /**
+     * Offer (op 1), Offer-5, Offer-10, Offer-All and Offer-X (ops 2 to 5) on inventory [slot] holding [obj]: as many of
+     * that item as asked (up to what the inventory has) go from the inventory to the offer, the clicked stack first.
+     */
+    private fun offer(player: Player, slot: Int, obj: Int, count: Int) {
+        val trade = player.trade ?: return
+        if (trade.over || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
+        val held = player.inventory[slot]?.takeIf { it.id == obj } ?: return
+        val type = objTypes[held.id] ?: return
+        if (!tradeable(type)) {
+            message(player, TradeLines.UNTRADEABLE)
+            return
+        }
+        val side = trade.sideOf(player)
+        if (type.stackable) side.stackable += type.id
+        var left = count
+        // The clicked slot first, then the rest of the item's slots, as one stack can only be in one.
+        val slots = listOf(slot) + (0 until Inventory.INV_CAPACITY).filter { it != slot && player.inventory[it]?.id == held.id }
+        for (from in slots) {
+            if (left == 0) break
+            val have = player.inventory[from]?.takeIf { it.id == held.id } ?: continue
+            val taking = minOf(left, have.count)
+            val added = side.offer.add(type, taking)
+            if (added == 0) break
+            player.inventory.remove(from, added)
+            left -= added
+        }
+        if (left != count) changed(trade, removed = null)
+    }
+
+    /** Remove (op 1), Remove-5, Remove-10, Remove-All and Remove-X (ops 2 to 5) on [slot] of the player's offer. */
+    private fun remove(player: Player, slot: Int, obj: Int, count: Int) {
+        val trade = player.trade ?: return
+        if (trade.over || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
+        val side = trade.sideOf(player)
+        val held = side.offer[slot]?.takeIf { it.id == obj } ?: return
+        val type = objTypes[held.id] ?: return
+        var left = count
+        val slots = listOf(slot) + (0 until Inventory.INV_CAPACITY).filter { it != slot && side.offer[it]?.id == held.id }
+        val emptied = ArrayList<Int>()
+        for (from in slots) {
+            if (left == 0) break
+            val have = side.offer[from]?.takeIf { it.id == held.id } ?: continue
+            val taking = minOf(left, have.count)
+            val added = player.inventory.add(type, taking)
+            if (added == 0) break
+            side.offer.remove(from, added)
+            emptied += from
+            left -= added
+        }
+        if (left != count) changed(trade, removed = player to emptied)
+    }
+
+    /**
+     * An offer changed: both accepts are off (live's rule that a change means the trade is checked again; inferred from
+     * the Wiki's Trading page), and a removal marks the slot red on both screens: varbits trade_this_player_removed and
+     * trade_other_player_removed, and the client's flasher (trade_slot_changed, 0 for your own offer, 1 for the other's).
+     */
+    private fun changed(trade: Trade, removed: Pair<Player, List<Int>>?) {
+        for (side in listOf(trade.firstSide, trade.secondSide)) {
+            side.accepted = false
+            side.dirty = true
+        }
+        val (remover, slots) = removed ?: return
+        val partner = trade.partnerOf(remover)
+        setVarbit(remover, VARBIT_THIS_REMOVED, 1)
+        setVarbit(partner, VARBIT_OTHER_REMOVED, 1)
+        for (slot in slots) {
+            send(remover, RunClientScript(TRADE_SLOT_CHANGED_SCRIPT, listOf(0, slot)))
+            send(partner, RunClientScript(TRADE_SLOT_CHANGED_SCRIPT, listOf(1, slot)))
+        }
+    }
+
+    /** Accept on the first screen. Both accepting is the second screen's, which comes in the next step. */
+    private fun accept(player: Player) {
+        val trade = player.trade ?: return
+        if (trade.over) return
+        val side = trade.sideOf(player)
+        if (side.accepted) return
+        side.accepted = true
+        side.dirty = true
+        trade.partnerSideOf(player).dirty = true
+        if (trade.partnerSideOf(player).accepted) logger.info { "${trade.first.username} and ${trade.second.username} both accepted" }
+    }
+
+    /** Puts every offered item back where it came from. */
+    private fun giveBack(side: Trade.Side) {
+        for ((slot, obj) in side.offer.contents()) {
+            side.offer[slot] = null
+            val type = objTypes[obj.id]
+            val added = if (type == null) 0 else side.player.inventory.add(type, obj.count)
+            if (added < obj.count) {
+                logger.error { "${side.player.username}'s offered ${obj.id} x ${obj.count - added} had no room back in the inventory" }
+                overflow(side.player, InvObj(obj.id, obj.count - added))
+            }
+        }
     }
 
     /** [player] declined, closed the screen or left: the trade ends for both, and the partner is told. */
@@ -163,6 +397,8 @@ class Trades(
         val trade = player.trade ?: return
         if (trade.over) return
         trade.over = true
+        giveBack(trade.firstSide)
+        giveBack(trade.secondSide)
         val partner = trade.partnerOf(player)
         player.trade = null
         partner.trade = null
@@ -174,20 +410,52 @@ class Trades(
         logger.info { "${player.username} ended their trade with ${partner.username}" }
     }
 
-    /** A click on the trade screen. Returns false for one that isn't the trade's. */
-    fun click(player: Player, interfaceId: Int, componentId: Int): Boolean {
+    /** A click on the trade screens. Returns false for one that isn't the trade's. */
+    fun click(player: Player, interfaceId: Int, componentId: Int, sub: Int, obj: Int, op: Int): Boolean {
         if (interfaceId != MAIN && interfaceId != SIDE) return false
-        if (player.trade == null || interfaceId == SIDE) return true
-        when (componentId) {
-            MAIN_DECLINE -> decline(player)
+        val trade = player.trade ?: return true
+        when {
+            interfaceId == MAIN && componentId == MAIN_DECLINE -> decline(player)
+            interfaceId == MAIN && componentId == MAIN_ACCEPT -> accept(player)
+            interfaceId == SIDE && componentId == SIDE_ITEMS -> when (op) {
+                EXAMINE -> player.inventory.getOrNull(sub)?.let { examineObj(player, it) }
+                5 -> startScript(player) {
+                    val amount = countDialog()
+                    if (player.trade === trade) offer(player, sub, obj, amount)
+                }
+                else -> offer(player, sub, obj, amountFor(op, player.inventory.count(obj)))
+            }
+            interfaceId == MAIN && componentId == MAIN_YOUR_OFFER -> when (op) {
+                EXAMINE -> trade.sideOf(player).offer.getOrNull(sub)?.let { examineObj(player, it) }
+                5 -> startScript(player) {
+                    val amount = countDialog()
+                    if (player.trade === trade) remove(player, sub, obj, amount)
+                }
+                else -> remove(player, sub, obj, amountFor(op, trade.sideOf(player).offer.count(obj)))
+            }
+            interfaceId == MAIN && componentId == MAIN_OTHER_OFFER && op == EXAMINE ->
+                trade.partnerSideOf(player).offer.getOrNull(sub)?.let { examineObj(player, it) }
         }
         return true
     }
 
-    /**
-     * Any other button leaves the trade: one that opens a screen (Equipment Stats) would otherwise replace the trade's
-     * without its close hook, leaving the partner in a trade with nobody.
-     */
+    /** How many ops 1 to 4 move: 1, 5, 10, or everything ([all]). */
+    private fun amountFor(op: Int, all: Long): Int = when (op) {
+        1 -> 1
+        2 -> 5
+        3 -> 10
+        4 -> all.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        else -> 0
+    }
+
+    private fun examineObj(player: Player, obj: InvObj) {
+        val type = objTypes[obj.id] ?: return
+        examine(player, type, obj.count)
+    }
+
+    private fun Inventory.getOrNull(slot: Int): InvObj? = if (slot in 0 until capacity) this[slot] else null
+
+    /** Anything else the player does in the world (a walk, a click elsewhere, an admin command) leaves their trade. */
     fun interrupt(player: Player) {
         if (player.trade != null) closeModals(player)
         // closeModals declines through the screen's close hook; this is for a trade whose screen was already gone.
@@ -207,8 +475,41 @@ class Trades(
         const val MAIN = 335
         const val SIDE = 336
 
-        /** trademain:decline. */
+        /** trademain's components: accept, decline, the two offers, their headers, free space, status and title. */
+        const val MAIN_ACCEPT = 10
         const val MAIN_DECLINE = 13
+        const val MAIN_FREE_SPACE = 9
+        const val MAIN_YOUR_HEADER = 24
+        const val MAIN_YOUR_OFFER = 25
+        const val MAIN_OTHER_HEADER = 27
+        const val MAIN_OTHER_OFFER = 28
+        const val MAIN_STATUS = 30
+        const val MAIN_TITLE = 31
+
+        /** tradeside's layer, which interface_inv_init fills with the inventory. */
+        const val SIDE_ITEMS = 0
+
+        /** The inventory both offers are (tradeoffer); the partner's goes as a mirror, any combined id under -70000. */
+        const val TRADEOFFER = 90
+        const val MIRROR = -70_001
+
+        /** Varbits trade_this_player_removed and trade_other_player_removed, which mark a removal on the screens. */
+        const val VARBIT_THIS_REMOVED = 4374
+        const val VARBIT_OTHER_REMOVED = 4375
+
+        /** Client scripts: trade_partner_set (the trade chat tab's partner), trade_slot_changed, interface_inv_init. */
+        const val TRADE_PARTNER_SET_SCRIPT = 209
+        const val TRADE_SLOT_CHANGED_SCRIPT = 765
+        const val INTERFACE_INV_INIT_SCRIPT = 149
+
+        /** Examine is op 10 on an inventory item. */
+        const val EXAMINE = 10
+
+        /** Ops 1 to 5 and 10 (op n is bit n - 1), and Examine alone. */
+        const val EXAMINE_OP = 1 shl (EXAMINE - 1)
+        const val OFFER_OPS = 0b1_1111 or EXAMINE_OP
+
+        private const val OP_COLOUR = "<col=ff9040>"
 
         /** The chat type of a trade request, chattype_tradereq: shown with Accept trade on it. */
         const val CHATTYPE_TRADEREQ = 101
@@ -221,4 +522,11 @@ object TradeLines : Lines("trade", "Trading") {
     val REQUEST = line("request", "the other player's trade request line in their chat", "name")
     val BUSY = line("busy", "asking a player who has a bank, the equipment stats or a trade open")
     val DECLINED = line("declined", "the partner declined or closed the trade screen, or left")
+    val TITLE = line("title", "the trade screen's title", "name")
+    val YOUR_OFFER = line("your_offer", "the header over your offer, with its value; layout guessed", "value")
+    val OTHER_OFFER = line("other_offer", "the header over the partner's offer, with its value; layout guessed", "name", "value")
+    val FREE_SLOTS = line("free_slots", "the partner's free inventory slots under the offers; words guessed", "name", "count")
+    val WAITING = line("waiting", "the status line after you accept")
+    val OTHER_ACCEPTED = line("other_accepted", "the status line after the partner accepts")
+    val UNTRADEABLE = line("untradeable", "offering an item that can't be traded; words guessed")
 }
