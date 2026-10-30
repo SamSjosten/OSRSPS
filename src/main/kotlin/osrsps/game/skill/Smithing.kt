@@ -2,6 +2,8 @@ package osrsps.game.skill
 
 import java.util.WeakHashMap
 import osrsps.game.FrameSlot
+import osrsps.game.GameLines
+import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -20,6 +22,7 @@ object SmithingLines : Lines("smithing", "Smithing") {
     val IMPURE = line("impure", "the message when iron ore fails to become a bar")
     val NO_HAMMER = line("no_hammer", "the message at an anvil with no hammer")
     val NO_BARS = line("no_bars", "the message on Smith at an anvil with no bars")
+    val BRONZE_ONLY = line("bronze_only", "the message on using another bar than bronze on Lumbridge's rusted anvil")
     val ANVIL_LEVEL = line("anvil_level", "the message when an anvil item needs a higher level", "level", "item")
     val ANVIL_BARS = line("anvil_bars", "the message when an anvil item needs more bars than held", "bars", "bar", "item")
     val SMITHED = line("smithed", "the message on hammering out an item", "bar", "item")
@@ -136,9 +139,13 @@ class Smithing(private val world: World) {
     /** Smith, or a bar used on an anvil: the anvil interface for [used], else for the best bar held. */
     private fun ScriptContext.openAnvil(loc: ZoneLoc, used: Bar?) {
         val text = world.textFor(player)
-        val bar = used ?: anvilBar(player)
-        if (bar == null) {
-            player.message(text[SmithingLines.NO_BARS])
+        // The Wiki's Anvil: the rusted anvil "can only be used to smith bronze items".
+        val allowed = if (loc.id == RUSTED_ANVIL) listOf(BRONZE) else BARS.filter { it.anvilType > 0 }
+        val bar = used ?: anvilBar(player, allowed)
+        if (bar == null || bar !in allowed) {
+            // Guessed: the rusted anvil's refusal of other bars has a message of its own.
+            val heldOther = BARS.any { it.anvilType > 0 && player.inventory.count(it.obj) > 0 }
+            player.message(text[if (bar != null || heldOther) SmithingLines.BRONZE_ONLY else SmithingLines.NO_BARS])
             return
         }
         if (player.inventory.count(HAMMER) < 1) {
@@ -155,8 +162,8 @@ class Smithing(private val world: World) {
      * Guessed: Smith opens the anvil for the best bar held that the player's level smiths something from, else the
      * lowest bar held.
      */
-    private fun anvilBar(player: Player): Bar? {
-        val held = BARS.filter { it.anvilType > 0 && player.inventory.count(it.obj) > 0 }
+    private fun anvilBar(player: Player, allowed: List<Bar>): Bar? {
+        val held = allowed.filter { player.inventory.count(it.obj) > 0 }
         val level = player.skills.currentLevel(Skill.SMITHING)
         return held.lastOrNull { bar -> AnvilItems.BY_BAR.getValue(bar.obj).any { it.level <= level } } ?: held.firstOrNull()
     }
@@ -180,6 +187,11 @@ class Smithing(private val world: World) {
         }
         if (player.inventory.count(bar.obj) < item.bars) {
             player.message(text[SmithingLines.ANVIL_BARS, "bars" to item.bars, "bar" to bar.key, "item" to name])
+            return
+        }
+        if (!fits(player, item)) {
+            // Guessed: the words for no room.
+            player.message(text[GameLines.NO_SPACE])
             return
         }
         // Guessed: a quantity of 0 (X cancelled) smiths one.
@@ -233,7 +245,17 @@ class Smithing(private val world: World) {
         // Guessed: a boost wearing off below the level stops the job without a word.
         val level = player.skills.currentLevel(Skill.SMITHING)
         val item = job.item ?: return level >= job.bar.level && hasOres(player, job.bar)
-        return level >= item.level && player.inventory.count(job.bar.obj) >= item.bars && player.inventory.count(HAMMER) > 0
+        return level >= item.level && player.inventory.count(job.bar.obj) >= item.bars && player.inventory.count(HAMMER) > 0 &&
+            fits(player, item)
+    }
+
+    /**
+     * Whether [item]'s output goes into the inventory once its bars are taken. Bars don't stack, so taking them always
+     * frees a slot: only a stack that would pass [Inventory.MAX_STACK] stops it.
+     */
+    private fun fits(player: Player, item: AnvilItem): Boolean {
+        val type = world.objTypes[item.obj] ?: return false
+        return !type.stackable || player.inventory.count(item.obj) + item.count <= Inventory.MAX_STACK
     }
 
     private fun ScriptContext.finish(stopAnim: Boolean = true) {

@@ -33,7 +33,7 @@ class HeadlessSmithingTest {
         val ids = Smithing.BARS.flatMap { bar -> bar.ores.map { it.first } + bar.obj } + Smithing.HAMMER +
             AnvilItems.BY_BAR.getValue(Smithing.BRONZE.obj).map { it.obj }
         val objs = arrayOfNulls<ObjType>(ids.max() + 1)
-        for (id in ids) objs[id] = ObjType(id, "Obj $id")
+        for (id in ids) objs[id] = ObjType(id, "Obj $id", stackable = id == NAILS_OBJ)
         fun loc(id: Int, ops: List<String?>) = LocType(id, "Loc $id", ops, LocCollisionType(width = 1, length = 1))
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(7),
@@ -201,6 +201,45 @@ class HeadlessSmithingTest {
         }
     }
 
+    @Test
+    fun `the rusted anvil smiths only bronze`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fred").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel smithing 99")
+                client.give(Smithing.HAMMER)
+                client.give(Smithing.IRON.obj)
+                client.locOp(Smithing.RUSTED_ANVIL, ANVIL_X, ANVIL_Z, 1)
+                client.await("Smith refused") { client.made("[smithing.bronze_only]").takeIf { it.size == 1 } }
+                val slot = client.inventory(BACKPACK).indexOfFirst { it?.id == Smithing.IRON.obj }
+                client.locTarget(Smithing.RUSTED_ANVIL, ANVIL_X, ANVIL_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, Smithing.IRON.obj)
+                client.await("the iron bar refused") { client.made("[smithing.bronze_only]").takeIf { it.size == 2 } }
+                assertTrue(Smithing.INTERFACE !in client.openInterfaces())
+            }
+        }
+    }
+
+    @Test
+    fun `nails that would pass the largest stack aren't made and keep the bar`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel smithing 99")
+                client.give(Smithing.HAMMER)
+                client.give(NAILS_OBJ, Int.MAX_VALUE - 5)
+                client.give(Smithing.BRONZE.obj)
+                client.useBarOnAnvil()
+                client.await("the anvil") { if (Smithing.INTERFACE in client.openInterfaces()) Unit else null }
+                client.ifButton(Smithing.INTERFACE, NAILS, 1)
+                client.seen("[game.no_space]")
+                client.awaitTicks(8)
+                assertEquals(1, client.count(Smithing.BRONZE.obj))
+                assertEquals(Int.MAX_VALUE - 5, client.count(NAILS_OBJ))
+                assertEquals(0, client.made("[smithing.smithed").size)
+            }
+        }
+    }
+
     private fun HeadlessClient.useBarOnAnvil() {
         val slot = inventory(BACKPACK).indexOfFirst { it?.id == Smithing.BRONZE.obj }
         locTarget(Smithing.RUSTED_ANVIL, ANVIL_X, ANVIL_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, Smithing.BRONZE.obj)
@@ -221,6 +260,8 @@ class HeadlessSmithingTest {
         const val SCIMITAR = 11
         const val SCIMITAR_OBJ = 1321
         const val PLATEBODY = 22
+        const val NAILS = 23
+        const val NAILS_OBJ = 4819
         const val MAKE_X = 6
         const val MAKE_ALL = 7
         const val VARP_SMITHBARS = 210
