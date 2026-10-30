@@ -183,7 +183,6 @@ object SwampTutors {
     const val IRON_PICKAXE = 1267
     const val STEEL_PICKAXE = 1269
     const val MITHRIL_PICKAXE = 1273
-    const val ADAMANT_PICKAXE = 1271
     const val RUNE_PICKAXE = 1275
 
     const val SMALL_FISHING_NET = 303
