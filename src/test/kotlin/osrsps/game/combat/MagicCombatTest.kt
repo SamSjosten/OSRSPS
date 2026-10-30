@@ -68,7 +68,9 @@ class MagicCombatTest {
 
     /** Far past the 100% cap once tripled. */
     private val bigDamage = ObjType(12003, "Damage amulet", wearpos1 = WearPos.NECK, params = mapOf(299 to 500), internalName = "damage_amulet")
-    private val objTypes = ObjTypes.of(fireStrike, bind, snare, iceRush, iceBarrage, staffOfFire, occult, shadow, shadowUncharged, harmonised, bigDamage, *runes.toTypedArray())
+    // Obj category 1014 is the bulwark's weapon category 28.
+    private val bulwark = ObjType(21015, "Dinh's bulwark", wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, params = mapOf(14 to 5), internalName = "dinhs_bulwark", category = 1014)
+    private val objTypes = ObjTypes.of(fireStrike, bind, snare, iceRush, iceBarrage, staffOfFire, occult, shadow, shadowUncharged, harmonised, bigDamage, bulwark, *runes.toTypedArray())
 
     private val spells = Spells.parse(
         """{ "splash": "failedspell_impact", "spells": [ { "spell": "13_fire_strike", "autocast": 4, "element": "fire", "xp": 11.5, "anim": "human_caststrike",
@@ -121,6 +123,7 @@ class MagicCombatTest {
                 AttackStyles.parse(1, "Accurate", "(Accurate)<br>(Magic XP)"),
                 AttackStyles.parse(3, "Longrange", "(Longrange)<br>(Magic XP)<br>(Defence XP)"),
             ),
+            28 to listOf(AttackStyles.parse(0, "Pummel", "(Accurate)<br>(Crush)<br>(Attack XP)"), AttackStyles.parse(3, "Block", "(Block)<br>(No XP)")),
         ),
     )
     private val combat = Combat(Equipment(objTypes), styles, npcCombat)
@@ -283,6 +286,18 @@ class MagicCombatTest {
         assertTrue(projectiles.isEmpty())
         tick()
         assertEquals(3L, projectiles.single().first)
+    }
+
+    @Test
+    fun `Dinh's bulwark on Block refuses a spell from the book, and takes nothing`() {
+        val npc = spawn(dummy)
+        alice.equipment[WearPos.WEAPON] = InvObj(bulwark.id, 1)
+        alice.vars[EquipmentTab.VARP_COM_MODE] = 3
+        cast(alice, npc)
+        tick()
+        assertEquals(listOf(alice to "[combat.bulwark_block]"), messages)
+        assertTrue(projectiles.isEmpty())
+        assertEquals(listOf(100, 300, 200), listOf(count(alice, MIND), count(alice, FIRE), count(alice, AIR)))
     }
 
     @Test

@@ -128,6 +128,10 @@ class MeleeCombat(
     /** Starts a fight with [npc], tried at once when [now]. False when the NPC can't be fought; see [attack]. */
     private fun start(player: Player, npc: Npc, now: Boolean): Boolean {
         combat.npcCombat[npc.type] ?: return false
+        if (combat.bulwarkBlock(player)) {
+            message(player, words(player)[CombatLines.BULWARK_BLOCK])
+            return true
+        }
         val fight = fight(player, npc)
         if (fight == null) {
             message(player, MELEE_ONLY)
@@ -211,6 +215,13 @@ class MeleeCombat(
 
     private fun swing(player: Player, npc: Npc, tick: Long) {
         val style = combat.style(player)
+        if (combat.bulwarkBlock(player)) {
+            // Block picked on the way (the combat tab is open while walking).
+            message(player, words(player)[CombatLines.BULWARK_BLOCK])
+            stopFacing(player)
+            player.interaction = null
+            return
+        }
         var matchup = combat.matchup(player, npc) ?: run {
             // The style changed on the way (the combat tab is open while walking): a bow carries on as a ranged fight.
             val next = ranged(player, npc)
@@ -228,9 +239,44 @@ class MeleeCombat(
             player.effects.anim(combat.anims(player).attack(style), 0)
         } else {
             player.effects.anim(spec.anim, 0)
-            player.spotanim(spec.spotanim)
+            if (spec.spotanim >= 0) player.spotanim(spec.spotanim)
         }
         face(player, npc)
+        strike(player, npc, matchup, spec, tick)
+        // A special that hits around the player does so only in multi-way combat; in single-way it is one hit (guessed).
+        if (spec == null || spec.radius <= 0 || !multi.at(player.level, player.x, player.z)) return
+        // The second hit on the target doesn't drain (OSRS Wiki, Dinh's bulwark: the 1 December 2021 update).
+        repeat(spec.targetHits - 1) { strike(player, npc, matchup, spec, tick, effect = false) }
+        for (other in around(player, npc, spec.radius).take(spec.targets - 1)) {
+            strike(player, other, combat.matchup(player, other, spec.against) ?: continue, spec, tick)
+        }
+    }
+
+    /**
+     * The fightable NPCs other than [target] within [radius] tiles of [player] on either axis, by any tile they cover,
+     * standing in multi-way combat themselves (by their south-west tile, as a barrage's splash goes), nearest first.
+     * Guessed: nothing in the way stops the hit, and the nearest are hit first when there are too many.
+     */
+    private fun around(player: Player, target: Npc, radius: Int): List<Npc> {
+        fun distance(npc: Npc): Int {
+            val dx = maxOf(npc.x - player.x, player.x - (npc.x + npc.type.size - 1), 0)
+            val dz = maxOf(npc.z - player.z, player.z - (npc.z + npc.type.size - 1), 0)
+            return maxOf(dx, dz)
+        }
+        return npcs.near(player.x, player.z, player.level, radius + MAX_NPC_SIZE)
+            .filter {
+                it !== target && !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && distance(it) <= radius &&
+                    multi.at(it.level, it.x, it.z)
+            }
+            .sortedBy(::distance)
+    }
+
+    /**
+     * One hit of [player]'s swing on [npc] with [matchup]'s numbers, raised by [spec]'s if it is a special: rolled now,
+     * its XP given now, and landing in the next tick's NPC phase with [spec]'s effect unless not [effect].
+     */
+    private fun strike(player: Player, npc: Npc, matchup: MeleeMatchup, spec: SpecialAttack?, tick: Long, effect: Boolean = true) {
+        val style = matchup.style
         val attackRoll = spec?.attackRoll(matchup.attackRoll) ?: matchup.attackRoll
         val maxHit = spec?.maxHit(matchup.maxHit) ?: matchup.maxHit
         // Accuracy first, then damage, as the Wiki describes a hit; the attack's random draws are always these two.
@@ -245,7 +291,7 @@ class MeleeCombat(
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
         val poison = PoisonedWeapons.melee(combat.weapon(player))
-        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec)
+        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect })
     }
 
     /** A player's swing on its way to an NPC: it lands on [landTick], poisoning at [poison] if over 0, with [special]'s effect if it was one. */
@@ -411,7 +457,8 @@ class MeleeCombat(
         val roll = combat.npcAttack(npc, player) ?: return
         val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, roll.maxHit) else 0
         // The dice are rolled either way, so a prayer doesn't change what comes after (World.random is shared).
-        hitPlayer(player, npc, if (protects(player, def.attackType)) 0 else damage, tick)
+        val blocked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
+        hitPlayer(player, npc, if (protects(player, def.attackType)) 0 else blocked, tick)
         // Its poison comes whatever the hit did, through a protection prayer too (OSRS Wiki, Poison). Guessed: one
         // attack in four, as for a player's poisoned melee weapon; the Wiki gives no chance for monsters.
         if (def.poison > 0 && !player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(player, def.poison)
@@ -525,13 +572,13 @@ class MeleeCombat(
     /**
      * Auto retaliate: [player] turns on [npc], which hit them on [tick]. OSRS Wiki, Auto Retaliate: the character
      * retaliates one tick after being attacked, with the attack delay set to the weapon's speed halved and rounded up
-     * whatever it was. The fight starts now and the first swing comes with that delay. A stunned player doesn't
-     * retaliate ([StatusEffects], guessed).
+     * whatever it was, but never before [Player.attackLockedUntil]. The fight starts now and the first swing comes with
+     * that delay. A stunned player doesn't retaliate ([StatusEffects], guessed).
      */
     private fun retaliate(player: Player, npc: Npc, tick: Long) {
         if (foughtByAnother(player, npc)) return
         player.interaction = fight(player, npc) ?: return
-        player.nextAttackTick = tick + (combat.attackSpeed(player) + 1) / 2
+        player.nextAttackTick = maxOf(tick + (combat.attackSpeed(player) + 1) / 2, player.attackLockedUntil)
     }
 
     /** "Oh dear, you are dead!": every fight with the player ends, and [Deaths] has them from here. */
@@ -597,6 +644,9 @@ class MeleeCombat(
          * range (7) plus its interaction range (11). Guessed that chasing uses the same numbers.
          */
         const val CHASE_RANGE = Npcs.MAX_RANGE + 11
+
+        /** Wider than any NPC, so one whose south-west tile is this far off can still cover a tile in range. */
+        private const val MAX_NPC_SIZE = 16
 
         /** Ticks between hitpoints coming back: one a minute (OSRS Wiki, Hitpoints). */
         const val REGEN_TICKS = 100

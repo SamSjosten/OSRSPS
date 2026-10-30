@@ -251,6 +251,11 @@ class MagicCombat(
             logger.info { "${player.username} was to cast ${spell.name} on $npc, but has spellbook ${Spellbook.of(player)} open now" }
             return false
         }
+        // Dinh's bulwark's Block can't attack, a spell from the book included; checked at the cast, as Block may be picked on the way.
+        if (combat.bulwarkBlock(player)) {
+            message(player, words(player)[CombatLines.BULWARK_BLOCK])
+            return false
+        }
         if (player.skills.currentLevel(Skill.MAGIC) < spell.level) {
             message(player, words(player)[CombatLines.MAGIC_LEVEL])
             return false

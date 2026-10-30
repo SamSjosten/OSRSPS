@@ -58,6 +58,10 @@ class Trade(val first: Player, val second: Player) {
     var over = false
         internal set
 
+    /** On the second screen, tradeconfirm: the offers can't change any more. */
+    var confirming = false
+        internal set
+
     fun partnerOf(player: Player): Player = if (player === first) second else first
 
     fun sideOf(player: Player): Side = if (player === first) firstSide else secondSide
@@ -121,6 +125,11 @@ class Trades(
     private val overflow: (Player, InvObj) -> Unit = { _, _ -> },
     /** Sets a varbit for the player; nothing when the cache lacks it (tests). */
     private val setVarbit: (Player, Int, Int) -> Unit = { _, _, _ -> },
+    /**
+     * Completes a trade: runs the swap, then saves both players together (World.commitTrade, the trade journal). Returns
+     * false, after running the undo, when the trade couldn't be made safe to save.
+     */
+    private val commit: (Player, Player, swap: () -> Unit, undo: () -> Unit) -> Boolean = { _, _, swap, _ -> swap(); true },
 ) {
     /** A click on Trade with [target]. */
     fun click(player: Player, target: Player, invertRun: Boolean) {
@@ -248,6 +257,15 @@ class Trades(
         val text = words(player)
         send(player, UpdateInvFull(TRADEOFFER, Inventory.INV_CAPACITY, objects(mine.offer)))
         send(player, UpdateInvFull(MIRROR, TRADEOFFER, Inventory.INV_CAPACITY, objects(theirs.offer)))
+        if (trade.confirming) {
+            val status = when {
+                mine.accepted -> text[TradeLines.WAITING]
+                theirs.accepted -> text[TradeLines.OTHER_ACCEPTED]
+                else -> text[TradeLines.ARE_YOU_SURE]
+            }
+            send(player, IfSetText(CONFIRM, CONFIRM_TITLE, status))
+            return
+        }
         send(player, IfSetText(MAIN, MAIN_YOUR_HEADER, text.get(TradeLines.YOUR_OFFER, "value" to format(value(mine.offer)))))
         send(player, IfSetText(MAIN, MAIN_OTHER_HEADER, text.get(TradeLines.OTHER_OFFER, "name" to partner.username, "value" to format(value(theirs.offer)))))
         val free = partner.inventory.freeSlots
@@ -300,7 +318,8 @@ class Trades(
      */
     private fun offer(player: Player, slot: Int, obj: Int, count: Int) {
         val trade = player.trade ?: return
-        if (trade.over || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
+        // An Offer-X prompt left open while both accepted answers after the second screen is up: nothing may change.
+        if (trade.over || trade.confirming || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
         val held = player.inventory[slot]?.takeIf { it.id == obj } ?: return
         val type = objTypes[held.id] ?: return
         if (!tradeable(type)) {
@@ -327,7 +346,7 @@ class Trades(
     /** Remove (op 1), Remove-5, Remove-10, Remove-All and Remove-X (ops 2 to 5) on [slot] of the player's offer. */
     private fun remove(player: Player, slot: Int, obj: Int, count: Int) {
         val trade = player.trade ?: return
-        if (trade.over || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
+        if (trade.over || trade.confirming || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
         val side = trade.sideOf(player)
         val held = side.offer[slot]?.takeIf { it.id == obj } ?: return
         val type = objTypes[held.id] ?: return
@@ -367,16 +386,117 @@ class Trades(
         }
     }
 
-    /** Accept on the first screen. Both accepting is the second screen's, which comes in the next step. */
-    private fun accept(player: Player) {
+    /**
+     * Accept, on either screen. Both accepting the first moves both to the second, once each has room for what they
+     * get; both accepting the second completes the trade.
+     */
+    private fun accept(player: Player, confirming: Boolean) {
         val trade = player.trade ?: return
-        if (trade.over) return
+        if (trade.over || trade.confirming != confirming) return
         val side = trade.sideOf(player)
         if (side.accepted) return
         side.accepted = true
         side.dirty = true
-        trade.partnerSideOf(player).dirty = true
-        if (trade.partnerSideOf(player).accepted) logger.info { "${trade.first.username} and ${trade.second.username} both accepted" }
+        val partnerSide = trade.partnerSideOf(player)
+        partnerSide.dirty = true
+        if (!partnerSide.accepted) return
+        if (!roomFor(trade)) return
+        if (confirming) complete(trade) else confirm(trade)
+    }
+
+    /**
+     * Whether each player has room for what the other offers, counting what they offer themselves as gone. One without
+     * is told so, the partner that the other has no room, and both accepts go off (OSRS Wiki, Trading; words guessed).
+     */
+    private fun roomFor(trade: Trade): Boolean {
+        for (side in listOf(trade.firstSide, trade.secondSide)) {
+            val other = if (side === trade.firstSide) trade.secondSide else trade.firstSide
+            if (receive(side.player.inventory, other) != null) continue
+            message(side.player, TradeLines.NO_ROOM)
+            message(other.player, TradeLines.OTHER_NO_ROOM)
+            for (each in listOf(trade.firstSide, trade.secondSide)) {
+                each.accepted = false
+                each.dirty = true
+            }
+            return false
+        }
+        return true
+    }
+
+    /** [inventory] with [from]'s offer added, as a new inventory; null when it doesn't all fit. */
+    private fun receive(inventory: Inventory, from: Trade.Side): Inventory? {
+        val result = Inventory(inventory.type, inventory.capacity)
+        for ((slot, obj) in inventory.contents()) result[slot] = obj
+        for ((_, obj) in from.offer.contents()) {
+            val type = objTypes[obj.id] ?: return null
+            if (result.add(type, obj.count) < obj.count) return null
+        }
+        return result
+    }
+
+    /**
+     * The second screen, tradeconfirm, in the first's place: both offers listed (the client draws them from the same
+     * two inventories), each side's value, and Accept again. The side panel's inventory stays, but its Offer options
+     * do nothing from here (inferred: nothing may change once both have accepted).
+     */
+    private fun confirm(trade: Trade) {
+        trade.confirming = true
+        for (side in listOf(trade.firstSide, trade.secondSide)) {
+            side.accepted = false
+            side.dirty = true
+        }
+        for (side in listOf(trade.first, trade.second)) {
+            val partner = trade.partnerOf(side)
+            val text = words(side)
+            openModal(side, FrameSlot.MAINMODAL, CONFIRM)
+            send(side, IfSetText(CONFIRM, CONFIRM_OPPONENT, text.get(TradeLines.CONFIRM_OPPONENT, "name" to partner.username)))
+            send(side, IfSetText(CONFIRM, CONFIRM_GIVE, text.get(TradeLines.GIVE, "value" to format(value(trade.sideOf(side).offer)))))
+            send(side, IfSetText(CONFIRM, CONFIRM_RECEIVE, text.get(TradeLines.RECEIVE, "value" to format(value(trade.partnerSideOf(side).offer)))))
+        }
+    }
+
+    /**
+     * Both accepted the second screen: each offer goes to the other player in one go, inside this click, and both are
+     * saved together through [commit]. Room was checked as they accepted and nothing can have changed since; it is
+     * checked again, and a trade that no longer fits ends as a decline would, everything given back.
+     */
+    private fun complete(trade: Trade) {
+        val firstGets = receive(trade.first.inventory, trade.secondSide)
+        val secondGets = receive(trade.second.inventory, trade.firstSide)
+        if (firstGets == null || secondGets == null) {
+            logger.error { "Trade between ${trade.first.username} and ${trade.second.username} no longer fits; ending it" }
+            decline(trade.first)
+            return
+        }
+        trade.over = true
+        val inventories = listOf(trade.first, trade.second).map { player -> player to (0 until player.inventory.capacity).map { player.inventory[it] } }
+        val offers = listOf(trade.firstSide, trade.secondSide).map { side -> side to (0 until side.offer.capacity).map { side.offer[it] } }
+        val committed = commit(trade.first, trade.second, {
+            for ((player, gets) in listOf(trade.first to firstGets, trade.second to secondGets)) {
+                for (slot in 0 until player.inventory.capacity) player.inventory[slot] = gets[slot]
+            }
+            trade.firstSide.offer.clear()
+            trade.secondSide.offer.clear()
+            trade.first.trade = null
+            trade.second.trade = null
+        }) {
+            for ((player, held) in inventories) held.forEachIndexed { slot, obj -> player.inventory[slot] = obj }
+            for ((side, held) in offers) held.forEachIndexed { slot, obj -> side.offer[slot] = obj }
+            trade.first.trade = trade
+            trade.second.trade = trade
+        }
+        if (!committed) {
+            // The swap was undone: the trade ends as a decline would, everything given back.
+            logger.error { "Trade between ${trade.first.username} and ${trade.second.username} couldn't be saved safely; ending it" }
+            trade.over = false
+            decline(trade.first)
+            return
+        }
+        for (player in listOf(trade.first, trade.second)) {
+            closeModals(player)
+            message(player, TradeLines.ACCEPTED)
+        }
+        logger.info { "${trade.first.username} and ${trade.second.username} traded" }
     }
 
     /** Puts every offered item back where it came from. */
@@ -412,11 +532,14 @@ class Trades(
 
     /** A click on the trade screens. Returns false for one that isn't the trade's. */
     fun click(player: Player, interfaceId: Int, componentId: Int, sub: Int, obj: Int, op: Int): Boolean {
-        if (interfaceId != MAIN && interfaceId != SIDE) return false
+        if (interfaceId != MAIN && interfaceId != SIDE && interfaceId != CONFIRM) return false
         val trade = player.trade ?: return true
         when {
             interfaceId == MAIN && componentId == MAIN_DECLINE -> decline(player)
-            interfaceId == MAIN && componentId == MAIN_ACCEPT -> accept(player)
+            interfaceId == MAIN && componentId == MAIN_ACCEPT -> accept(player, confirming = false)
+            interfaceId == CONFIRM && componentId == CONFIRM_ACCEPT -> accept(player, confirming = true)
+            interfaceId == CONFIRM && componentId == CONFIRM_DECLINE -> decline(player)
+            trade.confirming && op != EXAMINE -> {}
             interfaceId == SIDE && componentId == SIDE_ITEMS -> when (op) {
                 EXAMINE -> player.inventory.getOrNull(sub)?.let { examineObj(player, it) }
                 5 -> startScript(player) {
@@ -462,6 +585,15 @@ class Trades(
         decline(player)
     }
 
+    /**
+     * The first screen shut. Opening the second screen over it shuts it too, which leaves the trade standing; any other
+     * close (Escape, the close button, another screen) declines.
+     */
+    fun mainClosed(player: Player) {
+        if (player.trade?.confirming == true) return
+        decline(player)
+    }
+
     /** [player] is leaving the world: their trade ends and their standing request goes. */
     fun leave(player: Player) {
         decline(player)
@@ -474,6 +606,15 @@ class Trades(
         /** The trade screen, trademain, and the inventory beside it, tradeside. */
         const val MAIN = 335
         const val SIDE = 336
+
+        /** The second screen, tradeconfirm: accept, decline, the opponent's name and the two headers. */
+        const val CONFIRM = 334
+        const val CONFIRM_TITLE = 4
+        const val CONFIRM_ACCEPT = 13
+        const val CONFIRM_DECLINE = 14
+        const val CONFIRM_GIVE = 23
+        const val CONFIRM_RECEIVE = 24
+        const val CONFIRM_OPPONENT = 30
 
         /** trademain's components: accept, decline, the two offers, their headers, free space, status and title. */
         const val MAIN_ACCEPT = 10
@@ -529,4 +670,11 @@ object TradeLines : Lines("trade", "Trading") {
     val WAITING = line("waiting", "the status line after you accept")
     val OTHER_ACCEPTED = line("other_accepted", "the status line after the partner accepts")
     val UNTRADEABLE = line("untradeable", "offering an item that can't be traded; words guessed")
+    val NO_ROOM = line("no_room", "accepting without room for the partner's offer; words guessed")
+    val OTHER_NO_ROOM = line("other_no_room", "the partner accepted without room for your offer; words guessed")
+    val ARE_YOU_SURE = line("are_you_sure", "the second screen's title until someone accepts")
+    val CONFIRM_OPPONENT = line("confirm_opponent", "the second screen's line naming the partner", "name")
+    val GIVE = line("give", "the second screen's header over what you give, with its value; layout guessed", "value")
+    val RECEIVE = line("receive", "the second screen's header over what you get, with its value; layout guessed", "value")
+    val ACCEPTED = line("accepted", "the trade completed; words guessed")
 }

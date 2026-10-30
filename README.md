@@ -240,7 +240,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::clearignores` | Empties your ignore list, for tests that start from none |
 | `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
 | `::drain stat levels\|percent% [index\|name]` | Drains an NPC's attack, defence, strength, ranged or magic (the one you fight, or by index from `::npcs` or by name) by that many levels, or by a percentage of its level now, as far as its drain cap lets it, and says its level now. Its combat rolls use the drained level (`::combat` shows them), it gets a level back a minute, and `::npcs` shows its drained stats |
-| `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap) and the Bandos godsword's Warstrike (50%: double accuracy against slash, the max hit up 10% twice, and the target's Defence, Strength, Attack, Magic and Ranged drained by the damage in turn) are in, and `::combat` shows a special's attack roll and max hit |
+| `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap) and the Bandos godsword's Warstrike (50%: double accuracy against slash, the max hit up 10% twice, and the target's Defence, Strength, Attack, Magic and Ranged drained by the damage in turn) and Dinh's bulwark's Shield Bash (50%: 20% more accurate against crush, and in a multi-way area up to 10 NPCs within 5 tiles hit, the target twice, each losing 5% of its highest offensive stat) are in. The bulwark's Block style can't attack and, 8 ticks after it is wielded, lets 80% of monsters' melee hits through, and `::combat` shows a special's attack roll and max hit |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -833,6 +833,8 @@ quest, so Al Kharid is as after Prince Ali Rescue.
 | The keepers on 2004Scape's tiles, indoors; Ali Morrisane by his stall | 2004Scape maps m51_49/m51_50; Ali's tile guessed from the 241 map's stall and The Feud's quest icon |
 | Karim (`kebab_seller`, 2877) sells a kebab for 1 coin through his talk; the Silk trader (2873) sells silk for 3 gp, or 2 after haggling; both as after Rogue Trader; no message when Karim sells | OSRS Wiki, Transcript:Karim and Transcript:Silk trader; tiles from 2004Scape map m51_49/m51_50 |
 | Eating a kebab: "You eat the kebab", then out of 32: 1 heals 7 + 24% of the Hitpoints level and raises melee by 2, 8 heal 6 + 14%, 20 heal 3 + 7%, 1 does nothing, 1 drains a random skill by 3, 1 drains melee by 3 and a random skill by 4; with the eat and attack delays of other food | OSRS Wiki, Kebab (also the random skill's floor of 2 and no "heals some health" at full Hitpoints); rounding down, the +2 cap at base + 2 and the melee drain's floor of 1 guessed |
+| Ellis (`ellis_tanner`, 3231): his talk (with hides carried, an offer to tan them; without, two topics and Ali Morrisane); Trade, or a hide used on him, opens the tanning screen (interface 324); leather or any other item used on him gets a line | OSRS Wiki, Ellis and Transcript:Ellis; tile from 2004Scape map m51_49 |
+| Tanning: soft leather 1, hard leather 3, snakeskin 15 (snake hide) or 20 (swamp snake hide), each dragon leather 20 coins a hide; Tan 1, 5, X and All take as many of the slot's hides as held and paid for, at once | OSRS Wiki, Ellis; 2004Scape's tan_leather and its messages; the screen's components by their 241 names; the slots' order, model zoom, names, price form and closing the screen after a tanning guessed |
 | The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
 
 Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only); Ali
@@ -841,15 +843,15 @@ keeper, and the keepers' treasure trail steps. The words of
 the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
 `examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`), as are the shop keepers' (`al_kharid_shop_keeper.*`,
 `al_kharid_shop_assistant.*`, `zeke.*`, `dommik.*`, `louie_legs.*`, `ranael.*`, `gem_trader.*` and each keeper's examine), Karim's and the Silk trader's (`karim.*`, `silk_trader.*`) and the kebab's
-messages (`kebab.*`).
+messages (`kebab.*`), and Ellis's talk and the tanning screen's words (`ellis.*`, `tanning.*`).
 
 Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
 Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
 Bank and through a banker's talk; `al-kharid-shops.json` buys and sells at every shop; `al-kharid-traders.json` buys and eats a kebab and haggles for
-silk; `HeadlessAlKharidShopsTest` opens the Gem trader's shop from his talk, tries silk at the General Store and buys Ali's junk;
-`HeadlessAlKharidTradersTest` buys a kebab from Karim and eats it, and haggles for silk;
-`HeadlessAlKharidTest` does the same through the headless client, with the talk in
-`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, and
+silk; `al-kharid-tanning.json` tans cowhides at Ellis's; `HeadlessAlKharidShopsTest` opens the Gem trader's shop from his
+talk, tries silk at the General Store and buys Ali's junk; `HeadlessAlKharidTradersTest` buys a kebab from Karim and eats it,
+and haggles for silk; `HeadlessAlKharidTest` does the same through the headless client, with the talk in
+`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, and
 the prices in `ShopTest`.
 
 ## Equipment
