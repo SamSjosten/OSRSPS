@@ -423,6 +423,21 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `a poison kill's drops go to whoever hit the NPC last, even once it has given up on them`() {
+        val npc = spawn()
+        tick = 10
+        melee.hit(npc, alice, 1, tick)
+        // She walks off out of its reach; it gives up and the fight is over for it.
+        alice.x += 40
+        var ticks = 0
+        while (npc.attacker != null && ticks++ < 200) tick()
+        assertNull(npc.attacker, "the man gave up on her")
+        melee.statusHit(npc, 100, Poison.POISON_HITSPLAT)
+        repeat(5) { tick() }
+        assertEquals(listOf<Pair<Npc, Player?>>(npc to alice), looted)
+    }
+
+    @Test
     fun `an NPC whose attacks don't poison never poisons`() {
         alice.god = true
         val npc = spawn()

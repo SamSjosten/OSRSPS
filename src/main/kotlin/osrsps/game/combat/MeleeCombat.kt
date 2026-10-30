@@ -312,6 +312,7 @@ class MeleeCombat(
     /** [npc] is in combat with [source] (null for none) from [tick], and faces them. */
     private fun attacked(npc: Npc, source: Player?, tick: Long) {
         npc.attacker = source
+        if (source != null) npc.lastAttacker = source
         npc.attackedTick = tick
         npc.holdTicks = IN_COMBAT_TICKS
         if (source != null) npc.face(source)
@@ -449,7 +450,8 @@ class MeleeCombat(
 
     /**
      * [npc] takes [damage] of poison or venom with [hitsplat], capped at what it has left: the hitsplat and health bar,
-     * but no block animation, no XP and no one to turn on. Killed by it, its drops go to whoever fought it last.
+     * but no block animation, no XP and no one to turn on. Killed by it, its drops go to whoever fought it last, even
+     * once that fight is over ([Npc.lastAttacker]).
      * Returns the damage dealt.
      */
     fun statusHit(npc: Npc, damage: Int, hitsplat: Int): Int {
@@ -459,7 +461,7 @@ class MeleeCombat(
         npc.hitpoints -= dealt
         npc.effects.hit(-1, hitsplat, hitsplat, dealt)
         npc.effects.headBar(-1, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.type.stats.hitpoints))
-        if (npc.hitpoints <= 0) die(npc, def, npc.attacker, currentTick())
+        if (npc.hitpoints <= 0) die(npc, def, npc.attacker ?: npc.lastAttacker, currentTick())
         return dealt
     }
 

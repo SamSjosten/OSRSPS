@@ -70,6 +70,9 @@ class NpcPoisonTest {
         val npc = npc(man)
         assertTrue(poison.poison(npc, 6))
         assertEquals("poisoned, hitting 2 in 30 ticks", poison.describe(npc))
+        // The tick it was poisoned on starts the timer; the first hit is a full 30 ticks after it.
+        run(npc, 1)
+        assertEquals("poisoned, hitting 2 in 30 ticks", poison.describe(npc))
         run(npc, Poison.TICKS - 1)
         assertTrue(hits.isEmpty())
         run(npc, 1)
@@ -86,7 +89,7 @@ class NpcPoisonTest {
     fun `a poison as strong starts it again, a weaker one does nothing`() {
         val npc = npc(man)
         poison.poison(npc, 20)
-        run(npc, Poison.TICKS)
+        run(npc, 1 + Poison.TICKS)
         assertEquals(19, npc.poison)
         assertFalse(poison.poison(npc, 6))
         assertTrue(poison.poison(npc, 20))
@@ -100,7 +103,7 @@ class NpcPoisonTest {
         assertTrue(poison.envenom(npc))
         assertFalse(poison.poison(npc, 30))
         assertFalse(poison.envenom(npc), "envenomed already")
-        run(npc, Poison.TICKS * 3)
+        run(npc, 1 + Poison.TICKS * 3)
         assertEquals(listOf(6 to Poison.VENOM_HITSPLAT, 8 to Poison.VENOM_HITSPLAT, 10 to Poison.VENOM_HITSPLAT), hits)
     }
 

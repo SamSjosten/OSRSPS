@@ -58,10 +58,11 @@ class RangedCombatTest {
     private val chinchompa = ObjType(11959, "Black chinchompa", stackable = true, wearpos1 = WearPos.WEAPON, params = mapOf(4 to 80, 12 to 30, 14 to 4), internalName = "chinchompa_black", category = 572)
     private val sword = ObjType(1277, "Bronze sword", wearpos1 = WearPos.WEAPON, params = mapOf(0 to 4, 14 to 4), internalName = "bronze_sword", category = 25)
     private val bronzeArrow = ObjType(882, "Bronze arrow", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
+    private val poisonedArrow = ObjType(5616, "Bronze arrow(p++)", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow_p++")
     private val steelArrow = ObjType(886, "Steel arrow", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 16), internalName = "steel_arrow")
     private val runiteBolts = ObjType(9144, "Runite bolts", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 115), internalName = "xbows_crossbow_bolts_runite")
     private val dragonBolts = ObjType(21905, "Dragon bolts", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 122), internalName = "dragon_bolts")
-    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, twistedBow, venator, blowpipe, emptyBlowpipe, dragonDart, chinchompa, sword, bronzeArrow, steelArrow, runiteBolts, dragonBolts)
+    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, twistedBow, venator, blowpipe, emptyBlowpipe, dragonDart, chinchompa, sword, bronzeArrow, poisonedArrow, steelArrow, runiteBolts, dragonBolts)
 
     private val spotanims = SpotanimNames(
         mapOf(
@@ -84,7 +85,7 @@ class RangedCombatTest {
               "travel": "black_chinchompa_grenade", "thrown": true, "delay": "thrown", "source": "test" },
             { "items": ["xbows_crossbow_runite"], "ammo": "bolts", "tier": 7, "range": 7, "anim": "xbows_human_fire_and_reload_pvn", "source": "test" } ],
           "ammo": [
-            { "items": ["bronze_arrow"], "ammo": "arrows", "tier": 1, "launch": "bronze_arrow_launch", "doubleLaunch": "double_bronze_arrow_launch", "travel": "bronze_arrow_travel" },
+            { "items": ["bronze_arrow", "bronze_arrow_p++"], "ammo": "arrows", "tier": 1, "launch": "bronze_arrow_launch", "doubleLaunch": "double_bronze_arrow_launch", "travel": "bronze_arrow_travel" },
             { "items": ["steel_arrow"], "ammo": "arrows", "tier": 2, "launch": "steel_arrow_launch", "doubleLaunch": "double_steel_arrow_launch", "travel": "steel_arrow_travel" },
             { "items": ["xbows_crossbow_bolts_runite"], "ammo": "bolts", "tier": 7, "travel": "crossbowbolt_travel" },
             { "items": ["dragon_bolts"], "ammo": "bolts", "tier": 8, "travel": "dragon_crossbowbolt_travel" },
@@ -145,6 +146,7 @@ class RangedCombatTest {
     private val projectiles = mutableListOf<Pair<Long, Projectile>>()
     private val dropped = mutableListOf<Triple<ObjType, Pair<Int, Int>, Player>>()
     private val stopped = mutableListOf<Player>()
+    private val poisonedNpcs = mutableListOf<Pair<Npc, Int>>()
     private val combat = Combat(Equipment(objTypes), styles, npcCombat, weapons)
     private val multi = MultiCombat()
     private lateinit var melee: MeleeCombat
@@ -168,6 +170,7 @@ class RangedCombatTest {
             players = { sequenceOf(alice, bob) },
             ranged = { player, npc -> ranged.fight(player, npc) },
             multi = multi,
+            poisonNpc = { npc, severity -> poisonedNpcs += npc to severity },
         )
         ranged = RangedCombat(
             npcs, map, movement, combat, objTypes, weapons, melee, random, { tick },
@@ -362,6 +365,31 @@ class RangedCombatTest {
         assertTrue(dropped.all { (type, _, owner) -> type == bronzeArrow && owner === alice })
         val share = dropped.size.toDouble() / landed
         assertTrue(share in 0.65..0.95, "${dropped.size} of $landed dropped")
+    }
+
+    @Test
+    fun `poisoned arrows fire like their plain ones, and about one damaging shot in eight poisons at 14 less`() {
+        wield(alice, shortbow, poisonedArrow, 1000)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        alice.god = true
+        alice.sureHits = true
+        repeat(400) { tick() }
+        assertTrue(messages.isEmpty(), messages.toString())
+        val landed = 1000 - ammoLeft(alice) - ranged.shotsInFlight
+        assertTrue(landed >= 90, "$landed landed")
+        assertTrue(poisonedNpcs.size in 4..30, "poisoned ${poisonedNpcs.size} times in $landed shots")
+        assertTrue(poisonedNpcs.all { it == npc to 16 })
+    }
+
+    @Test
+    fun `plain arrows never poison`() {
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        alice.god = true
+        alice.sureHits = true
+        repeat(200) { tick() }
+        assertTrue(poisonedNpcs.isEmpty())
     }
 
     @Test

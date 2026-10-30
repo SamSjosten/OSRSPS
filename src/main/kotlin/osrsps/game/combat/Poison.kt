@@ -122,14 +122,14 @@ class Poison(
     /**
      * Poisons [npc] at [severity], as a poisoned weapon's hit does: false while it is immune, envenomed or poisoned more
      * strongly. A poison as strong as its own starts it again (OSRS Wiki, Poison: "Poison duration can be reset on an
-     * already-poisoned target"). Its timer starts again too, as for a player newly poisoned (guessed).
+     * already-poisoned target"). A newly poisoned NPC's timer starts on the next [process], which runs later in the
+     * tick its weapon hit landed, so the first hit comes a full [TICKS] after it, as for a player.
      */
     fun poison(npc: Npc, severity: Int): Boolean {
         require(severity in 1 until VENOM) { "A poison severity is 1 to ${VENOM - 1}, not $severity" }
         val def = npcCombat(npc) ?: return false
         if (def.poisonImmune || npc.dead || npc.poison > severity) return false
         npc.poison = severity
-        if (npc.poisonTicks < 0) npc.poisonTicks = TICKS
         return true
     }
 
@@ -141,20 +141,23 @@ class Poison(
         val def = npcCombat(npc) ?: return false
         if (def.venomImmune || npc.dead || npc.poison >= VENOM) return false
         npc.poison = VENOM
-        if (npc.poisonTicks < 0) npc.poisonTicks = TICKS
         return true
     }
 
     /**
      * Counts [npc]'s timer down by a tick and hits it when it runs out, every [TICKS] as for a player; poison runs out
-     * at 0, venom never does. Poison and venom kills give no XP (the Wiki), and the NPC doesn't turn on anyone for them.
+     * at 0, venom never does. On the tick it is poisoned the timer starts at [TICKS] without counting down. Poison and
+     * venom kills give no XP (the Wiki), and the NPC doesn't turn on anyone for them.
      */
     fun process(npc: Npc) {
         if (npc.dead || npc.poison == 0) {
             npc.poisonTicks = -1
             return
         }
-        if (npc.poisonTicks < 0) npc.poisonTicks = TICKS
+        if (npc.poisonTicks < 0) {
+            npc.poisonTicks = TICKS
+            return
+        }
         if (--npc.poisonTicks > 0) return
         npc.poisonTicks = TICKS
         val value = npc.poison
@@ -169,10 +172,13 @@ class Poison(
 
     /** What [npc]'s poison is, for `::npcs`; null for none. */
     fun describe(npc: Npc): String? = when {
-        npc.poison >= VENOM -> "envenomed, hitting ${damage(npc.poison)} in ${npc.poisonTicks} ticks"
-        npc.poison > 0 -> "poisoned, hitting ${damage(npc.poison)} in ${npc.poisonTicks} ticks"
+        npc.poison >= VENOM -> "envenomed, hitting ${damage(npc.poison)} in ${ticksToHit(npc)} ticks"
+        npc.poison > 0 -> "poisoned, hitting ${damage(npc.poison)} in ${ticksToHit(npc)} ticks"
         else -> null
     }
+
+    /** Before its timer starts, a newly poisoned NPC is a full [TICKS] from its first hit. */
+    private fun ticksToHit(npc: Npc) = if (npc.poisonTicks < 0) TICKS else npc.poisonTicks
 
     /** What [player]'s varp means, for `::poison`. */
     fun describe(player: Player): String {

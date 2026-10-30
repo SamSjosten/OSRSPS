@@ -172,6 +172,13 @@ class Npc(
     var attackedTick: Long = -1
         internal set
 
+    /**
+     * The player who hit it last, kept after its fight ends, so a poison or venom kill's drops still go to them once
+     * [attacker] has been cleared (the player walked off and it gave up on them).
+     */
+    var lastAttacker: Player? = null
+        internal set
+
     /** Ticks it still stands where it is because it is being fought; see [Npcs.process]. */
     internal var holdTicks: Int = 0
 
