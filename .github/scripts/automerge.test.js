@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const automerge = require('./automerge.js');
-const { CHECK, CODEX, NOTICE, verdict, covers } = automerge;
+const { CHECK, CODEX, NOTICE, OWN, verdict, covers } = automerge;
 
 const summary = (sha, findings, status = 'completed') => ({ // has_unresolved_findings follows findings
   user: { login: CODEX },
@@ -277,4 +277,14 @@ test('the real git: a merge of main is covered; a trailing space or the same edi
   const moved = sh('rev-parse', 'HEAD');
   assert.ok(!covers(noFetch, 1, edited, moved), 'the same edit in another place');
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test("the queue doesn't wait on, or count as failing, its own jobs filed on a pull request's head", async () => {
+  const own = [{ name: OWN[1], status: 'in_progress' }, { name: OWN[0], status: 'completed', conclusion: 'failure' }];
+  const { github, calls } = fakeGitHub({
+    3: { head: H('3'), behind: 0, checks: [...green, codexPass, ...own] },
+    4: { head: H('4'), mergedHead: H('5'), behind: 1, checks: [...green, codexPass, ...own], comments: [summary(H('4'), false)] },
+  });
+  await queue(github, fakeGit({ [H('4')]: 't', [H('5')]: 't' }));
+  assert.deepStrictEqual(calls, [['updateBranch', 4], ['dispatch', 'build.yml', 'branch-4'], ['check', H('5'), 'success']]);
 });
