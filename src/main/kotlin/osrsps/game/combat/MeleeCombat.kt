@@ -291,11 +291,14 @@ class MeleeCombat(
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
         val poison = PoisonedWeapons.melee(combat.weapon(player))
-        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect })
+        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect }, maxHit)
     }
 
-    /** A player's swing on its way to an NPC: it lands on [landTick], poisoning at [poison] if over 0, with [special]'s effect if it was one. */
-    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?)
+    /**
+     * A player's swing on its way to an NPC: it lands on [landTick], poisoning at [poison] if over 0, with [special]'s
+     * effect if it was one. [maxHit] is what it was rolled against, for the max hit hitsplat.
+     */
+    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?, val maxHit: Int)
 
     private val landing = ArrayList<Swing>()
 
@@ -315,10 +318,24 @@ class MeleeCombat(
             val npc = swing.npc
             npc.incoming -= swing.damage
             if (npcs[npc.index] !== npc || npc.dead) continue
-            val dealt = hit(npc, swing.player, swing.damage, tick)
+            val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit)
             if (swing.special != null) specialLanded(npc, dealt, swing.special)
             weaponPoison(npc, dealt, swing.poison, venom = false, ranged = false)
         }
+    }
+
+    /**
+     * The hitsplat [source] sees for their own hit of [dealt]: the max hit one (damage_max_me) when it is the [maxHit]
+     * it was rolled against and that is at least their All Settings "Max hit hitsplats threshold" (varbit
+     * settings_hitsplat_threshold, "Max hits below this threshold will not show max hit hitsplats"). Whether it looks
+     * different is the client's: hitmark 43's multimark on hitsplat_maxhit_disabled, the "Max hit hitsplats" toggle.
+     * Guessed: a hit cut short by what the NPC had left isn't a max hit, and everyone else sees an ordinary hitsplat.
+     */
+    private fun damageMe(source: Player?, dealt: Int, maxHit: Int): Int {
+        if (source == null || maxHit <= 0 || dealt != maxHit) return HitsplatType.DAMAGE_ME
+        val types = source.vars.types
+        val threshold = if (types.varbit(VARBIT_MAX_HIT_THRESHOLD) != null) source.vars.getVarbit(VARBIT_MAX_HIT_THRESHOLD) else 0
+        return if (maxHit >= threshold) HitsplatType.DAMAGE_MAX_ME else HitsplatType.DAMAGE_ME
     }
 
     /**
@@ -339,15 +356,16 @@ class MeleeCombat(
     /**
      * [npc] takes [damage] from [source] (null for none, as from a command), capped at what it has left, on [tick]:
      * the hitsplat and health bar for everyone, its block animation, or its death. A hit NPC turns on whoever hit it.
-     * Returns the damage dealt.
+     * [maxHit] is the most a rolled hit could have done, 0 for damage that wasn't rolled against one (recoil,
+     * retribution, poison, commands). Returns the damage dealt.
      */
-    fun hit(npc: Npc, source: Player?, damage: Int, tick: Long): Int {
+    fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0): Int {
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
         if (npc.dead) return 0
         val dealt = damage.coerceIn(0, npc.hitpoints)
         npc.hitpoints -= dealt
         val from = if (source != null) NpcEffects.PLAYER_SOURCE + source.index else -1
-        if (dealt > 0) npc.effects.hit(from, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER, dealt)
+        if (dealt > 0) npc.effects.hit(from, damageMe(source, dealt, maxHit), HitsplatType.DAMAGE_OTHER, dealt)
         else npc.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, 0)
         npc.effects.headBar(from, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.type.stats.hitpoints))
         attacked(npc, source, tick)
@@ -632,6 +650,9 @@ class MeleeCombat(
         dying.filter { it.npc.spawn.respawns }.map { it.npc.spawn to it.respawnTick }.sortedBy { it.second }
 
     companion object {
+        /** settings_hitsplat_threshold. */
+        const val VARBIT_MAX_HIT_THRESHOLD = 14195
+
         /** Not a live message: magic and the other ranged weapons come with later pieces. */
         const val MELEE_ONLY = "Only melee, bows and crossbows are in so far; the rest comes later."
 
@@ -679,4 +700,7 @@ object HitsplatType {
     const val BLOCK_OTHER = 13
     const val DAMAGE_ME = 16
     const val DAMAGE_OTHER = 17
+
+    /** damage_max_me: the client shows it as a max hit, or as an ordinary hit with "Max hit hitsplats" off. */
+    const val DAMAGE_MAX_ME = 43
 }
