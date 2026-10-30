@@ -1568,6 +1568,7 @@ class World(
             return@act
         }
         if (trades.click(player, interfaceId, componentId)) return@act
+        trades.interrupt(player)
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act

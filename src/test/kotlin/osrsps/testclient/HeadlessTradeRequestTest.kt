@@ -1,6 +1,7 @@
 package osrsps.testclient
 
 import java.nio.file.Path
+import osrsps.game.EquipmentTab
 import osrsps.game.World
 import osrsps.game.social.FriendLists
 import osrsps.game.trade.Trades
@@ -120,6 +121,35 @@ class HeadlessTradeRequestTest {
                     assertFalse(bob.trading())
                     assertFalse(alice.trading())
                     assertTrue(server.world.playerNamed("bob")!!.trade == null)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `another screen's button during the trade declines it, and a player out of view can't be asked`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    bob.walk(3226, 3218)
+                    bob.await("bob's walk") { bob.position?.takeIf { it.x == 3226 } }
+                    alice.playerOp(bob.index, 4)
+                    bob.await("the request") { bob.messages().firstOrNull { it.type == Trades.CHATTYPE_TRADEREQ } }
+                    bob.playerOp(alice.index, 4)
+                    alice.await("trading") { alice.trading().takeIf { it } }
+                    // Equipment Stats (a queued or forged click: the trade covers the tab) would replace the trade's screens.
+                    alice.ifButton(EquipmentTab.WORNITEMS, EquipmentTab.WORNITEMS_VIEW_STATS, 1)
+                    bob.awaitMessage("declined") { it == "[trade.declined]" }
+                    bob.await("bob's screen shut") { (!bob.trading()).takeIf { it } }
+                    assertTrue(server.world.playerNamed("alice")!!.trade == null)
+                    // Bob goes out of view; a forged Trade with on his index goes nowhere.
+                    bob.command("tele 3250 3218 0")
+                    bob.await("bob away") { bob.position?.takeIf { it.x == 3250 } }
+                    val before = alice.position!!
+                    alice.playerOp(bob.index, 4)
+                    alice.awaitTicks(3)
+                    assertEquals(before, alice.position)
+                    assertTrue(alice.messages().count { it.text == "[trade.sending]" } == 1)
                 }
             }
         }

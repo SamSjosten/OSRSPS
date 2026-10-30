@@ -1,7 +1,9 @@
 package osrsps.game.trade
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlin.math.abs
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
+import osrsps.game.Follows
 import osrsps.game.FrameSlot
 import osrsps.game.Interaction
 import osrsps.game.Movement
@@ -68,6 +70,11 @@ class Trades(
     /** A click on Trade with [target]. */
     fun click(player: Player, target: Player, invertRun: Boolean) {
         if (target === player) return
+        // The client only shows players in view, so one further off is a forged click (as for Follow and NPCs).
+        if (!inView(player, target)) {
+            logger.debug { "${player.username} clicked Trade with on ${target.username}, who isn't in view" }
+            return
+        }
         val interaction = TradeInteraction(target, this)
         player.interaction = interaction
         facePlayer(player, target)
@@ -77,7 +84,7 @@ class Trades(
     /** Walks [player] on toward [interaction]'s target, and asks once beside them. Returns true once it's over. */
     internal fun approach(player: Player, interaction: TradeInteraction): Boolean {
         val target = interaction.target
-        if (!inWorld(target) || target.dead || target.level != player.level) {
+        if (!inWorld(target) || target.dead || !inView(player, target)) {
             // Guessed, as for an NPC that goes away: the player finishes their walk and gives up.
             player.interaction = null
             return true
@@ -91,6 +98,9 @@ class Trades(
         request(player, target)
         return true
     }
+
+    private fun inView(player: Player, target: Player): Boolean =
+        target.level == player.level && abs(target.x - player.x) <= Follows.RANGE && abs(target.z - player.z) <= Follows.RANGE
 
     private fun route(player: Player, interaction: TradeInteraction, invertRun: Boolean) {
         val target = interaction.target
@@ -167,12 +177,22 @@ class Trades(
 
     /** A click on the trade screen. Returns false for one that isn't the trade's. */
     fun click(player: Player, interfaceId: Int, componentId: Int): Boolean {
-        if (interfaceId != MAIN) return false
-        if (player.trade == null) return true
+        if (interfaceId != MAIN && interfaceId != SIDE) return false
+        if (player.trade == null || interfaceId == SIDE) return true
         when (componentId) {
             MAIN_DECLINE -> decline(player)
         }
         return true
+    }
+
+    /**
+     * Any other button leaves the trade: one that opens a screen (Equipment Stats) would otherwise replace the trade's
+     * without its close hook, leaving the partner in a trade with nobody.
+     */
+    fun interrupt(player: Player) {
+        if (player.trade != null) closeModals(player)
+        // closeModals declines through the screen's close hook; this is for a trade whose screen was already gone.
+        decline(player)
     }
 
     /** [player] is leaving the world: their trade ends and their standing request goes. */
