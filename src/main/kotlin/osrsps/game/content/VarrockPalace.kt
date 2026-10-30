@@ -144,7 +144,7 @@ object GuardCaptainLines : Lines("guard_captain", "Transcript:Captain") {
 
 /** Reldo's lines, from the Wiki's Transcript:Reldo (Standard dialogue after Shield of Arrav), read 2026-10-30. */
 object ReldoLines : Lines("reldo", "Transcript:Reldo") {
-    val GREETING = line("greeting", "his first line: hello, {name}")
+    val GREETING = line("greeting", "his first line: hello, {name}", "name")
     val TRADE = line("trade", "option 1, which the player then says")
     val KNOWLEDGE = line("knowledge", "option 1: he only has knowledge")
     val PRICE = line("price", "option 1: the player asks what he wants for it")
