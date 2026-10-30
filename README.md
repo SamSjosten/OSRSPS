@@ -898,8 +898,9 @@ file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`).
 Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
 both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `varrock-guards.json` kills a Varrock and an Edgeville guard for their bones; `HeadlessVarrockTest`
 does the stairs, the ladder, the drawers and Knock-at on the locked door through the headless client, `VarrockTest` the stairs' rule each way round and a stray dog's Shoo-away and Pet (overhead text and sound),
-`GatesTest` the Grand Exchange's fence gate, `NpcSpawnFileTest` the counts, and `NpcCombatTest` and `NpcDropsTest` the
-guards' numbers and 10,000 kills against the table.
+`GatesTest` the Grand Exchange's fence gate, `NpcSpawnFileTest` the counts, `NpcCombatTest` and `NpcDropsTest` the
+guards' numbers and 10,000 kills against the table, and `HeadlessGuardsTest` a guard of each kind attacked through the
+headless client, fought to its death and leaving its bones.
 
 ## Equipment
 
