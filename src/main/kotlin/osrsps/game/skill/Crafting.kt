@@ -168,7 +168,8 @@ class CraftingData(
             val pots = pottery.getValue("pots").jsonArray.map { it.jsonObject }
             val shaping = pots.map { pot ->
                 MakeRecipe(
-                    "shape:${pot.getValue("name").jsonPrimitive.content}", Skill.CRAFTING, pot.int("unfired"), 1, pot.int("level"),
+                    "shape:${pot.getValue("name").jsonPrimitive.content}", Skill.CRAFTING, pot.int("unfired"),
+                    pot["amount"]?.jsonPrimitive?.int ?: 1, pot.int("level"),
                     pot.int("shapeXpTenths"), listOf(ObjCount(softClay, 1)), emptyList(), pottery.int("wheelAnim"),
                     pottery.int("wheelFirst"), pottery.int("wheelInterval"), CraftingLines.SHAPE, CraftingLines.LEVEL,
                 )

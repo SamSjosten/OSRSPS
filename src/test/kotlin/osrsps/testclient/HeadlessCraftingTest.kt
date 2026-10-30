@@ -368,6 +368,29 @@ class HeadlessCraftingTest {
     }
 
     @Test
+    fun `one soft clay shapes four unfired cups, and each fires into a cup`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lena").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel crafting 99")
+                client.give(SOFT_CLAY)
+                val boxes = client.boxes()
+                client.locOp(Crafting.POTTERS_WHEEL, POTTERY_X, POTTERY_Z, 1)
+                client.box(after = boxes)
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 1, 1)
+                client.await("four unfired cups") { if (client.count(UNFIRED_CUP) == 4) Unit else null }
+                assertEquals(0, client.count(SOFT_CLAY))
+                client.locOp(Crafting.POTTERY_OVEN, POTTERY_X + 2, POTTERY_Z, 1)
+                client.box(after = boxes + 1)
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 4)
+                client.await("four cups", timeoutMillis = 40_000) { if (client.count(CUP) == 4) Unit else null }
+                // 8.5 shaping, then 8.5 x 4 firing.
+                assertEquals(42, client.await("42.5 XP") { client.xpOver99().takeIf { it >= 42 } })
+            }
+        }
+    }
+
+    @Test
     fun `a ball of wool strings an amulet for 4 XP`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("hank").use { client ->
@@ -397,6 +420,8 @@ class HeadlessCraftingTest {
         const val UNFIRED_BOWL = 1791
         const val UNFIRED_POT = 1787
         const val POT = 1931
+        const val UNFIRED_CUP = 28193
+        const val CUP = 1980
         const val POTTERY_X = 3226
         const val POTTERY_Z = 3222
         const val SILVER_BAR = 2355

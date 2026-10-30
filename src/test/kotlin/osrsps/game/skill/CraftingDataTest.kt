@@ -84,6 +84,7 @@ class CraftingDataTest {
         assertEquals(listOf(175, 190, 250, 350, 425, 525, 550, 700), data.blown.map { it.xpTenths })
         assertEquals(listOf(1, 3, 7, 8, 19, 25), data.shaping.map { it.level })
         assertEquals(listOf(63, 85, 150, 180, 200, 200), data.shaping.map { it.xpTenths })
+        assertEquals(listOf(1, 4, 1, 1, 1, 1), data.shaping.map { it.amount }, "four cups to a soft clay (Unfired cup)")
         assertEquals(listOf(63, 85, 100, 150, 175, 200), data.firing.values.map { it.xpTenths })
         assertTrue(data.firing.values.all { it.level == 1 && it.interval == 7 })
         // Every pottery page's chart, in 256ths, levels 1 to 13.

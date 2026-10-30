@@ -1,5 +1,5 @@
 {
- "name": "Artisan step 7: at Lumbridge's furnace at 99, soda ash and sand make two molten glass (buckets back), a pipe blows two vials; water softens clay (::keys on). The potter's wheel and oven are at Barbarian Village, which isn't walkable yet: headless only",
+ "name": "Artisan step 7: at Lumbridge's furnace at 99, soda ash and sand make two molten glass (buckets back), a pipe blows two vials; water softens clay; at Barbarian Village's potter's wheel the soft clay shapes four unfired cups and the oven fires them (::keys on). Wheel and oven tiles from 2004Scape's map m48_53 (unchecked against the 241 cache)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -32,6 +32,18 @@
   {"step": "clickWidget", "interfaceId": 270, "component": 15},
   {"step": "assertInventory", "item": "Soft clay", "count": 1, "timeoutMs": 10000},
   {"step": "assertInventory", "item": "Bucket", "count": 3},
+
+  {"step": "command", "text": "::tele 3086 3408 0", "comment": "inside Barbarian Village's pottery, between the oven and the wheels"},
+  {"step": "assertLocation", "x": 3086, "y": 3408, "plane": 0},
+  {"step": "useItemOnLoc", "item": "Soft clay", "locId": 14887, "x": 3087, "y": 3409},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "the six unfired items"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 16, "comment": "the second item, the cup"},
+  {"step": "assertInventory", "item": "Unfired cup", "count": 4, "timeoutMs": 10000, "comment": "four cups to a soft clay"},
+  {"step": "useItemOnLoc", "item": "Unfired cup", "locId": 14888, "x": 3084, "y": 3407},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the cup; the box suggests all 4"},
+  {"step": "assertInventory", "item": "Empty cup", "count": 4, "timeoutMs": 40000, "comment": "7 ticks each; none crack at 99"},
+  {"step": "assertStat", "skill": "Crafting", "level": 99, "xp": 13034583, "comment": "110 + 8.5 shaping + 8.5 x 4 firing = 152.5 XP"},
 
   {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
