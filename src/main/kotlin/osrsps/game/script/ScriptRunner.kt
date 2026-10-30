@@ -96,6 +96,11 @@ class ScriptRunner(
         player.scripts.timers.remove(name)
     }
 
+    /** Removes [player]'s weak scripts, leaving their modals: for a new action that opens none of its own. */
+    fun clearWeak(player: Player) {
+        player.scripts.weakQueue.clear()
+    }
+
     /**
      * The player did something that interrupts what they were doing: walked, or closed an interface. Closes their
      * modals and removes their weak scripts.

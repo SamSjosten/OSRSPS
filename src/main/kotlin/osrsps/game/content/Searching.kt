@@ -48,12 +48,13 @@ fun registerSearch(world: World, id: Int, option: Int, message: Line) {
 
 /** Furniture whose [closed] type opens into [open], which has Search, saying [searchMessage], and Shut. */
 fun registerOpenable(world: World, closed: Int, open: Int, searchMessage: Line) {
-    world.handlers.onLoc(closed, Searching.OPEN) { op -> swap(world, op.loc!!, open, Searching.ANIM_OPEN) }
+    world.handlers.onLoc(closed, Searching.OPEN) { op -> swapFurniture(world, op.loc!!, open, Searching.ANIM_OPEN) }
     registerSearch(world, open, Searching.SEARCH, searchMessage)
-    world.handlers.onLoc(open, Searching.SHUT) { op -> swap(world, op.loc!!, closed, Searching.ANIM_SHUT) }
+    world.handlers.onLoc(open, Searching.SHUT) { op -> swapFurniture(world, op.loc!!, closed, Searching.ANIM_SHUT) }
 }
 
-private suspend fun ScriptContext.swap(world: World, loc: ZoneLoc, to: Int, anim: Int) {
+/** Opens or shuts furniture [loc] into [to] with [anim], for [Searching.CHANGE_TICKS] unless that is the map's own. */
+suspend fun ScriptContext.swapFurniture(world: World, loc: ZoneLoc, to: Int, anim: Int) {
     arriveDelay()
     player.anim(anim)
     delay(1)
