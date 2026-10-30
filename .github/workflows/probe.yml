@@ -10,13 +10,15 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  issues: write
 concurrency:
   group: probe
   cancel-in-progress: false
 jobs:
   probe:
-    runs-on: ${{ vars.RUNNER && fromJSON(vars.RUNNER) || github.event.repository.private && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      issues: write
+    runs-on: ${{ github.repository == 'SamSjosten/OSRSPS' && (github.event.repository.private || vars.RUNNER == 'self-hosted' && github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch", "schedule"]'), github.event_name)) && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

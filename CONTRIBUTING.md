@@ -93,16 +93,29 @@ Actions, **automerge**, **Run workflow**.
 
 ## Where CI runs
 
-The Linux jobs (`build.yml`, `automerge.yml`, `mergeable.yml`, `probe.yml`) run on GitHub's `ubuntu-latest` while the
-repository is public, and on the self-hosted runner VM on pve (`ci-runner`, Ubuntu 24.04, labels `self-hosted` and
-`linux`) once it is private, as a private repository's 2,000 hosted minutes a month last a few days here. The
-repository variable `RUNNER` (Settings, Secrets and variables, Actions, Variables) overrides both: `["self-hosted",
-"linux"]` to try the VM early, `"ubuntu-latest"` to go back to GitHub's. The Windows and macOS installer jobs stay on
-GitHub's runners and leave with the launcher.
+The server's Linux jobs (`build.yml` but the launcher's jobs, `probe.yml`, and once private `automerge.yml` and
+`mergeable.yml`) can run on the self-hosted runner VM on pve (`ci-runner`, VM 218, Ubuntu 24.04, labels `self-hosted`
+and `linux`, internet only), as a private repository's 2,000 hosted minutes a month last a few days here:
+
+- **Public repository**: pull requests, and every `pull_request_target` workflow, run on GitHub's `ubuntu-latest`,
+  so no fork's code reaches the VM. Main's own code (a push to `main`, a dispatch or schedule on `main`) runs on the VM
+  only with the repository variable `RUNNER` set to `self-hosted` (Settings, Secrets and variables, Actions,
+  Variables).
+- **Private repository**: all of them run on the VM. Keep `RUNNER` set then too: a scheduled run's event may not say
+  the repository is private.
+
+The launcher's jobs stay on GitHub's runners and leave with the launcher. The jobs on the VM get only the workflow's
+own token, with each workflow reading by default and writing only in the jobs that need it; no other secrets. The VM
+is persistent, so a job checks out cleanly (`actions/checkout`'s default) and relies on nothing an earlier job left,
+Gradle's caches aside.
+
+A pull request that changes `.github/workflows/` needs Sam's review (CODEOWNERS): without merge rules the queue
+leaves such a pull request for Sam to merge by hand.
 
 The VM needs, besides the runner service: `git`, `curl`, `unzip`, Node.js 20 or newer (`node` on the path: the
-script checks call it directly), PowerShell 7 (`pwsh`, for `launch-scripts`); Java comes from `setup-java`. Two runner
-instances on it let two jobs run at once; more than one Gradle job a vCPU pair makes the tick-timing tests flaky.
+script checks call it directly) and PowerShell 7 (`pwsh`, for `launch-scripts`). Java 21 comes from `setup-java`
+and Gradle 9.8.1 from the wrapper. No Docker: the deploy scripts' tests use a stand-in. Two runner instances on it let
+two jobs run at once; more Gradle jobs than that make the tick-timing tests flaky.
 
 ## The staging server
 

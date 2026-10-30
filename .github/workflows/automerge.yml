@@ -6,6 +6,9 @@ name: automerge
 # from the checkout of main below. With no merge rules on main (a private repository without GitHub Pro), the queue
 # also merges: a pull request labelled `automerge`, up to date and green, by moving main with this workflow's token.
 #
+# Its jobs run on the self-hosted runner VM only once the repository is private: a pull_request_target workflow on a
+# public repository runs for anyone's pull request (CONTRIBUTING.md, "Where CI runs").
+#
 # pull_request_target and issue_comment run main's copy of this file with a token that can write, so it checks out
 # main only and never runs a pull request's code; the pull request's commits are fetched for `git merge-tree` and
 # nothing else. No pull_request_review trigger: that runs the pull request's own copy, and its jobs land on the pull
@@ -24,11 +27,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: write
-  checks: write
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   # The job names are what automerge.js leaves out of a pull request's checks: GitHub files a pull_request_target run's
@@ -38,7 +37,13 @@ jobs:
       github.event_name == 'pull_request_target' ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
        github.event.comment.user.login == 'chatgpt-codex-connector[bot]')
-    runs-on: ${{ vars.RUNNER && fromJSON(vars.RUNNER) || github.event.repository.private && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    runs-on: ${{ github.repository == 'SamSjosten/OSRSPS' && github.event.repository.private && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    permissions:
+      actions: write
+      checks: write
+      contents: write
+      issues: write
+      pull-requests: write
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +61,13 @@ jobs:
       always() &&
       (github.event_name != 'issue_comment' ||
        (github.event.issue.pull_request && github.event.comment.user.login == 'chatgpt-codex-connector[bot]'))
-    runs-on: ${{ vars.RUNNER && fromJSON(vars.RUNNER) || github.event.repository.private && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    runs-on: ${{ github.repository == 'SamSjosten/OSRSPS' && github.event.repository.private && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    permissions:
+      actions: write
+      checks: write
+      contents: write
+      issues: write
+      pull-requests: write
     timeout-minutes: 15
     # No concurrency group: GitHub cancels a group's pending run when a newer one queues, and these jobs sit on pull
     # requests' heads, where a cancelled run shows as a failed check. Two queue runs at once can each merge main into

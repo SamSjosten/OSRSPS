@@ -33,7 +33,8 @@
 // request with the `automerge` label (or auto-merge on) that is up to date with main, whose `build` passed, with every
 // other check done and none failing and a passing `codex-review`, is merged here, with a merge commit. A merge made
 // with the workflow's token starts no workflow, so it then starts main's: build (its caches), mergeable and this one,
-// which goes on to the next pull request. A green batch, made on main, becomes main. Main moves only as a
+// which goes on to the next pull request. A pull request that changes the workflows is left to Sam, who reviews and
+// merges those by hand (CODEOWNERS). A green batch, made on main, becomes main. Main moves only as a
 // fast-forward from the commit the pull request or batch was up to date with, so nothing merges onto a main it
 // hasn't been built with.
 
@@ -505,6 +506,15 @@ async function advance(github, git, repo, core, sleep, now) {
       // Every commit already in main: a batch member GitHub hasn't marked merged yet.
       core.info(`#${pr.number}: its commits are all in main; leaving it`);
       continue;
+    }
+    // Merging itself, never a change to the workflows: that is Sam's to review and merge by hand (CODEOWNERS), and
+    // the workflow token can't push one to main anyway.
+    if (self) {
+      const files = await github.paginate(github.rest.pulls.listFiles, { ...repo, pull_number: pr.number, per_page: 100 });
+      if (files.some(file => file.filename.startsWith('.github/workflows/'))) {
+        core.info(`#${pr.number}: changes the workflows; Sam merges it by hand`);
+        continue;
+      }
     }
     // Held runs first: merging main in again would only push another head whose runs are held the same way.
     const held = await approveWaiting(github, repo, core, pr.head.sha);

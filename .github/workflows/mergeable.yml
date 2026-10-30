@@ -15,9 +15,6 @@ on:
 
 permissions:
   contents: read
-  checks: write
-  issues: write
-  pull-requests: write
 
 concurrency:
   group: mergeable-${{ github.event.pull_request.number || 'main' }}
@@ -25,7 +22,12 @@ concurrency:
 
 jobs:
   scan:
-    runs-on: ${{ vars.RUNNER && fromJSON(vars.RUNNER) || github.event.repository.private && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+      checks: write
+      issues: write
+      pull-requests: write
+    runs-on: ${{ github.repository == 'SamSjosten/OSRSPS' && github.event.repository.private && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

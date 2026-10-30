@@ -115,6 +115,7 @@ function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'require
     pulls: {
       list: 'pulls.list',
       listReviews: 'pulls.listReviews',
+      listFiles: 'pulls.listFiles',
       get: async ({ pull_number }) => ({ data: prData(pull_number) }),
       merge: async ({ pull_number, sha, merge_method }) => { calls.push(['merge', pull_number, sha, merge_method]); },
       updateBranch: async ({ pull_number }) => {
@@ -199,6 +200,7 @@ function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'require
   const paginate = async (what, args) => {
     if (what === 'pulls.list') return Object.keys(prs).map(Number).map(prData);
     if (what === 'pulls.listReviews') return [];
+    if (what === 'pulls.listFiles') return (prs[args.pull_number].files || ['src/a.kt']).map(filename => ({ filename }));
     if (what === 'issues.listComments') return prs[args.issue_number].comments || [];
     if (what === 'checks.listForRef') {
       if (batch && args.ref === batch.sha && !Object.values(prs).some(p => p.head === batch.sha)) return batch.checks;
@@ -651,4 +653,13 @@ test('merging itself, a green batch becomes main', async () => {
   });
   await queue(github, fakeGit(batchTrees, [], { [B]: { tree: 't2', second: H('2') } }));
   assert.deepStrictEqual(calls, [['updateRef', 'heads/main', B, false], ...afterMerge]);
+});
+
+test('merging itself, the queue leaves a pull request that changes the workflows to Sam', async () => {
+  const { github, calls } = fakeGitHub({
+    1: { head: H('1'), behind: 0, labels: [automerge.LABEL], files: ['.github/workflows/build.yml'], checks: [...green, codexPass] },
+    2: { head: H('2'), behind: 0, labels: [automerge.LABEL], files: ['.github/scripts/automerge.js'], checks: [...green, codexPass] },
+  }, { rules: [] });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls, [...merged(2), ...afterMerge]);
 });
