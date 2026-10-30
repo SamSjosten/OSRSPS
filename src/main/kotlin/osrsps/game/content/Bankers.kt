@@ -67,9 +67,10 @@ object BankerTutorLines : Lines("banker_tutor", "Transcript:Banker tutor") {
 /**
  * The bankers on the castle's top floor: the Banker (multi-NPC 6520, which players see as 2897 while varbit 4153 is 0)
  * and the Banker tutor (3227). From the Wiki: both conversations; asking for the bank opens it, asking for PIN settings
- * opens [osrsps.game.bank.BankPinSettings]. Not built yet: the collection box and buying bank space, so those options
- * end the conversation, and Collect does nothing. Al Kharid's five bankers (3090 and 3091) talk and bank the same way:
- * the Wiki's Banker transcript is every banker's. So do Varrock's west and east bank bankers (2897 and 2898).
+ * opens [osrsps.game.bank.BankPinSettings], asking to collect (and Collect, op4) opens the Grand Exchange collection
+ * box. Not built yet: buying bank space, so that option ends the conversation. Al Kharid's five bankers (3090 and
+ * 3091) talk and bank the same way: the Wiki's Banker transcript is every banker's. So do Varrock's west and east bank
+ * bankers (2897 and 2898) and the Grand Exchange's (1633, 1634 and 3089).
  * Guessed: every chathead expression; that the tutor's topic menu comes back after each topic (the Wiki doesn't say
  * where they lead).
  */
@@ -91,22 +92,29 @@ object Bankers {
      */
     const val VARROCK_BANKER_2 = 2898
 
+    /** banker1_west, banker1_east and banker2_east: the Grand Exchange's bankers. */
+    val GRAND_EXCHANGE = listOf(1633, 1634, 3089)
+
     /** Every banker with the standard conversation. */
-    val STANDARD = listOf(BANKER, VARROCK_BANKER_2) + DRAYNOR + AL_KHARID
+    val STANDARD = listOf(BANKER, VARROCK_BANKER_2) + DRAYNOR + AL_KHARID + GRAND_EXCHANGE
     const val BANKER_TUTOR = 3227
     const val TALK_TO = 1
 
     /** The NPCs' Bank option (op3 in the 241 cache). */
     const val BANK = 3
 
-    /** What a conversation ends in: nothing more, the bank, or the PIN settings screen. */
-    enum class Ask { NOTHING, BANK, PIN }
+    /** The NPCs' Collect option (op4): the Grand Exchange collection box. */
+    const val COLLECT = 4
+
+    /** What a conversation ends in: nothing more, the bank, the PIN settings screen or the collection box. */
+    enum class Ask { NOTHING, BANK, PIN, COLLECT }
 
     internal suspend fun Dialogue.banker(): Ask = with(BankerLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
         when (choice(OPEN_BANK, PIN, COLLECT, BUY_SLOTS, WHAT_PLACE)) {
             1 -> return Ask.BANK
             2 -> return Ask.PIN
+            3 -> return Ask.COLLECT
             4 -> chatPlayer(ChatAnim.QUIZ, BUY_SLOTS)
             5 -> {
                 chatPlayer(ChatAnim.QUIZ, WHAT_PLACE)
@@ -124,6 +132,7 @@ object Bankers {
             1 -> tutorTopics()
             2 -> return Ask.BANK
             3 -> return Ask.PIN
+            4 -> return Ask.COLLECT
             5 -> chatPlayer(ChatAnim.QUIZ, BUY_SLOTS)
         }
         Ask.NOTHING
@@ -171,13 +180,14 @@ object Bankers {
     }
 }
 
-/** The bankers' Talk-to and Bank, from across their booths. Collect does nothing yet. */
+/** The bankers' Talk-to, Bank and Collect, from across their booths. */
 fun registerBankers(world: World) {
     for (banker in Bankers.STANDARD) world.npcInteractions.reachOverCounter(banker)
     world.npcInteractions.reachOverCounter(Bankers.BANKER_TUTOR)
     fun ScriptContext.answer(ask: Bankers.Ask) = when (ask) {
         Bankers.Ask.BANK -> world.bankScreen.open(player)
         Bankers.Ask.PIN -> world.bankPinSettings.open(player)
+        Bankers.Ask.COLLECT -> world.grandExchangeScreen.openCollectionBox(player)
         Bankers.Ask.NOTHING -> Unit
     }
     for (banker in Bankers.STANDARD) {
@@ -194,5 +204,6 @@ fun registerBankers(world: World) {
     }
     for (banker in Bankers.STANDARD + Bankers.BANKER_TUTOR) {
         world.handlers.onNpc(banker, Bankers.BANK) { world.bankScreen.open(player) }
+        world.handlers.onNpc(banker, Bankers.COLLECT) { world.grandExchangeScreen.openCollectionBox(player) }
     }
 }
