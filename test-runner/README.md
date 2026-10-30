@@ -146,6 +146,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Ali's junk sold as his shop closes, then Louie Legs's talk (with `::keys on`) into his shop.
 - `al-kharid-traders.json`: Al Kharid step 4: a kebab bought from Karim through his talk (with `::keys on`) and
   eaten, and silk haggled down to 2 gp from the Silk trader.
+- `al-kharid-tanning.json`: Al Kharid step 4b: Ellis's talk (with `::keys on`) with cowhides carried, into the
+  tanning screen; Tan 1, then Trade and Tan All, turning three cowhides into soft leather for a coin each.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
