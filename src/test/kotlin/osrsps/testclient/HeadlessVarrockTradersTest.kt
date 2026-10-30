@@ -10,9 +10,13 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.content.ApothecaryPotions
+import osrsps.game.content.ApothecaryPotionsLines
 import osrsps.game.content.VarrockTraders
 import osrsps.game.dialogue.Chatbox
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.script.ScriptContext
 import osrsps.map.CollisionMap
 
 /**
@@ -26,6 +30,11 @@ class HeadlessVarrockTradersTest {
     private val bearFur = ObjType(VarrockTraders.BEAR_FUR, "Bear fur", cost = 10, tradeable = true)
     private val greyWolfFur = ObjType(VarrockTraders.GREY_WOLF_FUR, "Grey wolf fur", cost = 50, tradeable = true)
     private val newspaper = ObjType(VarrockTraders.NEWSPAPER, "Newspaper", cost = 50, tradeable = true)
+    private val ingredients = listOf(
+        ObjType(ApothecaryPotions.LIMPWURT_ROOT, "Limpwurt root"), ObjType(ApothecaryPotions.RED_SPIDERS_EGGS, "Red spiders' eggs"),
+        ObjType(ApothecaryPotions.CHOCOLATE_DUST, "Chocolate dust"), ObjType(ApothecaryPotions.CADAVA_BERRIES, "Cadava berries"),
+        ObjType(STRENGTH_POTION, "Strength potion(4)"), ObjType(3008, "Energy potion(4)"), ObjType(ANTIPOISON_POTION, "Antipoison(4)"),
+    )
 
     private val talk = listOf("Talk-to", null, null, null, null)
     private val apothecary = NpcType(VarrockTraders.APOTHECARY, "Apothecary", ops = listOf("Talk-to", null, "Potions", null, null), internalName = "apothecary")
@@ -34,7 +43,7 @@ class HeadlessVarrockTradersTest {
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(coins, fur, bearFur, greyWolfFur, newspaper),
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(coins, fur, bearFur, greyWolfFur, newspaper, *ingredients.toTypedArray()),
             npcTypes = NpcTypes.of(apothecary, baraek, benny),
             npcSpawns = listOf(apothecary, baraek, benny).mapIndexed { i, type -> NpcSpawn(type, 3219 + i * 3, 3221, source = "test") },
             cycleMillis = millis,
@@ -202,28 +211,84 @@ class HeadlessVarrockTradersTest {
         server(dir).use { server ->
             server.login("dave").use { client ->
                 client.await("the login rebuild") { client.position }
-                val first = arrayOf("apothecary.something_else", "apothecary.no_thanks")
+                val first = arrayOf("apothecary.potions", "apothecary.something_else", "apothecary.no_thanks")
                 val topics = arrayOf("apothecary.gossip", "apothecary.hair", "apothecary.free", "apothecary.no_thanks")
                 client.talkTo(apothecary.id)
                 client.chat("apothecary.greeting")
-                client.pick(1, *first)
+                client.pick(2, *first)
                 client.pick(1, *topics)
                 for (key in listOf("gossip", "gossip_1", "gossip_2", "gossip_3", "gossip_4")) client.chat("apothecary.$key")
-                client.pick(1, *first)
+                client.pick(2, *first)
                 client.pick(2, *topics)
                 for (key in listOf("hair", "hair_1", "hair_2")) client.chat("apothecary.$key")
-                client.pick(1, *first)
+                client.pick(2, *first)
                 client.pick(3, *topics)
                 client.chat("apothecary.free")
                 client.chat("apothecary.charity")
-                client.pick(2, *first)
+                client.pick(3, *first)
                 client.chat("apothecary.no_thanks")
                 client.over()
             }
         }
     }
 
+    @Test
+    fun `the Apothecary's potions screen makes potions from their ingredients and coins`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.hold(COINS, 12)
+                client.hold(ApothecaryPotions.LIMPWURT_ROOT, 3)
+                client.hold(ApothecaryPotions.RED_SPIDERS_EGGS, 3)
+                // Asked for in his talk, the screen opens.
+                client.talkTo(apothecary.id)
+                client.chat("apothecary.greeting")
+                client.pick(1, "apothecary.potions", "apothecary.something_else", "apothecary.no_thanks")
+                client.await("the potions screen") { if (ApothecaryPotions.INTERFACE in client.openInterfaces()) Unit else null }
+                // Buy-All: three of each ingredient, but 12 coins pay for two.
+                client.ifButton(ApothecaryPotions.INTERFACE, STRENGTH, ApothecaryPotions.BUY_ALL)
+                client.await("two strength potions") { if (client.held(STRENGTH_POTION) == 2) Unit else null }
+                assertEquals(2, client.held(COINS))
+                assertEquals(1, client.held(ApothecaryPotions.LIMPWURT_ROOT))
+                assertEquals(1, client.held(ApothecaryPotions.RED_SPIDERS_EGGS))
+                // Without chocolate dust there's no energy potion, and 2 coins buy nothing.
+                client.ifButton(ApothecaryPotions.INTERFACE, ENERGY, ApothecaryPotions.BUY_1)
+                client.awaitMessage("no ingredients") { it == DialogueText.NONE[ApothecaryPotionsLines.NO_INGREDIENTS, "potion" to "energy potions"] }
+                client.ifButton(ApothecaryPotions.INTERFACE, STRENGTH, ApothecaryPotions.BUY_1)
+                client.awaitMessage("no coins") { it == DialogueText.NONE[ApothecaryPotionsLines.NO_COINS, "potion" to "strength potions"] }
+                assertEquals(2, client.held(STRENGTH_POTION))
+            }
+        }
+    }
+
+    @Test
+    fun `the Apothecary's Potions opens the screen, and Buy-X makes as many as asked`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fred").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.hold(COINS, 100)
+                client.hold(ApothecaryPotions.LIMPWURT_ROOT, 5)
+                client.hold(ApothecaryPotions.CADAVA_BERRIES, 5)
+                val npc = client.await("the Apothecary in view") { client.npcs().firstOrNull { it.id == apothecary.id } }
+                client.npcOp(npc.index, ApothecaryPotions.POTIONS_OP)
+                client.await("the potions screen") { if (ApothecaryPotions.INTERFACE in client.openInterfaces()) Unit else null }
+                client.ifButton(ApothecaryPotions.INTERFACE, ANTIPOISON, ApothecaryPotions.BUY_X)
+                client.await("the count dialog") { if (client.clientScripts().any { it.id == ScriptContext.MESLAYER_MODE7 }) Unit else null }
+                client.resumeCount(3)
+                client.awaitMessage("made some") { it == DialogueText.NONE[ApothecaryPotionsLines.MADE_SOME, "count" to 3, "potion" to "antipoisons"] }
+                client.await("three antipoisons") { if (client.held(ANTIPOISON_POTION) == 3) Unit else null }
+                assertEquals(85, client.held(COINS))
+                assertEquals(2, client.held(ApothecaryPotions.LIMPWURT_ROOT))
+            }
+        }
+    }
+
     private companion object {
         const val COINS = 995
+        const val STRENGTH = 2
+        const val ENERGY = 7
+        const val ANTIPOISON = 12
+        const val STRENGTH_POTION = 113
+        const val ANTIPOISON_POTION = 2446
     }
 }

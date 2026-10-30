@@ -46,6 +46,7 @@ object DialogueLines {
         AliMorrisaneLines,
         AltarLines,
         ApothecaryLines,
+        ApothecaryPotionsLines,
         ArthurLines,
         AsyffLines,
         AuburyLines,
