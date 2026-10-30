@@ -58,6 +58,19 @@ So a thread pulls its branch (`git pull`) before pushing, as the queue may have 
 failing check or a Codex finding takes a pull request out of the queue until it is fixed. To run the queue now:
 Actions, **automerge**, **Run workflow**.
 
+## The staging server
+
+A branch can run on the staging server next to the live one before it merges (`deploy/README.md`, "The staging
+server: any branch, next to the live one"): push it as origin's `staging` branch (`git push origin my-branch:staging`)
+and VM 214's timer builds and runs its head within a minute on the LAN-only ports 44594 and 44595. Threads push it
+themselves (Sam, 2026-10-30), one at a time:
+
+1. `git ls-remote --heads origin staging` first: a branch there is another thread's staging run. Wait for it to go,
+   and never push over it.
+2. Push, test, and push again as the branch moves: staging follows it.
+3. Delete it when done (`git push origin --delete staging`), which takes staging down. A run left up holds the slot,
+   and VM 214's memory, for everyone.
+
 ## Scheduled checks
 
 Two workflows run on a schedule and, when they fail, open an issue assigned to the repository's owner, so the failure
