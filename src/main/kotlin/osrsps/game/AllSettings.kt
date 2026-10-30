@@ -86,6 +86,7 @@ class AllSettings(
                 // A number prompt or the picker goes with the window it was for, so a late answer changes nothing.
                 if (player.settingsInputOpen) interfaces.dropCount(player)
                 player.colourPickerOpen = false
+                restoreChatInput(player)
                 interfaces.closeFloater(player)
             }
             // script3829 and settings_declutter_op: the "Less info" and "Hide locked" buttons.
@@ -118,9 +119,19 @@ class AllSettings(
         val category = catalog.categories.filter { it?.struct != LEAGUES_CATEGORY_STRUCT }.getOrNull(sub) ?: return
         if (blocked(player, category.params)) return
         player.settingsDropdown = -1
+        restoreChatInput(player)
         setVarbit(player, VARBIT_CATEGORY, category.id)
         setVarbit(player, VARBIT_SEARCHING, 0)
         setVarbit(player, VARBIT_SELECTED_SETTING, 0)
+    }
+
+    /**
+     * searchbar_op takes the chat's keys away (chatdefault_stopinput) and nothing in the client gives them back, so
+     * when a search ends, by a tab or by closing the window, the server runs chatdefault_restoreinput, as RSMod does
+     * after its menu. Guess (live not seen): without it, chat ignores every key until the next login.
+     */
+    private fun restoreChatInput(player: Player) {
+        if (varbit(player, VARBIT_SEARCHING) == 1) interfaces.runClientScript(player, CHATDEFAULT_RESTOREINPUT_SCRIPT, emptyList())
     }
 
     /** The row the client drew as clickzone child [sub]: see [rowAt]. */
@@ -572,6 +583,8 @@ class AllSettings(
 
         const val VARBIT_SEARCHING = 16073
         const val VARBIT_SEARCH_KEYBOARD = 16074
+        /** chatdefault_restoreinput, which gives the chat its onkey back. */
+        const val CHATDEFAULT_RESTOREINPUT_SCRIPT = 2158
         const val VARBIT_CATEGORY = 9656
         const val VARBIT_SELECTED_SETTING = 9657
         const val VARBIT_DECLUTTER = 17796
