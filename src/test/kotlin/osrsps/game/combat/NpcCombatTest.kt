@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
@@ -15,8 +16,18 @@ class NpcCombatTest {
         "man", "man2", "man3", "man4", "woman", "woman2", "woman3", "rat", "imp",
         "cow", "cow2", "cow3", "cow2_calf", "cow3_calf", "calf",
         "chicken", "chicken_brown", "ramunsheered", "ramunsheered2", "ramunsheered3", "duck", "duck_female", "duckling",
-    ) + (1..8).map { "goblin_unarmed_melee_$it" } + "giantspider1"
-    private val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name) }.toTypedArray())
+    ) + (1..8).map { "goblin_unarmed_melee_$it" } + "giantspider1" + listOf(
+        "giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3",
+        "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops", "goblin_armed", "unicorn",
+    )
+    // The cache's Strength levels where they aren't 1, for the max hit check.
+    private val strength = mapOf(
+        "giantrat" to 3, "giantrat_grey" to 3, "giantrat_grey2" to 3, "giantrat_grey3" to 3, "giantrat1_2" to 5, "giantrat1_3" to 5,
+        "little_frog_nodrops" to 4, "medium_frog_nodrops" to 6, "giant_frog_nodrops" to 8, "unicorn" to 13,
+    )
+    private val types = NpcTypes.of(
+        *names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name, stats = NpcStats(strength = strength[name] ?: 1)) }.toTypedArray(),
+    )
 
     // The 241 cache's ids for the animations the file names.
     private val seqs = SeqNames(
@@ -29,6 +40,10 @@ class NpcCombatTest {
             "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252, "duck_rework_death" to 3468,
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
+            "giant_rat_update_attack" to 4933, "giant_rat_update_defend" to 4934, "giant_rat_update_death" to 4935,
+            "giant_frog_attack" to 1793, "giant_frog_block" to 1794, "giant_frog_death" to 1795,
+            "slice_surface_goblin_squat_attack_spear" to 6188, "slice_surface_goblin_defend_spear" to 6189, "slice_surface_goblin_death_spear" to 6190,
+            "unicorn_rework_attack" to 6376, "unicorn_rework_defend" to 6375, "unicorn_rework_death" to 6377,
         ),
     )
 
@@ -50,7 +65,12 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.WATER, 10), combat[types.find("imp")!!]!!.weakness)
         assertEquals(ElementalWeakness(Element.FIRE, 20), combat[types.find("ramunsheered")!!]!!.weakness)
         assertEquals(ElementalWeakness(Element.FIRE, 50), combat[types.find("giantspider1")!!]!!.weakness)
-        assertEquals(listOf("imp", "ramunsheered", "ramunsheered2", "ramunsheered3", "giantspider1"), names.filter { combat[types.find(it)!!]!!.weakness != null })
+        assertEquals(
+            listOf("imp", "ramunsheered", "ramunsheered2", "ramunsheered3", "giantspider1", "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops"),
+            names.filter { combat[types.find(it)!!]!!.weakness != null },
+        )
+        assertEquals(ElementalWeakness(Element.EARTH, 40), combat[types.find("little_frog_nodrops")!!]!!.weakness)
+        assertEquals(ElementalWeakness(Element.EARTH, 25), combat[types.find("giant_frog_nodrops")!!]!!.weakness)
         // Fred's farm: a chicken stabs for nothing and comes back in 25 ticks, a ram crushes for 1 and takes 45.
         val chicken = combat[types.find("chicken_brown")!!]!!
         assertEquals(AttackType.STAB, chicken.attackType)
@@ -73,6 +93,22 @@ class NpcCombatTest {
         assertEquals(AttackType.STAB, spider.attackType)
         assertEquals(NpcCombatAnims(5327, 5328, 5329), spider.anims)
         assertEquals(30, spider.respawnTicks)
+        // The swamp: giant rats stab for 1 and come back in 30 ticks, frogs crush and take 50, the level 5 goblin is
+        // slower (6) with its spear, and the unicorn takes 90.
+        val rat = combat[types.find("giantrat1_3")!!]!!
+        assertEquals(AttackType.STAB, rat.attackType)
+        assertEquals(NpcCombatAnims(4933, 4934, 4935), rat.anims)
+        assertEquals(30, rat.respawnTicks)
+        val frog = combat[types.find("medium_frog_nodrops")!!]!!
+        assertEquals(AttackType.CRUSH, frog.attackType)
+        assertEquals(2, frog.maxHit)
+        assertEquals(NpcCombatAnims(1793, 1794, 1795), frog.anims)
+        assertEquals(50, frog.respawnTicks)
+        val goblin = combat[types.find("goblin_armed")!!]!!
+        assertEquals(6, goblin.attackSpeed)
+        assertEquals(12, goblin.attackBonus)
+        assertEquals(NpcCombatAnims(6188, 6189, 6190), goblin.anims)
+        assertEquals(90, combat[types.find("unicorn")!!]!!.respawnTicks)
     }
 
     @Test
