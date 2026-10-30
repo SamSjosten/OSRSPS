@@ -139,8 +139,8 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
   signed manifest carries the table, and RSProx's target names the same build). RuneLite moves to each new revision
   within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
   revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
-- Nothing to install until the first release is published, which needs Sam's one-time key setup (`launcher/README.md`,
-  "Releases").
+- The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
+  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases").
 
 ### Files for our own launcher
 
@@ -233,6 +233,8 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
+| `::friends` | **everyone.** Your friends list as the server keeps it, each friend's world or offline |
+| `::clearfriends` | Empties your friends list, for tests that start from none (the Friends tab shows it after a relog) |
 | `::poison [severity\|venom\|cure]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
@@ -419,7 +421,9 @@ sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answe
 
 A knife used on logs, or logs on a knife (`game/skill/Fletching.kt`, words under `fletching.*`), opens the Make-X box
 over what those logs make: arrow shafts, javelin shafts, the shortbow and longbow (u), and the crossbow stock, from
-logs to magic logs, plus teak and mahogany stocks and redwood shafts. The numbers are in `skills/fletching.json`.
+logs to magic logs, plus teak and mahogany stocks and redwood shafts. A bow string on an unstrung bow strings it. Feathers on arrow shafts
+make headless arrows, and arrowtips on those make arrows, up to 15 at a time (the box counts sets). A feather on dart
+tips makes 10 darts on every click, with no box. The numbers are in `skills/fletching.json`.
 
 The making itself is the loop all three artisan skills share (`game/skill/Making.kt`, the box's title under
 `make.title`): each product waits in a weak queue, so walking off, closing an interface or using something else ends
@@ -429,7 +433,9 @@ it, as do running out, the count being done, the level being too low and a level
 |---------------------|--------|
 | Levels, XP and how many shafts a log makes | OSRS Wiki, Fletching and each product's page |
 | The first product 2 ticks after the choice, then one every 3 | OSRS Wiki, Arrow shaft ("Make-X is 2, then 3 ticks") and Wooden stock; the bows (u) inferred to match |
-| Animation `human_fletching` (1248) | cache 241 gamevals |
+| Stringing 2 ticks a bow; arrows 2 ticks a set of 15 with XP per arrow; darts 10 a click with no wait | OSRS Wiki, Shortbow, Headless arrow, Bronze arrow, Arrows, Dart and Bronze dart |
+| Animations `human_fletching` (1248) and each bow's `stringing_*` (6678 to 6689) | cache 241 gamevals |
+| No animation for arrows and darts; the first bow strung 2 ticks after the choice | guessed |
 | The box opening even for one log, its order, the quantity starting on as many as can be made, the animation as each product starts, a boost wearing off stopping it without a word | guessed |
 | Out: the redwood shield; the crossbows and javelins that stocks and javelin shafts go into | out of scope |
 
@@ -740,6 +746,29 @@ Check: `test-runner/examples/lumbridge-church.json` examines the four NPCs, pray
 and talks to each NPC; `HeadlessLumbridgeChurchTest` prays at an altar, talks to Father Aereck and Nigel (through his
 multi-NPC) and is sent to the Stronghold by Count Check through the headless client, with every branch in
 `ChurchTest`.
+
+## Al Kharid
+
+The Misthalin roadmap's Al Kharid piece, built a step at a time ([plan](https://claude.ai/artifact/Q7H1GLiHSg5A342NfsZn3f)).
+Content is in `game/content/AlKharid.kt`, spawns in `npc-spawns/al-kharid.json`. Every account has finished every
+quest, so Al Kharid is as after Prince Ali Rescue.
+
+| Behaviour | Source |
+|-----------|--------|
+| The toll gate (multilocs 44598/44599 at 3268, 3227 and 3268, 3228) shows as 44050/44051, Open only, once varp 273 is 100 or more; the Pay-toll(10gp) types 44052/44053 are the before-quest ones | 241 cache; OSRS Wiki, Toll gate |
+| After the quest Open takes the player through free with no talk, either way | OSRS Wiki, Toll gate (changed 27 April 2022) |
+| Talk-to on a Border Guard (4287 Lumbridge side, 4288 Al Kharid side): the player asks to come through, the guard says they're a friend of Al-Kharid, and the player goes through free | OSRS Wiki, Transcript:Border Guard |
+| Going through: both leaves swing open for 3 ticks as `inacmetalgateopenl`/`r` (1573/1574), the player moves to the far side at once; a player who talked to a guard first steps up to the gate | 2004Scape's border_gate.rs2; guessed until recorded |
+| Four Border Guards, two each side, standing still | 2004Scape map m51_50 spawns; standing still guessed |
+| The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
+
+Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only). The words of
+the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
+`examine.npc_4287`, `examine.loc_44050`).
+
+Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
+Guard's talk, and opens and shuts the palace's west doors and a curtain; `HeadlessAlKharidTest` does the same through the headless
+client, with the talk in `BorderGuardTest`.
 
 ## Equipment
 

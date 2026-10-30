@@ -418,4 +418,21 @@ class FakeGame implements Game
 		actions.add("cast " + interfaceId + ":" + component + " on " + (npc != null ? npc : "npc " + npcId));
 		return castError;
 	}
+
+	/** The friends list, world by name; null for not loaded. */
+	java.util.Map<String, Integer> friends = new java.util.LinkedHashMap<>();
+
+	@Override
+	public java.util.Map<String, Integer> friends()
+	{
+		return friends == null ? null : new java.util.LinkedHashMap<>(friends);
+	}
+
+	@Override
+	public String enterText(String text)
+	{
+		actions.add("text " + text);
+		promptMode = 0;
+		return null;
+	}
 }

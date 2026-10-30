@@ -98,11 +98,16 @@ class HeadlessClient private constructor(
     private val scripts = ArrayList<ClientScript>()
     private var dialogue: DialogueView? = null
     private val invs = HashMap<Int, MutableList<InvObj?>>()
+    private val stockMarket = HashMap<Int, StockMarketSlot>()
     private val stats = HashMap<Int, Stat>()
     private val varps = HashMap<Int, Int>()
     private val statTicks = HashMap<Int, Int>()
     private val varpTicks = HashMap<Int, Int>()
     private var runEnergy = -1
+
+    /** The friends list as the client holds it: world by name, 0 for offline, in the order first sent. */
+    private val friendList = LinkedHashMap<String, Int>()
+    private var friendListLoaded = false
     private var runWeight: Int? = null
 
     /** Counts changes of [dialogue]; [dialogueMark] is its value when the last packet was sent. */
@@ -131,7 +136,16 @@ class HeadlessClient private constructor(
 
     fun packets(): List<ServerPacket> = lock.withLock { packets.toList() }
 
+    /** The Grand Exchange slot [slot] as UPDATE_STOCKMARKET_SLOT last set it; null while empty. */
+    fun stockMarketSlot(slot: Int): StockMarketSlot? = lock.withLock { stockMarket[slot] }
+
     fun messages(): List<GameMessage> = lock.withLock { messages.toList() }
+
+    /** The friends list: each friend's world by name, 0 for offline. */
+    fun friends(): Map<String, Int> = lock.withLock { LinkedHashMap(friendList) }
+
+    /** Whether the server has sent the friends list (FRIENDLIST_LOADED or UPDATE_FRIENDLIST). */
+    val friendsLoaded: Boolean get() = lock.withLock { friendListLoaded }
 
     /** The local player's moves, in order, each with the tick it arrived in. */
     fun moves(): List<TickMove> = lock.withLock { moves.toList() }
@@ -358,6 +372,15 @@ class HeadlessClient private constructor(
         p1(trade)
     }
 
+    /** The Add Friend box (FRIENDLIST_ADD). The real client refuses its own name, a duplicate and a full list first. */
+    fun addFriend(name: String) = send(GameClientProt.FRIENDLIST_ADD) { pjstr(name) }
+
+    /** Delete on a friend (FRIENDLIST_DEL), which the real client takes off its own list first. */
+    fun deleteFriend(name: String) {
+        lock.withLock { friendList.keys.removeIf { it.equals(name, ignoreCase = true) } }
+        send(GameClientProt.FRIENDLIST_DEL) { pjstr(name) }
+    }
+
     /** An amount typed into a prompt (RESUME_P_COUNTDIALOG), as after Withdraw-X. */
     fun resumeCount(count: Int) = send(GameClientProt.RESUME_P_COUNTDIALOG) { p4(count) }
 
@@ -579,6 +602,18 @@ class HeadlessClient private constructor(
                     if (id < 0) null else InvObj(id, count)
                 }
             }
+            GameServerProt.UPDATE_STOCKMARKET_SLOT_V2 -> {
+                val slot = buf.g1()
+                // A header RSProt writes as 7 then 2.
+                buf.g1()
+                buf.g1()
+                val status = buf.g1()
+                if (status == 0) {
+                    stockMarket.remove(slot)
+                } else {
+                    stockMarket[slot] = StockMarketSlot(status, buf.g2(), buf.g8(), buf.g4(), buf.g4(), buf.g8())
+                }
+            }
             GameServerProt.UPDATE_INV_PARTIAL -> {
                 buf.g4()
                 val slots = invs.getOrPut(buf.g2()) { ArrayList() }
@@ -615,6 +650,25 @@ class HeadlessClient private constructor(
                 varpTicks[id] = ticks
             }
             GameServerProt.VARP_RESET -> varps.clear()
+            GameServerProt.FRIENDLIST_LOADED -> friendListLoaded = true
+            GameServerProt.UPDATE_FRIENDLIST -> {
+                friendListLoaded = true
+                while (buf.isReadable) {
+                    buf.g1() // added
+                    val name = buf.gjstr()
+                    buf.gjstr() // previous name
+                    val world = buf.g2()
+                    buf.g1() // rank
+                    buf.g1() // properties
+                    if (world > 0) {
+                        buf.gjstr() // world name
+                        buf.g1() // platform
+                        buf.g4() // world flags
+                    }
+                    buf.gjstr() // notes
+                    friendList[name] = world
+                }
+            }
             GameServerProt.UPDATE_RUNENERGY -> runEnergy = buf.g2()
             GameServerProt.UPDATE_RUNWEIGHT -> runWeight = buf.g2().toShort().toInt()
             GameServerProt.SERVER_TICK_END -> {
@@ -728,3 +782,6 @@ class HeadlessClient private constructor(
         }
     }
 }
+
+/** A Grand Exchange slot as the client holds it: [status] (state in the low three bits, 8 for selling) and the offer. */
+data class StockMarketSlot(val status: Int, val obj: Int, val price: Long, val count: Int, val completed: Int, val gold: Long)
