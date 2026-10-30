@@ -184,6 +184,12 @@ class Player(
     val geSent = osrsps.game.ge.GeSent()
     val geSetup = osrsps.game.ge.GeSetup()
 
+    /** The items in the Grand Exchange guide prices screen, out of the inventory while it is open; see [osrsps.game.ge.PriceChecker]. */
+    val priceChecker = Inventory(osrsps.game.ge.PriceChecker.INV, Inventory.INV_CAPACITY)
+
+    /** Whether the guide prices screen's item search is open, waiting on resume_p_objdialog. */
+    var priceCheckSearching = false
+
     /** The chatbox's public, private and trade filters, as the client last set them. Saved. */
     var chatFilters: ChatFilters = ChatFilters.DEFAULT
 
