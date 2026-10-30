@@ -1,0 +1,180 @@
+{
+ "name": "Draynor piece step 2: the bronze axe off the logs by the willows, a willow chopped, a shrimp netted at the shore's spots and cooked on Draynor's permanent fire",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3097 3238 0",
+   "comment": "south of the logs with the axe in them, by the willows"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3097,
+   "y": 3238,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 5581,
+   "option": "Take-axe",
+   "x": 3097,
+   "y": 3239
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze axe",
+   "count": 1
+  },
+  {
+   "step": "assertLoc",
+   "locId": 5582,
+   "x": 3097,
+   "y": 3239,
+   "comment": "log_withoutaxe until the axe is back"
+  },
+  {
+   "step": "assertLoc",
+   "locId": 5581,
+   "x": 3097,
+   "y": 3239,
+   "option": "Take-axe",
+   "timeoutMs": 60000,
+   "comment": "back 50 ticks (30 seconds) later"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel woodcutting 30",
+   "expectMessage": "Woodcutting set to level 30"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3088 3233 0",
+   "comment": "between the willows at 3088 3234 and 3087 3231"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3088,
+   "y": 3233,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 10819,
+   "option": "Chop down",
+   "x": 3088,
+   "y": 3234
+  },
+  {
+   "step": "assertMessage",
+   "contains": "woodcutting.swing"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Willow logs",
+   "count": 1,
+   "timeoutMs": 120000
+  },
+  {
+   "step": "assertStat",
+   "skill": "Woodcutting",
+   "level": 30,
+   "xp": 13430,
+   "comment": "67.5 XP a willow log on top of level 30's 13,363"
+  },
+  {
+   "step": "command",
+   "text": "::item net",
+   "expectMessage": "Added 1 x Small fishing net"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3087 3228 0",
+   "comment": "the shore by the Net/Bait spots"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3087,
+   "y": 3228,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1525,
+   "option": "Small Net"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "fishing.cast_net"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Raw shrimps",
+   "count": 1,
+   "timeoutMs": 90000
+  },
+  {
+   "step": "command",
+   "text": "::setlevel cooking 99",
+   "expectMessage": "Cooking set to level 99",
+   "comment": "so it doesn't burn"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3096 3238 0",
+   "comment": "beside Draynor's permanent fire"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3096,
+   "y": 3238,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 43475,
+   "option": "Cook",
+   "x": 3096,
+   "y": 3237
+  },
+  {
+   "step": "assertMessage",
+   "contains": "cooking.cooked_shrimps",
+   "timeoutMs": 20000,
+   "comment": "one raw food: it cooks straight away, over the fire"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 897,
+   "comment": "human_firecooking"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Shrimps",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

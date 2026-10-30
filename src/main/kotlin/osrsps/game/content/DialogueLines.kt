@@ -55,7 +55,7 @@ object DialogueLines {
         // Al Kharid.
         BorderGuardLines,
         // Draynor Village.
-        DraynorSearchLines,
+        DraynorSearchLines, AxeLogsLines,
     )
 }
 
