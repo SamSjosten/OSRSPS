@@ -65,6 +65,10 @@
     {"npc": "tourtrap_qip_irena_happy", "x": 3304, "z": 3113, "wander": 0, "source": "Irena, just south of the gate. mejrs data_osrs NPCList_OSRS.json (live)"},
     {"npc": "spider", "x": 3319, "z": 3139, "wander": 5, "source": "Spider, in the house south-east of the town (the Sorceress's Garden's). mejrs data_osrs NPCList_OSRS.json (live); the Wiki counts 3 in Al Kharid"},
     {"npc": "spider", "x": 3322, "z": 3141, "wander": 5, "source": "Spider, in the house south-east of the town (the Sorceress's Garden's). mejrs data_osrs NPCList_OSRS.json (live); the Wiki counts 3 in Al Kharid"},
-    {"npc": "spider", "x": 3324, "z": 3138, "wander": 5, "source": "Spider, in the house south-east of the town (the Sorceress's Garden's). mejrs data_osrs NPCList_OSRS.json (live); the Wiki counts 3 in Al Kharid"}
+    {"npc": "spider", "x": 3324, "z": 3138, "wander": 5, "source": "Spider, in the house south-east of the town (the Sorceress's Garden's). mejrs data_osrs NPCList_OSRS.json (live); the Wiki counts 3 in Al Kharid"},
+    {"npc": "pilot_al_kharid", "x": 3284, "z": 3212, "wander": 0, "source": "Captain Dalbur, by his glider. mejrs data_osrs NPCList_OSRS.json (live)"},
+    {"npc": "pvpa_guard_1", "x": 3352, "z": 3265, "wander": 0, "source": "Arena Guard Fronk, outside the Arena's access gate (3350,3268 in the 241 cache). Guessed tile: no live data for the Emir's Arena yet"},
+    {"npc": "pvpa_duel_guide", "x": 3364, "z": 3268, "wander": 0, "source": "the Duel Guide, in the Arena's lobby by the recruitment board (3362,3268 in the 241 cache). Guessed tile: no live data for the Emir's Arena yet"},
+    {"npc": "pvpa_1v1_guide", "x": 3368, "z": 3268, "wander": 0, "source": "the 1v1 Tournament Guide, in the Arena's lobby by the second board (3370,3268 in the 241 cache). Guessed tile: no live data for the Emir's Arena yet"}
   ]
 }
