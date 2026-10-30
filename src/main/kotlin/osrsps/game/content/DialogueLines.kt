@@ -52,7 +52,7 @@ object DialogueLines {
         SocialLines,
         // Al Kharid.
         BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
-        GemTraderLines,
+        GemTraderLines, KarimLines, SilkTraderLines, KebabLines,
         // Draynor Village.
         DraynorSearchLines,
     )
