@@ -160,6 +160,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `firemaking-lumbridge.json`: at the spawn, a tinderbox on oak logs (level 15 needed), then on logs (lit after a
   roll or more, a step west, 40 XP), Light on logs on the ground at level 43, and the first fire's ashes. Needs 0.10.0
   (`useItemOnItem`, `groundItemOption`).
+- `firemaking-picked-crop.json`: picks an onion in Fred's patch, stands on its tile and uses a tinderbox on logs; the
+  fire is refused, the logs stay in the backpack and the onion grows back (third exploit review). Needs 0.10.0.
 - `mining-lumbridge.json`: at the Lumbridge Swamp mine, Mine with no pickaxe, then a bronze pickaxe on copper (one
   ore, the empty rock, the copper back) and tin, and mithril's level 55. Needs only 0.5.0.
 - `fishing-lumbridge.json`: at the Lumbridge Swamp, Net with no net, then a net nets a shrimp (10 XP); Bait's
