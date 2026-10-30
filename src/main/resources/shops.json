@@ -1,5 +1,5 @@
 {
-  "about": "Shops, as the OSRS Wiki's shop pages give them: what each sells at, buys at and changes by per item of stock (tenths of a percent: the Wiki's 130.0% is 1300), its stock in the Wiki's order with each item's count and restock time in ticks, and the NPCs whose Trade opens it. inv and size are the shop's inv in the 241 cache (dump.inv). The Wiki gives a slot order only as its table's; the cache doesn't say. Every price follows from these numbers (see Shop.price).",
+  "about": "Shops, as the OSRS Wiki's shop pages give them: what each sells at, buys at and changes by per item of stock (tenths of a percent: the Wiki's 130.0% is 1300), its stock in the Wiki's order with each item's count and restock time in ticks, and the NPCs whose Trade opens it. inv and size are the shop's inv in the 241 cache (dump.inv). The Wiki gives a slot order only as its table's; the cache doesn't say. Every price follows from these numbers (see Shop.price), except an item with its own \"price\", which the Wiki gives and the percentages don't (Diango's Disk of Returning).",
   "shops": [
     {
       "key": "lumbridge_general_store",
@@ -163,6 +163,363 @@
           "name": "Mithril battleaxe",
           "count": 1,
           "restock": 3000
+        }
+      ]
+    },
+    {
+      "key": "draynor_wine_shop",
+      "title": "Fortunato's Fine Wine",
+      "inv": 384,
+      "size": 4,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 20,
+      "npcs": [
+        "rag_wine_merchant"
+      ],
+      "source": "OSRS Wiki, Fortunato's Fine Wine, read 2026-10-30: Sells at 100.0%, Buys at 60.0%, Change per 2.0%, and the stock table. The jug of vinegar is sold only between starting Rag and Bone Man I and finishing II; every account counts both as done, so it is left out and the shop is the 241 cache's wine_merchant inv (4 slots), not wine_vinegar_merchant (5)",
+      "stock": [
+        {
+          "item": 1993,
+          "name": "Jug of wine",
+          "count": 5,
+          "restock": 1500
+        },
+        {
+          "item": 1935,
+          "name": "Jug",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 20742,
+          "name": "Empty jug pack",
+          "count": 5,
+          "restock": 15
+        },
+        {
+          "item": 7919,
+          "name": "Bottle of wine",
+          "count": 2,
+          "restock": 1500
+        }
+      ]
+    },
+    {
+      "key": "draynor_seed_market",
+      "title": "Draynor Seed Market",
+      "inv": 273,
+      "size": 16,
+      "general": false,
+      "sellAt": 1200,
+      "buyAt": 600,
+      "changePer": 30,
+      "npcs": [
+        "seed_merchant"
+      ],
+      "overstock": {"above": 200, "percent": 1},
+      "source": "OSRS Wiki, Draynor Seed Market, read 2026-10-30: Sells at 120.0%, Buys at 60.0%, Change per 3.0%, and the stock table (a seed a minute back toward each count, or 1% of the excess a minute while it is over 200; rounding down, at least one, is guessed). Olivia's refusal to trade for 30 minutes after a theft from her stalls comes with thieving",
+      "stock": [
+        {
+          "item": 5318,
+          "name": "Potato seed",
+          "count": 20,
+          "restock": 100
+        },
+        {
+          "item": 5319,
+          "name": "Onion seed",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 5324,
+          "name": "Cabbage seed",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 5322,
+          "name": "Tomato seed",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 5320,
+          "name": "Sweetcorn seed",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 5323,
+          "name": "Strawberry seed",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 5321,
+          "name": "Watermelon seed",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 5305,
+          "name": "Barley seed",
+          "count": 20,
+          "restock": 100
+        },
+        {
+          "item": 5306,
+          "name": "Jute seed",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 5097,
+          "name": "Rosemary seed",
+          "count": 20,
+          "restock": 100
+        },
+        {
+          "item": 5096,
+          "name": "Marigold seed",
+          "count": 20,
+          "restock": 100
+        },
+        {
+          "item": 5307,
+          "name": "Hammerstone seed",
+          "count": 20,
+          "restock": 100
+        },
+        {
+          "item": 5308,
+          "name": "Asgarnian seed",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 5309,
+          "name": "Yanillian seed",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 5310,
+          "name": "Krandorian seed",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 5311,
+          "name": "Wildblood seed",
+          "count": 0,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "diangos_toy_store",
+      "title": "Diango's Toy Store",
+      "inv": 137,
+      "size": 31,
+      "general": false,
+      "sellAt": 1500,
+      "buyAt": 500,
+      "changePer": 2,
+      "npcs": [
+        "aprilfoolshorsesalesman"
+      ],
+      "source": "OSRS Wiki, Diango's Toy Store, read 2026-10-30: Sells at 150.0%, Buys at 50.0%, Change per 0.2%, and the stock table (31 items, the 241 cache's aprilfoolshorseshop inv). The items the Wiki says it won't buy back (N/A) are untradeable, which no shop buys",
+      "stock": [
+        {
+          "item": 2520,
+          "name": "Brown toy horsey",
+          "count": 5,
+          "restock": 20
+        },
+        {
+          "item": 2522,
+          "name": "White toy horsey",
+          "count": 5,
+          "restock": 20
+        },
+        {
+          "item": 2524,
+          "name": "Black toy horsey",
+          "count": 5,
+          "restock": 20
+        },
+        {
+          "item": 2526,
+          "name": "Grey toy horsey",
+          "count": 5,
+          "restock": 20
+        },
+        {
+          "item": 4613,
+          "name": "Spinning plate",
+          "count": 250,
+          "restock": 20
+        },
+        {
+          "item": 11705,
+          "name": "Beach boxing gloves (yellow)",
+          "count": 5,
+          "restock": 5
+        },
+        {
+          "item": 11706,
+          "name": "Beach boxing gloves (pink)",
+          "count": 5,
+          "restock": 5
+        },
+        {
+          "item": 11707,
+          "name": "Cursed goblin hammer",
+          "count": 3,
+          "restock": 5
+        },
+        {
+          "item": 11708,
+          "name": "Cursed goblin bow",
+          "count": 3,
+          "restock": 5
+        },
+        {
+          "item": 11709,
+          "name": "Cursed goblin staff",
+          "count": 3,
+          "restock": 5
+        },
+        {
+          "item": 12727,
+          "name": "Goblin paint cannon",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 13188,
+          "name": "Diango's claws",
+          "count": 5,
+          "restock": 5
+        },
+        {
+          "item": 13328,
+          "name": "Green banner",
+          "count": 5,
+          "restock": 5
+        },
+        {
+          "item": 13660,
+          "name": "Chronicle",
+          "count": 1,
+          "restock": 1,
+          "onePerPlayer": true
+        },
+        {
+          "item": 13658,
+          "name": "Teleport card",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 13679,
+          "name": "Cabbage cape",
+          "count": 10,
+          "restock": 1
+        },
+        {
+          "item": 13681,
+          "name": "Cruciferous codex",
+          "count": 15,
+          "restock": 2
+        },
+        {
+          "item": 13215,
+          "name": "Tiger toy",
+          "count": 15,
+          "restock": 3
+        },
+        {
+          "item": 13216,
+          "name": "Lion toy",
+          "count": 15,
+          "restock": 2
+        },
+        {
+          "item": 13217,
+          "name": "Snow leopard toy",
+          "count": 15,
+          "restock": 2
+        },
+        {
+          "item": 13218,
+          "name": "Amur leopard toy",
+          "count": 15,
+          "restock": 2
+        },
+        {
+          "item": 21314,
+          "name": "Rainbow scarf",
+          "count": 5,
+          "restock": 1
+        },
+        {
+          "item": 22355,
+          "name": "Holy handegg",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 22358,
+          "name": "Peaceful handegg",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 22361,
+          "name": "Chaotic handegg",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 19699,
+          "name": "Hornwood helm",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 21354,
+          "name": "Hand fan",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 13203,
+          "name": "Mask of Balance",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 12600,
+          "name": "Druidic wreath",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 981,
+          "name": "Disk of Returning",
+          "count": 7,
+          "restock": 160,
+          "price": 21000
+        },
+        {
+          "item": 22364,
+          "name": "Oculus orb",
+          "count": 100,
+          "restock": 1
         }
       ]
     },

@@ -828,6 +828,20 @@ public class RunnerTest
 	}
 
 	@Test
+	public void useItemOnLocRetriesThenClicks() throws Exception
+	{
+		game.clickError = "no \"Gold bar\" in the inventory";
+		runner.start(script("{\"step\":\"useItemOnLoc\",\"item\":\"Gold bar\",\"locId\":24009,\"x\":3226,\"y\":3256}"), "file");
+		assertNull(cycle());
+		assertTrue(game.actions.isEmpty());
+		game.clickError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("Use Gold bar on loc id 24009 at 3226 3256"), game.actions);
+		assertEquals("use Gold bar on loc 24009 at 3226, 3256", r.steps.get(0).description);
+	}
+
+	@Test
 	public void equipmentSaysWhatIsWorn() throws Exception
 	{
 		game.worn.put(13, 884);

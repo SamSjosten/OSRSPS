@@ -80,10 +80,12 @@ class GrandExchange(
     fun abort(player: Player, slot: Int): Boolean {
         val offer = player.ge[slot] ?: return false
         if (offer.finished) return false
-        player.ge[slot] = when (offer.type) {
+        val aborted = when (offer.type) {
             OfferType.BUY -> offer.copy(aborted = true, collectCoins = offer.collectCoins + offer.remaining * offer.price)
             OfferType.SELL -> offer.copy(aborted = true, collectItems = offer.collectItems + offer.remaining)
         }
+        player.ge[slot] = aborted
+        record(player, aborted)
         return true
     }
 
@@ -151,7 +153,15 @@ class GrandExchange(
     private fun give(player: Player, id: Int, count: Int, toBank: ((Player, Int, Int) -> Int)?): Int =
         toBank?.invoke(player, id, count) ?: player.inventory.add(objTypes[id] ?: ObjType(id, stackable = true), count)
 
-        /** Fills [player]'s offers the bot market takes, once a tick. */
+        /**
+     * Adds a finished offer to the history, if anything changed hands. GUESSED: that an offer goes in when it finishes,
+     * whole, rather than for each part that fills.
+     */
+    private fun record(player: Player, offer: GeOffer) {
+        if (offer.completed > 0) player.ge.record(GeTrade(offer.type, offer.item, offer.completed, offer.exchanged, offer.taxPaid))
+    }
+
+    /** Fills [player]'s offers the bot market takes, once a tick. */
     fun process(player: Player) {
         if (!marketOpen) return
         val tick = currentTick()
@@ -185,9 +195,10 @@ class GrandExchange(
             }
             OfferType.SELL -> offer.copy(
                 completed = offer.completed + count, exchanged = offer.exchanged + count * each,
-                collectCoins = offer.collectCoins + count * (each - tax(offer.item, each)),
+                collectCoins = offer.collectCoins + count * (each - tax(offer.item, each)), taxPaid = offer.taxPaid + count * tax(offer.item, each),
             )
         }
+        player.ge[slot]?.takeIf { it.finished }?.let { record(player, it) }
         return count
     }
 

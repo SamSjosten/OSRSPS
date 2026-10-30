@@ -450,7 +450,10 @@ Make-X box over the wool and flax held; either used on a wheel opens it over tha
 words under `crafting.*`, numbers in `skills/crafting.json`). A needle on leather, hard leather or green to black dragon
 leather opens the box over what it makes; thread is held, and one is used up every 5 items (the count is kept with the
 account). Steel studs on a leather body or chaps stud them. A chisel on an uncut gem cuts it; opal, jade and red topaz
-can crush into a crushed gemstone, rolled as the gathering skills roll. The making is the artisan loop in `Making.kt`.
+can crush into a crushed gemstone, rolled as the gathering skills roll. A gold bar or a mould used on a furnace opens
+`crafting_gold` (interface 446), and a silver bar or silver mould `silver_crafting` (6): both lay themselves out from
+the inventory, so the server answers the item buttons and keeps the quantity buttons' choice in `makexcrafting`, as at
+the anvil. A ball of wool strings an amulet. The making is the artisan loop in `Making.kt`.
 
 | Crafting behaviour | Source |
 |--------------------|--------|
@@ -461,8 +464,11 @@ can crush into a crushed gemstone, rolled as the gathering skills roll. The maki
 | Studs 3 ticks; studded body 41, 40 XP; studded chaps 44, 42 XP | OSRS Wiki, Studded body and Studded chaps |
 | Gem levels, XP, 2 ticks a gem; opal, jade and red topaz's crush chances (pairs worked back from each page's formula and checked against its chart, `CraftingDataTest`) and crushed XP | OSRS Wiki, each gem's page |
 | Each gem's cutting animation (`human_*cutting`) | cache 241 gamevals |
+| Gold and silver jewellery levels and XP; 3 ticks an item; stringing an amulet 4 XP, 2 ticks | OSRS Wiki, Jewellery, Silver bar, Gold ring, Gold amulet |
+| The two furnace interfaces' item and quantity buttons | decompiled interfaces crafting_gold and silver_crafting (osrs-dumps) |
+| The furnace animation, silver taking gold's ticks, which interface a shared mould opens | guessed |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst | out of scope |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
 
 ## Items and inventory
 
@@ -736,14 +742,17 @@ village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/co
 | A cheese and a tomato in Aggie's house, two logs in Spria's, back 100 ticks after taking | the Wiki's Draynor Village spawn list for the items and rooms; tiles and respawn guessed |
 | The pig pen's and the farm's gates | `Gates`, above |
 | Wander ranges (2 in the pig pen and indoors, 3 and 5 elsewhere) | guessed |
+| Step 3: the market's shops in `shops.json`: Fortunato's Fine Wine (without the jug of vinegar, as after Rag and Bone Man II), Diango's Chronicle one to a player and the Seed Market's 1% overstock decay, the Draynor Seed Market (Olivia) and Diango's Toy Store, with their talks (`game/content/DraynorMarket.kt`) | the Wiki's shop pages and transcripts (read 2026-10-30); the shops' invs and sizes the 241 cache's |
+| Diango's Disk of Returning sells at the Wiki's 21,000 coins, a fixed `price` in the shop file (the percentages give 180) | the Wiki's Diango's Toy Store; that the price doesn't move with the stock is guessed |
 | Step 2: the shore's two Net/Bait spots (`0_48_50_saltfish`, 1525, whose net option is "Small Net"), fished as the swamp's, moving between four tiles | tiles from mejrs's list; the move tiles 2004Scape's `fishing_movement_draynor_village_enum` |
 | The five willows by the shore chop with Woodcutting's willow data | the 241 map (ids 10819, 10829, 10831, 10833) |
 | Draynor's permanent fire south of the bank (`fire_cook`, 43475): Cook asks which food as a range does, then cooks over the fire (fire burn chart and animation) | the Wiki's Permanent fire page (a Draynor fire with Cook, free-to-play) |
 | Take-axe on the logs by the willows (`log_withaxe`, 5581) gives a bronze axe and leaves plain logs for 30 seconds; the same type works wherever the map has it | the Wiki's Bronze axe page ("Bronze axes on logs respawn in 30 seconds"); no message and a full inventory keeping the axe on the logs are guessed |
 
-Left out until their steps: the market and its stalls, the jail, Aggie's, Ned's, Morgan's and the Wise Old Man's talk,
+Left out until their steps: the market's stalls and guards, the jail, Aggie's, Ned's, Morgan's and the Wise Old Man's talk,
 the bank guard, Miss Schism, the town crier, the dark wizards, the sewers' trapdoors and
-the rooftop course (Agility isn't built). The wheat field picks as Lumbridge's does (`Crops`).
+the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
+holiday items to reclaim), and Olivia's refusal after a theft comes with thieving. The wheat field picks as Lumbridge's does (`Crops`).
 
 Check: `test-runner/examples/draynor-village.json` opens and shuts the pig pen's gate, climbs both staircases, takes
 garlic from Morgan's cupboard, opens Aggie's wardrobe and sees her cheese and tomato, and opens the bank from a banker

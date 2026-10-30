@@ -16,6 +16,14 @@ class ShopTest {
         1931 to 1, 1935 to 1, 20742 to 140, 1735 to 1, 946 to 6, 1925 to 2, 22660 to 500, 1923 to 4, 1887 to 10, 590 to 1,
         1755 to 1, 952 to 3, 2347 to 1, 550 to 1, 9003 to 2,
         1265 to 1, 1351 to 16, 1349 to 56, 1353 to 200, 1363 to 182, 1365 to 650, 1369 to 1690,
+        // Draynor's market.
+        1993 to 1, 7919 to 500,
+        5318 to 2, 5319 to 3, 5324 to 3, 5322 to 4, 5320 to 8, 5323 to 18, 5321 to 56, 5305 to 2, 5306 to 5, 5097 to 4, 5096 to 2,
+        5307 to 2, 5308 to 3, 5309 to 6, 5310 to 8, 5311 to 14,
+        2520 to 100, 2522 to 100, 2524 to 100, 2526 to 100, 4613 to 50, 11705 to 50, 11706 to 50, 11707 to 30, 11708 to 30,
+        11709 to 30, 12727 to 150, 13188 to 500, 13328 to 49, 13660 to 200, 13658 to 100, 13679 to 100, 13681 to 200, 13215 to 100,
+        13216 to 100, 13217 to 100, 13218 to 100, 21314 to 80, 22355 to 1, 22358 to 1, 22361 to 1, 19699 to 10, 21354 to 0,
+        13203 to 1, 12600 to 1, 981 to 120, 22364 to 40,
         // Al Kharid's shops.
         1321 to 32, 1323 to 112, 1325 to 400, 1329 to 1040,
         1592 to 5, 1597 to 5, 1595 to 5, 1733 to 1, 1734 to 1, 1599 to 5, 2976 to 10, 5523 to 100, 9434 to 25, 11065 to 5,
@@ -25,16 +33,27 @@ class ShopTest {
         1825 to 27, 1833 to 40, 1837 to 20, 4593 to 1, 4591 to 1, 970 to 10, 2138 to 1,
     )
 
+    /**
+     * Diango's items the 241 cache has untradeable (the Wiki's N/A for "bought at"): the spinning plate to the Chronicle,
+     * the cabbage cape to the rainbow scarf, and the Oculus orb.
+     */
+    private val untradeable = setOf(
+        4613, 11705, 11706, 11707, 11708, 11709, 12727, 13188, 13328, 13660, 13679, 13681, 13215, 13216, 13217, 13218, 21314, 22364,
+    )
+
     private val shopFile = ShopTest::class.java.getResource(ShopTypes.RESOURCE)!!.readText()
 
     /** The shop file read against item and NPC types made up from its own names, as the 241 cache has them. */
     private fun realShops(): ShopTypes {
         val names = Regex("\"item\": (\\d+),\\s*\"name\": \"([^\"]+)\"").findAll(shopFile).associate { it.groupValues[1].toInt() to it.groupValues[2] }
-        val objs = ObjTypes.of(*names.map { (id, name) -> ObjType(id, name, cost = values.getValue(id)) }.toTypedArray())
+        val objs = ObjTypes.of(*names.map { (id, name) -> ObjType(id, name, cost = values.getValue(id), tradeable = id !in untradeable) }.toTypedArray())
         val npcs = NpcTypes.of(
             NpcType(2813, "Shop keeper", internalName = "generalshopkeeper1"),
             NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
             NpcType(10619, "Bob", internalName = "bob"),
+            NpcType(1260, "Fortunato", internalName = "rag_wine_merchant"),
+            NpcType(500, "Olivia", internalName = "seed_merchant"),
+            NpcType(8693, "Diango", internalName = "aprilfoolshorsesalesman"),
             NpcType(2817, "Shop keeper", internalName = "generalshopkeeper3"),
             NpcType(2818, "Shop assistant", internalName = "generalassistant3"),
             NpcType(2875, "Zeke", internalName = "zeke"),
@@ -53,6 +72,17 @@ class ShopTest {
             1 to 0, 1 to 0, 182 to 56, 1 to 0, 7 to 2, 2 to 0, 650 to 200, 5 to 1, 13 to 4, 1 to 0, 1 to 0, 3 to 1, 1 to 0, 1 to 0, 2 to 0,
         ),
         "bobs_brilliant_axes" to listOf(1 to 0, 16 to 9, 56 to 33, 200 to 120, 182 to 109, 650 to 390, 1690 to 1014),
+        // Read 2026-10-30.
+        "draynor_wine_shop" to listOf(1 to 0, 1 to 0, 140 to 84, 500 to 300),
+        "draynor_seed_market" to listOf(
+            2 to 1, 3 to 1, 3 to 1, 4 to 2, 9 to 4, 21 to 10, 67 to 33, 2 to 1, 6 to 3, 4 to 2, 2 to 1, 2 to 1, 3 to 1, 7 to 3, 9 to 4, 16 to 8,
+        ),
+        // The Wiki's N/A (untradeable, so never bought) is null.
+        "diangos_toy_store" to listOf(
+            150 to 50, 150 to 50, 150 to 50, 150 to 50, 75 to null, 75 to null, 75 to null, 45 to null, 45 to null, 45 to null,
+            225 to null, 750 to null, 73 to null, 300 to null, 150 to 50, 150 to null, 300 to null, 150 to null, 150 to null,
+            150 to null, 150 to null, 120 to null, 1 to 0, 1 to 0, 1 to 0, 15 to 5, 1 to 0, 1 to 0, 1 to 0, 21000 to 60, 60 to null,
+        ),
     )
 
     /** The Wiki's "Price sold at" for each item of Al Kharid's shops at its starting stock, read 2026-10-30. */
@@ -70,13 +100,17 @@ class ShopTest {
     fun `the shop file reads with every item and keeper, and its prices are the Wiki's`() {
         val shops = realShops()
         assertEquals(emptyList(), shops.warnings)
-        assertEquals(listOf("lumbridge_general_store", "bobs_brilliant_axes") + wikiSoldAt.keys, shops.all.map { it.key })
-        assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
-        assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
+        assertEquals(
+            listOf("lumbridge_general_store", "bobs_brilliant_axes", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store") + wikiSoldAt.keys,
+            shops.all.map { it.key },
+        )
+        assertEquals(shops["diangos_toy_store"], shops.ofNpc(8693))
         assertEquals(shops["al_kharid_general_store"], shops.ofNpc(2818))
         assertEquals(shops["alis_discount_wares"], shops.ofNpc(3533))
         // The Al Kharid General Store won't buy silk (the Wiki's page); no other shop refuses anything.
         assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
+        assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
+        assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
         for (type in shops.all) {
             val shop = Shop(type)
             val sold = wikiSoldAt[type.key]
@@ -84,8 +118,12 @@ class ShopTest {
                 assertEquals(sold, type.stock.map { shop.buyPrice(it.type.id, it.type.cost, it.count) }, type.key)
                 continue
             }
-            val prices = type.stock.map { shop.buyPrice(it.type.id, it.type.cost, it.count) to shop.sellPrice(it.type.id, it.type.cost, it.count) }
-            assertEquals(wikiPrices.getValue(type.key), prices, type.key)
+            val wiki = wikiPrices.getValue(type.key)
+            val prices = type.stock.map {
+                // ShopScreen.canSell refuses an untradeable item, so it has no "bought at" price.
+                shop.buyPrice(it.type.id, it.type.cost, it.count) to if (it.type.tradeable) shop.sellPrice(it.type.id, it.type.cost, it.count) else null
+            }
+            assertEquals(wiki, prices, type.key)
         }
     }
 
@@ -93,7 +131,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(9, shops.warnings.size)
+        assertEquals(12, shops.warnings.size)
     }
 
     @Test
@@ -111,6 +149,36 @@ class ShopTest {
         assertEquals(1, bob.buyPrice(1265, 1, 1000))
         // The change is held at +500% below the starting stock.
         assertEquals(Shop.price(200, 1000, 20, -250), Shop.price(200, 1000, 20, -1000))
+    }
+
+    @Test
+    fun `Diango's prices move 0,2% an item, and he sells the Chronicle one to a player`() {
+        val diango = Shop(realShops()["diangos_toy_store"]!!)
+        val brownHorsey = 2520
+        // 150% at 5 in stock; with one bought, 150.2% of 100 still rounds to 150 (2% would make it 152).
+        assertEquals(150, diango.buyPrice(brownHorsey, 100, 5))
+        assertEquals(150, diango.buyPrice(brownHorsey, 100, 4))
+        assertEquals(151, diango.buyPrice(brownHorsey, 100, 0))
+        assertTrue(diango.type.onePerPlayer(13660))
+        assertFalse(diango.type.onePerPlayer(brownHorsey))
+    }
+
+    @Test
+    fun `Olivia's overstock over 200 comes down 1% a minute, and one seed a minute below that`() {
+        val olivia = Shop(realShops()["draynor_seed_market"]!!)
+        val potato = 5318
+        // 20 to start; 1,000 more is 1,000 over: 10 a minute.
+        olivia.put(potato, 1000)
+        olivia.restock(100)
+        assertEquals(1010, olivia.count(potato))
+        olivia.restock(200)
+        assertEquals(1001, olivia.count(potato))
+        // 201 over is still over 200: 1% rounds down to 2. At 200 over, one at a time.
+        olivia.take(0, 1001 - 221)
+        olivia.restock(300)
+        assertEquals(219, olivia.count(potato))
+        olivia.restock(400)
+        assertEquals(218, olivia.count(potato))
     }
 
     @Test

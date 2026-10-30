@@ -37,6 +37,7 @@ object ShopLines : Lines("shop", "Shop") {
     val CANT_SELL_COINS = line("cant_sell_coins", "Value or Sell on coins")
     val CANT_SELL = line("cant_sell", "Value or Sell on an untradeable item")
     val WRONG_SHOP = line("wrong_shop", "Value or Sell on an item a specialist shop doesn't stock")
+    val ALREADY_HAVE = line("already_have", "buying an item a player may own one of (Diango's Chronicle) with one held or banked", "item")
 }
 
 /** The shop a player has open, and the [Shop.version] their client last got. */
@@ -209,6 +210,9 @@ class ShopScreen(
         repeat(amount) {
             val stock = shop.count(type.id)
             if (stock <= 0) return message(player, ShopLines.OUT_OF_STOCK)
+            if (shop.type.onePerPlayer(type.id) && inv.count(type.id) + player.bank.count(type.id) > 0) {
+                return message(player, ShopLines.ALREADY_HAVE, "item" to type.name)
+            }
             val price = shop.buyPrice(type.id, type.cost, stock)
             val coinSlot = inv.slotOf(COINS)
             if (coinSlot < 0 || inv[coinSlot]!!.count < price) return message(player, ShopLines.NOT_ENOUGH_COINS)

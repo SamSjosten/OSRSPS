@@ -14,6 +14,7 @@ import osrsps.game.combat.PrayerLines
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.ge.GrandExchangeLines
+import osrsps.game.ge.PriceCheckerLines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.CookingLines
@@ -58,9 +59,9 @@ object DialogueLines {
         BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
         GemTraderLines, AliMorrisaneLines,
         // Draynor Village.
-        DraynorSearchLines, AxeLogsLines,
+        DraynorSearchLines, AxeLogsLines, FortunatoLines, OliviaLines, DiangoLines,
         // The Grand Exchange.
-        GrandExchangeLines,
+        GrandExchangeLines, PriceCheckerLines,
     )
 }
 
