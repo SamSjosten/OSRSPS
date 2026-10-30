@@ -148,7 +148,9 @@ class Mining(private val world: World) {
         private val COPPER = RockType("copper", 1, 175, 436, 100, 350, 4)
         private val TIN = RockType("tin", 1, 175, 438, 100, 350, 4)
         private val IRON = RockType("iron", 15, 350, 440, 96, 350, 9)
+        private val SILVER = RockType("silver", 20, 400, 442, 25, 200, 100)
         private val COAL = RockType("coal", 30, 500, 453, 16, 100, 50)
+        private val GOLD = RockType("gold", 40, 650, 444, 7, 75, 100)
         private val MITHRIL = RockType("mithril", 55, 800, 447, 4, 50, 200)
         private val ADAMANTITE = RockType("adamantite", 70, 950, 449, 2, 25, 400)
 
@@ -158,7 +160,8 @@ class Mining(private val world: World) {
 
         /**
          * Rock locs by gameval (rockN becomes rocksN). Pairs fitted to the Wiki's charts, respawns from its pages in
-         * ticks: 1.2 s is 2, 2.4 s 4, 5.4 s 9, 30 s 50, 2 minutes 200, 4 minutes 400.
+         * ticks: 1.2 s is 2, 2.4 s 4, 5.4 s 9, 30 s 50, 1 minute 100, 2 minutes 200, 4 minutes 400. Silver and gold (Al
+         * Kharid's mine; Wiki, Silver rocks and Gold rocks, read 2026-10-30) fit their charts' two points exactly.
          */
         val ROCKS: Map<Int, Rock> = mapOf(
             11362 to Rock(CLAY, ROCKS1), // clayrock1
@@ -171,6 +174,10 @@ class Mining(private val world: World) {
             11365 to Rock(IRON, ROCKS2), // ironrock2
             11366 to Rock(COAL, ROCKS1), // coalrock1
             11367 to Rock(COAL, ROCKS2), // coalrock2
+            11368 to Rock(SILVER, ROCKS1), // silverrock1
+            11369 to Rock(SILVER, ROCKS2), // silverrock2
+            11370 to Rock(GOLD, ROCKS1), // goldrock1
+            11371 to Rock(GOLD, ROCKS2), // goldrock2
             11372 to Rock(MITHRIL, ROCKS1), // mithrilrock1
             11373 to Rock(MITHRIL, ROCKS2), // mithrilrock2
             11374 to Rock(ADAMANTITE, ROCKS1), // adamantiterock1
