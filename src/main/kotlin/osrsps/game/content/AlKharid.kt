@@ -100,6 +100,7 @@ object AlKharid {
 
 fun registerAlKharid(world: World) {
     registerAlKharidShopkeepers(world)
+    registerAlKharidTraders(world)
     with(AlKharid) {
         world.doors.registerDouble(PALACE_DOOR_LEFT, PALACE_DOOR_LEFT_OPEN, PALACE_DOOR_RIGHT, PALACE_DOOR_RIGHT_OPEN)
         world.doors.register(CURTAIN, CURTAIN_OPEN)
