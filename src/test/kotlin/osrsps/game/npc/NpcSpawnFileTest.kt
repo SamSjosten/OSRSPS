@@ -203,6 +203,18 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the toll gate has two Border Guards each side, standing still`() {
+        val types = NpcTypes.of(NpcType(4287, "borderguard1", internalName = "borderguard1"), NpcType(4288, "borderguard2", internalName = "borderguard2"))
+        val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        // borderguard1 on the Lumbridge side (west of the gate's x 3268), borderguard2 on the Al Kharid side.
+        assertEquals(setOf(Tile(3267, 3226), Tile(3267, 3229)), spawns.filter { it.type.id == 4287 }.map { Tile(it.x, it.z) }.toSet())
+        assertEquals(setOf(Tile(3268, 3226), Tile(3268, 3229)), spawns.filter { it.type.id == 4288 }.map { Tile(it.x, it.z) }.toSet())
+        assertTrue(spawns.all { it.wander == 0 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `Draynor has three bankers, its townsfolk, seven pigs, the farmer and two fishing spots`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3111 to "woman", 2854 to "rat", 5007 to "imp", 2796 to "pig_1",

@@ -92,6 +92,7 @@ import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
+import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerBones
@@ -102,6 +103,7 @@ import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
 import osrsps.game.ge.GrandExchange
+import osrsps.game.ge.GrandExchangeScreen
 import osrsps.game.loc.Doors
 import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
@@ -308,10 +310,13 @@ class World(
     private val settingsSide = SettingsSide()
     private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
 
-    /** Shops and their shared stock; see [ShopScreen]. */
     /** Grand Exchange offers; see [GrandExchange]. */
     val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
 
+    /** The Grand Exchange's offers screen; see [GrandExchangeScreen]. */
+    val grandExchangeScreen = GrandExchangeScreen(grandExchange, interfaces::openModal)
+
+    /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
@@ -470,9 +475,11 @@ class World(
         registerAdventurersCamp(this)
         registerCandleSeller(this)
         registerSwampTutors(this)
+        registerAlKharid(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
+        interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
         woodcutting.register()
         birdNests.register()
         firemaking.register()
@@ -921,6 +928,7 @@ class World(
                 equipmentTab.flush(player)
                 bankScreen.flush(player)
                 shopScreen.flush(player)
+                grandExchangeScreen.flush(player)
             }
         }
         for (npc in npcs.all) sendNpcEffects(npc)
@@ -1203,6 +1211,7 @@ class World(
         player.skills.resendAll()
         player.inventory.resendAll()
         player.equipment.resendAll()
+        player.geSent.resendAll()
         player.sentRunEnabled = null
         player.sentRunEnergy = -1
         player.sentWeight = Int.MIN_VALUE
@@ -1484,6 +1493,7 @@ class World(
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
         if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
+        if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
