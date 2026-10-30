@@ -89,6 +89,7 @@ import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
+import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -98,6 +99,7 @@ import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
 import osrsps.game.ge.GrandExchange
 import osrsps.game.loc.Doors
+import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.Locs
@@ -227,6 +229,9 @@ class World(
 
     val doors = Doors(locs)
 
+    /** Fence gates, both leaves at once; see [Gates]. */
+    val gates = Gates(locs)
+
     val npcs = Npcs(collision, random)
 
     /** What NPCs do on their own: timers, per-tick actions and deaths that content gives them; see [NpcScripts]. */
@@ -308,7 +313,7 @@ class World(
 
     private val follows = Follows(movement, { players[it.index] === it })
 
-    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, words = ::textFor)
+    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor)
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
@@ -443,6 +448,7 @@ class World(
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
         registerLumbridgeTown(this)
+        registerDraynorVillage(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
