@@ -139,8 +139,8 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
   signed manifest carries the table, and RSProx's target names the same build). RuneLite moves to each new revision
   within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
   revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
-- Nothing to install until the first release is published, which needs Sam's one-time key setup (`launcher/README.md`,
-  "Releases").
+- The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
+  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases").
 
 ### Files for our own launcher
 
