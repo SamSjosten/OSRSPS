@@ -334,6 +334,8 @@ class World(
         grandExchange, objTypes, interfaces::openModal, interfaces::closeModals, scripts,
         examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
         words = ::textFor,
+        toBank = { player, id, count -> bankItems(player, id, count) },
+        drop = { player, type, count -> dropUnder(player, type, count) },
     )
 
     /** Puts [count] of [id] into [player]'s bank as a deposit would, a note as its item; returns how many went in. */
@@ -1183,7 +1185,10 @@ class World(
     private val unwritten = HashMap<String, String>()
 
     /** [player]'s state as a save has it, the items in the guide prices screen counted as in the inventory. */
-    fun snapshot(player: Player): PlayerSave = PlayerSave.of(player, priceChecker.savedInventory(player))
+    fun snapshot(player: Player): PlayerSave {
+        val (inventory, bank) = priceChecker.saved(player)
+        return PlayerSave.of(player, inventory, bank)
+    }
 
     /** Writes [player]'s save. Returns false, after logging why, if it couldn't be written; see [unwritten]. */
     internal fun save(player: Player): Boolean {
@@ -1744,6 +1749,14 @@ class World(
      * [GroundObjs.DROP_DESPAWN_TICKS]; everyone's from the start when they have left. Guessed: the Wiki gives no timers
      * for fired ammunition, so these are a drop's.
      */
+    /** Drops [count] of [type] under [player], theirs alone at first, as an item dropped from the backpack is. */
+    private fun dropUnder(player: Player, type: ObjType, count: Int) {
+        val stacks = if (type.stackable) listOf(count) else List(count) { 1 }
+        for (n in stacks) {
+            groundObjs.addPrivate(type, n, player.x, player.z, player.level, player.saveKey, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
+        }
+    }
+
     private fun dropAmmo(type: ObjType, x: Int, z: Int, level: Int, owner: Player) {
         // Lost in water: the Wiki's Duck page, for ducks off land, taken to hold on any floor that can't be walked on.
         if (collision[x, z, level] and CollisionFlag.FLOOR != 0) return

@@ -1,5 +1,6 @@
 package osrsps.game.ge
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetObject
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
@@ -9,6 +10,7 @@ import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.FrameSlot
 import osrsps.game.InvObj
 import osrsps.game.Inventory
+import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.bank.BankScreen
@@ -18,6 +20,8 @@ import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptRunner
 import osrsps.game.sendInventory
 import java.util.Locale
+
+private val logger = KotlinLogging.logger {}
 
 /** The price checker's prompt and texts. Every one's words guessed unless it says otherwise. */
 object PriceCheckerLines : Lines("pricechecker", "Grand Exchange guide prices") {
@@ -31,7 +35,7 @@ object PriceCheckerLines : Lines("pricechecker", "Grand Exchange guide prices") 
  * The Grand Exchange guide prices screen, ge_pricechecker (464) with ge_pricechecker_side (238) beside it, opened from
  * the equipment tab's Guide prices button (wornitems:pricechecker). As on live, the items checked leave the inventory
  * for inv tradeoffer while the screen is open and come back when it closes; a save taken meanwhile counts them as in
- * the inventory ([savedInventory]).
+ * the inventory ([saved]).
  *
  * The client draws each item's price from script ge_pricechecker_prices, one long a slot (rev 241 client scripts,
  * osrs-dumps); the total and a searched item's price are the server's texts. Search for item uses the chatbox's item
@@ -45,6 +49,10 @@ class PriceChecker(
     private val scripts: ScriptRunner? = null,
     private val examine: (Player, Int, Int) -> Unit = { _, _, _ -> },
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
+    /** Puts a count of an item into the bank; returns how many went in. */
+    private val toBank: (Player, Int, Int) -> Int = { _, _, _ -> 0 },
+    /** Drops a count of an item under the player. */
+    private val drop: (Player, ObjType, Int) -> Unit = { _, _, _ -> },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL] == MAIN
@@ -170,22 +178,45 @@ class PriceChecker(
         send(player, IfSetText(MAIN, OUTPUT, words(player)[PriceCheckerLines.TOTAL, "total" to number(total)]))
     }
 
-    /** Puts the items checked back into [into], emptying the checker. */
+    /**
+     * Puts the items checked back into [into], emptying the checker. If the backpack filled up meanwhile (an item
+     * given, or one taken off), what doesn't fit goes to the bank, and past that to the floor under the player.
+     * GUESSED: live may keep the backpack's room for them; nothing checked is ever lost here.
+     */
     private fun giveBack(player: Player, into: Inventory) {
         for ((slot, obj) in player.priceChecker.contents()) {
             val type = objTypes[obj.id] ?: continue
-            into.add(type, obj.count)
             player.priceChecker[slot] = null
+            var left = obj.count - into.add(type, obj.count)
+            if (left > 0) left -= toBank(player, obj.id, left)
+            if (left > 0) drop(player, type, left)
         }
     }
 
-    /** What a save takes as [player]'s inventory: theirs, with the items being checked back in it. */
-    fun savedInventory(player: Player): Map<Int, InvObj> {
-        if (player.priceChecker.contents().isEmpty()) return player.inventory.contents().toMap()
+    /**
+     * What a save takes as [player]'s inventory and bank: theirs, with the items being checked back in the inventory,
+     * and what doesn't fit there in the bank, unnoted, as closing the screen would put them.
+     */
+    fun saved(player: Player): Pair<Map<Int, InvObj>, Map<Int, InvObj>> {
+        val bank = player.bank.contents().toMap()
+        if (player.priceChecker.contents().isEmpty()) return player.inventory.contents().toMap() to bank
         val copy = Inventory(Inventory.INV, Inventory.INV_CAPACITY)
         for ((slot, obj) in player.inventory.contents()) copy[slot] = obj
-        for ((_, obj) in player.priceChecker.contents()) objTypes[obj.id]?.let { copy.add(it, obj.count) }
-        return copy.contents().toMap()
+        val bankCopy = Inventory(player.bank.type, player.bank.capacity)
+        for ((slot, obj) in bank) bankCopy[slot] = obj
+        for ((_, obj) in player.priceChecker.contents()) {
+            val type = objTypes[obj.id] ?: continue
+            val left = obj.count - copy.add(type, obj.count)
+            if (left <= 0) continue
+            val banked = if (type.isCert) objTypes[type.certlink] ?: type else type
+            val stack = bankCopy.contents().firstOrNull { it.second.id == banked.id }
+            when {
+                stack != null -> bankCopy[stack.first] = InvObj(banked.id, (stack.second.count.toLong() + left).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                else -> (0 until bankCopy.capacity).firstOrNull { bankCopy[it] == null }?.let { bankCopy[it] = InvObj(banked.id, left) }
+                    ?: logger.warn { "${player.username}: $left x ${obj.id} from the price checker fit neither backpack nor bank in a save" }
+            }
+        }
+        return copy.contents().toMap() to bankCopy.contents().toMap()
     }
 
     private fun message(player: Player, line: Line) = send(player, MessageGame(CHATTYPE_GAMEMESSAGE, words(player)[line]))

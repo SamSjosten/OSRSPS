@@ -71,11 +71,17 @@ class HeadlessGrandExchangeHistoryTest {
                     lines.map { it.args },
                 )
 
+                // A trade finishing while the screen is open goes first in the history, but the rows drawn keep their meaning.
+                client.command("item $LOGS 1")
+                client.commandReply("geoffer sell logs 1 1000") { it.startsWith("Placed") }
+                client.command("gefill 2")
+                client.await("the new trade") { if (server.world.playerNamed("alice")!!.ge.history.size == 3) Unit else null }
+
                 // Buy-offer on the feathers' row (sub 6, the second row's first child): a buy set up in the first free slot.
                 client.ifButton(GrandExchangeScreen.HISTORY, GrandExchangeScreen.HISTORY_LIST, 1, GrandExchangeScreen.HISTORY_ROW_SUBS)
                 client.await("the offers screen again") { if (GrandExchangeScreen.MAIN in client.openInterfaces()) Unit else null }
-                client.await("feathers set up in slot 2") {
-                    if (client.varp(GrandExchangeScreen.VARP_SEARCH) == FEATHER && client.varp(VARP) and 0xF == 3) Unit else null
+                client.await("feathers set up in slot 3") {
+                    if (client.varp(GrandExchangeScreen.VARP_SEARCH) == FEATHER && client.varp(VARP) and 0xF == 4) Unit else null
                 }
                 assertEquals(3L, client.longVarp(GrandExchangeScreen.VARP_PRICE))
                 client.command("gemarket on")
@@ -132,6 +138,36 @@ class HeadlessGrandExchangeHistoryTest {
                 // Closing gives everything back.
                 client.closeModal()
                 client.await("the items back") { if (client.held(FEATHER) == 100 && client.held(LOGS) == 3) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `items checked are never lost when the backpack fills or another screen opens`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $LOGS 3")
+                client.await("the logs") { if (client.held(LOGS) == 3) Unit else null }
+                client.ifButton(EquipmentTab.WORNITEMS, PriceChecker.WORNITEMS_BUTTON, 1)
+                client.await("the guide prices screen") { if (PriceChecker.MAIN in client.openInterfaces()) Unit else null }
+                client.ifButton(PriceChecker.SIDE, PriceChecker.SIDE_ITEMS, 4, 0, obj = LOGS)
+                client.await("the logs in") { if (client.held(LOGS) == 0) Unit else null }
+
+                // The backpack fills up behind the screen.
+                client.command("item $QUEST_ITEM 28")
+                client.await("a full backpack") { if (client.held(QUEST_ITEM) == 28) Unit else null }
+                val alice = server.world.playerNamed("alice")!!
+                // A save meanwhile puts what doesn't fit in the bank.
+                val save = server.world.snapshot(alice)
+                assertEquals(28, save.inventory.size)
+                assertEquals(3L, save.bank.values.filter { it.id == LOGS }.sumOf { it.count.toLong() })
+
+                // Another screen replacing it gives the logs back, to the bank as the backpack is full.
+                client.command("ge")
+                client.await("the offers screen") { if (GrandExchangeScreen.MAIN in client.openInterfaces()) Unit else null }
+                client.await("the logs banked") { if (alice.bank.count(LOGS) == 3L) Unit else null }
+                assertTrue(alice.priceChecker.contents().isEmpty())
             }
         }
     }

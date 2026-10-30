@@ -116,13 +116,16 @@ class GrandExchangeScreen(
         closeModals(player)
         openModal(player, FrameSlot.MAINMODAL, HISTORY)
         send(player, RunClientScript(HISTORY_INIT_SCRIPT, emptyList()))
-        for ((index, trade) in player.ge.history.withIndex()) {
+        // The rows as drawn: a trade finishing while the screen is open doesn't shift what a click on them means.
+        val shown = player.ge.history.toList()
+        player.geSent.historyShown = shown
+        for ((index, trade) in shown.withIndex()) {
             val sold = if (trade.type == OfferType.SELL) 1 else 0
             send(player, RunClientScript(HISTORY_ADDLINE_SCRIPT, listOf(index, trade.item, sold, trade.count, trade.coins, trade.tax)))
         }
         send(player, RunClientScript(HISTORY_FINISH_SCRIPT, emptyList()))
         send(player, IfSetEventsV2(HISTORY, HISTORY_EXCHANGE, -1, -1, 0, BankScreen.opMask(1..1)))
-        val rows = maxOf(1, player.ge.history.size) * HISTORY_ROW_SUBS
+        val rows = maxOf(1, shown.size) * HISTORY_ROW_SUBS
         send(player, IfSetEventsV2(HISTORY, HISTORY_LIST, 0, rows - 1, 0, BankScreen.opMask(1..1) or BankScreen.opMask(10..10)))
     }
 
@@ -135,7 +138,7 @@ class GrandExchangeScreen(
             HISTORY_LIST -> {
                 // Each trade's row is ge_history_addline's first child of six; its ops are Buy-offer and Examine.
                 if (sub % HISTORY_ROW_SUBS != 0) return
-                val trade = player.ge.history.getOrNull(sub / HISTORY_ROW_SUBS) ?: return
+                val trade = player.geSent.historyShown.getOrNull(sub / HISTORY_ROW_SUBS) ?: return
                 when (op) {
                     1 -> buyOffer(player, trade.item)
                     10 -> examine(player, trade.item, trade.count)
@@ -712,6 +715,9 @@ class GeSent {
     val offers = arrayOfNulls<GeOffer>(GeAccount.SLOTS)
     var sentOnce = false
     var resync = false
+
+    /** The trades the history screen was last drawn with, in its row order. */
+    var historyShown: List<GeTrade> = emptyList()
 
     /** The ge_newoffer_price last sent; the client starts at 0. */
     var price = 0L

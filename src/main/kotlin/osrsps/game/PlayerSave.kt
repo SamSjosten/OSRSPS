@@ -257,7 +257,11 @@ class PlayerSave(
         private val format = Json { prettyPrint = true }
 
         /** [player]'s state, with [inventory] as what they hold: by default their inventory as it is. */
-        fun of(player: Player, inventory: Map<Int, InvObj> = player.inventory.contents().toMap()): PlayerSave {
+        fun of(
+            player: Player,
+            inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
+            bank: Map<Int, InvObj> = player.bank.contents().toMap(),
+        ): PlayerSave {
             val varps = LinkedHashMap<Int, Int>()
             player.vars.forEachNonZero { varp, value -> varps[varp] = value }
             val skills = Skill.entries.associateWith { SkillSave(player.skills.tenths(it), player.skills.currentLevel(it)) }
@@ -265,7 +269,7 @@ class PlayerSave(
             return PlayerSave(
                 player.x, player.z, player.level, player.runEnergy, varps, skills, inventory, equipment,
                 player.scenario, player.beforeScenario, player.createdAt, player.playedTicks, player.charges.contents(),
-                player.bank.contents().toMap(),
+                bank,
                 BoostSegments(StatRestore.segment(player.statTimers.combatBoost), StatRestore.segment(player.statTimers.skillBoost)),
                 player.chatFilters,
                 player.friends.toList(),
