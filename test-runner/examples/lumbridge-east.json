@@ -1,0 +1,165 @@
+{
+ "name": "Rest of Lumbridge step 8: east of the river: Barfy Bill's talk (::keys on), the examines of Bill, a giant spider and a goblin, and a goblin killed for its bones",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "a new account's levels and an empty backpack; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3244 3239 0",
+   "expectMessage": "Teleported to 3244, 3239, 0",
+   "comment": "the canoe station north of the castle bridge, by Barfy Bill's spawn tile 3244 3237"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3244,
+   "y": 3239,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Barfy Bill",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[barfy_bill.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[barfy_bill.oh_hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[barfy_bill.teach]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[barfy_bill.teach_me]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[barfy_bill.no_skill]",
+   "comment": "the scenario's Woodcutting is below 12"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[barfy_bill.level_12]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[barfy_bill.quicker]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Barfy Bill",
+   "option": "Examine",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_1326]"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Giant spider",
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "giantspider1, 3017; six of them walk between the canoe station and Lozar's house"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3017]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3259 3224 0",
+   "expectMessage": "Teleported to 3259, 3224, 0",
+   "comment": "among the goblins south of Lozar's house"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3259,
+   "y": 3224,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Goblin",
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "any of the eight goblin types, which share one examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3029]"
+  },
+  {
+   "step": "command",
+   "text": "::kill goblin",
+   "expectMessage": "Killed Goblin #",
+   "comment": "the nearest goblin, as the client's nearest Goblin below"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Goblin",
+   "id": 6182,
+   "timeoutMs": 10000,
+   "comment": "slice_surface_goblin_death"
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Bones",
+   "timeoutMs": 15000,
+   "comment": "a goblin always drops bones; the rest of its table is checked in NpcDropsTest"
+  },
+  {
+   "step": "takeItem",
+   "item": "Bones"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bones",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

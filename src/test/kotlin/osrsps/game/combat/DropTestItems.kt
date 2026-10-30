@@ -12,7 +12,7 @@ import osrsps.game.ObjTypes
 /** Stand-ins for every item the drop file names, so tests can read it without the cache. */
 object DropTestItems {
     /** Stackable in the cache: coins, runes, bolts and arrows. */
-    private val stackable = setOf(995, 554, 557, 558, 562, 877, 882)
+    private val stackable = setOf(995, 554, 555, 557, 558, 559, 562, 877, 882)
 
     fun objTypes(): ObjTypes {
         val text = NpcDrops::class.java.getResource(NpcDrops.RESOURCE)!!.readText()

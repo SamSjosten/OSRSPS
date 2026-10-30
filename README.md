@@ -571,6 +571,30 @@ following and the walking ducks running off are checked through the headless cli
 NPC info's say block), with the death cries and keeping to water in `DucksTest` and the water and arrows in
 `HeadlessRangedTest`.
 
+## East of the river
+
+East of the River Lum, between the castle bridge and the cow field, in `npc-spawns/lumbridge-east.json` on RSMod's
+tiles: the goblins of Lozar's ruined house and the land around it, the giant spiders among them, and Barfy Bill at the
+canoe station. They fight through `npc-combat.json` and drop through `npc-drops.json`; Bill's talk is
+`game/content/BarfyBill.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| 50 goblins (`goblin_unarmed_melee_1` to `_8`, ids 3029 to 3036): level 2, 5 hitpoints, crush for 1 at speed 4, back in 35 ticks, not aggressive | OSRS Wiki, Goblin (the Level 2 infobox); the DPS calculator |
+| A goblin always drops bones, and rolls drop table 1 (128 slots: bronze gear, runes, coins, a hammer, goblin mail and the rest), with the beginner and easy clues, the ensouled goblin head and the goblin champion scroll on their own rolls | OSRS Wiki, Goblin, drop table 1 |
+| 6 giant spiders (`giantspider1`, 3017): level 2, 5 hitpoints, stab for 1, back in 30 ticks, 50% weak to fire; no bones, only the beginner clue at 1/128 | OSRS Wiki, Giant spider (Level 2) |
+| Barfy Bill (1326) talks about who he is and about canoes, by the player's Woodcutting level: below 12, 12 to 26 (log), 27 to 41 (dugout), 42 to 56 (stable dugout), 57 and up (waka) | RSMod's script; the Wiki's Transcript:Barfy Bill and Canoeing |
+| The fight animations (the squatting goblin's and the updated spider's, by the stand and walk animations their types have), the wander ranges (5, Bill 2) and Bill's chathead expressions | guessed |
+
+Left out: the giant spiders are aggressive on live, which waits for NPC aggression (the Varrock piece); canoes and
+Bill's Store-axe wait for canoeing. The river's fishing spots are the gathering skills'. What Bill says, and the
+examines of Bill, the goblins (one for all eight types) and the spider, are in the dialogue file (keys `barfy_bill.*`,
+`examine.npc_1326`, `examine.npc_3029`, `examine.npc_3017`).
+
+Check: `test-runner/examples/lumbridge-east.json` talks to Bill, examines the three kinds of NPC, and kills a goblin
+for its bones; `HeadlessLumbridgeEastTest` fights a goblin to death and talks to Bill through the headless client, with
+every branch of Bill's talk in `BarfyBillTest` and the drop rates in `NpcDropsTest`.
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and

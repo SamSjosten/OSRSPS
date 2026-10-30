@@ -126,6 +126,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-ducks.json`: Examine (with `::keys on`) on a drake and a duck on the River Lum, the ducklings, the
   attackable duckling at the pond by Fred's farm and the duck and drake that walk on Groats' farm; Attack on a drake
   on the water says it can't be reached, and `::kill duck` shows the duck's death animation.
+- `lumbridge-east.json`: east of the River Lum: Barfy Bill's talk (with `::keys on`) for a player below level 12
+  Woodcutting, Examine on Bill, a giant spider and a goblin, and `::kill goblin` showing the goblin's death animation
+  and leaving its bones, which are then taken.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

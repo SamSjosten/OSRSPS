@@ -71,6 +71,7 @@ import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
+import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
@@ -412,6 +413,7 @@ class World(
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
+        registerBarfyBill(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)

@@ -74,6 +74,23 @@
       "respawnTicks": 45,
       "weakness": { "element": "fire", "percent": 20 },
       "source": "OSRS Wiki, Ram (id 1262; 1263 and 1264 are taken to match it, as the cache gives all three the same levels), read 2026-10-29; rams walk with the sheep_update animations, so the sheep_ fight animations are guessed"
+    },
+    {
+      "npcs": ["goblin_unarmed_melee_1", "goblin_unarmed_melee_2", "goblin_unarmed_melee_3", "goblin_unarmed_melee_4", "goblin_unarmed_melee_5", "goblin_unarmed_melee_6", "goblin_unarmed_melee_7", "goblin_unarmed_melee_8"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": -21, "strengthBonus": -15,
+      "defence": { "stab": -15, "slash": -15, "crush": -15, "magic": -15, "light": -15, "standard": -15, "heavy": -15 },
+      "anims": { "attack": "slice_surface_goblin_squat_unarmed_attack", "defend": "slice_surface_goblin_defend", "death": "slice_surface_goblin_death" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Goblin (the Level 2 infobox, ids 3028 to 3044 among them) and the DPS calculator's 3028, read 2026-10-30; ids 3029 to 3036 stand and walk with slice_surface_goblin_squat_ready and _walk, so the slice_surface_goblin unarmed attack, defend and death animations are taken"
+    },
+    {
+      "npcs": ["giantspider1"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": -10, "strengthBonus": -10,
+      "defence": { "stab": -10, "slash": -10, "crush": -10, "magic": -10, "light": -10, "standard": -10, "heavy": -10 },
+      "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "fire", "percent": 50 },
+      "source": "OSRS Wiki, Giant spider (Level 2, id 3017) and the DPS calculator, read 2026-10-30; it stands and walks with spider_update_ready and _walk, so the spider_update fight animations are taken. It is aggressive on live, which waits for NPC aggression (the Varrock piece)"
     }
   ]
 }
