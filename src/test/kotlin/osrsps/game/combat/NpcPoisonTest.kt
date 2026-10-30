@@ -86,6 +86,21 @@ class NpcPoisonTest {
     }
 
     @Test
+    fun `poisoned again the tick after its poison ran out, an NPC still waits a full 30 ticks`() {
+        val npc = npc(man)
+        poison.poison(npc, 1)
+        run(npc, 1 + Poison.TICKS)
+        assertEquals(listOf(1 to Poison.POISON_HITSPLAT), hits)
+        assertEquals(0, npc.poison)
+        // The next tick a weapon hit lands before the poison is processed.
+        assertTrue(poison.poison(npc, 6))
+        run(npc, 1 + Poison.TICKS - 1)
+        assertEquals(1, hits.size, "no hit before 30 ticks")
+        run(npc, 1)
+        assertEquals(listOf(1, 2), hits.map { it.first })
+    }
+
+    @Test
     fun `a poison as strong starts it again, a weaker one does nothing`() {
         val npc = npc(man)
         poison.poison(npc, 20)

@@ -129,6 +129,8 @@ class Poison(
         require(severity in 1 until VENOM) { "A poison severity is 1 to ${VENOM - 1}, not $severity" }
         val def = npcCombat(npc) ?: return false
         if (def.poisonImmune || npc.dead || npc.poison > severity) return false
+        // A timer left from a poison that ran out this tick or the last would cut the new one's first wait short.
+        if (npc.poison == 0) npc.poisonTicks = -1
         npc.poison = severity
         return true
     }
@@ -140,6 +142,7 @@ class Poison(
     fun envenom(npc: Npc): Boolean {
         val def = npcCombat(npc) ?: return false
         if (def.venomImmune || npc.dead || npc.poison >= VENOM) return false
+        if (npc.poison == 0) npc.poisonTicks = -1
         npc.poison = VENOM
         return true
     }
