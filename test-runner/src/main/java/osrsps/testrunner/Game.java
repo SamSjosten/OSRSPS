@@ -232,6 +232,9 @@ interface Game
 	 */
 	java.util.Map<String, Integer> friends();
 
+	/** The client's ignore list's names (no tags); null when logged out or the list hasn't arrived. */
+	java.util.List<String> ignores();
+
 	/** Puts {@code text} in the open prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
 	String enterText(String text);
 }

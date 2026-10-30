@@ -139,6 +139,8 @@ import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
 import osrsps.game.social.FriendLists
+import osrsps.game.social.IgnoreLists
+import osrsps.game.social.PrivateMessages
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
@@ -323,7 +325,19 @@ class World(
         grandExchange, interfaces::openModal, scripts,
         examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
         words = ::textFor,
+        toBank = ::bankItems,
     )
+
+    /** Puts [count] of [id] into [player]'s bank as a deposit would, a note as its item; returns how many went in. */
+    private fun bankItems(player: Player, id: Int, count: Int): Int {
+        val from = Inventory(-1, 1)
+        from[0] = InvObj(id, count)
+        return when (val deposit = bank.deposit(player.bank, bankScreen.tabs(player), from, 0, count)) {
+            is Bank.Deposit.Done -> deposit.count
+            is Bank.Deposit.Partly -> deposit.count
+            else -> 0
+        }
+    }
 
     /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
@@ -405,6 +419,15 @@ class World(
 
     /** The friends lists; see [FriendLists]. */
     val friendLists = FriendLists({ onlinePlayers }, ::accountName) { player, line -> player.message(textFor(player)[line]) }
+
+    /** The ignore lists; see [IgnoreLists]. */
+    val ignoreLists = IgnoreLists(::accountName) { player, line -> player.message(textFor(player)[line]) }
+
+    /** Private messages; see [PrivateMessages]. */
+    val privateMessages = PrivateMessages(
+        friendLists, ignoreLists, { onlinePlayers }, { player, line -> player.message(textFor(player)[line]) }, ::sendChatFilters,
+        PrivateMessages.counterStart(java.time.Instant.now()),
+    )
 
     /** Bird nests that fall from trees. */
     val birdNests = BirdNests(this, collision)
@@ -1276,6 +1299,7 @@ class World(
         player.sentCombatLevel = -1
         sendRunState(player)
         sendWeight(player)
+        ignoreLists.sendAll(player)
         friendLists.sendAll(player)
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
@@ -1303,6 +1327,7 @@ class World(
         allowChat(player)
         // Guessed: live sends the saved filters at login; a new account's are all on.
         sendChatFilters(player)
+        ignoreLists.sendAll(player)
         friendLists.login(player)
         quests.completeAll(player.vars)
         prayers.login(player)
@@ -1587,6 +1612,15 @@ class World(
                 return@act
             }
         }
+        // The Friends tab and the ignore tab swap places in the side panel (RSMod opens them the same way).
+        if (interfaceId == IgnoreLists.FRIENDS_TAB && componentId == IgnoreLists.FRIENDS_TAB_IGNORE_BUTTON) {
+            interfaces.openSide(player, FrameSlot.SIDE9, IgnoreLists.IGNORE_TAB)
+            return@act
+        }
+        if (interfaceId == IgnoreLists.IGNORE_TAB && componentId == IgnoreLists.IGNORE_TAB_FRIENDS_BUTTON) {
+            interfaces.openSide(player, FrameSlot.SIDE9, IgnoreLists.FRIENDS_TAB)
+            return@act
+        }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
             if (inCombat(player)) {
                 player.message(textFor(player)[GameLines.CANT_LOG_OUT])
@@ -1757,6 +1791,15 @@ class World(
 
     /** The player deleted [name] from their friends list, which their client has already done. Kept while dead. */
     fun onFriendDelete(player: Player, name: String) = actWhileDead(player) { friendLists.delete(player, name) }
+
+    /** The player sent [name] a private message. Guessed: kept while dead, as the side panel's lists are. */
+    fun onPrivateMessage(player: Player, name: String, text: String) = actWhileDead(player) { privateMessages.send(player, name, text) }
+
+    /** The player added [name] to their ignore list. Kept while dead, as friends are. */
+    fun onIgnoreAdd(player: Player, name: String) = actWhileDead(player) { ignoreLists.add(player, name) }
+
+    /** The player deleted [name] from their ignore list, which their client has already done. Kept while dead, as friends are. */
+    fun onIgnoreDelete(player: Player, name: String) = actWhileDead(player) { ignoreLists.delete(player, name) }
 
     /**
      * The display name of the account [name] is: the player's if they are here, else the one in their save. Null when
