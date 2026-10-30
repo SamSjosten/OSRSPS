@@ -12,7 +12,7 @@
   {"step": "clickWidget", "interfaceId": 336, "component": 0, "slot": 0, "op": 3, "comment": "Offer-10 on the coins"},
   {"step": "assertInventory", "itemId": 995, "count": 90},
   {"step": "assertWidgetText", "interfaceId": 335, "component": 9, "contains": "[trade.free_slots name=test2 count=28]", "timeoutMs": 60000, "comment": "test2 offered its only item, its axe: all 28 slots free"},
-  {"step": "waitTicks", "ticks": 3},
+  {"step": "waitTicks", "ticks": 6, "comment": "the Accept trade delay: 3 seconds (5 ticks) after the last change"},
   {"step": "clickWidget", "interfaceId": 335, "component": 10, "comment": "Accept"},
   {"step": "assertInterface", "interfaceId": 334, "timeoutMs": 60000, "comment": "both accepted: the second screen"},
   {"step": "assertWidgetText", "interfaceId": 334, "component": 23, "contains": "[trade.give value=10]"},
