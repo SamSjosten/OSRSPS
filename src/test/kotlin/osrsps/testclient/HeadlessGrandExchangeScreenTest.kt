@@ -62,7 +62,8 @@ class HeadlessGrandExchangeScreenTest {
                 }
                 // No slot holds an item sold to the item sink: the client starts those obj varps at 0, an item.
                 client.await("the item-sink varps cleared") {
-                    if (GrandExchangeScreen.ITEM_SINK_OBJ_VARPS.all { client.varp(it) == -1 }) Unit else null
+                    val varps = GrandExchangeScreen.ITEM_SINK_OBJ_VARPS + GrandExchangeScreen.VARP_LAST_SEARCHED
+                    if (varps.all { client.varp(it) == -1 }) Unit else null
                 }
 
                 // View offer, then Back.
