@@ -135,6 +135,7 @@ class HeadlessClient private constructor(
 
     private val packets = ArrayList<ServerPacket>()
     private val messages = ArrayList<GameMessage>()
+    private val animTicks = ArrayList<Int>()
     private val npcSaid = ArrayList<NpcSaid>()
     private val moves = ArrayList<TickMove>()
     private var ticks = 0
@@ -158,6 +159,12 @@ class HeadlessClient private constructor(
     fun stockMarketSlot(slot: Int): StockMarketSlot? = lock.withLock { stockMarket[slot] }
 
     fun messages(): List<GameMessage> = lock.withLock { messages.toList() }
+
+    /**
+     * The ticks (as [GameMessage.tick] counts them) whose PLAYER_INFO started an animation on the local player. Only
+     * seen with no other player in view; see [PlayerInfoReader.localAnimated].
+     */
+    fun animationTicks(): List<Int> = lock.withLock { animTicks.toList() }
 
     /** The friends list: each friend's world by name, 0 for offline. */
     fun friends(): Map<String, Int> = lock.withLock { LinkedHashMap(friendList) }
@@ -648,6 +655,7 @@ class HeadlessClient private constructor(
                 for (move in playerInfo.read(packet.payload)) {
                     if (move.index == index) moves += TickMove(ticks, move)
                 }
+                if (playerInfo.localAnimated) animTicks += ticks
             }
             GameServerProt.MESSAGE_GAME -> {
                 val type = buf.gSmart1or2()

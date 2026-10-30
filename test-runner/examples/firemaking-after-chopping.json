@@ -1,0 +1,23 @@
+{
+ "name": "Lighting oak logs straight after chopping them strikes the tinderbox and says so at once, though the woodcutting skill clock is still running (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel woodcutting 99", "expectMessage": "Woodcutting set to level 99"},
+  {"step": "command", "text": "::setlevel firemaking 99", "expectMessage": "Firemaking set to level 99"},
+  {"step": "command", "text": "::item dragon_axe", "expectMessage": "Added 1 x Dragon axe"},
+  {"step": "command", "text": "::item tinderbox", "expectMessage": "Added 1 x Tinderbox"},
+  {"step": "command", "text": "::tele 3217 3206 0"},
+  {"step": "assertLocation", "x": 3217, "y": 3206, "plane": 0},
+  {"step": "locOption", "locId": 10820, "option": "Chop down", "x": 3218, "y": 3205, "comment": "the oak south of the castle: it gives logs for 45 ticks, so the chopping (and its skill clock) goes on after the first"},
+  {"step": "assertInventory", "item": "Oak logs", "count": 1, "timeoutMs": 20000, "comment": "a sure roll every 4 ticks at 99"},
+  {"step": "useItemOnItem", "item": "Tinderbox", "onItem": "Oak logs", "comment": "straight away, while the woodcutting clock still runs"},
+  {"step": "assertMessage", "contains": "firemaking.attempt", "comment": "before the fix the shared clock skipped it"},
+  {"step": "assertAnimation", "id": 733, "comment": "human_createfire on the first try"},
+  {"step": "assertMessage", "contains": "firemaking.catches", "timeoutMs": 20000, "comment": "sure at 99: lit on the first roll"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
