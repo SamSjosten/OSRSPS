@@ -1344,11 +1344,38 @@ final class ClientGame implements Game
 		return null;
 	}
 
+	/** friends:list_container and friends:loading, the Friends tab's list and the line shown over it while empty. */
+	private static final int FRIENDS_TAB = 429;
+	private static final int FRIENDS_LIST_CONTAINER = 5;
+	private static final int FRIENDS_LOADING = 13;
+
+	/**
+	 * Whether the client is still waiting for the friends list. The container exists before the list arrives, so it
+	 * can't tell; the Friends tab can: friend_update hides the list and puts its loading line in friends:loading
+	 * while friend_count is below 0, and a different line once an empty list has arrived. The tab must have been
+	 * built (it is at login); until then this says loading.
+	 */
+	private boolean friendsLoading()
+	{
+		Widget list = client.getWidget(FRIENDS_TAB << 16 | FRIENDS_LIST_CONTAINER);
+		Widget line = client.getWidget(FRIENDS_TAB << 16 | FRIENDS_LOADING);
+		if (list == null || line == null)
+		{
+			return true;
+		}
+		if (!list.isHidden())
+		{
+			return false;
+		}
+		String text = line.getText();
+		return text == null || text.isEmpty() || text.startsWith("Loading");
+	}
+
 	@Override
 	public java.util.Map<String, Integer> friends()
 	{
 		net.runelite.api.NameableContainer<net.runelite.api.Friend> container = client.getFriendContainer();
-		if (!loggedIn() || container == null)
+		if (!loggedIn() || container == null || friendsLoading())
 		{
 			return null;
 		}
