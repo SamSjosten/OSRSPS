@@ -134,6 +134,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   opened together and shut again.
 - `al-kharid-bank.json`: Al Kharid step 2: Bank on a booth (logs deposited), a banker's Bank across the booth (logs
   withdrawn), and a banker's talk (with `::keys on`) that opens the bank.
+- `al-kharid-shops.json`: Al Kharid step 3: Trade with each of Al Kharid's seven shops (the General Store, Zeke,
+  Dommik, Louie Legs, Ranael, the Gem trader and Ali Morrisane), buying one of the first item and selling it back,
+  then Louie Legs's talk (with `::keys on`) into his shop.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

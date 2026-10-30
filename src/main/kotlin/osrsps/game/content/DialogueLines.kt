@@ -39,7 +39,8 @@ object DialogueLines {
         HopperLines, DuckLines, SheepLines, CropLines, DairyCowLines, MillLines, BonesLines, SearchLines, ClimbLines,
         BankLines, ShopLines, BarfyBillLines,
         // Al Kharid.
-        BorderGuardLines,
+        BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
+        GemTraderLines,
     )
 }
 
