@@ -23,13 +23,18 @@ class HeadlessFletchingTest {
     private val data = FletchingData.load()
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
-        val ids = data.knifeOnLogs.flatMap { (log, recipes) -> listOf(log) + recipes.map { it.product } } + data.knife
+        val recipes = data.knifeOnLogs.values.flatten() + data.stringing.values + listOfNotNull(data.headless) + data.arrows.values + data.darts.values
+        val ids = recipes.flatMap { r -> r.inputs.map { it.obj } + r.product } + data.knife
         val objs = arrayOfNulls<ObjType>(ids.max() + 1)
-        for (id in ids) objs[id] = ObjType(id, "Item $id", tradeable = true)
+        val stacks = (data.arrows.values + data.darts.values + listOfNotNull(data.headless)).flatMap { r -> r.inputs.map { it.obj } + r.product }.toSet()
+        for (id in ids) objs[id] = ObjType(id, "Item $id", stackable = id in stacks, tradeable = true)
         objs[SHAFTS] = ObjType(SHAFTS, "Arrow shaft", stackable = true, tradeable = true)
         objs[JAVELIN_SHAFTS] = ObjType(JAVELIN_SHAFTS, "Javelin shaft", stackable = true, tradeable = true)
         objs[SHORTBOW_U] = ObjType(SHORTBOW_U, "Shortbow (u)", tradeable = true)
         objs[LONGBOW_U] = ObjType(LONGBOW_U, "Longbow (u)", tradeable = true)
+        objs[SHORTBOW] = ObjType(SHORTBOW, "Shortbow", tradeable = true)
+        objs[BRONZE_ARROW] = ObjType(BRONZE_ARROW, "Bronze arrow", stackable = true, tradeable = true)
+        objs[BRONZE_DART] = ObjType(BRONZE_DART, "Bronze dart", stackable = true, tradeable = true)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(3),
             cycleMillis = millis,
@@ -187,7 +192,101 @@ class HeadlessFletchingTest {
         }
     }
 
+    private fun HeadlessClient.xpOver99() = (stat(FLETCHING)?.xp ?: 0) - 13_034_431
+
+    @Test
+    fun `a bow string on two shortbows (u) strings both, 2 ticks apart, 5 XP each`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.ready("erin")
+                client.give(SHORTBOW_U, 2)
+                client.give(BOW_STRING, 2)
+                client.use(BOW_STRING, SHORTBOW_U)
+                val setup = client.box()
+                assertTrue(SHORTBOW in setup.args && 2 in setup.args, "the shortbow, up to 2: ${setup.args}")
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 2)
+                val strung = client.await("two strung") { client.made().takeIf { it.size >= 2 } }
+                assertEquals("[fletching.string item=shortbow]", strung[0].text)
+                assertEquals(2, strung[1].tick - strung[0].tick)
+                client.await("two shortbows") { if (client.count(SHORTBOW) == 2) Unit else null }
+                assertEquals(0, client.count(BOW_STRING))
+                assertEquals(10, client.await("10 XP") { client.xpOver99().takeIf { it >= 10 } })
+            }
+        }
+    }
+
+    @Test
+    fun `feathers on 20 shafts make headless arrows 15 then 5, in sets, 1 XP each`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fred").use { client ->
+                client.ready("fred")
+                client.give(SHAFTS, 20)
+                client.give(FEATHER, 20)
+                client.use(FEATHER, SHAFTS)
+                val setup = client.box()
+                assertTrue(HEADLESS in setup.args && 2 in setup.args, "headless arrows, up to 2 sets: ${setup.args}")
+                assertTrue(setup.args.any { it == "[fletching.sets_title]" }, "the sets title: ${setup.args}")
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 2)
+                val sets = client.await("two sets") { client.made().takeIf { it.size >= 2 } }
+                assertEquals(listOf("[fletching.headless amount=15]", "[fletching.headless amount=5]"), sets.map { it.text })
+                assertEquals(2, sets[1].tick - sets[0].tick)
+                client.await("20 headless") { if (client.count(HEADLESS) == 20) Unit else null }
+                assertEquals(0, client.count(SHAFTS))
+                assertEquals(0, client.count(FEATHER))
+                assertEquals(20, client.await("20 XP") { client.xpOver99().takeIf { it >= 20 } })
+            }
+        }
+    }
+
+    @Test
+    fun `bronze arrowtips on 15 headless arrows make 15 bronze arrows for 19,5 XP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                client.ready("gina")
+                client.give(HEADLESS, 15)
+                client.give(BRONZE_TIPS, 15)
+                client.use(BRONZE_TIPS, HEADLESS)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.seen("[fletching.arrows amount=15 item=bronze arrow]")
+                client.await("15 arrows") { if (client.count(BRONZE_ARROW) == 15) Unit else null }
+                // The client sees whole XP: 19.5 shows as 19.
+                assertEquals(19, client.await("19 XP") { client.xpOver99().takeIf { it >= 19 } })
+            }
+        }
+    }
+
+    @Test
+    fun `a feather on dart tips makes 10 darts a click with no box, and bronze darts need 10`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hank").use { client ->
+                client.ready("hank", level = 1)
+                client.give(BRONZE_DART_TIPS, 25)
+                client.give(FEATHER, 25)
+                client.use(FEATHER, BRONZE_DART_TIPS)
+                client.seen("[fletching.level level=10 item=bronze dart]")
+                client.command("setlevel fletching 99")
+                client.await("level 99") { client.stat(FLETCHING)?.takeIf { it.level == 99 } }
+                for (expected in listOf(10, 20, 25)) {
+                    client.use(FEATHER, BRONZE_DART_TIPS)
+                    client.await("$expected darts") { if (client.count(BRONZE_DART) == expected) Unit else null }
+                }
+                assertTrue(client.clientScripts().none { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }, "no Make-X box for darts")
+                assertEquals(listOf(10, 10, 5).map { "[fletching.darts amount=$it item=bronze dart]" }, client.made().map { it.text })
+                assertEquals(45, client.await("45 XP") { client.xpOver99().takeIf { it >= 45 } })
+            }
+        }
+    }
+
     private companion object {
+        const val SHORTBOW = 841
+        const val BOW_STRING = 1777
+        const val FEATHER = 314
+        const val HEADLESS = 53
+        const val BRONZE_TIPS = 39
+        const val BRONZE_ARROW = 882
+        const val BRONZE_DART_TIPS = 819
+        const val BRONZE_DART = 806
         const val LOGS = 1511
         const val SHAFTS = 52
         const val JAVELIN_SHAFTS = 19584
