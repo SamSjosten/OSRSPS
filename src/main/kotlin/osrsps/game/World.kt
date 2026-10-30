@@ -75,6 +75,7 @@ import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrains
+import osrsps.game.combat.LootNotifications
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
@@ -1988,6 +1989,9 @@ class World(
         return npc
     }
 
+    /** The loot drop notification settings; see [LootNotifications]. */
+    private val lootNotifications = LootNotifications({ itemPrices.price(it) }, ::textFor)
+
     /**
      * Rolls [npc]'s drops and puts them on its tile: the killer's alone for [GroundObjs.DROP_PRIVATE_TICKS], then
      * everyone's, gone after [GroundObjs.LOOT_DESPAWN_TICKS] (OSRS Wiki, Drop). With no killer, or one who has left,
@@ -1999,6 +2003,7 @@ class World(
         for (drop in def.roll(random)) {
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
+                killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }
             } else {
                 groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, GroundObjs.LOOT_DESPAWN_TICKS)
             }

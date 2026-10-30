@@ -1,0 +1,21 @@
+{
+ "name": "Client settings: Loot drop notifications with a 1 coin minimum announce a man's bones in chat (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare."},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::varbit 5400 1", "expectMessage": "Varbit 5400", "comment": "option_lootnotification_value: 1 coin"},
+  {"step": "command", "text": "::varbit 5399 1", "expectMessage": "Varbit 5399", "comment": "option_lootnotification_on"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertHitsplat", "npc": "Man", "timeoutMs": 20000, "comment": "fighting him, so the bones are this player's"},
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #"},
+  {"step": "assertMessage", "contains": "loot.valuable item=Bones", "timeoutMs": 15000, "comment": "the man always drops bones; their GE price is over 1"},
+
+  {"step": "command", "text": "::varbit 5399 0", "expectMessage": "Varbit 5399"},
+  {"step": "command", "text": "::varbit 5400 0", "expectMessage": "Varbit 5400"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
