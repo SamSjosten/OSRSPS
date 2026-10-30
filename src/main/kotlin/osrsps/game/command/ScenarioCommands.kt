@@ -60,7 +60,9 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     }
     if (!world.hasMap(scenario.x, scenario.z)) fail("Scenario ${scenario.name} can't start: no map at ${scenario.x}, ${scenario.z}")
 
-    if (player.beforeScenario == null) player.beforeScenario = PlayerSave.of(player)
+    if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
+    // The snapshot holds the items in the guide prices screen; the scenario's inventory replaces them.
+    player.priceChecker.clear()
     world.scripts.clearAll(player)
     world.meleeCombat.endFights(player)
     // A divine potion drunk before would hold the scenario's boosts and then drop them; ::reset puts its varbits back.
