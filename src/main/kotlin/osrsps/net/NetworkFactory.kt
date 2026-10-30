@@ -38,6 +38,8 @@ import net.rsprot.protocol.game.incoming.npcs.OpNpc6
 import net.rsprot.protocol.game.incoming.npcs.OpNpcT
 import net.rsprot.protocol.game.incoming.npcs.OpNpcV2
 import net.rsprot.protocol.game.incoming.players.OpPlayer
+import net.rsprot.protocol.game.incoming.social.FriendListAdd
+import net.rsprot.protocol.game.incoming.social.FriendListDel
 import net.rsprot.protocol.game.incoming.resumed.ResumePCountDialog
 import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton
 import net.rsprot.protocol.loginprot.incoming.pow.NopProofOfWorkProvider
@@ -188,6 +190,8 @@ class NetworkFactory(
         builder.addListener(ResumePauseButton::class.java, MessageConsumer { player, message ->
             world.onResumePauseButton(player, message.interfaceId, message.componentId, message.sub)
         })
+        builder.addListener(FriendListAdd::class.java, MessageConsumer { player, message -> world.onFriendAdd(player, message.name) })
+        builder.addListener(FriendListDel::class.java, MessageConsumer { player, message -> world.onFriendDelete(player, message.name) })
         builder.addListener(CloseModal::class.java, MessageConsumer { player, _ -> world.onCloseModal(player) })
         return DefaultGameMessageConsumerRepositoryProvider(builder.build())
     }
