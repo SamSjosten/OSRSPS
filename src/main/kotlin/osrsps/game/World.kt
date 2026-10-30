@@ -1648,7 +1648,10 @@ class World(
             val wasBlock = combat.bulwarkBlock(player)
             if (equipmentTab.clickCombatTab(player, componentId)) {
                 // Off the bulwark's Block, the next attack waits 8 ticks, whatever weapon makes it (OSRS Wiki, Dinh's bulwark).
-                if (wasBlock && !combat.bulwarkBlock(player)) player.nextAttackTick = maxOf(player.nextAttackTick, tick + DinhsBulwark.BLOCK_DELAY)
+                if (wasBlock && !combat.bulwarkBlock(player)) {
+                    player.attackLockedUntil = tick + DinhsBulwark.BLOCK_DELAY
+                    player.nextAttackTick = maxOf(player.nextAttackTick, player.attackLockedUntil)
+                }
                 return@act
             }
         }

@@ -492,6 +492,19 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `a retaliation doesn't shorten the wait after leaving the bulwark's Block`() {
+        val npc = spawn()
+        attack(alice, npc)
+        tick()
+        alice.interaction = null
+        // Off Block on tick 1: no attack before tick 9, though the man's hit on tick 3 would have her swing on 5.
+        alice.attackLockedUntil = 9
+        repeat(2) { tick() }
+        assertIs<MeleeInteraction>(alice.interaction)
+        assertEquals(9L, alice.nextAttackTick)
+    }
+
+    @Test
     fun `with auto retaliate off a hit player stands there`() {
         alice.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
         val npc = spawn()
