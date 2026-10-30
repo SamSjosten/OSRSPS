@@ -156,6 +156,7 @@ import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
+import osrsps.game.skill.Pickpocketing
 import osrsps.game.skill.Thieving
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
@@ -534,6 +535,7 @@ class World(
 
     val mining = Mining(this)
     val thieving = Thieving(this, collision)
+    val pickpocketing = Pickpocketing(this)
 
     val fishing = Fishing(this)
 
@@ -654,6 +656,7 @@ class World(
         firemaking.register()
         mining.register()
         thieving.register()
+        pickpocketing.register()
         fishing.register()
         cooking.register()
         smithing.register()

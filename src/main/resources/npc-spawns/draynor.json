@@ -1,5 +1,5 @@
 {
-  "about": "Draynor Village (Draynor piece step 1): the bank's three bankers, the town's man, woman, rats and imp, the G.A.G. pig pen's four pigs and three piglets, and the farmer in the wheat field. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Draynor Village page (three bankers, seven pigs, a man in the north-east house, a woman upstairs in Morgan's house). Every wander range is guessed until recorded. The market's guards and stalls, the Wise Old Man and his household, and the dark wizards come with their own steps. The shore's two Net/Bait fishing spots came with step 2, the market's traders with step 3, Ned and Aggie with step 4, the jail's guards, Leela and Morgan with step 5.",
+  "about": "Draynor Village (Draynor piece step 1): the bank's three bankers, the town's man, woman, rats and imp, the G.A.G. pig pen's four pigs and three piglets, and the farmer in the wheat field. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Draynor Village page (three bankers, seven pigs, a man in the north-east house, a woman upstairs in Morgan's house). Every wander range is guessed until recorded. The market's guards and stalls, the Wise Old Man and his household, and the dark wizards come with their own steps. The shore's two Net/Bait fishing spots came with step 2, the market's traders with step 3, Ned and Aggie with step 4, the jail's guards, Leela and Morgan with step 5, the Wise Old Man's household with step 6, the Market Guards with step 7, the Master Farmer with step 8.",
   "spawns": [
     {"npc": 1613, "x": 3090, "z": 3242, "direction": "E", "source": "Banker (banker1), Draynor bank, behind the booth at 3091,3242. mejrs NPCList_OSRS"},
     {"npc": 1618, "x": 3090, "z": 3243, "direction": "E", "source": "Banker (banker2), Draynor bank, behind the booth at 3091,3243. mejrs NPCList_OSRS"},
@@ -35,6 +35,7 @@
     {"npc": "wom_bankguard", "x": 3088, "z": 3247, "source": "Bank guard, in the Draynor bank (step 6). mejrs NPCList_OSRS; standing still guessed"},
     {"npc": "farming_market_guard", "x": 3083, "z": 3247, "wander": 4, "source": "Market Guard, the market's south side (step 7); attacks a thief it sees. mejrs NPCList_OSRS; wander range guessed"},
     {"npc": "farming_market_guard", "x": 3083, "z": 3253, "wander": 4, "source": "Market Guard, the market's north side (step 7). mejrs NPCList_OSRS; wander range guessed"},
+    {"npc": "master_farmer_1", "x": 3080, "z": 3250, "wander": 3, "source": "Master Farmer, in the market, to pickpocket (step 8). mejrs NPCList_OSRS; Wiki, Master Farmer (one in Draynor Village); wander range guessed"},
     {"npc": 3251, "x": 3119, "z": 3276, "wander": 5, "source": "Farmer (no options), the wheat field north-east of the village. mejrs NPCList_OSRS"}
   ]
 }
