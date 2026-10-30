@@ -91,6 +91,21 @@ class ObjSpawnFilesTest {
     }
 
     @Test
+    fun `Draynor's spawns are the Wiki's cheese and tomato in Aggie's house and two logs in Spria's`() {
+        val village = ObjTypes.of(
+            ObjType(1511, "Logs", internalName = "logs"),
+            ObjType(1982, "Tomato", internalName = "tomato"),
+            ObjType(1985, "Cheese", internalName = "cheese"),
+        )
+        val text = ObjSpawnFiles.resources().toMap().getValue("draynor.tsv")
+        val spawns = ObjSpawnFiles.parse(text, village, "draynor.tsv")
+        assertEquals(listOf(1985, 1982, 1511, 1511), spawns.map { it.id })
+        // Aggie's house is west of x 3089, Spria's the room west of Morgan's.
+        assertTrue(spawns.take(2).all { it.x in 3083..3088 && it.z in 3256..3263 })
+        assertTrue(spawns.drop(2).all { it.x in 3089..3095 && it.z in 3264..3268 })
+    }
+
+    @Test
     fun `finds the spawn files in a folder and in a jar`() {
         val dir = createTempDirectory("obj-spawns")
         val spawns = dir.resolve(ObjSpawnFiles.RESOURCE_DIR).createDirectories()
