@@ -94,6 +94,7 @@ function fakeGitHub(prs) {
         pr.head = pr.mergedHead;
         pr.behind = 0;
         pr.checks = [];
+        pr.held = pr.heldAfterUpdate || [];
       },
     },
     issues: {
@@ -120,6 +121,17 @@ function fakeGitHub(prs) {
     },
     actions: {
       createWorkflowDispatch: async args => { calls.push(['dispatch', args.workflow_id, args.ref]); },
+      // `held` maps a head to the ids of its runs waiting for approval; `heldAfterUpdate` is what a merge of main gets.
+      listWorkflowRunsForRepo: async ({ head_sha }) => {
+        const pr = Object.values(prs).find(p => p.head === head_sha);
+        return { data: { workflow_runs: ((pr && pr.held) || []).map(id => ({ id })) } };
+      },
+      approveWorkflowRun: async ({ run_id }) => {
+        calls.push(['approve', run_id]);
+        const pr = Object.values(prs).find(p => (p.held || []).includes(run_id));
+        if (pr.refuseApproval) throw Object.assign(new Error('not a fork'), { status: 403 });
+        pr.held = pr.held.filter(id => id !== run_id);
+      },
     },
   };
   const paginate = async (what, args) => {
@@ -310,4 +322,32 @@ test('a gate run leaves a check written after its evaluation started', async () 
   });
   await automerge.gate({ github, context: { repo, payload: { pull_request: { number: 1 } } }, core, git: fakeGit({}), now: () => Date.parse('2026-10-30T01:00:00Z') });
   assert.deepStrictEqual(calls, []);
+});
+
+test("the queue approves a merge of main's held runs instead of dispatching build", async () => {
+  const { github, calls } = fakeGitHub({
+    7: { head: H('7'), mergedHead: H('8'), heldAfterUpdate: [41, 42], behind: 2, checks: [...green, codexPass], comments: [summary(H('7'), false)] },
+  });
+  await queue(github, fakeGit({ [H('7')]: 'p', [H('8')]: 'p' }));
+  assert.deepStrictEqual(calls, [['updateBranch', 7], ['approve', 41], ['approve', 42], ['check', H('8'), 'success']]);
+});
+
+test("held runs on a head are approved before main is merged in again, and Sam is asked once if that's refused", async () => {
+  const held = fakeGitHub({
+    3: { head: H('3'), held: [5], behind: 1, checks: [codexPass], comments: [summary(H('3'), false)] },
+    4: { head: H('4'), mergedHead: H('5'), behind: 1, checks: [...green, codexPass], comments: [summary(H('4'), false)] },
+  });
+  await queue(held.github, fakeGit({}));
+  assert.deepStrictEqual(held.calls, [['approve', 5]]);
+
+  const refused = fakeGitHub({
+    3: { head: H('3'), held: [5], refuseApproval: true, behind: 1, checks: [codexPass], comments: [summary(H('3'), false)] },
+    4: { head: H('4'), mergedHead: H('5'), behind: 1, checks: [...green, codexPass], comments: [summary(H('4'), false)] },
+  });
+  const git = fakeGit({ [H('4')]: 'p', [H('5')]: 'p' });
+  await queue(refused.github, git);
+  const asked = refused.calls.filter(call => call[0] === 'comment');
+  assert.strictEqual(asked.length, 1);
+  assert.ok(asked[0][2].includes(`${automerge.APPROVE} ${H('3')} -->`));
+  assert.deepStrictEqual(refused.calls.filter(call => call[0] === 'updateBranch'), [['updateBranch', 4]]);
 });
