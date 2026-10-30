@@ -40,6 +40,12 @@ class ShopTest {
         882 to 1, 884 to 3, 886 to 12, 888 to 32, 890 to 80, 877 to 0, 841 to 50, 839 to 80, 843 to 100, 845 to 160, 849 to 200,
         847 to 320, 853 to 400, 851 to 640, 837 to 70,
         1391 to 7000, 1379 to 15, 1389 to 200, 1381 to 1500, 1383 to 1500, 1385 to 1500, 1387 to 1500,
+        // Varrock's other shops.
+        556 to 4, 554 to 4, 555 to 4, 557 to 4, 558 to 3, 559 to 3, 562 to 90, 560 to 180,
+        12734 to 430, 12730 to 430, 12728 to 430, 12732 to 430, 12736 to 330, 12738 to 9950,
+        950 to 30, 1005 to 2, 1129 to 21, 1059 to 6, 1061 to 6, 1757 to 2, 1013 to 2, 1015 to 2, 1011 to 2, 1007 to 2, 428 to 5, 426 to 5,
+        1949 to 2, 579 to 2, 1023 to 32, 958 to 50, 948 to 10, 1025 to 2,
+        10088 to 10, 10090 to 13, 10091 to 15, 10089 to 16, 10087 to 20, 1978 to 10,
     )
 
     /**
@@ -76,6 +82,14 @@ class ShopTest {
             NpcType(2882, "Horvik", internalName = "horvik_the_armourer"),
             NpcType(2883, "Lowe", internalName = "lowe"),
             NpcType(2880, "Zaff", internalName = "zaff"),
+            NpcType(2815, "Shop keeper", internalName = "generalshopkeeper2"),
+            NpcType(2816, "Shop assistant", internalName = "generalassistant2"),
+            NpcType(11434, "Aubury", internalName = "aubury_2op"),
+            NpcType(11435, "Aubury", internalName = "aubury_3op"),
+            NpcType(10477, "Thessalia", internalName = "thessalia_normal"),
+            NpcType(10478, "Thessalia", internalName = "thessalia_league"),
+            NpcType(2887, "Asyff", internalName = "tailorp"),
+            NpcType(8687, "Tea Seller", internalName = "tea_seller"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -113,6 +127,12 @@ class ShopTest {
         "horviks_armour_shop" to listOf(60, 210, 750, 1950, 160, 560, 2000, 3840, 5200, 280, 850, 750),
         "lowes_archery_emporium" to listOf(1, 3, 12, 32, 80, 1, 50, 80, 100, 160, 200, 320, 400, 640, 70),
         "zaffs_superior_staffs" to listOf(7000, 15, 200, 1500, 1500, 1500, 1500),
+        // Varrock's other shops, read 2026-10-30. The Fancy Clothes Store's items that start at 0 cost the Wiki's price at 0.
+        "varrock_general_store" to listOf(1, 1, 182, 1, 2, 650, 5, 13, 1, 1, 1, 1, 2),
+        "auburys_rune_shop" to listOf(4, 4, 4, 4, 3, 3, 90, 180, 430, 430, 430, 430, 330, 9950),
+        "thessalias_fine_clothes" to listOf(2, 21, 6, 6, 2, 2, 2, 2, 2, 30, 5, 5),
+        "fancy_clothes_store" to listOf(2, 2, 41, 65, 13, 1, 1, 7, 7, 6, 6, 2, 2, 2, 2, 2, 2, 13, 16, 19, 20, 26),
+        "ye_olde_tea_shoppe" to listOf(10),
     )
 
     @Test
@@ -150,7 +170,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(16, shops.warnings.size)
+        assertEquals(21, shops.warnings.size)
     }
 
     @Test
