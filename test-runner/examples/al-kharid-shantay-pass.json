@@ -1,5 +1,5 @@
 {
- "name": "Al Kharid step 8: the Shantay Pass (::keys on): the gate refused without a pass, a pass bought from Shantay, his shop, the gate with a pass (the desert not built yet), and the bank chest",
+ "name": "Al Kharid step 8: the Shantay Pass (::keys on): the outlaw sent to Port Sarim's prison and picking its lock, the gate refused without a pass, a pass bought from Shantay, his shop, the gate with a pass (the desert not built yet), and the bank chest",
  "account": "test",
  "steps": [
   {
@@ -15,6 +15,98 @@
    "text": "::scenario lumbridge-bare",
    "expectMessage": "Started scenario lumbridge-bare.",
    "comment": "an empty backpack; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3304 3122 0",
+   "expectMessage": "Teleported to 3304, 3122, 0",
+   "comment": "no coins anywhere yet: the outlaw's arrest ends in Port Sarim's prison"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shantay",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[shantay."
+  },
+  {
+   "step": "finishDialogue",
+   "comment": "first options: what is this place, outlaw (arrested), yes okay (no coins, none banked: transported)"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3017,
+   "y": 3182,
+   "plane": 0,
+   "comment": "the Port Sarim cell"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel thieving 99",
+   "expectMessage": "Thieving set to level 99",
+   "comment": "the fourth try in a row always works at 99"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Pick-lock",
+   "x": 3017,
+   "y": 3182,
+   "comment": "once out, a click from outside only says it's locked"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Pick-lock",
+   "x": 3017,
+   "y": 3182
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Pick-lock",
+   "x": 3017,
+   "y": 3182
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Pick-lock",
+   "x": 3017,
+   "y": 3182
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "assertLocation",
+   "x": 3017,
+   "y": 3181,
+   "plane": 0,
+   "comment": "out of the cell"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Thieving",
+   "level": 99,
+   "xp": 13034435,
+   "comment": "at least the 4 xp of the lock picked"
   },
   {
    "step": "command",

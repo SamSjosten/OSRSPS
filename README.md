@@ -864,7 +864,7 @@ Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kha
 Bank and through a banker's talk; `al-kharid-shops.json` buys and sells at every shop; `al-kharid-traders.json` buys and eats a kebab and haggles for
 silk; `al-kharid-tanning.json` tans cowhides at Ellis's; `al-kharid-palace.json` talks to Hassan and Prince Ali, tries a big
 window and buys a Keris from Osman; `al-kharid-fighters.json` examines and kills the fighters and talks to Al the Camel;
-`al-kharid-mine-fish.json` mines gold and silver, nets shrimps and searches the boxes; `al-kharid-shantay-pass.json` buys a pass, tries the gate both ways and uses the bank chest;
+`al-kharid-mine-fish.json` mines gold and silver, nets shrimps and searches the boxes; `al-kharid-shantay-pass.json` is sent to Port Sarim's prison and picks its lock, buys a pass, tries the gate both ways and uses the bank chest;
 `HeadlessAlKharidShopsTest` opens the Gem trader's shop from his
 talk, tries silk at the General Store and buys Ali's junk; `HeadlessAlKharidTradersTest` buys a kebab from Karim and eats it,
 and haggles for silk; `HeadlessShantayPassTest`, `HeadlessAlKharidTest` and `HeadlessAlKharidFightersTest` do the same through the headless client, with the talk in
