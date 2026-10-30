@@ -143,6 +143,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
   a willow chopped at level 30, a shrimp netted at the shore's Small Net spots and cooked on the permanent fire.
+- `lumbridge-church.json`: Lumbridge church: Examine (with `::keys on`) on Father Aereck, the Prayer tutor, Nigel and
+  Count Check; Pray-at the altar with drained prayer points (then again, full); Father Aereck's thanks, the Prayer
+  tutor's two answers, Nigel's Deadman questions and his Trade, and Count Check's advice, who he is, the Salve, the
+  Stronghold offer turned down and his check.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
@@ -160,6 +164,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `firemaking-lumbridge.json`: at the spawn, a tinderbox on oak logs (level 15 needed), then on logs (lit after a
   roll or more, a step west, 40 XP), Light on logs on the ground at level 43, and the first fire's ashes. Needs 0.10.0
   (`useItemOnItem`, `groundItemOption`).
+- `firemaking-picked-crop.json`: picks an onion in Fred's patch, stands on its tile and uses a tinderbox on logs; the
+  fire is refused, the logs stay in the backpack and the onion grows back (third exploit review). Needs 0.10.0.
 - `mining-lumbridge.json`: at the Lumbridge Swamp mine, Mine with no pickaxe, then a bronze pickaxe on copper (one
   ore, the empty rock, the copper back) and tin, and mithril's level 55. Needs only 0.5.0.
 - `fishing-lumbridge.json`: at the Lumbridge Swamp, Net with no net, then a net nets a shrimp (10 XP); Bait's
@@ -175,6 +181,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   0.10.0.
 - `crafting-spinning.json`: at Lumbridge Castle's first-floor spinning wheel, Spin with nothing does nothing, then at
   99 two wool spin into balls (5 XP), and at level 1 flax needs 10. Needs only 0.5.0.
+- `crafting-leather.json`: at 99, a needle on leather makes two pairs of gloves with one thread (one left), steel
+  studs stud a leather body, and at level 1 green d'hide chaps need 60. Needs 0.10.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 

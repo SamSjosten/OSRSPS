@@ -238,6 +238,25 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the church has Father Aereck and the Prayer tutor inside, Nigel in the graveyard and Count Check by it`() {
+        val names = mapOf(2812 to "father_aereck", 3223 to "aide_tutor_prayer", 6093 to "deadman_nigel", 7414 to "count_check")
+        val churchTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-church.json"), churchTypes, "lumbridge-church.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns.associateBy { it.type.id }
+        assertEquals(setOf(2812, 3223, 6093, 7414), spawns.keys)
+        assertEquals(4, result.spawns.size)
+        // The church's floor is 3239 to 3247 by 3205 to 3215.
+        for (id in listOf(2812, 3223)) {
+            val npc = spawns.getValue(id)
+            assertTrue(npc.x in 3239..3247 && npc.z in 3205..3215 && npc.restrict == MoveRestrict.INDOORS)
+        }
+        assertEquals(Tile(3243, 3201), spawns.getValue(6093).let { Tile(it.x, it.z) })
+        assertEquals(Tile(3238, 3199), spawns.getValue(7414).let { Tile(it.x, it.z) })
+        assertTrue(result.spawns.all { it.source.isNotBlank() && it.level == 0 && it.wander == if (it.type.id == 2812) 5 else 2 })
+    }
+
+    @Test
     fun `every file names only NPCs it can find in a full cache`() {
         // With no types at all every spawn is skipped by name, not dropped silently.
         for (file in NpcSpawnFile.FILES) {
