@@ -9,6 +9,7 @@ import org.junit.jupiter.api.io.TempDir
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.content.AxeLogs
 import osrsps.game.content.Bankers
 import osrsps.game.content.DraynorSearchLines
 import osrsps.game.content.DraynorVillage
@@ -44,6 +45,8 @@ class HeadlessDraynorTest {
             type(DraynorVillage.NARROW_STAIRS_TOP, "Staircase", 1, 2, "Climb-down"),
             type(DraynorVillage.GARLIC_CUPBOARD, "Cupboard", 1, 2, "Open"),
             type(DraynorVillage.GARLIC_CUPBOARD_OPEN, "Cupboard", 1, 2, "Search", "Close"),
+            type(AxeLogs.WITH_AXE, "Logs", 1, 1, "Take-axe"),
+            type(AxeLogs.WITHOUT_AXE, "Logs", 1, 1),
         ).associateBy { it.id },
     )
 
@@ -55,14 +58,17 @@ class HeadlessDraynorTest {
         ZoneLoc(DraynorVillage.NARROW_STAIRS, LocShape.CENTREPIECE_STRAIGHT, 3, 3090, 3251, 0),
         ZoneLoc(DraynorVillage.NARROW_STAIRS_TOP, LocShape.CENTREPIECE_STRAIGHT, 3, 3091, 3251, 1),
         ZoneLoc(DraynorVillage.GARLIC_CUPBOARD, LocShape.CENTREPIECE_STRAIGHT, 0, 3096, 3269, 1),
+        ZoneLoc(AxeLogs.WITH_AXE, LocShape.CENTREPIECE_STRAIGHT, 2, 3097, 3239, 0),
     )
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(DraynorVillage.GARLIC + 1)
+        objs[AxeLogs.BRONZE_AXE] = ObjType(AxeLogs.BRONZE_AXE, "Bronze axe", iops = listOf(null, null, null, null, "Drop"))
         objs[DraynorVillage.GARLIC] = ObjType(DraynorVillage.GARLIC, "Garlic", iops = listOf(null, null, null, null, "Drop"))
         val map = CollisionMap().apply {
             markLoaded(3077 shr 6, 3258 shr 6)
             markLoaded(3096 shr 6, 3269 shr 6)
+            markLoaded(3097 shr 6, 3239 shr 6)
         }
         World(crcs, map, objTypes = ObjTypes(objs), locTypes = types, staticLocs = StaticLocs().apply { locs.forEach(::add) }, cycleMillis = millis)
     }
@@ -135,6 +141,20 @@ class HeadlessDraynorTest {
                 }
                 client.locOp(DraynorVillage.GARLIC_CUPBOARD_OPEN, 3096, 3269, 2)
                 client.await("the cupboard shut") { server.world.locs.find(DraynorVillage.GARLIC_CUPBOARD, 3096, 3269, 1) }
+            }
+        }
+    }
+
+    @Test
+    fun `Take-axe on the logs by the willows gives a bronze axe and leaves plain logs until it is back`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dan").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3097, 3238, 0)
+                client.locOp(AxeLogs.WITH_AXE, 3097, 3239, AxeLogs.TAKE_AXE)
+                client.await("a bronze axe") { if (client.inventory(BACKPACK).count { it?.id == AxeLogs.BRONZE_AXE } == 1) Unit else null }
+                assertNotNull(server.world.locs.find(AxeLogs.WITHOUT_AXE, 3097, 3239, 0))
+                client.await("the axe back on the logs", timeoutMillis = 60_000) { server.world.locs.find(AxeLogs.WITH_AXE, 3097, 3239, 0) }
             }
         }
     }

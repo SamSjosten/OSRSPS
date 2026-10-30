@@ -53,6 +53,8 @@ class FishingMethod(
     val levelLine: Line?,
     /** The Wiki's pike: 1 in 5 rolls recasts, so the next roll is a tick later. */
     val recasts: Boolean = false,
+    /** Other spellings of the option on some spots: Draynor's Net/Bait spots say "Small Net". */
+    val otherNames: Set<String> = emptySet(),
 ) {
     val level: Int get() = fish.minOf { it.level }
 }
@@ -85,7 +87,7 @@ class Fishing(private val world: World) {
         for (spot in SPOTS) {
             val type = world.npcTypes[spot.npc] ?: continue
             for (method in spot.methods) {
-                val option = (1..5).firstOrNull { type.op(it) == method.name } ?: continue
+                val option = (1..5).firstOrNull { type.op(it) == method.name || type.op(it) in method.otherNames } ?: continue
                 world.handlers.onNpc(spot.npc, option) { op -> fish(op, method) }
                 world.handlers.onObjOnNpc(spot.npc, method.tool) { op ->
                     // A tool used on a spot fishes it, as clicking the option does (2004Scape).
@@ -228,6 +230,7 @@ class Fishing(private val world: World) {
 
         val SMALL_NET = FishingMethod(
             "Net", NET, FishingLines.NO_NET, null, FishingLines.CAST_NET, NET_ANIM, NET_ANIM, listOf(ANCHOVIES, SHRIMPS), null,
+            otherNames = setOf("Small Net"),
         )
         val SEA_BAIT = FishingMethod(
             "Bait", FISHING_ROD, FishingLines.NO_ROD, BAIT, FishingLines.CAST_LINE, CAST_ANIM, ROD_ANIM, listOf(HERRING, SARDINE),
@@ -246,20 +249,26 @@ class Fishing(private val world: World) {
         const val SWAMP_SPOT = 1530
         const val RIVER_SPOT = 1527
 
+        /** Net/Bait spots on Draynor Village's shore by the willows (`0_48_50_saltfish`). */
+        const val DRAYNOR_SPOT = 1525
+
         val SPOTS = listOf(
             SpotType(SWAMP_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(RIVER_SPOT, listOf(LURE, RIVER_BAIT)),
+            SpotType(DRAYNOR_SPOT, listOf(SMALL_NET, SEA_BAIT)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 
         /**
          * The tiles each group of spots moves between. The river's are 2004Scape's (`fishing_movement_lumbridge_river`),
-         * which hold RSMod's two spawn tiles; the swamp's are its five spawn tiles (guessed).
+         * which hold RSMod's two spawn tiles; the swamp's are its five spawn tiles (guessed); Draynor's are 2004Scape's
+         * (`fishing_movement_draynor_village_enum`), which hold the two tiles mejrs's live NPC list has the spots on.
          */
         val AREAS: List<List<Tile>> = listOf(
             listOf(Tile(3239, 3241), Tile(3239, 3242), Tile(3239, 3243), Tile(3239, 3244), Tile(3238, 3251), Tile(3238, 3252),
                 Tile(3238, 3254), Tile(3238, 3255)),
             listOf(Tile(3240, 3146), Tile(3240, 3147), Tile(3244, 3150), Tile(3245, 3152), Tile(3246, 3155)),
+            listOf(Tile(3086, 3227), Tile(3086, 3228), Tile(3085, 3230), Tile(3085, 3231)),
         )
     }
 }

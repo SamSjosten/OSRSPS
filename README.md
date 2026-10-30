@@ -236,6 +236,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::friends` | **everyone.** Your friends list as the server keeps it, each friend's world or offline |
 | `::clearfriends` | Empties your friends list, for tests that start from none (the Friends tab shows it after a relog) |
 | `::poison [severity\|venom\|cure]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity |
+| `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -729,15 +730,21 @@ village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/co
 | A cheese and a tomato in Aggie's house, two logs in Spria's, back 100 ticks after taking | the Wiki's Draynor Village spawn list for the items and rooms; tiles and respawn guessed |
 | The pig pen's and the farm's gates | `Gates`, above |
 | Wander ranges (2 in the pig pen and indoors, 3 and 5 elsewhere) | guessed |
+| Step 2: the shore's two Net/Bait spots (`0_48_50_saltfish`, 1525, whose net option is "Small Net"), fished as the swamp's, moving between four tiles | tiles from mejrs's list; the move tiles 2004Scape's `fishing_movement_draynor_village_enum` |
+| The five willows by the shore chop with Woodcutting's willow data | the 241 map (ids 10819, 10829, 10831, 10833) |
+| Draynor's permanent fire south of the bank (`fire_cook`, 43475): Cook asks which food as a range does, then cooks over the fire (fire burn chart and animation) | the Wiki's Permanent fire page (a Draynor fire with Cook, free-to-play) |
+| Take-axe on the logs by the willows (`log_withaxe`, 5581) gives a bronze axe and leaves plain logs for 30 seconds; the same type works wherever the map has it | the Wiki's Bronze axe page ("Bronze axes on logs respawn in 30 seconds"); no message and a full inventory keeping the axe on the logs are guessed |
 
 Left out until their steps: the market and its stalls, the jail, Aggie's, Ned's, Morgan's and the Wise Old Man's talk,
-the bank guard, Miss Schism, the town crier, the dark wizards, the willows' fishing spots, the sewers' trapdoors and
+the bank guard, Miss Schism, the town crier, the dark wizards, the sewers' trapdoors and
 the rooftop course (Agility isn't built). The wheat field picks as Lumbridge's does (`Crops`).
 
 Check: `test-runner/examples/draynor-village.json` opens and shuts the pig pen's gate, climbs both staircases, takes
 garlic from Morgan's cupboard, opens Aggie's wardrobe and sees her cheese and tomato, and opens the bank from a banker
 and from a booth; `HeadlessDraynorTest` does the gate, the stairs, the cupboard and the bankers through the headless
-client, and `GatesTest` turns a gate every way round.
+client, and `GatesTest` turns a gate every way round. `test-runner/examples/draynor-willows.json` takes the axe off
+the logs, chops a willow, nets a shrimp and cooks it on the permanent fire; `HeadlessFishingTest` and `HeadlessCookingTest`
+do the Small Net spots and the fire.
 
 ## Al Kharid
 

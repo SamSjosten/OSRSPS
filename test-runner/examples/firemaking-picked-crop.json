@@ -1,0 +1,27 @@
+{
+ "name": "Exploit review round 3: logs can't be lit on a just-picked onion's tile, the logs stay in the backpack and the onion grows back (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel firemaking 43", "expectMessage": "Firemaking set to level 43", "comment": "sure to light on the first roll, so a refusal can't be a failed roll"},
+  {"step": "command", "text": "::item tinderbox", "expectMessage": "Added 1 x Tinderbox"},
+  {"step": "command", "text": "::item logs", "expectMessage": "Added 1 x Logs"},
+  {"step": "command", "text": "::tele 3190 3269 0", "expectMessage": "Teleported to 3190, 3269, 0", "comment": "inside the onion patch's fence south of Fred's house, as lumbridge-freds-farm has it"},
+  {"step": "locOption", "loc": "Onion", "option": "Pick", "x": 3190, "y": 3268},
+  {"step": "assertMessage", "contains": "[crop.onion_picked]"},
+  {"step": "assertInventory", "item": "Onion", "count": 1},
+
+  {"step": "walk", "x": 3190, "y": 3268, "comment": "onto the picked onion's tile"},
+  {"step": "assertLocation", "x": 3190, "y": 3268, "plane": 0},
+  {"step": "useItemOnItem", "item": "Tinderbox", "onItem": "Logs"},
+  {"step": "assertMessage", "contains": "firemaking.cant_here", "comment": "refused while the onion is due back"},
+  {"step": "assertInventory", "item": "Logs", "count": 1, "comment": "the logs are never dropped"},
+
+  {"step": "assertLoc", "loc": "Onion", "x": 3190, "y": 3268, "timeoutMs": 60000, "comment": "the onion grows back 50 ticks after the pick"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

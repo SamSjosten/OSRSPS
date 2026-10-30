@@ -400,7 +400,7 @@ class MeleeCombat(
             return dealt
         }
         redemption(player)
-        if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen) {
+        if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
             retaliate(player, source, tick)
         }
         return dealt
@@ -463,7 +463,8 @@ class MeleeCombat(
     /**
      * Auto retaliate: [player] turns on [npc], which hit them on [tick]. OSRS Wiki, Auto Retaliate: the character
      * retaliates one tick after being attacked, with the attack delay set to the weapon's speed halved and rounded up
-     * whatever it was. The fight starts now and the first swing comes with that delay.
+     * whatever it was. The fight starts now and the first swing comes with that delay. A stunned player doesn't
+     * retaliate ([StatusEffects], guessed).
      */
     private fun retaliate(player: Player, npc: Npc, tick: Long) {
         if (foughtByAnother(player, npc)) return
