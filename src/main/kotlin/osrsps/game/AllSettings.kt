@@ -44,6 +44,8 @@ class AllSettings(
     init {
         // Walking or another interface drops the picker's wait for a colour; the picker goes with it.
         interfaces.onCountDropped(::inputDropped)
+        // Another prompt (the bank's Withdraw-X, say) can take the wait over; the picker mustn't answer it.
+        scripts?.onCountReplaced(::inputDropped)
     }
 
     /** The side panel's All Settings button. RSMod (rev 233) opens the window as an overlay in the floater. */

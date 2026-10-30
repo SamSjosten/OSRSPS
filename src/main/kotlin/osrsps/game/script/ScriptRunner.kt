@@ -240,8 +240,21 @@ class ScriptRunner(
     internal suspend fun countDialog(player: Player): Int {
         val state = player.scripts
         // One prompt at a time, as in the client: a second replaces the first, whose script never carries on.
-        if (state.counting != null) logger.debug { "Dropping ${player.username}'s script waiting on an amount for a new one" }
+        if (state.dropCount()) {
+            logger.debug { "Dropping ${player.username}'s script waiting on an amount for a new one" }
+            for (hook in countReplacedHooks) hook(player)
+        }
         return suspendCoroutine { continuation -> state.counting = continuation }
+    }
+
+    private val countReplacedHooks = ArrayList<(Player) -> Unit>()
+
+    /**
+     * Runs [hook] whenever a script waiting on an amount is dropped for a new one, before the new one waits: for what
+     * the old one had open.
+     */
+    fun onCountReplaced(hook: (Player) -> Unit) {
+        countReplacedHooks += hook
     }
 
     /** Where a script ends up when it finishes or throws. One bad script shouldn't cost everyone the tick. */
