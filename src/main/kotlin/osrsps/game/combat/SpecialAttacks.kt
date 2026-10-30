@@ -20,7 +20,7 @@ class SpecialAttack(
     val spotanim: Int,
     val accuracyPercent: Int = 0,
     val damagePercents: List<Int> = emptyList(),
-    /** The attack type it hits with, its attack bonus and the NPC's defence bonus both, in place of the style's; null for the style's. */
+    /** The attack type whose defence the NPC rolls with, in place of the style's; null for the style's. The attack bonus stays the style's. */
     val against: AttackType? = null,
     val effect: SpecialEffect = SpecialEffect.None,
 ) {
@@ -181,7 +181,7 @@ class SpecialAttacks(
          * Warstrike (OSRS Wiki, Bandos godsword): double accuracy, the max hit raised by 10% and then by 10% again,
          * rounding down after each, always against slash, and the target's stats drained by the damage dealt in the order
          * Defence, Strength, Prayer, Attack, Magic, Ranged, each to 0 before the next. Monsters have no Prayer to drain
-         * here. Inferred: that the player's slash attack bonus goes with the slash defence, as a style pairs them.
+         * here. The attack roll keeps the style's own bonus ("always rolls against the opponent's slash defence roll").
          * Guessed: that a stat held up by its drain cap (the raid's 60% on Defence) counts as drained as far as it goes,
          * so the rest moves on to the next stat. Not in: Tekton's 10 levels on a miss. Animation bgs_special_player
          * (7642), spotanim dh_sword_update_bandos_special_spotanim (1212); the ornament kit's are bgs_special_ornate_player

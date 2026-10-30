@@ -124,20 +124,22 @@ class Combat(
 
     /**
      * The player's melee numbers against [npc], or null when it has no combat definition (it can't be attacked) or the
-     * player's style isn't melee (see [meleeType]). [against] hits with that attack type instead of the style's, as the
-     * Bandos godsword's Warstrike always hits with slash ([SpecialAttack.against]).
+     * player's style isn't melee (see [meleeType]). [against] rolls against the NPC's defence for that attack type
+     * instead of the style's, as the Bandos godsword's Warstrike always rolls against slash ([SpecialAttack.against]);
+     * the attack roll keeps the style's own bonus (OSRS Wiki, Bandos godsword: "always rolls against the opponent's
+     * slash defence roll"; the Wiki's DPS calculator does the same).
      */
     fun matchup(player: Player, npc: Npc, against: AttackType? = null): MeleeMatchup? {
         val def = npcCombat[npc.type] ?: return null
         val style = style(player)
-        val type = meleeType(style)?.let { against ?: it } ?: return null
+        val type = meleeType(style) ?: return null
         val bonuses = bonuses(player)
         val skills = player.skills
         val boosts = prayerBoosts(player)
         val attack = PrayerBoosts.boost(skills.currentLevel(Skill.ATTACK), boosts.attack)
         val strength = PrayerBoosts.boost(skills.currentLevel(Skill.STRENGTH), boosts.strength)
         val attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type))
-        val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(type))
+        val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(against ?: type))
         val npcAttackRoll = CombatMath.npcAttackRoll(npc.level(NpcStat.ATTACK), def.attackBonus)
         val playerDefenceRoll = playerDefenceRoll(player, style, bonuses, def.attackType, boosts)
         return MeleeMatchup(
