@@ -25,6 +25,12 @@ object CraftingLines : Lines("crafting", "Crafting") {
     val CRUSHED = line("crushed", "Opal, Jade and Red topaz: the message on crushing one", "item")
     val JEWELLERY = line("jewellery", "Gold ring and the other gold jewellery: the message on making one", "item")
     val STRING_AMULET = line("string_amulet", "Gold amulet and the others: the message on stringing one", "item")
+    val MOLTEN_GLASS = line("molten_glass", "Molten glass: the message on making it at a furnace")
+    val BLOW = line("blow", "Beer glass and the other glassblowing: the message on blowing one", "item")
+    val SHAPE = line("shape", "Unfired pot and the others: the message on shaping one on a potter's wheel", "item")
+    val FIRE = line("fire", "Pot and the others: the message on firing one in a pottery oven", "item")
+    val CRACK = line("crack", "Pot and the others: the message when one cracks in the oven", "item")
+    val SOFT_CLAY = line("soft_clay", "Soft clay: the message on watering clay")
     val STUDS = line("studs", "Studded body and Studded chaps: the message on adding the studs", "item")
 }
 
@@ -37,7 +43,7 @@ class JewelleryInterface(val id: Int, val bar: Int, val quantityFirst: Int, val 
 /**
  * crafting.json: what a spinning wheel spins, in the Make-X box's order; what a needle makes from each kind of leather;
  * steel studs by the leather item they go on; what a chisel cuts, by uncut gem; gold jewellery by its button at a
- * furnace; amulets strung with wool.
+ * furnace; amulets strung with wool; glass; pottery; soft clay.
  */
 class CraftingData(
     val spinning: List<MakeRecipe>,
@@ -52,6 +58,16 @@ class CraftingData(
     val wool: Int = -1,
     /** By unstrung amulet. */
     val amulets: Map<Int, MakeRecipe> = emptyMap(),
+    val moltenGlass: MakeRecipe? = null,
+    val pipe: Int = -1,
+    val blown: List<MakeRecipe> = emptyList(),
+    /** On a potter's wheel, from soft clay. */
+    val shaping: List<MakeRecipe> = emptyList(),
+    /** In a pottery oven, by unfired item. */
+    val firing: Map<Int, MakeRecipe> = emptyMap(),
+    val clay: Int = -1,
+    /** Soft clay, by the water used. */
+    val softening: Map<Int, MakeRecipe> = emptyMap(),
 ) {
     companion object {
         const val RESOURCE = "/skills/crafting.json"
@@ -132,14 +148,63 @@ class CraftingData(
                     CraftingLines.LEVEL,
                 )
             }
-            return CraftingData(spun, needle, hides, studId, studded, chisel, cuts, jewellery, wool, amulets)
+            val glass = root.getValue("glass").jsonObject
+            val molten = MakeRecipe(
+                "molten_glass", Skill.CRAFTING, glass.int("moltenGlass"), 1, glass.int("moltenLevel"), glass.int("moltenXpTenths"),
+                listOf(ObjCount(glass.int("sodaAsh"), 1), ObjCount(glass.int("bucketOfSand"), 1)), emptyList(), glass.int("moltenAnim"),
+                glass.int("moltenFirst"), glass.int("moltenInterval"), CraftingLines.MOLTEN_GLASS, CraftingLines.LEVEL,
+                byproducts = listOf(ObjCount(glass.int("bucket"), 1)),
+            )
+            val pipe = glass.int("pipe")
+            val blown = glass.getValue("blown").jsonArray.map { it.jsonObject }.map { item ->
+                MakeRecipe(
+                    "blow:${item.getValue("name").jsonPrimitive.content}", Skill.CRAFTING, item.int("product"), 1, item.int("level"),
+                    item.int("xpTenths"), listOf(ObjCount(glass.int("moltenGlass"), 1)), listOf(pipe), glass.int("blowAnim"),
+                    glass.int("first"), glass.int("interval"), CraftingLines.BLOW, CraftingLines.LEVEL,
+                )
+            }
+            val pottery = root.getValue("pottery").jsonObject
+            val softClay = pottery.int("softClay")
+            val pots = pottery.getValue("pots").jsonArray.map { it.jsonObject }
+            val shaping = pots.map { pot ->
+                MakeRecipe(
+                    "shape:${pot.getValue("name").jsonPrimitive.content}", Skill.CRAFTING, pot.int("unfired"), 1, pot.int("level"),
+                    pot.int("shapeXpTenths"), listOf(ObjCount(softClay, 1)), emptyList(), pottery.int("wheelAnim"),
+                    pottery.int("wheelFirst"), pottery.int("wheelInterval"), CraftingLines.SHAPE, CraftingLines.LEVEL,
+                )
+            }
+            val crack = MakeChance(pottery.int("fireLow"), pottery.int("fireHigh"), NOTHING, 0, CraftingLines.CRACK)
+            val firing = pots.associate { pot ->
+                // The Pie dish page: firing has no level of its own.
+                pot.int("unfired") to MakeRecipe(
+                    "fire:${pot.getValue("name").jsonPrimitive.content}", Skill.CRAFTING, pot.int("fired"), 1, 1,
+                    pot.int("fireXpTenths"), listOf(ObjCount(pot.int("unfired"), 1)), emptyList(), pottery.int("ovenAnim"),
+                    pottery.int("ovenFirst"), pottery.int("ovenInterval"), CraftingLines.FIRE, CraftingLines.LEVEL, chance = crack,
+                )
+            }
+            val soft = root.getValue("softClay").jsonObject
+            val clay = soft.int("clay")
+            val softening = soft.getValue("water").jsonArray.map { it.jsonObject }.associate { water ->
+                water.int("full") to MakeRecipe(
+                    "soften:${water.getValue("name").jsonPrimitive.content}", Skill.CRAFTING, soft.int("softClay"), 1, 1, 0,
+                    listOf(ObjCount(clay, 1), ObjCount(water.int("full"), 1)), emptyList(), NO_ANIM, soft.int("first"),
+                    soft.int("interval"), CraftingLines.SOFT_CLAY, CraftingLines.LEVEL, byproducts = listOf(ObjCount(water.int("empty"), 1)),
+                )
+            }
+            return CraftingData(
+                spun, needle, hides, studId, studded, chisel, cuts, jewellery, wool, amulets, molten, pipe, blown, shaping, firing, clay,
+                softening,
+            )
         }
 
         /** The thread uses so far, in [osrsps.game.Charges]. */
         const val THREAD_CHARGE = "thread_uses"
 
-        /** Guessed: stringing an amulet plays no animation. */
+        /** Guessed: stringing an amulet and watering clay play no animation. */
         const val NO_ANIM = -1
+
+        /** What a cracked pot leaves. */
+        const val NOTHING = -1
 
         private fun JsonObject.int(name: String): Int = getValue(name).jsonPrimitive.int
     }
@@ -152,10 +217,11 @@ class CraftingData(
  * uncut gem cuts it, opal, jade and red topaz sometimes crushing. A gold bar or a mould used on a furnace opens the gold
  * jewellery interface, whose item buttons make rings, necklaces, amulets and bracelets with the quantity buttons'
  * count (kept in the same varp as the anvil's); a silver bar or silver mould opens the silver one (opal, jade and topaz
- * jewellery, symbols, the sickle, the tiara); a ball of wool strings an amulet. The making is [Making]'s. Later steps
- * add glass and pottery.
+ * jewellery, symbols, the sickle, the tiara); a ball of wool strings an amulet. Soda ash or sand on a furnace makes
+ * molten glass, and a glassblowing pipe blows it. Water on clay softens it; soft clay on a potter's wheel shapes pots,
+ * and a pottery oven fires them, some cracking at low levels. The making is [Making]'s.
  *
- * Sources: the OSRS Wiki's Ball of wool, Bow string, Leather, Thread, the d'hide, the studded, the gem and the Jewellery pages (read
+ * Sources: the OSRS Wiki's Ball of wool, Bow string, Leather, Thread, the d'hide, the studded, the gem, the Jewellery, the glass and the pottery pages (read
  * 2026-10-30), see crafting.json. Guessed: Spin with nothing to spin saying Nothing interesting happens (as cooking's
  * Cook does), the box opening even for one, the spinning animation, the thread counter living on the player rather than
  * the item, and the messages' arguments. Out: sinew, magic roots, yak hair and the other members' spinning; d'hide
@@ -203,6 +269,31 @@ class Crafting(private val world: World, val data: CraftingData) {
         for ((unstrung, recipe) in data.amulets) {
             world.handlers.onObjOnObj(data.wool, unstrung) { world.making.choose(this, listOf(recipe)) }
         }
+        data.moltenGlass?.let { molten ->
+            for (furnace in Smithing.FURNACES) {
+                for (input in molten.inputs) world.handlers.onObjOnLoc(furnace, input.obj) { world.making.choose(this, listOf(molten)) }
+            }
+            world.handlers.onObjOnObj(data.pipe, molten.product) { world.making.choose(this, data.blown) }
+        }
+        for (wheel in locsNamed(world, "Potter's wheel", USE)) {
+            val option = wheel.ops.indexOfFirst { it == USE } + 1
+            world.handlers.onLoc(wheel.id, option) { world.making.choose(this, data.shaping) }
+            world.handlers.onObjOnLoc(wheel.id, data.shaping.first().inputs[0].obj) { world.making.choose(this, data.shaping) }
+        }
+        for (oven in locsNamed(world, "Pottery oven", FIRE)) {
+            val option = oven.ops.indexOfFirst { it == FIRE } + 1
+            world.handlers.onLoc(oven.id, option) {
+                val held = data.firing.values.filter { it.times(player.inventory) > 0 }
+                if (held.isEmpty()) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+                world.making.choose(this, held)
+            }
+            for ((unfired, recipe) in data.firing) {
+                world.handlers.onObjOnLoc(oven.id, unfired) { world.making.choose(this, listOf(recipe)) }
+            }
+        }
+        for ((water, recipe) in data.softening) {
+            world.handlers.onObjOnObj(water, data.clay) { world.making.choose(this, listOf(recipe)) }
+        }
     }
 
     /**
@@ -241,7 +332,18 @@ class Crafting(private val world: World, val data: CraftingData) {
         /** Lumbridge Castle's, on the first floor at 3209, 3212. */
         const val LUMBRIDGE_WHEEL = 14889
 
+        const val USE = "Use"
+        const val FIRE = "Fire"
+
+        /** Lumbridge has none: Barbarian Village's potter's wheel and pottery oven. */
+        const val POTTERS_WHEEL = 14887
+        const val POTTERY_OVEN = 14888
+
         /** Every loc the cache calls a spinning wheel that has a Spin option. */
-        fun wheels(world: World) = world.locs.types.all.filter { it.name.equals("Spinning wheel", ignoreCase = true) && SPIN in it.ops }
+        fun wheels(world: World) = locsNamed(world, "Spinning wheel", SPIN)
+
+        /** Every loc the cache calls [name], in any case, that has the option [option]. */
+        fun locsNamed(world: World, name: String, option: String) =
+            world.locs.types.all.filter { it.name.equals(name, ignoreCase = true) && option in it.ops }
     }
 }

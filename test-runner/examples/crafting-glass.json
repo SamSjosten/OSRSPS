@@ -1,0 +1,39 @@
+{
+ "name": "Artisan step 7: at Lumbridge's furnace at 99, soda ash and sand make two molten glass (buckets back), a pipe blows two vials; water softens clay (::keys on). The potter's wheel and oven are at Barbarian Village, which isn't walkable yet: headless only",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3225 3254 0", "comment": "beside the furnace north of Lumbridge Castle"},
+  {"step": "assertLocation", "x": 3225, "y": 3254, "plane": 0},
+  {"step": "command", "text": "::setlevel crafting 99", "expectMessage": "Crafting set to level 99"},
+  {"step": "command", "text": "::item 1781 2", "expectMessage": "Added 2 x Soda ash"},
+  {"step": "command", "text": "::item 1783 2", "expectMessage": "Added 2 x Bucket of sand"},
+
+  {"step": "useItemOnLoc", "item": "Soda ash", "locId": 24009, "x": 3226, "y": 3256},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "molten glass; the box suggests both"},
+  {"step": "assertInventory", "item": "Molten glass", "count": 2, "timeoutMs": 10000, "comment": "2 ticks each"},
+  {"step": "assertInventory", "item": "Bucket", "count": 2},
+
+  {"step": "command", "text": "::item 1785", "expectMessage": "Added 1 x Glassblowing pipe"},
+  {"step": "useItemOnItem", "item": "Glassblowing pipe", "onItem": "Molten glass"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "the eight glassblowing items"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 18, "comment": "the vial"},
+  {"step": "assertAnimation", "id": 884, "comment": "human_glassblowing"},
+  {"step": "assertInventory", "item": "Vial", "count": 2, "timeoutMs": 10000},
+  {"step": "assertStat", "skill": "Crafting", "level": 99, "xp": 13034541, "comment": "20 x 2 + 35 x 2 = 110 XP"},
+
+  {"step": "command", "text": "::item 434 1", "expectMessage": "Added 1 x Clay"},
+  {"step": "command", "text": "::item 1929 1", "expectMessage": "Added 1 x Bucket of water"},
+  {"step": "useItemOnItem", "item": "Bucket of water", "onItem": "Clay"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Soft clay", "count": 1, "timeoutMs": 10000},
+  {"step": "assertInventory", "item": "Bucket", "count": 3},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

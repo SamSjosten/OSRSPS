@@ -74,4 +74,23 @@ class CraftingDataTest {
         assertEquals(11, data.amulets.size)
         assertTrue(data.amulets.values.all { it.level == 1 && it.xpTenths == 40 && it.inputs.last() == ObjCount(1759, 1) })
     }
+
+    @Test
+    fun `glass, pottery and soft clay match the Wiki, and the crack pair gives the oven's chart`() {
+        assertEquals(Triple(1775, 1, 200), data.moltenGlass!!.let { Triple(it.product, it.level, it.xpTenths) })
+        assertEquals(listOf(ObjCount(1925, 1)), data.moltenGlass!!.byproducts)
+        assertEquals(listOf(1919, 4527, 4525, 229, 6667, 567, 4542, 10980), data.blown.map { it.product })
+        assertEquals(listOf(1, 4, 12, 33, 42, 46, 49, 87), data.blown.map { it.level })
+        assertEquals(listOf(175, 190, 250, 350, 425, 525, 550, 700), data.blown.map { it.xpTenths })
+        assertEquals(listOf(1, 3, 7, 8, 19, 25), data.shaping.map { it.level })
+        assertEquals(listOf(63, 85, 150, 180, 200, 200), data.shaping.map { it.xpTenths })
+        assertEquals(listOf(63, 85, 100, 150, 175, 200), data.firing.values.map { it.xpTenths })
+        assertTrue(data.firing.values.all { it.level == 1 && it.interval == 7 })
+        // Every pottery page's chart, in 256ths, levels 1 to 13.
+        val chart = listOf(181, 187, 194, 200, 206, 213, 219, 225, 232, 238, 244, 251, 256)
+        val crack = data.firing.values.first().chance!!
+        assertEquals(chart, (1..13).map { SuccessRoll.chance(crack.low, crack.high, it) })
+        assertEquals(4, data.softening.size)
+        assertTrue(data.softening.values.all { it.xpTenths == 0 && it.byproducts.size == 1 })
+    }
 }

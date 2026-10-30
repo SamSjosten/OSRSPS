@@ -25,7 +25,8 @@ data class ObjCount(val obj: Int, val count: Int)
  */
 /**
  * A recipe that can fail: success rolls the [low], [high] pair out of 256 ([SuccessRoll]); a miss gives [failed] (a
- * crushed gem) and [failedXpTenths] instead, with [failedLine] as the message.
+ * crushed gem; -1 for nothing, as a pot cracking in the oven) and [failedXpTenths] instead, with [failedLine] as the
+ * message.
  */
 data class MakeChance(val low: Int, val high: Int, val failed: Int, val failedXpTenths: Int, val failedLine: Line)
 
@@ -39,7 +40,8 @@ data class WearingMaterial(val obj: Int, val uses: Int, val charge: String, val 
  *
  * A [batch] recipe makes up to [amount] at a time, each one taking [inputs] once and giving [xpTenths]: arrows come 15 at
  * a time, or fewer when fewer are left. Otherwise each action takes [inputs] and gives [amount] and [xpTenths] once.
- * [wears] is held like a tool and used up every so many actions. A [chance] recipe can fail.
+ * [wears] is held like a tool and used up every so many actions. A [chance] recipe can fail. [byproducts] come back
+ * with each product: the empty bucket from watering clay.
  */
 class MakeRecipe(
     val key: String,
@@ -58,6 +60,7 @@ class MakeRecipe(
     val batch: Boolean = false,
     val wears: WearingMaterial? = null,
     val chance: MakeChance? = null,
+    val byproducts: List<ObjCount> = emptyList(),
 ) {
     init {
         require(amount >= 1 && level in 1..99 && xpTenths >= 0) { "Bad numbers in recipe $key" }
@@ -162,11 +165,14 @@ class Making(private val world: World) {
         val chance = recipe.chance
         val failed = chance != null && !SuccessRoll.roll(world.random, chance.low, chance.high, player.skills.currentLevel(recipe.skill))
         val product = if (failed) chance!!.failed else recipe.product
-        val type = world.objTypes[product] ?: error("No obj type $product for recipe ${recipe.key}")
+        val type = if (product < 0) null else world.objTypes[product] ?: error("No obj type $product for recipe ${recipe.key}")
         val saved = player.inventory.contents().toMap()
         for (input in recipe.inputs) removeObj(player.inventory, input.obj, input.count * units)
         val made = if (recipe.batch) units else recipe.amount
-        if (player.inventory.add(type, made) < made) {
+        val outputs = listOfNotNull(type?.let { it to made }) + recipe.byproducts.map { by ->
+            (world.objTypes[by.obj] ?: error("No obj type ${by.obj} for recipe ${recipe.key}")) to by.count * units
+        }
+        if (outputs.any { (output, count) -> player.inventory.add(output, count) < count }) {
             // Rather than lose the inputs. Guessed message.
             for (slot in 0 until player.inventory.capacity) player.inventory[slot] = saved[slot]
             player.message(world.textFor(player)[MakeLines.NO_SPACE])
