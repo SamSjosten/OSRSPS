@@ -18,6 +18,22 @@
       "source": "OSRS Wiki, Al Kharid warrior and the DPS calculator's 3292, read 2026-10-30; the scimitar it holds slashes as a sword does (human_sword_slash; its block guessed). Warriors that join in when one is attacked wait for NPC aggression (the Varrock piece)"
     },
     {
+      "npcs": ["fai_varrock_guard02", "fai_varrock_guard02_variant01", "fai_varrock_guard02_variant02", "fai_varrock_guard02_f", "fai_varrock_guard02_f_variant01", "fai_varrock_guard02_f_variant02", "fai_varrock_guard_captain02"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 4, "strengthBonus": 5,
+      "defence": { "stab": 24, "slash": 30, "crush": 25, "magic": -9, "light": 25, "standard": 25, "heavy": 25 },
+      "anims": { "attack": "human_blunt_pound", "defend": "human_blunt_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Guard (Varrock 1 to 7, the 2022 guards 11911 to 11917) and the DPS calculator's 11911, 11914 and 11917, read 2026-10-30. Their attack and block animations are GUESSED from the crush style (human_blunt_pound, human_blunt_block); not yet watched on live"
+    },
+    {
+      "npcs": ["guard1"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "stab", "attackBonus": 4, "strengthBonus": 5,
+      "defence": { "stab": 18, "slash": 25, "crush": 19, "magic": -4, "light": 20, "standard": 20, "heavy": 20 },
+      "anims": { "attack": "human_sword_stab", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Guard (Edgeville 1, id 3254) and the DPS calculator's 3254, read 2026-10-30; the respawn is taken from the Varrock guards' infobox, and the stab and block animations are GUESSED from the stab style"
+    },
+    {
       "npcs": ["scorpion"],
       "attackSpeed": 4, "maxHit": 2, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 5, "slash": 15, "crush": 15, "magic": 0, "light": 5, "standard": 5, "heavy": 5 },

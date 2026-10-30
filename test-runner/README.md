@@ -163,6 +163,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   shut, Pet on a stray dog and a man's talk.
 - `varrock-banks.json`: Varrock step 2 (with `::keys on`): logs banked at a West Bank booth and taken back through a
   banker's talk, Knock-at on the West Bank's locked door, and the East Bank opened through a banker's Bank and a booth.
+- `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
+  `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
   a willow chopped at level 30, a shrimp netted at the shore's Small Net spots and cooked on the permanent fire.
 - `draynor-market.json`: Draynor step 3: Fortunato's, Olivia's and Diango's talks (`::keys on`) into their shops, and
