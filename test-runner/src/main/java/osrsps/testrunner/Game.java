@@ -225,4 +225,13 @@ interface Game
 
 	/** Clicks "Click here to logout" in the logout tab. */
 	String logout();
+
+	/**
+	 * The client's friends list: each friend's world by name (spaces as in the name, no tags), 0 when offline. Null when
+	 * logged out or the list hasn't arrived.
+	 */
+	java.util.Map<String, Integer> friends();
+
+	/** Puts {@code text} in the open prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
+	String enterText(String text);
 }
