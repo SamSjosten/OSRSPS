@@ -76,6 +76,8 @@
     {"npc": 1159, "name": "Monk", "wiki": "Monk (Lost City) page, infobox"},
     {"npc": 1160, "name": "Wizard", "wiki": "Wizard (Lost City) page, infobox"},
     {"npc": 1896, "name": "Candle seller"},
+    {"npc": 3222, "name": "Mining tutor"},
+    {"npc": 3221, "name": "Fishing tutor"},
     {"npc": 4287, "name": "Border Guard", "also": [4288], "wiki": "Border Guard page, infobox (one examine for both)"}
   ],
   "locs": [

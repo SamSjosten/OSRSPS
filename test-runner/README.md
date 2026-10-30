@@ -132,7 +132,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-swamp.json`: Lumbridge Swamp: Examine (with `::keys on`) on a level 6 giant rat, a frog, a big frog, a
   giant frog, the level 5 goblin and the unicorn; `::kill` on a giant rat (its death animation, then its raw rat meat
   taken) and a giant frog (its big bones taken); Father Urhney's spare ghostspeak amulet, given once; the four
-  adventurers' talks; and the candle seller refusing a player with no coins, then selling a lit candle for 1000.
+  adventurers' talks; the candle seller refusing a player with no coins, then selling a lit candle for 1000; and the
+  Mining and Fishing tutors' basics (with a pickaxe and a net carried), the Mining tutor's quests and the small net
+  fish.
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
@@ -145,6 +147,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `skills-levelup.json`: `::addxp` past a Woodcutting level, then an Attack level that raises the combat level: the
   chat message, the fireworks, the level-up box with each line's key (`::keys on`), and the combat level's box after
   the skill's. Walking closes each box. Needs only 0.7.0.
+- `xp-rate.json`: `::xprate 2`, then a bone buried for 9 Prayer XP (4.5 at 1x), then `::xprate restore` back to the
+  server's rate. It changes the rate for everyone on the server for a few seconds; a failure part way leaves it at 2x,
+  so check `::xprate` after one. Needs only 0.5.0.
 - `woodcutting-lumbridge.json`: Chop down with no axe, then a bronze axe on a tree north of the castle (one log, the
   stump, the tree back), then a level 99 dragon axe on the oak south of the castle (12 logs before its timer fells it).
   Needs only 0.5.0.
@@ -163,6 +168,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   anvil needs a hammer and hammers the bar into a dagger. Needs 0.8.0 (`assertVarbit`).
 - `fletching-logs.json`: a knife on three logs at 99 cuts three shortbows (u) through the Make-X box (15 XP), then at
   level 1 a longbow needs 10. Needs 0.10.0 (`useItemOnItem`).
+- `fletching-arrows.json`: at 99, feathers on 20 arrow shafts make headless arrows in sets (15, then 5), bronze
+  arrowtips make 15 bronze arrows, a bow string strings a shortbow and a feather on dart tips makes 10 darts. Needs
+  0.10.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
@@ -187,6 +195,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `settings-buttons.json`: the All Settings window's buttons. The Wilderness teleport and tablet warnings switched on
   and off a section at a time, the opaque chat colours reset, the keybinds restored and the volumes reset; then close,
   relog and check, and the keys put back to none.
+- `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
+  and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
@@ -290,6 +300,7 @@ server's answer instead of failing on what was there before.
 | `groundItemOption` | `item` (name) or `itemId`, `op`, `option`, `x`+`y` | (0.10.0) Clicks ground op `op` (1 to 5; Take is 3, logs' Light is 4) on the nearest such item on the ground, as `takeItem` does Take; `option` is the menu text. RuneLite doesn't give an item's ground options, so the script names the op. |
 | `useItemOnItem` | `item` (name) or `itemId`, `onItem` or `onItemId` | (0.10.0) Clicks Use on the first such item in the inventory, then the first other slot holding the second item, as the server reads it (IF_BUTTONT). Retries until both are there; doesn't wait for the result. |
 | `enterAmount` | `amount` | (0.11.0) Waits for the chatbox's number prompt (meslayer mode 7, as after Withdraw-X or a settings number), puts the amount in it and presses Enter, then waits until the prompt has closed. |
+| `typeText` | `text` | (0.12.0) Types the text as key presses, one character at a time (press, typed, release on the client's canvas), for what reads the keyboard itself, such as the All Settings search box after its Search. Passes a game tick after the keys reach the canvas, so the client has taken them before the next step; check their effect with that step. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)

@@ -1,5 +1,5 @@
 {
- "name": "Rest of Lumbridge step 9: the swamp. Examine (::keys on) on a level 6 giant rat, the three frogs, the level 5 goblin and the unicorn; a giant rat and a giant frog killed for their drops; Father Urhney's spare ghostspeak amulet, the adventurers' camp, and a lit candle bought",
+ "name": "Rest of Lumbridge step 9: the swamp. Examine (::keys on) on a level 6 giant rat, the three frogs, the level 5 goblin and the unicorn; a giant rat and a giant frog killed for their drops; Father Urhney's spare ghostspeak amulet, the adventurers' camp, a lit candle bought, and the Mining and Fishing tutors' basics",
  "account": "test",
  "steps": [
   {
@@ -535,6 +535,227 @@
    "item": "Coins",
    "count": 0,
    "comment": "the 1000 coins paid"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3227 3148 0",
+   "expectMessage": "Teleported to 3227, 3148, 0",
+   "comment": "the Mining tutor, by the east mine"
+  },
+  {
+   "step": "command",
+   "text": "::item bronze pickaxe 1",
+   "expectMessage": "Added",
+   "comment": "carried, so the line is the same whatever the bank holds"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Mining tutor",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "chooseOption",
+   "text": "[mining_tutor.basics]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mining_tutor.basics]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mining_tutor.site_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mining_tutor.already_pick]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mining_tutor.tell_ore]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mining_tutor.click_rock]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mining_tutor.full_inventory]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mining_tutor.bank_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[mining_tutor.quests]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mining_tutor.doric]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mining_tutor.dig_site]",
+   "comment": "every quest counts as done on a members' world"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[mining_tutor.goodbye]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mining_tutor.goodbye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3247 3156 0",
+   "expectMessage": "Teleported to 3247, 3156, 0",
+   "comment": "the Fishing tutor, by the shore"
+  },
+  {
+   "step": "command",
+   "text": "::item small fishing net 1",
+   "expectMessage": "Added"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Fishing tutor",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "chooseOption",
+   "text": "[fishing_tutor.basics]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.basics]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.have_net]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.spot_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.how_to]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.is_that_it]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.progress]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.full_inventory]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[fishing_tutor.fish]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.fish]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[fishing_tutor.small_net]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.small_net_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.small_net_catch]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[fishing_tutor.tell_me_about]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[fishing_tutor.goodbye]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fishing_tutor.goodbye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
   },
   {
    "step": "command",

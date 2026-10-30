@@ -131,6 +131,14 @@ class HeadlessAllSettingsTest {
                 client.ifButton(INTERFACE, CATEGORIES_CLICKZONE, 1, sub = 0)
                 client.awaitBits(VARP_SETTINGS_TRACKING, 0, 18, 0)
                 assertEquals(0, client.varp(LEAGUE_VARP))
+
+                // A window closed mid-search opens on its category again, so its Search op is back.
+                client.ifButton(INTERFACE, SEARCH, 1)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 0, 1, 1)
+                client.ifButton(INTERFACE, CLOSE, 1)
+                client.await("the window closed") { Unit.takeIf { INTERFACE !in client.openInterfaces() } }
+                open(client)
+                client.awaitBits(VARP_SETTINGS_TRACKING, 0, 1, 0)
             }
         }
     }

@@ -46,6 +46,7 @@ import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
+import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
@@ -80,6 +81,7 @@ import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerCandleSeller
 import osrsps.game.content.registerFatherUrhney
+import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
@@ -206,6 +208,8 @@ class World(
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
     val ipBans: IpBans = IpBans(),
+    /** The server-wide XP multiplier every player's XP drops are multiplied by; see [XpRate]. */
+    val xpRate: XpRate = XpRate(),
     /** The All Settings window's settings, from the cache; tests that click them pass their own. */
     settings: SettingsCatalog = SettingsCatalog.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
@@ -421,6 +425,7 @@ class World(
         registerTickCommands(this@World)
         registerVarCommands()
         registerSkillCommands { phase != null }
+        registerXpRateCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
@@ -457,6 +462,7 @@ class World(
         registerFatherUrhney(this)
         registerAdventurersCamp(this)
         registerCandleSeller(this)
+        registerSwampTutors(this)
         registerAlKharid(this)
         registerCrops(this)
         ducks.register()
@@ -1049,7 +1055,7 @@ class World(
      * Throws if the save can't be read.
      */
     internal fun loadPlayer(index: Int, username: String): Player {
-        val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
+        val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes, xpRate)
         // A save that couldn't be written is newer than the file, which would hand back what the player had before.
         val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player.also { it.newAccount = true }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
