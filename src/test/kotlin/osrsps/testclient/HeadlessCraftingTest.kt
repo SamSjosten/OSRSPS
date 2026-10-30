@@ -29,8 +29,8 @@ class HeadlessCraftingTest {
     private val data = CraftingData.load()
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
-        val recipes = data.spinning + data.leather.values.flatten() + data.studded.values
-        val ids = recipes.flatMap { r -> r.inputs.map { it.obj } + r.product + r.tools + listOfNotNull(r.wears?.obj) } + data.studs
+        val recipes = data.spinning + data.leather.values.flatten() + data.studded.values + data.gems.values
+        val ids = recipes.flatMap { r -> r.inputs.map { it.obj } + r.product + r.tools + listOfNotNull(r.wears?.obj, r.chance?.failed) } + data.studs
         val objs = arrayOfNulls<ObjType>(ids.max() + 1)
         for (id in ids) objs[id] = ObjType(id, "Item $id", tradeable = true)
         objs[WOOL] = ObjType(WOOL, "Wool", tradeable = true)
@@ -41,6 +41,8 @@ class HeadlessCraftingTest {
         objs[GLOVES] = ObjType(GLOVES, "Leather gloves", tradeable = true)
         objs[LEATHER_BODY] = ObjType(LEATHER_BODY, "Leather body", tradeable = true)
         objs[STUDDED_BODY] = ObjType(STUDDED_BODY, "Studded body", tradeable = true)
+        objs[OPAL] = ObjType(OPAL, "Opal", tradeable = true)
+        objs[SAPPHIRE] = ObjType(SAPPHIRE, "Sapphire", tradeable = true)
         objs[GREEN_BODY] = ObjType(GREEN_BODY, "Green d'hide body", tradeable = true)
         val spin = listOf(null, Crafting.SPIN, null, null, null)
         World(
@@ -192,7 +194,43 @@ class HeadlessCraftingTest {
         }
     }
 
+    @Test
+    fun `a chisel on uncut opals at level 1 cuts some and crushes some, 2 ticks apart, and a sapphire needs 20`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fred").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.give(CHISEL)
+                client.give(UNCUT_SAPPHIRE)
+                client.use(CHISEL, UNCUT_SAPPHIRE)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.seen("[crafting.level level=20 item=sapphire]")
+                // Five: even all cut (75 XP) stays short of level 2, whose box would end the job.
+                client.give(UNCUT_OPAL, 5)
+                client.use(UNCUT_OPAL, CHISEL)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 5)
+                val cuts = client.await("five cut", timeoutMillis = 20_000) {
+                    client.messages().filter { it.text == "[crafting.cut item=opal]" || it.text == "[crafting.crushed item=opal]" }.takeIf { it.size >= 5 }
+                }
+                assertTrue(cuts.zipWithNext { a, b -> b.tick - a.tick }.all { it == 2 }, "2 ticks a gem")
+                val opals = client.await("the opals") { client.count(OPAL).takeIf { it + client.count(CRUSHED) == 5 } }
+                val crushed = client.count(CRUSHED)
+                assertTrue(opals > 0 && crushed > 0, "about half crush at level 1: $opals cut, $crushed crushed")
+                assertEquals(0, client.count(UNCUT_OPAL))
+                val xpTenths = opals * 150 + crushed * 38
+                assertEquals(xpTenths / 10, client.await("the XP") { client.stat(CRAFTING)?.xp?.takeIf { it >= xpTenths / 10 } })
+            }
+        }
+    }
+
     private companion object {
+        const val CHISEL = 1755
+        const val UNCUT_OPAL = 1625
+        const val OPAL = 1609
+        const val CRUSHED = 1633
+        const val UNCUT_SAPPHIRE = 1623
+        const val SAPPHIRE = 1607
         const val NEEDLE = 1733
         const val THREAD = 1734
         const val LEATHER = 1741

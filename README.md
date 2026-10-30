@@ -446,7 +446,8 @@ Spin on a spinning wheel (every loc the cache calls one, Lumbridge Castle's firs
 Make-X box over the wool and flax held; either used on a wheel opens it over that alone (`game/skill/Crafting.kt`,
 words under `crafting.*`, numbers in `skills/crafting.json`). A needle on leather, hard leather or green to black dragon
 leather opens the box over what it makes; thread is held, and one is used up every 5 items (the count is kept with the
-account). Steel studs on a leather body or chaps stud them. The making is the artisan loop in `Making.kt`.
+account). Steel studs on a leather body or chaps stud them. A chisel on an uncut gem cuts it; opal, jade and red topaz
+can crush into a crushed gemstone, rolled as the gathering skills roll. The making is the artisan loop in `Making.kt`.
 
 | Crafting behaviour | Source |
 |--------------------|--------|
@@ -455,8 +456,10 @@ account). Steel studs on a leather body or chaps stud them. The making is the ar
 | Animation 466 (`spinningwheel`) as the player's | inferred from its gameval name |
 | Leather and d'hide levels, XP, leathers per item; 3 ticks an item, hard leather 2; thread's 5 uses | OSRS Wiki, Leather, Hardleather body, Green dragon leather and the d'hide pages, Thread |
 | Studs 3 ticks; studded body 41, 40 XP; studded chaps 44, 42 XP | OSRS Wiki, Studded body and Studded chaps |
+| Gem levels, XP, 2 ticks a gem; opal, jade and red topaz's crush chances (pairs worked back from each page's formula and checked against its chart, `CraftingDataTest`) and crushed XP | OSRS Wiki, each gem's page |
+| Each gem's cutting animation (`human_*cutting`) | cache 241 gamevals |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle | out of scope |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst | out of scope |
 
 ## Items and inventory
 
