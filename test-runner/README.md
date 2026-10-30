@@ -143,6 +143,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
   a willow chopped at level 30, a shrimp netted at the shore's Small Net spots and cooked on the permanent fire.
+- `lumbridge-church.json`: Lumbridge church: Examine (with `::keys on`) on Father Aereck, the Prayer tutor, Nigel and
+  Count Check; Pray-at the altar with drained prayer points (then again, full); Father Aereck's thanks, the Prayer
+  tutor's two answers, Nigel's Deadman questions and his Trade, and Count Check's advice, who he is, the Salve, the
+  Stronghold offer turned down and his check.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
