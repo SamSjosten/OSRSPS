@@ -40,7 +40,7 @@ object DialogueLines {
         BankLines, ShopLines, BarfyBillLines,
         // Al Kharid.
         BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
-        GemTraderLines,
+        GemTraderLines, KarimLines, SilkTraderLines, KebabLines,
     )
 }
 

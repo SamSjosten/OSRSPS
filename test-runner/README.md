@@ -140,6 +140,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `al-kharid-shops.json`: Al Kharid step 3: Trade with each of Al Kharid's seven shops (the General Store, Zeke,
   Dommik, Louie Legs, Ranael, the Gem trader and Ali Morrisane), buying one of the first item and selling it back,
   then Louie Legs's talk (with `::keys on`) into his shop.
+- `al-kharid-traders.json`: Al Kharid step 4: a kebab bought from Karim through his talk (with `::keys on`) and
+  eaten, and silk haggled down to 2 gp from the Silk trader.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

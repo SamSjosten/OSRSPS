@@ -197,7 +197,7 @@ class NpcSpawnFileTest {
         val names = mapOf(
             4287 to "borderguard1", 4288 to "borderguard2", 3090 to "kharidbanker1", 3091 to "kharidbanker2",
             2817 to "generalshopkeeper3", 2818 to "generalassistant3", 2875 to "zeke", 2879 to "dommik", 2876 to "louie_legs",
-            2878 to "ranael", 2874 to "gem_trader", 3533 to "feud_ali_m",
+            2878 to "ranael", 2874 to "gem_trader", 3533 to "feud_ali_m", 2877 to "kebab_seller", 2873 to "silk_trader",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
@@ -213,6 +213,8 @@ class NpcSpawnFileTest {
         for (id in listOf(2817, 2818, 2875, 2879, 2876, 2878)) assertEquals(MoveRestrict.INDOORS, spawns.single { it.type.id == id }.restrict)
         assertEquals(1, spawns.count { it.type.id == 2874 })
         assertEquals(1, spawns.count { it.type.id == 3533 })
+        assertEquals(1, spawns.count { it.type.id == 2877 })
+        assertEquals(1, spawns.count { it.type.id == 2873 })
         // Inside Al Kharid: east of the toll gate's fence line, north of the bank, south of the mine.
         assertTrue(spawns.all { it.x in 3267..3330 && it.z in 3160..3230 && it.level == 0 && it.source.isNotBlank() })
         assertTrue(spawns.filter { it.type.id in listOf(4287, 4288, 3090, 3091) }.all { it.wander == 0 })
