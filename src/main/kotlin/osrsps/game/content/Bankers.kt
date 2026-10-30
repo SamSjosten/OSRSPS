@@ -77,12 +77,16 @@ object Bankers {
     /** banker1_new: the banker players see. */
     const val BANKER = 2897
 
+    /** banker1 and banker2: Draynor Village's bankers, who say what the castle's does (the Wiki's Banker page). */
+    val DRAYNOR = listOf(1613, 1618)
+
     /** Al Kharid's bankers (kharidbanker1 and 2), who say what the castle's banker says. */
     const val AL_KHARID_BANKER_1 = 3090
     const val AL_KHARID_BANKER_2 = 3091
+    val AL_KHARID = listOf(AL_KHARID_BANKER_1, AL_KHARID_BANKER_2)
 
-    /** Every banker with the banker's talk. */
-    val BANKERS = listOf(BANKER, AL_KHARID_BANKER_1, AL_KHARID_BANKER_2)
+    /** Every banker with the standard conversation. */
+    val STANDARD = listOf(BANKER) + DRAYNOR + AL_KHARID
     const val BANKER_TUTOR = 3227
     const val TALK_TO = 1
 
@@ -163,13 +167,14 @@ object Bankers {
 
 /** The bankers' Talk-to and Bank, from across their booths. Collect does nothing yet. */
 fun registerBankers(world: World) {
-    for (banker in Bankers.BANKERS + Bankers.BANKER_TUTOR) world.npcInteractions.reachOverCounter(banker)
+    for (banker in Bankers.STANDARD) world.npcInteractions.reachOverCounter(banker)
+    world.npcInteractions.reachOverCounter(Bankers.BANKER_TUTOR)
     fun ScriptContext.answer(ask: Bankers.Ask) = when (ask) {
         Bankers.Ask.BANK -> world.bankScreen.open(player)
         Bankers.Ask.PIN -> world.bankPinSettings.open(player)
         Bankers.Ask.NOTHING -> Unit
     }
-    for (banker in Bankers.BANKERS) {
+    for (banker in Bankers.STANDARD) {
         world.handlers.onNpc(banker, Bankers.TALK_TO) { op ->
             var ask = Bankers.Ask.NOTHING
             world.dialogues.start(this, op.npc) { ask = with(Bankers) { banker() } }
@@ -181,7 +186,7 @@ fun registerBankers(world: World) {
         world.dialogues.start(this, op.npc) { ask = with(Bankers) { tutor() } }
         answer(ask)
     }
-    for (banker in Bankers.BANKERS + Bankers.BANKER_TUTOR) {
+    for (banker in Bankers.STANDARD + Bankers.BANKER_TUTOR) {
         world.handlers.onNpc(banker, Bankers.BANK) { world.bankScreen.open(player) }
     }
 }
