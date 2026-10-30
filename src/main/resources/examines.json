@@ -90,7 +90,10 @@
     {"npc": 3533, "name": "Ali Morrisane"},
     {"npc": 2877, "name": "Karim"},
     {"npc": 2873, "name": "Silk trader"},
-    {"npc": 3231, "name": "Ellis"}
+    {"npc": 3231, "name": "Ellis"},
+    {"npc": 4285, "name": "Chancellor Hassan"},
+    {"npc": 4286, "name": "Osman"},
+    {"npc": 11580, "name": "Prince Ali", "wiki": "Prince Ali page, infobox (the freed Prince Ali, whom prince_ali_palace 11645 shows after Prince Ali Rescue)"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},
@@ -230,6 +233,8 @@
     {"loc": 1278, "name": "Tree"},
     {"loc": 255, "name": "Winch"},
     {"loc": 824, "name": "Wooden defence"},
-    {"loc": 44050, "name": "Gate", "also": [44051, 44052, 44053], "wiki": "Toll gate page, infobox (Al Kharid's toll gate; the player sees 44050/44051 after Prince Ali Rescue)"}
+    {"loc": 44050, "name": "Gate", "also": [44051, 44052, 44053], "wiki": "Toll gate page, infobox (Al Kharid's toll gate; the player sees 44050/44051 after Prince Ali Rescue)"},
+    {"loc": 33348, "name": "Big window"},
+    {"loc": 7396, "name": "Carpet Exhibit"}
   ]
 }
