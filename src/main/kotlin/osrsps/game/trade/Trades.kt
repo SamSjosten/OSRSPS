@@ -64,8 +64,6 @@ class Trades(
     private val openModal: (Player, FrameSlot, Int) -> Unit,
     /** Closes every modal the player has open. */
     private val closeModals: (Player) -> Unit,
-    /** Turns a player to face another, or stops them facing anyone. */
-    private val facePlayer: (Player, Player?) -> Unit,
 ) {
     /** A click on Trade with [target]. */
     fun click(player: Player, target: Player, invertRun: Boolean) {
@@ -77,7 +75,6 @@ class Trades(
         }
         val interaction = TradeInteraction(target, this)
         player.interaction = interaction
-        facePlayer(player, target)
         route(player, interaction, invertRun)
     }
 
@@ -113,7 +110,8 @@ class Trades(
         if (player.trade != null) return
         // Guessed: nobody trades with a player lying dead, who couldn't decline (their clicks are dropped until the respawn).
         if (player.dead || target.dead) return
-        if (target.trade != null || target.modalOpen) {
+        // A delayed player (part way up a ladder) is busy too, or the climb would carry them off mid-trade.
+        if (target.trade != null || target.modalOpen || target.scripts.delayed) {
             message(player, TradeLines.BUSY)
             return
         }
@@ -152,7 +150,6 @@ class Trades(
             side.interaction = null
             side.waypoints.clear()
             side.trade = trade
-            facePlayer(side, null)
             openModal(side, FrameSlot.MAINMODAL, MAIN)
             openModal(side, FrameSlot.SIDEMODAL, SIDE)
         }

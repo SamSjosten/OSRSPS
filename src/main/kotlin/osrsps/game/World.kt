@@ -414,10 +414,7 @@ class World(
     /** Trading between players; see [Trades]. */
     val trades = Trades(
         collision, movement, { players[it.index] === it }, ignoreLists, ::textFor, interfaces::openModal, interfaces::closeModals,
-    ) { player, target ->
-        val extendedInfo = player.infos.playerInfo.avatar.extendedInfo
-        if (target == null) extendedInfo.resetFacing() else extendedInfo.setFacePlayer(target.index, false, 0, Follows.angle(player.x, player.z, target.x, target.z))
-    }
+    )
 
     /** Private messages; see [PrivateMessages]. */
     val privateMessages = PrivateMessages(
