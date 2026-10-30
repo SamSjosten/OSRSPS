@@ -135,9 +135,16 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   adventurers' talks; the candle seller refusing a player with no coins, then selling a lit candle for 1000; and the
   Mining and Fishing tutors' basics (with a pickaxe and a net carried), the Mining tutor's quests and the small net
   fish.
+<<<<<<< HEAD
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
+=======
+- `lumbridge-church.json`: Lumbridge church: Examine (with `::keys on`) on Father Aereck, the Prayer tutor, Nigel and
+  Count Check; Pray-at the altar with drained prayer points (then again, full); Father Aereck's thanks, the Prayer
+  tutor's two answers, Nigel's Deadman questions and his Trade, and Count Check's advice, who he is, the Salve, the
+  Stronghold offer turned down and his check.
+>>>>>>> 5ba5911 (Rest of Lumbridge step 10: the church and its altar)
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

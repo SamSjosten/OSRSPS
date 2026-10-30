@@ -46,7 +46,8 @@ object DialogueLines {
         SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines, GillieLines, MillieLines,
         HopperLines, DuckLines, SheepLines, CropLines, DairyCowLines, MillLines, BonesLines, SearchLines, ClimbLines,
         BankLines, ShopLines, BarfyBillLines, UrhneyLines, CampWarriorLines, CampArcherLines, CampMonkLines, CampWizardLines,
-        CandleSellerLines, MiningTutorLines, FishingTutorLines,
+        CandleSellerLines, MiningTutorLines, FishingTutorLines, AereckLines, PrayerTutorLines, NigelLines, CountCheckLines,
+        AltarLines,
         // Draynor Village.
         DraynorSearchLines,
     )

@@ -77,7 +77,11 @@
     {"npc": 1160, "name": "Wizard", "wiki": "Wizard (Lost City) page, infobox"},
     {"npc": 1896, "name": "Candle seller"},
     {"npc": 3222, "name": "Mining tutor"},
-    {"npc": 3221, "name": "Fishing tutor"}
+    {"npc": 3221, "name": "Fishing tutor"},
+    {"npc": 2812, "name": "Father Aereck"},
+    {"npc": 3223, "name": "Prayer tutor"},
+    {"npc": 8391, "name": "Nigel", "also": [6093], "wiki": "Nigel page, infobox, Normal"},
+    {"npc": 7414, "name": "Count Check"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},
@@ -216,6 +220,7 @@
     {"loc": 14880, "name": "Trapdoor"},
     {"loc": 1278, "name": "Tree"},
     {"loc": 255, "name": "Winch"},
-    {"loc": 824, "name": "Wooden defence"}
+    {"loc": 824, "name": "Wooden defence"},
+    {"loc": 409, "name": "Altar", "wiki": "Altar (Lumbridge) or Altar page, infobox"}
   ]
 }
