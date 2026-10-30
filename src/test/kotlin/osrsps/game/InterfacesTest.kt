@@ -157,4 +157,19 @@ class InterfacesTest {
         interfaces.openGameFrame(after)
         assertTrue(IfOpenSub(629, 43, 399, Interfaces.OVERLAY) in sent)
     }
+
+    @Test
+    fun `a modal replaced by another runs its close hook, once`() {
+        val player = player(GameFrame.FIXED)
+        val closed = mutableListOf<Int>()
+        interfaces.onClose(100) { closed += 100 }
+        interfaces.openModal(player, FrameSlot.MAINMODAL, 100)
+        interfaces.openModal(player, FrameSlot.MAINMODAL, 100)
+        assertEquals(emptyList(), closed)
+        interfaces.openModal(player, FrameSlot.MAINMODAL, 200)
+        assertEquals(listOf(100), closed)
+        interfaces.closeModals(player)
+        assertEquals(listOf(100), closed)
+    }
+
 }
