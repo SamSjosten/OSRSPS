@@ -510,6 +510,18 @@ class HeadlessClient private constructor(
         await("tick $target", timeoutMillis) { if (ticks >= target) Unit else null }
     }
 
+    /**
+     * Runs [count] ticks of a world paused with `::pause` and waits for all of their updates, so a test counts game ticks
+     * and not test-thread time. The run ends with "Paused after tick n" and then its tick end; waiting on the message,
+     * not just a tick end, keeps a late tick end from before the steps from passing for the last one.
+     */
+    fun stepTicks(count: Int) {
+        val from = lock.withLock { messages.size }
+        command("step $count")
+        val done = await("the steps to finish") { messages.drop(from).firstOrNull { it.text.matches(STEPPED) } }
+        await("the last stepped tick's end") { if (ticks > done.tick) Unit else null }
+    }
+
     /** Waits for a game message matching [predicate] that arrives after this call, and returns it. */
     fun awaitMessage(description: String, timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS, predicate: (String) -> Boolean): GameMessage {
         val from = lock.withLock { messages.size }
@@ -781,6 +793,9 @@ class HeadlessClient private constructor(
 
     companion object {
         const val DEFAULT_TIMEOUT_MILLIS = 10_000L
+
+        /** What a finished `::step` says; the `::pause` reply has more after the number. */
+        private val STEPPED = Regex("Paused after tick \\d+")
 
         private const val INIT_GAME_CONNECTION = 14
         private const val GAMELOGIN = 16

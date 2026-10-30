@@ -105,6 +105,9 @@ class RangedCombat(
         val hit: Boolean = false,
         /** How many NPCs its blast can hit, its target among them; 1 for no blast. */
         val targets: Int = 1,
+        /** The poison severity it gives one time in eight, 0 for none, and whether it envenoms ([PoisonedWeapons]). */
+        val poison: Int = 0,
+        val venom: Boolean = false,
     )
 
     private val inFlight = ArrayList<Shot>()
@@ -197,7 +200,7 @@ class RangedCombat(
         // The dark bow fires one arrow when only one is left (OSRS Wiki, Dark bow).
         val shots = minOf(weapon.shots, worn.count)
         player.equipment.remove(WearPos.AMMO, shots)
-        release(player, npc, weapon, ammo, ammoType, matchup, shots, tick)
+        release(player, npc, weapon, ammo, ammoType, matchup, shots, tick, poison = PoisonedWeapons.ranged(ammoType))
         return true
     }
 
@@ -209,7 +212,7 @@ class RangedCombat(
         val ammo = weapons.ammo(blowpipe.dart(player))
         val matchup = combat.rangedMatchup(player, npc) ?: return false
         if (!blowpipe.use(player, { message(player, it) }, { random.chance(SCALE_KEPT_NUMERATOR, SCALE_KEPT_DENOMINATOR) })) return false
-        release(player, npc, weapon, ammo, null, matchup, 1, tick)
+        release(player, npc, weapon, ammo, null, matchup, 1, tick, venom = true)
         return true
     }
 
@@ -219,8 +222,9 @@ class RangedCombat(
      */
     private fun fireThrown(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
         val matchup = combat.rangedMatchup(player, npc) ?: return false
+        val poison = PoisonedWeapons.ranged(combat.weapon(player))
         player.equipment.remove(WearPos.WEAPON, 1)
-        release(player, npc, weapon, null, null, matchup, 1, tick)
+        release(player, npc, weapon, null, null, matchup, 1, tick, poison = poison)
         return true
     }
 
@@ -234,6 +238,8 @@ class RangedCombat(
         matchup: RangedMatchup,
         shots: Int,
         tick: Long,
+        poison: Int = 0,
+        venom: Boolean = false,
     ) {
         val style = matchup.style
         player.nextAttackTick = tick + speed(player, style)
@@ -256,7 +262,7 @@ class RangedCombat(
             val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits
             val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
             val damage = reserve(player, npc, style, rolled)
-            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets)
+            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom)
         }
     }
 
@@ -299,7 +305,7 @@ class RangedCombat(
         val rolled = if (CombatMath.rollHits(random, shot.attackRoll, defenceRoll) || shot.player.sureHits) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0
         val damage = reserve(shot.player, next, style, rolled)
         if (shot.travel >= 0) projectile(bounceFlight(from, next, shot.travel))
-        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel)
+        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel, poison = shot.poison, venom = shot.venom)
     }
 
     /**
@@ -346,7 +352,7 @@ class RangedCombat(
             npc.incoming -= shot.damage
             // A shot whose NPC is still there hits it, and bounces on even if that hit kills it.
             val landed = npcs[npc.index] === npc && !npc.dead
-            if (landed) melee.hit(npc, shot.player, shot.damage, tick)
+            if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, shot.damage, tick), shot.poison, shot.venom, ranged = true)
             // Guessed: under the NPC's south-west tile, where its drops go too.
             if (shot.ammo != null && !random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) {
                 dropAmmo(shot.ammo, npc.x, npc.z, npc.level, shot.player)

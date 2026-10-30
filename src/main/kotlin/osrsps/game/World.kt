@@ -358,6 +358,8 @@ class World(
         multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
         words = ::textFor,
         npcDied = { npcScripts.died(it) },
+        poisonNpc = { npc, severity -> poison.poison(npc, severity) }, envenomNpc = { poison.envenom(it) },
+        poisonPlayer = { player, severity -> poison.poison(player, severity) },
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -446,7 +448,10 @@ class World(
     val foods = Foods(foodList, words = ::textFor)
 
     /** Poison and venom on players; see [Poison]. */
-    val poison = Poison(hit = { player, damage, hitsplat -> meleeCombat.statusHit(player, damage, hitsplat) }, words = ::textFor)
+    val poison = Poison(
+        hit = { player, damage, hitsplat -> meleeCombat.statusHit(player, damage, hitsplat) }, words = ::textFor,
+        hitNpc = { npc, damage, hitsplat -> meleeCombat.statusHit(npc, damage, hitsplat) }, npcCombat = { combat.npcCombat[it.type] },
+    )
 
     val potions = Potions(potionData, words = ::textFor, poison = poison)
 
@@ -839,6 +844,7 @@ class World(
         rangedCombat.process()
         magicCombat.process()
         meleeCombat.process()
+        for (npc in npcs.all) poison.process(npc)
         deaths.process()
         npcScripts.process()
         npcs.process()

@@ -40,17 +40,6 @@ class HeadlessStunTest {
 
     private fun HeadlessClient.attackXp() = stat(Skill.ATTACK.id)?.xp ?: 0
 
-    /**
-     * Runs [ticks] ticks of a paused world and waits for all of their updates, so the tests count game ticks and not
-     * test-thread time. As HeadlessCastleTest's step: the run ends with "Paused after tick n", then its tick end.
-     */
-    private fun HeadlessClient.step(ticks: Int) {
-        val from = messages().size
-        command("step $ticks")
-        val done = await("the steps to finish") { messages().drop(from).firstOrNull { it.text.matches(STEPPED) } }
-        await("the last stepped tick's end") { if (ticksSeen > done.tick) Unit else null }
-    }
-
     private fun HeadlessClient.pause() = commandReply("pause") { it.startsWith("Paused after tick") }
 
     @Test
@@ -62,11 +51,11 @@ class HeadlessStunTest {
                 client.commandReply("stun 5") { it.startsWith("Stunned for 5 more ticks") }
                 // Held for the next tick, which the stun covers.
                 client.walk(start.x, start.z + 3)
-                client.step(5)
+                client.stepTicks(5)
                 assertEquals(start, client.position, "the click while stunned went nowhere")
                 client.commandReply("stun") { it == "Not stunned." }
                 client.walk(start.x, start.z + 3)
-                client.step(3)
+                client.stepTicks(3)
                 client.await("walked north") { client.position?.takeIf { it.z == start.z + 3 } }
             }
         }
@@ -84,7 +73,7 @@ class HeadlessStunTest {
                 client.pause()
                 client.commandReply("stun 8") { it.startsWith("Stunned for 8 more ticks") }
                 val energy = client.runEnergyHundredths
-                client.step(4)
+                client.stepTicks(4)
                 assertTrue(client.runEnergyHundredths > energy, "energy recovered while stunned")
             }
         }
@@ -102,19 +91,14 @@ class HeadlessStunTest {
                 client.await("a first hit", timeoutMillis = 10_000) { client.attackXp().takeIf { it > 0 } }
                 client.pause()
                 client.commandReply("stun 12") { it.startsWith("Stunned for 12 more ticks") }
-                client.step(1)
+                client.stepTicks(1)
                 val xp = client.attackXp()
                 // He hits every 4 ticks all the while; stunned, the player neither swings nor retaliates.
-                client.step(10)
+                client.stepTicks(10)
                 assertEquals(xp, client.attackXp(), "no swing while stunned")
                 client.commandReply("resume") { it.startsWith("Resumed") }
                 client.await("retaliating once the stun ends", timeoutMillis = 15_000) { client.attackXp().takeIf { it > xp } }
             }
         }
-    }
-
-    private companion object {
-        /** What a finished ::step says; the ::pause reply has more after the number. */
-        val STEPPED = Regex("Paused after tick \\d+")
     }
 }
