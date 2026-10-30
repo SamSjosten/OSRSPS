@@ -105,9 +105,10 @@ function covers(git, number, reviewed, head) {
 
 // The `codex-review` result for a pull request as it is now: { status, conclusion?, title, summary, stale? }.
 // A batch's head covers each member: the last member's branch holds it, and its check is Codex on each member's head.
+// Anyone can write the trailers, so a head counts as a batch only when it is what the queue would build from them.
 async function evaluate(github, git, repo, pr) {
   const batch = parseBatch((await github.rest.git.getCommit({ ...repo, commit_sha: pr.head.sha })).data.message);
-  if (batch && batch.members[batch.members.length - 1].number === pr.number) {
+  if (batch && batch.members[batch.members.length - 1].number === pr.number && isBatch(git, pr.number, batch, pr.head.sha)) {
     for (const member of batch.members) {
       const result = await evaluateAt(github, git, repo, member.number, member.sha);
       if (result.conclusion !== 'success') return { ...result, title: `#${member.number} in the batch: ${result.title}` };
@@ -263,6 +264,23 @@ function buildBatch(git, members) {
   const message = `Auto-merge batch: ${numbers}\n\n${BASE_TRAILER} ${base}\n${merged.map(m => `${MEMBER_TRAILER} #${m.number} ${m.sha}`).join('\n')}\n`;
   const sha = commitTree(git, last.tree, [last.onto, merged[merged.length - 1].sha], message);
   return { sha, base, members: merged };
+}
+
+// Whether `head` is the batch its trailers name, as buildBatch makes it: on main as it is now, with the last member as
+// its second parent and the tree of every member merged onto main in turn. So its content is main and the members'
+// changes, nothing more, whoever made the commit.
+function isBatch(git, number, batch, head) {
+  try {
+    try { git(['fetch', '--no-tags', '--quiet', 'origin', `+refs/heads/${BATCH}:refs/remotes/origin/${BATCH}`]); } catch { /* gone: the pull request's head may still be it */ }
+    git(['fetch', '--no-tags', '--quiet', 'origin', `+refs/pull/${number}/head:refs/remotes/pr/${number}`]);
+    const built = buildBatch(git, batch.members);
+    const last = batch.members[batch.members.length - 1].sha;
+    return built.base === batch.base && built.members.length === batch.members.length
+      && git(['rev-parse', `${head}^2`]).trim() === last
+      && git(['rev-parse', `${head}^{tree}`]).trim() === git(['rev-parse', `${built.sha}^{tree}`]).trim();
+  } catch {
+    return false;
+  }
 }
 
 // The batch branch as it is: { sha, at, base, members } or null.
@@ -472,3 +490,4 @@ module.exports.covers = covers;
 module.exports.BATCH = BATCH;
 module.exports.parseBatch = parseBatch;
 module.exports.buildBatch = buildBatch;
+module.exports.isBatch = isBatch;

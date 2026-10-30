@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const automerge = require('./automerge.js');
-const { CHECK, CODEX, NOTICE, OWN, BATCH, verdict, covers, parseBatch, buildBatch } = automerge;
+const { CHECK, CODEX, NOTICE, OWN, BATCH, verdict, covers, parseBatch, buildBatch, isBatch } = automerge;
 
 const summary = (sha, findings, status = 'completed') => ({ // has_unresolved_findings follows findings
   user: { login: CODEX },
@@ -41,14 +41,26 @@ test('only Codex counts, and no review is null', () => {
 
 // A git that knows the tree each commit makes merged with main (null: it conflicts). Batches: main is H('m'), the
 // commits it makes are numbered, and what it pushes lands in `pushed`.
-function fakeGit(trees, pushed = []) {
+// `heads` gives commits it didn't make their { tree, second } (second parent).
+function fakeGit(trees, pushed = [], heads = {}) {
   let made = 0;
+  const madeTrees = {};
   return (args, input) => {
     if (args[0] === 'fetch') return '';
     if (args[0] === 'rev-parse' && args[1] === 'origin/main') return `${H('m')}\n`;
+    if (args[0] === 'rev-parse' && args[1].endsWith('^{tree}')) {
+      const sha = args[1].slice(0, -7);
+      return `${madeTrees[sha] || (heads[sha] && heads[sha].tree) || 'none'}\n`;
+    }
+    if (args[0] === 'rev-parse' && args[1].endsWith('^2')) {
+      const sha = args[1].slice(0, -2);
+      if (!heads[sha]) throw new Error('no such commit');
+      return `${heads[sha].second}\n`;
+    }
     if (args[0] === '-c' && args.includes('commit-tree')) {
       made++;
       const sha = String(made).padStart(40, 'c');
+      madeTrees[sha] = args[args.indexOf('commit-tree') + 1];
       pushed.commits = { ...(pushed.commits || {}), [sha]: input };
       return `${sha}\n`;
     }
@@ -389,6 +401,7 @@ const batchMessage = (base, members) =>
   `Auto-merge batch: ${members.map(n => `#${n}`).join(', ')}\n\nAutomerge-Base: ${base}\n${members.map(n => `Automerge-Member: #${n} ${H(String(n))}`).join('\n')}\n`;
 const ready = (n, extra = {}) => ({ head: H(String(n)), ref: `branch-${n}`, behind: 1, checks: [...green, codexPass], comments: [summary(H(String(n)), false)], ...extra });
 const B = H('b');
+const batchTrees = { [H('1')]: 't1', [H('2')]: 't2' };
 
 test('a batch commit names its base and members; anything else is no batch', () => {
   assert.deepStrictEqual(parseBatch(batchMessage(H('m'), [1, 2])), { base: H('m'), members: [{ number: 1, sha: H('1') }, { number: 2, sha: H('2') }] });
@@ -420,16 +433,26 @@ test('a green batch becomes the last member\'s head, with a codex-review that co
   const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2) }, {
     batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] },
   });
-  await queue(github, fakeGit({}));
+  const git = () => fakeGit(batchTrees, [], { [B]: { tree: 't2', second: H('2') } });
+  await queue(github, git());
   assert.deepStrictEqual(calls, [['updateRef', 'heads/branch-2', B, false], ['check', B, 'success']]);
 
   // Then it waits for auto-merge, and the gate leaves the batch's check passing.
   const before = calls.length;
-  await queue(github, fakeGit({}));
+  await queue(github, git());
   assert.deepStrictEqual(calls.slice(before), []);
   const gated = fakeGitHub({ 1: ready(1), 2: ready(2, { head: B, checks: [] }) }, { commits: { [B]: batchMessage(H('m'), [1, 2]) } });
-  await gate(gated.github, fakeGit({}), 2);
+  await gate(gated.github, git(), 2);
   assert.deepStrictEqual(gated.calls, [['check', B, 'success']]);
+});
+
+test('batch trailers on a commit the queue would not build count for nothing', async () => {
+  // The same trailers on a head whose tree isn't main with the members merged in, or isn't on the last member.
+  for (const forged of [{ tree: 'something else', second: H('2') }, { tree: 't2', second: H('9') }]) {
+    const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2, { head: B, checks: [] }) }, { commits: { [B]: batchMessage(H('m'), [1, 2]) } });
+    await gate(github, fakeGit(batchTrees, [], { [B]: forged }), 2);
+    assert.deepStrictEqual(calls, [['check', B, 'in_progress']], 'Codex reviewed #2 at its own head, not this one');
+  }
 });
 
 test('a batch whose member has Codex findings by now is not promoted', async () => {
@@ -505,5 +528,13 @@ test('the real git: a batch merges each member in turn, leaves out one that conf
   for (const sha of [a, b, d]) sh('merge-base', '--is-ancestor', sha, built.sha);
   assert.strictEqual(sh('show', `${built.sha}:shared`), 'b');
   assert.deepStrictEqual(sh('ls-tree', '--name-only', built.sha).split('\n').sort(), ['a', 'd', 'shared']);
+  assert.ok(isBatch(git, 4, batch, built.sha));
+  // The same message and parents with one more change in the tree.
+  sh('checkout', '-q', '--detach', built.sha);
+  fs.writeFileSync(path.join(dir, 'extra'), 'unreviewed\n');
+  sh('add', '.');
+  const tree = sh('write-tree');
+  const forged = execFileSync('git', ['-C', dir, 'commit-tree', tree, '-p', `${built.sha}^1`, '-p', d, '-F', '-'], { input: sh('log', '-1', '--format=%B', built.sha), encoding: 'utf8' }).trim();
+  assert.ok(!isBatch(git, 4, batch, forged), 'a change beyond the members');
   fs.rmSync(dir, { recursive: true, force: true });
 });
