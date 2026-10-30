@@ -1,0 +1,131 @@
+{
+ "name": "Al Kharid step 4b: Ellis's talk (::keys on) into the tanning screen, Tan 1 and Tan All on cowhides into soft leather",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item cowhide 3",
+   "expectMessage": "Added 3 x Cowhide"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 4",
+   "expectMessage": "Added 4 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3276 3192 0",
+   "expectMessage": "Teleported to 3276, 3192, 0",
+   "comment": "Ellis's shop north of the furnace"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ellis",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ellis.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ellis.some_hides]",
+   "comment": "three cowhides carried"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ellis.yes_please]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 324,
+   "comment": "the tanning screen"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 324,
+   "component": 116,
+   "contains": "[tanning.price price=1]",
+   "comment": "slot a's price, filled in by the server"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 324,
+   "component": 148,
+   "op": 1,
+   "comment": "Tan 1 on soft leather"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Leather",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 3
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[tanning.tanned_one hide=cowhides]"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ellis",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 324
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 324,
+   "component": 124,
+   "op": 1,
+   "comment": "Tan All on soft leather: the two cowhides left"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Leather",
+   "count": 3
+  },
+  {
+   "step": "assertInventory",
+   "item": "Cowhide",
+   "count": 0
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

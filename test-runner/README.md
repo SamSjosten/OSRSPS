@@ -143,6 +143,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   then Louie Legs's talk (with `::keys on`) into his shop.
 - `al-kharid-traders.json`: Al Kharid step 4: a kebab bought from Karim through his talk (with `::keys on`) and
   eaten, and silk haggled down to 2 gp from the Silk trader.
+- `al-kharid-tanning.json`: Al Kharid step 4b: Ellis's talk (with `::keys on`) with cowhides carried, into the
+  tanning screen; Tan 1, then Trade and Tan All, turning three cowhides into soft leather for a coin each.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
