@@ -162,6 +162,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `al-kharid-shantay-pass.json`: Al Kharid step 8 (with `::keys on`): the outlaw's arrest with no coins, which ends
   in Port Sarim's prison, and its lock picked at Thieving 99; the Shantay Pass gate refused without a pass, a pass bought with Buy-pass, Shantay's shop, the gate with a pass (the desert isn't built yet), and the bank chest.
   Needs 0.6.1 for `assertInterface`.
+- `al-kharid-arena-glider.json`: Al Kharid step 9 (with `::keys on`): Captain Dalbur's Glider and his talk's glider
+  answer end at the stub message, Arena Guard Fronk, the Duel Guide and the 1v1 Tournament Guide talk, and the
+  recruitment board and the staging area steps say the Arena isn't open yet.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.

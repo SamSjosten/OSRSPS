@@ -203,7 +203,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Al Kharid has two Border Guards each side of the toll gate, five bankers, a keeper for each shop, its fighters and camels`() {
+    fun `Al Kharid has two Border Guards each side of the toll gate, five bankers, a keeper for each shop, its fighters, camels and the Arena's people`() {
         val names = mapOf(
             4287 to "borderguard1", 4288 to "borderguard2", 3090 to "kharidbanker1", 3091 to "kharidbanker2",
             2817 to "generalshopkeeper3", 2818 to "generalassistant3", 2875 to "zeke", 2879 to "dommik", 2876 to "louie_legs",
@@ -213,6 +213,7 @@ class NpcSpawnFileTest {
             5950 to "elly_the_camel", 5951 to "ollie_the_camel", 5952 to "cam_the_camel", 5953 to "alice_the_camel_multinpc",
             1528 to "0_51_49_saltfish", 4642 to "shantay", 4643 to "shantay_guard", 4648 to "shantay_guard_still",
             4641 to "tourtrap_qip_irena_happy", 3106 to "man", 3107 to "man2", 3108 to "man3", 3019 to "spider",
+            6089 to "pilot_al_kharid", 11664 to "pvpa_guard_1", 11673 to "pvpa_duel_guide", 11672 to "pvpa_1v1_guide",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
@@ -247,8 +248,11 @@ class NpcSpawnFileTest {
         // The Shantay Pass: Shantay, the gate guard, three guards and Irena.
         assertEquals(3, spawns.count { it.type.id == 4643 })
         for (id in listOf(4642, 4648, 4641)) assertEquals(1, spawns.count { it.type.id == id && it.z in 3110..3130 })
-        // Al Kharid: east of the toll gate's fence line, from the Shantay Pass to the mine's north end.
-        assertTrue(spawns.all { it.x in 3267..3330 && it.z in 3110..3320 && it.level == 0 && it.source.isNotBlank() })
+        // Captain Dalbur by his glider, and the Emir's Arena's guard and Guides (at guessed tiles) by its gate and in its lobby.
+        assertEquals(1, spawns.count { it.type.id == 6089 && it.x == 3284 && it.z == 3212 })
+        for (id in listOf(11664, 11673, 11672)) assertEquals(1, spawns.count { it.type.id == id && it.x in 3340..3380 && it.z in 3260..3280 })
+        // Al Kharid: east of the toll gate's fence line, from the Shantay Pass to the mine's north end, and the Arena.
+        assertTrue(spawns.all { it.x in 3267..3380 && it.z in 3110..3320 && it.level == 0 && it.source.isNotBlank() })
         assertTrue(spawns.filter { it.type.id in listOf(4287, 4288, 3090, 3091) }.all { it.wander == 0 })
     }
 
