@@ -77,6 +77,12 @@ interface Game
 	/** Uses the first such item in the inventory on the first other slot holding the second item, as Use then a click does. */
 	String useItemOnItem(String name, int id, String onName, int onId);
 
+	/**
+	 * (0.12.0) Uses the first such item in the inventory on the nearest loc with this name (or id) on the player's
+	 * plane, on the tile when given, as Use then a click on the loc does.
+	 */
+	String useItemOnLoc(String name, int id, String locName, int locId, Tile at);
+
 	/** How many of the item (by name, or id when the name is null) the inventory holds; -1 while the client has none. */
 	int inventoryCount(String name, int id);
 

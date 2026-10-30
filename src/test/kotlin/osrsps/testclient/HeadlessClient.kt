@@ -426,6 +426,9 @@ class HeadlessClient private constructor(
         send(GameClientProt.IGNORELIST_DEL) { pjstr(name) }
     }
 
+    /** The client closing its modals (CLOSE_MODAL), as Esc or a close button does. */
+    fun closeModal() = send(GameClientProt.CLOSE_MODAL) {}
+
     /** An item picked in the chatbox's item search (RESUME_P_OBJDIALOG). */
     fun resumeObj(obj: Int) = send(GameClientProt.RESUME_P_OBJDIALOG) { p2(obj) }
 
@@ -524,12 +527,13 @@ class HeadlessClient private constructor(
     /**
      * Runs [count] ticks of a world paused with `::pause` and waits for all of their updates, so a test counts game ticks
      * and not test-thread time. The run ends with "Paused after tick n" and then its tick end; waiting on the message,
-     * not just a tick end, keeps a late tick end from before the steps from passing for the last one.
+     * not just a tick end, keeps a late tick end from before the steps from passing for the last one. The steps run at
+     * the server's tick rate, so the wait allows for them on top of the usual timeout.
      */
     fun stepTicks(count: Int) {
         val from = lock.withLock { messages.size }
         command("step $count")
-        val done = await("the steps to finish") { messages.drop(from).firstOrNull { it.text.matches(STEPPED) } }
+        val done = await("the steps to finish", DEFAULT_TIMEOUT_MILLIS + count * STEP_MILLIS) { messages.drop(from).firstOrNull { it.text.matches(STEPPED) } }
         await("the last stepped tick's end") { if (ticks > done.tick) Unit else null }
     }
 
@@ -807,6 +811,9 @@ class HeadlessClient private constructor(
 
         /** What a finished `::step` says; the `::pause` reply has more after the number. */
         private val STEPPED = Regex("Paused after tick \\d+")
+
+        /** Twice the test server's 100 ms tick, so a run of steps has room on a slow CI machine. */
+        private const val STEP_MILLIS = 200L
 
         private const val INIT_GAME_CONNECTION = 14
         private const val GAMELOGIN = 16

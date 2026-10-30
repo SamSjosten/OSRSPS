@@ -183,7 +183,9 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
 
     /** Opens [interfaceId] as a modal in [slot], replacing whatever modal was there. */
     fun openModal(player: Player, slot: FrameSlot, interfaceId: Int) {
-        player.modals[slot] = interfaceId
+        val replaced = player.modals.put(slot, interfaceId)
+        // The one it replaces is gone from the client too, so whatever it held is let go as on a close.
+        if (replaced != null && replaced != interfaceId && replaced !in player.modals.values) closeHooks[replaced]?.invoke(player)
         val frame = player.frame
         send(player, IfOpenSub(frame.interfaceId, frame.component(slot), interfaceId, MODAL))
     }

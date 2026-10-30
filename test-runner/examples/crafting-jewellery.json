@@ -1,0 +1,42 @@
+{
+ "name": "Artisan step 6: at Lumbridge's furnace, a gold bar opens crafting_gold and All makes two sapphire rings at 99; a tiara mould opens silver_crafting and makes a tiara; a ball of wool strings a gold amulet (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3225 3254 0", "comment": "beside the furnace north of Lumbridge Castle"},
+  {"step": "assertLocation", "x": 3225, "y": 3254, "plane": 0},
+  {"step": "command", "text": "::setlevel crafting 99", "expectMessage": "Crafting set to level 99"},
+  {"step": "command", "text": "::item 2357 2", "expectMessage": "Added 2 x Gold bar"},
+  {"step": "command", "text": "::item 1592", "expectMessage": "Added 1 x Ring mould"},
+  {"step": "command", "text": "::item 1607 2", "expectMessage": "Added 2 x Sapphire"},
+
+  {"step": "useItemOnLoc", "item": "Gold bar", "locId": 24009, "x": 3226, "y": 3256},
+  {"step": "assertInterface", "interfaceId": 446, "comment": "crafting_gold"},
+  {"step": "clickWidget", "interfaceId": 446, "component": 64, "comment": "make_all"},
+  {"step": "clickWidget", "interfaceId": 446, "component": 9, "comment": "sapphire ring"},
+  {"step": "assertAnimation", "id": 899, "comment": "human_furnace"},
+  {"step": "assertInventory", "item": "Sapphire ring", "count": 2, "timeoutMs": 10000, "comment": "2 ticks, then 3"},
+  {"step": "assertInventory", "item": "Gold bar", "count": 0},
+  {"step": "assertMessage", "contains": "crafting.jewellery"},
+
+  {"step": "command", "text": "::item 2355", "expectMessage": "Added 1 x Silver bar"},
+  {"step": "command", "text": "::item 5523", "expectMessage": "Added 1 x Tiara mould"},
+  {"step": "useItemOnLoc", "item": "Tiara mould", "locId": 24009, "x": 3226, "y": 3256},
+  {"step": "assertInterface", "interfaceId": 6, "comment": "silver_crafting"},
+  {"step": "clickWidget", "interfaceId": 6, "component": 28, "comment": "tiara"},
+  {"step": "assertInventory", "item": "Tiara", "count": 1, "timeoutMs": 10000},
+
+  {"step": "command", "text": "::item 1673", "expectMessage": "Added 1 x Gold amulet (u)"},
+  {"step": "command", "text": "::item 1759", "expectMessage": "Added 1 x Ball of wool"},
+  {"step": "useItemOnItem", "item": "Ball of wool", "onItem": "Gold amulet (u)"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Gold amulet", "count": 1, "timeoutMs": 10000},
+  {"step": "assertStat", "skill": "Crafting", "level": 99, "xp": 13034567, "comment": "40 x 2 + 52.5 + 4 = 136.5 XP"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

@@ -1,5 +1,6 @@
 package osrsps.game.command
 
+import osrsps.game.NpcStat
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -24,7 +25,7 @@ import kotlin.math.max
 
 /**
  * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`
- * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::stun`, `::multi` and `::blowpipe` change the world,
+ * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::stun`, `::drain`, `::multi` and `::blowpipe` change the world,
  * so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
@@ -190,6 +191,20 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             }
         }
         reply(poison.describe(player))
+    }
+
+    register("drain", "::drain stat levels|percent% [index|name]", admin = true) {
+        val usage = "Usage: ::drain stat levels|percent% [index|name], a stat being ${NpcStat.entries.joinToString { it.name.lowercase() }}"
+        if (args.size < 2) fail(usage)
+        val stat = runCatching { NpcStat.parse(args[0]) }.getOrElse { fail(usage) }
+        val amount = args[1]
+        val npc = target(world, player, args.drop(2), "::drain ${args[0]} $amount")
+        val drained = if (amount.endsWith("%")) {
+            world.npcDrains.drainPercent(npc, stat, amount.dropLast(1).toIntOrNull()?.takeIf { it in 0..100 } ?: fail(usage))
+        } else {
+            world.npcDrains.drain(npc, stat, amount.toIntOrNull()?.takeIf { it >= 0 } ?: fail(usage))
+        }
+        reply("Drained ${npc.type.name} #${npc.index}'s ${stat.name.lowercase()} by $drained to ${npc.level(stat)}/${npc.type.stats[stat]}.")
     }
 
     register("stun", "::stun [ticks|end]", admin = true) {

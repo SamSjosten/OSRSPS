@@ -36,6 +36,15 @@ object GrandExchangeLines : Lines("ge", "Grand Exchange") {
     val NOT_ENOUGH_ITEMS = line("not_enough_items", "Confirm on a sell offer for more than the inventory holds")
     val TOO_MUCH_MONEY = line("too_much_money", "Confirm on an offer worth more than the most an offer can be")
     val NO_ROOM_FOR_CHANGE = line("no_room_for_change", "Confirm when paying with platinum tokens leaves change and no room for it")
+
+    // An offer's progress, sent as it fills or is aborted, whether or not a screen is open.
+    val BOUGHT = line("bought", "a buy offer part-filled: {done} of {total} bought", "done", "total", "item")
+    val SOLD = line("sold", "a sell offer part-filled: {done} of {total} sold", "done", "total", "item")
+    val FINISHED_BUYING = line("finished_buying", "a buy offer completely filled", "total", "item")
+    val FINISHED_SELLING = line("finished_selling", "a sell offer completely filled", "total", "item")
+    val ABORTED = line("aborted", "Abort offer acknowledged")
+    val COLLECT_WAITING = line("collect_waiting", "logging in with something in the collection box")
+    val NO_ROOM_TO_COLLECT = line("no_room_to_collect", "collecting to an inventory with no room for it")
 }
 
 /**
@@ -60,6 +69,13 @@ object GrandExchangeLines : Lines("ge", "Grand Exchange") {
  * chatbox item search (meslayer_mode14, which answers with resume_p_objdialog), a sell from ge_offers_side's Offer.
  * Confirm (465:30) places the offer in the selected slot. Left for later: the warning on a sell under a tenth of the
  * guide price, and Modify offer.
+ *
+ * Collecting: an offer's two boxes on its details (ge_offers:details_collect subs 2 and 3, as script816 makes them),
+ * Collect to inventory or bank over the index (ge_offers:collectall sub 0, ge_offers_index_inittop), and the
+ * collection box ge_collect (402, `::gecollect` until Varrock's clerks), whose slots' boxes are subs 3 and 4 of
+ * collect_0 to 7 (ge_collect_initslot). The ops are as ge_collect_drawitem and script9909 label them: for an item
+ * with a note, Collect-item and Collect-note for one, Collect-notes and Collect-items for more; else Collect (op 2);
+ * then Bank (op 3) and Examine (op 10).
  */
 class GrandExchangeScreen(
     private val grandExchange: GrandExchange,
@@ -68,6 +84,9 @@ class GrandExchangeScreen(
     /** Shows an item's examine text and values, as the inventory's Examine does. */
     private val examine: (Player, Int, Int) -> Unit = { _, _, _ -> },
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
+    /** Puts a count of an item into the bank; returns how many went in. */
+    private val toBank: ((Player, Int, Int) -> Int)? = null,
+    private val closeModals: (Player) -> Unit = {},
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL] == MAIN
@@ -81,9 +100,76 @@ class GrandExchangeScreen(
             send(player, IfSetEventsV2(MAIN, INDEX_FIRST + slot, SUB_FACE, SUB_SELL, 0, BankScreen.opMask(1..3)))
         }
         send(player, IfSetEventsV2(MAIN, BACK, -1, -1, 0, BankScreen.opMask(1..1)))
+        send(player, IfSetEventsV2(MAIN, HISTORY_BUTTON, -1, -1, 0, BankScreen.opMask(1..1)))
         send(player, IfSetEventsV2(MAIN, SETUP, SETUP_CHOOSE, SETUP_CUSTOM_PLUS, 0, BankScreen.opMask(1..2)))
         send(player, IfSetEventsV2(MAIN, CONFIRM, -1, -1, 0, BankScreen.opMask(1..1)))
+        send(player, IfSetEventsV2(MAIN, COLLECT_ALL, 0, 0, 0, BankScreen.opMask(1..2)))
+        send(player, IfSetEventsV2(MAIN, DETAILS_COLLECT, DETAILS_BOX_ITEMS, DETAILS_BOX_COINS, 0, COLLECT_OPS))
         send(player, IfSetEventsV2(SIDE, SIDE_ITEMS, 0, Inventory.INV_CAPACITY - 1, 0, BankScreen.opMask(1..1) or BankScreen.opMask(10..10)))
+    }
+
+    /**
+     * Opens the trade history, ge_history (383), drawn by its client scripts: ge_history_init, one ge_history_addline a
+     * trade (its index, the item, 1 for a sale, the count, the coins before tax and the tax), then ge_history_finish.
+     */
+    fun openHistory(player: Player) {
+        closeModals(player)
+        openModal(player, FrameSlot.MAINMODAL, HISTORY)
+        send(player, RunClientScript(HISTORY_INIT_SCRIPT, emptyList()))
+        // The rows as drawn: a trade finishing while the screen is open doesn't shift what a click on them means.
+        val shown = player.ge.history.toList()
+        player.geSent.historyShown = shown
+        for ((index, trade) in shown.withIndex()) {
+            val sold = if (trade.type == OfferType.SELL) 1 else 0
+            send(player, RunClientScript(HISTORY_ADDLINE_SCRIPT, listOf(index, trade.item, sold, trade.count, trade.coins, trade.tax)))
+        }
+        send(player, RunClientScript(HISTORY_FINISH_SCRIPT, emptyList()))
+        send(player, IfSetEventsV2(HISTORY, HISTORY_EXCHANGE, -1, -1, 0, BankScreen.opMask(1..1)))
+        val rows = maxOf(1, shown.size) * HISTORY_ROW_SUBS
+        send(player, IfSetEventsV2(HISTORY, HISTORY_LIST, 0, rows - 1, 0, BankScreen.opMask(1..1) or BankScreen.opMask(10..10)))
+    }
+
+    private fun clickHistory(player: Player, component: Int, sub: Int, op: Int) {
+        when (component) {
+            HISTORY_EXCHANGE -> {
+                closeModals(player)
+                open(player)
+            }
+            HISTORY_LIST -> {
+                // Each trade's row is ge_history_addline's first child of six; its ops are Buy-offer and Examine.
+                if (sub % HISTORY_ROW_SUBS != 0) return
+                val trade = player.geSent.historyShown.getOrNull(sub / HISTORY_ROW_SUBS) ?: return
+                when (op) {
+                    1 -> buyOffer(player, trade.item)
+                    10 -> examine(player, trade.item, trade.count)
+                }
+            }
+        }
+    }
+
+    /** Buy-offer from the history: the offers screen, with a buy of [item] set up in the first free slot. */
+    private fun buyOffer(player: Player, item: Int) {
+        closeModals(player)
+        open(player)
+        val slot = player.ge.freeSlot()
+        if (slot < 0) {
+            message(player, GrandExchangeLines.NO_FREE_SLOT)
+            return
+        }
+        val price = grandExchange.guidePrice(item) ?: return
+        player.vars.setVarbitIfKnown(VARBIT_NEWOFFER_TYPE, TYPE_BUY)
+        player.vars.setVarbitIfKnown(VARBIT_SELECTED_SLOT, slot + 1)
+        setItem(player, item, price)
+    }
+
+    /** Opens the collection box, ge_collect: every slot's two boxes and Collect to inventory or bank. */
+    fun openCollectionBox(player: Player) {
+        openModal(player, FrameSlot.MAINMODAL, COLLECTION_BOX)
+        for (slot in 0 until GeAccount.SLOTS) {
+            send(player, IfSetEventsV2(COLLECTION_BOX, COLLECTION_SLOT_FIRST + slot, COLLECTION_BOX_ITEMS, COLLECTION_BOX_COINS, 0, COLLECT_OPS))
+        }
+        send(player, IfSetEventsV2(COLLECTION_BOX, COLLECTION_TO_INVENTORY, -1, -1, 0, BankScreen.opMask(1..1)))
+        send(player, IfSetEventsV2(COLLECTION_BOX, COLLECTION_TO_BANK, -1, -1, 0, BankScreen.opMask(1..1)))
     }
 
     /** The screen closed: back to the index for the next opening. */
@@ -107,8 +193,16 @@ class GrandExchangeScreen(
         player.geSetup.generation++
     }
 
-    /** A click on the offers screen. Returns false when the click isn't on it. */
+    /** A click on the offers screen or the collection box. Returns false when the click isn't on either. */
     fun click(player: Player, interfaceId: Int, component: Int, sub: Int, op: Int, obj: Int = -1): Boolean {
+        if (interfaceId == COLLECTION_BOX) {
+            if (player.modals[FrameSlot.MAINMODAL] == COLLECTION_BOX) clickCollectionBox(player, component, sub, op)
+            return true
+        }
+        if (interfaceId == HISTORY) {
+            if (player.modals[FrameSlot.MAINMODAL] == HISTORY) clickHistory(player, component, sub, op)
+            return true
+        }
         if (interfaceId != MAIN && interfaceId != SIDE) return false
         if (!isOpen(player)) return true
         if (interfaceId == SIDE) {
@@ -117,9 +211,15 @@ class GrandExchangeScreen(
         }
         when (component) {
             BACK -> toIndex(player)
+            HISTORY_BUTTON -> openHistory(player)
             in INDEX_FIRST until INDEX_FIRST + GeAccount.SLOTS -> clickSlot(player, component - INDEX_FIRST, sub, op)
             SETUP -> clickSetup(player, sub, op)
             CONFIRM -> confirm(player)
+            COLLECT_ALL -> if (sub == 0) collectAll(player, bank = op == 2)
+            DETAILS_COLLECT -> {
+                val slot = player.vars.getVarbitIfKnown(VARBIT_SELECTED_SLOT) - 1
+                if (slot in 0 until GeAccount.SLOTS) clickBox(player, slot, sub == DETAILS_BOX_COINS, op)
+            }
             else -> logger.info { "${player.username} clicked Grand Exchange component $component op $op (not built yet)" }
         }
         return true
@@ -140,6 +240,26 @@ class GrandExchangeScreen(
             else -> logger.info { "${player.username} picked Grand Exchange slot $slot sub $sub op $op (not built yet)" }
         }
     }
+
+    /** The game message for an offer that went from [before] to [after]: filled further, or aborted. */
+    private fun progress(player: Player, before: GeOffer?, after: GeOffer?) {
+        if (before == null || after == null || before.item != after.item || before.type != after.type) return
+        val item = grandExchange.itemName(after.item)
+        val buying = after.type == OfferType.BUY
+        when {
+            after.completed > before.completed && after.completed == after.quantity -> message(
+                player, if (buying) GrandExchangeLines.FINISHED_BUYING else GrandExchangeLines.FINISHED_SELLING,
+                "total" to number(after.quantity.toLong()), "item" to item,
+            )
+            after.completed > before.completed -> message(
+                player, if (buying) GrandExchangeLines.BOUGHT else GrandExchangeLines.SOLD,
+                "done" to number(after.completed.toLong()), "total" to number(after.quantity.toLong()), "item" to item,
+            )
+            after.aborted && !before.aborted -> message(player, GrandExchangeLines.ABORTED)
+        }
+    }
+
+    private fun number(n: Long): String = String.format(java.util.Locale.ROOT, "%,d", n)
 
     /** The slot being set up, or -1 when the screen shows the index or an offer already placed. */
     private fun setupSlot(player: Player): Int {
@@ -373,12 +493,60 @@ class GrandExchangeScreen(
         }
     }
 
+    private fun clickCollectionBox(player: Player, component: Int, sub: Int, op: Int) {
+        when (component) {
+            COLLECTION_TO_INVENTORY -> collectAll(player, bank = false)
+            COLLECTION_TO_BANK -> collectAll(player, bank = true)
+            in COLLECTION_SLOT_FIRST until COLLECTION_SLOT_FIRST + GeAccount.SLOTS ->
+                if (sub == COLLECTION_BOX_ITEMS || sub == COLLECTION_BOX_COINS) {
+                    clickBox(player, component - COLLECTION_SLOT_FIRST, sub == COLLECTION_BOX_COINS, op)
+                }
+        }
+    }
+
+    /** A click on one of [slot]'s two boxes: its items, or its coins (and platinum tokens). */
+    private fun clickBox(player: Player, slot: Int, coinsBox: Boolean, op: Int) {
+        val offer = player.ge[slot] ?: return
+        val count = if (coinsBox) offer.collectCoins else offer.collectItems.toLong()
+        if (count <= 0) return
+        when (op) {
+            10 -> {
+                val id = if (coinsBox) GrandExchange.COINS else offer.item
+                examine(player, id, minOf(count, Int.MAX_VALUE.toLong()).toInt())
+            }
+            3 -> collect(player, pending = true) { grandExchange.collect(player, slot, items = !coinsBox, coins = coinsBox, toBank = toBank ?: return@collect false) }
+            1, 2 -> {
+                // Op 1 is Collect-item for one and Collect-notes for more; op 2 the other. Coins have only op 2.
+                if (coinsBox && op == 1) return
+                val notes = if (op == 1) count > 1 else count == 1L
+                collect(player, pending = true) { grandExchange.collect(player, slot, notes = notes, items = !coinsBox, coins = coinsBox) }
+            }
+        }
+    }
+
+    private fun collectAll(player: Player, bank: Boolean) {
+        val toBank = if (bank) toBank ?: return else null
+        val pending = player.ge.contents().any { (_, offer) -> offer.collectItems > 0 || offer.collectCoins > 0 }
+        collect(player, pending) { grandExchange.collectAll(player, toBank) }
+    }
+
+    /** Runs [collect]; when nothing moved though something was [pending], the inventory or bank had no room. */
+    private fun collect(player: Player, pending: Boolean, collect: () -> Boolean) {
+        if (!collect() && pending) message(player, GrandExchangeLines.NO_ROOM_TO_COLLECT)
+    }
+
     private fun message(player: Player, line: Line, vararg values: Pair<String, Any>) =
         send(player, MessageGame(CHATTYPE_GAMEMESSAGE, words(player).get(line, *values)))
 
-    /** Sends the slots and collection boxes that changed since last sent. Run at the end of every cycle. */
+    /**
+     * Sends the slots and collection boxes that changed since last sent, with a game message for each offer that filled
+     * further or was aborted, and at login one for anything waiting to be collected. Run at the end of every cycle.
+     */
     fun flush(player: Player) {
         val sent = player.geSent
+        if (!sent.sentOnce && !sent.resync && player.ge.contents().any { (_, offer) -> offer.collectItems > 0 || offer.collectCoins > 0 }) {
+            message(player, GrandExchangeLines.COLLECT_WAITING)
+        }
         for (slot in 0 until GeAccount.SLOTS) {
             val offer = player.ge[slot]
             if (sent.sentOnce && sent.offers[slot] == offer) continue
@@ -388,15 +556,19 @@ class GrandExchangeScreen(
                 sent.offers[slot] = null
                 continue
             }
+            // An offer collected to nothing this tick still says how it ended.
+            if (sent.sentOnce) progress(player, sent.offers[slot], offer ?: player.ge.collected[slot])
             send(player, slotUpdate(slot, offer))
             val items = offer?.takeIf { it.collectItems > 0 }?.let { InventoryObject(0, it.item, it.collectItems) } ?: InventoryObject.NULL
-            val coins = offer?.takeIf { it.collectCoins > 0 }
-                ?.let { InventoryObject(1, GrandExchange.COINS, minOf(it.collectCoins, Int.MAX_VALUE.toLong()).toInt()) } ?: InventoryObject.NULL
-            send(player, UpdateInvFull(COLLECT_INVS[slot], 2) { i -> if (i == 0) items else coins })
+            val (coinCount, tokenCount) = GrandExchange.payout(offer?.collectCoins ?: 0)
+            val coins = if (coinCount > 0) InventoryObject(1, GrandExchange.COINS, coinCount.toInt()) else InventoryObject.NULL
+            val tokens = if (tokenCount > 0) InventoryObject(2, GrandExchange.PLATINUM_TOKEN, tokenCount.toInt()) else InventoryObject.NULL
+            send(player, UpdateInvFull(COLLECT_INVS[slot], 3) { i -> if (i == 0) items else if (i == 1) coins else tokens })
             sent.offers[slot] = offer
         }
         sent.sentOnce = true
         sent.resync = false
+        player.ge.collected.fill(null)
         // ge_newoffer_price is a long varp, which PlayerVars doesn't hold; sent here like the others, when it changes.
         if (sent.price != player.geSetup.price) {
             send(player, VarpLong(VARP_PRICE, player.geSetup.price))
@@ -440,6 +612,37 @@ class GrandExchangeScreen(
 
         /** ge_offers:setup_confirm. */
         const val CONFIRM = 30
+
+        /** ge_offers:history, the History button. */
+        const val HISTORY_BUTTON = 3
+
+        /** ge_history: its Exchange button back to the offers, and the list of trades, six children a row. */
+        const val HISTORY = 383
+        const val HISTORY_EXCHANGE = 2
+        const val HISTORY_LIST = 3
+        const val HISTORY_ROW_SUBS = 6
+        const val HISTORY_INIT_SCRIPT = 1644
+        const val HISTORY_ADDLINE_SCRIPT = 1645
+        const val HISTORY_FINISH_SCRIPT = 1646
+
+        /** ge_offers:collectall, whose sub 0 is Collect to inventory (op 1) or bank (op 2). */
+        const val COLLECT_ALL = 6
+
+        /** ge_offers:details_collect, the details' two boxes as script816 makes them. */
+        const val DETAILS_COLLECT = 24
+        const val DETAILS_BOX_ITEMS = 2
+        const val DETAILS_BOX_COINS = 3
+
+        /** ge_collect, the collection box: Collect to inventory and to bank, then collect_0 to 7 with two boxes each. */
+        const val COLLECTION_BOX = 402
+        const val COLLECTION_TO_INVENTORY = 3
+        const val COLLECTION_TO_BANK = 4
+        const val COLLECTION_SLOT_FIRST = 5
+        const val COLLECTION_BOX_ITEMS = 3
+        const val COLLECTION_BOX_COINS = 4
+
+        /** Collect (ops 1 and 2), Bank (3) and Examine (10) on a box. */
+        private val COLLECT_OPS = BankScreen.opMask(1..3) or BankScreen.opMask(10..10)
 
         /** ge_offers_side:items, the inventory beside the screen, one sub per slot. */
         const val SIDE_ITEMS = 0
@@ -493,10 +696,16 @@ class GrandExchangeScreen(
         /** Every id above with its gameval name in the 241 cache, for [osrsps.cache.GameFrameCheck]. */
         val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>> = mapOf(
             MAIN to (
-                "ge_offers" to mapOf(BACK to "back", SETUP to "setup", CONFIRM to "setup_confirm") +
-                    (0 until GeAccount.SLOTS).associate { INDEX_FIRST + it to "index_$it" }
+                "ge_offers" to mapOf(
+                    BACK to "back", HISTORY_BUTTON to "history", COLLECT_ALL to "collectall", DETAILS_COLLECT to "details_collect", SETUP to "setup", CONFIRM to "setup_confirm",
+                ) + (0 until GeAccount.SLOTS).associate { INDEX_FIRST + it to "index_$it" }
                 ),
             SIDE to ("ge_offers_side" to mapOf(SIDE_ITEMS to "items")),
+            HISTORY to ("ge_history" to mapOf(HISTORY_EXCHANGE to "exchange", HISTORY_LIST to "list")),
+            COLLECTION_BOX to (
+                "ge_collect" to mapOf(COLLECTION_TO_INVENTORY to "collect_inv", COLLECTION_TO_BANK to "collect_bank") +
+                    (0 until GeAccount.SLOTS).associate { COLLECTION_SLOT_FIRST + it to "collect_$it" }
+                ),
         )
     }
 }
@@ -506,6 +715,9 @@ class GeSent {
     val offers = arrayOfNulls<GeOffer>(GeAccount.SLOTS)
     var sentOnce = false
     var resync = false
+
+    /** The trades the history screen was last drawn with, in its row order. */
+    var historyShown: List<GeTrade> = emptyList()
 
     /** The ge_newoffer_price last sent; the client starts at 0. */
     var price = 0L

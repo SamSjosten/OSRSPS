@@ -468,6 +468,41 @@ final class Steps
 		}
 	}
 
+	/** (0.12.0) Uses an inventory item on a loc. Waits (to the timeout) for both; does not wait for the result. */
+	static final class UseItemOnLoc extends Step
+	{
+		final String item;
+		final int itemId;
+		final String loc;
+		final int locId;
+		final Tile at;
+
+		UseItemOnLoc(long timeoutMs, String item, int itemId, String loc, int locId, Tile at)
+		{
+			super("useItemOnLoc", timeoutMs, false);
+			this.item = item;
+			this.itemId = itemId;
+			this.loc = loc;
+			this.locId = locId;
+			this.at = at;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.useItemOnLoc(item, itemId, loc, locId, at);
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "use " + (item != null ? item : "item " + itemId) + " on " + (loc != null ? loc : "loc " + locId)
+				+ (at == null ? "" : " at " + at.x + ", " + at.y);
+		}
+	}
+
 	/** Passes when the inventory holds exactly that many of an item, or any at all when no count is given. */
 	static final class AssertInventory extends Step
 	{

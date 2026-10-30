@@ -1,5 +1,5 @@
 {
- "about": "Crafting, as the OSRS Wiki's item pages give it (read 2026-10-30). spinning: what a spinning wheel spins, in the Make-X box's order, with the level and XP in tenths; 3 ticks each (Ball of wool and Bow string pages), the first 2 ticks after the choice inferred from fletching's 'Make-X is 2, then 3 ticks'. The wheels are every loc the cache names Spinning wheel with a Spin option. anim 466 is the cache's 'spinningwheel' seq, taken to be the player's (inferred from the name; the wheels have no animation of their own). leather: a needle on leather, hard leather or dragon leather opens the Make-X box over what it makes, with how many leathers each takes (Leather, Hardleather body, Green dragon leather and the d'hide pages); thread is held and one is used up every 5 items (Thread: 'Each thread spool has 5 uses before it is consumed'). 3 ticks an item, hard leather 2 (each item's page); the first 2 ticks after the choice is inferred as for spinning. The Wiki gives leather boots 16.3 XP (16.25 elsewhere): 163 tenths. anim 1249 is human_leather_crafting. studs: steel studs on a leather body or chaps, 3 ticks (Studded body). Out: d'hide shields (they need a maple shield and nails), snakeskin, spiky vambraces and the costume needle. Ids are the 241 cache's; names are its gamevals.",
+ "about": "Crafting, as the OSRS Wiki's item pages give it (read 2026-10-30). spinning: what a spinning wheel spins, in the Make-X box's order, with the level and XP in tenths; 3 ticks each (Ball of wool and Bow string pages), the first 2 ticks after the choice inferred from fletching's 'Make-X is 2, then 3 ticks'. The wheels are every loc the cache names Spinning wheel with a Spin option. anim 466 is the cache's 'spinningwheel' seq, taken to be the player's (inferred from the name; the wheels have no animation of their own). leather: a needle on leather, hard leather or dragon leather opens the Make-X box over what it makes, with how many leathers each takes (Leather, Hardleather body, Green dragon leather and the d'hide pages); thread is held and one is used up every 5 items (Thread: 'Each thread spool has 5 uses before it is consumed'). 3 ticks an item, hard leather 2 (each item's page); the first 2 ticks after the choice is inferred as for spinning. The Wiki gives leather boots 16.3 XP (16.25 elsewhere): 163 tenths. anim 1249 is human_leather_crafting. studs: steel studs on a leather body or chaps, 3 ticks (Studded body). Out: d'hide shields (they need a maple shield and nails), snakeskin, spiky vambraces and the costume needle. gems: a chisel on each uncut gem, 2 ticks a gem (each gem's page; the first 2 ticks after the choice inferred), with the cache's cutting animation for each. Opal, jade and red topaz can be crushed: crush gives the success pair out of 256 (SuccessRoll) worked back from each page's formula, (level-1)*122/98+129 for opal, *145/98+101 for jade and *150/98+91 for red topaz, all over 256, and the XP a crushed gemstone gives (3.8, 5 and 6.3). Out: the jeweller's chisel and amethyst. jewellery: a gold bar or a mould used on a furnace opens crafting_gold (interface 446), which lays itself out from the inventory; each item button (its component in 446) makes the item from a gold bar and its gem, with its mould held: levels and XP from the Wiki's Jewellery page, 3 ticks each (Gold ring), anim 899 human_furnace (guessed from smelting), the first 2 ticks after the click inferred. Bracelets use the real items, not the interface's dummies. amuletStringing: a ball of wool on an unstrung amulet, level 1, 4 XP, 2 ticks (Gold amulet). A silver bar or a silver mould on a furnace opens silver_crafting (interface 6) the same way: opal, jade and topaz jewellery, the unstrung holy symbol and unholy symbol, the silver sickle and the tiara (Silver bar's Products table; the ticks, animation and stringing XP taken to be gold's, inferred). A shared mould on a furnace opens the silver one only when the player holds a silver bar and no gold bar (guessed). Out: the slayer ring, the lightning rod, silver bolts, the Silvthrill rod and the demonic sigil (quest or crossbow items), stringing symbols, enchanting. Ids are the 241 cache's; names are its gamevals.",
  "spinning": {"first": 2, "interval": 3, "anim": 466, "recipes": [
   {"input": 1737, "product": 1759, "name": "ball_of_wool", "level": 1, "xpTenths": 25},
   {"input": 1779, "product": 1777, "name": "bow_string", "level": 10, "xpTenths": 150}
@@ -41,5 +41,84 @@
  "studs": {"studs": 2370, "anim": 1249, "first": 2, "interval": 3, "items": [
   {"item": 1129, "product": 1133, "name": "studded_body", "level": 41, "xpTenths": 400},
   {"item": 1095, "product": 1097, "name": "studded_chaps", "level": 44, "xpTenths": 420}
+ ]},
+ "gems": {"chisel": 1755, "crushed": 1633, "first": 2, "interval": 2, "gems": [
+  {"uncut": 1625, "cut": 1609, "name": "opal", "level": 1, "xpTenths": 150, "anim": 890, "animName": "human_opalcutting", "crush": {"low": 128, "high": 250, "xpTenths": 38}},
+  {"uncut": 1627, "cut": 1611, "name": "jade", "level": 13, "xpTenths": 200, "anim": 891, "animName": "human_jadecutting", "crush": {"low": 100, "high": 245, "xpTenths": 50}},
+  {"uncut": 1629, "cut": 1613, "name": "red_topaz", "level": 16, "xpTenths": 250, "anim": 892, "animName": "human_redtopazcutting", "crush": {"low": 90, "high": 240, "xpTenths": 63}},
+  {"uncut": 1623, "cut": 1607, "name": "sapphire", "level": 20, "xpTenths": 500, "anim": 888, "animName": "human_sapphirecutting"},
+  {"uncut": 1621, "cut": 1605, "name": "emerald", "level": 27, "xpTenths": 675, "anim": 889, "animName": "human_emeraldcutting"},
+  {"uncut": 1619, "cut": 1603, "name": "ruby", "level": 34, "xpTenths": 850, "anim": 887, "animName": "human_rubycutting"},
+  {"uncut": 1617, "cut": 1601, "name": "diamond", "level": 43, "xpTenths": 1075, "anim": 886, "animName": "human_diamondcutting"},
+  {"uncut": 1631, "cut": 1615, "name": "dragonstone", "level": 55, "xpTenths": 1375, "anim": 885, "animName": "human_dragonstonecutting"},
+  {"uncut": 6571, "cut": 6573, "name": "onyx", "level": 67, "xpTenths": 1675, "anim": 2717, "animName": "human_onyxcutting"},
+  {"uncut": 19496, "cut": 19493, "name": "zenyte", "level": 89, "xpTenths": 2000, "anim": 7185, "animName": "human_zenytecutting"}
+ ]},
+ "jewellery": [
+  {"interface": 446, "bar": 2357, "quantityFirst": 60, "anim": 899, "first": 2, "interval": 3, "moulds": {"ring": 1592, "necklace": 1597, "amulet": 1595, "bracelet": 11065}, "items": [
+    {"component": 8, "mould": "ring", "gem": null, "product": 1635, "name": "gold_ring", "level": 5, "xpTenths": 150},
+    {"component": 9, "mould": "ring", "gem": 1607, "product": 1637, "name": "sapphire_ring", "level": 20, "xpTenths": 400},
+    {"component": 10, "mould": "ring", "gem": 1605, "product": 1639, "name": "emerald_ring", "level": 27, "xpTenths": 550},
+    {"component": 11, "mould": "ring", "gem": 1603, "product": 1641, "name": "ruby_ring", "level": 34, "xpTenths": 700},
+    {"component": 12, "mould": "ring", "gem": 1601, "product": 1643, "name": "diamond_ring", "level": 43, "xpTenths": 850},
+    {"component": 13, "mould": "ring", "gem": 1615, "product": 1645, "name": "dragonstone_ring", "level": 55, "xpTenths": 1000},
+    {"component": 14, "mould": "ring", "gem": 6573, "product": 6575, "name": "onyx_ring", "level": 67, "xpTenths": 1150},
+    {"component": 15, "mould": "ring", "gem": 19493, "product": 19538, "name": "zenyte_ring", "level": 89, "xpTenths": 1500},
+    {"component": 23, "mould": "necklace", "gem": null, "product": 1654, "name": "gold_necklace", "level": 6, "xpTenths": 200},
+    {"component": 24, "mould": "necklace", "gem": 1607, "product": 1656, "name": "sapphire_necklace", "level": 22, "xpTenths": 550},
+    {"component": 25, "mould": "necklace", "gem": 1605, "product": 1658, "name": "emerald_necklace", "level": 29, "xpTenths": 600},
+    {"component": 26, "mould": "necklace", "gem": 1603, "product": 1660, "name": "ruby_necklace", "level": 40, "xpTenths": 750},
+    {"component": 27, "mould": "necklace", "gem": 1601, "product": 1662, "name": "diamond_necklace", "level": 56, "xpTenths": 900},
+    {"component": 28, "mould": "necklace", "gem": 1615, "product": 1664, "name": "dragonstone_necklace", "level": 72, "xpTenths": 1050},
+    {"component": 29, "mould": "necklace", "gem": 6573, "product": 6577, "name": "onyx_necklace", "level": 82, "xpTenths": 1200},
+    {"component": 30, "mould": "necklace", "gem": 19493, "product": 19535, "name": "zenyte_necklace", "level": 92, "xpTenths": 1650},
+    {"component": 37, "mould": "amulet", "gem": null, "product": 1673, "name": "unstrung_gold_amulet", "level": 8, "xpTenths": 300},
+    {"component": 38, "mould": "amulet", "gem": 1607, "product": 1675, "name": "unstrung_sapphire_amulet", "level": 24, "xpTenths": 650},
+    {"component": 39, "mould": "amulet", "gem": 1605, "product": 1677, "name": "unstrung_emerald_amulet", "level": 31, "xpTenths": 700},
+    {"component": 40, "mould": "amulet", "gem": 1603, "product": 1679, "name": "unstrung_ruby_amulet", "level": 50, "xpTenths": 850},
+    {"component": 41, "mould": "amulet", "gem": 1601, "product": 1681, "name": "unstrung_diamond_amulet", "level": 70, "xpTenths": 1000},
+    {"component": 42, "mould": "amulet", "gem": 1615, "product": 1683, "name": "unstrung_dragonstone_amulet", "level": 80, "xpTenths": 1500},
+    {"component": 43, "mould": "amulet", "gem": 6573, "product": 6579, "name": "unstrung_onyx_amulet", "level": 90, "xpTenths": 1650},
+    {"component": 44, "mould": "amulet", "gem": 19493, "product": 19501, "name": "unstrung_zenyte_amulet", "level": 98, "xpTenths": 2000},
+    {"component": 50, "mould": "bracelet", "gem": null, "product": 11069, "name": "jewl_gold_bracelet", "level": 7, "xpTenths": 250},
+    {"component": 52, "mould": "bracelet", "gem": 1607, "product": 11072, "name": "jewl_sapphire_bracelet", "level": 23, "xpTenths": 600},
+    {"component": 53, "mould": "bracelet", "gem": 1605, "product": 11076, "name": "jewl_emerald_bracelet", "level": 30, "xpTenths": 650},
+    {"component": 54, "mould": "bracelet", "gem": 1603, "product": 11085, "name": "jewl_ruby_bracelet", "level": 42, "xpTenths": 800},
+    {"component": 55, "mould": "bracelet", "gem": 1601, "product": 11092, "name": "jewl_diamond_bracelet", "level": 58, "xpTenths": 950},
+    {"component": 56, "mould": "bracelet", "gem": 1615, "product": 11115, "name": "jewl_dragonstone_bracelet", "level": 74, "xpTenths": 1100},
+    {"component": 57, "mould": "bracelet", "gem": 6573, "product": 11130, "name": "jewl_onyx_bracelet", "level": 84, "xpTenths": 1250},
+    {"component": 58, "mould": "bracelet", "gem": 19493, "product": 19532, "name": "zenyte_bracelet", "level": 95, "xpTenths": 1800}
+  ]},
+  {"interface": 6, "bar": 2355, "quantityFirst": 32, "anim": 899, "first": 2, "interval": 3, "moulds": {"ring": 1592, "necklace": 1597, "amulet": 1595, "bracelet": 11065, "holy": 1599, "unholy": 1594, "sickle": 2976, "tiara": 5523}, "items": [
+   {"component": 7, "mould": "ring", "gem": 1609, "product": 21081, "name": "opal_ring", "level": 1, "xpTenths": 100},
+   {"component": 8, "mould": "ring", "gem": 1611, "product": 21084, "name": "jade_ring", "level": 13, "xpTenths": 320},
+   {"component": 9, "mould": "ring", "gem": 1613, "product": 21087, "name": "topaz_ring", "level": 16, "xpTenths": 350},
+   {"component": 11, "mould": "necklace", "gem": 1609, "product": 21090, "name": "opal_necklace", "level": 16, "xpTenths": 350},
+   {"component": 12, "mould": "necklace", "gem": 1611, "product": 21093, "name": "jade_necklace", "level": 25, "xpTenths": 540},
+   {"component": 13, "mould": "necklace", "gem": 1613, "product": 21096, "name": "topaz_necklace", "level": 32, "xpTenths": 700},
+   {"component": 15, "mould": "amulet", "gem": 1609, "product": 21099, "name": "unstrung_opal_amulet", "level": 27, "xpTenths": 550},
+   {"component": 16, "mould": "amulet", "gem": 1611, "product": 21102, "name": "unstrung_jade_amulet", "level": 34, "xpTenths": 700},
+   {"component": 17, "mould": "amulet", "gem": 1613, "product": 21105, "name": "unstrung_topaz_amulet", "level": 45, "xpTenths": 800},
+   {"component": 19, "mould": "bracelet", "gem": 1609, "product": 21117, "name": "opal_bracelet", "level": 22, "xpTenths": 450},
+   {"component": 20, "mould": "bracelet", "gem": 1611, "product": 21120, "name": "jade_bracelet", "level": 29, "xpTenths": 600},
+   {"component": 21, "mould": "bracelet", "gem": 1613, "product": 21123, "name": "topaz_bracelet", "level": 38, "xpTenths": 750},
+   {"component": 23, "mould": "holy", "gem": null, "product": 1714, "name": "nostringstar", "level": 16, "xpTenths": 500},
+   {"component": 24, "mould": "unholy", "gem": null, "product": 1720, "name": "nostringsnake", "level": 17, "xpTenths": 500},
+   {"component": 25, "mould": "sickle", "gem": null, "product": 2961, "name": "silver_sickle", "level": 18, "xpTenths": 500},
+   {"component": 28, "mould": "tiara", "gem": null, "product": 5525, "name": "tiara", "level": 23, "xpTenths": 525}
+  ]}
+ ],
+ "amuletStringing": {"wool": 1759, "level": 1, "xpTenths": 40, "first": 2, "interval": 2, "amulets": [
+  {"unstrung": 1673, "strung": 1692, "name": "strung_gold_amulet"},
+  {"unstrung": 1675, "strung": 1694, "name": "strung_sapphire_amulet"},
+  {"unstrung": 1677, "strung": 1696, "name": "strung_emerald_amulet"},
+  {"unstrung": 1679, "strung": 1698, "name": "strung_ruby_amulet"},
+  {"unstrung": 1681, "strung": 1700, "name": "strung_diamond_amulet"},
+  {"unstrung": 1683, "strung": 1702, "name": "strung_dragonstone_amulet"},
+  {"unstrung": 6579, "strung": 6581, "name": "strung_onyx_amulet"},
+  {"unstrung": 19501, "strung": 19541, "name": "zenyte_amulet"},
+  {"unstrung": 21099, "strung": 21108, "name": "strung_opal_amulet"},
+  {"unstrung": 21102, "strung": 21111, "name": "strung_jade_amulet"},
+  {"unstrung": 21105, "strung": 21114, "name": "strung_topaz_amulet"}
  ]}
 }
