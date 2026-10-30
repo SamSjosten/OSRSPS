@@ -172,4 +172,25 @@ class InterfacesTest {
         assertEquals(listOf(100), closed)
     }
 
+
+    @Test
+    fun `a close sent while the connection is lost goes again after the reconnect, unless reopened since`() {
+        val player = player(GameFrame.FIXED)
+        interfaces.openModal(player, FrameSlot.MAINMODAL, 335)
+        interfaces.openModal(player, FrameSlot.SIDEMODAL, 336)
+        player.connectionLostTick = 5
+        interfaces.closeModals(player)
+        // The side panel opens again before the client is back, so only the main modal's close goes again.
+        interfaces.openModal(player, FrameSlot.SIDEMODAL, 336)
+        player.connectionLostTick = -1
+        sent.clear()
+        interfaces.resendClosesWhileAway(player)
+        assertEquals(listOf<OutgoingGameMessage>(IfCloseSub(548, player.frame.component(FrameSlot.MAINMODAL))), sent)
+        // Once sent, they don't go again, and closes while connected aren't kept.
+        sent.clear()
+        interfaces.closeModals(player)
+        sent.clear()
+        interfaces.resendClosesWhileAway(player)
+        assertEquals(emptyList(), sent)
+    }
 }
