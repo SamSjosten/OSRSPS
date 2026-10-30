@@ -223,6 +223,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   minutes.
 - `draynor-jail.json`: Draynor step 5: Leela's talk (`::keys on`), out of the jail cell through its door and locked
   from outside, a hit on a jail guard, Morgan's first talk after Vampyre Slayer (`assertVarbit` 15611) and a later one.
+- `draynor-wise-old-man.json`: Draynor step 6: the Wise Old Man shown after Swan Song (`::keys on`), his free hood, the
+  cape for 99,000 coins and the Wilderness topic; the bank guard's recording (`assertVarbit` 960), Miss Schism's news
+  after it, the telescope upstairs and the hat talk that confronts him.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

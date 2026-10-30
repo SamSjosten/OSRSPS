@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
@@ -159,11 +160,14 @@ object Ned {
     }
 
     /** Takes [count] of item [id] from the inventory, from its first slots holding it on. */
-    internal fun take(player: Player, id: Int, count: Int) {
+    internal fun take(player: Player, id: Int, count: Int) = take(player.inventory, id, count)
+
+    /** Takes [count] of item [id] from [inv], from its first slots holding it on. */
+    internal fun take(inv: Inventory, id: Int, count: Int) {
         var left = count
-        for ((slot, held) in player.inventory.contents()) {
+        for ((slot, held) in inv.contents()) {
             if (left == 0) break
-            if (held.id == id) left -= player.inventory.remove(slot, left)
+            if (held.id == id) left -= inv.remove(slot, left)
         }
     }
 }
