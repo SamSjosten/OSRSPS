@@ -181,7 +181,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(22, shops.warnings.size)
+        assertEquals(23, shops.warnings.size)
     }
 
     @Test
