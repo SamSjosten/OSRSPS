@@ -13,6 +13,7 @@ import osrsps.game.script.ScriptContext
 /** The words the artisan skills' Make-X box shares, in the dialogue file. */
 object MakeLines : Lines("make", "Make-X") {
     val TITLE = line("title", "the Make-X box's title over what to make (fletching, crafting, herblore)")
+    val NO_SPACE = line("no_space", "the message when what is made won't fit in the inventory (Inventory page)")
 }
 
 /** [count] of obj [obj]. */
@@ -106,9 +107,15 @@ class Making(private val world: World) {
         // Guessed: a boost wearing off below the level stops it without a word.
         if (!levelled(player, recipe, tell = false)) return
         val before = player.skills.baseLevel(recipe.skill)
-        for (input in recipe.inputs) removeObj(player.inventory, input.obj, input.count)
         val type = world.objTypes[recipe.product] ?: error("No obj type ${recipe.product} for recipe ${recipe.key}")
-        player.inventory.add(type, recipe.amount)
+        val saved = player.inventory.contents().toMap()
+        for (input in recipe.inputs) removeObj(player.inventory, input.obj, input.count)
+        if (player.inventory.add(type, recipe.amount) < recipe.amount) {
+            // A full stack (or no slot): put everything back and stop, rather than lose the inputs. Guessed message.
+            for (slot in 0 until player.inventory.capacity) player.inventory[slot] = saved[slot]
+            player.message(world.textFor(player)[MakeLines.NO_SPACE])
+            return
+        }
         player.skills.addTenths(recipe.skill, recipe.xpTenths)
         player.message(world.textFor(player).get(recipe.made, *args(recipe, recipe.made)))
         job.left--

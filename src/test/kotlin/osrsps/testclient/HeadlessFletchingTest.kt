@@ -149,6 +149,44 @@ class HeadlessFletchingTest {
         }
     }
 
+    @Test
+    fun `using one item on another ends the cutting`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivy").use { client ->
+                client.ready("ivy")
+                client.give(LOGS, 10)
+                client.use(data.knife, LOGS)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 2, 10)
+                client.await("the first bow") { client.made().takeIf { it.isNotEmpty() } }
+                client.use(LOGS, SHORTBOW_U)
+                client.awaitTicks(10)
+                val cut = client.made().size
+                assertTrue(cut in 1..2, "stopped after $cut")
+                assertEquals(10 - cut, client.count(LOGS))
+            }
+        }
+    }
+
+    @Test
+    fun `shafts that won't fit on a full stack leave the log, with a message`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("jack").use { client ->
+                client.ready("jack")
+                client.give(SHAFTS, Int.MAX_VALUE - 5)
+                client.give(LOGS)
+                client.use(data.knife, LOGS)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.seen("[make.no_space]")
+                client.awaitTicks(4)
+                assertEquals(1, client.count(LOGS))
+                assertEquals(Int.MAX_VALUE - 5, client.count(SHAFTS))
+                assertEquals(0, client.made().size)
+            }
+        }
+    }
+
     private companion object {
         const val LOGS = 1511
         const val SHAFTS = 52
