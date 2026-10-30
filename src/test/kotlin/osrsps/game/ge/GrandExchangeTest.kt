@@ -191,6 +191,11 @@ class GrandExchangeTest {
         give(LOBSTER, 1)
         ge.sell(player, LOBSTER, 1, 1_000)
         ge.abort(player, 1)
+        // A sale that finishes, so the history has a trade to keep.
+        give(PRAYER_4, 1)
+        ge.sell(player, PRAYER_4, 1, 100)
+        nextTick()
+        assertEquals(1, player.ge.history.size)
         val save = PlayerSave.fromJson(PlayerSave.of(player).toJson("test"))
         val loaded = Player(2, "test", 0, 0, 0)
         save.applyTo(loaded)
