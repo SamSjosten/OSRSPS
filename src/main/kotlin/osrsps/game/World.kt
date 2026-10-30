@@ -144,6 +144,7 @@ import osrsps.game.script.ScriptRunner
 import osrsps.game.social.FriendLists
 import osrsps.game.social.IgnoreLists
 import osrsps.game.social.PrivateMessages
+import osrsps.game.trade.Trades
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
@@ -440,6 +441,11 @@ class World(
     /** The ignore lists; see [IgnoreLists]. */
     val ignoreLists = IgnoreLists(::accountName) { player, line -> player.message(textFor(player)[line]) }
 
+    /** Trading between players; see [Trades]. */
+    val trades = Trades(
+        collision, movement, { players[it.index] === it }, ignoreLists, ::textFor, interfaces::openModal, interfaces::closeModals,
+    )
+
     /** Private messages; see [PrivateMessages]. */
     val privateMessages = PrivateMessages(
         friendLists, ignoreLists, { onlinePlayers }, { player, line -> player.message(textFor(player)[line]) }, ::sendChatFilters,
@@ -558,6 +564,7 @@ class World(
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
+        interfaces.onClose(Trades.MAIN, trades::decline)
         interfaces.onClose(PriceChecker.MAIN, priceChecker::closed)
         woodcutting.register()
         birdNests.register()
@@ -1464,10 +1471,14 @@ class World(
         }
         when (option) {
             PlayerOps.FOLLOW -> follows.click(player, target, ctrl)
+            PlayerOps.TRADE -> {
+                interfaces.closeModals(player)
+                trades.click(player, target, ctrl)
+            }
             else -> {
                 // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
                 player.session.queue(SetMapFlagV2.RESET)
-                player.message(if (option == PlayerOps.TRADE) PlayerOps.TRADE_NOT_BUILT else PlayerOps.REPORT_NOT_BUILT)
+                player.message(PlayerOps.REPORT_NOT_BUILT)
             }
         }
     }
@@ -1606,6 +1617,8 @@ class World(
             inventoryTab.click(player, sub, obj, op)
             return@act
         }
+        if (trades.click(player, interfaceId, componentId)) return@act
+        trades.interrupt(player)
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
@@ -2088,6 +2101,7 @@ class World(
         try {
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
+            trades.leave(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

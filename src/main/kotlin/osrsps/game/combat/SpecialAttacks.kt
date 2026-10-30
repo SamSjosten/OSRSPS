@@ -20,6 +20,8 @@ class SpecialAttack(
     val spotanim: Int,
     val accuracyPercent: Int = 0,
     val damagePercents: List<Int> = emptyList(),
+    /** The attack type whose defence the NPC rolls with, in place of the style's; null for the style's. The attack bonus stays the style's. */
+    val against: AttackType? = null,
     val effect: SpecialEffect = SpecialEffect.None,
 ) {
     fun attackRoll(roll: Int): Int = (roll.toLong() * (100 + accuracyPercent) / 100).toInt()
@@ -33,6 +35,12 @@ sealed interface SpecialEffect {
 
     /** Drains [percent] of the NPC's Defence as it is now, if the hit dealt damage (the dragon warhammer's Smash). */
     data class DrainDefence(val percent: Int) : SpecialEffect
+
+    /**
+     * Drains the NPC's stats by the damage dealt, one stat at a time in [order]: each as far as it goes before the next
+     * (the Bandos godsword's Warstrike).
+     */
+    data class DrainByDamage(val order: List<NpcStat>) : SpecialEffect
 }
 
 /**
@@ -113,6 +121,13 @@ class SpecialAttacks(
         when (val effect = special.effect) {
             SpecialEffect.None -> {}
             is SpecialEffect.DrainDefence -> if (dealt > 0) drains.drainPercent(npc, NpcStat.DEFENCE, effect.percent)
+            is SpecialEffect.DrainByDamage -> {
+                var left = dealt
+                for (stat in effect.order) {
+                    if (left <= 0) break
+                    left -= drains.drain(npc, stat, left)
+                }
+            }
         }
     }
 
@@ -162,10 +177,30 @@ class SpecialAttacks(
          */
         val DRAGON_WARHAMMER = SpecialAttack("Smash", anim = 1378, spotanim = 1292, damagePercents = listOf(50), effect = SpecialEffect.DrainDefence(30))
 
+        /**
+         * Warstrike (OSRS Wiki, Bandos godsword): double accuracy, the max hit raised by 10% and then by 10% again,
+         * rounding down after each, always against slash, and the target's stats drained by the damage dealt in the order
+         * Defence, Strength, Prayer, Attack, Magic, Ranged, each to 0 before the next. Monsters have no Prayer to drain
+         * here. The attack roll keeps the style's own bonus ("always rolls against the opponent's slash defence roll").
+         * Guessed: that a stat held up by its drain cap (the raid's 60% on Defence) counts as drained as far as it goes,
+         * so the rest moves on to the next stat. Not in: Tekton's 10 levels on a miss. Animation bgs_special_player
+         * (7642), spotanim dh_sword_update_bandos_special_spotanim (1212); the ornament kit's are bgs_special_ornate_player
+         * (7643) and bandos_special_spotanim_gold (1748).
+         */
+        val BANDOS_GODSWORD = bandosGodsword(anim = 7642, spotanim = 1212)
+        val BANDOS_GODSWORD_ORNAMENT = bandosGodsword(anim = 7643, spotanim = 1748)
+
+        private fun bandosGodsword(anim: Int, spotanim: Int) = SpecialAttack(
+            "Warstrike", anim, spotanim, accuracyPercent = 100, damagePercents = listOf(10, 10), against = AttackType.SLASH,
+            effect = SpecialEffect.DrainByDamage(listOf(NpcStat.DEFENCE, NpcStat.STRENGTH, NpcStat.ATTACK, NpcStat.MAGIC, NpcStat.RANGED)),
+        )
+
         /** The specials that are in, by their weapons' gameval names. */
         private val BY_WEAPON = mapOf(
             "dragon_warhammer" to DRAGON_WARHAMMER,
             "dragon_warhammer_ornament" to DRAGON_WARHAMMER,
+            "bgs" to BANDOS_GODSWORD,
+            "bgsg" to BANDOS_GODSWORD_ORNAMENT,
         )
     }
 }

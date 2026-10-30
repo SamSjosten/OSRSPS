@@ -130,5 +130,37 @@ class SpecialAttacksTest {
         assertEquals(30, boss.level(NpcStat.DEFENCE))
     }
 
+    @Test
+    fun `Warstrike doubles the attack roll and raises the max hit by 10 percent twice, rounding down after each`() {
+        val warstrike = SpecialAttacks.BANDOS_GODSWORD
+        assertEquals(24_690, warstrike.attackRoll(12_345))
+        // 40, then 44, then 48.4: 48.
+        assertEquals(48, warstrike.maxHit(40))
+        // 45 to 49.5 to 49, then 53.9 to 53; at once 1.21 would make 54.
+        assertEquals(53, warstrike.maxHit(45))
+        assertEquals(AttackType.SLASH, warstrike.against)
+    }
+
+    @Test
+    fun `Warstrike drains by the damage, Defence to 0 first, then Strength, Attack, Magic and Ranged`() {
+        val ogre = npc(ogre)
+        specials.landed(ogre, 100, SpecialAttacks.BANDOS_GODSWORD)
+        assertEquals(listOf(0, 18, 43), listOf(ogre.level(NpcStat.DEFENCE), ogre.level(NpcStat.STRENGTH), ogre.level(NpcStat.ATTACK)))
+        specials.landed(ogre, 30, SpecialAttacks.BANDOS_GODSWORD)
+        // Strength's last 18, then 12 of Attack.
+        assertEquals(listOf(0, 0, 31), listOf(ogre.level(NpcStat.DEFENCE), ogre.level(NpcStat.STRENGTH), ogre.level(NpcStat.ATTACK)))
+        val missed = npc(this.ogre)
+        specials.landed(missed, 0, SpecialAttacks.BANDOS_GODSWORD)
+        assertEquals(75, missed.level(NpcStat.DEFENCE), "a miss drains nothing")
+    }
+
+    @Test
+    fun `Warstrike on a capped Defence drains it to the cap and moves on`() {
+        val boss = npc(boss)
+        // 45 of the 75 Defence, the 1 Strength, then 4 of the 200 Attack.
+        specials.landed(boss, 50, SpecialAttacks.BANDOS_GODSWORD)
+        assertEquals(listOf(30, 0, 196), listOf(boss.level(NpcStat.DEFENCE), boss.level(NpcStat.STRENGTH), boss.level(NpcStat.ATTACK)))
+    }
+
     private fun npc(type: NpcType) = Npc(1, NpcSpawn(type, 3222, 3218, source = "test"))
 }

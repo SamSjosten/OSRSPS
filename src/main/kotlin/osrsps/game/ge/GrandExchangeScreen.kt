@@ -93,6 +93,7 @@ class GrandExchangeScreen(
 
     /** Opens the offers screen at its index of eight slots. */
     fun open(player: Player) {
+        clearItemSink(player)
         toIndex(player)
         openModal(player, FrameSlot.MAINMODAL, MAIN)
         openModal(player, FrameSlot.SIDEMODAL, SIDE)
@@ -164,12 +165,22 @@ class GrandExchangeScreen(
 
     /** Opens the collection box, ge_collect: every slot's two boxes and Collect to inventory or bank. */
     fun openCollectionBox(player: Player) {
+        clearItemSink(player)
         openModal(player, FrameSlot.MAINMODAL, COLLECTION_BOX)
         for (slot in 0 until GeAccount.SLOTS) {
             send(player, IfSetEventsV2(COLLECTION_BOX, COLLECTION_SLOT_FIRST + slot, COLLECTION_BOX_ITEMS, COLLECTION_BOX_COINS, 0, COLLECT_OPS))
         }
         send(player, IfSetEventsV2(COLLECTION_BOX, COLLECTION_TO_INVENTORY, -1, -1, 0, BankScreen.opMask(1..1)))
         send(player, IfSetEventsV2(COLLECTION_BOX, COLLECTION_TO_BANK, -1, -1, 0, BankScreen.opMask(1..1)))
+    }
+
+    /**
+     * Sets every slot's ge_itemsink_obj to no item. They are obj varps, and the client starts every varp at 0, which is
+     * an item (dwarf remains): left at 0, the client's Buy and Sell (script 805) take each empty slot for an item sold to
+     * the item sink and show that instead of the setup (VM, 2026-10-30).
+     */
+    private fun clearItemSink(player: Player) {
+        for (varp in ITEM_SINK_OBJ_VARPS) player.vars[varp] = NO_ITEM
     }
 
     /** The screen closed: back to the index for the next opening. */
@@ -658,6 +669,9 @@ class GrandExchangeScreen(
         /** tradingpost_search, the item set up (an obj varp, so -1 for none), and ge_last_searched. */
         const val VARP_SEARCH = 1151
         const val VARP_LAST_SEARCHED = 2674
+
+        /** ge_itemsink_obj_0 to 7, every other varp from 3204 (ge_itemsink_price_N between them). */
+        val ITEM_SINK_OBJ_VARPS = (0 until GeAccount.SLOTS).map { 3204 + 2 * it }
         const val NO_ITEM = -1
 
         /** ge_newoffer_price, a long varp. */
