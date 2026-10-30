@@ -307,9 +307,10 @@ class HeadlessAllSettingsTest {
 
                 // Run invert needs roofs hidden first; its list never opens until then.
                 client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 6)
-                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 3 * 2 + 2)
+                client.ifButton(INTERFACE, DROPDOWN_BUTTONS, 1, sub = 3 * 0 + 2)
                 client.awaitTicks(2)
-                assertEquals(0, (client.varp(SETTINGS_VARP_3) ushr 17) and 3)
+                // Still the new account's Run -> Walk only, not the option clicked.
+                assertEquals(osrsps.game.Movement.RUN_INVERT_RUN_TO_WALK, (client.varp(SETTINGS_VARP_3) ushr 17) and 3)
 
                 client.ifButton(LOGOUT_TAB, LOGOUT_BUTTON, 1)
                 client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
