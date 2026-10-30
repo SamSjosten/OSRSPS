@@ -140,7 +140,9 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
   within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
   revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
 - The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
-  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases").
+  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases"). 1.0.1
+  the same day: the Windows runtime lacked the certificate store module (`jdk.crypto.mscapi`), so the game exited at
+  once; a 1.0.0 launcher sends its user to the download page for the new installer.
 
 ### Files for our own launcher
 
