@@ -67,6 +67,7 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     world.potions.clearDivine(player)
     // Nor poison, venom or an antipoison's immunity from before; ::reset puts the poison varp back with the rest.
     world.poison.clear(player)
+    world.statusEffects.clear(player)
     for (skill in Skill.entries) {
         val set = scenario.skills[skill]
         val level = set?.level ?: PlayerSkills.newLevel(skill)

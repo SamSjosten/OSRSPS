@@ -16,6 +16,7 @@ import osrsps.game.combat.Poison
 import osrsps.game.combat.PoweredStaves
 import osrsps.game.combat.RangedInteraction
 import osrsps.game.combat.Spellbook
+import osrsps.game.combat.StatusEffects
 import osrsps.game.npc.Npc
 import java.util.Locale
 import kotlin.math.abs
@@ -23,7 +24,7 @@ import kotlin.math.max
 
 /**
  * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`
- * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::multi` and `::blowpipe` change the world,
+ * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::stun`, `::multi` and `::blowpipe` change the world,
  * so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
@@ -181,6 +182,19 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply(poison.describe(player))
     }
 
+    register("stun", "::stun [ticks|end]", admin = true) {
+        val effects = world.statusEffects
+        when (val arg = args.singleOrNull()?.lowercase()) {
+            null -> if (args.isNotEmpty()) fail("Usage: ::stun [ticks|end]")
+            "end" -> effects.clear(player)
+            else -> {
+                val ticks = arg.toIntOrNull()?.takeIf { it in 1..MAX_STUN_TICKS } ?: fail("Usage: ::stun [ticks|end]; ticks are 1 to $MAX_STUN_TICKS, ${StatusEffects.PICKPOCKET_TICKS} for a failed pickpocket")
+                if (!effects.stun(player, ticks)) fail("Not stunned: you are stunned already. ${effects.describe(player)}")
+            }
+        }
+        reply(effects.describe(player))
+    }
+
     register("heal", "::heal", admin = true) {
         player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
         reply("Healed to ${player.hitpoints} hitpoints.")
@@ -261,3 +275,6 @@ private fun nearest(world: World, x: Int, z: Int, level: Int, filter: (Npc) -> B
 private fun percent(chance: Double): String = String.format(Locale.ROOT, "%.1f%%", chance * 100)
 
 private const val SEARCH_RADIUS = 15
+
+/** A minute, so a mistyped `::stun` can't hold an account for long. */
+private const val MAX_STUN_TICKS = 100
