@@ -18,6 +18,15 @@
 // time: while a pull request that is up to date still has checks running, it waits for that one. GitHub runs no
 // workflow for a push made with the workflow's own token, hence the dispatch, and the `codex-review` check for the new
 // head is written here.
+//
+// Batches: when two or more such pull requests are ready (behind main, their own checks done and green, `codex-review`
+// passing), the queue merges them one after another onto main as commits on the `automerge/batch` branch, skipping any
+// that conflicts with those before it, and starts `build` there: one CI run for all of them. The last merge's commit
+// names the batch in its trailers (main's commit and each member's head). Green, that commit becomes the head of the
+// last member's branch (a fast-forward: its head is the merge's second parent), with a `codex-review` that covers each
+// member; it is up to date with main and its checks have run, so auto-merge merges it, and with it every other member,
+// whose head is now in main, which GitHub marks merged. Red, the first half of the batch goes again, down to one pull
+// request, which goes the one-at-a-time way above, so its own checks show the failure to the thread that owns it.
 
 const { execFileSync } = require('node:child_process');
 
@@ -33,6 +42,11 @@ const APPROVE = '<!-- automerge:approve-runs';
 // This workflow's own jobs: GitHub files them on the pull request's head too, and the queue mustn't wait on itself.
 const OWN = ['automerge-gate', 'automerge-queue'];
 const BUILD = 'build'; // build.yml's main job: no check of that name on a head means no CI ran on it
+const BATCH = 'automerge/batch';
+const BATCH_MAX = 6;
+const BASE_TRAILER = 'Automerge-Base:';
+const MEMBER_TRAILER = 'Automerge-Member:';
+const BOT = ['-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com'];
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -90,18 +104,31 @@ function covers(git, number, reviewed, head) {
 }
 
 // The `codex-review` result for a pull request as it is now: { status, conclusion?, title, summary, stale? }.
+// A batch's head covers each member: the last member's branch holds it, and its check is Codex on each member's head.
 async function evaluate(github, git, repo, pr) {
-  const issue = { ...repo, issue_number: pr.number };
+  const batch = parseBatch((await github.rest.git.getCommit({ ...repo, commit_sha: pr.head.sha })).data.message);
+  if (batch && batch.members[batch.members.length - 1].number === pr.number) {
+    for (const member of batch.members) {
+      const result = await evaluateAt(github, git, repo, member.number, member.sha);
+      if (result.conclusion !== 'success') return { ...result, title: `#${member.number} in the batch: ${result.title}` };
+    }
+    const numbers = batch.members.map(member => `#${member.number}`).join(', ');
+    return { status: 'completed', conclusion: 'success', title: `Codex found nothing in ${numbers}`, summary: 'Clean Codex reviews of each pull request in the batch.' };
+  }
+  return evaluateAt(github, git, repo, pr.number, pr.head.sha);
+}
+
+async function evaluateAt(github, git, repo, number, head) {
+  const issue = { ...repo, issue_number: number };
   const comments = await github.paginate(github.rest.issues.listComments, { ...issue, per_page: 100 });
-  const reviews = await github.paginate(github.rest.pulls.listReviews, { ...repo, pull_number: pr.number, per_page: 100 });
+  const reviews = await github.paginate(github.rest.pulls.listReviews, { ...repo, pull_number: number, per_page: 100 });
   const found = verdict(comments, reviews);
-  const head = pr.head.sha;
   if (!found) {
     return { status: 'in_progress', title: 'Waiting for a Codex review', summary: 'Codex hasn\'t reviewed this pull request yet.' };
   }
   if (found.running) return { status: 'in_progress', title: 'Codex is reviewing', summary: 'A Codex review is running.' };
   const short = found.sha.slice(0, 7);
-  if (!covers(git, pr.number, found.sha, head)) {
+  if (!covers(git, number, found.sha, head)) {
     return {
       status: 'in_progress',
       stale: true,
@@ -196,14 +223,179 @@ approve them. @SamSjosten: "Approve workflows to run" on this pull request lets 
   });
 }
 
+// The batch a commit's message names: { base, members: [{ number, sha }] }, or null.
+function parseBatch(message) {
+  const lines = (message || '').split('\n').map(line => line.trim());
+  const base = lines.find(line => line.startsWith(BASE_TRAILER));
+  const members = lines.filter(line => line.startsWith(MEMBER_TRAILER)).map(line => {
+    const [number, sha] = line.slice(MEMBER_TRAILER.length).trim().split(/\s+/);
+    return { number: Number(number.replace('#', '')), sha };
+  });
+  if (!base || members.length < 2 || members.some(member => !member.number || !/^[0-9a-f]{40}$/.test(member.sha))) return null;
+  return { base: base.slice(BASE_TRAILER.length).trim(), members };
+}
+
+function commitTree(git, tree, parents, message) {
+  return git([...BOT, 'commit-tree', tree, ...parents.flatMap(parent => ['-p', parent]), '-F', '-'], message).trim();
+}
+
+// Merges each member's head in turn onto main, as commits made without a working tree, leaving out any that conflicts
+// with main and the members before it. The last commit carries the batch's trailers. Returns { sha, base, members }.
+function buildBatch(git, members) {
+  git(['fetch', '--no-tags', '--quiet', 'origin', 'main', ...members.map(m => `+refs/pull/${m.number}/head:refs/remotes/pr/${m.number}`)]);
+  const base = git(['rev-parse', 'origin/main']).trim();
+  let head = base;
+  let last = null;
+  const merged = [];
+  for (const member of members) {
+    let tree;
+    try {
+      tree = git(['merge-tree', '--write-tree', head, member.sha]).split('\n')[0].trim();
+    } catch {
+      continue; // conflicts with the batch so far: it goes in a later one
+    }
+    last = { tree, onto: head };
+    head = commitTree(git, tree, [head, member.sha], `Merge #${member.number} into the auto-merge batch`);
+    merged.push(member);
+  }
+  if (merged.length < 2) return { sha: head, base, members: merged };
+  const numbers = merged.map(member => `#${member.number}`).join(', ');
+  const message = `Auto-merge batch: ${numbers}\n\n${BASE_TRAILER} ${base}\n${merged.map(m => `${MEMBER_TRAILER} #${m.number} ${m.sha}`).join('\n')}\n`;
+  const sha = commitTree(git, last.tree, [last.onto, merged[merged.length - 1].sha], message);
+  return { sha, base, members: merged };
+}
+
+// The batch branch as it is: { sha, at, base, members } or null.
+async function readBatch(github, repo) {
+  let data;
+  try {
+    ({ data } = await github.rest.repos.getBranch({ ...repo, branch: BATCH }));
+  } catch (error) {
+    if (error.status === 404) return null;
+    throw error;
+  }
+  const batch = parseBatch(data.commit.commit.message);
+  return batch && { ...batch, sha: data.commit.sha, at: Date.parse(data.commit.commit.committer.date) };
+}
+
+// Builds a batch of two or more and starts `build` on it; false when fewer than two merge together.
+async function startBatch(github, git, repo, core, members) {
+  const built = buildBatch(git, members.map(({ number, sha }) => ({ number, sha })));
+  if (built.members.length < 2) return false;
+  git(['push', '--force', '--quiet', 'origin', `${built.sha}:refs/heads/${BATCH}`]);
+  await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: BATCH });
+  core.info(`batch ${built.sha.slice(0, 7)}: ${built.members.map(m => `#${m.number}`).join(', ')} on main ${built.base.slice(0, 7)}; build started`);
+  return true;
+}
+
+// Merges main into one pull request and starts its checks: the one-at-a-time way. False when it couldn't.
+async function updateOne(github, git, repo, core, sleep, pr) {
+  const { data: fresh } = await github.rest.pulls.get({ ...repo, pull_number: pr.number });
+  if (fresh.mergeable === false) return false; // conflicts: mergeable.yml tells the thread
+  core.info(`#${pr.number}: merging main into ${pr.head.ref}`);
+  try {
+    await github.rest.pulls.updateBranch({ ...repo, pull_number: pr.number, expected_head_sha: pr.head.sha });
+  } catch (error) {
+    core.info(`#${pr.number}: update-branch refused (${error.status}): ${error.message}`);
+    return false;
+  }
+  let head = pr.head.sha;
+  for (let i = 0; i < 24 && head === pr.head.sha; i++) {
+    await sleep(5000);
+    ({ data: { head: { sha: head } } } = await github.rest.pulls.get({ ...repo, pull_number: pr.number }));
+  }
+  if (head === pr.head.sha) {
+    core.warning(`#${pr.number}: the merge of main hasn't shown up yet; the next event picks it up`);
+    return true;
+  }
+  // GitHub may file the merge's pull_request runs as waiting for approval; approved, they are the pull request's
+  // checks. If none show up, the push started nothing and a dispatched build stands in.
+  let held = { waiting: 0, approved: 0 };
+  for (let i = 0; i < 6 && !held.waiting; i++) {
+    await sleep(5000);
+    held = await approveWaiting(github, repo, core, head);
+  }
+  if (!held.waiting) {
+    await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
+  } else if (held.approved < held.waiting) {
+    await askForApproval(github, repo, pr.number, head);
+  }
+  const { data: updated } = await github.rest.pulls.get({ ...repo, pull_number: pr.number });
+  const result = await evaluate(github, git, repo, updated);
+  await writeCheck(github, repo, updated.head.sha, result);
+  if (result.stale) {
+    await github.rest.issues.createComment({
+      ...repo,
+      issue_number: pr.number,
+      body: `${NOTICE}
+**Main merged in:** auto-merge merged \`main\` into this branch at ${head.slice(0, 7)}, and that changed the pull \
+request's diff, so Codex's last review no longer covers it. To the thread that opened this pull request: pull the \
+branch, check the merge, and comment \`@codex review\`.`,
+    });
+  }
+  return true;
+}
+
+// What to do about the batch on its branch, if it is still about main and its members: true when the queue is done
+// for this run (the batch is building, was promoted or went again), false to go on as if there were none.
+async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha, scanned) {
+  if (!batch || batch.base !== mainSha) return false;
+  const carrier = batch.members[batch.members.length - 1];
+  const carrierState = scanned.get(carrier.number);
+  if (carrierState && carrierState.pr.head.sha === batch.sha) {
+    if (carrierState.failing) return false;
+    core.info(`batch ${batch.sha.slice(0, 7)} is #${carrier.number}'s head: waiting for auto-merge`);
+    return true;
+  }
+  if (!batch.members.every(member => scanned.has(member.number) && scanned.get(member.number).pr.head.sha === member.sha)) {
+    core.info(`batch ${batch.sha.slice(0, 7)}: a member moved or left the queue; building again`);
+    return false;
+  }
+  const checks = (await latestChecks(github, repo, batch.sha)).filter(run => !OWN.includes(run.name) && run.name !== CHECK);
+  const failing = checks.some(run => run.status === 'completed' && BAD.includes(run.conclusion));
+  const running = checks.some(run => run.status !== 'completed');
+  if (!failing && !checks.some(run => run.name === BUILD)) {
+    if (now() - batch.at > 10 * 60 * 1000) {
+      core.info(`batch ${batch.sha.slice(0, 7)}: no build after ten minutes; starting one`);
+      await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: BATCH });
+    }
+    return true;
+  }
+  if (!failing && running) {
+    core.info(`batch ${batch.sha.slice(0, 7)}: checks running`);
+    return true;
+  }
+  if (!failing) {
+    const result = await evaluate(github, git, repo, { number: carrier.number, head: { sha: batch.sha } });
+    if (result.conclusion !== 'success') {
+      core.info(`batch ${batch.sha.slice(0, 7)}: ${result.title}; building again`);
+      return false;
+    }
+    core.info(`batch ${batch.sha.slice(0, 7)} is green: it becomes #${carrier.number}'s head`);
+    await github.rest.git.updateRef({ ...repo, ref: `heads/${carrierState.pr.head.ref}`, sha: batch.sha, force: false });
+    await writeCheck(github, repo, batch.sha, result);
+    return true;
+  }
+  const half = batch.members.slice(0, Math.ceil(batch.members.length / 2));
+  core.info(`batch ${batch.sha.slice(0, 7)} failed: ${half.map(m => `#${m.number}`).join(', ')} go again`);
+  if (half.length >= 2 && await startBatch(github, git, repo, core, half)) return true;
+  const first = scanned.get(half[0].number);
+  return first.ready ? updateOne(github, git, repo, core, sleep, first.pr) : false;
+}
+
 async function advance(github, git, repo, core, sleep, now) {
   const open = await github.paginate(github.rest.pulls.list, { ...repo, state: 'open', base: 'main', per_page: 100 });
   const queued = open.filter(pr => pr.auto_merge && !pr.draft).sort((a, b) => a.number - b.number);
 
-  const ready = [];
+  const scanned = new Map();
   for (const pr of queued) {
     const { data: compare } = await github.rest.repos.compareCommits({ ...repo, base: 'main', head: pr.head.sha });
     const behind = compare.behind_by > 0;
+    if (compare.ahead_by === 0) {
+      // Every commit already in main: a batch member GitHub hasn't marked merged yet.
+      core.info(`#${pr.number}: its commits are all in main; leaving it`);
+      continue;
+    }
     // Held runs first: merging main in again would only push another head whose runs are held the same way.
     const held = await approveWaiting(github, repo, core, pr.head.sha);
     if (held.waiting) {
@@ -242,54 +434,18 @@ async function advance(github, git, repo, core, sleep, now) {
       core.info(`#${pr.number} is up to date with checks running: waiting for it`);
       return;
     }
-    if (behind && !failing && codexOk) ready.push(pr);
+    const ready = behind && !failing && codexOk;
+    scanned.set(pr.number, { pr, failing, ready, batchable: ready && !running && checks.some(run => run.name === BUILD) });
   }
 
-  for (const pr of ready) {
-    const { data: fresh } = await github.rest.pulls.get({ ...repo, pull_number: pr.number });
-    if (fresh.mergeable === false) continue; // conflicts: mergeable.yml tells the thread
-    core.info(`#${pr.number}: merging main into ${pr.head.ref}`);
-    try {
-      await github.rest.pulls.updateBranch({ ...repo, pull_number: pr.number, expected_head_sha: pr.head.sha });
-    } catch (error) {
-      core.info(`#${pr.number}: update-branch refused (${error.status}): ${error.message}`);
-      continue;
-    }
-    let head = pr.head.sha;
-    for (let i = 0; i < 24 && head === pr.head.sha; i++) {
-      await sleep(5000);
-      ({ data: { head: { sha: head } } } = await github.rest.pulls.get({ ...repo, pull_number: pr.number }));
-    }
-    if (head === pr.head.sha) {
-      core.warning(`#${pr.number}: the merge of main hasn't shown up yet; the next event picks it up`);
-      return;
-    }
-    // GitHub may file the merge's pull_request runs as waiting for approval; approved, they are the pull request's
-    // checks. If none show up, the push started nothing and a dispatched build stands in.
-    let held = { waiting: 0, approved: 0 };
-    for (let i = 0; i < 6 && !held.waiting; i++) {
-      await sleep(5000);
-      held = await approveWaiting(github, repo, core, head);
-    }
-    if (!held.waiting) {
-      await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
-    } else if (held.approved < held.waiting) {
-      await askForApproval(github, repo, pr.number, head);
-    }
-    const { data: updated } = await github.rest.pulls.get({ ...repo, pull_number: pr.number });
-    const result = await evaluate(github, git, repo, updated);
-    await writeCheck(github, repo, updated.head.sha, result);
-    if (result.stale) {
-      await github.rest.issues.createComment({
-        ...repo,
-        issue_number: pr.number,
-        body: `${NOTICE}
-**Main merged in:** auto-merge merged \`main\` into this branch at ${head.slice(0, 7)}, and that changed the pull \
-request's diff, so Codex's last review no longer covers it. To the thread that opened this pull request: pull the \
-branch, check the merge, and comment \`@codex review\`.`,
-      });
-    }
-    return;
+  const { data: main } = await github.rest.repos.getBranch({ ...repo, branch: 'main' });
+  if (await advanceBatch(github, git, repo, core, sleep, now, await readBatch(github, repo), main.commit.sha, scanned)) return;
+
+  const batchable = [...scanned.values()].filter(state => state.batchable).slice(0, BATCH_MAX);
+  if (batchable.length >= 2 && await startBatch(github, git, repo, core, batchable.map(state => ({ number: state.pr.number, sha: state.pr.head.sha })))) return;
+
+  for (const state of scanned.values()) {
+    if (state.ready && await updateOne(github, git, repo, core, sleep, state.pr)) return;
   }
   core.info('Nothing to merge main into');
 }
@@ -313,3 +469,6 @@ module.exports.APPROVE = APPROVE;
 module.exports.OWN = OWN;
 module.exports.verdict = verdict;
 module.exports.covers = covers;
+module.exports.BATCH = BATCH;
+module.exports.parseBatch = parseBatch;
+module.exports.buildBatch = buildBatch;

@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const automerge = require('./automerge.js');
-const { CHECK, CODEX, NOTICE, OWN, verdict, covers } = automerge;
+const { CHECK, CODEX, NOTICE, OWN, BATCH, verdict, covers, parseBatch, buildBatch } = automerge;
 
 const summary = (sha, findings, status = 'completed') => ({ // has_unresolved_findings follows findings
   user: { login: CODEX },
@@ -39,10 +39,23 @@ test('only Codex counts, and no review is null', () => {
   assert.strictEqual(verdict([], []), null);
 });
 
-// A git that knows the tree each commit makes merged with main (null: it conflicts).
-function fakeGit(trees) {
-  return args => {
+// A git that knows the tree each commit makes merged with main (null: it conflicts). Batches: main is H('m'), the
+// commits it makes are numbered, and what it pushes lands in `pushed`.
+function fakeGit(trees, pushed = []) {
+  let made = 0;
+  return (args, input) => {
     if (args[0] === 'fetch') return '';
+    if (args[0] === 'rev-parse' && args[1] === 'origin/main') return `${H('m')}\n`;
+    if (args[0] === '-c' && args.includes('commit-tree')) {
+      made++;
+      const sha = String(made).padStart(40, 'c');
+      pushed.commits = { ...(pushed.commits || {}), [sha]: input };
+      return `${sha}\n`;
+    }
+    if (args[0] === 'push') {
+      pushed.push(args[args.length - 1]);
+      return '';
+    }
     if (args[0] === 'rev-parse') {
       const sha = Object.keys(trees).find(s => s.startsWith(args[2].replace('^{commit}', '')));
       if (!sha) throw new Error('unknown commit');
@@ -68,7 +81,8 @@ test('a review covers the head when it is the head or makes the same tree with m
 
 // A repository whose pull requests are { number: { head, ref, behind, checks: [{ name, status, conclusion }],
 // comments, autoMerge, mergeable } }.
-function fakeGitHub(prs) {
+// `batch`: the batch branch, { sha, message, checks, committed }; `commits`: commit messages by sha.
+function fakeGitHub(prs, { batch = null, commits = {} } = {}) {
   const calls = [];
   let nextId = 1000;
   const prData = n => {
@@ -101,14 +115,30 @@ function fakeGitHub(prs) {
       listComments: 'issues.listComments',
       createComment: async args => { calls.push(['comment', args.issue_number, args.body]); },
     },
+    git: {
+      getCommit: async ({ commit_sha }) => ({ data: { message: (batch && batch.sha === commit_sha ? batch.message : commits[commit_sha]) || 'a commit' } }),
+      updateRef: async ({ ref, sha, force }) => {
+        calls.push(['updateRef', ref, sha, force]);
+        const pr = Object.values(prs).find(p => `heads/${p.ref}` === ref);
+        pr.head = sha;
+        pr.checks = batch.checks;
+      },
+    },
     repos: {
+      getBranch: async ({ branch }) => {
+        if (branch === 'main') return { data: { commit: { sha: H('m') } } };
+        if (branch === BATCH && batch) {
+          return { data: { commit: { sha: batch.sha, commit: { message: batch.message, committer: { date: batch.committed || '2026-10-30T00:58:00Z' } } } } };
+        }
+        throw Object.assign(new Error('Branch not found'), { status: 404 });
+      },
       getCommit: async ({ ref }) => {
         const pr = Object.values(prs).find(p => p.head === ref);
         return { data: { commit: { committer: { date: pr.committed || '2026-10-30T00:00:00Z' } } } };
       },
       compareCommits: async ({ head }) => {
         const pr = Object.values(prs).find(p => p.head === head);
-        return { data: { behind_by: pr.behind || 0 } };
+        return { data: { behind_by: pr.behind || 0, ahead_by: pr.ahead === undefined ? 1 : pr.ahead } };
       },
     },
     checks: {
@@ -116,6 +146,7 @@ function fakeGitHub(prs) {
       create: async args => {
         calls.push(['check', args.head_sha, args.conclusion || args.status]);
         const pr = Object.values(prs).find(p => p.head === args.head_sha);
+        if (!pr) return;
         pr.checks.push({ id: nextId++, name: args.name, status: args.status, conclusion: args.conclusion || null, output: args.output });
       },
     },
@@ -139,6 +170,7 @@ function fakeGitHub(prs) {
     if (what === 'pulls.listReviews') return [];
     if (what === 'issues.listComments') return prs[args.issue_number].comments || [];
     if (what === 'checks.listForRef') {
+      if (batch && args.ref === batch.sha && !Object.values(prs).some(p => p.head === batch.sha)) return batch.checks;
       const pr = Object.values(prs).find(p => p.head === args.ref);
       return pr.checks.map((run, i) => ({ id: run.id || i + 1, ...run }));
     }
@@ -169,10 +201,10 @@ test('the gate passes a clean review of the head, fails findings and waits witho
   assert.deepStrictEqual(calls, [['check', H('1'), 'success'], ['check', H('2'), 'failure'], ['check', H('3'), 'in_progress']]);
 });
 
-test('the queue merges main into the oldest ready pull request only, and starts build on it', async () => {
+test('with one pull request ready for a batch, the queue merges main into the oldest ready one only, and starts build on it', async () => {
   const { github, calls } = fakeGitHub({
     7: { head: H('7'), mergedHead: H('8'), behind: 2, checks: [...green, codexPass], comments: [summary(H('7'), false)] },
-    9: { head: H('9'), behind: 1, checks: [...green, codexPass], comments: [summary(H('9'), false)] },
+    9: { head: H('9'), behind: 1, checks: [{ name: 'build', status: 'in_progress' }, codexPass], comments: [summary(H('9'), false)] },
   });
   await queue(github, fakeGit({ [H('7')]: 'p', [H('8')]: 'p' }));
   assert.deepStrictEqual(calls, [['updateBranch', 7], ['dispatch', 'build.yml', 'branch-7'], ['check', H('8'), 'success']]);
@@ -350,4 +382,128 @@ test("held runs on a head are approved before main is merged in again, and Sam i
   assert.strictEqual(asked.length, 1);
   assert.ok(asked[0][2].includes(`${automerge.APPROVE} ${H('3')} -->`));
   assert.deepStrictEqual(refused.calls.filter(call => call[0] === 'updateBranch'), [['updateBranch', 4]]);
+});
+
+// Batches.
+const batchMessage = (base, members) =>
+  `Auto-merge batch: ${members.map(n => `#${n}`).join(', ')}\n\nAutomerge-Base: ${base}\n${members.map(n => `Automerge-Member: #${n} ${H(String(n))}`).join('\n')}\n`;
+const ready = (n, extra = {}) => ({ head: H(String(n)), ref: `branch-${n}`, behind: 1, checks: [...green, codexPass], comments: [summary(H(String(n)), false)], ...extra });
+const B = H('b');
+
+test('a batch commit names its base and members; anything else is no batch', () => {
+  assert.deepStrictEqual(parseBatch(batchMessage(H('m'), [1, 2])), { base: H('m'), members: [{ number: 1, sha: H('1') }, { number: 2, sha: H('2') }] });
+  assert.strictEqual(parseBatch('Merge pull request #5'), null);
+  assert.strictEqual(parseBatch(batchMessage(H('m'), [1])), null, 'one member is no batch');
+});
+
+test('two or more ready pull requests go in one batch on the batch branch, and build runs there', async () => {
+  const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2), 3: ready(3, { checks: [{ name: 'build', status: 'in_progress' }, codexPass] }) });
+  const pushed = [];
+  const git = fakeGit({ [H('1')]: 't1', [H('2')]: 't2' }, pushed);
+  await queue(github, git);
+  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', BATCH]], 'no update-branch: the members are left as they are');
+  assert.strictEqual(pushed.length, 1);
+  const [sha, ref] = pushed[0].split(':');
+  assert.strictEqual(ref, `refs/heads/${BATCH}`);
+  assert.deepStrictEqual(parseBatch(pushed.commits[sha]).members.map(m => m.number), [1, 2], '#3 still has its own checks running');
+});
+
+test('the queue waits while the batch builds', async () => {
+  const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2) }, {
+    batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [{ name: 'build', status: 'in_progress' }] },
+  });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls, []);
+});
+
+test('a green batch becomes the last member\'s head, with a codex-review that covers each member', async () => {
+  const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2) }, {
+    batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] },
+  });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls, [['updateRef', 'heads/branch-2', B, false], ['check', B, 'success']]);
+
+  // Then it waits for auto-merge, and the gate leaves the batch's check passing.
+  const before = calls.length;
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls.slice(before), []);
+  const gated = fakeGitHub({ 1: ready(1), 2: ready(2, { head: B, checks: [] }) }, { commits: { [B]: batchMessage(H('m'), [1, 2]) } });
+  await gate(gated.github, fakeGit({}), 2);
+  assert.deepStrictEqual(gated.calls, [['check', B, 'success']]);
+});
+
+test('a batch whose member has Codex findings by now is not promoted', async () => {
+  const { github, calls } = fakeGitHub({ 1: ready(1, { comments: [summary(H('1'), true)], mergedHead: H('a') }), 2: ready(2) }, {
+    batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] },
+  });
+  await queue(github, fakeGit({ [H('2')]: 't2' }));
+  assert.ok(!calls.some(call => call[0] === 'updateRef'));
+});
+
+test('a red batch goes again with its first half, and a half of one goes the one-at-a-time way', async () => {
+  const red = [{ name: 'build', status: 'completed', conclusion: 'failure' }];
+  const three = fakeGitHub({ 1: ready(1), 2: ready(2), 3: ready(3) }, { batch: { sha: B, message: batchMessage(H('m'), [1, 2, 3]), checks: red } });
+  const pushed = [];
+  await queue(three.github, fakeGit({ [H('1')]: 't1', [H('2')]: 't2', [H('3')]: 't3' }, pushed));
+  assert.deepStrictEqual(three.calls, [['dispatch', 'build.yml', BATCH]]);
+  assert.deepStrictEqual(parseBatch(pushed.commits[pushed[0].split(':')[0]]).members.map(m => m.number), [1, 2]);
+
+  const two = fakeGitHub({ 1: ready(1, { mergedHead: H('a') }), 2: ready(2) }, { batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: red } });
+  await queue(two.github, fakeGit({ [H('1')]: 'p', [H('a')]: 'p' }));
+  assert.deepStrictEqual(two.calls, [['updateBranch', 1], ['dispatch', 'build.yml', 'branch-1'], ['check', H('a'), 'success']]);
+});
+
+test('a batch on an older main, or whose member moved, is built again', async () => {
+  const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2) }, {
+    batch: { sha: B, message: batchMessage(H('0'), [1, 2]), checks: [...green] },
+  });
+  const pushed = [];
+  await queue(github, fakeGit({ [H('1')]: 't1', [H('2')]: 't2' }, pushed));
+  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', BATCH]]);
+  assert.strictEqual(pushed.length, 1);
+});
+
+test('a pull request whose commits are all in main is left alone', async () => {
+  const { github, calls } = fakeGitHub({ 1: ready(1, { ahead: 0, mergedHead: H('a') }) });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls, []);
+});
+
+test('the real git: a batch merges each member in turn, leaves out one that conflicts, and ends on the last member', () => {
+  const { execFileSync } = require('node:child_process');
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'automerge-batch-'));
+  const sh = (...args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8' }).trim();
+  sh('init', '-q', '-b', 'main');
+  sh('config', 'user.email', 'a@b');
+  sh('config', 'user.name', 'a');
+  fs.writeFileSync(path.join(dir, 'shared'), 'one\n');
+  sh('add', '.');
+  sh('commit', '-qm', 'base');
+  const branch = (name, file, text) => {
+    sh('checkout', '-q', '-b', name, 'main');
+    fs.writeFileSync(path.join(dir, file), text);
+    sh('add', '.');
+    sh('commit', '-qm', name);
+    return sh('rev-parse', 'HEAD');
+  };
+  const a = branch('a', 'a', 'a\n');
+  const b = branch('b', 'shared', 'b\n');
+  const c = branch('c', 'shared', 'c\n'); // conflicts with b
+  const d = branch('d', 'd', 'd\n');
+  sh('checkout', '-q', 'main');
+  sh('update-ref', 'refs/remotes/origin/main', 'main');
+  const git = (args, input) => (args[0] === 'fetch' ? '' : execFileSync('git', ['-C', dir, ...args], { input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }));
+  const built = buildBatch(git, [{ number: 1, sha: a }, { number: 2, sha: b }, { number: 3, sha: c }, { number: 4, sha: d }]);
+  assert.deepStrictEqual(built.members.map(m => m.number), [1, 2, 4]);
+  const batch = parseBatch(sh('log', '-1', '--format=%B', built.sha));
+  assert.deepStrictEqual(batch.members, [{ number: 1, sha: a }, { number: 2, sha: b }, { number: 4, sha: d }]);
+  assert.strictEqual(batch.base, sh('rev-parse', 'main'));
+  assert.strictEqual(sh('rev-parse', `${built.sha}^2`), d, 'the last member is the second parent: its branch fast-forwards');
+  for (const sha of [a, b, d]) sh('merge-base', '--is-ancestor', sha, built.sha);
+  assert.strictEqual(sh('show', `${built.sha}:shared`), 'b');
+  assert.deepStrictEqual(sh('ls-tree', '--name-only', built.sha).split('\n').sort(), ['a', 'd', 'shared']);
+  fs.rmSync(dir, { recursive: true, force: true });
 });
