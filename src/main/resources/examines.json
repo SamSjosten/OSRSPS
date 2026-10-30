@@ -102,7 +102,11 @@
     {"npc": 5950, "name": "Elly the Camel"},
     {"npc": 5951, "name": "Ollie the Camel"},
     {"npc": 5952, "name": "Cam the Camel"},
-    {"npc": 5954, "name": "Alice the Camel"}
+    {"npc": 5954, "name": "Alice the Camel"},
+    {"npc": 4642, "name": "Shantay"},
+    {"npc": 4643, "name": "Shantay Guard", "also": [4648]},
+    {"npc": 4641, "name": "Irena"},
+    {"npc": 3019, "name": "Spider", "wiki": "Spider page, level 1"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},
@@ -244,6 +248,10 @@
     {"loc": 824, "name": "Wooden defence"},
     {"loc": 44050, "name": "Gate", "also": [44051, 44052, 44053], "wiki": "Toll gate page, infobox (Al Kharid's toll gate; the player sees 44050/44051 after Prince Ali Rescue)"},
     {"loc": 33348, "name": "Big window"},
-    {"loc": 7396, "name": "Carpet Exhibit"}
+    {"loc": 7396, "name": "Carpet Exhibit"},
+    {"loc": 4031, "name": "Shantay pass"},
+    {"loc": 2692, "name": "Prison door"},
+    {"loc": 2693, "name": "Bank chest"},
+    {"loc": 9565, "name": "Door", "wiki": "Door (Port Sarim jail) page"}
   ]
 }

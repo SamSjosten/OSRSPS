@@ -26,6 +26,23 @@
       "source": "OSRS Wiki, Scorpion (Level 14) and the DPS calculator's 3024, read 2026-10-30; it stands and walks with scorpion_update_ready and _walk. The respawn is the page's only infobox's (its level 1 version), so guessed for level 14"
     },
     {
+      "npcs": ["shantay_guard"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "stab", "attackBonus": 11, "strengthBonus": 12,
+      "defence": { "stab": 12, "slash": 15, "crush": 18, "magic": 6, "light": 15, "standard": 15, "heavy": 15 },
+      "anims": { "attack": "human_sword_stab", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Shantay Guard, read 2026-10-30; the animations guessed (a stab with a sword). Aggressive on live, which waits for NPC aggression (the Varrock piece)"
+    },
+    {
+      "npcs": ["spider"],
+      "attackSpeed": 4, "maxHit": 0, "attackType": "stab", "attackBonus": -35, "strengthBonus": -58,
+      "defence": { "stab": -53, "slash": -53, "crush": -53, "magic": -53, "light": -53, "standard": -53, "heavy": -53 },
+      "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
+      "respawnTicks": 35,
+      "weakness": { "element": "fire", "percent": 50 },
+      "source": "OSRS Wiki, Spider (level 1, id 3019) and the DPS calculator, read 2026-10-30; the giant spider's spider_update animations, guessed"
+    },
+    {
       "npcs": ["woman", "woman2", "woman3"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },

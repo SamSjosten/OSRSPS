@@ -153,6 +153,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   scorpion; a warrior killed for its bones and a scorpion killed, each put in on a quiet tile; Al the Camel's talk.
 - `al-kharid-mine-fish.json`: Al Kharid step 7: gold and silver ore mined at 99 in the Al Kharid mine, shrimps netted
   at a Small Net spot by the sea, and the boxes at Ali Morrisane's stall searched (with `::keys on`).
+- `al-kharid-shantay-pass.json`: Al Kharid step 8 (with `::keys on`): the Shantay Pass gate refused without a pass,
+  a pass bought with Buy-pass, Shantay's shop, the gate with a pass (the desert isn't built yet), and the bank chest.
+  Needs 0.6.1 for `assertInterface`.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
