@@ -74,7 +74,10 @@ class Food(
  */
 class Cooking(private val world: World) {
     /** What each player is cooking, by the fire or range they chose it at. */
-    private class Job(val food: Food, var left: Int, val loc: ZoneLoc)
+    private class Job(val food: Food, var left: Int, val loc: ZoneLoc) {
+        /** Whether the first piece's animation was played. */
+        var animated = false
+    }
 
     private val jobs = WeakHashMap<Player, Job>()
 
@@ -171,9 +174,15 @@ class Cooking(private val world: World) {
         if (player.skills.currentLevel(Skill.COOKING) < job.food.level) return finish()
         val range = loc.id in RANGES
         val anim = if (range) RANGE_ANIM else FIRE_ANIM
-        when (SkillClock.step(player, tick, CYCLE)) {
-            ClockStep.STARTED -> player.anim(anim)
-            ClockStep.WAITING -> {}
+        val step = SkillClock.step(player, tick, CYCLE)
+        // The clock is shared, so one still running from the last skill (fishing just before) skips STARTED: the first
+        // piece animates anyway.
+        if (step == ClockStep.STARTED || !job.animated) {
+            player.anim(anim)
+            job.animated = true
+        }
+        when (step) {
+            ClockStep.STARTED, ClockStep.WAITING -> {}
             ClockStep.DUE -> {
                 cookOne(job.food, loc)
                 job.left--
