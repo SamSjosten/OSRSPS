@@ -1,0 +1,17 @@
+{
+ "name": "Poison on an NPC: ::poison npc 30 on a man spawned east of the castle, his 6 thirty ticks on, read off ::npcs, and the second 6 killing him with no XP",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle, away from the courtyard's men"},
+  {"step": "command", "text": "::npc man", "expectMessage": "Spawned Man", "comment": "a man put in with ::npc stays dead once killed"},
+  {"step": "command", "text": "::poison npc 30 man", "expectMessage": "is poisoned, hitting 6 in 30 ticks.", "comment": "weapon poison(++), a melee hit's"},
+  {"step": "assertHitsplat", "npc": "Man", "timeoutMs": 25000, "comment": "the green poison hitsplat, 30 ticks on"},
+  {"step": "command", "text": "::npcs 3", "expectMessage": "; 1/7 hp; poisoned, hitting 6 in ", "comment": "7 hitpoints less 6"},
+  {"step": "waitTicks", "ticks": 32, "comment": "the second hit kills him"},
+  {"step": "command", "text": "::npcs 3", "expectMessage": "No NPCs within 3 tiles."},
+  {"step": "assertStat", "skill": "Attack", "level": 1, "xp": 0, "comment": "poison gives no XP"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

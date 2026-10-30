@@ -29,12 +29,19 @@ class HeadlessCraftingTest {
     private val data = CraftingData.load()
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
-        val ids = data.spinning.flatMap { r -> r.inputs.map { it.obj } + r.product }
+        val recipes = data.spinning + data.leather.values.flatten() + data.studded.values
+        val ids = recipes.flatMap { r -> r.inputs.map { it.obj } + r.product + r.tools + listOfNotNull(r.wears?.obj) } + data.studs
         val objs = arrayOfNulls<ObjType>(ids.max() + 1)
         for (id in ids) objs[id] = ObjType(id, "Item $id", tradeable = true)
         objs[WOOL] = ObjType(WOOL, "Wool", tradeable = true)
         objs[BALL_OF_WOOL] = ObjType(BALL_OF_WOOL, "Ball of wool", tradeable = true)
         objs[BOW_STRING] = ObjType(BOW_STRING, "Bow string", tradeable = true)
+        objs[THREAD] = ObjType(THREAD, "Thread", stackable = true, tradeable = true)
+        objs[STUDS] = ObjType(STUDS, "Steel studs", tradeable = true)
+        objs[GLOVES] = ObjType(GLOVES, "Leather gloves", tradeable = true)
+        objs[LEATHER_BODY] = ObjType(LEATHER_BODY, "Leather body", tradeable = true)
+        objs[STUDDED_BODY] = ObjType(STUDDED_BODY, "Studded body", tradeable = true)
+        objs[GREEN_BODY] = ObjType(GREEN_BODY, "Green d'hide body", tradeable = true)
         val spin = listOf(null, Crafting.SPIN, null, null, null)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(5),
@@ -103,7 +110,98 @@ class HeadlessCraftingTest {
         }
     }
 
+    private fun HeadlessClient.xpOver99() = (stat(CRAFTING)?.xp ?: 0) - 13_034_431
+
+    private fun HeadlessClient.use(id: Int, target: Int) =
+        ifButtonT(InventoryTab.INTERFACE, InventoryTab.ITEMS, slotOf(id), id, InventoryTab.INTERFACE, InventoryTab.ITEMS, slotOf(target), target)
+
+    private fun HeadlessClient.made() = messages().filter { it.text.startsWith("[crafting.leather") || it.text.startsWith("[crafting.studs") }
+
+    @Test
+    fun `a needle on leather offers all seven items, and one thread lasts five pairs of gloves`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel crafting 99")
+                client.give(NEEDLE)
+                client.give(THREAD)
+                client.give(LEATHER, 6)
+                client.use(NEEDLE, LEATHER)
+                val setup = client.box()
+                assertEquals(7, data.leather.getValue(LEATHER).count { it.product in setup.args }, "the box: ${setup.args}")
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 6)
+                client.seen("[crafting.thread_used]")
+                client.awaitTicks(8)
+                val gloves = client.made()
+                assertEquals(5, gloves.size, "the thread ran out after five")
+                assertEquals("[crafting.leather item=leather gloves]", gloves[0].text)
+                assertEquals(listOf(3, 3, 3, 3), gloves.zipWithNext { a, b -> b.tick - a.tick })
+                assertEquals(5, client.count(GLOVES))
+                assertEquals(1, client.count(LEATHER))
+                assertEquals(0, client.count(THREAD))
+                assertEquals(69, client.await("69 XP") { client.xpOver99().takeIf { it >= 69 } })
+            }
+        }
+    }
+
+    @Test
+    fun `thread uses carry over between jobs, and a green d'hide body takes three leathers`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel crafting 99")
+                client.give(NEEDLE)
+                client.give(THREAD)
+                client.give(GREEN_LEATHER, 9)
+                for (round in 1..2) {
+                    client.use(NEEDLE, GREEN_LEATHER)
+                    client.box()
+                    client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 2, 1)
+                    client.await("body $round") { if (client.count(GREEN_BODY) == round) Unit else null }
+                }
+                assertEquals(3, client.count(GREEN_LEATHER))
+                assertEquals(372, client.await("372 XP") { client.xpOver99().takeIf { it >= 372 } })
+                // Two uses so far: three more use the thread up.
+                assertEquals(1, client.count(THREAD))
+                assertTrue(client.messages().none { it.text == "[crafting.thread_used]" })
+            }
+        }
+    }
+
+    @Test
+    fun `steel studs on a leather body stud it, and need level 41`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.give(STUDS)
+                client.give(LEATHER_BODY)
+                client.use(STUDS, LEATHER_BODY)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.seen("[crafting.level level=41 item=studded body]")
+                client.command("setlevel crafting 99")
+                client.await("level 99") { client.stat(CRAFTING)?.takeIf { it.level == 99 } }
+                client.use(STUDS, LEATHER_BODY)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.seen("[crafting.studs item=studded body]")
+                client.await("the studded body") { if (client.count(STUDDED_BODY) == 1) Unit else null }
+                assertEquals(0, client.count(STUDS))
+                assertEquals(40, client.await("40 XP") { client.xpOver99().takeIf { it >= 40 } })
+            }
+        }
+    }
+
     private companion object {
+        const val NEEDLE = 1733
+        const val THREAD = 1734
+        const val LEATHER = 1741
+        const val GLOVES = 1059
+        const val LEATHER_BODY = 1129
+        const val STUDS = 2370
+        const val STUDDED_BODY = 1133
+        const val GREEN_LEATHER = 1745
+        const val GREEN_BODY = 1135
         const val WHEEL_X = 3224
         const val WHEEL_Z = 3218
         const val WOOL = 1737

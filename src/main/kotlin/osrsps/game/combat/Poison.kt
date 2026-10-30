@@ -3,6 +3,7 @@ package osrsps.game.combat
 import osrsps.game.Player
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Lines
+import osrsps.game.npc.Npc
 
 /** The words of being poisoned, in the dialogue file like every other line of Jagex text. */
 object PoisonLines : Lines("poison", "Poison") {
@@ -29,15 +30,23 @@ object PoisonLines : Lines("poison", "Poison") {
  * message only on going from neither to poisoned or envenomed; an antipoison's immunity never shortening a longer one;
  * the venom turned into poison with no immunity; that the timer, immunity included, stops while an interface is open
  * ("Poison doesn't damage or wear off while an interface is open"), and the hit comes as soon as it closes; that
- * poison and venom hits count for Redemption; and that dying clears the immunity too. Not here yet: poison and venom
- * sources (step 7), the Serpentine helm, curing from the hitpoints orb, and the poison timer resetting after 54
- * seconds out of combat.
+ * poison and venom hits count for Redemption; and that dying clears the immunity too. A monster whose attacks poison
+ * ([NpcCombatDef.poison]) poisons players from [MeleeCombat]. Not here yet: venom from monsters, the Serpentine helm,
+ * curing from the hitpoints orb, and the poison timer resetting after 54 seconds out of combat.
+ *
+ * NPCs are poisoned and envenomed too ([poison] and [envenom] on an [Npc]), by poisoned weapons and the toxic blowpipe
+ * ([PoisonedWeapons]), and keep the same count on [Npc.poison]. Not here yet for them: an NPC losing its poison, or
+ * becoming immune to venom, when it leaves combat.
  */
 class Poison(
     /** [player] takes a hit of this much with this hitsplat type ([MeleeCombat.statusHit]). */
     private val hit: (Player, Int, Int) -> Unit = { _, _, _ -> },
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     private val message: (Player, String) -> Unit = Player::message,
+    /** [Npc] takes a hit of this much with this hitsplat type ([MeleeCombat.statusHit]). */
+    private val hitNpc: (Npc, Int, Int) -> Unit = { _, _, _ -> },
+    /** What an NPC fights with, for its immunities; null for one that can't be fought. */
+    private val npcCombat: (Npc) -> NpcCombatDef? = { null },
 ) {
     /** [player]'s poison varp. */
     fun value(player: Player): Int = player.vars[VARP]
@@ -109,6 +118,70 @@ class Poison(
             }
         }
     }
+
+    /**
+     * Poisons [npc] at [severity], as a poisoned weapon's hit does: false while it is immune, envenomed or poisoned more
+     * strongly. A poison as strong as its own starts it again (OSRS Wiki, Poison: "Poison duration can be reset on an
+     * already-poisoned target"). A newly poisoned NPC's timer starts on the next [process], which runs later in the
+     * tick its weapon hit landed, so the first hit comes a full [TICKS] after it, as for a player.
+     */
+    fun poison(npc: Npc, severity: Int): Boolean {
+        require(severity in 1 until VENOM) { "A poison severity is 1 to ${VENOM - 1}, not $severity" }
+        val def = npcCombat(npc) ?: return false
+        if (def.poisonImmune || npc.dead || npc.poison > severity) return false
+        // A timer left from a poison that ran out this tick or the last would cut the new one's first wait short.
+        if (npc.poison == 0) npc.poisonTicks = -1
+        npc.poison = severity
+        return true
+    }
+
+    /**
+     * Envenoms [npc], as the toxic blowpipe's hit does: false while it is immune or envenomed already. Venom replaces
+     * its poison, and poison never turns its venom back into poison (the Wiki's 2024 change).
+     */
+    fun envenom(npc: Npc): Boolean {
+        val def = npcCombat(npc) ?: return false
+        if (def.venomImmune || npc.dead || npc.poison >= VENOM) return false
+        if (npc.poison == 0) npc.poisonTicks = -1
+        npc.poison = VENOM
+        return true
+    }
+
+    /**
+     * Counts [npc]'s timer down by a tick and hits it when it runs out, every [TICKS] as for a player; poison runs out
+     * at 0, venom never does. On the tick it is poisoned the timer starts at [TICKS] without counting down. Poison and
+     * venom kills give no XP (the Wiki), and the NPC doesn't turn on anyone for them.
+     */
+    fun process(npc: Npc) {
+        if (npc.dead || npc.poison == 0) {
+            npc.poisonTicks = -1
+            return
+        }
+        if (npc.poisonTicks < 0) {
+            npc.poisonTicks = TICKS
+            return
+        }
+        if (--npc.poisonTicks > 0) return
+        npc.poisonTicks = TICKS
+        val value = npc.poison
+        if (value >= VENOM) {
+            npc.poison = value + 1
+            hitNpc(npc, damage(value), VENOM_HITSPLAT)
+        } else {
+            npc.poison = value - 1
+            hitNpc(npc, damage(value), POISON_HITSPLAT)
+        }
+    }
+
+    /** What [npc]'s poison is, for `::npcs`; null for none. */
+    fun describe(npc: Npc): String? = when {
+        npc.poison >= VENOM -> "envenomed, hitting ${damage(npc.poison)} in ${ticksToHit(npc)} ticks"
+        npc.poison > 0 -> "poisoned, hitting ${damage(npc.poison)} in ${ticksToHit(npc)} ticks"
+        else -> null
+    }
+
+    /** Before its timer starts, a newly poisoned NPC is a full [TICKS] from its first hit. */
+    private fun ticksToHit(npc: Npc) = if (npc.poisonTicks < 0) TICKS else npc.poisonTicks
 
     /** What [player]'s varp means, for `::poison`. */
     fun describe(player: Player): String {

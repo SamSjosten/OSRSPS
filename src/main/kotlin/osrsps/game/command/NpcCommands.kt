@@ -38,7 +38,10 @@ fun CommandRegistry.registerNpcCommands(world: World) {
                 npc.freezeImmunityTicks > 0 -> "; immune to freezes ${npc.freezeImmunityTicks} more tick${if (npc.freezeImmunityTicks == 1) "" else "s"}"
                 else -> ""
             }
-            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$freeze")
+            val max = npc.type.stats.hitpoints
+            val hurt = if (npc.hitpoints < max) "; ${npc.hitpoints}/$max hp" else ""
+            val poison = world.poison.describe(npc)?.let { "; $it" }.orEmpty()
+            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$freeze$hurt$poison")
         }
         if (near.size > MAX_LISTED) reply("...and ${near.size - MAX_LISTED} more.")
     }
