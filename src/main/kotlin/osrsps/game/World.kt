@@ -340,7 +340,6 @@ class World(
         grandExchange, objTypes, interfaces::openModal, interfaces::closeModals, scripts,
         examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
         words = ::textFor,
-        toBank = { player, id, count -> bankItems(player, id, count) },
         drop = { player, type, count -> dropUnder(player, type, count) },
     )
 
