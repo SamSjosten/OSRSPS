@@ -89,6 +89,12 @@ class FriendLists(
         for (name in names) refresh(player, name)
     }
 
+    /** Sends [player] their entry for the friend [name] again, as after a rank change. */
+    fun resend(player: Player, name: String) {
+        val entry = player.friends.firstOrNull { sameName(it, name) } ?: return
+        player.session.queue(UpdateFriendList(listOf(entry(player, entry, added = false))))
+    }
+
     /** Whether [player] shows as online to [viewer]. */
     fun showsOnline(player: Player, viewer: Player): Boolean {
         if (player.loggedOut) return false
@@ -114,8 +120,10 @@ class FriendLists(
      */
     private fun entry(viewer: Player, name: String, added: Boolean): UpdateFriendList.Friend {
         val friend = online().firstOrNull { sameName(it.username, name) }
-        if (friend == null || !showsOnline(friend, viewer)) return UpdateFriendList.OfflineFriend(added, name, null, RANK, 0, "")
-        return UpdateFriendList.OnlineFriend(added, name, null, WORLD, RANK, 0, "", WORLD_NAME, PLATFORM_OSRS, WORLD_FLAGS)
+        // The friends chat rank the viewer gave them, which the Friends tab and the channel setup list show.
+        val rank = SaveStore.saveKey(name)?.let { viewer.friendsChat.ranks[it] } ?: RANK
+        if (friend == null || !showsOnline(friend, viewer)) return UpdateFriendList.OfflineFriend(added, name, null, rank, 0, "")
+        return UpdateFriendList.OnlineFriend(added, name, null, WORLD, rank, 0, "", WORLD_NAME, PLATFORM_OSRS, WORLD_FLAGS)
     }
 
     companion object {

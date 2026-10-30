@@ -301,6 +301,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `social-friends-chat-test.json` and `social-friends-chat-test2.json` (need 0.18.0): two players at once; `test` names
   its friends chat channel through Setup and joins it, `test2` joins by `test`'s name, each sees the other's `/` line,
   and both leave.
+- `social-friends-chat-setup.json` (needs 0.18.0): `test` names its channel and sets who may enter, talk and kick on
+  the setup screen, disables it, names it again and puts the options back.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
 - `social-ignore-2.json` (needs 0.14.0): the same with the names swapped, for a client logged in as `test2` (the nightly run's account).
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's

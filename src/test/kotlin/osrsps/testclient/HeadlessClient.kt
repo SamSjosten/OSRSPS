@@ -464,6 +464,15 @@ class HeadlessClient private constructor(
         HUFFMAN.encode(this, text)
     }
 
+    /** A rank picked for a friend in the friends chat setup list (FRIENDCHAT_SETRANK): 0 none, 1 Recruit to 6 General. */
+    fun setFriendsChatRank(name: String, rank: Int) = send(GameClientProt.FRIENDCHAT_SETRANK) {
+        p1(rank)
+        pjstr(name)
+    }
+
+    /** Kick user on a friends chat member (FRIENDCHAT_KICK). */
+    fun kickFromFriendsChat(name: String) = send(GameClientProt.FRIENDCHAT_KICK) { pjstr(name) }
+
     /** Text typed into a chatbox text prompt (RESUME_P_STRINGDIALOG). */
     fun resumeString(text: String) = send(GameClientProt.RESUME_P_STRINGDIALOG) { pjstr(text) }
 

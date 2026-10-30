@@ -179,4 +179,93 @@ class HeadlessFriendsChatTest {
             }
         }
     }
+
+    /** Opens the setup screen if it isn't, and picks option [op] on [component]. */
+    private fun HeadlessClient.setupOption(component: Int, op: Int) {
+        if (FriendChats.SETUP !in openInterfaces()) {
+            ifButton(FriendChats.CURRENT, FriendChats.CURRENT_SETUP, 1)
+            await("the setup screen") { openInterfaces().takeIf { FriendChats.SETUP in it } }
+        }
+        ifButton(FriendChats.SETUP, component, op)
+    }
+
+    @Test
+    fun `who may enter and talk follows the setup screen and the ranks given to friends`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            server.login("bob").use { it.logout() }
+            server.login("alice").use { alice ->
+                alice.nameChannel("Hut")
+                alice.addFriend("bob")
+                alice.setupOption(FriendChats.SETUP_ENTER, 2) // Any friends
+                alice.await("any friends") { alice.text(FriendChats.SETUP, FriendChats.SETUP_ENTER)?.takeIf { it == "[friends_chat.option_friends]" } }
+                alice.setupOption(FriendChats.SETUP_TALK, 3) // Recruit+
+                alice.await("recruit+") { alice.text(FriendChats.SETUP, FriendChats.SETUP_TALK)?.takeIf { it == "[friends_chat.option_recruit]" } }
+                server.login("carol").use { carol ->
+                    carol.joinFriendsChat("alice")
+                    carol.saw("[friends_chat.not_allowed]")
+                    assertNull(carol.friendsChat())
+                }
+                server.login("bob").use { bob ->
+                    bob.joinFriendsChat("alice")
+                    bob.await("in") { bob.friendsChat()?.members?.get("bob")?.takeIf { it == FriendChats.RANK_FRIEND } }
+                    bob.friendsChatSay("can I talk?")
+                    bob.saw("[friends_chat.cant_talk]")
+                    // Recruit: he can talk now, and shows as one.
+                    alice.setFriendsChatRank("bob", FriendChats.RANK_RECRUIT)
+                    bob.await("recruit") { bob.friendsChat()?.members?.get("bob")?.takeIf { it == FriendChats.RANK_RECRUIT } }
+                    bob.friendsChatSay("now I can")
+                    bob.await("his line") { bob.channelMessages().firstOrNull { it.text == "now I can" } }
+                    assertEquals(mapOf("bob" to FriendChats.RANK_RECRUIT), server.world.playerNamed("alice")!!.friendsChat.ranks)
+                    // A rank only goes to a friend.
+                    alice.setFriendsChatRank("carol", FriendChats.RANK_GENERAL)
+                    // Deleting him as a friend takes his rank away, and he's unranked in the channel.
+                    alice.deleteFriend("bob")
+                    bob.await("unranked") { bob.friendsChat()?.members?.get("bob")?.takeIf { it == FriendChats.RANK_NONE } }
+                    assertTrue(server.world.playerNamed("alice")!!.friendsChat.ranks.isEmpty())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a kick needs the kick rank and a higher rank, bars the player for an hour, and ends when the channel empties`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            server.login("bob").use { it.logout() }
+            server.login("alice").use { alice ->
+                alice.nameChannel("Hut")
+                alice.addFriend("bob")
+                alice.setupOption(FriendChats.SETUP_KICK, 4) // Corporal+
+                alice.await("corporal+") { alice.text(FriendChats.SETUP, FriendChats.SETUP_KICK)?.takeIf { it == "[friends_chat.option_corporal]" } }
+                alice.setFriendsChatRank("bob", FriendChats.RANK_CORPORAL)
+                alice.joinFriendsChat("alice")
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        for (client in listOf(bob, carol)) {
+                            client.joinFriendsChat("alice")
+                            client.await("in") { client.friendsChat() }
+                        }
+                        assertEquals(FriendChats.RANK_CORPORAL, carol.await("the kick rank") { carol.friendsChat() }.kickRank)
+                        // Carol has no rank, and Bob can't kick the owner.
+                        carol.kickFromFriendsChat("bob")
+                        carol.saw("[friends_chat.cant_kick]")
+                        bob.kickFromFriendsChat("alice")
+                        bob.saw("[friends_chat.cant_kick]")
+                        bob.kickFromFriendsChat("carol")
+                        carol.saw("[friends_chat.kicked]")
+                        carol.await("out") { if (carol.friendsChat() == null) Unit else null }
+                        alice.await("carol gone") { alice.friendsChat()?.members?.takeIf { "carol" !in it } }
+                        carol.joinFriendsChat("alice")
+                        carol.saw("[friends_chat.banned]")
+                        // Everyone leaves: the channel resets, and the ban with it.
+                        bob.leaveFriendsChat()
+                        alice.leaveFriendsChat()
+                        alice.await("out") { if (alice.friendsChat() == null) Unit else null }
+                        bob.await("out") { if (bob.friendsChat() == null) Unit else null }
+                        carol.joinFriendsChat("alice")
+                        carol.await("back in") { carol.friendsChat() }
+                    }
+                }
+            }
+        }
+    }
 }

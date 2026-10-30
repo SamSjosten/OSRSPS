@@ -46,6 +46,8 @@ import net.rsprot.protocol.game.incoming.social.IgnoreListDel
 import net.rsprot.protocol.game.incoming.resumed.ResumePCountDialog
 import net.rsprot.protocol.game.incoming.resumed.ResumePObjDialog
 import net.rsprot.protocol.game.incoming.friendchat.FriendChatJoinLeave
+import net.rsprot.protocol.game.incoming.friendchat.FriendChatKick
+import net.rsprot.protocol.game.incoming.friendchat.FriendChatSetRank
 import net.rsprot.protocol.game.incoming.resumed.ResumePStringDialog
 import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton
 import net.rsprot.protocol.loginprot.incoming.pow.NopProofOfWorkProvider
@@ -196,6 +198,8 @@ class NetworkFactory(
         builder.addListener(ResumePObjDialog::class.java, MessageConsumer { player, message ->
             world.onResumeObj(player, message.obj)
         })
+        builder.addListener(FriendChatSetRank::class.java, MessageConsumer { player, message -> world.onFriendsChatSetRank(player, message.name, message.rank) })
+        builder.addListener(FriendChatKick::class.java, MessageConsumer { player, message -> world.onFriendsChatKick(player, message.name) })
         builder.addListener(FriendChatJoinLeave::class.java, MessageConsumer { player, message -> world.onFriendsChatJoinLeave(player, message.name) })
         builder.addListener(ResumePStringDialog::class.java, MessageConsumer { player, message -> world.onResumeString(player, message.string) })
         builder.addListener(ResumePauseButton::class.java, MessageConsumer { player, message ->

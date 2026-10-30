@@ -182,7 +182,7 @@ class PlayerSaveTest {
 
     @Test
     fun `the friends chat channel and the channel the player was in are saved, and bad ranks are refused`() {
-        val settings = osrsps.game.social.FriendsChatSettings("Hut", enter = 0, talk = 1, kick = 7)
+        val settings = osrsps.game.social.FriendsChatSettings("Hut", enter = 0, talk = 1, kick = 7, ranks = mapOf("bob" to 3))
         val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), friendsChat = settings, friendsChatOwner = "Zezima").toJson("test")
         val back = PlayerSave.fromJson(text)
         assertEquals(settings, back.friendsChat)
@@ -197,6 +197,9 @@ class PlayerSaveTest {
         val bad = text.replace("\"kick\": 7", "\"kick\": 99")
         check(bad != text)
         assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(bad) }
+        val badRank = text.replace("\"bob\": 3", "\"bob\": 7")
+        check(badRank != text)
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(badRank) }
     }
 
     @Test

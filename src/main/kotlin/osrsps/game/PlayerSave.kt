@@ -221,6 +221,7 @@ class PlayerSave(
                     put("enter", friendsChat.enter)
                     put("talk", friendsChat.talk)
                     put("kick", friendsChat.kick)
+                    if (friendsChat.ranks.isNotEmpty()) putJsonObject("ranks") { for ((key, rank) in friendsChat.ranks) put(key, rank) }
                 }
             }
             if (friendsChatOwner != null) put("friendsChatOwner", friendsChatOwner)
@@ -511,13 +512,20 @@ class PlayerSave(
         /** Optional: saves from before friends chat, and saves of players who never set theirs up, have none. */
         private fun readFriendsChat(root: JsonObject): FriendsChatSettings {
             val fc = root["friendsChat"]?.jsonObject ?: return FriendsChatSettings.DEFAULT
-            val ranks = FriendChats.RANK_ANYONE..FriendChats.RANK_OWNER
+            val settingRanks = FriendChats.RANK_ANYONE..FriendChats.RANK_OWNER
             val (enter, talk, kick) = listOf("enter", "talk", "kick").map { name ->
-                fc.int(name).also { require(it in ranks) { "Friends chat $name rank $it is out of range" } }
+                fc.int(name).also { require(it in settingRanks) { "Friends chat $name rank $it is out of range" } }
             }
             val name = fc["name"]?.jsonPrimitive?.contentOrNull
             require(name == null || name.length <= FriendLists.MAX_NAME_LENGTH) { "Friends chat name '$name' is too long" }
-            return FriendsChatSettings(name, enter, talk, kick)
+            val ranks = LinkedHashMap<String, Int>()
+            for ((key, value) in fc["ranks"]?.jsonObject.orEmpty()) {
+                val rank = value.jsonPrimitive.int
+                require(rank in FriendChats.RANK_RECRUIT..FriendChats.RANK_GENERAL) { "Friends chat rank $rank for $key is out of range" }
+                ranks[key] = rank
+            }
+            require(ranks.size <= FriendChats.MAX_RANKS) { "${ranks.size} friends chat ranks is more than ${FriendChats.MAX_RANKS}" }
+            return FriendsChatSettings(name, enter, talk, kick, ranks)
         }
 
         /** The last trade a save records, or null if it records none or [text] isn't a save. */
