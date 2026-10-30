@@ -34,9 +34,10 @@ data class WearingMaterial(val obj: Int, val uses: Int, val charge: String, val 
 
 /**
  * One thing an artisan skill makes: [amount] of [product] from [inputs], with [tools] held but kept, at [level] in
- * [skill] for [xpTenths]. The first comes [first] ticks after the choice, the rest every [interval] ticks, each with
- * [anim] (-1 for none). [made] is the message on making it and [tooLow] the one when the level is too low; both are
- * given `amount`, `item` (the product's name in lower case) and `level` where they ask for them.
+ * [skill] for [xpTenths]. The first comes [first] ticks after the choice (0: as the choice is made), the second [second]
+ * ticks after it and the rest every [interval] ticks, each with [anim] (-1 for none). [made] is the message on making it and [tooLow] the one when the level is too low; both are
+ * given `amount`, `item` (the product's name in lower case), `input` (the first input's name, as the cache has it) and
+ * `level` where they ask for them.
  *
  * A [batch] recipe makes up to [amount] at a time, each one taking [inputs] once and giving [xpTenths]: arrows come 15 at
  * a time, or fewer when fewer are left. Otherwise each action takes [inputs] and gives [amount] and [xpTenths] once.
@@ -61,11 +62,12 @@ class MakeRecipe(
     val wears: WearingMaterial? = null,
     val chance: MakeChance? = null,
     val byproducts: List<ObjCount> = emptyList(),
+    val second: Int = interval,
 ) {
     init {
         require(amount >= 1 && level in 1..99 && xpTenths >= 0) { "Bad numbers in recipe $key" }
         require(inputs.isNotEmpty() && inputs.all { it.count >= 1 }) { "Recipe $key needs inputs" }
-        require(first >= 1 && interval >= 1) { "Recipe $key needs at least a tick between products" }
+        require(first >= 0 && second >= 1 && interval >= 1) { "Recipe $key needs at least a tick between products" }
     }
 
     /** How many actions [inventory] holds everything for, tools included; a batch's last one may be short. */
@@ -95,7 +97,7 @@ class MakeRecipe(
  */
 class Making(private val world: World) {
     /** What each player is making: the recipe and how many are left. */
-    private class Job(val recipe: MakeRecipe, var left: Int)
+    private class Job(val recipe: MakeRecipe, var left: Int, var made: Int = 0)
 
     /**
      * [recipes] (what one pair of items can make, in the box's order), offered in the Make-X box under [title], then
@@ -127,7 +129,7 @@ class Making(private val world: World) {
         if (quantity <= 0 || recipe.times(player.inventory) <= 0) return
         val job = Job(recipe, quantity)
         if (recipe.anim >= 0) player.anim(recipe.anim)
-        context.queue(QUEUE, QueueType.WEAK, recipe.first) { makeOne(job) }
+        if (recipe.first == 0) context.makeOne(job) else context.queue(QUEUE, QueueType.WEAK, recipe.first) { makeOne(job) }
     }
 
     /**
@@ -150,10 +152,11 @@ class Making(private val world: World) {
         val before = player.skills.baseLevel(recipe.skill)
         if (!make(player, recipe)) return
         job.left--
+        job.made++
         if (player.skills.baseLevel(recipe.skill) > before) return
         if (job.left <= 0 || recipe.times(player.inventory) <= 0) return
         if (recipe.anim >= 0) player.anim(recipe.anim)
-        queue(QUEUE, QueueType.WEAK, recipe.interval) { makeOne(job) }
+        queue(QUEUE, QueueType.WEAK, if (job.made == 1) recipe.second else recipe.interval) { makeOne(job) }
     }
 
     /**
@@ -204,10 +207,11 @@ class Making(private val world: World) {
         return false
     }
 
-    /** The values [line] asks for, of `amount`, `item` and `level`. */
+    /** The values [line] asks for, of `amount`, `item`, `input` and `level`. */
     private fun args(recipe: MakeRecipe, line: Line, amount: Int): Array<Pair<String, Any>> {
         val name = world.objTypes[recipe.product]?.name?.lowercase() ?: "item ${recipe.product}"
-        val all = mapOf("amount" to amount, "item" to name, "level" to recipe.level)
+        val input = recipe.inputs[0].obj.let { world.objTypes[it]?.name ?: "item $it" }
+        val all = mapOf("amount" to amount, "item" to name, "input" to input, "level" to recipe.level)
         return line.args.mapNotNull { arg -> all[arg]?.let { arg to it } }.toTypedArray()
     }
 

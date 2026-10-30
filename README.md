@@ -476,6 +476,25 @@ cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, som
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
 | Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
 
+### Herblore
+
+Clean on a grimy herb cleans that one at once (`game/skill/Herblore.kt`, words under `herblore.*`, numbers in
+`skills/herblore.json`). A clean herb and a vial of water, either used on the other, open the Make-X box for its
+unfinished potion. A pestle and mortar on a unicorn horn, chocolate bar, kebbit teeth, bird nest, desert goat horn or
+blue dragon scale opens the box for the ground item; the first is ground as the choice is made. An empty vial used on a
+sink, fountain or water pump fills every vial held, one a tick. Making goes through `Making.kt`.
+
+| Herblore behaviour | Source |
+|--------------------|--------|
+| The 15 herbs' cleaning levels and XP; Clean taking no time | OSRS Wiki, each grimy herb's page |
+| The cleaning message naming the grimy herb | OSRS Wiki, Grimy guam leaf |
+| Unfinished potions' levels, no XP, 1 tick | OSRS Wiki, each unfinished potion's page |
+| Grinding 0, then 2, then 3 ticks | OSRS Wiki, Unicorn horn dust ("Auto-crushing ... is 0, then 2, then 3 ticks") |
+| A vial fills in 1 tick at any water but a well | OSRS Wiki, Vial of water |
+| Animations 363 (`human_herbing_vial`) and 364 (`human_herbing_grind`) | cache 241 gamevals |
+| Which locs count as water; filling with no box; the filling animation (832); no animation for cleaning | guessed |
+| Out: finished potions (step 9), herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
