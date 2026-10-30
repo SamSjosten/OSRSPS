@@ -214,6 +214,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 |---------|--------------|
 | `::pos` | **everyone.** Your coordinates as `x, z, level`, plus the map region and your tile inside it |
 | `::tele x z [level]` | Teleports there; the level stays the same when left out. `::tele 3222, 3218, 0` also works, so `::pos` output pastes in |
+| `::teleto name` | Teleports onto the player called that, on their level |
 | `::tick` | **everyone.** The server's current tick number, and whether the clock is paused |
 | `::pause` | Freezes the game once the current tick has finished |
 | `::step [n]` | While paused, runs n ticks (default 1, up to 1000), one every 600 ms, then says where it stopped |
@@ -1445,6 +1446,27 @@ a bronze axe in bank tab 1 and 1,000 coins in the main tab: for the tab script, 
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.
+
+## The rotten potato
+
+Live's J-Mod tool, obj 5733, as an admins' tool: `::item 5733` gives one. The cache gives it Eat, Slice, Peel and Mash,
+as live, so RuneLite shows it as it does there. Each option opens a menu of testing tools that run the `::` commands, so
+every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat is done.
+
+| Eat | What it does | Source |
+|-----|--------------|--------|
+| Set all stats | Asks for a level, then sets one skill a tick (each through `::setlevel`, with a message), then a last message | Wiki; the order (skill ids) and the player being delayed meanwhile are guessed |
+| Wipe inventory | Deletes everything carried but rotten potatoes | Wiki |
+| Heal me | `::heal`, in place of live's Setup POH: there are no houses | ours |
+| Teleport to player | Asks for a name, then `::teleto` | Wiki |
+| Spawn aggressive NPC | Asks for an id or name, then `::npc`; the NPC is as aggressive as its type is | Wiki; the prompts' words are guessed |
+
+A non-admin who clicks one loses it with a message (guessed: what live does isn't known). The options' words are live's,
+so they are keys under `rotten_potato.` in the dialogue file, except Heal me.
+
+Check: `::item 5733`, then Eat. Set all stats with 50 sets each skill to 50 one a tick; Wipe inventory leaves only the
+potato; Teleport to player with a name online puts you on them; Spawn aggressive NPC with `goblin` spawns one on your
+tile.
 
 ## Headless test client
 
