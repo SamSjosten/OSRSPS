@@ -1,0 +1,7 @@
+# Al Kharid's item spawns. Items and rooms from the OSRS Wiki's item spawn lists (read 2026-10-30: Cabbage, "Al Kharid
+# Palace, western room"; Jug of water, "Al Kharid Palace, eastern room"), tiles from 2004Scape's map m51_49. The respawn is
+# the 100 ticks the other spawn files use; the Wiki gives none, so it is guessed.
+obj	count	x	z	level	respawn
+# The palace (Al Kharid step 5)
+cabbage	1	3285	3175	0	100
+jug_water	1	3302	3170	0	100
