@@ -169,6 +169,30 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin and the unicorn, and rats west of the castle`() {
+        val names = mapOf(
+            2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",
+            2864 to "giantrat1_3", 2854 to "rat", 8700 to "giant_frog_nodrops", 8701 to "medium_frog_nodrops", 8702 to "little_frog_nodrops",
+            3045 to "goblin_armed", 2837 to "unicorn", 238 to "butterfly_viceroy",
+        )
+        val swampTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-swamp.json"), swampTypes, "lumbridge-swamp.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        assertEquals(10, count(2856))
+        assertEquals(13, count(2863, 2864))
+        assertEquals(4, count(2859, 2860, 2861))
+        assertEquals(4, count(2854))
+        assertEquals(listOf(45, 29, 8), listOf(count(8702), count(8701), count(8700)))
+        assertEquals(1, count(3045))
+        assertEquals(1, count(2837))
+        // South of the castle and the church, west of the river, north of the swamp's south coast; all on the ground.
+        assertTrue(spawns.all { it.x in 3130..3260 && it.z in 3140..3214 && it.level == 0 })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == 5 })
+    }
+
+    @Test
     fun `Draynor has three bankers, its townsfolk, seven pigs and the farmer`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3111 to "woman", 2854 to "rat", 5007 to "imp", 2796 to "pig_1",

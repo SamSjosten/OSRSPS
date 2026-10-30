@@ -129,6 +129,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-east.json`: east of the River Lum: Barfy Bill's talk (with `::keys on`) for a player below level 12
   Woodcutting, Examine on Bill, a giant spider and a goblin, and `::kill goblin` showing the goblin's death animation
   and leaving its bones, which are then taken.
+- `lumbridge-swamp.json`: Lumbridge Swamp's fighters: Examine (with `::keys on`) on a level 6 giant rat, a frog, a
+  big frog, a giant frog, the level 5 goblin and the unicorn, and `::kill` on a giant rat (its death animation, then
+  its raw rat meat taken) and a giant frog (its big bones taken).
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.

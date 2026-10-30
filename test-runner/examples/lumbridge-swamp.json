@@ -1,0 +1,190 @@
+{
+ "name": "Rest of Lumbridge step 9: the swamp's fighters. Examine (::keys on) on a level 6 giant rat, the three frogs, the level 5 goblin and the unicorn, and a giant rat and a giant frog killed for their drops",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3199 3178 0",
+   "expectMessage": "Teleported to 3199, 3178, 0",
+   "comment": "dry ground in the swamp, among frogs of each size and the level 6 giant rats"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3199,
+   "y": 3178,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2863,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "a level 6 giant rat (giantrat1_2); giantrat1_3, 2864, shares its examine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_2863]"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 8702,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "a Frog (little_frog_nodrops)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_8702]"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 8701,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "a Big frog (medium_frog_nodrops)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_8701]"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 8700,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "a Giant frog (giant_frog_nodrops)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_8700]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3235 3218 0",
+   "expectMessage": "Teleported to 3235, 3218, 0",
+   "comment": "a quiet tile in the town, with no goblin, giant rat or giant frog about, so the NPC put in below is the nearest of its name both to ::kill and to the client"
+  },
+  {
+   "step": "command",
+   "text": "::npc giantrat",
+   "expectMessage": "Spawned Giant rat (2856)",
+   "comment": "a giant rat of our own on this tile: in the swamp, ::kill's nearest and the client's nearest could differ"
+  },
+  {
+   "step": "command",
+   "text": "::kill giant rat",
+   "expectMessage": "Killed Giant rat #"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Giant rat",
+   "id": 4935,
+   "timeoutMs": 10000,
+   "comment": "giant_rat_update_death"
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Raw rat meat",
+   "timeoutMs": 15000,
+   "comment": "a giant rat always drops bones and raw rat meat"
+  },
+  {
+   "step": "takeItem",
+   "item": "Raw rat meat"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Raw rat meat",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::npc giant_frog_nodrops",
+   "expectMessage": "Spawned Giant frog (8700)"
+  },
+  {
+   "step": "command",
+   "text": "::kill giant frog",
+   "expectMessage": "Killed Giant frog #"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Giant frog",
+   "id": 1795,
+   "timeoutMs": 10000,
+   "comment": "giant_frog_death"
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Big bones",
+   "timeoutMs": 15000,
+   "comment": "a giant frog always drops big bones; the rest of the swamp's drops are checked in NpcDropsTest"
+  },
+  {
+   "step": "takeItem",
+   "item": "Big bones"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Big bones",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::delnpc mine",
+   "expectMessage": "Removed"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3167 3207 0",
+   "expectMessage": "Teleported to 3167, 3207, 0",
+   "comment": "the swamp's north edge, by the level 5 goblin's spawn tile 3167 3205"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3045,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "the level 5 goblin (goblin_armed)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3045]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3142 3207 0",
+   "expectMessage": "Teleported to 3142, 3207, 0",
+   "comment": "west of the swamp, by the unicorn's spawn tile 3140 3209"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Unicorn",
+   "option": "Examine",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_2837]"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
