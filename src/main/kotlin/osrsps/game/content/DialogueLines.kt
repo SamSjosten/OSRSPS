@@ -48,7 +48,7 @@ object DialogueLines {
         BankLines, ShopLines, BarfyBillLines, UrhneyLines, CampWarriorLines, CampArcherLines, CampMonkLines, CampWizardLines,
         CandleSellerLines,
         // Draynor Village.
-        DraynorSearchLines,
+        DraynorSearchLines, AxeLogsLines,
     )
 }
 

@@ -89,6 +89,7 @@ import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerDraynorVillage
+import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -443,6 +444,7 @@ class World(
         registerShops(this)
         registerLumbridgeTown(this)
         registerDraynorVillage(this)
+        registerAxeLogs(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
