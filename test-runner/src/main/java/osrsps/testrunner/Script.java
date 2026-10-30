@@ -168,6 +168,20 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "npc", "npcId", "option", "comment");
 				return new Steps.NpcOption(timeout, npc, id, option);
 			}
+			case "playerOption":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String player = f.requiredString("player");
+				String option = f.requiredString("option");
+				int x = f.integer("x", -1);
+				int y = f.integer("y", -1);
+				if ((x < 0) != (y < 0))
+				{
+					throw new Invalid(f.where + " needs both \"x\" and \"y\", or neither");
+				}
+				f.rejectUnknown("step", "timeoutMs", "player", "option", "x", "y", "comment");
+				return new Steps.PlayerOption(timeout, player, option, x < 0 ? null : new Tile(x, y, -1));
+			}
 			case "locOption":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
