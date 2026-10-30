@@ -8,7 +8,7 @@ import net.rsprot.protocol.message.OutgoingGameMessage
  * RSMod's login script (rev 233): Follow 3, Trade with 4, Report 8, slots 2 and 5 cleared. Not checked against a live
  * login. None has priority, so a left click on a player still walks, as on live.
  *
- * Not built: Attack (slot 2 in the Wilderness and on PvP worlds), and anything but Follow doing what it does on live.
+ * Not built: Attack (slot 2 in the Wilderness and on PvP worlds), and Report.
  */
 object PlayerOps {
     const val FOLLOW = 3
@@ -25,7 +25,6 @@ object PlayerOps {
     )
 
     /** Not live's: tells the tester the option isn't built yet. */
-    const val TRADE_NOT_BUILT = "Trading isn't built on this server yet."
     const val REPORT_NOT_BUILT = "Reporting isn't built on this server yet."
 
     /** Sends the login options through [queue]. */

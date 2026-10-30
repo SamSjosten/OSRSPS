@@ -21,6 +21,8 @@ object CombatLines : Lines("combat", "Combat") {
     val MAGIC_LEVEL = line("magic_level", "a spell above the Magic level; words guessed, from memory")
     val NOT_ENOUGH_RUNES = line("not_enough_runes", "a spell without its runes, {runes} the rune's name in plural (Fire Runes); words guessed, from memory", "runes")
 
+    val SPEC_NOT_ENOUGH = line("spec_not_enough", "the special attack bar or orb used without the energy the weapon's special takes; words guessed")
+
     val NO_ROOM = line("no_room", "a blowpipe or powered staff emptied with no room for what comes out; words guessed")
 
     // The toxic blowpipe's: every one's words guessed.

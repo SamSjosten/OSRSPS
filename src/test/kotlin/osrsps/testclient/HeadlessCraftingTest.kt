@@ -31,8 +31,11 @@ class HeadlessCraftingTest {
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         val recipes = data.spinning + data.leather.values.flatten() + data.studded.values + data.gems.values +
-            data.jewellery.flatMap { it.items.values } + data.amulets.values
-        val ids = recipes.flatMap { r -> r.inputs.map { it.obj } + r.product + r.tools + listOfNotNull(r.wears?.obj, r.chance?.failed) } + data.studs
+            data.jewellery.flatMap { it.items.values } + data.amulets.values + listOfNotNull(data.moltenGlass) + data.blown + data.shaping +
+            data.firing.values + data.softening.values
+        val ids = recipes.flatMap { r ->
+            r.inputs.map { it.obj } + r.product + r.tools + r.byproducts.map { it.obj } + listOfNotNull(r.wears?.obj, r.chance?.failed?.takeIf { it >= 0 })
+        } + data.studs
         val objs = arrayOfNulls<ObjType>(ids.max() + 1)
         for (id in ids) objs[id] = ObjType(id, "Item $id", tradeable = true)
         objs[WOOL] = ObjType(WOOL, "Wool", tradeable = true)
@@ -45,6 +48,10 @@ class HeadlessCraftingTest {
         objs[STUDDED_BODY] = ObjType(STUDDED_BODY, "Studded body", tradeable = true)
         objs[OPAL] = ObjType(OPAL, "Opal", tradeable = true)
         objs[SAPPHIRE] = ObjType(SAPPHIRE, "Sapphire", tradeable = true)
+        objs[VIAL] = ObjType(VIAL, "Vial", tradeable = true)
+        objs[UNFIRED_POT] = ObjType(UNFIRED_POT, "Unfired pot", tradeable = true)
+        objs[POT] = ObjType(POT, "Pot", tradeable = true)
+        objs[UNFIRED_BOWL] = ObjType(UNFIRED_BOWL, "Unfired bowl", tradeable = true)
         objs[TIARA] = ObjType(TIARA, "Tiara", tradeable = true)
         objs[SAPPHIRE_RING] = ObjType(SAPPHIRE_RING, "Sapphire ring", tradeable = true)
         objs[STRUNG_GOLD] = ObjType(STRUNG_GOLD, "Gold amulet", tradeable = true)
@@ -57,11 +64,15 @@ class HeadlessCraftingTest {
                 mapOf(
                     Crafting.LUMBRIDGE_WHEEL to LocType(Crafting.LUMBRIDGE_WHEEL, "Spinning wheel", spin, LocCollisionType(width = 1, length = 1)),
                     Smithing.FURNACE to LocType(Smithing.FURNACE, "Furnace", listOf(null, "Smelt", null, null, null), LocCollisionType(width = 1, length = 1)),
+                    Crafting.POTTERS_WHEEL to LocType(Crafting.POTTERS_WHEEL, "Potter's Wheel", listOf(Crafting.USE, null, null, null, null), LocCollisionType(width = 1, length = 1)),
+                    Crafting.POTTERY_OVEN to LocType(Crafting.POTTERY_OVEN, "Pottery Oven", listOf(Crafting.FIRE, null, null, null, null), LocCollisionType(width = 1, length = 1)),
                 ),
             ),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(Crafting.LUMBRIDGE_WHEEL, LocShape.CENTREPIECE_STRAIGHT, 0, WHEEL_X, WHEEL_Z, 0))
                 add(ZoneLoc(Smithing.FURNACE, LocShape.CENTREPIECE_STRAIGHT, 0, FURNACE_X, FURNACE_Z, 0))
+                add(ZoneLoc(Crafting.POTTERS_WHEEL, LocShape.CENTREPIECE_STRAIGHT, 0, POTTERY_X, POTTERY_Z, 0))
+                add(ZoneLoc(Crafting.POTTERY_OVEN, LocShape.CENTREPIECE_STRAIGHT, 0, POTTERY_X + 2, POTTERY_Z, 0))
             },
             cycleMillis = millis,
         )
@@ -82,7 +93,12 @@ class HeadlessCraftingTest {
         await("$count of $id") { if (count(id) == before + count) Unit else null }
     }
 
-    private fun HeadlessClient.box() = await("the Make-X box") { clientScripts().lastOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } }
+    private fun HeadlessClient.boxes() = clientScripts().count { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
+
+    /** The Make-X box, once more than [after] have opened. */
+    private fun HeadlessClient.box(after: Int = 0) = await("the Make-X box") {
+        clientScripts().filter { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }.takeIf { it.size > after }?.last()
+    }
 
     @Test
     fun `Spin with nothing to spin does nothing, then offers wool and flax and spins three balls 3 ticks apart`(@TempDir dir: Path) {
@@ -289,6 +305,92 @@ class HeadlessCraftingTest {
     }
 
     @Test
+    fun `soda ash on a furnace makes molten glass and leaves the bucket, and a pipe blows it into vials`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("jack").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel crafting 99")
+                client.give(SODA_ASH, 2)
+                client.give(BUCKET_OF_SAND, 2)
+                client.locTarget(Smithing.FURNACE, FURNACE_X, FURNACE_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(SODA_ASH), SODA_ASH)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 2)
+                val molten = client.await("two molten") { client.messages().filter { it.text == "[crafting.molten_glass]" }.takeIf { it.size >= 2 } }
+                assertEquals(2, molten[1].tick - molten[0].tick)
+                client.await("the glass") { if (client.count(MOLTEN_GLASS) == 2) Unit else null }
+                assertEquals(2, client.count(BUCKET))
+                client.give(PIPE)
+                val boxes = client.boxes()
+                client.use(PIPE, MOLTEN_GLASS)
+                val setup = client.box(after = boxes)
+                assertEquals(8, data.blown.count { it.product in setup.args }, "the box: ${setup.args}")
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 3, 2)
+                val vials = client.await("two vials") { client.messages().filter { it.text == "[crafting.blow item=vial]" }.takeIf { it.size >= 2 } }
+                assertEquals(3, vials[1].tick - vials[0].tick)
+                client.await("the vials") { if (client.count(VIAL) == 2) Unit else null }
+                // 20 x 2 + 35 x 2.
+                assertEquals(110, client.await("110 XP") { client.xpOver99().takeIf { it >= 110 } })
+            }
+        }
+    }
+
+    @Test
+    fun `water softens clay, the wheel shapes pots and the oven fires them, cracking some at level 1`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kim").use { client ->
+                client.await("the login rebuild") { client.position }
+                // Pots at level 1: 6 shaped and 6 fired (75.6 XP at most) stay short of level 2, whose box would end the job.
+                client.give(CLAY, 6)
+                client.give(BUCKET_OF_WATER, 6)
+                client.use(BUCKET_OF_WATER, CLAY)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 6)
+                client.await("six soft clay") { if (client.count(SOFT_CLAY) == 6) Unit else null }
+                assertEquals(6, client.count(BUCKET))
+                val boxes = client.boxes()
+                client.locOp(Crafting.POTTERS_WHEEL, POTTERY_X, POTTERY_Z, 1)
+                val wheel = client.box(after = boxes)
+                assertTrue(UNFIRED_BOWL in wheel.args && UNFIRED_POT in wheel.args, "the wheel's box: ${wheel.args}")
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 6)
+                client.await("six pots", timeoutMillis = 20_000) { if (client.count(UNFIRED_POT) == 6) Unit else null }
+                client.locOp(Crafting.POTTERY_OVEN, POTTERY_X + 2, POTTERY_Z, 1)
+                client.box(after = boxes + 1)
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 6)
+                val fired = client.await("six fired", timeoutMillis = 30_000) {
+                    client.messages().filter { it.text == "[crafting.fire item=pot]" || it.text == "[crafting.crack item=pot]" }.takeIf { it.size >= 6 }
+                }
+                assertTrue(fired.zipWithNext { a, b -> b.tick - a.tick }.all { it == 7 }, "7 ticks a piece")
+                val pots = client.await("the pots") { client.count(POT).takeIf { client.count(UNFIRED_POT) == 0 } }
+                assertEquals(fired.count { it.text == "[crafting.fire item=pot]" }, pots)
+                assertTrue(pots in 1..5, "at level 1 about three in ten crack: $pots of 6 fired")
+            }
+        }
+    }
+
+    @Test
+    fun `one soft clay shapes four unfired cups, and each fires into a cup`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lena").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel crafting 99")
+                client.give(SOFT_CLAY)
+                val boxes = client.boxes()
+                client.locOp(Crafting.POTTERS_WHEEL, POTTERY_X, POTTERY_Z, 1)
+                client.box(after = boxes)
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM + 1, 1)
+                client.await("four unfired cups") { if (client.count(UNFIRED_CUP) == 4) Unit else null }
+                assertEquals(0, client.count(SOFT_CLAY))
+                client.locOp(Crafting.POTTERY_OVEN, POTTERY_X + 2, POTTERY_Z, 1)
+                client.box(after = boxes + 1)
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 4)
+                client.await("four cups", timeoutMillis = 40_000) { if (client.count(CUP) == 4) Unit else null }
+                // 8.5 shaping, then 8.5 x 4 firing.
+                assertEquals(42, client.await("42.5 XP") { client.xpOver99().takeIf { it >= 42 } })
+            }
+        }
+    }
+
+    @Test
     fun `a ball of wool strings an amulet for 4 XP`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("hank").use { client ->
@@ -306,6 +408,22 @@ class HeadlessCraftingTest {
     }
 
     private companion object {
+        const val SODA_ASH = 1781
+        const val BUCKET_OF_SAND = 1783
+        const val BUCKET = 1925
+        const val MOLTEN_GLASS = 1775
+        const val PIPE = 1785
+        const val VIAL = 229
+        const val CLAY = 434
+        const val SOFT_CLAY = 1761
+        const val BUCKET_OF_WATER = 1929
+        const val UNFIRED_BOWL = 1791
+        const val UNFIRED_POT = 1787
+        const val POT = 1931
+        const val UNFIRED_CUP = 28193
+        const val CUP = 1980
+        const val POTTERY_X = 3226
+        const val POTTERY_Z = 3222
         const val SILVER_BAR = 2355
         const val TIARA_MOULD = 5523
         const val TIARA = 5525

@@ -76,6 +76,7 @@ import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
+import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
 import osrsps.game.content.DialogueLines
@@ -145,6 +146,7 @@ import osrsps.game.script.ScriptRunner
 import osrsps.game.social.FriendLists
 import osrsps.game.social.IgnoreLists
 import osrsps.game.social.PrivateMessages
+import osrsps.game.trade.Trades
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
@@ -227,6 +229,8 @@ class World(
     val xpRate: XpRate = XpRate(),
     /** The All Settings window's settings, from the cache; tests that click them pass their own. */
     settings: SettingsCatalog = SettingsCatalog.NONE,
+    /** Each weapon's special attack cost, by obj id, from the cache's enum 906 ([SpecialAttacks]); tests that spec pass their own. */
+    specialAttackCosts: Map<Int, Int> = emptyMap(),
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -387,6 +391,8 @@ class World(
         npcDied = { npcScripts.died(it) },
         poisonNpc = { npc, severity -> poison.poison(npc, severity) }, envenomNpc = { poison.envenom(it) },
         poisonPlayer = { player, severity -> poison.poison(player, severity) },
+        special = { specialAttacks.use(it, combat.weapon(it)) },
+        specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
     )
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
@@ -421,6 +427,7 @@ class World(
         words = ::textFor, cure = {
             poison.clear(it)
             statusEffects.clear(it)
+            specialAttacks.refill(it)
         },
     )
 
@@ -436,6 +443,11 @@ class World(
 
     /** The ignore lists; see [IgnoreLists]. */
     val ignoreLists = IgnoreLists(::accountName) { player, line -> player.message(textFor(player)[line]) }
+
+    /** Trading between players; see [Trades]. */
+    val trades = Trades(
+        collision, movement, { players[it.index] === it }, ignoreLists, ::textFor, interfaces::openModal, interfaces::closeModals,
+    )
 
     /** Private messages; see [PrivateMessages]. */
     val privateMessages = PrivateMessages(
@@ -484,6 +496,9 @@ class World(
 
     /** Monsters' drained stats; see [NpcDrains]. */
     val npcDrains = NpcDrains { combat.npcCombat[it.type] }
+
+    /** The special attack bar and the specials that are in; see [SpecialAttacks]. */
+    val specialAttacks = SpecialAttacks(specialAttackCosts, npcDrains, words = ::textFor)
 
     /** Stuns on players; see [StatusEffects]. */
     val statusEffects = StatusEffects(
@@ -554,6 +569,7 @@ class World(
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
+        interfaces.onClose(Trades.MAIN, trades::decline)
         interfaces.onClose(PriceChecker.MAIN, priceChecker::closed)
         woodcutting.register()
         birdNests.register()
@@ -893,6 +909,7 @@ class World(
             player.playedTicks++
             statRestore.process(player)
             poison.process(player)
+            specialAttacks.process(player)
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
@@ -1005,6 +1022,7 @@ class World(
         for (player in players) {
             if (player == null) continue
             perPlayer(player, "updates") {
+                if (player.equipment.hasChanges) specialAttacks.weaponChanged(player, combat.weapon(player))
                 equipmentTab.updateVars(player)
                 bankScreen.updateVars(player)
                 depositBox.updateVars(player)
@@ -1182,7 +1200,10 @@ class World(
     internal fun loadPlayer(index: Int, username: String): Player {
         val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes, xpRate)
         // A save that couldn't be written is newer than the file, which would hand back what the player had before.
-        val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player.also { it.newAccount = true }
+        val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player.also {
+            it.newAccount = true
+            specialAttacks.refill(it)
+        }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
@@ -1455,10 +1476,14 @@ class World(
         }
         when (option) {
             PlayerOps.FOLLOW -> follows.click(player, target, ctrl)
+            PlayerOps.TRADE -> {
+                interfaces.closeModals(player)
+                trades.click(player, target, ctrl)
+            }
             else -> {
                 // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
                 player.session.queue(SetMapFlagV2.RESET)
-                player.message(if (option == PlayerOps.TRADE) PlayerOps.TRADE_NOT_BUILT else PlayerOps.REPORT_NOT_BUILT)
+                player.message(PlayerOps.REPORT_NOT_BUILT)
             }
         }
     }
@@ -1597,6 +1622,8 @@ class World(
             inventoryTab.click(player, sub, obj, op)
             return@act
         }
+        if (trades.click(player, interfaceId, componentId)) return@act
+        trades.interrupt(player)
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
@@ -1609,6 +1636,10 @@ class World(
         }
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
+        if (interfaceId == EquipmentTab.COMBAT && componentId == EquipmentTab.COMBAT_SPECIAL || interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_SPEC_BUTTON) {
+            specialAttacks.toggle(player, combat.weapon(player))
+            return@act
+        }
         if (interfaceId == EquipmentTab.COMBAT && equipmentTab.clickCombatTab(player, componentId)) return@act
         if (interfaceId == EquipmentTab.AUTOCAST && equipmentTab.clickAutocastMenu(player, componentId, sub)) return@act
         if (interfaceId == Prayers.PRAYERBOOK && prayers.click(player, componentId, op)) return@act
@@ -2075,6 +2106,7 @@ class World(
         try {
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
+            trades.leave(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

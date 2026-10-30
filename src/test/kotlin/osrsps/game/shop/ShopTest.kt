@@ -26,6 +26,13 @@ class ShopTest {
         13203 to 1, 12600 to 1, 981 to 120, 22364 to 40,
         // Ned's rope.
         954 to 18,
+        // Al Kharid's shops.
+        1321 to 32, 1323 to 112, 1325 to 400, 1329 to 1040,
+        1592 to 5, 1597 to 5, 1595 to 5, 1733 to 1, 1734 to 1, 1599 to 5, 2976 to 10, 5523 to 100, 9434 to 25, 11065 to 5,
+        1075 to 80, 1067 to 280, 1069 to 1000, 1077 to 1920, 1071 to 2600, 1073 to 6400,
+        1087 to 80, 1081 to 280, 1083 to 1000, 1089 to 1920, 1085 to 2600, 1091 to 6400,
+        1623 to 25, 1621 to 50, 1619 to 100, 1617 to 200, 1607 to 250, 1605 to 500, 1603 to 1000, 1601 to 2000,
+        1825 to 27, 1833 to 40, 1837 to 20, 4593 to 1, 4591 to 1, 970 to 10, 2138 to 1,
     )
 
     /**
@@ -50,6 +57,14 @@ class ShopTest {
             NpcType(500, "Olivia", internalName = "seed_merchant"),
             NpcType(8693, "Diango", internalName = "aprilfoolshorsesalesman"),
             NpcType(4280, "Ned", internalName = "ned"),
+            NpcType(2817, "Shop keeper", internalName = "generalshopkeeper3"),
+            NpcType(2818, "Shop assistant", internalName = "generalassistant3"),
+            NpcType(2875, "Zeke", internalName = "zeke"),
+            NpcType(2879, "Dommik", internalName = "dommik"),
+            NpcType(2876, "Louie Legs", internalName = "louie_legs"),
+            NpcType(2878, "Ranael", internalName = "ranael"),
+            NpcType(2874, "Gem trader", internalName = "gem_trader"),
+            NpcType(3533, "Ali Morrisane", internalName = "feud_ali_m"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -75,20 +90,41 @@ class ShopTest {
         "neds_rope_shop" to listOf(16 to 3),
     )
 
+    /** The Wiki's "Price sold at" for each item of Al Kharid's shops at its starting stock, read 2026-10-30. */
+    private val wikiSoldAt = mapOf(
+        "al_kharid_general_store" to listOf(1, 1, 182, 1, 2, 650, 5, 13, 1, 1, 1, 1, 2),
+        "zekes_superior_scimitars" to listOf(32, 112, 400, 1040),
+        "dommiks_crafting_store" to listOf(1, 5, 5, 5, 1, 1, 5, 10, 100, 25, 5),
+        "louies_armoured_legs_bazaar" to listOf(80, 280, 1000, 1920, 2600, 6400),
+        "ranaels_super_skirt_store" to listOf(80, 280, 1000, 1920, 2600, 6400),
+        "gem_trader" to listOf(25, 50, 100, 200, 250, 500, 1000, 2000),
+        "alis_discount_wares" to listOf(1, 1, 140, 27, 40, 20, 2, 500, 1, 1, 10, 6, 1, 1, 1),
+    )
+
     @Test
     fun `the shop file reads with every item and keeper, and its prices are the Wiki's`() {
         val shops = realShops()
         assertEquals(emptyList(), shops.warnings)
         assertEquals(
-            listOf("lumbridge_general_store", "bobs_brilliant_axes", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store", "neds_rope_shop"),
+            listOf("lumbridge_general_store", "bobs_brilliant_axes", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store", "neds_rope_shop") +
+                wikiSoldAt.keys,
             shops.all.map { it.key },
         )
         assertEquals(shops["diangos_toy_store"], shops.ofNpc(8693))
+        assertEquals(shops["al_kharid_general_store"], shops.ofNpc(2818))
+        assertEquals(shops["alis_discount_wares"], shops.ofNpc(3533))
+        // The Al Kharid General Store won't buy silk (the Wiki's page); no other shop refuses anything.
+        assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
         assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
         assertEquals(shops["neds_rope_shop"], shops.ofNpc(4280))
         for (type in shops.all) {
             val shop = Shop(type)
+            val sold = wikiSoldAt[type.key]
+            if (sold != null) {
+                assertEquals(sold, type.stock.map { shop.buyPrice(it.type.id, it.type.cost, it.count) }, type.key)
+                continue
+            }
             val wiki = wikiPrices.getValue(type.key)
             val prices = type.stock.map {
                 // ShopScreen.canSell refuses an untradeable item, so it has no "bought at" price.
@@ -102,7 +138,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(6, shops.warnings.size)
+        assertEquals(13, shops.warnings.size)
     }
 
     @Test

@@ -44,7 +44,7 @@ class HeadlessShopTest {
         "axes", "Test Axes", invId = AXE_INV, size = 1, general = false, sellAt = 1000, buyAt = 600, changePer = 20,
         stock = listOf(ShopStock(axe, 10, 100)), npcs = listOf(BOB),
     )
-    // Diango's Chronicle: one each, so a player holding or banking one is refused. A slow restock keeps the counts still.
+    // Diango's Chronicle: one each, so a player holding, wearing or banking one is refused. A slow restock keeps the counts still.
     private val toys = ShopType(
         "toys", "Test Toys", invId = TOY_INV, size = 1, general = false, sellAt = 1500, buyAt = 500, changePer = 2,
         stock = listOf(ShopStock(chronicle, 5, 1_000, onePerPlayer = true)), npcs = listOf(DIANGO),
@@ -197,6 +197,21 @@ class HeadlessShopTest {
                 val stock = client.inventory(TOY_INV).single()!!.count
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 2, 1, CHRONICLE)
                 client.awaitMessage("already banked") { it == DialogueText.NONE[ShopLines.ALREADY_HAVE, "item" to "Chronicle"] }
+                assertEquals(0, client.held(CHRONICLE))
+                assertEquals(1000, client.held(COINS))
+                assertEquals(stock, client.inventory(TOY_INV).single()!!.count)
+            }
+            // Worn counts as well: wielding the one bought mustn't let a player buy another.
+            server.login("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $COINS 1000")
+                client.awaitHeld(COINS, 1000)
+                server.world.playerNamed("gina")!!.equipment.add(chronicle, 1)
+                client.open(DIANGO)
+                client.await("the shop's stock") { client.inventory(TOY_INV).singleOrNull() }
+                val stock = client.inventory(TOY_INV).single()!!.count
+                client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 2, 1, CHRONICLE)
+                client.awaitMessage("already worn") { it == DialogueText.NONE[ShopLines.ALREADY_HAVE, "item" to "Chronicle"] }
                 assertEquals(0, client.held(CHRONICLE))
                 assertEquals(1000, client.held(COINS))
                 assertEquals(stock, client.inventory(TOY_INV).single()!!.count)
