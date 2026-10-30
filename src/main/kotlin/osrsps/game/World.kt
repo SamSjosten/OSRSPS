@@ -82,6 +82,7 @@ import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerCandleSeller
 import osrsps.game.content.registerFatherUrhney
+import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
@@ -466,6 +467,7 @@ class World(
         registerFatherUrhney(this)
         registerAdventurersCamp(this)
         registerCandleSeller(this)
+        registerSwampTutors(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
