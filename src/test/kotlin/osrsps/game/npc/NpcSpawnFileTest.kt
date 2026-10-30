@@ -352,8 +352,9 @@ class NpcSpawnFileTest {
             2886 to "aubury", 534 to "thessalia", 2887 to "tailorp", 8687 to "tea_seller", 5036 to "apothecary", 2881 to "baraek",
             5216 to "qip_soa_newspaperseller", 5215 to "king_roald", 3774 to "myq3_aeonisig_roalds_advisor",
             1390 to "queen_ellamaria", 5083 to "sir_prysin", 6203 to "reldo", 528 to "chaosmonk2",
-            2557 to "aluft_gnome_diplomat_varrock", 5085 to "captain_rovin", 3013 to "fai_varrock_guard_trainer",
-            3012 to "fai_varrock_guard_training",
+            2557 to "aluft_gnome_diplomat_varrock", 5085 to "captain_rovin", 11906 to "fai_varrock_guard_trainer02",
+            11907 to "fai_varrock_guard_training02", 11908 to "fai_varrock_guard_training02_variant01",
+            11909 to "fai_varrock_guard_training02_f", 11910 to "fai_varrock_guard_training02_f_variant01",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -387,10 +388,10 @@ class NpcSpawnFileTest {
         val traders = spawns.filter { it.type.id in listOf(2881, 5036, 5216) }
         assertEquals(listOf(2881, 5036, 5216), traders.map { it.type.id }.sorted())
         assertEquals(listOf(5036), traders.filter { it.restrict == MoveRestrict.INDOORS }.map { it.type.id })
-        // Step 6: the palace's people, one each but the five Trainee Guards, who stand at the roof's dummies.
-        val palace = spawns.filter { it.type.id in listOf(528, 1390, 2557, 3012, 3013, 3774, 5083, 5085, 5215, 6203) }
-        assertEquals(listOf(528, 1390, 2557, 3013, 3774, 5083, 5085, 5215, 6203), palace.filter { it.type.id != 3012 }.map { it.type.id }.sorted())
-        val trainees = palace.filter { it.type.id == 3012 }
+        // Step 6: the palace's people, one each but the five Trainee Guards (the 2022 looks), who stand at the roof's dummies.
+        val palace = spawns.filter { it.type.id in listOf(528, 1390, 2557, 3774, 5083, 5085, 5215, 6203, 11906) + (11907..11910) }
+        assertEquals(listOf(528, 1390, 2557, 3774, 5083, 5085, 5215, 6203, 11906), palace.filter { it.type.id !in 11907..11910 }.map { it.type.id }.sorted())
+        val trainees = palace.filter { it.type.id in 11907..11910 }
         assertEquals(5, trainees.count { it.level == 2 && it.wander == 0 })
         assertTrue(palace.all { it.x in 3200..3230 && it.z in 3460..3500 })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.

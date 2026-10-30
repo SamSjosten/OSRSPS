@@ -27,7 +27,7 @@ import osrsps.map.LocShape
 /**
  * Varrock step 6 through the headless client: every way through King Roald's (with Aeonisig Raispher speaking up),
  * Aeonisig's, Queen Ellamaria's, Ambassador Ferrnook's, Reldo's, Captain Rovin's and the training Captain's talk; Sir
- * Prysin's Silverlight for 1000 coins, not for less or into a full backpack, and not offered to a player who has one;
+ * Prysin's Silverlight for 500 coins, not for less or into a full backpack, and not offered to a player who has one;
  * the library's bookcases; and the Captain's shouting. The rl-client script test-runner/examples/varrock-palace.json
  * climbs the real palace and does the same.
  */
@@ -46,7 +46,7 @@ class HeadlessVarrockPalaceTest {
     private val rovin = npc(VarrockPalace.ROVIN, "Captain Rovin", "captain_rovin")
     private val reldo = npc(VarrockPalace.RELDO[0], "Reldo", "reldo_normal")
     private val ferrnook = npc(VarrockPalace.FERRNOOK, "Ambassador Ferrnook", "aluft_gnome_diplomat_varrock")
-    private val captain = npc(VarrockPalace.GUARD_CAPTAIN, "Captain", "fai_varrock_guard_trainer")
+    private val captain = npc(VarrockPalace.GUARD_CAPTAIN, "Captain", "fai_varrock_guard_trainer02")
     private val all = listOf(king, aeonisig, queen, prysin, rovin, reldo, ferrnook, captain)
 
     private fun bookcase(id: Int) = LocType(id, "Bookcase", ops = listOf("Search", null, null, null, null), collision = LocCollisionType(width = 1, length = 1))
@@ -173,7 +173,7 @@ class HeadlessVarrockPalaceTest {
     }
 
     @Test
-    fun `Sir Prysin sells a lost Silverlight for 1000 coins, and only to a player without one`(@TempDir dir: Path) {
+    fun `Sir Prysin sells a lost Silverlight for 500 coins, and only to a player without one`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -182,22 +182,22 @@ class HeadlessVarrockPalaceTest {
                 client.walk(prysin.id, "prysin", "greeting", "2:thats_right,lost", "lost", "recovered", "1:relief,borrow", "relief")
                 client.walk(prysin.id, "prysin", *borrow, "1:not_worth,pay", "not_worth")
 
-                client.command("item $COINS 999")
-                client.await("999 coins") { if (client.held(COINS) == 999) Unit else null }
+                client.command("item $COINS 499")
+                client.await("499 coins") { if (client.held(COINS) == 499) Unit else null }
                 client.walk(prysin.id, "prysin", *borrow, "2:not_worth,pay", "pay", "no_money")
-                assertEquals(999, client.held(COINS))
+                assertEquals(499, client.held(COINS))
 
                 client.command("item $COINS 1")
                 client.command("item $POT 27")
-                client.await("a full backpack") { if (client.held(POT) == 27 && client.held(COINS) == 1000) Unit else null }
+                client.await("a full backpack") { if (client.held(POT) == 27 && client.held(COINS) == 500) Unit else null }
                 client.walk(prysin.id, "prysin", *borrow, "2:not_worth,pay", "pay", "no_room")
-                assertEquals(1000, client.held(COINS))
+                assertEquals(500, client.held(COINS))
 
                 client.command("empty")
-                client.command("item $COINS 1000")
-                client.await("only 1000 coins") { if (client.held(POT) == 0 && client.held(COINS) == 1000) Unit else null }
+                client.command("item $COINS 600")
+                client.await("only 600 coins") { if (client.held(POT) == 0 && client.held(COINS) == 600) Unit else null }
                 client.walk(prysin.id, "prysin", *borrow, "2:not_worth,pay", "pay", "take_care")
-                assertEquals(0, client.held(COINS))
+                assertEquals(100, client.held(COINS))
                 assertEquals(1, client.held(VarrockPalace.SILVERLIGHT))
 
                 // Holding Silverlight, the player just answers that they stopped the demon.

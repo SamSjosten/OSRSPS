@@ -82,11 +82,11 @@ object PrysinLines : Lines("prysin", "Transcript:Sir Prysin") {
     val RELIEF = line("relief", "the second menu's option 1, which the player then says")
     val BORROW = line("borrow", "the second menu's option 2, which the player then says")
     val NOT_FREE = line("not_free", "option 2: it has grown stronger and isn't lent freely")
-    val PRICE = line("price", "option 2: it costs 1000 coins")
+    val PRICE = line("price", "option 2: its price, 500 coins for Silverlight (the transcript's line names Darklight's 1000)")
     val NOT_WORTH = line("not_worth", "the third menu's option 1, which the player then says")
     val PAY = line("pay", "the third menu's option 2, which the player then says")
     val TAKE_CARE = line("take_care", "paid: his send-off as Silverlight is handed over")
-    val NO_MONEY = line("no_money", "fewer than 1000 coins: the player can't afford it")
+    val NO_MONEY = line("no_money", "fewer than 500 coins: the player can't afford it")
     val NO_ROOM = line("no_room", "a full backpack: no room to carry it")
 }
 
@@ -167,14 +167,14 @@ object PalaceLibraryLines : Lines("palace_library", "Varrock Palace Library") {
  * This adds its people (npc-spawns/varrock.json, on mejrs's tiles): King Roald (5215) with his advisor Aeonisig
  * Raispher (3774), Queen Ellamaria (1390) in her garden, Sir Prysin (5083), Captain Rovin (5085) on the roof, Reldo
  * (6203, a multi-NPC whose two types talk the same) in the library, Ambassador Ferrnook (2557), the training Captain
- * (3013) and his five Trainee Guards (3012) by the roof's dummies, and the Monk of Zamorak (528) in the cage under the
+ * (11906) and his five Trainee Guards (11907 to 11910, the 2022 looks) by the roof's dummies, and the Monk of Zamorak (528) in the cage under the
  * stairs; and the library's bookcases.
  *
  * Talk is from each Wiki transcript, as it is once every quest is done. Guessed: every chathead expression; that
  * King Roald talks as after The Blood Moon Rises rather than after Priest in Peril (the Wiki lists both); that
  * Aeonisig's menu keeps every topic until the player leaves; that Sir Prysin offers his lost-Silverlight option only
- * when the player has none held, worn or banked (with one, the player just answers), and asks the 1000 coins he names (the transcript checks for 500); that
- * he checks coins before room; which of the alcove's two bookcases says which; that the library's quest bookcases
+ * when the player has none held, worn or banked (with one, the player just answers), and asks 500 coins (the Sir Prysin page: Silverlight 500, Darklight 1000;
+ * the transcript's 1000 is Darklight's); that he checks coins before room; which of the alcove's two bookcases says which; that the library's quest bookcases
  * (questbookcase, lost_tribe_bookcase, ds2_varrock_bookcase) say nothing interests the player, as most do; the Captain's
  * shouting every 15 to 30 ticks. Left out: Reldo's Wise Old Man message, Darklight (Sir Prysin's members-world trade),
  * the Monk's combat (he casts, which waits on NPC magic; the city's fighters step), the Varrock Census, Surok Magis
@@ -189,11 +189,12 @@ object VarrockPalace {
     /** reldo_normal and reldo_withbook, the two types multi-NPC 6203 shows. */
     val RELDO = listOf(4243, 4242)
     const val FERRNOOK = 2557
-    const val GUARD_CAPTAIN = 3013
+    /** fai_varrock_guard_trainer02, the Captain's look since the guards' 2022 update (the old one is 3013). */
+    const val GUARD_CAPTAIN = 11906
     const val TALK_TO = 1
 
     const val SILVERLIGHT = 2402
-    const val SILVERLIGHT_PRICE = 1000
+    const val SILVERLIGHT_PRICE = 500
 
     /** Silverlight, its dyed form, Darklight, Arclight and Emberlight: each counts as having it. Guessed list. */
     private val SILVERLIGHTS = listOf(SILVERLIGHT, 6745, 6746, 19675, 29589)
