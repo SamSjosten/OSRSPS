@@ -84,6 +84,7 @@ import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
+import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -427,6 +428,7 @@ class World(
         registerGroatsFarm(this)
         registerMillLaneMill(this)
         registerBarfyBill(this)
+        registerAlKharid(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)

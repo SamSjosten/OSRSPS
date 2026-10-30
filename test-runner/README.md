@@ -129,6 +129,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumbridge-east.json`: east of the River Lum: Barfy Bill's talk (with `::keys on`) for a player below level 12
   Woodcutting, Examine on Bill, a giant spider and a goblin, and `::kill goblin` showing the goblin's death animation
   and leaving its bones, which are then taken.
+- `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
+  Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
+  opened together and shut again.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

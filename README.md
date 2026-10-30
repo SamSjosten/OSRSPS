@@ -634,6 +634,29 @@ Check: `test-runner/examples/lumbridge-east.json` talks to Bill, examines the th
 for its bones; `HeadlessLumbridgeEastTest` fights a goblin to death and talks to Bill through the headless client, with
 every branch of Bill's talk in `BarfyBillTest` and the drop rates in `NpcDropsTest`.
 
+## Al Kharid
+
+The Misthalin roadmap's Al Kharid piece, built a step at a time ([plan](https://claude.ai/artifact/Q7H1GLiHSg5A342NfsZn3f)).
+Content is in `game/content/AlKharid.kt`, spawns in `npc-spawns/al-kharid.json`. Every account has finished every
+quest, so Al Kharid is as after Prince Ali Rescue.
+
+| Behaviour | Source |
+|-----------|--------|
+| The toll gate (multilocs 44598/44599 at 3268, 3227 and 3268, 3228) shows as 44050/44051, Open only, once varp 273 is 100 or more; the Pay-toll(10gp) types 44052/44053 are the before-quest ones | 241 cache; OSRS Wiki, Toll gate |
+| After the quest Open takes the player through free with no talk, either way | OSRS Wiki, Toll gate (changed 27 April 2022) |
+| Talk-to on a Border Guard (4287 Lumbridge side, 4288 Al Kharid side): the player asks to come through, the guard says they're a friend of Al-Kharid, and the player goes through free | OSRS Wiki, Transcript:Border Guard |
+| Going through: both leaves swing open for 3 ticks as `inacmetalgateopenl`/`r` (1573/1574), the player moves to the far side at once; a player who talked to a guard first steps up to the gate | 2004Scape's border_gate.rs2; guessed until recorded |
+| Four Border Guards, two each side, standing still | 2004Scape map m51_50 spawns; standing still guessed |
+| The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
+
+Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only). The words of
+the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
+`examine.npc_4287`, `examine.loc_44050`).
+
+Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
+Guard's talk, and opens and shuts the palace's west doors; `HeadlessAlKharidTest` does the same through the headless
+client, with the talk in `BorderGuardTest`.
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and

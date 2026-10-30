@@ -38,6 +38,8 @@ object DialogueLines {
         SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines, GillieLines, MillieLines,
         HopperLines, DuckLines, SheepLines, CropLines, DairyCowLines, MillLines, BonesLines, SearchLines, ClimbLines,
         BankLines, ShopLines, BarfyBillLines,
+        // Al Kharid.
+        BorderGuardLines,
     )
 }
 
