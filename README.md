@@ -235,7 +235,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
 | `::friends` | **everyone.** Your friends list as the server keeps it, each friend's world or offline |
 | `::clearfriends` | Empties your friends list, for tests that start from none (the Friends tab shows it after a relog) |
-| `::poison [severity\|venom\|cure]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity |
+| `::poison [severity\|venom\|cure]`, `::poison npc severity\|venom [index\|name]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity. `npc` poisons or envenoms an NPC instead (by index from `::npcs` or by name, the nearest one you can fight by default), unless it is immune: it is hit every 30 ticks with no XP, and `::npcs` shows it |
 | `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
@@ -257,7 +257,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned or envenomed |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
