@@ -1,0 +1,465 @@
+{
+ "name": "Varrock step 5: Trade at the General Store, Aubury's, Thessalia's, the Fancy Clothes Store and Ye olde Tea Shoppe, one item bought and sold back at each, then each keeper's talk (::keys on) into their shop",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 10000",
+   "expectMessage": "Added 10,000 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3218 3415 0",
+   "expectMessage": "Teleported to 3218, 3415, 0",
+   "comment": "the Varrock General Store's keeper: the keeper's spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shop keeper",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 Pot"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pot",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3253 3402 0",
+   "expectMessage": "Teleported to 3253, 3402, 0",
+   "comment": "Aubury's Rune Shop: the keeper's spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Aubury",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 Air rune"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Air rune",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Air rune",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3204 3417 0",
+   "expectMessage": "Teleported to 3204, 3417, 0",
+   "comment": "Thessalia's Fine Clothes: the keeper's spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Thessalia",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 White apron"
+  },
+  {
+   "step": "assertInventory",
+   "item": "White apron",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "White apron",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3281 3398 0",
+   "expectMessage": "Teleported to 3281, 3398, 0",
+   "comment": "the Fancy Clothes Store (slot 2, as the chef's hat starts at 0): the keeper's spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Asyff",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 2,
+   "op": 2,
+   "comment": "Buy 1 Blue wizard hat"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Blue wizard hat",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Blue wizard hat",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3271 3411 0",
+   "expectMessage": "Teleported to 3271, 3411, 0",
+   "comment": "Ye olde Tea Shoppe: the keeper's spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Tea Seller",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 Cup of tea"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Cup of tea",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Cup of tea",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3218 3415 0",
+   "expectMessage": "Teleported to 3218, 3415, 0",
+   "comment": "Shop keeper again, for the talk (the teleport closes the open shop)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shop keeper",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[varrock_shop_keeper.help]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[varrock_shop_keeper.selling]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "the talk ends in the shop"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3253 3402 0",
+   "expectMessage": "Teleported to 3253, 3402, 0",
+   "comment": "Aubury again, for the talk (the teleport closes the open shop)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Aubury",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aubury.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[aubury.yes]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "the talk ends in the shop"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3204 3417 0",
+   "expectMessage": "Teleported to 3204, 3417, 0",
+   "comment": "Thessalia again, for the talk (the teleport closes the open shop)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Thessalia",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[thessalia.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[thessalia.buy]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "the talk ends in the shop"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3281 3398 0",
+   "expectMessage": "Teleported to 3281, 3398, 0",
+   "comment": "Asyff again, for the talk (the teleport closes the open shop)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Asyff",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[asyff.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[asyff.what]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[asyff.just_saying]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[asyff.materials_too]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[asyff.stock]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[asyff.stock]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "the talk ends in the shop"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3271 3411 0",
+   "expectMessage": "Teleported to 3271, 3411, 0",
+   "comment": "Tea Seller again, for the talk (the teleport closes the open shop)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Tea Seller",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tea_seller.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[tea_seller.yes]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tea_seller.yes]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "the talk ends in the shop"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

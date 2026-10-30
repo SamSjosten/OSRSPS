@@ -99,6 +99,7 @@ import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
+import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
@@ -298,10 +299,13 @@ class World(
     var itemPrices: ItemPrices = itemPrices
         private set
 
+    /** The drop item warning setting; see [DropWarnings]. */
+    private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot -> groundObjs.drop(player, slot) }
+
     private val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
-        onDrop = groundObjs::drop,
+        onDrop = dropWarnings::drop,
         price = { this.itemPrices.price(it) },
         desc = { player, type -> if (type.isCert) textFor(player)[Examines.NOTE] else type.desc ?: "" },
         words = ::textFor,
@@ -582,6 +586,7 @@ class World(
         registerSwampTutors(this)
         registerChurch(this)
         registerAlKharid(this)
+        registerVarrock(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
@@ -1170,8 +1175,8 @@ class World(
             player.connectionLostTick = tick
             logger.info { "${player.username} lost their connection; keeping them for $LINGER_TICKS ticks for a reconnect" }
             // Guessed: their trade ends now, everything given back, rather than holding the partner on the screen for
-            // a minute. Not checked against a live disconnect mid-trade.
-            trades.decline(player)
+            // a minute, and their standing request goes with it. Not checked against a live disconnect mid-trade.
+            trades.leave(player)
         }
         return tick - player.connectionLostTick >= LINGER_TICKS
     }
@@ -1459,6 +1464,9 @@ class World(
         player.loginSeed = login.block.seed.copyOf()
         player.connectionLostTick = -1
         watchConnection(player)
+        // Guessed: a trade still open (the drop wasn't noticed before the client came back) ends, rather than carrying
+        // on with screens and offers the client may have missed.
+        trades.leave(player)
         resync(player)
         logger.info { "${player.username} reconnected from ${player.address} as player ${player.index}" }
     }
@@ -1505,6 +1513,7 @@ class World(
         // The ground items and loc changes it missed go again too, as after any rebuild.
         player.zoneView.reset()
         interfaces.resendClosesWhileAway(player)
+        interfaces.closeEmptyModalSlots(player)
     }
 
     private fun enterWorld(player: Player) {

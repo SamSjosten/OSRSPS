@@ -354,6 +354,12 @@ class AllSettings(
             val button = catalog.rows.values.firstOrNull { it.id == id && it.kind == SettingRow.KIND_BUTTON } ?: continue
             setSectionToggles(player, button, 1)
         }
+        // Guessed: the dropdown's enum (4074) defaults to Run -> Walk only, but the varbit's own default, 0, is Never.
+        // Live's starting value isn't known; this keeps ctrl useful while running, the enum's choice.
+        setVarbit(player, Movement.VARBIT_RUN_INVERT_MODE, Movement.RUN_INVERT_RUN_TO_WALK)
+        // OSRS Wiki, Drop: the drop item warning is on, at 30,000 coins, from the start.
+        setVarbit(player, VARBIT_DROP_WARNING, 1)
+        setVarbit(player, VARBIT_DROP_WARNING_VALUE, DropWarnings.DEFAULT_THRESHOLD)
     }
 
     /**
@@ -690,6 +696,8 @@ class AllSettings(
             VARBIT_LOGINLOGOUT_SETTING to VarbitType(3053, 0, 1),
             VARBIT_LEVEL_UP_MESSAGE_DISABLED to VarbitType(3190, 7, 7),
             VARBIT_LEVEL_UP_POPUP_LIST to VarbitType(1734, 18, 18),
+            Movement.VARBIT_RUN_INVERT_MODE to VarbitType(3075, 17, 18),
+            Movement.VARBIT_RUN_AUTOENABLE to VarbitType(3190, 17, 23),
             VARBIT_COMBAT_KEY to VarbitType(1224, 0, 4),
             VARBIT_STATS_KEY to VarbitType(1224, 5, 9),
             VARBIT_JOURNAL_KEY to VarbitType(1224, 10, 14),

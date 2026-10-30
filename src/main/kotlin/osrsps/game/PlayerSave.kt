@@ -82,6 +82,8 @@ class PlayerSave(
     val friendsChat: FriendsChatSettings = FriendsChatSettings.DEFAULT,
     /** Whose friends chat channel the player was in, to join again at login. */
     val friendsChatOwner: String? = null,
+    /** Run went off because energy ran out, so the energy threshold setting may still turn it back on; see [Movement]. */
+    val runRanOut: Boolean = false,
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -140,6 +142,7 @@ class PlayerSave(
 
     private fun applyState(player: Player) {
         player.runEnergy = runEnergy
+        player.runRanOut = runRanOut
         for ((varp, value) in varps) {
             if (varp >= player.vars.types.varpCount) {
                 // A revision can drop varps; losing one beats refusing the login.
@@ -212,6 +215,7 @@ class PlayerSave(
             put("level", level)
         }
         put("runEnergy", runEnergy)
+        if (runRanOut) put("runRanOut", true)
         putJsonObject("skills") {
             for ((skill, save) in skills) {
                 putJsonObject(skill.name.lowercase()) {
@@ -306,6 +310,7 @@ class PlayerSave(
                 player.lastTrade,
                 player.friendsChat,
                 player.friendsChatOwner,
+                runRanOut = player.runRanOut,
             )
         }
 
@@ -372,6 +377,7 @@ class PlayerSave(
                     state.geHistory,
                     root["lastTrade"]?.jsonPrimitive?.contentOrNull,
                     readFriendsChat(root), root["friendsChatOwner"]?.jsonPrimitive?.contentOrNull,
+                    runRanOut = state.runRanOut,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -443,6 +449,8 @@ class PlayerSave(
             return PlayerSave(
                 x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank,
                 geOffers = geOffers, geLimits = geLimits, geHistory = geHistory,
+                // Optional: saves from before the energy threshold setting, and saves with run not waiting on it, have none.
+                runRanOut = root["runRanOut"]?.jsonPrimitive?.boolean ?: false,
             )
         }
 
