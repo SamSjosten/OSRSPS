@@ -22,8 +22,11 @@ data class ObjCount(val obj: Int, val count: Int)
 /**
  * One thing an artisan skill makes: [amount] of [product] from [inputs], with [tools] held but kept, at [level] in
  * [skill] for [xpTenths]. The first comes [first] ticks after the choice, the rest every [interval] ticks, each with
- * [anim]. [made] is the message on making it and [tooLow] the one when the level is too low; both are given `amount`,
- * `item` (the product's name in lower case) and `level` where they ask for them.
+ * [anim] (-1 for none). [made] is the message on making it and [tooLow] the one when the level is too low; both are
+ * given `amount`, `item` (the product's name in lower case) and `level` where they ask for them.
+ *
+ * A [batch] recipe makes up to [amount] at a time, each one taking [inputs] once and giving [xpTenths]: arrows come 15 at
+ * a time, or fewer when fewer are left. Otherwise each action takes [inputs] and gives [amount] and [xpTenths] once.
  */
 class MakeRecipe(
     val key: String,
@@ -39,6 +42,7 @@ class MakeRecipe(
     val interval: Int,
     val made: Line,
     val tooLow: Line,
+    val batch: Boolean = false,
 ) {
     init {
         require(amount >= 1 && level in 1..99 && xpTenths >= 0) { "Bad numbers in recipe $key" }
@@ -46,10 +50,16 @@ class MakeRecipe(
         require(first >= 1 && interval >= 1) { "Recipe $key needs at least a tick between products" }
     }
 
-    /** How many times [inventory] holds everything for one, tools included. */
+    /** How many actions [inventory] holds everything for, tools included; a batch's last one may be short. */
     fun times(inventory: Inventory): Int {
+        val units = units(inventory)
+        return if (batch) ((units + amount - 1) / amount).toInt() else units.toInt()
+    }
+
+    /** How many times [inventory] holds every input, tools included. */
+    fun units(inventory: Inventory): Long {
         if (tools.any { inventory.count(it) == 0L }) return 0
-        return inputs.minOf { (inventory.count(it.obj) / it.count).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() }
+        return inputs.minOf { inventory.count(it.obj) / it.count }
     }
 }
 
@@ -97,8 +107,20 @@ class Making(private val world: World) {
         if (!levelled(player, recipe, tell = true)) return
         if (quantity <= 0 || recipe.times(player.inventory) <= 0) return
         val job = Job(recipe, quantity)
-        player.anim(recipe.anim)
+        if (recipe.anim >= 0) player.anim(recipe.anim)
         context.queue(QUEUE, QueueType.WEAK, recipe.first) { makeOne(job) }
+    }
+
+    /**
+     * One action of [recipe] straight away, with no box or queue: darts, which live makes on every click (the Wiki gives
+     * them 0 ticks). Tells the player if their level is too low.
+     */
+    fun makeNow(context: ScriptContext, recipe: MakeRecipe) {
+        val player = context.player
+        if (!levelled(player, recipe, tell = true)) return
+        if (recipe.times(player.inventory) <= 0) return
+        if (recipe.anim >= 0) player.anim(recipe.anim)
+        make(player, recipe)
     }
 
     private fun ScriptContext.makeOne(job: Job) {
@@ -107,35 +129,46 @@ class Making(private val world: World) {
         // Guessed: a boost wearing off below the level stops it without a word.
         if (!levelled(player, recipe, tell = false)) return
         val before = player.skills.baseLevel(recipe.skill)
-        val type = world.objTypes[recipe.product] ?: error("No obj type ${recipe.product} for recipe ${recipe.key}")
-        val saved = player.inventory.contents().toMap()
-        for (input in recipe.inputs) removeObj(player.inventory, input.obj, input.count)
-        if (player.inventory.add(type, recipe.amount) < recipe.amount) {
-            // A full stack (or no slot): put everything back and stop, rather than lose the inputs. Guessed message.
-            for (slot in 0 until player.inventory.capacity) player.inventory[slot] = saved[slot]
-            player.message(world.textFor(player)[MakeLines.NO_SPACE])
-            return
-        }
-        player.skills.addTenths(recipe.skill, recipe.xpTenths)
-        player.message(world.textFor(player).get(recipe.made, *args(recipe, recipe.made)))
+        if (!make(player, recipe)) return
         job.left--
         if (player.skills.baseLevel(recipe.skill) > before) return
         if (job.left <= 0 || recipe.times(player.inventory) <= 0) return
-        player.anim(recipe.anim)
+        if (recipe.anim >= 0) player.anim(recipe.anim)
         queue(QUEUE, QueueType.WEAK, recipe.interval) { makeOne(job) }
+    }
+
+    /**
+     * One action of [recipe]: the inputs taken, the product given, the XP and the message. False, with everything put
+     * back, when the product won't all fit (a full stack, or no slot).
+     */
+    private fun make(player: Player, recipe: MakeRecipe): Boolean {
+        val units = if (recipe.batch) minOf(recipe.amount.toLong(), recipe.units(player.inventory)).toInt() else 1
+        val type = world.objTypes[recipe.product] ?: error("No obj type ${recipe.product} for recipe ${recipe.key}")
+        val saved = player.inventory.contents().toMap()
+        for (input in recipe.inputs) removeObj(player.inventory, input.obj, input.count * units)
+        val made = if (recipe.batch) units else recipe.amount
+        if (player.inventory.add(type, made) < made) {
+            // Rather than lose the inputs. Guessed message.
+            for (slot in 0 until player.inventory.capacity) player.inventory[slot] = saved[slot]
+            player.message(world.textFor(player)[MakeLines.NO_SPACE])
+            return false
+        }
+        player.skills.addTenths(recipe.skill, recipe.xpTenths * units)
+        player.message(world.textFor(player).get(recipe.made, *args(recipe, recipe.made, made)))
+        return true
     }
 
     /** Whether [player]'s level is enough for [recipe], telling them if not and [tell]. */
     private fun levelled(player: Player, recipe: MakeRecipe, tell: Boolean): Boolean {
         if (player.skills.currentLevel(recipe.skill) >= recipe.level) return true
-        if (tell) player.message(world.textFor(player).get(recipe.tooLow, *args(recipe, recipe.tooLow)))
+        if (tell) player.message(world.textFor(player).get(recipe.tooLow, *args(recipe, recipe.tooLow, recipe.amount)))
         return false
     }
 
     /** The values [line] asks for, of `amount`, `item` and `level`. */
-    private fun args(recipe: MakeRecipe, line: Line): Array<Pair<String, Any>> {
+    private fun args(recipe: MakeRecipe, line: Line, amount: Int): Array<Pair<String, Any>> {
         val name = world.objTypes[recipe.product]?.name?.lowercase() ?: "item ${recipe.product}"
-        val all = mapOf("amount" to recipe.amount, "item" to name, "level" to recipe.level)
+        val all = mapOf("amount" to amount, "item" to name, "level" to recipe.level)
         return line.args.mapNotNull { arg -> all[arg]?.let { arg to it } }.toTypedArray()
     }
 

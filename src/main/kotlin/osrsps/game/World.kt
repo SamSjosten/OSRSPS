@@ -38,6 +38,7 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerIpCommands
+import osrsps.game.command.registerGrandExchangeCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerLocCommands
 import osrsps.game.command.registerNpcCommands
@@ -45,6 +46,7 @@ import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
+import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
@@ -79,6 +81,7 @@ import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerCandleSeller
 import osrsps.game.content.registerFatherUrhney
+import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
@@ -97,6 +100,7 @@ import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
+import osrsps.game.ge.GrandExchange
 import osrsps.game.loc.Doors
 import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
@@ -204,6 +208,8 @@ class World(
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
     val ipBans: IpBans = IpBans(),
+    /** The server-wide XP multiplier every player's XP drops are multiplied by; see [XpRate]. */
+    val xpRate: XpRate = XpRate(),
     /** The All Settings window's settings, from the cache; tests that click them pass their own. */
     settings: SettingsCatalog = SettingsCatalog.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
@@ -301,6 +307,9 @@ class World(
     private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
 
     /** Shops and their shared stock; see [ShopScreen]. */
+    /** Grand Exchange offers; see [GrandExchange]. */
+    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
+
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
@@ -416,11 +425,13 @@ class World(
         registerTickCommands(this@World)
         registerVarCommands()
         registerSkillCommands { phase != null }
+        registerXpRateCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
+        registerGrandExchangeCommands(this@World)
         registerGroundObjCommands(this@World)
         registerLocCommands(this@World)
         registerNpcCommands(this@World)
@@ -452,6 +463,7 @@ class World(
         registerFatherUrhney(this)
         registerAdventurersCamp(this)
         registerCandleSeller(this)
+        registerSwampTutors(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
@@ -791,6 +803,7 @@ class World(
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
+            grandExchange.process(player)
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
@@ -1042,7 +1055,7 @@ class World(
      * Throws if the save can't be read.
      */
     internal fun loadPlayer(index: Int, username: String): Player {
-        val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
+        val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes, xpRate)
         // A save that couldn't be written is newer than the file, which would hand back what the player had before.
         val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player.also { it.newAccount = true }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
