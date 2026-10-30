@@ -119,6 +119,7 @@ object Varrock {
 
 fun registerVarrock(world: World) {
     registerGrandExchangeClerks(world)
+    registerVarrockShopkeepers(world)
     with(Varrock) {
         world.handlers.onLoc(SPIRAL_STAIRS, 1) { op -> climbStairs(world, op.loc!!, 1) }
         world.handlers.onLoc(SPIRAL_STAIRS_TALLER, 1) { op -> climbStairs(world, op.loc!!, 1) }
