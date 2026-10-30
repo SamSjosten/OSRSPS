@@ -437,6 +437,20 @@ it, as do running out, the count being done, the level being too low and a level
 | The box opening even for one log, its order, the quantity starting on as many as can be made, the animation as each product starts, a boost wearing off stopping it without a word | guessed |
 | Out: the redwood shield; the crossbows and javelins that stocks and javelin shafts go into | out of scope |
 
+### Crafting
+
+Spin on a spinning wheel (every loc the cache calls one, Lumbridge Castle's first-floor wheel among them) opens the
+Make-X box over the wool and flax held; either used on a wheel opens it over that alone (`game/skill/Crafting.kt`,
+words under `crafting.*`, numbers in `skills/crafting.json`). The making is the artisan loop in `Making.kt`.
+
+| Crafting behaviour | Source |
+|--------------------|--------|
+| Ball of wool level 1, 2.5 XP; bow string level 10, 15 XP; 3 ticks each | OSRS Wiki, Ball of wool and Bow string |
+| The first 2 ticks after the choice | inferred from fletching's "Make-X is 2, then 3 ticks" |
+| Animation 466 (`spinningwheel`) as the player's | inferred from its gameval name |
+| Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
+| Out: sinew, magic roots, yak hair and the other members' spinning | out of scope |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
