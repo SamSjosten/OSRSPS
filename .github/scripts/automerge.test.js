@@ -665,3 +665,18 @@ test('merging itself, the queue leaves a pull request that changes the workflows
   await queue(github, fakeGit({}));
   assert.deepStrictEqual(calls, [...merged(2), ...afterMerge]);
 });
+
+test("a green batch whose member Codex no longer covers writes that member's check and builds the rest without it", async () => {
+  // #1's codex-review passed against an older main; against main now its review no longer covers its head.
+  const { github, calls } = fakeGitHub({ 1: ready(1, { comments: [summary(H('0'), false)] }), 2: ready(2), 3: ready(3) }, {
+    batch: { sha: B, message: batchMessage(H('m'), [1, 2, 3]), checks: [...green] },
+  });
+  const pushed = [];
+  const git = fakeGit({ [H('0')]: 'old', [H('1')]: 't1', [H('2')]: 't2', [H('3')]: 't3' }, pushed, { [B]: { tree: 't3', second: H('3') } });
+  await queue(github, git);
+  assert.ok(!calls.some(call => call[0] === 'updateRef'), 'not promoted');
+  assert.deepStrictEqual(calls.filter(call => call[0] === 'check'), [['check', H('1'), 'in_progress']], "#1's own check, written again");
+  assert.deepStrictEqual(calls.filter(call => call[0] === 'dispatch'), [['dispatch', 'build.yml', BATCH]]);
+  const [sha] = pushed[0].split(':');
+  assert.deepStrictEqual(parseBatch(pushed.commits[sha]).members.map(m => m.number), [2, 3], 'the batch again, without #1');
+});

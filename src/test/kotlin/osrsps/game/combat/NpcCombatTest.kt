@@ -19,14 +19,14 @@ class NpcCombatTest {
     ) + (1..8).map { "goblin_unarmed_melee_$it" } + "giantspider1" + listOf(
         "giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3",
         "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops", "goblin_armed", "unicorn",
-        "al_kharid_man", "al_kharid_warrior", "scorpion",
-    )
+        "al_kharid_man", "al_kharid_warrior", "scorpion", "guard1",
+    ) + VARROCK_GUARDS
     // The cache's Strength levels where they aren't 1, for the max hit check.
     private val strength = mapOf(
         "giantrat" to 3, "giantrat_grey" to 3, "giantrat_grey2" to 3, "giantrat_grey3" to 3, "giantrat1_2" to 5, "giantrat1_3" to 5,
         "little_frog_nodrops" to 4, "medium_frog_nodrops" to 6, "giant_frog_nodrops" to 8, "unicorn" to 13,
-        "al_kharid_warrior" to 5, "scorpion" to 12,
-    )
+        "al_kharid_warrior" to 5, "scorpion" to 12, "guard1" to 18,
+    ) + VARROCK_GUARDS.associateWith { 18 }
     private val types = NpcTypes.of(
         *names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name, stats = NpcStats(strength = strength[name] ?: 1)) }.toTypedArray(),
     )
@@ -46,7 +46,8 @@ class NpcCombatTest {
             "giant_frog_attack" to 1793, "giant_frog_block" to 1794, "giant_frog_death" to 1795,
             "slice_surface_goblin_squat_attack_spear" to 6188, "slice_surface_goblin_defend_spear" to 6189, "slice_surface_goblin_death_spear" to 6190,
             "unicorn_rework_attack" to 6376, "unicorn_rework_defend" to 6375, "unicorn_rework_death" to 6377,
-            "human_sword_slash" to 390, "human_sword_block" to 387,
+            "human_sword_slash" to 390, "human_sword_block" to 387, "human_sword_stab" to 386,
+            "human_blunt_pound" to 401, "human_blunt_block" to 403,
             "scorpion_update_attack_tail" to 6254, "scorpion_update_defend" to 6255, "scorpion_update_death" to 6256,
         ),
     )
@@ -126,6 +127,21 @@ class NpcCombatTest {
         assertEquals(2, scorpion.maxHit)
         assertEquals(NpcCombatAnims(6254, 6255, 6256), scorpion.anims)
         assertEquals(35, scorpion.respawnTicks)
+        // Varrock's guards crush for 3 and Edgeville's stab for 3, each back in 50 ticks.
+        for (name in VARROCK_GUARDS) {
+            val guard = combat[types.find(name)!!]!!
+            assertEquals(AttackType.CRUSH, guard.attackType)
+            assertEquals(3, guard.maxHit)
+            assertEquals(30, guard.defence.against(AttackType.SLASH))
+            assertEquals(NpcCombatAnims(401, 403, 836), guard.anims)
+            assertEquals(50, guard.respawnTicks)
+        }
+        val edgeville = combat[types.find("guard1")!!]!!
+        assertEquals(AttackType.STAB, edgeville.attackType)
+        assertEquals(3, edgeville.maxHit)
+        assertEquals(18, edgeville.defence.against(AttackType.STAB))
+        assertEquals(NpcCombatAnims(386, 387, 836), edgeville.anims)
+        assertEquals(50, edgeville.respawnTicks)
     }
 
     @Test
@@ -169,5 +185,12 @@ class NpcCombatTest {
         for (bad in listOf("""{ "element": "lava", "percent": 30 }""", """{ "element": "fire", "percent": 0 }""", """{ "element": "fire" }""")) {
             assertFailsWith<IllegalArgumentException>(bad) { NpcCombat.parse("""{ "npcs": [${weak(bad)}] }""", types, seqs) }
         }
+    }
+
+    private companion object {
+        val VARROCK_GUARDS = listOf(
+            "fai_varrock_guard02", "fai_varrock_guard02_variant01", "fai_varrock_guard02_variant02",
+            "fai_varrock_guard02_f", "fai_varrock_guard02_f_variant01", "fai_varrock_guard02_f_variant02", "fai_varrock_guard_captain02",
+        )
     }
 }

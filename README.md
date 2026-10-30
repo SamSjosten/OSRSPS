@@ -140,7 +140,9 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
   within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
   revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
 - The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
-  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases").
+  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases"). 1.0.1
+  the same day: the Windows runtime lacked the certificate store module (`jdk.crypto.mscapi`), so the game exited at
+  once; a 1.0.0 launcher sends its user to the download page for the new installer.
 
 ### Files for our own launcher
 
@@ -868,6 +870,46 @@ and haggles for silk; `HeadlessAlKharidTest` and `HeadlessAlKharidFightersTest` 
 `BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, the palace's talk in `AlKharidPalaceTest` and Osman's Keris in `HeadlessOsmanTest`, the camels' in `AlKharidCamelsTest`, combat and drops in `NpcCombatTest` and `NpcDropsTest`, the rocks' chances in `MiningTest` and their ores in `HeadlessMiningTest`, the boxes in `HeadlessAlKharidBoxesTest`, Small Net in `HeadlessFishingTest`, and
 the prices in `ShopTest`.
 
+## Varrock
+
+The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
+Content is in `game/content/Varrock.kt`, spawns in `npc-spawns/varrock.json`. Every account has finished every quest.
+Everything west of the Grand Exchange and the west gate (the Cooks' Guild among it) is the Edgeville and Barbarian
+Village piece's.
+
+| Behaviour | Source |
+|-----------|--------|
+| Step 1: the city's doors (`fai_varrock_door`, `_poor_door`, `_castle_door`, `_shanty_door`, `_door_taller`) open and close by name; the fence gate by the Grand Exchange (`ii_fencegate_l`/`_r` 15510/15512) opens into `ii_fencegate_lc`/`_rc`, the rule for any fence gate with no `…openfencegate_…` type | 241 cache names; the swings are the engine's (see Locs and doors) |
+| Straight stairs (`fai_varrock_stairs` 11796, `_taller` 11797, `_woodenstairs_castle` 11798, `_taller_new_fix` 11807, top `fai_varrock_stairs_top` 11799) climb the way their angle points (north, east, south, west for 0 to 3): up onto the tile past the far end, down onto the tile before the near end, in the player's column | the 241 map's eleven straight staircases, whose tops all sit where this puts them; not watched on live (inferred) |
+| Spiral stairs (`varrock_spiralstairs` 11789, `_taller` 11790, `_middle_taller` 11792 with its Climb menu, top 11793) and ladders (`fai_varrock_ladder` 11794/11795, `_taller` 11801/11802) work as Lumbridge's | as Lumbridge Castle's stairs and ladders (RSMod) |
+| Furniture: chests (5108/5109), drawers (7194/7195) and posh drawers (7442/7443) open, search empty and shut; crates (5106, 5107, 5110, 5113, 5115), boxes (5111), bookshelves (7170, 7171) and bookcases (7176 to 7181, 7431) search empty | as the castle's furniture (2004Scape's timings); the bookshelves' and bookcases' words from the Wiki |
+| Townsfolk: 37 guards (the six 2022 `fai_varrock_guard02` looks and the captain's, 13 in the city, 2 on the walls, 22 in the palace), men and women (Varrock's own `varrock_man1`/`varrock_woman1` talk, fight and drop as any man or woman), imps, rats and the five stray dogs | OSRS Wiki, Guard (counts) and Stray dog (three grey, two brown); tiles from mejrs's live NPC list (recorded before November 2022, when the guards still showed as 3010/3011), so which guard look stands where and every wander range are guessed |
+| Step 2: the West Bank's six bankers (five behind its booths at x 3186, `banker1_new`/`banker2_new` 2897/2898 and the Deadman booth's multi-NPC 6521 showing 2897, and one behind its locked door, 8666, who has no options) and the East Bank's six (behind its booths at z 3419, 6522 at the Deadman booth); booths and the deposit box by name; they talk and bank as the castle's banker | OSRS Wiki, Varrock West Bank (six bankers) and Transcript:Banker; tiles from mejrs's live NPC list |
+| Step 3: the Grand Exchange's four clerks (`ge_clerk_1` to `_4`, 2148 to 2151, behind the north and south booths): Exchange opens the offers screen, History the trade history, Talk-to their menu (how to use the Exchange, seven pages then the question again; setting up offers; item sets and "I'm fine" end the talk) | OSRS Wiki, Transcript:Grand Exchange Clerk; expressions and which options the player says guessed |
+| The Grand Exchange's four bankers (`banker1_west` 1633, the Deadman booth's 6528 showing 1613, `banker1_east` 1634, `banker2_east` 3089) talk and bank as the castle's; every standard banker's Collect (op4, and the talk's collect option) and every bank booth's or Grand Exchange booth's Collect open the Grand Exchange collection box, and an exchange booth's Exchange the offers screen | OSRS Wiki, Grand Exchange and Banker; tiles from mejrs's live NPC list |
+| Knock-at on the West Bank's locked door (`fai_varrock_bank_locked_door` 11788): the banker behind it won't let the player in (`varrock_bank_door.knock`) | OSRS Wiki, Varrock West Bank; one line and its expression guessed |
+| Guards: Varrock's seven (`fai_varrock_guard02` and its looks, the captain) crush and Edgeville's `guard1` (3254) stabs, each for up to 3, attack speed 4, back in 50 ticks; both drop bones and one roll on a shared table (coins, iron bolts, runes and arrows, an iron dagger, a body talisman, 18/128 the general seed table, 8/128 nothing) and a medium clue 1 in 128 | OSRS Wiki, Guard and the DPS calculator; the coins and weapons lines from the osrsreboxed copy of the page (2023) and the 8/128 of nothing what is left of 128 (guessed); the animations guessed from the attack styles |
+| The general seed table: its first subtable (4 potato, onion or cabbage seeds, 3 tomato or sweetcorn, 2 strawberry, watermelon or snape grass), which is all a monster below level 49 ever rolls | OSRS Wiki, Drop table (General seed drop table) |
+| A stray dog's Shoo-away whines (`stray_dog.whine`, sound 911) and Pet barks (`stray_dog.woof`, sound 652) | OSRS Wiki, Stray dog |
+| Step 4: the weapon and armour shops: Varrock Swordshop (Shop keeper 2884 and assistant 2885, 18 swords, longswords and daggers), Horvik's Armour Shop (Horvik 2882, 12 bodies and legs), Lowe's Archery Emporium (Lowe 2883, 15 arrows, bolts and bows) and Zaff's Superior Staffs! (Zaff 2880, 7 staves); Trade opens each, and each keeper's Talk-to (`varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`) opens the shop or ends with their parting lines | OSRS Wiki, each shop's page (stock, counts and percentages; ShopTest checks every sold-at price) and the keepers' transcripts; tiles from mejrs's live NPC list; the assistant's talk (he has no transcript), every expression and the wander ranges guessed |
+| Step 5: the other shops: the Varrock General Store (Shop keeper 2815 and assistant 2816, 13 items), Aubury's Rune Shop (Aubury, the multi-NPC 2886 showing `aubury_3op` 11435 as every account has done Rune Mysteries, 14 runes and rune packs), Thessalia's Fine Clothes (Thessalia, 534 showing `thessalia_normal` 10477, 12 items), the Fancy Clothes Store (Asyff 2887, 22 items, the chef's hat and feathers starting at none) and Ye olde Tea Shoppe (the Tea Seller 8687, by his stall); Trade opens each, and each keeper's Talk-to (`varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`) every way it goes, into the shop or to their parting lines | OSRS Wiki, each shop's page (ShopTest checks every sold-at price) and the keepers' transcripts; tiles from mejrs's live NPC list; the assistant's talk, Aubury's one parting line for both noes, the tea's restock time, every expression and the wander ranges guessed |
+| Step 5b: the traders who sell through their talk: Benny (`qip_soa_newspaperseller` 5216) sells the Varrock Herald for 50 coins; Baraek (2881) sells a fur for 20, or 18 to a player who can't pay 20, and buys every grey wolf fur at 120 and every fur and bear fur at 12; the Apothecary (5036) talks gossip, hair potions and free potions and back to his menu (`benny.*`, `baraek.*`, `apothecary.*`) | OSRS Wiki, Transcript:Benny, Transcript:Baraek and Transcript:Apothecary (after Romeo & Juliet); tiles from mejrs's live NPC list; that 18 or 19 coins get the lower price, which fur the hand-over box shows when the player holds both, every expression and the wander ranges guessed |
+| Step 5c: the Apothecary's potions screen (`apothecary_potions`, interface 556), from his Potions and from asking in his talk: Buy-1, -5, -X and -All make a strength potion(4) (limpwurt root, red spiders' eggs, 5 coins), an energy potion(4) (two limpwurt roots, chocolate dust) or an antipoison(4) (limpwurt root, cadava berries, 5 coins) for as many as the player holds ingredients and coins for; the screen's titles and ingredient texts and its messages are `apothecary_potions.*` | OSRS Wiki, Strength potion, Energy potion and Antipoison (the Apothecary's recipes); the screen's components from the 241 cache; the energy potion's 5 coins, every message and the model zoom guessed |
+
+Left out from step 1: the guards' Pickpocket (Thieving, step 13) and their joining in when another guard is attacked,
+the general seed table's higher subtables (no monster yet is level 49 or more), the player's own overhead lines when shooing or petting a dog, the dog
+following the player after Pet or after being fed and running off when shooed, the trainee guards and their captain
+(the palace, step 6), the staircases down to basements and the sewers (`fai_varrock_bank_stairs`, `fai_varrock_ladder_deep`,
+the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. Left out from step 4: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, the keepers' treasure trail and diary talk, and Zaff's daily battlestaves, What Lies Below ring and Bryophyta's essence options. Left out from step 5: Aubury's Teleport and its talk option (no rune essence mine yet) and his Runecraft cape stock, Thessalia's Makeover and its change top and legwear options (no makeover screen yet) and her scythe, bunny ears and frog token options, Asyff's Fur Clothing, bird costume, hunting clothing and priest gown options, and the Tea Seller's shouts at a thief (Thieving, step 13). Left out from step 5b: the Apothecary's quest topics, Baraek's Ring of Charos(a) option and treasure trail clue, and Benny's overhead shouts. The furniture's and dogs' words are in the dialogue
+file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`).
+
+Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
+both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `varrock-guards.json` kills a Varrock and an Edgeville guard for their bones; `varrock-grand-exchange.json` uses the Grand Exchange's clerks, booths and a banker; `varrock-shops.json` and `varrock-stores.json` buy and sell back at each shop and talk into each; `varrock-traders.json` buys Benny's newspaper and a fur from Baraek, sells it back, talks to the Apothecary and buys a strength potion on his potions screen; `HeadlessVarrockTest`
+does the stairs, the ladder, the drawers and Knock-at on the locked door through the headless client, `VarrockTest` the stairs' rule each way round and a stray dog's Shoo-away and Pet (overhead text and sound),
+`GatesTest` the Grand Exchange's fence gate, `NpcSpawnFileTest` the counts, `NpcCombatTest` and `NpcDropsTest` the
+guards' numbers and 10,000 kills against the table, and `HeadlessGrandExchangeBuildingTest` the clerks', a banker's and a booth's options, `HeadlessVarrockShopsTest` and `HeadlessVarrockStoresTest` each keeper's talk into their shop and turned down, `HeadlessVarrockTradersTest` Benny's, Baraek's and the Apothecary's talk every way it goes and his potions screen's Buy-All and Buy-X, `ShopTest` the shops' prices, and `HeadlessGuardsTest` a guard of each kind attacked through the
+headless client, fought to its death and leaving its bones.
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and
@@ -1085,8 +1127,8 @@ Lumbridge Castle's Cook (`Cook.kt`), Duke Horacio (`DukeHoracio.kt`), men and wo
 (`Doomsayer.kt`), Hatius Cosaintus (`Hatius.kt`) and the Lumbridge Guide (`LumbridgeGuide.kt`) talk as they do once
 every quest is done, since every account here has done them all. The Duke gives an anti-dragon shield to a player
 carrying or wearing none, one talk with a man or woman in 128 hands over a flier, and the Guide gives a security book to
-a player carrying none. Not built yet, so their options end the talk or do nothing: the collection box and bank
-space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings); achievement diaries; Attack
+a player carrying none. The bankers' collect (asked or op4 Collect) opens the Grand Exchange collection box (since
+the Varrock piece's step 3). Not built yet, so their options end the talk or do nothing: bank space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings); achievement diaries; Attack
 and Pickpocket; the Guide opening the account management tab's links, and his lost amulet, locket, clue and random
 event talks.
 
@@ -1443,6 +1485,10 @@ the clean start the equipment test scripts use.
 
 `lumbridge-bank-tabs` stands you by the castle's top floor bank booths (3209, 3220, 2) carrying nothing, with logs and
 a bronze axe in bank tab 1 and 1,000 coins in the main tab: for the tab script, as the test runner can't drag.
+
+`lumbridge-run-low` stands you on the Lumbridge spawn with run on and no run energy, the energy threshold to re-enable
+running at 5% and Ctrl+click to invert run mode on Run -> Walk only: for the run settings script, as nothing else sets
+run energy.
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.
