@@ -104,6 +104,7 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   whip still worn after a logout, and Remove.
 - `ground-drop-take.json`: drop an axe, see it on the ground, take it back.
 - `lumbridge-bury-bones.json`: bury two bones, 4.5 Prayer XP each.
+- `rotten-potato-eat.json`: the rotten potato's Eat menu: Set all stats to 50 one skill a tick, Heal me after a `::hit`, and Wipe inventory keeping the potato. Teleport to player and Spawn NPC ask for text (meslayer mode 9), which no runner step types yet; the headless tests cover them.
 - `lumbridge-bank.json`: at a castle bank booth, deposit, withdraw 5 and as notes, deposit the inventory, log out and
   back in and take out what is still banked. It can't type an amount, so Withdraw-X isn't in it.
 - `lumbridge-bank-tabs.json`: from `::scenario lumbridge-bank-tabs`, a tab with a placeholder that takes the logs back
@@ -167,6 +168,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Stronghold offer turned down and his check.
 - `lumbridge-examine.json`: Examine (with `::keys on`) on scenery outside the castle: the church's altar, organ,
   pews and candles, and the graveyard's two gravestones.
+- `lumbridge-walk.json`: Rest of Lumbridge step 12: walks from the castle courtyard to each area outside the castle in
+  stages of at most 4 tiles (straight line), on the server's own pathing, teleporting back to the castle between three
+  legs: the general store, Fred's farmhouse and Mill Lane Mill; Bob's axes, the church's west door, over the bridge
+  and north to the Groats' farm; the swamp, its east and west mines and the adventurers' camp. Takes about six
+  minutes.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

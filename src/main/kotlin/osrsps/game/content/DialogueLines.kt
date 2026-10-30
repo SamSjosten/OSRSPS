@@ -123,6 +123,7 @@ object DialogueLines {
         PrinceAliLines,
         RamBartenderLines,
         RanaelLines,
+        RottenPotatoLines,
         SearchLines,
         SettingsLines,
         SheepLines,
