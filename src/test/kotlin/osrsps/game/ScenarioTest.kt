@@ -158,5 +158,9 @@ class ScenarioTest {
         assertTrue(bare.equipment.isEmpty() && bare.inventory.isEmpty() && bare.skills.isEmpty())
         val tabs = scenarios["lumbridge-bank-tabs"]!!
         assertEquals(listOf(0, 1, 1), tabs.bank.map { it.tab })
+        val artisan = scenarios["lumbridge-artisan"]!!
+        // A full backpack, one item a slot: stacks are counted, not repeated.
+        assertEquals(28, artisan.inventory.size)
+        assertEquals(setOf(50), artisan.skills.values.map { it.level }.toSet())
     }
 }

@@ -32,8 +32,11 @@ class NpcDropsTest {
     private val warrior = NpcType(3292, "Al Kharid warrior", combatLevel = 9, internalName = "al_kharid_warrior")
     private val kharidMan = NpcType(3261, "Man", combatLevel = 2, internalName = "al_kharid_man")
     private val scorpion = NpcType(3024, "Scorpion", combatLevel = 14, internalName = "scorpion")
+    private val varrockGuard = NpcType(11911, "Guard", combatLevel = 21, internalName = "fai_varrock_guard02")
+    private val edgevilleGuard = NpcType(3254, "Guard", combatLevel = 21, internalName = "guard1")
     private val types = NpcTypes.of(
         man, imp, cow, rat, chicken, ram, goblin, spider, giantRat, frog, bigFrog, giantFrog, armedGoblin, unicorn, warrior, kharidMan, scorpion,
+        varrockGuard, edgevilleGuard,
     )
     private val objTypes = DropTestItems.objTypes()
     private val drops = NpcDrops.load(types, objTypes)
@@ -42,7 +45,7 @@ class NpcDropsTest {
     fun `the file reads, naming every item as the cache does, and the tables add up`() {
         // The test's cache knows one man, cow and so on; every other warning would be a wrong item name.
         assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
-        assertEquals(17, drops.size)
+        assertEquals(19, drops.size)
         val def = drops[man]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })
         assertEquals(128, def.table!!.slots)
@@ -83,6 +86,9 @@ class NpcDropsTest {
             listOf("Ensouled scorpion head" to 25, "Clue scroll (beginner)" to 100),
             drops[scorpion]!!.tertiary.map { it.item.type.name to it.denominator },
         )
+        // Varrock's and Edgeville's guards share one table, with a medium clue now and then.
+        assertEquals(drops[varrockGuard]!!.table, drops[edgevilleGuard]!!.table)
+        assertEquals(listOf("Clue scroll (medium)" to 128), drops[edgevilleGuard]!!.tertiary.map { it.item.type.name to it.denominator })
         // A rat drops nothing at all.
         val nothing = drops[rat]!!
         assertTrue(nothing.isEmpty)
@@ -270,6 +276,52 @@ class NpcDropsTest {
         expect("Bronze javelin x5", 2)
         expect("herbs", 2)
         expect("Tin ore x1", 1)
+    }
+
+    @Test
+    fun `ten thousand guards drop bones every time, coins most of all, and seeds from the general seed table`() {
+        val def = drops[varrockGuard]!!
+        val random = GameRandom(21)
+        val counts = HashMap<String, Int>()
+        var nothing = 0
+        repeat(KILLS) {
+            val kill = def.roll(random)
+            assertEquals("Bones", kill.first().type.name)
+            val table = kill.drop(1).filter { it.type.name != "Clue scroll (medium)" }
+            assertTrue(table.size <= 1, kill.toString())
+            if (table.isEmpty()) nothing++
+            for (drop in table) {
+                val key = "${drop.type.name} x${drop.count}"
+                counts[key] = (counts[key] ?: 0) + 1
+            }
+        }
+        counts["nothing"] = nothing
+        counts["any seed"] = counts.filterKeys { "seed" in it }.values.sum()
+        counts["Iron bolts"] = counts.filterKeys { it.startsWith("Iron bolts") }.values.sum()
+        fun expect(key: String, weight: Int, of: Int = 128) {
+            val p = weight.toDouble() / of
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        expect("Coins x1", 19)
+        expect("Coins x7", 16)
+        expect("Iron bolts", 10)
+        expect("Coins x12", 9)
+        expect("nothing", 8)
+        expect("Iron dagger x1", 6)
+        expect("Steel arrow x1", 4)
+        expect("Body talisman x1", 3)
+        expect("Nature rune x1", 1)
+        // The seed roll, 18/128, gives 4 potato seeds 368/1008 of the time (the Wiki's 1/19) and so on down.
+        expect("any seed", 18)
+        expect("Potato seed x4", 18 * 368, 128 * 1008)
+        expect("Onion seed x4", 18 * 276, 128 * 1008)
+        expect("Tomato seed x3", 18 * 92, 128 * 1008)
+        assertEquals(setOf(4, 3, 2), counts.filterKeys { "seed" in it && it != "any seed" }.keys.map { it.substringAfterLast("x").toInt() }.toSet())
+        // No free-to-play 5 coins.
+        assertNull(counts["Coins x5"])
     }
 
     companion object {

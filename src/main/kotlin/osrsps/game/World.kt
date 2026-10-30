@@ -99,6 +99,7 @@ import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
+import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
@@ -300,10 +301,13 @@ class World(
     var itemPrices: ItemPrices = itemPrices
         private set
 
+    /** The drop item warning setting; see [DropWarnings]. */
+    private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot -> groundObjs.drop(player, slot) }
+
     private val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
-        onDrop = groundObjs::drop,
+        onDrop = dropWarnings::drop,
         price = { this.itemPrices.price(it) },
         desc = { player, type -> if (type.isCert) textFor(player)[Examines.NOTE] else type.desc ?: "" },
         words = ::textFor,
@@ -586,6 +590,7 @@ class World(
         registerSwampTutors(this)
         registerChurch(this)
         registerAlKharid(this)
+        registerVarrock(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)

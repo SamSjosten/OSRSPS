@@ -1036,6 +1036,838 @@
           "restock": 100
         }
       ]
+    },
+    {
+      "key": "varrock_swordshop",
+      "title": "Varrock Swordshop",
+      "inv": 6,
+      "size": 18,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 20,
+      "npcs": [
+        "swordshop1",
+        "swordshop2"
+      ],
+      "source": "OSRS Wiki, Varrock Swordshop, read 2026-10-30: Sells at 100.0%, Buys at 60.0%, Change per 2.0%, and the stock table",
+      "stock": [
+        {
+          "item": 1277,
+          "name": "Bronze sword",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1279,
+          "name": "Iron sword",
+          "count": 4,
+          "restock": 200
+        },
+        {
+          "item": 1281,
+          "name": "Steel sword",
+          "count": 4,
+          "restock": 400
+        },
+        {
+          "item": 1283,
+          "name": "Black sword",
+          "count": 3,
+          "restock": 1000
+        },
+        {
+          "item": 1285,
+          "name": "Mithril sword",
+          "count": 3,
+          "restock": 3000
+        },
+        {
+          "item": 1287,
+          "name": "Adamant sword",
+          "count": 2,
+          "restock": 12000
+        },
+        {
+          "item": 1291,
+          "name": "Bronze longsword",
+          "count": 4,
+          "restock": 100
+        },
+        {
+          "item": 1293,
+          "name": "Iron longsword",
+          "count": 3,
+          "restock": 200
+        },
+        {
+          "item": 1295,
+          "name": "Steel longsword",
+          "count": 3,
+          "restock": 400
+        },
+        {
+          "item": 1297,
+          "name": "Black longsword",
+          "count": 2,
+          "restock": 1000
+        },
+        {
+          "item": 1299,
+          "name": "Mithril longsword",
+          "count": 2,
+          "restock": 3000
+        },
+        {
+          "item": 1301,
+          "name": "Adamant longsword",
+          "count": 1,
+          "restock": 12000
+        },
+        {
+          "item": 1205,
+          "name": "Bronze dagger",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 1203,
+          "name": "Iron dagger",
+          "count": 6,
+          "restock": 200
+        },
+        {
+          "item": 1207,
+          "name": "Steel dagger",
+          "count": 5,
+          "restock": 400
+        },
+        {
+          "item": 1217,
+          "name": "Black dagger",
+          "count": 4,
+          "restock": 1000
+        },
+        {
+          "item": 1209,
+          "name": "Mithril dagger",
+          "count": 3,
+          "restock": 3000
+        },
+        {
+          "item": 1211,
+          "name": "Adamant dagger",
+          "count": 2,
+          "restock": 12000
+        }
+      ]
+    },
+    {
+      "key": "horviks_armour_shop",
+      "title": "Horvik's Armour Shop",
+      "inv": 2,
+      "size": 40,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 20,
+      "npcs": [
+        "horvik_the_armourer"
+      ],
+      "source": "OSRS Wiki, Horvik's Armour Shop, read 2026-10-30: Sells at 100.0%, Buys at 60.0%, Change per 2.0%, and the stock table",
+      "stock": [
+        {
+          "item": 1103,
+          "name": "Bronze chainbody",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1101,
+          "name": "Iron chainbody",
+          "count": 3,
+          "restock": 200
+        },
+        {
+          "item": 1105,
+          "name": "Steel chainbody",
+          "count": 3,
+          "restock": 400
+        },
+        {
+          "item": 1109,
+          "name": "Mithril chainbody",
+          "count": 1,
+          "restock": 3000
+        },
+        {
+          "item": 1117,
+          "name": "Bronze platebody",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1115,
+          "name": "Iron platebody",
+          "count": 1,
+          "restock": 200
+        },
+        {
+          "item": 1119,
+          "name": "Steel platebody",
+          "count": 1,
+          "restock": 400
+        },
+        {
+          "item": 1125,
+          "name": "Black platebody",
+          "count": 1,
+          "restock": 3000
+        },
+        {
+          "item": 1121,
+          "name": "Mithril platebody",
+          "count": 1,
+          "restock": 3000
+        },
+        {
+          "item": 1067,
+          "name": "Iron platelegs",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 1133,
+          "name": "Studded body",
+          "count": 1,
+          "restock": 700
+        },
+        {
+          "item": 1097,
+          "name": "Studded chaps",
+          "count": 1,
+          "restock": 700
+        }
+      ]
+    },
+    {
+      "key": "lowes_archery_emporium",
+      "title": "Lowe's Archery Emporium",
+      "inv": 7,
+      "size": 15,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 550,
+      "changePer": 10,
+      "npcs": [
+        "lowe"
+      ],
+      "source": "OSRS Wiki, Lowe's Archery Emporium, read 2026-10-30: Sells at 100.0%, Buys at 55.0%, Change per 1.0%, and the stock table",
+      "stock": [
+        {
+          "item": 882,
+          "name": "Bronze arrow",
+          "count": 2000,
+          "restock": 10
+        },
+        {
+          "item": 884,
+          "name": "Iron arrow",
+          "count": 1500,
+          "restock": 15
+        },
+        {
+          "item": 886,
+          "name": "Steel arrow",
+          "count": 1000,
+          "restock": 20
+        },
+        {
+          "item": 888,
+          "name": "Mithril arrow",
+          "count": 800,
+          "restock": 15
+        },
+        {
+          "item": 890,
+          "name": "Adamant arrow",
+          "count": 600,
+          "restock": 20
+        },
+        {
+          "item": 877,
+          "name": "Bronze bolts",
+          "count": 1500,
+          "restock": 10
+        },
+        {
+          "item": 841,
+          "name": "Shortbow",
+          "count": 4,
+          "restock": 100
+        },
+        {
+          "item": 839,
+          "name": "Longbow",
+          "count": 4,
+          "restock": 100
+        },
+        {
+          "item": 843,
+          "name": "Oak shortbow",
+          "count": 3,
+          "restock": 200
+        },
+        {
+          "item": 845,
+          "name": "Oak longbow",
+          "count": 3,
+          "restock": 200
+        },
+        {
+          "item": 849,
+          "name": "Willow shortbow",
+          "count": 2,
+          "restock": 200
+        },
+        {
+          "item": 847,
+          "name": "Willow longbow",
+          "count": 2,
+          "restock": 200
+        },
+        {
+          "item": 853,
+          "name": "Maple shortbow",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 851,
+          "name": "Maple longbow",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 837,
+          "name": "Crossbow",
+          "count": 2,
+          "restock": 400
+        }
+      ]
+    },
+    {
+      "key": "zaffs_superior_staffs",
+      "title": "Zaff's Superior Staffs!",
+      "inv": 51,
+      "size": 7,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 550,
+      "changePer": 20,
+      "npcs": [
+        "zaff"
+      ],
+      "source": "OSRS Wiki, Zaff's Superior Staffs!, read 2026-10-30: Sells at 100.0%, Buys at 55.0%, Change per 2.0%, and the stock table; inv 51 is the members' memberstaffshop (7 slots, as the battlestaff is members-only), not the free-to-play staffshop (9, 6 slots)",
+      "stock": [
+        {
+          "item": 1391,
+          "name": "Battlestaff",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1379,
+          "name": "Staff",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1389,
+          "name": "Magic staff",
+          "count": 5,
+          "restock": 200
+        },
+        {
+          "item": 1381,
+          "name": "Staff of air",
+          "count": 2,
+          "restock": 1000
+        },
+        {
+          "item": 1383,
+          "name": "Staff of water",
+          "count": 2,
+          "restock": 1000
+        },
+        {
+          "item": 1385,
+          "name": "Staff of earth",
+          "count": 2,
+          "restock": 1000
+        },
+        {
+          "item": 1387,
+          "name": "Staff of fire",
+          "count": 2,
+          "restock": 1000
+        }
+      ]
+    },
+    {
+      "key": "varrock_general_store",
+      "title": "Varrock General Store",
+      "inv": 4,
+      "size": 40,
+      "general": true,
+      "sellAt": 1300,
+      "buyAt": 400,
+      "changePer": 30,
+      "npcs": [
+        "generalshopkeeper2",
+        "generalassistant2"
+      ],
+      "source": "OSRS Wiki, Varrock General Store, read 2026-10-30: Sells at 130.0%, Buys at 40.0%, Change per 3.0%, and the stock table; inv 4 is the 241 cache's generalshop2",
+      "stock": [
+        {
+          "item": 1931,
+          "name": "Pot",
+          "count": 5,
+          "restock": 10
+        },
+        {
+          "item": 1935,
+          "name": "Jug",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 20742,
+          "name": "Empty jug pack",
+          "count": 5,
+          "restock": 20
+        },
+        {
+          "item": 1735,
+          "name": "Shears",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1925,
+          "name": "Bucket",
+          "count": 3,
+          "restock": 10
+        },
+        {
+          "item": 22660,
+          "name": "Empty bucket pack",
+          "count": 15,
+          "restock": 10
+        },
+        {
+          "item": 1923,
+          "name": "Bowl",
+          "count": 2,
+          "restock": 50
+        },
+        {
+          "item": 1887,
+          "name": "Cake tin",
+          "count": 2,
+          "restock": 50
+        },
+        {
+          "item": 590,
+          "name": "Tinderbox",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1755,
+          "name": "Chisel",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 2347,
+          "name": "Hammer",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 550,
+          "name": "Newcomer map",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 9003,
+          "name": "Security book",
+          "count": 5,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "auburys_rune_shop",
+      "title": "Aubury's Rune Shop",
+      "inv": 5,
+      "size": 14,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 1,
+      "npcs": [
+        "aubury_2op",
+        "aubury_3op"
+      ],
+      "source": "OSRS Wiki, Aubury's Rune Shop, read 2026-10-30: Sells at 100.0%, Buys at 60.0%, Change per 0.1%, and the main stock table; the Runecraft cape stock (a separate shop, 99 Runecraft) is left out",
+      "stock": [
+        {
+          "item": 556,
+          "name": "Air rune",
+          "count": 5000,
+          "restock": 10
+        },
+        {
+          "item": 554,
+          "name": "Fire rune",
+          "count": 5000,
+          "restock": 10
+        },
+        {
+          "item": 555,
+          "name": "Water rune",
+          "count": 5000,
+          "restock": 10
+        },
+        {
+          "item": 557,
+          "name": "Earth rune",
+          "count": 5000,
+          "restock": 10
+        },
+        {
+          "item": 558,
+          "name": "Mind rune",
+          "count": 5000,
+          "restock": 10
+        },
+        {
+          "item": 559,
+          "name": "Body rune",
+          "count": 5000,
+          "restock": 10
+        },
+        {
+          "item": 562,
+          "name": "Chaos rune",
+          "count": 250,
+          "restock": 10
+        },
+        {
+          "item": 560,
+          "name": "Death rune",
+          "count": 250,
+          "restock": 15
+        },
+        {
+          "item": 12734,
+          "name": "Fire rune pack",
+          "count": 80,
+          "restock": 10
+        },
+        {
+          "item": 12730,
+          "name": "Water rune pack",
+          "count": 80,
+          "restock": 10
+        },
+        {
+          "item": 12728,
+          "name": "Air rune pack",
+          "count": 80,
+          "restock": 10
+        },
+        {
+          "item": 12732,
+          "name": "Earth rune pack",
+          "count": 80,
+          "restock": 10
+        },
+        {
+          "item": 12736,
+          "name": "Mind rune pack",
+          "count": 40,
+          "restock": 10
+        },
+        {
+          "item": 12738,
+          "name": "Chaos rune pack",
+          "count": 35,
+          "restock": 10
+        }
+      ]
+    },
+    {
+      "key": "thessalias_fine_clothes",
+      "title": "Thessalia's Fine Clothes",
+      "inv": 8,
+      "size": 14,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 550,
+      "changePer": 10,
+      "npcs": [
+        "thessalia_normal",
+        "thessalia_league"
+      ],
+      "source": "OSRS Wiki, Thessalia's Fine Clothes, read 2026-10-30: Sells at 100.0%, Buys at 55.0%, Change per 1.0%, and the stock table; inv 8 is the 241 cache's clotheshop",
+      "stock": [
+        {
+          "item": 1005,
+          "name": "White apron",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1129,
+          "name": "Leather body",
+          "count": 12,
+          "restock": 100
+        },
+        {
+          "item": 1059,
+          "name": "Leather gloves",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 1061,
+          "name": "Leather boots",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 1757,
+          "name": "Brown apron",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 1013,
+          "name": "Pink skirt",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1015,
+          "name": "Black skirt",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1011,
+          "name": "Blue skirt",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1007,
+          "name": "Red cape",
+          "count": 4,
+          "restock": 100
+        },
+        {
+          "item": 950,
+          "name": "Silk",
+          "count": 5,
+          "restock": 500
+        },
+        {
+          "item": 428,
+          "name": "Priest gown",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 426,
+          "name": "Priest gown",
+          "count": 3,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "fancy_clothes_store",
+      "title": "Fancy Clothes Store",
+      "inv": 63,
+      "size": 22,
+      "general": false,
+      "sellAt": 1300,
+      "buyAt": 400,
+      "changePer": 20,
+      "npcs": [
+        "tailorp"
+      ],
+      "source": "OSRS Wiki, Fancy Clothes Store, read 2026-10-30: Sells at 130.0%, Buys at 40.0%, Change per 2.0%, and the stock table (the chef's hat and the feathers start at 0); inv 63 is the 241 cache's fancyclothesstore",
+      "stock": [
+        {
+          "item": 1949,
+          "name": "Chef's hat",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 579,
+          "name": "Blue wizard hat",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1023,
+          "name": "Yellow cape",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 958,
+          "name": "Grey wolf fur",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 948,
+          "name": "Bear fur",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1733,
+          "name": "Needle",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1734,
+          "name": "Thread",
+          "count": 100,
+          "restock": 5
+        },
+        {
+          "item": 1059,
+          "name": "Leather gloves",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 1061,
+          "name": "Leather boots",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 428,
+          "name": "Priest gown",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 426,
+          "name": "Priest gown",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1757,
+          "name": "Brown apron",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 1013,
+          "name": "Pink skirt",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1015,
+          "name": "Black skirt",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1011,
+          "name": "Blue skirt",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1007,
+          "name": "Red cape",
+          "count": 4,
+          "restock": 100
+        },
+        {
+          "item": 1025,
+          "name": "Right eye patch",
+          "count": 3,
+          "restock": 2000
+        },
+        {
+          "item": 10088,
+          "name": "Red feather",
+          "count": 0,
+          "restock": 20
+        },
+        {
+          "item": 10090,
+          "name": "Yellow feather",
+          "count": 0,
+          "restock": 20
+        },
+        {
+          "item": 10091,
+          "name": "Orange feather",
+          "count": 0,
+          "restock": 20
+        },
+        {
+          "item": 10089,
+          "name": "Blue feather",
+          "count": 0,
+          "restock": 20
+        },
+        {
+          "item": 10087,
+          "name": "Stripy feather",
+          "count": 0,
+          "restock": 20
+        }
+      ]
+    },
+    {
+      "key": "ye_olde_tea_shoppe",
+      "title": "Ye olde Tea Shoppe",
+      "inv": 69,
+      "size": 1,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 20,
+      "npcs": [
+        "tea_seller"
+      ],
+      "source": "OSRS Wiki, Tea Seller, read 2026-10-30: Sells at 100.0%, Buys at 60.0%, Change per 2.0%, and the stock table; inv 69 is the 241 cache's teashop; the restock time is not on the page (guessed, 100 ticks)",
+      "stock": [
+        {
+          "item": 1978,
+          "name": "Cup of tea",
+          "count": 20,
+          "restock": 100
+        }
+      ]
     }
   ]
 }

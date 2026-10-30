@@ -1,0 +1,86 @@
+{
+ "name": "Varrock guards: a Varrock guard (crush) and an Edgeville guard (stab) each put in on a quiet tile and killed, each dying with human_death and dropping bones",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3318 3228 0",
+   "expectMessage": "Teleported to 3318, 3228, 0",
+   "comment": "a quiet tile in Al Kharid's north-east with no guard about, so the guard put in below is the nearest one both to ::kill and to the client"
+  },
+  {
+   "step": "command",
+   "text": "::npc fai_varrock_guard02",
+   "expectMessage": "Spawned Guard (11911)"
+  },
+  {
+   "step": "command",
+   "text": "::kill guard",
+   "expectMessage": "Killed Guard #"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Guard",
+   "id": 836,
+   "timeoutMs": 10000,
+   "comment": "human_death"
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Bones",
+   "timeoutMs": 15000,
+   "comment": "a guard always drops bones; the rest of the table, seeds included, is checked in NpcDropsTest"
+  },
+  {
+   "step": "takeItem",
+   "item": "Bones"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bones",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::npc guard1",
+   "expectMessage": "Spawned Guard (3254)",
+   "comment": "Edgeville's guard, who shares the Varrock guards' drops"
+  },
+  {
+   "step": "command",
+   "text": "::kill guard",
+   "expectMessage": "Killed Guard #"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Guard",
+   "id": 836,
+   "timeoutMs": 10000,
+   "comment": "human_death"
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Bones",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::delnpc mine",
+   "expectMessage": "Removed"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

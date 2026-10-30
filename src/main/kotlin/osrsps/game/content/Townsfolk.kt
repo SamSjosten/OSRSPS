@@ -58,9 +58,13 @@ object WomanLines : TownsfolkLines("woman", "Transcript:Woman", "Woman")
  * attacks the player on live; with no combat yet (Sam, 2026-10-25), they only say their line.
  */
 object Townsfolk {
-    /** Man (man, man2, man3, man_indoor) and Woman (woman, woman2, woman3), the ones in Lumbridge. */
-    val MEN = listOf(3106, 3107, 3108, 6818)
-    val WOMEN = listOf(3111, 3112, 3113)
+    /**
+     * Man (man, man2, man3, man_indoor) and Woman (woman, woman2, woman3), the ones in Lumbridge, and Varrock's own:
+     * varrock_man1 (3014, the Man page's Blue Moon Inn version) and varrock_woman1 (3015, taken to be the Woman page's
+     * match, guessed).
+     */
+    val MEN = listOf(3014, 3106, 3107, 3108, 6818)
+    val WOMEN = listOf(3015, 3111, 3112, 3113)
     const val TALK_TO = 1
 
     /** Flier (`flier`), which advertises Bob's Axes. */

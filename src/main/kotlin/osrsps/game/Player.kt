@@ -153,11 +153,15 @@ class Player(
 
     val vars = PlayerVars(varTypes)
 
-    /** The run orb, which is varp 173 (option_run), so `::varp 173 1` turns it on too. */
+    /**
+     * The run orb, which is varp 173 (option_run), so `::varp 173 1` turns it on too. Setting it either way ends any
+     * wait for the energy threshold ([runRanOut]): run turned off by hand stays off.
+     */
     var runEnabled: Boolean
         get() = vars[World.VARP_RUN] != 0
         set(value) {
             vars[World.VARP_RUN] = if (value) 1 else 0
+            runRanOut = false
         }
 
     val skills = PlayerSkills(xpRate)
@@ -243,8 +247,11 @@ class Player(
         get() = skills.currentLevel(Skill.HITPOINTS)
         set(value) = skills.setCurrentLevel(Skill.HITPOINTS, value)
 
-    /** Ctrl-click flips walk and run for the route it starts. */
+    /** Ctrl-click flips walk and run for the route it starts, as far as the setting allows; see [Movement]. */
     var invertRun: Boolean = false
+
+    /** Run went off because energy ran out, so the energy threshold setting may turn it back on; see [Movement]. */
+    var runRanOut: Boolean = false
 
     /** The first tick they may swing again; see [osrsps.game.combat.MeleeCombat]. */
     var nextAttackTick: Long = 0

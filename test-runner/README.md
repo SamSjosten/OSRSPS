@@ -158,6 +158,23 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
+- `varrock-city.json`: Varrock step 1 (with `::keys on`): in through the south gate, a house's poor door opened and
+  shut, a north-climbing and a south-climbing straight staircase up and down, a ladder, drawers opened, searched and
+  shut, Pet on a stray dog and a man's talk.
+- `varrock-banks.json`: Varrock step 2 (with `::keys on`): logs banked at a West Bank booth and taken back through a
+  banker's talk, Knock-at on the West Bank's locked door, and the East Bank opened through a banker's Bank and a booth.
+- `varrock-grand-exchange.json`: Varrock step 3 (with `::keys on`): a Grand Exchange clerk's Exchange, History and
+  Talk-to (setting up offers), an exchange booth's Collect, a banker's Collect and a bank booth's Bank.
+- `varrock-shops.json`: Varrock step 4: Trade at the Swordshop, Horvik's, Lowe's and Zaff's, buying one item at each
+  and selling it back, then each keeper's talk (with `::keys on`) into their shop.
+- `varrock-stores.json`: Varrock step 5: Trade at the General Store, Aubury's, Thessalia's, the Fancy Clothes Store
+  and Ye olde Tea Shoppe, buying one item at each and selling it back, then each keeper's talk (with `::keys on`) into
+  their shop.
+- `varrock-traders.json`: Varrock step 5b (with `::keys on`): Benny's newspaper bought for 50 coins, a fur bought
+  from Baraek for 20 and sold back to him for 12, the Apothecary's hair potion topic and back to his menu, and (step
+  5c) a strength potion bought on his potions screen.
+- `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
+  `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
   a willow chopped at level 30, a shrimp netted at the shore's Small Net spots and cooked on the permanent fire.
 - `draynor-market.json`: Draynor step 3: Fortunato's, Olivia's and Diango's talks (`::keys on`) into their shops, and
@@ -220,6 +237,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `crafting-jewellery.json`: at the furnace north of Lumbridge Castle, a gold bar opens `crafting_gold` and All makes
   two sapphire rings, a tiara mould opens `silver_crafting` and makes a tiara, and a ball of wool strings a gold
   amulet. Needs 0.15.0 (`useItemOnLoc`).
+- `artisan-scenario.json`: `::scenario lumbridge-artisan` stands you by the furnace north of Lumbridge Castle at 50
+  Crafting, Fletching and Herblore with the kit; a guam is cleaned and made into an attack potion and a sapphire is cut
+  from it. Needs 0.10.0.
 - `crafting-glass.json`: at the furnace north of Lumbridge Castle, soda ash and sand make molten glass (the buckets
   back), a pipe blows two vials, and water softens clay; at Barbarian Village's potter's wheel one soft clay shapes four
   unfired cups, which the oven fires. Needs 0.15.0.
