@@ -26,8 +26,8 @@ chat, which hands it to a thread.
 
 To check every open pull request now (after changing this workflow, say): Actions, **mergeable**, **Run workflow**.
 
-A pull request that only changes this file, top-level docs or `.github/` doesn't restart the server on VM 214 (the
-deploy filter in `deploy/auto-deploy.sh`).
+A pull request that only changes this file, top-level docs, the friend page (`docs/`) or `.github/` doesn't restart
+the server on VM 214 (the deploy filter in `deploy/auto-deploy.sh`).
 
 ## Auto-merge
 
