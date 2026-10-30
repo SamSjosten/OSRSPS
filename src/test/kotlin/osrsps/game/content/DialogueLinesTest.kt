@@ -34,6 +34,7 @@ class DialogueLinesTest {
             "src/main/kotlin/osrsps/game/shop",
             "src/main/kotlin/osrsps/game/social",
             "src/main/kotlin/osrsps/game/ge",
+            "src/main/kotlin/osrsps/game/trade",
         )
         val DECLARATION = Regex("""object (\w+) : \w*Lines\(""")
     }
