@@ -119,8 +119,11 @@ class Making(private val world: World) {
         start(context, recipe, quantity)
     }
 
-    /** Starts making [quantity] of [recipe] for the context's player, after checking their level. */
-    fun start(context: ScriptContext, recipe: MakeRecipe, quantity: Int) {
+    /**
+     * Starts making [quantity] of [recipe] for the context's player, after checking their level. [fromMovement] when it
+     * starts in the movement phase, as an item used on a loc on arrival does.
+     */
+    fun start(context: ScriptContext, recipe: MakeRecipe, quantity: Int, fromMovement: Boolean = false) {
         val player = context.player
         // The box closes as the making starts, so the weak queue isn't held up by it.
         world.interfaces.closeChatModal(player)
@@ -129,7 +132,9 @@ class Making(private val world: World) {
         if (quantity <= 0 || recipe.times(player.inventory) <= 0) return
         val job = Job(recipe, quantity)
         if (recipe.anim >= 0) player.anim(recipe.anim)
-        if (recipe.first == 0) context.makeOne(job) else context.queue(QUEUE, QueueType.WEAK, recipe.first) { makeOne(job) }
+        // The movement phase comes after the tick's script phase, which is where this queue's delay first counts down.
+        val delay = if (fromMovement) recipe.first - 1 else recipe.first
+        if (recipe.first == 0) context.makeOne(job) else context.queue(QUEUE, QueueType.WEAK, delay) { makeOne(job) }
     }
 
     /**

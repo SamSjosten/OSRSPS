@@ -140,6 +140,9 @@ class HeadlessHerbloreTest {
                 client.locTarget(Herblore.LUMBRIDGE_SINK, SINK_X, SINK_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(VIAL), VIAL)
                 val filled = client.await("three filled", timeoutMillis = 20_000) { client.said("[herblore.fill").takeIf { it.size >= 3 } }
                 assertEquals(listOf(1, 1), filled.zipWithNext { a, b -> b.tick - a.tick })
+                // The use happens on arrival, in the movement phase; the first vial fills the tick after.
+                val arrived = client.moves().last { it.tick <= filled[0].tick }.tick
+                assertEquals(1, filled[0].tick - arrived, "the first fill after arriving at the sink")
                 client.await("three vials of water") { if (client.count(VIAL_OF_WATER) == 3) Unit else null }
                 assertTrue(client.clientScripts().none { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT })
             }

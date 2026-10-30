@@ -117,7 +117,7 @@ class Herblore(private val world: World, val data: HerbloreData) {
         }
         for (source in waterSources()) {
             world.handlers.onObjOnLoc(source, data.fillVial.inputs[0].obj) {
-                world.making.start(this, data.fillVial, data.fillVial.times(player.inventory))
+                world.making.start(this, data.fillVial, data.fillVial.times(player.inventory), fromMovement = true)
             }
         }
     }
