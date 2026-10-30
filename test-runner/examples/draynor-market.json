@@ -1,5 +1,5 @@
 {
- "name": "Draynor piece step 3: Fortunato's, Olivia's and Diango's talks (::keys on) and their shops: a jug of wine, a potato seed and a Disk of Returning at the Wiki's prices",
+ "name": "Draynor piece step 3: Fortunato's, Olivia's and Diango's talks (::keys on) and their shops: a jug of wine, a potato seed, a Disk of Returning and one Chronicle (a second refused) at the Wiki's prices",
  "account": "test",
  "steps": [
   {
@@ -235,6 +235,47 @@
    "step": "assertInventory",
    "item": "Coins",
    "count": 8997
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 14,
+   "op": 2,
+   "comment": "Buy 1 Chronicle, the 14th item, at the Wiki's 200"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Chronicle",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 8797
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 14,
+   "op": 2,
+   "comment": "A second Chronicle is refused while one is held"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[shop.already_have item=Chronicle]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Chronicle",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 8797
   },
   {
    "step": "command",
