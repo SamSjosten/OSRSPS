@@ -1,5 +1,5 @@
 {
- "_comment": "Potions by the stem of their doses' cache internal names, <n>dose<potion> for 4 to 1 doses. effects, in order: boost (skills raised by percent of the base level plus constant, up to that past the base), restore (toward the base level, over percent of it past; wrench more percent of Prayer with a holy wrench or prayer cape), drain (lowered by percent of the current level plus constant), damage (percent of the current hitpoints, leaving 1), energy (percent run energy). Skills 'all' is every skill but Hitpoints. message: drink_brew for the brews; otherwise drink or drink_potion by the name. divine: costs 10 hitpoints and holds its boosts for five minutes. From the OSRS Wiki's Potions page and each potion's own, read 2026-10-29.",
+ "_comment": "Potions by the stem of their doses' cache internal names, <n>dose<potion> for 4 to 1 doses, or the name with {n} for the count. effects, in order: boost (skills raised by percent of the base level plus constant, up to that past the base), restore (toward the base level, over percent of it past; wrench more percent of Prayer with a holy wrench or prayer cape), drain (lowered by percent of the current level plus constant), damage (percent of the current hitpoints, leaving 1), energy (percent run energy), antipoison (cures poison, or turns venom into poison, and leaves that many 30-tick periods of poison immunity), antivenom (cures venom and poison and leaves that many periods; past 38 keeps venom off too). Periods: the Wiki's minutes over 18 seconds (Poison, read 2026-10-30): antipoison 1.5, superantipoison and sanfew 6, antidote+ 9, antidote++ 12, anti-venom 12 (venom 36-54 s), anti-venom+ 15, extended anti-venom+ 17.7. Skills 'all' is every skill but Hitpoints. message: drink_brew for the brews; otherwise drink or drink_potion by the name. divine: costs 10 hitpoints and holds its boosts for five minutes. From the OSRS Wiki's Potions page and each potion's own, read 2026-10-29.",
  "vial": "vial_empty",
  "wrenchCarried": ["deal_wrench_blessed", "skillcape_prayer", "skillcape_prayer_trimmed", "skillcape_max", "skillcape_max_worn"],
  "wrenchWorn": ["nzone_rotg", "sw_rotg", "pvpa_rotg"],
@@ -54,6 +54,14 @@
   {"potion": "1agility", "effects": [{"boost": ["agility"], "constant": 3}]},
   {"potion": "fisherspotion", "effects": [{"boost": ["fishing"], "constant": 3}]},
   {"potion": "hunting", "effects": [{"boost": ["hunter"], "constant": 3}]},
-  {"potion": "magicess", "effects": [{"boost": ["magic"], "constant": 3}]}
+  {"potion": "magicess", "effects": [{"boost": ["magic"], "constant": 3}]},
+  {"potion": "antipoison", "effects": [{"antipoison": 5}]},
+  {"potion": "2antipoison", "effects": [{"antipoison": 20}]},
+  {"potion": "antidote+{n}", "effects": [{"antipoison": 30}]},
+  {"potion": "antidote++{n}", "effects": [{"antipoison": 40}]},
+  {"potion": "antivenom{n}", "effects": [{"antivenom": 41}]},
+  {"potion": "antivenom+{n}", "effects": [{"antivenom": 50}]},
+  {"potion": "extended_antivenom+{n}", "effects": [{"antivenom": 59}]},
+  {"potion": "sanfew_salve_{n}_dose", "message": "drink", "effects": [{"restore": ["all"], "percent": 30, "constant": 4, "wrench": 2}, {"antipoison": 20}]}
  ]
 }
