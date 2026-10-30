@@ -75,7 +75,9 @@
     {"npc": 1157, "name": "Archer", "wiki": "Archer (Lost City) page, infobox"},
     {"npc": 1159, "name": "Monk", "wiki": "Monk (Lost City) page, infobox"},
     {"npc": 1160, "name": "Wizard", "wiki": "Wizard (Lost City) page, infobox"},
-    {"npc": 1896, "name": "Candle seller"}
+    {"npc": 1896, "name": "Candle seller"},
+    {"npc": 3222, "name": "Mining tutor"},
+    {"npc": 3221, "name": "Fishing tutor"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},

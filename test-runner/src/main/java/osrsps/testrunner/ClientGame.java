@@ -101,6 +101,8 @@ final class ClientGame implements Game
 	private String chatLine;
 	/** Set on the Swing thread once the Enter key events for {@link #chatLine} have gone to the canvas. */
 	private volatile boolean enterDelivered;
+	/** False from typeText until the Swing thread has sent its key events. */
+	private volatile boolean typingDelivered = true;
 	/** Walk calls in a row that found the mouse on the walk's spot. */
 	private int mouseFrames;
 
@@ -891,6 +893,42 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String typeText(String text)
+	{
+		Canvas canvas = client.getCanvas();
+		if (canvas == null)
+		{
+			return "the client has no canvas";
+		}
+		// The client queues each press and each typed character for the interfaces' onkey scripts (searchbar_keypress
+		// reads the character), so every character gets the press, typed and release a real key makes.
+		typingDelivered = false;
+		SwingUtilities.invokeLater(() ->
+		{
+			if (!canvas.isFocusOwner())
+			{
+				canvas.requestFocusInWindow();
+			}
+			long now = System.currentTimeMillis();
+			for (char c : text.toCharArray())
+			{
+				int code = KeyEvent.getExtendedKeyCodeForChar(c);
+				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_PRESSED, now, 0, code, c));
+				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_TYPED, now, 0, KeyEvent.VK_UNDEFINED, c));
+				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_RELEASED, now, 0, code, c));
+			}
+			typingDelivered = true;
+		});
+		return null;
+	}
+
+	@Override
+	public boolean typingPending()
+	{
+		return !typingDelivered;
+	}
+
+	@Override
 	public int skillLevel(String skill)
 	{
 		Skill s = skill(skill);
@@ -1341,6 +1379,66 @@ final class ClientGame implements Game
 			return "the logout tab is not open";
 		}
 		client.menuAction(-1, InterfaceID.Logout.LOGOUT, MenuAction.CC_OP, 1, -1, "Logout", "");
+		return null;
+	}
+
+	/** friends:list_container and friends:loading, the Friends tab's list and the line shown over it while empty. */
+	private static final int FRIENDS_TAB = 429;
+	private static final int FRIENDS_LIST_CONTAINER = 5;
+	private static final int FRIENDS_LOADING = 13;
+
+	/**
+	 * Whether the client is still waiting for the friends list. The container exists before the list arrives, so it
+	 * can't tell; the Friends tab can: friend_update hides the list and puts its loading line in friends:loading
+	 * while friend_count is below 0, and a different line once an empty list has arrived. The tab must have been
+	 * built (it is at login); until then this says loading.
+	 */
+	private boolean friendsLoading()
+	{
+		Widget list = client.getWidget(FRIENDS_TAB << 16 | FRIENDS_LIST_CONTAINER);
+		Widget line = client.getWidget(FRIENDS_TAB << 16 | FRIENDS_LOADING);
+		if (list == null || line == null)
+		{
+			return true;
+		}
+		if (!list.isHidden())
+		{
+			return false;
+		}
+		String text = line.getText();
+		return text == null || text.isEmpty() || text.startsWith("Loading");
+	}
+
+	@Override
+	public java.util.Map<String, Integer> friends()
+	{
+		net.runelite.api.NameableContainer<net.runelite.api.Friend> container = client.getFriendContainer();
+		if (!loggedIn() || container == null || friendsLoading())
+		{
+			return null;
+		}
+		java.util.Map<String, Integer> friends = new java.util.LinkedHashMap<>();
+		for (net.runelite.api.Friend friend : container.getMembers())
+		{
+			if (friend != null && friend.getName() != null)
+			{
+				friends.put(net.runelite.client.util.Text.toJagexName(friend.getName()), friend.getWorld());
+			}
+		}
+		return friends;
+	}
+
+	@Override
+	public String enterText(String text)
+	{
+		Canvas canvas = client.getCanvas();
+		if (canvas == null)
+		{
+			return "the client has no canvas";
+		}
+		// As enterAmount: meslayer_enter reads this varc and acts on the prompt's mode (friend_add for mode 2).
+		client.setVarcStrValue(VarClientID.MESLAYERINPUT, text);
+		pressEnter(canvas);
 		return null;
 	}
 }

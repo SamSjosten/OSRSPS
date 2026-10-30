@@ -674,6 +674,28 @@ public class RunnerTest
 	}
 
 	@Test
+	public void typeTextTypesOnceAndPassesATickAfterTheKeysGo() throws Exception
+	{
+		runner.start(script("{\"step\":\"typeText\",\"text\":\"roof\"},{\"step\":\"assertNoDialogue\"}"), "file");
+		game.typingPending = true;
+		assertNull(cycle());
+		assertNull(cycle());
+		assertEquals(List.of("type roof"), game.actions);
+		game.typingPending = false;
+		assertNull(cycle());
+		runner.gameTick();
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals(List.of("type roof"), game.actions);
+		assertEquals("type \"roof\"", r.steps.get(0).description);
+		assertEquals("typed", r.steps.get(0).detail);
+		assertEquals(Result.PASS, r.result);
+	}
+
+	@Test
 	public void groundItemWaitsForTheItemOrForItToGo() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertGroundItem\",\"item\":\"Bones\",\"x\":3213,\"y\":3210},"
@@ -873,5 +895,50 @@ public class RunnerTest
 		assertEquals(Result.PASS, r.result);
 		assertEquals("stands in 2561", r.steps.get(0).detail);
 		assertEquals("logged out", r.steps.get(1).detail);
+	}
+
+	@Test
+	public void friends() throws Exception
+	{
+		runner.start(script("{\"step\":\"addFriend\",\"name\":\"test2\"},"
+			+ "{\"step\":\"assertFriend\",\"name\":\"Test2\",\"world\":301},"
+			+ "{\"step\":\"deleteFriend\",\"name\":\"test2\"},"
+			+ "{\"step\":\"assertFriend\",\"name\":\"test2\",\"absent\":true}"), "file");
+		game.friends = null;
+		assertNull(cycle());
+		assertEquals(List.of(), game.actions);
+		game.friends = new java.util.LinkedHashMap<>();
+		assertNull(cycle());
+		// The Add Friend button, then the name once its prompt (mode 2) shows.
+		assertEquals(List.of("click 429:14 op 1"), game.actions);
+		assertNull(cycle());
+		assertEquals(List.of("click 429:14 op 1"), game.actions);
+		game.promptMode = 2;
+		assertNull(cycle());
+		assertEquals(List.of("click 429:14 op 1", "text test2"), game.actions);
+		// The prompt closed: the step passes and the assert waits for the server.
+		game.friends.put("test2", 0);
+		assertNull(cycle());
+		game.friends.put("test2", 301);
+		assertNull(cycle());
+		assertEquals("click 429:16 op 1", game.actions.get(2));
+		game.promptMode = 3;
+		game.friends.remove("test2");
+		Result r = null;
+		for (int i = 0; i < 5 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("click 429:14 op 1", "text test2", "click 429:16 op 1", "text test2"), game.actions);
+		assertEquals("friends {test2=301}", r.steps.get(1).detail);
+		assertEquals("assert friend Test2 on world 301", r.steps.get(1).description);
+	}
+
+	@Test
+	public void assertFriendNeedsAWorld()
+	{
+		Script.Invalid e = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"assertFriend\",\"name\":\"a\"}"));
+		assertTrue(e.getMessage(), e.getMessage().contains("world"));
 	}
 }

@@ -38,6 +38,7 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerIpCommands
+import osrsps.game.command.registerGrandExchangeCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerLocCommands
 import osrsps.game.command.registerNpcCommands
@@ -45,6 +46,8 @@ import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
+import osrsps.game.command.registerSocialCommands
+import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
 import osrsps.game.command.registerZoneCommands
@@ -79,6 +82,7 @@ import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerCandleSeller
 import osrsps.game.content.registerFatherUrhney
+import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
@@ -88,6 +92,7 @@ import osrsps.game.content.registerFredsFarm
 import osrsps.game.content.registerGroatsFarm
 import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
+import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -95,7 +100,9 @@ import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
+import osrsps.game.ge.GrandExchange
 import osrsps.game.loc.Doors
+import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.Locs
@@ -112,14 +119,18 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Making
 import osrsps.game.skill.Cooking
 import osrsps.game.skill.Fishing
+import osrsps.game.skill.Fletching
+import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
+import osrsps.game.social.FriendLists
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
@@ -198,6 +209,8 @@ class World(
     private val loginGuard: LoginGuard = LoginGuard(),
     /** Addresses that may not log in; see [IpBans]. */
     val ipBans: IpBans = IpBans(),
+    /** The server-wide XP multiplier every player's XP drops are multiplied by; see [XpRate]. */
+    val xpRate: XpRate = XpRate(),
     /** The All Settings window's settings, from the cache; tests that click them pass their own. */
     settings: SettingsCatalog = SettingsCatalog.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
@@ -221,6 +234,9 @@ class World(
     val locs = Locs(locTypes, staticLocs, collision, zones) { tick }
 
     val doors = Doors(locs)
+
+    /** Fence gates, both leaves at once; see [Gates]. */
+    val gates = Gates(locs)
 
     val npcs = Npcs(collision, random)
 
@@ -292,6 +308,9 @@ class World(
     private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
 
     /** Shops and their shared stock; see [ShopScreen]. */
+    /** Grand Exchange offers; see [GrandExchange]. */
+    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
+
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
@@ -300,7 +319,7 @@ class World(
 
     private val follows = Follows(movement, { players[it.index] === it })
 
-    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, words = ::textFor)
+    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor)
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
@@ -364,6 +383,9 @@ class World(
     /** The words [player] sees: none, so every line shows its key, while they have `::keys` on. */
     fun textFor(player: Player): DialogueText = if (player.showDialogueKeys) DialogueText.NONE else dialogueText
 
+    /** The friends lists; see [FriendLists]. */
+    val friendLists = FriendLists({ onlinePlayers }, ::accountName) { player, line -> player.message(textFor(player)[line]) }
+
     /** Bird nests that fall from trees. */
     val birdNests = BirdNests(this, collision)
 
@@ -382,6 +404,10 @@ class World(
 
     val cooking = Cooking(this)
     val smithing = Smithing(this)
+
+    /** The Make-X loop the artisan skills share. */
+    val making = Making(this)
+    val fletching = Fletching(this, FletchingData.load())
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -403,17 +429,20 @@ class World(
         registerTickCommands(this@World)
         registerVarCommands()
         registerSkillCommands { phase != null }
+        registerXpRateCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
+        registerGrandExchangeCommands(this@World)
         registerGroundObjCommands(this@World)
         registerLocCommands(this@World)
         registerNpcCommands(this@World)
         registerScenarioCommands(this@World)
         registerCombatCommands(this@World)
         registerIpCommands(this@World)
+        registerSocialCommands(this@World)
     }
 
     init {
@@ -430,6 +459,7 @@ class World(
         interfaces.onClose(BankScreen.MAIN, bankScreen::closed)
         registerShops(this)
         registerLumbridgeTown(this)
+        registerDraynorVillage(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -437,6 +467,7 @@ class World(
         registerFatherUrhney(this)
         registerAdventurersCamp(this)
         registerCandleSeller(this)
+        registerSwampTutors(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
@@ -447,6 +478,7 @@ class World(
         fishing.register()
         cooking.register()
         smithing.register()
+        fletching.register()
         loadDialogue()
     }
 
@@ -775,6 +807,7 @@ class World(
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
+            grandExchange.process(player)
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
@@ -939,9 +972,20 @@ class World(
         player.heldActions.addLast(action)
     }
 
+    /**
+     * Input that goes through while the player is dead: side panel lists the client has already changed for itself,
+     * which dropping would leave out of step with the server.
+     */
+    private class WhileDead(val action: () -> Unit) : () -> Unit {
+        override fun invoke() = action()
+    }
+
+    /** [act] for input that still counts while dead; see [WhileDead]. */
+    private fun actWhileDead(player: Player, action: () -> Unit) = act(player, WhileDead(action))
+
     /** A dead player's clicks, buttons and chat do nothing until they respawn; see [Deaths]. */
     private fun guarded(player: Player, action: () -> Unit) {
-        if (player.dead) {
+        if (player.dead && action !is WhileDead) {
             logger.debug { "Dropping input from ${player.username}: dead" }
             return
         }
@@ -1026,7 +1070,7 @@ class World(
      * Throws if the save can't be read.
      */
     internal fun loadPlayer(index: Int, username: String): Player {
-        val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
+        val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes, xpRate)
         // A save that couldn't be written is newer than the file, which would hand back what the player had before.
         val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player.also { it.newAccount = true }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
@@ -1163,6 +1207,7 @@ class World(
         player.sentCombatLevel = -1
         sendRunState(player)
         sendWeight(player)
+        friendLists.sendAll(player)
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
@@ -1189,6 +1234,7 @@ class World(
         allowChat(player)
         // Guessed: live sends the saved filters at login; a new account's are all on.
         sendChatFilters(player)
+        friendLists.login(player)
         quests.completeAll(player.vars)
         prayers.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -1625,8 +1671,32 @@ class World(
      * filters back. They are saved and sent again at login; nothing filters chat on the server yet.
      */
     fun onChatFilters(player: Player, filters: ChatFilters) = act(player) {
+        val old = player.chatFilters.private
         player.chatFilters = filters
         sendChatFilters(player)
+        friendLists.privateFilterChanged(player, old)
+    }
+
+    /** The player added [name] to their friends list. Kept while dead: the death animation doesn't close the tab. */
+    fun onFriendAdd(player: Player, name: String) = actWhileDead(player) { friendLists.add(player, name) }
+
+    /** The player deleted [name] from their friends list, which their client has already done. Kept while dead. */
+    fun onFriendDelete(player: Player, name: String) = actWhileDead(player) { friendLists.delete(player, name) }
+
+    /**
+     * The display name of the account [name] is: the player's if they are here, else the one in their save. Null when
+     * there is no such account, or no save to tell.
+     */
+    internal fun accountName(name: String): String? {
+        val key = SaveStore.saveKey(name) ?: return null
+        findPlayer(key)?.let { return it.username }
+        val text = unwritten[key] ?: try {
+            saves.read(key)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't read the save for $key" }
+            null
+        } ?: return null
+        return PlayerSave.usernameIn(text) ?: name.trim()
     }
 
     private fun sendChatFilters(player: Player) {
@@ -1857,6 +1927,12 @@ class World(
             freedSlots[player.index] = cycles
             network.infoProtocols.dealloc(player.infos)
             player.session.clear()
+        }
+        // Once they are out of the world, so they show as offline.
+        try {
+            friendLists.changed(player)
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't tell ${player.username}'s friends they left" }
         }
         logger.info { "${player.username} logged out" + if (player.loggedOut) "" else " (connection lost)" }
     }

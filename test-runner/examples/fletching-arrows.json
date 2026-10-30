@@ -1,0 +1,41 @@
+{
+ "name": "Artisan step 2: at 99, feathers on 20 arrow shafts make headless arrows in sets (15 then 5), bronze arrowtips make 15 bronze arrows, a bow string strings a shortbow, and a feather on dart tips makes 10 darts with no box (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel fletching 99", "expectMessage": "Fletching set to level 99"},
+  {"step": "command", "text": "::item 52 20", "expectMessage": "Added 20 x Arrow shaft"},
+  {"step": "command", "text": "::item 314 30", "expectMessage": "Added 30 x Feather"},
+
+  {"step": "useItemOnItem", "item": "Feather", "onItem": "Arrow shaft"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti, titled in sets of 15"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "headless arrows; the box suggests both sets"},
+  {"step": "assertInventory", "item": "Headless arrow", "count": 20, "timeoutMs": 10000, "comment": "15, then 5, 2 ticks apart"},
+  {"step": "assertMessage", "contains": "fletching.headless amount=5"},
+
+  {"step": "command", "text": "::item 39 15", "expectMessage": "Added 15 x Bronze arrowtips"},
+  {"step": "useItemOnItem", "item": "Bronze arrowtips", "onItem": "Headless arrow"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Bronze arrow", "count": 15, "timeoutMs": 10000},
+  {"step": "assertInventory", "item": "Headless arrow", "count": 5},
+
+  {"step": "command", "text": "::item 1777", "expectMessage": "Added 1 x Bow string"},
+  {"step": "command", "text": "::item 50", "expectMessage": "Added 1 x Shortbow (u)"},
+  {"step": "useItemOnItem", "item": "Bow string", "onItem": "Shortbow (u)"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertAnimation", "id": 6678, "comment": "stringing_shortbow"},
+  {"step": "assertInventory", "item": "Shortbow", "count": 1, "timeoutMs": 10000},
+
+  {"step": "command", "text": "::item 819 10", "expectMessage": "Added 10 x Bronze dart tip"},
+  {"step": "useItemOnItem", "item": "Feather", "onItem": "Bronze dart tip"},
+  {"step": "assertInventory", "item": "Bronze dart", "count": 10, "timeoutMs": 5000, "comment": "straight away, no box"},
+  {"step": "assertStat", "skill": "Fletching", "level": 99, "xp": 13034493, "comment": "20 + 19.5 + 5 + 18 = 62.5 XP"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

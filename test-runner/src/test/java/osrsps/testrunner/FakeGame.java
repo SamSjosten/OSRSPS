@@ -11,6 +11,8 @@ class FakeGame implements Game
 	boolean loggedIn = true;
 	/** What weight answers while logged in. */
 	int weight;
+	/** What typingPending answers: the typed keys not yet sent. */
+	boolean typingPending;
 	/** What promptMode answers; entering an amount closes the prompt. */
 	int promptMode;
 	String name = "test";
@@ -292,6 +294,19 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public String typeText(String text)
+	{
+		actions.add("type " + text);
+		return null;
+	}
+
+	@Override
+	public boolean typingPending()
+	{
+		return typingPending;
+	}
+
+	@Override
 	public String enterAmount(int amount)
 	{
 		actions.add("amount " + amount);
@@ -402,5 +417,22 @@ class FakeGame implements Game
 	{
 		actions.add("cast " + interfaceId + ":" + component + " on " + (npc != null ? npc : "npc " + npcId));
 		return castError;
+	}
+
+	/** The friends list, world by name; null for not loaded. */
+	java.util.Map<String, Integer> friends = new java.util.LinkedHashMap<>();
+
+	@Override
+	public java.util.Map<String, Integer> friends()
+	{
+		return friends == null ? null : new java.util.LinkedHashMap<>(friends);
+	}
+
+	@Override
+	public String enterText(String text)
+	{
+		actions.add("text " + text);
+		promptMode = 0;
+		return null;
 	}
 }
