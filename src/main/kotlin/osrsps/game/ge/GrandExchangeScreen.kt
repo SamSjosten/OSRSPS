@@ -84,8 +84,9 @@ class GrandExchangeScreen(
         for (slot in 0 until GeAccount.SLOTS) {
             val offer = player.ge[slot]
             if (sent.sentOnce && sent.offers[slot] == offer) continue
-            if (!sent.sentOnce && offer == null) {
-                // At login only the slots in use go: the client starts with every slot empty.
+            if (!sent.sentOnce && !sent.resync && offer == null) {
+                // At login only the slots in use go: the client starts with every slot empty. After a reconnect
+                // every slot goes, since a reset queued for the old connection may never have arrived.
                 sent.offers[slot] = null
                 continue
             }
@@ -97,6 +98,7 @@ class GrandExchangeScreen(
             sent.offers[slot] = offer
         }
         sent.sentOnce = true
+        sent.resync = false
     }
 
     companion object {
@@ -153,10 +155,12 @@ class GrandExchangeScreen(
 class GeSent {
     val offers = arrayOfNulls<GeOffer>(GeAccount.SLOTS)
     var sentOnce = false
+    var resync = false
 
-    /** Sends every slot again, as after a reconnect. */
+    /** Sends every slot again, empty ones included, as after a reconnect. */
     fun resendAll() {
         offers.fill(null)
         sentOnce = false
+        resync = true
     }
 }
