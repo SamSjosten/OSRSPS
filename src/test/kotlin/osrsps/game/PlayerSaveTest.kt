@@ -12,6 +12,7 @@ import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.combat.SpecialAttacks
 import osrsps.map.CollisionMap
+import osrsps.map.Tile
 
 class PlayerSaveTest {
     private val saves = MemorySaveStore()
@@ -146,6 +147,24 @@ class PlayerSaveTest {
         assertTrue("ignores" !in none)
         val tooMany = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), ignores = List(401) { "p$it" }).toJson("test")
         assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(tooMany) }
+    }
+
+    @Test
+    fun `aggressive monsters' tolerance areas and count are saved, and a save without them starts at the login`() {
+        val tolerance = PlayerSave.ToleranceSave(Tile(3200, 3200), Tile(3222, 3218), 640)
+        val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), tolerance = tolerance).toJson("test")
+        saves.write("test", text)
+        val player = world.loadPlayer(1, "test")
+        assertEquals(Tile(3200, 3200), player.tolerance.older)
+        assertEquals(Tile(3222, 3218), player.tolerance.newer)
+        assertEquals(640, player.tolerance.ticks)
+        val again = PlayerSave.fromJson(PlayerSave.of(player).toJson("test")).tolerance
+        assertEquals(listOf(Tile(3200, 3200), Tile(3222, 3218), 640), listOf(again.older, again.newer, again.ticks))
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("tolerance" !in none)
+        assertNull(PlayerSave.fromJson(none).tolerance.newer)
+        val bad = text.replace("\"ticks\": 640", "\"ticks\": -1")
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(bad) }
     }
 
     @Test

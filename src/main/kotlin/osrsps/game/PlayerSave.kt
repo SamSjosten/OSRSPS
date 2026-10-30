@@ -20,6 +20,7 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.StatRestore
+import osrsps.game.combat.Tolerance
 import osrsps.game.social.FriendLists
 import osrsps.game.ge.BuyLimitUse
 import osrsps.game.ge.GeAccount
@@ -28,6 +29,7 @@ import osrsps.game.ge.GeTrade
 import osrsps.game.ge.OfferType
 import osrsps.game.social.IgnoreLists
 import osrsps.game.trade.offeredBy
+import osrsps.map.Tile
 
 private val logger = KotlinLogging.logger {}
 
@@ -73,8 +75,12 @@ class PlayerSave(
     val ignores: List<String> = emptyList(),
     /** The Grand Exchange's trade history, newest first. */
     val geHistory: List<GeTrade> = emptyList(),
+    /** Where aggressive monsters' tolerance is counted and how far it has got ([Tolerance]); part of the header. */
+    val tolerance: ToleranceSave = ToleranceSave(null, null, 0),
 ) {
     class BoostSegments(val combat: Int, val other: Int)
+
+    class ToleranceSave(val older: Tile?, val newer: Tile?, val ticks: Int)
 
     class SkillSave(val tenths: Int, val currentLevel: Int)
 
@@ -100,6 +106,7 @@ class PlayerSave(
         player.chatFilters = chatFilters
         player.friends.addAll(friends)
         player.ignores.addAll(ignores)
+        player.tolerance.restore(tolerance.older, tolerance.newer, tolerance.ticks)
         applyState(player)
     }
 
@@ -175,6 +182,20 @@ class PlayerSave(
             }
             if (friends.isNotEmpty()) putJsonArray("friends") { for (name in friends) add(name) }
             if (ignores.isNotEmpty()) putJsonArray("ignores") { for (name in ignores) add(name) }
+            // And tolerance, which goes on by where the player stands, scenario or not.
+            if (tolerance.newer != null) {
+                putJsonObject("tolerance") {
+                    putJsonArray("areas") {
+                        for (center in listOfNotNull(tolerance.older, tolerance.newer)) {
+                            addJsonObject {
+                                put("x", center.x)
+                                put("z", center.z)
+                            }
+                        }
+                    }
+                    put("ticks", tolerance.ticks)
+                }
+            }
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -281,6 +302,7 @@ class PlayerSave(
                 player.ge.contents().toMap(), player.ge.limits.values.toList(),
                 player.ignores.toList(),
                 player.ge.history.toList(),
+                player.tolerance.let { ToleranceSave(it.older, it.newer, it.ticks) },
             )
         }
 
@@ -337,6 +359,17 @@ class PlayerSave(
                 require(friends.size <= FriendLists.MAX_FRIENDS) { "${friends.size} friends is more than ${FriendLists.MAX_FRIENDS}" }
                 val ignores = root["ignores"]?.jsonArray.orEmpty().map { it.jsonPrimitive.content }
                 require(ignores.size <= IgnoreLists.MAX_IGNORES) { "${ignores.size} ignored names is more than ${IgnoreLists.MAX_IGNORES}" }
+                // Optional: saves from before aggression have none, and start counting at the login tile.
+                val tolerance = root["tolerance"]?.jsonObject?.let { entry ->
+                    val areas = entry.getValue("areas").jsonArray.map {
+                        val area = it.jsonObject
+                        Tile(area.int("x"), area.int("z")).also { tile -> require(tile.x in 0..MAX_COORD && tile.z in 0..MAX_COORD) { "No such tile ${tile.x}, ${tile.z}" } }
+                    }
+                    require(areas.size in 1..2) { "${areas.size} tolerance areas" }
+                    val ticks = entry.int("ticks")
+                    require(ticks >= 0) { "Tolerance ticks $ticks is negative" }
+                    ToleranceSave(areas.getOrNull(areas.size - 2), areas.last(), ticks)
+                } ?: ToleranceSave(null, null, 0)
                 val state = readState(root, scenario, beforeScenario)
                 return PlayerSave(
                     state.x, state.z, state.level, state.runEnergy, state.varps, state.skills, state.inventory, state.equipment,
@@ -345,6 +378,7 @@ class PlayerSave(
                     state.geOffers, state.geLimits,
                     ignores,
                     state.geHistory,
+                    tolerance,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e

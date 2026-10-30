@@ -241,6 +241,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
 | `::drain stat levels\|percent% [index\|name]` | Drains an NPC's attack, defence, strength, ranged or magic (the one you fight, or by index from `::npcs` or by name) by that many levels, or by a percentage of its level now, as far as its drain cap lets it, and says its level now. Its combat rolls use the drained level (`::combat` shows them), it gets a level back a minute, and `::npcs` shows its drained stats |
 | `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap) and the Bandos godsword's Warstrike (50%: double accuracy against slash, the max hit up 10% twice, and the target's Defence, Strength, Attack, Magic and Ranged drained by the damage in turn) and Dinh's bulwark's Shield Bash (50%: 20% more accurate against crush, and in a multi-way area up to 10 NPCs within 5 tiles hit, the target twice, each losing 5% of its highest offensive stat) are in. The bulwark's Block style can't attack and, 8 ticks after it is wielded, lets 80% of monsters' melee hits through, and `::combat` shows a special's attack roll and max hit |
+| `::aggro [ticks]` | Shows how many ticks you have spent in the two areas aggressive monsters' tolerance is counted in, and whether they leave you alone yet (after 1000 ticks, ten minutes); with a number, sets the count first. `::npcs` shows who each NPC is fighting |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -261,7 +262,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
@@ -703,12 +704,11 @@ canoe station. They fight through `npc-combat.json` and drop through `npc-drops.
 |-----------|--------|
 | 50 goblins (`goblin_unarmed_melee_1` to `_8`, ids 3029 to 3036): level 2, 5 hitpoints, crush for 1 at speed 4, back in 35 ticks, not aggressive | OSRS Wiki, Goblin (the Level 2 infobox); the DPS calculator |
 | A goblin always drops bones, and rolls drop table 1 (128 slots: bronze gear, runes, coins, a hammer, goblin mail and the rest), with the beginner and easy clues, the ensouled goblin head and the goblin champion scroll on their own rolls | OSRS Wiki, Goblin, drop table 1 |
-| 6 giant spiders (`giantspider1`, 3017): level 2, 5 hitpoints, stab for 1, back in 30 ticks, 50% weak to fire; no bones, only the beginner clue at 1/128 | OSRS Wiki, Giant spider (Level 2) |
+| 6 giant spiders (`giantspider1`, 3017): level 2, 5 hitpoints, stab for 1, back in 30 ticks, 50% weak to fire, aggressive ([NPC aggression](#npc-aggression)); no bones, only the beginner clue at 1/128 | OSRS Wiki, Giant spider (Level 2) |
 | Barfy Bill (1326) talks about who he is and about canoes, by the player's Woodcutting level: below 12, 12 to 26 (log), 27 to 41 (dugout), 42 to 56 (stable dugout), 57 and up (waka) | RSMod's script; the Wiki's Transcript:Barfy Bill and Canoeing |
 | The fight animations (the squatting goblin's and the updated spider's, by the stand and walk animations their types have), the wander ranges (5, Bill 2) and Bill's chathead expressions | guessed |
 
-Left out: the giant spiders are aggressive on live, which waits for NPC aggression (the Varrock piece); canoes and
-Bill's Store-axe wait for canoeing. The river's fishing spots are the gathering skills'. What Bill says, and the
+Left out: canoes and Bill's Store-axe wait for canoeing. The river's fishing spots are the gathering skills'. What Bill says, and the
 examines of Bill, the goblins (one for all eight types) and the spider, are in the dialogue file (keys `barfy_bill.*`,
 `examine.npc_1326`, `examine.npc_3029`, `examine.npc_3017`).
 
@@ -726,7 +726,7 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 
 | Behaviour | Source |
 |-----------|--------|
-| 23 giant rats: 10 of level 3 (`giantrat`, 2856, 5 hitpoints) and 13 of level 6 (`giantrat1_2` and `_3`, 2863 and 2864, 10 hitpoints), with 4 more of level 3 (the grey `giantrat_grey` to `3`) and 4 rats west of the castle; they stab for 1 at speed 4 and come back in 30 ticks; bones and raw rat meat every time, the beginner clue at 1/128 | OSRS Wiki, Giant rat (Level 3 and 6); the DPS calculator |
+| 23 giant rats: 10 of level 3 (`giantrat`, 2856, 5 hitpoints) and 13 of level 6 (`giantrat1_2` and `_3`, 2863 and 2864, 10 hitpoints), with 4 more of level 3 (the grey `giantrat_grey` to `3`) and 4 rats west of the castle; they stab for 1 at speed 4, are aggressive ([NPC aggression](#npc-aggression); the Level 6 ones taken to match the Level 3 infobox, guessed) and come back in 30 ticks; bones and raw rat meat every time, the beginner clue at 1/128 | OSRS Wiki, Giant rat (Level 3 and 6); the DPS calculator |
 | 82 frogs: 45 Frogs (level 5, 8702, max hit 1, 40% weak to earth), 29 Big frogs (level 10, 8701) and 8 Giant frogs (level 13, 8700), both max hit 2 and 25% weak to earth; all crush at speed 4 and come back in 50 ticks. Frogs and big frogs drop bones, a giant frog big bones, with their beginner clues (1/90, 1/70, 1/64) and the giant frog's long and curved bones | OSRS Wiki, Frog, Big frog and Giant frog; the DPS calculator |
 | The level 5 goblin (`goblin_armed`, 3045): 12 hitpoints, stabs for 1 at speed 6 with +12 attack and strength, back in 35 ticks; bones and drop table 2 (with the herb table at 2/128) | OSRS Wiki, Goblin (Level 5, drop table 2); the DPS calculator |
 | The unicorn (2837): level 15, stabs for 2, back in 90 ticks; bones and a unicorn horn every time, the ensouled head at 1/35 | OSRS Wiki, Unicorn |
@@ -739,8 +739,8 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 | For the tutors: that a banked pickaxe or net counts as owned (as for the Woodsman tutor's axe); the items in the boxes the Wiki doesn't name; the fish menu's one slot for the lobster pot (Fishing 29-38) or the harpoon (39 and up), as a menu holds five options; the fishing tutor one tile east of RSMod's, which the 241 map has as water; their wander ranges (2) | guessed |
 | Every chathead expression; that a worn ghostspeak amulet counts as carried; the bank as the only store Urhney checks (no Death's Office or item retrieval yet); the candle landing at the player's feet with no free slot; having heard about lanterns kept with the account by name | guessed |
 
-Left out: giant rats are aggressive on live and the unicorn retreats at low hitpoints, which wait for NPC aggression
-and retreat (the Varrock piece; both are ranges from the spawn point). The tutors' offers to show a place on the world
+Left out: the unicorn retreats at low hitpoints, which waits for NPC retreat (raid step 9b; ranges from the spawn
+point). The tutors' offers to show a place on the world
 map lead back to the first menu without opening the map, which isn't built yet; the fishing spots and the mines are the
 gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
 now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
@@ -1195,6 +1195,28 @@ devices and special attacks.
 
 Check: `./gradlew test --tests 'osrsps.game.combat.Ranged*' --tests 'osrsps.testclient.HeadlessRangedTest'`, and in
 RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
+
+## NPC aggression
+
+Monsters with `"aggressive"` in `npc-combat.json` go for players unprovoked (`game/combat/Aggression.kt`), each tick
+before NPCs fight; once one has found a player it chases and fights them as if they had hit it. The giant spiders east
+of the river and the swamp's giant rats are aggressive so far. `::aggro` shows the tolerance count; `::npcs` shows who
+each NPC fights.
+
+| Aggression behaviour | Source |
+|----------------------|--------|
+| A player of a combat level at most twice the monster's; level 63 and up, and monsters that ignore levels (bosses), attack anyone | OSRS Wiki, Aggressiveness |
+| The hunt range counts from the monster's south-west tile, not its size; the aggression range (max range 7 plus attack range) from its spawn point, counting its size | OSRS Wiki, Aggressiveness and Retreat |
+| After ten minutes (1000 ticks) in an area tolerant monsters leave the player alone; leaving and coming back starts again, logging out doesn't. Bosses can be made never tolerant | OSRS Wiki, Aggressiveness |
+| The two 21x21 areas the ten minutes are counted in, moved on when the player leaves both, and a jump of more than 40 tiles (a teleport) starting again | RuneLite's NPC Aggression Timer plugin |
+| Not a player another monster is fighting, in single-way combat | OSRS Wiki, Single-way combat |
+| The hunt range of 5 (the 2004Scape engine's default), hunting every tick, picking the nearest player with ties at random, melee's 1 tile as everyone's attack range, the count running in logged-in ticks only, the Level 6 giant rats being aggressive | guessed |
+
+Not in yet: line of sight for the hunt, retreat, and monsters that attack from afar.
+
+Check: `./gradlew test --tests 'osrsps.game.combat.AggressionTest' --tests 'osrsps.testclient.HeadlessAggressionTest'`
+(two players: the spider goes for the nearer, then for the other once the nearer is tolerated), and in RuneLite
+`test-runner/examples/aggro.json`.
 
 ## Animations, spotanims and sounds
 

@@ -1,6 +1,7 @@
 package osrsps.game.command
 
 import osrsps.game.World
+import osrsps.game.combat.Aggression
 import osrsps.game.npc.NpcSpawn
 
 /** Spawn, list and remove NPCs: testing tools, not live commands. */
@@ -42,9 +43,21 @@ fun CommandRegistry.registerNpcCommands(world: World) {
             val hurt = if (npc.hitpoints < max) "; ${npc.hitpoints}/$max hp" else ""
             val poison = world.poison.describe(npc)?.let { "; $it" }.orEmpty()
             val drained = world.npcDrains.describe(npc)?.let { "; $it" }.orEmpty()
-            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$freeze$hurt$poison$drained")
+            val fighting = npc.target?.let { "; fighting ${it.username}" }.orEmpty()
+            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$freeze$hurt$poison$drained$fighting")
         }
         if (near.size > MAX_LISTED) reply("...and ${near.size - MAX_LISTED} more.")
+    }
+
+    register("aggro", "::aggro [ticks]", admin = true) {
+        // With a number, the ticks counted towards tolerance, so a test needn't wait ten minutes.
+        if (args.size > 1) fail("Usage: ::aggro [ticks]")
+        args.firstOrNull()?.let { text ->
+            val ticks = text.toIntOrNull()?.takeIf { it in 0..Aggression.TOLERANCE_TICKS } ?: fail("The ticks must be 0 to ${Aggression.TOLERANCE_TICKS}")
+            if (player.tolerance.newer == null) world.aggression.count(player)
+            player.tolerance.setTicks(ticks)
+        }
+        reply(world.aggression.describe(player))
     }
 
     register("follow", "::follow index", admin = true) {

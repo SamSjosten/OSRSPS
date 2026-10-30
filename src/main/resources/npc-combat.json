@@ -93,7 +93,8 @@
       "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
       "respawnTicks": 30,
       "weakness": { "element": "fire", "percent": 50 },
-      "source": "OSRS Wiki, Giant spider (Level 2, id 3017) and the DPS calculator, read 2026-10-30; it stands and walks with spider_update_ready and _walk, so the spider_update fight animations are taken. It is aggressive on live, which waits for NPC aggression (the Varrock piece)"
+      "aggressive": true,
+      "source": "OSRS Wiki, Giant spider (Level 2, id 3017) and the DPS calculator, read 2026-10-30; it stands and walks with spider_update_ready and _walk, so the spider_update fight animations are taken. It is aggressive (the infobox, read 2026-10-30), with the guessed default hunt range"
     },
     {
       "npcs": ["giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3"],
@@ -101,7 +102,8 @@
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
       "anims": { "attack": "giant_rat_update_attack", "defend": "giant_rat_update_defend", "death": "giant_rat_update_death" },
       "respawnTicks": 30,
-      "source": "OSRS Wiki, Giant rat (Level 3, ids 2856 to 2861, and Level 6, 2862 to 2864, share the infobox's speed, style, bonuses and respawn) and the DPS calculator's 2856 and 2862, read 2026-10-30; they stand and walk with giant_rat_update_ready and _walk. They are aggressive on live, which waits for NPC aggression (the Varrock piece)"
+      "aggressive": true,
+      "source": "OSRS Wiki, Giant rat (Level 3, ids 2856 to 2861, and Level 6, 2862 to 2864, share the infobox's speed, style, bonuses and respawn) and the DPS calculator's 2856 and 2862, read 2026-10-30; they stand and walk with giant_rat_update_ready and _walk. The Level 3 infobox says aggressive (read 2026-10-30); the Level 6 ones are taken to match it (guessed), with the guessed default hunt range"
     },
     {
       "npcs": ["little_frog_nodrops"],

@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
@@ -55,13 +56,15 @@ class HeadlessLumbridgeSwampTest {
                 client.await("the login rebuild") { client.position }
                 client.commandReply("god") { it.startsWith("You can") }
                 client.npcOp(npc.index, 2)
-                // Every hit is 0 or 1, so five of them, however the dice fall.
+                // Every hit is 0 or 1, so five of them, however the dice fall. It attacks first, being aggressive.
                 client.await("the giant rat's death", timeoutMillis = 60_000) { if (client.npcs().none { it.id == GIANT_RAT }) Unit else null }
                 val drops = client.await("the bones and the meat") {
                     client.groundObjs().map { it.id }.takeIf { BONES in it && RAW_RAT_MEAT in it }
                 }
                 assertEquals(1, drops.count { it == BONES })
-                assertEquals(5 * 4, client.stat(ATTACK)!!.xp)
+                // 4 XP a point of its 5, and of any it got back: it heals a point a minute, and a fight of misses can last that long.
+                val xp = client.stat(ATTACK)!!.xp
+                assertTrue(xp >= 5 * 4 && xp % 4 == 0, "$xp XP")
             }
         }
     }

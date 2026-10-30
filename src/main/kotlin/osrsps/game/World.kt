@@ -58,6 +58,7 @@ import osrsps.game.bank.DepositBox
 import osrsps.game.bank.setVarbitIfKnown
 import osrsps.game.shop.ShopScreen
 import osrsps.game.shop.ShopTypes
+import osrsps.game.combat.Aggression
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
 import osrsps.game.combat.Deaths
@@ -395,6 +396,9 @@ class World(
         special = { specialAttacks.use(it, combat.weapon(it)) },
         specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
     )
+
+    /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
+    val aggression = Aggression(npcs, { combat.npcCombat[it.type] }, meleeCombat, random, { tick }, players = { players.asSequence().filterNotNull().filter { !it.loggedOut } })
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
     val rangedCombat: RangedCombat = RangedCombat(
@@ -900,6 +904,8 @@ class World(
         // Shots and spells land before NPCs fight, as melee hits from the last tick are already in; a shot NPC strikes from the next.
         rangedCombat.process()
         magicCombat.process()
+        // Guessed place: an NPC that finds a player this tick chases them in the fighting just below.
+        aggression.process()
         meleeCombat.process()
         for (npc in npcs.all) {
             poison.process(npc)
