@@ -49,8 +49,6 @@ class PriceChecker(
     private val scripts: ScriptRunner? = null,
     private val examine: (Player, Int, Int) -> Unit = { _, _, _ -> },
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
-    /** Puts a count of an item into the bank; returns how many went in. */
-    private val toBank: (Player, Int, Int) -> Int = { _, _, _ -> 0 },
     /** Drops a count of an item under the player. */
     private val drop: (Player, ObjType, Int) -> Unit = { _, _, _ -> },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
@@ -77,9 +75,13 @@ class PriceChecker(
         update(player)
     }
 
-    /** The screen closed: the items checked go back to the inventory. */
+    /**
+     * The screen closed: the items checked go back to the inventory. Not on a death, which closes it: they stay here for
+     * the death to sort with the rest of what the player carries ([osrsps.game.combat.Deaths.respawn]).
+     */
     fun closed(player: Player) {
         player.priceCheckSearching = false
+        if (player.dead) return
         giveBack(player, player.inventory)
     }
 
@@ -180,22 +182,23 @@ class PriceChecker(
 
     /**
      * Puts the items checked back into [into], emptying the checker. If the backpack filled up meanwhile (an item
-     * given, or one taken off), what doesn't fit goes to the bank, and past that to the floor under the player.
+     * given, or one taken off), what doesn't fit goes to the floor under the player, never to the bank: banking it let
+     * a player bank from anywhere, and on death kept it out of the grave (fourth review, 30 Oct 2026).
      * GUESSED: live may keep the backpack's room for them; nothing checked is ever lost here.
      */
     private fun giveBack(player: Player, into: Inventory) {
         for ((slot, obj) in player.priceChecker.contents()) {
             val type = objTypes[obj.id] ?: continue
             player.priceChecker[slot] = null
-            var left = obj.count - into.add(type, obj.count)
-            if (left > 0) left -= toBank(player, obj.id, left)
+            val left = obj.count - into.add(type, obj.count)
             if (left > 0) drop(player, type, left)
         }
     }
 
     /**
      * What a save takes as [player]'s inventory and bank: theirs, with the items being checked back in the inventory,
-     * and what doesn't fit there in the bank, unnoted, as closing the screen would put them.
+     * and what doesn't fit there in the bank, unnoted. Closing the screen drops that on the floor instead, which a save
+     * can't; the bank only matters if the server stops with the screen open.
      */
     fun saved(player: Player): Pair<Map<Int, InvObj>, Map<Int, InvObj>> {
         val bank = player.bank.contents().toMap()

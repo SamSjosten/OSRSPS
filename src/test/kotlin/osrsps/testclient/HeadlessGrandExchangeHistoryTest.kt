@@ -163,10 +163,15 @@ class HeadlessGrandExchangeHistoryTest {
                 assertEquals(28, save.inventory.size)
                 assertEquals(3L, save.bank.values.filter { it.id == LOGS }.sumOf { it.count.toLong() })
 
-                // Another screen replacing it gives the logs back, to the bank as the backpack is full.
+                // Another screen replacing it gives the logs back: under the player, as the backpack is full. Never to
+                // the bank, which would let a player bank from anywhere (fourth exploit review).
                 client.command("ge")
                 client.await("the offers screen") { if (GrandExchangeScreen.MAIN in client.openInterfaces()) Unit else null }
-                client.await("the logs banked") { if (alice.bank.count(LOGS) == 3L) Unit else null }
+                client.await("the logs dropped") {
+                    val under = server.world.groundObjs.visibleAt(alice, alice.x, alice.z, alice.level)
+                    if (under.filter { it.id == LOGS }.sumOf { it.count } == 3) Unit else null
+                }
+                assertEquals(0L, alice.bank.count(LOGS))
                 assertTrue(alice.priceChecker.contents().isEmpty())
             }
         }
