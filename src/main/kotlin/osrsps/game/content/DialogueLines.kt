@@ -17,7 +17,9 @@ import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.CookingLines
 import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.FishingLines
+import osrsps.game.skill.FletchingLines
 import osrsps.game.skill.LevelUpLines
+import osrsps.game.skill.MakeLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.WoodcuttingLines
@@ -31,6 +33,9 @@ object DialogueLines {
         FishingLines,
         CookingLines,
         SmithingLines,
+        // Crafting, fletching and herblore.
+        MakeLines,
+        FletchingLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
         BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines, SettingsLines,
         // Rest of Lumbridge.

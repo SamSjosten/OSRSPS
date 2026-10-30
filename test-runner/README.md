@@ -151,6 +151,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   box over three raw shrimps cooks all three (90 XP).
 - `smithing-lumbridge.json`: north of Lumbridge Castle, the furnace's Make-X box smelts a bronze bar, then the rusted
   anvil needs a hammer and hammers the bar into a dagger. Needs 0.8.0 (`assertVarbit`).
+- `fletching-logs.json`: a knife on three logs at 99 cuts three shortbows (u) through the Make-X box (15 XP), then at
+  level 1 a longbow needs 10. Needs 0.10.0 (`useItemOnItem`).
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
