@@ -86,6 +86,7 @@ class GrandExchangeScreen(
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     /** Puts a count of an item into the bank; returns how many went in. */
     private val toBank: ((Player, Int, Int) -> Int)? = null,
+    private val closeModals: (Player) -> Unit = {},
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL] == MAIN
@@ -99,11 +100,66 @@ class GrandExchangeScreen(
             send(player, IfSetEventsV2(MAIN, INDEX_FIRST + slot, SUB_FACE, SUB_SELL, 0, BankScreen.opMask(1..3)))
         }
         send(player, IfSetEventsV2(MAIN, BACK, -1, -1, 0, BankScreen.opMask(1..1)))
+        send(player, IfSetEventsV2(MAIN, HISTORY_BUTTON, -1, -1, 0, BankScreen.opMask(1..1)))
         send(player, IfSetEventsV2(MAIN, SETUP, SETUP_CHOOSE, SETUP_CUSTOM_PLUS, 0, BankScreen.opMask(1..2)))
         send(player, IfSetEventsV2(MAIN, CONFIRM, -1, -1, 0, BankScreen.opMask(1..1)))
         send(player, IfSetEventsV2(MAIN, COLLECT_ALL, 0, 0, 0, BankScreen.opMask(1..2)))
         send(player, IfSetEventsV2(MAIN, DETAILS_COLLECT, DETAILS_BOX_ITEMS, DETAILS_BOX_COINS, 0, COLLECT_OPS))
         send(player, IfSetEventsV2(SIDE, SIDE_ITEMS, 0, Inventory.INV_CAPACITY - 1, 0, BankScreen.opMask(1..1) or BankScreen.opMask(10..10)))
+    }
+
+    /**
+     * Opens the trade history, ge_history (383), drawn by its client scripts: ge_history_init, one ge_history_addline a
+     * trade (its index, the item, 1 for a sale, the count, the coins before tax and the tax), then ge_history_finish.
+     */
+    fun openHistory(player: Player) {
+        closeModals(player)
+        openModal(player, FrameSlot.MAINMODAL, HISTORY)
+        send(player, RunClientScript(HISTORY_INIT_SCRIPT, emptyList()))
+        // The rows as drawn: a trade finishing while the screen is open doesn't shift what a click on them means.
+        val shown = player.ge.history.toList()
+        player.geSent.historyShown = shown
+        for ((index, trade) in shown.withIndex()) {
+            val sold = if (trade.type == OfferType.SELL) 1 else 0
+            send(player, RunClientScript(HISTORY_ADDLINE_SCRIPT, listOf(index, trade.item, sold, trade.count, trade.coins, trade.tax)))
+        }
+        send(player, RunClientScript(HISTORY_FINISH_SCRIPT, emptyList()))
+        send(player, IfSetEventsV2(HISTORY, HISTORY_EXCHANGE, -1, -1, 0, BankScreen.opMask(1..1)))
+        val rows = maxOf(1, shown.size) * HISTORY_ROW_SUBS
+        send(player, IfSetEventsV2(HISTORY, HISTORY_LIST, 0, rows - 1, 0, BankScreen.opMask(1..1) or BankScreen.opMask(10..10)))
+    }
+
+    private fun clickHistory(player: Player, component: Int, sub: Int, op: Int) {
+        when (component) {
+            HISTORY_EXCHANGE -> {
+                closeModals(player)
+                open(player)
+            }
+            HISTORY_LIST -> {
+                // Each trade's row is ge_history_addline's first child of six; its ops are Buy-offer and Examine.
+                if (sub % HISTORY_ROW_SUBS != 0) return
+                val trade = player.geSent.historyShown.getOrNull(sub / HISTORY_ROW_SUBS) ?: return
+                when (op) {
+                    1 -> buyOffer(player, trade.item)
+                    10 -> examine(player, trade.item, trade.count)
+                }
+            }
+        }
+    }
+
+    /** Buy-offer from the history: the offers screen, with a buy of [item] set up in the first free slot. */
+    private fun buyOffer(player: Player, item: Int) {
+        closeModals(player)
+        open(player)
+        val slot = player.ge.freeSlot()
+        if (slot < 0) {
+            message(player, GrandExchangeLines.NO_FREE_SLOT)
+            return
+        }
+        val price = grandExchange.guidePrice(item) ?: return
+        player.vars.setVarbitIfKnown(VARBIT_NEWOFFER_TYPE, TYPE_BUY)
+        player.vars.setVarbitIfKnown(VARBIT_SELECTED_SLOT, slot + 1)
+        setItem(player, item, price)
     }
 
     /** Opens the collection box, ge_collect: every slot's two boxes and Collect to inventory or bank. */
@@ -143,6 +199,10 @@ class GrandExchangeScreen(
             if (player.modals[FrameSlot.MAINMODAL] == COLLECTION_BOX) clickCollectionBox(player, component, sub, op)
             return true
         }
+        if (interfaceId == HISTORY) {
+            if (player.modals[FrameSlot.MAINMODAL] == HISTORY) clickHistory(player, component, sub, op)
+            return true
+        }
         if (interfaceId != MAIN && interfaceId != SIDE) return false
         if (!isOpen(player)) return true
         if (interfaceId == SIDE) {
@@ -151,6 +211,7 @@ class GrandExchangeScreen(
         }
         when (component) {
             BACK -> toIndex(player)
+            HISTORY_BUTTON -> openHistory(player)
             in INDEX_FIRST until INDEX_FIRST + GeAccount.SLOTS -> clickSlot(player, component - INDEX_FIRST, sub, op)
             SETUP -> clickSetup(player, sub, op)
             CONFIRM -> confirm(player)
@@ -552,6 +613,18 @@ class GrandExchangeScreen(
         /** ge_offers:setup_confirm. */
         const val CONFIRM = 30
 
+        /** ge_offers:history, the History button. */
+        const val HISTORY_BUTTON = 3
+
+        /** ge_history: its Exchange button back to the offers, and the list of trades, six children a row. */
+        const val HISTORY = 383
+        const val HISTORY_EXCHANGE = 2
+        const val HISTORY_LIST = 3
+        const val HISTORY_ROW_SUBS = 6
+        const val HISTORY_INIT_SCRIPT = 1644
+        const val HISTORY_ADDLINE_SCRIPT = 1645
+        const val HISTORY_FINISH_SCRIPT = 1646
+
         /** ge_offers:collectall, whose sub 0 is Collect to inventory (op 1) or bank (op 2). */
         const val COLLECT_ALL = 6
 
@@ -624,10 +697,11 @@ class GrandExchangeScreen(
         val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>> = mapOf(
             MAIN to (
                 "ge_offers" to mapOf(
-                    BACK to "back", COLLECT_ALL to "collectall", DETAILS_COLLECT to "details_collect", SETUP to "setup", CONFIRM to "setup_confirm",
+                    BACK to "back", HISTORY_BUTTON to "history", COLLECT_ALL to "collectall", DETAILS_COLLECT to "details_collect", SETUP to "setup", CONFIRM to "setup_confirm",
                 ) + (0 until GeAccount.SLOTS).associate { INDEX_FIRST + it to "index_$it" }
                 ),
             SIDE to ("ge_offers_side" to mapOf(SIDE_ITEMS to "items")),
+            HISTORY to ("ge_history" to mapOf(HISTORY_EXCHANGE to "exchange", HISTORY_LIST to "list")),
             COLLECTION_BOX to (
                 "ge_collect" to mapOf(COLLECTION_TO_INVENTORY to "collect_inv", COLLECTION_TO_BANK to "collect_bank") +
                     (0 until GeAccount.SLOTS).associate { COLLECTION_SLOT_FIRST + it to "collect_$it" }
@@ -641,6 +715,9 @@ class GeSent {
     val offers = arrayOfNulls<GeOffer>(GeAccount.SLOTS)
     var sentOnce = false
     var resync = false
+
+    /** The trades the history screen was last drawn with, in its row order. */
+    var historyShown: List<GeTrade> = emptyList()
 
     /** The ge_newoffer_price last sent; the client starts at 0. */
     var price = 0L

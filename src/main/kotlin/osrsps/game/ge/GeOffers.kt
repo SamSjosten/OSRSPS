@@ -20,12 +20,14 @@ data class GeOffer(
     val aborted: Boolean = false,
     val collectItems: Int = 0,
     val collectCoins: Long = 0,
+    /** The tax taken from a sell offer's coins so far. */
+    val taxPaid: Long = 0,
     /** The tick it was placed on, so it first fills on the tick after; not saved, so a loaded offer can fill at once. */
     val placedTick: Long = -1,
 ) {
     init {
         require(quantity >= 1 && price >= 1 && completed in 0..quantity) { "Bad offer $this" }
-        require(exchanged >= 0 && collectItems >= 0 && collectCoins >= 0) { "Bad offer $this" }
+        require(exchanged >= 0 && collectItems >= 0 && collectCoins >= 0 && taxPaid >= 0) { "Bad offer $this" }
     }
 
     /** Whether nothing more can change hands: every one has, or the offer was aborted. */
@@ -40,6 +42,16 @@ data class GeOffer(
 /** How much of [item] a player has bought in the buy limit's window, which started at [windowStart] (ms since 1970). */
 data class BuyLimitUse(val item: Int, val windowStart: Long, val bought: Int)
 
+/**
+ * A finished trade in the history (ge_history): [count] of [item] bought or sold for [coins] before tax, and the [tax]
+ * a sale paid.
+ */
+data class GeTrade(val type: OfferType, val item: Int, val count: Int, val coins: Long, val tax: Long = 0) {
+    init {
+        require(count >= 1 && coins >= 0 && tax >= 0) { "Bad trade $this" }
+    }
+}
+
 /** A player's Grand Exchange: their [SLOTS] offer slots and what they've bought against each item's buy limit. */
 class GeAccount {
     private val offers = arrayOfNulls<GeOffer>(SLOTS)
@@ -49,6 +61,15 @@ class GeAccount {
 
     /** Offers collected to nothing since the screen last flushed, by slot; see GrandExchange.collect. Not saved. */
     val collected = arrayOfNulls<GeOffer>(SLOTS)
+
+    /** The last [HISTORY_SIZE] finished trades, newest first. */
+    val history = ArrayDeque<GeTrade>()
+
+    /** Adds [trade] as the newest, dropping the oldest past [HISTORY_SIZE]. */
+    fun record(trade: GeTrade) {
+        history.addFirst(trade)
+        while (history.size > HISTORY_SIZE) history.removeLast()
+    }
 
     operator fun get(slot: Int): GeOffer? = offers[checkSlot(slot)]
 
@@ -66,6 +87,7 @@ class GeAccount {
         offers.fill(null)
         collected.fill(null)
         limits.clear()
+        history.clear()
     }
 
     private fun checkSlot(slot: Int): Int {
@@ -76,5 +98,8 @@ class GeAccount {
     companion object {
         /** A member's slots (the Wiki); every account here counts as a member. */
         const val SLOTS = 8
+
+        /** How many trades the history keeps: 40 since 7 March 2019 (the Wiki's Grand Exchange changes). */
+        const val HISTORY_SIZE = 40
     }
 }

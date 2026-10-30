@@ -99,6 +99,7 @@ import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerAxeLogs
+import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -108,6 +109,7 @@ import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
 import osrsps.game.ge.GrandExchange
 import osrsps.game.ge.GrandExchangeScreen
+import osrsps.game.ge.PriceChecker
 import osrsps.game.loc.Doors
 import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
@@ -329,6 +331,16 @@ class World(
         examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
         words = ::textFor,
         toBank = ::bankItems,
+        closeModals = interfaces::closeModals,
+    )
+
+    /** The Grand Exchange guide prices screen; see [PriceChecker]. */
+    val priceChecker = PriceChecker(
+        grandExchange, objTypes, interfaces::openModal, interfaces::closeModals, scripts,
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        words = ::textFor,
+        toBank = { player, id, count -> bankItems(player, id, count) },
+        drop = { player, type, count -> dropUnder(player, type, count) },
     )
 
     /** Puts [count] of [id] into [player]'s bank as a deposit would, a note as its item; returns how many went in. */
@@ -532,6 +544,7 @@ class World(
         registerLumbridgeTown(this)
         registerDraynorVillage(this)
         registerAxeLogs(this)
+        registerDraynorMarket(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -546,6 +559,7 @@ class World(
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
+        interfaces.onClose(PriceChecker.MAIN, priceChecker::closed)
         woodcutting.register()
         birdNests.register()
         firemaking.register()
@@ -1009,6 +1023,7 @@ class World(
                 bankScreen.flush(player)
                 shopScreen.flush(player)
                 grandExchangeScreen.flush(player)
+                priceChecker.flush(player)
             }
         }
         for (npc in npcs.all) sendNpcEffects(npc)
@@ -1192,10 +1207,16 @@ class World(
      */
     private val unwritten = HashMap<String, String>()
 
+    /** [player]'s state as a save has it, the items in the guide prices screen counted as in the inventory. */
+    fun snapshot(player: Player): PlayerSave {
+        val (inventory, bank) = priceChecker.saved(player)
+        return PlayerSave.of(player, inventory, bank)
+    }
+
     /** Writes [player]'s save. Returns false, after logging why, if it couldn't be written; see [unwritten]. */
     internal fun save(player: Player): Boolean {
         val text = try {
-            PlayerSave.of(player).toJson(player.username)
+            snapshot(player).toJson(player.username)
         } catch (e: Exception) {
             logger.error(e) { "Couldn't save ${player.username}" }
             return false
@@ -1591,6 +1612,11 @@ class World(
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
         if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
+            priceChecker.open(player)
+            return@act
+        }
         if (interfaceId == EquipmentTab.WORNITEMS && equipmentTab.clickWornItems(player, componentId, op)) return@act
         if (equipmentTab.clickStats(player, interfaceId, componentId, sub, obj, op)) return@act
         if (interfaceId == EquipmentTab.COMBAT && componentId == EquipmentTab.COMBAT_SPECIAL || interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_SPEC_BUTTON) {
@@ -1750,6 +1776,14 @@ class World(
      * [GroundObjs.DROP_DESPAWN_TICKS]; everyone's from the start when they have left. Guessed: the Wiki gives no timers
      * for fired ammunition, so these are a drop's.
      */
+    /** Drops [count] of [type] under [player], theirs alone at first, as an item dropped from the backpack is. */
+    private fun dropUnder(player: Player, type: ObjType, count: Int) {
+        val stacks = if (type.stackable) listOf(count) else List(count) { 1 }
+        for (n in stacks) {
+            groundObjs.addPrivate(type, n, player.x, player.z, player.level, player.saveKey, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
+        }
+    }
+
     private fun dropAmmo(type: ObjType, x: Int, z: Int, level: Int, owner: Player) {
         // Lost in water: the Wiki's Duck page, for ducks off land, taken to hold on any floor that can't be walked on.
         if (collision[x, z, level] and CollisionFlag.FLOOR != 0) return
@@ -1785,7 +1819,7 @@ class World(
      */
     /** The client picked [obj] in the chatbox's item search (resume_p_objdialog). */
     fun onResumeObj(player: Player, obj: Int) = act(player) {
-        if (!grandExchangeScreen.chooseItem(player, obj)) logger.debug { "${player.username} picked item $obj, which nothing waits for" }
+        if (!grandExchangeScreen.chooseItem(player, obj) && !priceChecker.chooseItem(player, obj)) logger.debug { "${player.username} picked item $obj, which nothing waits for" }
     }
 
     fun onResumeCount(player: Player, count: Int) = act(player) {

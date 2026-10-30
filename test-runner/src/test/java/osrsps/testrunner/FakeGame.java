@@ -198,6 +198,18 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public String useItemOnLoc(String name, int id, String locName, int locId, Tile at)
+	{
+		if (clickError != null)
+		{
+			return clickError;
+		}
+		actions.add("Use " + (name != null ? name : "item " + id) + " on loc " + (locName != null ? locName : "id " + locId)
+			+ (at == null ? "" : " at " + at.x + " " + at.y));
+		return null;
+	}
+
+	@Override
 	public int inventoryCount(String name, int id)
 	{
 		return inventory == null ? -1 : inventory.getOrDefault(name != null ? name : "item " + id, 0);
