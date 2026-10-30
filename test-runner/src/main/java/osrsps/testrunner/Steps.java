@@ -264,6 +264,35 @@ final class Steps
 		}
 	}
 
+	/** Clicks an option on another player, once they are in view; does not wait for the result. */
+	static final class PlayerOption extends Step
+	{
+		final String player;
+		final String option;
+
+		PlayerOption(long timeoutMs, String player, String option)
+		{
+			super("playerOption", timeoutMs, false);
+			this.player = player;
+			this.option = option;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.playerOption(player, option);
+			// The other player may not be in view yet (still logging in on the other VM): keep trying until the timeout.
+			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return option + " on player " + player;
+		}
+	}
+
 	/** Clicks a loc option. Waits (to the timeout) for such a loc to be in the scene; does not wait for the result. */
 	static final class LocOption extends Step
 	{

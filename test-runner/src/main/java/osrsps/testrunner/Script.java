@@ -168,6 +168,14 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "npc", "npcId", "option", "comment");
 				return new Steps.NpcOption(timeout, npc, id, option);
 			}
+			case "playerOption":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String player = f.requiredString("player");
+				String option = f.requiredString("option");
+				f.rejectUnknown("step", "timeoutMs", "player", "option", "comment");
+				return new Steps.PlayerOption(timeout, player, option);
+			}
 			case "locOption":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

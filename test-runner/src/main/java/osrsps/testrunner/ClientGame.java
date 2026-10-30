@@ -336,6 +336,46 @@ final class ClientGame implements Game
 			here == null ? "none" : here.getX() + "," + here.getY(), target.getX(), target.getY());
 	}
 
+	/** The menu actions of the eight options on other players, op 1 to 8. */
+	private static final MenuAction[] PLAYER_OPTIONS = {
+		MenuAction.PLAYER_FIRST_OPTION, MenuAction.PLAYER_SECOND_OPTION, MenuAction.PLAYER_THIRD_OPTION,
+		MenuAction.PLAYER_FOURTH_OPTION, MenuAction.PLAYER_FIFTH_OPTION, MenuAction.PLAYER_SIXTH_OPTION,
+		MenuAction.PLAYER_SEVENTH_OPTION, MenuAction.PLAYER_EIGHTH_OPTION,
+	};
+
+	@Override
+	public String playerOption(String name, String option)
+	{
+		Player me = client.getLocalPlayer();
+		if (me == null)
+		{
+			return "no local player";
+		}
+		Player target = null;
+		for (Player p : client.getTopLevelWorldView().players())
+		{
+			if (p != null && p != me && p.getName() != null
+				&& net.runelite.client.util.Text.toJagexName(p.getName()).equalsIgnoreCase(net.runelite.client.util.Text.toJagexName(name)))
+			{
+				target = p;
+			}
+		}
+		if (target == null)
+		{
+			return "no player \"" + name + "\" in view";
+		}
+		String[] options = client.getPlayerOptions();
+		for (int i = 0; options != null && i < options.length && i < PLAYER_OPTIONS.length; i++)
+		{
+			if (options[i] != null && net.runelite.client.util.Text.removeTags(options[i]).equalsIgnoreCase(option))
+			{
+				client.menuAction(0, 0, PLAYER_OPTIONS[i], target.getId(), -1, options[i], target.getName());
+				return null;
+			}
+		}
+		return "players have no option \"" + option + "\"";
+	}
+
 	@Override
 	public String npcOption(String name, int id, String option)
 	{

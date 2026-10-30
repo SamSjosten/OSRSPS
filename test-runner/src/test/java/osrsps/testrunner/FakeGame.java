@@ -147,6 +147,17 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public String playerOption(String name, String option)
+	{
+		if (npcError != null)
+		{
+			return npcError;
+		}
+		actions.add(option + " " + name);
+		return null;
+	}
+
+	@Override
 	public String npcOption(String name, int id, String option)
 	{
 		if (npcError != null)

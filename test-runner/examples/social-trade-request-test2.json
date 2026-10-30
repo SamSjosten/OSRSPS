@@ -1,0 +1,15 @@
+{
+ "name": "Trade request, two players (run with social-trade-request-test.json on the other VM at the same time): test2 gets test's request, accepts with Trade with, sees both trade screens, and then test's decline",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::tele 3224 3218 0", "expectMessage": "Teleported"},
+  {"step": "assertMessage", "contains": "[trade.request name=test]", "timeoutMs": 180000},
+  {"step": "playerOption", "player": "test", "option": "Trade with", "comment": "as the request's Accept trade does"},
+  {"step": "assertInterface", "interfaceId": 335},
+  {"step": "assertInterface", "interfaceId": 336},
+  {"step": "assertMessage", "contains": "[trade.declined]", "timeoutMs": 60000},
+  {"step": "assertInterface", "interfaceId": 335, "absent": true}
+ ]
+}

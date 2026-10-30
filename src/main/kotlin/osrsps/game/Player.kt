@@ -193,6 +193,12 @@ class Player(
     /** The ignore list's display names, oldest first; see [osrsps.game.social.IgnoreLists]. Saved. */
     val ignores = ArrayList<String>()
 
+    /** The trade this player is in, null when none; see [osrsps.game.trade.Trades]. Not saved. */
+    var trade: osrsps.game.trade.Trade? = null
+
+    /** Who this player last asked to trade, while the request stands; see [osrsps.game.trade.Trades]. Not saved. */
+    var tradeRequestTo: Player? = null
+
     /** The `::scenario` the player last started, null when they aren't in one. Saved. */
     var scenario: String? = null
 

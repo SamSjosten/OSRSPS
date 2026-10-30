@@ -970,4 +970,17 @@ public class RunnerTest
 		assertEquals(Result.PASS, r.result);
 		assertEquals("ignored [test2]", r.steps.get(1).detail);
 	}
+
+	@Test
+	public void playerOption() throws Exception
+	{
+		runner.start(script("{\"step\":\"playerOption\",\"player\":\"test2\",\"option\":\"Trade with\"}"), "file");
+		game.npcError = "no player \"test2\" in view";
+		assertNull(cycle());
+		game.npcError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("Trade with test2"), game.actions);
+		assertEquals("Trade with on player test2", r.steps.get(0).description);
+	}
 }
