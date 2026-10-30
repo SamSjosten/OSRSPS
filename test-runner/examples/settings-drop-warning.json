@@ -1,0 +1,37 @@
+{
+ "name": "Client settings: the drop item warning asks before dropping an item worth 30,000 coins or more at high alchemy (No keeps it, Yes drops it), a cheap item drops at once, and with the warning off nothing asks (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "on 3222, 3218 with nothing carried"},
+  {"step": "command", "text": "::cleartile"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::varbit 5412 30000", "expectMessage": "Varbit 5412", "comment": "option_dropwarning_value: a new account's 30,000 (OSRS Wiki, Drop); test's save predates the default"},
+  {"step": "command", "text": "::varbit 5411 1", "expectMessage": "Varbit 5411", "comment": "option_dropwarning_on"},
+  {"step": "command", "text": "::item rune platebody", "expectMessage": "Added 1 x Rune platebody", "comment": "39,000 at high alchemy"},
+  {"step": "command", "text": "::item bronze axe", "expectMessage": "Added 1 x Bronze axe"},
+
+  {"step": "itemOption", "item": "Rune platebody", "option": "Drop"},
+  {"step": "chooseOption", "text": "drop.warning_no"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "assertInventory", "item": "Rune platebody", "count": 1, "comment": "No keeps it"},
+
+  {"step": "itemOption", "item": "Rune platebody", "option": "Drop"},
+  {"step": "chooseOption", "text": "drop.warning_yes"},
+  {"step": "assertInventory", "item": "Rune platebody", "count": 0},
+  {"step": "assertGroundItem", "item": "Rune platebody", "x": 3222, "y": 3218},
+
+  {"step": "itemOption", "item": "Bronze axe", "option": "Drop", "comment": "a few coins at high alchemy: no question"},
+  {"step": "assertInventory", "item": "Bronze axe", "count": 0},
+
+  {"step": "command", "text": "::varbit 5411 0", "expectMessage": "Varbit 5411", "comment": "warning off"},
+  {"step": "command", "text": "::item rune platebody", "expectMessage": "Added 1 x Rune platebody"},
+  {"step": "itemOption", "item": "Rune platebody", "option": "Drop"},
+  {"step": "assertInventory", "item": "Rune platebody", "count": 0, "comment": "dropped at once"},
+
+  {"step": "command", "text": "::varbit 5412 0", "expectMessage": "Varbit 5412"},
+  {"step": "command", "text": "::cleartile"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

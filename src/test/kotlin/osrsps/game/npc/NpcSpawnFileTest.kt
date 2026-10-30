@@ -343,14 +343,19 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs, its men and women and both banks' bankers`() {
+    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's and the shop keepers`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
             11917 to "fai_varrock_guard_captain02", 3106 to "man", 3107 to "man2", 3108 to "man3", 3014 to "varrock_man1",
             3015 to "varrock_woman1", 3112 to "woman2", 5007 to "imp", 2854 to "rat", 2855 to "rat_indoors", 2902 to "dog_stray",
             2922 to "dog_stray2", 2897 to "banker1_new", 2898 to "banker2_new", 6521 to "deadman_banker_blue_west",
-            6522 to "deadman_banker_blue_north", 8666 to "varrock_bank_doorguard",
+            6522 to "deadman_banker_blue_north", 8666 to "varrock_bank_doorguard", 1633 to "banker1_west",
+            6528 to "deadman_banker_grey_west", 1634 to "banker1_east", 3089 to "banker2_east", 2148 to "ge_clerk_1",
+            2149 to "ge_clerk_2", 2150 to "ge_clerk_3", 2151 to "ge_clerk_4", 2884 to "swordshop1", 2885 to "swordshop2",
+            2882 to "horvik_the_armourer", 2883 to "lowe", 2880 to "zaff", 2815 to "generalshopkeeper2", 2816 to "generalassistant2",
+            2886 to "aubury", 534 to "thessalia", 2887 to "tailorp", 8687 to "tea_seller", 5036 to "apothecary", 2881 to "baraek",
+            5216 to "qip_soa_newspaperseller",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -367,8 +372,25 @@ class NpcSpawnFileTest {
         assertEquals(6, bankers.count { it.x == 3187 && it.z in 3436..3446 })
         assertEquals(6, bankers.count { it.z == 3418 && it.x in 3251..3256 })
         assertTrue(bankers.all { it.wander == 0 })
+        // The Grand Exchange: two bankers behind each side's booths and two clerks behind the north and south ones.
+        val exchange = spawns.filter { it.type.id in listOf(1633, 1634, 3089, 6528) + (2148..2151) }
+        assertEquals(4, exchange.count { it.type.id in 2148..2151 && it.x in 3164..3165 && it.z in listOf(3488, 3491) })
+        assertEquals(4, exchange.count { it.type.id !in 2148..2151 && it.x in listOf(3163, 3166) && it.z in 3489..3490 })
+        assertTrue(exchange.all { it.wander == 0 })
+        // One of each weapon and armour keeper (the Swordshop has two), kept indoors.
+        val keepers = spawns.filter { it.type.id in listOf(2880, 2882, 2883, 2884, 2885) }
+        assertEquals(listOf(2880, 2882, 2883, 2884, 2885), keepers.map { it.type.id }.sorted())
+        assertTrue(keepers.all { it.restrict == MoveRestrict.INDOORS })
+        // Step 5: one of each other shop's keeper (the General Store has two), all indoors but the Tea Seller by his stall.
+        val stores = spawns.filter { it.type.id in listOf(534, 2815, 2816, 2886, 2887, 8687) }
+        assertEquals(listOf(534, 2815, 2816, 2886, 2887, 8687), stores.map { it.type.id }.sorted())
+        assertEquals(listOf(8687), stores.filter { it.restrict != MoveRestrict.INDOORS }.map { it.type.id })
+        // Step 5b: the Apothecary in his shop, Baraek and Benny in the square.
+        val traders = spawns.filter { it.type.id in listOf(2881, 5036, 5216) }
+        assertEquals(listOf(2881, 5036, 5216), traders.map { it.type.id }.sorted())
+        assertEquals(listOf(5036), traders.filter { it.restrict == MoveRestrict.INDOORS }.map { it.type.id })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
         assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
-        assertTrue((spawns - bankers.toSet()).all { it.wander > 0 })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet()).all { it.wander > 0 })
     }
 }

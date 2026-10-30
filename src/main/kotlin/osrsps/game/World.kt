@@ -299,10 +299,13 @@ class World(
     var itemPrices: ItemPrices = itemPrices
         private set
 
+    /** The drop item warning setting; see [DropWarnings]. */
+    private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot -> groundObjs.drop(player, slot) }
+
     private val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
-        onDrop = groundObjs::drop,
+        onDrop = dropWarnings::drop,
         price = { this.itemPrices.price(it) },
         desc = { player, type -> if (type.isCert) textFor(player)[Examines.NOTE] else type.desc ?: "" },
         words = ::textFor,
