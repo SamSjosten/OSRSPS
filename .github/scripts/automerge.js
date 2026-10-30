@@ -56,15 +56,16 @@ function verdict(comments, reviews) {
   return { sha: REVIEWED.exec(last.body)[1], clean: last.body.includes(CLEAN) };
 }
 
-// Git in the workflow's checkout of main, for the patch-id test.
+// Git in the workflow's checkout of main, for the patch-id test. Output as it comes: a diff's trailing whitespace is
+// part of the patch, so only the callers that read one value trim it.
 function shellGit(args, input) {
-  return execFileSync('git', args, { input, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }).trim();
+  return execFileSync('git', args, { input, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
 }
 
 function patchId(git, sha) {
-  const base = git(['merge-base', 'origin/main', sha]);
+  const base = git(['merge-base', 'origin/main', sha]).trim();
   const diff = git(['diff', base, sha]);
-  return diff ? git(['patch-id', '--verbatim'], diff + '\n').split(' ')[0] : '';
+  return diff ? git(['patch-id', '--verbatim'], diff).trim().split(' ')[0] : '';
 }
 
 // Whether the review of `reviewed` still covers pull request `number` at `head`.
@@ -73,9 +74,9 @@ function covers(git, number, reviewed, head) {
   try {
     git(['fetch', '--no-tags', '--quiet', 'origin', 'main', `+refs/pull/${number}/head:refs/remotes/pr/${number}`]);
     let full;
-    try { full = git(['rev-parse', '--verify', `${reviewed}^{commit}`]); } catch {
+    try { full = git(['rev-parse', '--verify', `${reviewed}^{commit}`]).trim(); } catch {
       git(['fetch', '--no-tags', '--quiet', 'origin', reviewed]);
-      full = git(['rev-parse', '--verify', `${reviewed}^{commit}`]);
+      full = git(['rev-parse', '--verify', `${reviewed}^{commit}`]).trim();
     }
     return patchId(git, full) === patchId(git, head);
   } catch {

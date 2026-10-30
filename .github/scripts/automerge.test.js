@@ -47,7 +47,7 @@ function fakeGit(patches) {
     }
     if (args[0] === 'merge-base') return 'base';
     if (args[0] === 'diff') return `diff of ${args[2]}`;
-    if (args[0] === 'patch-id') return `${patches[input.trim().replace('diff of ', '')]} x`;
+    if (args[0] === 'patch-id') return `${patches[input.replace('diff of ', '')]} x\n`;
     throw new Error(`git ${args.join(' ')}`);
   };
 }
@@ -218,4 +218,40 @@ test('an up-to-date head with no build gets one, once it is older than a fresh p
   const fresh = fakeGitHub({ 1: { head: H('1'), behind: 0, committed: '2026-10-30T00:55:00Z', checks: [codexPass] } });
   await queue(fresh.github, fakeGit({}));
   assert.deepStrictEqual(fresh.calls, []);
+});
+
+test('the real git tells a trailing space apart, and a merge of main from the same patch', () => {
+  const { execFileSync } = require('node:child_process');
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'automerge-'));
+  const sh = (...args) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8' }).trim();
+  const write = text => fs.writeFileSync(path.join(dir, 'f'), text);
+  sh('init', '-q', '-b', 'main');
+  sh('config', 'user.email', 'a@b');
+  sh('config', 'user.name', 'a');
+  write('a\nb\nc\nd\ne\nf\ng\nh\n');
+  fs.writeFileSync(path.join(dir, 'other'), 'x\n');
+  sh('add', '.');
+  sh('commit', '-qm', 'base');
+  sh('checkout', '-qb', 'pr');
+  write('a\nb\nc\nd\ne\nf\ng\nh\nhello world\n');
+  sh('commit', '-qam', 'pr');
+  const reviewed = sh('rev-parse', 'HEAD');
+  sh('checkout', '-q', 'main');
+  fs.writeFileSync(path.join(dir, 'other'), 'x\ny\n');
+  sh('commit', '-qam', 'main');
+  sh('update-ref', 'refs/remotes/origin/main', 'main');
+  sh('checkout', '-q', 'pr');
+  sh('merge', '-q', 'main', '-m', 'merge main');
+  const merged = sh('rev-parse', 'HEAD');
+  write('a\nb\nc\nd\ne\nf\ng\nh\nhello world \n');
+  sh('commit', '-qam', 'trailing space');
+  const spaced = sh('rev-parse', 'HEAD');
+  const git = (args, input) => execFileSync('git', ['-C', dir, ...args], { input, encoding: 'utf8' });
+  const noFetch = (args, input) => (args[0] === 'fetch' ? '' : git(args, input));
+  assert.ok(covers(noFetch, 1, reviewed, merged), 'main merged in, same patch');
+  assert.ok(!covers(noFetch, 1, merged, spaced), 'a trailing space added');
+  fs.rmSync(dir, { recursive: true, force: true });
 });
