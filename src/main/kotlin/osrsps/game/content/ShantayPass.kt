@@ -136,8 +136,6 @@ object ShantayPass {
     const val GATE = 4031
     const val GO_THROUGH = 1
     const val LOOK_AT = 2
-    /** The gate's tile row: south of it is the desert. */
-    const val GATE_Z = 3116
 
     const val CELL_DOOR = 2692
     /** The cell: x 3295 to 3297, z 3123 to 3125, its door on the east edge of 3297, 3124. */
