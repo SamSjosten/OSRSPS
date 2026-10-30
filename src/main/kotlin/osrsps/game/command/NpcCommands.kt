@@ -43,6 +43,21 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         if (near.size > MAX_LISTED) reply("...and ${near.size - MAX_LISTED} more.")
     }
 
+    register("respawns", "::respawns", admin = false) {
+        if (args.isNotEmpty()) fail("Usage: ::respawns")
+        val pending = world.meleeCombat.pendingRespawns()
+        if (pending.isEmpty()) {
+            reply("No NPCs waiting to respawn.")
+            return@register
+        }
+        reply("${pending.size} NPC${if (pending.size == 1) "" else "s"} waiting to respawn:")
+        for ((spawn, tick) in pending.take(MAX_LISTED)) {
+            val left = tick - world.tick
+            reply("${spawn.type.name} (${spawn.type.id}) back at ${spawn.x}, ${spawn.z} in $left tick${if (left == 1L) "" else "s"}")
+        }
+        if (pending.size > MAX_LISTED) reply("...and ${pending.size - MAX_LISTED} more.")
+    }
+
     register("follow", "::follow index", admin = true) {
         val index = args.singleOrNull()?.toIntOrNull() ?: fail("Usage: ::follow index (from ::npcs); again to stop")
         val npc = world.npcs[index] ?: fail("No NPC #$index")

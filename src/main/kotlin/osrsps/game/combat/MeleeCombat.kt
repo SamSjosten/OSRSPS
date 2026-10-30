@@ -501,6 +501,10 @@ class MeleeCombat(
     /** The NPCs dead and waiting to come back, for tests and commands. */
     val respawning: Int get() = dying.size
 
+    /** The spawns of the dead NPCs that will come back, with the tick each comes back on, soonest first. */
+    fun pendingRespawns(): List<Pair<NpcSpawn, Long>> =
+        dying.filter { it.npc.spawn.respawns }.map { it.npc.spawn to it.respawnTick }.sortedBy { it.second }
+
     companion object {
         /** Not a live message: magic and the other ranged weapons come with later pieces. */
         const val MELEE_ONLY = "Only melee, bows and crossbows are in so far; the rest comes later."
