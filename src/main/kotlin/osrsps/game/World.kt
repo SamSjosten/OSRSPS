@@ -452,7 +452,7 @@ class World(
         examine = { player, type, count -> inventoryTab.examine(player, type, count) },
         overflow = { player, obj -> objTypes[obj.id]?.let { groundObjs.give(player, it, obj.count) } },
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
-        commit = { a, b, swap -> commitTrade(a, b, swap) },
+        commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
     )
 
     /** Private messages; see [PrivateMessages]. */
@@ -1262,38 +1262,72 @@ class World(
 
     /**
      * Completes a trade: [apply] swaps the offers between [a] and [b] in memory, and then both new saves go out through
-     * the [TradeJournal] so they land together. Runs on the game thread inside the click that completed it.
+     * the [TradeJournal] so they land together. Runs on the game thread inside the click that completed it. Fails
+     * closed: when an earlier trade's journal is still unresolved, or this one's can't be written, [undo] puts the swap
+     * back and this returns false, so no trade is ever saved one file at a time.
      */
-    internal fun commitTrade(a: Player, b: Player, apply: () -> Unit) {
+    internal fun commitTrade(a: Player, b: Player, apply: () -> Unit, undo: () -> Unit = {}): Boolean {
+        if (!journalResolved()) {
+            logger.error { "Trade between ${a.username} and ${b.username} refused: an earlier trade's journal is unresolved" }
+            return false
+        }
         val id = tradeIds + "%09d".format(++tradeCount)
+        val lastA = a.lastTrade
+        val lastB = b.lastTrade
         apply()
         a.lastTrade = id
         b.lastTrade = id
         val texts = try {
-            mapOf(a.saveKey to PlayerSave.of(a).toJson(a.username), b.saveKey to PlayerSave.of(b).toJson(b.username))
-        } catch (e: Exception) {
-            // The swap stands in memory and the autosave writes both later, one file each: no worse than before journals.
-            logger.error(e) { "Couldn't make the saves for trade $id between ${a.username} and ${b.username}" }
-            return
-        }
-        val journaled = try {
+            val texts = mapOf(a.saveKey to PlayerSave.of(a).toJson(a.username), b.saveKey to PlayerSave.of(b).toJson(b.username))
             saves.writeJournal(TradeJournal(id, texts).toJson())
-            true
+            texts
         } catch (e: Exception) {
-            logger.error(e) { "Couldn't write the journal for trade $id; saving both players without it" }
-            false
+            logger.error(e) { "Couldn't journal trade $id between ${a.username} and ${b.username}; undoing it" }
+            undo()
+            a.lastTrade = lastA
+            b.lastTrade = lastB
+            return false
         }
         var written = true
         for ((key, text) in texts) written = write(key, text) && written
-        if (journaled && written) {
+        if (written) {
             try {
                 saves.clearJournal()
             } catch (e: Exception) {
-                // Left behind, it is skipped at the next start: both saves already record this trade.
+                // Left behind, it is resolved before the next trade or skipped at the next start: both saves record it.
                 logger.error(e) { "Couldn't clear the journal for trade $id" }
             }
         }
+        // A save that failed is kept in memory and the journal stays: the next trade or the next start finishes it.
         logger.info { "Trade $id between ${a.username} and ${b.username} saved" }
+        return true
+    }
+
+    /**
+     * Whether no earlier trade's journal is left unfinished, so a new one can be written over it. A journal stays when
+     * one of its saves couldn't be written; this writes such a save again (from memory) and clears the journal once
+     * every save it names records that trade or a later one. A journal that can't be read or finished stops trades.
+     */
+    private fun journalResolved(): Boolean {
+        try {
+            val text = saves.readJournal() ?: return true
+            val journal = try {
+                TradeJournal.fromJson(text)
+            } catch (e: IllegalArgumentException) {
+                logger.error(e) { "The trade journal can't be read; no trades until it is looked at" }
+                return false
+            }
+            for (key in journal.saves.keys) {
+                unwritten[key]?.let { write(key, it) }
+                val last = saves.read(key)?.let(PlayerSave::lastTradeIn)
+                if (last == null || last < journal.id) return false
+            }
+            saves.clearJournal()
+            return true
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't finish the last trade's journal" }
+            return false
+        }
     }
 
     /**

@@ -7,6 +7,7 @@ import osrsps.game.MemorySaveStore
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.PlayerSave
+import osrsps.game.SaveStore
 import osrsps.game.World
 import osrsps.game.trade.Trades
 import osrsps.map.CollisionMap
@@ -18,7 +19,7 @@ import org.junit.jupiter.api.io.TempDir
 
 /** The first trade screen over the real protocol: offering, removing, the partner's view, values and accepts. */
 class HeadlessTradeScreenTest {
-    private fun server(dir: Path, saves: MemorySaveStore = MemorySaveStore()) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, saves: SaveStore = MemorySaveStore()) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(QUEST_ITEM + 1)
         // As in the cache: coins lack the Grand Exchange flag (opcode 65), yet players trade them.
         objs[COINS] = ObjType(COINS, "Coins", stackable = true)
@@ -176,6 +177,41 @@ class HeadlessTradeScreenTest {
                 assertEquals(listOf(osrsps.game.InvObj(COINS, 10)), bobSave.inventory.values.toList())
                 assertTrue(aliceSave.lastTrade != null && aliceSave.lastTrade == bobSave.lastTrade)
                 assertNull(saves.journal)
+            }
+        }
+    }
+
+    /** Saves in memory, but the trade journal can't be written: a full disk. */
+    private class NoJournalStore(val inner: MemorySaveStore = MemorySaveStore()) : SaveStore by inner {
+        override fun writeJournal(text: String) = throw java.io.IOException("disk full (test)")
+    }
+
+    @Test
+    fun `a trade whose journal can't be written is undone and ends as a decline, everything back`(@TempDir dir: Path) {
+        val saves = NoJournalStore()
+        server(dir, saves).use { server ->
+            trading(server) { alice, bob ->
+                bob.command("::item $AXE 1")
+                alice.await("declined") { alice.messages().firstOrNull { it.text == "[trade.declined]" } }
+            }
+            trading(server, again = true) { alice, bob ->
+                alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 3, sub = 0, obj = COINS) // Offer-10
+                bob.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 1, sub = 0, obj = AXE)
+                bob.await("both offers") { bob.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).firstOrNull()?.takeIf { it == InvObj(COINS, 10) } }
+                alice.await("bob's offer") { alice.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).firstOrNull()?.takeIf { it == InvObj(AXE, 1) } }
+                alice.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+                bob.await("she accepted") { bob.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
+                bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+                alice.await("the second screen") { alice.openInterfaces().takeIf { Trades.CONFIRM in it } }
+                alice.ifButton(Trades.CONFIRM, Trades.CONFIRM_ACCEPT, 1)
+                bob.await("she accepted again") { bob.text(Trades.CONFIRM, Trades.CONFIRM_TITLE)?.takeIf { it == "[trade.other_accepted]" } }
+                bob.ifButton(Trades.CONFIRM, Trades.CONFIRM_ACCEPT, 1)
+                alice.await("screens shut") { alice.openInterfaces().takeIf { Trades.CONFIRM !in it } }
+                bob.await("screens shut") { bob.openInterfaces().takeIf { Trades.CONFIRM !in it } }
+                alice.await("her coins back") { alice.inventory(Inventory.INV).filterNotNull().takeIf { InvObj(COINS, 1000) in it } }
+                bob.await("his axe back") { bob.inventory(Inventory.INV).filterNotNull().takeIf { it == listOf(InvObj(AXE, 1)) } }
+                assertTrue(alice.messages().none { it.text == "[trade.accepted]" } && bob.messages().none { it.text == "[trade.accepted]" })
+                assertNull(saves.inner.journal)
             }
         }
     }

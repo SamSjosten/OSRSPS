@@ -125,8 +125,11 @@ class Trades(
     private val overflow: (Player, InvObj) -> Unit = { _, _ -> },
     /** Sets a varbit for the player; nothing when the cache lacks it (tests). */
     private val setVarbit: (Player, Int, Int) -> Unit = { _, _, _ -> },
-    /** Completes a trade: runs the swap, then saves both players together (World.commitTrade, the trade journal). */
-    private val commit: (Player, Player, () -> Unit) -> Unit = { _, _, swap -> swap() },
+    /**
+     * Completes a trade: runs the swap, then saves both players together (World.commitTrade, the trade journal). Returns
+     * false, after running the undo, when the trade couldn't be made safe to save.
+     */
+    private val commit: (Player, Player, swap: () -> Unit, undo: () -> Unit) -> Boolean = { _, _, swap, _ -> swap(); true },
 ) {
     /** A click on Trade with [target]. */
     fun click(player: Player, target: Player, invertRun: Boolean) {
@@ -315,7 +318,8 @@ class Trades(
      */
     private fun offer(player: Player, slot: Int, obj: Int, count: Int) {
         val trade = player.trade ?: return
-        if (trade.over || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
+        // An Offer-X prompt left open while both accepted answers after the second screen is up: nothing may change.
+        if (trade.over || trade.confirming || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
         val held = player.inventory[slot]?.takeIf { it.id == obj } ?: return
         val type = objTypes[held.id] ?: return
         if (!tradeable(type)) {
@@ -342,7 +346,7 @@ class Trades(
     /** Remove (op 1), Remove-5, Remove-10, Remove-All and Remove-X (ops 2 to 5) on [slot] of the player's offer. */
     private fun remove(player: Player, slot: Int, obj: Int, count: Int) {
         val trade = player.trade ?: return
-        if (trade.over || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
+        if (trade.over || trade.confirming || count <= 0 || slot !in 0 until Inventory.INV_CAPACITY) return
         val side = trade.sideOf(player)
         val held = side.offer[slot]?.takeIf { it.id == obj } ?: return
         val type = objTypes[held.id] ?: return
@@ -465,7 +469,9 @@ class Trades(
             return
         }
         trade.over = true
-        commit(trade.first, trade.second) {
+        val inventories = listOf(trade.first, trade.second).map { player -> player to (0 until player.inventory.capacity).map { player.inventory[it] } }
+        val offers = listOf(trade.firstSide, trade.secondSide).map { side -> side to (0 until side.offer.capacity).map { side.offer[it] } }
+        val committed = commit(trade.first, trade.second, {
             for ((player, gets) in listOf(trade.first to firstGets, trade.second to secondGets)) {
                 for (slot in 0 until player.inventory.capacity) player.inventory[slot] = gets[slot]
             }
@@ -473,6 +479,18 @@ class Trades(
             trade.secondSide.offer.clear()
             trade.first.trade = null
             trade.second.trade = null
+        }) {
+            for ((player, held) in inventories) held.forEachIndexed { slot, obj -> player.inventory[slot] = obj }
+            for ((side, held) in offers) held.forEachIndexed { slot, obj -> side.offer[slot] = obj }
+            trade.first.trade = trade
+            trade.second.trade = trade
+        }
+        if (!committed) {
+            // The swap was undone: the trade ends as a decline would, everything given back.
+            logger.error { "Trade between ${trade.first.username} and ${trade.second.username} couldn't be saved safely; ending it" }
+            trade.over = false
+            decline(trade.first)
+            return
         }
         for (player in listOf(trade.first, trade.second)) {
             closeModals(player)
