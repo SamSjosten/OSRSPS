@@ -149,7 +149,7 @@ class Aggression(
     fun huntable(npc: Npc, aggression: NpcAggression, player: Player): Boolean {
         if (player.loggedOut || player.dead || player.hitpoints <= 0 || player.level != npc.level) return false
         if (max(abs(player.x - npc.x), abs(player.z - npc.z)) > aggression.huntRange) return false
-        if (!inAggressionRange(npc, player.x, player.z)) return false
+        if (!inAggressionRange(npc, player.x, player.z, npcCombat(npc)?.range ?: ATTACK_RANGE)) return false
         if (!sees(npc, player)) return false
         if (!aggression.ignoresLevels && npc.type.combatLevel < ALWAYS_LEVEL && player.skills.combatLevel > 2 * npc.type.combatLevel) return false
         if (aggression.tolerant && player.tolerance.tolerant) return false
@@ -190,12 +190,15 @@ class Aggression(
         /** A monster of at least this level attacks whatever the player's level (Wiki). */
         const val ALWAYS_LEVEL = 63
 
-        /** Melee's reach, the attack range in [inAggressionRange]. */
+        /** Melee's reach, the attack range in [inAggressionRange] for an NPC with no [NpcCombatDef.range]. */
         const val ATTACK_RANGE = 1
 
-        /** Whether [x], [z] is within [npc]'s max range plus attack range of its spawn point, counting its size. */
-        fun inAggressionRange(npc: Npc, x: Int, z: Int): Boolean {
-            val range = Npcs.MAX_RANGE + ATTACK_RANGE
+        /**
+         * Whether [x], [z] is within [npc]'s max range plus [attackRange] of its spawn point, counting its size: melee's
+         * 1, or a magic or ranged NPC's own [NpcCombatDef.range].
+         */
+        fun inAggressionRange(npc: Npc, x: Int, z: Int, attackRange: Int = ATTACK_RANGE): Boolean {
+            val range = Npcs.MAX_RANGE + attackRange
             val size = npc.type.size
             val spawn = npc.spawn
             return x in spawn.x - range until spawn.x + size + range && z in spawn.z - range until spawn.z + size + range

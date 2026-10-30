@@ -11,7 +11,9 @@ import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcEffects
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
+import osrsps.game.zone.Projectile
 import osrsps.map.CollisionMap
+import osrsps.map.LineOfSight
 import osrsps.map.Reach
 import osrsps.map.RouteTarget
 import osrsps.map.Tile
@@ -105,6 +107,8 @@ class MeleeCombat(
     private val special: (Player) -> SpecialAttack? = { null },
     /** A special attack's hit landed, with the damage it dealt ([SpecialAttacks.landed]). */
     private val specialLanded: (Npc, Int, SpecialAttack) -> Unit = { _, _, _ -> },
+    /** Fires a magic or ranged NPC's projectile for everyone near it. */
+    private val projectile: (Projectile) -> Unit = {},
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -331,6 +335,11 @@ class MeleeCombat(
      */
     private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?, val maxHit: Int, val from: Tile)
 
+    /** A magic or ranged NPC's [attack] on its way to [player], landing on [landTick] for [damage] if [hit] and not [blocked]. */
+    private class Shot(val npc: Npc, val player: Player, val attack: NpcRangedAttack, val hit: Boolean, val blocked: Boolean, val damage: Int, val landTick: Long)
+
+    private val shots = ArrayList<Shot>()
+
     private val landing = ArrayList<Swing>()
 
     /** Swings rolled and not landed yet, for tests. */
@@ -435,7 +444,7 @@ class MeleeCombat(
      * aggressive NPC from hunting anyone else.
      */
     private fun hitBy(npc: Npc, def: NpcCombatDef, player: Player, from: Tile, tick: Long) {
-        val inRange = Aggression.inAggressionRange(npc, from.x, from.z)
+        val inRange = Aggression.inAggressionRange(npc, from.x, from.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE)
         if (lowOnHitpoints(npc, def) || (!inRange && npc.retreatingFrom == null)) return retreat(npc, player)
         if (npc.retreatingFrom != null) {
             if (!inRange) {
@@ -535,6 +544,7 @@ class MeleeCombat(
     fun process() {
         val tick = currentTick()
         land(tick)
+        landShots(tick)
         val iterator = dying.iterator()
         while (iterator.hasNext()) {
             val entry = iterator.next()
@@ -577,6 +587,7 @@ class MeleeCombat(
         }
         // Poison or another player can take it down to where it gives up the fight.
         if (lowOnHitpoints(npc, def)) return retreat(npc, player)
+        if (def.range > 1) return shoot(npc, def, player, tick)
         // Chase's own far limit may have let go of them; a fighting NPC keeps after them while they are in range.
         if (npc.following !== player) npcs.follow(npc, player)
         val size = npc.type.size
@@ -604,7 +615,113 @@ class MeleeCombat(
      * waits there first is guessed.
      */
     private fun leftBehind(npc: Npc, player: Player, tick: Long): Boolean =
-        !Aggression.inAggressionRange(npc, player.x, player.z) && tick - npc.fightTick > IN_COMBAT_TICKS && !hitBy(npc, player)
+        !Aggression.inAggressionRange(npc, player.x, player.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE) &&
+            tick - npc.fightTick > IN_COMBAT_TICKS && !hitBy(npc, player)
+
+    /**
+     * A magic or ranged NPC's turn: out of its range or sight of [player] it walks after them; in both it stands and,
+     * when its next attack is due, fires one of its [NpcCombatDef.attacks] (by weight). The roll is made as it fires
+     * and the hit lands after [HitDelay.MAGIC] or [HitDelay.BOW] for the distance, as a player's does. A protection
+     * prayer up as it fires blocks the damage and the drain (guessed, as for melee: the prayer counts when rolled).
+     * Guessed: the casting and impact spotanims' heights, the projectile's heights and arc (a player's spell's), that it
+     * stands still once in range rather than stepping closer, and that a miss shows the splash and no hitsplat.
+     */
+    private fun shoot(npc: Npc, def: NpcCombatDef, player: Player, tick: Long) {
+        val size = npc.type.size
+        val distance = LineOfSight.distance(npc.x, npc.z, size, player.x, player.z)
+        val inSight = distance in 1..def.range && LineOfSight.clear(collision, npc.level, npc.x, npc.z, size, player.x, player.z)
+        if (!inSight) {
+            if (npc.following !== player) npcs.follow(npc, player)
+            return
+        }
+        if (npc.following === player) npcs.stopFollowing(npc)
+        npc.face(player)
+        if (tick < npc.nextAttackTick || def.attacks.isEmpty()) return
+        npc.nextAttackTick = tick + def.attackSpeed
+        val attack = pick(def.attacks)
+        val anim = if (attack.anim >= 0) attack.anim else def.anims.attack
+        if (anim >= 0) npc.effects.anim(anim)
+        if (attack.cast >= 0) npc.effects.spotanim(0, attack.cast, CAST_HEIGHT)
+        val delay = (if (def.attackType == AttackType.MAGIC) HitDelay.MAGIC else HitDelay.BOW).ticks(distance)
+        if (attack.projectile >= 0) projectile(flight(npc, player, attack.projectile, delay))
+        val roll = combat.npcAttack(npc, player) ?: return
+        val hit = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
+        val max = attack.maxHit ?: roll.maxHit
+        val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
+        val blocked = protects(player, def.attackType)
+        shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else damage, tick + delay)
+    }
+
+    private fun pick(attacks: List<NpcRangedAttack>): NpcRangedAttack {
+        if (attacks.size == 1) return attacks[0]
+        var roll = random.nextInt(attacks.sumOf { it.weight })
+        for (attack in attacks) {
+            if (roll < attack.weight) return attack
+            roll -= attack.weight
+        }
+        error("Unreachable")
+    }
+
+    /** The shots whose time has come land: the impact and the hitsplat (none for a drain-only spell), or the splash. */
+    private fun landShots(tick: Long) {
+        val iterator = shots.iterator()
+        while (iterator.hasNext()) {
+            val shot = iterator.next()
+            if (tick < shot.landTick) continue
+            iterator.remove()
+            val player = shot.player
+            if (player.loggedOut || player.dead || player.hitpoints <= 0) continue
+            if (shot.blocked && shot.attack.maxHit != 0) {
+                // The prayer shows a 0, hit or miss.
+                hitPlayer(player, shot.npc, 0, tick)
+                continue
+            }
+            if (!shot.hit || shot.blocked) {
+                player.effects.spotanim(0, SPLASH, IMPACT_HEIGHT, 0)
+                player.attackedBy = shot.npc
+                player.attackedTick = tick
+                continue
+            }
+            if (shot.attack.impact >= 0) player.effects.spotanim(0, shot.attack.impact, IMPACT_HEIGHT, 0)
+            shot.attack.drain?.let { drain(player, it) }
+            if (shot.attack.maxHit == 0) {
+                player.attackedBy = shot.npc
+                player.attackedTick = tick
+            } else {
+                hitPlayer(player, shot.npc, shot.damage, tick)
+            }
+        }
+    }
+
+    /** Lowers [drain]'s skill by its percent of the base level (at least 1), unless it is that low already (Confuse). */
+    private fun drain(player: Player, drain: StatDrain) {
+        val base = player.skills.baseLevel(drain.skill)
+        val by = maxOf(1, base * drain.percent / 100)
+        val floor = base - by
+        if (player.skills.currentLevel(drain.skill) <= floor) return
+        player.skills.setCurrentLevel(drain.skill, floor)
+    }
+
+    /** [npc]'s projectile at [player], landing [ticks] later, in client cycles; a player's spell's numbers (guessed). */
+    private fun flight(npc: Npc, player: Player, id: Int, ticks: Int): Projectile = Projectile(
+        id = id,
+        fromX = npc.x,
+        fromZ = npc.z,
+        level = npc.level,
+        toX = player.x,
+        toZ = player.z,
+        startHeight = PROJECTILE_START_HEIGHT,
+        endHeight = PROJECTILE_END_HEIGHT,
+        startTime = PROJECTILE_START,
+        endTime = maxOf(PROJECTILE_START + 1, ticks * CYCLES_PER_TICK),
+        angle = PROJECTILE_ANGLE,
+        progress = PROJECTILE_PROGRESS,
+        sourceIndex = npc.index + 1,
+        targetIndex = -(player.index + 1),
+    )
+
+    /** Magic and ranged NPC shots on their way, for tests. */
+    val shotsInFlight: Int get() = shots.size
 
     /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis. */
     private fun outOfRange(npc: Npc, player: Player): Boolean =
@@ -800,6 +917,20 @@ class MeleeCombat(
     companion object {
         /** settings_hitsplat_threshold. */
         const val VARBIT_MAX_HIT_THRESHOLD = 14195
+
+        /** `failedspell_impact`, a spell that missed (as spells.json names it for players). */
+        const val SPLASH = 85
+
+        /** Guessed, as for a player's spells: about the hands, and the middle of a man-sized target. */
+        const val CAST_HEIGHT = 92
+        const val IMPACT_HEIGHT = 124
+
+        private const val CYCLES_PER_TICK = 30
+        private const val PROJECTILE_START = 51
+        private const val PROJECTILE_START_HEIGHT = 172
+        private const val PROJECTILE_END_HEIGHT = 124
+        private const val PROJECTILE_ANGLE = 16
+        private const val PROJECTILE_PROGRESS = 64
 
         /** Not a live message: magic and the other ranged weapons come with later pieces. */
         const val MELEE_ONLY = "Only melee, bows and crossbows are in so far; the rest comes later."

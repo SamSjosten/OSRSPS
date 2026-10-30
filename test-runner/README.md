@@ -238,6 +238,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   10 XP, the stall empty and back 4 ticks later), and Olivia refusing to trade after it. `::reset` makes her forget.
 - `draynor-pickpocket.json`: Draynor step 8: the Master Farmer's level message at Thieving 37 (`::keys on`) and an
   attempt at 99; the man's 28-pouch limit, Open-all for 84 coins, and an attempt on him.
+- `draynor-dark-wizards.json`: Draynor step 9: a dark wizard south of the bank, attacked, casting back from where it
+  stands (its casting graphic, then Water Strike's or Confuse's impact or a splash on the player). Needs 0.7.0 for
+  `assertSpotanim`.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

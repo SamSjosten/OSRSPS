@@ -34,6 +34,19 @@
     }
   },
   "npcs": [
+    {"npcs": ["young_dark_wizard", "qip_ds_young_dark_wizard1", "qip_ds_young_dark_wizard2"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+      {"item": 1379, "name": "Staff", "weight": 8}, {"item": 1017, "name": "Wizard hat", "weight": 4}, {"item": 581, "name": "Black robe", "weight": 3},
+      {"item": 557, "name": "Earth rune", "count": 36, "weight": 4},
+      {"item": 556, "name": "Air rune", "count": 10, "weight": 3}, {"item": 555, "name": "Water rune", "count": 10, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 10, "weight": 3}, {"item": 554, "name": "Fire rune", "count": 10, "weight": 3},
+      {"item": 556, "name": "Air rune", "count": 18, "weight": 2}, {"item": 555, "name": "Water rune", "count": 18, "weight": 2}, {"item": 557, "name": "Earth rune", "count": 18, "weight": 2}, {"item": 554, "name": "Fire rune", "count": 18, "weight": 2},
+      {"item": 561, "name": "Nature rune", "count": 4, "weight": 7}, {"item": 562, "name": "Chaos rune", "count": 5, "weight": 6},
+      {"item": 558, "name": "Mind rune", "count": 10, "weight": 3}, {"item": 559, "name": "Body rune", "count": 10, "weight": 3},
+      {"item": 558, "name": "Mind rune", "count": 18, "weight": 2}, {"item": 559, "name": "Body rune", "count": 18, "weight": 2},
+      {"item": 565, "name": "Blood rune", "count": 2, "weight": 2}, {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 1}, {"item": 563, "name": "Law rune", "count": 3, "weight": 1},
+      {"item": 995, "name": "Coins", "count": 1, "weight": 17}, {"item": 995, "name": "Coins", "count": 4, "weight": 7}, {"item": 995, "name": "Coins", "count": 30, "weight": 1},
+      {"nothing": true, "weight": 16}, {"item": 1444, "name": "Water talisman", "weight": 1}, {"item": 1442, "name": "Fire talisman", "weight": 1},
+      {"item": 3012, "name": "Energy potion(2)", "weight": 16}, {"item": 3008, "name": "Energy potion(4)", "weight": 3}
+    ]}, "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/50"}], "source": "OSRS Wiki, Dark wizard (level 7), read 2026-10-30: the members table (wizard hat 4/128, blood runes); the Wilderness looting bag left out"},
     {
       "npcs": ["man", "man2", "man3", "man4", "woman", "woman2", "woman3", "al_kharid_man", "al_kharid_warrior", "varrock_man1", "varrock_woman1"],
       "always": [{"item": 526, "name": "Bones"}],

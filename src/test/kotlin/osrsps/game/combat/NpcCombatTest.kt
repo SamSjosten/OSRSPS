@@ -8,6 +8,7 @@ import kotlin.test.assertTrue
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.Skill
 import osrsps.game.SeqNames
 
 class NpcCombatTest {
@@ -35,6 +36,7 @@ class NpcCombatTest {
     private val seqs = SeqNames(
         mapOf(
             "human_unarmedpunch" to 422, "human_unarmedblock" to 424, "human_death" to 836,
+            "human_caststrike" to 711, "human_castconfuse" to 716,
             "mouse_attack" to 2705, "mouse_defend" to 2706, "mouse_death" to 2707,
             "imp_attack" to 169, "imp_block" to 170, "imp_death" to 172,
             "cow_update_attack" to 5849, "cow_update_defend" to 5850, "cow_update_death" to 5851,
@@ -149,6 +151,23 @@ class NpcCombatTest {
         assertEquals(18, edgeville.defence.against(AttackType.STAB))
         assertEquals(NpcCombatAnims(386, 387, 836), edgeville.anims)
         assertEquals(50, edgeville.respawnTicks)
+    }
+
+    @Test
+    fun `Draynor's dark wizards cast Water Strike and Confuse from 10 tiles`() {
+        val wizard = NpcType(512, "Dark wizard", internalName = "young_dark_wizard")
+        val def = NpcCombat.load(NpcTypes.of(wizard), seqs)[wizard]!!
+        assertEquals(AttackType.MAGIC, def.attackType)
+        assertEquals(10, def.range)
+        assertEquals(2, def.maxHit)
+        assertEquals(3, def.defence.against(AttackType.MAGIC))
+        assertEquals(
+            listOf(
+                NpcRangedAttack(711, 93, 94, 95),
+                NpcRangedAttack(716, 102, 103, 104, maxHit = 0, drain = StatDrain(Skill.ATTACK, 5)),
+            ),
+            def.attacks,
+        )
     }
 
     @Test
