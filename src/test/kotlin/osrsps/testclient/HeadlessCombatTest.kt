@@ -13,6 +13,7 @@ import osrsps.game.SeqNames
 import osrsps.game.World
 import osrsps.game.combat.DropTestItems
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.NpcDrops
 import osrsps.game.npc.NpcSpawn
 import osrsps.map.CollisionMap
@@ -45,6 +46,45 @@ class HeadlessCombatTest {
                 client.command("varp 43 3")
                 assertEquals("Block (defensive, crush), speed 4: attack roll 576, max hit 1", client.commandReply("combat man") { it.startsWith("Block") })
                 client.seen("It: attack roll 640 vs your 768, hits 41.6%, max hit 1")
+            }
+        }
+    }
+
+    @Test
+    fun `a drained man's defence roll falls with his Defence, and the NPC list shows it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dana").use { client ->
+                val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
+                assertEquals("Drained Man #${npc.index}'s defence by 1 to 0/1.", client.commandReply("drain defence 1 man") { it.startsWith("Drained") })
+                client.command("combat man")
+                client.await("the drained defence roll") { client.messages().firstOrNull { it.text.startsWith("vs Man #${npc.index} (level 2, 7 hp): defence roll 387,") } }
+                client.command("npcs 5")
+                client.await("the drain in ::npcs") { client.messages().firstOrNull { it.text.contains("; drained defence 0/1, a level back in ") } }
+            }
+        }
+    }
+
+    /** The man's line in `::npcs`. */
+    private fun manLine(client: HeadlessClient, index: Int): String {
+        val from = client.messages().size
+        client.command("npcs 5")
+        return client.await("the man's line") { client.messages().drop(from).firstOrNull { it.text.startsWith("#$index Man") } }.text
+    }
+
+    @Test
+    fun `a drained level comes back a full minute of ticks after the drain`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
+                // Paused and stepped, so the minute is counted in game ticks. A command typed while paused after tick n
+                // drains him on tick n + 1, the next one run, which starts the timer without counting it down.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                client.commandReply("drain defence 1 man") { it.startsWith("Drained") }
+                client.stepTicks(NpcDrains.RESTORE_TICKS)
+                manLine(client, npc.index).let { assertTrue(it.endsWith("; drained defence 0/1, a level back in 1 ticks"), "not back yet: $it") }
+                client.stepTicks(1)
+                manLine(client, npc.index).let { assertTrue("drained" !in it, "back a minute on: $it") }
+                client.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }
