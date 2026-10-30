@@ -1,0 +1,651 @@
+{
+ "name": "Rest of Lumbridge step 10: the church. Examine (::keys on) on Father Aereck, the Prayer tutor, Nigel and Count Check; Pray-at the altar fills drained points; each NPC's talk, Nigel's Trade, and Count Check's advice, Who, the Salve and the failed check",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3242 3209 0",
+   "expectMessage": "Teleported to 3242, 3209, 0",
+   "comment": "in the church, between the pews and the altar"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3242,
+   "y": 3209,
+   "plane": 0
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2812,
+   "option": "Examine",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_2812]"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3223,
+   "option": "Examine",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3223]"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 10",
+   "expectMessage": "Prayer set to level 10",
+   "comment": "a level to drain from; ::reset puts the real one back"
+  },
+  {
+   "step": "command",
+   "text": "::pray 1",
+   "expectMessage": "Prayer points set to 1.",
+   "comment": "as if drained in a fight"
+  },
+  {
+   "step": "locOption",
+   "loc": "Altar",
+   "option": "Pray-at",
+   "x": 3243,
+   "y": 3207
+  },
+  {
+   "step": "assertAnimation",
+   "id": 645,
+   "comment": "human_pray"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[altar.recharge]"
+  },
+  {
+   "step": "command",
+   "text": "::prayers",
+   "expectMessage": "Prayer 10/10",
+   "comment": "the points back up to the level"
+  },
+  {
+   "step": "locOption",
+   "loc": "Altar",
+   "option": "Pray-at",
+   "x": 3243,
+   "y": 3207
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[altar.full]"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2812,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.new_quest]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.one_quest]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3223,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.good_day]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[prayer_tutor.train]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.train]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.bury_or_offer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.altars]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.bones]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.anything_else]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[prayer_tutor.useful]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.useful]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.kindly]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.what_benefits]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.benefits]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.prayer_book]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.wow]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.careful]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.anything_else]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[prayer_tutor.no_thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.no_thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prayer_tutor.farewell]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3241 3201 0",
+   "expectMessage": "Teleported to 3241, 3201, 0",
+   "comment": "the graveyard, by Nigel and Count Check"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Nigel",
+   "option": "Examine",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_8391]"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Count Check",
+   "option": "Examine",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_7414]"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Nigel",
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "deadman_nigel (6093), a multi-NPC, shows as deadman_nigel_regular (8391) on a normal world"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.who]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.intro]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[nigel.question]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.question]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.what_like]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[nigel.kill]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.kill]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.kill_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.kill_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[nigel.more]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[nigel.safe_zones]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.safe_zones]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.safe_zones_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[nigel.previous]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.what_is]",
+   "comment": "back on the first page of questions, which has no goodbye"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Nigel",
+   "option": "Trade",
+   "timeoutMs": 20000,
+   "comment": "a new click closes the questions"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.store_closed]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 7414,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.intro]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[count_check.advice]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.advice]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.count_steps]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.one]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.one_password]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.two]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.two_email]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.three]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.three_website]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[count_check.carry_on]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.carry_on]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.four]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.four_pin]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.fun]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[count_check.who]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.who]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.vampyre]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.perils]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.be_warned]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.left_ways]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.blessed]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[count_check.salve]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.salve]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.of_course]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.not_role_play]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.right]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.may_check]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[count_check.learn]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.learn]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.stronghold]",
+   "comment": "the test account hasn't been sent to the Stronghold; the teleport itself is the headless test's, so the account keeps its one offer"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[count_check.no]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.may_check]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[count_check.check]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.check]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.fail]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

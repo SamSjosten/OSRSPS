@@ -82,6 +82,7 @@ import osrsps.game.content.Examines
 import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerCandleSeller
+import osrsps.game.content.registerChurch
 import osrsps.game.content.registerFatherUrhney
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
@@ -498,6 +499,7 @@ class World(
         registerAdventurersCamp(this)
         registerCandleSeller(this)
         registerSwampTutors(this)
+        registerChurch(this)
         registerAlKharid(this)
         registerCrops(this)
         ducks.register()
