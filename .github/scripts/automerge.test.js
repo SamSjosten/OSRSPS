@@ -179,7 +179,12 @@ test('the queue skips failing, conflicting, not-reviewed and not-queued pull req
   const { github, calls } = fakeGitHub({
     1: { head: H('1'), behind: 1, checks: [{ name: 'build', status: 'completed', conclusion: 'failure' }, codexPass] },
     2: { head: H('2'), behind: 1, mergeable: false, checks: [...green, codexPass] },
-    3: { head: H('3'), behind: 1, checks: [...green, { name: CHECK, status: 'completed', conclusion: 'failure' }] },
+    3: {
+      head: H('3'),
+      behind: 1,
+      checks: [...green, { name: CHECK, status: 'completed', conclusion: 'failure', output: { title: `Codex has findings at ${H('3').slice(0, 7)}` } }],
+      comments: [summary(H('3'), true)],
+    },
     4: { head: H('4'), behind: 1, autoMerge: false, checks: [...green, codexPass] },
   });
   await queue(github, fakeGit({}));
@@ -287,4 +292,22 @@ test("the queue doesn't wait on, or count as failing, its own jobs filed on a pu
   });
   await queue(github, fakeGit({ [H('4')]: 't', [H('5')]: 't' }));
   assert.deepStrictEqual(calls, [['updateBranch', 4], ['dispatch', 'build.yml', 'branch-4'], ['check', H('5'), 'success']]);
+});
+
+test('the queue puts right a stale failing check once Codex is clean', async () => {
+  const stale = { name: CHECK, status: 'completed', conclusion: 'failure', output: { title: 'Codex has findings at 1111111' } };
+  const { github, calls } = fakeGitHub({
+    1: { head: H('1'), behind: 0, checks: [...green, stale], comments: [receipt(H('1'), true, '2026-10-30T01:00:00Z')] },
+  });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls, [['check', H('1'), 'success']]);
+});
+
+test('a gate run leaves a check written after its evaluation started', async () => {
+  const newer = { name: CHECK, status: 'completed', conclusion: 'success', started_at: '2026-10-30T01:00:05Z' };
+  const { github, calls } = fakeGitHub({
+    1: { head: H('1'), checks: [newer], comments: [summary(H('1'), true)] },
+  });
+  await automerge.gate({ github, context: { repo, payload: { pull_request: { number: 1 } } }, core, git: fakeGit({}), now: () => Date.parse('2026-10-30T01:00:00Z') });
+  assert.deepStrictEqual(calls, []);
 });
