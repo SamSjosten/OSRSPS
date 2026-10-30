@@ -117,6 +117,9 @@ class Player(
     /** The tick the lost connection was noticed on, or -1 while connected. */
     var connectionLostTick: Long = -1
 
+    /** Interface components (parent to component) closed while the connection was lost; see [Interfaces.resendClosesWhileAway]. */
+    val closedWhileAway = LinkedHashSet<Pair<Int, Int>>()
+
     /** Turning points of the current route, next one first. */
     val waypoints = ArrayDeque<Tile>()
 

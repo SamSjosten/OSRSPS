@@ -31,9 +31,16 @@ interface Game
 
 	/**
 	 * Presses Enter once more for a line the client has left in its chat input, asking for the canvas's keyboard focus
-	 * first when it lacks it. Returns a note on the focus for the result file.
+	 * first when it lacks it. Returns a note for the result file on what may have kept the Enter from the chat input:
+	 * the focus, (0.17.0) whether the Swing thread had sent the last Enter, the window and an open chatbox prompt.
 	 */
 	String pressEnterAgain();
+
+	/**
+	 * (0.17.0) Closes the chatbox prompt that is open (an "Enter amount" box and the like), which takes the Enter for
+	 * itself and so keeps a chat line in the input.
+	 */
+	void closePrompt();
 
 	/** Clicks "Walk here" on a tile in the loaded scene. */
 	String walk(int x, int y);
@@ -89,7 +96,13 @@ interface Game
 	/** The dialogue open in the chatbox, or null when none is. */
 	Dialogue dialogue();
 
-	/** Clicks "Click here to continue" on the open dialogue. */
+	/**
+	 * (0.17.0) The level-up box (levelup, interface 233) when it is open, or null. Kept apart from {@link #dialogue}, so
+	 * assertDialogue and assertNoDialogue see what they always did; continueDialogue and finishDialogue click it.
+	 */
+	Dialogue levelUp();
+
+	/** Clicks "Click here to continue" on the open dialogue, or (0.17.0) the level-up box. */
 	String continueDialogue();
 
 	/** Clicks an option of the open option menu, by the slot {@link Dialogue#options} gives. */
