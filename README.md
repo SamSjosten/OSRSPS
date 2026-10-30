@@ -756,7 +756,7 @@ Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate bot
 Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
 Bank and through a banker's talk; `al-kharid-shops.json` buys and sells at every shop; `al-kharid-traders.json` buys and eats a kebab and haggles for
 silk; `al-kharid-tanning.json` tans cowhides at Ellis's; `HeadlessAlKharidTest` does the same through the headless client, with the talk in
-`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest`, and
+`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, and
 the prices in `ShopTest`.
 
 ## Equipment
