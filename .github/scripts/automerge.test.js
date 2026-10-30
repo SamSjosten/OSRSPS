@@ -421,6 +421,18 @@ test('two or more ready pull requests go in one batch on the batch branch, and b
   assert.deepStrictEqual(parseBatch(pushed.commits[sha]).members.map(m => m.number), [1, 2], '#3 still has its own checks running');
 });
 
+test('a pull request up to date with checks running holds back the one-at-a-time way, not a batch of the others', async () => {
+  const { github, calls } = fakeGitHub({
+    1: ready(1),
+    2: ready(2),
+    3: { head: H('3'), behind: 0, checks: [{ name: 'build', status: 'in_progress' }, codexPass] },
+  });
+  const pushed = [];
+  await queue(github, fakeGit({ [H('1')]: 't1', [H('2')]: 't2' }, pushed));
+  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', BATCH]]);
+  assert.deepStrictEqual(parseBatch(pushed.commits[pushed[0].split(':')[0]]).members.map(m => m.number), [1, 2]);
+});
+
 test('the queue waits while the batch builds', async () => {
   const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2) }, {
     batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [{ name: 'build', status: 'in_progress' }] },
