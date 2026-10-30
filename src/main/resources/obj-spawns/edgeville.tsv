@@ -1,0 +1,7 @@
+# Edgeville's item spawns (Edgeville piece step 1). Items are the OSRS Wiki's Edgeville spawn list (read 2026-10-30): an
+# iron mace in the jail and a pair of leather gloves south of the bank. The tiles are the 2004Scape project's map square
+# 48,54 (m48_54.jm2), which the Wiki's rooms agree with. Every respawn is the 100 ticks the other files use; the Wiki
+# gives none.
+obj	count	x	z	level	respawn
+leather_gloves	1	3097	3486	0	100	# south of the bank; 2004Scape
+iron_mace	1	3111	3517	0	100	# Edgeville jail; 2004Scape
