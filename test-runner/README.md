@@ -186,6 +186,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-palace.json`: Varrock step 6 (with `::keys on`): King Roald, Aeonisig Raispher, Sir Prysin, Queen
   Ellamaria, Reldo and three of the library's bookcases, the altar, Ambassador Ferrnook, Captain Rovin, the roof by
   ladder and the training Captain, then down the spiral stairs to the ground floor.
+- `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
+  chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
+  inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,

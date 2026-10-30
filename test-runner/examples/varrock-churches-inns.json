@@ -1,0 +1,529 @@
+{
+ "name": "Varrock step 7 (with ::keys on): the church's altar, Father Lawrence and Elsie upstairs, the chapel's chaos altar and the Mage of Zamorak, then a beer at each of the three inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 10",
+   "expectMessage": "10"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3254 3482 0",
+   "expectMessage": "Teleported to 3254, 3482, 0",
+   "comment": "the church, south of its altar"
+  },
+  {
+   "step": "command",
+   "text": "::pray 1",
+   "expectMessage": "Prayer points set to 1.",
+   "comment": "as if drained in a fight"
+  },
+  {
+   "step": "locOption",
+   "locId": 14860,
+   "option": "Pray-at",
+   "x": 3253,
+   "y": 3486,
+   "timeoutMs": 20000,
+   "comment": "fai_varrock_church_altar"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[altar.recharge]"
+  },
+  {
+   "step": "command",
+   "text": "::prayers",
+   "expectMessage": "Prayer 10/10",
+   "comment": "the points back up to the level"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5038,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Father Lawrence"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_lawrence.whiskey"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_lawrence.gutters"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "finishDialogue",
+   "comment": "one of two endings at random; the headless test reads both"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3255 3486 1",
+   "expectMessage": "Teleported to 3255, 3486, 1",
+   "comment": "upstairs in the church, by Elsie"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2900,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Elsie, at her knitting"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[elsie.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[elsie.rich]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[elsie.rich"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[elsie.trade"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[elsie.ore_food"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[elsie.thanks"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[elsie.story]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[elsie.story"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[elsie.for_tea"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[elsie.think]"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3258 3384 0",
+   "expectMessage": "Teleported to 3258, 3384, 0",
+   "comment": "the Zamorakian chapel south-east of the square"
+  },
+  {
+   "step": "command",
+   "text": "::pray 1",
+   "expectMessage": "Prayer points set to 1.",
+   "comment": "as if drained in a fight"
+  },
+  {
+   "step": "locOption",
+   "locId": 61,
+   "option": "Pray-at",
+   "x": 3259,
+   "y": 3381,
+   "timeoutMs": 20000,
+   "comment": "thrantaxaltar, the chaos altar"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[altar.recharge]"
+  },
+  {
+   "step": "command",
+   "text": "::prayers",
+   "expectMessage": "Prayer 10/10",
+   "comment": "the points back up to the level"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2582,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the Mage of Zamorak"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mage_of_zamorak.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[mage_of_zamorak.looking]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mage_of_zamorak.looking"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[mage_of_zamorak.very_well"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 7",
+   "expectMessage": "Added 7 x Coins",
+   "comment": "a beer at each inn (2 each) and a cabbage (1)"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3268 3396 0",
+   "expectMessage": "Teleported to 3268, 3396, 0",
+   "comment": "the Dancing Donkey Inn"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1311,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the Dancing Donkey's bartender"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[donkey_bartender.hello"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[donkey_bartender.beer"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[donkey_bartender.yes]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[donkey_bartender.yes"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[donkey_bartender.two_coins"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[donkey_bartender.cheers"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[donkey_bartender.cheers_back"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Beer",
+   "count": 1,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3228 3397 0",
+   "expectMessage": "Teleported to 3228, 3397, 0",
+   "comment": "the Blue Moon Inn"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1312,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the Blue Moon's bartender"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bluemoon_bartender.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[bluemoon_bartender.ale]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bluemoon_bartender.ale"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bluemoon_bartender.two_coins"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Beer",
+   "count": 2,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2895,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the Blue Moon's cook, in the kitchen"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bluemoon_cook.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[bluemoon_cook.sell]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bluemoon_cook.sell"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bluemoon_cook.cabbage"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[bluemoon_cook.buy]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bluemoon_cook.buy"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[bluemoon_cook.eat_it"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Cabbage",
+   "count": 1,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3279 3488 0",
+   "expectMessage": "Teleported to 3279, 3488, 0",
+   "comment": "the Jolly Boar Inn, north-east of the city"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1310,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the Jolly Boar's bartender"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jollyboar_bartender.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[jollyboar_bartender.beer]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jollyboar_bartender.beer"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jollyboar_bartender.two_coins"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Beer",
+   "count": 3,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "timeoutMs": 10000,
+   "comment": "7 coins, all spent"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2896,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the Jolly Boar's cook"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jollyboar_cook.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[jollyboar_cook.joke]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jollyboar_cook.joke"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jollyboar_cook.joke_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jollyboar_cook.joke_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jollyboar_cook.joke_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jollyboar_cook.joke_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jollyboar_cook.joke_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
