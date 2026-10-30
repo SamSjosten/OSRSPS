@@ -217,6 +217,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `crafting-jewellery.json`: at the furnace north of Lumbridge Castle, a gold bar opens `crafting_gold` and All makes
   two sapphire rings, a tiara mould opens `silver_crafting` and makes a tiara, and a ball of wool strings a gold
   amulet. Needs 0.15.0 (`useItemOnLoc`).
+- `artisan-scenario.json`: `::scenario lumbridge-artisan` stands you by the furnace north of Lumbridge Castle at 50
+  Crafting, Fletching and Herblore with the kit; a guam is cleaned and made into an attack potion and a sapphire is cut
+  from it. Needs 0.10.0.
 - `crafting-glass.json`: at the furnace north of Lumbridge Castle, soda ash and sand make molten glass (the buckets
   back), a pipe blows two vials, and water softens clay; at Barbarian Village's potter's wheel one soft clay shapes four
   unfired cups, which the oven fires. Needs 0.15.0.

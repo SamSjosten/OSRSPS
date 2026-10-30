@@ -1,0 +1,34 @@
+{
+ "name": "Artisan step 10: ::scenario lumbridge-artisan stands you by the furnace north of Lumbridge Castle at 50 Crafting, Fletching and Herblore with a full kit; a few of the kit's makes work from it",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-artisan", "expectMessage": "Started scenario lumbridge-artisan."},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "assertLocation", "x": 3225, "y": 3254, "plane": 0},
+  {"step": "assertStat", "skill": "Crafting", "level": 50},
+  {"step": "assertStat", "skill": "Fletching", "level": 50},
+  {"step": "assertStat", "skill": "Herblore", "level": 50},
+  {"step": "assertInventory", "item": "Feather", "count": 30},
+  {"step": "assertInventory", "item": "Vial of water", "count": 2},
+
+  {"step": "itemOption", "item": "Grimy guam leaf", "option": "Clean"},
+  {"step": "assertInventory", "item": "Guam leaf", "count": 1, "timeoutMs": 5000},
+  {"step": "useItemOnItem", "item": "Guam leaf", "onItem": "Vial of water"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Guam potion (unf)", "count": 1, "timeoutMs": 5000},
+  {"step": "useItemOnItem", "item": "Eye of newt", "onItem": "Guam potion (unf)"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Attack potion(3)", "count": 1, "timeoutMs": 5000},
+
+  {"step": "useItemOnItem", "item": "Chisel", "onItem": "Uncut sapphire"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Sapphire", "count": 1, "timeoutMs": 5000},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

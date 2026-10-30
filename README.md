@@ -1438,6 +1438,12 @@ warns at startup about any scenario naming an item the cache lacks.
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a
 tinderbox and 100 coins, with run on.
 
+`lumbridge-artisan` stands you beside the furnace north of Lumbridge Castle (3225, 3254) with 50 Crafting, Fletching
+and Herblore and a full backpack: a knife, three logs and a bow string, 30 feathers and 15 bronze arrowheads; a needle,
+five thread and two leather, a chisel and an uncut sapphire, a gold bar and a ring mould, soda ash, a bucket of sand, a
+glassblowing pipe, clay and a bucket of water; a pestle and mortar, a unicorn horn, two grimy guams, two vials of water
+and two eyes of newt. Something of every artisan skill to try in one place.
+
 `lumbridge-bare` stands you on the Lumbridge spawn (3222, 3218) with a new account's stats and nothing worn or carried:
 the clean start the equipment test scripts use.
 
