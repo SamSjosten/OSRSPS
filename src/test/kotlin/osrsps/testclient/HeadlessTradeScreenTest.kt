@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import osrsps.game.Inventory
 import osrsps.game.ItemPrices
+import osrsps.game.MemorySaveStore
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.PlayerSave
@@ -17,7 +18,7 @@ import org.junit.jupiter.api.io.TempDir
 
 /** The first trade screen over the real protocol: offering, removing, the partner's view, values and accepts. */
 class HeadlessTradeScreenTest {
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, saves: MemorySaveStore = MemorySaveStore()) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(QUEST_ITEM + 1)
         // As in the cache: coins lack the Grand Exchange flag (opcode 65), yet players trade them.
         objs[COINS] = ObjType(COINS, "Coins", stackable = true)
@@ -27,23 +28,33 @@ class HeadlessTradeScreenTest {
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), cycleMillis = millis,
             // Coins have no Grand Exchange price: they count 1 each anyway.
             itemPrices = ItemPrices(mapOf(AXE to ItemPrices.Entry("Bronze axe", 16, null))),
+            saves = saves,
         )
     }
 
-    /** Logs both in beside each other, gives Alice her items, and opens the trade. */
-    private fun trading(server: TestServer, body: (alice: HeadlessClient, bob: HeadlessClient) -> Any?) {
+    /**
+     * Logs both in beside each other, gives Alice her items (unless [again], a second trade in a row), and opens the
+     * trade.
+     */
+    private fun trading(server: TestServer, again: Boolean = false, body: (alice: HeadlessClient, bob: HeadlessClient) -> Any?) {
         server.login("alice").use { alice ->
             server.login("bob").use { bob ->
                 bob.walk(3223, 3218)
                 bob.await("bob's walk") { bob.position?.takeIf { it.x == 3223 } }
-                for (command in listOf("::item $COINS 1000", "::item $AXE 2", "::item $QUEST_ITEM")) alice.command(command)
-                alice.await("her items") { alice.inventory(Inventory.INV).filterNotNull().takeIf { it.size == 4 } }
+                if (!again) {
+                    for (command in listOf("::item $COINS 1000", "::item $AXE 2", "::item $QUEST_ITEM")) alice.command(command)
+                    alice.await("her items") { alice.inventory(Inventory.INV).filterNotNull().takeIf { it.size == 4 } }
+                }
                 alice.playerOp(bob.index, 4)
                 bob.await("the request") { bob.messages().firstOrNull { it.type == Trades.CHATTYPE_TRADEREQ } }
                 bob.playerOp(alice.index, 4)
                 alice.await("trading") { alice.openInterfaces().takeIf { Trades.MAIN in it } }
                 bob.await("trading") { bob.openInterfaces().takeIf { Trades.MAIN in it } }
                 body(alice, bob)
+                for (client in listOf(alice, bob)) {
+                    client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                    client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+                }
             }
         }
     }
@@ -121,6 +132,75 @@ class HeadlessTradeScreenTest {
                 alice.command("::item 995 5")
                 bob.awaitMessage("declined") { it == "[trade.declined]" }
                 alice.await("her coins back, and the command's") { alice.inventory(Inventory.INV).firstOrNull()?.takeIf { it == InvObj(COINS, 1005) } }
+            }
+        }
+    }
+
+    @Test
+    fun `both accepting twice swaps the offers in one go and saves both players together`(@TempDir dir: Path) {
+        val saves = MemorySaveStore()
+        server(dir, saves).use { server ->
+            trading(server) { alice, bob ->
+                bob.command("::item $AXE 1")
+                // The decline can reach Alice before Bob's command reply, so look through everything she has.
+                alice.await("declined") { alice.messages().firstOrNull { it.text == "[trade.declined]" } }
+            }
+            // Trade again, Bob with an axe this time, offered both ways.
+            trading(server, again = true) { alice, bob ->
+                alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 3, sub = 0, obj = COINS) // Offer-10
+                bob.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 1, sub = 0, obj = AXE)
+                bob.await("both offers") { bob.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).firstOrNull()?.takeIf { it == InvObj(COINS, 10) } }
+                alice.await("bob's offer") { alice.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).firstOrNull()?.takeIf { it == InvObj(AXE, 1) } }
+                alice.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+                bob.await("she accepted") { bob.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
+                bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+                alice.await("the second screen") { alice.openInterfaces().takeIf { Trades.CONFIRM in it } }
+                bob.await("the second screen") { bob.openInterfaces().takeIf { Trades.CONFIRM in it } }
+                assertEquals("[trade.give value=10]", alice.await("her give header") { alice.text(Trades.CONFIRM, Trades.CONFIRM_GIVE) })
+                assertEquals("[trade.receive value=16]", alice.text(Trades.CONFIRM, Trades.CONFIRM_RECEIVE))
+                assertEquals("[trade.are_you_sure]", alice.text(Trades.CONFIRM, Trades.CONFIRM_TITLE))
+                // The first screen's Offer does nothing now.
+                alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 1, sub = 0, obj = COINS)
+                alice.ifButton(Trades.CONFIRM, Trades.CONFIRM_ACCEPT, 1)
+                bob.await("she accepted again") { bob.text(Trades.CONFIRM, Trades.CONFIRM_TITLE)?.takeIf { it == "[trade.other_accepted]" } }
+                bob.ifButton(Trades.CONFIRM, Trades.CONFIRM_ACCEPT, 1)
+                for (client in listOf(alice, bob)) client.await("done") { client.messages().firstOrNull { it.text == "[trade.accepted]" } }
+                alice.await("screens shut") { alice.openInterfaces().takeIf { Trades.CONFIRM !in it && Trades.SIDE !in it } }
+                alice.await("her new inventory") { alice.inventory(Inventory.INV).filterNotNull().takeIf { InvObj(COINS, 990) in it && it.count { o -> o.id == AXE } == 3 } }
+                bob.await("his new inventory") { bob.inventory(Inventory.INV).filterNotNull().takeIf { it == listOf(InvObj(COINS, 10)) } }
+                // Both saves were written as it completed, naming the same trade, and the journal is gone.
+                val aliceSave = PlayerSave.fromJson(saves.saves.getValue("alice"))
+                val bobSave = PlayerSave.fromJson(saves.saves.getValue("bob"))
+                assertEquals(990L, aliceSave.inventory.values.filter { it.id == COINS }.sumOf { it.count.toLong() })
+                assertEquals(3, aliceSave.inventory.values.count { it.id == AXE })
+                assertEquals(listOf(osrsps.game.InvObj(COINS, 10)), bobSave.inventory.values.toList())
+                assertTrue(aliceSave.lastTrade != null && aliceSave.lastTrade == bobSave.lastTrade)
+                assertNull(saves.journal)
+            }
+        }
+    }
+
+    @Test
+    fun `a player without room for the other's offer can't move on, and both accepts go off`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            trading(server) { alice, bob ->
+                alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 1, sub = 1, obj = AXE)
+                alice.await("her offer") { alice.inventory(Trades.TRADEOFFER).firstOrNull() }
+                // Bob's inventory is full of axes.
+                bob.command("::item $AXE 28")
+                alice.await("declined") { alice.messages().firstOrNull { it.text == "[trade.declined]" } }
+                bob.await("his axes") { bob.inventory(Inventory.INV).filterNotNull().takeIf { it.size == 28 } }
+            }
+            trading(server, again = true) { alice, bob ->
+                alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 1, sub = 1, obj = AXE)
+                alice.await("her offer") { alice.inventory(Trades.TRADEOFFER).firstOrNull() }
+                alice.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+                bob.await("she accepted") { bob.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
+                bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+                bob.await("no room") { bob.messages().firstOrNull { it.text == "[trade.no_room]" } }
+                alice.await("his no room") { alice.messages().firstOrNull { it.text == "[trade.other_no_room]" } }
+                alice.await("her accept off") { alice.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "" } }
+                assertTrue(Trades.CONFIRM !in alice.openInterfaces())
             }
         }
     }

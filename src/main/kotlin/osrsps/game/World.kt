@@ -145,6 +145,7 @@ import osrsps.game.script.ScriptRunner
 import osrsps.game.social.FriendLists
 import osrsps.game.social.IgnoreLists
 import osrsps.game.social.PrivateMessages
+import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.Trades
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
@@ -451,6 +452,7 @@ class World(
         examine = { player, type, count -> inventoryTab.examine(player, type, count) },
         overflow = { player, obj -> objTypes[obj.id]?.let { groundObjs.give(player, it, obj.count) } },
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
+        commit = { a, b, swap -> commitTrade(a, b, swap) },
     )
 
     /** Private messages; see [PrivateMessages]. */
@@ -541,6 +543,7 @@ class World(
     }
 
     init {
+        replayTradeJournal()
         deaths.register(handlers)
         rangedCombat.blowpipe.register(handlers, Player::message)
         poweredStaves.register(handlers, Player::message)
@@ -571,8 +574,9 @@ class World(
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
-        interfaces.onClose(Trades.MAIN, trades::decline)
+        interfaces.onClose(Trades.MAIN, trades::mainClosed)
         interfaces.onClose(PriceChecker.MAIN, priceChecker::closed)
+        interfaces.onClose(Trades.CONFIRM, trades::decline)
         woodcutting.register()
         birdNests.register()
         firemaking.register()
@@ -1249,6 +1253,76 @@ class World(
         false
     }
 
+    /**
+     * Gives each completed trade an id no other trade, before or after a restart, has, and that sorts after every
+     * earlier one (the start time, then a count, both zero-padded); see [TradeJournal].
+     */
+    private val tradeIds = "%013d-".format(System.currentTimeMillis())
+    private var tradeCount = 0
+
+    /**
+     * Completes a trade: [apply] swaps the offers between [a] and [b] in memory, and then both new saves go out through
+     * the [TradeJournal] so they land together. Runs on the game thread inside the click that completed it.
+     */
+    internal fun commitTrade(a: Player, b: Player, apply: () -> Unit) {
+        val id = tradeIds + "%09d".format(++tradeCount)
+        apply()
+        a.lastTrade = id
+        b.lastTrade = id
+        val texts = try {
+            mapOf(a.saveKey to PlayerSave.of(a).toJson(a.username), b.saveKey to PlayerSave.of(b).toJson(b.username))
+        } catch (e: Exception) {
+            // The swap stands in memory and the autosave writes both later, one file each: no worse than before journals.
+            logger.error(e) { "Couldn't make the saves for trade $id between ${a.username} and ${b.username}" }
+            return
+        }
+        val journaled = try {
+            saves.writeJournal(TradeJournal(id, texts).toJson())
+            true
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't write the journal for trade $id; saving both players without it" }
+            false
+        }
+        var written = true
+        for ((key, text) in texts) written = write(key, text) && written
+        if (journaled && written) {
+            try {
+                saves.clearJournal()
+            } catch (e: Exception) {
+                // Left behind, it is skipped at the next start: both saves already record this trade.
+                logger.error(e) { "Couldn't clear the journal for trade $id" }
+            }
+        }
+        logger.info { "Trade $id between ${a.username} and ${b.username} saved" }
+    }
+
+    /**
+     * A journal left by a crash mid-trade: writes its saves, except over a save that already records that trade (or a
+     * later one, which a newer save than the journal's would). See [TradeJournal].
+     */
+    private fun replayTradeJournal() {
+        val text = try {
+            saves.readJournal()
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't read the trade journal" }
+            null
+        } ?: return
+        val journal = try {
+            TradeJournal.fromJson(text)
+        } catch (e: IllegalArgumentException) {
+            logger.error(e) { "The trade journal can't be read; leaving it for a look" }
+            return
+        }
+        for ((key, save) in journal.saves) {
+            val current = saves.read(key)
+            val last = current?.let(PlayerSave::lastTradeIn)
+            if (last != null && last >= journal.id) continue
+            saves.write(key, save)
+            logger.warn { "Trade ${journal.id}: wrote $key's save from the journal" }
+        }
+        saves.clearJournal()
+    }
+
     /** Saves that are still only in memory, for tests. */
     internal val unwrittenSaves: Set<String> get() = unwritten.keys
 
@@ -1537,7 +1611,6 @@ class World(
     fun onLocTarget(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
         if (held(player)) return@act
         trades.interrupt(player)
-        if (player.scripts.delayed) return@act
         if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS) {
             logger.info { "${player.username} used $interfaceId:$componentId sub $sub on loc $id (not handled)" }
             follows.clickedElsewhere(player)
@@ -1567,7 +1640,6 @@ class World(
     fun onNpcTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean) = act(player) {
         if (held(player)) return@act
         trades.interrupt(player)
-        if (player.scripts.delayed) return@act
         if (interfaceId == Spells.SPELLBOOK) {
             npcInteractions.castOn(player, index, ctrl) { npc -> magicCombat.cast(player, npc, componentId) }
             follows.clickedElsewhere(player)
