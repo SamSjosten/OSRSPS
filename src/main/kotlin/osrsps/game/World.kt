@@ -846,8 +846,12 @@ class World(
         // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
         // after them for a follow that ended in them.
         sendFace(player)
-        // A stunned player neither walks nor uses anything; the stun ended their route and interaction already.
-        if (!statusEffects.isStunned(player, tick)) {
+        // A stunned player neither walks nor uses anything; the stun ended their route and interaction already. The
+        // standing still is still a move, so run energy comes back as it does while delayed.
+        if (statusEffects.isStunned(player, tick)) {
+            player.waypoints.clear()
+            move(player)
+        } else {
             follows.process(player, move = { move(player) }) { interactions.process(player) { move(player) } }
         }
         sendFace(player)

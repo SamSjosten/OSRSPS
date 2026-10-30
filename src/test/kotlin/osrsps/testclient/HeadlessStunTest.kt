@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
@@ -19,8 +20,9 @@ import osrsps.map.CollisionMap
 
 /**
  * Stuns through the headless client: a stunned player's walk click is dropped and one after the stun walks, and a stun
- * ends a fight, the player's attack XP standing still until auto retaliate takes the fight up again after it. The
- * rl-client script test-runner/examples/stun.json does the same in the real client.
+ * ends a fight, the player's attack XP standing still until auto retaliate takes the fight up again after it; run
+ * energy still comes back while stunned. The rl-client script test-runner/examples/stun.json does the same in the real
+ * client.
  */
 class HeadlessStunTest {
     private val man = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", "Pickpocket", null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
@@ -49,6 +51,23 @@ class HeadlessStunTest {
                 client.commandReply("stun") { it == "Not stunned." }
                 client.walk(start.x, start.z + 3)
                 client.await("walked north") { client.position?.takeIf { it.z == start.z + 3 } }
+            }
+        }
+    }
+
+    @Test
+    fun `run energy comes back while stunned`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                val start = client.await("the login rebuild") { client.position }
+                // A ctrl-click runs, which drains energy.
+                client.walk(start.x, start.z + 8, keyCombination = 1)
+                client.await("ran north") { client.position?.takeIf { it.z == start.z + 8 } }
+                client.await("energy drained") { client.runEnergyHundredths.takeIf { it in 0 until 10_000 } }
+                client.commandReply("stun 8") { it.startsWith("Stunned for 8 more ticks") }
+                val energy = client.runEnergyHundredths
+                client.awaitTicks(4)
+                assertTrue(client.runEnergyHundredths > energy, "energy recovered while stunned")
             }
         }
     }
