@@ -187,6 +187,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   studs stud a leather body, and at level 1 green d'hide chaps need 60. Needs 0.10.0.
 - `crafting-gems.json`: at 99 a chisel cuts two sapphires (100 XP); at level 1 a sapphire needs 20 and three uncut
   opals are all cut or crushed. Needs 0.10.0.
+- `crafting-jewellery.json`: at the furnace north of Lumbridge Castle, a gold bar opens `crafting_gold` and All makes
+  two sapphire rings, a tiara mould opens `silver_crafting` and makes a tiara, and a ball of wool strings a gold
+  amulet. Needs 0.12.0 (`useItemOnLoc`).
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
@@ -322,6 +325,7 @@ server's answer instead of failing on what was there before.
 | `assertWeight` | `kg` | (0.9.0) Waits until the carried weight the server last sent is `kg` whole kilograms (rounded toward zero, so -4.535 kg is -4), as RuneLite's weight shows it. |
 | `groundItemOption` | `item` (name) or `itemId`, `op`, `option`, `x`+`y` | (0.10.0) Clicks ground op `op` (1 to 5; Take is 3, logs' Light is 4) on the nearest such item on the ground, as `takeItem` does Take; `option` is the menu text. RuneLite doesn't give an item's ground options, so the script names the op. |
 | `useItemOnItem` | `item` (name) or `itemId`, `onItem` or `onItemId` | (0.10.0) Clicks Use on the first such item in the inventory, then the first other slot holding the second item, as the server reads it (IF_BUTTONT). Retries until both are there; doesn't wait for the result. |
+| `useItemOnLoc` | `item` (name) or `itemId`, `loc` (name) or `locId`, `x`+`y` | (0.12.0) Clicks Use on the first such item in the inventory, then the nearest such loc (on that tile, when given), as the server reads it (OPLOCT). Retries until both are there; doesn't wait for the result. |
 | `enterAmount` | `amount` | (0.11.0) Waits for the chatbox's number prompt (meslayer mode 7, as after Withdraw-X or a settings number), puts the amount in it and presses Enter, then waits until the prompt has closed. |
 | `addFriend`, `deleteFriend` | `name` | (0.13.0) Clicks the Friends tab's Add Friend (or Delete Friend) button, waits for its chatbox prompt, types the name and presses Enter, as a player does; the client's own scripts then check it and tell the server. Waits for the list to arrive first and for the prompt to close after. Doesn't wait for the server's answer; follow it with `assertFriend`. |
 | `assertFriend` | `name`, `world` or `absent` | (0.13.0) Waits until the friends list shows the name (case and spaces against underscores don't matter) on world `world`, 0 for offline; or, with `absent: true`, until the name isn't on it. The result lists the whole list. |
