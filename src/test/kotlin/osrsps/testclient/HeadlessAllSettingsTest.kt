@@ -204,10 +204,17 @@ class HeadlessAllSettingsTest {
                 client.await("master back") { Unit.takeIf { client.varp(SettingsSide.VARP_MASTER_VOLUME) == 100 } }
                 client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 5)
                 client.awaitBits(SIDESTONE_KEYBINDINGS_1, 0, 5, 1)
-                // Wiping an empty playlist leaves it empty.
+                // Playlist 1's first and last tracks wiped, playlist 2's first left alone.
+                client.command("::varp $PLAYLIST_1_FIRST 7")
+                client.command("::varp ${PLAYLIST_1_FIRST + AllSettings.PLAYLIST_VARPS - 1} 9")
+                client.command("::varp ${PLAYLIST_1_FIRST + AllSettings.PLAYLIST_VARPS} 5")
+                client.await("the playlists filled") { Unit.takeIf { client.varp(PLAYLIST_1_FIRST + AllSettings.PLAYLIST_VARPS) == 5 } }
                 client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 6)
                 client.awaitBits(VARP_SETTINGS_TRACKING, 8, 10, 490)
-                assertEquals(0, client.varp(PLAYLIST_1_FIRST))
+                client.await("playlist 1 wiped") {
+                    Unit.takeIf { client.varp(PLAYLIST_1_FIRST) == 0 && client.varp(PLAYLIST_1_FIRST + AllSettings.PLAYLIST_VARPS - 1) == 0 }
+                }
+                assertEquals(5, client.varp(PLAYLIST_1_FIRST + AllSettings.PLAYLIST_VARPS))
             }
         }
     }
