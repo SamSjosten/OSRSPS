@@ -20,6 +20,18 @@ object MakeLines : Lines("make", "Make-X") {
 data class ObjCount(val obj: Int, val count: Int)
 
 /**
+ * A material that lasts several actions: one [obj] is used up every [uses] actions, counted in the player's [charge]
+ * ([osrsps.game.Charges], so it survives a logout), with [usedUp] as the message. Thread, which the Wiki says lasts 5.
+ */
+/**
+ * A recipe that can fail: success rolls the [low], [high] pair out of 256 ([SuccessRoll]); a miss gives [failed] (a
+ * crushed gem) and [failedXpTenths] instead, with [failedLine] as the message.
+ */
+data class MakeChance(val low: Int, val high: Int, val failed: Int, val failedXpTenths: Int, val failedLine: Line)
+
+data class WearingMaterial(val obj: Int, val uses: Int, val charge: String, val usedUp: Line)
+
+/**
  * One thing an artisan skill makes: [amount] of [product] from [inputs], with [tools] held but kept, at [level] in
  * [skill] for [xpTenths]. The first comes [first] ticks after the choice, the rest every [interval] ticks, each with
  * [anim] (-1 for none). [made] is the message on making it and [tooLow] the one when the level is too low; both are
@@ -27,6 +39,7 @@ data class ObjCount(val obj: Int, val count: Int)
  *
  * A [batch] recipe makes up to [amount] at a time, each one taking [inputs] once and giving [xpTenths]: arrows come 15 at
  * a time, or fewer when fewer are left. Otherwise each action takes [inputs] and gives [amount] and [xpTenths] once.
+ * [wears] is held like a tool and used up every so many actions. A [chance] recipe can fail.
  */
 class MakeRecipe(
     val key: String,
@@ -43,6 +56,8 @@ class MakeRecipe(
     val made: Line,
     val tooLow: Line,
     val batch: Boolean = false,
+    val wears: WearingMaterial? = null,
+    val chance: MakeChance? = null,
 ) {
     init {
         require(amount >= 1 && level in 1..99 && xpTenths >= 0) { "Bad numbers in recipe $key" }
@@ -59,6 +74,7 @@ class MakeRecipe(
     /** How many times [inventory] holds every input, tools included. */
     fun units(inventory: Inventory): Long {
         if (tools.any { inventory.count(it) == 0L }) return 0
+        if (wears != null && inventory.count(wears.obj) == 0L) return 0
         return inputs.minOf { inventory.count(it.obj) / it.count }
     }
 }
@@ -143,7 +159,10 @@ class Making(private val world: World) {
      */
     private fun make(player: Player, recipe: MakeRecipe): Boolean {
         val units = if (recipe.batch) minOf(recipe.amount.toLong(), recipe.units(player.inventory)).toInt() else 1
-        val type = world.objTypes[recipe.product] ?: error("No obj type ${recipe.product} for recipe ${recipe.key}")
+        val chance = recipe.chance
+        val failed = chance != null && !SuccessRoll.roll(world.random, chance.low, chance.high, player.skills.currentLevel(recipe.skill))
+        val product = if (failed) chance!!.failed else recipe.product
+        val type = world.objTypes[product] ?: error("No obj type $product for recipe ${recipe.key}")
         val saved = player.inventory.contents().toMap()
         for (input in recipe.inputs) removeObj(player.inventory, input.obj, input.count * units)
         val made = if (recipe.batch) units else recipe.amount
@@ -153,9 +172,23 @@ class Making(private val world: World) {
             player.message(world.textFor(player)[MakeLines.NO_SPACE])
             return false
         }
-        player.skills.addTenths(recipe.skill, recipe.xpTenths * units)
-        player.message(world.textFor(player).get(recipe.made, *args(recipe, recipe.made, made)))
+        val line = if (failed) chance!!.failedLine else recipe.made
+        player.skills.addTenths(recipe.skill, (if (failed) chance!!.failedXpTenths else recipe.xpTenths) * units)
+        player.message(world.textFor(player).get(line, *args(recipe, line, made)))
+        recipe.wears?.let { wear(player, it) }
         return true
+    }
+
+    /** One more action on [material]: every [WearingMaterial.uses]th uses one up. */
+    private fun wear(player: Player, material: WearingMaterial) {
+        val used = player.charges[material.charge] + 1
+        if (used < material.uses) {
+            player.charges[material.charge] = used
+            return
+        }
+        player.charges[material.charge] = 0
+        removeObj(player.inventory, material.obj, 1)
+        player.message(world.textFor(player)[material.usedUp])
     }
 
     /** Whether [player]'s level is enough for [recipe], telling them if not and [tell]. */

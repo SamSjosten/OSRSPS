@@ -182,12 +182,16 @@ class Player(
 
     /** What the client was last sent of [ge]. Not saved. */
     val geSent = osrsps.game.ge.GeSent()
+    val geSetup = osrsps.game.ge.GeSetup()
 
     /** The chatbox's public, private and trade filters, as the client last set them. Saved. */
     var chatFilters: ChatFilters = ChatFilters.DEFAULT
 
     /** The friends list's display names, oldest first; see [osrsps.game.social.FriendLists]. Saved. */
     val friends = ArrayList<String>()
+
+    /** The ignore list's display names, oldest first; see [osrsps.game.social.IgnoreLists]. Saved. */
+    val ignores = ArrayList<String>()
 
     /** The `::scenario` the player last started, null when they aren't in one. Saved. */
     var scenario: String? = null

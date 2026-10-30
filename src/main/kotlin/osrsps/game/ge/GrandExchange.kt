@@ -34,25 +34,24 @@ class GrandExchange(
     var marketOpen: Boolean = true
 
     /**
-     * Places a buy offer for [quantity] of [item] at [price] each in the first free slot, taking the coins now: coins
+     * Places a buy offer for [quantity] of [item] at [price] each in [slot], the first free one unless given, taking the coins now: coins
      * first, then platinum tokens, from the inventory. Inferred from the Wiki ("prioritising inventory"): the bank is
      * drawn on after the inventory; not yet, as the bank isn't reachable from the commands.
      */
-    fun buy(player: Player, item: Int, quantity: Int, price: Long): PlaceResult {
+    fun buy(player: Player, item: Int, quantity: Int, price: Long, slot: Int = player.ge.freeSlot()): PlaceResult {
         val type = objTypes[item]
-        val check = checkPlace(player, type, quantity, price)
+        val check = checkPlace(player, slot, type, quantity, price)
         if (check != PlaceResult.PLACED) return check
-        val slot = player.ge.freeSlot()
         val pay = pay(player.inventory, quantity * price)
         if (pay != PlaceResult.PLACED) return pay
         player.ge[slot] = GeOffer(OfferType.BUY, type!!.id, quantity, price, placedTick = currentTick())
         return PlaceResult.PLACED
     }
 
-    /** Places a sell offer, taking the items now from the inventory, unnoted ones first and then notes. */
-    fun sell(player: Player, item: Int, quantity: Int, price: Long): PlaceResult {
+    /** Places a sell offer in [slot], taking the items now from the inventory, unnoted ones first and then notes. */
+    fun sell(player: Player, item: Int, quantity: Int, price: Long, slot: Int = player.ge.freeSlot()): PlaceResult {
         val type = objTypes[item]?.let { unnoted(it) }
-        val check = checkPlace(player, type, quantity, price)
+        val check = checkPlace(player, slot, type, quantity, price)
         if (check != PlaceResult.PLACED) return check
         val ids = listOfNotNull(type!!.id, noteOf(type)?.id)
         if (ids.sumOf { player.inventory.count(it) } < quantity) return PlaceResult.NOT_ENOUGH_ITEMS
@@ -63,12 +62,12 @@ class GrandExchange(
                 if (obj.id == id) left -= player.inventory.remove(slot, left)
             }
         }
-        player.ge[player.ge.freeSlot()] = GeOffer(OfferType.SELL, type.id, quantity, price, placedTick = currentTick())
+        player.ge[slot] = GeOffer(OfferType.SELL, type.id, quantity, price, placedTick = currentTick())
         return PlaceResult.PLACED
     }
 
-    private fun checkPlace(player: Player, type: ObjType?, quantity: Int, price: Long): PlaceResult = when {
-        player.ge.freeSlot() < 0 -> PlaceResult.NO_FREE_SLOT
+    private fun checkPlace(player: Player, slot: Int, type: ObjType?, quantity: Int, price: Long): PlaceResult = when {
+        slot !in 0 until GeAccount.SLOTS || player.ge[slot] != null -> PlaceResult.NO_FREE_SLOT
         type == null || type.isCert || !type.tradeable -> PlaceResult.NOT_TRADEABLE
         // Only items with a guide price are on the Exchange here; the Wiki's snapshot has every one live lists.
         prices().price(type) == null -> PlaceResult.NOT_ON_EXCHANGE
@@ -90,30 +89,69 @@ class GrandExchange(
 
     /**
      * Moves what [slot] holds into the inventory, as far as it fits: items as notes when there is more than one of an
-     * item that doesn't stack and [notes] is set (live's Collect-notes), coins onto the coin stack. The slot empties once
-     * the offer is finished and nothing is left. Returns whether anything moved. GUESSED: that a part that doesn't fit
-     * stays in the slot rather than the collect failing whole.
+     * item that doesn't stack and [notes] is set (live's Collect-notes), coins onto the coin stack. [items] and [coins]
+     * pick the parts, as the screen's two boxes take one each. With [toBank], the parts go to the bank instead: it is
+     * handed an item and a count and returns how many went in. The slot empties once the offer is finished and nothing
+     * is left. Returns whether anything moved. GUESSED: that a part that doesn't fit stays in the slot rather than the
+     * collect failing whole.
      */
-    fun collect(player: Player, slot: Int, notes: Boolean = true): Boolean {
+    fun collect(
+        player: Player,
+        slot: Int,
+        notes: Boolean? = null,
+        items: Boolean = true,
+        coins: Boolean = true,
+        toBank: ((Player, Int, Int) -> Int)? = null,
+    ): Boolean {
         var offer = player.ge[slot] ?: return false
         var moved = false
-        if (offer.collectItems > 0) {
+        if (items && offer.collectItems > 0) {
             val type = objTypes[offer.item]!!
-            val giveAs = if (!type.stackable && notes && offer.collectItems > 1) noteOf(type) ?: type else type
-            val added = player.inventory.add(giveAs, offer.collectItems)
+            val added = if (toBank != null) {
+                toBank(player, offer.item, offer.collectItems)
+            } else {
+                // Notes when asked for (Collect-note, Collect-notes); left to itself, notes only for more than one.
+                val giveAs = if (!type.stackable && (notes ?: (offer.collectItems > 1))) noteOf(type) ?: type else type
+                player.inventory.add(giveAs, offer.collectItems)
+            }
             if (added > 0) moved = true
             offer = offer.copy(collectItems = offer.collectItems - added)
         }
-        if (offer.collectCoins > 0) {
-            val added = player.inventory.add(objTypes[COINS] ?: ObjType(COINS, stackable = true), minOf(offer.collectCoins, Int.MAX_VALUE.toLong()).toInt())
-            if (added > 0) moved = true
-            offer = offer.copy(collectCoins = offer.collectCoins - added)
+        if (coins && offer.collectCoins > 0) {
+            val (coinPart, tokenPart) = payout(offer.collectCoins)
+            var paid = 0L
+            if (tokenPart > 0) {
+                val added = give(player, PLATINUM_TOKEN, tokenPart.toInt(), toBank)
+                paid += added * TOKEN_VALUE
+            }
+            // The coins go whether or not every token fit: each part takes what room it finds.
+            if (coinPart > 0) paid += give(player, COINS, coinPart.toInt(), toBank)
+            if (paid > 0) moved = true
+            offer = offer.copy(collectCoins = offer.collectCoins - paid)
         }
-        player.ge[slot] = offer.takeUnless { it.done }
+        if (offer.done) {
+            // Kept for the screen's flush, so an abort collected in the same tick still gets its message.
+            player.ge.collected[slot] = offer
+            player.ge[slot] = null
+        } else {
+            player.ge[slot] = offer
+        }
         return moved
     }
 
-    /** Fills [player]'s offers the bot market takes, once a tick. */
+    /** Collects every slot, as Collect to inventory or to bank does. Returns whether anything moved. */
+    fun collectAll(player: Player, toBank: ((Player, Int, Int) -> Int)? = null): Boolean {
+        var moved = false
+        for (slot in 0 until GeAccount.SLOTS) {
+            if (collect(player, slot, toBank = toBank)) moved = true
+        }
+        return moved
+    }
+
+    private fun give(player: Player, id: Int, count: Int, toBank: ((Player, Int, Int) -> Int)?): Int =
+        toBank?.invoke(player, id, count) ?: player.inventory.add(objTypes[id] ?: ObjType(id, stackable = true), count)
+
+        /** Fills [player]'s offers the bot market takes, once a tick. */
     fun process(player: Player) {
         if (!marketOpen) return
         val tick = currentTick()
@@ -239,12 +277,49 @@ class GrandExchange(
         }
     }
 
+    /** [item]'s guide price, null when it isn't on the Exchange: noted, untradeable or with no price. */
+    fun guidePrice(item: Int): Long? {
+        val type = objTypes[item]?.takeIf { !it.isCert && it.tradeable } ?: return null
+        return prices().price(type)
+    }
+
+    /** [item]'s name, for messages. */
+    fun itemName(item: Int): String = objTypes[item]?.name ?: "item $item"
+
+    /** The item an offer for [item] trades: its unnoted form. */
+    fun offerItem(item: Int): Int = objTypes[item]?.let { unnoted(it).id } ?: item
+
+    /** What [item] and its note add up to in [inv], as many as a sell offer can take. */
+    fun available(inv: Inventory, item: Int): Long {
+        val type = objTypes[item]?.let { unnoted(it) } ?: return 0
+        return listOfNotNull(type.id, noteOf(type)?.id).sumOf { inv.count(it) }
+    }
+
+    /** The coins a buy offer can draw on in [inv]: its coins and platinum tokens. */
+    fun spendable(inv: Inventory): Long = inv.count(COINS) + inv.count(PLATINUM_TOKEN) * TOKEN_VALUE
+
+    /** The tax per mille on selling [item], as varbit ge_transmit_taxrate tells the client: none for the exempt items. */
+    fun taxRate(item: Int): Int = if (item in taxExempt) 0 else TAX_PER_MILLE.toInt()
+
     private fun unnoted(type: ObjType): ObjType =
         if (type.isCert) objTypes[type.certlink]?.takeIf { !it.isCert } ?: type else type
 
     private fun noteOf(type: ObjType): ObjType? = objTypes[type.certlink]?.takeIf { it.isCert && it.certlink == type.id }
 
     companion object {
+        /**
+         * How [coins] to collect are paid: as coins while they fit in a stack, else as platinum tokens for the
+         * thousands and coins for the rest. The collection box's third slot holds the tokens (script818 and
+         * script9910 draw coins and tokens as one, "coins_and_platinum"). GUESSED: where the split falls.
+         */
+        fun payout(coins: Long): Pair<Long, Long> {
+            if (coins <= Int.MAX_VALUE) return coins to 0L
+            // A stack of tokens tops out at 2,147,483,647 too; MAX_TOTAL is exactly a full stack of each. A sell can
+            // take in more (it fills at the guide price, above what was asked); the rest waits in the box for later.
+            val tokens = minOf(coins / TOKEN_VALUE, Int.MAX_VALUE.toLong())
+            return minOf(coins - tokens * TOKEN_VALUE, Int.MAX_VALUE.toLong()) to tokens
+        }
+
         const val COINS = 995
         const val PLATINUM_TOKEN = 13204
         const val TOKEN_VALUE = 1000L

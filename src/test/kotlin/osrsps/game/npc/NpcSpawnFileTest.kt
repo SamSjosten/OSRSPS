@@ -203,14 +203,18 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the toll gate has two Border Guards each side, standing still`() {
-        val types = NpcTypes.of(NpcType(4287, "borderguard1", internalName = "borderguard1"), NpcType(4288, "borderguard2", internalName = "borderguard2"))
+    fun `Al Kharid has two Border Guards each side of the toll gate and five bankers, all standing still`() {
+        val names = mapOf(4287 to "borderguard1", 4288 to "borderguard2", 3090 to "kharidbanker1", 3091 to "kharidbanker2")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
         assertEquals(emptyList(), result.unknown)
         val spawns = result.spawns
         // borderguard1 on the Lumbridge side (west of the gate's x 3268), borderguard2 on the Al Kharid side.
         assertEquals(setOf(Tile(3267, 3226), Tile(3267, 3229)), spawns.filter { it.type.id == 4287 }.map { Tile(it.x, it.z) }.toSet())
         assertEquals(setOf(Tile(3268, 3226), Tile(3268, 3229)), spawns.filter { it.type.id == 4288 }.map { Tile(it.x, it.z) }.toSet())
+        // Five bankers behind the bank's booths (x 3268), as the Wiki counts them.
+        assertEquals(5, spawns.count { it.type.id == 3090 || it.type.id == 3091 })
+        assertTrue(spawns.filter { it.type.id == 3090 || it.type.id == 3091 }.all { it.x == 3267 && it.z in 3164..3169 })
         assertTrue(spawns.all { it.wander == 0 && it.level == 0 && it.source.isNotBlank() })
     }
 
@@ -235,6 +239,25 @@ class NpcSpawnFileTest {
         val spots = spawns.filter { it.type.id == Fishing.DRAYNOR_SPOT }
         assertEquals(2, spots.size)
         assertTrue(spots.all { spot -> Fishing.AREAS.any { Tile(spot.x, spot.z) in it } && spot.wander == 0 })
+    }
+
+    @Test
+    fun `the church has Father Aereck and the Prayer tutor inside, Nigel in the graveyard and Count Check by it`() {
+        val names = mapOf(2812 to "father_aereck", 3223 to "aide_tutor_prayer", 6093 to "deadman_nigel", 7414 to "count_check")
+        val churchTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-church.json"), churchTypes, "lumbridge-church.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns.associateBy { it.type.id }
+        assertEquals(setOf(2812, 3223, 6093, 7414), spawns.keys)
+        assertEquals(4, result.spawns.size)
+        // The church's floor is 3239 to 3247 by 3205 to 3215.
+        for (id in listOf(2812, 3223)) {
+            val npc = spawns.getValue(id)
+            assertTrue(npc.x in 3239..3247 && npc.z in 3205..3215 && npc.restrict == MoveRestrict.INDOORS)
+        }
+        assertEquals(Tile(3243, 3201), spawns.getValue(6093).let { Tile(it.x, it.z) })
+        assertEquals(Tile(3238, 3199), spawns.getValue(7414).let { Tile(it.x, it.z) })
+        assertTrue(result.spawns.all { it.source.isNotBlank() && it.level == 0 && it.wander == if (it.type.id == 2812) 5 else 2 })
     }
 
     @Test

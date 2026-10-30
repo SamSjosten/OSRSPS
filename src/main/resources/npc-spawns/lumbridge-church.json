@@ -1,0 +1,9 @@
+{
+  "about": "Lumbridge church and its graveyard, east of the castle: Father Aereck (father_aereck, 2812) and the Prayer tutor (aide_tutor_prayer, 3223) inside, Nigel the Deadman tutor (deadman_nigel, 6093, which shows as Nigel, 8391, on a normal world) in the graveyard and Count Check (count_check, 7414) south-west of it. Tiles are RSMod's rev 233 Lumbridge spawns, checked against the 241 map (the church's walls and pews). Every wander range is guessed (2, Father Aereck 5 inside) until recorded.",
+  "spawns": [
+    {"npc": "father_aereck", "x": 3244, "z": 3206, "restrict": "indoors", "wander": 5, "source": "Father Aereck, in the church by the altar. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "aide_tutor_prayer", "x": 3243, "z": 3214, "restrict": "indoors", "wander": 2, "source": "Prayer tutor, in the church by the north door. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "deadman_nigel", "x": 3243, "z": 3201, "wander": 2, "source": "Nigel, in the graveyard. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "count_check", "x": 3238, "z": 3199, "wander": 2, "source": "Count Check, south-west of the graveyard. RSMod rev 233 Lumbridge spawns"}
+  ]
+}

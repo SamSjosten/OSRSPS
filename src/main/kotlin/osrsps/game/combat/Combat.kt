@@ -84,6 +84,9 @@ class Combat(
 
     fun bonuses(player: Player): EquipmentBonuses = equipment.bonuses(player)
 
+    /** What [player] wields, null for nothing. */
+    fun weapon(player: Player): ObjType? = equipment.weapon(player)
+
     /** The category of the weapon the player wields ([Weapons]), [Weapons.UNARMED] for none. */
     fun weaponCategory(player: Player): Int = Weapons.category(equipment.weapon(player))
 
