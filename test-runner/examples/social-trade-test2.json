@@ -1,0 +1,27 @@
+{
+ "name": "Trade, two players (run with social-trade-test.json on the other VM at the same time): test2 accepts test's request, offers a bronze axe for 10 coins, both accept twice, and the items swap; ::reset puts the account back",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3222 3216 0", "expectMessage": "Teleported", "comment": "off the meeting tile first: test waits for us there before it asks (::reset brings us back here)"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing carried"},
+  {"step": "command", "text": "::item 1351", "expectMessage": "Added"},
+  {"step": "command", "text": "::tele 3224 3218 0", "expectMessage": "Teleported", "comment": "the meeting tile, test's sign that we're ready"},
+  {"step": "assertMessage", "contains": "[trade.request name=test]", "timeoutMs": 180000},
+  {"step": "playerOption", "player": "test", "option": "Trade with", "comment": "as the request's Accept trade does"},
+  {"step": "assertInterface", "interfaceId": 335},
+  {"step": "clickWidget", "interfaceId": 336, "component": 0, "slot": 0, "op": 1, "comment": "Offer on the axe"},
+  {"step": "assertInventory", "itemId": 1351, "count": 0},
+  {"step": "assertWidgetText", "interfaceId": 335, "component": 30, "contains": "[trade.other_accepted]", "timeoutMs": 60000, "comment": "test accepted"},
+  {"step": "clickWidget", "interfaceId": 335, "component": 10, "comment": "Accept"},
+  {"step": "assertInterface", "interfaceId": 334, "timeoutMs": 60000, "comment": "the second screen"},
+  {"step": "assertWidgetText", "interfaceId": 334, "component": 24, "contains": "[trade.receive value=10]"},
+  {"step": "assertWidgetText", "interfaceId": 334, "component": 4, "contains": "[trade.other_accepted]", "timeoutMs": 60000, "comment": "test accepted again"},
+  {"step": "clickWidget", "interfaceId": 334, "component": 13, "comment": "Accept again"},
+  {"step": "assertMessage", "contains": "[trade.accepted]", "timeoutMs": 60000},
+  {"step": "assertInventory", "itemId": 995, "count": 10},
+  {"step": "assertInventory", "itemId": 1351, "count": 0},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

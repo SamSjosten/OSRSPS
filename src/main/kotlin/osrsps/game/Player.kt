@@ -202,6 +202,9 @@ class Player(
     /** The trade this player is in, null when none; see [osrsps.game.trade.Trades]. Not saved. */
     var trade: osrsps.game.trade.Trade? = null
 
+    /** The id of the last trade this player completed; see [osrsps.game.trade.TradeJournal]. Saved. */
+    var lastTrade: String? = null
+
     /** Who this player last asked to trade, while the request stands; see [osrsps.game.trade.Trades]. Not saved. */
     var tradeRequestTo: Player? = null
 
