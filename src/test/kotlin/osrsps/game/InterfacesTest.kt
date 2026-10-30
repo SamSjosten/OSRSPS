@@ -32,11 +32,14 @@ class InterfacesTest {
     fun `fixed mode opens every overlay into the fixed top-level`() {
         interfaces.openGameFrame(player(GameFrame.FIXED))
         assertEquals(IfOpenTop(548), sent.first())
-        val subs = sentOf<IfOpenSub>().filter { it.destinationInterfaceId != JournalTab.SIDE_JOURNAL }
+        val inside = setOf(JournalTab.SIDE_JOURNAL, osrsps.game.social.FriendChats.SIDE_CHANNELS)
+        val subs = sentOf<IfOpenSub>().filter { it.destinationInterfaceId !in inside }
         assertEquals(GameFrame.overlays.size, subs.size)
         assertTrue(subs.all { it.destinationInterfaceId == 548 })
         // With no tab remembered, the quest tab shows the character summary.
         assertTrue(IfOpenSub(629, 43, 712, Interfaces.OVERLAY) in sent)
+        // And the Chat-channel tab the friends chat panel.
+        assertTrue(IfOpenSub(707, 7, 7, Interfaces.OVERLAY) in sent)
         // The inventory goes into side3, which is component 84 in fixed and 79 in resizable classic.
         assertTrue(IfOpenSub(548, 84, 149, Interfaces.OVERLAY) in subs)
         assertTrue(RunClientScript(GameFrame.ZOOM_LIMITS_DEFAULT_SCRIPT, emptyList()) in sent)

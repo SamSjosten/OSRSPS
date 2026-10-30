@@ -28,6 +28,7 @@ import osrsps.game.skill.MakeLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.WoodcuttingLines
+import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
 
@@ -57,11 +58,11 @@ object DialogueLines {
         CandleSellerLines, MiningTutorLines, FishingTutorLines, AereckLines, PrayerTutorLines, NigelLines, CountCheckLines,
         AltarLines,
         // Social systems.
-        SocialLines, TradeLines,
+        SocialLines, FriendsChatLines, TradeLines,
         // Al Kharid.
         BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
         GemTraderLines, AliMorrisaneLines, KarimLines, SilkTraderLines, KebabLines, EllisLines, TanningLines,
-        HassanLines, OsmanLines, PrinceAliLines,
+        HassanLines, OsmanLines, PrinceAliLines, CamelLines,
         // Draynor Village.
         DraynorSearchLines, AxeLogsLines, FortunatoLines, OliviaLines, DiangoLines,
         // The Grand Exchange.

@@ -1610,6 +1610,36 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String friendsChatOwner()
+	{
+		net.runelite.api.FriendsChatManager chat = client.getFriendsChatManager();
+		if (!loggedIn() || chat == null || chat.getOwner() == null)
+		{
+			return null;
+		}
+		return net.runelite.client.util.Text.toJagexName(chat.getOwner());
+	}
+
+	@Override
+	public java.util.List<String> friendsChatMembers()
+	{
+		java.util.List<String> names = new java.util.ArrayList<>();
+		net.runelite.api.FriendsChatManager chat = client.getFriendsChatManager();
+		if (!loggedIn() || chat == null)
+		{
+			return names;
+		}
+		for (net.runelite.api.FriendsChatMember member : chat.getMembers())
+		{
+			if (member != null && member.getName() != null)
+			{
+				names.add(net.runelite.client.util.Text.toJagexName(member.getName()));
+			}
+		}
+		return names;
+	}
+
+	@Override
 	public java.util.List<String> ignores()
 	{
 		net.runelite.api.NameableContainer<net.runelite.api.Ignore> container = client.getIgnoreContainer();

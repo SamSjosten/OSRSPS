@@ -53,8 +53,13 @@ class PrivateMessages(
         logger.info { "${sender.username} -> ${recipient.username}: $line" }
         val shownAs = sender.friends.firstOrNull { sameName(it, recipient.username) } ?: recipient.username
         sender.session.queue(MessagePrivateEcho(shownAs, line))
+        recipient.session.queue(MessagePrivate(sender.username, FriendLists.WORLD, nextCounter(), FriendLists.RANK, line))
+    }
+
+    /** The next message counter, for private messages and friends chat alike. */
+    fun nextCounter(): Int {
         counter = (counter + 1) and COUNTER_MASK
-        recipient.session.queue(MessagePrivate(sender.username, FriendLists.WORLD, counter, FriendLists.RANK, line))
+        return counter
     }
 
     companion object {

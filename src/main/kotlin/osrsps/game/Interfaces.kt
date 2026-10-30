@@ -12,6 +12,7 @@ import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.script.ScriptContext
+import osrsps.game.social.FriendChats
 
 /**
  * Opens, moves and closes interfaces in a player's game frame.
@@ -32,6 +33,10 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
             send(player, IfOpenSub(frame.interfaceId, frame.component(overlay.slot), overlay.interfaceId, OVERLAY))
         }
         openJournalTab(player, JournalTab.forValue(journalTabVarbit(player)?.let { player.vars.getVarbit(it) } ?: 0))
+        // The Chat-channel tab's friends chat panel, in side_channels' contents as the journal's tabs sit in theirs, and
+        // its Setup button. Guessed: the other three channel tabs (clans, grouping) aren't built, so this one stays.
+        send(player, IfOpenSub(FriendChats.SIDE_CHANNELS, FriendChats.SIDE_CHANNELS_CONTENTS, FriendChats.CURRENT, OVERLAY))
+        send(player, IfSetEventsV2(FriendChats.CURRENT, FriendChats.CURRENT_SETUP, -1, -1, 0, IF_EVENT_OP1))
         // Lets the client send clicks on the "Game client layout" dropdown's three options.
         send(player, IfSetEventsV2(GameFrame.SETTINGS_SIDE, GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS, 1, 3, 0, IF_EVENT_OP1))
         // And on the attack priority dropdowns' options: client-made children 1 to n of their buttons components.
@@ -249,6 +254,7 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         closeChatModal(player)
         // Guessed, after RSMod closing the bank's search prompt: an amount prompt closes with the interfaces it was for.
         dropCount(player)
+        if (player.scripts.dropTyping()) send(player, RunClientScript(ScriptContext.MESLAYER_CLOSE, listOf(ScriptContext.MESLAYER_STRING)))
         if (player.modals.isEmpty()) return
         val frame = player.frame
         for (slot in player.modals.keys) sendClose(player, frame.interfaceId, frame.component(slot))
@@ -316,6 +322,7 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
          * while op 1 was set only in the first word.
          */
         const val IF_EVENT_OP1 = 1 shl 0
+        const val IF_EVENT_OP2 = 1 shl 1
 
         /**
          * IF_SETEVENTS_V2 first word: the component may send IF_SCRIPT_TRIGGER (cs2 `if_runscript`). Without it the 241
