@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   # Which parts of the repository the change touches, against main (the pull request's base): the launcher and
-  # installer jobs, tick-recorder and test-runner sit out a change that touches nothing they build from. A push to main
+  # installer jobs, tick-recorder and test-runner sit out a change that touches nothing they build from. A run on main
   # runs everything, so main's artifacts and Gradle caches are always whole.
   changes:
     runs-on: ${{ github.repository == 'SamSjosten/OSRSPS' && (github.event.repository.private || vars.RUNNER == 'self-hosted' && github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch", "schedule"]'), github.event_name)) && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
@@ -39,7 +39,8 @@ jobs:
           BASE: ${{ github.base_ref || 'main' }}
         run: |
           set -euo pipefail
-          if [[ $GITHUB_EVENT_NAME == push ]]; then
+          # A run on main itself (a push, or the dispatch after the queue merges with its own token) builds everything.
+          if [[ $GITHUB_EVENT_NAME == push || $GITHUB_REF == refs/heads/main ]]; then
             printf '%s\n' launcher=true tick-recorder=true test-runner=true | tee -a "$GITHUB_OUTPUT"
             exit 0
           fi
