@@ -21,6 +21,10 @@ class GatesTest {
             gate(LONE, "Open", "lone_fencegate_l"),
             gate(LONE_OPEN, "Close", "lone_openfencegate_l"),
             gate(UNPAIRED, "Open", "nothing_fencegate_l"),
+            gate(FIELD_L, "Open", "fai_varrock_gate_l"),
+            gate(FIELD_L_OPEN, "Close", "fai_varrock_gate_lc"),
+            gate(FIELD_R, "Open", "fai_varrock_gate_r"),
+            gate(FIELD_R_OPEN, "Close", "fai_varrock_gate_rc"),
         ).associateBy { it.id },
     )
     private val static = StaticLocs()
@@ -97,6 +101,19 @@ class GatesTest {
         assertEquals(0, locs.changed)
     }
 
+    @Test
+    fun `the field gates north of Lumbridge open into their _lc and _rc types`() {
+        // As the cache has the one at 3254, 3347: both leaves along a north wall (angle 1), the left one west.
+        val l = ZoneLoc(FIELD_L, LocShape.WALL_STRAIGHT, 1, 3100, 3250, 0)
+        val r = ZoneLoc(FIELD_R, LocShape.WALL_STRAIGHT, 1, 3101, 3250, 0)
+        static.add(l)
+        static.add(r)
+        assertEquals(ZoneLoc(FIELD_L_OPEN, LocShape.WALL_STRAIGHT, 0, 3100, 3251, 0), gates.toggle(l, 1))
+        assertEquals(listOf(ZoneLoc(FIELD_R_OPEN, LocShape.WALL_STRAIGHT, 0, 3100, 3252, 0)), locs.at(3100, 3252, 0))
+        assertEquals(r, gates.toggle(locs.at(3100, 3252, 0).single(), 1))
+        assertEquals(0, locs.changed)
+    }
+
     private fun gate(id: Int, op: String, name: String) =
         LocType(id, "Gate", ops = listOf(op, null, null, null, null), internalName = name)
 
@@ -108,5 +125,9 @@ class GatesTest {
         const val LONE = 1
         const val LONE_OPEN = 2
         const val UNPAIRED = 3
+        const val FIELD_L = 15514
+        const val FIELD_L_OPEN = 15515
+        const val FIELD_R = 15516
+        const val FIELD_R_OPEN = 15517
     }
 }

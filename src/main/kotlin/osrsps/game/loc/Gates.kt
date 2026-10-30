@@ -10,7 +10,8 @@ private val logger = KotlinLogging.logger {}
  * Fence gates: two leaves in a wall, the left one and the right one beside it, that swing open together (Draynor's pig
  * pen and farm, Lumbridge's fields). A gate type pairs with its open type by gameval name: `fencegate_l` with
  * `openfencegate_l`, `farming_fencegate_r` with `farming_openfencegate_r`, and so on for every `…fencegate_l`/`_r` with
- * an Open option whose `…openfencegate_…` type has a Close option.
+ * an Open option whose `…openfencegate_…` type has a Close option; and the field gates north of Lumbridge,
+ * `fai_varrock_gate_l`/`_r`, with `fai_varrock_gate_lc`/`_rc`.
  *
  * Opened, the leaves turn three quarters clockwise (a quarter anticlockwise) and move: the left one a tile outward,
  * the right one two tiles outward and a tile back along the wall, so both stand against the left leaf's hinge side.
@@ -30,12 +31,17 @@ class Gates(private val locs: Locs) {
         for (type in types.all) type.internalName?.let { byName[it] = type }
         for (closed in types.all) {
             val name = closed.internalName ?: continue
-            val side = name.takeLast(2)
-            if (side != "_l" || !name.endsWith("fencegate_l") || name.contains("openfencegate")) continue
+            if (!name.endsWith("_l") || name.contains("openfencegate")) continue
             val stem = name.dropLast(2)
-            val leftOpen = byName[open(stem) + "_l"] ?: continue
+            // `…fencegate_l` opens into `…openfencegate_l`; the Varrock-style field gates `…_gate_l` into `…_gate_lc`.
+            val (leftOpenName, rightOpenName) = when {
+                stem.endsWith("fencegate") -> open(stem) + "_l" to open(stem) + "_r"
+                stem.endsWith("_gate") -> stem + "_lc" to stem + "_rc"
+                else -> continue
+            }
+            val leftOpen = byName[leftOpenName] ?: continue
             val right = byName[stem + "_r"]
-            val rightOpen = byName[open(stem) + "_r"]
+            val rightOpen = byName[rightOpenName]
             if (closed.op(Doors.OPEN) == 0 || leftOpen.op(Doors.CLOSE) == 0) continue
             val hasRight = right != null && rightOpen != null && right.op(Doors.OPEN) != 0 && rightOpen.op(Doors.CLOSE) != 0
             leaves[closed.id] = Leaf(left = true, open = false, partner = leftOpen.id, otherLeaf = right?.id.takeIf { hasRight })

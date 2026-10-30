@@ -1076,8 +1076,11 @@ right leaf `…fencegate_r` with `…openfencegate_r`, by the same gameval names
 opens both: each turns a quarter anticlockwise, the left one moving a tile outward and the right one two tiles outward
 and one back along the fence, so they stand together against the left leaf's hinge. Closing puts both back. That
 covers the plain picket gates (`fencegate_l`/`_r`, 1558/1560), the farming ones (1561/1562), the rustic ones and Fred
-the Farmer's (`qip_sheep_shearer_fencegate_*`): Draynor's pig pen and farm, Lumbridge's cow field, Fred's farm and the
-Groats' pens. The rule is RSMod's picket gate script (rev 233), not yet watched on live; gates stay open until closed,
+the Farmer's (`qip_sheep_shearer_fencegate_*`), and the field gates north of Lumbridge (`fai_varrock_gate_l`/`_r`,
+which open into `_lc`/`_rc`): Draynor's pig pen and farm, and in and around Lumbridge the cow field's gates (3253, 3266
+and the west fence's), Fred's farm and sheep pen, the Groats' pens, the fields to the west (3145, 3291 to 3198, 3282)
+and north (3213, 3354 and 3254, 3347). Not covered: the cow field's `fencegate_*_cowboss_start` at 3262, 3294, whose
+option is Release (a content gate of its own). The rule is RSMod's picket gate script (rev 233), not yet watched on live; gates stay open until closed,
 as doors do (RSMod shuts them again after 500 ticks).
 
 | Loc behaviour | Source |
