@@ -38,6 +38,8 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         before.restoreTo(player)
         // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
         world.prayers.deactivateAll(player)
+        // A stall owner's grudge from a test theft goes too, so the next script can trade with them.
+        world.thieving.forgive(player)
         world.teleport(player, before.x, before.z, before.level)
         player.scenario = null
         player.beforeScenario = null

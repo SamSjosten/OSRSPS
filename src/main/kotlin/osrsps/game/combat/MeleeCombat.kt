@@ -420,6 +420,16 @@ class MeleeCombat(
         retaliate(npc, source, tick)
     }
 
+    /**
+     * [npc] turns on [player] unprovoked, as a market guard does on a thief: it attacks from the next tick, as when hit.
+     * Does nothing to an NPC that can't fight.
+     */
+    fun provoke(npc: Npc, player: Player, tick: Long) {
+        if (npc.dead || combat.npcCombat[npc.type] == null) return
+        attacked(npc, player, tick)
+        retaliate(npc, player, tick)
+    }
+
     /** [npc] is in combat with [source] (null for none) from [tick], and faces them. */
     private fun attacked(npc: Npc, source: Player?, tick: Long) {
         npc.attacker = source

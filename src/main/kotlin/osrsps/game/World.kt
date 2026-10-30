@@ -156,6 +156,7 @@ import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
+import osrsps.game.skill.Thieving
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
@@ -529,6 +530,7 @@ class World(
     val firemaking = Firemaking(this, collision)
 
     val mining = Mining(this)
+    val thieving = Thieving(this, collision)
 
     val fishing = Fishing(this)
 
@@ -648,6 +650,7 @@ class World(
         birdNests.register()
         firemaking.register()
         mining.register()
+        thieving.register()
         fishing.register()
         cooking.register()
         smithing.register()

@@ -1,0 +1,118 @@
+{
+ "name": "Draynor piece step 7: the seed stall's level check, a theft (one seed, 10 XP, the stall empty and back), and Olivia refusing to trade after it (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back, and makes Olivia forget the theft"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel thieving 1",
+   "expectMessage": "1",
+   "comment": "the level check first"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3074 3249 0",
+   "expectMessage": "Teleported to 3074, 3249, 0",
+   "comment": "west of the market's west seed stall, the stall between the player and Olivia"
+  },
+  {
+   "step": "locOption",
+   "loc": "Seed Stall",
+   "option": "Steal from",
+   "x": 3075,
+   "y": 3249
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[thieving.level level=27"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel thieving 27",
+   "expectMessage": "27"
+  },
+  {
+   "step": "locOption",
+   "loc": "Seed Stall",
+   "option": "Steal from",
+   "x": 3075,
+   "y": 3249,
+   "comment": "a Market Guard can see this only from the market's far west edge; if this step fails with a guard attacking, it saw"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[thieving.stolen item="
+  },
+  {
+   "step": "assertStat",
+   "skill": "Thieving",
+   "level": 27,
+   "xp": 9740,
+   "comment": "9,730 at level 27, then 10 for the theft"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Market stall",
+   "x": 3075,
+   "y": 3249,
+   "comment": "empty for 4 ticks"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 5
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Seed Stall",
+   "x": 3075,
+   "y": 3249,
+   "option": "Steal from",
+   "comment": "back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3077 3251 0",
+   "expectMessage": "Teleported to 3077, 3251, 0",
+   "comment": "by Olivia"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Olivia",
+   "option": "Trade",
+   "comment": "she won't trade for 30 minutes after a theft from her stall: her shout, and no shop"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
