@@ -258,6 +258,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::areasound id [radius] [loops]` | Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
 | `::jingle id` | **everyone.** Plays jingle `id` to you alone |
 | `::item id\|name [count]` | Puts items in your inventory, by id, menu name or gameval name: `::item 1351`, `::item bronze axe 2`, `::item coins 10k`. Adds what fits |
+| `::bank` | Opens your bank wherever you are |
 | `::empty` | Empties your inventory |
 | `::locs [radius]` | **everyone.** Lists the locs within radius tiles of you (default 1): id, name, tile, shape and angle, and whether they differ from the cache |
 | `::addloc id [shape] [angle]` | Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
@@ -266,6 +267,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
 | `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
+| `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
 | `::reset` | Puts you back as you were before your first `::scenario` |
@@ -847,6 +849,11 @@ quest, so Al Kharid is as after Prince Ali Rescue.
 | The Al Kharid mine's silver rocks (level 20, 40 XP, 25/200) and gold rocks (level 40, 65 XP, 7/75), each back in a minute; its other rocks, the furnace and the ranges work as elsewhere | OSRS Wiki, Silver rocks and Gold rocks (the pairs fit their charts' two points exactly) |
 | Two Small Net/Bait fishing spots (`0_51_49_saltfish` 1528) by the sea south-west of town, moving between six tiles; Small Net is Lumbridge Swamp's Net | 241 cache; 2004Scape's spawn tiles and fishing_movement_al_kharid_enum (live's tiles since March 2021) |
 | Search on the boxes (`boxes3` 361) by Ali Morrisane's stall: nothing in them | 2004Scape's crates.rs2 |
+| The Shantay Pass, north side: Shantay's talk (first talk and later), the outlaw arrested into the cell west of his hut and fined 5 coins (from the backpack, else the bank, else the Port Sarim prison), Trade (the Shantay Pass Shop: its 20 items, 100%/70%/1%) and Buy-pass (5 coins); the cell door locked while jailed | OSRS Wiki, Transcript:Shantay and Shantay Pass Shop; 2004Scape's shantay.rs2 for the flow; the cell's inside tile and the narrated lines as boxes guessed |
+| The Port Sarim prison: the player lands in a cell; Pick-lock on its door (`port_sarim_jaildoor` 9565) gets them out, 4 Thieving XP (0.5 on a fail), the chance rising from 0% to 82% over four tries at level 1 and from 39% to 127% at 99 | OSRS Wiki, Door (Port Sarim jail); the arrival tile is 2004Scape's; how the chance rises between tries and levels guessed; the messages' words to come from a recording |
+| The gate (4031) and its guard (`shantay_guard_still` 4648, Talk-to and Pass): no pass, the guard sends the player to Shantay; with one, the desert isn't built yet, so the gate says so (our words) and the pass is kept; from the desert side the gate always lets the player north; Look-at shows the poster | OSRS Wiki, Transcript:Shantay Guard; 2004Scape's shantay_pass.rs2 (Look-at's boxes guessed for live) |
+| Three Shantay Guards (4643, level 22: stab, max hit 3, back in 50 ticks, bones), one line each; the bank chest's Use opens the bank; Irena (as after Tourist Trap) one line | OSRS Wiki, Shantay Guard, Transcript:Shantay Guard and Transcript:Irena; tiles from 2004Scape map m51_48 |
+| The Emir's Arena and the glider as stubs: Captain Dalbur (`pilot_al_kharid` 6089, shown as after The Grand Tree) talks, and his Glider, Glider-to and the glider answer in his talk say the gliders don't fly anywhere built yet (our words) in place of the map; Arena Guard Fronk (11664), the Duel Guide (11673) and the 1v1 Tournament Guide (11672) talk; the recruitment boards, staging area steps and scoreboard say the Arena isn't open yet (our words); the fire altar's ruins are scenery | OSRS Wiki, Transcript:Captain Dalbur, Transcript:Duel Guide, Transcript:1v1 Tournament Guide, Transcript:Arena Guard Fronk; Dalbur's tile from mejrs's live NPC list; the Arena people's tiles guessed by the 241 cache's boards and gate |
 | The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
 
 Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only); Ali
@@ -855,19 +862,19 @@ keeper, and the keepers' treasure trail steps. The words of
 the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
 `examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`), as are the shop keepers' (`al_kharid_shop_keeper.*`,
 `al_kharid_shop_assistant.*`, `zeke.*`, `dommik.*`, `louie_legs.*`, `ranael.*`, `gem_trader.*` and each keeper's examine), Karim's and the Silk trader's (`karim.*`, `silk_trader.*`) and the kebab's
-messages (`kebab.*`), and Ellis's talk and the tanning screen's words (`ellis.*`, `tanning.*`), the palace's (`hassan.*`, `osman.*`, `prince_ali.*`), the camels' (`camel.*`), and the boxes' (`search.boxes_empty`).
-Also left out from the palace: filling vessels at the fountain (no water sources are built yet), the big-window shortcut itself, Osman's Crack the Clue step, and the Emir, who is never seen. From the fighters and camels: Pickpocket on men and warriors (Thieving comes with the Draynor piece), the warriors joining in when one is attacked (NPC aggression, the Varrock piece), the camulet's talk and camel dung (members, Enakhra's Lament and My Arm's Big Adventure), and Cam's treasure trail step. From the mine: its agility shortcut (`alkharid_mine_sc_*`).
+messages (`kebab.*`), and Ellis's talk and the tanning screen's words (`ellis.*`, `tanning.*`), the palace's (`hassan.*`, `osman.*`, `prince_ali.*`), the camels' (`camel.*`), the boxes' (`search.boxes_empty`), and the Shantay Pass's (`shantay.*`, `shantay_guard.*`, `shantay_gate.*`, `irena.*`, `port_sarim_jail.*`), and the Arena's (`dalbur.*`, `duel_guide.*`, `tournament_guide.*`, `fronk.*`; `arena_stub.*` are ours).
+Also left out from the palace: filling vessels at the fountain (no water sources are built yet), the big-window shortcut itself, Osman's Crack the Clue step, and the Emir, who is never seen. From the fighters and camels: Pickpocket on men and warriors (Thieving comes with the Draynor piece), the warriors joining in when one is attacked (NPC aggression, the Varrock piece), the camulet's talk and camel dung (members, Enakhra's Lament and My Arm's Big Adventure), and Cam's treasure trail step. From the mine: its agility shortcut (`alkharid_mine_sc_*`). From the Shantay Pass: the desert beyond the gate (the poster, the disclaimer and the pass handed over come with the Desert piece), the Tourist Trap lines, treasure trail steps, the Kalphite cave, the cacti, the guards' aggression, and the bank chest's Collect. From the Arena: its fights (PvP Arena worlds only), the five other guards' talks, Joby and Beni, Chris and his Lost Property shop, and the glider map itself (none of its destinations is built).
 
 Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
 Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
 Bank and through a banker's talk; `al-kharid-shops.json` buys and sells at every shop; `al-kharid-traders.json` buys and eats a kebab and haggles for
 silk; `al-kharid-tanning.json` tans cowhides at Ellis's; `al-kharid-palace.json` talks to Hassan and Prince Ali, tries a big
 window and buys a Keris from Osman; `al-kharid-fighters.json` examines and kills the fighters and talks to Al the Camel;
-`al-kharid-mine-fish.json` mines gold and silver, nets shrimps and searches the boxes;
+`al-kharid-mine-fish.json` mines gold and silver, nets shrimps and searches the boxes; `al-kharid-shantay-pass.json` is sent to Port Sarim's prison and picks its lock, buys a pass, tries the gate both ways and uses the bank chest; `al-kharid-arena-glider.json` talks to Captain Dalbur and the Arena's people and gets the stubs;
 `HeadlessAlKharidShopsTest` opens the Gem trader's shop from his
 talk, tries silk at the General Store and buys Ali's junk; `HeadlessAlKharidTradersTest` buys a kebab from Karim and eats it,
-and haggles for silk; `HeadlessAlKharidTest` and `HeadlessAlKharidFightersTest` do the same through the headless client, with the talk in
-`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, the palace's talk in `AlKharidPalaceTest` and Osman's Keris in `HeadlessOsmanTest`, the camels' in `AlKharidCamelsTest`, combat and drops in `NpcCombatTest` and `NpcDropsTest`, the rocks' chances in `MiningTest` and their ores in `HeadlessMiningTest`, the boxes in `HeadlessAlKharidBoxesTest`, Small Net in `HeadlessFishingTest`, and
+and haggles for silk; `HeadlessEmirsArenaTest`, `HeadlessShantayPassTest`, `HeadlessAlKharidTest` and `HeadlessAlKharidFightersTest` do the same through the headless client, with the talk in
+`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, the palace's talk in `AlKharidPalaceTest` and Osman's Keris in `HeadlessOsmanTest`, the camels' in `AlKharidCamelsTest`, combat and drops in `NpcCombatTest` and `NpcDropsTest`, the rocks' chances in `MiningTest` and their ores in `HeadlessMiningTest`, the boxes in `HeadlessAlKharidBoxesTest`, the Shantay Pass's talk and jail in `ShantayPassTest`, the Arena's talk in `EmirsArenaTest`, Small Net in `HeadlessFishingTest`, and
 the prices in `ShopTest`.
 
 ## Varrock
@@ -895,19 +902,19 @@ Village piece's.
 | Step 5: the other shops: the Varrock General Store (Shop keeper 2815 and assistant 2816, 13 items), Aubury's Rune Shop (Aubury, the multi-NPC 2886 showing `aubury_3op` 11435 as every account has done Rune Mysteries, 14 runes and rune packs), Thessalia's Fine Clothes (Thessalia, 534 showing `thessalia_normal` 10477, 12 items), the Fancy Clothes Store (Asyff 2887, 22 items, the chef's hat and feathers starting at none) and Ye olde Tea Shoppe (the Tea Seller 8687, by his stall); Trade opens each, and each keeper's Talk-to (`varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`) every way it goes, into the shop or to their parting lines | OSRS Wiki, each shop's page (ShopTest checks every sold-at price) and the keepers' transcripts; tiles from mejrs's live NPC list; the assistant's talk, Aubury's one parting line for both noes, the tea's restock time, every expression and the wander ranges guessed |
 | Step 5b: the traders who sell through their talk: Benny (`qip_soa_newspaperseller` 5216) sells the Varrock Herald for 50 coins; Baraek (2881) sells a fur for 20, or 18 to a player who can't pay 20, and buys every grey wolf fur at 120 and every fur and bear fur at 12; the Apothecary (5036) talks gossip, hair potions and free potions and back to his menu (`benny.*`, `baraek.*`, `apothecary.*`) | OSRS Wiki, Transcript:Benny, Transcript:Baraek and Transcript:Apothecary (after Romeo & Juliet); tiles from mejrs's live NPC list; that 18 or 19 coins get the lower price, which fur the hand-over box shows when the player holds both, every expression and the wander ranges guessed |
 | Step 5c: the Apothecary's potions screen (`apothecary_potions`, interface 556), from his Potions and from asking in his talk: Buy-1, -5, -X and -All make a strength potion(4) (limpwurt root, red spiders' eggs, 5 coins), an energy potion(4) (two limpwurt roots, chocolate dust) or an antipoison(4) (limpwurt root, cadava berries, 5 coins) for as many as the player holds ingredients and coins for; the screen's titles and ingredient texts and its messages are `apothecary_potions.*` | OSRS Wiki, Strength potion, Energy potion and Antipoison (the Apothecary's recipes); the screen's components from the 241 cache; the energy potion's 5 coins, every message and the model zoom guessed |
+| Step 6: Varrock Palace's people: King Roald (5215) with his advisor Aeonisig Raispher (3774) speaking up in his talk, Queen Ellamaria (1390) in her garden, Sir Prysin (5083), who sells a lost Silverlight back for 500 coins to a player with none held, worn or banked, Captain Rovin (5085) at the top of the palace, Reldo (multi-NPC 6203, both types) in the library, Ambassador Ferrnook (2557), the training Captain (`fai_varrock_guard_trainer02` 11906), who shouts at his five Trainee Guards (the 2022 looks, 11907 to 11910), and the caged Monk of Zamorak (528); their talk every way it goes (`king_roald.*`, `aeonisig.*`, `ellamaria.*`, `prysin.*`, `rovin.*`, `reldo.*`, `ferrnook.*`, `guard_captain.*`); the library's quest bookcases and its north-east alcove's two (`palace_library.*`). The floors, stairs and furniture are step 1's, the altar (409) is Lumbridge church's | OSRS Wiki, each NPC's transcript (King Roald after The Blood Moon Rises, Reldo after Shield of Arrav, Queen Ellamaria after Garden of Tranquillity), Varrock Palace Library and Monk of Zamorak (the cage) and Sir Prysin (Silverlight 500 coins, Darklight 1000); tiles from mejrs's live NPC list; which of the King's after-quest talks shows, which trainee look stands where, which alcove bookcase says which, the Captain's 15 to 30 ticks between shouts, every expression and the wander ranges guessed |
 
 Left out from step 1: the guards' Pickpocket (Thieving, step 13) and their joining in when another guard is attacked,
 the general seed table's higher subtables (no monster yet is level 49 or more), the player's own overhead lines when shooing or petting a dog, the dog
-following the player after Pet or after being fed and running off when shooed, the trainee guards and their captain
-(the palace, step 6), the staircases down to basements and the sewers (`fai_varrock_bank_stairs`, `fai_varrock_ladder_deep`,
-the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. Left out from step 4: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, the keepers' treasure trail and diary talk, and Zaff's daily battlestaves, What Lies Below ring and Bryophyta's essence options. Left out from step 5: Aubury's Teleport and its talk option (no rune essence mine yet) and his Runecraft cape stock, Thessalia's Makeover and its change top and legwear options (no makeover screen yet) and her scythe, bunny ears and frog token options, Asyff's Fur Clothing, bird costume, hunting clothing and priest gown options, and the Tea Seller's shouts at a thief (Thieving, step 13). Left out from step 5b: the Apothecary's quest topics, Baraek's Ring of Charos(a) option and treasure trail clue, and Benny's overhead shouts. The furniture's and dogs' words are in the dialogue
-file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`).
+following the player after Pet or after being fed and running off when shooed, the staircases down to basements and the sewers (`fai_varrock_bank_stairs`, `fai_varrock_ladder_deep`,
+the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. Left out from step 4: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, the keepers' treasure trail and diary talk, and Zaff's daily battlestaves, What Lies Below ring and Bryophyta's essence options. Left out from step 5: Aubury's Teleport and its talk option (no rune essence mine yet) and his Runecraft cape stock, Thessalia's Makeover and its change top and legwear options (no makeover screen yet) and her scythe, bunny ears and frog token options, Asyff's Fur Clothing, bird costume, hunting clothing and priest gown options, and the Tea Seller's shouts at a thief (Thieving, step 13). Left out from step 5b: the Apothecary's quest topics, Baraek's Ring of Charos(a) option and treasure trail clue, and Benny's overhead shouts. Left out from step 6: Reldo's Wise Old Man message, Darklight, the Monk of Zamorak's combat (he casts; the fighters' step), the Varrock Census, Surok Magis (gone once What Lies Below is done), and the White Tree's fruit and Treznor's tree patch (Farming). The furniture's and dogs' words are in the dialogue
+file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`, and step 6's keys above).
 
 Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
-both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `varrock-guards.json` kills a Varrock and an Edgeville guard for their bones; `varrock-grand-exchange.json` uses the Grand Exchange's clerks, booths and a banker; `varrock-shops.json` and `varrock-stores.json` buy and sell back at each shop and talk into each; `varrock-traders.json` buys Benny's newspaper and a fur from Baraek, sells it back, talks to the Apothecary and buys a strength potion on his potions screen; `HeadlessVarrockTest`
+both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `varrock-guards.json` kills a Varrock and an Edgeville guard for their bones; `varrock-grand-exchange.json` uses the Grand Exchange's clerks, booths and a banker; `varrock-shops.json` and `varrock-stores.json` buy and sell back at each shop and talk into each; `varrock-traders.json` buys Benny's newspaper and a fur from Baraek, sells it back, talks to the Apothecary and buys a strength potion on his potions screen; `varrock-palace.json` climbs every palace floor (the roof by ladder), talks to each of its people, searches the library's bookcases and prays at the altar; `HeadlessVarrockTest`
 does the stairs, the ladder, the drawers and Knock-at on the locked door through the headless client, `VarrockTest` the stairs' rule each way round and a stray dog's Shoo-away and Pet (overhead text and sound),
 `GatesTest` the Grand Exchange's fence gate, `NpcSpawnFileTest` the counts, `NpcCombatTest` and `NpcDropsTest` the
-guards' numbers and 10,000 kills against the table, and `HeadlessGrandExchangeBuildingTest` the clerks', a banker's and a booth's options, `HeadlessVarrockShopsTest` and `HeadlessVarrockStoresTest` each keeper's talk into their shop and turned down, `HeadlessVarrockTradersTest` Benny's, Baraek's and the Apothecary's talk every way it goes and his potions screen's Buy-All and Buy-X, `ShopTest` the shops' prices, and `HeadlessGuardsTest` a guard of each kind attacked through the
+guards' numbers and 10,000 kills against the table, and `HeadlessGrandExchangeBuildingTest` the clerks', a banker's and a booth's options, `HeadlessVarrockShopsTest` and `HeadlessVarrockStoresTest` each keeper's talk into their shop and turned down, `HeadlessVarrockTradersTest` Benny's, Baraek's and the Apothecary's talk every way it goes and his potions screen's Buy-All and Buy-X, `HeadlessVarrockPalaceTest` the palace's talk every way, Sir Prysin's Silverlight sale, the bookcases and the Captain's shouting, `ShopTest` the shops' prices, and `HeadlessGuardsTest` a guard of each kind attacked through the
 headless client, fought to its death and leaving its bones.
 
 ## Equipment
@@ -1480,6 +1487,12 @@ warns at startup about any scenario naming an item the cache lacks.
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a
 tinderbox and 100 coins, with run on.
 
+`lumbridge-artisan` stands you beside the furnace north of Lumbridge Castle (3225, 3254) with 50 Crafting, Fletching
+and Herblore and a full backpack: a knife, three logs and a bow string, 30 feathers and 15 bronze arrowheads; a needle,
+five thread and two leather, a chisel and an uncut sapphire, a gold bar and a ring mould, soda ash, a bucket of sand, a
+glassblowing pipe, clay and a bucket of water; a pestle and mortar, a unicorn horn, two grimy guams, two vials of water
+and two eyes of newt. Something of every artisan skill to try in one place.
+
 `lumbridge-bare` stands you on the Lumbridge spawn (3222, 3218) with a new account's stats and nothing worn or carried:
 the clean start the equipment test scripts use.
 
@@ -1497,7 +1510,7 @@ you were with your own stats and items.
 
 Live's J-Mod tool, obj 5733, as an admins' tool: `::item 5733` gives one. The cache gives it Eat, Slice, Peel and Mash,
 as live, so RuneLite shows it as it does there. Each option opens a menu of testing tools that run the `::` commands, so
-every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat is done.
+every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat and Peel are done.
 
 | Eat | What it does | Source |
 |-----|--------------|--------|
@@ -1507,12 +1520,20 @@ every pick is logged and a non-admin is refused as for a typed command. Built a 
 | Teleport to player | Asks for a name, then `::teleto` | Wiki |
 | Spawn aggressive NPC | Asks for an id or name, then `::npc`; the NPC is as aggressive as its type is | Wiki; the prompts' words are guessed |
 
+| Peel | What it does | Source |
+|------|--------------|--------|
+| Bank menu | `::bank`: opens your bank wherever you are | Wiki |
+| Teleport to a tile | Asks for `x z [level]`, then `::tele` | ours, in place of Teleport to RARE!: there are no rares |
+| Spawn an item | Asks for `id\|name [count]`, then `::item` | ours, in place of Spawn RARE! |
+
+Live's AMEs for all! is left out: there are no random events.
+
 A non-admin who clicks one loses it with a message (guessed: what live does isn't known). The options' words are live's,
-so they are keys under `rotten_potato.` in the dialogue file, except Heal me.
+so they are keys under `rotten_potato.` in the dialogue file, except our own (Heal me, Teleport to a tile, Spawn an item).
 
 Check: `::item 5733`, then Eat. Set all stats with 50 sets each skill to 50 one a tick; Wipe inventory leaves only the
 potato; Teleport to player with a name online puts you on them; Spawn aggressive NPC with `goblin` spawns one on your
-tile. `test-runner/examples/rotten-potato-eat.json` runs Set all stats, Heal me and Wipe inventory in the real client.
+tile. Peel's Bank menu opens the bank. `test-runner/examples/rotten-potato-eat.json` runs Set all stats, Heal me and Wipe inventory in the real client.
 
 ## Headless test client
 

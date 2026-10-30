@@ -195,7 +195,13 @@ class Scenarios(scenarios: Collection<Scenario>) {
         val NONE = Scenarios(emptyList())
 
         /** The scenario files the server loads. Add a new file's name here. */
-        val FILES = listOf("lumbridge-bare", "lumbridge-bank-tabs", "lumbridge-cows", "lumbridge-run-low")
+        val FILES = listOf(
+            "lumbridge-artisan",
+            "lumbridge-bare",
+            "lumbridge-bank-tabs",
+            "lumbridge-cows",
+            "lumbridge-run-low",
+        )
 
         /** Reads every file in [FILES] from the resources. A file that is missing or malformed stops the server. */
         fun load(): Scenarios = Scenarios(
