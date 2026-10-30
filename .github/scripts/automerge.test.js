@@ -486,6 +486,13 @@ test('a red batch goes again with its first half, and a half of one goes the one
   const two = fakeGitHub({ 1: ready(1, { mergedHead: H('a') }), 2: ready(2) }, { batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: red } });
   await queue(two.github, fakeGit({ [H('1')]: 'p', [H('a')]: 'p' }));
   assert.deepStrictEqual(two.calls, [['updateBranch', 1], ['dispatch', 'build.yml', 'branch-1'], ['check', H('a'), 'success']]);
+  const held = fakeGitHub({
+    1: ready(1, { mergedHead: H('a') }),
+    2: ready(2),
+    4: { head: H('4'), behind: 0, checks: [{ name: 'build', status: 'in_progress' }, codexPass] },
+  }, { batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: red } });
+  await queue(held.github, fakeGit({ [H('1')]: 'p', [H('a')]: 'p' }));
+  assert.deepStrictEqual(held.calls, [], 'a half of one waits while another pull request is up to date with checks running');
 });
 
 test('a batch on an older main, or whose member moved, is built again', async () => {

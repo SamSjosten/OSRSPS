@@ -390,7 +390,7 @@ branch, check the merge, and comment \`@codex review\`.`,
 
 // What to do about the batch on its branch, if it is still about main and its members: true when the queue is done
 // for this run (the batch is building, was promoted or went again), false to go on as if there were none.
-async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha, scanned) {
+async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha, scanned, waiting) {
   if (!batch || batch.base !== mainSha) return false;
   const carrier = batch.members[batch.members.length - 1];
   const carrierState = scanned.get(carrier.number);
@@ -440,6 +440,7 @@ async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha,
   core.info(`batch ${batch.sha.slice(0, 7)} failed: ${half.map(m => `#${m.number}`).join(', ')} go again`);
   if (half.length >= 2 && await startBatch(github, git, repo, core, half)) return true;
   const first = scanned.get(half[0].number);
+  if (waiting) return true; // the one-at-a-time way waits for it; the failed batch stays until then
   return first.ready ? updateOne(github, git, repo, core, sleep, first.pr) : false;
 }
 
@@ -504,7 +505,7 @@ async function advance(github, git, repo, core, sleep, now) {
   }
 
   const { data: main } = await github.rest.repos.getBranch({ ...repo, branch: 'main' });
-  if (await advanceBatch(github, git, repo, core, sleep, now, await readBatch(github, repo), main.commit.sha, scanned)) return;
+  if (await advanceBatch(github, git, repo, core, sleep, now, await readBatch(github, repo), main.commit.sha, scanned, waiting)) return;
 
   const batchable = [...scanned.values()].filter(state => state.batchable).slice(0, BATCH_MAX);
   if (batchable.length >= 2 && await startBatch(github, git, repo, core, batchable.map(state => ({ number: state.pr.number, sha: state.pr.head.sha })))) return;
