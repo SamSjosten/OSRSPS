@@ -882,17 +882,19 @@ Village piece's.
 | Spiral stairs (`varrock_spiralstairs` 11789, `_taller` 11790, `_middle_taller` 11792 with its Climb menu, top 11793) and ladders (`fai_varrock_ladder` 11794/11795, `_taller` 11801/11802) work as Lumbridge's | as Lumbridge Castle's stairs and ladders (RSMod) |
 | Furniture: chests (5108/5109), drawers (7194/7195) and posh drawers (7442/7443) open, search empty and shut; crates (5106, 5107, 5110, 5113, 5115), boxes (5111), bookshelves (7170, 7171) and bookcases (7176 to 7181, 7431) search empty | as the castle's furniture (2004Scape's timings); the bookshelves' and bookcases' words from the Wiki |
 | Townsfolk: 37 guards (the six 2022 `fai_varrock_guard02` looks and the captain's, 13 in the city, 2 on the walls, 22 in the palace), men and women (Varrock's own `varrock_man1`/`varrock_woman1` talk, fight and drop as any man or woman), imps, rats and the five stray dogs | OSRS Wiki, Guard (counts) and Stray dog (three grey, two brown); tiles from mejrs's live NPC list (recorded before November 2022, when the guards still showed as 3010/3011), so which guard look stands where and every wander range are guessed |
+| Step 2: the West Bank's six bankers (five behind its booths at x 3186, `banker1_new`/`banker2_new` 2897/2898 and the Deadman booth's multi-NPC 6521 showing 2897, and one behind its locked door, 8666, who has no options) and the East Bank's six (behind its booths at z 3419, 6522 at the Deadman booth); booths and the deposit box by name; they talk and bank as the castle's banker | OSRS Wiki, Varrock West Bank (six bankers) and Transcript:Banker; tiles from mejrs's live NPC list |
+| Knock-at on the West Bank's locked door (`fai_varrock_bank_locked_door` 11788): the banker behind it won't let the player in (`varrock_bank_door.knock`) | OSRS Wiki, Varrock West Bank; one line and its expression guessed |
 | A stray dog's Shoo-away whines (`stray_dog.whine`, sound 911) and Pet barks (`stray_dog.woof`, sound 652) | OSRS Wiki, Stray dog |
 
 Left out from step 1: the guards' Attack and Pickpocket (their stats, drops and the seed table come with the city's
 fighters, step 12; Thieving with step 13), the player's own overhead lines when shooing or petting a dog, the dog
 following the player after Pet or after being fed and running off when shooed, the trainee guards and their captain
 (the palace, step 6), the staircases down to basements and the sewers (`fai_varrock_bank_stairs`, `fai_varrock_ladder_deep`,
-the sewers' step 15), and the Phoenix and Black Arm gangs' doors. The furniture's and dogs' words are in the dialogue
-file (`varrock_search.*`, `stray_dog.*`).
+the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, and the Phoenix and Black Arm gangs' doors. The furniture's and dogs' words are in the dialogue
+file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`).
 
 Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
-both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `HeadlessVarrockTest`
+both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `HeadlessVarrockTest`
 does the stairs, the ladder and the drawers through the headless client, `VarrockTest` the stairs' rule each way round,
 `GatesTest` the Grand Exchange's fence gate and `NpcSpawnFileTest` the counts.
 

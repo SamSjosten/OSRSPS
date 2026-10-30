@@ -139,6 +139,7 @@ object DialogueLines {
         TradeLines,
         UrhneyLines,
         VarrockSearchLines,
+        WestBankDoorLines,
         WomanLines,
         WoodcuttingLines,
         WoodsmanTutorLines,

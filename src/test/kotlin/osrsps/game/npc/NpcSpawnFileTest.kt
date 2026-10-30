@@ -338,13 +338,14 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs and its men and women`() {
+    fun `Varrock has its 37 guards, the five stray dogs, its men and women and both banks' bankers`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
             11917 to "fai_varrock_guard_captain02", 3106 to "man", 3107 to "man2", 3108 to "man3", 3014 to "varrock_man1",
             3015 to "varrock_woman1", 3112 to "woman2", 5007 to "imp", 2854 to "rat", 2855 to "rat_indoors", 2902 to "dog_stray",
-            2922 to "dog_stray2",
+            2922 to "dog_stray2", 2897 to "banker1_new", 2898 to "banker2_new", 6521 to "deadman_banker_blue_west",
+            6522 to "deadman_banker_blue_north", 8666 to "varrock_bank_doorguard",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -356,7 +357,13 @@ class NpcSpawnFileTest {
         // Five stray dogs, three grey and two brown (Wiki).
         assertEquals(3, spawns.count { it.type.id == 2902 })
         assertEquals(2, spawns.count { it.type.id == 2922 })
+        // Six bankers in each bank (the Wiki's West Bank count), standing behind its booths: x 3186 in the west, z 3419 in the east.
+        val bankers = spawns.filter { it.type.id in listOf(2897, 2898, 6521, 6522, 8666) }
+        assertEquals(6, bankers.count { it.x == 3187 && it.z in 3436..3446 })
+        assertEquals(6, bankers.count { it.z == 3418 && it.x in 3251..3256 })
+        assertTrue(bankers.all { it.wander == 0 })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
-        assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() && it.wander > 0 })
+        assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
+        assertTrue((spawns - bankers.toSet()).all { it.wander > 0 })
     }
 }
