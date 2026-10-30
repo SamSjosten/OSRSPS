@@ -8,8 +8,9 @@
 // is about the latest review only (on #207 it is false after earlier reviews that had findings).
 //
 // A review covers the head when it is the head, or when the pull request's own diff against main is the same patch
-// (`git patch-id`) at both: merging main in doesn't need Codex again, a conflict resolution that changes the diff
-// does. patch-id hashes the context lines too, so a main change right next to the pull request's lines asks again.
+// (`git patch-id --verbatim`, whitespace kept, as it can matter inside a string) at both: merging main in doesn't
+// need Codex again, a conflict resolution that changes the diff does. patch-id hashes the context lines too, so a main
+// change right next to the pull request's lines asks again.
 //
 // The queue: branch protection wants a pull request up to date with main before it merges, so two green pull
 // requests can't break main together, and GitHub's merge queue isn't offered on a personal account's private
@@ -62,7 +63,7 @@ function shellGit(args, input) {
 function patchId(git, sha) {
   const base = git(['merge-base', 'origin/main', sha]);
   const diff = git(['diff', base, sha]);
-  return diff ? git(['patch-id', '--stable'], diff + '\n').split(' ')[0] : '';
+  return diff ? git(['patch-id', '--verbatim'], diff + '\n').split(' ')[0] : '';
 }
 
 // Whether the review of `reviewed` still covers pull request `number` at `head`.
