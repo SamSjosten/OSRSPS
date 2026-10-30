@@ -98,7 +98,7 @@ class GrandExchange(
     fun collect(
         player: Player,
         slot: Int,
-        notes: Boolean = true,
+        notes: Boolean? = null,
         items: Boolean = true,
         coins: Boolean = true,
         toBank: ((Player, Int, Int) -> Int)? = null,
@@ -110,7 +110,8 @@ class GrandExchange(
             val added = if (toBank != null) {
                 toBank(player, offer.item, offer.collectItems)
             } else {
-                val giveAs = if (!type.stackable && notes && offer.collectItems > 1) noteOf(type) ?: type else type
+                // Notes when asked for (Collect-note, Collect-notes); left to itself, notes only for more than one.
+                val giveAs = if (!type.stackable && (notes ?: (offer.collectItems > 1))) noteOf(type) ?: type else type
                 player.inventory.add(giveAs, offer.collectItems)
             }
             if (added > 0) moved = true
@@ -127,7 +128,13 @@ class GrandExchange(
             if (paid > 0) moved = true
             offer = offer.copy(collectCoins = offer.collectCoins - paid)
         }
-        player.ge[slot] = offer.takeUnless { it.done }
+        if (offer.done) {
+            // Kept for the screen's flush, so an abort collected in the same tick still gets its message.
+            player.ge.collected[slot] = offer
+            player.ge[slot] = null
+        } else {
+            player.ge[slot] = offer
+        }
         return moved
     }
 
@@ -304,8 +311,12 @@ class GrandExchange(
          * thousands and coins for the rest. The collection box's third slot holds the tokens (script818 and
          * script9910 draw coins and tokens as one, "coins_and_platinum"). GUESSED: where the split falls.
          */
-        fun payout(coins: Long): Pair<Long, Long> =
-            if (coins <= Int.MAX_VALUE) coins to 0L else coins % TOKEN_VALUE to coins / TOKEN_VALUE
+        fun payout(coins: Long): Pair<Long, Long> {
+            if (coins <= Int.MAX_VALUE) return coins to 0L
+            // A stack of tokens tops out at 2,147,483,647 too; MAX_TOTAL is exactly a full stack of each.
+            val tokens = minOf(coins / TOKEN_VALUE, Int.MAX_VALUE.toLong())
+            return coins - tokens * TOKEN_VALUE to tokens
+        }
 
         const val COINS = 995
         const val PLATINUM_TOKEN = 13204

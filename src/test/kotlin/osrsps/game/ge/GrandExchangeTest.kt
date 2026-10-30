@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStockMarketSlotV2
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.InvObj
@@ -266,7 +267,9 @@ class GrandExchangeTest {
     fun `coins past what a stack holds are paid as platinum tokens and the rest in coins`() {
         assertEquals(500L to 0L, GrandExchange.payout(500))
         assertEquals(Int.MAX_VALUE.toLong() to 0L, GrandExchange.payout(Int.MAX_VALUE.toLong()))
-        assertEquals(647L to 2_149_631_130L, GrandExchange.payout(GrandExchange.MAX_TOTAL))
+        // The most an offer holds is a full stack of tokens and a full stack of coins.
+        assertEquals(2_147_483_647L to 2_147_483_647L, GrandExchange.payout(GrandExchange.MAX_TOTAL))
+        assertEquals(1L to 2_147_483_647L, GrandExchange.payout(2_147_483_647_001L))
         give(TOKEN, 3_000_000)
         ge.buy(player, WHIP, 2, 1_500_000_000)
         assertTrue(ge.abort(player, 0))
@@ -274,6 +277,34 @@ class GrandExchangeTest {
         assertEquals(3_000_000L, player.inventory.count(TOKEN))
         assertEquals(0L, player.inventory.count(COINS))
         assertNull(player.ge[0])
+    }
+
+    @Test
+    fun `Collect-note gives a note even for one item`() {
+        give(COINS, 100)
+        ge.buy(player, AXE, 1, 50)
+        nextTick()
+        assertTrue(ge.collect(player, 0, notes = true, coins = false))
+        assertEquals(1L, player.inventory.count(AXE_NOTE))
+        assertEquals(0L, player.inventory.count(AXE))
+    }
+
+    @Test
+    fun `an abort collected in the same tick still gets its message`() {
+        val sent = mutableListOf<OutgoingGameMessage>()
+        val screen = GrandExchangeScreen(ge, { _, _, _ -> }, send = { _, message -> sent += message })
+        give(COINS, 100)
+        ge.buy(player, AXE, 2, 39)
+        screen.flush(player)
+        sent.clear()
+        assertTrue(ge.abort(player, 0))
+        assertTrue(ge.collect(player, 0))
+        screen.flush(player)
+        assertEquals(listOf("[ge.aborted]"), sent.filterIsInstance<MessageGame>().map { it.message })
+        // Said once: the next flush has nothing more to say.
+        sent.clear()
+        screen.flush(player)
+        assertEquals(emptyList(), sent.filterIsInstance<MessageGame>())
     }
 
     private companion object {

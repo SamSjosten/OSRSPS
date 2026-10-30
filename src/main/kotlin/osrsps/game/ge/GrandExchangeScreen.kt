@@ -495,7 +495,8 @@ class GrandExchangeScreen(
                 sent.offers[slot] = null
                 continue
             }
-            if (sent.sentOnce) progress(player, sent.offers[slot], offer)
+            // An offer collected to nothing this tick still says how it ended.
+            if (sent.sentOnce) progress(player, sent.offers[slot], offer ?: player.ge.collected[slot])
             send(player, slotUpdate(slot, offer))
             val items = offer?.takeIf { it.collectItems > 0 }?.let { InventoryObject(0, it.item, it.collectItems) } ?: InventoryObject.NULL
             val (coinCount, tokenCount) = GrandExchange.payout(offer?.collectCoins ?: 0)
@@ -506,6 +507,7 @@ class GrandExchangeScreen(
         }
         sent.sentOnce = true
         sent.resync = false
+        player.ge.collected.fill(null)
         // ge_newoffer_price is a long varp, which PlayerVars doesn't hold; sent here like the others, when it changes.
         if (sent.price != player.geSetup.price) {
             send(player, VarpLong(VARP_PRICE, player.geSetup.price))
