@@ -734,15 +734,17 @@ quest, so Al Kharid is as after Prince Ali Rescue.
 | Talk-to on a Border Guard (4287 Lumbridge side, 4288 Al Kharid side): the player asks to come through, the guard says they're a friend of Al-Kharid, and the player goes through free | OSRS Wiki, Transcript:Border Guard |
 | Going through: both leaves swing open for 3 ticks as `inacmetalgateopenl`/`r` (1573/1574), the player moves to the far side at once; a player who talked to a guard first steps up to the gate | 2004Scape's border_gate.rs2; guessed until recorded |
 | Four Border Guards, two each side, standing still | 2004Scape map m51_50 spawns; standing still guessed |
+| The bank: Bank on any booth (`bankbooth` 10355) opens it; five Bankers (`kharidbanker1`/`2`, 3090/3091) behind the booths at x 3267 bank across them, by Bank or through their talk, which is the castle banker's | the engine's booths (any loc with Bank); OSRS Wiki, Banker and Transcript:Banker; 2004Scape map m51_49 spawns |
 | The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
 
 Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only). The words of
 the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
-`examine.npc_4287`, `examine.loc_44050`).
+`examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`).
 
 Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
-Guard's talk, and opens and shuts the palace's west doors and a curtain; `HeadlessAlKharidTest` does the same through the headless
-client, with the talk in `BorderGuardTest`.
+Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
+Bank and through a banker's talk; `HeadlessAlKharidTest` does the same through the headless client, with the talk in
+`BorderGuardTest`.
 
 ## Equipment
 

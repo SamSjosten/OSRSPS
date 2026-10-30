@@ -78,7 +78,8 @@
     {"npc": 1896, "name": "Candle seller"},
     {"npc": 3222, "name": "Mining tutor"},
     {"npc": 3221, "name": "Fishing tutor"},
-    {"npc": 4287, "name": "Border Guard", "also": [4288], "wiki": "Border Guard page, infobox (one examine for both)"}
+    {"npc": 4287, "name": "Border Guard", "also": [4288], "wiki": "Border Guard page, infobox (one examine for both)"},
+    {"npc": 3090, "name": "Banker", "also": [3091], "wiki": "Banker page, infobox (Al Kharid's bankers)"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},
