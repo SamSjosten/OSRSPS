@@ -120,23 +120,27 @@ that it needs the same password (see Accounts).
 ### Letting friends test
 
 Friends reach the server at `odinsgate.net`, a VPS that relays TCP 43594 and 43595 (and nothing else) to it; the Home
-Lab project runs the relay. Friends need only RSProx; there is nothing of ours to install. Each friend:
+Lab project runs the relay. They install Odin's Gate, our launcher, from the download page,
+https://samsjosten.github.io/OSRSPS/ (`docs/` in this repo, served by GitHub Pages once it is switched on in the
+repo's settings: Pages, deploy from a branch, `main`, `/docs`): one button per system, a guide for each, and the
+first-start steps for an app no paid certificate signs. The launcher downloads RuneLite from RuneLite's own servers,
+patches it in memory to our server and key, and updates itself from this repo's releases (`launcher/README.md`).
+Each friend logs in with a name and password of their own, never any other game's login; the first login as a name
+claims it (see Accounts). CI's `friend-page` job holds the page to its links (https, known hosts, every installer the
+release publishes exactly once) and to the names rule (`.github/scripts/friend-page.js`).
 
-1. Installs RSProx from its [releases](https://github.com/blurite/rsprox/releases). The installer brings its own Java
-   and keeps RSProx up to date. Windows or Linux only: RSProx's custom targets don't work on macOS.
-2. Imports `http://odinsgate.net:43595/proxy-targets.yaml` with **+** → **From URL…**, restarts RSProx, picks
-   **OSRSPS** and launches RuneLite. RSProx reads that address again each time it starts, so a change to the target
-   reaches friends on their next RSProx start.
-3. Logs in with a name and password of their own, never their Jagex login.
-
-RSProx downloads RuneLite and the game client itself, so we hand out no Jagex files. Its RuneLite keeps settings in the
-friend's own `.runelite` folder, shared with a normal RuneLite install, in developer mode.
-
-The target also names the RuneLite build that plays the server's revision, as a commit of RuneLite's
-[static.runelite.net history](https://github.com/runelite/static.runelite.net/commits/gh-pages/bootstrap.json), from
-`src/main/resources/runelite-pins.json`. RuneLite moves to each new revision within hours of live, and our server turns
-a client of another revision away. RSProx's own table picks the same build for 241 today; the pin keeps friends on it
-if that table changes. A revision bump adds the build for the new revision to that file; a test fails until it does.
+- A friend who used RSProx before: the launcher keeps its own game settings, so RuneLite settings made under RSProx
+  don't carry over; the name and password do. RSProx stays the developer route (above) and still works for friends on
+  Windows or Linux: import `http://odinsgate.net:43595/proxy-targets.yaml` with **+** → **From URL…**, restart RSProx,
+  pick **OSRSPS**. RSProx reads that address again each time it starts.
+- Nothing of the game's is handed out: the launcher and RSProx both download RuneLite and the game client themselves.
+- The launcher pins the RuneLite build per revision in `src/main/resources/runelite-pins.json` (a commit of RuneLite's
+  [static.runelite.net history](https://github.com/runelite/static.runelite.net/commits/gh-pages/bootstrap.json); the
+  signed manifest carries the table, and RSProx's target names the same build). RuneLite moves to each new revision
+  within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
+  revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
+- Nothing to install until the first release is published, which needs Sam's one-time key setup (`launcher/README.md`,
+  "Releases").
 
 ### Files for our own launcher
 
