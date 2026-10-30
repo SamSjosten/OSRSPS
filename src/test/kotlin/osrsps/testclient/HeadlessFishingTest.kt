@@ -23,11 +23,13 @@ import osrsps.map.CollisionMap
 class HeadlessFishingTest {
     private val swamp = NpcType(Fishing.SWAMP_SPOT, "Fishing spot", ops = listOf("Net", null, "Bait", "hidden", "hidden"))
     private val river = NpcType(Fishing.RIVER_SPOT, "Rod Fishing spot", ops = listOf("Lure", null, "Bait", "hidden", "hidden"))
+    private val alKharid = NpcType(Fishing.AL_KHARID_SPOT, "Fishing spot", ops = listOf("Small Net", null, "Bait", null, null))
 
     // Draynor's shore spots spell the net option "Small Net" in the 241 cache.
     private val draynor = NpcType(Fishing.DRAYNOR_SPOT, "Fishing spot", ops = listOf("Small Net", null, "Bait", null, null))
 
-    private fun server(dir: Path) = TestServer(dir, cycleMillis = 20) { crcs, millis ->
+    /** [withAlKharid] adds Al Kharid's spot; the other tests leave it out, so the spots' moves draw the same numbers. */
+    private fun server(dir: Path, withAlKharid: Boolean = false) = TestServer(dir, cycleMillis = 20) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(POT + 1)
         for ((id, name) in listOf(
             Fishing.NET to "Small fishing net", Fishing.FISHING_ROD to "Fishing rod", Fishing.FLY_FISHING_ROD to "Fly fishing rod",
@@ -45,11 +47,12 @@ class HeadlessFishingTest {
                 markLoaded(SWAMP_X shr 6, SWAMP_Z shr 6)
                 markLoaded(RIVER_X shr 6, RIVER_Z shr 6)
                 markLoaded(DRAYNOR_X shr 6, DRAYNOR_Z shr 6)
+                markLoaded(AL_KHARID_X shr 6, AL_KHARID_Z shr 6)
             },
-            objTypes = ObjTypes(objs), npcTypes = NpcTypes.of(swamp, river, draynor), random = GameRandom(5),
+            objTypes = ObjTypes(objs), npcTypes = NpcTypes.of(swamp, river, draynor, alKharid), random = GameRandom(5),
             npcSpawns = listOf(NpcSpawn(swamp, SWAMP_X, SWAMP_Z, source = "test"), NpcSpawn(river, RIVER_X, RIVER_Z, source = "test"),
                 NpcSpawn(draynor, DRAYNOR_X, DRAYNOR_Z, source = "test"),
-            ),
+            ) + listOfNotNull(NpcSpawn(alKharid, AL_KHARID_X, AL_KHARID_Z, source = "test").takeIf { withAlKharid }),
             cycleMillis = millis,
         )
     }
@@ -100,6 +103,21 @@ class HeadlessFishingTest {
                 client.npcOp(client.spot(Fishing.DRAYNOR_SPOT).index, 1)
                 client.seen("[fishing.cast_net]")
                 client.await("a catch", timeoutMillis = 30_000) { client.catches().firstOrNull() }
+            }
+        }
+    }
+
+    @Test
+    fun `Al Kharid's Small Net nets as the swamp's Net does`(@TempDir dir: Path) {
+        server(dir, withAlKharid = true).use { server ->
+            server.login("dina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.goTo(AL_KHARID_X + 1, AL_KHARID_Z)
+                client.command("item ${Fishing.NET}")
+                client.await("the net") { if (client.count(Fishing.NET) == 1) Unit else null }
+                client.npcOp(client.spot(Fishing.AL_KHARID_SPOT).index, 1)
+                client.seen("[fishing.cast_net]")
+                client.await("a shrimp", timeoutMillis = 30_000) { if (client.count(Fishing.SHRIMPS.obj) == 1) Unit else null }
             }
         }
     }
@@ -215,6 +233,9 @@ class HeadlessFishingTest {
         const val RIVER_Z = 3241
         const val DRAYNOR_X = 3086
         const val DRAYNOR_Z = 3227
+        /** Al Kharid's north spot, as its spawn file has it. */
+        const val AL_KHARID_X = 3267
+        const val AL_KHARID_Z = 3148
         const val POT = 1931
         const val BACKPACK = 93
         const val FISHING = 10
