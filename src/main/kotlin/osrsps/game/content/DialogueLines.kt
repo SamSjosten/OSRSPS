@@ -57,7 +57,7 @@ object DialogueLines {
         // Al Kharid.
         BorderGuardLines,
         // Draynor Village.
-        DraynorSearchLines, AxeLogsLines, FortunatoLines, OliviaLines, DiangoLines,
+        DraynorSearchLines, AxeLogsLines, FortunatoLines, OliviaLines, DiangoLines, NedLines, AggieLines,
         // The Grand Exchange.
         GrandExchangeLines,
     )
