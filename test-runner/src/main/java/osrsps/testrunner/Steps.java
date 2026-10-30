@@ -1626,6 +1626,7 @@ final class Steps
 		final String text;
 		/** Opens the prompt: null when done, else why not yet. */
 		private final java.util.function.Function<Game, String> open;
+		private boolean listsArrived;
 		private boolean opened;
 		private boolean sent;
 
@@ -1681,7 +1682,10 @@ final class Steps
 			int now = run.game.promptMode();
 			if (!opened)
 			{
-				if (run.game.friends() == null)
+				// The ignore tab replaces the Friends tab, whose widgets friends() reads, so an open ignore tab counts
+				// as the lists having arrived, and so does a list seen before this step switched tabs.
+				listsArrived = listsArrived || run.game.friends() != null || run.game.interfaceOpen(IGNORES);
+				if (!listsArrived)
 				{
 					return Poll.waiting("the friends list hasn't arrived");
 				}

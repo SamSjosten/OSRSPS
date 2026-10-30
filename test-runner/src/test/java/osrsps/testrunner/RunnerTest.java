@@ -951,7 +951,9 @@ public class RunnerTest
 		// The ignore tab isn't open: the Friends tab's ignore button first.
 		assertNull(cycle());
 		assertEquals(List.of("click 429:1 op 1"), game.actions);
+		// The ignore tab replaces the Friends tab, so friends() can no longer read the list.
 		game.openInterfaces.add(432);
+		game.friends = null;
 		assertNull(cycle());
 		assertEquals("click 432:12 op 1", game.actions.get(1));
 		game.promptMode = 4;
