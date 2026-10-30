@@ -1,0 +1,19 @@
+{
+ "name": "Stun: ::stun 9 shows the birds and holds the player for a failed pickpocket's nine ticks, read off ::stun, then the player walks again",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account in Lumbridge, not stunned; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::stun", "expectMessage": "Not stunned."},
+  {"step": "command", "text": "::stun 9", "expectMessage": "Stunned for 9 more ticks.", "comment": "a failed pickpocket's stun"},
+  {"step": "assertSpotanim", "id": 80, "timeoutMs": 5000, "comment": "stunned, the circling birds, on the player"},
+  {"step": "command", "text": "::stun 9", "expectMessage": "Not stunned: you are stunned already.", "comment": "a second stun while stunned does nothing"},
+  {"step": "waitTicks", "ticks": 10, "comment": "nine ticks and one to spare"},
+  {"step": "command", "text": "::stun", "expectMessage": "Not stunned."},
+  {"step": "walk", "x": 3222, "y": 3221, "comment": "walking again once the stun is over"},
+  {"step": "command", "text": "::stun 20", "expectMessage": "Stunned for 20 more ticks."},
+  {"step": "command", "text": "::stun end", "expectMessage": "Not stunned.", "comment": "::stun end ends it at once"},
+  {"step": "walk", "x": 3222, "y": 3218},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
