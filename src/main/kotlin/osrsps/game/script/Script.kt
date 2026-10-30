@@ -66,6 +66,15 @@ class ScriptContext internal constructor(val player: Player, private val runner:
         runner.pauseButton(player, Op.packButton(interfaceId, componentId), subs)
 
     /**
+     * As [pauseButton], for a click on any of [componentIds] of [interfaceId]: returns the component clicked and the slot,
+     * as a Make-X box's item buttons send them (the slot is the quantity).
+     */
+    suspend fun pauseButtons(interfaceId: Int, componentIds: Collection<Int>, subs: IntRange): Pair<Int, Int> {
+        val (packed, sub) = runner.pauseButtons(player, componentIds.map { Op.packButton(interfaceId, it) }.toSet(), subs)
+        return (packed and 0xFFFF) to sub
+    }
+
+    /**
      * Asks the player for an amount, with [prompt] over the chatbox's input line (client script meslayer_mode7, as RSMod
      * sends it), and stops the script until they enter one, which it returns: never negative. The player isn't delayed
      * meanwhile; closing their interfaces (walking, Esc) closes the prompt and drops the script. See

@@ -158,6 +158,33 @@ class Dialogues(
         return context.pauseButton(Chatbox.CHATMENU, Chatbox.CHATMENU_OPTIONS, 1..options.size)
     }
 
+    /**
+     * The Make-X box: [objs] under [title], up to [max] of them, starting on [suggested]. Returns the index in [objs] of
+     * the item clicked and the quantity chosen. The packets are what the 241 cache's skillmulti scripts expect (the
+     * setup script's arguments, a click's component and quantity); mode 0 and the unclamped chat modal are guessed, not
+     * from a capture.
+     */
+    internal suspend fun skillMulti(context: ScriptContext, title: String, objs: List<Int>, max: Int, suggested: Int): Pair<Int, Int> {
+        require(objs.size in 1..Chatbox.SKILLMULTI_MAX_ITEMS) { "A Make-X box shows 1 to ${Chatbox.SKILLMULTI_MAX_ITEMS} items, not ${objs.size}" }
+        val player = context.player
+        val most = max.coerceIn(1, Chatbox.SKILLMULTI_MAX_QUANTITY)
+        interfaces.openChatModal(player, Chatbox.SKILLMULTI, Chatbox.UNCLAMP_INFINITE)
+        val args = ArrayList<Any>()
+        args += Chatbox.SKILLMULTI_MODE_MAKE
+        args += title
+        args += most
+        for (i in 0 until Chatbox.SKILLMULTI_MAX_ITEMS) args += objs.getOrElse(i) { -1 }
+        args += suggested.coerceIn(1, most)
+        send(player, RunClientScript(Chatbox.SKILLMULTI_SETUP_SCRIPT, args))
+        val buttons = objs.indices.map { Chatbox.SKILLMULTI_FIRST_ITEM + it }
+        // The client sends the quantity as the slot, so each button lets slots 1 to 28 through.
+        for (button in buttons) {
+            send(player, IfSetEventsV2(Chatbox.SKILLMULTI, button, 1, Chatbox.SKILLMULTI_MAX_QUANTITY, Chatbox.EVENT_PAUSE_BUTTON, 0))
+        }
+        val (button, quantity) = context.pauseButtons(Chatbox.SKILLMULTI, buttons, 1..most)
+        return (button - Chatbox.SKILLMULTI_FIRST_ITEM) to quantity
+    }
+
     /** [text]'s lines in a component [width] pixels wide, four to a page. */
     internal fun pages(text: String, width: Int): List<List<String>> = font.splitLines(text, width).chunked(ChatAnim.MAX_LINES)
 
@@ -239,6 +266,10 @@ class Dialogue internal constructor(val context: ScriptContext, private val dial
     /** Shows [options]' words and returns the one picked, from 1. */
     suspend fun choice(vararg options: Line, title: String = Chatbox.SELECT_AN_OPTION): Int =
         dialogues.choice(context, title, options.map { text(it) })
+
+    /** The Make-X box ([Dialogues.skillMulti]) titled with [title]'s words: returns the index in [objs] picked and how many. */
+    suspend fun makeX(title: Line, objs: List<Int>, max: Int, suggested: Int = max): Pair<Int, Int> =
+        dialogues.skillMulti(context, text(title), objs, max, suggested)
 
     suspend fun delay(ticks: Int = 1) = context.delay(ticks)
 
