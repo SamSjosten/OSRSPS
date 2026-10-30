@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonArrayBuilder
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -17,6 +18,10 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import osrsps.game.combat.StatRestore
+import osrsps.game.ge.BuyLimitUse
+import osrsps.game.ge.GeAccount
+import osrsps.game.ge.GeOffer
+import osrsps.game.ge.OfferType
 
 private val logger = KotlinLogging.logger {}
 
@@ -52,6 +57,10 @@ class PlayerSave(
     val boostSegments: BoostSegments = BoostSegments(0, 0),
     /** The chatbox's filters. Like the boost segments, part of the header rather than the state ::reset puts back. */
     val chatFilters: ChatFilters = ChatFilters.DEFAULT,
+    /** Grand Exchange offers, by slot. */
+    val geOffers: Map<Int, GeOffer> = emptyMap(),
+    /** What the Grand Exchange buy limits have counted, by item. */
+    val geLimits: List<BuyLimitUse> = emptyList(),
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -97,6 +106,7 @@ class PlayerSave(
         player.equipment.clear()
         player.bank.clear()
         player.charges.clear()
+        player.ge.clear()
         applyState(player)
     }
 
@@ -120,6 +130,8 @@ class PlayerSave(
         for ((slot, obj) in equipment) player.equipment[slot] = obj
         for ((slot, obj) in bank) player.bank[slot] = obj
         for ((name, count) in charges) player.charges[name] = count
+        for ((slot, offer) in geOffers) player.ge[slot] = offer
+        for (use in geLimits) player.ge.limits[use.item] = use
     }
 
     fun toJson(username: String): String {
@@ -173,6 +185,35 @@ class PlayerSave(
         putJsonArray("equipment") { putObjs(equipment) }
         if (bank.isNotEmpty()) putJsonArray("bank") { putObjs(bank) }
         if (charges.isNotEmpty()) putJsonObject("charges") { for ((name, count) in charges) put(name, count) }
+        if (geOffers.isNotEmpty()) {
+            putJsonArray("geOffers") {
+                for ((slot, offer) in geOffers.toSortedMap()) {
+                    addJsonObject {
+                        put("slot", slot)
+                        put("type", offer.type.name.lowercase())
+                        put("item", offer.item)
+                        put("quantity", offer.quantity)
+                        put("price", offer.price)
+                        put("completed", offer.completed)
+                        put("exchanged", offer.exchanged)
+                        if (offer.aborted) put("aborted", true)
+                        put("collectItems", offer.collectItems)
+                        put("collectCoins", offer.collectCoins)
+                    }
+                }
+            }
+        }
+        if (geLimits.isNotEmpty()) {
+            putJsonArray("geLimits") {
+                for (use in geLimits) {
+                    addJsonObject {
+                        put("item", use.item)
+                        put("windowStart", use.windowStart)
+                        put("bought", use.bought)
+                    }
+                }
+            }
+        }
     }
 
     companion object {
@@ -196,6 +237,7 @@ class PlayerSave(
                 player.bank.contents().toMap(),
                 BoostSegments(StatRestore.segment(player.statTimers.combatBoost), StatRestore.segment(player.statTimers.skillBoost)),
                 player.chatFilters,
+                player.ge.contents().toMap(), player.ge.limits.values.toList(),
             )
         }
 
@@ -233,6 +275,7 @@ class PlayerSave(
                 return PlayerSave(
                     state.x, state.z, state.level, state.runEnergy, state.varps, state.skills, state.inventory, state.equipment,
                     scenario, beforeScenario, createdAt, playedTicks, state.charges, state.bank, boostSegments, chatFilters,
+                    state.geOffers, state.geLimits,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -278,10 +321,34 @@ class PlayerSave(
                 require(count >= 0) { "Charge $name is negative" }
                 charges[name] = count
             }
-            return PlayerSave(x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank)
+            // Optional: saves from before the Grand Exchange, and saves with no offers, have none.
+            val geOffers = LinkedHashMap<Int, GeOffer>()
+            for (element in root["geOffers"]?.jsonArray.orEmpty()) {
+                val entry = element.jsonObject
+                val slot = entry.int("slot")
+                require(slot in 0 until GeAccount.SLOTS) { "Grand Exchange slot $slot is out of range" }
+                require(slot !in geOffers) { "Grand Exchange slot $slot is saved twice" }
+                val typeName = entry.getValue("type").jsonPrimitive.content
+                val type = OfferType.entries.firstOrNull { it.name.lowercase() == typeName } ?: throw IllegalArgumentException("No offer type '$typeName'")
+                // GeOffer's own checks throw IllegalArgumentException for values out of range.
+                geOffers[slot] = GeOffer(
+                    type, entry.int("item"), entry.int("quantity"), entry.long("price"), entry.int("completed"), entry.long("exchanged"),
+                    entry["aborted"]?.jsonPrimitive?.boolean ?: false, entry.int("collectItems"), entry.long("collectCoins"),
+                )
+            }
+            val geLimits = root["geLimits"]?.jsonArray.orEmpty().map {
+                val entry = it.jsonObject
+                BuyLimitUse(entry.int("item"), entry.long("windowStart"), entry.int("bought"))
+            }
+            return PlayerSave(
+                x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank,
+                geOffers = geOffers, geLimits = geLimits,
+            )
         }
 
         private fun JsonObject.int(key: String): Int = getValue(key).jsonPrimitive.int
+
+        private fun JsonObject.long(key: String): Long = getValue(key).jsonPrimitive.long
 
         private fun JsonArrayBuilder.putObjs(objs: Map<Int, InvObj>) {
             for ((slot, obj) in objs.toSortedMap()) {

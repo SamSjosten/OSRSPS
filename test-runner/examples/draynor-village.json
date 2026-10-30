@@ -1,0 +1,283 @@
+{
+ "name": "Draynor piece step 1: the pig pen's gate, Morgan's stairs and garlic cupboard, the Wise Old Man's stairs, Aggie's wardrobe and spawns, and the Draynor bank's bankers and booths (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3077 3257 0",
+   "expectMessage": "Teleported to 3077, 3257, 0",
+   "comment": "south of the G.A.G. pig pen's gate"
+  },
+  {
+   "step": "locOption",
+   "loc": "Gate",
+   "option": "Open",
+   "x": 3078,
+   "y": 3258,
+   "comment": "the right leaf; both open"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Gate",
+   "x": 3077,
+   "y": 3259,
+   "option": "Close",
+   "comment": "the left leaf, swung north onto 3077 3259"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Gate",
+   "x": 3077,
+   "y": 3260,
+   "option": "Close",
+   "comment": "the right leaf beside it"
+  },
+  {
+   "step": "locOption",
+   "loc": "Gate",
+   "option": "Close",
+   "x": 3077,
+   "y": 3259
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Gate",
+   "x": 3077,
+   "y": 3258,
+   "option": "Open",
+   "comment": "both back in the fence"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Gate",
+   "x": 3078,
+   "y": 3258,
+   "option": "Open"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3098 3267 0",
+   "expectMessage": "Teleported to 3098, 3267, 0",
+   "comment": "inside Morgan's house, west of the stairs"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3099,
+   "y": 3266
+  },
+  {
+   "step": "assertLocation",
+   "x": 3102,
+   "y": 3266,
+   "plane": 1,
+   "comment": "off the far end of the top piece"
+  },
+  {
+   "step": "locOption",
+   "loc": "Cupboard",
+   "option": "Open",
+   "x": 3096,
+   "y": 3269
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Cupboard",
+   "x": 3096,
+   "y": 3269,
+   "option": "Search"
+  },
+  {
+   "step": "locOption",
+   "loc": "Cupboard",
+   "option": "Search",
+   "x": 3096,
+   "y": 3269
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_search.garlic]"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Garlic",
+   "count": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Cupboard",
+   "option": "Close",
+   "x": 3096,
+   "y": 3269
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Cupboard",
+   "x": 3096,
+   "y": 3269,
+   "option": "Open",
+   "comment": "shut before leaving, so the next run finds it as the map has it"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3100,
+   "y": 3266
+  },
+  {
+   "step": "assertLocation",
+   "x": 3098,
+   "y": 3266,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3089 3252 0",
+   "expectMessage": "Teleported to 3089, 3252, 0",
+   "comment": "inside the Wise Old Man's house, by his stairs"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3090,
+   "y": 3251
+  },
+  {
+   "step": "assertLocation",
+   "x": 3093,
+   "y": 3251,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3091,
+   "y": 3251
+  },
+  {
+   "step": "assertLocation",
+   "x": 3089,
+   "y": 3251,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3086 3259 0",
+   "expectMessage": "Teleported to 3086, 3259, 0",
+   "comment": "inside Aggie's house"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wardrobe",
+   "option": "Open",
+   "x": 3084,
+   "y": 3256
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Wardrobe",
+   "x": 3084,
+   "y": 3256,
+   "option": "Search"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wardrobe",
+   "option": "Search",
+   "x": 3084,
+   "y": 3256
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_search.wardrobe_empty]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wardrobe",
+   "option": "Close",
+   "x": 3084,
+   "y": 3256
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Wardrobe",
+   "x": 3084,
+   "y": 3256,
+   "option": "Open"
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Cheese",
+   "x": 3083,
+   "y": 3260
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Tomato",
+   "x": 3085,
+   "y": 3261
+  },
+  {
+   "step": "command",
+   "text": "::tele 3092 3243 0",
+   "expectMessage": "Teleported to 3092, 3243, 0",
+   "comment": "in front of Draynor's booths"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[banker.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[banker.open_bank]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "comment": "bankmain"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank booth",
+   "option": "Bank",
+   "x": 3091,
+   "y": 3243,
+   "comment": "clicking the booth closes the bank the banker opened (a loc click closes modals) and opens it again"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

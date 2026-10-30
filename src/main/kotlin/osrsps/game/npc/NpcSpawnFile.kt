@@ -35,7 +35,7 @@ private val logger = KotlinLogging.logger {}
  */
 object NpcSpawnFile {
     /** The spawn files the server loads, in this order. Add an area's file here. */
-    val FILES = listOf("lumbridge.json", "lumbridge-castle.json", "lumbridge-farms.json", "lumbridge-ducks.json", "lumbridge-east.json", "lumbridge-swamp.json")
+    val FILES = listOf("lumbridge.json", "lumbridge-castle.json", "lumbridge-farms.json", "lumbridge-ducks.json", "lumbridge-east.json", "lumbridge-swamp.json", "draynor.json")
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */
     class Result(val spawns: List<NpcSpawn>, val unknown: List<String>)
