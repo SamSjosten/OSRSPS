@@ -674,6 +674,20 @@ public class RunnerTest
 	}
 
 	@Test
+	public void typeTextTypesTheText() throws Exception
+	{
+		runner.start(script("{\"step\":\"typeText\",\"text\":\"roof\"}"), "file");
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals(List.of("type roof"), game.actions);
+		assertEquals("type \"roof\"", r.steps.get(0).description);
+		assertNull(r.failure);
+	}
+
+	@Test
 	public void groundItemWaitsForTheItemOrForItToGo() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertGroundItem\",\"item\":\"Bones\",\"x\":3213,\"y\":3210},"

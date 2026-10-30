@@ -891,6 +891,34 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String typeText(String text)
+	{
+		Canvas canvas = client.getCanvas();
+		if (canvas == null)
+		{
+			return "the client has no canvas";
+		}
+		// The client queues each press and each typed character for the interfaces' onkey scripts (searchbar_keypress
+		// reads the character), so every character gets the press, typed and release a real key makes.
+		SwingUtilities.invokeLater(() ->
+		{
+			if (!canvas.isFocusOwner())
+			{
+				canvas.requestFocusInWindow();
+			}
+			long now = System.currentTimeMillis();
+			for (char c : text.toCharArray())
+			{
+				int code = KeyEvent.getExtendedKeyCodeForChar(c);
+				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_PRESSED, now, 0, code, c));
+				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_TYPED, now, 0, KeyEvent.VK_UNDEFINED, c));
+				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_RELEASED, now, 0, code, c));
+			}
+		});
+		return null;
+	}
+
+	@Override
 	public int skillLevel(String skill)
 	{
 		Skill s = skill(skill);

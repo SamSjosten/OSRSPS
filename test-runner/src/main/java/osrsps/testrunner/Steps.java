@@ -665,6 +665,32 @@ final class Steps
 		}
 	}
 
+	/** (0.12.0) Types text as key presses, for what reads the keyboard itself, such as the All Settings search. */
+	static final class TypeText extends Step
+	{
+		final String text;
+
+		TypeText(long timeoutMs, String text)
+		{
+			super("typeText", timeoutMs, false);
+			this.text = text;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.typeText(text);
+			return error == null ? Poll.pass("typed") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "type \"" + text + "\"";
+		}
+	}
+
 	static final class AssertDialogue extends Step
 	{
 		final String contains;

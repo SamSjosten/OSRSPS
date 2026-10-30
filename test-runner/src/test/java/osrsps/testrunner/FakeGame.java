@@ -292,6 +292,13 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public String typeText(String text)
+	{
+		actions.add("type " + text);
+		return null;
+	}
+
+	@Override
 	public String enterAmount(int amount)
 	{
 		actions.add("amount " + amount);
