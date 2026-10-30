@@ -26,6 +26,21 @@ chat, which hands it to a thread.
 
 To check every open pull request now (after changing this workflow, say): Actions, **mergeable**, **Run workflow**.
 
+### Shared lists: one entry a line
+
+Most conflicts come from lists every content thread adds to. Git merges two additions cleanly when they land on
+different lines, so these lists hold one entry a line, with a trailing comma where the language allows one:
+
+- `DialogueLines.ALL`: one `Lines` object a line, in alphabetical order. Add yours at its place, not at the end.
+- `examines.json`: `npcs` and `locs` sorted by id, one entry a line, so a new id lands in the middle. `about` is a
+  list: an area adds its own line instead of editing the others.
+- `NpcSpawnFile.FILES`: one file a line, a new area at the end. Not sorted: the order sets NPCs' indexes.
+- `World`'s `init` registrations and `commands`: one call a line, already. Add yours next to the related ones (the
+  area's other registrations), not at the end of the block, as the order can matter.
+- README tables (`::` commands, the runner's steps): add a row next to the related rows, not at the end of the table.
+
+Never put several entries on one line, and never reflow such a list.
+
 A pull request that only changes this file, top-level docs, the friend page (`docs/`) or `.github/` doesn't restart
 the server on VM 214 (the deploy filter in `deploy/auto-deploy.sh`).
 
