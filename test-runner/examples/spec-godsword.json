@@ -1,0 +1,28 @@
+{
+ "name": "Bandos godsword Warstrike: the combat tab's bar lit, ::combat's doubled attack roll against slash, a giant frog spawned east of the castle hit for half the energy, the godsword's animation and graphic, and the frog's Defence drained by the damage, read off ::npcs",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "full special attack energy, nothing worn; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel attack 75", "expectMessage": "75", "comment": "the godsword needs 75 Attack"},
+  {"step": "command", "text": "::setlevel strength 55", "expectMessage": "55", "comment": "Warstrike's max hit stays under a giant frog's 23 hitpoints, so it lives to be read"},
+  {"step": "command", "text": "::item bgs", "expectMessage": "Added 1 x Bandos godsword"},
+  {"step": "itemOption", "item": "Bandos godsword", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "itemId": 11804},
+  {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now"},
+  {"step": "command", "text": "::sure", "expectMessage": "Your attacks can't miss now", "comment": "a miss drains nothing, and nor does a hit of 0"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle, away from the courtyard's men"},
+  {"step": "command", "text": "::npc giant_frog_nodrops", "expectMessage": "Spawned Giant frog", "comment": "level 13: Defence 6, Strength 8, Attack 10 (OSRS Wiki, Giant frog)"},
+  {"step": "command", "text": "::combat giant frog", "expectMessage": "Special (Warstrike) (slash): attack roll ", "comment": "double the attack roll, against slash"},
+  {"step": "clickWidget", "interfaceId": 593, "component": 41, "op": 1, "comment": "combat_interface:special_attack, the combat tab's bar"},
+  {"step": "assertVarp", "id": 301, "value": 1, "timeoutMs": 5000, "comment": "sa_attack, the bar lit"},
+  {"step": "npcOption", "npc": "Giant frog", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertAnimation", "id": 7642, "timeoutMs": 20000, "comment": "bgs_special_player"},
+  {"step": "assertSpotanim", "id": 1212, "timeoutMs": 5000, "comment": "dh_sword_update_bandos_special_spotanim on the player"},
+  {"step": "command", "text": "::npcs 5", "expectMessage": "; drained defence ", "comment": "drained by the damage, Defence first (0/6 for 6 or more, then Strength); read before the next swing, 6 ticks on, can kill it"},
+  {"step": "assertVarp", "id": 300, "value": 500, "timeoutMs": 5000, "comment": "half the energy taken"},
+  {"step": "command", "text": "::god", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::sure", "expectMessage": "Your attacks can miss again"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
