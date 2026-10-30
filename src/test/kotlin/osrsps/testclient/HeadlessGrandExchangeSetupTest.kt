@@ -108,12 +108,27 @@ class HeadlessGrandExchangeSetupTest {
                 client.await("the index") { if (client.selectedSlot() == 0 && client.varp(GrandExchangeScreen.VARP_SEARCH) == -1) Unit else null }
                 assertEquals(listOf(InvObj(COINS, 500), InvObj(LOGS, 1)), client.inventory(INV).filterNotNull().take(2))
 
+                // A click for an item no longer in the slot (feathers clicked, logs there now) does nothing.
+                client.ifButton(GrandExchangeScreen.SIDE, GrandExchangeScreen.SIDE_ITEMS, 1, 1, obj = FEATHER)
+                client.commandReply("gemarket off") { it.contains("off") }
+                assertEquals(-1, client.varp(GrandExchangeScreen.VARP_SEARCH))
+
                 // Offer on the logs (inventory slot 1): a sell in the first free slot, 1 at the guide price.
-                client.ifButton(GrandExchangeScreen.SIDE, GrandExchangeScreen.SIDE_ITEMS, 1, 1)
+                client.ifButton(GrandExchangeScreen.SIDE, GrandExchangeScreen.SIDE_ITEMS, 1, 1, obj = LOGS)
                 client.await("logs set up to sell") { if (client.varp(GrandExchangeScreen.VARP_SEARCH) == LOGS) Unit else null }
                 assertEquals(2, client.selectedSlot())
                 assertEquals(GrandExchangeScreen.TYPE_SELL, client.offerType())
                 client.awaitSetup("1 log at the guide price", 1, 1_000)
+                // A price asked for one setup isn't applied to the next: Offer again before answering.
+                client.setup(GrandExchangeScreen.SETUP_PRICE_ENTER)
+                client.await("the price prompt again") { client.clientScripts().count { it.args == listOf<Any>("[ge.set_price]") }.takeIf { it == 2 } }
+                client.setup(GrandExchangeScreen.SETUP_QUANTITY_10)
+                client.awaitSetup("+10, as many as held", 3, 1_000)
+                client.ifButton(GrandExchangeScreen.SIDE, GrandExchangeScreen.SIDE_ITEMS, 1, 2, obj = LOGS)
+                client.awaitSetup("set up again", 1, 1_000)
+                client.resumeCount(5)
+                client.commandReply("gemarket off") { it.contains("off") }
+                client.awaitSetup("still the guide price", 1, 1_000)
                 // A sell's All: the 3 logs held. Then -5%, and a custom -10%.
                 client.setup(GrandExchangeScreen.SETUP_QUANTITY_ALL)
                 client.awaitSetup("all the logs", 3, 1_000)

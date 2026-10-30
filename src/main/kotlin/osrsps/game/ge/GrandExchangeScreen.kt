@@ -104,14 +104,15 @@ class GrandExchangeScreen(
         player.vars.setVarbitIfKnown(VARBIT_TAX_RATE, 0)
         player.geSetup.price = 0
         player.geSetup.searching = false
+        player.geSetup.generation++
     }
 
     /** A click on the offers screen. Returns false when the click isn't on it. */
-    fun click(player: Player, interfaceId: Int, component: Int, sub: Int, op: Int): Boolean {
+    fun click(player: Player, interfaceId: Int, component: Int, sub: Int, op: Int, obj: Int = -1): Boolean {
         if (interfaceId != MAIN && interfaceId != SIDE) return false
         if (!isOpen(player)) return true
         if (interfaceId == SIDE) {
-            if (component == SIDE_ITEMS) clickInventory(player, sub, op)
+            if (component == SIDE_ITEMS) clickInventory(player, sub, op, obj)
             return true
         }
         when (component) {
@@ -187,15 +188,17 @@ class GrandExchangeScreen(
      */
     private fun setItem(player: Player, item: Int, price: Long) {
         player.vars[VARP_SEARCH] = item
+        player.geSetup.generation++
         setQuantity(player, 1)
         player.geSetup.price = price
         player.vars.setVarbitIfKnown(VARBIT_TAX_RATE, grandExchange.taxRate(item))
     }
 
     /** Offer (op 1) on an inventory item beside the screen: a sell offer for it, in the slot set up or the first free. */
-    private fun clickInventory(player: Player, invSlot: Int, op: Int) {
+    private fun clickInventory(player: Player, invSlot: Int, op: Int, clicked: Int) {
         if (invSlot !in 0 until Inventory.INV_CAPACITY) return
-        val obj = player.inventory[invSlot] ?: return
+        // A click sent before the slot changed is for an item no longer there.
+        val obj = player.inventory[invSlot]?.takeIf { it.id == clicked } ?: return
         if (op == 10) {
             examine(player, obj.id, obj.count)
             return
@@ -334,10 +337,10 @@ class GrandExchangeScreen(
     private fun ask(player: Player, prompt: Line, then: (Int) -> Unit) {
         val runner = scripts ?: return
         if (player.scripts.delayed) return
-        val slot = setupSlot(player)
+        val generation = player.geSetup.generation
         runner.start(player) {
             val amount = countDialog(words(player)[prompt])
-            if (isOpen(player) && setupSlot(player) == slot && item(player) != NO_ITEM) then(amount)
+            if (isOpen(player) && player.geSetup.generation == generation && item(player) != NO_ITEM) then(amount)
         }
     }
 
@@ -523,4 +526,7 @@ class GeSetup {
 
     /** Whether the chatbox's item search is open for a buy, waiting on resume_p_objdialog. */
     var searching = false
+
+    /** Counts each new setup, so an amount asked for one is never applied to the next. */
+    var generation = 0
 }
