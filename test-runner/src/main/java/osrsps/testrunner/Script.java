@@ -673,6 +673,27 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "comment");
 				return new Steps.Logout(timeout);
 			}
+			case "addFriend":
+			case "deleteFriend":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				f.rejectUnknown("step", "timeoutMs", "name", "comment");
+				return type.equals("addFriend") ? Steps.PromptEntry.addFriend(timeout, name) : Steps.PromptEntry.deleteFriend(timeout, name);
+			}
+			case "assertFriend":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				boolean absent = f.bool("absent", false);
+				int world = absent ? 0 : f.requiredInt("world");
+				if (world < 0)
+				{
+					throw new Invalid(f.where + ": \"world\" must be 0 (offline) or a world number");
+				}
+				f.rejectUnknown("step", "timeoutMs", "name", "world", "absent", "comment");
+				return new Steps.AssertFriend(timeout, name, world, absent);
+			}
 			default:
 				throw new Invalid(f.where + ": unknown step \"" + type + "\"");
 		}

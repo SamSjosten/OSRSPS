@@ -1602,4 +1602,146 @@ final class Steps
 			return "log out";
 		}
 	}
+
+	/**
+	 * Types a name or a message into one of the chatbox's prompts the way a player does: opens the prompt (a click on a
+	 * button, or the client script a menu option runs), waits for it to show in {@code mode}, enters the text and waits
+	 * for it to close. The client's own scripts then check the text and tell the server, as for a typed one. Doesn't wait
+	 * for the server's answer; an assert after it does.
+	 */
+	static final class PromptEntry extends Step
+	{
+		/** The Friends tab (429) and ignore tab (432) buttons and the prompt mode each opens (meslayer_enter). */
+		static final int FRIENDS = 429;
+		static final int ADD_FRIEND = 14;
+		static final int DELETE_FRIEND = 16;
+		static final int IGNORES = 432;
+		static final int ADD_IGNORE = 12;
+		static final int DELETE_IGNORE = 14;
+		/** meslayer_mode6, the proc a friend's Message option runs, opening the private message prompt (mode 6). */
+		static final int MESSAGE_SCRIPT = 107;
+
+		final String what;
+		final int mode;
+		final String text;
+		/** Opens the prompt: null when done, else why not yet. */
+		private final java.util.function.Function<Game, String> open;
+		private boolean opened;
+		private boolean sent;
+
+		private PromptEntry(String type, long timeoutMs, String what, int mode, String text, java.util.function.Function<Game, String> open)
+		{
+			super(type, timeoutMs, false);
+			this.what = what;
+			this.mode = mode;
+			this.text = text;
+			this.open = open;
+		}
+
+		static PromptEntry addFriend(long timeoutMs, String name)
+		{
+			return new PromptEntry("addFriend", timeoutMs, "add friend " + name, 2, name, g -> g.clickWidget(FRIENDS, ADD_FRIEND, -1, 1));
+		}
+
+		static PromptEntry deleteFriend(long timeoutMs, String name)
+		{
+			return new PromptEntry("deleteFriend", timeoutMs, "delete friend " + name, 3, name, g -> g.clickWidget(FRIENDS, DELETE_FRIEND, -1, 1));
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int now = run.game.promptMode();
+			if (!opened)
+			{
+				if (run.game.friends() == null)
+				{
+					return Poll.waiting("the friends list hasn't arrived");
+				}
+				run.markAction();
+				String error = open.apply(run.game);
+				if (error != null)
+				{
+					return Poll.waiting(error);
+				}
+				opened = true;
+				return Poll.waiting("opened the prompt");
+			}
+			if (!sent)
+			{
+				if (now != mode)
+				{
+					return Poll.waiting("no prompt in mode " + mode + " (meslayermode " + now + ")");
+				}
+				String error = run.game.enterText(text);
+				if (error != null)
+				{
+					return Poll.fail(error);
+				}
+				sent = true;
+				return Poll.waiting("entered, waiting for the prompt to close");
+			}
+			return now == mode ? Poll.waiting("the prompt is still open") : Poll.pass(what);
+		}
+
+		@Override
+		String describe()
+		{
+			return what;
+		}
+	}
+
+	/**
+	 * Passes when the friends list shows {@code name} (matched without regard to case, spaces as underscores) on
+	 * {@code world}, 0 for offline; or, with {@code absent}, when the name isn't on it.
+	 */
+	static final class AssertFriend extends Step
+	{
+		final String name;
+		final int world;
+		final boolean absent;
+
+		AssertFriend(long timeoutMs, String name, int world, boolean absent)
+		{
+			super("assertFriend", timeoutMs, false);
+			this.name = name;
+			this.world = world;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			java.util.Map<String, Integer> friends = run.game.friends();
+			if (friends == null)
+			{
+				return Poll.waiting("the friends list hasn't arrived");
+			}
+			Integer seen = null;
+			for (java.util.Map.Entry<String, Integer> e : friends.entrySet())
+			{
+				if (key(e.getKey()).equals(key(name)))
+				{
+					seen = e.getValue();
+				}
+			}
+			String list = "friends " + friends;
+			if (absent)
+			{
+				return seen == null ? Poll.pass(list) : Poll.waiting(list);
+			}
+			return seen != null && seen == world ? Poll.pass(list) : Poll.waiting(list);
+		}
+
+		private static String key(String name)
+		{
+			return name.trim().toLowerCase(java.util.Locale.ROOT).replace(' ', '_').replace('\u00a0', '_');
+		}
+
+		@Override
+		String describe()
+		{
+			return absent ? "assert " + name + " is not a friend" : "assert friend " + name + (world == 0 ? " offline" : " on world " + world);
+		}
+	}
 }
