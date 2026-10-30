@@ -522,6 +522,17 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "amount", "comment");
 				return new Steps.EnterAmount(timeout, amount);
 			}
+			case "typeText":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String text = f.requiredString("text");
+				if (text.isEmpty())
+				{
+					throw new Invalid(f.where + ": \"text\" must not be empty");
+				}
+				f.rejectUnknown("step", "timeoutMs", "text", "comment");
+				return new Steps.TypeText(timeout, text);
+			}
 			case "assertWeight":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

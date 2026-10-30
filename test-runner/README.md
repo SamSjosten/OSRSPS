@@ -187,6 +187,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `settings-buttons.json`: the All Settings window's buttons. The Wilderness teleport and tablet warnings switched on
   and off a section at a time, the opaque chat colours reset, the keybinds restored and the volumes reset; then close,
   relog and check, and the keys put back to none.
+- `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
+  and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
@@ -290,6 +292,7 @@ server's answer instead of failing on what was there before.
 | `groundItemOption` | `item` (name) or `itemId`, `op`, `option`, `x`+`y` | (0.10.0) Clicks ground op `op` (1 to 5; Take is 3, logs' Light is 4) on the nearest such item on the ground, as `takeItem` does Take; `option` is the menu text. RuneLite doesn't give an item's ground options, so the script names the op. |
 | `useItemOnItem` | `item` (name) or `itemId`, `onItem` or `onItemId` | (0.10.0) Clicks Use on the first such item in the inventory, then the first other slot holding the second item, as the server reads it (IF_BUTTONT). Retries until both are there; doesn't wait for the result. |
 | `enterAmount` | `amount` | (0.11.0) Waits for the chatbox's number prompt (meslayer mode 7, as after Withdraw-X or a settings number), puts the amount in it and presses Enter, then waits until the prompt has closed. |
+| `typeText` | `text` | (0.12.0) Types the text as key presses, one character at a time (press, typed, release on the client's canvas), for what reads the keyboard itself, such as the All Settings search box after its Search. Passes a game tick after the keys reach the canvas, so the client has taken them before the next step; check their effect with that step. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)
