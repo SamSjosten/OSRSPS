@@ -50,6 +50,8 @@ object DialogueLines {
         CandleSellerLines, MiningTutorLines, FishingTutorLines,
         // Social systems.
         SocialLines,
+        // Al Kharid.
+        BorderGuardLines,
         // Draynor Village.
         DraynorSearchLines,
     )

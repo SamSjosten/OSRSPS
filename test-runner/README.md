@@ -135,6 +135,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   adventurers' talks; the candle seller refusing a player with no coins, then selling a lit candle for 1000; and the
   Mining and Fishing tutors' basics (with a pickaxe and a net carried), the Mining tutor's quests and the small net
   fish.
+- `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
+  Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
+  opened together and shut again, and the curtain upstairs in the palace opened and shut.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
