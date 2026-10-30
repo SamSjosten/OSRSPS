@@ -94,11 +94,16 @@ class DepositBox(
         return true
     }
 
-    /** An item used on a deposit box: all of it when there is one, else as many as the player asks for. */
+    /**
+     * An item used on a deposit box: all of it when there is one, else as many as the player asks for. The All Settings
+     * toggle "Bank Deposit Box item quantity check" off deposits all of them without asking. Its varbit,
+     * bank_depositbox_oplocu_askquantity, is 1 for off: the row shows it inverted (param 1084, settings_create_toggle),
+     * so asking is the default.
+     */
     fun useItem(player: Player, slot: Int, id: Int) {
         val held = player.inventory.takeIf { slot in 0 until Inventory.INV_CAPACITY }?.get(slot)
         if (held == null || held.id != id) return
-        if (player.inventory.count(id) <= 1) {
+        if (player.inventory.count(id) <= 1 || !asksQuantity(player)) {
             bankScreen.depositFrom(player, player.inventory, slot, id, Int.MAX_VALUE)
             return
         }
@@ -107,6 +112,9 @@ class DepositBox(
             if (amount > 0) bankScreen.depositFrom(player, player.inventory, slot, id, amount)
         }
     }
+
+    private fun asksQuantity(player: Player): Boolean =
+        player.vars.types.varbit(VARBIT_NO_QUANTITY_CHECK) == null || player.vars.getVarbit(VARBIT_NO_QUANTITY_CHECK) == 0
 
     private fun clickItem(player: Player, slot: Int, obj: Int, op: Int) {
         val held = player.inventory.takeIf { slot in 0 until Inventory.INV_CAPACITY }?.get(slot)
@@ -151,6 +159,9 @@ class DepositBox(
 
     companion object {
         const val INTERFACE = 192
+
+        /** bank_depositbox_oplocu_askquantity: 1 deposits all without asking; see [useItem]. */
+        const val VARBIT_NO_QUANTITY_CHECK = 15958
 
         /** The inventory's items, one sub per slot. */
         const val ITEMS = 24
