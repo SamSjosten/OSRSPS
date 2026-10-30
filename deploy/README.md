@@ -1,8 +1,8 @@
 # Deploying on VM 214 by itself
 
-`auto-deploy.sh` brings the server on VM 214 up to date with `main`: every minute a line in `sam`'s crontab (or
-`osrsps-deploy.timer`) runs it, and when `origin/main` has moved it fast-forwards `/srv/rsps/OSRSPS` and runs
-`docker compose up -d --build`. Nobody needs to ssh in after a merge.
+`auto-deploy.sh` brings the server on VM 214 up to date with `main`: every minute `osrsps-deploy.timer` (or, on a
+VM with cron, a line in `sam`'s crontab) runs it, and when `origin/main` has moved it fast-forwards
+`/srv/rsps/OSRSPS` and runs `docker compose up -d --build`. Nobody needs to ssh in after a merge.
 
 - The server answers `http://192.168.0.210:43595/version` with the commit of main it runs: the one it was built from
   (`OSRSPS_COMMIT`, set by the script; `unknown` after a plain `docker compose up`), or a newer one that left it
@@ -10,8 +10,9 @@
   starts once the merge is live.
 - When the merges since the running server's build change nothing it is built from, the script only fast-forwards
   the checkout, and the server keeps running with its players in. That is a merge whose files are all docs at the top
-  of the repo, tests (`src/test/`), the RuneLite plugins (`test-runner/`, `tick-recorder/`), the launcher
-  (`launcher/`), CI (`.github/`) or this folder. Any other file, or one moved out of the server, rebuilds it.
+  of the repo, the friend page (`docs/`), tests (`src/test/`), the RuneLite plugins (`test-runner/`,
+  `tick-recorder/`), the launcher (`launcher/`), CI (`.github/`) or this folder. Any other file, or one moved out of
+  the server, rebuilds it.
   `.deploy/built` keeps the running server's commit and `.deploy/deployed` the merge's, and compose mounts `.deploy/`
   read-only into the container, so `/version` answers with the merge's commit anyway and `/status` adds a
   `built from <commit>` line under it. `.deploy/built` is empty from a new build, or a restart, until the server is up,
@@ -62,17 +63,17 @@ deploy/staging.sh up 3c1b194              # a commit, or main
 deploy/staging.sh up claude/some-branch --force   # build and restart even when that commit is up already
 deploy/staging.sh status                  # the ref and commit up, the container, what /version answers
 deploy/staging.sh down                    # stop and remove it; the data folder and the image stay for the next up
-deploy/staging.sh auto                    # what the crontab line below runs: staging follows origin's `staging` branch
+deploy/staging.sh auto                    # what osrsps-staging.timer runs: staging follows origin's `staging` branch
 ```
 
 - Without a shell on the VM, staging follows the branch named `staging` on origin: `git push origin my-branch:staging`
-  and within a minute `auto` (the crontab line below) builds and runs its head; push again and it follows; delete the
+  and within a minute `auto` (the timer below) builds and runs its head; push again and it follows; delete the
   branch (`git push origin --delete staging`) and staging goes down. A commit whose build or start failed is written
   to `.staging/failed` and not tried every minute; the next commit on the branch is. While the branch exists, `auto`
   brings staging back up after a `down` by hand, so the branch is what to delete; staging brought up by hand is left
   alone until the branch appears, and then follows it (a branch made at the very commit that is up takes it over
   without a rebuild, so deleting the branch takes it down all the same). `auto` says nothing when there is nothing
-  to do, so `.deploy/staging.log` holds only the ups and downs.
+  to do, so its journal (`journalctl -u osrsps-staging`) holds only the ups and downs.
 - Everything staging is under `.staging/` in the checkout (git-ignored). `src/` is a git worktree at the staged
   commit, which the image is built from; the compose file is the checkout's `deploy/compose.staging.yaml`, never the
   staged commit's, so a branch can't change the staging server's ports or data folder. `deployed` and `ref` say what
@@ -103,10 +104,10 @@ deploy/staging.sh auto                    # what the crontab line below runs: st
 - `deploy/staging-test.sh` (run by CI) plays the script through these cases on a made-up origin with a stand-in for
   docker, as `auto-deploy-test.sh` does for the deploy.
 
-## Installing without root: sam's crontab
+## Without root: sam's crontab (not on 214, which has no cron)
 
-What runs on 214 now. As `sam`, one line in `crontab -e` runs the same script every minute, logging to
-`.deploy/log` (the lock keeps runs from overlapping):
+On a VM with cron, one line in `crontab -e` as `sam` runs the deploy every minute, logging to `.deploy/log` (the lock
+keeps runs from overlapping). 214 runs the timers below instead; the `cron` package isn't installed there.
 
 ```bash
 * * * * * /srv/rsps/OSRSPS/deploy/auto-deploy.sh >>/srv/rsps/OSRSPS/.deploy/log 2>&1 # osrsps-auto-deploy
@@ -121,7 +122,7 @@ A second line, the same way, keeps the staging server on origin's `staging` bran
 * * * * * /srv/rsps/OSRSPS/deploy/staging.sh auto >>/srv/rsps/OSRSPS/.deploy/staging.log 2>&1 # osrsps-auto-staging
 ```
 
-## Installing the timer instead (once, as root on VM 214)
+## The timers (once, as root on VM 214): what runs on 214
 
 The checkout must already hold this folder, and `sam` must be able to `git fetch` without typing anything
 (`sudo -u sam git -C /srv/rsps/OSRSPS fetch origin main` returns quietly).
@@ -137,3 +138,17 @@ curl -s http://127.0.0.1:43595/version        # that sha
 
 The first run rebuilds whatever main is, since nothing is recorded as deployed yet. To stop deploying by itself:
 `systemctl disable --now osrsps-deploy.timer`.
+
+The staging server's timer, the same way (`osrsps-staging.service` runs `staging.sh auto` as `sam`, with the
+journal as its log):
+
+```bash
+cp /srv/rsps/OSRSPS/deploy/osrsps-staging.service /srv/rsps/OSRSPS/deploy/osrsps-staging.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now osrsps-staging.timer
+systemctl list-timers osrsps-staging.timer    # next run within a minute
+journalctl -u osrsps-staging -n 20            # quiet while origin has no `staging` branch; then the ups and downs
+```
+
+To stop following the branch: `systemctl disable --now osrsps-staging.timer` (a staging server that is up stays up;
+`deploy/staging.sh down` takes it down).

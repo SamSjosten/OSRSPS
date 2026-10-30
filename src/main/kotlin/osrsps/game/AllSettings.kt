@@ -19,7 +19,7 @@ private val logger = KotlinLogging.logger {}
  * on), checks the same dependencies and makes the same change, so the varp it next sends agrees with the client.
  *
  * Read from the rev 241 client scripts (Joshua-F/osrs-dumps, 2026-10-28) each comment names; none of it has been seen
- * on live. Text inputs are the enhanced client's and buttons are the next step; their clicks are logged and left alone.
+ * on live. Text inputs are the enhanced client's; their clicks are logged and left alone.
  *
  * A dropdown or keybind row's op opens a list of its options in dropdown_buttons (setting_show_dropdown), once the
  * row's dependencies are met; picking one sets the var in the client (settings_set_dropdown, settings_set_keybind),
@@ -32,6 +32,10 @@ private val logger = KotlinLogging.logger {}
  * settings_colour_input_click): the server asks for the value. A number is an amount typed in the chatbox. A colour is
  * picked in the colour picker (colour_pallet, 288), whose Save and Cancel send the colour, or 2^31 - 1, as
  * resume_countdialog (script614).
+ *
+ * A button row's op only makes it the selected setting in the client (settings_clicked_button; the two cases it acts
+ * on are enhanced-client rows): the server does what the button says. Each one sits at the end of the section it
+ * works on, the rows since the last header.
  */
 class AllSettings(
     private val catalog: SettingsCatalog,
@@ -117,7 +121,8 @@ class AllSettings(
     private fun clickRow(player: Player, sub: Int, op: Int) {
         val row = rowAt(player, sub) ?: return
         when (row.kind) {
-            SettingRow.KIND_TOGGLE, SettingRow.KIND_DROPDOWN, SettingRow.KIND_KEYBIND, SettingRow.KIND_NUMBER, SettingRow.KIND_COLOUR -> Unit
+            SettingRow.KIND_TOGGLE, SettingRow.KIND_DROPDOWN, SettingRow.KIND_KEYBIND, SettingRow.KIND_NUMBER, SettingRow.KIND_COLOUR,
+            SettingRow.KIND_BUTTON -> Unit
             // A slider's bobble has no op of its own: its notches (other components) and drags work it.
             SettingRow.KIND_SLIDER -> return
             else -> {
@@ -134,6 +139,7 @@ class AllSettings(
             SettingRow.KIND_DROPDOWN, SettingRow.KIND_KEYBIND -> player.settingsDropdown = row.struct
             SettingRow.KIND_NUMBER -> askNumber(player, row)
             SettingRow.KIND_COLOUR -> pickColour(player, row)
+            SettingRow.KIND_BUTTON -> press(player, row)
             else -> {
                 setVarbit(player, VARBIT_SELECTED_SETTING, row.id)
                 toggle(player, row.id)
@@ -267,6 +273,68 @@ class AllSettings(
             }
         }
         keybind.set(player.vars, option)
+    }
+
+    /**
+     * Button [row]: the client has made it the selected setting (settings_clicked_button), so the server does too, then
+     * what the button's name says. Guessed for each, as no script shows the server's half. The beta world buttons do
+     * nothing here, as there are no beta worlds.
+     */
+    private fun press(player: Player, row: SettingRow) {
+        setVarbit(player, VARBIT_SELECTED_SETTING, row.id)
+        when (row.id) {
+            RESET_VOLUMES -> resetVolumes(player)
+            in WIPE_PLAYLISTS -> {
+                val first = PLAYLIST_VARPS_START + WIPE_PLAYLISTS.indexOf(row.id) * PLAYLIST_VARPS
+                for (varp in first until first + PLAYLIST_VARPS) if (varp < player.vars.types.varpCount) player.vars[varp] = 0
+            }
+            RESTORE_KEYBINDS -> restoreKeybinds(player)
+            in RESET_COLOURS -> for (colour in section(row).mapNotNull { catalog.colours[it.id] }) {
+                // settings_get_colour reads the varp less 1, so 0 is the row's default colour.
+                if (colour is SettingVar.Offset) colour.of.set(player.vars, 0) else colour.set(player.vars, 0)
+            }
+            ENABLE_TELEPORT_WARNINGS, ENABLE_TABLET_WARNINGS -> setSectionToggles(player, row, 1)
+            DISABLE_TELEPORT_WARNINGS, DISABLE_TABLET_WARNINGS -> setSectionToggles(player, row, 0)
+            else -> logger.info { "${player.username} pressed setting button ${row.id}, which does nothing here" }
+        }
+    }
+
+    /** The rows [button] works on: those of its category since the last header before it. */
+    private fun section(button: SettingRow): List<SettingRow> {
+        val rows = catalog.categories.firstNotNullOfOrNull { category -> category?.rows?.takeIf { button in it } } ?: return emptyList()
+        val end = rows.indexOf(button)
+        val start = rows.subList(0, end).indexOfLast { it.kind == SettingRow.KIND_HEADER } + 1
+        return rows.subList(start, end)
+    }
+
+    /** Sets every toggle in [button]'s section to [value]: the Warnings tab's "Show warning when..." rows. */
+    private fun setSectionToggles(player: Player, button: SettingRow, value: Int) {
+        for (toggle in section(button).filter { it.kind == SettingRow.KIND_TOGGLE }.mapNotNull { catalog.toggles[it.id] }) {
+            toggle.set(player.vars, value)
+        }
+    }
+
+    /** Guessed: the defaults the sliders go back to are script9255's, what unmuting a volume with none saved gives. */
+    private fun resetVolumes(player: Player) {
+        for (volume in SettingsSide.Volume.entries) volume.set(player, volume.unmuteDefault)
+    }
+
+    private fun restoreKeybinds(player: Player) {
+        for ((varbit, key) in DEFAULT_KEYBINDS) setVarbit(player, varbit, key)
+    }
+
+    /**
+     * A new account's settings, for an account that never did Tutorial Island, where live sets them. Guessed: the
+     * keybinds the Wiki gives as the defaults, the volumes [resetVolumes] gives, and every Wilderness teleport and
+     * tablet warning shown. tut2_default_settings, which the caller runs, does the window mode and zoom.
+     */
+    fun newAccount(player: Player) {
+        restoreKeybinds(player)
+        resetVolumes(player)
+        for (id in listOf(ENABLE_TELEPORT_WARNINGS, ENABLE_TABLET_WARNINGS)) {
+            val button = catalog.rows.values.firstOrNull { it.id == id && it.kind == SettingRow.KIND_BUTTON } ?: continue
+            setSectionToggles(player, button, 1)
+        }
     }
 
     /**
@@ -516,6 +584,54 @@ class AllSettings(
         const val VARBIT_LEVEL_UP_MESSAGE_DISABLED = 20157
         const val VARBIT_LEVEL_UP_POPUP_LIST = 4371
 
+        // The window's buttons on a desktop client, by setting id.
+        const val RESET_VOLUMES = 468
+        const val RESTORE_KEYBINDS = 58
+        const val ENABLE_TELEPORT_WARNINGS = 77
+        const val DISABLE_TELEPORT_WARNINGS = 76
+        const val ENABLE_TABLET_WARNINGS = 75
+        const val DISABLE_TABLET_WARNINGS = 74
+
+        /** "Wipe custom music playlist" 1 to 3. */
+        val WIPE_PLAYLISTS = listOf(490, 491, 492)
+
+        /** The opaque, transparent and split chat colours, the quest list's and the music player's. */
+        val RESET_COLOURS = setOf(107, 108, 109, 228, 489)
+
+        /** music_playlist_1_1: each playlist is 50 varps (music_playlist_N_1 to _50), one after another. */
+        const val PLAYLIST_VARPS_START = 5239
+        const val PLAYLIST_VARPS = 50
+
+        // The side panel's keybind varbits (sidestone_keybindings_1 to _3), for each tab.
+        const val VARBIT_COMBAT_KEY = 4675
+        const val VARBIT_STATS_KEY = 4676
+        const val VARBIT_JOURNAL_KEY = 4677
+        const val VARBIT_INVENTORY_KEY = 4678
+        const val VARBIT_WORN_KEY = 4679
+        const val VARBIT_PRAYER_KEY = 4680
+        const val VARBIT_MAGIC_KEY = 4682
+        const val VARBIT_CLANCHAT_KEY = 4683
+        const val VARBIT_FRIENDS_KEY = 4684
+        const val VARBIT_ACCOUNT_KEY = 6517
+        const val VARBIT_SETTINGS_KEY = 4686
+        const val VARBIT_EMOTES_KEY = 4687
+        const val VARBIT_MUSIC_KEY = 4688
+        const val VARBIT_LOGOUT_KEY = 4689
+
+        /**
+         * The keys a new account has, from the Wiki's keyboard shortcuts page: F1 to F12 across the tabs and Esc for the
+         * inventory, none for logout. Values as enum 3506 numbers them: 1 to 12 the F keys, 13 Esc, 0 none.
+         */
+        val DEFAULT_KEYBINDS: Map<Int, Int> = mapOf(
+            VARBIT_COMBAT_KEY to 1, VARBIT_STATS_KEY to 2, VARBIT_JOURNAL_KEY to 3, VARBIT_WORN_KEY to 4,
+            VARBIT_PRAYER_KEY to 5, VARBIT_MAGIC_KEY to 6, VARBIT_CLANCHAT_KEY to 7, VARBIT_FRIENDS_KEY to 8,
+            VARBIT_ACCOUNT_KEY to 9, VARBIT_SETTINGS_KEY to 10, VARBIT_EMOTES_KEY to 11, VARBIT_MUSIC_KEY to 12,
+            VARBIT_INVENTORY_KEY to 13, VARBIT_LOGOUT_KEY to 0,
+        )
+
+        /** tut2_default_settings: resizable window mode and the default zoom, which Tutorial Island's end runs. */
+        const val TUT2_DEFAULT_SETTINGS_SCRIPT = 3390
+
         /** The volume sliders by setting id (settings_slider_choose_onop). */
         val VOLUMES: Map<Int, SettingsSide.Volume> = mapOf(
             319 to SettingsSide.Volume.MASTER, 30 to SettingsSide.Volume.MUSIC,
@@ -551,6 +667,20 @@ class AllSettings(
             VARBIT_LOGINLOGOUT_SETTING to VarbitType(3053, 0, 1),
             VARBIT_LEVEL_UP_MESSAGE_DISABLED to VarbitType(3190, 7, 7),
             VARBIT_LEVEL_UP_POPUP_LIST to VarbitType(1734, 18, 18),
+            VARBIT_COMBAT_KEY to VarbitType(1224, 0, 4),
+            VARBIT_STATS_KEY to VarbitType(1224, 5, 9),
+            VARBIT_JOURNAL_KEY to VarbitType(1224, 10, 14),
+            VARBIT_INVENTORY_KEY to VarbitType(1224, 15, 19),
+            VARBIT_WORN_KEY to VarbitType(1224, 20, 24),
+            VARBIT_PRAYER_KEY to VarbitType(1224, 25, 29),
+            VARBIT_MAGIC_KEY to VarbitType(1225, 0, 4),
+            VARBIT_CLANCHAT_KEY to VarbitType(1225, 5, 9),
+            VARBIT_FRIENDS_KEY to VarbitType(1225, 10, 14),
+            VARBIT_ACCOUNT_KEY to VarbitType(1225, 15, 19),
+            VARBIT_SETTINGS_KEY to VarbitType(1225, 20, 24),
+            VARBIT_EMOTES_KEY to VarbitType(1225, 25, 29),
+            VARBIT_MUSIC_KEY to VarbitType(1226, 0, 4),
+            VARBIT_LOGOUT_KEY to VarbitType(1226, 5, 9),
         )
 
         val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>> = mapOf(

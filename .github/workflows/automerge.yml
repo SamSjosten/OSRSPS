@@ -28,16 +28,15 @@ permissions:
   pull-requests: write
 
 jobs:
-  gate:
+  # The job names are what automerge.js leaves out of a pull request's checks: GitHub files a pull_request_target run's
+  # jobs on the pull request's head, so the queue would otherwise wait on its own run.
+  automerge-gate:
     if: >-
       github.event_name == 'pull_request_target' ||
       (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
        github.event.comment.user.login == 'chatgpt-codex-connector[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    concurrency:
-      group: automerge-gate-${{ github.event.pull_request.number || github.event.issue.number }}
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,18 +47,18 @@ jobs:
           script: |
             await require('./.github/scripts/automerge.js').gate({ github, context, core });
 
-  queue:
-    needs: gate
+  automerge-queue:
+    needs: automerge-gate
     if: >-
       always() &&
       (github.event_name != 'issue_comment' ||
        (github.event.issue.pull_request && github.event.comment.user.login == 'chatgpt-codex-connector[bot]'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # One queue at a time; a newer pending run replaces an older one, which is fine as each looks at every pull request.
-    concurrency:
-      group: automerge-queue
-      cancel-in-progress: false
+    # No concurrency group: GitHub cancels a group's pending run when a newer one queues, and these jobs sit on pull
+    # requests' heads, where a cancelled run shows as a failed check. Two queue runs at once can each merge main into
+    # a pull request, which costs a build but nothing else: the ruleset still wants a pull request up to date with main
+    # before it merges, and the queue goes round again after each merge.
     steps:
       - uses: actions/checkout@v4
         with:

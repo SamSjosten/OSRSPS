@@ -72,6 +72,8 @@ class SettingRow(
         const val KIND_DROPDOWN = 2
         const val KIND_KEYBIND = 3
         const val KIND_NUMBER = 4
+        const val KIND_HEADER = 5
+        const val KIND_BUTTON = 6
         const val KIND_COLOUR = 9
     }
 }

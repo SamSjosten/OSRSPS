@@ -1017,7 +1017,7 @@ class World(
     internal fun loadPlayer(index: Int, username: String): Player {
         val player = Player(index, username, SPAWN_X, SPAWN_Z, SPAWN_LEVEL, varTypes)
         // A save that couldn't be written is newer than the file, which would hand back what the player had before.
-        val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player
+        val text = unwritten[player.saveKey] ?: saves.read(player.saveKey) ?: return player.also { it.newAccount = true }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
@@ -1180,10 +1180,20 @@ class World(
         sendChatFilters(player)
         quests.completeAll(player.vars)
         prayers.login(player)
+        if (player.newAccount) allSettings.newAccount(player)
         player.message(textFor(player)[GameLines.WELCOME])
 
+        // The settings go before the interfaces that read them as they load (the side panel, the orbs), rather than
+        // with the end-of-tick flush. Inferred from those onload scripts, not seen on live.
+        sendVars(player)
         interfaces.openGameFrame(player)
         inventoryTab.open(player)
+        if (player.newAccount) {
+            // Tutorial Island's end on live: resizable mode and the default zoom, and the frame to match. Nobody here
+            // does the tutorial, so a new account gets them at its first login.
+            interfaces.runClientScript(player, AllSettings.TUT2_DEFAULT_SETTINGS_SCRIPT, emptyList())
+            interfaces.requestFrame(player, GameFrame.RESIZABLE_CLASSIC, tick)
+        }
     }
 
     /**

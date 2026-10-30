@@ -92,10 +92,10 @@ deploy
 expect_status 0
 expect_no_calls
 
-step="docs, tests, plugins, launcher, CI and deploy files only, on a checkout from before .deploy/built"
+step="docs, the friend page, tests, plugins, launcher, CI and deploy files only, on a checkout from before .deploy/built"
 rm "$tmp/vm/.deploy/built"
-merge README.md=1 src/test/ServerTest.kt=1 test-runner/Plugin.java=1 tick-recorder/Plugin.java=1 launcher/Main.java=1 \
-	.github/workflows/build.yml=1 deploy/README.md=1
+merge README.md=1 docs/index.html=1 src/test/ServerTest.kt=1 test-runner/Plugin.java=1 tick-recorder/Plugin.java=1 \
+	launcher/Main.java=1 .github/workflows/build.yml=1 deploy/README.md=1
 deploy
 expect_status 0
 expect_no_calls
