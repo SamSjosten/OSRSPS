@@ -1,5 +1,6 @@
 package osrsps.game.content
 
+import osrsps.game.DropLines
 import osrsps.game.EquipmentLines
 import osrsps.game.GameLines
 import osrsps.game.Player
@@ -75,6 +76,7 @@ object DialogueLines {
         DonieLines,
         DoomsayerLines,
         DraynorSearchLines,
+        DropLines,
         DuckLines,
         DukeLines,
         EllisLines,
