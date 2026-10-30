@@ -1,0 +1,23 @@
+{
+ "name": "First trade screen, two players (run with social-trade-offer-test2.json on the other VM at the same time): test offers 10 coins, sees test2's axe on offer, takes 5 back, and declines; both get their items back and ::reset puts the account back",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing carried"},
+  {"step": "command", "text": "::item 995 100", "expectMessage": "Added"},
+  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported"},
+  {"step": "playerOption", "player": "test2", "option": "Trade with", "x": 3224, "y": 3218, "timeoutMs": 180000, "comment": "once test2 stands beside us, which it does only after its setup"},
+  {"step": "assertInterface", "interfaceId": 335, "timeoutMs": 60000, "comment": "test2 accepted"},
+  {"step": "clickWidget", "interfaceId": 336, "component": 0, "slot": 0, "op": 3, "comment": "Offer-10 on the coins"},
+  {"step": "assertInventory", "itemId": 995, "count": 90},
+  {"step": "assertWidgetText", "interfaceId": 335, "component": 9, "contains": "[trade.free_slots name=test2 count=28]", "timeoutMs": 60000, "comment": "test2 offered its only item, its axe: all 28 slots free"},
+  {"step": "clickWidget", "interfaceId": 335, "component": 25, "slot": 0, "op": 2, "comment": "Remove-5 on the offered coins"},
+  {"step": "assertInventory", "itemId": 995, "count": 95},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "clickWidget", "interfaceId": 335, "component": 13, "comment": "Decline"},
+  {"step": "assertInterface", "interfaceId": 335, "absent": true},
+  {"step": "assertInventory", "itemId": 995, "count": 100, "comment": "the offered coins came back"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

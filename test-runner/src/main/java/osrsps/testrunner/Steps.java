@@ -53,6 +53,8 @@ final class Steps
 		private int enterTick;
 		private int retries;
 		private String focusNote;
+		/** Set once a chatbox prompt has been closed for this line. */
+		private String promptNote;
 
 		Chat(String type, long timeoutMs, String text, String expectMessage)
 		{
@@ -83,10 +85,24 @@ final class Steps
 				{
 					retries++;
 					enterTick = run.gameTicks();
-					focusNote = run.game.pressEnterAgain();
+					// An open chatbox prompt takes the Enter, so the line stays however often it is pressed, and the
+					// next scripts' commands too (two nightly runs on 30 Oct 2026 stuck until a client restart; that a
+					// prompt was the cause is a guess). Close it, and press Enter again on the next try.
+					int mode = run.game.promptMode();
+					if (mode != 0 && promptNote == null)
+					{
+						run.game.closePrompt();
+						promptNote = "closed a chatbox prompt, meslayermode " + mode;
+						focusNote = promptNote;
+					}
+					else
+					{
+						String note = run.game.pressEnterAgain();
+						focusNote = promptNote == null ? note : promptNote + "; " + note;
+					}
 				}
 				return Poll.waiting("the chat input still holds the text: the client has not taken the Enter key"
-					+ (retries == 0 ? "" : " after " + (retries + 1) + " presses (" + focusNote + ")"));
+					+ (retries == 0 ? "" : " after " + (retries + 1) + " tries (" + focusNote + ")"));
 			}
 			if (expectMessage == null)
 			{
@@ -835,7 +851,17 @@ final class Steps
 		}
 	}
 
-	/** Waits for a dialogue with a continue button, clicks it, then waits until that dialogue has gone. */
+	/**
+	 * The dialogue open in the chatbox, or else (0.17.0) the level-up box: XP from a step (a special attack's hit) can
+	 * open one over the chatbox, and finishDialogue left it there, holding up the steps after it (the raid's scripts).
+	 */
+	static Dialogue chatbox(Run run)
+	{
+		Dialogue d = run.game.dialogue();
+		return d != null ? d : run.game.levelUp();
+	}
+
+	/** Waits for a dialogue with a continue button, or (0.17.0) the level-up box, clicks it, then waits until it has gone. */
 	static final class ContinueDialogue extends Step
 	{
 		private String clicked;
@@ -848,7 +874,7 @@ final class Steps
 		@Override
 		Poll poll(Run run)
 		{
-			Dialogue d = run.game.dialogue();
+			Dialogue d = chatbox(run);
 			if (clicked == null)
 			{
 				if (d == null || d.kind == Dialogue.Kind.OPTIONS)
@@ -899,7 +925,7 @@ final class Steps
 		@Override
 		Poll poll(Run run)
 		{
-			Dialogue d = run.game.dialogue();
+			Dialogue d = chatbox(run);
 			if (clicked != null && d != null && d.toString().equals(clicked) && run.gameTicks() - clickedTick < SAME_PAGE_TICKS)
 			{
 				return Poll.waiting("clicked, " + clicked + " still open");
@@ -1690,6 +1716,13 @@ final class Steps
 		static final int DELETE_IGNORE = 14;
 		/** meslayer_mode6, the proc a friend's Message option runs, opening the private message prompt (mode 6). */
 		static final int MESSAGE_SCRIPT = 107;
+		/** meslayer_mode10, the proc Join Chat runs (joinchat_onop), opening the channel name prompt (mode 10). */
+		static final int JOIN_CHAT_SCRIPT = 111;
+		/** chatchannel_current's Setup button, and chatchannel_setup's channel name option (Set prefix). */
+		static final int FRIENDS_CHAT = 7;
+		static final int FRIENDS_CHAT_SETUP = 20;
+		static final int FRIENDS_CHAT_SETUP_SCREEN = 94;
+		static final int FRIENDS_CHAT_PREFIX = 10;
 
 		final String what;
 		final int mode;
@@ -1733,6 +1766,26 @@ final class Steps
 		static PromptEntry privateMessage(long timeoutMs, String name, String text)
 		{
 			return new PromptEntry("privateMessage", timeoutMs, "message " + name + ": " + text, 6, text, g -> g.runClientScript(MESSAGE_SCRIPT, new Object[] {name}));
+		}
+
+		/** Join Chat: the channel name prompt, then the owner's name. */
+		static PromptEntry joinFriendsChat(long timeoutMs, String owner)
+		{
+			return new PromptEntry("joinFriendsChat", timeoutMs, "join " + owner + "'s friends chat", 10, owner, g -> g.runClientScript(JOIN_CHAT_SCRIPT, new Object[0]));
+		}
+
+		/** The friends chat Setup screen's Set prefix: the server's text prompt (mode 9), then the channel's name. */
+		static PromptEntry setFriendsChatName(long timeoutMs, String name)
+		{
+			return new PromptEntry("setFriendsChatName", timeoutMs, "name the friends chat " + name, 9, name, g ->
+			{
+				if (!g.interfaceOpen(FRIENDS_CHAT_SETUP_SCREEN))
+				{
+					String error = g.clickWidget(FRIENDS_CHAT, FRIENDS_CHAT_SETUP, -1, 1);
+					return error != null ? error : "opening the setup screen";
+				}
+				return g.clickWidget(FRIENDS_CHAT_SETUP_SCREEN, FRIENDS_CHAT_PREFIX, -1, 1);
+			});
 		}
 
 		/** Clicks {@code button} on the ignore tab, first opening the tab from the Friends tab when it isn't. */
@@ -1789,6 +1842,61 @@ final class Steps
 		String describe()
 		{
 			return what;
+		}
+	}
+
+	/**
+	 * Passes when the client is in {@code owner}'s friends chat channel, with {@code member} listed in it when given; or,
+	 * with {@code absent}, when it is in no channel ({@code owner} and {@code member} unset) or {@code member} isn't
+	 * listed. Names match without regard to case, spaces as underscores.
+	 */
+	static final class AssertFriendsChat extends Step
+	{
+		final String owner;
+		final String member;
+		final boolean absent;
+
+		AssertFriendsChat(long timeoutMs, String owner, String member, boolean absent)
+		{
+			super("assertFriendsChat", timeoutMs, false);
+			this.owner = owner;
+			this.member = member;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			String now = run.game.friendsChatOwner();
+			if (owner == null)
+			{
+				return now == null ? Poll.pass("in no friends chat") : Poll.waiting("in " + now + "'s friends chat");
+			}
+			if (now == null || !AssertFriend.key(now).equals(AssertFriend.key(owner)))
+			{
+				return Poll.waiting(now == null ? "in no friends chat" : "in " + now + "'s friends chat");
+			}
+			if (member == null)
+			{
+				return Poll.pass("in " + owner + "'s friends chat");
+			}
+			java.util.List<String> members = run.game.friendsChatMembers();
+			boolean listed = members.stream().anyMatch(m -> AssertFriend.key(m).equals(AssertFriend.key(member)));
+			if (listed != absent)
+			{
+				return Poll.pass(member + (absent ? " not" : "") + " in " + owner + "'s friends chat");
+			}
+			return Poll.waiting("members " + members);
+		}
+
+		@Override
+		String describe()
+		{
+			if (owner == null)
+			{
+				return "in no friends chat";
+			}
+			return member == null ? "in " + owner + "'s friends chat" : member + (absent ? " not" : "") + " in " + owner + "'s friends chat";
 		}
 	}
 

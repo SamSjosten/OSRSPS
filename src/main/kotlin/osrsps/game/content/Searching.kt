@@ -15,6 +15,7 @@ object SearchLines : Lines("search", "Crate") {
     val SACKS_EMPTY = line("sacks_empty", "Search on sacks")
     val CHEST_EMPTY = line("chest_empty", "Search on an open chest")
     val DRAWERS_EMPTY = line("drawers_empty", "Search on open drawers")
+    val BOXES_EMPTY = line("boxes_empty", "Search on boxes (2004Scape's crates.rs2)")
 }
 
 /**

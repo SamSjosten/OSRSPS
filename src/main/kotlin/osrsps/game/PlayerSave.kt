@@ -20,13 +20,17 @@ import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.StatRestore
+import osrsps.game.social.FriendChats
 import osrsps.game.social.FriendLists
 import osrsps.game.ge.BuyLimitUse
 import osrsps.game.ge.GeAccount
 import osrsps.game.ge.GeOffer
 import osrsps.game.ge.GeTrade
 import osrsps.game.ge.OfferType
+import osrsps.game.social.FriendsChatSettings
 import osrsps.game.social.IgnoreLists
+import osrsps.game.trade.TradeJournal
+import osrsps.game.trade.offeredBy
 
 private val logger = KotlinLogging.logger {}
 
@@ -72,6 +76,12 @@ class PlayerSave(
     val ignores: List<String> = emptyList(),
     /** The Grand Exchange's trade history, newest first. */
     val geHistory: List<GeTrade> = emptyList(),
+    /** The last trade the player completed, which a leftover trade journal is checked against; see [TradeJournal]. */
+    val lastTrade: String? = null,
+    /** The player's own friends chat channel, in the header too. */
+    val friendsChat: FriendsChatSettings = FriendsChatSettings.DEFAULT,
+    /** Whose friends chat channel the player was in, to join again at login. */
+    val friendsChatOwner: String? = null,
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -99,6 +109,9 @@ class PlayerSave(
         player.chatFilters = chatFilters
         player.friends.addAll(friends)
         player.ignores.addAll(ignores)
+        player.lastTrade = lastTrade
+        player.friendsChat = friendsChat
+        player.friendsChatOwner = friendsChatOwner
         applyState(player)
     }
 
@@ -174,6 +187,16 @@ class PlayerSave(
             }
             if (friends.isNotEmpty()) putJsonArray("friends") { for (name in friends) add(name) }
             if (ignores.isNotEmpty()) putJsonArray("ignores") { for (name in ignores) add(name) }
+            if (lastTrade != null) put("lastTrade", lastTrade)
+            if (friendsChat != FriendsChatSettings.DEFAULT) {
+                putJsonObject("friendsChat") {
+                    if (friendsChat.name != null) put("name", friendsChat.name)
+                    put("enter", friendsChat.enter)
+                    put("talk", friendsChat.talk)
+                    put("kick", friendsChat.kick)
+                }
+            }
+            if (friendsChatOwner != null) put("friendsChatOwner", friendsChatOwner)
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -258,7 +281,7 @@ class PlayerSave(
 
         private val format = Json { prettyPrint = true }
 
-        /** [player]'s state, with [inventory] as what they hold: by default their inventory as it is. */
+        /** [player]'s state, with [inventory] as what they hold (by default their inventory as it is), plus anything they have on offer in a trade. */
         fun of(
             player: Player,
             inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
@@ -271,7 +294,7 @@ class PlayerSave(
             val skills = Skill.entries.associateWith { SkillSave(player.skills.tenths(it), player.skills.currentLevel(it)) }
             val equipment = player.equipment.contents().toMap()
             return PlayerSave(
-                player.x, player.z, player.level, player.runEnergy, varps, skills, inventory, equipment,
+                player.x, player.z, player.level, player.runEnergy, varps, skills, withOffer(player, inventory), equipment,
                 player.scenario, player.beforeScenario, player.createdAt, player.playedTicks, player.charges.contents(),
                 bank,
                 BoostSegments(StatRestore.segment(player.statTimers.combatBoost), StatRestore.segment(player.statTimers.skillBoost)),
@@ -280,7 +303,28 @@ class PlayerSave(
                 player.ge.contents().toMap(), player.ge.limits.values.toList(),
                 player.ignores.toList(),
                 player.ge.history.toList(),
+                player.lastTrade,
+                player.friendsChat,
+                player.friendsChatOwner,
             )
+        }
+
+        /**
+         * [player]'s inventory with anything they have offered in a trade put back in it, as a decline would: a save made
+         * mid-trade (an autosave, a crash) must not lose the offer, and the offer is only ever in one place. Nothing else
+         * can change the inventory while trading (see [osrsps.game.trade.Trades.interrupt]), so it fits; whatever somehow
+         * doesn't is logged and left out rather than written twice.
+         */
+        private fun withOffer(player: Player, inventory: Map<Int, InvObj>): Map<Int, InvObj> {
+            val offered = offeredBy(player)
+            if (offered.isEmpty()) return inventory
+            val copy = Inventory(player.inventory.type, player.inventory.capacity)
+            for ((slot, obj) in inventory) copy[slot] = obj
+            for ((obj, stackable) in offered) {
+                val added = copy.add(ObjType(obj.id, stackable = stackable), obj.count)
+                if (added < obj.count) logger.error { "Saving ${player.username} mid-trade: no room for ${obj.count - added} of offered ${obj.id}" }
+            }
+            return copy.contents().toMap()
         }
 
         /** Reads a save written by [toJson]. Throws [IllegalArgumentException] if it can't be used as it is. */
@@ -326,6 +370,8 @@ class PlayerSave(
                     state.geOffers, state.geLimits,
                     ignores,
                     state.geHistory,
+                    root["lastTrade"]?.jsonPrimitive?.contentOrNull,
+                    readFriendsChat(root), root["friendsChatOwner"]?.jsonPrimitive?.contentOrNull,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -398,6 +444,25 @@ class PlayerSave(
                 x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank,
                 geOffers = geOffers, geLimits = geLimits, geHistory = geHistory,
             )
+        }
+
+        /** Optional: saves from before friends chat, and saves of players who never set theirs up, have none. */
+        private fun readFriendsChat(root: JsonObject): FriendsChatSettings {
+            val fc = root["friendsChat"]?.jsonObject ?: return FriendsChatSettings.DEFAULT
+            val ranks = FriendChats.RANK_ANYONE..FriendChats.RANK_OWNER
+            val (enter, talk, kick) = listOf("enter", "talk", "kick").map { name ->
+                fc.int(name).also { require(it in ranks) { "Friends chat $name rank $it is out of range" } }
+            }
+            val name = fc["name"]?.jsonPrimitive?.contentOrNull
+            require(name == null || name.length <= FriendLists.MAX_NAME_LENGTH) { "Friends chat name '$name' is too long" }
+            return FriendsChatSettings(name, enter, talk, kick)
+        }
+
+        /** The last trade a save records, or null if it records none or [text] isn't a save. */
+        fun lastTradeIn(text: String): String? = try {
+            Json.parseToJsonElement(text).jsonObject["lastTrade"]?.jsonPrimitive?.contentOrNull
+        } catch (_: Exception) {
+            null
         }
 
         /** The username a save was written for, or null if [text] isn't a save that names one. */

@@ -1,0 +1,20 @@
+{
+ "name": "Friends chat, two players (run with social-friends-chat-test2.json on the other VM at the same time): test names its channel Test Hut, joins it, sees test2 join, says a line test2 must see, and waits for test2's answer and leave",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported"},
+  {"step": "setFriendsChatName", "name": "Test Hut"},
+  {"step": "assertWidgetText", "interfaceId": 94, "component": 10, "contains": "Test Hut"},
+  {"step": "walk", "x": 3221, "y": 3218, "comment": "closes the setup screen"},
+  {"step": "joinFriendsChat", "owner": "test"},
+  {"step": "assertMessage", "contains": "[friends_chat.now_talking name=Test Hut]"},
+  {"step": "assertFriendsChat", "owner": "test", "member": "test2", "timeoutMs": 180000, "comment": "test2 joins"},
+  {"step": "chat", "text": "/hello hut"},
+  {"step": "assertMessage", "contains": "hello back", "timeoutMs": 60000},
+  {"step": "assertFriendsChat", "owner": "test", "member": "test2", "absent": true, "timeoutMs": 60000, "comment": "test2 left"},
+  {"step": "clickWidget", "interfaceId": 7, "component": 18, "comment": "Leave Chat"},
+  {"step": "assertFriendsChat", "absent": true}
+ ]
+}

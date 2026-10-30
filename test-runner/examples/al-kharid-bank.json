@@ -1,5 +1,5 @@
 {
- "name": "Al Kharid step 2: the bank: a booth's Bank, a banker's Bank across the booth, and a banker's talk (::keys on) that opens the bank",
+ "name": "Al Kharid step 2: the bank: a booth's Bank, a banker's talk (::keys on) that opens the bank, and a banker's Bank across the booth",
  "account": "test",
  "steps": [
   {
@@ -23,8 +23,8 @@
   },
   {
    "step": "command",
-   "text": "::tele 3270 3166 0",
-   "expectMessage": "Teleported to 3270, 3166, 0",
+   "text": "::tele 3270 3167 0",
+   "expectMessage": "Teleported to 3270, 3167, 0",
    "comment": "Al Kharid's bank, in front of the booths (x 3268); the bankers stand behind them at x 3267"
   },
   {
@@ -32,7 +32,8 @@
    "loc": "Bank booth",
    "option": "Bank",
    "x": 3268,
-   "y": 3166
+   "y": 3166,
+   "comment": "a booth's Bank, with nothing open"
   },
   {
    "step": "assertInterface",
@@ -53,39 +54,11 @@
    "count": 0
   },
   {
-   "step": "walk",
-   "x": 3271,
-   "y": 3166,
-   "comment": "walking away closes the bank"
+   "step": "logout",
+   "comment": "closes the bank: the open bank hides the bankers from the mouse (VM 215, 2026-10-30), and reopening it with a click while open lost the next click (nightly run on 217, 2026-10-30)"
   },
   {
-   "step": "npcOption",
-   "npc": "Banker",
-   "option": "Bank",
-   "timeoutMs": 20000,
-   "comment": "a banker's own Bank, across the booth"
-  },
-  {
-   "step": "assertInterface",
-   "interfaceId": 12
-  },
-  {
-   "step": "clickWidget",
-   "interfaceId": 12,
-   "component": 12,
-   "slot": 0,
-   "op": 7,
-   "comment": "Withdraw-All on the logs, the bank's first slot"
-  },
-  {
-   "step": "assertInventory",
-   "item": "Logs",
-   "count": 3
-  },
-  {
-   "step": "walk",
-   "x": 3270,
-   "y": 3167
+   "step": "waitForLogin"
   },
   {
    "step": "npcOption",
@@ -108,6 +81,37 @@
    "step": "assertInterface",
    "interfaceId": 12,
    "comment": "asking for the bank opens it"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 12,
+   "component": 12,
+   "slot": 0,
+   "op": 7,
+   "comment": "Withdraw-All on the logs, the bank's first slot"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Logs",
+   "count": 3
+  },
+  {
+   "step": "logout",
+   "comment": "closes the bank again"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker",
+   "option": "Bank",
+   "timeoutMs": 20000,
+   "comment": "a banker's own Bank, across the booth"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12
   },
   {
    "step": "command",

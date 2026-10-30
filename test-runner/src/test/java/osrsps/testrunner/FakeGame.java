@@ -20,6 +20,8 @@ class FakeGame implements Game
 	/** Where the client draws the player; null for the tile in {@link #location}. */
 	Tile drawn;
 	Dialogue dialogue;
+	/** What levelUp answers. */
+	Dialogue levelUp;
 	final List<String> actions = new ArrayList<>();
 	/** When set, npcOption fails with this until cleared. */
 	String npcError;
@@ -115,6 +117,13 @@ class FakeGame implements Game
 	{
 		actions.add("enter again");
 		return "fake focus";
+	}
+
+	@Override
+	public void closePrompt()
+	{
+		actions.add("close prompt");
+		promptMode = 0;
 	}
 
 	@Override
@@ -230,6 +239,12 @@ class FakeGame implements Game
 	public Dialogue dialogue()
 	{
 		return dialogue;
+	}
+
+	@Override
+	public Dialogue levelUp()
+	{
+		return levelUp;
 	}
 
 	@Override
@@ -458,6 +473,22 @@ class FakeGame implements Game
 	public java.util.List<String> ignores()
 	{
 		return ignores == null ? null : new java.util.ArrayList<>(ignores);
+	}
+
+	/** The friends chat channel's owner, null for none, and its members. */
+	String friendsChatOwner;
+	java.util.List<String> friendsChatMembers = new java.util.ArrayList<>();
+
+	@Override
+	public String friendsChatOwner()
+	{
+		return friendsChatOwner;
+	}
+
+	@Override
+	public java.util.List<String> friendsChatMembers()
+	{
+		return new java.util.ArrayList<>(friendsChatMembers);
 	}
 
 	@Override

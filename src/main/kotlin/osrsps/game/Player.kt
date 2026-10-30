@@ -117,6 +117,9 @@ class Player(
     /** The tick the lost connection was noticed on, or -1 while connected. */
     var connectionLostTick: Long = -1
 
+    /** Interface components (parent to component) closed while the connection was lost; see [Interfaces.resendClosesWhileAway]. */
+    val closedWhileAway = LinkedHashSet<Pair<Int, Int>>()
+
     /** Turning points of the current route, next one first. */
     val waypoints = ArrayDeque<Tile>()
 
@@ -202,6 +205,15 @@ class Player(
     /** The trade this player is in, null when none; see [osrsps.game.trade.Trades]. Not saved. */
     var trade: osrsps.game.trade.Trade? = null
 
+    /** The id of the last trade this player completed; see [osrsps.game.trade.TradeJournal]. Saved. */
+    var lastTrade: String? = null
+
+    /** This player's own friends chat channel; see [osrsps.game.social.FriendChats]. Saved. */
+    var friendsChat = osrsps.game.social.FriendsChatSettings.DEFAULT
+
+    /** The owner of the friends chat channel this player is in, kept over a logout to join again at login. Saved. */
+    var friendsChatOwner: String? = null
+
     /** Who this player last asked to trade, while the request stands; see [osrsps.game.trade.Trades]. Not saved. */
     var tradeRequestTo: Player? = null
 
@@ -252,6 +264,16 @@ class Player(
 
     /** Ticks since special attack energy last came back; see [osrsps.game.combat.SpecialAttacks]. Not saved: a login starts it again. */
     var specRegenTicks: Int = 0
+
+    /**
+     * No attack starts before this tick, whatever sets the attack delay meanwhile, auto retaliate included: leaving
+     * Dinh's bulwark's Block. Not saved.
+     */
+    var attackLockedUntil: Long = 0
+
+    /** The weapon worn, by obj id (-1 for none), and the tick it was wielded on, for Dinh's bulwark's Block. Not saved. */
+    var weaponId: Int = -1
+    var weaponSince: Long = 0
 
     /** The NPC that hit them last, and the tick it did; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var attackedBy: Npc? = null

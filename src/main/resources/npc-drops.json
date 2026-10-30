@@ -21,7 +21,7 @@
   },
   "npcs": [
     {
-      "npcs": ["man", "man2", "man3", "man4", "woman", "woman2", "woman3"],
+      "npcs": ["man", "man2", "man3", "man4", "woman", "woman2", "woman3", "al_kharid_man", "al_kharid_warrior"],
       "always": [{"item": 526, "name": "Bones"}],
       "table": {
         "slots": 128,
@@ -50,7 +50,7 @@
         {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"},
         {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}
       ],
-      "source": "OSRS Wiki, Man and Woman (the same table; the Wilderness looting bag and the clue-step key are left out)"
+      "source": "OSRS Wiki, Man and Woman (the same table; the Wilderness looting bag and the clue-step key are left out); Al Kharid's man and the Al Kharid warrior have the same table on their pages (read 2026-10-30)"
     },
     {
       "npcs": ["imp"],
@@ -107,6 +107,14 @@
       ],
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
       "source": "OSRS Wiki, Cow and Cow calf"
+    },
+    {
+      "npcs": ["scorpion"],
+      "tertiary": [
+        {"item": 13459, "name": "Ensouled scorpion head", "chance": "1/25"},
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/100"}
+      ],
+      "source": "OSRS Wiki, Scorpion, read 2026-10-30: nothing but these outside quests, the Wilderness and Wilderness Slayer"
     },
     {
       "npcs": ["rat"],

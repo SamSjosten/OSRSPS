@@ -113,7 +113,7 @@ class Combat(
 
     /**
      * The melee attack type the player's style hits with: its own for a melee style, crush for a style with none (a
-     * bulwark's block; those weapons come later), and null for a ranged or magic style, which this piece doesn't fight
+     * gun's "Aim and Fire"; Dinh's bulwark's Block can't attack at all, see [bulwarkBlock]), and null for a ranged or magic style, which this piece doesn't fight
      * with.
      */
     fun meleeType(style: AttackStyle): AttackType? = when (style.type) {
@@ -124,9 +124,12 @@ class Combat(
 
     /**
      * The player's melee numbers against [npc], or null when it has no combat definition (it can't be attacked) or the
-     * player's style isn't melee (see [meleeType]).
+     * player's style isn't melee (see [meleeType]). [against] rolls against the NPC's defence for that attack type
+     * instead of the style's, as the Bandos godsword's Warstrike always rolls against slash ([SpecialAttack.against]);
+     * the attack roll keeps the style's own bonus (OSRS Wiki, Bandos godsword: "always rolls against the opponent's
+     * slash defence roll"; the Wiki's DPS calculator does the same).
      */
-    fun matchup(player: Player, npc: Npc): MeleeMatchup? {
+    fun matchup(player: Player, npc: Npc, against: AttackType? = null): MeleeMatchup? {
         val def = npcCombat[npc.type] ?: return null
         val style = style(player)
         val type = meleeType(style) ?: return null
@@ -136,14 +139,14 @@ class Combat(
         val attack = PrayerBoosts.boost(skills.currentLevel(Skill.ATTACK), boosts.attack)
         val strength = PrayerBoosts.boost(skills.currentLevel(Skill.STRENGTH), boosts.strength)
         val attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type))
-        val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(type))
+        val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(against ?: type))
         val npcAttackRoll = CombatMath.npcAttackRoll(npc.level(NpcStat.ATTACK), def.attackBonus)
         val playerDefenceRoll = playerDefenceRoll(player, style, bonuses, def.attackType, boosts)
         return MeleeMatchup(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength),
+            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses)),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
             npcAttackRoll = npcAttackRoll,
             playerDefenceRoll = playerDefenceRoll,
@@ -151,6 +154,21 @@ class Combat(
             npcHitChance = CombatMath.hitChance(npcAttackRoll, playerDefenceRoll),
         )
     }
+
+    /** What Dinh's bulwark adds to the melee strength bonus ([DinhsBulwark.strengthBonus]); 0 with any other weapon. */
+    private fun bulwarkStrength(player: Player, bonuses: EquipmentBonuses): Int =
+        if (DinhsBulwark.isBulwark(equipment.weapon(player))) DinhsBulwark.strengthBonus(bonuses) else 0
+
+    /** Whether [player] holds Dinh's bulwark on its Block style, which can't attack ([DinhsBulwark]). */
+    fun bulwarkBlock(player: Player): Boolean = DinhsBulwark.isBulwark(equipment.weapon(player)) && style(player).type == AttackType.NONE
+
+    /**
+     * Whether Block cuts the hits [player] takes on [tick]: on it, with the bulwark wielded [DinhsBulwark.BLOCK_DELAY]
+     * ticks. [Player.weaponId] is brought up to date only at the end of the tick, so a bulwark wielded this tick, which
+     * it doesn't name yet, doesn't count.
+     */
+    fun bulwarkBlocking(player: Player, tick: Long): Boolean =
+        bulwarkBlock(player) && player.weaponId == equipment.weapon(player)?.id && tick - player.weaponSince >= DinhsBulwark.BLOCK_DELAY
 
     /**
      * The player's ranged numbers against [npc], or null when it has no combat definition or the player's style isn't

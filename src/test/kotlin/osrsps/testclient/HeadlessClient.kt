@@ -27,6 +27,12 @@ class ServerPacket(val prot: GameServerProt, val payload: ByteArray) {
 
 /** A game message the server sent (MESSAGE_GAME): the chatbox line and its type, 0 for a plain game message. */
 /** A private message: [from] someone to us, or our own echoed back [to] its recipient. */
+/** The friends chat channel the client is in: its owner, name, kick rank and members' ranks by name. */
+data class FriendsChat(val owner: String, val name: String, val kickRank: Int, val members: Map<String, Int>)
+
+/** A line of friends chat. */
+data class ChannelMessage(val sender: String, val channel: String, val text: String, val counter: Int)
+
 data class PrivateMessage(val from: String?, val to: String?, val text: String, val world: Int = 0, val counter: Int = 0)
 
 data class GameMessage(
@@ -115,6 +121,8 @@ class HeadlessClient private constructor(
     private var friendListLoaded = false
 
     private val privateMessages = ArrayList<PrivateMessage>()
+    private var friendsChat: FriendsChat? = null
+    private val channelMessages = ArrayList<ChannelMessage>()
 
     /** The ignore list as the client holds it, in the order sent. */
     private val ignoreList = ArrayList<String>()
@@ -127,6 +135,7 @@ class HeadlessClient private constructor(
 
     private val packets = ArrayList<ServerPacket>()
     private val messages = ArrayList<GameMessage>()
+    private val animTicks = ArrayList<Int>()
     private val npcSaid = ArrayList<NpcSaid>()
     private val moves = ArrayList<TickMove>()
     private var ticks = 0
@@ -151,11 +160,23 @@ class HeadlessClient private constructor(
 
     fun messages(): List<GameMessage> = lock.withLock { messages.toList() }
 
+    /**
+     * The ticks (as [GameMessage.tick] counts them) whose PLAYER_INFO started an animation on the local player. Only
+     * seen with no other player in view; see [PlayerInfoReader.localAnimated].
+     */
+    fun animationTicks(): List<Int> = lock.withLock { animTicks.toList() }
+
     /** The friends list: each friend's world by name, 0 for offline. */
     fun friends(): Map<String, Int> = lock.withLock { LinkedHashMap(friendList) }
 
     /** Private messages received and echoed, in order. */
     fun privateMessages(): List<PrivateMessage> = lock.withLock { privateMessages.toList() }
+
+    /** The friends chat channel the client is in, as the server last said, or null. */
+    fun friendsChat(): FriendsChat? = lock.withLock { friendsChat }
+
+    /** Friends chat lines received, in order. */
+    fun channelMessages(): List<ChannelMessage> = lock.withLock { channelMessages.toList() }
 
     /** The ignore list's names. */
     fun ignores(): List<String> = lock.withLock { ignoreList.toList() }
@@ -417,6 +438,23 @@ class HeadlessClient private constructor(
         HUFFMAN.encode(this, text)
     }
 
+    /** Join Chat's prompt answered with [name] (FRIENDCHAT_JOIN_LEAVE). */
+    fun joinFriendsChat(name: String) = send(GameClientProt.FRIENDCHAT_JOIN_LEAVE) { pjstr(name) }
+
+    /** Leave Chat (FRIENDCHAT_JOIN_LEAVE with no name). */
+    fun leaveFriendsChat() = send(GameClientProt.FRIENDCHAT_JOIN_LEAVE) {}
+
+    /** A line typed with `/` in front, for the friends chat (MESSAGE_PUBLIC type 2, plain yellow). */
+    fun friendsChatSay(text: String) = send(GameClientProt.MESSAGE_PUBLIC) {
+        p1(2)
+        p1(0)
+        p1(0)
+        HUFFMAN.encode(this, text)
+    }
+
+    /** Text typed into a chatbox text prompt (RESUME_P_STRINGDIALOG). */
+    fun resumeString(text: String) = send(GameClientProt.RESUME_P_STRINGDIALOG) { pjstr(text) }
+
     /** The ignore tab's Add Name box (IGNORELIST_ADD). */
     fun addIgnore(name: String) = send(GameClientProt.IGNORELIST_ADD) { pjstr(name) }
 
@@ -617,6 +655,7 @@ class HeadlessClient private constructor(
                 for (move in playerInfo.read(packet.payload)) {
                     if (move.index == index) moves += TickMove(ticks, move)
                 }
+                if (playerInfo.localAnimated) animTicks += ticks
             }
             GameServerProt.MESSAGE_GAME -> {
                 val type = buf.gSmart1or2()
@@ -657,8 +696,10 @@ class HeadlessClient private constructor(
             }
             GameServerProt.RUNCLIENTSCRIPT -> scripts += readClientScript(buf)
             GameServerProt.UPDATE_INV_FULL -> {
-                buf.g4() // the interface component it is shown on, or -1
-                val inventoryId = buf.g2()
+                // The interface component it is shown on, or -1; under -70000 for the "other" copy of an inventory, as
+                // a trade partner's offer is sent. That copy is kept here under the inventory id + OTHER_INV.
+                val combined = buf.g4()
+                val inventoryId = buf.g2() + if (combined < -70000) OTHER_INV else 0
                 invs[inventoryId] = MutableList(buf.g2()) {
                     val id = buf.g2Alt1() - 1
                     var count = buf.g1Alt3()
@@ -726,6 +767,43 @@ class HeadlessClient private constructor(
                 val counter = buf.g3()
                 buf.g1() // chat crown
                 privateMessages += PrivateMessage(from, null, HUFFMAN.decode(buf), world, counter)
+            }
+            GameServerProt.UPDATE_FRIENDCHAT_CHANNEL_FULL_V2 -> {
+                friendsChat = if (!buf.isReadable) {
+                    null
+                } else {
+                    val owner = buf.gjstr()
+                    val name = net.rsprot.compression.Base37.decodeWithCase(buf.g8())
+                    val kick = buf.g1s()
+                    val count = buf.gSmart1or2null().coerceAtLeast(0)
+                    val members = LinkedHashMap<String, Int>()
+                    repeat(count) {
+                        val member = buf.gjstr()
+                        buf.g2() // world
+                        members[member] = buf.g1s()
+                        buf.gjstr() // world name
+                    }
+                    FriendsChat(owner, name, kick, members)
+                }
+            }
+            GameServerProt.UPDATE_FRIENDCHAT_CHANNEL_SINGLEUSER -> {
+                val name = buf.gjstr()
+                buf.g2() // world
+                val rank = buf.g1s()
+                val chat = friendsChat
+                if (chat != null) {
+                    val members = LinkedHashMap(chat.members)
+                    if (rank == -128) members.remove(name) else members[name] = rank
+                    friendsChat = chat.copy(members = members)
+                }
+            }
+            GameServerProt.MESSAGE_FRIENDCHANNEL -> {
+                val sender = buf.gjstr()
+                val channel = net.rsprot.compression.Base37.decodeWithCase(buf.g8())
+                buf.g2() // world
+                val counter = buf.g3()
+                buf.g1() // chat crown
+                channelMessages += ChannelMessage(sender, channel, HUFFMAN.decode(buf), counter)
             }
             GameServerProt.MESSAGE_PRIVATE_ECHO -> {
                 val to = buf.gjstr()
@@ -819,6 +897,9 @@ class HeadlessClient private constructor(
         private const val GAMELOGIN = 16
         private const val LOGIN_SUCCESSFUL = 0
         private const val LOGIN_OK = 2
+
+        /** Added to an inventory's id for its "other" copy (invother, a trade partner's offer); see [inventory]. */
+        const val OTHER_INV = 1 shl 16
 
         /** TestServer's Huffman table: 256 eight-bit codewords. */
         val HUFFMAN: HuffmanCodec = HuffmanCodec.create(Unpooled.wrappedBuffer(ByteArray(256) { 8 }))

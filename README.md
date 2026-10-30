@@ -240,7 +240,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::clearignores` | Empties your ignore list, for tests that start from none |
 | `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
 | `::drain stat levels\|percent% [index\|name]` | Drains an NPC's attack, defence, strength, ranged or magic (the one you fight, or by index from `::npcs` or by name) by that many levels, or by a percentage of its level now, as far as its drain cap lets it, and says its level now. Its combat rolls use the drained level (`::combat` shows them), it gets a level back a minute, and `::npcs` shows its drained stats |
-| `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash is in (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap), and `::combat` shows a special's attack roll and max hit |
+| `::spec [percent]` | Says your special attack energy (varp 300), whether the bar is lit, and the ticks until 10% comes back (every 50 ticks). A percentage, 0 to 100, sets the energy. The combat tab's bar and the minimap orb light the bar for the next swing; the dragon warhammer's Smash (50% energy: 50% more damage and 30% of the target's Defence drained, down to its cap) and the Bandos godsword's Warstrike (50%: double accuracy against slash, the max hit up 10% twice, and the target's Defence, Strength, Attack, Magic and Ranged drained by the damage in turn) and Dinh's bulwark's Shield Bash (50%: 20% more accurate against crush, and in a multi-way area up to 10 NPCs within 5 tiles hit, the target twice, each losing 5% of its highest offensive stat) are in. The bulwark's Block style can't attack and, 8 ticks after it is wielded, lets 80% of monsters' melee hits through, and `::combat` shows a special's attack roll and max hit |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -475,6 +475,27 @@ cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, som
 | A cracked pot lost with no XP; the oven animation; the other glassblowing items' ticks | guessed |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
 | Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
+
+### Herblore
+
+Clean on a grimy herb cleans that one at once (`game/skill/Herblore.kt`, words under `herblore.*`, numbers in
+`skills/herblore.json`). A clean herb and a vial of water, either used on the other, open the Make-X box for its
+unfinished potion. A pestle and mortar on a unicorn horn, chocolate bar, kebbit teeth, bird nest, desert goat horn or
+blue dragon scale opens the box for the ground item; the first is ground as the choice is made. An empty vial used on a
+sink, fountain or water pump fills every vial held, one a tick. A secondary on its unfinished potion opens the box for
+the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose each. Making goes through `Making.kt`.
+
+| Herblore behaviour | Source |
+|--------------------|--------|
+| The 15 herbs' cleaning levels and XP; Clean taking no time | OSRS Wiki, each grimy herb's page |
+| The cleaning message naming the grimy herb | OSRS Wiki, Grimy guam leaf |
+| Unfinished potions' levels, no XP, 1 tick | OSRS Wiki, each unfinished potion's page |
+| Grinding 0, then 2, then 3 ticks | OSRS Wiki, Unicorn horn dust ("Auto-crushing ... is 0, then 2, then 3 ticks") |
+| A vial fills in 1 tick at any water but a well | OSRS Wiki, Vial of water |
+| Animations 363 (`human_herbing_vial`) and 364 (`human_herbing_grind`) | cache 241 gamevals |
+| Finished potions' levels, XP, secondaries, 2 ticks, a (3) dose | OSRS Wiki, Herblore (potions table) and each potion's page |
+| Which locs count as water; filling with no box; the filling animation (832); no animation for cleaning; the first potion 2 ticks after the choice | guessed |
+| Out: potions of three or more ingredients (super combat, stamina, sanfew, divine), coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
 
 ## Items and inventory
 
@@ -814,6 +835,19 @@ quest, so Al Kharid is as after Prince Ali Rescue.
 | Seven shops: the General Store (Shop keeper 2817, Shop assistant 2818), Zeke's Superior Scimitars, Dommik's Crafting Store, Louie's Armoured Legs Bazaar, Ranael's Super Skirt Store, the Gem Trader and Ali's Discount Wares (Ali Morrisane's basic stock), each with its stock, restock times and percentages; the General Store won't buy silk; leaving Ali's basic stock with 10 coins and a free slot buys one of his five pieces of junk at random (`ali_morrisane.junk`; the 10-coin price and that it happens as the shop closes are guessed) | OSRS Wiki, each shop's page; invs from the 241 cache (the General Store's generalshop3 inferred from its keepers' names) |
 | Talk-to on each keeper but Ali Morrisane, as after Monkey Madness I and Rogue Trader, opening the shop where the Wiki has it open; Zeke's "Do you want to trade?" ends with his answer, as the Wiki has it | OSRS Wiki, each keeper's transcript; expressions from 2004Scape where it has the line, else guessed |
 | The keepers on 2004Scape's tiles, indoors; Ali Morrisane by his stall | 2004Scape maps m51_49/m51_50; Ali's tile guessed from the 241 map's stall and The Feud's quest icon |
+| Karim (`kebab_seller`, 2877) sells a kebab for 1 coin through his talk; the Silk trader (2873) sells silk for 3 gp, or 2 after haggling; both as after Rogue Trader; no message when Karim sells | OSRS Wiki, Transcript:Karim and Transcript:Silk trader; tiles from 2004Scape map m51_49/m51_50 |
+| Eating a kebab: "You eat the kebab", then out of 32: 1 heals 7 + 24% of the Hitpoints level and raises melee by 2, 8 heal 6 + 14%, 20 heal 3 + 7%, 1 does nothing, 1 drains a random skill by 3, 1 drains melee by 3 and a random skill by 4; with the eat and attack delays of other food | OSRS Wiki, Kebab (also the random skill's floor of 2 and no "heals some health" at full Hitpoints); rounding down, the +2 cap at base + 2 and the melee drain's floor of 1 guessed |
+| Ellis (`ellis_tanner`, 3231): his talk (with hides carried, an offer to tan them; without, two topics and Ali Morrisane); Trade, or a hide used on him, opens the tanning screen (interface 324); leather or any other item used on him gets a line | OSRS Wiki, Ellis and Transcript:Ellis; tile from 2004Scape map m51_49 |
+| Tanning: soft leather 1, hard leather 3, snakeskin 15 (snake hide) or 20 (swamp snake hide), each dragon leather 20 coins a hide; Tan 1, 5, X and All take as many of the slot's hides as held and paid for, at once | OSRS Wiki, Ellis; 2004Scape's tan_leather and its messages; the screen's components by their 241 names; the slots' order, model zoom, names, price form and closing the screen after a tanning guessed |
+| Chancellor Hassan (4285) in the throne room: his one line after Prince Ali Rescue; Enter on a big window (`kharid_bigwindow` 33348) gets his refusal and a box saying the shortcut needs the hard Desert diary and 70 Agility (diaries aren't built, so it always refuses) | OSRS Wiki, Transcript:Chancellor Hassan; tile from 2004Scape map m51_49 |
+| Osman (4286) outside the palace, as after Contact!: the Sophanem talk with a Keris (10581) for 20,000 coins and Menaphos, and the Sorceress's Garden talk; he takes every sq'irk juice held for Thieving experience (350, 1,350, 2,350, 3,000 a glass of winter, spring, autumn, summer); no free Keris (every account counts as having taken Kaleef's, guessed) | OSRS Wiki, Transcript:Osman and Sq'irk juice; tile from 2004Scape map m51_49; a full backpack refused only when paying won't free a slot, guessed |
+| Prince Ali home in the throne room: the map's `prince_ali_palace` (11645) shows as Prince Ali (11580) once varp 273 is 100 or more; two lines and the player's answer | 241 cache; OSRS Wiki, Transcript:Prince Ali Rescue; his tile guessed (the Wiki gives none) |
+| The palace's item spawns: a cabbage in the west room, a jug of water in the east room; its chests, drawers and ladder work as Lumbridge Castle's | OSRS Wiki, Cabbage and Jug of water; tiles from 2004Scape map m51_49; respawn guessed |
+| Fighters: nine Al Kharid warriors (3292) in the palace (slash, max hit 2, back in 25 ticks), six men (`al_kharid_man` 3261, fighting and dropping as any man), nine level 14 scorpions (3024) in the mine and one south of the bank (stab, max hit 2, back in 35 ticks); the warriors drop the man's table, scorpions only an ensouled head (1/25) and a beginner clue (1/100) | OSRS Wiki, Al Kharid warrior, Man and Scorpion, and the DPS calculator; tiles from 2004Scape maps m51_49 to m51_51; the warrior's block animation and the level 14 scorpion's respawn guessed |
+| Camels: the plain Camel (2835) north of town and Al, Elly, Ollie, Cam and Alice (Alice is `alice_the_camel_multinpc` 5953, by varbit 1353); Talk-to without a camulet is a menu of three: dung (it doesn't understand), something unpleasant (one of three lines and one of three reactions, at random) or neither | OSRS Wiki, Camel, each camel's page and Transcript:Camel; tiles are 2004Scape's camel tiles matched to the Wiki's words for each (guessed) |
+| The Al Kharid mine's silver rocks (level 20, 40 XP, 25/200) and gold rocks (level 40, 65 XP, 7/75), each back in a minute; its other rocks, the furnace and the ranges work as elsewhere | OSRS Wiki, Silver rocks and Gold rocks (the pairs fit their charts' two points exactly) |
+| Two Small Net/Bait fishing spots (`0_51_49_saltfish` 1528) by the sea south-west of town, moving between six tiles; Small Net is Lumbridge Swamp's Net | 241 cache; 2004Scape's spawn tiles and fishing_movement_al_kharid_enum (live's tiles since March 2021) |
+| Search on the boxes (`boxes3` 361) by Ali Morrisane's stall: nothing in them | 2004Scape's crates.rs2 |
 | The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
 
 Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only); Ali
@@ -821,12 +855,21 @@ Morrisane's talk and his Rogue Trader shops (blackjacks, runes, desert and Menap
 keeper, and the keepers' treasure trail steps. The words of
 the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
 `examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`), as are the shop keepers' (`al_kharid_shop_keeper.*`,
-`al_kharid_shop_assistant.*`, `zeke.*`, `dommik.*`, `louie_legs.*`, `ranael.*`, `gem_trader.*` and each keeper's examine).
+`al_kharid_shop_assistant.*`, `zeke.*`, `dommik.*`, `louie_legs.*`, `ranael.*`, `gem_trader.*` and each keeper's examine), Karim's and the Silk trader's (`karim.*`, `silk_trader.*`) and the kebab's
+messages (`kebab.*`), and Ellis's talk and the tanning screen's words (`ellis.*`, `tanning.*`), the palace's (`hassan.*`, `osman.*`, `prince_ali.*`), the camels' (`camel.*`), and the boxes' (`search.boxes_empty`).
+Also left out from the palace: filling vessels at the fountain (no water sources are built yet), the big-window shortcut itself, Osman's Crack the Clue step, and the Emir, who is never seen. From the fighters and camels: Pickpocket on men and warriors (Thieving comes with the Draynor piece), the warriors joining in when one is attacked (NPC aggression, the Varrock piece), the camulet's talk and camel dung (members, Enakhra's Lament and My Arm's Big Adventure), and Cam's treasure trail step. From the mine: its agility shortcut (`alkharid_mine_sc_*`).
 
 Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
 Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
-Bank and through a banker's talk; `al-kharid-shops.json` buys and sells at every shop; `HeadlessAlKharidShopsTest` opens the Gem trader's shop from his talk, tries silk at the General Store and buys Ali's junk; `HeadlessAlKharidTest` does the same through the headless client, with the talk in
-`BorderGuardTest` and `AlKharidShopkeepersTest` and the prices in `ShopTest`.
+Bank and through a banker's talk; `al-kharid-shops.json` buys and sells at every shop; `al-kharid-traders.json` buys and eats a kebab and haggles for
+silk; `al-kharid-tanning.json` tans cowhides at Ellis's; `al-kharid-palace.json` talks to Hassan and Prince Ali, tries a big
+window and buys a Keris from Osman; `al-kharid-fighters.json` examines and kills the fighters and talks to Al the Camel;
+`al-kharid-mine-fish.json` mines gold and silver, nets shrimps and searches the boxes;
+`HeadlessAlKharidShopsTest` opens the Gem trader's shop from his
+talk, tries silk at the General Store and buys Ali's junk; `HeadlessAlKharidTradersTest` buys a kebab from Karim and eats it,
+and haggles for silk; `HeadlessAlKharidTest` and `HeadlessAlKharidFightersTest` do the same through the headless client, with the talk in
+`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, the palace's talk in `AlKharidPalaceTest` and Osman's Keris in `HeadlessOsmanTest`, the camels' in `AlKharidCamelsTest`, combat and drops in `NpcCombatTest` and `NpcDropsTest`, the rocks' chances in `MiningTest` and their ores in `HeadlessMiningTest`, the boxes in `HeadlessAlKharidBoxesTest`, Small Net in `HeadlessFishingTest`, and
+the prices in `ShopTest`.
 
 ## Equipment
 

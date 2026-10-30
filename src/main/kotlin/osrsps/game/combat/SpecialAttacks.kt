@@ -10,8 +10,8 @@ import osrsps.game.npc.Npc
 private val logger = KotlinLogging.logger {}
 
 /**
- * One weapon's special attack, as far as a melee swing goes: [anim] and the [spotanim] on the player in place of the
- * style's swing (at height 0, guessed), the attack roll raised by [accuracyPercent], the max hit by each of [damagePercents] in turn (rounding
+ * One weapon's special attack, as far as a melee swing goes: [anim] and the [spotanim] (-1 for none) on the player in
+ * place of the style's swing (at height 0, guessed), the attack roll raised by [accuracyPercent], the max hit by each of [damagePercents] in turn (rounding
  * down after each, as the Wiki gives the Bandos godsword's two 10%), and [effect] on the NPC once the hit lands.
  */
 class SpecialAttack(
@@ -20,7 +20,16 @@ class SpecialAttack(
     val spotanim: Int,
     val accuracyPercent: Int = 0,
     val damagePercents: List<Int> = emptyList(),
+    /** The attack type whose defence the NPC rolls with, in place of the style's; null for the style's. The attack bonus stays the style's. */
+    val against: AttackType? = null,
     val effect: SpecialEffect = SpecialEffect.None,
+    /**
+     * In multi-way combat, how far around the player it also hits (0 for only its target), how many NPCs it hits in
+     * all, and how many times it hits its target.
+     */
+    val radius: Int = 0,
+    val targets: Int = 1,
+    val targetHits: Int = 1,
 ) {
     fun attackRoll(roll: Int): Int = (roll.toLong() * (100 + accuracyPercent) / 100).toInt()
 
@@ -33,6 +42,20 @@ sealed interface SpecialEffect {
 
     /** Drains [percent] of the NPC's Defence as it is now, if the hit dealt damage (the dragon warhammer's Smash). */
     data class DrainDefence(val percent: Int) : SpecialEffect
+
+    /**
+     * Drains the NPC's stats by the damage dealt, one stat at a time in [order]: each as far as it goes before the next
+     * (the Bandos godsword's Warstrike).
+     */
+    data class DrainByDamage(val order: List<NpcStat>) : SpecialEffect
+
+    /**
+     * Drains [percent] of the NPC's highest offensive stat (Attack, Strength, Ranged or Magic) as it is now, if the hit
+     * dealt damage (Dinh's bulwark's Shield Bash). For a tie the Wiki gives "If all stats are equal, it will drain both
+     * Attack and Strength, then Ranged, then Magic": of the stats tied for the highest, Attack and Strength go first (both
+     * when both are tied), else Ranged, else Magic. Guessed: that the same order settles a tie of two or three of them.
+     */
+    data class DrainHighestOffensive(val percent: Int) : SpecialEffect
 }
 
 /**
@@ -113,7 +136,25 @@ class SpecialAttacks(
         when (val effect = special.effect) {
             SpecialEffect.None -> {}
             is SpecialEffect.DrainDefence -> if (dealt > 0) drains.drainPercent(npc, NpcStat.DEFENCE, effect.percent)
+            is SpecialEffect.DrainHighestOffensive -> if (dealt > 0) {
+                for (stat in highestOffensive(npc)) drains.drainPercent(npc, stat, effect.percent)
+            }
+            is SpecialEffect.DrainByDamage -> {
+                var left = dealt
+                for (stat in effect.order) {
+                    if (left <= 0) break
+                    left -= drains.drain(npc, stat, left)
+                }
+            }
         }
+    }
+
+    /** The stats [SpecialEffect.DrainHighestOffensive] drains on [npc]: the highest, ties settled as it says. */
+    private fun highestOffensive(npc: Npc): List<NpcStat> {
+        val top = OFFENSIVE.maxOf { npc.level(it) }
+        val tied = OFFENSIVE.filter { npc.level(it) == top }
+        val melee = tied.filter { it == NpcStat.ATTACK || it == NpcStat.STRENGTH }
+        return melee.ifEmpty { listOf(tied.first()) }
     }
 
     /** The weapon changed: the bar goes out under one with no special (guessed). */
@@ -162,10 +203,45 @@ class SpecialAttacks(
          */
         val DRAGON_WARHAMMER = SpecialAttack("Smash", anim = 1378, spotanim = 1292, damagePercents = listOf(50), effect = SpecialEffect.DrainDefence(30))
 
+        /**
+         * Warstrike (OSRS Wiki, Bandos godsword): double accuracy, the max hit raised by 10% and then by 10% again,
+         * rounding down after each, always against slash, and the target's stats drained by the damage dealt in the order
+         * Defence, Strength, Prayer, Attack, Magic, Ranged, each to 0 before the next. Monsters have no Prayer to drain
+         * here. The attack roll keeps the style's own bonus ("always rolls against the opponent's slash defence roll").
+         * Guessed: that a stat held up by its drain cap (the raid's 60% on Defence) counts as drained as far as it goes,
+         * so the rest moves on to the next stat. Not in: Tekton's 10 levels on a miss. Animation bgs_special_player
+         * (7642), spotanim dh_sword_update_bandos_special_spotanim (1212); the ornament kit's are bgs_special_ornate_player
+         * (7643) and bandos_special_spotanim_gold (1748).
+         */
+        val BANDOS_GODSWORD = bandosGodsword(anim = 7642, spotanim = 1212)
+        val BANDOS_GODSWORD_ORNAMENT = bandosGodsword(anim = 7643, spotanim = 1748)
+
+        private fun bandosGodsword(anim: Int, spotanim: Int) = SpecialAttack(
+            "Warstrike", anim, spotanim, accuracyPercent = 100, damagePercents = listOf(10, 10), against = AttackType.SLASH,
+            effect = SpecialEffect.DrainByDamage(listOf(NpcStat.DEFENCE, NpcStat.STRENGTH, NpcStat.ATTACK, NpcStat.MAGIC, NpcStat.RANGED)),
+        )
+
+        /**
+         * Shield Bash (OSRS Wiki, Dinh's bulwark): 20% more accurate, against crush, and in multi-way combat it hits up to
+         * 10 NPCs within 5 tiles of the player (an 11 by 11 area), its target twice; each hit that deals damage drains 5%
+         * of the NPC's highest offensive stat, but for the target's second. Animation human_dinhs_bulwark_bash (7511),
+         * with no spotanim (guessed). In single-way combat it hits its target once (guessed).
+         */
+        val SHIELD_BASH = SpecialAttack(
+            "Shield Bash", anim = 7511, spotanim = -1, accuracyPercent = 20, against = AttackType.CRUSH,
+            effect = SpecialEffect.DrainHighestOffensive(5), radius = 5, targets = 10, targetHits = 2,
+        )
+
+        private val OFFENSIVE = listOf(NpcStat.ATTACK, NpcStat.STRENGTH, NpcStat.RANGED, NpcStat.MAGIC)
+
         /** The specials that are in, by their weapons' gameval names. */
         private val BY_WEAPON = mapOf(
             "dragon_warhammer" to DRAGON_WARHAMMER,
             "dragon_warhammer_ornament" to DRAGON_WARHAMMER,
+            "bgs" to BANDOS_GODSWORD,
+            "bgsg" to BANDOS_GODSWORD_ORNAMENT,
+            "dinhs_bulwark" to SHIELD_BASH,
+            "dinhs_bulwark_ornament" to SHIELD_BASH,
         )
     }
 }

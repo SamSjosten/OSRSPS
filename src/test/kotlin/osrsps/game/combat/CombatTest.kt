@@ -49,7 +49,7 @@ class CombatTest {
     private val npcCombat = NpcCombat.parse(
         """{ "npcs": [ { "npcs": ["man"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0,
             "strengthBonus": 0,
-            "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+            "defence": { "stab": -21, "slash": -11, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
             "anims": { "attack": "a", "defend": "b", "death": "c" }, "respawnTicks": 25, "source": "test" } ] }""",
         npcTypes, SeqNames.NONE,
     )
@@ -92,6 +92,19 @@ class CombatTest {
         player.equipment[WearPos.WEAPON] = null
         player.vars[EquipmentTab.VARP_COM_MODE] = 2
         assertEquals("Punch", world.combat.style(player).name)
+    }
+
+    @Test
+    fun `a special rolling against slash, as Warstrike does, keeps the style's own attack bonus`() {
+        val npc = world.spawnNpc(NpcSpawn(man, 3223, 3218, 0, source = "test"))!!
+        player.equipment[WearPos.WEAPON] = InvObj(1277, 1)
+        player.vars[EquipmentTab.VARP_COM_MODE] = 0
+        val m = world.combat.matchup(player, npc, against = AttackType.SLASH)!!
+        assertEquals("Stab", m.style.name)
+        // Attack 1 + 3 accurate + 8 with the sword's +4 stab, not its +3 slash.
+        assertEquals(12 * 68, m.attackRoll)
+        // Defence 1 + 9 with the man's -11 slash, not his -21 stab.
+        assertEquals(10 * 53, m.defenceRoll)
     }
 
     @Test

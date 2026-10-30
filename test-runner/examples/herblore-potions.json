@@ -1,0 +1,35 @@
+{
+ "name": "Artisan step 9: at level 1 an attack potion needs 3; at 99 eye of newt on two guam potions (unf) makes two attack potions(3) (50 XP), and unicorn horn dust on a marrentill potion (unf) makes an antipoison (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::item 91 2", "expectMessage": "Added 2 x Guam potion (unf)"},
+  {"step": "command", "text": "::item 221 2", "expectMessage": "Added 2 x Eye of newt"},
+  {"step": "useItemOnItem", "item": "Eye of newt", "onItem": "Guam potion (unf)"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertMessage", "contains": "herblore.level level=3"},
+  {"step": "assertInventory", "item": "Guam potion (unf)", "count": 2},
+
+  {"step": "command", "text": "::setlevel herblore 99", "expectMessage": "Herblore set to level 99"},
+  {"step": "useItemOnItem", "item": "Guam potion (unf)", "onItem": "Eye of newt"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "Attack potion(3); the box suggests both"},
+  {"step": "assertAnimation", "id": 363, "comment": "human_herbing_vial"},
+  {"step": "assertInventory", "item": "Attack potion(3)", "count": 2, "timeoutMs": 10000, "comment": "2 ticks each"},
+  {"step": "assertMessage", "contains": "herblore.mix"},
+  {"step": "assertStat", "skill": "Herblore", "level": 99, "xp": 13034481, "comment": "25 XP a potion"},
+
+  {"step": "command", "text": "::item 93", "expectMessage": "Added 1 x Marrentill potion (unf)"},
+  {"step": "command", "text": "::item 235", "expectMessage": "Added 1 x Unicorn horn dust"},
+  {"step": "useItemOnItem", "item": "Unicorn horn dust", "onItem": "Marrentill potion (unf)"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Antipoison(3)", "count": 1, "timeoutMs": 10000},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

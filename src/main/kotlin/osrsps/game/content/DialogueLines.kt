@@ -22,11 +22,13 @@ import osrsps.game.skill.CraftingLines
 import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.FishingLines
 import osrsps.game.skill.FletchingLines
+import osrsps.game.skill.HerbloreLines
 import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.WoodcuttingLines
+import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
 
@@ -43,6 +45,7 @@ object DialogueLines {
         MakeLines,
         FletchingLines,
         CraftingLines,
+        HerbloreLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
         BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines, SettingsLines,
         // The raid's combat foundations, one a line.
@@ -55,10 +58,11 @@ object DialogueLines {
         CandleSellerLines, MiningTutorLines, FishingTutorLines, AereckLines, PrayerTutorLines, NigelLines, CountCheckLines,
         AltarLines,
         // Social systems.
-        SocialLines, TradeLines,
+        SocialLines, FriendsChatLines, TradeLines,
         // Al Kharid.
         BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
-        GemTraderLines, AliMorrisaneLines,
+        GemTraderLines, AliMorrisaneLines, KarimLines, SilkTraderLines, KebabLines, EllisLines, TanningLines,
+        HassanLines, OsmanLines, PrinceAliLines, CamelLines,
         // Draynor Village.
         DraynorSearchLines, AxeLogsLines, FortunatoLines, OliviaLines, DiangoLines, NedLines, AggieLines,
         // The Grand Exchange.
