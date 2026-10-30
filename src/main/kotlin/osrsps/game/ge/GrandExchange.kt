@@ -313,9 +313,10 @@ class GrandExchange(
          */
         fun payout(coins: Long): Pair<Long, Long> {
             if (coins <= Int.MAX_VALUE) return coins to 0L
-            // A stack of tokens tops out at 2,147,483,647 too; MAX_TOTAL is exactly a full stack of each.
+            // A stack of tokens tops out at 2,147,483,647 too; MAX_TOTAL is exactly a full stack of each. A sell can
+            // take in more (it fills at the guide price, above what was asked); the rest waits in the box for later.
             val tokens = minOf(coins / TOKEN_VALUE, Int.MAX_VALUE.toLong())
-            return coins - tokens * TOKEN_VALUE to tokens
+            return minOf(coins - tokens * TOKEN_VALUE, Int.MAX_VALUE.toLong()) to tokens
         }
 
         const val COINS = 995

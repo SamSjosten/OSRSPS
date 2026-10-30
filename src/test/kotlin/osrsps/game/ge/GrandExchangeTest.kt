@@ -270,6 +270,8 @@ class GrandExchangeTest {
         // The most an offer holds is a full stack of tokens and a full stack of coins.
         assertEquals(2_147_483_647L to 2_147_483_647L, GrandExchange.payout(GrandExchange.MAX_TOTAL))
         assertEquals(1L to 2_147_483_647L, GrandExchange.payout(2_147_483_647_001L))
+        // Past both stacks, a full stack of each now and the rest left to collect later.
+        assertEquals(2_147_483_647L to 2_147_483_647L, GrandExchange.payout(3_920_000_000_000L))
         give(TOKEN, 3_000_000)
         ge.buy(player, WHIP, 2, 1_500_000_000)
         assertTrue(ge.abort(player, 0))
@@ -305,6 +307,17 @@ class GrandExchangeTest {
         sent.clear()
         screen.flush(player)
         assertEquals(emptyList(), sent.filterIsInstance<MessageGame>())
+    }
+
+    @Test
+    fun `a box past both stacks pays one of each and keeps the rest`() {
+        give(TOKEN, 1)
+        ge.buy(player, AXE, 1, 1_000)
+        player.ge[0] = player.ge[0]!!.copy(collectCoins = 3_920_000_000_000L)
+        assertTrue(ge.collect(player, 0, items = false))
+        assertEquals(Int.MAX_VALUE.toLong(), player.inventory.count(TOKEN))
+        assertEquals(Int.MAX_VALUE.toLong(), player.inventory.count(COINS))
+        assertEquals(3_920_000_000_000L - 2_149_631_130_647L, player.ge[0]!!.collectCoins)
     }
 
     private companion object {
