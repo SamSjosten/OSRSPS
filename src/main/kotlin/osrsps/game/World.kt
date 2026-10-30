@@ -38,6 +38,7 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerIpCommands
+import osrsps.game.command.registerGrandExchangeCommands
 import osrsps.game.command.registerItemCommands
 import osrsps.game.command.registerLocCommands
 import osrsps.game.command.registerNpcCommands
@@ -97,6 +98,7 @@ import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
+import osrsps.game.ge.GrandExchange
 import osrsps.game.loc.Doors
 import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
@@ -301,6 +303,9 @@ class World(
     private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
 
     /** Shops and their shared stock; see [ShopScreen]. */
+    /** Grand Exchange offers; see [GrandExchange]. */
+    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
+
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
@@ -421,6 +426,7 @@ class World(
         registerZoneCommands(this@World, collision)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
+        registerGrandExchangeCommands(this@World)
         registerGroundObjCommands(this@World)
         registerLocCommands(this@World)
         registerNpcCommands(this@World)
@@ -791,6 +797,7 @@ class World(
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
+            grandExchange.process(player)
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
