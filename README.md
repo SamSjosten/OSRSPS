@@ -421,7 +421,9 @@ sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answe
 
 A knife used on logs, or logs on a knife (`game/skill/Fletching.kt`, words under `fletching.*`), opens the Make-X box
 over what those logs make: arrow shafts, javelin shafts, the shortbow and longbow (u), and the crossbow stock, from
-logs to magic logs, plus teak and mahogany stocks and redwood shafts. The numbers are in `skills/fletching.json`.
+logs to magic logs, plus teak and mahogany stocks and redwood shafts. A bow string on an unstrung bow strings it. Feathers on arrow shafts
+make headless arrows, and arrowtips on those make arrows, up to 15 at a time (the box counts sets). A feather on dart
+tips makes 10 darts on every click, with no box. The numbers are in `skills/fletching.json`.
 
 The making itself is the loop all three artisan skills share (`game/skill/Making.kt`, the box's title under
 `make.title`): each product waits in a weak queue, so walking off, closing an interface or using something else ends
@@ -431,7 +433,9 @@ it, as do running out, the count being done, the level being too low and a level
 |---------------------|--------|
 | Levels, XP and how many shafts a log makes | OSRS Wiki, Fletching and each product's page |
 | The first product 2 ticks after the choice, then one every 3 | OSRS Wiki, Arrow shaft ("Make-X is 2, then 3 ticks") and Wooden stock; the bows (u) inferred to match |
-| Animation `human_fletching` (1248) | cache 241 gamevals |
+| Stringing 2 ticks a bow; arrows 2 ticks a set of 15 with XP per arrow; darts 10 a click with no wait | OSRS Wiki, Shortbow, Headless arrow, Bronze arrow, Arrows, Dart and Bronze dart |
+| Animations `human_fletching` (1248) and each bow's `stringing_*` (6678 to 6689) | cache 241 gamevals |
+| No animation for arrows and darts; the first bow strung 2 ticks after the choice | guessed |
 | The box opening even for one log, its order, the quantity starting on as many as can be made, the animation as each product starts, a boost wearing off stopping it without a word | guessed |
 | Out: the redwood shield; the crossbows and javelins that stocks and javelin shafts go into | out of scope |
 
