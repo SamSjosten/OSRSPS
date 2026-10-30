@@ -42,7 +42,7 @@ object DialogueLines {
         // Al Kharid.
         BorderGuardLines, AlKharidShopKeeperLines, AlKharidShopAssistantLines, ZekeLines, DommikLines, LouieLegsLines, RanaelLines,
         GemTraderLines, KarimLines, SilkTraderLines, KebabLines, EllisLines, TanningLines,
-        HassanLines, OsmanLines, PrinceAliLines,
+        HassanLines, OsmanLines, PrinceAliLines, CamelLines,
     )
 }
 

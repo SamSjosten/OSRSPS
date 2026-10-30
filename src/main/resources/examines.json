@@ -91,7 +91,16 @@
     {"npc": 3231, "name": "Ellis"},
     {"npc": 4285, "name": "Chancellor Hassan"},
     {"npc": 4286, "name": "Osman"},
-    {"npc": 11580, "name": "Prince Ali", "wiki": "Prince Ali page, infobox (the freed Prince Ali, whom prince_ali_palace 11645 shows after Prince Ali Rescue)"}
+    {"npc": 11580, "name": "Prince Ali", "wiki": "Prince Ali page, infobox (the freed Prince Ali, whom prince_ali_palace 11645 shows after Prince Ali Rescue)"},
+    {"npc": 3261, "name": "Man", "wiki": "Man page, Al Kharid version"},
+    {"npc": 3292, "name": "Al Kharid warrior"},
+    {"npc": 3024, "name": "Scorpion", "wiki": "Scorpion page, Level 14 version"},
+    {"npc": 2835, "name": "Camel"},
+    {"npc": 5949, "name": "Al the Camel"},
+    {"npc": 5950, "name": "Elly the Camel"},
+    {"npc": 5951, "name": "Ollie the Camel"},
+    {"npc": 5952, "name": "Cam the Camel"},
+    {"npc": 5954, "name": "Alice the Camel"}
   ],
   "locs": [
     {"loc": 3366, "name": "Onion"},
