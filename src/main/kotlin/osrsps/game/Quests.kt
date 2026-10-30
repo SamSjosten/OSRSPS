@@ -33,11 +33,23 @@ class Quests(val all: List<Quest>) {
             }
         }
         vars[VARP_QUEST_POINTS] = totalQuestPoints
+        for ((varbit, value) in AFTER_QUESTS) {
+            if (vars.types.varbit(varbit) != null && vars.getVarbit(varbit) < value) vars.setVarbit(varbit, value)
+        }
     }
 
     companion object {
         /** Varp qp in the cache's names. */
         const val VARP_QUEST_POINTS = 101
+
+        /**
+         * Varbits outside the quest table that a finished quest leaves set, as varbit to value: what the world shows
+         * after the quest, such as an NPC's options. Each one is named for the content that reads it.
+         */
+        val AFTER_QUESTS: Map<Int, Int> = mapOf(
+            // gobdip_met_aggie: Goblin Diplomacy has the player meet Aggie, who then shows Dyes ([osrsps.game.content.Aggie]).
+            13597 to 1,
+        )
 
         val NONE = Quests(emptyList())
     }

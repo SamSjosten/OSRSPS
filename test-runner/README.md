@@ -188,6 +188,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Stronghold offer turned down and his check.
 - `lumbridge-examine.json`: Examine (with `::keys on`) on scenery outside the castle: the church's altar, organ,
   pews and candles, and the graveyard's two gravestones.
+- `draynor-ned-aggie.json`: Draynor step 4: Ned's rope talk (`::keys on`), the rope bought for 15 coins with the free
+  one after The Fremennik Isles, one bought in his shop for 16; Aggie's red dye from her Dyes option and her 5-coin
+  fine for the insult. Needs 0.8.0 for `assertVarbit`.
 - `lumbridge-walk.json`: Rest of Lumbridge step 12: walks from the castle courtyard to each area outside the castle in
   stages of at most 4 tiles (straight line), on the server's own pathing, teleporting back to the castle between three
   legs: the general store, Fred's farmhouse and Mill Lane Mill; Bob's axes, the church's west door, over the bridge

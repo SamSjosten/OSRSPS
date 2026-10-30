@@ -253,11 +253,11 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Draynor has three bankers, its townsfolk, seven pigs, the farmer and two fishing spots`() {
+    fun `Draynor has three bankers, its townsfolk, seven pigs, the farmer, two fishing spots, Ned and Aggie`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3111 to "woman", 2854 to "rat", 5007 to "imp", 2796 to "pig_1",
             2797 to "pig_2", 2798 to "piglet_1", 2799 to "piglet_2", 2800 to "piglet_3", 3251 to "farmer_farming_on_48_51", Fishing.DRAYNOR_SPOT to "0_48_50_saltfish",
-            1260 to "rag_wine_merchant", 500 to "seed_merchant", 8693 to "aprilfoolshorsesalesman",
+            1260 to "rag_wine_merchant", 500 to "seed_merchant", 8693 to "aprilfoolshorsesalesman", 4280 to "ned", 4284 to "aggie",
         )
         val draynorTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("draynor.json"), draynorTypes, "draynor.json")
@@ -274,6 +274,9 @@ class NpcSpawnFileTest {
         val spots = spawns.filter { it.type.id == Fishing.DRAYNOR_SPOT }
         assertEquals(2, spots.size)
         assertTrue(spots.all { spot -> Fishing.AREAS.any { Tile(spot.x, spot.z) in it } && spot.wander == 0 })
+        // Ned and Aggie in their houses.
+        assertEquals(Tile(3100, 3258), spawns.single { it.type.id == 4280 }.let { Tile(it.x, it.z) })
+        assertEquals(Tile(3086, 3259), spawns.single { it.type.id == 4284 }.let { Tile(it.x, it.z) })
     }
 
     @Test

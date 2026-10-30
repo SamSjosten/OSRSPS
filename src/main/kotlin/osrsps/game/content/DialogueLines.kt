@@ -41,6 +41,7 @@ object DialogueLines {
     val ALL: List<Lines> = listOf(
         AbigailaLines,
         AereckLines,
+        AggieLines,
         AlKharidShopAssistantLines,
         AlKharidShopKeeperLines,
         AliMorrisaneLines,
@@ -123,6 +124,7 @@ object DialogueLines {
         MillieLines,
         MiningLines,
         MiningTutorLines,
+        NedLines,
         NigelLines,
         OliviaLines,
         OsmanLines,
