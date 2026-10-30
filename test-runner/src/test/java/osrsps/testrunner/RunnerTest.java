@@ -299,7 +299,7 @@ public class RunnerTest
 	public void finishDialogueClicksThroughALevelUp() throws Exception
 	{
 		// A special attack's XP opened the level-up box: the raid's scripts were left with it over the chatbox.
-		game.levelUp = new Dialogue(Dialogue.Kind.LEVEL_UP, "Congratulations, you just advanced an Attack level.", "Your Attack level is now 2.", null);
+		game.levelUp = new Dialogue(Dialogue.Kind.LEVEL_UP, "[levelup.title article=an skill=Attack]", "[levelup.body skill=Attack level=2]", null);
 		runner.start(script("{\"step\":\"finishDialogue\"}"), "file");
 		assertNull(cycle());
 		assertEquals(List.of("continue"), game.actions);
