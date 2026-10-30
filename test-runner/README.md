@@ -245,6 +245,7 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   `test2`'s bronze axe, both accept on both screens and the items swap. Each starts from `lumbridge-bare` and ends with
   `::reset`.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
+- `social-ignore-2.json` (needs 0.14.0): the same with the names swapped, for a client logged in as `test2` (the nightly run's account).
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
   number prompt with `enterAmount`, public chat's colour picked in the colour picker and saved, then a cancelled pick,
   and the public chat filter set to friends; then close, relog and check every one, the filter by its label.
