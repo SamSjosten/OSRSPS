@@ -169,8 +169,8 @@
     {
       "key": "draynor_wine_shop",
       "title": "Fortunato's Fine Wine",
-      "inv": 385,
-      "size": 5,
+      "inv": 384,
+      "size": 4,
       "general": false,
       "sellAt": 1000,
       "buyAt": 600,
@@ -178,7 +178,7 @@
       "npcs": [
         "rag_wine_merchant"
       ],
-      "source": "OSRS Wiki, Fortunato's Fine Wine, read 2026-10-30: Sells at 100.0%, Buys at 60.0%, Change per 2.0%, and the stock table. The jug of vinegar joins the stock during Rag and Bone Man I; every account counts as having done it, so the shop is the 241 cache's wine_vinegar_merchant inv (5 slots), not wine_merchant (4)",
+      "source": "OSRS Wiki, Fortunato's Fine Wine, read 2026-10-30: Sells at 100.0%, Buys at 60.0%, Change per 2.0%, and the stock table. The jug of vinegar is sold only between starting Rag and Bone Man I and finishing II; every account counts both as done, so it is left out and the shop is the 241 cache's wine_merchant inv (4 slots), not wine_vinegar_merchant (5)",
       "stock": [
         {
           "item": 1993,
@@ -203,12 +203,6 @@
           "name": "Bottle of wine",
           "count": 2,
           "restock": 1500
-        },
-        {
-          "item": 7810,
-          "name": "Jug of vinegar",
-          "count": 500,
-          "restock": 10
         }
       ]
     },
@@ -224,7 +218,8 @@
       "npcs": [
         "seed_merchant"
       ],
-      "source": "OSRS Wiki, Draynor Seed Market, read 2026-10-30: Sells at 120.0%, Buys at 60.0%, Change per 3.0%, and the stock table (a seed a minute back toward each count). Olivia's refusal to trade for 30 minutes after a theft from her stalls comes with thieving",
+      "overstock": {"above": 200, "percent": 1},
+      "source": "OSRS Wiki, Draynor Seed Market, read 2026-10-30: Sells at 120.0%, Buys at 60.0%, Change per 3.0%, and the stock table (a seed a minute back toward each count, or 1% of the excess a minute while it is over 200; rounding down, at least one, is guessed). Olivia's refusal to trade for 30 minutes after a theft from her stalls comes with thieving",
       "stock": [
         {
           "item": 5318,
@@ -332,11 +327,11 @@
       "general": false,
       "sellAt": 1500,
       "buyAt": 500,
-      "changePer": 20,
+      "changePer": 2,
       "npcs": [
         "aprilfoolshorsesalesman"
       ],
-      "source": "OSRS Wiki, Diango's Toy Store, read 2026-10-30: Sells at 150.0%, Buys at 50.0%, Change per 2.0%, and the stock table (31 items, the 241 cache's aprilfoolshorseshop inv). The items the Wiki says it won't buy back (N/A) are untradeable, which no shop buys",
+      "source": "OSRS Wiki, Diango's Toy Store, read 2026-10-30: Sells at 150.0%, Buys at 50.0%, Change per 0.2%, and the stock table (31 items, the 241 cache's aprilfoolshorseshop inv). The items the Wiki says it won't buy back (N/A) are untradeable, which no shop buys",
       "stock": [
         {
           "item": 2520,
@@ -420,7 +415,8 @@
           "item": 13660,
           "name": "Chronicle",
           "count": 1,
-          "restock": 1
+          "restock": 1,
+          "onePerPlayer": true
         },
         {
           "item": 13658,

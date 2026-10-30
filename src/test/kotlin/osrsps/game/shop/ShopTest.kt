@@ -17,7 +17,7 @@ class ShopTest {
         1755 to 1, 952 to 3, 2347 to 1, 550 to 1, 9003 to 2,
         1265 to 1, 1351 to 16, 1349 to 56, 1353 to 200, 1363 to 182, 1365 to 650, 1369 to 1690,
         // Draynor's market.
-        1993 to 1, 7919 to 500, 7810 to 1,
+        1993 to 1, 7919 to 500,
         5318 to 2, 5319 to 3, 5324 to 3, 5322 to 4, 5320 to 8, 5323 to 18, 5321 to 56, 5305 to 2, 5306 to 5, 5097 to 4, 5096 to 2,
         5307 to 2, 5308 to 3, 5309 to 6, 5310 to 8, 5311 to 14,
         2520 to 100, 2522 to 100, 2524 to 100, 2526 to 100, 4613 to 50, 11705 to 50, 11706 to 50, 11707 to 30, 11708 to 30,
@@ -50,7 +50,7 @@ class ShopTest {
         ),
         "bobs_brilliant_axes" to listOf(1 to 0, 16 to 9, 56 to 33, 200 to 120, 182 to 109, 650 to 390, 1690 to 1014),
         // Read 2026-10-30.
-        "draynor_wine_shop" to listOf(1 to 0, 1 to 0, 140 to 84, 500 to 300, 1 to 0),
+        "draynor_wine_shop" to listOf(1 to 0, 1 to 0, 140 to 84, 500 to 300),
         "draynor_seed_market" to listOf(
             2 to 1, 3 to 1, 3 to 1, 4 to 2, 9 to 4, 21 to 10, 67 to 33, 2 to 1, 6 to 3, 4 to 2, 2 to 1, 2 to 1, 3 to 1, 7 to 3, 9 to 4, 16 to 8,
         ),
@@ -105,6 +105,36 @@ class ShopTest {
         assertEquals(1, bob.buyPrice(1265, 1, 1000))
         // The change is held at +500% below the starting stock.
         assertEquals(Shop.price(200, 1000, 20, -250), Shop.price(200, 1000, 20, -1000))
+    }
+
+    @Test
+    fun `Diango's prices move 0,2% an item, and he sells the Chronicle one to a player`() {
+        val diango = Shop(realShops()["diangos_toy_store"]!!)
+        val brownHorsey = 2520
+        // 150% at 5 in stock; with one bought, 150.2% of 100 still rounds to 150 (2% would make it 152).
+        assertEquals(150, diango.buyPrice(brownHorsey, 100, 5))
+        assertEquals(150, diango.buyPrice(brownHorsey, 100, 4))
+        assertEquals(151, diango.buyPrice(brownHorsey, 100, 0))
+        assertTrue(diango.type.onePerPlayer(13660))
+        assertFalse(diango.type.onePerPlayer(brownHorsey))
+    }
+
+    @Test
+    fun `Olivia's overstock over 200 comes down 1% a minute, and one seed a minute below that`() {
+        val olivia = Shop(realShops()["draynor_seed_market"]!!)
+        val potato = 5318
+        // 20 to start; 1,000 more is 1,000 over: 10 a minute.
+        olivia.put(potato, 1000)
+        olivia.restock(100)
+        assertEquals(1010, olivia.count(potato))
+        olivia.restock(200)
+        assertEquals(1001, olivia.count(potato))
+        // 201 over is still over 200: 1% rounds down to 2. At 200 over, one at a time.
+        olivia.take(0, 1001 - 221)
+        olivia.restock(300)
+        assertEquals(219, olivia.count(potato))
+        olivia.restock(400)
+        assertEquals(218, olivia.count(potato))
     }
 
     @Test

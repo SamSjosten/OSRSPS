@@ -68,9 +68,13 @@ class Shop(val type: ShopType) {
             if (held.count == base) continue
             val every = start?.restockTicks ?: NON_STOCK_TICKS
             if (tick % every != 0L) continue
-            set(slot, if (held.count > base) held.count - 1 else held.count + 1)
+            set(slot, if (held.count > base) held.count - step(held.count - base) else held.count + 1)
         }
     }
+
+    /** How far an item [over] its starting count comes down in one step: one, or the shop's share of a large excess. */
+    private fun step(over: Int): Int =
+        if (type.overstockPercent > 0 && over > type.overstockAbove) maxOf(1, over * type.overstockPercent / 100) else 1
 
     private fun set(slot: Int, count: Int) {
         val held = slots[slot]!!

@@ -1,5 +1,5 @@
 {
- "name": "Draynor piece step 3: Fortunato's, Olivia's and Diango's talks (::keys on) and their shops: a jug of vinegar, a potato seed and a Disk of Returning at the Wiki's prices",
+ "name": "Draynor piece step 3: Fortunato's, Olivia's and Diango's talks (::keys on) and their shops: a jug of wine, a potato seed and a Disk of Returning at the Wiki's prices",
  "account": "test",
  "steps": [
   {
@@ -106,13 +106,13 @@
    "step": "clickWidget",
    "interfaceId": 300,
    "component": 16,
-   "slot": 5,
+   "slot": 1,
    "op": 2,
-   "comment": "Buy 1 on the jug of vinegar, the fifth item: 1 coin, in stock since Rag and Bone Man I counts as done"
+   "comment": "Buy 1 on the jug of wine, the first item: 1 coin (the jug of vinegar is gone, as Rag and Bone Man II counts as done)"
   },
   {
    "step": "assertInventory",
-   "item": "Jug of vinegar",
+   "item": "Jug of wine",
    "count": 1
   },
   {
