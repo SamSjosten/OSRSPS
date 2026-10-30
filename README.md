@@ -1398,6 +1398,7 @@ each NPC fights.
 | The two 21x21 areas the ten minutes are counted in, moved on when the player leaves both, and a jump of more than 40 tiles (a teleport) starting again | RuneLite's NPC Aggression Timer plugin |
 | Not a player another monster is fighting, in single-way combat | OSRS Wiki, Single-way combat |
 | Not a player fighting another monster (attacking one, or hit one in the last 8 ticks), in single-way combat; an NPC is someone else's while it took on or swung at them in the last 8 ticks | guessed |
+| Only a player in its line of sight, as a ranged attack needs ([Line of sight](#line-of-sight)), from its tile closest to them, so a big monster sees round its own bulk; a player under it counts as seen | RS2's hunt modes have a check_vis; guessed that every aggressive monster uses it |
 | The hunt range of 5 (the 2004Scape engine's default), hunting every tick, picking the nearest player with ties at random, melee's 1 tile as everyone's attack range, the count running in logged-in ticks only, the Level 6 giant rats being aggressive | guessed |
 
 Retreat (`MeleeCombat.hitBy`): a monster attacked from outside its aggression range, or at or below its
@@ -1411,7 +1412,7 @@ back.
 | The unicorn and chickens retreat at low hitpoints | OSRS Wiki, Retreat (its list) |
 | The 25% threshold, rounded up; walking straight away, diagonals first; a hit from within the aggression range ending a retreat its hitpoints don't call for; a retreating aggressive monster not hunting | guessed |
 
-Not in yet: line of sight for the hunt, and monsters that attack from afar.
+Not in yet: monsters that attack from afar (the Draynor dark wizards' step).
 
 Check: `./gradlew test --tests 'osrsps.game.combat.AggressionTest' --tests 'osrsps.testclient.HeadlessAggressionTest'`
 (two players: the spider goes for the nearer, then for the other once the nearer is tolerated), `RetreatTest` and

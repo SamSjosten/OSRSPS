@@ -6,6 +6,8 @@ import osrsps.game.GameRandom
 import osrsps.game.Player
 import osrsps.game.npc.Npc
 import osrsps.game.npc.Npcs
+import osrsps.map.CollisionMap
+import osrsps.map.LineOfSight
 import osrsps.map.Tile
 
 /**
@@ -76,16 +78,18 @@ class Tolerance {
  *   counting its size (Wiki); melee's 1 tile is taken for everyone until NPCs attack from afar;
  * - of a combat level at most twice its own, unless it is level 63 or more or ignores levels (Wiki);
  * - not tolerated: [Tolerance] has their ten minutes, unless it never becomes tolerant;
+ * - in its line of sight ([sees]);
  * - not under attack by another NPC, nor fighting one, in single-way combat ([MeleeCombat.underAttackByAnother],
  *   [MeleeCombat.fightingAnother]);
  * - one it may fight: in single-way combat, not while another player's hits still hold it ([MeleeCombat.foughtByAnother]),
  *   as the player couldn't fight back.
  * It picks the nearest by its south-west tile, ties at random, then chases and fights them as if they had hit it.
  * Guessed (the Wiki gives none of these): that it hunts every tick, that it picks the nearest, and the tie rule. An NPC
- * retreating ([MeleeCombat]) doesn't hunt. Not here yet: line of sight (a hunt mode's check_vis), and attacks from afar.
+ * retreating ([MeleeCombat]) doesn't hunt. Not here yet: attacks from afar.
  */
 class Aggression(
     private val npcs: Npcs,
+    private val collision: CollisionMap,
     private val npcCombat: (Npc) -> NpcCombatDef?,
     private val melee: MeleeCombat,
     private val random: GameRandom,
@@ -146,10 +150,20 @@ class Aggression(
         if (player.loggedOut || player.dead || player.hitpoints <= 0 || player.level != npc.level) return false
         if (max(abs(player.x - npc.x), abs(player.z - npc.z)) > aggression.huntRange) return false
         if (!inAggressionRange(npc, player.x, player.z)) return false
+        if (!sees(npc, player)) return false
         if (!aggression.ignoresLevels && npc.type.combatLevel < ALWAYS_LEVEL && player.skills.combatLevel > 2 * npc.type.combatLevel) return false
         if (aggression.tolerant && player.tolerance.tolerant) return false
         return !melee.underAttackByAnother(player, npc) && !melee.fightingAnother(player, npc) && !melee.foughtByAnother(player, npc)
     }
+
+    /**
+     * Whether [npc] can see [player] to hunt them: the line of sight a ranged attack needs ([LineOfSight.clear]), from
+     * its tile closest to them, so a big NPC sees round its own bulk. A player standing under it counts as seen. Guessed:
+     * that every aggressive NPC hunts by sight (RS2's hunt modes have a check_vis, set per NPC, which the Wiki doesn't
+     * give), so a wall or a shut door keeps a player safe.
+     */
+    private fun sees(npc: Npc, player: Player): Boolean =
+        npc.covers(player.x, player.z) || LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)
 
     /** What `::aggro` says of [player]'s tolerance. */
     fun describe(player: Player): String {

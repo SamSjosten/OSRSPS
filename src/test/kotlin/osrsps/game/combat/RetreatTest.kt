@@ -38,7 +38,7 @@ class RetreatTest {
         npcs, map, Movement(map), Combat(Equipment(ObjTypes.of()), AttackStyles.fromRows(emptyList()), npcCombat), GameRandom(5), { tick },
         removeNpc = { npcs.remove(it) }, spawnNpc = {}, players = { sequenceOf(alice) },
     )
-    private val aggression = Aggression(npcs, { npcCombat[it.type] }, melee, GameRandom(7), { tick }) { sequenceOf(alice) }
+    private val aggression = Aggression(npcs, map, { npcCombat[it.type] }, melee, GameRandom(7), { tick }) { sequenceOf(alice) }
 
     private fun entry(name: String, extra: String = "") = """{ "npcs": ["$name"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush",
         "attackBonus": 0, "strengthBonus": 0, $extra
