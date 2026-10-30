@@ -29,6 +29,17 @@ fun CommandRegistry.registerDevCommands(world: World) {
         reply("Teleported to $x, $z, $level")
     }
 
+    // The rotten potato's Teleport to player runs this too.
+    register("teleto", "::teleto name") {
+        if (args.isEmpty()) fail("Usage: ::teleto name")
+        val name = args.joinToString(" ")
+        val target = world.playerNamed(name) ?: fail("Nobody called '$name' is online")
+        if (target === player) fail("That's you")
+        world.scripts.interrupt(player)
+        world.teleport(player, target.x, target.z, target.level)
+        reply("Teleported to ${target.username} at ${target.x}, ${target.z}, ${target.level}")
+    }
+
     // For filling the dialogue file: save it, then this, and the next line said has the new words.
     register("dialogue", "::dialogue", admin = true) {
         val read = world.loadDialogue()

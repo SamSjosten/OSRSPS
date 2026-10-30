@@ -111,7 +111,9 @@ class HeadlessGrandExchangeHistoryTest {
                 client.ifButton(PriceChecker.SIDE, PriceChecker.SIDE_ITEMS, 1, 1, obj = LOGS)
                 client.ifButton(PriceChecker.SIDE, PriceChecker.SIDE_ITEMS, 4, 2, obj = LOGS)
                 client.await("the logs in") { if (client.held(LOGS) == 0) Unit else null }
-                assertEquals(listOf(InvObj(FEATHER, 10), InvObj(LOGS, 1), InvObj(LOGS, 1), InvObj(LOGS, 1)), client.inventory(PriceChecker.INV).filterNotNull())
+                // The checker's inventory comes in its own packet, which can be read after the player's inventory's.
+                val checked = listOf(InvObj(FEATHER, 10), InvObj(LOGS, 1), InvObj(LOGS, 1), InvObj(LOGS, 1))
+                client.await("the checker's items") { client.inventory(PriceChecker.INV).filterNotNull().takeIf { it == checked } }
                 client.await("the total") { client.text(PriceChecker.MAIN, PriceChecker.OUTPUT)?.takeIf { it == "[pricechecker.total total=3,030]" } }
                 val prices = client.clientScripts().last { it.id == PriceChecker.PRICES_SCRIPT }.args
                 assertEquals(listOf<Any>(3L, 1_000L, 1_000L, 1_000L) + List(24) { 0L }, prices)

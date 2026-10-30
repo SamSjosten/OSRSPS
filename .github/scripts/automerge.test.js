@@ -538,3 +538,41 @@ test('the real git: a batch merges each member in turn, leaves out one that conf
   assert.ok(!isBatch(git, 4, batch, forged), 'a change beyond the members');
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('a request GitHub answers with a 5xx or not at all is tried again, three times; any other error is not', async () => {
+  const run = async errors => {
+    let wrapped;
+    const github = { hook: { wrap: (name, fn) => { assert.strictEqual(name, 'request'); wrapped = fn; } } };
+    const slept = [];
+    automerge.retrying(github, async ms => { slept.push(ms); });
+    automerge.retrying(github, async () => { throw new Error('wrapped twice'); });
+    let calls = 0;
+    const request = async () => {
+      const error = errors[calls++];
+      if (error) throw error;
+      return { data: 'ok' };
+    };
+    try {
+      return { result: await wrapped(request, {}), calls, slept };
+    } catch (error) {
+      return { error: error.status, calls, slept };
+    }
+  };
+  const err = status => Object.assign(new Error('x'), { status });
+  assert.deepStrictEqual(await run([err(500), err(502), new Error('socket hang up')]), { result: { data: 'ok' }, calls: 4, slept: [2000, 4000, 8000] });
+  assert.deepStrictEqual(await run([err(500), err(500), err(500), err(503)]), { error: 503, calls: 4, slept: [2000, 4000, 8000] });
+  assert.deepStrictEqual(await run([err(404)]), { error: 404, calls: 1, slept: [] });
+  assert.deepStrictEqual(await run([err(422)]), { error: 422, calls: 1, slept: [] });
+});
+
+test('a finished review whose flags are both null, with no receipt, is no verdict yet, not findings', async () => {
+  const unsaid = {
+    user: { login: CODEX },
+    created_at: '2026-10-30T14:22:00Z',
+    body: `<!-- codex-review-state:v1 {"code_review":{"commit_sha":"${H('1')}","has_any_findings":null,"has_unresolved_findings":null,"status":"completed"}} -->`,
+  };
+  assert.deepStrictEqual(automerge.verdict([unsaid], []), { unsaid: true });
+  const { github, calls } = fakeGitHub({ 1: { head: H('1'), checks: [], comments: [unsaid] } });
+  await gate(github, fakeGit({}), 1);
+  assert.deepStrictEqual(calls, [['check', H('1'), 'in_progress']]);
+});
