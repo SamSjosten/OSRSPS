@@ -32,4 +32,21 @@ class HerbloreDataTest {
         assertEquals(227 to 1, data.fillVial.product to data.fillVial.first)
         assertTrue("Well" !in data.waterSources)
     }
+
+    @Test
+    fun `23 finished potions from an unfinished potion and a secondary, a (3) dose each, at the Wiki's levels and XP`() {
+        assertEquals(23, data.potions.size)
+        val attack = data.potions.getValue(91 to 221)
+        assertEquals(Triple(121, 3, 250), Triple(attack.product, attack.level, attack.xpTenths))
+        assertEquals(listOf(ObjCount(221, 1), ObjCount(91, 1)), attack.inputs)
+        assertEquals(Triple(3026, 63, 1425), data.potions.getValue(3004 to 223).let { Triple(it.product, it.level, it.xpTenths) })
+        assertEquals(Triple(6687, 81, 1800), data.potions.getValue(3002 to 6693).let { Triple(it.product, it.level, it.xpTenths) })
+        assertEquals(1063, data.potions.getValue(101 to 235).xpTenths)
+        val unf = data.unfinished.values.map { it.product }.toSet()
+        for ((pair, recipe) in data.potions) {
+            assertTrue(pair.first in unf, "${recipe.key} starts from an unfinished potion")
+            assertTrue(recipe.level >= data.unfinished.values.single { it.product == pair.first }.level, recipe.key)
+            assertTrue(recipe.first == 2 && recipe.interval == 2 && recipe.anim == 363, recipe.key)
+        }
+    }
 }

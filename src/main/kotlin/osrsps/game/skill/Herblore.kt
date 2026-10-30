@@ -20,6 +20,7 @@ object HerbloreLines : Lines("herblore", "Herblore") {
     val LEVEL = line("level", "the message when the item needs a higher level", "level", "item")
     val GRIND = line("grind", "Unicorn horn dust and the other ground items: the message on grinding one", "input")
     val FILL = line("fill", "Vial of water: the message on filling a vial")
+    val MIX = line("mix", "Attack potion and the other potions: the message on adding the secondary to the unfinished potion", "input")
 }
 
 /** A grimy herb [grimy] that cleans to [clean] at [level] for [xpTenths]. */
@@ -27,7 +28,8 @@ data class GrimyHerb(val grimy: Int, val clean: Int, val level: Int, val xpTenth
 
 /**
  * herblore.json: the grimy herbs by grimy obj; unfinished potions by clean herb; what a pestle and mortar grinds, by what
- * it grinds; filling a vial, and the names of the locs that fill one.
+ * it grinds; filling a vial, and the names of the locs that fill one; the finished potions, by unfinished potion and
+ * secondary.
  */
 class HerbloreData(
     val cleaning: Map<Int, GrimyHerb>,
@@ -37,6 +39,7 @@ class HerbloreData(
     val grinding: Map<Int, MakeRecipe>,
     val fillVial: MakeRecipe,
     val waterSources: List<String>,
+    val potions: Map<Pair<Int, Int>, MakeRecipe> = emptyMap(),
 ) {
     companion object {
         const val RESOURCE = "/skills/herblore.json"
@@ -81,7 +84,19 @@ class HerbloreData(
                 vials.int("anim"), vials.int("first"), vials.int("interval"), HerbloreLines.FILL, HerbloreLines.LEVEL,
             )
             val sources = vials.getValue("sources").jsonArray.map { it.jsonPrimitive.content }
-            return HerbloreData(cleaning, vialOfWater, unfinished, pestle, grinding, fill, sources)
+            val mixing = root.getValue("potions").jsonObject
+            val potions = LinkedHashMap<Pair<Int, Int>, MakeRecipe>()
+            for (potion in mixing.getValue("potions").jsonArray.map { it.jsonObject }) {
+                // The secondary first, so the message's `input` is it.
+                val recipe = MakeRecipe(
+                    potion.name(), Skill.HERBLORE, potion.int("potion"), 1, potion.int("level"), potion.int("xpTenths"),
+                    listOf(ObjCount(potion.int("secondary"), 1), ObjCount(potion.int("unf"), 1)), emptyList(), mixing.int("anim"),
+                    mixing.int("first"), mixing.int("interval"), HerbloreLines.MIX, HerbloreLines.LEVEL,
+                )
+                val key = potion.int("unf") to potion.int("secondary")
+                require(potions.put(key, recipe) == null) { "Potion ${potion.name()} is listed twice" }
+            }
+            return HerbloreData(cleaning, vialOfWater, unfinished, pestle, grinding, fill, sources, potions)
         }
 
         private fun JsonObject.int(name: String): Int = getValue(name).jsonPrimitive.int
@@ -94,14 +109,17 @@ class HerbloreData(
  * Herblore up to the finished potions: Clean on a grimy herb cleans it straight away, one a click; a clean herb and a
  * vial of water, either on the other, open the Make-X box for its unfinished potion; a pestle and mortar on a unicorn
  * horn (or the other things it grinds) opens it for the dust, the first ground at once, the next 2 ticks later and the
- * rest every 3; an empty vial on a sink, a fountain or a water pump fills every vial held, one a tick. The making is
- * [Making]'s.
+ * rest every 3; an empty vial on a sink, a fountain or a water pump fills every vial held, one a tick. A secondary on
+ * its unfinished potion (or the other way round) opens the box for the finished potion, a (3) dose, 2 ticks each. The
+ * making is [Making]'s.
  *
  * Sources: the OSRS Wiki's grimy herb, unfinished potion, ground item and Vial of water pages (read 2026-10-30), see
- * herblore.json. Guessed: the box opening even for one; filling every vial held without a box; which locs count as
+ * herblore.json. Guessed: the box opening even for one; the first potion 2 ticks after the choice; filling every vial held without a box; which locs count as
  * water (the cache's sinks, fountains and water pumps, not wells); the filling animation (human_pickuptable) and no
- * animation for cleaning; the messages' arguments. Out: herb sacks, the herb tar and barbarian mixes, Ashes, the
- * Zahur-style and Kandarin-diary shortcuts, and the other ground items (crushed for quests, Varrock's mud runes).
+ * animation for cleaning; the messages' arguments. Out: potions of more than two ingredients (super combat, stamina,
+ * sanfew, the divine potions), the coconut-milk potions (antidote+, weapon poison+), Varlamore's (huasca's prayer
+ * regeneration), quest and minigame potions, herb sacks, the herb tar and barbarian mixes, Ashes, the Zahur-style and
+ * Kandarin-diary shortcuts, and the other ground items (crushed for quests, Varrock's mud runes).
  */
 class Herblore(private val world: World, val data: HerbloreData) {
     fun register() {
@@ -114,6 +132,9 @@ class Herblore(private val world: World, val data: HerbloreData) {
         }
         for ((from, recipe) in data.grinding) {
             world.handlers.onObjOnObj(data.pestle, from) { world.making.choose(this, listOf(recipe)) }
+        }
+        for ((pair, recipe) in data.potions) {
+            world.handlers.onObjOnObj(pair.second, pair.first) { world.making.choose(this, listOf(recipe)) }
         }
         for (source in waterSources()) {
             world.handlers.onObjOnLoc(source, data.fillVial.inputs[0].obj) {

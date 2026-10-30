@@ -1,0 +1,206 @@
+{
+ "name": "Al Kharid step 5: the palace (::keys on): Hassan's and Prince Ali's after-quest lines, a big window refused, and a Keris bought from Osman for 20,000 coins",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 20000",
+   "expectMessage": "Added 20000 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3301 3163 0",
+   "expectMessage": "Teleported to 3301, 3163, 0",
+   "comment": "the throne room, by Hassan (3302 3163) and Prince Ali (3301 3165)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Chancellor Hassan",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hassan.thank_you]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Prince Ali",
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the map's prince_ali_palace, shown as Prince Ali since every account has Prince Ali Rescue done"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prince_ali.good_to_see]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prince_ali.resting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[prince_ali.best]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3290 3157 0",
+   "expectMessage": "Teleported to 3290, 3157, 0",
+   "comment": "outside the palace's south wall, below a big window"
+  },
+  {
+   "step": "locOption",
+   "loc": "Big window",
+   "option": "Enter",
+   "x": 3290,
+   "y": 3158
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hassan.not_a_thief]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hassan.window_needs]",
+   "comment": "no hard Desert diary: the shortcut stays shut"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3287 3180 0",
+   "expectMessage": "Teleported to 3287, 3180, 0",
+   "comment": "beside Osman (3286 3180), north-west of the palace"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Osman",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[osman.hello_again]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[osman.sophanem]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[osman.sophanem]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[osman.sophanem_reply]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[osman.daggers]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[osman.daggers]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[osman.dagger_offer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[osman.take_one]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[osman.take_one]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[osman.hands_dagger]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[osman.should_go]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[osman.should_go]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[osman.until_next_time]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Keris",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
