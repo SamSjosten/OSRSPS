@@ -253,14 +253,15 @@ class Trades(
 
     /**
      * Sends each side of [player]'s trade that changed: the offers (theirs as tradeoffer, the partner's mirrored), the
-     * headers with each offer's value, the partner's free slots and the accept status. Run at the end of every cycle.
+     * headers with each offer's value, the partner's free slots and the accept status. Run at the end of every cycle;
+     * the Accept trade delay counts down only at the end of a game tick ([tickEnd]), not on a paused world's cycles.
      */
-    fun flush(player: Player) {
+    fun flush(player: Player, tickEnd: Boolean = true) {
         val trade = player.trade ?: return
         if (trade.over) return
         val mine = trade.sideOf(player)
         val theirs = trade.partnerSideOf(player)
-        if (mine.acceptDelay > 0) {
+        if (tickEnd && mine.acceptDelay > 0) {
             mine.acceptDelay--
             setVarbit(player, VARBIT_ACCEPT_DELAY, mine.acceptDelay)
         }

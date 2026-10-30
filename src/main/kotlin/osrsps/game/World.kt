@@ -1064,7 +1064,7 @@ class World(
                 shopScreen.flush(player)
                 grandExchangeScreen.flush(player)
                 priceChecker.flush(player)
-                trades.flush(player)
+                trades.flush(player, tickEnd)
             }
         }
         for (player in players) if (player != null) trades.flushed(player)

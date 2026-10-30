@@ -117,6 +117,30 @@ class HeadlessTradeSafetyTest {
     }
 
     @Test
+    fun `the Accept trade delay counts game ticks, so a paused world holds it`(@TempDir dir: Path) {
+        delayServer(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        alice.give("::item $COINS 1000", 1)
+                        open(alice, bob)
+                        alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 3, sub = 0, obj = COINS)
+                        bob.await("the countdown") { bob.varp(VARP_DELAY).takeIf { it > 0 } }
+                        // Carol, out of the trade, pauses the world: its paused cycles mustn't count.
+                        carol.commandReply("pause") { it.startsWith("Paused after tick") }
+                        Thread.sleep(300) // the last tick's packets to Bob, which can trail Carol's reply
+                        val left = bob.varp(VARP_DELAY)
+                        Thread.sleep(1_000) // ten paused cycles
+                        assertEquals(left, bob.varp(VARP_DELAY))
+                        carol.stepTicks(left)
+                        bob.await("the countdown's end") { bob.varp(VARP_DELAY).takeIf { it == 0 } }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a player who turned the Accept trade delay off can accept straight after a change`(@TempDir dir: Path) {
         delayServer(dir).use { server ->
             server.login("alice").use { alice ->
