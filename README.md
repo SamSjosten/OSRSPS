@@ -864,7 +864,7 @@ window and buys a Keris from Osman; `al-kharid-fighters.json` examines and kills
 `HeadlessAlKharidShopsTest` opens the Gem trader's shop from his
 talk, tries silk at the General Store and buys Ali's junk; `HeadlessAlKharidTradersTest` buys a kebab from Karim and eats it,
 and haggles for silk; `HeadlessAlKharidTest` and `HeadlessAlKharidFightersTest` do the same through the headless client, with the talk in
-`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, the palace's talk in `AlKharidPalaceTest` and Osman's Keris in `HeadlessOsmanTest`, the camels' in `AlKharidCamelsTest`, combat and drops in `NpcCombatTest` and `NpcDropsTest`, the rocks' chances in `MiningTest`, Small Net in `HeadlessFishingTest`, and
+`BorderGuardTest` and `AlKharidShopkeepersTest`, Karim, the Silk trader and the kebab's outcomes in `AlKharidTradersTest`, Ellis and tanning in `EllisTest` and, through the headless client, `HeadlessEllisTest`, the palace's talk in `AlKharidPalaceTest` and Osman's Keris in `HeadlessOsmanTest`, the camels' in `AlKharidCamelsTest`, combat and drops in `NpcCombatTest` and `NpcDropsTest`, the rocks' chances in `MiningTest` and their ores in `HeadlessMiningTest`, Small Net in `HeadlessFishingTest`, and
 the prices in `ShopTest`.
 
 ## Equipment
