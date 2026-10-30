@@ -2,7 +2,7 @@
   "about": "What NPCs fight with beyond the levels in their cache types. Speeds, max hits, attack styles, bonuses and respawn times are the OSRS Wiki infoboxes' (read 2026-10-26), cross-checked with the Wiki's DPS calculator data (weirdgloop/osrs-dps-calc monsters.json). Animations are gameval names: attack and death are the NPC's own by name; which of an NPC's block or def animations it defends with is guessed.",
   "npcs": [
     {
-      "npcs": ["man", "man2", "man3", "man4", "al_kharid_man"],
+      "npcs": ["man", "man2", "man3", "man4", "al_kharid_man", "varrock_man1"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
       "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
@@ -43,7 +43,7 @@
       "source": "OSRS Wiki, Spider (level 1, id 3019) and the DPS calculator, read 2026-10-30; the giant spider's spider_update animations, guessed"
     },
     {
-      "npcs": ["woman", "woman2", "woman3"],
+      "npcs": ["woman", "woman2", "woman3", "varrock_woman1"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
       "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
@@ -51,7 +51,7 @@
       "source": "OSRS Wiki, Woman (3112 and 3113 are taken to match 3111: the cache gives all three the same levels and bonuses)"
     },
     {
-      "npcs": ["rat"],
+      "npcs": ["rat", "rat_indoors"],
       "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": -47, "strengthBonus": -53,
       "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
       "anims": { "attack": "mouse_attack", "defend": "mouse_defend", "death": "mouse_death" },

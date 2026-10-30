@@ -21,7 +21,7 @@
   },
   "npcs": [
     {
-      "npcs": ["man", "man2", "man3", "man4", "woman", "woman2", "woman3", "al_kharid_man", "al_kharid_warrior"],
+      "npcs": ["man", "man2", "man3", "man4", "woman", "woman2", "woman3", "al_kharid_man", "al_kharid_warrior", "varrock_man1", "varrock_woman1"],
       "always": [{"item": 526, "name": "Bones"}],
       "table": {
         "slots": 128,
@@ -127,7 +127,7 @@
       "source": "OSRS Wiki, Spider, read 2026-10-30: the looting bag, Larran's key and slayer's enchantment drop only in the Wilderness or on Krystilia's tasks"
     },
     {
-      "npcs": ["rat"],
+      "npcs": ["rat", "rat_indoors"],
       "source": "OSRS Wiki, Rat: no drops outside quests, the Wilderness and the Stronghold of Security"
     },
     {

@@ -11,7 +11,8 @@ private val logger = KotlinLogging.logger {}
  * pen and farm, Lumbridge's fields). A gate type pairs with its open type by gameval name: `fencegate_l` with
  * `openfencegate_l`, `farming_fencegate_r` with `farming_openfencegate_r`, and so on for every `…fencegate_l`/`_r` with
  * an Open option whose `…openfencegate_…` type has a Close option; and the field gates north of Lumbridge,
- * `fai_varrock_gate_l`/`_r`, with `fai_varrock_gate_lc`/`_rc`.
+ * `fai_varrock_gate_l`/`_r`, with `fai_varrock_gate_lc`/`_rc`, as the fence gates with no `…openfencegate_…` type do
+ * (`ii_fencegate_l`/`_r` by the Grand Exchange with `ii_fencegate_lc`/`_rc`).
  *
  * Opened, the leaves turn three quarters clockwise (a quarter anticlockwise) and move: the left one a tile outward,
  * the right one two tiles outward and a tile back along the wall, so both stand against the left leaf's hinge side.
@@ -33,10 +34,11 @@ class Gates(private val locs: Locs) {
             val name = closed.internalName ?: continue
             if (!name.endsWith("_l") || name.contains("openfencegate")) continue
             val stem = name.dropLast(2)
-            // `…fencegate_l` opens into `…openfencegate_l`; the Varrock-style field gates `…_gate_l` into `…_gate_lc`.
+            // `…fencegate_l` opens into `…openfencegate_l`, or else (`ii_fencegate_l`) into `…fencegate_lc`; the
+            // Varrock-style field gates `…_gate_l` into `…_gate_lc`.
             val (leftOpenName, rightOpenName) = when {
-                stem.endsWith("fencegate") -> open(stem) + "_l" to open(stem) + "_r"
-                stem.endsWith("_gate") -> stem + "_lc" to stem + "_rc"
+                stem.endsWith("fencegate") && byName.containsKey(open(stem) + "_l") -> open(stem) + "_l" to open(stem) + "_r"
+                stem.endsWith("fencegate") || stem.endsWith("_gate") -> stem + "_lc" to stem + "_rc"
                 else -> continue
             }
             val leftOpen = byName[leftOpenName] ?: continue
