@@ -206,6 +206,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `herblore-basics.json`: at level 1 a grimy guam needs 3; at 99 two clean (5 XP), go into vials of water as
   unfinished potions, a pestle grinds two unicorn horns, and two vials fill at Lumbridge Castle's kitchen sink. Needs
   0.15.0 (`useItemOnLoc`).
+- `herblore-potions.json`: at level 1 an attack potion needs 3; at 99 eye of newt on two guam potions (unf) makes
+  two attack potions(3) (50 XP), and unicorn horn dust on a marrentill potion (unf) makes an antipoison. Needs 0.10.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 

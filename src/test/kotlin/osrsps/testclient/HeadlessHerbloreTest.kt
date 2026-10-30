@@ -29,13 +29,15 @@ class HeadlessHerbloreTest {
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         val ids = data.cleaning.values.flatMap { listOf(it.grimy, it.clean) } +
-            (data.unfinished.values + data.grinding.values + data.fillVial).flatMap { r -> r.inputs.map { it.obj } + r.product + r.tools }
+            (data.unfinished.values + data.grinding.values + data.fillVial + data.potions.values).flatMap { r -> r.inputs.map { it.obj } + r.product + r.tools }
         val objs = arrayOfNulls<ObjType>(ids.max() + 1)
         for (id in ids) objs[id] = ObjType(id, "Item $id", tradeable = true)
         for (herb in data.cleaning.values) objs[herb.grimy] = ObjType(herb.grimy, "Grimy herb ${herb.grimy}", iops = CLEAN_IOPS, tradeable = true)
         objs[GRIMY_GUAM] = ObjType(GRIMY_GUAM, "Grimy guam leaf", iops = CLEAN_IOPS, tradeable = true)
         objs[GUAM] = ObjType(GUAM, "Guam leaf", tradeable = true)
         objs[UNICORN_HORN] = ObjType(UNICORN_HORN, "Unicorn horn", tradeable = true)
+        objs[EYE_OF_NEWT] = ObjType(EYE_OF_NEWT, "Eye of newt", tradeable = true)
+        objs[ATTACK_POTION] = ObjType(ATTACK_POTION, "Attack potion(3)", tradeable = true)
         World(
             crcs, CollisionMap().apply { markLoaded(SINK_X shr 6, SINK_Z shr 6) }, objTypes = ObjTypes(objs),
             locTypes = LocTypes(
@@ -149,6 +151,32 @@ class HeadlessHerbloreTest {
         }
     }
 
+    @Test
+    fun `eye of newt on a guam potion (unf) makes attack potions 2 ticks apart for 25 XP, and needs level 3`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.give(GUAM_UNF, 3)
+                client.give(EYE_OF_NEWT, 3)
+                client.use(EYE_OF_NEWT, GUAM_UNF)
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 3)
+                client.seen("[herblore.level level=3 item=attack potion(3)]")
+                client.command("setlevel herblore 3")
+                val start = client.await("level 3") { client.xp().takeIf { it >= LEVEL_3_XP } }
+                client.use(GUAM_UNF, EYE_OF_NEWT)
+                assertTrue(ATTACK_POTION in client.box().args)
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 3)
+                val mixed = client.await("three mixed", timeoutMillis = 20_000) { client.said("[herblore.mix").takeIf { it.size >= 3 } }
+                assertEquals("[herblore.mix input=Eye of newt]", mixed[0].text)
+                assertEquals(listOf(2, 2), mixed.zipWithNext { a, b -> b.tick - a.tick })
+                client.await("three potions") { if (client.count(ATTACK_POTION) == 3) Unit else null }
+                assertEquals(0, client.count(GUAM_UNF) + client.count(EYE_OF_NEWT))
+                assertEquals(75, client.await("75 XP") { (client.xp() - start).takeIf { it >= 75 } })
+            }
+        }
+    }
+
     companion object {
         const val BACKPACK = 93
         const val HERBLORE = 15
@@ -158,6 +186,8 @@ class HeadlessHerbloreTest {
         const val GRIMY_GUAM = 199
         const val GUAM = 249
         const val GUAM_UNF = 91
+        const val EYE_OF_NEWT = 221
+        const val ATTACK_POTION = 121
         const val VIAL = 229
         const val VIAL_OF_WATER = 227
         const val PESTLE = 233

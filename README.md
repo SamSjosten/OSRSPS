@@ -482,7 +482,8 @@ Clean on a grimy herb cleans that one at once (`game/skill/Herblore.kt`, words u
 `skills/herblore.json`). A clean herb and a vial of water, either used on the other, open the Make-X box for its
 unfinished potion. A pestle and mortar on a unicorn horn, chocolate bar, kebbit teeth, bird nest, desert goat horn or
 blue dragon scale opens the box for the ground item; the first is ground as the choice is made. An empty vial used on a
-sink, fountain or water pump fills every vial held, one a tick. Making goes through `Making.kt`.
+sink, fountain or water pump fills every vial held, one a tick. A secondary on its unfinished potion opens the box for
+the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose each. Making goes through `Making.kt`.
 
 | Herblore behaviour | Source |
 |--------------------|--------|
@@ -492,8 +493,9 @@ sink, fountain or water pump fills every vial held, one a tick. Making goes thro
 | Grinding 0, then 2, then 3 ticks | OSRS Wiki, Unicorn horn dust ("Auto-crushing ... is 0, then 2, then 3 ticks") |
 | A vial fills in 1 tick at any water but a well | OSRS Wiki, Vial of water |
 | Animations 363 (`human_herbing_vial`) and 364 (`human_herbing_grind`) | cache 241 gamevals |
-| Which locs count as water; filling with no box; the filling animation (832); no animation for cleaning | guessed |
-| Out: finished potions (step 9), herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
+| Finished potions' levels, XP, secondaries, 2 ticks, a (3) dose | OSRS Wiki, Herblore (potions table) and each potion's page |
+| Which locs count as water; filling with no box; the filling animation (832); no animation for cleaning; the first potion 2 ticks after the choice | guessed |
+| Out: potions of three or more ingredients (super combat, stamina, sanfew, divine), coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
 
 ## Items and inventory
 
