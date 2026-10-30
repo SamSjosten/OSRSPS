@@ -152,9 +152,22 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply(if (player.god) "You can't be hurt now (::god again to turn it off)." else "You can be hurt again.")
     }
 
-    register("sure", "::sure", admin = true) {
-        player.sureHits = !player.sureHits
-        reply(if (player.sureHits) "Your attacks can't miss now (::sure again to turn it off)." else "Your attacks can miss again.")
+    register("sure", "::sure [max]", admin = true) {
+        // max: melee hits deal their max too, so a test can count on a hit doing damage.
+        val max = when (args.singleOrNull()) {
+            null -> false
+            "max" -> true
+            else -> fail("Usage: ::sure [max]")
+        }
+        player.sureHits = max || !player.sureHits
+        player.sureMaxHits = max
+        reply(
+            when {
+                max -> "Your attacks can't miss and your melee hits deal their max now (::sure to turn it off)."
+                player.sureHits -> "Your attacks can't miss now (::sure again to turn it off)."
+                else -> "Your attacks can miss again."
+            },
+        )
     }
 
     register("prayers", "::prayers", admin = false) {

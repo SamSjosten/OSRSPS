@@ -254,6 +254,9 @@ class Player(
     /** `::sure`: their attacks on NPCs always pass the accuracy roll, which is still drawn. Not saved. */
     var sureHits: Boolean = false
 
+    /** `::sure max`: as [sureHits], and their melee hits deal their max hit, the damage roll still drawn. Not saved. */
+    var sureMaxHits: Boolean = false
+
     /** The tick they died on, -1 while alive: they lie dead, taking no input, until [osrsps.game.combat.Deaths] respawns them. Not saved. */
     var deathTick: Long = -1
     val dead: Boolean get() = deathTick >= 0

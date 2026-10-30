@@ -233,7 +233,11 @@ class MeleeCombat(
         val attackRoll = spec?.attackRoll(matchup.attackRoll) ?: matchup.attackRoll
         val maxHit = spec?.maxHit(matchup.maxHit) ?: matchup.maxHit
         // Accuracy first, then damage, as the Wiki describes a hit; the attack's random draws are always these two.
-        val rolled = if (CombatMath.rollHits(random, attackRoll, matchup.defenceRoll) || player.sureHits) CombatMath.rollDamage(random, maxHit) else 0
+        val rolled = if (CombatMath.rollHits(random, attackRoll, matchup.defenceRoll) || player.sureHits) {
+            CombatMath.rollDamage(random, maxHit).let { if (player.sureMaxHits) maxHit else it }
+        } else {
+            0
+        }
         // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way.
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage

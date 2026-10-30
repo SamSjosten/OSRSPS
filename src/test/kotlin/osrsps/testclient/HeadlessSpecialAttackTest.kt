@@ -84,7 +84,8 @@ class HeadlessSpecialAttackTest {
                 client.ifButton(INVENTORY, INVENTORY_ITEMS, WIELD_BUTTON, client.slot(WARHAMMER), WARHAMMER)
                 client.await("the warhammer wielded") { client.inventory(WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == WARHAMMER } }
                 client.commandReply("god") { it.startsWith("You can") }
-                client.commandReply("sure") { it.startsWith("Your attacks can't miss") }
+                // Max hits, as a hit of 0 drains nothing.
+                client.commandReply("sure max") { it.startsWith("Your attacks can't miss and your melee hits deal their max") }
                 client.commandReply("setlevel strength 99") { it.contains("99") }
 
                 client.npcOp(npc.index, 2)
