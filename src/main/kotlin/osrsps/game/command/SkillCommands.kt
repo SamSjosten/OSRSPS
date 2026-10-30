@@ -30,7 +30,7 @@ fun CommandRegistry.registerSkillCommands(inTick: () -> Boolean = { true }) {
         val skills = player.skills
         val combatBefore = skills.combatLevel
         val levelBefore = skills.baseLevel(skill)
-        skills.addTenths(skill, tenths)
+        skills.addExactTenths(skill, tenths)
         val levels = if (skills.baseLevel(skill) == levelBefore) "level $levelBefore" else "level $levelBefore -> ${skills.baseLevel(skill)}"
         reply("${skill.displayName}: ${format(skills.xp(skill))} xp, $levels.${combatChange(combatBefore, skills)}")
     }

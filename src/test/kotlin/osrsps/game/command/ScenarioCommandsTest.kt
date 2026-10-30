@@ -21,6 +21,9 @@ import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.MeleeInteraction
+import osrsps.game.ge.BuyLimitUse
+import osrsps.game.ge.GeOffer
+import osrsps.game.ge.OfferType
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.script.QueueType
 import osrsps.game.script.TimerType
@@ -98,9 +101,12 @@ class ScenarioCommandsTest {
     @Test
     fun `reset puts back everything the scenario changed`() {
         player.bank[0] = InvObj(995, 500)
+        player.ge[2] = GeOffer(OfferType.SELL, 1351, 3, 40)
+        player.ge.limits[1351] = BuyLimitUse(1351, 1_000, 5)
         val before = PlayerSave.of(player).toJson("test")
         run("scenario cows")
         assertTrue(player.bank.isEmpty())
+        assertTrue(player.ge.contents().isEmpty() && player.ge.limits.isEmpty())
         run("reset")
         assertEquals("Back to how you were before ::scenario cows.", replies.last())
         assertEquals(listOf(3222, 3218, 0), listOf(player.x, player.z, player.level))
