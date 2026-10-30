@@ -72,6 +72,7 @@ import osrsps.game.combat.StatusEffects
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
@@ -467,6 +468,9 @@ class World(
 
     val potions = Potions(potionData, words = ::textFor, poison = poison)
 
+    /** Monsters' drained stats; see [NpcDrains]. */
+    val npcDrains = NpcDrains { combat.npcCombat[it.type] }
+
     /** Stuns on players; see [StatusEffects]. */
     val statusEffects = StatusEffects(
         currentTick = { tick },
@@ -856,7 +860,10 @@ class World(
         rangedCombat.process()
         magicCombat.process()
         meleeCombat.process()
-        for (npc in npcs.all) poison.process(npc)
+        for (npc in npcs.all) {
+            poison.process(npc)
+            npcDrains.process(npc)
+        }
         deaths.process()
         npcScripts.process()
         npcs.process()
