@@ -154,6 +154,21 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `east of the river are 50 level 2 goblins and 6 giant spiders, and Barfy Bill at the canoe station`() {
+        val names = (1..8).associate { 3028 + it to "goblin_unarmed_melee_$it" } + mapOf(3017 to "giantspider1", 1326 to "canoeing_bill")
+        val eastTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-east.json"), eastTypes, "lumbridge-east.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(50, spawns.count { it.type.id in 3029..3036 })
+        assertEquals(6, spawns.count { it.type.id == 3017 })
+        assertEquals(Tile(3244, 3237), spawns.single { it.type.id == 1326 }.let { Tile(it.x, it.z) })
+        // East of the river's west bank, north of the church, south of the cow field; all on the ground.
+        assertTrue(spawns.all { it.x in 3238..3266 && it.z in 3215..3260 && it.level == 0 })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == if (it.type.id == 1326) 2 else 5 })
+    }
+
+    @Test
     fun `every file names only NPCs it can find in a full cache`() {
         // With no types at all every spawn is skipped by name, not dropped silently.
         for (file in NpcSpawnFile.FILES) {

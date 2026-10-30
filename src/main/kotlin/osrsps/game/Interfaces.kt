@@ -158,6 +158,21 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         send(player, IfOpenSub(frame.interfaceId, frame.component(FrameSlot.FLOATER), interfaceId, OVERLAY))
     }
 
+    /** Opens [interfaceId] as an overlay inside component [component] of [parent], an interface that is open. */
+    fun openInside(player: Player, parent: Int, component: Int, interfaceId: Int) {
+        send(player, IfOpenSub(parent, component, interfaceId, OVERLAY))
+    }
+
+    /** Closes what [openInside] opened in [component] of [parent]. */
+    fun closeInside(player: Player, parent: Int, component: Int) {
+        send(player, IfCloseSub(parent, component))
+    }
+
+    /** Runs client script [id] with [args] (ints, and strings in the script's order). */
+    fun runClientScript(player: Player, id: Int, args: List<Any>) {
+        send(player, RunClientScript(id, args))
+    }
+
     /** Closes what [openFloater] opened, if anything. */
     fun closeFloater(player: Player) {
         if (player.floater < 0) return
@@ -209,9 +224,7 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     fun closeModals(player: Player) {
         closeChatModal(player)
         // Guessed, after RSMod closing the bank's search prompt: an amount prompt closes with the interfaces it was for.
-        if (player.scripts.dropCount()) {
-            send(player, RunClientScript(ScriptContext.MESLAYER_CLOSE, listOf(ScriptContext.MESLAYER_COUNT)))
-        }
+        dropCount(player)
         if (player.modals.isEmpty()) return
         val frame = player.frame
         for (slot in player.modals.keys) send(player, IfCloseSub(frame.interfaceId, frame.component(slot)))
@@ -220,7 +233,23 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         for (interfaceId in closed) closeHooks[interfaceId]?.invoke(player)
     }
 
+    /**
+     * Drops the script waiting on an amount, if any: the chatbox prompt closes, a late answer does nothing, and the
+     * [onCountDropped] hooks run.
+     */
+    fun dropCount(player: Player) {
+        if (!player.scripts.dropCount()) return
+        send(player, RunClientScript(ScriptContext.MESLAYER_CLOSE, listOf(ScriptContext.MESLAYER_COUNT)))
+        for (hook in countDropHooks) hook(player)
+    }
+
     private val closeHooks = HashMap<Int, (Player) -> Unit>()
+    private val countDropHooks = ArrayList<(Player) -> Unit>()
+
+    /** Runs [hook] whenever closing the interfaces drops a script waiting on an amount: for what asked for it. */
+    fun onCountDropped(hook: (Player) -> Unit) {
+        countDropHooks += hook
+    }
 
     /** Runs [hook] whenever modal [interfaceId] closes, after it has: for what the client keeps open past it. */
     fun onClose(interfaceId: Int, hook: (Player) -> Unit) {

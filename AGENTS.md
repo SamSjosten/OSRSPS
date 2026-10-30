@@ -5,6 +5,10 @@ revision 241 (`src/main/kotlin/osrsps/Revision.kt`). Content is recreated 1:1 fr
 live game, so RuneLite plugins can be tested against it. See `README.md` for building, running and the commands, and
 `CONTRIBUTING.md` for how pull requests move.
 
+Agents that open pull requests: turn on auto-merge (merge commit) on every pull request you open, right after
+opening it, and pull your branch before each push, as the automerge workflow may have merged `main` into it
+(`CONTRIBUTING.md`, Auto-merge).
+
 ## Review guidelines
 
 Review every pull request thoroughly. Read the whole diff and the code it calls, not only the changed lines, and report

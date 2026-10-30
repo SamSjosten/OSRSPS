@@ -332,4 +332,17 @@ class ScriptRunnerTest {
         // Once for being in the queue and once more as it runs.
         assertEquals(2, modalsClosed)
     }
+
+    @Test
+    fun `a second amount prompt drops the first, telling the replaced hooks, and gets the answer`() {
+        val replaced = mutableListOf<String>()
+        runner.onCountReplaced { replaced += it.username }
+        runner.start(player) { ran += "first ${waitForCount()}" }
+        assertEquals(emptyList(), replaced)
+        runner.start(player) { ran += "second ${waitForCount()}" }
+        assertEquals(listOf("test"), replaced)
+        assertTrue(runner.resumeCount(player, 7))
+        assertEquals(listOf("second 7"), ran)
+        assertFalse(runner.resumeCount(player, 8))
+    }
 }

@@ -871,6 +871,26 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public int promptMode()
+	{
+		return client.getVarcIntValue(VarClientID.MESLAYERMODE);
+	}
+
+	@Override
+	public String enterAmount(int amount)
+	{
+		Canvas canvas = client.getCanvas();
+		if (canvas == null)
+		{
+			return "the client has no canvas";
+		}
+		// The prompt keeps what has been typed in this varc; Enter runs meslayer_enter, which sends it for mode 7.
+		client.setVarcStrValue(VarClientID.MESLAYERINPUT, Integer.toString(amount));
+		pressEnter(canvas);
+		return null;
+	}
+
+	@Override
 	public int skillLevel(String skill)
 	{
 		Skill s = skill(skill);

@@ -15,7 +15,7 @@ class NpcCombatTest {
         "man", "man2", "man3", "man4", "woman", "woman2", "woman3", "rat", "imp",
         "cow", "cow2", "cow3", "cow2_calf", "cow3_calf", "calf",
         "chicken", "chicken_brown", "ramunsheered", "ramunsheered2", "ramunsheered3", "duck", "duck_female", "duckling",
-    )
+    ) + (1..8).map { "goblin_unarmed_melee_$it" } + "giantspider1"
     private val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name) }.toTypedArray())
 
     // The 241 cache's ids for the animations the file names.
@@ -27,6 +27,8 @@ class NpcCombatTest {
             "cow_update_attack" to 5849, "cow_update_defend" to 5850, "cow_update_death" to 5851,
             "chicken_attack" to 55, "chicken_block" to 56, "chicken_death" to 57,
             "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252, "duck_rework_death" to 3468,
+            "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
+            "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
         ),
     )
 
@@ -47,7 +49,8 @@ class NpcCombatTest {
         // The imp and the rams alone have an elemental weakness among them (OSRS Wiki: the others say "No elemental weakness").
         assertEquals(ElementalWeakness(Element.WATER, 10), combat[types.find("imp")!!]!!.weakness)
         assertEquals(ElementalWeakness(Element.FIRE, 20), combat[types.find("ramunsheered")!!]!!.weakness)
-        assertEquals(listOf("imp", "ramunsheered", "ramunsheered2", "ramunsheered3"), names.filter { combat[types.find(it)!!]!!.weakness != null })
+        assertEquals(ElementalWeakness(Element.FIRE, 50), combat[types.find("giantspider1")!!]!!.weakness)
+        assertEquals(listOf("imp", "ramunsheered", "ramunsheered2", "ramunsheered3", "giantspider1"), names.filter { combat[types.find(it)!!]!!.weakness != null })
         // Fred's farm: a chicken stabs for nothing and comes back in 25 ticks, a ram crushes for 1 and takes 45.
         val chicken = combat[types.find("chicken_brown")!!]!!
         assertEquals(AttackType.STAB, chicken.attackType)
@@ -57,6 +60,19 @@ class NpcCombatTest {
         val ram = combat[types.find("ramunsheered2")!!]!!
         assertEquals(1, ram.maxHit)
         assertEquals(45, ram.respawnTicks)
+        // East of the river: every goblin crushes for 1 and comes back in 35 ticks; the giant spider stabs, back in 30.
+        for (i in 1..8) {
+            val goblin = combat[types.find("goblin_unarmed_melee_$i")!!]!!
+            assertEquals(AttackType.CRUSH, goblin.attackType)
+            assertEquals(1, goblin.maxHit)
+            assertEquals(-15, goblin.defence.against(AttackType.STAB))
+            assertEquals(NpcCombatAnims(6184, 6183, 6182), goblin.anims)
+            assertEquals(35, goblin.respawnTicks)
+        }
+        val spider = combat[types.find("giantspider1")!!]!!
+        assertEquals(AttackType.STAB, spider.attackType)
+        assertEquals(NpcCombatAnims(5327, 5328, 5329), spider.anims)
+        assertEquals(30, spider.respawnTicks)
     }
 
     @Test

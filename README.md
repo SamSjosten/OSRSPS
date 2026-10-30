@@ -375,6 +375,41 @@ Fishing spots are NPCs (`game/skill/Fishing.kt`, words under `fishing.*`): the L
 | The swamp spots' area (their spawn tiles, so they stay put); the player stopping when the spot moves | guessed |
 | Out: pearl and barbarian rods, stripy feathers, big nets, harpoons, cages, outfits and other catch boosts, whirlpools | out of scope |
 
+### Cooking
+
+Raw food used on a fire or range, or Cook on a range, cooks it (`game/skill/Cooking.kt`, words under `cooking.*`):
+shrimps, anchovies, sardines, herring, trout, pike, salmon, beef, rat and bear meat, chicken, and bread dough (range
+only). With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
+range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
+
+| Cooking behaviour | Source |
+|-------------------|--------|
+| Levels and XP | OSRS Wiki food pages |
+| 4 ticks a piece | OSRS Wiki, Raw shrimps |
+| Each food's burn pair on a fire or range and on the Lumbridge range, fitted to and checked against the Wiki's charts (`CookingTest`) | OSRS Wiki food pages |
+| The Make-X box: its components, client script 2046's arguments and the pause button carrying the quantity | decompiled client scripts (osrs-dumps) |
+| Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
+| Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
+
+### Smithing
+
+Smelting at a furnace and smithing at an anvil (`game/skill/Smithing.kt`, words under `smithing.*`). Smelt, or ore used
+on a furnace, opens the Make-X box (as cooking's) over the free-to-play bars. Smith, or a bar used on an anvil, opens
+the anvil (`smithing`, interface 312): the client lays it out itself from varbit `smithing_bar_type`, so the server only
+sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answers the item buttons. The anvil's items
+(`AnvilItems.kt`) are the client's own `smithing_setup` list, with levels, bars and counts from the client's enums.
+
+| Smithing behaviour | Source |
+|--------------------|--------|
+| Bar levels, ores and smelting XP; iron's 50% at a furnace, the ore lost | OSRS Wiki, Smelting and Iron bar |
+| Smelting 4 ticks then 5 a bar, a single bar 6 | OSRS Wiki, Bronze bar |
+| 5 ticks an item on the anvil; a hammer needed; 12.5 XP a bar a tier | OSRS Wiki, Smithing |
+| Lumbridge's rusted anvil smiths only bronze | OSRS Wiki, Anvil |
+| Each bar's anvil items, levels, bars and counts | client scripts and enums 844 to 846 (cache 241), checked against the Wiki's bronze and iron tables (`SmithingTest`) |
+| The furnace box showing every free-to-play bar and suggesting All; Smith opening the best bar the level can use; a cancelled X smithing one; the rusted anvil's message for other bars; the messages' arguments | guessed |
+| Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, cannonballs, jewellery, blurite and lovakite | out of scope |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
@@ -571,6 +606,30 @@ watches a duck's death animation. The runner has no step that reads overhead tex
 following and the walking ducks running off are checked through the headless client (`HeadlessDucksTest`, which reads
 NPC info's say block), with the death cries and keeping to water in `DucksTest` and the water and arrows in
 `HeadlessRangedTest`.
+
+## East of the river
+
+East of the River Lum, between the castle bridge and the cow field, in `npc-spawns/lumbridge-east.json` on RSMod's
+tiles: the goblins of Lozar's ruined house and the land around it, the giant spiders among them, and Barfy Bill at the
+canoe station. They fight through `npc-combat.json` and drop through `npc-drops.json`; Bill's talk is
+`game/content/BarfyBill.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| 50 goblins (`goblin_unarmed_melee_1` to `_8`, ids 3029 to 3036): level 2, 5 hitpoints, crush for 1 at speed 4, back in 35 ticks, not aggressive | OSRS Wiki, Goblin (the Level 2 infobox); the DPS calculator |
+| A goblin always drops bones, and rolls drop table 1 (128 slots: bronze gear, runes, coins, a hammer, goblin mail and the rest), with the beginner and easy clues, the ensouled goblin head and the goblin champion scroll on their own rolls | OSRS Wiki, Goblin, drop table 1 |
+| 6 giant spiders (`giantspider1`, 3017): level 2, 5 hitpoints, stab for 1, back in 30 ticks, 50% weak to fire; no bones, only the beginner clue at 1/128 | OSRS Wiki, Giant spider (Level 2) |
+| Barfy Bill (1326) talks about who he is and about canoes, by the player's Woodcutting level: below 12, 12 to 26 (log), 27 to 41 (dugout), 42 to 56 (stable dugout), 57 and up (waka) | RSMod's script; the Wiki's Transcript:Barfy Bill and Canoeing |
+| The fight animations (the squatting goblin's and the updated spider's, by the stand and walk animations their types have), the wander ranges (5, Bill 2) and Bill's chathead expressions | guessed |
+
+Left out: the giant spiders are aggressive on live, which waits for NPC aggression (the Varrock piece); canoes and
+Bill's Store-axe wait for canoeing. The river's fishing spots are the gathering skills'. What Bill says, and the
+examines of Bill, the goblins (one for all eight types) and the spider, are in the dialogue file (keys `barfy_bill.*`,
+`examine.npc_1326`, `examine.npc_3029`, `examine.npc_3017`).
+
+Check: `test-runner/examples/lumbridge-east.json` talks to Bill, examines the three kinds of NPC, and kills a goblin
+for its bones; `HeadlessLumbridgeEastTest` fights a goblin to death and talks to Bill through the headless client, with
+every branch of Bill's talk in `BarfyBillTest` and the drop rates in `NpcDropsTest`.
 
 ## Equipment
 

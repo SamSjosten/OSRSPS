@@ -21,7 +21,9 @@ class NpcDropsTest {
     private val rat = NpcType(2854, "Rat", combatLevel = 1, internalName = "rat")
     private val chicken = NpcType(1173, "Chicken", combatLevel = 1, internalName = "chicken")
     private val ram = NpcType(1262, "Ram", combatLevel = 2, internalName = "ramunsheered")
-    private val types = NpcTypes.of(man, imp, cow, rat, chicken, ram)
+    private val goblin = NpcType(3029, "Goblin", combatLevel = 2, internalName = "goblin_unarmed_melee_1")
+    private val spider = NpcType(3017, "Giant spider", combatLevel = 2, internalName = "giantspider1")
+    private val types = NpcTypes.of(man, imp, cow, rat, chicken, ram, goblin, spider)
     private val objTypes = DropTestItems.objTypes()
     private val drops = NpcDrops.load(types, objTypes)
 
@@ -29,7 +31,7 @@ class NpcDropsTest {
     fun `the file reads, naming every item as the cache does, and the tables add up`() {
         // The test's cache knows one man, cow and so on; every other warning would be a wrong item name.
         assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
-        assertEquals(6, drops.size)
+        assertEquals(8, drops.size)
         val def = drops[man]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })
         assertEquals(128, def.table!!.slots)
@@ -41,6 +43,14 @@ class NpcDropsTest {
         assertEquals(listOf("Clue scroll (beginner)" to 300), drops[chicken]!!.tertiary.map { it.item.type.name to it.denominator })
         assertEquals("Bones", drops[ram]!!.always.single().type.name)
         assertNull(drops[ram]!!.table)
+        assertEquals("Bones", drops[goblin]!!.always.single().type.name)
+        assertEquals(
+            listOf("Clue scroll (beginner)" to 64, "Clue scroll (easy)" to 128, "Ensouled goblin head" to 35, "Goblin champion scroll" to 5000),
+            drops[goblin]!!.tertiary.map { it.item.type.name to it.denominator },
+        )
+        // A giant spider leaves no bones, only the odd beginner clue.
+        assertEquals(emptyList(), drops[spider]!!.always)
+        assertEquals(listOf("Clue scroll (beginner)" to 128), drops[spider]!!.tertiary.map { it.item.type.name to it.denominator })
         // A rat drops nothing at all.
         val nothing = drops[rat]!!
         assertTrue(nothing.isEmpty)
@@ -146,6 +156,45 @@ class NpcDropsTest {
             val sigma = sqrt(KILLS * p * (1 - p))
             assertTrue(abs(feathers[count]!! - mean) <= 5 * sigma, "$count feathers: ${feathers[count]} of $KILLS")
         }
+    }
+
+    @Test
+    fun `ten thousand goblins drop bones every time and the rest as the Wiki's drop table 1 says`() {
+        val def = drops[goblin]!!
+        val random = GameRandom(11)
+        val counts = HashMap<String, Int>()
+        val tertiary = setOf("Clue scroll (beginner)", "Clue scroll (easy)", "Ensouled goblin head", "Goblin champion scroll")
+        var nothing = 0
+        repeat(KILLS) {
+            val kill = def.roll(random)
+            assertEquals("Bones", kill.first().type.name)
+            val table = kill.drop(1).filter { it.type.name !in tertiary }
+            assertTrue(table.size <= 1, kill.toString())
+            if (table.isEmpty()) nothing++
+            for (drop in table) {
+                val key = if (drop.type.name == "Coins") "Coins x${drop.count}" else "${drop.type.name} x${drop.count}"
+                counts[key] = (counts[key] ?: 0) + 1
+            }
+        }
+        counts["nothing"] = nothing
+        fun expect(key: String, weight: Int) {
+            val p = weight / 128.0
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        expect("nothing", 38)
+        expect("Coins x15", 28)
+        expect("Hammer x1", 15)
+        expect("Water rune x6", 6)
+        expect("Body rune x7", 5)
+        expect("Goblin mail x1", 5)
+        expect("Bronze spear x1", 4)
+        expect("Bronze bolts x8", 3)
+        expect("Coins x20", 2)
+        expect("Goblin book x1", 2)
+        expect("Brass necklace x1", 1)
     }
 
     companion object {

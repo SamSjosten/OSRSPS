@@ -1,6 +1,7 @@
 package osrsps.testrunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -652,6 +653,24 @@ public class RunnerTest
 		assertEquals("assert weight -7 kg", r.steps.get(0).description);
 		assertEquals("weight -7 kg", r.steps.get(0).detail);
 		assertEquals("step 2 (assert weight 3 kg): timed out after 40 ms: weight -7 kg", r.failure);
+	}
+
+	@Test
+	public void amountWaitsForTheNumberPromptAndItsClosing() throws Exception
+	{
+		runner.start(script("{\"step\":\"enterAmount\",\"amount\":5000},{\"step\":\"enterAmount\",\"amount\":1,\"timeoutMs\":40}"), "file");
+		assertNull(cycle());
+		assertFalse(game.actions.contains("amount 5000"));
+		game.promptMode = 7;
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertTrue(game.actions.contains("amount 5000"));
+		assertEquals("enter amount 5000", r.steps.get(0).description);
+		assertEquals("entered 5000", r.steps.get(0).detail);
+		assertEquals("step 2 (enter amount 1): timed out after 40 ms: no number prompt open (meslayermode 0)", r.failure);
 	}
 
 	@Test

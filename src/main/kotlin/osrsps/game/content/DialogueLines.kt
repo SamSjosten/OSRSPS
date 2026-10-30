@@ -3,6 +3,7 @@ package osrsps.game.content
 import osrsps.game.EquipmentLines
 import osrsps.game.GameLines
 import osrsps.game.Player
+import osrsps.game.SettingsLines
 import osrsps.game.World
 import osrsps.game.bank.BankLines
 import osrsps.game.combat.CombatLines
@@ -14,10 +15,12 @@ import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.BirdNestLines
+import osrsps.game.skill.CookingLines
 import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.FishingLines
 import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MiningLines
+import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.WoodcuttingLines
 
 /** Every conversation's lines, which the dialogue file is read and written against. Each new [Lines] object goes here. */
@@ -27,13 +30,17 @@ object DialogueLines {
         // Gathering skills after woodcutting and firemaking, one a line.
         MiningLines,
         FishingLines,
+        CookingLines,
+        SmithingLines,
         DoomsayerLines, HatiusLines, LumbridgeGuideLines, HarlanLines, Examines, LevelUpLines, WoodcuttingLines, FoodLines,
-        BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines, PoisonLines,
+        BirdNestLines, FiremakingLines, CombatLines, PrayerLines, GameLines, EquipmentLines, PotionLines, SettingsLines,
+        // The raid's combat foundations, one a line.
+        PoisonLines,
         // Rest of Lumbridge.
         ShopKeeperLines, ShopAssistantLines, BobLines, RamBartenderLines, ArthurLines, DonieLines, GeeLines, CookingTutorLines,
         SmithingApprenticeLines, WoodsmanTutorLines, AbigailaLines, IronmanTutorLines, FredLines, GillieLines, MillieLines,
         HopperLines, DuckLines, SheepLines, CropLines, DairyCowLines, MillLines, BonesLines, SearchLines, ClimbLines,
-        BankLines, ShopLines,
+        BankLines, ShopLines, BarfyBillLines,
     )
 }
 

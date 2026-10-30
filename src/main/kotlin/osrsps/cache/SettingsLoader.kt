@@ -16,8 +16,9 @@ private val logger = KotlinLogging.logger {}
  * - settings_populate_settings walks enum 422 (or enum 423 at settings_category) for the categories, each category
  *   struct's param 745 for its rows enum, and each row struct's param 1077 (id) and 1078 (kind);
  * - settings_check_dependency follows a row's params 1080/1081 and 1082/1083 to other rows;
- * - settings_get_toggle (script 6716), settings_get_dropdown (3962) and settings_get_keybind (3963) are switches on
- *   the setting id whose cases read the setting's var, which is how the server learns where each value lives;
+ * - settings_get_toggle (script 6716), settings_get_dropdown (3962), settings_get_keybind (3963),
+ *   settings_get_number_input (3964) and settings_get_colour (4181) are switches on the setting id whose cases read the
+ *   setting's var, which is how the server learns where each value lives;
  * - setting_show_dropdown lists as many options as the row's enum (param 1091) has outputs (script422).
  */
 object SettingsLoader {
@@ -31,6 +32,8 @@ object SettingsLoader {
     const val TOGGLE_GETTER = 6716
     const val DROPDOWN_GETTER = 3962
     const val KEYBIND_GETTER = 3963
+    const val NUMBER_GETTER = 3964
+    const val COLOUR_GETTER = 4181
 
     const val PARAM_CATEGORY_ID = 743
     const val PARAM_CATEGORY_ROWS = 745
@@ -58,7 +61,9 @@ object SettingsLoader {
             "Loaded ${catalog.categories.count { it != null }} settings categories, ${catalog.slotCount} rows, " +
                 "${catalog.toggles.size - unreadable.size} of ${catalog.toggles.size} toggles' vars and " +
                 "${catalog.dropdowns.count { it.value != SettingVar.Client }} of ${catalog.dropdowns.size} dropdowns' and " +
-                "${catalog.keybinds.count { it.value != SettingVar.Client }} of ${catalog.keybinds.size} keybinds'; " +
+                "${catalog.keybinds.count { it.value != SettingVar.Client }} of ${catalog.keybinds.size} keybinds', " +
+                "${catalog.numbers.count { it.value != SettingVar.Client }} of ${catalog.numbers.size} number inputs' and " +
+                "${catalog.colours.count { it.value != SettingVar.Client }} of ${catalog.colours.size} colours'; " +
                 "toggles the client keeps to itself: $unreadable"
         }
         val noGetter = toggleIds - catalog.toggles.keys - 0
@@ -129,7 +134,9 @@ object SettingsLoader {
         }
         val dropdowns = script(DROPDOWN_GETTER)?.let { decodeGetter(it, ::enumType) } ?: emptyMap()
         val keybinds = script(KEYBIND_GETTER)?.let { decodeGetter(it, ::enumType) } ?: emptyMap()
-        return SettingsCatalog(categories, rows, toggles, dropdowns, keybinds)
+        val numbers = script(NUMBER_GETTER)?.let { decodeGetter(it) } ?: emptyMap()
+        val colours = script(COLOUR_GETTER)?.let { decodeGetter(it) } ?: emptyMap()
+        return SettingsCatalog(categories, rows, toggles, dropdowns, keybinds, numbers, colours)
     }
 
     /**
@@ -156,6 +163,9 @@ object SettingsLoader {
                 // get_varbit a; push v; branch_equals +1; jump (on); get_varbit b; return
                 shape(at, ClientScript.GET_VARBIT, PUSH_INT, BRANCH_EQUALS, JUMP, ClientScript.GET_VARBIT, ClientScript.RETURN) && args[at + 2] == 1 ->
                     SettingVar.Conditional(args[at], args[at + 1], SettingVar.Varbit(args[at + 4]))
+                // get_varp v; push n; sub; return (and with a varbit)
+                shape(at, ClientScript.GET_VARP, PUSH_INT, SUB, ClientScript.RETURN) -> SettingVar.Offset(SettingVar.Varp(args[at]), -args[at + 1])
+                shape(at, ClientScript.GET_VARBIT, PUSH_INT, SUB, ClientScript.RETURN) -> SettingVar.Offset(SettingVar.Varbit(args[at]), -args[at + 1])
                 // push input type; push output type; push enum; get_varbit v; enum; return
                 shape(at, PUSH_INT, PUSH_INT, PUSH_INT, ClientScript.GET_VARBIT, ENUM, ClientScript.RETURN) ->
                     enum(args[at + 2])?.let { SettingVar.Mapped(SettingVar.Varbit(args[at + 3]), it.outputs, it.defaultInt) } ?: SettingVar.Client

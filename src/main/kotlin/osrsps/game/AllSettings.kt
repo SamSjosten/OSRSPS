@@ -2,6 +2,9 @@ package osrsps.game
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.incoming.buttons.IfScriptTrigger.ParameterTypes
+import osrsps.game.dialogue.DialogueText
+import osrsps.game.dialogue.Lines
+import osrsps.game.script.ScriptRunner
 
 private val logger = KotlinLogging.logger {}
 
@@ -16,7 +19,7 @@ private val logger = KotlinLogging.logger {}
  * on), checks the same dependencies and makes the same change, so the varp it next sends agrees with the client.
  *
  * Read from the rev 241 client scripts (Joshua-F/osrs-dumps, 2026-10-28) each comment names; none of it has been seen
- * on live. Number, colour and text inputs are the next step; their clicks are logged and left alone.
+ * on live. Text inputs are the enhanced client's and buttons are the next step; their clicks are logged and left alone.
  *
  * A dropdown or keybind row's op opens a list of its options in dropdown_buttons (setting_show_dropdown), once the
  * row's dependencies are met; picking one sets the var in the client (settings_set_dropdown, settings_set_keybind),
@@ -24,8 +27,27 @@ private val logger = KotlinLogging.logger {}
  * the server keeps which row's list is open and stores the option picked, or the row would jump back. Of the sliders
  * only the four volumes tell the server anything (IF_SCRIPT_TRIGGER); the rest are the client's own (brightness,
  * zoom, draw distance and the like).
+ *
+ * A number or colour row's op only checks its dependencies in the client (settings_input_op,
+ * settings_colour_input_click): the server asks for the value. A number is an amount typed in the chatbox. A colour is
+ * picked in the colour picker (colour_pallet, 288), whose Save and Cancel send the colour, or 2^31 - 1, as
+ * resume_countdialog (script614).
  */
-class AllSettings(private val catalog: SettingsCatalog, private val interfaces: Interfaces) {
+class AllSettings(
+    private val catalog: SettingsCatalog,
+    private val interfaces: Interfaces,
+    /** Runs the prompts; without one (tests of other things) number and colour rows do nothing. */
+    private val scripts: ScriptRunner? = null,
+    /** The words of [SettingsLines] for a player, as the dialogue file has them. */
+    private val words: (Player) -> DialogueText = { DialogueText.NONE },
+) {
+    init {
+        // Walking or another interface drops the picker's wait for a colour; the picker goes with it.
+        interfaces.onCountDropped(::inputDropped)
+        // Another prompt (the bank's Withdraw-X, say) can take the wait over; the picker mustn't answer it.
+        scripts?.onCountReplaced(::inputDropped)
+    }
+
     /** The side panel's All Settings button. RSMod (rev 233) opens the window as an overlay in the floater. */
     fun open(player: Player) {
         // settings_init draws the window from settings_tracking as it loads, so the client gets the server's copy first.
@@ -54,6 +76,9 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
             // The close button's op only plays a sound in the client (settings_window_setup); Esc is its op 2.
             CLOSE -> {
                 player.settingsDropdown = -1
+                // A number prompt or the picker goes with the window it was for, so a late answer changes nothing.
+                if (player.settingsInputOpen) interfaces.dropCount(player)
+                player.colourPickerOpen = false
                 interfaces.closeFloater(player)
             }
             // script3829 and settings_declutter_op: the "Less info" and "Hide locked" buttons.
@@ -92,7 +117,7 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
     private fun clickRow(player: Player, sub: Int, op: Int) {
         val row = rowAt(player, sub) ?: return
         when (row.kind) {
-            SettingRow.KIND_TOGGLE, SettingRow.KIND_DROPDOWN, SettingRow.KIND_KEYBIND -> Unit
+            SettingRow.KIND_TOGGLE, SettingRow.KIND_DROPDOWN, SettingRow.KIND_KEYBIND, SettingRow.KIND_NUMBER, SettingRow.KIND_COLOUR -> Unit
             // A slider's bobble has no op of its own: its notches (other components) and drags work it.
             SettingRow.KIND_SLIDER -> return
             else -> {
@@ -105,12 +130,83 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
         // settings_op_checker: a row whose dependencies aren't met says why (the client's own message) and stops. (A
         // row with param 1926 is hidden instead, which the same check covers.) setting_show_dropdown runs it too.
         if (!dependenciesMet(player, row)) return
-        if (row.kind != SettingRow.KIND_TOGGLE) {
-            player.settingsDropdown = row.struct
+        when (row.kind) {
+            SettingRow.KIND_DROPDOWN, SettingRow.KIND_KEYBIND -> player.settingsDropdown = row.struct
+            SettingRow.KIND_NUMBER -> askNumber(player, row)
+            SettingRow.KIND_COLOUR -> pickColour(player, row)
+            else -> {
+                setVarbit(player, VARBIT_SELECTED_SETTING, row.id)
+                toggle(player, row.id)
+            }
+        }
+    }
+
+    /**
+     * A number row: the amount typed is stored where settings_get_number_input reads it. Guessed: the server makes the
+     * row the selected setting first, as the client does for every other kind; the prompt's words are its own line for
+     * each row (none is on the Wiki yet), and an amount too big for the var is cut to the largest it holds.
+     */
+    private fun askNumber(player: Player, row: SettingRow) {
+        val runner = scripts ?: return
+        val number = catalog.numbers[row.id]?.takeIf { it != SettingVar.Client } ?: run {
+            logger.info { "${player.username} clicked number input ${row.id}, which settings_get_number_input doesn't read" }
             return
         }
+        // One input at a time: an unanswered prompt or picker goes first, so its answer can't land on this one.
+        interfaces.dropCount(player)
         setVarbit(player, VARBIT_SELECTED_SETTING, row.id)
-        toggle(player, row.id)
+        val prompt = SettingsLines.NUMBER_PROMPTS[row.id] ?: SettingsLines.NUMBER_PROMPT
+        player.settingsInputOpen = true
+        runner.start(player) {
+            val amount = countDialog(words(player)[prompt])
+            player.settingsInputOpen = false
+            number.set(player.vars, amount.coerceAtMost(largest(player, number)))
+        }
+    }
+
+    /**
+     * A colour row: colour_pallet finds the row from settings_selected_setting, so the server makes it the selected
+     * setting, opens the picker over the window and runs colour_pallet with the colour the row has (-1 for its default,
+     * which the script then shows). Guessed: the picker opens in the window's popup layer (134:9), as an overlay.
+     */
+    private fun pickColour(player: Player, row: SettingRow) {
+        val runner = scripts ?: return
+        val colour = catalog.colours[row.id]?.takeIf { it != SettingVar.Client } ?: run {
+            logger.info { "${player.username} clicked colour input ${row.id}, which settings_get_colour doesn't read" }
+            return
+        }
+        interfaces.dropCount(player)
+        // Sent now, not with the end-of-tick flush: colour_pallet reads it as it runs.
+        interfaces.setVarbitNow(player, VARBIT_SELECTED_SETTING, row.id)
+        interfaces.openInside(player, INTERFACE, POPUP, COLOUR_PALLET)
+        player.colourPickerOpen = true
+        player.settingsInputOpen = true
+        interfaces.runClientScript(player, COLOUR_PALLET_SCRIPT, listOf((INTERFACE shl 16) or POPUP, colour.read(player.vars) ?: -1))
+        runner.start(player) {
+            val picked = waitForCount()
+            player.settingsInputOpen = false
+            closeColourPicker(player)
+            // colour_pallet_update refuses anything past 0xffffff; Cancel and closing send 2^31 - 1.
+            if (picked in 0..MAX_COLOUR) colour.set(player.vars, picked)
+        }
+    }
+
+    private fun inputDropped(player: Player) {
+        player.settingsInputOpen = false
+        closeColourPicker(player)
+    }
+
+    private fun closeColourPicker(player: Player) {
+        if (!player.colourPickerOpen) return
+        player.colourPickerOpen = false
+        interfaces.closeInside(player, INTERFACE, POPUP)
+    }
+
+    /** The largest value [setting] can hold: its varbit's, or any int for a varp. */
+    private fun largest(player: Player, setting: SettingVar): Int = when (setting) {
+        is SettingVar.Varbit -> player.vars.types.varbit(setting.id)?.mask?.takeIf { it >= 0 } ?: Int.MAX_VALUE
+        is SettingVar.Offset -> (largest(player, setting.of).toLong() + setting.by).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+        else -> Int.MAX_VALUE
     }
 
     /**
@@ -360,6 +456,12 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
         const val CATEGORIES_CLICKZONE = 24
         const val DROPDOWN_CLOSE = 26
         const val DROPDOWN_BUTTONS = 29
+        const val POPUP = 9
+
+        /** colour_pallet, the colour picker, and its onload script (4185, colour_pallet(component, colour)). */
+        const val COLOUR_PALLET = 288
+        const val COLOUR_PALLET_SCRIPT = 4185
+        const val MAX_COLOUR = 0xffffff
 
         /** Enum 422's Leagues category, which settings_create_tabs leaves out off a league world. */
         const val LEAGUES_CATEGORY_STRUCT = 1108
@@ -456,9 +558,10 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
                 "settings" to mapOf(
                     CLOSE to "close", TOOLTIP_TOGGLE to "tooltip_inside_if_clickzone", DECLUTTER_TOGGLE to "declutter_button_clickzone",
                     SEARCH to "searchbar_image", SETTINGS_CLICKZONE to "settings_clickzone", CATEGORIES_CLICKZONE to "categories_clickzone",
-                    DROPDOWN_CLOSE to "dropdown_close", DROPDOWN_BUTTONS to "dropdown_buttons",
+                    DROPDOWN_CLOSE to "dropdown_close", DROPDOWN_BUTTONS to "dropdown_buttons", POPUP to "popup",
                 )
                 ),
+            COLOUR_PALLET to ("colour_pallet" to emptyMap()),
         )
 
         /** The problems with [VARBITS] in [types], empty when each varbit is where the server expects it. */
@@ -467,4 +570,24 @@ class AllSettings(private val catalog: SettingsCatalog, private val interfaces: 
             if (actual == expected) null else "varbit $id should be $expected but is $actual"
         }
     }
+}
+
+/**
+ * The All Settings window's prompts for a number, one for each number row a desktop client shows (by setting id) and
+ * one for any other. The Wiki doesn't quote them; the words go in the dialogue file once seen on live.
+ */
+object SettingsLines : Lines("settings", "Settings") {
+    val NUMBER_PROMPT = line("number_prompt", "the chatbox prompt for a number row with no line of its own")
+    private val LOOT_NOTIFICATION = line("loot_notification_value", "the prompt after clicking the loot notification value")
+    private val DROP_WARNING = line("drop_warning_value", "the prompt after clicking the drop item warning value")
+    private val ALCHEMY_WARNING = line("alchemy_warning_value", "the prompt after clicking the Alchemy spells warning value")
+    private val HITSPLAT_THRESHOLD = line("hitsplat_threshold", "the prompt after clicking the max hit hitsplats threshold")
+    private val RUN_ENERGY = line("run_energy_threshold", "the prompt after clicking the energy threshold to re-enable running")
+    private val BIRDHOUSE_WARNING = line("birdhouse_warning_value", "the prompt after clicking the birdhouse warning value")
+    private val CANNON_LOAD_X = line("cannon_load_x", "the prompt after clicking the Dwarf multicannon's Load-X value")
+
+    val NUMBER_PROMPTS = mapOf(
+        39 to LOOT_NOTIFICATION, 43 to DROP_WARNING, 66 to ALCHEMY_WARNING, 280 to HITSPLAT_THRESHOLD, 389 to RUN_ENERGY,
+        449 to BIRDHOUSE_WARNING, 450 to CANNON_LOAD_X,
+    )
 }

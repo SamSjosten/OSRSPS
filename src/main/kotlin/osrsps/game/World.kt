@@ -14,6 +14,8 @@ import net.rsprot.protocol.game.outgoing.logout.Logout
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
 import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
+import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
+import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
@@ -73,6 +75,7 @@ import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
+import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
@@ -106,9 +109,11 @@ import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Cooking
 import osrsps.game.skill.Fishing
 import osrsps.game.skill.Mining
 import osrsps.game.skill.SkillUnlocks
+import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
@@ -281,7 +286,7 @@ class World(
     val bankPinSettings = BankPinSettings(interfaces::openModal)
 
     private val settingsSide = SettingsSide()
-    private val allSettings = AllSettings(settings, interfaces)
+    private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
 
     /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
@@ -372,6 +377,9 @@ class World(
 
     val fishing = Fishing(this)
 
+    val cooking = Cooking(this)
+    val smithing = Smithing(this)
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -422,6 +430,7 @@ class World(
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
+        registerBarfyBill(this)
         registerCrops(this)
         ducks.register()
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
@@ -430,6 +439,8 @@ class World(
         firemaking.register()
         mining.register()
         fishing.register()
+        cooking.register()
+        smithing.register()
         loadDialogue()
     }
 
@@ -1170,6 +1181,8 @@ class World(
         sendRunState(player)
         PlayerOps.send(player.session::queue)
         allowChat(player)
+        // Guessed: live sends the saved filters at login; a new account's are all on.
+        sendChatFilters(player)
         quests.completeAll(player.vars)
         prayers.login(player)
         player.message(textFor(player)[GameLines.WELCOME])
@@ -1589,6 +1602,21 @@ class World(
     fun onResumeCount(player: Player, count: Int) = act(player) {
         if (player.scripts.delayed) return@act
         if (!scripts.resumeCount(player, count)) logger.debug { "${player.username} entered $count, which nothing waits for" }
+    }
+
+    /**
+     * The player changed a chatbox tab's filter. Inferred: the tab's label changes only when the server sends the
+     * filters back. They are saved and sent again at login; nothing filters chat on the server yet.
+     */
+    fun onChatFilters(player: Player, filters: ChatFilters) = act(player) {
+        player.chatFilters = filters
+        sendChatFilters(player)
+    }
+
+    private fun sendChatFilters(player: Player) {
+        val filters = player.chatFilters
+        player.session.queue(ChatFilterSettings(filters.public, filters.trade))
+        player.session.queue(ChatFilterSettingsPrivateChat(filters.private))
     }
 
     /** The client closed its modal: Esc, or a close button. */
