@@ -21,6 +21,8 @@ object RottenPotatoLines : Lines("rotten_potato", "Rotten potato") {
     val PLAYER_PROMPT = line("player_prompt", "Eat, Teleport to player: the prompt for the name")
     val NPC_PROMPT = line("npc_prompt", "Eat, Spawn aggressive NPC: the prompt for the NPC")
 
+    val BANK_MENU = line("bank_menu", "Peel, the first option")
+
     val SETSTAT = line("setstat", "Eat, Set all stats: the message for each skill", "skill", "level")
     val FINISHED = line("finished", "Eat, Set all stats: the last message")
 }
@@ -29,30 +31,40 @@ object RottenPotatoLines : Lines("rotten_potato", "Rotten potato") {
  * The rotten potato (obj 5733), live's J-Mod tool, as an admins' tool here: Eat (iop1) opens a menu of testing tools,
  * which run the `::` commands, so each is logged and refused to non-admins as typed ones are. The cache gives the
  * potato Eat, Slice, Peel and Mash; Eat's options are from the OSRS Wiki's page (read 2026-10-30). Live's third, Setup
- * POH, is Heal me here, as there are no houses.
+ * POH, is Heal me here, as there are no houses. Peel (iop3) keeps its Bank menu; with no rares or random events, Teleport
+ * to RARE! and Spawn RARE! become Teleport to a tile and Spawn an item, and AMEs for all! is left out.
  */
 object RottenPotato {
     const val OBJ = 5733
 
     const val EAT = 1
+    const val PEEL = 3
 
     /** Our own, in place of Setup POH; not live's words, so not in the dialogue file. */
     const val HEAL_ME = "Heal me"
+
+    /** Our own options and prompts, in place of Peel's Teleport to RARE! and Spawn RARE!. */
+    const val TELEPORT_TO_TILE = "Teleport to a tile"
+    const val TILE_PROMPT = "Teleport to x z [level]:"
+    const val SPAWN_ITEM = "Spawn an item"
+    const val ITEM_PROMPT = "Spawn item, id|name [count]:"
 }
 
 fun registerRottenPotato(world: World) {
     val type = world.objTypes[RottenPotato.OBJ] ?: return
     if (type.iop(RottenPotato.EAT) != "Eat") return
-    world.handlers.onObj(RottenPotato.OBJ, RottenPotato.EAT) { op ->
-        if (!world.admins.isAdmin(player)) {
-            // Guessed: what a non-J-Mod holding one sees isn't known; here it goes, so it can't be passed on.
-            if (player.inventory[op.sub]?.id == RottenPotato.OBJ) player.inventory.remove(op.sub)
-            logger.info { "${player.username} clicked a rotten potato, which is for admins; it was taken" }
-            player.message("The rotten potato is a testing tool, so only admins can use it here.")
-            return@onObj
-        }
-        eat(world)
-    }
+    world.handlers.onObj(RottenPotato.OBJ, RottenPotato.EAT) { op -> if (admin(world, op.sub)) eat(world) }
+    world.handlers.onObj(RottenPotato.OBJ, RottenPotato.PEEL) { op -> if (admin(world, op.sub)) peel(world) }
+}
+
+/** Whether the player is an admin; a non-admin's potato in [slot] is taken. */
+private fun ScriptContext.admin(world: World, slot: Int): Boolean {
+    if (world.admins.isAdmin(player)) return true
+    // Guessed: what a non-J-Mod holding one sees isn't known; here it goes, so it can't be passed on.
+    if (player.inventory[slot]?.id == RottenPotato.OBJ) player.inventory.remove(slot)
+    logger.info { "${player.username} clicked a rotten potato, which is for admins; it was taken" }
+    player.message("The rotten potato is a testing tool, so only admins can use it here.")
+    return false
 }
 
 private suspend fun ScriptContext.eat(world: World) {
@@ -71,6 +83,18 @@ private suspend fun ScriptContext.eat(world: World) {
         4 -> command(world, "teleto " + stringDialog(words[RottenPotatoLines.PLAYER_PROMPT]))
         // Guessed: live's NPC is aggressive; here it is whatever the type is, as ::npc spawns it.
         5 -> command(world, "npc " + stringDialog(words[RottenPotatoLines.NPC_PROMPT]))
+    }
+}
+
+private suspend fun ScriptContext.peel(world: World) {
+    var picked = 0
+    world.dialogues.start(this) {
+        picked = choice(text(RottenPotatoLines.BANK_MENU), RottenPotato.TELEPORT_TO_TILE, RottenPotato.SPAWN_ITEM)
+    }
+    when (picked) {
+        1 -> command(world, "bank")
+        2 -> command(world, "tele " + stringDialog(RottenPotato.TILE_PROMPT))
+        3 -> command(world, "item " + stringDialog(RottenPotato.ITEM_PROMPT))
     }
 }
 
