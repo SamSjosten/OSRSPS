@@ -235,8 +235,11 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
 | `::friends` | **everyone.** Your friends list as the server keeps it, each friend's world or offline |
 | `::clearfriends` | Empties your friends list, for tests that start from none (the Friends tab shows it after a relog) |
-| `::poison [severity\|venom\|cure]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity |
+| `::poison [severity\|venom\|cure]`, `::poison npc severity\|venom [index\|name]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity. `npc` poisons or envenoms an NPC instead (by index from `::npcs` or by name, the nearest one you can fight by default), unless it is immune: it is hit every 30 ticks with no XP, and `::npcs` shows it |
+| `::ignores` | **everyone.** Your ignore list as the server keeps it |
+| `::clearignores` | Empties your ignore list, for tests that start from none |
 | `::stun [ticks\|end]` | Says whether you are stunned and for how many more ticks. A number of ticks (9 for a failed pickpocket, up to 100) stuns you: the birds show, and you can't walk, attack or click anything in the world until it ends, though you can still eat and use interfaces. `end` ends it |
+| `::drain stat levels\|percent% [index\|name]` | Drains an NPC's attack, defence, strength, ranged or magic (the one you fight, or by index from `::npcs` or by name) by that many levels, or by a percentage of its level now, as far as its drain cap lets it, and says its level now. Its combat rolls use the drained level (`::combat` shows them), it gets a level back a minute, and `::npcs` shows its drained stats |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -257,7 +260,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
@@ -446,7 +449,8 @@ Spin on a spinning wheel (every loc the cache calls one, Lumbridge Castle's firs
 Make-X box over the wool and flax held; either used on a wheel opens it over that alone (`game/skill/Crafting.kt`,
 words under `crafting.*`, numbers in `skills/crafting.json`). A needle on leather, hard leather or green to black dragon
 leather opens the box over what it makes; thread is held, and one is used up every 5 items (the count is kept with the
-account). Steel studs on a leather body or chaps stud them. The making is the artisan loop in `Making.kt`.
+account). Steel studs on a leather body or chaps stud them. A chisel on an uncut gem cuts it; opal, jade and red topaz
+can crush into a crushed gemstone, rolled as the gathering skills roll. The making is the artisan loop in `Making.kt`.
 
 | Crafting behaviour | Source |
 |--------------------|--------|
@@ -455,8 +459,10 @@ account). Steel studs on a leather body or chaps stud them. The making is the ar
 | Animation 466 (`spinningwheel`) as the player's | inferred from its gameval name |
 | Leather and d'hide levels, XP, leathers per item; 3 ticks an item, hard leather 2; thread's 5 uses | OSRS Wiki, Leather, Hardleather body, Green dragon leather and the d'hide pages, Thread |
 | Studs 3 ticks; studded body 41, 40 XP; studded chaps 44, 42 XP | OSRS Wiki, Studded body and Studded chaps |
+| Gem levels, XP, 2 ticks a gem; opal, jade and red topaz's crush chances (pairs worked back from each page's formula and checked against its chart, `CraftingDataTest`) and crushed XP | OSRS Wiki, each gem's page |
+| Each gem's cutting animation (`human_*cutting`) | cache 241 gamevals |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle | out of scope |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst | out of scope |
 
 ## Items and inventory
 
@@ -788,15 +794,17 @@ quest, so Al Kharid is as after Prince Ali Rescue.
 | Talk-to on a Border Guard (4287 Lumbridge side, 4288 Al Kharid side): the player asks to come through, the guard says they're a friend of Al-Kharid, and the player goes through free | OSRS Wiki, Transcript:Border Guard |
 | Going through: both leaves swing open for 3 ticks as `inacmetalgateopenl`/`r` (1573/1574), the player moves to the far side at once; a player who talked to a guard first steps up to the gate | 2004Scape's border_gate.rs2; guessed until recorded |
 | Four Border Guards, two each side, standing still | 2004Scape map m51_50 spawns; standing still guessed |
+| The bank: Bank on any booth (`bankbooth` 10355) opens it; five Bankers (`kharidbanker1`/`2`, 3090/3091) behind the booths at x 3267 bank across them, by Bank or through their talk, which is the castle banker's | the engine's booths (any loc with Bank); OSRS Wiki, Banker and Transcript:Banker; 2004Scape map m51_49 spawns |
 | The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
 
 Left out: the gate's sound (no recorded id yet), the Pay-toll option and the 10 coins (before-quest only). The words of
 the guards' talk and the examines of the guards and the gate are in the dialogue file (keys `border_guard.*`,
-`examine.npc_4287`, `examine.loc_44050`).
+`examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`).
 
 Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
-Guard's talk, and opens and shuts the palace's west doors and a curtain; `HeadlessAlKharidTest` does the same through the headless
-client, with the talk in `BorderGuardTest`.
+Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
+Bank and through a banker's talk; `HeadlessAlKharidTest` does the same through the headless client, with the talk in
+`BorderGuardTest`.
 
 ## Equipment
 
@@ -1055,7 +1063,9 @@ words for it further down the file count too.
 Each conversation declares its lines in a `Lines` object (`object HansLines : Lines("hans", "Transcript:Hans")`), with
 where on the Wiki page each line is, and is listed in `DialogueLines.ALL`. Examine texts of NPCs and locs are in the same
 file, `examine.npc_<id>` and `examine.loc_<id>` (the `Examines` object, from `src/main/resources/examines.json`), each
-with its name and where on the Wiki its text is. To get a file with every key in it:
+with its name and where on the Wiki its text is. The locs listed are every named type in the castle and, outside it,
+every named type in the rest of Lumbridge (map squares 49 to 51 by 49 to 51, west of the Al Kharid fence). To get a
+file with every key in it:
 
 ```bash
 docker compose run --rm osrsps dialogue-keys   # on 214; or ./gradlew run --args=dialogue-keys

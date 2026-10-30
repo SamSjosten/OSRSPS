@@ -428,6 +428,15 @@ class FakeGame implements Game
 		return friends == null ? null : new java.util.LinkedHashMap<>(friends);
 	}
 
+	/** The ignore list; null for not loaded. */
+	java.util.List<String> ignores = new java.util.ArrayList<>();
+
+	@Override
+	public java.util.List<String> ignores()
+	{
+		return ignores == null ? null : new java.util.ArrayList<>(ignores);
+	}
+
 	@Override
 	public String enterText(String text)
 	{

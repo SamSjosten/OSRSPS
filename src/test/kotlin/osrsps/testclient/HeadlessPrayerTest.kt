@@ -189,10 +189,11 @@ class HeadlessPrayerTest {
 
                 client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 1)
                 client.await("both on") { if (client.prayers() == picked) Unit else null }
-                assertEquals(1, client.varp(Prayers.VARP_QUICK_ACTIVE))
+                // The quick-prayer varp can come in a later packet than the prayers themselves.
+                client.await("quick prayers marked on") { if (client.varp(Prayers.VARP_QUICK_ACTIVE) == 1) Unit else null }
                 client.ifButton(GameFrame.ORBS, GameFrame.ORBS_PRAYER_BUTTON, 1)
                 client.await("every prayer off") { if (client.prayers() == 0) Unit else null }
-                assertEquals(0, client.varp(Prayers.VARP_QUICK_ACTIVE))
+                client.await("quick prayers marked off") { if (client.varp(Prayers.VARP_QUICK_ACTIVE) == 0) Unit else null }
             }
         }
     }

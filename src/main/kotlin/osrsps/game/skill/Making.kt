@@ -23,6 +23,12 @@ data class ObjCount(val obj: Int, val count: Int)
  * A material that lasts several actions: one [obj] is used up every [uses] actions, counted in the player's [charge]
  * ([osrsps.game.Charges], so it survives a logout), with [usedUp] as the message. Thread, which the Wiki says lasts 5.
  */
+/**
+ * A recipe that can fail: success rolls the [low], [high] pair out of 256 ([SuccessRoll]); a miss gives [failed] (a
+ * crushed gem) and [failedXpTenths] instead, with [failedLine] as the message.
+ */
+data class MakeChance(val low: Int, val high: Int, val failed: Int, val failedXpTenths: Int, val failedLine: Line)
+
 data class WearingMaterial(val obj: Int, val uses: Int, val charge: String, val usedUp: Line)
 
 /**
@@ -33,7 +39,7 @@ data class WearingMaterial(val obj: Int, val uses: Int, val charge: String, val 
  *
  * A [batch] recipe makes up to [amount] at a time, each one taking [inputs] once and giving [xpTenths]: arrows come 15 at
  * a time, or fewer when fewer are left. Otherwise each action takes [inputs] and gives [amount] and [xpTenths] once.
- * [wears] is held like a tool and used up every so many actions.
+ * [wears] is held like a tool and used up every so many actions. A [chance] recipe can fail.
  */
 class MakeRecipe(
     val key: String,
@@ -51,6 +57,7 @@ class MakeRecipe(
     val tooLow: Line,
     val batch: Boolean = false,
     val wears: WearingMaterial? = null,
+    val chance: MakeChance? = null,
 ) {
     init {
         require(amount >= 1 && level in 1..99 && xpTenths >= 0) { "Bad numbers in recipe $key" }
@@ -152,7 +159,10 @@ class Making(private val world: World) {
      */
     private fun make(player: Player, recipe: MakeRecipe): Boolean {
         val units = if (recipe.batch) minOf(recipe.amount.toLong(), recipe.units(player.inventory)).toInt() else 1
-        val type = world.objTypes[recipe.product] ?: error("No obj type ${recipe.product} for recipe ${recipe.key}")
+        val chance = recipe.chance
+        val failed = chance != null && !SuccessRoll.roll(world.random, chance.low, chance.high, player.skills.currentLevel(recipe.skill))
+        val product = if (failed) chance!!.failed else recipe.product
+        val type = world.objTypes[product] ?: error("No obj type $product for recipe ${recipe.key}")
         val saved = player.inventory.contents().toMap()
         for (input in recipe.inputs) removeObj(player.inventory, input.obj, input.count * units)
         val made = if (recipe.batch) units else recipe.amount
@@ -162,8 +172,9 @@ class Making(private val world: World) {
             player.message(world.textFor(player)[MakeLines.NO_SPACE])
             return false
         }
-        player.skills.addTenths(recipe.skill, recipe.xpTenths * units)
-        player.message(world.textFor(player).get(recipe.made, *args(recipe, recipe.made, made)))
+        val line = if (failed) chance!!.failedLine else recipe.made
+        player.skills.addTenths(recipe.skill, (if (failed) chance!!.failedXpTenths else recipe.xpTenths) * units)
+        player.message(world.textFor(player).get(line, *args(recipe, line, made)))
         recipe.wears?.let { wear(player, it) }
         return true
     }

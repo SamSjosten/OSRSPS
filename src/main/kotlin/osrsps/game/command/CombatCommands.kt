@@ -1,5 +1,6 @@
 package osrsps.game.command
 
+import osrsps.game.NpcStat
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -24,7 +25,7 @@ import kotlin.math.max
 
 /**
  * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`
- * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::stun`, `::multi` and `::blowpipe` change the world,
+ * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::stun`, `::drain`, `::multi` and `::blowpipe` change the world,
  * so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
@@ -168,8 +169,18 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("Prayer points set to $points.")
     }
 
-    register("poison", "::poison [severity|venom|cure]", admin = true) {
+    register("poison", "::poison [severity|venom|cure] or ::poison npc severity|venom [index|name]", admin = true) {
         val poison = world.poison
+        if (args.firstOrNull()?.lowercase() == "npc") {
+            val usage = "Usage: ::poison npc severity|venom [index|name]"
+            val how = args.getOrNull(1)?.lowercase() ?: fail(usage)
+            val severity = if (how == "venom") 0 else how.toIntOrNull()?.takeIf { it in 1 until Poison.VENOM } ?: fail(usage)
+            val npc = target(world, player, args.drop(2), "::poison npc $how")
+            val done = if (severity == 0) poison.envenom(npc) else poison.poison(npc, severity)
+            if (!done) fail("${npc.type.name} #${npc.index} can't be: it is immune, envenomed or more strongly poisoned already, or can't be fought.")
+            reply("${npc.type.name} #${npc.index} is ${poison.describe(npc)}.")
+            return@register
+        }
         when (val arg = args.singleOrNull()?.lowercase()) {
             null -> if (args.isNotEmpty()) fail("Usage: ::poison [severity|venom|cure]")
             "venom" -> if (!poison.envenom(player)) fail("Not envenomed: you are immune to venom or envenomed already. ${poison.describe(player)}")
@@ -180,6 +191,20 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             }
         }
         reply(poison.describe(player))
+    }
+
+    register("drain", "::drain stat levels|percent% [index|name]", admin = true) {
+        val usage = "Usage: ::drain stat levels|percent% [index|name], a stat being ${NpcStat.entries.joinToString { it.name.lowercase() }}"
+        if (args.size < 2) fail(usage)
+        val stat = runCatching { NpcStat.parse(args[0]) }.getOrElse { fail(usage) }
+        val amount = args[1]
+        val npc = target(world, player, args.drop(2), "::drain ${args[0]} $amount")
+        val drained = if (amount.endsWith("%")) {
+            world.npcDrains.drainPercent(npc, stat, amount.dropLast(1).toIntOrNull()?.takeIf { it in 0..100 } ?: fail(usage))
+        } else {
+            world.npcDrains.drain(npc, stat, amount.toIntOrNull()?.takeIf { it >= 0 } ?: fail(usage))
+        }
+        reply("Drained ${npc.type.name} #${npc.index}'s ${stat.name.lowercase()} by $drained to ${npc.level(stat)}/${npc.type.stats[stat]}.")
     }
 
     register("stun", "::stun [ticks|end]", admin = true) {

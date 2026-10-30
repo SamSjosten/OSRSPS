@@ -2,6 +2,7 @@ package osrsps.game.npc
 
 import net.rsprot.protocol.game.outgoing.info.npcinfo.NpcAvatar
 import osrsps.game.Facing
+import osrsps.game.NpcStat
 import osrsps.game.NpcType
 import osrsps.game.Player
 import osrsps.map.Tile
@@ -172,6 +173,13 @@ class Npc(
     var attackedTick: Long = -1
         internal set
 
+    /**
+     * The player who hit it last, kept after its fight ends, so a poison or venom kill's drops still go to them once
+     * [attacker] has been cleared (the player walked off and it gave up on them).
+     */
+    var lastAttacker: Player? = null
+        internal set
+
     /** Ticks it still stands where it is because it is being fought; see [Npcs.process]. */
     internal var holdTicks: Int = 0
 
@@ -189,6 +197,23 @@ class Npc(
     /** Ticks after a freeze it can't be frozen again for; see [Npcs.freeze]. */
     var freezeImmunityTicks: Int = 0
         internal set
+
+    /**
+     * Its poison or venom, as a player's poison varp counts them: 0 for neither, 1 to 999,999 poison, and
+     * [osrsps.game.combat.Poison.VENOM] and up venom; see [osrsps.game.combat.Poison]. Ticks to its next hit, -1 for none.
+     */
+    var poison: Int = 0
+    var poisonTicks: Int = -1
+
+    /**
+     * How many levels of each [NpcStat] it has been drained by, by ordinal; see [osrsps.game.combat.NpcDrains]. Ticks to
+     * its next level back, -1 with nothing drained or before the timer's first tick.
+     */
+    val drained = IntArray(NpcStat.entries.size)
+    var drainRestoreTicks: Int = -1
+
+    /** Its level of [stat] now: its type's, less what has been drained. */
+    fun level(stat: NpcStat): Int = maxOf(0, type.stats[stat] - drained[stat.ordinal])
 
     /** The animation, hitsplats and health bars given this cycle; see [NpcEffects]. */
     val effects = NpcEffects()

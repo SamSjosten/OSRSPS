@@ -190,6 +190,9 @@ class Player(
     /** The friends list's display names, oldest first; see [osrsps.game.social.FriendLists]. Saved. */
     val friends = ArrayList<String>()
 
+    /** The ignore list's display names, oldest first; see [osrsps.game.social.IgnoreLists]. Saved. */
+    val ignores = ArrayList<String>()
+
     /** The `::scenario` the player last started, null when they aren't in one. Saved. */
     var scenario: String? = null
 
