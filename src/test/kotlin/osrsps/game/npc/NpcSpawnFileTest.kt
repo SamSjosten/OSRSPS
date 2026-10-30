@@ -211,6 +211,25 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `Draynor has three bankers, its townsfolk, seven pigs and the farmer`() {
+        val names = mapOf(
+            1613 to "banker1", 1618 to "banker2", 3106 to "man", 3111 to "woman", 2854 to "rat", 5007 to "imp", 2796 to "pig_1",
+            2797 to "pig_2", 2798 to "piglet_1", 2799 to "piglet_2", 2800 to "piglet_3", 3251 to "farmer_farming_on_48_51",
+        )
+        val draynorTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("draynor.json"), draynorTypes, "draynor.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(3, spawns.count { it.type.id in setOf(1613, 1618) })
+        assertTrue(spawns.filter { it.type.id in setOf(1613, 1618) }.all { it.x == 3090 && it.z in 3242..3245 && it.wander == 0 })
+        assertEquals(7, spawns.count { it.type.id in 2796..2800 })
+        // The pig pen, fenced in at x 3075 to 3079, z 3259 to 3261.
+        assertTrue(spawns.filter { it.type.id in 2796..2800 }.all { it.x in 3075..3079 && it.z in 3259..3261 })
+        assertEquals(1, spawns.single { it.type.id == 3111 }.level, "the woman upstairs in Morgan's house")
+        assertTrue(spawns.all { it.x in 3070..3135 && it.z in 3225..3300 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `every file names only NPCs it can find in a full cache`() {
         // With no types at all every spawn is skipped by name, not dropped silently.
         for (file in NpcSpawnFile.FILES) {

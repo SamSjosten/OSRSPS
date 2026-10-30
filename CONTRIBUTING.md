@@ -49,11 +49,27 @@ or turn it off.
   workflow takes the oldest pull request with auto-merge on that is behind `main`, has no failing check and a passing
   `codex-review`, merges `main` into it and starts `build` on it. One at a time: while an up-to-date pull request still
   has checks running, it waits for that one. If that merge of `main` changes the diff, it comments **Main merged in:**
-  asking the thread for a new Codex review.
+  asking the thread for a new Codex review. GitHub may hold that merge's `pull_request` runs for "approval from a
+  maintainer", which leaves the pull request blocked on checks that never start; the queue approves them (and only
+  dispatches `build` when no runs show up). If GitHub refuses the approval, it comments **Runs waiting:** once, and
+  Sam clicks "Approve workflows to run".
 
 So a thread pulls its branch (`git pull`) before pushing, as the queue may have pushed a merge of `main` to it. A
 failing check or a Codex finding takes a pull request out of the queue until it is fixed. To run the queue now:
 Actions, **automerge**, **Run workflow**.
+
+## The staging server
+
+A branch can run on the staging server next to the live one before it merges (`deploy/README.md`, "The staging
+server: any branch, next to the live one"): push it as origin's `staging` branch (`git push origin my-branch:staging`)
+and VM 214's timer builds and runs its head within a minute on the LAN-only ports 44594 and 44595. Threads push it
+themselves (Sam, 2026-10-30), one at a time:
+
+1. `git ls-remote --heads origin staging` first: a branch there is another thread's staging run. Wait for it to go,
+   and never push over it.
+2. Push, test, and push again as the branch moves: staging follows it.
+3. Delete it when done (`git push origin --delete staging`), which takes staging down. A run left up holds the slot,
+   and VM 214's memory, for everyone.
 
 ## Scheduled checks
 

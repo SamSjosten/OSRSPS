@@ -75,6 +75,12 @@ object BankerTutorLines : Lines("banker_tutor", "Transcript:Banker tutor") {
 object Bankers {
     /** banker1_new: the banker players see. */
     const val BANKER = 2897
+
+    /** banker1 and banker2: Draynor Village's bankers, who say what the castle's does (the Wiki's Banker page). */
+    val DRAYNOR = listOf(1613, 1618)
+
+    /** Every banker with the standard conversation. */
+    val STANDARD = listOf(BANKER) + DRAYNOR
     const val BANKER_TUTOR = 3227
     const val TALK_TO = 1
 
@@ -155,24 +161,26 @@ object Bankers {
 
 /** The bankers' Talk-to and Bank, from across their booths. Collect does nothing yet. */
 fun registerBankers(world: World) {
-    world.npcInteractions.reachOverCounter(Bankers.BANKER)
+    for (banker in Bankers.STANDARD) world.npcInteractions.reachOverCounter(banker)
     world.npcInteractions.reachOverCounter(Bankers.BANKER_TUTOR)
     fun ScriptContext.answer(ask: Bankers.Ask) = when (ask) {
         Bankers.Ask.BANK -> world.bankScreen.open(player)
         Bankers.Ask.PIN -> world.bankPinSettings.open(player)
         Bankers.Ask.NOTHING -> Unit
     }
-    world.handlers.onNpc(Bankers.BANKER, Bankers.TALK_TO) { op ->
-        var ask = Bankers.Ask.NOTHING
-        world.dialogues.start(this, op.npc) { ask = with(Bankers) { banker() } }
-        answer(ask)
+    for (banker in Bankers.STANDARD) {
+        world.handlers.onNpc(banker, Bankers.TALK_TO) { op ->
+            var ask = Bankers.Ask.NOTHING
+            world.dialogues.start(this, op.npc) { ask = with(Bankers) { banker() } }
+            answer(ask)
+        }
     }
     world.handlers.onNpc(Bankers.BANKER_TUTOR, Bankers.TALK_TO) { op ->
         var ask = Bankers.Ask.NOTHING
         world.dialogues.start(this, op.npc) { ask = with(Bankers) { tutor() } }
         answer(ask)
     }
-    for (banker in listOf(Bankers.BANKER, Bankers.BANKER_TUTOR)) {
+    for (banker in Bankers.STANDARD + Bankers.BANKER_TUTOR) {
         world.handlers.onNpc(banker, Bankers.BANK) { world.bankScreen.open(player) }
     }
 }

@@ -103,6 +103,8 @@ class InventoryTab(
         // Ignored while delayed, like other clicks.
         if (player.scripts.delayed) return
         closeModals(player)
+        // Inferred: a new use is a new action, which ends what a weak queue was doing (an artisan skill's making).
+        scripts.clearWeak(player)
         if (scripts.trigger(player, Op.objOnObj(fromObj, from, toObj, to))) return
         logger.info { "${player.username} used $fromObj on $toObj (not handled)" }
         nothingInteresting(player)

@@ -85,6 +85,8 @@ class Deaths(
     private val value: (ObjType) -> Long = { it.cost.toLong() },
     /** Each player's words for the game messages ([CombatLines]). */
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
+    /** Ends poison, venom and their immunity ([Poison.clear]). */
+    private val cure: (Player) -> Unit = {},
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -146,6 +148,7 @@ class Deaths(
         if (lost.isNotEmpty() || charges.isNotEmpty()) bury(player, lost + charges)
         for (skill in Skill.entries) player.skills.setCurrentLevel(skill, player.skills.baseLevel(skill))
         player.runEnergy = Movement.MAX_ENERGY
+        cure(player)
         // The death seq's last frame lasts 20,000 client cycles (seq 836 in the 241 cache), so the client holds the
         // dead pose, and holds back the player's steps, until the animation is stopped. Stopping it on respawn is
         // inferred from that; live never shows the pose after the respawn.
