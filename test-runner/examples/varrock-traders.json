@@ -1,5 +1,5 @@
 {
- "name": "Varrock step 5b (with ::keys on): Benny's newspaper bought for 50, a fur bought from Baraek for 20 and sold back for 12, and the Apothecary's hair potion topic",
+ "name": "Varrock steps 5b and 5c (with ::keys on): Benny's newspaper bought for 50, a fur bought from Baraek for 20 and sold back for 12, the Apothecary's hair potion topic, and a strength potion bought on his potions screen",
  "account": "test",
  "steps": [
   {
@@ -259,6 +259,49 @@
   },
   {
    "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 225 1",
+   "expectMessage": "Added 1 x Limpwurt root"
+  },
+  {
+   "step": "command",
+   "text": "::item 223 1",
+   "expectMessage": "Added 1 x Red spiders' eggs"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Apothecary",
+   "option": "Potions",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 556,
+   "comment": "his potions screen"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the screen before clicking"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 556,
+   "component": 2,
+   "op": 1,
+   "comment": "Buy-1 strength potion: a limpwurt root, red spiders' eggs and 5 of the 12 coins"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Strength potion(4)",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 7
   },
   {
    "step": "command",

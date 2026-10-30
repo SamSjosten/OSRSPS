@@ -10,6 +10,7 @@ import osrsps.game.shop.ShopScreen
 /** The Apothecary's lines, from the Wiki's Transcript:Apothecary (after Romeo & Juliet), read 2026-10-30. */
 object ApothecaryLines : Lines("apothecary", "Transcript:Apothecary") {
     val GREETING = line("greeting", "his first line")
+    val POTIONS = line("potions", "option: can he make potions, which opens his potions screen (no line from the player)")
     val SOMETHING_ELSE = line("something_else", "option: talk about something else (no line from the player)")
     val NO_THANKS = line("no_thanks", "option: no thanks, which the player then says")
     val GOSSIP = line("gossip", "something else, option 1: any gossip, which the player then says")
@@ -22,6 +23,24 @@ object ApothecaryLines : Lines("apothecary", "Transcript:Apothecary") {
     val HAIR_2 = line("hair_2", "the hair potion: second line")
     val FREE = line("free", "something else, option 3: any free potions, which the player then says")
     val CHARITY = line("charity", "the free potions: his answer")
+}
+
+/**
+ * The Apothecary's potions screen's words: each potion's title and what it takes (the interface's text components are
+ * empty for the server to fill), and the messages. The Wiki gives none of these words, so the keys are guessed until
+ * recorded.
+ */
+object ApothecaryPotionsLines : Lines("apothecary_potions", "Apothecary") {
+    val STRENGTH = line("strength", "the strength potion's title")
+    val STRENGTH_CONTENTS = line("strength_contents", "what a strength potion takes: a limpwurt root, red spiders' eggs and 5 coins")
+    val ENERGY = line("energy", "the energy potion's title")
+    val ENERGY_CONTENTS = line("energy_contents", "what an energy potion takes: two limpwurt roots, chocolate dust and 5 coins")
+    val ANTIPOISON = line("antipoison", "the antipoison's title")
+    val ANTIPOISON_CONTENTS = line("antipoison_contents", "what an antipoison takes: a limpwurt root, cadava berries and 5 coins")
+    val NO_INGREDIENTS = line("no_ingredients", "buying a potion without its ingredients; {potion} is its name", "potion")
+    val NO_COINS = line("no_coins", "buying a potion without the coins for one; {potion} is its name", "potion")
+    val MADE_ONE = line("made_one", "after making one; {potion} is its name", "potion")
+    val MADE_SOME = line("made_some", "after making several; {count} is how many, {potion} the potions", "count", "potion")
 }
 
 /** Baraek's lines, from the Wiki's Transcript:Baraek, read 2026-10-30. */
@@ -82,9 +101,8 @@ object BennyLines : Lines("benny", "Transcript:Benny") {
  * who sells a fur for 20 coins (18 to a player who can't pay 20) and buys grey wolf fur at 120 and fur and bear fur at
  * 12, and Benny (5216), who sells the Varrock Herald for 50. From the Wiki's transcripts. Guessed: every expression;
  * that a player with 18 or 19 coins gets the lower price; that the hand-over box shows a fur when the player holds both
- * kinds; that a full backpack drops what was bought at the player's feet. Left out: the Apothecary's Potions and its
- * talk option (his potions screen, the cache's interface 556 `apothecary_potions`, is a step of its own), his quest
- * topics; Baraek's Ring of Charos(a) option
+ * kinds; that a full backpack drops what was bought at the player's feet. His potions screen is
+ * [ApothecaryPotions]. Left out: the Apothecary's quest topics; Baraek's Ring of Charos(a) option
  * and treasure trails; Benny's overhead shouts.
  */
 object VarrockTraders {
@@ -102,34 +120,38 @@ object VarrockTraders {
     const val FUR_PAYS = 12
     const val NEWSPAPER_PRICE = 50
 
-    internal suspend fun Dialogue.apothecary() = with(ApothecaryLines) {
+    /** The Apothecary's talk; true when the player asked for his potions screen. */
+    internal suspend fun Dialogue.apothecary(): Boolean = with(ApothecaryLines) {
         chatNpc(ChatAnim.NEUTRAL, GREETING)
         // Each topic brings the first menu back; no thanks, in either menu, ends the talk.
-        while (choice(SOMETHING_ELSE, NO_THANKS) == 1) {
-            when (choice(GOSSIP, HAIR, FREE, NO_THANKS)) {
+        var picked = choice(POTIONS, SOMETHING_ELSE, NO_THANKS)
+        while (picked == 2) {
+            picked = when (choice(GOSSIP, HAIR, FREE, NO_THANKS)) {
                 1 -> {
                     chatPlayer(ChatAnim.QUIZ, GOSSIP)
                     chatNpc(ChatAnim.SAD, GOSSIP_1)
                     chatNpc(ChatAnim.NEUTRAL, GOSSIP_2)
                     chatNpc(ChatAnim.NEUTRAL, GOSSIP_3)
                     chatNpc(ChatAnim.HAPPY, GOSSIP_4)
+                    choice(POTIONS, SOMETHING_ELSE, NO_THANKS)
                 }
                 2 -> {
                     chatPlayer(ChatAnim.QUIZ, HAIR)
                     chatNpc(ChatAnim.HAPPY, HAIR_1)
                     chatNpc(ChatAnim.NEUTRAL, HAIR_2)
+                    choice(POTIONS, SOMETHING_ELSE, NO_THANKS)
                 }
                 3 -> {
                     chatPlayer(ChatAnim.QUIZ, FREE)
                     chatNpc(ChatAnim.ANGRY, CHARITY)
+                    choice(POTIONS, SOMETHING_ELSE, NO_THANKS)
                 }
-                else -> {
-                    chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
-                    return@with
-                }
+                else -> 3
             }
         }
+        if (picked == 1) return@with true
         chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
+        false
     }
 
     /** Baraek's talk; [give] hands over a bought item or coins (id, count). */
@@ -256,7 +278,11 @@ object VarrockTraders {
 
 fun registerVarrockTraders(world: World) {
     with(VarrockTraders) {
-        world.handlers.onNpc(APOTHECARY, TALK_TO) { op -> world.dialogues.start(this, op.npc) { apothecary() } }
+        world.handlers.onNpc(APOTHECARY, TALK_TO) { op ->
+            var potions = false
+            world.dialogues.start(this, op.npc) { potions = apothecary() }
+            if (potions) ApothecaryPotions.open(world, player)
+        }
         world.handlers.onNpc(BARAEK, TALK_TO) { op ->
             val give = { obj: Int, count: Int -> world.objTypes[obj]?.let { world.groundObjs.give(player, it, count) } ?: Unit }
             world.dialogues.start(this, op.npc) { baraek(give) }
@@ -266,4 +292,5 @@ fun registerVarrockTraders(world: World) {
             world.dialogues.start(this, op.npc) { benny(give) }
         }
     }
+    ApothecaryPotions.register(world)
 }

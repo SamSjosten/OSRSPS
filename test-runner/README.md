@@ -171,7 +171,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   and Ye olde Tea Shoppe, buying one item at each and selling it back, then each keeper's talk (with `::keys on`) into
   their shop.
 - `varrock-traders.json`: Varrock step 5b (with `::keys on`): Benny's newspaper bought for 50 coins, a fur bought
-  from Baraek for 20 and sold back to him for 12, and the Apothecary's hair potion topic and back to his menu.
+  from Baraek for 20 and sold back to him for 12, the Apothecary's hair potion topic and back to his menu, and (step
+  5c) a strength potion bought on his potions screen.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
