@@ -68,7 +68,8 @@ object BankerTutorLines : Lines("banker_tutor", "Transcript:Banker tutor") {
  * The bankers on the castle's top floor: the Banker (multi-NPC 6520, which players see as 2897 while varbit 4153 is 0)
  * and the Banker tutor (3227). From the Wiki: both conversations; asking for the bank opens it, asking for PIN settings
  * opens [osrsps.game.bank.BankPinSettings]. Not built yet: the collection box and buying bank space, so those options
- * end the conversation, and Collect does nothing.
+ * end the conversation, and Collect does nothing. Al Kharid's five bankers (3090 and 3091) talk and bank the same way:
+ * the Wiki's Banker transcript is every banker's.
  * Guessed: every chathead expression; that the tutor's topic menu comes back after each topic (the Wiki doesn't say
  * where they lead).
  */
@@ -79,8 +80,13 @@ object Bankers {
     /** banker1 and banker2: Draynor Village's bankers, who say what the castle's does (the Wiki's Banker page). */
     val DRAYNOR = listOf(1613, 1618)
 
+    /** Al Kharid's bankers (kharidbanker1 and 2), who say what the castle's banker says. */
+    const val AL_KHARID_BANKER_1 = 3090
+    const val AL_KHARID_BANKER_2 = 3091
+    val AL_KHARID = listOf(AL_KHARID_BANKER_1, AL_KHARID_BANKER_2)
+
     /** Every banker with the standard conversation. */
-    val STANDARD = listOf(BANKER) + DRAYNOR
+    val STANDARD = listOf(BANKER) + DRAYNOR + AL_KHARID
     const val BANKER_TUTOR = 3227
     const val TALK_TO = 1
 

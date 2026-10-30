@@ -3,7 +3,7 @@ package osrsps.game.command
 import osrsps.game.World
 import osrsps.game.social.FriendLists
 
-/** The friends list as the server holds it, for tests that start from a known list. */
+/** The friends and ignore lists as the server holds them, for tests that start from known lists. */
 fun CommandRegistry.registerSocialCommands(world: World) {
     val friends = world.friendLists
 
@@ -25,5 +25,16 @@ fun CommandRegistry.registerSocialCommands(world: World) {
         if (args.isNotEmpty()) fail("Usage: ::clearfriends")
         friends.clear(player)
         reply("Friends list emptied. Log out and in to see it in the Friends tab")
+    }
+
+    register("ignores", "::ignores", admin = false) {
+        if (args.isNotEmpty()) fail("Usage: ::ignores")
+        reply(if (player.ignores.isEmpty()) "Your ignore list is empty" else player.ignores.joinToString(prefix = "Ignored: "))
+    }
+
+    register("clearignores", "::clearignores") {
+        if (args.isNotEmpty()) fail("Usage: ::clearignores")
+        world.ignoreLists.clear(player)
+        reply("Ignore list emptied")
     }
 }

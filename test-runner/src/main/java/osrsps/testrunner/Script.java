@@ -681,6 +681,30 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "name", "comment");
 				return type.equals("addFriend") ? Steps.PromptEntry.addFriend(timeout, name) : Steps.PromptEntry.deleteFriend(timeout, name);
 			}
+			case "addIgnore":
+			case "deleteIgnore":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				f.rejectUnknown("step", "timeoutMs", "name", "comment");
+				return type.equals("addIgnore") ? Steps.PromptEntry.addIgnore(timeout, name) : Steps.PromptEntry.deleteIgnore(timeout, name);
+			}
+			case "assertIgnore":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				boolean absent = f.bool("absent", false);
+				f.rejectUnknown("step", "timeoutMs", "name", "absent", "comment");
+				return new Steps.AssertIgnore(timeout, name, absent);
+			}
+			case "privateMessage":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String name = f.requiredString("name");
+				String text = f.requiredString("text");
+				f.rejectUnknown("step", "timeoutMs", "name", "text", "comment");
+				return Steps.PromptEntry.privateMessage(timeout, name, text);
+			}
 			case "assertFriend":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
