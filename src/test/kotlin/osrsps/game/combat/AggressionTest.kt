@@ -170,6 +170,29 @@ class AggressionTest {
     }
 
     @Test
+    fun `in single-way combat one another player hit lately leaves the rest alone until that wears off, and in multi-way it doesn't`() {
+        val npc = spawn(spider)
+        // Alice hit it and walked off; it gave up on her, but her hit still holds it for single-way combat.
+        at(alice, 3260, 3260)
+        npc.attacker = alice
+        npc.attackedTick = tick
+        at(bob, 3222, 3220)
+        process()
+        assertNull(npc.target)
+        multi.set(0, 3220, 3220, true)
+        process()
+        assertSame(bob, npc.target)
+        val other = spawn(spider, 3240, 3240)
+        other.attacker = alice
+        other.attackedTick = tick
+        at(bob, 3242, 3240)
+        repeat(MeleeCombat.IN_COMBAT_TICKS.toInt()) { process() }
+        assertNull(other.target, "still hers")
+        process()
+        assertSame(bob, other.target, "her hit has worn off")
+    }
+
+    @Test
     fun `after ten minutes in the area tolerant monsters stop, and a boss doesn't`() {
         val spiderNpc = spawn(spider)
         val bossNpc = spawn(boss, 3216, 3216)
