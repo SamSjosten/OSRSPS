@@ -674,9 +674,16 @@ public class RunnerTest
 	}
 
 	@Test
-	public void typeTextTypesTheText() throws Exception
+	public void typeTextTypesOnceAndPassesATickAfterTheKeysGo() throws Exception
 	{
-		runner.start(script("{\"step\":\"typeText\",\"text\":\"roof\"}"), "file");
+		runner.start(script("{\"step\":\"typeText\",\"text\":\"roof\"},{\"step\":\"assertNoDialogue\"}"), "file");
+		game.typingPending = true;
+		assertNull(cycle());
+		assertNull(cycle());
+		assertEquals(List.of("type roof"), game.actions);
+		game.typingPending = false;
+		assertNull(cycle());
+		runner.gameTick();
 		Result r = null;
 		for (int i = 0; i < 10 && r == null; i++)
 		{
@@ -684,7 +691,8 @@ public class RunnerTest
 		}
 		assertEquals(List.of("type roof"), game.actions);
 		assertEquals("type \"roof\"", r.steps.get(0).description);
-		assertNull(r.failure);
+		assertEquals("typed", r.steps.get(0).detail);
+		assertEquals(Result.PASS, r.result);
 	}
 
 	@Test

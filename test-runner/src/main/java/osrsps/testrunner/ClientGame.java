@@ -101,6 +101,8 @@ final class ClientGame implements Game
 	private String chatLine;
 	/** Set on the Swing thread once the Enter key events for {@link #chatLine} have gone to the canvas. */
 	private volatile boolean enterDelivered;
+	/** False from typeText until the Swing thread has sent its key events. */
+	private volatile boolean typingDelivered = true;
 	/** Walk calls in a row that found the mouse on the walk's spot. */
 	private int mouseFrames;
 
@@ -900,6 +902,7 @@ final class ClientGame implements Game
 		}
 		// The client queues each press and each typed character for the interfaces' onkey scripts (searchbar_keypress
 		// reads the character), so every character gets the press, typed and release a real key makes.
+		typingDelivered = false;
 		SwingUtilities.invokeLater(() ->
 		{
 			if (!canvas.isFocusOwner())
@@ -914,8 +917,15 @@ final class ClientGame implements Game
 				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_TYPED, now, 0, KeyEvent.VK_UNDEFINED, c));
 				canvas.dispatchEvent(new KeyEvent(canvas, KeyEvent.KEY_RELEASED, now, 0, code, c));
 			}
+			typingDelivered = true;
 		});
 		return null;
+	}
+
+	@Override
+	public boolean typingPending()
+	{
+		return !typingDelivered;
 	}
 
 	@Override
