@@ -29,6 +29,32 @@ To check every open pull request now (after changing this workflow, say): Action
 A pull request that only changes this file, top-level docs or `.github/` doesn't restart the server on VM 214 (the
 deploy filter in `deploy/auto-deploy.sh`).
 
+## Auto-merge
+
+A pull request merges by itself, with a merge commit, once auto-merge is on and branch protection on `main` is
+satisfied: every `build` job passes, the `codex-review` check passes, and the branch is up to date with `main`. The
+thread that opens a pull request turns auto-merge on straight away; Sam stays its author and can still merge by hand
+or turn it off.
+
+`.github/workflows/automerge.yml` (`.github/scripts/automerge.js`) does two things:
+
+- **`codex-review`** passes when Codex's latest review found nothing and covers the pull request as it is now: the
+  reviewed commit is the head, or the reviewed commit merged with `main` makes the same tree as the head merged with
+  `main` (`git merge-tree`), so merging `main` in needs no new review. It fails while Codex has findings, and waits
+  (in progress) until Codex has reviewed, or when the pull request has changed since its last review: comment
+  `@codex review` then. It's worked out from Codex's latest receipt (the comment or review naming the commit it
+  reviewed), written again each time Codex comments, and on every push.
+- **The queue**: "up to date with `main`" keeps two green pull requests from breaking `main` together, but GitHub's
+  merge queue isn't offered on this repository, so after each push to `main`, `build` run and Codex comment the
+  workflow takes the oldest pull request with auto-merge on that is behind `main`, has no failing check and a passing
+  `codex-review`, merges `main` into it and starts `build` on it. One at a time: while an up-to-date pull request still
+  has checks running, it waits for that one. If that merge of `main` changes the diff, it comments **Main merged in:**
+  asking the thread for a new Codex review.
+
+So a thread pulls its branch (`git pull`) before pushing, as the queue may have pushed a merge of `main` to it. A
+failing check or a Codex finding takes a pull request out of the queue until it is fixed. To run the queue now:
+Actions, **automerge**, **Run workflow**.
+
 ## Scheduled checks
 
 Two workflows run on a schedule and, when they fail, open an issue assigned to the repository's owner, so the failure
