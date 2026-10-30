@@ -104,7 +104,9 @@ internal fun parsePrice(text: String): Long? {
     val digits = if (multiplier == 1.0) text else text.dropLast(1)
     if (multiplier == 1.0) return digits.toLongOrNull()?.takeIf { it >= 1 }
     val value = digits.toBigDecimalOrNull() ?: return null
-    return value.multiply(multiplier.toBigDecimal()).takeIf { it.stripTrailingZeros().scale() <= 0 }?.toLong()?.takeIf { it >= 1 }
+    val price = value.multiply(multiplier.toBigDecimal()).takeIf { it.stripTrailingZeros().scale() <= 0 } ?: return null
+    // Exact, so a price past the Long range is refused rather than wrapped round to some other price.
+    return runCatching { price.toBigIntegerExact().longValueExact() }.getOrNull()?.takeIf { it >= 1 }
 }
 
 private fun format(n: Long): String = String.format(Locale.ROOT, "%,d", n)

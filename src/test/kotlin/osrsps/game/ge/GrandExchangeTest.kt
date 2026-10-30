@@ -23,12 +23,16 @@ class GrandExchangeTest {
         ObjType(QUEST_ITEM, "Quest item"),
         ObjType(NO_PRICE, "Odd thing", tradeable = true),
         ObjType(ENERGY_4, "Energy potion(4)", tradeable = true),
+        ObjType(PRAYER_3, "Prayer potion(3)", tradeable = true),
+        ObjType(PRAYER_4, "Prayer potion(4)", tradeable = true),
     )
     private val prices = ItemPrices(
         mapOf(
             AXE to ItemPrices.Entry("Bronze axe", 40, 10),
             LOBSTER to ItemPrices.Entry("Lobster", 150, null),
             WHIP to ItemPrices.Entry("Abyssal whip", 1_500_000_000, 70),
+            PRAYER_3 to ItemPrices.Entry("Prayer potion(3)", 100, 2000),
+            PRAYER_4 to ItemPrices.Entry("Prayer potion(4)", 100, 2000),
         ),
     )
     private var tick = 0L
@@ -114,6 +118,18 @@ class GrandExchangeTest {
         nextTick()
         assertEquals(15, player.ge[0]!!.completed)
         assertEquals(5, player.ge.limits[AXE]!!.bought)
+    }
+
+    @Test
+    fun `a potion's doses share one buy limit`() {
+        give(COINS, 1_000_000)
+        ge.buy(player, PRAYER_4, 1500, 100)
+        ge.buy(player, PRAYER_3, 1000, 100)
+        nextTick()
+        assertEquals(1500, player.ge[0]!!.completed)
+        assertEquals(500, player.ge[1]!!.completed)
+        assertEquals(PRAYER_3, ge.limitKey(PRAYER_4))
+        assertEquals(setOf(PRAYER_3), player.ge.limits.keys)
     }
 
     @Test
@@ -208,5 +224,7 @@ class GrandExchangeTest {
         const val QUEST_ITEM = 2000
         const val NO_PRICE = 2001
         const val ENERGY_4 = 3008
+        const val PRAYER_4 = 2434
+        const val PRAYER_3 = 139
     }
 }

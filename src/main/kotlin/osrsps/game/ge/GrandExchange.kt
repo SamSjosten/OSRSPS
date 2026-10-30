@@ -139,7 +139,7 @@ class GrandExchange(
         val each = at ?: offer.price
         player.ge[slot] = when (offer.type) {
             OfferType.BUY -> {
-                recordBought(player, offer.item, count)
+                recordBought(player, limitKey(offer.item), count)
                 offer.copy(
                     completed = offer.completed + count, exchanged = offer.exchanged + count * each,
                     collectItems = offer.collectItems + count, collectCoins = offer.collectCoins + count * (offer.price - each),
@@ -160,16 +160,44 @@ class GrandExchange(
      */
     fun tax(item: Int, price: Long): Long = if (item in taxExempt) 0 else minOf(MAX_TAX, price * TAX_PER_MILLE / 1000)
 
-    /** How many more of [type] the buy limit lets [player] buy now; no limit in the snapshot means no limit. */
+    /**
+     * How many more of [type] the buy limit lets [player] buy now, counting what they bought of its other doses (see
+     * [limitKey]); no limit in the snapshot means no limit.
+     */
     fun limitLeft(player: Player, type: ObjType): Int {
         val limit = prices().limit(type) ?: return Int.MAX_VALUE
-        val use = currentUse(player, type.id) ?: return limit
+        val use = currentUse(player, limitKey(type.id)) ?: return limit
         return (limit - use.bought).coerceAtLeast(0)
     }
 
     /**
-     * The buy limit's use of [item], null once its window has passed. GUESSED: the window starts at the first purchase
-     * after the last one ended and runs [LIMIT_WINDOW_MILLIS] (the Wiki says only "every 4 hours").
+     * The item whose buy limit [item] counts against: the first id of the items named like it with another dose count,
+     * so Prayer potion(4) and (3) share one (the Wiki, Buying limit: "if the player has reached the limit on 4-dose
+     * Prayer potions, they cannot buy Prayer potions of fewer doses"). GUESSED: that every item named with a 1 to 4 in
+     * brackets shares its limit this way; the Wiki names only prayer potions.
+     */
+    fun limitKey(item: Int): Int {
+        val name = objTypes[item]?.name ?: return item
+        val base = DOSES.find(name)?.groupValues?.get(1) ?: return item
+        return doseGroups[base.lowercase()] ?: item
+    }
+
+    /** Each dosed name without its count, to the first unnoted item id with it. */
+    private val doseGroups: Map<String, Int> by lazy {
+        val groups = HashMap<String, Int>()
+        for (id in 0 until objTypes.size) {
+            val type = objTypes[id] ?: continue
+            if (type.isCert || type.isPlaceholder) continue
+            val base = DOSES.find(type.name)?.groupValues?.get(1) ?: continue
+            groups.putIfAbsent(base.lowercase(), id)
+        }
+        groups
+    }
+
+    /**
+     * The buy limit's use of [item], null once its window has passed: the window starts at the first item bought and
+     * the limit resets [LIMIT_WINDOW_MILLIS] later (the Wiki, Buying limit: "This timer is based on the first item
+     * bought in the 4-hour slot").
      */
     private fun currentUse(player: Player, item: Int): BuyLimitUse? {
         val use = player.ge.limits[item] ?: return null
@@ -229,6 +257,9 @@ class GrandExchange(
         const val MAX_TAX = 5_000_000L
 
         const val LIMIT_WINDOW_MILLIS = 4 * 60 * 60 * 1000L
+
+        /** A name with a dose count: "Prayer potion(4)" is "Prayer potion" and 4. */
+        private val DOSES = Regex("""^(.*)\(([1-4])\)$""")
 
         const val TAX_EXEMPT_RESOURCE = "/ge-tax-exempt.txt"
 

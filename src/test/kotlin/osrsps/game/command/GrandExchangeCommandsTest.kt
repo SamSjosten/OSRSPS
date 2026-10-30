@@ -16,5 +16,9 @@ class GrandExchangeCommandsTest {
         assertNull(parsePrice("1.5"))
         assertNull(parsePrice("0.0001k"))
         assertNull(parsePrice("lots"))
+        // Past the Long range, refused rather than wrapped round to 1,000.
+        assertNull(parsePrice("18446744073709551617k"))
+        assertNull(parsePrice("-18446744073709551615k"))
+        assertNull(parsePrice("-5k"))
     }
 }
