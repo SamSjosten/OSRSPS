@@ -1,0 +1,269 @@
+{
+ "name": "Varrock step 5b (with ::keys on): Benny's newspaper bought for 50, a fur bought from Baraek for 20 and sold back for 12, and the Apothecary's hair potion topic",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 70",
+   "expectMessage": "Added 70 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3219 3432 0",
+   "expectMessage": "Teleported to 3219, 3432, 0",
+   "comment": "Benny's spawn tile in the square"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Benny",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "chooseOption",
+   "text": "[benny.can_i]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[benny.can_i]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[benny.certainly]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[benny.sure]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[benny.sure]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Newspaper",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 20
+  },
+  {
+   "step": "command",
+   "text": "::tele 3217 3435 0",
+   "expectMessage": "Teleported to 3217, 3435, 0",
+   "comment": "Baraek's spawn tile, by his fur stall"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Baraek",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "chooseOption",
+   "text": "[baraek.sell_me]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[baraek.sell_me]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[baraek.twenty]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[baraek.yes]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[baraek.yes]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[baraek.sold]",
+   "comment": "the item box"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Fur",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Baraek",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "chooseOption",
+   "text": "[baraek.sell_fur]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[baraek.sell_fur]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[baraek.look]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[baraek.hand_fur]",
+   "comment": "the item box"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[baraek.condition]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[baraek.thatll_do]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[baraek.thatll_do]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[baraek.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Fur",
+   "count": 0
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 12
+  },
+  {
+   "step": "command",
+   "text": "::tele 3195 3404 0",
+   "expectMessage": "Teleported to 3195, 3404, 0",
+   "comment": "the Apothecary's spawn tile, in his shop"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Apothecary",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[apothecary.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[apothecary.something_else]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[apothecary.hair]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[apothecary.hair]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[apothecary.hair_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[apothecary.hair_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[apothecary.no_thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[apothecary.no_thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

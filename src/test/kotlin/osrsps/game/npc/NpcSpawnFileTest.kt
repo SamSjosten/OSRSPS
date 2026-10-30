@@ -349,7 +349,8 @@ class NpcSpawnFileTest {
             6528 to "deadman_banker_grey_west", 1634 to "banker1_east", 3089 to "banker2_east", 2148 to "ge_clerk_1",
             2149 to "ge_clerk_2", 2150 to "ge_clerk_3", 2151 to "ge_clerk_4", 2884 to "swordshop1", 2885 to "swordshop2",
             2882 to "horvik_the_armourer", 2883 to "lowe", 2880 to "zaff", 2815 to "generalshopkeeper2", 2816 to "generalassistant2",
-            2886 to "aubury", 534 to "thessalia", 2887 to "tailorp", 8687 to "tea_seller",
+            2886 to "aubury", 534 to "thessalia", 2887 to "tailorp", 8687 to "tea_seller", 5036 to "apothecary", 2881 to "baraek",
+            5216 to "qip_soa_newspaperseller",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -379,6 +380,10 @@ class NpcSpawnFileTest {
         val stores = spawns.filter { it.type.id in listOf(534, 2815, 2816, 2886, 2887, 8687) }
         assertEquals(listOf(534, 2815, 2816, 2886, 2887, 8687), stores.map { it.type.id }.sorted())
         assertEquals(listOf(8687), stores.filter { it.restrict != MoveRestrict.INDOORS }.map { it.type.id })
+        // Step 5b: the Apothecary in his shop, Baraek and Benny in the square.
+        val traders = spawns.filter { it.type.id in listOf(2881, 5036, 5216) }
+        assertEquals(listOf(2881, 5036, 5216), traders.map { it.type.id }.sorted())
+        assertEquals(listOf(5036), traders.filter { it.restrict == MoveRestrict.INDOORS }.map { it.type.id })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
         assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
         assertTrue((spawns - bankers.toSet() - exchange.toSet()).all { it.wander > 0 })
