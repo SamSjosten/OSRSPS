@@ -1,5 +1,5 @@
 {
-  "about": "Draynor Village (Draynor piece step 1): the bank's three bankers, the town's man, woman, rats and imp, the G.A.G. pig pen's four pigs and three piglets, and the farmer in the wheat field. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Draynor Village page (three bankers, seven pigs, a man in the north-east house, a woman upstairs in Morgan's house). Every wander range is guessed until recorded. The market's NPCs, the jail, Aggie, Ned, Morgan, the Wise Old Man and his household, the dark wizards and the fishing spots come with their own steps.",
+  "about": "Draynor Village (Draynor piece step 1): the bank's three bankers, the town's man, woman, rats and imp, the G.A.G. pig pen's four pigs and three piglets, and the farmer in the wheat field. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Draynor Village page (three bankers, seven pigs, a man in the north-east house, a woman upstairs in Morgan's house). Every wander range is guessed until recorded. The market's NPCs, the jail, Aggie, Ned, Morgan, the Wise Old Man and his household, and the dark wizards come with their own steps. The shore's two Net/Bait fishing spots came with step 2.",
   "spawns": [
     {"npc": 1613, "x": 3090, "z": 3242, "direction": "E", "source": "Banker (banker1), Draynor bank, behind the booth at 3091,3242. mejrs NPCList_OSRS"},
     {"npc": 1618, "x": 3090, "z": 3243, "direction": "E", "source": "Banker (banker2), Draynor bank, behind the booth at 3091,3243. mejrs NPCList_OSRS"},
@@ -16,6 +16,8 @@
     {"npc": "piglet_1", "x": 3076, "z": 3261, "wander": 2, "source": "Piglet, G.A.G. pig pen. mejrs NPCList_OSRS"},
     {"npc": "piglet_3", "x": 3079, "z": 3260, "wander": 2, "source": "Piglet, G.A.G. pig pen. mejrs NPCList_OSRS"},
     {"npc": "piglet_2", "x": 3079, "z": 3261, "wander": 2, "source": "Piglet, G.A.G. pig pen. mejrs NPCList_OSRS"},
+    {"npc": "0_48_50_saltfish", "x": 3086, "z": 3227, "source": "Net/Bait fishing spot on the shore by the willows. mejrs NPCList_OSRS; moves between its area's tiles (2004Scape's), see Fishing.AREAS"},
+    {"npc": "0_48_50_saltfish", "x": 3085, "z": 3230, "source": "Net/Bait fishing spot on the shore by the willows. mejrs NPCList_OSRS; moves between its area's tiles (2004Scape's), see Fishing.AREAS"},
     {"npc": 3251, "x": 3119, "z": 3276, "wander": 5, "source": "Farmer (no options), the wheat field north-east of the village. mejrs NPCList_OSRS"}
   ]
 }
