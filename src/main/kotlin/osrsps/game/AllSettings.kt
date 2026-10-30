@@ -54,6 +54,10 @@ class AllSettings(
 
     /** The side panel's All Settings button. RSMod (rev 233) opens the window as an overlay in the floater. */
     fun open(player: Player) {
+        // Guess (live not seen): the window opens on its category, never mid-search. A search left on when the window
+        // closed (or saved over a relog) would otherwise reopen with no search op, and searchbar_keypress ignores keys
+        // until searchbar_op sets %floater_search_listen_for_keyboard again, which a relog clears.
+        setVarbit(player, VARBIT_SEARCHING, 0)
         // settings_init draws the window from settings_tracking as it loads, so the client gets the server's copy first.
         interfaces.sendVarpNow(player, VARP_SETTINGS_TRACKING)
         player.settingsDropdown = -1

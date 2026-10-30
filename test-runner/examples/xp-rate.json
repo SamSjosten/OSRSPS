@@ -1,0 +1,17 @@
+{
+ "name": "Server-wide XP rate: ::xprate 2 doubles a bone's 4.5 Prayer XP, then ::xprate restore puts the rate back to what it was",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "messages show their keys, as the words aren't in git"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats (no Prayer XP) and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::xprate", "expectMessage": "XP rate: ", "comment": "whatever the server is set to now; ::xprate restore at the end goes back to it"},
+  {"step": "command", "text": "::xprate 2", "expectMessage": "XP rate set to 2x"},
+  {"step": "command", "text": "::item bones 1", "expectMessage": "Added 1 x Bones"},
+  {"step": "itemOption", "item": "Bones", "option": "Bury"},
+  {"step": "assertMessage", "contains": "[bones.buried]"},
+  {"step": "assertStat", "skill": "Prayer", "level": 1, "xp": 9, "comment": "4.5 x 2; at 1x it would be 4"},
+  {"step": "command", "text": "::xprate restore", "expectMessage": "XP rate back to "},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
