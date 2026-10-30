@@ -20,5 +20,8 @@ class GrandExchangeCommandsTest {
         assertNull(parsePrice("18446744073709551617k"))
         assertNull(parsePrice("-18446744073709551615k"))
         assertNull(parsePrice("-5k"))
+        // No exponents: expanding one this size would hold the game thread.
+        assertNull(parsePrice("1e100000000k"))
+        assertNull(parsePrice("1E3k"))
     }
 }

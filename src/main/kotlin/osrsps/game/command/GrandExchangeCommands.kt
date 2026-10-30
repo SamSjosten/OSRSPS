@@ -103,10 +103,15 @@ internal fun parsePrice(text: String): Long? {
     }
     val digits = if (multiplier == 1.0) text else text.dropLast(1)
     if (multiplier == 1.0) return digits.toLongOrNull()?.takeIf { it >= 1 }
-    val value = digits.toBigDecimalOrNull() ?: return null
+    // Plain digits only: BigDecimal would take 1e100000000 and spend the game thread expanding it.
+    if (!PRICE_DIGITS.matches(digits)) return null
+    val value = digits.toBigDecimal()
     val price = value.multiply(multiplier.toBigDecimal()).takeIf { it.stripTrailingZeros().scale() <= 0 } ?: return null
     // Exact, so a price past the Long range is refused rather than wrapped round to some other price.
     return runCatching { price.toBigIntegerExact().longValueExact() }.getOrNull()?.takeIf { it >= 1 }
 }
+
+/** Up to 19 digits, as many as a Long has, with up to 9 after a point. */
+private val PRICE_DIGITS = Regex("""\d{1,19}(\.\d{1,9})?""")
 
 private fun format(n: Long): String = String.format(Locale.ROOT, "%,d", n)
