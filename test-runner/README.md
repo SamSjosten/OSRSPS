@@ -140,6 +140,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
 - `al-kharid-bank.json`: Al Kharid step 2: Bank on a booth (logs deposited), a banker's Bank across the booth (logs
   withdrawn), and a banker's talk (with `::keys on`) that opens the bank.
+- `al-kharid-shops.json`: Al Kharid step 3: Trade with each of Al Kharid's seven shops (the General Store, Zeke,
+  Dommik, Louie Legs, Ranael, the Gem trader and Ali Morrisane), buying one of the first item and selling it back,
+  Ali's junk sold as his shop closes, then Louie Legs's talk (with `::keys on`) into his shop.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
@@ -194,6 +197,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `crafting-jewellery.json`: at the furnace north of Lumbridge Castle, a gold bar opens `crafting_gold` and All makes
   two sapphire rings, a tiara mould opens `silver_crafting` and makes a tiara, and a ball of wool strings a gold
   amulet. Needs 0.15.0 (`useItemOnLoc`).
+- `crafting-glass.json`: at the furnace north of Lumbridge Castle, soda ash and sand make molten glass (the buckets
+  back), a pipe blows two vials, and water softens clay; at Barbarian Village's potter's wheel one soft clay shapes four
+  unfired cups, which the oven fires. Needs 0.15.0.
 - `ground-high-id-take.json`: an item with an id above 32767 (rosewood logs, 32910) goes from the ground when taken,
   which tells whether the client keeps all 16 bits of the id in OBJ_DEL. Needs only 0.5.0.
 
@@ -218,6 +224,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   each waits up to 3 minutes for the other and then fails.
 - `social-pm-test.json` and `social-pm-test2.json` (need 0.14.0): two players at once like the friends pair; each adds the
   other, `test` messages `test2` and `test2` answers.
+- `social-trade-request-test.json` and `social-trade-request-test2.json` (need 0.16.0): two players at once; `test` asks
+  `test2` to trade, `test2` accepts, both trade screens open and `test` declines.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
   number prompt with `enterAmount`, public chat's colour picked in the colour picker and saved, then a cancelled pick,
@@ -337,6 +345,7 @@ server's answer instead of failing on what was there before.
 | `addIgnore`, `deleteIgnore` | `name` | (0.14.0) The same through the ignore tab's Add Name and Delete Name buttons (prompts 4 and 5), opening the ignore tab from the Friends tab first when it isn't open. |
 | `assertIgnore` | `name`, `absent` | (0.14.0) Waits until the ignore list holds the name, or, with `absent: true`, doesn't. |
 | `privateMessage` | `name`, `text` | (0.14.0) Opens the private message prompt for `name` (client script 107, meslayer_mode6, which a friend's Message option runs), types `text` and presses Enter. Check delivery with `assertMessage` on the other client. |
+| `playerOption` | `player`, `option`, `x`+`y` | (0.16.0) Clicks an option on the other player with that name, as their right-click menu does ("Trade with", "Follow"); retries until they are in view, and with `x` and `y` until they stand on that tile (a two-VM script's sign that the other side has finished its setup). A trade request's Accept trade is Trade with on its sender, so this accepts one too. |
 | `mouseClick` | `interfaceId`, `component`, `slot` | (0.8.0) Presses the left mouse button on the middle of the component (or its slot), for what opens on the mouse click itself rather than on a menu option, such as a dropdown's box. Assumes stretched mode is off. |
 
 Dialogues are the chatbox's chat_left (NPC), chat_right (player), chatmenu (options), messagebox, objectbox and (0.6.3)

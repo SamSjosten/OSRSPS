@@ -2,6 +2,7 @@ package osrsps.game
 
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.trade.TradeInteraction
 import osrsps.map.Tile
 import kotlin.math.abs
 import kotlin.math.atan2
@@ -119,7 +120,12 @@ class Follows(
      * it and a reset would undo that.
      */
     fun updateFace(player: Player, face: (Player?) -> Unit) {
-        val target = (player.interaction as? FollowInteraction)?.target
+        val target = when (val interaction = player.interaction) {
+            is FollowInteraction -> interaction.target
+            // Trade with turns the player to who they walk up to, and stops once anything else replaces it.
+            is TradeInteraction -> interaction.target
+            else -> null
+        }
         if (target === player.sentFacePlayer) return
         if (target != null || player.facingNpc == null) face(target)
         player.sentFacePlayer = target
