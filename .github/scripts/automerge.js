@@ -29,6 +29,7 @@ const REVIEWED = /\*\*Reviewed commit:\*\*\s*`([0-9a-f]{7,40})`/;
 const CLEAN = "Didn't find any major issues";
 const BAD = ['failure', 'cancelled', 'timed_out', 'action_required', 'stale', 'startup_failure'];
 const NOTICE = '<!-- automerge:review-again -->';
+const APPROVE = '<!-- automerge:approve-runs';
 // This workflow's own jobs: GitHub files them on the pull request's head too, and the queue mustn't wait on itself.
 const OWN = ['automerge-gate', 'automerge-queue'];
 const BUILD = 'build'; // build.yml's main job: no check of that name on a head means no CI ran on it
@@ -162,6 +163,39 @@ async function gate(github, git, repo, core, number, current, now = Date.now) {
   if (!same) await writeCheck(github, repo, pr.head.sha, result);
 }
 
+// The pull_request runs GitHub holds for "approval from a maintainer" on a head: a merge of main the queue pushed with
+// the workflow token gets them, and until they run, the ruleset waits on their checks and the pull request stays
+// blocked (a dispatched build doesn't stand in for them). Approves each; returns how many waited and how many ran.
+async function approveWaiting(github, repo, core, sha) {
+  const { data } = await github.rest.actions.listWorkflowRunsForRepo({ ...repo, head_sha: sha, status: 'action_required', per_page: 100 });
+  const runs = data.workflow_runs || [];
+  let approved = 0;
+  for (const run of runs) {
+    try {
+      await github.rest.actions.approveWorkflowRun({ ...repo, run_id: run.id });
+      approved++;
+    } catch (error) {
+      core.warning(`run ${run.id} on ${sha.slice(0, 7)}: approval refused (${error.status}): ${error.message}`);
+    }
+  }
+  if (runs.length) core.info(`${sha.slice(0, 7)}: approved ${approved} of ${runs.length} waiting runs`);
+  return { waiting: runs.length, approved };
+}
+
+// Once per head: the runs on it wait for a maintainer and the queue couldn't approve them.
+async function askForApproval(github, repo, number, sha) {
+  const marker = `${APPROVE} ${sha} -->`;
+  const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: number, per_page: 100 });
+  if (comments.some(comment => (comment.body || '').includes(marker))) return;
+  await github.rest.issues.createComment({
+    ...repo,
+    issue_number: number,
+    body: `${marker}
+**Runs waiting:** the CI runs on ${sha.slice(0, 7)} are waiting for a maintainer's approval, and auto-merge couldn't \
+approve them. @SamSjosten: "Approve workflows to run" on this pull request lets it merge.`,
+  });
+}
+
 async function advance(github, git, repo, core, sleep, now) {
   const open = await github.paginate(github.rest.pulls.list, { ...repo, state: 'open', base: 'main', per_page: 100 });
   const queued = open.filter(pr => pr.auto_merge && !pr.draft).sort((a, b) => a.number - b.number);
@@ -170,6 +204,16 @@ async function advance(github, git, repo, core, sleep, now) {
   for (const pr of queued) {
     const { data: compare } = await github.rest.repos.compareCommits({ ...repo, base: 'main', head: pr.head.sha });
     const behind = compare.behind_by > 0;
+    // Held runs first: merging main in again would only push another head whose runs are held the same way.
+    const held = await approveWaiting(github, repo, core, pr.head.sha);
+    if (held.waiting) {
+      if (held.approved === held.waiting) {
+        core.info(`#${pr.number}: approved its waiting runs; waiting for them`);
+        return;
+      }
+      await askForApproval(github, repo, pr.number, pr.head.sha);
+      continue;
+    }
     let checks = await latestChecks(github, repo, pr.head.sha);
     const current = checks.find(run => run.name === CHECK);
     // Missing (opened before this workflow, or an event was missed), waiting or failing: Codex may have answered
@@ -220,7 +264,18 @@ async function advance(github, git, repo, core, sleep, now) {
       core.warning(`#${pr.number}: the merge of main hasn't shown up yet; the next event picks it up`);
       return;
     }
-    await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
+    // GitHub may file the merge's pull_request runs as waiting for approval; approved, they are the pull request's
+    // checks. If none show up, the push started nothing and a dispatched build stands in.
+    let held = { waiting: 0, approved: 0 };
+    for (let i = 0; i < 6 && !held.waiting; i++) {
+      await sleep(5000);
+      held = await approveWaiting(github, repo, core, head);
+    }
+    if (!held.waiting) {
+      await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
+    } else if (held.approved < held.waiting) {
+      await askForApproval(github, repo, pr.number, head);
+    }
     const { data: updated } = await github.rest.pulls.get({ ...repo, pull_number: pr.number });
     const result = await evaluate(github, git, repo, updated);
     await writeCheck(github, repo, updated.head.sha, result);
@@ -254,6 +309,7 @@ module.exports.queue = async function ({ github, context, core, git = shellGit, 
 module.exports.CHECK = CHECK;
 module.exports.CODEX = CODEX;
 module.exports.NOTICE = NOTICE;
+module.exports.APPROVE = APPROVE;
 module.exports.OWN = OWN;
 module.exports.verdict = verdict;
 module.exports.covers = covers;

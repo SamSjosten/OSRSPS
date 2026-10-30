@@ -232,6 +232,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
+| `::poison [severity\|venom\|cure]` | Says what the poison varp (102) means now: poisoned, envenomed or immune, and the ticks to the next hit. A severity (20 for a poisoned weapon, 30 for p++) poisons you, `venom` envenoms you, and `cure` ends poison, venom and immunity |
 | `::seed [n]` | Shows the random seed and how many numbers have been drawn since it was set, or restarts the rolls from seed n |
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
@@ -412,6 +413,24 @@ sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answe
 | Each bar's anvil items, levels, bars and counts | client scripts and enums 844 to 846 (cache 241), checked against the Wiki's bronze and iron tables (`SmithingTest`) |
 | The furnace box showing every free-to-play bar and suggesting All; Smith opening the best bar the level can use; a cancelled X smithing one; the rusted anvil's message for other bars; the messages' arguments | guessed |
 | Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, cannonballs, jewellery, blurite and lovakite | out of scope |
+
+### Fletching
+
+A knife used on logs, or logs on a knife (`game/skill/Fletching.kt`, words under `fletching.*`), opens the Make-X box
+over what those logs make: arrow shafts, javelin shafts, the shortbow and longbow (u), and the crossbow stock, from
+logs to magic logs, plus teak and mahogany stocks and redwood shafts. The numbers are in `skills/fletching.json`.
+
+The making itself is the loop all three artisan skills share (`game/skill/Making.kt`, the box's title under
+`make.title`): each product waits in a weak queue, so walking off, closing an interface or using something else ends
+it, as do running out, the count being done, the level being too low and a level-up.
+
+| Fletching behaviour | Source |
+|---------------------|--------|
+| Levels, XP and how many shafts a log makes | OSRS Wiki, Fletching and each product's page |
+| The first product 2 ticks after the choice, then one every 3 | OSRS Wiki, Arrow shaft ("Make-X is 2, then 3 ticks") and Wooden stock; the bows (u) inferred to match |
+| Animation `human_fletching` (1248) | cache 241 gamevals |
+| The box opening even for one log, its order, the quantity starting on as many as can be made, the animation as each product starts, a boost wearing off stopping it without a word | guessed |
+| Out: the redwood shield; the crossbows and javelins that stocks and javelin shafts go into | out of scope |
 
 ## Items and inventory
 
