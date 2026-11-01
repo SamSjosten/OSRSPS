@@ -110,6 +110,8 @@ class RangedCombat(
         val venom: Boolean = false,
         /** The max hit [damage] was rolled against (two thirds of [maxHit] for a bounce), for the max hit hitsplat. */
         val rolledMax: Int = maxHit,
+        /** Where the player stood when it was fired, for the NPC's retreat ([MeleeCombat.hit]). */
+        val from: Tile? = null,
     )
 
     private val inFlight = ArrayList<Shot>()
@@ -265,7 +267,7 @@ class RangedCombat(
             val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
             val damage = reserve(player, npc, style, rolled)
             melee.attackMade(player, npc, tick)
-            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom)
+            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom, from = Tile(player.x, player.z))
         }
     }
 
@@ -308,7 +310,7 @@ class RangedCombat(
         val rolled = if (CombatMath.rollHits(random, shot.attackRoll, defenceRoll) || shot.player.sureHits) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0
         val damage = reserve(shot.player, next, style, rolled)
         if (shot.travel >= 0) projectile(bounceFlight(from, next, shot.travel))
-        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel, poison = shot.poison, venom = shot.venom, rolledMax = shot.maxHit * 2 / 3)
+        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel, poison = shot.poison, venom = shot.venom, rolledMax = shot.maxHit * 2 / 3, from = shot.from)
     }
 
     /**
@@ -334,7 +336,7 @@ class RangedCombat(
             val rolled = if (shot.hit) CombatMath.rollDamage(random, shot.maxHit) else 0
             val damage = reserve(shot.player, npc, style, rolled)
             npc.incoming -= damage
-            melee.hit(npc, shot.player, damage, tick, shot.maxHit)
+            melee.hit(npc, shot.player, damage, tick, shot.maxHit, shot.from)
         }
     }
 
@@ -355,7 +357,7 @@ class RangedCombat(
             npc.incoming -= shot.damage
             // A shot whose NPC is still there hits it, and bounces on even if that hit kills it.
             val landed = npcs[npc.index] === npc && !npc.dead
-            if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax), shot.poison, shot.venom, ranged = true)
+            if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax, shot.from), shot.poison, shot.venom, ranged = true)
             // Guessed: under the NPC's south-west tile, where its drops go too.
             if (shot.ammo != null && !random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) {
                 dropAmmo(shot.ammo, npc.x, npc.z, npc.level, shot.player)
