@@ -92,6 +92,11 @@ class HeadlessPickpocketTest {
                         client.awaitTicks(2)
                         assertEquals(attempts, client.seen("[pickpocket.attempt who=man]"))
                         client.await("the stun to end") { if (!server.world.statusEffects.isStunned(server.world.playerNamed("alice")!!)) Unit else null }
+                        // With the stun over, a next pickpocket still waits 8 ticks.
+                        client.npcOp(client.npc(MAN).index, Pickpocketing.PICKPOCKET)
+                        client.awaitTicks(2)
+                        assertEquals(attempts, client.seen("[pickpocket.attempt who=man]"))
+                        client.awaitTicks(Pickpocketing.AFTER_STUN_TICKS)
                         client.command("heal")
                     }
                 }
@@ -136,6 +141,7 @@ class HeadlessPickpocketTest {
                 while (!client.tryOnce(FARMER, "Master Farmer")) {
                     assertTrue(++tries < 10, "94% at 99 lands within 10 tries")
                     client.await("the stun to end") { if (!server.world.statusEffects.isStunned(server.world.playerNamed("carol")!!)) Unit else null }
+                    client.awaitTicks(Pickpocketing.AFTER_STUN_TICKS)
                     client.command("heal")
                 }
                 val seed = client.await("a seed") { client.inventory(BACKPACK).filterNotNull().firstOrNull { it.id != POT && it.id != COINS } }

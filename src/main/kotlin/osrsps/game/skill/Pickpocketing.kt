@@ -22,7 +22,7 @@ object PickpocketLines : Lines("pickpocket", "Pickpocketing") {
     val INVENTORY_FULL = line("inventory_full", "pickpocketing with no room for what it gives")
     val POUCHES_FULL = line("pouches_full", "pickpocketing while holding the most coin pouches")
     val CAUGHT_CITIZEN = line("caught_citizen", "a man or woman who catches a thief: overhead")
-    val CAUGHT_FARMER = line("caught_farmer", "a Master Farmer who catches a thief: overhead (the Wiki: \"Cor blimey\")")
+    val CAUGHT_FARMER = line("caught_farmer", "a Master Farmer who catches a thief: overhead")
     val POUCH_OPEN = line("pouch_open", "Open on one coin pouch, with the coins it gave", "coins")
     val POUCH_OPEN_ALL = line("pouch_open_all", "Open-all on coin pouches, with the coins they gave", "coins")
     val POUCH_NO_ROOM = line("pouch_no_room", "opening a coin pouch with no room for the coins")
@@ -131,7 +131,7 @@ class Pickpocketing(private val world: World) {
         player.message(text[PickpocketLines.FAIL, "who" to pocket.who])
         world.statusEffects.stun(player, StatusEffects.PICKPOCKET_TICKS, pocket.damage, npc, StatusEffects.THIEVING_SPOTANIM)
         player.message(text[PickpocketLines.STUNNED])
-        nextAttempt[player.username] = tick + StatusEffects.PICKPOCKET_TICKS
+        nextAttempt[player.username] = tick + StatusEffects.PICKPOCKET_TICKS + AFTER_STUN_TICKS
     }
 
     private fun give(player: Player, pocket: Pocket) {
@@ -190,6 +190,9 @@ class Pickpocketing(private val world: World) {
 
         const val COMBAT_TICKS = 8
         const val ATTEMPT_TICKS = 2
+
+        /** After a stun ends, the next pickpocket waits this much longer (StatusEffects: nine ticks' stun, eight more). */
+        const val AFTER_STUN_TICKS = 8
         const val MAX_POUCHES = 28
 
         const val COINS = 995
