@@ -320,6 +320,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   relog and check, and the keys put back to none.
 - `settings-maxhit.json` (needs 0.20.0): Max hit hitsplats. With `::sure max` and a threshold of 1, a new account's
   punches of 1 on a man show as max hits (hitmark 43) with the toggle on and off, and as ordinary hits at a threshold of 2.
+- `settings-player-ops.json` (needs 0.22.0): Player Trade options and Player Report options switched off with `::varbit`
+  take Trade with and Report off other players' menus after a relog, and back on after another.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
@@ -433,6 +435,7 @@ server's answer instead of failing on what was there before.
 | `assertIgnore` | `name`, `absent` | (0.14.0) Waits until the ignore list holds the name, or, with `absent: true`, doesn't. |
 | `privateMessage` | `name`, `text` | (0.14.0) Opens the private message prompt for `name` (client script 107, meslayer_mode6, which a friend's Message option runs), types `text` and presses Enter. Check delivery with `assertMessage` on the other client. |
 | `playerOption` | `player`, `option`, `x`+`y` | (0.16.0) Clicks an option on the other player with that name, as their right-click menu does ("Trade with", "Follow"); retries until they are in view, and with `x` and `y` until they stand on that tile (a two-VM script's sign that the other side has finished its setup). A trade request's Accept trade is Trade with on its sender, so this accepts one too. |
+| `assertPlayerOption` | `option`, `absent` | (0.22.0) Passes when the right-click options the server set on other players (SET_PLAYER_OP) include `option` (ignoring case), or with `absent: true`, when they don't. Needs no other player in view. |
 | `setFriendsChatName` | `name` | (0.18.0) Opens the friends chat Setup screen (its button on the Chat-channel tab's friends chat panel) if it isn't open, picks Set prefix, and types `name` into the server's text prompt. Check it with `assertWidgetText` on 94:10. |
 | `joinFriendsChat` | `owner` | (0.18.0) Opens Join Chat's prompt (client script 111, meslayer_mode10, which the Join Chat button runs) and types the owner's name. Leave Chat is `clickWidget` on 7:18. Talk with `chat` and a `/` in front. |
 | `assertFriendsChat` | `owner`, `member`, `absent` | (0.18.0) Passes when the client is in `owner`'s friends chat, with `member` listed when given (or, with `absent`, not listed). `absent` alone passes when it is in no channel. |
