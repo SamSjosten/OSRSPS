@@ -1,0 +1,16 @@
+{
+ "name": "Friends chat ranks and kicks, two players (run with social-friends-chat-ranks-test.json on the other VM at the same time): test2 joins test's channel, sees itself as a Corporal, is kicked, and is refused when it tries to join again",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "waitTicks", "ticks": 60, "comment": "time for test to relog, add test2 and name its channel"},
+  {"step": "joinFriendsChat", "owner": "test"},
+  {"step": "assertFriendsChat", "owner": "test", "member": "test2", "rank": 3, "timeoutMs": 180000, "comment": "a join before test named the channel says it doesn't exist; this times out then"},
+  {"step": "assertMessage", "contains": "[friends_chat.kicked]", "timeoutMs": 120000},
+  {"step": "assertFriendsChat", "absent": true},
+  {"step": "joinFriendsChat", "owner": "test"},
+  {"step": "assertMessage", "contains": "[friends_chat.banned]"},
+  {"step": "assertFriendsChat", "absent": true}
+ ]
+}

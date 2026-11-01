@@ -222,6 +222,14 @@ class HeadlessFriendsChatTest {
                     alice.deleteFriend("bob")
                     bob.await("unranked") { bob.friendsChat()?.members?.get("bob")?.takeIf { it == FriendChats.RANK_NONE } }
                     assertTrue(server.world.playerNamed("alice")!!.friendsChat.ranks.isEmpty())
+                    // So does ::clearfriends: added back, he's a plain friend again.
+                    alice.addFriend("bob")
+                    alice.setFriendsChatRank("bob", FriendChats.RANK_GENERAL)
+                    bob.await("general") { bob.friendsChat()?.members?.get("bob")?.takeIf { it == FriendChats.RANK_GENERAL } }
+                    alice.commandReply("clearfriends") { it.startsWith("Friends list emptied") }
+                    assertTrue(server.world.playerNamed("alice")!!.friendsChat.ranks.isEmpty())
+                    alice.addFriend("bob")
+                    bob.await("a plain friend") { bob.friendsChat()?.members?.get("bob")?.takeIf { it == FriendChats.RANK_FRIEND } }
                 }
             }
         }

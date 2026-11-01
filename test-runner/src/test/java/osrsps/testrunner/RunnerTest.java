@@ -1068,6 +1068,38 @@ public class RunnerTest
 	}
 
 	@Test
+	public void friendsChatRankAndAClickOnANamedRow() throws Exception
+	{
+		game.friendsChatOwner = "test";
+		game.friendsChatMembers.add("test2");
+		runner.start(script("{\"step\":\"clickWidget\",\"interfaceId\":94,\"component\":28,\"name\":\"test2\",\"op\":4},"
+			+ "{\"step\":\"assertFriendsChat\",\"owner\":\"test\",\"member\":\"test2\",\"rank\":3,\"timeoutMs\":1000}"), "file");
+		assertNull(cycle());
+		assertEquals(List.of("click 94:28 test2 op 4"), game.actions);
+		// Listed, but not yet at the rank: still waiting.
+		game.friendsChatRanks.put("test2", 0);
+		assertNull(cycle());
+		game.friendsChatRanks.put("test2", 3);
+		Result r = null;
+		for (int i = 0; i < 5 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals(Result.PASS, r.result);
+		assertEquals("click op 4 on 94:28 for test2", r.steps.get(0).description);
+		assertEquals("test2 in test's friends chat at rank 3", r.steps.get(1).detail);
+	}
+
+	@Test
+	public void clickWidgetNameAndFriendsChatRankAreChecked()
+	{
+		Script.Invalid slot = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"clickWidget\",\"interfaceId\":7,\"component\":12,\"slot\":0,\"name\":\"a\"}"));
+		assertTrue(slot.getMessage(), slot.getMessage().contains("\"name\""));
+		Script.Invalid rank = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"assertFriendsChat\",\"owner\":\"a\",\"rank\":1}"));
+		assertTrue(rank.getMessage(), rank.getMessage().contains("\"rank\""));
+	}
+
+	@Test
 	public void assertFriendsChatNeedsAnOwner()
 	{
 		Script.Invalid e = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"assertFriendsChat\",\"member\":\"a\"}"));

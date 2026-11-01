@@ -1543,6 +1543,39 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String clickWidgetNamed(int interfaceId, int component, String name, int op)
+	{
+		int packed = interfaceId << 16 | component;
+		Widget w = client.getWidget(packed);
+		if (w == null)
+		{
+			return "interface " + interfaceId + ":" + component + " is not open";
+		}
+		Widget[] children = w.getDynamicChildren();
+		String wanted = net.runelite.client.util.Text.toJagexName(name);
+		for (Widget child : children == null ? new Widget[0] : children)
+		{
+			if (child == null || child.getName() == null)
+			{
+				continue;
+			}
+			String[] actions = child.getActions();
+			if (actions == null || op - 1 >= actions.length || actions[op - 1] == null)
+			{
+				continue;
+			}
+			String named = net.runelite.client.util.Text.toJagexName(net.runelite.client.util.Text.removeTags(child.getName()));
+			if (named.equalsIgnoreCase(wanted))
+			{
+				// The target is the slot's name, as the menu shows it: the slot's op script reads the name from it.
+				client.menuAction(child.getIndex(), packed, ccOp(op), op, child.getItemId(), actions[op - 1], child.getName());
+				return null;
+			}
+		}
+		return "no slot of " + interfaceId + ":" + component + " for \"" + name + "\" offers op " + op;
+	}
+
+	@Override
 	public String castOnNpc(int interfaceId, int component, String name, int id)
 	{
 		int packed = interfaceId << 16 | component;
@@ -1716,6 +1749,26 @@ final class ClientGame implements Game
 			}
 		}
 		return names;
+	}
+
+	@Override
+	public Integer friendsChatRank(String name)
+	{
+		net.runelite.api.FriendsChatManager chat = client.getFriendsChatManager();
+		if (!loggedIn() || chat == null)
+		{
+			return null;
+		}
+		String wanted = net.runelite.client.util.Text.toJagexName(name);
+		for (net.runelite.api.FriendsChatMember member : chat.getMembers())
+		{
+			if (member != null && member.getName() != null && member.getRank() != null
+				&& net.runelite.client.util.Text.toJagexName(member.getName()).equalsIgnoreCase(wanted))
+			{
+				return member.getRank().getValue();
+			}
+		}
+		return null;
 	}
 
 	@Override
