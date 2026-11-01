@@ -65,6 +65,10 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
 
     private class Shout(val npc: Npc, val text: String, val tick: Long)
 
+    /** How an owner says a line overhead, on the game thread; tests swap it for a recorder. */
+    @Volatile
+    internal var ownerSays: (Npc, String) -> Unit = { npc, text -> npc.effects.say(text) }
+
     private val owners: Set<Int> get() = STALLS.values.mapTo(mutableSetOf()) { it.owner }
 
     fun register() {
@@ -149,7 +153,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
             return false
         }
         val text = world.textFor(player)
-        owner.effects.say(text[ThievingLines.OWNER_ANGRY])
+        ownerSays(owner, text[ThievingLines.OWNER_ANGRY])
         // The call for the guards comes on the next tick (2004Scape's stall_owner_alert_guards); they attack at once.
         shouts += Shout(owner, text[ThievingLines.GUARDS], tick + 1)
         val guards = STALLS.values.filter { it.owner == owner.spawn.type.id }.flatMapTo(mutableSetOf()) { it.guards }
@@ -170,7 +174,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
             val shout = iterator.next()
             if (shout.tick > tick) continue
             iterator.remove()
-            if (!shout.npc.dead && world.npcs[shout.npc.index] === shout.npc) shout.npc.effects.say(shout.text)
+            if (!shout.npc.dead && world.npcs[shout.npc.index] === shout.npc) ownerSays(shout.npc, shout.text)
         }
     }
 

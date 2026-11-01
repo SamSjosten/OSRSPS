@@ -158,31 +158,21 @@ class HeadlessThievingTest {
                 // Two guards by her, in sight of the player, when the player next deals with her.
                 val guards = listOf(3221, 3223).map { x -> server.world.npcs.add(NpcSpawn(guard, x, 3213, source = "test"))!! }
                 client.awaitTicks(1)
+                // Her two lines, the second a tick after the first, recorded with their ticks on the game thread.
+                val said = java.util.concurrent.ConcurrentHashMap<String, Long>()
+                val thieving = server.world.thieving
+                val say = thieving.ownerSays
+                thieving.ownerSays = { npc, text -> said.putIfAbsent(text, server.world.tick); say(npc, text) }
                 client.npcOp(oliviaNpc.index, DraynorMarket.TALK_TO)
-                // Her two lines, the second a tick after the first. Read on the server: the second goes with her turning
-                // back, a block the headless client's NPC reader skips.
-                val said = mutableMapOf<String, Long>()
-                val deadline = System.nanoTime() + 10_000_000_000L
-                while (said.size < 2) {
-                    check(System.nanoTime() < deadline) { "Timed out waiting for her two lines: $said" }
-                    val tick = server.world.tick
-                    val say = oliviaNpc.effects.say
-                    if (say != null && say !in said && server.world.tick == tick) said[say] = tick
-                    // A tight spin: a line is only there between the NPC phase and the end of its tick.
-                    Thread.onSpinWait()
-                }
+                client.await("her two lines") { if (said.size == 2) Unit else null }
                 assertEquals(said.getValue("[thieving.owner_angry]") + 1, said.getValue("[thieving.guards]"))
                 val first = client.await("a guard's hit") { player.attackedBy }
                 // Within the 8 ticks a player's own hit would keep both on them, only the first guard does.
                 client.awaitTicks(2)
                 assertEquals(listOf(first), guards.filter { it.target === player })
-                val hitters = mutableSetOf(first)
-                val end = server.world.tick + 8
-                while (server.world.tick < end) {
-                    player.attackedBy?.let { hitters += it }
-                    Thread.sleep(5)
-                }
-                assertEquals(setOf(first), hitters)
+                client.awaitTicks(8)
+                assertEquals(listOf(first), guards.filter { it.target === player })
+                assertSame(first, player.attackedBy)
             }
         }
     }

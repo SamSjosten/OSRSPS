@@ -422,13 +422,13 @@ class MeleeCombat(
 
     /**
      * [npc] turns on [player] unprovoked, as a market guard does on a thief: it faces them and attacks from the next tick,
-     * as an aggressive monster does. The player hasn't hit it, so single-way combat holds: it doesn't leave a fight with
-     * another player, it doesn't join in once another NPC is hitting them, and of two guards sent at once only the first
-     * to land a hit keeps on. Does nothing to an NPC that can't fight.
+     * as an aggressive monster does, with [osrsps.game.combat.Aggression.huntable]'s single-way checks: it doesn't leave a
+     * fight with another player, nor join in while another NPC is hitting them or they are fighting one, and of two guards
+     * sent at once only the first to land a hit keeps on. Does nothing to an NPC that can't fight.
      */
     fun provoke(npc: Npc, player: Player, tick: Long) {
         if (npc.dead || combat.npcCombat[npc.type] == null) return
-        if (foughtByAnother(player, npc) || underAttackByAnother(player, npc)) return
+        if (foughtByAnother(player, npc) || underAttackByAnother(player, npc) || fightingAnother(player, npc)) return
         npc.face(player)
         aggress(npc, player, tick)
     }
