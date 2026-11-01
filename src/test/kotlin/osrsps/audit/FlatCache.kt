@@ -37,6 +37,34 @@ class FlatCache(private val dir: Path) {
         return split(data, fileIds.ifEmpty { listOf(0) })
     }
 
+    /** Calls [block] with every group of [index] and its files, in file order. */
+    fun groups(index: Int, block: (group: Int, files: Map<Int, ByteArray>) -> Unit) {
+        var group = -1
+        var contents: String? = null
+        val fileIds = ArrayList<Int>()
+        fun flush() {
+            val data = contents ?: return
+            block(group, split(unpack(Base64.getDecoder().decode(data)), fileIds.ifEmpty { listOf(0) }))
+        }
+        dir.resolve("$index.flatcache").useLines { lines ->
+            for (line in lines) {
+                val key = line.substringBefore('=')
+                val value = line.substringAfter('=')
+                when (key) {
+                    "id" -> {
+                        flush()
+                        group = value.toInt()
+                        contents = null
+                        fileIds.clear()
+                    }
+                    "contents" -> contents = value
+                    "file" -> fileIds += value.substringBefore('=').toInt()
+                }
+            }
+        }
+        flush()
+    }
+
     companion object {
         /** A JS5 container: compression type, compressed length, then (when compressed) the plain length and data. */
         fun unpack(container: ByteArray): ByteArray {

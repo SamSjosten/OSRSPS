@@ -197,4 +197,12 @@ object CombatMath {
 
     /** Hitpoints XP in tenths for [damage]: 1.33 a point (OSRS Wiki, Combat), rounded down in tenths (inferred). */
     fun hitpointsXpTenths(damage: Int): Int = damage * 40 / 3
+
+    /**
+     * [xpTenths] of combat XP for damage on a monster with the Wiki's XP bonus of [bonusTenths] tenths of a percent
+     * ([NpcCombatDef.xpBonusTenths]), rounded down in tenths. Inferred: the bonus is on the XP for damage, Hitpoints'
+     * too, and not on a spell's base XP for casting it.
+     */
+    fun withXpBonus(xpTenths: Int, bonusTenths: Int): Int =
+        if (bonusTenths == 0) xpTenths else (xpTenths.toLong() * (1000 + bonusTenths) / 1000).toInt()
 }

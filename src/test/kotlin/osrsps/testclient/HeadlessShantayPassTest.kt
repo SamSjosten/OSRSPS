@@ -34,7 +34,7 @@ class HeadlessShantayPassTest {
             LocType(ShantayPass.GATE, "Shantay pass", ops = listOf("Go-through", "Look-at", null, null, null), collision = LocCollisionType(width = 3)),
             LocType(ShantayPass.BANK_CHEST, "Bank chest", ops = listOf("Use", "Collect", null, null, null), collision = LocCollisionType()),
             LocType(ShantayPass.CELL_DOOR, "Prison door", ops = listOf("Open", null, null, null, null), collision = LocCollisionType()),
-            LocType(ShantayPass.PRISON_DOOR, "Door", ops = listOf("Open", "Pick-lock", null, null, null), collision = LocCollisionType()),
+            LocType(ShantayPass.PRISON_DOOR, "Door", ops = listOf("Open", null, null, null, "Pick-lock"), collision = LocCollisionType()),
         ).associateBy { it.id },
     )
 

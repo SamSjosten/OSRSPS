@@ -45,6 +45,33 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 cache that is running. The server won't start when that line names another revision than the one it plays
 (`Revision.MAJOR`), as clients of one revision can't use the other's files. A cache with no source line isn't checked.
 
+### Custom models
+
+`import-model` writes a Wavefront OBJ (from Blender, or the RS3 rip in the project files) as a model in the client's
+own format (`osrsps.cache.model`: the newest model format, which 35,124 of the 62,051 live models use, read and
+written as RuneLite's loader reads it). Every face gets one flat colour, from the material's colour or its texture
+times the vertex colours, snapped to the client's palette; y is turned over, as the client's y grows downwards.
+
+```bash
+./gradlew run --args="import-model lodestone.obj data/models/lodestone.dat --scale 0.25"   # RS3's 512 units a tile to 128
+```
+
+Options: `--scale f`, `--mirror-x`, `--flip-faces` (for a model that shows mirrored or inside out), `--priority n`
+(0 to 10) and `--alpha material=n` (0 opaque to 254) per material. The output is a plain model file.
+
+The server serves every `data/models/<id>.dat` as model `<id>` on top of the cache (`osrsps.cache.overlay`): at start
+it adds each to index 7's reference table, in memory, with the CRC of the container it sends, and puts the table's new
+CRC in the master index, so a client fetches the table again and then the model when a loc or NPC points at it. The
+cache files on disk stay the live cache. An id has to be above every live model (65,000 and up is safe for revision
+241) and below 65,536, which is all a JS5 request carries. A changed file is served at the next start; a client that
+had the old one sees the new CRC and fetches it again. Converted Jagex art stays in `data/`, outside git, like the cache.
+
+Loc types of our own that use such models are code: `game/content/CustomLocs.kt` lists them (ids from 65,000), each a
+`LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
+the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
+server decodes back for itself, so the client and the server see the same loc. The lodestones (`Lodestones.kt`) are
+the first: the server places the Lumbridge stone at start.
+
 ## Run the server
 
 ```bash
@@ -282,6 +309,8 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::los npcIndex` / `::los dx dz` | **everyone.** Distance, line of sight and hit delays from you to an NPC or a tile (see Line of sight) |
 | `::instance [radius]` / `::instance leave` | Makes a private copy of the map around you, `radius` zones each way (default 6, 13 x 13 zones), and puts you on the same spot in it; `leave` takes you back to where you made it (see Instances) |
+| `::raidparty` / `::raidparty invite\|accept\|kick name` / `::raidparty leave` | Shows your raid party, or invites a player to it (starting one you lead), joins the party of a leader who invited you, puts a member out, or leaves (see Raid parties) |
+| `::raidnpc id\|name [party size]` | Puts in a raid NPC on your tile with its hitpoints for a party of that size, or of your raid party's size, or of one alone (see Raid parties); `::delnpc mine` takes it out |
 | `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
 | `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
 | `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
@@ -299,7 +328,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, the party size and hitpoints of a raid NPC, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
@@ -983,6 +1012,21 @@ The words are in the dialogue file (keys `doris.*`, `evil_dave.*`, `hari.*`, `lu
 Dave, climbs the stairs, talks to Lucien and Hari, and tries each refused place; `EdgevillePeopleTest` does each talk's
 branches and `HeadlessEdgevillePeopleTest` the trapdoor, stairs, refusals, Doris and Lucien through the headless client.
 
+Step 3b is the outlaws' camp south-east of the town: spawns in `npc-spawns/edgeville.json`, combat and drops in
+`npc-combat.json` and `npc-drops.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Ten level 32 outlaws (`surok_outlaw1` to `10`, 4167 to 4176), one of each, in the camp at about 3116 to 3124, 3470 to 3477; not aggressive | mejrs's NPC list for the tiles; 241 cache (Attack only); the Wiki's Outlaw page; wander range guessed |
+| They crush for up to 3 (Strength 30, strength bonus -21), attack speed 4, no defence bonuses, back 4 ticks after the killing blow (the Wiki's 2, raised to the time the body stays, as for rats) | OSRS Wiki, Outlaw and the DPS calculator's 4167 (read 2026-11-01); the punch and block animations guessed |
+| The Wiki's XP bonus of -97.5%: a fortieth of the combat XP for their damage, Hitpoints' too, rounded down in tenths each hit (`xpBonus` in `npc-combat.json`, for any NPC) | OSRS Wiki, Outlaw; that it covers Hitpoints and not a spell's base XP is inferred |
+| Bones always and one roll: rope 46/128, the herb table 32/128, fishing bait, coins (5, 15, 25), cabbage, runes, a bronze med helm, copper ore, a knife | OSRS Wiki, Outlaw (members: herbs for the free-to-play 10 coins); its lines come to 127/128, so 1/128 of nothing is inferred |
+
+Left out: the shout before an attack, whose accuracy boost the Wiki has not confirmed. Check:
+`test-runner/examples/edgeville-outlaws.json` attacks an outlaw and kills it for its bones; `NpcCombatTest` and
+`NpcDropsTest` check the numbers, `CombatMathTest` the XP bonus, and `HeadlessEdgevilleOutlawsTest` kills one through
+the headless client for its 2 Attack XP.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
@@ -1357,6 +1401,32 @@ puts them at its exit. Blocks are kept a map square apart, so nobody in one sees
 --tests 'osrsps.testclient.HeadlessInstanceTest'` (two players in copies of the same spot can't see each other, and
 leaving puts them back), and in RuneLite `test-runner/examples/instance-castle.json` (the castle's large doors in a copy:
 shut, they block line of sight; opened, they don't; then back out).
+
+## Raid parties
+
+The Fractured Archive is fought by a party of 1 to 8 (raid step 11). `game/raid/Parties.kt` keeps who is in which party:
+the first member leads, and a party lasts until its last member leaves, so a wipe doesn't break it up. Every boss's
+hitpoints scale to the players in the raid, with a player alone counted as two (OSRS Wiki, The Fractured Archive).
+`game/raid/PartyScaling.kt` reads each raid NPC's hitpoints for parties of 1 to 8 from
+`src/main/resources/party-scaling.json`, copied from the NPC's Wiki page, as the Wiki gives no formula. Only the Archive
+Guardian is in it so far; each boss's step adds its own.
+
+| Party behaviour | Source |
+|-----------------|--------|
+| 1 to 8 players a party | Wiki, The Fractured Archive (participants) |
+| Hitpoints scaled to the party, a player alone counted as two | Wiki, The Fractured Archive |
+| The Archive Guardian's hitpoints: flying 550, 550, 800, 1,030, 1,260, 1,490, 1,720, 1,950 and grounded 1,100, 1,100, 1,600, 2,060, 2,520, 2,980, 3,440, 3,910 for 1 to 8 players | Wiki, Archive Guardian |
+| A party not disbanding after a wipe | Wiki, The Fractured Archive (28 October 2026 update) |
+| `::raidparty` instead of the lobby's Grouping Board, whose workings the Wiki doesn't give; its messages are this server's own | stand-in, until a recording shows the board |
+| Only the leader inviting and kicking; an invite lasting until it is taken up or the party ends; one party at a time | guessed |
+| A member who logs out leaving the party; a leader who leaves handing it to the member who joined next | guessed |
+| The party's hitpoints orbs | not in yet: waits for a recording of the raid's interface |
+
+`::raidnpc tfa_guardian 3` puts in the Archive Guardian scaled for 3, and `::npcs` shows the party size and hitpoints.
+Check: `./gradlew test --tests 'osrsps.game.raid.*' --tests 'osrsps.game.command.PartyCommandsTest'
+--tests 'osrsps.testclient.HeadlessPartyTest'` (the Guardian's hitpoints at 1, 2, 3 and 8 players are the Wiki's; three
+players form a party, the Guardian's hitpoints follow its size, it lasts through a death, and a member who logs out
+leaves), and in RuneLite `test-runner/examples/party-scaling.json` (the Guardian's hitpoints alone, for 3 and for 8).
 
 ## Line of sight
 

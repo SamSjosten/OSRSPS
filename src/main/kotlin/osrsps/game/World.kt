@@ -39,6 +39,7 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerInstanceCommands
+import osrsps.game.command.registerPartyCommands
 import osrsps.game.command.registerIpCommands
 import osrsps.game.command.registerGrandExchangeCommands
 import osrsps.game.command.registerItemCommands
@@ -112,6 +113,7 @@ import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerEdgevillePeople
 import osrsps.game.content.registerEdgevilleShops
 import osrsps.game.content.registerHaystacks
+import osrsps.game.content.registerLodestones
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerNed
@@ -144,6 +146,8 @@ import osrsps.game.npc.NpcInteractions
 import osrsps.game.npc.NpcScripts
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
+import osrsps.game.raid.Parties
+import osrsps.game.raid.PartyScaling
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -242,6 +246,8 @@ class World(
     npcCombat: NpcCombat = NpcCombat.NONE,
     /** What each NPC drops when it dies; see [NpcDrops]. */
     val npcDrops: NpcDrops = NpcDrops.NONE,
+    /** Raid NPCs' hitpoints by party size; see [PartyScaling]. */
+    val partyScaling: PartyScaling = PartyScaling.NONE,
     /** The bows, crossbows and ammunition [RangedCombat] fires; tests that shoot pass their own. */
     val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
     /** The combat spells [MagicCombat] casts; tests that cast pass their own. */
@@ -296,6 +302,9 @@ class World(
 
     /** Private copies of parts of the map; see [Instances]. */
     val instances = Instances(collision, staticLocs, locTypes)
+
+    /** Raid parties; see [Parties]. */
+    val parties = Parties()
 
     /** Fence gates, both leaves at once; see [Gates]. */
     val gates = Gates(locs)
@@ -628,6 +637,7 @@ class World(
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
         registerInstanceCommands(this@World)
+        registerPartyCommands(this@World)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
         registerGrandExchangeCommands(this@World)
@@ -677,6 +687,7 @@ class World(
         registerEdgevilleShops(this)
         registerEdgevillePeople(this)
         registerHaystacks(this)
+        registerLodestones(this)
         registerVarrock(this)
         registerCrops(this)
         ducks.register()
@@ -2648,6 +2659,7 @@ class World(
             thieving.forgive(player)
             friendChats.logout(player)
             clans.logout(player)
+            parties.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

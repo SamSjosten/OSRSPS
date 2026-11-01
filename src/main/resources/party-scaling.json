@@ -1,0 +1,15 @@
+{
+  "about": "Hitpoints of raid NPCs by party size, 1 to 8 players. From the OSRS Wiki's pages for each NPC (read 2026-11-01). The Fractured Archive page says every boss scales to the players in the raid, with a player alone counted as two, which the Wiki's tables agree with (1 and 2 players the same). No formula is given, so each NPC lists all eight.",
+  "npcs": [
+    {
+      "npcs": ["tfa_guardian"],
+      "hitpoints": [550, 550, 800, 1030, 1260, 1490, 1720, 1950],
+      "source": "OSRS Wiki, Archive Guardian (Flying)"
+    },
+    {
+      "npcs": ["tfa_guardian_unshielded"],
+      "hitpoints": [1100, 1100, 1600, 2060, 2520, 2980, 3440, 3910],
+      "source": "OSRS Wiki, Archive Guardian (Grounded)"
+    }
+  ]
+}
