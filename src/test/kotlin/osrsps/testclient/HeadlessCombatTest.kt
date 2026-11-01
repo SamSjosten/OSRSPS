@@ -81,7 +81,7 @@ class HeadlessCombatTest {
                 client.commandReply("pause") { it.startsWith("Paused after tick") }
                 client.commandReply("drain defence 1 man") { it.startsWith("Drained") }
                 client.stepTicks(NpcDrains.RESTORE_TICKS)
-                manLine(client, npc.index).let { assertTrue(it.endsWith("; drained defence 0/1, a level back in 1 ticks"), "not back yet: $it") }
+                manLine(client, npc.index).let { assertTrue(it.endsWith("; drained defence 0/1, a level back in 1 ticks; fighting no one"), "not back yet: $it") }
                 client.stepTicks(1)
                 manLine(client, npc.index).let { assertTrue("drained" !in it, "back a minute on: $it") }
                 client.commandReply("resume") { it.startsWith("Resumed") }

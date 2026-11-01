@@ -1,21 +1,24 @@
 {
- "name": "Single-way combat: a giant spider spawned beside a player fighting a man leaves them alone, and the man keeps hitting back, read off ::npcs",
+ "name": "Single-way combat: an aggressive giant spider spawned beside a player fighting a man leaves them alone, read off ::npcs",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account, combat level 3, at most twice the spider's 2; ::reset at the end puts the account back"},
   {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle, single-way, away from the courtyard's men"},
   {"step": "command", "text": "::aggro 0", "expectMessage": "0 ticks in the areas around", "comment": "the ten minutes start again, so the spider isn't tolerant of us"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now", "comment": "the man's punches don't count as hitting us, so only our own attacks on him can keep the spider off"},
   {"step": "command", "text": "::sure max", "expectMessage": "Your attacks can't miss and your melee hits deal their max now", "comment": "every punch takes 1 of the man's 7 hitpoints, so he shows as hurt"},
   {"step": "command", "text": "::npc man", "expectMessage": "Spawned Man"},
   {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000},
   {"step": "assertHitsplat", "npc": "Man", "timeoutMs": 20000},
-  {"step": "command", "text": "::npc giantspider1", "expectMessage": "Spawned Giant spider", "comment": "beside us, aggressive; without the fix it went for us and the man gave up on us"},
+  {"step": "command", "text": "::npc giantspider1", "expectMessage": "Spawned Giant spider", "comment": "beside us, aggressive"},
   {"step": "waitTicks", "ticks": 10},
+  {"step": "command", "text": "::npcs 3", "expectMessage": "wander 0; fighting no one", "comment": "the spider, unhurt, left us alone; the man's line has his hitpoints before who he fights"},
   {"step": "command", "text": "::npcs 3", "expectMessage": "/7 hp; fighting test", "comment": "the man, hurt, still fights us"},
   {"step": "command", "text": "::fight", "expectMessage": "You are fighting Man #"},
   {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed 2 NPCs you put in."},
   {"step": "command", "text": "::sure off", "expectMessage": "Your attacks can miss again"},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

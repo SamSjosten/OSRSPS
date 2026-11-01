@@ -60,7 +60,7 @@ class HeadlessAggressionTest {
                     // Bob leaves, and after ten minutes by it he is tolerated anyway.
                     bob.commandReply("tele 3222 3218") { it.startsWith("Teleported") }
                     alice.stepTicks(1)
-                    assertTrue(!spiderLine(alice).contains("fighting"), "it lets bob go once he is out of its range")
+                    assertTrue(spiderLine(alice).endsWith("; fighting no one"), "it lets bob go once he is out of its range")
                     bob.commandReply("tele 3246 3219") { it.startsWith("Teleported") }
                     alice.stepTicks(1)
                     assertTrue(spiderLine(alice).endsWith("; fighting bob"), "bob is still the nearer")
