@@ -142,7 +142,13 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
 - The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
   `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases"). 1.0.1
   the same day: the Windows runtime lacked the certificate store module (`jdk.crypto.mscapi`), so the game exited at
-  once; a 1.0.0 launcher sends its user to the download page for the new installer.
+  once; a 1.0.0 launcher sends its user to the download page for the new installer. 1.0.2 is this repository's last
+  launcher release and the bridge to the launcher's own public repository OdinsGate (`github.com/SamSjosten/OdinsGate`),
+  where the launcher, the download page (`https://samsjosten.github.io/OdinsGate/`) and every later release live: it
+  raises the minimum shell version above every launcher installed from here, so each shows "Please download the new
+  installer." and this page's buttons lead to OdinsGate's installer (the installed shell checks the repository built
+  into it, so no self-update could move it over). The pull request after it removes `launcher/`, `docs/` and the
+  launcher workflows from here.
 
 ### Files for our own launcher
 
