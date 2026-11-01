@@ -140,6 +140,66 @@ class HeadlessThievingTest {
         }
     }
 
+    @Test
+    fun `of two guards Olivia calls, only one fights in single-way combat`(@TempDir dir: Path) {
+        // Olivia 7 tiles off, out of sight of the theft.
+        server(dir, listOf(NpcSpawn(olivia, 3222, 3211, source = "test"))).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("god on")
+                client.command("varp 172 1")
+                client.command("setlevel thieving 27")
+                client.await("level 27") { client.stat(THIEVING)?.takeIf { it.level == 27 } }
+                client.locOp(SEED_STALL, 3224, 3218, 2)
+                client.await("a seed") { client.items().singleOrNull() }
+                val player = server.world.onlinePlayers.single()
+                val oliviaNpc = server.world.npcs.all.single { it.spawn.type.id == Thieving.OLIVIA }
+                // Two guards by her, in sight of the player, when the player next deals with her.
+                val guards = listOf(3221, 3223).map { x -> server.world.npcs.add(NpcSpawn(guard, x, 3213, source = "test"))!! }
+                client.awaitTicks(1)
+                assertTrue(server.world.thieving.refuses(player, oliviaNpc, server.world.tick))
+                val first = client.await("a guard's hit") { player.attackedBy }
+                // Within the 8 ticks a player's own hit would keep both on them, only the first guard does.
+                client.awaitTicks(2)
+                assertEquals(listOf(first), guards.filter { it.target === player })
+                val hitters = mutableSetOf(first)
+                val end = server.world.tick + 8
+                while (server.world.tick < end) {
+                    player.attackedBy?.let { hitters += it }
+                    Thread.sleep(5)
+                }
+                assertEquals(setOf(first), hitters)
+            }
+        }
+    }
+
+    @Test
+    fun `an owner's ban ends at logout`(@TempDir dir: Path) {
+        server(dir, listOf(NpcSpawn(olivia, 3222, 3211, source = "test"))).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel thieving 27")
+                client.await("level 27") { client.stat(THIEVING)?.takeIf { it.level == 27 } }
+                client.locOp(SEED_STALL, 3224, 3218, 2)
+                client.await("a seed") { client.items().singleOrNull() }
+                val oliviaNpc = server.world.npcs.all.single { it.spawn.type.id == Thieving.OLIVIA }
+                assertTrue(server.world.thieving.refuses(server.world.onlinePlayers.single(), oliviaNpc, server.world.tick))
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            val deadline = System.nanoTime() + 10_000_000_000L
+            while (server.world.playerCount != 0) {
+                check(System.nanoTime() < deadline) { "Timed out waiting for the logout" }
+                Thread.sleep(10)
+            }
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                val oliviaNpc = server.world.npcs.all.single { it.spawn.type.id == Thieving.OLIVIA }
+                assertEquals(false, server.world.thieving.refuses(server.world.onlinePlayers.single(), oliviaNpc, server.world.tick))
+            }
+        }
+    }
+
     private companion object {
         const val SEED_STALL = 7053
         const val WINE_STALL = 14011

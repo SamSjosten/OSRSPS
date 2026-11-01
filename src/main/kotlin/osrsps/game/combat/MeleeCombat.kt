@@ -421,13 +421,15 @@ class MeleeCombat(
     }
 
     /**
-     * [npc] turns on [player] unprovoked, as a market guard does on a thief: it attacks from the next tick, as when hit.
-     * Does nothing to an NPC that can't fight.
+     * [npc] turns on [player] unprovoked, as a market guard does on a thief: it faces them and attacks from the next tick,
+     * as an aggressive monster does. The player hasn't hit it, so single-way combat holds: once another NPC is hitting
+     * them it doesn't join in, and of two guards sent at once only the first to land a hit keeps on. Does nothing to an
+     * NPC that can't fight.
      */
     fun provoke(npc: Npc, player: Player, tick: Long) {
-        if (npc.dead || combat.npcCombat[npc.type] == null) return
-        attacked(npc, player, tick)
-        retaliate(npc, player, tick)
+        if (npc.dead || combat.npcCombat[npc.type] == null || underAttackByAnother(player, npc)) return
+        npc.face(player)
+        aggress(npc, player, tick)
     }
 
     /** [npc] is in combat with [source] (null for none) from [tick], and faces them. */

@@ -78,6 +78,8 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
     private suspend fun ScriptContext.steal(op: Op, stall: Stall) {
         val loc = op.loc ?: return
         arriveDelay()
+        // Another thief may have emptied it while this one arrived.
+        if (!world.locs.exists(loc)) return
         val text = world.textFor(player)
         if (player.attackedTick >= 0 && player.attackedTick + COMBAT_TICKS > tick) {
             player.message(text[ThievingLines.IN_COMBAT])
@@ -105,8 +107,8 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
         }
         val obj = pick(stall)
         val type = world.objTypes[obj] ?: error("No obj type $obj for stall ${stall.loc}")
+        world.locs.replace(loc, stall.empty, revertAfter = stall.respawnTicks) ?: return
         player.anim(ANIM_STEAL)
-        world.locs.replace(loc, stall.empty, revertAfter = stall.respawnTicks)
         player.inventory.add(type, 1)
         player.skills.addTenths(Skill.THIEVING, stall.xpTenths)
         player.message(text[ThievingLines.STOLEN, "item" to type.name])
@@ -153,7 +155,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
         return true
     }
 
-    /** Every owner forgets [player]'s thefts (`::reset`). */
+    /** Every owner forgets [player]'s thefts: `::reset`, and logging out (the bans aren't saved). */
     fun forgive(player: Player) {
         refusedUntil.keys.removeAll { it.first == player.username }
     }

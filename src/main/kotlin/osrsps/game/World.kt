@@ -2490,6 +2490,7 @@ class World(
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
             trades.leave(player)
+            thieving.forgive(player)
             friendChats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)
