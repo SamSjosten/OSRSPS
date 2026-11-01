@@ -44,8 +44,6 @@ class ClanStore(private val file: Path? = null) {
         if (file != null && Files.exists(file)) load(file)
     }
 
-    fun all(): Collection<Clan> = clans.values
-
     /** The clan [key] (a save key) is a member of, or null. */
     fun clanOf(key: String): Clan? = clans.values.firstOrNull { it.member(key) != null }
 

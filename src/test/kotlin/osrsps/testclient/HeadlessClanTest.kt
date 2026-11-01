@@ -45,6 +45,9 @@ class HeadlessClanTest {
     private fun HeadlessClient.listed(): List<String> =
         clientScripts().lastOrNull { it.id == Clans.SCRIPT_LIST_PLAYERS }?.args?.drop(1)?.take(Clans.MAX_FOUNDERS)?.map { it as String }.orEmpty()
 
+    /** The name client script 4447 last put on the creation panel's name button. */
+    private fun HeadlessClient.shownName(): String? = clientScripts().lastOrNull { it.id == Clans.SCRIPT_UPDATE_BUTTON }?.args?.last() as String?
+
     @Test
     fun `three founders form a clan at the Hub, it is kept, and its members chat in its channel`(@TempDir dir: Path) {
         server(dir).use { server ->
@@ -163,6 +166,13 @@ class HeadlessClanTest {
                     alice.awaitTicks(2)
                     alice.resumeString("Hourless")
                     alice.saw("[clan.name_available name=Hourless]")
+                    alice.await("the name on the button") { alice.shownName()?.takeIf { it == "Hourless" } }
+                    // Grouping isn't built: clicking it leaves the creation panel working, renaming included.
+                    alice.ifButton(Clans.SIDE_CHANNELS, 5, 1)
+                    alice.ifButton(Clans.CREATION, Clans.CREATION_NAME, 1)
+                    alice.awaitTicks(2)
+                    alice.resumeString("Hourly")
+                    alice.await("the new name on the button") { alice.shownName()?.takeIf { it == "Hourly" } }
                     // Neither has played an hour.
                     alice.ifButton(Clans.CREATION, Clans.CREATION_CONFIRM, 1)
                     alice.saw("[clan.not_enough_hours names=alice, bob hours=1]")
@@ -170,6 +180,9 @@ class HeadlessClanTest {
                     alice.commandReply("tele 3222 3218") { it.startsWith("Teleported") }
                     bob.saw("[clan.cancelled]")
                     assertNull(server.world.clans.formingOf(server.world.playerNamed("bob")!!))
+                    // Back in the Hub with no group, her panel loses the old name.
+                    alice.toHub()
+                    alice.await("the name cleared") { alice.shownName()?.takeIf { it.isEmpty() } }
                 }
             }
         }

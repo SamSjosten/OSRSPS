@@ -78,6 +78,12 @@ class Clans(
     /** Players who were in the Clan Hub at their last [process]. */
     private val inHub = HashSet<String>()
 
+    /**
+     * The group name client script 4447 last gave each player's client, which keeps it (varc clan_create_name) and
+     * shows it again whenever the creation panel opens; absent while it keeps none.
+     */
+    private val shownName = HashMap<String, String>()
+
     private var updateNum = 0L
 
     fun clanOf(player: Player): ClanStore.Clan? = store.clanOf(player.saveKey)
@@ -127,6 +133,7 @@ class Clans(
         clanOf(player)?.let { leaveChannel(player, it, tell = false) }
         tabs.remove(player.saveKey)
         inHub.remove(player.saveKey)
+        shownName.remove(player.saveKey)
     }
 
     /** Every tick: walking into or out of the Clan Hub changes the "Your Clan" page of someone without a clan. */
@@ -164,13 +171,14 @@ class Clans(
 
     /** A click on one of the Clans tab's four tabs: the page it shows. The chat-channel page is the friends chat's. */
     fun selectTab(player: Player, tab: Int, openChatChannel: (Player) -> Unit) {
+        // Grouping isn't built: the page, and the tab this tracks, stay as they were.
+        if (tab !in TAB_CHAT_CHANNEL..TAB_OTHER_CLAN) return
         tabs[player.saveKey] = tab
         setVarbit(player, VARBIT_TAB_SELECTED, tab)
         when (tab) {
             TAB_CHAT_CHANNEL -> openChatChannel(player)
             TAB_YOUR_CLAN -> openYourClan(player)
             TAB_OTHER_CLAN -> openContents(player, GUEST_SIDEPANEL)
-            // Grouping isn't built; the page stays as it was.
         }
     }
 
@@ -456,9 +464,20 @@ class Clans(
         setVarbit(player, VARBIT_FOUNDER, if (leader) 1 else 0)
         setVarbit(player, VARBIT_FOUNDER_MEMBER, if (leader) 0 else 1)
         runClientScript(player, SCRIPT_LIST_PLAYERS, listOf<Any>(component(CREATION, CREATION_CONTENTS)) + names.take(MAX_FOUNDERS) + player.username)
-        group?.name?.let { name ->
-            runClientScript(player, SCRIPT_UPDATE_BUTTON, listOf(component(CREATION, CREATION_UNIVERSE), component(CREATION, CREATION_NAME), ENUM_CREATION_BUTTONS, name))
+        val name = group?.name
+        if (name != null && shownName[player.saveKey] != name) {
+            updateNameButton(player, name)
+            shownName[player.saveKey] = name
+        } else if (name == null && shownName.remove(player.saveKey) != null) {
+            // Back to the unnamed button: clear the name script 4447 keeps, then open the panel again, so its onload
+            // script draws the button as it does for a group with no name.
+            updateNameButton(player, "")
+            openYourClan(player)
         }
+    }
+
+    private fun updateNameButton(player: Player, name: String) {
+        runClientScript(player, SCRIPT_UPDATE_BUTTON, listOf(component(CREATION, CREATION_UNIVERSE), component(CREATION, CREATION_NAME), ENUM_CREATION_BUTTONS, name))
     }
 
     private fun refresh(group: Forming) {
