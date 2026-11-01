@@ -282,6 +282,7 @@ class MagicCombat(
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
         val landTick = tick + HitDelay.MAGIC.ticks(distance) + HitDelay.ON_NPC
         if (spell.travel >= 0) projectile(flight(player, npc, spell.travel, landTick - tick))
+        melee.attackMade(player, npc, tick)
         val hit = roll(player, npc, spell, matchup, landTick, defensive)
         player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
         if (spell.area && multi.at(npc.level, npc.x, npc.z)) {

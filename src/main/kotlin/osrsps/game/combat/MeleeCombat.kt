@@ -214,21 +214,21 @@ class MeleeCombat(
         npc.attacker === player && currentTick() - npc.attackedTick <= IN_COMBAT_TICKS
 
     /**
-     * Whether [player] is fighting an NPC other than [npc]: their attack is on one, or they hit one within the last
-     * [IN_COMBAT_TICKS] ticks and it still stands. Never for a player standing in a multi-way area (by the player's
-     * tile, as [underAttackByAnother]). So an aggressive monster doesn't join in on a single-way fight.
+     * Whether [player] is fighting an NPC other than [npc]: they attacked one (a swing, shot or cast made, not just
+     * clicked, so a bow with no arrows doesn't count) or hit one within the last [IN_COMBAT_TICKS] ticks, and it still
+     * stands. Never for a player standing in a multi-way area (by the player's tile, as [underAttackByAnother]). So an
+     * aggressive monster doesn't join in on a single-way fight.
      */
     internal fun fightingAnother(player: Player, npc: Npc): Boolean {
         if (multi.at(player.level, player.x, player.z)) return false
-        val attacking = when (val interaction = player.interaction) {
-            is MeleeInteraction -> interaction.npc
-            is RangedInteraction -> interaction.npc
-            is MagicInteraction -> interaction.npc
-            else -> null
-        }
-        if (attacking != null && attacking !== npc && !attacking.dead) return true
-        val hit = player.hitNpc ?: return false
-        return hit !== npc && !hit.dead && npcs[hit.index] === hit && currentTick() - player.hitNpcTick <= IN_COMBAT_TICKS
+        val other = player.attackedNpc ?: return false
+        return other !== npc && !other.dead && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
+    }
+
+    /** [player] made an attack on [npc] on [tick], whatever it does when it lands; see [fightingAnother]. */
+    internal fun attackMade(player: Player, npc: Npc, tick: Long) {
+        player.attackedNpc = npc
+        player.attackedNpcTick = tick
     }
 
     /**
@@ -319,6 +319,7 @@ class MeleeCombat(
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
         val poison = PoisonedWeapons.melee(combat.weapon(player))
+        attackMade(player, npc, tick)
         landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect }, maxHit)
     }
 
@@ -424,8 +425,8 @@ class MeleeCombat(
         npc.attacker = source
         if (source != null) {
             npc.lastAttacker = source
-            source.hitNpc = npc
-            source.hitNpcTick = tick
+            source.attackedNpc = npc
+            source.attackedNpcTick = tick
         }
         npc.attackedTick = tick
         npc.holdTicks = IN_COMBAT_TICKS

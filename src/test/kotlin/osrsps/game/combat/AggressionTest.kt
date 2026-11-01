@@ -217,8 +217,13 @@ class AggressionTest {
         val npc = spawn(spider)
         val other = spawn(spider, 3224, 3220)
         at(alice, 3221, 3220)
-        alice.hitNpc = other
-        alice.hitNpcTick = tick
+        // A click on the other one isn't a fight until an attack is made: a bow with no arrows never makes one.
+        alice.interaction = MeleeInteraction(other, melee)
+        process()
+        assertSame(alice, npc.target, "only clicked")
+        melee.endFights(alice)
+        alice.attackedNpc = other
+        alice.attackedNpcTick = tick
         repeat(MeleeCombat.IN_COMBAT_TICKS.toInt() - 1) { process() }
         assertNull(npc.target, "she hit the other one lately")
         multi.set(0, 3221, 3220, true)
@@ -226,8 +231,8 @@ class AggressionTest {
         assertSame(alice, npc.target, "multi-way")
         val third = spawn(spider, 3240, 3240)
         at(alice, 3241, 3240)
-        alice.hitNpc = other
-        alice.hitNpcTick = tick
+        alice.attackedNpc = other
+        alice.attackedNpcTick = tick
         repeat(MeleeCombat.IN_COMBAT_TICKS.toInt()) { process() }
         assertNull(third.target, "still in her fight")
         process()
