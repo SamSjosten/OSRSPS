@@ -1,9 +1,15 @@
 {
- "name": "Lodestone step 4: the Lumbridge stone is drawn outside the castle's east gate with Activate, and Activate shows the active stone with Teleport for 30 seconds (a look for Sam; no teleport yet)",
+ "name": "Lodestone step 4: the Lumbridge stone is drawn outside the castle's east gate with Activate, and Activate shows the active stone with Teleport for 30 seconds (::keys on; a look for Sam; no teleport yet)",
  "account": "test",
  "steps": [
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "the examine shows its key whether or not the words are in data/dialogue.txt"
   },
   {
    "step": "command",
@@ -44,7 +50,7 @@
   {
    "step": "assertMessage",
    "contains": "examine.loc_65000",
-   "comment": "the key until the Words thread writes the text; with words, the text itself"
+   "comment": "the key (::keys on); the words themselves are the Words thread's"
   }
  ]
 }
