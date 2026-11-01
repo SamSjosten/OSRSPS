@@ -99,10 +99,13 @@ class Instances(private val collision: CollisionMap, private val staticLocs: Sta
                 // Off the cache's maps there is nothing to copy; the zone stays out of the world, as its original is.
                 if (collision[(fromZoneX + dx) shl 3, (fromZoneZ + dz) shl 3, 0] == CollisionFlag.UNLOADED) continue
                 for (level in 0 until LEVELS) {
-                    copy(instance, ZoneKey(fromZoneX + dx, fromZoneZ + dz, level), ZoneKey((instance.baseX shr 3) + dx, (instance.baseZ shr 3) + dz, level))
+                    copyTerrain(instance, ZoneKey(fromZoneX + dx, fromZoneZ + dz, level), ZoneKey((instance.baseX shr 3) + dx, (instance.baseZ shr 3) + dz, level))
                 }
             }
         }
+        // The locs once every zone's terrain is in, so a loc whose flags reach into the next zone (a wall's other side,
+        // a big object) keeps them there.
+        for ((to, from) in instance.sources.entries.toList()) copyLocs(instance, from, ZoneKey(to))
         return instance
     }
 
@@ -131,19 +134,25 @@ class Instances(private val collision: CollisionMap, private val staticLocs: Sta
         return RebuildRegionZone(source.x, source.z, source.level, 0)
     }
 
-    private fun copy(instance: Instance, from: ZoneKey, to: ZoneKey) {
+    /** The terrain's own flags of zone [from], into [to]; [copyLocs] adds the locs' after. */
+    private fun copyTerrain(instance: Instance, from: ZoneKey, to: ZoneKey) {
         instance.sources[to.packed] = from
         if (to.level == 0) collision.markZoneLoaded(to.x, to.z)
+        for (x in 0 until ZoneKey.SIZE) {
+            for (z in 0 until ZoneKey.SIZE) {
+                collision.set(to.baseX + x, to.baseZ + z, to.level, collision.stored(from.baseX + x, from.baseZ + z, from.level) and Locs.TERRAIN)
+            }
+        }
+    }
+
+    /**
+     * Zone [from]'s cache locs, into [to], with their collision as the map loader builds it; a wall on the copy's edge
+     * flags the tile beyond only when that tile is the instance's too.
+     */
+    private fun copyLocs(instance: Instance, from: ZoneKey, to: ZoneKey) {
         val dx = to.baseX - from.baseX
         val dz = to.baseZ - from.baseZ
         val level = to.level
-        // The terrain's own flags, then each cache loc's, as the map loader builds them; a wall on the copy's edge flags
-        // the tile beyond only when that tile is the instance's too.
-        for (x in 0 until ZoneKey.SIZE) {
-            for (z in 0 until ZoneKey.SIZE) {
-                collision.set(to.baseX + x, to.baseZ + z, level, collision.stored(from.baseX + x, from.baseZ + z, level) and Locs.TERRAIN)
-            }
-        }
         val cells = LocCollision(collision)
         staticLocs.forEachInZone(from.baseX, from.baseZ, level) { loc ->
             val copied = loc.copy(x = loc.x + dx, z = loc.z + dz)

@@ -258,12 +258,34 @@ class Deaths(
         return grave
     }
 
+    /**
+     * Moves every grave whose NPC [inside] holds for to [x], [z], [level], with its owner, items and time left: for a
+     * place that is going away (an instance ending). Anyone with one open has it closed.
+     */
+    fun moveGraves(inside: (Npc) -> Boolean, x: Int, z: Int, level: Int) {
+        for (grave in graves.values.filter { inside(it.npc) }) {
+            graves.remove(grave.npc)
+            removeNpc(grave.npc)
+            closeViewers(grave)
+            val npc = spawnNpc(NpcSpawn(grave.npc.spawn.type, x, z, level, source = grave.npc.spawn.source))
+            if (npc == null) {
+                logger.warn { "No room to move ${grave.owner}'s grave to $x, $z, $level: ${grave.items.contents().size} slots lost" }
+                continue
+            }
+            graves[npc] = Grave(grave.owner, npc, grave.items).also { it.ticksLeft = grave.ticksLeft }
+        }
+    }
+
+    private fun closeViewers(grave: Grave) {
+        viewing.values.removeIf { it === grave }
+        for (viewer in players()) if (viewing[viewer.saveKey] == null && hasOpen(viewer)) closeModals(viewer)
+    }
+
     /** The grave falls: its NPC goes and its contents with it (Death's Office isn't built), and the owner is told. */
     private fun collapse(grave: Grave) {
         graves.remove(grave.npc)
         removeNpc(grave.npc)
-        viewing.values.removeIf { it === grave }
-        for (viewer in players()) if (viewing[viewer.saveKey] == null && hasOpen(viewer)) closeModals(viewer)
+        closeViewers(grave)
         val owner = findPlayer(grave.owner) ?: return
         if (!grave.items.isEmpty()) message(owner, words(owner)[CombatLines.GRAVE_COLLAPSED])
     }

@@ -399,7 +399,9 @@ class World(
 
     private val follows = Follows(movement, { players[it.index] === it })
 
-    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor)
+    private val locInteractions = LocInteractions(
+        locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
+    )
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
@@ -2473,7 +2475,12 @@ class World(
         for (player in players) {
             if (player != null && instance.contains(player.x, player.z)) teleport(player, instance.exitX, instance.exitZ, instance.exitLevel)
         }
+        // A grave in it goes to the exit, so what its owner lost can still be taken back. Guessed.
+        deaths.moveGraves({ instance.contains(it.x, it.z) }, instance.exitX, instance.exitZ, instance.exitLevel)
         for (npc in npcs.all.toList()) if (instance.contains(npc.x, npc.z)) removeNpc(npc)
+        // Nothing that was due there later comes back into the block, which the next instance may have by then.
+        meleeCombat.forgetArea(instance::contains)
+        firemaking.forgetArea(instance::contains)
         groundObjs.forgetArea(instance.baseX, instance.baseZ, instance.maxX, instance.maxZ)
         locs.forgetArea(instance.baseX, instance.baseZ, instance.maxX, instance.maxZ)
         zones.forgetArea(instance.baseX shr 3, instance.baseZ shr 3, instance.maxX shr 3, instance.maxZ shr 3)

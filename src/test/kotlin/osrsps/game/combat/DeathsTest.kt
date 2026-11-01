@@ -308,6 +308,29 @@ class DeathsTest {
     }
 
     @Test
+    fun `a grave moved off a place that is going away keeps its owner, items and time, and still takes her deaths`() {
+        val grave = aliceDies()
+        tick(100)
+        val left = grave.ticksLeft
+        deaths.moveGraves({ it.x == 3212 }, 3222, 3218, 0)
+        assertEquals(listOf(grave.npc), removed)
+        val moved = deaths.graveOf(alice)!!
+        assertEquals(Triple(3222, 3218, 0), Triple(moved.npc.x, moved.npc.z, moved.npc.level))
+        assertEquals(grave.items.contents(), moved.items.contents())
+        assertEquals(left, moved.ticksLeft)
+        assertEquals(listOf(moved.npc), npcs.all.toList())
+        // Her next death adds to it there.
+        alice.inventory.add(bones, 1)
+        alice.hitpoints = 0
+        deaths.die(alice)
+        tick(Deaths.DEATH_TICKS)
+        assertEquals(moved, deaths.graveOf(alice))
+        assertEquals(2L, moved.items.count(bones.id))
+        assertTrue(npcOp(alice, moved.npc, Deaths.LOOT))
+        assertEquals(Deaths.GRAVESTONE, alice.modals[FrameSlot.MAINMODAL])
+    }
+
+    @Test
     fun `the gravestone does nothing from more than two tiles away, and the grave counts down meanwhile`() {
         val grave = aliceDies()
         npcOp(alice, grave.npc, Deaths.LOOT)

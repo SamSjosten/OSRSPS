@@ -53,6 +53,20 @@ class InstancesTest {
     }
 
     @Test
+    fun `a wall on a zone's east edge keeps its other side, in the next zone, in the copy`() {
+        // On the east edge of 3215, 3212: the last tile of the zone from 3208; its other side is 3216's west edge.
+        val east = ZoneLoc(WALL, LocShape.WALL_STRAIGHT, 2, 3215, 3212, 0)
+        static.add(east)
+        LocCollision(map).addLoc(LocCollisionType(), east.x, east.z, 0, east.shape, east.angle)
+        assertTrue(map[3216, 3212, 0] and CollisionFlag.WALL_WEST != 0, "as the map loader leaves it")
+        val instance = create()
+        val dx = instance.baseX - 3208
+        val dz = instance.baseZ - 3208
+        assertEquals(map[3215, 3212, 0], map[3215 + dx, 3212 + dz, 0])
+        assertEquals(map[3216, 3212, 0], map[3216 + dx, 3212 + dz, 0], "its other side")
+    }
+
+    @Test
     fun `the rest of its block, and the margin round it, are off the map`() {
         val instance = create()
         assertEquals(CollisionFlag.UNLOADED, map[instance.baseX + 16, instance.baseZ, 0], "the zone east of the copy")

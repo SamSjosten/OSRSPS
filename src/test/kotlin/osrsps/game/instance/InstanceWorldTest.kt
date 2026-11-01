@@ -7,21 +7,32 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.ObjType
 import osrsps.game.MemorySaveStore
+import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
 import osrsps.game.PlayerSave
+import osrsps.game.SeqNames
 import osrsps.game.World
+import osrsps.game.combat.NpcCombat
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.skill.Firemaking
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocShape
 
 /** What the world does with instances: ending one with everything in it, and never saving anyone in one. */
 class InstanceWorldTest {
-    private val man = NpcType(3106, "Man", internalName = "man")
+    private val man = NpcType(3106, "Man", internalName = "man", stats = NpcStats(hitpoints = 7))
+    private val types = NpcTypes.of(man)
+    private val npcCombat = NpcCombat.parse(
+        """{ "npcs": [ { "npcs": ["man"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+            "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+            "anims": { "attack": null, "defend": null, "death": null }, "respawnTicks": 25, "source": "test" } ] }""",
+        types, SeqNames.NONE,
+    )
     private val saves = MemorySaveStore()
-    private val world = World(IntArray(0), CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, saves = saves, npcTypes = NpcTypes.of(man))
+    private val world = World(IntArray(0), CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, saves = saves, npcTypes = types, npcCombat = npcCombat)
     private val instance = assertNotNull(world.instances.create(3216, 3216, 2, 2, 3222, 3218, 0))
     private val inside = Pair(instance.baseX + 3, instance.baseZ + 3)
 
@@ -41,6 +52,21 @@ class InstanceWorldTest {
         assertNull(world.instances.at(inside.first, inside.second))
         // A respawn into it has nowhere to go.
         assertNull(world.spawnNpc(NpcSpawn(man, inside.first, inside.second, source = "test")))
+    }
+
+    @Test
+    fun `nothing due in an ended instance later comes back into its block, an NPC respawn or a fire going out`() {
+        val npc = assertNotNull(world.spawnNpc(NpcSpawn(man, inside.first, inside.second, source = "test")))
+        world.meleeCombat.hit(npc, null, npc.hitpoints, world.tick)
+        assertEquals(1, world.meleeCombat.pendingRespawns().size)
+        world.firemaking.burn(ZoneLoc(Firemaking.FIRE, LocShape.CENTREPIECE_STRAIGHT, 0, inside.first + 1, inside.second, 0), world.tick + 100)
+        assertEquals(1, world.firemaking.burning)
+        world.endInstance(instance)
+        assertEquals(emptyList(), world.meleeCombat.pendingRespawns())
+        assertEquals(0, world.firemaking.burning)
+        // The next instance gets the same block, with nothing of the last one's in it.
+        val next = assertNotNull(world.instances.create(3216, 3216, 2, 2, 3222, 3218, 0))
+        assertEquals(instance.baseX to instance.baseZ, next.baseX to next.baseZ)
     }
 
     @Test

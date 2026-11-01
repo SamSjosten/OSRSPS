@@ -1327,7 +1327,8 @@ locs with their collision. Walking, doors and line of sight then work as in the 
 REBUILD_REGION, which tells the client to draw each zone of the block from the original's map data. Outside one, they get
 the usual REBUILD_NORMAL, also after a step into or out of one.
 
-An instance ends once nobody is in it, with its NPCs, ground items and loc changes. A player who loses their connection
+An instance ends once nobody is in it, with its NPCs, ground items and loc changes, and the respawns and fires due there
+later; a grave in it moves to its exit. A player who loses their connection
 still counts until they are removed, so a reconnect finds it. Nobody is saved in an instance: a save, a logout included,
 puts them at its exit. Blocks are kept a map square apart, so nobody in one sees anyone in another.
 
@@ -1338,9 +1339,11 @@ puts them at its exit. Blocks are kept a map square apart, so nobody in one sees
 | An instance starts as the cache has it: changes in the original (an open door) aren't copied | guessed |
 | The client told to reload the region on each REBUILD_REGION | guessed |
 | An instance ending as soon as nobody is in it; saves at its exit | guessed; raids that keep a place for a disconnected player come with parties |
+| A grave left in an ended instance moving to its exit, with its items and time left | guessed |
+| Only doors and gates working on copied locs; content's handlers, written for the original's tiles (the Al Kharid toll gate), not run there, so the player is told "Nothing interesting happens." | guessed, until the raid's rooms bring handlers of their own |
 | Unrotated copies only | not in yet: the raid's rooms bring rotation if they need it |
 
-`::instance` makes one around you for testing. Check: `./gradlew test --tests 'osrsps.game.instance.InstancesTest'
+`::instance` makes one around you for testing. Check: `./gradlew test --tests 'osrsps.game.instance.*'
 --tests 'osrsps.testclient.HeadlessInstanceTest'` (two players in copies of the same spot can't see each other, and
 leaving puts them back), and in RuneLite `test-runner/examples/instance-castle.json` (the castle's large doors in a copy:
 shut, they block line of sight; opened, they don't; then back out).
