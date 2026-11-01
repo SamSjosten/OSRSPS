@@ -359,6 +359,12 @@
   },
   {
    "step": "command",
+   "text": "::setlevel smithing 99",
+   "expectMessage": "Smithing set to level 99",
+   "comment": "so the bar levels nothing up: at a server XP rate above 1x one bar from level 1 opens a level-up box that blocks the chat"
+  },
+  {
+   "step": "command",
    "text": "::item 436",
    "expectMessage": "Added 1 x Copper ore"
   },
