@@ -52,7 +52,7 @@ class HeadlessShantayPassTest {
                 add(ZoneLoc(ShantayPass.BANK_CHEST, LocShape.CENTREPIECE_STRAIGHT, 3, 3309, 3120, 0))
                 // The cell door on the cell's east edge, and the Port Sarim cell door on its arrival tile's south edge.
                 add(ZoneLoc(ShantayPass.CELL_DOOR, LocShape.WALL_STRAIGHT, 2, 3297, 3124, 0))
-                add(ZoneLoc(ShantayPass.PRISON_DOOR, LocShape.WALL_STRAIGHT, 3, ShantayPass.PRISON_X, ShantayPass.PRISON_Z, 0))
+                add(ZoneLoc(ShantayPass.PRISON_DOOR, LocShape.WALL_STRAIGHT, 3, DOOR_X, ShantayPass.PRISON_Z, 0))
             },
             npcTypes = NpcTypes.of(shantay, gateGuard), objTypes = ObjTypes.of(ObjType(COINS, "Coins", stackable = true)),
             npcSpawns = listOf(NpcSpawn(shantay, 3304, 3123, source = "test"), NpcSpawn(gateGuard, 3303, 3118, source = "test")),
@@ -160,18 +160,18 @@ class HeadlessShantayPassTest {
                 client.await("the Port Sarim cell") { client.position?.takeIf { it == Coord(ShantayPass.PRISON_X, ShantayPass.PRISON_Z, 0) } }
 
                 val xp = client.stat(THIEVING)!!.xp
-                client.locOp(ShantayPass.PRISON_DOOR, ShantayPass.PRISON_X, ShantayPass.PRISON_Z, 1)
+                client.locOp(ShantayPass.PRISON_DOOR, DOOR_X, ShantayPass.PRISON_Z, 1)
                 client.awaitMessage("the door locked") { it == DialogueText.NONE[PortSarimJailLines.LOCKED] }
                 // At 99 the fourth try in a row always works, so at most four.
                 var out = false
                 repeat(4) {
                     if (out) return@repeat
-                    client.locOp(ShantayPass.PRISON_DOOR, ShantayPass.PRISON_X, ShantayPass.PRISON_Z, ShantayPass.PICK_LOCK)
+                    client.locOp(ShantayPass.PRISON_DOOR, DOOR_X, ShantayPass.PRISON_Z, ShantayPass.PICK_LOCK)
                     val result = client.awaitMessage("the try's outcome") { it == DialogueText.NONE[PortSarimJailLines.PICK_DONE] || it == DialogueText.NONE[PortSarimJailLines.PICK_FAIL] }
                     out = result.text == DialogueText.NONE[PortSarimJailLines.PICK_DONE]
                 }
                 assertEquals(true, out, "the lock picked within four tries")
-                client.await("outside the cell") { client.position?.takeIf { it == Coord(ShantayPass.PRISON_X, ShantayPass.PRISON_Z - 1, 0) } }
+                client.await("outside the cell") { client.position?.takeIf { it == Coord(DOOR_X, ShantayPass.PRISON_Z - 1, 0) } }
                 client.await("the Thieving XP") { client.stat(THIEVING)?.takeIf { it.xp >= xp + 4 } }
             }
         }
@@ -180,5 +180,7 @@ class HeadlessShantayPassTest {
     private companion object {
         const val THIEVING = 17
         const val COINS = 995
+        /** The cell door the drop tile is beside: 9565 on the south edge of 3018,3182 in the 241 cache. */
+        const val DOOR_X = ShantayPass.PRISON_X + 1
     }
 }

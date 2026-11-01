@@ -63,7 +63,7 @@ class EdgevilleShopsTest {
         h.expect("richard.greeting")
         h.menu(*menu)
         h.pick(1)
-        h.expect("richard.what_for", "richard.explain_1", "richard.explain_2", "richard.explain_3", "richard.want_one")
+        h.expect("richard.what_for", "richard.explain_1", "richard.explain_2", "richard.want_one")
         h.menu(*menu)
         h.pick(3)
         h.expect("richard.no")

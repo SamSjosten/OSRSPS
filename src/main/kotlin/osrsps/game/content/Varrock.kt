@@ -124,6 +124,7 @@ fun registerVarrock(world: World) {
     registerVarrockPalace(world)
     registerVarrockShopkeepers(world)
     registerVarrockStores(world)
+    registerVarrockTownsfolk(world)
     registerVarrockTraders(world)
     with(Varrock) {
         world.handlers.onLoc(SPIRAL_STAIRS, 1) { op -> climbStairs(world, op.loc!!, 1) }

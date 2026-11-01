@@ -202,6 +202,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
+- `varrock-townsfolk.json`: Varrock step 8a (with `::keys on`): Romeo, Shilop, Aris, Iffie, the Town Crier, Dr Harlow,
+  Jonny the Beard, Charlie the Tramp given a coin, Draul Leptoc, and a kitten bought from Gertrude for 100 coins.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
@@ -319,6 +321,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `social-friends-chat-ranks-test.json` and `social-friends-chat-ranks-test2.json` (need 0.23.0): two players at once;
   `test` adds `test2` as a friend, ranks it Corporal from the setup screen's list, sees it join at that rank and kicks
   it from the channel's list; `test2` sees itself as a Corporal, is kicked, and is refused when it tries to join again.
+- `social-report.json` (needs 0.23.0): `test` opens the report screen from the chatbox's Report button, types `test2`,
+  picks Scamming, is thanked, and `::reports` lists it; `::clearignores` after, as the screen's ignore tick box is on.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
 - `social-ignore-2.json` (needs 0.14.0): the same with the names swapped, for a client logged in as `test2` (the nightly run's account).
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's

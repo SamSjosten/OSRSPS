@@ -485,6 +485,21 @@ class HeadlessClient private constructor(
         HUFFMAN.encode(this, text)
     }
 
+    /** A line typed in public chat (MESSAGE_PUBLIC type 0, plain yellow). */
+    fun say(text: String) = send(GameClientProt.MESSAGE_PUBLIC) {
+        p1(0)
+        p1(0)
+        p1(0)
+        HUFFMAN.encode(this, text)
+    }
+
+    /** A rule picked on the report screen for [name] (SEND_SNAPSHOT). */
+    fun sendReport(name: String, rule: Int, mute: Boolean = false) = send(GameClientProt.SEND_SNAPSHOT) {
+        pjstr(name)
+        p1(rule)
+        p1(if (mute) 1 else 0)
+    }
+
     /** A rank picked for a friend in the friends chat setup list (FRIENDCHAT_SETRANK): 0 none, 1 Recruit to 6 General. */
     fun setFriendsChatRank(name: String, rank: Int) = send(GameClientProt.FRIENDCHAT_SETRANK) {
         p1(rank)
