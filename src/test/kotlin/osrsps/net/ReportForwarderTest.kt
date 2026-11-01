@@ -363,6 +363,23 @@ class ReportForwarderTest {
         assertFailsWith<ReportForwarder.NotPosted> { github.create("t", "b", emptyList()) }
     }
 
+    @Test
+    fun `a post is dated when GitHub answered, so a slow pass's posts don't leave the day early`(@TempDir dir: Path) {
+        var clock = now
+        // Each issue takes GitHub ten minutes to answer.
+        val tracker = object : ReportForwarder.IssueTracker by FakeTracker() {
+            override fun create(title: String, body: String, labels: List<String>): Int {
+                clock += java.time.Duration.ofMinutes(10)
+                return 1
+            }
+        }
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { clock })
+        send(dir, body(failure = "ERROR slow"))
+        assertEquals(1, forwarder.pass())
+        val saved = java.nio.file.Files.readString(dir.resolve(ReportForwarder.BUDGET))
+        assertContains(saved, (now + java.time.Duration.ofMinutes(10)).toString())
+    }
+
     private fun waiting(dir: Path) = dir.listDirectoryEntries().map { it.name }.filter { it.startsWith("R-") }.sorted()
 
     @Test

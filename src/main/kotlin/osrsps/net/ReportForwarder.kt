@@ -82,7 +82,7 @@ class ReportForwarder(
             try {
                 // Counted the moment GitHub takes it, so a local failure after (the index, the move to sent/) can't
                 // post the same report again and again outside the day's count.
-                file(tracker, file, now)
+                file(tracker, file)
                 filed++
                 failedInARow = 0
                 failures.remove(file.name)
@@ -171,16 +171,16 @@ class ReportForwarder(
      * saved nothing is posted ([BudgetUnsaved]). A post GitHub surely never took ([surelyNotPosted]) gives its place
      * back; one whose answer was lost (a timeout, a dropped connection) may be on GitHub, so it keeps its place.
      */
-    private fun <T> budgeted(now: Instant, post: () -> T): T {
-        posted.addLast(now)
+    private fun <T> budgeted(post: () -> T): T {
+        posted.addLast(clock())
         try {
             saveBudget()
         } catch (e: Exception) {
             posted.removeLast()
             throw BudgetUnsaved(e)
         }
-        try {
-            return post()
+        val result = try {
+            post()
         } catch (e: Exception) {
             if (surelyNotPosted(e)) {
                 posted.removeLast()
@@ -188,6 +188,15 @@ class ReportForwarder(
             }
             throw e
         }
+        // Dated when GitHub answered, not when it was asked, so a slow pass's posts don't drop out of the day early.
+        posted.removeLast()
+        posted.addLast(clock())
+        try {
+            saveBudget()
+        } catch (e: Exception) {
+            logger.warn(e) { "A post's time couldn't be updated in $BUDGET; it stays at when it was asked" }
+        }
+        return result
     }
 
     /** Saves the count after a place was given back; if that fails the file only over-counts, which is safe. */
@@ -246,7 +255,7 @@ class ReportForwarder(
         Files.move(file, dir.resolve(REJECTED).resolve(file.name), StandardCopyOption.REPLACE_EXISTING)
     }
 
-    private fun file(tracker: IssueTracker, file: Path, now: Instant) {
+    private fun file(tracker: IssueTracker, file: Path) {
         val report = Json.parseToJsonElement(Files.readString(file)).jsonObject
         val id = report.string("id") ?: file.name.removeSuffix(".json")
         val body = report.string("body").orEmpty()
@@ -257,7 +266,7 @@ class ReportForwarder(
         val existing = print?.let { known[it] }?.takeIf(tracker::isOpen)
         val text = issueBody(id, report.string("received"), check, print, body)
         val commented = existing != null && try {
-            budgeted(now) { tracker.comment(existing, text) }
+            budgeted { tracker.comment(existing, text) }
             true
         } catch (e: Gone) {
             logger.info { "Problem report $id matches issue #$existing, which ${e.message}; filing a new one" }
@@ -266,7 +275,7 @@ class ReportForwarder(
         if (commented) {
             logger.info { "Problem report $id is the same failure as issue #$existing; commented there" }
         } else {
-            val number = budgeted(now) { tracker.create(title(id, launcher, body), text, check.labels) }
+            val number = budgeted { tracker.create(title(id, launcher, body), text, check.labels) }
             if (print != null) writeIndex(known + (print to number))
             logger.info { "Problem report $id filed as issue #$number" }
         }
