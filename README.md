@@ -1327,8 +1327,9 @@ locs with their collision. Walking, doors and line of sight then work as in the 
 REBUILD_REGION, which tells the client to draw each zone of the block from the original's map data. Outside one, they get
 the usual REBUILD_NORMAL, also after a step into or out of one.
 
-An instance ends once nobody is in it, with its NPCs, ground items and loc changes, and the respawns and fires due there
-later; a grave in it moves to its exit. A player who loses their connection
+An instance ends once nobody is in it, with its NPCs, ground items and loc changes (a door on its edge opened onto the
+tile beyond included), and the respawns, shots and fires due there later; a grave in it moves to its exit. A trade in
+one saves both players at its exit, as any save does. A player who loses their connection
 still counts until they are removed, so a reconnect finds it. Nobody is saved in an instance: a save, a logout included,
 puts them at its exit. Blocks are kept a map square apart, so nobody in one sees anyone in another.
 

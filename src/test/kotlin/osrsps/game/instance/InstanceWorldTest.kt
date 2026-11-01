@@ -44,6 +44,9 @@ class InstanceWorldTest {
         world.locs.add(ZoneLoc(1, LocShape.CENTREPIECE_STRAIGHT, 0, inside.first + 1, inside.second, 0))
         assertEquals(1, world.locs.changed)
 
+        // An open door on the block's west edge swings onto the tile beyond it, in the free square round the block.
+        world.locs.add(ZoneLoc(1, LocShape.WALL_STRAIGHT, 3, instance.baseX - 1, inside.second, 0))
+        assertEquals(2, world.locs.changed)
         world.endInstance(instance)
         assertNull(world.npcs[npc.index], "its man")
         assertEquals(outsider, world.npcs[outsider.index], "the world's man stays")
@@ -67,6 +70,17 @@ class InstanceWorldTest {
         // The next instance gets the same block, with nothing of the last one's in it.
         val next = assertNotNull(world.instances.create(3216, 3216, 2, 2, 3222, 3218, 0))
         assertEquals(instance.baseX to instance.baseZ, next.baseX to next.baseZ)
+    }
+
+    @Test
+    fun `a trade in an instance saves both players at its exit`() {
+        val alice = Player(1, "alice", inside.first, inside.second, 0)
+        val bob = Player(2, "bob", inside.first + 1, inside.second, 0)
+        assertTrue(world.commitTrade(alice, bob, apply = {}))
+        for (key in listOf(alice.saveKey, bob.saveKey)) {
+            val save = PlayerSave.fromJson(saves.saves.getValue(key))
+            assertEquals(Triple(3222, 3218, 0), Triple(save.x, save.z, save.level), key)
+        }
     }
 
     @Test

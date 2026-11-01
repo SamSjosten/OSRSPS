@@ -173,6 +173,7 @@ import osrsps.game.social.PrivateMessages
 import osrsps.game.social.Reports
 import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.Trades
+import osrsps.game.zone.ZoneKey
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
@@ -1330,15 +1331,24 @@ class World(
     /** [player]'s state as a save has it, the items in the guide prices screen counted as in the inventory. */
     fun snapshot(player: Player): PlayerSave {
         val (inventory, bank) = priceChecker.saved(player)
-        // Nobody is saved in an instance, which won't be there when they log in: they are saved at its exit.
-        if (instances.inDynamicArea(player.x, player.z)) {
-            val instance = instances.at(player.x, player.z)
-            return PlayerSave.of(
-                player, inventory, bank,
-                x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
-            )
-        }
-        return PlayerSave.of(player, inventory, bank)
+        return saveOf(player, inventory, bank)
+    }
+
+    /**
+     * [player]'s save with [inventory] and [bank]. Nobody is saved in an instance, which won't be there when they log in:
+     * they are saved at its exit (the spawn if it has gone).
+     */
+    private fun saveOf(
+        player: Player,
+        inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
+        bank: Map<Int, InvObj> = player.bank.contents().toMap(),
+    ): PlayerSave {
+        if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank)
+        val instance = instances.at(player.x, player.z)
+        return PlayerSave.of(
+            player, inventory, bank,
+            x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
+        )
     }
 
     /** Writes [player]'s save. Returns false, after logging why, if it couldn't be written; see [unwritten]. */
@@ -1419,7 +1429,7 @@ class World(
         a.lastTrade = id
         b.lastTrade = id
         val texts = try {
-            val texts = mapOf(a.saveKey to PlayerSave.of(a).toJson(a.username), b.saveKey to PlayerSave.of(b).toJson(b.username))
+            val texts = mapOf(a.saveKey to saveOf(a).toJson(a.username), b.saveKey to saveOf(b).toJson(b.username))
             saves.writeJournal(TradeJournal(id, texts).toJson())
             texts
         } catch (e: Exception) {
@@ -2480,10 +2490,17 @@ class World(
         for (npc in npcs.all.toList()) if (instance.contains(npc.x, npc.z)) removeNpc(npc)
         // Nothing that was due there later comes back into the block, which the next instance may have by then.
         meleeCombat.forgetArea(instance::contains)
+        rangedCombat.forgetArea(instance::contains)
         firemaking.forgetArea(instance::contains)
-        groundObjs.forgetArea(instance.baseX, instance.baseZ, instance.maxX, instance.maxZ)
-        locs.forgetArea(instance.baseX, instance.baseZ, instance.maxX, instance.maxZ)
-        zones.forgetArea(instance.baseX shr 3, instance.baseZ shr 3, instance.maxX shr 3, instance.maxZ shr 3)
+        // A zone further each way, into the free square round the block: a door or gate on its edge opens onto the tile
+        // beyond.
+        val fromX = instance.baseX - ZoneKey.SIZE
+        val fromZ = instance.baseZ - ZoneKey.SIZE
+        val toX = instance.maxX + ZoneKey.SIZE
+        val toZ = instance.maxZ + ZoneKey.SIZE
+        groundObjs.forgetArea(fromX, fromZ, toX, toZ)
+        locs.forgetArea(fromX, fromZ, toX, toZ)
+        zones.forgetArea(fromX shr 3, fromZ shr 3, toX shr 3, toZ shr 3)
         instances.destroy(instance)
         logger.info { "Ended $instance" }
     }
