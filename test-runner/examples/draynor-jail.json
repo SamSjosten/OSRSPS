@@ -113,6 +113,12 @@
    "comment": "Morgan's house; leaves the fight"
   },
   {
+   "step": "command",
+   "text": "::varbit 15611 0",
+   "expectMessage": "Varbit 15611",
+   "comment": "morgan_postquest_dialogue: his first talk again, whatever an earlier run left"
+  },
+  {
    "step": "npcOption",
    "npc": "Morgan",
    "option": "Talk-to"

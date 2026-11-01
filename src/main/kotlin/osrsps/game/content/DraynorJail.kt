@@ -63,6 +63,8 @@ fun registerDraynorJail(world: World) {
     with(DraynorJail) {
         world.handlers.onNpc(LEELA, TALK_TO) { op -> world.dialogues.start(this, op.npc) { leela() } }
         world.handlers.onLoc(CELL_DOOR, OPEN) { op -> cellDoor(world, op.loc!!) }
+        // The posh door's Close, done by hand while it stands open, puts the cache's cell door back, not a posh door.
+        world.doors.addClosedType(CELL_DOOR, CELL_DOOR_OPEN)
     }
 }
 

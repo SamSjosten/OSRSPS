@@ -157,9 +157,6 @@ class Doors(private val locs: Locs) {
      */
     fun openAs(door: ZoneLoc, openType: Int, shutAfter: Int = 0): ZoneLoc = open(door, openType, revertAfter = shutAfter)
 
-    /** Swings [door], opened by [openAs], shut again as [closedType]. */
-    fun closeAs(door: ZoneLoc, closedType: Int): ZoneLoc = close(door, closedType)
-
     /** Swings [door] open as [openType], turned [turn] quarters clockwise. */
     private fun open(door: ZoneLoc, openType: Int, turn: Int = RIGHT_TURN, revertAfter: Int = 0): ZoneLoc {
         val (dx, dz) = SWING[door.angle]

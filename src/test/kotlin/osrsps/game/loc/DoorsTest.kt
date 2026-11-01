@@ -96,6 +96,19 @@ class DoorsTest {
     }
 
     @Test
+    fun `a door opened by openAs and closed by hand goes back to the cache's type, and its timer then changes nothing`() {
+        doors.addClosedType(OTHER_DOOR, DOOR_OPEN)
+        val other = ZoneLoc(OTHER_DOOR, LocShape.WALL_STRAIGHT, 1, 3207, 3217, 0)
+        static.add(other)
+        val opened = doors.openAs(other, DOOR_OPEN, shutAfter = 2)
+        assertEquals(other, doors.toggle(opened, 1))
+        assertEquals(0, locs.changed)
+        locs.process()
+        assertEquals(other, locs[3207, 3217, 0, other.layer])
+        assertEquals(0, locs.changed)
+    }
+
+    @Test
     fun `a door with something after door in its name pairs with open put after door`() {
         assertEquals(DOOR_M_OPEN, doors.openType(DOOR_M))
         assertEquals(DOOR_M, doors.closedType(DOOR_M_OPEN))

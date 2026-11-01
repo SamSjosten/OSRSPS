@@ -180,6 +180,8 @@ class HeadlessDraynorTest {
                 client.locOp(DraynorJail.CELL_DOOR, 3123, 3243, 1)
                 client.awaitAt(3123, 3244, 0)
                 client.await("the door shut again") { server.world.locs.find(DraynorJail.CELL_DOOR, 3123, 3243, 0) }
+                // Closed by hand while open, it goes back to the cell door too.
+                assertEquals(DraynorJail.CELL_DOOR_OPEN, server.world.doors.openType(DraynorJail.CELL_DOOR))
             }
         }
     }
