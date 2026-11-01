@@ -466,7 +466,7 @@ class MeleeCombat(
     /**
      * The NPC phase's combat: last tick's player swings land, every fighting NPC chases and hits its target or gives
      * up, the NPCs whose death is over are taken out with their drops put down, those whose respawn time is up put
-     * back, and once a minute everyone heals a point.
+     * back, and every hurt player and NPC whose minute is up heals a point.
      */
     fun process() {
         val tick = currentTick()
@@ -491,7 +491,7 @@ class MeleeCombat(
             fightBack(npc, target, tick)
         }
         regeneratePlayers()
-        if (tick % REGEN_TICKS == 0L) regenerate()
+        regenerateNpcs()
     }
 
     private fun fightBack(npc: Npc, player: Player, tick: Long) {
@@ -676,10 +676,27 @@ class MeleeCombat(
         }
     }
 
-    /** A hitpoint back for every hurt NPC each [REGEN_TICKS]. Guessed for NPCs: the players' one a minute, on a world clock. */
-    private fun regenerate() {
+    /**
+     * Each NPC's own hitpoints countdown ([Npc.hitpointsRegenTicks]), started on the tick it spawns: at 0 a hurt NPC gets a
+     * hitpoint back and it starts again at [REGEN_TICKS], in a fight or out of one. The default rate is the players'
+     * one a minute (OSRS Wiki, Guardian (Chambers of Xeric), quoting Mod Ash: "default should be 100"; User:Orion/Regen
+     * measures 100 ticks for most monsters and has no in-or-out-of-combat condition). Inferred: the countdown starts at
+     * the spawn and runs while hitpoints are full, as the players' does. No health bar is sent for it: the client shows
+     * an NPC's bar only for 6 s after its last update (healthbar 0's duration, 300 client cycles, in the 241 cache), and
+     * nothing says live sends one for regeneration.
+     */
+    private fun regenerateNpcs() {
         for (npc in npcs.all) {
-            if (!npc.dead && npc.hitpoints < npc.type.stats.hitpoints && combat.npcCombat[npc.type] != null) npc.hitpoints++
+            if (npc.dead || combat.npcCombat[npc.type] == null) continue
+            // The tick it appears on starts the countdown without counting, whether it came before this phase (a
+            // command, the server starting) or in it (a respawn), so the first hitpoint comes a full minute later.
+            if (npc.hitpointsRegenTicks < 0) {
+                npc.hitpointsRegenTicks = REGEN_TICKS
+                continue
+            }
+            if (--npc.hitpointsRegenTicks > 0) continue
+            npc.hitpointsRegenTicks = REGEN_TICKS
+            if (npc.hitpoints < npc.type.stats.hitpoints) npc.hitpoints++
         }
     }
 

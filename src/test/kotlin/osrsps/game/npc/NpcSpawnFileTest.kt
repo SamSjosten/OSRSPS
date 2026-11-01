@@ -257,11 +257,12 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Edgeville has four bankers behind the booths, the grange's seven men, its rats, giant spiders and imps, its shopkeepers and its guards`() {
+    fun `Edgeville has four bankers behind the booths, the grange's seven men, its rats, giant spiders and imps, its shopkeepers, its guards, its people and the Basement of Doom`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3107 to "man2", 3108 to "man3", 2854 to "rat", 3017 to "giantspider1", 5007 to "imp",
             2821 to "generalshopkeeper5", 2822 to "generalassistant5", 7457 to "lost_property_merchant_standard", 822 to "oziach", 2200 to "wilderness_capeseller_6",
-            3254 to "guard1",
+            3254 to "guard1", 4808 to "hundred_dave_mum", 1325 to "canoeing_hari", 13644 to "ikov_lucien2", 4806 to "hundred_evil_dave",
+            4809 to "hundred_dave_hellrat", 6793 to "hundred_dave_bigrat",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("edgeville.json"), types, "edgeville.json")
@@ -284,8 +285,13 @@ class NpcSpawnFileTest {
         assertTrue(guards.all { it.z in 3512..3518 })
         // One each of the General Store's keepers, Perdu (upstairs, level 1), Oziach and Richard.
         assertEquals(listOf(2821, 2822, 7457, 822, 2200), spawns.map { it.type.id }.filter { it in setOf(2821, 2822, 7457, 822, 2200) })
-        // South of the Wilderness Ditch (z 3521), within map square 48,54 but for Oziach's hut just west of it (x 3069).
-        assertTrue(spawns.all { it.x in 3064..3135 && it.z in 3456..3520 && it.level == (if (it.type.id == 7457) 1 else 0) && it.source.isNotBlank() })
+        // One each of Doris, Hari and Lucien; Evil Dave, 18 hell-rats and the Wiki's four behemoths in the Basement of Doom.
+        assertEquals(listOf(4808, 1325, 13644), spawns.map { it.type.id }.filter { it in setOf(4808, 1325, 13644) })
+        val basement = spawns.filter { it.type.id in setOf(4806, 4809, 6793) }
+        assertEquals(listOf(1, 18, 4), listOf(4806, 4809, 6793).map { id -> basement.count { it.type.id == id } })
+        assertTrue(basement.all { it.x in 3064..3090 && it.z in 9870..9905 && it.level == 0 })
+        // The rest south of the Wilderness Ditch (z 3521), within map square 48,54 but for Oziach's hut just west of it (x 3069).
+        assertTrue((spawns - basement.toSet()).all { it.x in 3064..3135 && it.z in 3456..3520 && it.level == (if (it.type.id == 7457) 1 else 0) && it.source.isNotBlank() })
     }
 
     @Test
@@ -386,7 +392,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches' and the inns'`() {
+    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches', the inns', the townsfolk and the Fitzharmons`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -405,7 +411,11 @@ class NpcSpawnFileTest {
             11909 to "fai_varrock_guard_training02_f", 11910 to "fai_varrock_guard_training02_f_variant01",
             5038 to "father_lawrence", 2900 to "varrock_granny_2", 2582 to "rcu_zammy_mage1_edgeb", 1310 to "jollyboar_bartender",
             1311 to "donkey_bartender", 1312 to "bluemoon_bartender", 2895 to "fai_varrock_bluemoon_chef",
-            2896 to "fai_varrock_jollyboar_chef",
+            2896 to "fai_varrock_jollyboar_chef", 5037 to "romeo", 5035 to "juliet", 5039 to "draul_leptoc", 5040 to "phillipa",
+            7723 to "gertrude_post", 3501 to "shilop", 3502 to "philop", 3503 to "wilough", 3504 to "kanel", 11868 to "aris",
+            5209 to "tramppg", 3255 to "tramp", 16277 to "dr_harlow_vis", 14139 to "jonny_the_beard_2op", 2899 to "varrock_granny_1",
+            276 to "pmod_town_crier_varrock",
+            4984 to "dimintheis", 5445 to "johnathon_fitzharmon_2ops", 10425 to "daddyshome_daddy",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -454,8 +464,17 @@ class NpcSpawnFileTest {
         val inns = spawns.filter { it.type.id in listOf(1310, 1311, 1312, 2895, 2896) }
         assertEquals(listOf(1310, 1311, 1312, 2895, 2896), inns.map { it.type.id }.sorted())
         assertTrue(inns.all { it.restrict == MoveRestrict.INDOORS })
+        // Step 8a: one of each townsperson, the multi-NPCs as the types they show after their quests; Iffie sits still.
+        val townsfolk = listOf(276, 2899, 3255, 3501, 3502, 3503, 3504, 5035, 5037, 5039, 5040, 5209, 7723, 11868, 14139, 16277)
+        assertEquals(townsfolk, spawns.filter { it.type.id in townsfolk }.map { it.type.id }.sorted())
+        val iffie = spawns.single { it.type.id == 2899 }
+        assertEquals(0, iffie.wander)
+        // Step 8b: Dimintheis, Johnathon upstairs in the Jolly Boar (the type he shows after Family Crest) and Yarlo.
+        val fitzharmons = listOf(4984, 5445, 10425)
+        assertEquals(fitzharmons, spawns.filter { it.type.id in fitzharmons }.map { it.type.id }.sorted())
+        assertEquals(1, spawns.single { it.type.id == 5445 }.level)
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
         assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - elsie).all { it.wander > 0 })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - elsie - iffie).all { it.wander > 0 })
     }
 }

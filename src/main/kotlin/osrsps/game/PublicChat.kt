@@ -61,15 +61,19 @@ class PublicChat(
     }
 }
 
-/** [player] typed [message] in the chatbox without a `::` in front. Runs in a tick's input phase, see [World.onPublicChat]. */
-fun sayPublicChat(player: Player, message: MessagePublic) {
+/**
+ * [player] typed [message] in the chatbox without a `::` in front. Runs in a tick's input phase, see [World.onPublicChat].
+ * Returns the line said, or null when nothing was.
+ */
+fun sayPublicChat(player: Player, message: MessagePublic): String? {
     val chat = PublicChat.from(message)
     if (chat == null) {
         // Guessed wording: there are no friends, clan or guest channels to talk in yet.
         player.message("There are no chat-channels on this server yet.")
-        return
+        return null
     }
     logger.info { "${player.username}: ${chat.text}" }
     // Mod icon 0: nobody on a test server wears a crown.
     player.infos.playerInfo.avatar.extendedInfo.setChat(chat.colour, chat.effect, 0, chat.autotyper, chat.text, chat.pattern)
+    return chat.text
 }

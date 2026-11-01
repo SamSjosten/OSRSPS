@@ -152,7 +152,8 @@ class HeadlessVarrockPalaceTest {
                 val armour = arrayOf("armour", "only_guards", "become", "really", "yes", "life")
                 client.walk(captain.id, "guard_captain", "greeting", "3:$menu", "nothing", "lucky")
                 client.walk(captain.id, "guard_captain", "greeting", "2:$menu", *armour, "1:not_worried,forget_it", "not_worried", "failed")
-                client.walk(captain.id, "guard_captain", "greeting", "1:$menu", "doing", "training", "1:fit,weak", "fit", "weaklings", "2:armour,weak", "weak", "contradict")
+                client.walk(captain.id, "guard_captain", "greeting", "1:$menu", "doing", "training", "1:fit,weak", "fit", "weaklings", "2:armour,weak", "weak", "contradict_fit")
+                client.walk(captain.id, "guard_captain", "greeting", "1:$menu", "doing", "training", "2:fit,weak", "weak", "respect", "2:armour,fit", "fit", "contradict_weak")
                 client.walk(
                     captain.id, "guard_captain", "greeting", "1:$menu", "doing", "training", "2:fit,weak", "weak", "respect", "1:armour,fit",
                     *armour, "2:not_worried,forget_it", "forget_it", "coward",
@@ -161,7 +162,7 @@ class HeadlessVarrockPalaceTest {
                 client.command("setlevel thieving 31")
                 client.await("Thieving 31") { client.stat(THIEVING)?.takeIf { it.level == 31 } }
                 client.walk(
-                    captain.id, "guard_captain", "greeting", "2:$menu", "armour", "only_guards", "become", "record", "repent", "really", "yes",
+                    captain.id, "guard_captain", "greeting", "2:$menu", "armour", "only_guards", "become", "record level=31", "repent", "really", "yes",
                     "life", "2:not_worried,forget_it", "forget_it", "coward",
                 )
 
@@ -177,7 +178,7 @@ class HeadlessVarrockPalaceTest {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
-                val borrow = arrayOf("greeting", "2:thats_right,lost", "lost", "recovered", "2:relief,borrow", "borrow", "not_free", "price")
+                val borrow = arrayOf("greeting", "2:thats_right,lost", "lost", "recovered", "2:relief,borrow", "borrow", "not_free", "price price=500")
                 client.walk(prysin.id, "prysin", "greeting", "1:thats_right,lost", "thats_right", "good_job", "thanks")
                 client.walk(prysin.id, "prysin", "greeting", "2:thats_right,lost", "lost", "recovered", "1:relief,borrow", "relief")
                 client.walk(prysin.id, "prysin", *borrow, "1:not_worth,pay", "not_worth")

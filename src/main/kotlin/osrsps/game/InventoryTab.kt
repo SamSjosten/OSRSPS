@@ -111,6 +111,20 @@ class InventoryTab(
     }
 
     /**
+     * The player used the item in [slot] on [target]: a content handler's ([Handlers.onObjOnPlayer]), or nothing. Guessed:
+     * the handler runs where the player stands, with no walk to the target, as nothing that needs one is built yet.
+     */
+    fun useOnPlayer(player: Player, slot: Int, obj: Int, target: Player) {
+        if (held(player, slot, obj) == null) return
+        if (player.scripts.delayed) return
+        closeModals(player)
+        scripts.clearWeak(player)
+        if (scripts.trigger(player, Op.objOnPlayer(obj, slot, target))) return
+        logger.info { "${player.username} used $obj on ${target.username} (not handled)" }
+        nothingInteresting(player)
+    }
+
+    /**
      * Examine runs client script 6003 (examine_item), which in the 241 cache takes the ints obj, count, tradeable, no
      * alchemy, high alch and low alch, the long price and the string desc, and writes the examine text to the chatbox.
      * The price line after it (examine_price_info, 6005) shows only on the enhanced clients with the examine price

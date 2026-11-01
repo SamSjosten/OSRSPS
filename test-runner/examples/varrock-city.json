@@ -157,9 +157,9 @@
   },
   {
    "step": "command",
-   "text": "::tele 3215 3410 0",
-   "expectMessage": "Teleported to 3215, 3410, 0",
-   "comment": "beside the ladder in the house north of the square"
+   "text": "::tele 3214 3411 0",
+   "expectMessage": "Teleported to 3214, 3411, 0",
+   "comment": "north of the ladder in the house north of the square: the ladder is climbed from its north side, and a ladder keeps the player's tile (the first VM run, from the east tile, landed here)"
   },
   {
    "step": "locOption",
@@ -170,8 +170,8 @@
   },
   {
    "step": "assertLocation",
-   "x": 3215,
-   "y": 3410,
+   "x": 3214,
+   "y": 3411,
    "plane": 1
   },
   {
@@ -183,8 +183,8 @@
   },
   {
    "step": "assertLocation",
-   "x": 3215,
-   "y": 3410,
+   "x": 3214,
+   "y": 3411,
    "plane": 0
   },
   {

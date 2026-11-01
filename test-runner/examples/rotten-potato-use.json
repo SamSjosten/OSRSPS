@@ -1,0 +1,17 @@
+{
+ "name": "Rotten potato step 5: any item used on the potato, or the potato on it, is deleted",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::item 5733", "expectMessage": "Added 1 x Rotten potato"},
+  {"step": "command", "text": "::item coins 100", "expectMessage": "Added 100 x Coins"},
+  {"step": "command", "text": "::item 526", "expectMessage": "Added 1 x Bones"},
+  {"step": "useItemOnItem", "item": "Coins", "onItem": "Rotten potato"},
+  {"step": "assertInventory", "item": "Coins", "count": 0, "timeoutMs": 5000},
+  {"step": "useItemOnItem", "item": "Rotten potato", "onItem": "Bones"},
+  {"step": "assertInventory", "item": "Bones", "count": 0, "timeoutMs": 5000},
+  {"step": "assertInventory", "item": "Rotten potato", "count": 1},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

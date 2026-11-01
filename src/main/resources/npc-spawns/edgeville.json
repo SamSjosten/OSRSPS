@@ -1,5 +1,5 @@
 {
-  "about": "Edgeville (Edgeville piece step 1): the bank's four bankers, the grange's seven men, and the rats, giant spiders and imps round the town. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Edgeville page (four bankers, seven men). Every wander range is guessed until recorded. Step 2 added the General Store's keepers, Perdu upstairs, Oziach, Richard and the six guards by the ditch (guard1, whose combat and drops are the Varrock piece's). Doris, Lucien, Hari, the outlaws, the monastery and the Wilderness's NPCs come with their own steps.",
+  "about": "Edgeville (Edgeville piece step 1): the bank's four bankers, the grange's seven men, and the rats, giant spiders and imps round the town. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Edgeville page (four bankers, seven men). Every wander range is guessed until recorded. Step 2 added the General Store's keepers, Perdu upstairs, Oziach, Richard and the six guards by the ditch (guard1, whose combat and drops are the Varrock piece's). Step 3 added Doris, Hari and Lucien, and Evil Dave and his hell-rats in the Basement of Doom below Doris's house. The outlaws, the monastery and the Wilderness's NPCs come with their own steps.",
   "spawns": [
     {"npc": 1613, "x": 3096, "z": 3489, "direction": "W", "source": "Banker (banker1), Edgeville bank, behind the booth at 3095,3489. mejrs NPCList_OSRS"},
     {"npc": 1618, "x": 3096, "z": 3491, "direction": "W", "source": "Banker (banker2), Edgeville bank, behind the booth at 3095,3491. mejrs NPCList_OSRS"},
@@ -32,6 +32,32 @@
     {"npc": 3254, "x": 3109, "z": 3513, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"},
     {"npc": 3254, "x": 3110, "z": 3515, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"},
     {"npc": 3254, "x": 3114, "z": 3512, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"},
-    {"npc": 3254, "x": 3114, "z": 3517, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"}
+    {"npc": 3254, "x": 3114, "z": 3517, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"},
+    {"npc": 4808, "x": 3079, "z": 3492, "wander": 2, "restrict": "indoors", "source": "Doris (hundred_dave_mum), her house west of the bank (step 3). mejrs NPCList_OSRS"},
+    {"npc": 1325, "x": 3133, "z": 3509, "wander": 2, "source": "Hari (canoeing_hari), by the canoe station north-east of the town (step 3). mejrs NPCList_OSRS"},
+    {"npc": 13644, "x": 3122, "z": 3483, "wander": 2, "restrict": "indoors", "source": "Lucien (ikov_lucien2, a multi-NPC showing ikov_lucien2_vis_noattack after the quest), the house east of the willows (step 3). mejrs NPCList_OSRS (seen there as his pre-2024 type)"},
+    {"npc": 4806, "x": 3080, "z": 9890, "wander": 2, "source": "Evil Dave (hundred_evil_dave), the Basement of Doom below Doris's house (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3075, "z": 9880, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3075, "z": 9881, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3076, "z": 9880, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3076, "z": 9881, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3076, "z": 9886, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3076, "z": 9887, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3077, "z": 9883, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3077, "z": 9885, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3078, "z": 9881, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3078, "z": 9886, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3078, "z": 9894, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3079, "z": 9882, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3079, "z": 9888, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3079, "z": 9890, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3079, "z": 9895, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3080, "z": 9880, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3080, "z": 9888, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 4809, "x": 3080, "z": 9893, "wander": 3, "source": "Hell-Rat (hundred_dave_hellrat), the Basement of Doom (step 3). mejrs NPCList_OSRS"},
+    {"npc": 6793, "x": 3069, "z": 9895, "wander": 2, "source": "Hell-Rat Behemoth (hundred_dave_bigrat), the Basement of Doom (step 3). mejrs NPCList_OSRS; the Wiki's Basement of Doom page (four)"},
+    {"npc": 6793, "x": 3070, "z": 9881, "wander": 2, "source": "Hell-Rat Behemoth (hundred_dave_bigrat), the Basement of Doom (step 3). mejrs NPCList_OSRS; the Wiki's Basement of Doom page (four)"},
+    {"npc": 6793, "x": 3078, "z": 9901, "wander": 2, "source": "Hell-Rat Behemoth (hundred_dave_bigrat), the Basement of Doom (step 3). mejrs NPCList_OSRS; the Wiki's Basement of Doom page (four)"},
+    {"npc": 6793, "x": 3081, "z": 9875, "wander": 2, "source": "Hell-Rat Behemoth (hundred_dave_bigrat), the Basement of Doom (step 3). mejrs NPCList_OSRS; the Wiki's Basement of Doom page (four)"}
   ]
 }
