@@ -128,11 +128,24 @@ main() {
 		if ! fast_forward "$target"; then
 			return 1
 		fi
+		# VM 214 has about 2.2 GB, the server takes about 1 GB and a cold build about 1.1 GB: when that doesn't fit, the
+		# server stops for the build (players are kicked a few minutes early) rather than the kernel killing the build.
+		local stopped=0 available
+		available=$(mem_available_mb)
+		if ((available < ${OSRSPS_BUILD_NEEDS_MB:-1300})); then
+			echo "Stopping the server for the build: ${available} MB available, the build needs ${OSRSPS_BUILD_NEEDS_MB:-1300}"
+			put built ""
+			docker compose stop && stopped=1
+		fi
 		# The build's whole output goes to .deploy/build.log; on a failure its end is logged, where Gradle's error is.
 		if ! OSRSPS_COMMIT=$target BUILDKIT_PROGRESS=plain docker compose build >.deploy/build.log 2>&1; then
 			[[ -s .deploy/build.log ]] && tail -n 60 .deploy/build.log
 			echo "$target" >.deploy/failed
 			echo "Deploy of $target FAILED; it is retried when main moves on or with --force"
+			if ((stopped)); then
+				# A failed build leaves the old image: the old server comes back as it was.
+				docker compose start && put built "$built" && echo "Started the old server ($built) again"
+			fi
 			return 1
 		fi
 		# The image is the new build from here on, not the running server's.
@@ -191,6 +204,13 @@ server_changed() {
 	files=$(git diff --no-renames --name-only "$1" "$2" --) || return 0
 	[[ -n $files ]] || return 1
 	grep -qvE '^((test-runner|tick-recorder|launcher|deploy|docs|\.github)/|src/test/|[^/]+\.md$)' <<<"$files"
+}
+
+# MB the kernel says it can give out without swapping (MemAvailable); OSRSPS_MEMINFO stands in for /proc/meminfo in the
+# test.
+mem_available_mb() {
+	awk '$1 == "MemAvailable:" { print int($2 / 1024); found = 1 } END { if (!found) print 999999 }' \
+		"${OSRSPS_MEMINFO:-/proc/meminfo}" 2>/dev/null || echo 999999
 }
 
 # Writes .deploy/$1 whole, as the server reads `built` and `deployed` for its /version while this runs.

@@ -28,6 +28,9 @@ fi
 EOF
 chmod +x "$tmp/bin/docker"
 export PATH=$tmp/bin:$PATH DOCKER_LOG=$tmp/docker.log FAIL_BUILD=$tmp/fail-build FAIL_UP=$tmp/fail-up
+# /proc/meminfo as the script reads it: plenty available unless a step says otherwise.
+echo "MemAvailable:    8000000 kB" >"$tmp/meminfo"
+export OSRSPS_MEMINFO=$tmp/meminfo
 
 # main lives in a bare repo; changes are made in dev and pushed, and the script runs in vm, VM 214's checkout.
 git init -q --bare -b main "$tmp/origin.git"
@@ -332,6 +335,31 @@ deploy
 expect_status 0
 [[ ! -e $tmp/vm/.git/logs/HEAD.lock ]] || fail "the stale .git/logs lock is still there"
 expect_checkout "$head"
+
+step="with too little memory the server stops for the build, then the new one starts"
+merge src/main/Tight.kt=20
+echo "MemAvailable:     700000 kB" >"$tmp/meminfo"
+deploy
+expect_status 0
+grep -q "Stopping the server for the build" "$tmp/out" || fail "the log doesn't say the server stopped"
+expect_calls "compose stop" 1
+expect_calls "compose build OSRSPS_COMMIT=$head" 1
+expect_calls "compose up -d OSRSPS_COMMIT=$head" 1
+expect_state built "$head"
+[[ $(head -1 "$DOCKER_LOG") == "docker compose stop"* ]] || fail "the server wasn't stopped before the build"
+
+step="a build that fails after the stop starts the old server again"
+running=$head
+merge src/main/TightFail.kt=21
+touch "$tmp/fail-build"
+deploy
+rm -f "$tmp/fail-build"
+expect_status 1
+expect_calls "compose stop" 1
+expect_calls "compose start" 1
+expect_state built "$running"
+expect_state failed "$head"
+echo "MemAvailable:    8000000 kB" >"$tmp/meminfo"
 
 if ((failures)); then
 	echo "$failures check(s) failed"
