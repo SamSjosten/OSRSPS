@@ -45,6 +45,21 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 cache that is running. The server won't start when that line names another revision than the one it plays
 (`Revision.MAJOR`), as clients of one revision can't use the other's files. A cache with no source line isn't checked.
 
+### Custom models
+
+`import-model` writes a Wavefront OBJ (from Blender, or the RS3 rip in the project files) as a model in the client's
+own format (`osrsps.cache.model`: the newest model format, which 35,124 of the 62,051 live models use, read and
+written as RuneLite's loader reads it). Every face gets one flat colour, from the material's colour or its texture
+times the vertex colours, snapped to the client's palette; y is turned over, as the client's y grows downwards.
+
+```bash
+./gradlew run --args="import-model lodestone.obj data/models/lodestone.dat --scale 0.25"   # RS3's 512 units a tile to 128
+```
+
+Options: `--scale f`, `--mirror-x`, `--flip-faces` (for a model that shows mirrored or inside out), `--priority n`
+(0 to 10) and `--alpha material=n` (0 opaque to 254) per material. The output is a plain model file; serving it is the
+cache overlay's job (not built yet). Converted Jagex art stays in `data/`, outside git, like the cache.
+
 ## Run the server
 
 ```bash
