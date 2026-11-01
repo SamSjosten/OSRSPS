@@ -439,6 +439,8 @@ class AllSettings(
             386 -> if (varbit(player, SettingsSide.VARBIT_IRONMAN) != 2) return
         }
         flip(player, id)
+        // Player Trade options and Player Report options: the menus change at once.
+        if (id == PLAYER_TRADE_OPTIONS || id == PLAYER_REPORT_OPTIONS) PlayerOps.send(player.vars, player.session::queue)
     }
 
     private fun flip(player: Player, id: Int) {
@@ -561,6 +563,8 @@ class AllSettings(
         const val CLIENT_LAYOUT_DROPDOWN = 12
         const val LOGIN_LOGOUT_DROPDOWN = 44
         const val LEVEL_UP_DROPDOWN = 315
+        const val PLAYER_TRADE_OPTIONS = 312
+        const val PLAYER_REPORT_OPTIONS = 372
         private const val MAX_DEPENDENCY_DEPTH = 16
 
         // settings_check_block's params, by what each one hides the row from.
@@ -702,6 +706,8 @@ class AllSettings(
             osrsps.game.skill.Fletching.VARBIT_DARTS_MAKEX to VarbitType(3109, 31, 31),
             osrsps.game.combat.LootNotifications.VARBIT_UNTRADEABLE to VarbitType(1053, 31, 31),
             osrsps.game.combat.MeleeCombat.VARBIT_MAX_HIT_THRESHOLD to VarbitType(3552, 3, 11),
+            PlayerOps.VARBIT_TRADE_HIDDEN to VarbitType(2903, 29, 29),
+            PlayerOps.VARBIT_REPORT_HIDDEN to VarbitType(1055, 2, 2),
             VARBIT_COMBAT_KEY to VarbitType(1224, 0, 4),
             VARBIT_STATS_KEY to VarbitType(1224, 5, 9),
             VARBIT_JOURNAL_KEY to VarbitType(1224, 10, 14),

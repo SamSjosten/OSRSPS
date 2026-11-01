@@ -1021,6 +1021,18 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String[] playerOptions()
+	{
+		String[] options = client.getPlayerOptions();
+		String[] out = new String[options.length];
+		for (int i = 0; i < options.length; i++)
+		{
+			out[i] = options[i] == null ? null : net.runelite.client.util.Text.removeTags(options[i]);
+		}
+		return out;
+	}
+
+	@Override
 	public int[] varbit(int id)
 	{
 		VarbitComposition type = id < 0 ? null : client.getVarbit(id);

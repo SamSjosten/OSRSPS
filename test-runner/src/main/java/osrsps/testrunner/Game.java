@@ -154,6 +154,12 @@ interface Game
 	/** Varbit {@code id} worked out from both copies of its varp, as {@link #varp} gives them; null for one the client lacks. */
 	int[] varbit(int id);
 
+	/**
+	 * The right-click options on other players, by slot from 0, as the server last set them (SET_PLAYER_OP), with
+	 * tags removed; null or empty for an empty slot.
+	 */
+	String[] playerOptions();
+
 	/** The carried weight in whole kilograms as the server last sent it (UPDATE_RUNWEIGHT); {@link Integer#MIN_VALUE} when logged out. */
 	int weight();
 

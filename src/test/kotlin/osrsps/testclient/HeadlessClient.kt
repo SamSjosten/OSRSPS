@@ -149,6 +149,7 @@ class HeadlessClient private constructor(
     private val animTicks = ArrayList<Int>()
     private val npcSaid = ArrayList<NpcSaid>()
     private val npcHits = ArrayList<NpcHit>()
+    private val playerOps = HashMap<Int, String?>()
     private val moves = ArrayList<TickMove>()
     private var ticks = 0
     private var cycles = 0
@@ -208,6 +209,9 @@ class HeadlessClient private constructor(
 
     /** Every NPC's overhead text seen so far, oldest first. */
     fun npcSaid(): List<NpcSaid> = lock.withLock { npcSaid.toList() }
+
+    /** The options on other players' menus, by slot, as SET_PLAYER_OP last set them; null for a cleared slot. */
+    fun playerOps(): Map<Int, String?> = lock.withLock { playerOps.toMap() }
 
     /** Every hitsplat seen on an NPC, oldest first; only read while the NPC's other blocks are ones the reader knows. */
     fun npcHits(): List<NpcHit> = lock.withLock { npcHits.toList() }
@@ -705,6 +709,12 @@ class HeadlessClient private constructor(
                 )
                 for ((npc, text) in npcInfo.said) npcSaid += NpcSaid(npc, text, ticks)
                 for ((npc, type, value) in npcInfo.hits) npcHits += NpcHit(npc, type, value, ticks)
+            }
+            GameServerProt.SET_PLAYER_OP -> {
+                // RSProt's SetPlayerOpEncoder: the slot, the text ("null" clears it) and the priority flag.
+                val slot = buf.g1Alt3()
+                playerOps[slot] = buf.gjstr().takeIf { it != "null" }
+                buf.g1()
             }
             GameServerProt.IF_OPENTOP -> topLevel = buf.g2Alt2()
             GameServerProt.IF_OPENSUB -> {

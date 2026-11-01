@@ -94,6 +94,7 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertLoc\",\"x\":3207,\"y\":3217}]}", "needs \"loc\" (a name) or \"locId\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertLoc\",\"loc\":\"Door\",\"x\":3207}]}", "needs \"x\" and \"y\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\"}]}", "needs \"npc\" (a name) or \"self\": true");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertPlayerOption\"}]}", "needs \"option\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\",\"npc\":\"Man\",\"self\":true}]}", "not both");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\",\"self\":true,\"amount\":-1}]}", "\"amount\" must be 0 or more");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\",\"self\":true,\"types\":[]}]}", "\"types\" needs at least one hitmark id");

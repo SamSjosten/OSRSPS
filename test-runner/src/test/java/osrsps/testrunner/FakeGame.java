@@ -56,6 +56,8 @@ class FakeGame implements Game
 	/** What varp and varbit answer by id: the server's value, then the client's; a missing id is null. */
 	final Map<Integer, int[]> varps = new HashMap<>();
 	final Map<Integer, int[]> varbits = new HashMap<>();
+	/** By slot, as {@link Game#playerOptions}. */
+	String[] playerOptions = new String[8];
 	/** The interfaces interfaceOpen says are open. */
 	final List<Integer> openInterfaces = new ArrayList<>();
 	/** When set, itemOption, useItemOnItem, wornOption and clickWidget fail with this until cleared. */
@@ -356,6 +358,12 @@ class FakeGame implements Game
 	public int[] varbit(int id)
 	{
 		return varbits.get(id);
+	}
+
+	@Override
+	public String[] playerOptions()
+	{
+		return playerOptions;
 	}
 
 	@Override

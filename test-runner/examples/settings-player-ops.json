@@ -1,0 +1,23 @@
+{
+ "name": "Client settings: Player Trade options and Player Report options off take Trade with and Report off other players' menus, read after a relog (needs 0.22.0)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "assertPlayerOption", "option": "Trade with", "comment": "both settings on, as for a new account"},
+  {"step": "assertPlayerOption", "option": "Report"},
+  {"step": "assertPlayerOption", "option": "Follow"},
+  {"step": "command", "text": "::varbit 6580 1", "expectMessage": "Varbit 6580", "comment": "tradeoption_disabled: the All Settings row reads it inverted, so 1 is Player Trade options off"},
+  {"step": "command", "text": "::varbit 1334 1", "expectMessage": "Varbit 1334", "comment": "rightclick_report_abuse_disabled: Player Report options off"},
+  {"step": "logout", "comment": "::varbit doesn't resend the options; login does (clicking the toggle does too, covered headless)"},
+  {"step": "waitForLogin"},
+  {"step": "assertPlayerOption", "option": "Trade with", "absent": true},
+  {"step": "assertPlayerOption", "option": "Report", "absent": true},
+  {"step": "assertPlayerOption", "option": "Follow", "comment": "Follow has no setting"},
+  {"step": "command", "text": "::varbit 6580 0", "expectMessage": "Varbit 6580"},
+  {"step": "command", "text": "::varbit 1334 0", "expectMessage": "Varbit 1334"},
+  {"step": "logout"},
+  {"step": "waitForLogin"},
+  {"step": "assertPlayerOption", "option": "Trade with"},
+  {"step": "assertPlayerOption", "option": "Report"}
+ ]
+}

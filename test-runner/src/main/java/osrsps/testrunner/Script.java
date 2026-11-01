@@ -566,6 +566,18 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "text", "comment");
 				return new Steps.TypeText(timeout, text);
 			}
+			case "assertPlayerOption":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				String option = f.string("option", null);
+				if (option == null || option.isEmpty())
+				{
+					throw new Invalid(f.where + " needs \"option\", the menu text");
+				}
+				boolean absent = f.bool("absent", false);
+				f.rejectUnknown("step", "timeoutMs", "option", "absent", "comment");
+				return new Steps.AssertPlayerOption(timeout, option, absent);
+			}
 			case "assertWeight":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
