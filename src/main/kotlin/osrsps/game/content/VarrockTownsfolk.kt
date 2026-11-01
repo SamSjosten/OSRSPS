@@ -200,10 +200,11 @@ object VarrockTownsfolk {
     val KITTENS = (1555..1560).toList()
 
     /**
-     * A cat these held or banked stops Gertrude selling another: kittens, pet cats (1561 to 1566), lazy and wily cats. Not
-     * overgrown cats (1567 to 1572): once a cat is overgrown she sells another (Wiki, Gertrude).
+     * A cat these held or banked stops Gertrude selling another: kittens and pet cats (1561 to 1566). Not overgrown cats
+     * (1567 to 1572): once a cat is overgrown she sells another (Wiki, Gertrude); nor lazy or wily cats (6549 to 6560),
+     * which a player may keep beside a kitten or cat (Wiki, Wily cat).
      */
-    val OWNED_CATS = KITTENS + (1561..1566) + (6549..6560)
+    val OWNED_CATS = KITTENS + (1561..1566)
 
     private fun Dialogue.coins() = player.inventory.count(ShopScreen.COINS)
 
