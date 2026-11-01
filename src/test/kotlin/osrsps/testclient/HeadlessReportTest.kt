@@ -150,4 +150,36 @@ class HeadlessReportTest {
             }
         }
     }
+
+    @Test
+    fun `a report that reaches the server just after the screen's close button is still taken, once, and not long after`(@TempDir dir: Path) {
+        val time = AtomicReference(Instant.parse("2026-11-01T12:00:00Z"))
+        fun pass(d: Duration) = time.updateAndGet { it + d }
+        server(dir, time::get).use { server ->
+            server.login("alice").use { alice ->
+                // The real client's order (VM 215): the rule select script's close click arrives before its report.
+                alice.ifButton(Chatbox.CHATBOX, Reports.CHATBOX_BUTTON, Reports.OP_REPORT_ABUSE)
+                alice.awaitReportScreen(null)
+                alice.ifButton(Reports.INTERFACE, Reports.CLOSE, 1)
+                alice.sendReport("bob", 15)
+                alice.saw("[report.received]")
+                assertEquals(listOf("bob"), server.world.reports.recent().map { it.name })
+                assertTrue(Reports.INTERFACE !in alice.openInterfaces())
+                // A second report on the same close isn't taken.
+                pass(Reports.COOLDOWN)
+                alice.sendReport("carol", 7)
+                alice.awaitTicks(2)
+                assertEquals(1, server.world.reports.recent().size)
+                // Nor one that comes long after the close.
+                alice.ifButton(Chatbox.CHATBOX, Reports.CHATBOX_BUTTON, Reports.OP_REPORT_ABUSE)
+                alice.awaitReportScreen(null)
+                alice.ifButton(Reports.INTERFACE, Reports.CLOSE, 1)
+                alice.await("the screen closed") { if (Reports.INTERFACE in alice.openInterfaces()) null else Unit }
+                pass(Reports.CLOSE_GRACE + Duration.ofSeconds(1))
+                alice.sendReport("dave", 7)
+                alice.awaitTicks(2)
+                assertEquals(1, server.world.reports.recent().size)
+            }
+        }
+    }
 }

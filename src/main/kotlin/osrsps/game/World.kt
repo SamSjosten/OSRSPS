@@ -2017,7 +2017,7 @@ class World(
             return@act
         }
         if (interfaceId == Reports.INTERFACE && componentId == Reports.CLOSE) {
-            if (player.chatModal == Reports.INTERFACE) interfaces.closeChatModal(player)
+            if (player.chatModal == Reports.INTERFACE) reports.close(player)
             return@act
         }
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
@@ -2660,6 +2660,7 @@ class World(
             friendChats.logout(player)
             clans.logout(player)
             parties.logout(player)
+            reports.forget(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {
