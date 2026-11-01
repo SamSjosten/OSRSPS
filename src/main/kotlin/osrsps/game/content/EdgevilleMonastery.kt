@@ -226,8 +226,10 @@ object EdgevilleMonastery {
             return@with
         }
         chatPlayer(ChatAnim.QUIZ, HELP)
+        val master = player.skills.baseLevel(Skill.PRAYER) >= MAX_LEVEL
         when {
-            player.skills.baseLevel(Skill.PRAYER) >= MAX_LEVEL -> master(give, takeCoins)
+            // A symbol comes first so a 99 can still have it blessed (Wiki, Unblessed symbol); the cape option then
+            // leads to the sale. Inferred: the Wiki's transcript doesn't show a 99 carrying a symbol.
             player.inventory.count(UNBLESSED_SYMBOL) > 0 -> {
                 chatNpc(ChatAnim.NEUTRAL, HAS_SYMBOL)
                 when (choice(BLESS, CAPE, NO_THANKS)) {
@@ -236,10 +238,11 @@ object EdgevilleMonastery {
                         swap(player, UNBLESSED_SYMBOL, HOLY_SYMBOL)
                         objbox(HOLY_SYMBOL, BLESSED)
                     }
-                    2 -> cape()
+                    2 -> if (master) master(give, takeCoins) else cape()
                     else -> chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
                 }
             }
+            master -> master(give, takeCoins)
             else -> topics()
         }
     }

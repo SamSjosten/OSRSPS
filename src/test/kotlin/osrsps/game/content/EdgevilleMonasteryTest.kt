@@ -139,8 +139,30 @@ class EdgevilleMonasteryTest {
         assertEquals(listOf(EdgevilleMonastery.UNBLESSED_SYMBOL to EdgevilleMonastery.HOLY_SYMBOL), swapped)
         assertEquals(listOf(EdgevilleMonastery.HOLY_SYMBOL), h.boxObjs)
 
-        // 99 Prayer: without the coins, then with them (untrimmed: no other 99).
+        // 99 Prayer with a symbol: still blessed, and the cape option leads to the sale.
         h.player.skills.setLevel(Skill.PRAYER, 99)
+        h.player.inventory.add(ObjType(EdgevilleMonastery.UNBLESSED_SYMBOL, "Unblessed symbol"), 2)
+        talk()
+        h.pick(1)
+        h.expect("brother_jered.help", "brother_jered.has_symbol")
+        h.menu("brother_jered.bless", "brother_jered.cape", "brother_jered.no_thanks")
+        h.pick(1)
+        h.expect("brother_jered.bless", "brother_jered.blessed")
+        h.ends()
+        assertEquals(2, swapped.size)
+        talk()
+        h.pick(1)
+        h.expect("brother_jered.help", "brother_jered.has_symbol")
+        h.menu("brother_jered.bless", "brother_jered.cape", "brother_jered.no_thanks")
+        h.pick(2)
+        h.expect("brother_jered.master")
+        h.menu("brother_jered.too_dear", "brother_jered.want_cape")
+        h.pick(1)
+        h.expect("brother_jered.too_dear", "brother_jered.too_dear_reply")
+        h.ends()
+        h.player.inventory.clear()
+
+        // 99 Prayer: without the coins, then with them (untrimmed: no other 99).
         talk()
         h.pick(1)
         h.expect("brother_jered.help", "brother_jered.master")
