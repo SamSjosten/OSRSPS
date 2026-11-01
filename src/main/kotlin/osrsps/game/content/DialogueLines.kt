@@ -31,6 +31,7 @@ import osrsps.game.skill.MiningLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.WoodcuttingLines
 import osrsps.game.social.FriendsChatLines
+import osrsps.game.social.ReportLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
 
@@ -179,6 +180,7 @@ object DialogueLines {
         RamBartenderLines,
         RanaelLines,
         ReldoLines,
+        ReportLines,
         RichardLines,
         RomeoLines,
         RottenPotatoLines,

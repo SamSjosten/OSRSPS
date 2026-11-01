@@ -321,6 +321,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `social-friends-chat-ranks-test.json` and `social-friends-chat-ranks-test2.json` (need 0.23.0): two players at once;
   `test` adds `test2` as a friend, ranks it Corporal from the setup screen's list, sees it join at that rank and kicks
   it from the channel's list; `test2` sees itself as a Corporal, is kicked, and is refused when it tries to join again.
+- `social-report.json` (needs 0.23.0): `test` opens the report screen from the chatbox's Report button, types `test2`,
+  picks Scamming, is thanked, and `::reports` lists it; `::clearignores` after, as the screen's ignore tick box is on.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
 - `social-ignore-2.json` (needs 0.14.0): the same with the names swapped, for a client logged in as `test2` (the nightly run's account).
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's

@@ -55,6 +55,7 @@ import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.SkillUnlocks
+import osrsps.game.social.Reports
 import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
 import osrsps.net.GitHubIssues
@@ -221,7 +222,8 @@ class GameServer(
         world = World(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir),
             Accounts(FileSaveStore(accountDir), lock = FileAccountLock(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
-            scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME), admins = admins,
+            scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
+            reportsFile = dataDir.resolve(Reports.FILE_NAME), admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,

@@ -12,7 +12,7 @@ import net.rsprot.protocol.message.OutgoingGameMessage
  * rightclick_report_abuse_disabled, 1 for hidden; the rows show them inverted) clear those slots, at login and as they
  * are clicked. Inferred: the client has no script reading them, so the server must leave the options out.
  *
- * Not built: Attack (slot 2 in the Wilderness and on PvP worlds), and Report.
+ * Not built: Attack (slot 2 in the Wilderness and on PvP worlds). Report opens the report screen ([osrsps.game.social.Reports]).
  */
 object PlayerOps {
     const val FOLLOW = 3
@@ -27,9 +27,6 @@ object PlayerOps {
         5 to null,
         REPORT to "Report",
     )
-
-    /** Not live's: tells the tester the option isn't built yet. */
-    const val REPORT_NOT_BUILT = "Reporting isn't built on this server yet."
 
     const val VARBIT_TRADE_HIDDEN = 6580
     const val VARBIT_REPORT_HIDDEN = 1334
