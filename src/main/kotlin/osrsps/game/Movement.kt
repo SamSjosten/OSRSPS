@@ -27,12 +27,17 @@ class Movement(private val collision: CollisionMap) {
         request(player, RouteTarget.tile(destX, destZ), invertRun)
 
     /** Replaces [player]'s route with one to wherever reaches [target]. */
-    fun request(player: Player, target: RouteTarget, invertRun: Boolean): Route {
-        val route = routeFinder.find(player.level, player.x, player.z, target)
+    fun request(player: Player, target: RouteTarget, invertRun: Boolean): Route =
+        find(player, target).also { follow(player, it, invertRun) }
+
+    /** A route from where [player] stands to wherever reaches [target], without walking it. */
+    fun find(player: Player, target: RouteTarget): Route = routeFinder.find(player.level, player.x, player.z, target)
+
+    /** Replaces [player]'s route with [route]. */
+    fun follow(player: Player, route: Route, invertRun: Boolean) {
         player.waypoints.clear()
         player.waypoints.addAll(route.waypoints)
         player.invertRun = invertRun
-        return route
     }
 
     fun process(player: Player): MoveResult {

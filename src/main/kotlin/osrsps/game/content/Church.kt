@@ -430,7 +430,8 @@ fun registerChurch(world: World) {
     world.handlers.onObjOnLoc(Church.ALTAR) { world.message(player, AltarLines.WRATH) }
 }
 
-private suspend fun ScriptContext.prayAt(world: World) {
+/** Pray-at on an altar: arrive, then recharge prayer points. Varrock's church and chapel altars use it too. */
+internal suspend fun ScriptContext.prayAt(world: World) {
     arriveDelay()
     val full = player.skills.currentLevel(Skill.PRAYER) >= player.skills.baseLevel(Skill.PRAYER)
     Church.pray(player)

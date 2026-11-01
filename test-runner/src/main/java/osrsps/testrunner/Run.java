@@ -130,19 +130,31 @@ final class Run
 
 	/**
 	 * The first hitsplat since the last action on the actor with that index ({@link #SELF} for the player), showing
-	 * {@code amount} when that is 0 or more; else null.
+	 * {@code amount} when that is 0 or more and of one of {@code types} when that isn't null; else null.
 	 */
-	Hitsplat hitsplatSinceAction(int index, int amount)
+	Hitsplat hitsplatSinceAction(int index, int amount, int[] types)
 	{
 		for (int i = hitsplatMark; i < hitsplats.size(); i++)
 		{
 			Hitsplat h = hitsplats.get(i);
-			if (h.index == index && (amount < 0 || h.amount == amount))
+			if (h.index == index && (amount < 0 || h.amount == amount) && (types == null || contains(types, h.type)))
 			{
 				return h;
 			}
 		}
 		return null;
+	}
+
+	private static boolean contains(int[] values, int value)
+	{
+		for (int v : values)
+		{
+			if (v == value)
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** An animation the player ({@code index} {@link #SELF}) or the NPC with that index and name started. */

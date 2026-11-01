@@ -18,6 +18,8 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
+import osrsps.game.VarTypes
+import osrsps.game.AllSettings
 import osrsps.game.SeqNames
 import osrsps.game.Skill
 import osrsps.game.WearPos
@@ -116,6 +118,24 @@ class MeleeCombatTest {
     }
 
 
+    @Test
+    fun `a max hit shows the swinger a max hit hitsplat, unless it is under their threshold`() {
+        val carol = Player(3, "carol", 3212, 3212, 0, VarTypes(6_000, AllSettings.VARBITS)).apply { sureHits = true; sureMaxHits = true }
+        val npc = spawn(spider, x = 3213, z = 3212)
+        fun hits(count: Int): List<NpcEffects.Hit> {
+            repeat(20) { if (npc.effects.pendingHits.size < count) tick(carol) }
+            return npc.effects.pendingHits.also { assertEquals(count, it.size) }
+        }
+        attack(carol, npc)
+        val max = hits(1).last()
+        assertEquals(HitsplatType.DAMAGE_MAX_ME to HitsplatType.DAMAGE_OTHER, max.selfType to max.otherType)
+        // The next swing is a max hit too, but under a threshold one higher.
+        carol.vars.setVarbit(MeleeCombat.VARBIT_MAX_HIT_THRESHOLD, max.value + 1)
+        val under = hits(2).last()
+        assertEquals(max.value, under.value)
+        assertEquals(HitsplatType.DAMAGE_ME, under.selfType)
+    }
+
     /** Stands in for Protect from Melee; see [Prayers.protects]. */
     private var protectFromMelee = false
 
@@ -191,7 +211,8 @@ class MeleeCombatTest {
         val hit = npc.effects.pendingHits.single()
         assertEquals(NpcEffects.PLAYER_SOURCE + alice.index, hit.source)
         assertEquals(dealt, hit.value)
-        if (dealt > 0) assertEquals(HitsplatType.DAMAGE_ME to HitsplatType.DAMAGE_OTHER, hit.selfType to hit.otherType)
+        // A max hit of 1 is still a max hit: the swinger's own hitsplat is damage_max_me.
+        if (dealt > 0) assertEquals(HitsplatType.DAMAGE_MAX_ME to HitsplatType.DAMAGE_OTHER, hit.selfType to hit.otherType)
         else assertEquals(HitsplatType.BLOCK_ME to HitsplatType.BLOCK_OTHER, hit.selfType to hit.otherType)
         val bar = npc.effects.pendingHeadBars.single()
         assertEquals(MeleeCombat.HEALTH_BAR, bar.type)
