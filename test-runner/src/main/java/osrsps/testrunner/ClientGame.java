@@ -110,6 +110,19 @@ final class ClientGame implements Game
 	private String chatLine;
 	/** Set on the Swing thread once the Enter key events for {@link #chatLine} have gone to the canvas. */
 	private volatile boolean enterDelivered;
+	private static final int CHATBOX = 162;
+	private static final int CHATBOX_UNIVERSE = 0;
+	private static final int CHATBOX_MES_LAYER_HIDE = 56;
+	private static final int CHATBOX_CHATDISPLAY = 57;
+	private static final int VARBIT_HAS_DISPLAYNAME = 8119;
+	private static final int VARBIT_FLOATER_SEARCHING = 16073;
+	private static final int VARBIT_FLOATER_SEARCH_KEYBOARD = 16074;
+	private static final int VARC_KEYBOARD_TIMEOUT = 187;
+	private static final int VARC_WORLDMAP_SEARCHING = 190;
+	private static final int VARC_DISPLAYNAME_LISTENING = 435;
+	private static final int VARC_SMITHING_LISTENING = 989;
+	private static final int VARC_CRAFTING_LISTENING = 990;
+
 	/** False from typeText until the Swing thread has sent its key events. */
 	private volatile boolean typingDelivered = true;
 	/** Walk calls in a row that found the mouse on the walk's spot. */
@@ -217,8 +230,74 @@ final class ClientGame implements Game
 		{
 			note.add("a chatbox prompt is open, meslayermode " + mode);
 		}
+		note.addAll(chatBlockers());
 		pressEnter(canvas);
 		return String.join("; ", note);
+	}
+
+	/**
+	 * What would make the chatbox's key handler (chatdefault_onkey, set on chatbox:universe by chatdefault_setonkey)
+	 * drop a key, by the checks it and keypress_permit make. Ids are the cache's (osrs-dumps symbols), not RuneLite
+	 * names, so a rename can't hide one.
+	 */
+	private List<String> chatBlockers()
+	{
+		List<String> found = new ArrayList<>();
+		Widget universe = client.getWidget(CHATBOX, CHATBOX_UNIVERSE);
+		if (universe == null)
+		{
+			found.add("the chatbox isn't loaded");
+			return found;
+		}
+		if (universe.getOnKeyListener() == null)
+		{
+			found.add("chatbox:universe has no key handler (chatdefault_stopinput or a prompt took it, nothing gave it back)");
+		}
+		Widget hide = client.getWidget(CHATBOX, CHATBOX_MES_LAYER_HIDE);
+		if (hide != null && hide.isHidden())
+		{
+			found.add("chatbox:mes_layer_hide is hidden");
+		}
+		Widget display = client.getWidget(CHATBOX, CHATBOX_CHATDISPLAY);
+		if (display != null && display.isHidden())
+		{
+			found.add("chatbox:chatdisplay is hidden (something is open in chatmodal or chatoverlay)");
+		}
+		if (client.getVarbitValue(VARBIT_HAS_DISPLAYNAME) == 0)
+		{
+			found.add("varbit has_displayname_transmitter (8119) is 0");
+		}
+		int timeout = client.getVarcIntValue(VARC_KEYBOARD_TIMEOUT);
+		if (timeout > client.getGameCycle())
+		{
+			found.add("varc keyboard_timeout " + timeout + " is past clientclock " + client.getGameCycle());
+		}
+		if (found.isEmpty())
+		{
+			found.add("none of the chatbox's own checks would drop the key");
+		}
+		// These block keys only while a window is open in the main modal or floater slot (keypress_permit, which also
+		// wants both search varbits at 1), so they are noted, not counted.
+		List<String> context = new ArrayList<>();
+		for (int varc : new int[]{VARC_DISPLAYNAME_LISTENING, VARC_SMITHING_LISTENING, VARC_CRAFTING_LISTENING, VARC_WORLDMAP_SEARCHING})
+		{
+			int value = client.getVarcIntValue(varc);
+			if (value != 0)
+			{
+				context.add("varc " + varc + " " + value);
+			}
+		}
+		int searching = client.getVarbitValue(VARBIT_FLOATER_SEARCHING);
+		int searchKeyboard = client.getVarbitValue(VARBIT_FLOATER_SEARCH_KEYBOARD);
+		if (searching != 0 || searchKeyboard != 0)
+		{
+			context.add("settings search varbits 16073/16074 " + searching + "/" + searchKeyboard);
+		}
+		if (!context.isEmpty())
+		{
+			found.add("with a window open these would count: " + String.join(", ", context));
+		}
+		return found;
 	}
 
 	@Override
