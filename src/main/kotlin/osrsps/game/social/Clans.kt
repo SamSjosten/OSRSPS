@@ -53,6 +53,8 @@ class Clans(
     private val runClientScript: (Player, Int, List<Any>) -> Unit,
     private val words: (Player) -> DialogueText,
     private val ignores: IgnoreLists,
+    /** Whether [Player] is still in the world, a dropped connection waiting for a reconnect included. */
+    private val online: (Player) -> Boolean,
     /** The next message counter, shared with private and friends chat messages. */
     private val nextCounter: () -> Int,
     private val now: () -> Instant = Instant::now,
@@ -98,6 +100,27 @@ class Clans(
         send(player, settingsFull(clan))
         joinChannel(player, clan)
     }
+
+    /** A reconnect: everything clan the old connection may have lost, after the player options are sent again. */
+    fun resync(player: Player) {
+        showRecruit(player)
+        setVarbit(player, VARBIT_GUEST_AFFINITY, AFFINITY_NONE)
+        val clan = clanOf(player)
+        if (clan == null) {
+            setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
+            send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
+            send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
+        } else {
+            setVarbit(player, VARBIT_AFFINITY, AFFINITY_CONNECTED)
+            send(player, settingsFull(clan))
+            val members = channels[clan.id]
+            send(player, if (members != null && player in members) channelFull(clan, members) else ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
+        }
+        showForming(player)
+    }
+
+    /** Writes the clans again if a write failed; see [ClanStore.flush]. */
+    fun flush() = store.flush()
 
     fun logout(player: Player) {
         leaveForming(player)
@@ -259,9 +282,10 @@ class Clans(
             tell(leader, ClanLines.NAME_TAKEN, name)
             return false
         }
-        forming.getOrPut(leader.saveKey) { Forming(leader) }.name = name
+        val group = forming.getOrPut(leader.saveKey) { Forming(leader) }
+        group.name = name
         tell(leader, ClanLines.NAME_AVAILABLE, name)
-        showForming(leader)
+        refresh(group)
         return true
     }
 
@@ -330,7 +354,13 @@ class Clans(
             tell(leader, ClanLines.ONCE_A_DAY)
             return
         }
-        if (founders.any { clanOf(it) != null }) return
+        // Each founder again, as of now: one may have walked out of the Hub, or left the world, since the group last saw them.
+        val gone = founders.filter { clanOf(it) != null || !inHub(it) || !online(it) }
+        if (gone.isNotEmpty()) {
+            gone.forEach(::leaveForming)
+            tell(leader, ClanLines.NOT_ENOUGH_FOUNDERS, rule.founders.toString())
+            return
+        }
         forming.remove(leader.saveKey)
         val joined = runeDay()
         val members = founders.mapIndexed { i, p -> ClanStore.Member(p.saveKey, p.username, if (i == 0) RANK_OWNER else RANK_FOUNDER, joined) }

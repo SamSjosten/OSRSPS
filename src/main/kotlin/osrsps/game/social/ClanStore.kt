@@ -36,6 +36,10 @@ class ClanStore(private val file: Path? = null) {
     private val founded = HashMap<String, Long>()
     private var nextId = 1L
 
+    /** Set while the clans in the game differ from the file: a write failed, and [flush] tries again. */
+    var unwritten = false
+        private set
+
     init {
         if (file != null && Files.exists(file)) load(file)
     }
@@ -61,23 +65,35 @@ class ClanStore(private val file: Path? = null) {
         return clan
     }
 
-    /** Deletes [clan] and saves. */
+    /** Deletes [clan] and saves; its members may found a clan again today (`::clandisband` is for test scripts). */
     fun delete(clan: Clan) {
         clans.remove(clan.id)
+        // For the scripts that found a clan again: its members may found one today.
+        for (member in clan.members) founded.remove(member.key)
         save()
         logger.info { "Clan '${clan.name}' deleted" }
     }
 
-    /** Writes every clan; a failure is logged and the clans stay as they are in the game, written at the next change. */
+    /** Writes again after a failed write: the world's autosave and shutdown call it. */
+    fun flush() {
+        if (unwritten) save()
+    }
+
+    /**
+     * Writes every clan; a failure is logged and the clans stay as they are in the game, written at the next change or
+     * the next [flush].
+     */
     fun save() {
         val file = file ?: return
+        unwritten = true
         try {
             file.parent?.let(Files::createDirectories)
             val temp = file.resolveSibling("${file.fileName}.tmp")
             Files.writeString(temp, format.encodeToString(JsonObject.serializer(), toJson()))
             Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+            unwritten = false
         } catch (e: Exception) {
-            logger.error(e) { "Couldn't write ${file.fileName}" }
+            logger.error(e) { "Couldn't write ${file.fileName}; trying again at the next autosave" }
         }
     }
 

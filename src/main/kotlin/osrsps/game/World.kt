@@ -539,6 +539,7 @@ class World(
         interfaces::runClientScript,
         ::textFor,
         ignoreLists,
+        { player -> players.getOrNull(player.index) === player },
         { privateMessages.nextCounter() },
         clansClock,
     )
@@ -1551,6 +1552,7 @@ class World(
             if (findPlayer(key) == null && write(key, text)) count++
         }
         if (count > 0) logger.info { "Saved $count player${if (count == 1) "" else "s"}" }
+        clans.flush()
         if (unwritten.isNotEmpty()) logger.error { "${unwritten.size} save${if (unwritten.size == 1) " is" else "s are"} still only in memory: ${unwritten.keys.sorted()}" }
     }
 
@@ -1646,6 +1648,7 @@ class World(
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
         PlayerOps.send(player.vars, player.session::queue)
+        clans.resync(player)
         rebuild(player)
         interfaces.resendClosesWhileAway(player)
         interfaces.closeEmptyModalSlots(player)
