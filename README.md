@@ -181,9 +181,10 @@ others:
   needs `github-report-token.txt` in the data folder: a fine-grained token for this repository only, with Issues read
   and write, one line, made and put there by hand, never in git. Without it (or with anything in the file that
   isn't one token) reports wait. A report GitHub refuses outright (400, 422), or that has failed for an hour of
-  passes, goes to `reports/rejected/` so it can't hold up the rest; one that fails is tried again next pass after the
+  passes while GitHub answered, goes to `reports/rejected/` so it can't hold up the rest; one that fails is tried again next pass after the
   others. A matching issue that was deleted, moved or locked gets a new issue instead. At most 20 issues and comments
-  are posted a day; past that the rest wait, and one `report-cap` issue a day says so.
+  are posted a day (kept in `reports/posted.json`, so a restart keeps the count); past that the rest wait, and
+  one `report-cap` issue a day says so.
 
   The HTTP port holds at most 256 connections, 16 from one address; a connection silent for 15 s, sending one
   request's headers for 10 s or one report's body for 30 s is closed.

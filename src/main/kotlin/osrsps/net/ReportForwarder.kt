@@ -2,6 +2,7 @@ package osrsps.net
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.int
@@ -43,6 +44,8 @@ class ReportForwarder(
 ) {
     private val sent: Path = dir.resolve(SENT)
     private val index: Path = dir.resolve(INDEX)
+    private val budget: Path = dir.resolve(BUDGET)
+    private var budgetRead = false
     private var executor: ScheduledExecutorService? = null
     private var saidNoTracker = false
     /** When each issue and comment of the last day was posted, oldest first, against [PER_DAY]. */
@@ -65,7 +68,9 @@ class ReportForwarder(
         saidNoTracker = false
         var filed = 0
         var failedInARow = 0
+        val failed = mutableListOf<Path>()
         val now = clock()
+        readBudget()
         while (posted.isNotEmpty() && Duration.between(posted.first(), now) >= DAY) posted.removeFirst()
         for (file in waiting) {
             if (posted.size >= PER_DAY) {
@@ -75,6 +80,7 @@ class ReportForwarder(
             try {
                 file(tracker, file)
                 posted.addLast(now)
+                writeBudget()
                 filed++
                 failedInARow = 0
                 failures.remove(file.name)
@@ -84,18 +90,44 @@ class ReportForwarder(
                 setAside(file)
             } catch (e: Exception) {
                 // One report that fails doesn't hold up the rest; several in a row is GitHub down, so the pass stops.
+                logger.warn(e) { "Problem report ${file.name} couldn't be filed; trying again next pass" }
+                failed.add(file)
+                if (++failedInARow >= FAILURES_IN_A_ROW) break
+            }
+        }
+        // A failure counts against its report only when GitHub answered meanwhile (another report went, or it says
+        // whether a version was released), so a long outage never sets good reports aside.
+        if (failed.isNotEmpty() && (filed > 0 || tracker.isRelease(PROBE_VERSION) != null)) {
+            for (file in failed) {
                 val times = failures.merge(file.name, 1, Int::plus)!!
                 if (times >= GIVE_UP_AFTER) {
-                    logger.warn(e) { "Problem report ${file.name} failed to file $times passes running; moved to $REJECTED/" }
+                    logger.warn { "Problem report ${file.name} failed to file $times times while GitHub answered; moved to $REJECTED/" }
                     setAside(file)
-                } else {
-                    logger.warn(e) { "Problem report ${file.name} couldn't be filed; trying again next pass" }
                 }
-                if (++failedInARow >= FAILURES_IN_A_ROW) break
             }
         }
         failures.keys.retainAll(waiting.map { it.name }.toSet())
         return filed
+    }
+
+    /** The day's posts and the last cap notice, from [BUDGET], once: a restart (each deploy is one) keeps the day's count. */
+    private fun readBudget() {
+        if (budgetRead) return
+        budgetRead = true
+        val json = runCatching { Json.parseToJsonElement(Files.readString(budget)).jsonObject }.getOrNull() ?: return
+        (json["posted"] as? JsonArray)?.forEach { item ->
+            runCatching { Instant.parse(item.jsonPrimitive.content) }.getOrNull()?.let(posted::addLast)
+        }
+        saidCapped = (json["capped"] as? JsonPrimitive)?.takeIf { it.isString }?.let { runCatching { Instant.parse(it.content) }.getOrNull() }
+    }
+
+    private fun writeBudget() {
+        val json = JsonObject(buildMap {
+            put("posted", JsonArray(posted.map { JsonPrimitive(it.toString()) }))
+            saidCapped?.let { put("capped", JsonPrimitive(it.toString())) }
+        })
+        runCatching { writeAtomically(budget, "$json\n") }
+            .onFailure { logger.warn(it) { "The day's report posts couldn't be saved in $BUDGET" } }
     }
 
     /**
@@ -114,6 +146,7 @@ class ReportForwarder(
                 listOf(LABEL, LABEL_CAPPED),
             )
             saidCapped = now
+            writeBudget()
             logger.warn { "Problem reports hit the daily cap of $PER_DAY; $left wait; said so in issue #$number" }
         } catch (e: Exception) {
             logger.warn(e) { "Problem reports hit the daily cap of $PER_DAY; couldn't open an issue to say so" }
@@ -204,10 +237,14 @@ class ReportForwarder(
 
     private fun writeIndex(map: Map<String, Int>) {
         val json = JsonObject(map.toSortedMap().mapValues { JsonPrimitive(it.value) })
-        val temp = Files.createTempFile(dir, ".issues", ".tmp")
+        writeAtomically(index, "$json\n")
+    }
+
+    private fun writeAtomically(file: Path, text: String) {
+        val temp = Files.createTempFile(dir, ".${file.name}", ".tmp")
         try {
-            Files.writeString(temp, "$json\n")
-            Files.move(temp, index, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            Files.writeString(temp, text)
+            Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
         } finally {
             Files.deleteIfExists(temp)
         }
@@ -246,6 +283,10 @@ class ReportForwarder(
         const val SENT = "sent"
         const val REJECTED = "rejected"
         const val INDEX = "issues.json"
+        /** The day's posts and the last cap notice, so a restart doesn't start the day's count again. */
+        const val BUDGET = "posted.json"
+        /** Asked of the releases only to find out whether GitHub answers at all. */
+        private const val PROBE_VERSION = "0.0.0"
         const val LABEL = "bug-report"
         /**
          * The launcher's version is one we released and its revision is the server's. Not proof the report came from

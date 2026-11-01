@@ -38,7 +38,7 @@ class ReportForwarderTest {
         /** A report GitHub fails to file every time, whatever is wrong with it. */
         var failing: (String) -> Boolean = { false }
 
-        override fun isRelease(version: String) = if (releasesKnown) version in releases else null
+        override fun isRelease(version: String) = if (releasesKnown && !down) version in releases else null
         override fun isOpen(issue: Int) = issue !in deleted && issues[issue - 1].open
         override fun create(title: String, body: String, labels: List<String>): Int {
             attempts++
@@ -156,7 +156,7 @@ class ReportForwarderTest {
         assertEquals(ProblemReports.Result.Accepted("R-0001"), reports.submit(body(), "1.1.1.1"))
         forwarder.pass()
         assertEquals(ProblemReports.Result.Accepted("R-0002"), reports.submit(body(), "2.2.2.2"))
-        assertEquals(setOf("R-0002.json", "issues.json", "sent", ProblemReports.LAST_NUMBER), dir.listDirectoryEntries().map { it.name }.toSet())
+        assertEquals(setOf("R-0002.json", "issues.json", ReportForwarder.BUDGET, "sent", ProblemReports.LAST_NUMBER), dir.listDirectoryEntries().map { it.name }.toSet())
     }
 
     @Test
@@ -249,6 +249,8 @@ class ReportForwarderTest {
         repeat(6) { send(dir, body(failure = "ERROR number $it went wrong ${"x".repeat(it)}"), from = "203.0.113.$it") }
         assertEquals(0, forwarder.pass())
         assertEquals(ReportForwarder.FAILURES_IN_A_ROW, tracker.attempts)
+        // However long it stays down, nothing is set aside for it.
+        repeat(ReportForwarder.GIVE_UP_AFTER + 5) { forwarder.pass() }
         assertEquals(6, waiting(dir).size, "none is set aside for GitHub being down")
         tracker.down = false
         assertEquals(6, forwarder.pass())
@@ -271,8 +273,12 @@ class ReportForwarderTest {
         clock += java.time.Duration.ofHours(23)
         assertEquals(0, forwarder.pass())
         assertEquals(ReportForwarder.PER_DAY + 1, tracker.issues.size, "one notice a day, not one a pass")
+        // A restart (every deploy is one) keeps the day's count and its notice.
+        val restarted = ReportForwarder(dir, { tracker }, clock = { clock })
+        assertEquals(0, restarted.pass())
+        assertEquals(ReportForwarder.PER_DAY + 1, tracker.issues.size)
         clock += java.time.Duration.ofHours(1)
-        assertEquals(extra, forwarder.pass())
+        assertEquals(extra, restarted.pass())
         assertTrue(waiting(dir).isEmpty())
     }
 
