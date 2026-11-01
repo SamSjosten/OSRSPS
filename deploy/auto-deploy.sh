@@ -27,17 +27,44 @@ set -euo pipefail
 fast_forward() {
 	local dirty
 	dirty=$(git status --porcelain --untracked-files=no)
-	if [[ -n $dirty ]] || ! git merge --ff-only --quiet origin/main; then
+	if [[ -n $dirty ]] && half_merged; then
+		echo "The checkout holds a fast-forward that stopped half way (its files written, HEAD not moved); undoing it"
+		git reset --quiet --hard HEAD
+		dirty=
+	fi
+	if [[ -z $dirty ]] && ! git merge --ff-only --quiet origin/main; then
+		# A clean checkout the merge failed on (a ref lock in use, say) can be left with the merge's files written and
+		# HEAD where it was; put it back so the next try starts clean.
+		git reset --quiet --hard HEAD || true
 		echo "$1" >.deploy/failed
-		if [[ -n $dirty ]]; then
-			echo "Deploy of $1 FAILED: the checkout has local changes, which block the fast-forward:"
-			echo "$dirty" | head -n 20
-			echo "Nothing should edit $(pwd) by hand. Clear them (git reset --hard HEAD) and run with --force."
-		else
-			echo "Deploy of $1 FAILED: the checkout can't fast-forward; it is retried when main moves on or with --force"
-		fi
+		echo "Deploy of $1 FAILED: the checkout can't fast-forward; it is retried when main moves on or with --force"
 		return 1
 	fi
+	if [[ -n $dirty ]]; then
+		echo "$1" >.deploy/failed
+		echo "Deploy of $1 FAILED: the checkout has local changes, which block the fast-forward:"
+		echo "$dirty" | head -n 20
+		echo "Nothing should edit $(pwd) by hand. Clear them (git reset --hard HEAD) and run with --force."
+		return 1
+	fi
+}
+
+# Whether the checkout's tracked files are exactly a commit between HEAD and main: what a fast-forward leaves when it
+# wrote the files and then couldn't move HEAD (2026-11-01 13:49Z: refs/heads/main.lock was in use, and every deploy
+# after it stopped on "local changes"). Those changes are all in main already, so undoing them loses nothing.
+# Both the files and the index must match it: a staged edit under a working copy that matches main is still an edit.
+half_merged() {
+	local stash work index commit
+	stash=$(git stash create 2>/dev/null) || return 1
+	[[ -n $stash ]] || return 1
+	work=$(git rev-parse "$stash^{tree}")
+	index=$(git write-tree 2>/dev/null) || return 1
+	[[ $work == "$index" ]] || return 1
+	# Read from a process substitution, not a pipe: returning early must not count as a failure of git rev-list.
+	while read -r commit; do
+		[[ $(git rev-parse "$commit^{tree}") == "$work" ]] && return 0
+	done < <(git rev-list --ancestry-path HEAD..origin/main)
+	return 1
 }
 
 # Lock files a git that crashed left behind (.git/HEAD.lock and .git/gc.pid.lock stalled every deploy from 06:40 to
@@ -50,7 +77,7 @@ clear_stale_locks() {
 	while IFS= read -r lock; do
 		echo "Removing $lock: a stale git lock (older than ten minutes, and no git is running)"
 		rm -f -- "$lock"
-	done < <(find .git -maxdepth 1 -name '*.lock' -mmin +10 2>/dev/null; find .git/refs -name '*.lock' -mmin +10 2>/dev/null)
+	done < <(find .git -maxdepth 1 -name '*.lock' -mmin +10 2>/dev/null; find .git/refs .git/logs -name '*.lock' -mmin +10 2>/dev/null)
 }
 
 main() {
