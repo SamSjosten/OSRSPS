@@ -247,6 +247,31 @@ class NpcInteractionsTest {
     }
 
     @Test
+    fun `bankers behind booths split by invisible walls are used from across their booth`() {
+        // Varrock East Bank on the 241 cache: booths (block walking, not projectiles) at x 3211 to 3215 on z 3211, and an
+        // inviswall (shape 0, rotation 0: the tile's west edge, blocking projectiles) on every booth and every banker
+        // tile; the bankers on z 3212, the player across the booths from the middle one.
+        interactions.reachOverCounter(HANS)
+        player.x = 3213
+        val invis = LocCollisionType(blocksProjectile = true)
+        for (x in 3211..3215) {
+            LocCollision(map).addLoc(LocCollisionType(blocksProjectile = false), x, 3211, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+            LocCollision(map).addLoc(invis, x, 3211, 0, LocShape.WALL_STRAIGHT, 0)
+            LocCollision(map).addLoc(invis, x, 3212, 0, LocShape.WALL_STRAIGHT, 0)
+        }
+        val used = mutableListOf<Int>()
+        handlers.onNpc(HANS, 1) { used += player.x }
+        for (x in 3211..3215) {
+            val npc = spawn(x = x, z = 3212)
+            interactions.click(player, npc.index, 1, -1, invertRun = false)
+            repeat(4) { tick() }
+            assertEquals(x to 3210, player.x to player.z, "banker at $x")
+        }
+        assertEquals((3211..3215).toList(), used)
+        assertEquals(emptyList(), messages)
+    }
+
+    @Test
     fun `a counter that is a wall is used across from beside it, unless it blocks projectiles`() {
         // The Grand Exchange's booths: walls along the north edge of z 3210, the NPC just north of them.
         interactions.reachOverCounter(HANS)
