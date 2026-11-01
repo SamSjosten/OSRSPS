@@ -1,0 +1,170 @@
+package osrsps.game.content
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+import osrsps.game.Player
+import osrsps.game.World
+import osrsps.game.combat.Spells
+import osrsps.game.script.Handlers
+import osrsps.game.script.Op
+import osrsps.game.script.ScriptRunner
+import osrsps.map.CollisionMap
+import osrsps.map.Tile
+
+/** Lumbridge Home Teleport: its checks, its 24 ticks of stages, what stops it and its cooldown. */
+class HomeTeleportTest {
+    private var tick = 0L
+    private var minutes = 29_000_000L
+    private var attackedRecently = false
+    private val handlers = Handlers()
+    private val scripts = ScriptRunner(handlers, {}) { tick }
+    private val landed = mutableListOf<Pair<Long, Destination>>()
+    private val said = mutableListOf<String>()
+    private val home = HomeTeleport(
+        currentTick = { tick },
+        nowMinutes = { minutes },
+        inCombat = { attackedRecently },
+        teleport = { player, to ->
+            player.x = to.x
+            player.z = to.z
+            player.level = to.level
+            landed += tick to to
+        },
+        message = { _, line, values -> said += (listOf(line.key) + values.map { "${it.first}=${it.second}" }).joinToString(" ") },
+    ).also { it.register(handlers) }
+    private val player = Player(1, "Zezima", 3100, 3500, 0)
+
+    /** The anims and spotanims each tick set, by tick. */
+    private val anims = mutableMapOf<Long, Int>()
+    private val spots = mutableMapOf<Long, Int>()
+
+    /** A click on Cast in this tick's input phase, then the rest of the tick's script phase, as the world runs them. */
+    private fun click() {
+        assertTrue(scripts.trigger(player, Op.button(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)))
+        scripts.process(player)
+        record()
+    }
+
+    private fun record() {
+        player.effects.flush(
+            anim = { anims[tick] = it.id },
+            spotanim = { _, spot -> spots[tick] = spot.id },
+            sound = {},
+            jingle = {},
+        )
+    }
+
+    /** One tick: the script phase, then what the player was given goes out. */
+    private fun run(ticks: Int) = repeat(ticks) {
+        tick++
+        scripts.process(player)
+        record()
+    }
+
+    @Test
+    fun `a cast plays the five stages and lands in Lumbridge 24 ticks after the click`() {
+        tick = 100
+        player.waypoints += Tile(3101, 3500)
+        click()
+        assertTrue(player.waypoints.isEmpty(), "casting stops the walk")
+        run(23)
+        assertTrue(landed.isEmpty())
+        assertEquals(mapOf(100L to 4847, 107L to 4850, 113L to 4853, 116L to 4855, 119L to 4857), anims)
+        assertEquals(mapOf(100L to 800, 107L to 801, 113L to 802, 116L to 803, 119L to 804), spots)
+        run(1)
+        assertEquals(listOf(124L to HomeTeleport.LUMBRIDGE), landed)
+        assertEquals(Triple(3222, 3218, 0), Triple(player.x, player.z, player.level))
+        assertEquals(-1, anims[124L])
+        assertEquals(minutes.toInt(), player.vars[HomeTeleport.VARP_LAST_CAST])
+        assertFalse(home.casting(player))
+        run(30)
+        assertEquals(1, landed.size)
+    }
+
+    @Test
+    fun `the cooldown is 30 minutes from landing, and says the minutes left`() {
+        click()
+        run(24)
+        assertEquals(30, home.minutesLeft(player))
+        minutes += 12
+        click()
+        assertEquals(listOf("home_teleport.cooldown minutes=18"), said)
+        assertFalse(home.casting(player))
+        minutes += 17
+        assertEquals(1, home.minutesLeft(player))
+        minutes += 1
+        assertEquals(0, home.minutesLeft(player))
+        click()
+        assertTrue(home.casting(player))
+        run(24)
+        assertEquals(2, landed.size)
+    }
+
+    @Test
+    fun `walking away or another click that interrupts stops the cast, and costs no cooldown`() {
+        click()
+        run(10)
+        scripts.interrupt(player)
+        run(30)
+        assertTrue(landed.isEmpty())
+        assertEquals(0, player.vars[HomeTeleport.VARP_LAST_CAST])
+        assertEquals(0, home.minutesLeft(player))
+    }
+
+    @Test
+    fun `being attacked stops the cast at the next tick`() {
+        tick = 50
+        click()
+        run(5)
+        player.attackedTick = tick
+        run(1)
+        assertFalse(home.casting(player))
+        run(30)
+        assertTrue(landed.isEmpty())
+        assertEquals(0, player.vars[HomeTeleport.VARP_LAST_CAST])
+    }
+
+    @Test
+    fun `it can't be cast in combat`() {
+        attackedRecently = true
+        click()
+        assertEquals(listOf("home_teleport.in_combat"), said)
+        assertFalse(home.casting(player))
+        assertTrue(anims.isEmpty())
+    }
+
+    @Test
+    fun `a second click while casting doesn't start it again`() {
+        click()
+        run(3)
+        click()
+        run(21)
+        assertEquals(1, landed.size)
+        assertEquals(1, anims.values.count { it == 4847 })
+    }
+
+    @Test
+    fun `the seams can choose another tile, cancel the cast, or skip the cooldown`() {
+        val elsewhere = Destination(3093, 3493, 0)
+        home.destination = { elsewhere }
+        home.cooldownApplies = { false }
+        click()
+        run(24)
+        assertEquals(listOf(0L + 24 to elsewhere), landed)
+        assertEquals(0, player.vars[HomeTeleport.VARP_LAST_CAST])
+        click()
+        assertTrue(home.casting(player))
+        home.destination = { null }
+        scripts.interrupt(player)
+        click()
+        assertFalse(home.casting(player))
+    }
+
+    @Test
+    fun `the world registers the Cast button`() {
+        val world = World(IntArray(0), CollisionMap())
+        assertTrue(world.handlers.find(Op.button(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)) != null)
+    }
+}

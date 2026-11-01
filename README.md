@@ -1296,6 +1296,27 @@ devices and special attacks.
 Check: `./gradlew test --tests 'osrsps.game.combat.Ranged*' --tests 'osrsps.testclient.HeadlessRangedTest'`, and in
 RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
 
+## Home teleport
+
+Lumbridge Home Teleport, the standard spellbook's first spell (`game/content/HomeTeleport.kt`): Cast plays five stages
+on the spot and lands the player in the castle courtyard 24 ticks after the click. The cooldown is varp 892, which
+RuneLite's home teleport timer reads; `::varp 892 0` clears it for testing. Not in yet: the other books' home teleports,
+the Wilderness limit (no Wilderness yet) and teleport animation overrides. `HomeTeleport.destination` and
+`cooldownApplies` are seams another teleport (lodestones) can set from `World`'s init.
+
+| Home teleport behaviour | Source |
+|-------------------------|--------|
+| Free, no Magic level, no XP; a 30-minute cooldown shared by every home teleport | Wiki, Lumbridge Home Teleport and Home Teleport |
+| The default animation lasts 24 ticks | Wiki, Teleport override |
+| Not castable in combat or for 10 seconds after (as logging out, 16 ticks); combat interrupts it | Wiki, Home Teleport |
+| Varp 892 (`aide_tele_timer`) holds the minute (since 1970) of the last home teleport | RuneLite, Timers and Buffs plugin |
+| 218:6 (`magic_spellbook:teleport_home_standard`), op1 Cast; the stages' seqs 4847, 4850, 4853, 4855, 4857 and spotanims 800 to 804 (`aide_*`) | 241 cache |
+| The stages starting 0, 7, 13, 16 and 19 ticks in; landing on 3222, 3218; the cooldown starting on landing, so a cast cut short costs nothing; minutes left rounded down; a second click while casting doing nothing | guessed |
+| The two messages' words (`home_teleport.cooldown`, `home_teleport.in_combat`) | not on the Wiki; to be found |
+
+Check: `./gradlew test --tests 'osrsps.game.content.HomeTeleportTest' --tests 'osrsps.testclient.HeadlessHomeTeleportTest'`,
+and in RuneLite `test-runner/examples/magic-home-teleport.json`.
+
 ## NPC aggression
 
 Monsters with `"aggressive"` in `npc-combat.json` go for players unprovoked (`game/combat/Aggression.kt`), each tick

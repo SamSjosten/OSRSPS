@@ -1,0 +1,28 @@
+{
+ "name": "Magic: Lumbridge Home Teleport lands in the castle courtyard after its five stages, then refuses for 30 minutes; walking away stops a cast",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "game messages show their keys, whatever data/dialogue.txt holds"},
+  {"step": "command", "text": "::varp 892 0", "expectMessage": "Varp 892", "comment": "aide_tele_timer: no home teleport in the last 30 minutes"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "east of the castle, off the landing tile"},
+  {"step": "clickWidget", "interfaceId": 218, "component": 6, "op": 1, "comment": "magic_spellbook:teleport_home_standard, Cast"},
+  {"step": "assertAnimation", "id": 4847, "timeoutMs": 10000, "comment": "aide_drawing_chalk_circle"},
+  {"step": "assertSpotanim", "id": 800, "timeoutMs": 10000, "comment": "aide_chalk_circle"},
+  {"step": "assertAnimation", "id": 4857, "timeoutMs": 20000, "comment": "aide_player_teleporting, the last stage, 19 ticks in (guessed)"},
+  {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 10000, "comment": "24 ticks after the click"},
+  {"step": "clickWidget", "interfaceId": 218, "component": 6, "op": 1},
+  {"step": "assertMessage", "contains": "[home_teleport.cooldown minutes=", "timeoutMs": 10000, "comment": "30, or 29 if the minute turned"},
+  {"step": "command", "text": "::varp 892 0", "expectMessage": "Varp 892"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0"},
+  {"step": "clickWidget", "interfaceId": 218, "component": 6, "op": 1},
+  {"step": "assertAnimation", "id": 4847, "timeoutMs": 10000},
+  {"step": "walk", "x": 3236, "y": 3216, "comment": "walking removes the cast's weak queue"},
+  {"step": "waitTicks", "ticks": 30},
+  {"step": "assertLocation", "x": 3236, "y": 3216, "plane": 0, "comment": "still here: the cast stopped"},
+  {"step": "command", "text": "::varp 892", "expectMessage": "Varp 892 = 0", "comment": "a cast cut short starts no cooldown"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

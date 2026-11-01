@@ -119,6 +119,7 @@ object DialogueLines {
         HatiusLines,
         HaystackLines,
         HerbloreLines,
+        HomeTeleportLines,
         HopperLines,
         HorvikLines,
         IrenaLines,
