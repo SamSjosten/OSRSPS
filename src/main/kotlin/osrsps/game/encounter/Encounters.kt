@@ -23,8 +23,7 @@ class Encounter internal constructor(
         private set
 
     /** The tick its phase began on. */
-    var phaseStart: Long = world.tick
-        private set
+    private var phaseStart: Long = world.tick
 
     /** The next step of the phase's cycle, and the tick it is due on. */
     private var step = 0
@@ -51,7 +50,6 @@ class Encounter internal constructor(
 
     val activeHazards: List<Hazard> get() = hazards
 
-    override val tick: Long get() = world.tick
     override val phaseTick: Long get() = world.tick - phaseStart
 
     override val players: List<Player>
@@ -247,9 +245,6 @@ class Encounters(private val world: World, defs: List<EncounterDef> = emptyList(
         encounter.begin()
         return encounter
     }
-
-    /** The fight [npc] is the boss or an add of; null for none. */
-    fun of(npc: Npc): Encounter? = list.firstOrNull { it.boss === npc || npc in it.adds }
 
     /** Ends [encounter] now. */
     fun stop(encounter: Encounter) {

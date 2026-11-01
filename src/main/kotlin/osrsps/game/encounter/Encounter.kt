@@ -66,9 +66,6 @@ class Hazard internal constructor(
 interface EncounterContext {
     val boss: Npc
 
-    /** The current tick. */
-    val tick: Long
-
     /** Ticks since the current phase began; 0 on the tick it began. */
     val phaseTick: Long
 
