@@ -244,6 +244,14 @@ async function gate(github, git, repo, core, number, current, now = Date.now, li
   return [...others, { name: CHECK, status: result.status, conclusion: result.conclusion || null, output: { title: result.title } }];
 }
 
+// Whether the head's codex-review is filed under a branch other than `ref`, where the pull request doesn't see it.
+async function filedElsewhere(github, repo, sha, ref) {
+  const check = (await latestChecks(github, repo, sha)).find(run => run.name === CHECK);
+  if (!check || !check.check_suite) return false;
+  const { data: suite } = await github.rest.checks.getSuite({ ...repo, check_suite_id: check.check_suite.id });
+  return Boolean(suite.head_branch) && suite.head_branch !== ref;
+}
+
 // The pull_request runs GitHub holds for "approval from a maintainer" on a head: a merge of main the queue pushed with
 // the workflow token gets them, and until they run, the ruleset waits on their checks and the pull request stays
 // blocked (a dispatched build doesn't stand in for them). Approves each; returns how many waited and how many ran.
@@ -291,6 +299,17 @@ function parseBatch(message) {
 
 function commitTree(git, tree, parents, message) {
   return git([...BOT, 'commit-tree', tree, ...parents.flatMap(parent => ['-p', parent]), '-F', '-'], message).trim();
+}
+
+// A new commit with the same tree, parents and message as `sha`: the same change, under a sha no branch has had yet.
+function recommit(git, sha) {
+  git(['fetch', '--no-tags', '--quiet', 'origin', `+refs/heads/${BATCH}:refs/remotes/origin/${BATCH}`]);
+  const raw = git(['cat-file', 'commit', sha]);
+  const split = raw.indexOf('\n\n');
+  const header = raw.slice(0, split).split('\n');
+  const tree = header.find(line => line.startsWith('tree ')).slice(5);
+  const parents = header.filter(line => line.startsWith('parent ')).map(line => line.slice(7));
+  return commitTree(git, tree, parents, raw.slice(split + 2));
 }
 
 // Merges each member's head in turn onto main, as commits made without a working tree, leaving out any that conflicts
@@ -409,12 +428,40 @@ branch, check the merge, and comment \`@codex review\`.`,
 
 // What to do about the batch on its branch, if it is still about main and its members: true when the queue is done
 // for this run (the batch is building, was promoted or went again), false to go on as if there were none.
+// The green batch becomes the carrier's head.
+// GitHub files every check on a commit under the branch it was first pushed to, and a check filed under
+// automerge/batch never reaches the pull request: the ruleset waited on codex-review for ever (#326, #329,
+// 2026-11-01). So the carrier's branch gets a copy of the batch commit (same tree, parents and message, so the
+// same batch), and the batch branch follows it.
+async function promote(github, git, repo, core, batch, carrier, pr, result) {
+  const sha = recommit(git, batch.sha);
+  try {
+    // Only over the head the queue saw: the last member's own head, or (put right) the batch commit it replaces.
+    git(['push', '--quiet', `--force-with-lease=refs/heads/${pr.head.ref}:${pr.head.sha}`, 'origin', `${sha}:refs/heads/${pr.head.ref}`]);
+  } catch (error) {
+    core.info(`batch ${batch.sha.slice(0, 7)}: #${carrier.number}'s branch refused it (${error.message}); building again`);
+    return false;
+  }
+  core.info(`batch ${batch.sha.slice(0, 7)} is green: it becomes #${carrier.number}'s head as ${sha.slice(0, 7)}`);
+  await writeCheck(github, repo, sha, result);
+  // A push with the workflow token starts no workflows, and the new sha has none of the batch's checks.
+  await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
+  git(['push', '--force', '--quiet', 'origin', `${sha}:refs/heads/${BATCH}`]);
+  return true;
+}
+
 async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha, scanned, waiting, self) {
   if (!batch || batch.base !== mainSha) return false;
   const carrier = batch.members[batch.members.length - 1];
   const carrierState = scanned.get(carrier.number);
   if (carrierState && carrierState.pr.head.sha === batch.sha) {
     if (carrierState.failing) return false;
+    if (await filedElsewhere(github, repo, batch.sha, carrierState.pr.head.ref)) {
+      // Promoted before the copy above: its codex-review sits under automerge/batch, where the ruleset doesn't see it.
+      const result = await evaluate(github, git, repo, { number: carrier.number, head: { sha: batch.sha } });
+      if (result.conclusion === 'success') return promote(github, git, repo, core, batch, carrier, carrierState.pr, result);
+      return false;
+    }
     core.info(`batch ${batch.sha.slice(0, 7)} is #${carrier.number}'s head: waiting for auto-merge`);
     return true;
   }
@@ -452,10 +499,7 @@ async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha,
     }
     // Merging itself, the batch, made on main, becomes main: every member's head is in it.
     if (self) return moveMain(github, repo, core, batch.base, batch.sha, `batch ${batch.sha.slice(0, 7)}`);
-    core.info(`batch ${batch.sha.slice(0, 7)} is green: it becomes #${carrier.number}'s head`);
-    await github.rest.git.updateRef({ ...repo, ref: `heads/${carrierState.pr.head.ref}`, sha: batch.sha, force: false });
-    await writeCheck(github, repo, batch.sha, result);
-    return true;
+    return promote(github, git, repo, core, batch, carrier, carrierState.pr, result);
   }
   const half = batch.members.slice(0, Math.ceil(batch.members.length / 2));
   core.info(`batch ${batch.sha.slice(0, 7)} failed: ${half.map(m => `#${m.number}`).join(', ')} go again`);

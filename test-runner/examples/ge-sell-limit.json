@@ -1,0 +1,19 @@
+{
+ "name": "Grand Exchange: the bot market buys a sell only up to the item's buy limit (70 for the Abyssal whip), the rest waits",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack and no offers; ::reset at the end puts it back"},
+  {"step": "command", "text": "::gemarket on", "expectMessage": "The Grand Exchange market is on."},
+  {"step": "command", "text": "::item cert_abyssal_whip 71", "expectMessage": "Added 71 x Abyssal whip", "comment": "noted, one more than the whip's buy limit of 70 in 214's price file (the Wiki's)"},
+  {"step": "command", "text": "::geoffer sell abyssal whip 71 1", "expectMessage": "Placed: Slot 0: sell 71 x Abyssal whip (4151) at 1", "comment": "1 each is far under the guide price, so the market takes it on the next tick, but only 70 of them"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::geoffer list", "expectMessage": "Slot 0: sell 71 x Abyssal whip (4151) at 1, 70/71 done for"},
+  {"step": "waitTicks", "ticks": 5},
+  {"step": "command", "text": "::geoffer list", "expectMessage": "70/71 done for", "comment": "the last one waits for the limit's four hours"},
+  {"step": "command", "text": "::geoffer abort 0", "expectMessage": "Aborted slot 0."},
+  {"step": "command", "text": "::geoffer collect 0", "expectMessage": "Collected from slot 0."},
+  {"step": "assertInventory", "item": "Abyssal whip", "count": 1},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were", "comment": "::reset clears the GE state, the sell limit's count with it"}
+ ]
+}
