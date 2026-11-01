@@ -60,6 +60,11 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
     /** The tick each player's ban by each owner ends, by account name and owner NPC type. */
     private val refusedUntil = mutableMapOf<Pair<String, Int>, Long>()
 
+    /** The owners' second lines, each said on its tick ([process]). */
+    private val shouts = mutableListOf<Shout>()
+
+    private class Shout(val npc: Npc, val text: String, val tick: Long)
+
     private val owners: Set<Int> get() = STALLS.values.mapTo(mutableSetOf()) { it.owner }
 
     fun register() {
@@ -145,7 +150,8 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
         }
         val text = world.textFor(player)
         owner.effects.say(text[ThievingLines.OWNER_ANGRY])
-        // 2004Scape says the second line a tick later; said together here (guessed).
+        // The call for the guards comes on the next tick (2004Scape's stall_owner_alert_guards); they attack at once.
+        shouts += Shout(owner, text[ThievingLines.GUARDS], tick + 1)
         val guards = STALLS.values.filter { it.owner == owner.spawn.type.id }.flatMapTo(mutableSetOf()) { it.guards }
         for (guard in world.npcs.near(owner.x, owner.z, owner.level, SIGHT)) {
             if (guard.spawn.type.id !in guards || guard.dead || guard.target === player) continue
@@ -153,6 +159,19 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
             world.meleeCombat.provoke(guard, player, tick)
         }
         return true
+    }
+
+    /** The NPC phase: each owner whose second line is due says it, if they still stand. */
+    fun process() {
+        if (shouts.isEmpty()) return
+        val tick = world.tick
+        val iterator = shouts.iterator()
+        while (iterator.hasNext()) {
+            val shout = iterator.next()
+            if (shout.tick > tick) continue
+            iterator.remove()
+            if (!shout.npc.dead && world.npcs[shout.npc.index] === shout.npc) shout.npc.effects.say(shout.text)
+        }
     }
 
     /** Every owner forgets [player]'s thefts: `::reset`, and logging out (the bans aren't saved). */

@@ -979,6 +979,7 @@ class World(
         }
         deaths.process()
         npcScripts.process()
+        thieving.process()
         npcs.process()
         fishing.process()
         shopScreen.restock(tick)
