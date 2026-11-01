@@ -1,5 +1,5 @@
 {
- "name": "Client settings: Max hit hitsplats; a new account's punches of 1 show as max hits at a threshold of 1, with the toggle on or off, and as ordinary hits at 2 (needs 0.19.0)",
+ "name": "Client settings: Max hit hitsplats; a new account's punches of 1 show as max hits at a threshold of 1, with the toggle on or off, and as ordinary hits at 2 (needs 0.20.0)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},

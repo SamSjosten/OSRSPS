@@ -309,7 +309,7 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `settings-buttons.json`: the All Settings window's buttons. The Wilderness teleport and tablet warnings switched on
   and off a section at a time, the opaque chat colours reset, the keybinds restored and the volumes reset; then close,
   relog and check, and the keys put back to none.
-- `settings-maxhit.json` (needs 0.19.0): Max hit hitsplats. With `::sure max` and a threshold of 1, a new account's
+- `settings-maxhit.json` (needs 0.20.0): Max hit hitsplats. With `::sure max` and a threshold of 1, a new account's
   punches of 1 on a man show as max hits (hitmark 43) with the toggle on and off, and as ordinary hits at a threshold of 2.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
@@ -394,7 +394,7 @@ server's answer instead of failing on what was there before.
 | `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. (0.17.0) Clicks a level-up box away too; `assertDialogue` and `assertNoDialogue` still ignore it. |
 | `assertMessage` | `contains` | Waits for a chat message containing `contains`, counting only messages since the last step that acted. |
 | `waitTicks` | `ticks` | Waits that many game ticks. |
-| `assertHitsplat` | `npc` (name) or `self: true`, `amount`, `types` | Waits for a hitsplat on the NPC of that name (the one the player is fighting or talking to, else the nearest; several castle NPCs are a `Man`), or on the player, counting only hitsplats since the last step that acted. With `amount`, one showing exactly that; a miss shows 0. With `types` (0.19.0), one of those hitmark ids: RuneLite may report the id sent or the one its multimark turns it into, so list both (43, damage_max_me, shows as 48 with Max hit hitsplats on and 28 with it off). |
+| `assertHitsplat` | `npc` (name) or `self: true`, `amount`, `types` | Waits for a hitsplat on the NPC of that name (the one the player is fighting or talking to, else the nearest; several castle NPCs are a `Man`), or on the player, counting only hitsplats since the last step that acted. With `amount`, one showing exactly that; a miss shows 0. With `types` (0.20.0), one of those hitmark ids: RuneLite may report the id sent or the one its multimark turns it into, so list both (43, damage_max_me, shows as 48 with Max hit hitsplats on and 28 with it off). |
 | `assertNpcHealth` | `npc` (name) or `npcId`, `min`, `max` | Waits until that NPC's health bar (the NPC chosen as for `assertHitsplat`) is within the bounds, in percent (`max: 99` is "hurt"). The client is only told an NPC's health once it is hit, so this also waits for the first hit to show, and says `no health bar` until then. |
 | `assertStat` | `skill`, `level`, `xp` | Waits until the player's real (unboosted) level and experience in the skill are at least those given. `skill` is a name as the stats tab shows it, such as `Attack`. |
 | `assertGroundItem` | `item` (name) or `itemId`, `x`+`y`, `absent` | Waits until such an item lies on the ground in the scene on the player's plane (on the tile, with `x` and `y`), or, with `absent: true`, until none does; absence on a tile counts only once that tile is in the loaded scene. |
