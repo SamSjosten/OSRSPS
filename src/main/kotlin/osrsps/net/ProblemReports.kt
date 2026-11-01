@@ -88,7 +88,7 @@ class ProblemReports(
     /**
      * Counts the reports still waiting here, and finds the highest number given so far: the most of the one in
      * memory, the one last written to [LAST_NUMBER], and the highest report file here or in any folder under [dir]
-     * (where a forwarder may move reports it has sent). So a number is never given twice, even after a report is
+     * (where [ReportForwarder] moves reports it has filed). So a number is never given twice, even after a report is
      * deleted or the server restarts. Read again for each report, as a forwarder or Sam moves them away meanwhile;
      * at most [PER_HOUR] times an hour.
      */
