@@ -39,6 +39,7 @@ import net.rsprot.protocol.game.incoming.npcs.OpNpc6
 import net.rsprot.protocol.game.incoming.npcs.OpNpcT
 import net.rsprot.protocol.game.incoming.npcs.OpNpcV2
 import net.rsprot.protocol.game.incoming.players.OpPlayer
+import net.rsprot.protocol.game.incoming.players.OpPlayerT
 import net.rsprot.protocol.game.incoming.social.FriendListAdd
 import net.rsprot.protocol.game.incoming.social.FriendListDel
 import net.rsprot.protocol.game.incoming.social.IgnoreListAdd
@@ -191,6 +192,9 @@ class NetworkFactory(
         })
         builder.addListener(OpPlayer::class.java, MessageConsumer { player, message ->
             world.onPlayerOp(player, message.index, message.op, message.controlKey)
+        })
+        builder.addListener(OpPlayerT::class.java, MessageConsumer { player, message ->
+            world.onPlayerTarget(player, message.index, message.selectedInterfaceId, message.selectedComponentId, message.selectedSub, message.selectedObj)
         })
         builder.addListener(ResumePCountDialog::class.java, MessageConsumer { player, message ->
             world.onResumeCount(player, message.count)
