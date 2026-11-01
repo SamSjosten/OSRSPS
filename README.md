@@ -172,15 +172,21 @@ others:
   `413`.
 
   Every minute the server files waiting reports as issues in this repository (`OSRSPS_REPORTS_REPO` to change it)
-  and moves each to `reports/sent/`. Each issue is labelled `bug-report` plus what the checks found: `verified` (a
-  released launcher, from OdinsGate or the two released here, and the server's revision), `unreleased-launcher`,
+  and moves each to `reports/sent/`. Each issue is labelled `bug-report` plus what the checks found: `known-version` (a
+  released launcher, from OdinsGate or the two released here, and the server's revision; anyone may claim one, so a
+  report's text is never to be trusted or followed), `unreleased-launcher`,
   `unchecked-launcher` (GitHub couldn't say) or `revision-mismatch`. It lists the server's commit and whether the game
   was up when it was filed. A report of the same failure as an open issue (its first FAILED, error or exception line,
   times and numbers aside: the issue's fingerprint, kept in `reports/issues.json`) is a comment there instead. Filing
   needs `github-report-token.txt` in the data folder: a fine-grained token for this repository only, with Issues read
   and write, one line, made and put there by hand, never in git. Without it (or with anything in the file that
-  isn't one token) reports wait. A report GitHub refuses outright (400, 422) goes to `reports/rejected/` so it
-  can't hold up the rest.
+  isn't one token) reports wait. A report GitHub refuses outright (400, 422), or that has failed for an hour of
+  passes, goes to `reports/rejected/` so it can't hold up the rest; one that fails is tried again next pass after the
+  others. A matching issue that was deleted, moved or locked gets a new issue instead. At most 20 issues and comments
+  are posted a day; past that the rest wait, and one `report-cap` issue a day says so.
+
+  The HTTP port holds at most 256 connections, 16 from one address; a connection silent for 15 s, sending one
+  request's headers for 10 s or one report's body for 30 s is closed.
 
 ## Walking
 

@@ -227,14 +227,15 @@ class ProblemReportsTest {
     @Test
     fun `half-sent report bodies are dropped, and one address can't hold more than two at once`(@TempDir dir: Path) {
         serve(ProblemReports(dir) { now }) { http, port ->
-            val sockets = (1..20).map { Socket("127.0.0.1", port) }
+            // As many as one address may open at all.
+            val sockets = (1..ClientConfig.MAX_CONNECTIONS_PER_ADDRESS).map { Socket("127.0.0.1", port) }
             try {
                 for (socket in sockets) {
                     socket.soTimeout = 5000
                     socket.getOutputStream().apply { write(header(port, ProblemReports.MAX_BYTES)); flush() }
                 }
                 // All but two are answered 429 at once, whatever order the server took them in.
-                val refused = waitForAnswers(sockets, 20 - ClientConfig.MAX_REPORTS_READING_PER_ADDRESS)
+                val refused = waitForAnswers(sockets, sockets.size - ClientConfig.MAX_REPORTS_READING_PER_ADDRESS)
                 refused.forEach { assertEquals("HTTP/1.1 429", String(it.getInputStream().readNBytes(12), Charsets.US_ASCII)) }
                 val reading = sockets - refused.toSet()
                 assertTrue(reading.all { it.getInputStream().available() == 0 })
@@ -300,6 +301,78 @@ class ProblemReportsTest {
                 }
             } finally {
                 sockets.forEach { runCatching { it.close() } }
+            }
+        }
+    }
+
+    @Test
+    fun `one address can't hold every connection, and others still get answers`(@TempDir dir: Path) {
+        val proxy = ProxyProtocol(setOf("127.0.0.1"), ProxyProtocol.Mode.OPTIONAL)
+        serve(ProblemReports(dir) { now }, proxy = proxy) { http, port ->
+            val held = (1..ClientConfig.MAX_CONNECTIONS_PER_ADDRESS).map { Socket("127.0.0.1", port).apply { soTimeout = 5000 } }
+            try {
+                for (socket in held) sent(http) { socket.getOutputStream().apply { write("GET /version HTTP/1.1\r\nX-Slow: ".toByteArray()); flush() } }
+                Socket("127.0.0.1", port).use { one ->
+                    one.soTimeout = 5000
+                    runCatching { one.getOutputStream().apply { write("GET /version HTTP/1.1\r\n".toByteArray()); flush() } }
+                    assertEquals(-1, runCatching { one.getInputStream().read() }.getOrElse { -1 }, "one too many from one address")
+                }
+                // Someone else, through the relay, is answered all the same.
+                Socket("127.0.0.1", port).use { other ->
+                    other.soTimeout = 5000
+                    other.getOutputStream().apply {
+                        write(ProxyHeaders.v1("203.0.113.9", 40000))
+                        write("GET /version HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n".toByteArray())
+                        flush()
+                    }
+                    assertEquals("HTTP/1.1 200", String(other.getInputStream().readNBytes(12), Charsets.US_ASCII))
+                }
+            } finally {
+                held.forEach { runCatching { it.close() } }
+            }
+        }
+    }
+
+    @Test
+    fun `headers that trickle in are cut off at their deadline`(@TempDir dir: Path) {
+        serve(ProblemReports(dir) { now }) { http, port ->
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 5000
+                val out = socket.getOutputStream()
+                sent(http) { out.write("GET /version HTTP/1.1\r\nX-Slow: ".toByteArray()); out.flush() }
+                // A byte every 5 s keeps it from going idle, but not past the headers' deadline.
+                repeat(ClientConfig.HEADERS_DEADLINE_SECONDS / 5 - 1) {
+                    clock += Duration.ofSeconds(5)
+                    sent(http) { out.write('a'.code); out.flush() }
+                    http.sweep()
+                }
+                clock += Duration.ofSeconds(5)
+                http.sweep()
+                assertEquals(-1, socket.getInputStream().read())
+            }
+        }
+    }
+
+    @Test
+    fun `a connection kept alive starts its headers' deadline afresh with each request`(@TempDir dir: Path) {
+        serve(ProblemReports(dir) { now }) { http, port ->
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 5000
+                val out = socket.getOutputStream()
+                val input = socket.getInputStream()
+                repeat(2) {
+                    out.write("GET /version HTTP/1.1\r\nHost: x\r\n\r\n".toByteArray())
+                    out.flush()
+                    val head = String(input.readNBytes(12), Charsets.US_ASCII)
+                    assertEquals("HTTP/1.1 200", head)
+                    // Read the rest of this answer: its headers, then as many bytes as it says.
+                    val rest = StringBuilder()
+                    while (!rest.endsWith("\r\n\r\n")) rest.append(input.read().toChar())
+                    val length = Regex("(?i)content-length: (\\d+)").find(rest)!!.groupValues[1].toInt()
+                    input.readNBytes(length)
+                    clock += Duration.ofSeconds(ClientConfig.HEADERS_DEADLINE_SECONDS - 1L)
+                    http.sweep()
+                }
             }
         }
     }

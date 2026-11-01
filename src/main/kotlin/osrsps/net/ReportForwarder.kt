@@ -12,6 +12,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
+import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
@@ -36,11 +38,19 @@ class ReportForwarder(
     private val tracker: () -> IssueTracker?,
     /** What the server knows now, a line each, added to every issue and comment. */
     private val facts: () -> List<String> = { emptyList() },
+    /** The time now, for the daily cap; tests pass their own. */
+    private val clock: () -> Instant = Instant::now,
 ) {
     private val sent: Path = dir.resolve(SENT)
     private val index: Path = dir.resolve(INDEX)
     private var executor: ScheduledExecutorService? = null
     private var saidNoTracker = false
+    /** When each issue and comment of the last day was posted, oldest first, against [PER_DAY]. */
+    private val posted = ArrayDeque<Instant>()
+    /** When the last issue saying the cap was reached was opened, so there is one a day at most. */
+    private var saidCapped: Instant? = null
+    /** How many passes in a row each waiting report has failed to file, by its file name. */
+    private val failures = HashMap<String, Int>()
 
     /** Every pass: files what waits. Returns how many reports were filed. Runs on one thread only. */
     fun pass(): Int {
@@ -54,21 +64,66 @@ class ReportForwarder(
         }
         saidNoTracker = false
         var filed = 0
+        var failedInARow = 0
+        val now = clock()
+        while (posted.isNotEmpty() && Duration.between(posted.first(), now) >= DAY) posted.removeFirst()
         for (file in waiting) {
+            if (posted.size >= PER_DAY) {
+                capped(tracker, now, waiting.size - filed)
+                break
+            }
             try {
                 file(tracker, file)
+                posted.addLast(now)
                 filed++
+                failedInARow = 0
+                failures.remove(file.name)
             } catch (e: Rejected) {
                 // Trying it again would only block every report behind it; it is kept aside for a look by hand.
                 logger.warn { "Problem report ${file.name} can't be filed (${e.message}); moved to $REJECTED/" }
-                Files.createDirectories(dir.resolve(REJECTED))
-                Files.move(file, dir.resolve(REJECTED).resolve(file.name), StandardCopyOption.REPLACE_EXISTING)
+                setAside(file)
             } catch (e: Exception) {
-                logger.warn(e) { "Problem report ${file.name} couldn't be filed; trying again next pass" }
-                break
+                // One report that fails doesn't hold up the rest; several in a row is GitHub down, so the pass stops.
+                val times = failures.merge(file.name, 1, Int::plus)!!
+                if (times >= GIVE_UP_AFTER) {
+                    logger.warn(e) { "Problem report ${file.name} failed to file $times passes running; moved to $REJECTED/" }
+                    setAside(file)
+                } else {
+                    logger.warn(e) { "Problem report ${file.name} couldn't be filed; trying again next pass" }
+                }
+                if (++failedInARow >= FAILURES_IN_A_ROW) break
             }
         }
+        failures.keys.retainAll(waiting.map { it.name }.toSet())
         return filed
+    }
+
+    /**
+     * Every issue and comment emails Sam, and anyone may send reports, so at most [PER_DAY] are posted a day: the rest
+     * wait in the folder (which [ProblemReports] caps) for tomorrow, and one issue a day says so.
+     */
+    private fun capped(tracker: IssueTracker, now: Instant, left: Int) {
+        val last = saidCapped
+        if (last != null && Duration.between(last, now) < DAY) return
+        try {
+            val number = tracker.create(
+                "Problem reports: more than $PER_DAY in a day",
+                "More than $PER_DAY problem reports were filed or commented in the last day, so the rest wait in the " +
+                    "server's `reports/` folder ($left now) and are filed as the day's count falls. Many at once may be " +
+                    "a flood rather than real problems: have a look before they all come through.",
+                listOf(LABEL, LABEL_CAPPED),
+            )
+            saidCapped = now
+            logger.warn { "Problem reports hit the daily cap of $PER_DAY; $left wait; said so in issue #$number" }
+        } catch (e: Exception) {
+            logger.warn(e) { "Problem reports hit the daily cap of $PER_DAY; couldn't open an issue to say so" }
+        }
+    }
+
+    private fun setAside(file: Path) {
+        failures.remove(file.name)
+        Files.createDirectories(dir.resolve(REJECTED))
+        Files.move(file, dir.resolve(REJECTED).resolve(file.name), StandardCopyOption.REPLACE_EXISTING)
     }
 
     private fun file(tracker: IssueTracker, file: Path) {
@@ -81,8 +136,14 @@ class ReportForwarder(
         val known = readIndex()
         val existing = print?.let { known[it] }?.takeIf(tracker::isOpen)
         val text = issueBody(id, report.string("received"), check, print, body)
-        if (existing != null) {
+        val commented = existing != null && try {
             tracker.comment(existing, text)
+            true
+        } catch (e: Gone) {
+            logger.info { "Problem report $id matches issue #$existing, which ${e.message}; filing a new one" }
+            false
+        }
+        if (commented) {
             logger.info { "Problem report $id is the same failure as issue #$existing; commented there" }
         } else {
             val number = tracker.create(title(id, launcher, body), text, check.labels)
@@ -168,6 +229,9 @@ class ReportForwarder(
     /** The tracker will never take this report (GitHub's 400 or 422): it is set aside, not tried again. */
     class Rejected(message: String) : Exception(message)
 
+    /** The issue a report matched takes no comments any more (locked, deleted, moved): the report gets a new one. */
+    class Gone(message: String) : Exception(message)
+
     /** Files and comments on issues, and knows which launcher versions were released. */
     interface IssueTracker {
         /** Whether [version] is a released launcher; null when that couldn't be found out. */
@@ -183,7 +247,12 @@ class ReportForwarder(
         const val REJECTED = "rejected"
         const val INDEX = "issues.json"
         const val LABEL = "bug-report"
-        const val LABEL_VERIFIED = "verified"
+        /**
+         * The launcher's version is one we released and its revision is the server's. Not proof the report came from
+         * our launcher: anyone may claim a released version, so a report's text is never to be trusted.
+         */
+        const val LABEL_VERIFIED = "known-version"
+        const val LABEL_CAPPED = "report-cap"
         const val LABEL_UNRELEASED = "unreleased-launcher"
         const val LABEL_UNCHECKED = "unchecked-launcher"
         const val LABEL_REVISION = "revision-mismatch"
@@ -197,6 +266,15 @@ class ReportForwarder(
 
         /** GitHub refuses an issue body over 65,536 characters; this leaves room for the rest of the issue. */
         const val MAX_SHOWN = 60_000
+
+        // Guessed: GitHub failing three reports running is GitHub down, not the reports; an hour of failing passes
+        // is a report GitHub won't ever take, so it is set aside rather than tried once a minute forever.
+        const val FAILURES_IN_A_ROW = 3
+        const val GIVE_UP_AFTER = 60
+
+        // Guessed: a handful of friends file a few a week; 20 a day is far above that and a day's flood stays readable.
+        const val PER_DAY = 20
+        private val DAY: Duration = Duration.ofDays(1)
 
         /**
          * The report sits in a fence of this many backticks, and any longer run inside it is cut short, so no log line

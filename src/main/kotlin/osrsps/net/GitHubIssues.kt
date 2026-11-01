@@ -41,7 +41,10 @@ class GitHubIssues(
     }
 
     override fun isOpen(issue: Int): Boolean {
-        val response = ok(send("GET", "/repos/$repo/issues/$issue", null), "reading issue #$issue")
+        val response = send("GET", "/repos/$repo/issues/$issue", null)
+        // Deleted (410), gone or never ours (404), or moved to another repository (301): not open here, so a new one.
+        if (response.statusCode() in GONE) return false
+        ok(response, "reading issue #$issue")
         return Json.parseToJsonElement(response.body()).jsonObject["state"]?.jsonPrimitive?.content == "open"
     }
 
@@ -56,7 +59,10 @@ class GitHubIssues(
     }
 
     override fun comment(issue: Int, body: String) {
-        ok(send("POST", "/repos/$repo/issues/$issue/comments", buildJsonObject { put("body", body) }.toString()), "commenting on #$issue")
+        val response = send("POST", "/repos/$repo/issues/$issue/comments", buildJsonObject { put("body", body) }.toString())
+        // Locked (403), or gone since it was read: the report goes in a new issue instead.
+        if (response.statusCode() in CLOSED_TO_COMMENTS) throw ReportForwarder.Gone("issue #$issue takes no comments (${response.statusCode()})")
+        ok(response, "commenting on #$issue")
     }
 
     private fun send(method: String, path: String, json: String?): HttpResponse<String> {
@@ -84,6 +90,9 @@ class GitHubIssues(
         const val API = "https://api.github.com"
         const val LAUNCHER_REPO = "SamSjosten/OdinsGate"
         const val REPO = "SamSjosten/OSRSPS"
+
+        private val GONE = setOf(301, 404, 410)
+        private val CLOSED_TO_COMMENTS = setOf(301, 403, 404, 410)
 
         /** The data folder's token file: one line, the token. Sam puts it there by hand; it is never in git. */
         const val TOKEN_FILE = "github-report-token.txt"
