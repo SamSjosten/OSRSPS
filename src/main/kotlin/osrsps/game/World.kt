@@ -156,6 +156,7 @@ import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
+import osrsps.game.skill.Thieving
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
@@ -532,6 +533,7 @@ class World(
     val firemaking = Firemaking(this, collision)
 
     val mining = Mining(this)
+    val thieving = Thieving(this, collision)
 
     val fishing = Fishing(this)
 
@@ -651,6 +653,7 @@ class World(
         birdNests.register()
         firemaking.register()
         mining.register()
+        thieving.register()
         fishing.register()
         cooking.register()
         smithing.register()
@@ -979,6 +982,7 @@ class World(
         }
         deaths.process()
         npcScripts.process()
+        thieving.process()
         npcs.process()
         fishing.process()
         shopScreen.restock(tick)
@@ -2490,6 +2494,7 @@ class World(
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
             trades.leave(player)
+            thieving.forgive(player)
             friendChats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)

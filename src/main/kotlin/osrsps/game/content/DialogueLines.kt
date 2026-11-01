@@ -29,6 +29,7 @@ import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.SmithingLines
+import osrsps.game.skill.ThievingLines
 import osrsps.game.skill.WoodcuttingLines
 import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
@@ -212,6 +213,7 @@ object DialogueLines {
         TanningLines,
         TeaSellerLines,
         ThessaliaLines,
+        ThievingLines,
         TournamentGuideLines,
         TownCrierLines,
         TradeLines,

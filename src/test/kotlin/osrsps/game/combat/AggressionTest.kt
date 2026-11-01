@@ -239,6 +239,23 @@ class AggressionTest {
     }
 
     @Test
+    fun `a provoked NPC, as a market guard called on a thief, keeps to single-way combat as an aggressive one does`() {
+        val guard = spawn(man)
+        val other = spawn(man, 3224, 3220)
+        at(alice, 3221, 3220)
+        // She is fighting another NPC: the guard stays out of it until that wears off.
+        alice.attackedNpc = other
+        alice.attackedNpcTick = tick
+        melee.provoke(guard, alice, tick)
+        assertNull(guard.target, "she is fighting another")
+        tick += MeleeCombat.IN_COMBAT_TICKS + 1
+        melee.provoke(guard, alice, tick)
+        assertSame(alice, guard.target, "her fight has worn off")
+        // Turned on her unprovoked: no hit of hers is made up, so she isn't holding it.
+        assertNull(guard.attacker)
+    }
+
+    @Test
     fun `in single-way combat it leaves a player fighting another NPC alone until that wears off, and in multi-way it joins in`() {
         val npc = spawn(spider)
         val other = spawn(spider, 3224, 3220)

@@ -33,6 +33,8 @@
     {"npc": "wom_bed_inactive", "x": 3087, "z": 3254, "level": 1, "source": "The Wise Old Man's bed, upstairs (step 6); its Kick is a task's and does nothing yet. mejrs NPCList_OSRS"},
     {"npc": "wom_gossip", "x": 3095, "z": 3252, "wander": 3, "source": "Miss Schism, outside the Wise Old Man's house (step 6). mejrs NPCList_OSRS; wander range guessed"},
     {"npc": "wom_bankguard", "x": 3088, "z": 3247, "source": "Bank guard, in the Draynor bank (step 6). mejrs NPCList_OSRS; standing still guessed"},
+    {"npc": "farming_market_guard", "x": 3083, "z": 3247, "wander": 4, "source": "Market Guard, the market's south side (step 7); attacks a thief it sees. mejrs NPCList_OSRS; wander range guessed"},
+    {"npc": "farming_market_guard", "x": 3083, "z": 3253, "wander": 4, "source": "Market Guard, the market's north side (step 7). mejrs NPCList_OSRS; wander range guessed"},
     {"npc": 3251, "x": 3119, "z": 3276, "wander": 5, "source": "Farmer (no options), the wheat field north-east of the village. mejrs NPCList_OSRS"}
   ]
 }
