@@ -193,18 +193,42 @@ class MeleeCombat(
     }
 
     /**
-     * Whether [npc] is someone else's: it is fighting another player, one who never hit it too (an aggressive monster's
-     * prey with auto retaliate off), or another player hit it within the last [IN_COMBAT_TICKS] ticks and is still here.
-     * Guessed: the Wiki says a single-way NPC stays someone's for a while after their last hit, but not how long, and
-     * that only one player or monster can attack one at a time. Never for an NPC standing in a multi-way area (guessed:
-     * by the NPC's tile, not the player's).
+     * Whether [npc] is someone else's: it took on or swung at another player within the last [IN_COMBAT_TICKS] ticks,
+     * one who never hit it too (an aggressive monster's prey with auto retaliate off), or another player hit it within
+     * them and is still here. So an NPC held at its max range by a player out of its reach is free again once neither
+     * side has fought for that long. Guessed: the Wiki says a single-way NPC stays someone's for a while after their
+     * last hit, but not how long, and that only one player or monster can attack one at a time. Never for an NPC
+     * standing in a multi-way area (guessed: by the NPC's tile, not the player's).
      */
     internal fun foughtByAnother(player: Player, npc: Npc): Boolean {
         if (multi.at(npc.level, npc.x, npc.z)) return false
+        val tick = currentTick()
         val target = npc.target
-        if (target != null && target !== player && !target.loggedOut) return true
+        if (target != null && target !== player && !target.loggedOut && tick - npc.fightTick <= IN_COMBAT_TICKS) return true
         val other = npc.attacker ?: return false
-        return other !== player && currentTick() - npc.attackedTick <= IN_COMBAT_TICKS && !other.loggedOut
+        return other !== player && tick - npc.attackedTick <= IN_COMBAT_TICKS && !other.loggedOut
+    }
+
+    /** Whether [player] hit [npc] within the last [IN_COMBAT_TICKS] ticks. */
+    private fun hitBy(npc: Npc, player: Player): Boolean =
+        npc.attacker === player && currentTick() - npc.attackedTick <= IN_COMBAT_TICKS
+
+    /**
+     * Whether [player] is fighting an NPC other than [npc]: their attack is on one, or they hit one within the last
+     * [IN_COMBAT_TICKS] ticks and it still stands. Never for a player standing in a multi-way area (by the player's
+     * tile, as [underAttackByAnother]). So an aggressive monster doesn't join in on a single-way fight.
+     */
+    internal fun fightingAnother(player: Player, npc: Npc): Boolean {
+        if (multi.at(player.level, player.x, player.z)) return false
+        val attacking = when (val interaction = player.interaction) {
+            is MeleeInteraction -> interaction.npc
+            is RangedInteraction -> interaction.npc
+            is MagicInteraction -> interaction.npc
+            else -> null
+        }
+        if (attacking != null && attacking !== npc && !attacking.dead) return true
+        val hit = player.hitNpc ?: return false
+        return hit !== npc && !hit.dead && npcs[hit.index] === hit && currentTick() - player.hitNpcTick <= IN_COMBAT_TICKS
     }
 
     /**
@@ -398,7 +422,11 @@ class MeleeCombat(
     /** [npc] is in combat with [source] (null for none) from [tick], and faces them. */
     private fun attacked(npc: Npc, source: Player?, tick: Long) {
         npc.attacker = source
-        if (source != null) npc.lastAttacker = source
+        if (source != null) {
+            npc.lastAttacker = source
+            source.hitNpc = npc
+            source.hitNpcTick = tick
+        }
         npc.attackedTick = tick
         npc.holdTicks = IN_COMBAT_TICKS
         if (source != null) npc.face(source)
@@ -408,6 +436,7 @@ class MeleeCombat(
     private fun retaliate(npc: Npc, player: Player, tick: Long) {
         if (npc.target === player) return
         npc.target = player
+        npc.fightTick = tick
         npc.nextAttackTick = maxOf(npc.nextAttackTick, tick + 1)
         npcs.follow(npc, player)
     }
@@ -467,7 +496,10 @@ class MeleeCombat(
     private fun fightBack(npc: Npc, player: Player, tick: Long) {
         val def = combat.npcCombat[npc.type] ?: return giveUp(npc)
         if (npc.dead) return
-        if (player.loggedOut || player.level != npc.level || player.hitpoints <= 0 || outOfRange(npc, player) || underAttackByAnother(player, npc)) {
+        // A newcomer in single-way combat doesn't make it give up on a player who is hitting it themselves.
+        if (player.loggedOut || player.level != npc.level || player.hitpoints <= 0 || outOfRange(npc, player) ||
+            (underAttackByAnother(player, npc) && !hitBy(npc, player))
+        ) {
             giveUp(npc)
             return
         }
@@ -477,6 +509,7 @@ class MeleeCombat(
         if (!Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, player.x, player.z, 1, 1)) return
         if (tick < npc.nextAttackTick) return
         npc.nextAttackTick = tick + def.attackSpeed
+        npc.fightTick = tick
         if (def.anims.attack >= 0) npc.effects.anim(def.anims.attack)
         npc.face(player)
         val roll = combat.npcAttack(npc, player) ?: return

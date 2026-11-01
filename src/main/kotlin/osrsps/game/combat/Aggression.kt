@@ -76,7 +76,8 @@ class Tolerance {
  *   counting its size (Wiki); melee's 1 tile is taken for everyone until NPCs attack from afar;
  * - of a combat level at most twice its own, unless it is level 63 or more or ignores levels (Wiki);
  * - not tolerated: [Tolerance] has their ten minutes, unless it never becomes tolerant;
- * - not under attack by another NPC, in single-way combat ([MeleeCombat.underAttackByAnother]);
+ * - not under attack by another NPC, nor fighting one, in single-way combat ([MeleeCombat.underAttackByAnother],
+ *   [MeleeCombat.fightingAnother]);
  * - one it may fight: in single-way combat, not while another player's hits still hold it ([MeleeCombat.foughtByAnother]),
  *   as the player couldn't fight back.
  * It picks the nearest by its south-west tile, ties at random, then chases and fights them as if they had hit it.
@@ -147,7 +148,7 @@ class Aggression(
         if (!inAggressionRange(npc, player)) return false
         if (!aggression.ignoresLevels && npc.type.combatLevel < ALWAYS_LEVEL && player.skills.combatLevel > 2 * npc.type.combatLevel) return false
         if (aggression.tolerant && player.tolerance.tolerant) return false
-        return !melee.underAttackByAnother(player, npc) && !melee.foughtByAnother(player, npc)
+        return !melee.underAttackByAnother(player, npc) && !melee.fightingAnother(player, npc) && !melee.foughtByAnother(player, npc)
     }
 
     /** Whether [player] stands within [npc]'s max range plus attack range of its spawn point, counting its size. */
