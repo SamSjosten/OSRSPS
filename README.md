@@ -921,7 +921,7 @@ Step 2 is the town's shops, `game/content/EdgevilleShops.kt` for their talk and 
 The words are in the dialogue file (keys `edgeville_shop_keeper.*`, `edgeville_shop_assistant.*`, `oziach.*`,
 `richard.*`). Check: `test-runner/examples/edgeville-shops.json` buys and sells a knife at the General Store, talks to
 its assistant into the shop, buys and sells an anti-dragon shield at Oziach's, takes two of his talk's options, and
-talks to Richard into his shop for a cape, then chops a yew, smelts a bronze bar and cooks on Evil Dave's stove; `EdgevilleShopsTest` does each talk's options and `ShopTest` the stock and
+talks to Richard into his shop for a cape, then chops a yew, smelts a bronze bar and cooks on Evil Dave's stove; `EdgevilleShopsTest` does each talk's options, `HeadlessEdgevilleShopsTest` the talk into each shop through the headless client, and `ShopTest` the stock and
 the Wiki's prices.
 
 ## Varrock
