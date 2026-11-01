@@ -259,6 +259,14 @@ class Zones internal constructor(
     }
 
     /**
+     * Forgets the lasting changes (locs, objs) kept for the zones from [fromZoneX], [fromZoneZ] to [toZoneX], [toZoneZ]
+     * (in zones) on every level, sending nothing: for an instance's area at its end, when nobody is left watching it.
+     */
+    fun forgetArea(fromZoneX: Int, fromZoneZ: Int, toZoneX: Int, toZoneZ: Int) {
+        states.keys.removeIf { ZoneKey(it).x in fromZoneX..toZoneX && ZoneKey(it).z in fromZoneZ..toZoneZ }
+    }
+
+    /**
      * Sends [player] this cycle's zone updates through [out]: zones that came into view in full, and what happened this
      * cycle in the zones they were already watching. Call once a cycle per player, after their map rebuild if any.
      *

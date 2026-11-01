@@ -28,6 +28,9 @@ fi
 EOF
 chmod +x "$tmp/bin/docker"
 export PATH=$tmp/bin:$PATH DOCKER_LOG=$tmp/docker.log FAIL_BUILD=$tmp/fail-build FAIL_UP=$tmp/fail-up
+# /proc/meminfo as the script reads it: plenty available unless a step says otherwise.
+echo "MemAvailable:    8000000 kB" >"$tmp/meminfo"
+export OSRSPS_MEMINFO=$tmp/meminfo
 
 # main lives in a bare repo; changes are made in dev and pushed, and the script runs in vm, VM 214's checkout.
 git init -q --bare -b main "$tmp/origin.git"
@@ -275,6 +278,88 @@ expect_status 1
 [[ -e $tmp/vm/.git/index.lock ]] || fail "a fresh lock was removed"
 expect_no_calls
 rm -f "$tmp/vm/.git/index.lock"
+
+step="a ref lock in use fails the fast-forward and leaves the checkout clean"
+merge src/main/RefLock.kt=10 README.md=10
+touch "$tmp/vm/.git/refs/heads/main.lock"
+deploy
+expect_status 1
+expect_no_calls
+rm -f "$tmp/vm/.git/refs/heads/main.lock"
+[[ -z $(git -C "$tmp/vm" status --porcelain --untracked-files=no) ]] || fail "the failed fast-forward left changes in the checkout"
+expect_state failed "$head"
+
+step="a fast-forward that stopped half way is undone, and the next merge deploys"
+merge src/main/Half.kt=11 README.md=11
+git -C "$tmp/vm" fetch -q origin main
+git -C "$tmp/vm" read-tree -u -m HEAD origin/main
+[[ -n $(git -C "$tmp/vm" status --porcelain --untracked-files=no) ]] || fail "the test didn't leave a half-done fast-forward"
+merge src/main/After.kt=12
+deploy
+expect_status 0
+grep -q "stopped half way" "$tmp/out" || fail "the log doesn't say the half-done fast-forward was undone"
+expect_calls "compose build OSRSPS_COMMIT=$head" 1
+expect_checkout "$head"
+
+step="a staged edit under a working copy that matches main still blocks the deploy"
+merge src/main/Staged.kt=14
+git -C "$tmp/vm" fetch -q origin main
+echo "edited on the VM" >"$tmp/vm/src/main/Staged.kt"
+git -C "$tmp/vm" add src/main/Staged.kt
+git -C "$tmp/vm" show origin/main:src/main/Staged.kt >"$tmp/vm/src/main/Staged.kt"
+deploy
+expect_status 1
+expect_no_calls
+grep -q "the checkout has local changes" "$tmp/out" || fail "a staged edit was taken for a half-done fast-forward"
+[[ $(git -C "$tmp/vm" show :src/main/Staged.kt) == "edited on the VM" ]] || fail "the staged edit was discarded"
+git -C "$tmp/vm" reset -q --hard HEAD
+deploy --force
+expect_status 0
+expect_checkout "$head"
+
+step="a half-done fast-forward far behind main is still found"
+for i in $(seq 1 300); do git -C "$tmp/dev" commit -q --allow-empty -m "empty $i"; done
+merge src/main/Far.kt=15
+git -C "$tmp/vm" fetch -q origin main
+git -C "$tmp/vm" read-tree -u -m HEAD origin/main
+deploy
+expect_status 0
+grep -q "stopped half way" "$tmp/out" || fail "the half-done fast-forward wasn't found"
+expect_checkout "$head"
+
+step="a stale lock under .git/logs is cleared too"
+merge src/main/Logs.kt=13
+mkdir -p "$tmp/vm/.git/logs"
+touch -d '-20 minutes' "$tmp/vm/.git/logs/HEAD.lock"
+deploy
+expect_status 0
+[[ ! -e $tmp/vm/.git/logs/HEAD.lock ]] || fail "the stale .git/logs lock is still there"
+expect_checkout "$head"
+
+step="with too little memory the server stops for the build, then the new one starts"
+merge src/main/Tight.kt=20
+echo "MemAvailable:     700000 kB" >"$tmp/meminfo"
+deploy
+expect_status 0
+grep -q "Stopping the server for the build" "$tmp/out" || fail "the log doesn't say the server stopped"
+expect_calls "compose stop" 1
+expect_calls "compose build OSRSPS_COMMIT=$head" 1
+expect_calls "compose up -d OSRSPS_COMMIT=$head" 1
+expect_state built "$head"
+[[ $(head -1 "$DOCKER_LOG") == "docker compose stop"* ]] || fail "the server wasn't stopped before the build"
+
+step="a build that fails after the stop starts the old server again"
+running=$head
+merge src/main/TightFail.kt=21
+touch "$tmp/fail-build"
+deploy
+rm -f "$tmp/fail-build"
+expect_status 1
+expect_calls "compose stop" 1
+expect_calls "compose start" 1
+expect_state built "$running"
+expect_state failed "$head"
+echo "MemAvailable:    8000000 kB" >"$tmp/meminfo"
 
 if ((failures)); then
 	echo "$failures check(s) failed"

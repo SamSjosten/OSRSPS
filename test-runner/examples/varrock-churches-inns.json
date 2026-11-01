@@ -113,7 +113,14 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[elsie.trade"
+   "contains": "[elsie.trade]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[elsie.trade_2"
   },
   {
    "step": "continueDialogue"

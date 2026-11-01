@@ -3,6 +3,7 @@ package osrsps.game
 import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
+import osrsps.game.instance.Instance
 import osrsps.game.npc.Npc
 import osrsps.game.script.PlayerScripts
 import osrsps.game.shop.OpenShop
@@ -369,6 +370,9 @@ class Player(
     /** The zone the client's build area was last centred on. */
     var buildAreaZoneX: Int = x shr 3
     var buildAreaZoneZ: Int = z shr 3
+
+    /** The instance the client's build area was last built for, or null for the world outside. */
+    internal var buildAreaInstance: Instance? = null
 
     /** The zones this client gets updates for. */
     val zoneView = ZoneView()
