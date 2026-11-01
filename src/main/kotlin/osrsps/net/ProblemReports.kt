@@ -73,13 +73,9 @@ class ProblemReports(
                 put("body", scrub(text))
             }
             Files.createDirectories(dir)
-            val temp = Files.createTempFile(dir, ".$id", ".tmp")
-            try {
-                Files.writeString(temp, "$json\n")
-                Files.move(temp, dir.resolve("$id.json"), StandardCopyOption.ATOMIC_MOVE)
-            } finally {
-                Files.deleteIfExists(temp)
-            }
+            writeAtomically(dir.resolve("$id.json"), "$json\n")
+            lastNumber++
+            writeAtomically(dir.resolve(LAST_NUMBER), "$lastNumber\n")
             accepted.addLast(now to address)
             logger.info { "Problem report $id from launcher $launcher saved in ${dir.toAbsolutePath()}" }
             return Result.Accepted(id)
@@ -90,12 +86,15 @@ class ProblemReports(
     }
 
     /**
-     * Finds the highest number used so far, here or in any folder under [dir] (where a forwarder may move reports
-     * it has sent), so a number is never given twice across restarts, and counts the reports still waiting here.
-     * Read again for each report, as a forwarder or Sam moves them away meanwhile; at most [PER_HOUR] times an hour.
+     * Counts the reports still waiting here, and finds the highest number given so far: the most of the one in
+     * memory, the one last written to [LAST_NUMBER], and the highest report file here or in any folder under [dir]
+     * (where a forwarder may move reports it has sent). So a number is never given twice, even after a report is
+     * deleted or the server restarts. Read again for each report, as a forwarder or Sam moves them away meanwhile;
+     * at most [PER_HOUR] times an hour.
      */
     private fun scan() {
-        var highest = 0
+        val written = runCatching { Files.readString(dir.resolve(LAST_NUMBER)).trim().toInt() }.getOrDefault(0)
+        var highest = maxOf(lastNumber, written)
         var count = 0
         if (Files.isDirectory(dir)) {
             for (entry in dir.listDirectoryEntries()) {
@@ -111,7 +110,21 @@ class ProblemReports(
         waiting = count
     }
 
+    /** Writes [text] to a temporary file and moves it over [file], so a crash mid-write never leaves half of it. */
+    private fun writeAtomically(file: Path, text: String) {
+        val temp = Files.createTempFile(dir, ".${file.name}", ".tmp")
+        try {
+            Files.writeString(temp, text)
+            Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } finally {
+            Files.deleteIfExists(temp)
+        }
+    }
+
     companion object {
+        /** The file in [dir] that keeps the last number given, so a deleted report's number isn't given again. */
+        const val LAST_NUMBER = "last-number.txt"
+
         /** The data folder's folder for reports. */
         const val FOLDER = "reports"
 

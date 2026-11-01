@@ -48,7 +48,7 @@ class ProblemReportsTest {
         // The sender's address is used for the limits only.
         assertFalse(Files.readString(dir.resolve("R-0001.json")).contains("1.2.3.4"))
         // Nothing half-written is left beside them.
-        assertEquals(listOf("R-0001.json", "R-0002.json"), dir.listDirectoryEntries().map { it.name }.sorted())
+        assertEquals(listOf("R-0001.json", "R-0002.json", ProblemReports.LAST_NUMBER), dir.listDirectoryEntries().map { it.name }.sorted())
     }
 
     @Test
@@ -60,12 +60,22 @@ class ProblemReportsTest {
     }
 
     @Test
+    fun `a deleted report's number is never given again, in the same run or after a restart`(@TempDir dir: Path) {
+        val reports = ProblemReports(dir) { now }
+        assertEquals(Result.Accepted("R-0001"), reports.submit(report(), "1.1.1.1"))
+        Files.delete(dir.resolve("R-0001.json"))
+        assertEquals(Result.Accepted("R-0002"), reports.submit(report(), "2.2.2.2"))
+        Files.delete(dir.resolve("R-0002.json"))
+        assertEquals(Result.Accepted("R-0003"), ProblemReports(dir) { now }.submit(report(), "3.3.3.3"))
+    }
+
+    @Test
     fun `text that isn't a launcher's report is refused`(@TempDir dir: Path) {
         val reports = ProblemReports(dir) { now }
         assertEquals(Result.NotAReport, reports.submit("hello".toByteArray(), "1.2.3.4"))
         assertEquals(Result.NotAReport, reports.submit("${ProblemReports.TITLE}\nno version here".toByteArray(), "1.2.3.4"))
         assertEquals(Result.NotAReport, reports.submit(ByteArray(0), "1.2.3.4"))
-        assertEquals(emptyList(), dir.listDirectoryEntries())
+        assertEquals(emptyList(), dir.listDirectoryEntries().map { it.name })
     }
 
     @Test
