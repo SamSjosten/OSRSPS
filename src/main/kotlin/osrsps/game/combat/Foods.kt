@@ -90,6 +90,8 @@ class Foods(
         player.foodDelayUntil = tick + food.eatDelay
         if (food.combo) player.comboFoodDelayUntil = tick + food.eatDelay
         if (player.nextAttackTick > tick) player.nextAttackTick += food.attackDelay
+        // As for an attack, a pickpocket still waiting waits the attack delay longer (Wiki, Pickpocketing).
+        if (player.nextPickpocketTick > tick) player.nextPickpocketTick += food.attackDelay
         player.inventory[slot] = if (food.next >= 0) InvObj(food.next, 1) else null
         player.anim(EAT_ANIM)
         val before = player.hitpoints

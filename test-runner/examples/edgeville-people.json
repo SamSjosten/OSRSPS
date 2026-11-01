@@ -185,10 +185,31 @@
    "comment": "back in Doris's house (landing tile guessed)"
   },
   {
+   "step": "locOption",
+   "loc": "Open trapdoor",
+   "option": "Close",
+   "x": 3077,
+   "y": 3493,
+   "comment": "shut again: the trapdoor is this player's own and stays as they left it, so the next run finds it closed"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Trapdoor",
+   "option": "Open",
+   "x": 3077,
+   "y": 3493
+  },
+  {
    "step": "command",
    "text": "::tele 3122 3484 0",
    "expectMessage": "Teleported to 3122, 3484, 0",
    "comment": "in Lucien's house east of the willows"
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied.",
+   "comment": "no pendant carried, so he gives one (a banked one would skip it; test accounts bank none)"
   },
   {
    "step": "npcOption",
@@ -203,6 +224,59 @@
   },
   {
    "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.lost_pendant]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.new_pendant]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.pendant_given]",
+   "comment": "the item box showing the new pendant"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.nothing]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.leave]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pendant of Lucien",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied.",
+   "comment": "so the next run's Lucien again finds no pendant and gives one"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "Woodcutting 1, so Hari takes the below-level-12 branch; ::reset after his talk puts the account back"
   },
   {
    "step": "command",
@@ -243,11 +317,29 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[hari.",
-   "comment": "his canoe lines by this account's Woodcutting level"
+   "contains": "[hari.no_skill]"
   },
   {
    "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hari.level_12]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hari.quicker]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
   },
   {
    "step": "command",
