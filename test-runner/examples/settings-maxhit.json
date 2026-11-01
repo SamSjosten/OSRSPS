@@ -1,0 +1,29 @@
+{
+ "name": "Client settings: Max hit hitsplats; a new account's punches of 1 show as max hits at a threshold of 1, with the toggle on or off, and as ordinary hits at 2 (needs 0.20.0)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats: a max hit of 1"},
+  {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now", "comment": "the man fights back"},
+  {"step": "command", "text": "::sure max", "expectMessage": "deal their max now", "comment": "every punch lands for its max"},
+  {"step": "command", "text": "::varbit 14195 1", "expectMessage": "Varbit 14195", "comment": "settings_hitsplat_threshold: max hits of 1 or more"},
+  {"step": "command", "text": "::varbit 14196 0", "expectMessage": "Varbit 14196", "comment": "hitsplat_maxhit_disabled off: Max hit hitsplats on"},
+  {"step": "assertVarbit", "id": 14196, "value": 0},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "npcOption", "npc": "Man", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertHitsplat", "npc": "Man", "amount": 1, "types": [43, 48], "timeoutMs": 20000, "comment": "damage_max_me; hitmark 43's multimark shows 48, the max hit look, with the toggle on"},
+
+  {"step": "command", "text": "::varbit 14196 1", "expectMessage": "Varbit 14196", "comment": "Max hit hitsplats off"},
+  {"step": "assertHitsplat", "npc": "Man", "amount": 1, "types": [43, 28], "timeoutMs": 20000, "comment": "still sent as 43; with the toggle off its multimark shows 28, an ordinary hit"},
+
+  {"step": "command", "text": "::varbit 14196 0", "expectMessage": "Varbit 14196"},
+  {"step": "command", "text": "::varbit 14195 2", "expectMessage": "Varbit 14195", "comment": "a max of 1 is under the threshold now"},
+  {"step": "assertHitsplat", "npc": "Man", "amount": 1, "types": [16, 28], "timeoutMs": 20000, "comment": "damage_me, the ordinary hit (16 shows as 28); a max hit rolled before the change doesn't match and is passed over"},
+
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #"},
+  {"step": "command", "text": "::varbit 14195 0", "expectMessage": "Varbit 14195"},
+  {"step": "command", "text": "::sure", "expectMessage": "Your attacks can miss again."},
+  {"step": "command", "text": "::god", "expectMessage": "You can be hurt again."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

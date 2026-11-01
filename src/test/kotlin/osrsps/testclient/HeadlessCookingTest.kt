@@ -37,13 +37,14 @@ class HeadlessCookingTest {
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(7),
             locTypes = LocTypes(
-                listOf(loc(Cooking.RANGE, "Range", cook), loc(Cooking.LUMBRIDGE_RANGE, "Cooking range", cook), loc(Firemaking.FIRE, "Fire", none), loc(Cooking.DRAYNOR_FIRE, "Fire", cook))
+                listOf(loc(Cooking.RANGE, "Range", cook), loc(Cooking.LUMBRIDGE_RANGE, "Cooking range", cook), loc(Firemaking.FIRE, "Fire", none), loc(Cooking.DRAYNOR_FIRE, "Fire", cook), loc(Cooking.EVIL_DAVE_STOVE, "Stove", cook))
                     .associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(Cooking.RANGE, LocShape.CENTREPIECE_STRAIGHT, 0, RANGE_X, RANGE_Z, 0))
                 add(ZoneLoc(Firemaking.FIRE, LocShape.CENTREPIECE_STRAIGHT, 0, FIRE_X, FIRE_Z, 0))
                 add(ZoneLoc(Cooking.DRAYNOR_FIRE, LocShape.CENTREPIECE_STRAIGHT, 0, DRAYNOR_X, DRAYNOR_Z, 0))
+                add(ZoneLoc(Cooking.EVIL_DAVE_STOVE, LocShape.CENTREPIECE_STRAIGHT, 0, STOVE_X, STOVE_Z, 0))
             },
             cycleMillis = millis,
         )
@@ -192,7 +193,27 @@ class HeadlessCookingTest {
         }
     }
 
+    @Test
+    fun `Evil Dave's stove in Edgeville cooks as a range, by Cook and by using food on it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel cooking 99")
+                client.give(Cooking.SHRIMPS.raw)
+                client.locTarget(Cooking.EVIL_DAVE_STOVE, STOVE_X, STOVE_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(Cooking.SHRIMPS.raw), Cooking.SHRIMPS.raw)
+                client.await("a cooked shrimp", timeoutMillis = 30_000) { if (client.count(Cooking.SHRIMPS.cooked) == 1) Unit else null }
+                // One raw food held: Cook cooks it with no Make-X box, as on any range.
+                client.give(Cooking.SHRIMPS.raw)
+                client.locOp(Cooking.EVIL_DAVE_STOVE, STOVE_X, STOVE_Z, 1)
+                client.await("the shrimps", timeoutMillis = 30_000) { if (client.count(Cooking.SHRIMPS.cooked) == 2) Unit else null }
+                assertEquals(0, client.count(Cooking.SHRIMPS.raw))
+            }
+        }
+    }
+
     private companion object {
+        const val STOVE_X = 3228
+        const val STOVE_Z = 3218
         const val DRAYNOR_X = 3216
         const val DRAYNOR_Z = 3222
         const val RANGE_X = 3224

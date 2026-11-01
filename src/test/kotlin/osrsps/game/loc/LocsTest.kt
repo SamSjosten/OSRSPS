@@ -60,6 +60,29 @@ class LocsTest {
     }
 
     @Test
+    fun `taking away a loc keeps a wall flag a neighbouring loc shares`() {
+        // A second wall on the tile east of [wall], on its west edge: both flag the same edge between 3210 and 3211.
+        val door = ZoneLoc(WALL, LocShape.WALL_STRAIGHT, 0, 3211, 3210, 0)
+        locs.add(door)
+        assertTrue(locs.remove(door))
+        assertEquals(CollisionFlag.WALL_EAST or (CollisionFlag.WALL_EAST shl CollisionFlag.PROJ_SHIFT), map[3210, 3210, 0], "the cache's wall is still there")
+        assertEquals(CollisionFlag.WALL_WEST or (CollisionFlag.WALL_WEST shl CollisionFlag.PROJ_SHIFT), map[3211, 3210, 0])
+    }
+
+    @Test
+    fun `replacing a loc keeps the floor and other locs on its tiles`() {
+        map.add(3213, 3210, 0, CollisionFlag.FLOOR)
+        static.add(table)
+        LocCollision(map).addLoc(types[TABLE]!!.collision, table.x, table.z, 0, table.shape, table.angle)
+        assertTrue(locs.replace(table, STUMP) != null)
+        assertEquals(0, map[3212, 3210, 0], "the stump doesn't block")
+        assertEquals(CollisionFlag.FLOOR, map[3213, 3210, 0], "the terrain's flag stays")
+        locs.restore(table.x, table.z, 0, table.layer)
+        assertEquals(CollisionFlag.LOC or CollisionFlag.LOC_PROJ, map[3212, 3210, 0])
+        assertEquals(CollisionFlag.FLOOR or CollisionFlag.LOC or CollisionFlag.LOC_PROJ, map[3213, 3210, 0])
+    }
+
+    @Test
     fun `finds the cache's locs`() {
         assertEquals(wall, locs[3210, 3210, 0, 0])
         assertEquals(listOf(wall), locs.at(3210, 3210, 0))

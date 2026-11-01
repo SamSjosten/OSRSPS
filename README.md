@@ -158,6 +158,12 @@ others:
   world hopper never offers one of Jagex's worlds; RuneLite's other API calls get a 404 there.
 - `/launcher/jav_config.ws` and `/launcher/world_list.ws`: copies of RSProx's two files that leave the game's names out
   (title Odin's Gate, cache folder `odinsgate`, world activity Odin's Gate). RSProx's own files keep their names.
+- `POST /report`: a problem report from the launcher's "Send problem report" button (the same text "Copy problem
+  report" copies). It is scrubbed again (lines mentioning a password or token, home folder names, control characters)
+  and saved as `reports/R-0001.json` and on in the data folder, outside git; the answer is `201` with the number. At
+  most 256 KB a report, 5 an hour from one address and 50 an hour in all (`429`, Retry-After one hour), and 500 waiting
+  unforwarded (`503`); anything that isn't a launcher's report is a `400`. A body on any other request is refused with
+  `413`. Turning saved reports into issues is the next step.
 
 ## Walking
 
@@ -899,8 +905,8 @@ The Misthalin roadmap's Edgeville and Barbarian Village piece, built a step at a
 | Evil Dave's and the other houses' doors, Doris's yard gate, the grange's ladders, crates and boxes, the bookcases | the engine's doors by name, `Gates`, and the castle's and Draynor's types |
 | Wander ranges (3 indoors in the grange, 5 outside) | guessed |
 
-Left out until their steps: the guards by the ditch (their drop table is the Varrock piece's Guard table too), the
-General Store, Oziach, Richard, Perdu, the furnace, the yews, willow and nettles, the well, Doris, Lucien and Hari, the
+Left out until their steps: Perdu,
+the nettles, the well, Doris, Lucien and Hari, the
 outlaws, the Basement of Doom, the monastery, the trapdoor to the Edgeville Dungeon, and the lever, fairy ring, Soul
 Wars portal, Death's Domain and canoe station. The words are in the dialogue file (keys `edgeville.*`, `haystack.*`).
 
@@ -909,6 +915,24 @@ opens and shuts a coffin, takes the leather gloves, opens and searches a wardrob
 the bank from a banker's talk and from a booth; `HeadlessEdgevilleTest` does the doors, all three haystack outcomes by
 seed, the coffin, the wardrobe and the ditch through the headless client, `NpcSpawnFileTest` the spawns and
 `ObjSpawnFilesTest` the item spawns.
+
+Step 2 is the town's shops, `game/content/EdgevilleShops.kt` for their talk and `shops.json` for their stock.
+
+| Behaviour | Source |
+|-----------|--------|
+| The Edgeville General Store (inv `generalshop5`, keepers `generalshopkeeper5`/`generalassistant5` 2821/2822): Al Kharid's stock with a knife after the hammer, sells at 130%, buys at 40%, 3% change; the keepers' talk is every general store's | OSRS Wiki, Edgeville General Store (read 2026-10-30); the inv name is inferred from the keepers' |
+| Oziach's Armour (inv `runeplateshop`, 3 slots): 2 rune platebodies, 2 green d'hide bodies, 35 anti-dragon shields, 130%/40%/3%; Trade, or Talk-to's first option, opens it (every account has Dragon Slayer I done); his other three options answer and end | OSRS Wiki, Oziach's Armour and Transcript:Oziach; the Wiki notes no expressions, so those are guessed |
+| Richard's Wilderness Cape Shop (`wilderness_capeseller_6` 2200, inv `wildernesscapeshop6`): 100 each of the team-6, 16, 26, 36 and 46 capes for 50 coins, 100%/60%/1%; his talk explains the capes and asks again, and yes opens the shop | OSRS Wiki, Richard (merchant) and his transcript; the inv name is inferred |
+| Evil Dave's stove in Doris's house west of the bank (`100_dave_stove` 12269, 3077, 3495) cooks as a range; the range upstairs in the General Store (`range` 26181) already did | 241 cache (Cook option); range rules guessed as every range's |
+| The furnace (16469), yews and willows work as they did already | `Smithing.FURNACES` and `woodcutting.json` |
+| Six guards (`guard1` 3254) along the Wilderness Ditch north of the town, fighting and dropping as Varrock's guards | tiles from mejrs's NPC list; the Wiki's Edgeville page (six); combat and drops are the Varrock piece's Guard; wander range guessed |
+| Perdu stands upstairs in the General Store with no talk yet | mejrs's NPC list for the tile; his lost-property shop is left out |
+
+The words are in the dialogue file (keys `edgeville_shop_keeper.*`, `edgeville_shop_assistant.*`, `oziach.*`,
+`richard.*`). Check: `test-runner/examples/edgeville-shops.json` buys and sells a knife at the General Store, talks to
+its assistant into the shop, buys and sells an anti-dragon shield at Oziach's, takes two of his talk's options, and
+talks to Richard into his shop for a cape, then chops a yew, smelts a bronze bar and cooks on Evil Dave's stove; `EdgevilleShopsTest` does each talk's options, `HeadlessEdgevilleShopsTest` the talk into each shop through the headless client, `HeadlessCookingTest` the stove, and `ShopTest` the stock and
+the Wiki's prices.
 
 ## Varrock
 

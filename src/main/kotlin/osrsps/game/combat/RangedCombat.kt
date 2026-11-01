@@ -108,6 +108,8 @@ class RangedCombat(
         /** The poison severity it gives one time in eight, 0 for none, and whether it envenoms ([PoisonedWeapons]). */
         val poison: Int = 0,
         val venom: Boolean = false,
+        /** The max hit [damage] was rolled against (two thirds of [maxHit] for a bounce), for the max hit hitsplat. */
+        val rolledMax: Int = maxHit,
     )
 
     private val inFlight = ArrayList<Shot>()
@@ -305,7 +307,7 @@ class RangedCombat(
         val rolled = if (CombatMath.rollHits(random, shot.attackRoll, defenceRoll) || shot.player.sureHits) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0
         val damage = reserve(shot.player, next, style, rolled)
         if (shot.travel >= 0) projectile(bounceFlight(from, next, shot.travel))
-        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel, poison = shot.poison, venom = shot.venom)
+        return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel, poison = shot.poison, venom = shot.venom, rolledMax = shot.maxHit * 2 / 3)
     }
 
     /**
@@ -331,7 +333,7 @@ class RangedCombat(
             val rolled = if (shot.hit) CombatMath.rollDamage(random, shot.maxHit) else 0
             val damage = reserve(shot.player, npc, style, rolled)
             npc.incoming -= damage
-            melee.hit(npc, shot.player, damage, tick)
+            melee.hit(npc, shot.player, damage, tick, shot.maxHit)
         }
     }
 
@@ -352,7 +354,7 @@ class RangedCombat(
             npc.incoming -= shot.damage
             // A shot whose NPC is still there hits it, and bounces on even if that hit kills it.
             val landed = npcs[npc.index] === npc && !npc.dead
-            if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, shot.damage, tick), shot.poison, shot.venom, ranged = true)
+            if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax), shot.poison, shot.venom, ranged = true)
             // Guessed: under the NPC's south-west tile, where its drops go too.
             if (shot.ammo != null && !random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) {
                 dropAmmo(shot.ammo, npc.x, npc.z, npc.level, shot.player)

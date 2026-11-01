@@ -85,6 +85,12 @@
   },
   {
    "step": "command",
+   "text": "::setlevel fishing 99",
+   "expectMessage": "Fishing set to level 99",
+   "comment": "at level 1 a shrimp can take long enough for the spot to move away first (VM 217, 2026-11-01)"
+  },
+  {
+   "step": "command",
    "text": "::tele 3268 3149 0",
    "expectMessage": "Teleported to 3268, 3149, 0",
    "comment": "the sea shore south-west of the town, by the north fishing spot's tiles"

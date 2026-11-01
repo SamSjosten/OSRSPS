@@ -71,8 +71,12 @@ class FriendChats(
     fun join(player: Player, typed: String) {
         val name = typed.trim()
         if (name.isEmpty() || name.length > FriendLists.MAX_NAME_LENGTH) return
-        // The client offers Leave Chat while in one; a join anyway moves the player.
-        if (channelOf(player) != null) leave(player, quiet = true)
+        // The client offers Leave Chat while in one; a join anyway moves the player, out of the old channel for good
+        // even if the new one refuses them, so the next login doesn't put them back in it.
+        if (channelOf(player) != null) {
+            leave(player, quiet = true)
+            player.friendsChatOwner = null
+        }
         notify(player, FriendsChatLines.JOINING)
         val key = SaveStore.saveKey(name)
         val channel = key?.let { channels[it] ?: open(it, name) }

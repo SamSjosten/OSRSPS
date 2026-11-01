@@ -96,7 +96,7 @@ class AlKharidPalaceTest {
         h.expect("osman.hello_again")
         h.menu(*firstMenu)
         h.pick(1)
-        h.expect("osman.have_juice", "osman.thieving_tips xp=6350", "osman.thank_you", "osman.will_do")
+        h.expect("osman.have_juice", "osman.thieving_tips xp=6350", "osman.thank_you name=Zezima", "osman.will_do")
         h.ends()
         assertEquals(63_500, h.player.skills.tenths(Skill.THIEVING) - before)
         assertEquals(0, h.player.inventory.contents().size)

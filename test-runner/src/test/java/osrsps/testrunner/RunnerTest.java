@@ -629,6 +629,23 @@ public class RunnerTest
 	}
 
 	@Test
+	public void hitsplatTypesPassOnlyOneOfThoseHitmarks() throws Exception
+	{
+		runner.start(script("{\"step\":\"npcOption\",\"npc\":\"Man\",\"option\":\"Attack\"},"
+			+ "{\"step\":\"assertHitsplat\",\"npc\":\"Man\",\"amount\":1,\"types\":[43,48]}"), "file");
+		assertNull(cycle());
+		game.npcIndexes.put("Man", 7);
+		// An ordinary hit of the right amount isn't a max hit.
+		runner.hitsplat(7, "Man", 16, 1);
+		assertNull(cycle());
+		runner.hitsplat(7, "Man", 43, 1);
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("assert hitsplat of 1 on Man of type 43 or 48", r.steps.get(1).description);
+		assertEquals("hitsplat 1 on Man #7 (type 43)", r.steps.get(1).detail);
+	}
+
+	@Test
 	public void npcHealthWaitsForTheBarThenChecksTheBounds() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertNpcHealth\",\"npc\":\"Man\",\"max\":99,\"timeoutMs\":100}"), "file");

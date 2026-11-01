@@ -3,13 +3,17 @@ package osrsps.testclient
 /** Overhead text an NPC was shown saying, and the tick count the client had seen when it came. */
 data class NpcSaid(val index: Int, val text: String, val ticks: Int)
 
+/** A hitsplat on an NPC as this client was sent it (its own type when it dealt the hit), and the ticks seen then. */
+data class NpcHit(val index: Int, val type: Int, val value: Int, val ticks: Int)
+
 /** An NPC the client can see: its index in the world, its type id and its tile. */
 data class NpcView(val index: Int, val id: Int, val coord: Coord)
 
 /**
  * The client's side of NPC info: the list of NPCs in view, kept from NPC_INFO_SMALL_V6 and NPC_INFO_LARGE_V6 as the
- * real client keeps it. Of the extended info blocks only overhead text ([said]) is read, and only while every block
- * before it in the packet is one: an NPC with any other block stops the reading there.
+ * real client keeps it. Of the extended info blocks overhead text ([said]) and hitsplats ([hits]) are read, and only
+ * while every NPC's blocks before them in the packet are ones this reader knows the size of: head bars, an animation,
+ * facing another entity, overhead text and hitsplats. An NPC with any other block stops the reading there.
  *
  * Built against RSProt's NpcInfo and DesktopLowResolutionChangeEncoder: a count of the NPCs still in view, a bit-packed
  * update for each of them in order (no change, extended info only, walk, run or crawl, or removal), then the NPCs new to
@@ -25,6 +29,10 @@ class NpcInfoReader {
 
     /** Overhead text in the last packet: each NPC's index and what it said. */
     var said: List<Pair<Int, String>> = emptyList()
+        private set
+
+    /** Hitsplats in the last packet: each NPC's index, the hitmark type and the damage. */
+    var hits: List<Triple<Int, Int, Int>> = emptyList()
         private set
 
     fun npcs(): List<NpcView> = inView.toList()
@@ -80,30 +88,65 @@ class NpcInfoReader {
         inView.clear()
         inView += kept
         extendedInfo = extended
-        said = readSaid(payload, bits.alignedBytes(), extended)
+        readBlocks(payload, bits.alignedBytes(), extended)
     }
 
     /**
      * The extended info after the bits, one block set per index in [extended], as RSProt's
      * NpcAvatarExtendedInfoDesktopWriter writes them: a flag byte, a second, third and fourth when the one before has its
-     * marker bit (0x10, 0x2000, 0x40000), then the blocks. A say block alone ([SAY], a string ended by 0) is read.
+     * marker bit (0x10, 0x2000, 0x40000), then the blocks in the writer's order. Of those, head bars, the animation, a
+     * face at an entity, overhead text and hitsplats are read, from RSProt's NpcHeadbarEncoder, NpcSequenceEncoder,
+     * NpcFaceEncoder, NpcSayEncoder and NpcHitmarkEncoder; any other flag or face kind stops the reading.
      */
-    private fun readSaid(payload: ByteArray, start: Int, extended: List<Int>): List<Pair<Int, String>> {
-        val out = ArrayList<Pair<Int, String>>()
+    private fun readBlocks(payload: ByteArray, start: Int, extended: List<Int>) {
+        val said = ArrayList<Pair<Int, String>>()
+        val hits = ArrayList<Triple<Int, Int, Int>>()
         var position = start
         fun u1(): Int = payload[position++].toInt() and 0xFF
+        fun smart(): Int = if ((payload[position].toInt() and 0xFF) < 128) u1() else ((u1() shl 8) or u1()) - 32768
         for (index in extended) {
             if (position >= payload.size) break
             var flags = u1()
             if (flags and 0x10 != 0) flags = flags or (u1() shl 8)
             if (flags and 0x2000 != 0) flags = flags or (u1() shl 16)
             if (flags and 0x40000 != 0) flags = flags or (u1() shl 24)
-            if (flags and (0x10 or 0x2000 or 0x40000).inv() != SAY) break
-            val end = (position until payload.size).firstOrNull { payload[it].toInt() == 0 } ?: break
-            out += index to String(payload, position, end - position, Charsets.ISO_8859_1)
-            position = end + 1
+            if (flags and (0x10 or 0x2000 or 0x40000 or HEADBAR or SEQUENCE or FACE or SAY or HIT).inv() != 0) break
+            if (flags and HEADBAR != 0) {
+                repeat(u1()) {
+                    smart() // type
+                    val end = smart()
+                    if (end != HEADBAR_REMOVED) {
+                        smart() // start time
+                        u1() // start fill
+                        if (end > 0) u1() // end fill
+                    }
+                }
+            }
+            if (flags and SEQUENCE != 0) position += 3 // id, delay
+            if (flags and FACE != 0) {
+                // A flag byte (negated) with the kind in bits 3-5. Only kind 0, facing an entity, is read: its type, its
+                // index (2 bytes, or 4 with the top bit set) and one more smart, as Face.encode writes them.
+                if (((-u1() and 0xFF) shr 3) and 7 != 0) break
+                smart()
+                position += if ((payload[position].toInt() and 0x80) == 0) 2 else 4
+                smart()
+            }
+            if (flags and SAY != 0) {
+                val end = (position until payload.size).firstOrNull { payload[it].toInt() == 0 } ?: break
+                said += index to String(payload, position, end - position, Charsets.ISO_8859_1)
+                position = end + 1
+            }
+            if (flags and HIT != 0) {
+                repeat((128 - u1()) and 0xFF) {
+                    val type = smart()
+                    val value = smart()
+                    smart() // delay
+                    hits += Triple(index, type, value)
+                }
+            }
         }
-        return out
+        this.said = said
+        this.hits = hits
     }
 
     private fun step(from: Coord, direction: Int): Coord {
@@ -119,7 +162,14 @@ class NpcInfoReader {
         val SPAWN_CLOCK_BITS = intArrayOf(18, 19, 20, 32)
         val TYPE_BITS = intArrayOf(12, 14, 17, 24)
 
-        /** The say block's flag on the wire (RSProt's desktop writer). */
+        /** Block flags on the wire (RSProt's desktop writer). */
+        const val SEQUENCE = 0x8
+        const val FACE = 0x20
         const val SAY = 0x40
+        const val HIT = 0x10000
+        const val HEADBAR = 0x2000000
+
+        /** A head bar's end time that removes it, with no more fields. */
+        const val HEADBAR_REMOVED = 32767
     }
 }

@@ -43,16 +43,21 @@ object MapCollisionLoader {
 
     fun load(library: CacheLibrary): CollisionMap = loadWorld(library).collision
 
-    fun loadWorld(library: CacheLibrary): WorldMap {
+    fun loadWorld(library: CacheLibrary): WorldMap = buildWorld(loadLocTypes(library), mapSquares(library))
+
+    /**
+     * Builds the world from loc types and map squares, wherever they were read from: the server's cache, or a cache
+     * checkout the collision audit reads.
+     */
+    fun buildWorld(locTypes: LocTypes, squareFiles: Sequence<MapSquare>): WorldMap {
         val map = CollisionMap()
-        val locTypes = loadLocTypes(library)
         val staticLocs = StaticLocs()
         val collision = LocCollision(map)
         var squares = 0
         var badLocFiles = 0
         var badTerrainFiles = 0
         val notSquares = ArrayList<String>()
-        for ((squareX, squareZ, files) in mapSquares(library)) {
+        for ((squareX, squareZ, files) in squareFiles) {
             val terrain = files.terrain() ?: continue
             if (terrain.size < MIN_TERRAIN_SIZE) {
                 // Too short to hold every tile, so not terrain. In the 241 cache, group 25287 ("98_199") is 37 files
@@ -87,9 +92,9 @@ object MapCollisionLoader {
         return WorldMap(map, staticLocs, locTypes)
     }
 
-    private class SquareFiles(val terrain: () -> ByteArray?, val locs: () -> ByteArray?)
+    class SquareFiles(val terrain: () -> ByteArray?, val locs: () -> ByteArray?)
 
-    private data class MapSquare(val x: Int, val z: Int, val files: SquareFiles)
+    data class MapSquare(val x: Int, val z: Int, val files: SquareFiles)
 
     /**
      * Older caches name each square's groups `m{x}_{z}` and `l{x}_{z}`. Current ones (revision 241 included) leave

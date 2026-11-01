@@ -19,7 +19,7 @@
   {
    "step": "command",
    "text": "::item coins 20000",
-   "expectMessage": "Added 20000 x Coins"
+   "expectMessage": "Added 20,000 x Coins"
   },
   {
    "step": "command",
