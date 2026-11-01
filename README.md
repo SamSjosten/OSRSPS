@@ -780,8 +780,11 @@ village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/co
 | The five willows by the shore chop with Woodcutting's willow data | the 241 map (ids 10819, 10829, 10831, 10833) |
 | Draynor's permanent fire south of the bank (`fire_cook`, 43475): Cook asks which food as a range does, then cooks over the fire (fire burn chart and animation) | the Wiki's Permanent fire page (a Draynor fire with Cook, free-to-play) |
 | Take-axe on the logs by the willows (`log_withaxe`, 5581) gives a bronze axe and leaves plain logs for 30 seconds; the same type works wherever the map has it | the Wiki's Bronze axe page ("Bronze axes on logs respawn in 30 seconds"); no message and a full inventory keeping the axe on the logs are guessed |
+| Step 4: Ned (`game/content/Ned.kt`) sells a rope for 15 coins or makes one from 4 balls of wool; after buying (or trying to) he tells the yak hair story and gives a free rope with a slot for it, as after Dragon Slayer I and The Fremennik Isles; Trade opens Ned's Handmade Rope at its post-Isles 90% (16 coins) | the Wiki's Transcript:Ned and shop page (read 2026-10-30); the shop's inv is borrowed (`dmm_all_star_friends_shop`), since no 241 inv is plainly Ned's |
+| Aggie (`game/content/Aggie.kt`) makes red, yellow and blue dye for 3 redberries, 2 onions or 2 woad leaves and 5 coins, from her talk, her Dyes option or an ingredient used on her, and takes 5 coins (21 to 100 held), 20 coins (101 or more) or a pot of flour for an insult | the Wiki's Transcript:Aggie; the coin check and using ingredients on her from 2004Scape's script |
+| Every account has met Aggie (varbit 13597, `gobdip_met_aggie`, set at login with the quests in `Quests.AFTER_QUESTS`), so her multi-NPC shows `aggie_2ops` with Dyes | the 241 cache's NPC 4284 |
 
-Left out until their steps: the market's stalls and guards, the jail, Aggie's, Ned's, Morgan's and the Wise Old Man's talk,
+Left out until their steps: the market's stalls and guards, the jail, Morgan's and the Wise Old Man's talk,
 the bank guard, Miss Schism, the town crier, the dark wizards, the sewers' trapdoors and
 the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
 holiday items to reclaim), and Olivia's refusal after a theft comes with thieving. The wheat field picks as Lumbridge's does (`Crops`).
@@ -791,7 +794,8 @@ garlic from Morgan's cupboard, opens Aggie's wardrobe and sees her cheese and to
 and from a booth; `HeadlessDraynorTest` does the gate, the stairs, the cupboard and the bankers through the headless
 client, and `GatesTest` turns a gate every way round. `test-runner/examples/draynor-willows.json` takes the axe off
 the logs, chops a willow, nets a shrimp and cooks it on the permanent fire; `HeadlessFishingTest` and `HeadlessCookingTest`
-do the Small Net spots and the fire.
+do the Small Net spots and the fire. `test-runner/examples/draynor-ned-aggie.json` buys Ned's rope both ways and gets
+Aggie's red dye and fine; `NedAndAggieTest` walks every branch of both talks.
 
 ## Lumbridge church
 
