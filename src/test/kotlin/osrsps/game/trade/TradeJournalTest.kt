@@ -14,6 +14,7 @@ import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.FileSaveStore
 import osrsps.game.MemorySaveStore
+import osrsps.game.ObjType
 import osrsps.game.Player
 import osrsps.game.PlayerSave
 import osrsps.game.World
@@ -147,6 +148,36 @@ class TradeJournalTest {
     }
 
     @Test
+    fun `a save that keeps failing after a trade goes into its journal, so a crash replays where the player is now`() {
+        val store = CrashingStore()
+        val world = world(store)
+        val axe = ObjType(AXE, "Bronze axe", tradeable = true)
+        val alice = player("alice").apply { inventory.add(axe, 1) }
+        val bob = player("bob")
+        val carol = player("carol")
+        store.failOn = "bob"
+        // Alice gives Bob her axe: her save lands, his doesn't, and the journal stays.
+        assertTrue(world.commitTrade(alice, bob, apply = {
+            alice.inventory.remove(0)
+            bob.inventory.add(axe, 1)
+        }))
+        // Bob hands it on to Carol, whose save lands; his still doesn't.
+        bob.inventory.remove(0)
+        carol.inventory.add(axe, 1)
+        assertTrue(world.save(carol))
+        assertFalse(world.save(bob))
+        // The crash: the restart replays the journal, which now holds Bob without the axe.
+        store.failOn = null
+        world(store)
+        assertNull(store.inner.journal)
+        val axes = listOf("alice", "bob", "carol").associateWith { key ->
+            PlayerSave.fromJson(store.inner.saves.getValue(key)).inventory.values.count { it.id == AXE }
+        }
+        assertEquals(mapOf("alice" to 0, "bob" to 0, "carol" to 1), axes)
+        assertEquals(alice.lastTrade, PlayerSave.lastTradeIn(store.inner.saves.getValue("bob")))
+    }
+
+    @Test
     fun `a journal that turns up unreadable while running stops trades`() {
         val store = MemorySaveStore()
         val world = world(store)
@@ -191,5 +222,9 @@ class TradeJournalTest {
         store.clearJournal()
         assertNull(store.readJournal())
         store.clearJournal()
+    }
+
+    private companion object {
+        const val AXE = 1351
     }
 }

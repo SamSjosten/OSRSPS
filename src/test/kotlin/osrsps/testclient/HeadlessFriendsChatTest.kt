@@ -96,6 +96,31 @@ class HeadlessFriendsChatTest {
     }
 
     @Test
+    fun `a join from inside a channel to one that refuses leaves the player out of both, at login too`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.nameChannel("Hut")
+                server.login("bob").use { bob ->
+                    bob.joinFriendsChat("alice")
+                    bob.saw("[friends_chat.now_talking name=Hut]")
+                    // The client offers only Leave Chat while in one; a forged join names a channel that isn't there.
+                    bob.joinFriendsChat("nobody here")
+                    bob.saw("[friends_chat.no_channel]")
+                    val player = server.world.playerNamed("bob")!!
+                    assertNull(server.world.friendChats.channelOf(player))
+                    assertNull(player.friendsChatOwner)
+                    bob.logout()
+                }
+                server.login("bob").use { bob ->
+                    bob.awaitTicks(2)
+                    assertNull(bob.friendsChat())
+                    assertTrue(bob.messages().none { it.text.startsWith("[friends_chat.now_talking") })
+                }
+            }
+        }
+    }
+
+    @Test
     fun `an owner's channel works while they are offline, and members are back in it at login`(@TempDir dir: Path) {
         TestServer(dir).use { server ->
             // Bob's account exists before Alice adds him.
