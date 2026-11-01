@@ -38,17 +38,21 @@ class HeadlessQuestListTest {
         server.use {
             server.login("alice").use { client ->
                 client.await("the quest points") { Unit.takeIf { client.varp(Quests.VARP_QUEST_POINTS) == 6 } }
-                client.await("the footer's counters") { Unit.takeIf { client.varp(QP_TOTAL) != 0 && client.varp(QP_TOTAL2) != 0 } }
                 fun varbit(id: Int): Int {
                     val type = VARBITS.getValue(id)
                     val width = type.endBit - type.startBit + 1
                     return (client.varp(type.baseVar) ushr type.startBit) and ((1 shl width) - 1)
                 }
-                assertEquals(6, varbit(Quests.VARBIT_QP_MAX), "qp_max")
-                assertEquals(2, varbit(Quests.VARBIT_QUESTS_COMPLETED), "quests_completed_count")
-                assertEquals(2, varbit(Quests.VARBIT_QUESTS_TOTAL), "quests_total_count")
-                assertEquals(1, varbit(Quests.VARBIT_SUBQUESTS_COMPLETED), "subquests_completed_count")
-                assertEquals(1, varbit(Quests.VARBIT_MINIQUESTS_COMPLETED), "miniquests_completed_count")
+                val expected = mapOf(
+                    Quests.VARBIT_QP_MAX to 6,
+                    Quests.VARBIT_QUESTS_COMPLETED to 2,
+                    Quests.VARBIT_QUESTS_TOTAL to 2,
+                    Quests.VARBIT_SUBQUESTS_COMPLETED to 1,
+                    Quests.VARBIT_MINIQUESTS_COMPLETED to 1,
+                )
+                // Each varp arrives in its own packet, so wait for all three before reading any counter.
+                client.await("the footer's counters") { Unit.takeIf { expected.keys.all { varbit(it) != 0 } } }
+                assertEquals(expected, expected.keys.associateWith { varbit(it) })
             }
         }
     }
