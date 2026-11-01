@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -15,6 +16,7 @@ import osrsps.game.NpcStat
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
+import osrsps.game.Skill
 
 private val logger = KotlinLogging.logger {}
 
@@ -101,6 +103,34 @@ data class NpcCombatDef(
     val aggression: NpcAggression? = null,
     /** At or below this share of its hitpoints, in percent and rounded up, it retreats ([MeleeCombat]); 0 never. */
     val retreatsAt: Int = 0,
+    /** How far it attacks from, Chebyshev edge to edge: 1 for melee, more for a magic or ranged NPC ([attacks]). */
+    val range: Int = 1,
+    /** A magic or ranged NPC's attacks, one picked by weight each time; empty for melee. */
+    val attacks: List<NpcRangedAttack> = emptyList(),
+    /**
+     * The Wiki's XP bonus in tenths of a percent, 0 for none: the outlaws' -97.5% is -975, so they give a fortieth of the
+     * XP for their damage ([CombatMath.withXpBonus]).
+     */
+    val xpBonusTenths: Int = 0,
+)
+
+/** A stat a hit lowers by [percent] of its base level (Confuse's Attack), when it isn't lowered that far already. */
+data class StatDrain(val skill: Skill, val percent: Int)
+
+/**
+ * One of a magic or ranged NPC's attacks: its animation (-1 for the NPC's own attack one), the spotanim on it as it
+ * casts or shoots, the projectile that flies and the spotanim on the player when it lands (-1 for none of each), its
+ * [weight] among the NPC's others, the most it hits for (null for the NPC's max hit, 0 for a spell that only drains)
+ * and what it drains when it hits.
+ */
+data class NpcRangedAttack(
+    val anim: Int = -1,
+    val cast: Int = -1,
+    val projectile: Int = -1,
+    val impact: Int = -1,
+    val weight: Int = 1,
+    val maxHit: Int? = null,
+    val drain: StatDrain? = null,
 )
 
 /** NPC combat definitions by NPC type id. An NPC with none can't be attacked. */
@@ -139,7 +169,11 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom"]` and
          * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent) and `"aggressive"`: `true`, or
          * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]), and
-         * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats).
+         * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats) and `"xpBonus": -97.5` (the
+         * Wiki's XP bonus, in percent to a tenth).
+         * A magic or ranged NPC adds `"range"` and its `"attacks"`, each `{ "anim": "human_caststrike", "cast": 93,
+         * "projectile": 94, "impact": 95, "weight": 1, "maxHit": 2, "drain": { "skill": "attack", "percent": 5 } }`, all
+         * optional ([NpcRangedAttack]); its `attackBonus` is its bonus for its attack type, magic or ranged.
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
          * [seqs] turns into ids; a name it doesn't know fails the file, unless it knows no names at all (a cache with
@@ -213,6 +247,14 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 }.orEmpty(),
                 aggression = entry["aggressive"]?.let(::aggression),
                 retreatsAt = (entry["retreatsAt"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..100) { "retreats at $it%" } },
+                range = (entry["range"]?.jsonPrimitive?.int ?: 1).also { require(it in 1..MAX_RANGE) { "range $it" } },
+                attacks = entry["attacks"]?.jsonArray?.map { attack(it.jsonObject, seqs) }.orEmpty().also {
+                    require(it.isEmpty() || attackType == AttackType.MAGIC || attackType == AttackType.RANGED) { "attacks on a $attackType NPC" }
+                },
+                xpBonusTenths = (entry["xpBonus"]?.jsonPrimitive?.double ?: 0.0).let { percent ->
+                    require(percent > -100.0 && percent <= 1000.0) { "an XP bonus of $percent%" }
+                    Math.round(percent * 10).toInt()
+                },
             )
         }
 
@@ -225,6 +267,31 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 huntRange = entry["huntRange"]?.jsonPrimitive?.int ?: NpcAggression.DEFAULT_HUNT_RANGE,
                 ignoresLevels = entry["ignoresLevels"]?.jsonPrimitive?.boolean ?: false,
                 tolerant = entry["tolerant"]?.jsonPrimitive?.boolean ?: true,
+            )
+        }
+
+        /** The farthest an NPC attacks from here: a spell's 10 tiles (OSRS Wiki, Attack range). */
+        const val MAX_RANGE = 10
+
+        private fun attack(entry: JsonObject, seqs: SeqNames): NpcRangedAttack {
+            fun id(key: String) = entry[key]?.jsonPrimitive?.int ?: -1
+            val anim = entry["anim"]?.jsonPrimitive?.content?.let { name ->
+                if (seqs.isEmpty) -1 else seqs[name] ?: throw IllegalArgumentException("no animation called $name")
+            } ?: -1
+            return NpcRangedAttack(
+                anim = anim,
+                cast = id("cast"),
+                projectile = id("projectile"),
+                impact = id("impact"),
+                weight = (entry["weight"]?.jsonPrimitive?.int ?: 1).also { require(it > 0) { "weight $it" } },
+                maxHit = entry["maxHit"]?.jsonPrimitive?.int?.also { require(it >= 0) { "max hit $it" } },
+                drain = entry["drain"]?.jsonObject?.let { drain ->
+                    val name = drain.required("skill").jsonPrimitive.content
+                    StatDrain(
+                        Skill.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: throw IllegalArgumentException("no skill $name"),
+                        drain.required("percent").jsonPrimitive.int.also { require(it in 1..100) { "drain of $it%" } },
+                    )
+                },
             )
         }
 

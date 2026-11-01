@@ -104,6 +104,21 @@ class GroundObjsTest {
     }
 
     @Test
+    fun `a player's drop counts as theirs while it lies on the ground, after it turns public too`() {
+        watch()
+        assertFalse(ground.hasDropped(alice, axe.id))
+        val obj = dropAxe()
+        assertTrue(ground.hasDropped(alice, axe.id))
+        assertFalse(ground.hasDropped(bob, axe.id))
+        assertFalse(ground.hasDropped(alice, logs.id))
+        ticks(100)
+        assertFalse(obj.isPrivate)
+        assertTrue(ground.hasDropped(alice, axe.id))
+        assertTrue(ground.take(bob, obj))
+        assertFalse(ground.hasDropped(alice, axe.id))
+    }
+
+    @Test
     fun `a player coming by later is told the time left`() {
         val obj = dropAxe()
         ticks(40)

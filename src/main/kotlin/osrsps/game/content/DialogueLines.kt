@@ -32,6 +32,7 @@ import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.ThievingLines
 import osrsps.game.skill.WoodcuttingLines
+import osrsps.game.social.ClanLines
 import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
 import osrsps.game.social.SocialLines
@@ -43,6 +44,7 @@ import osrsps.game.trade.TradeLines
  */
 object DialogueLines {
     val ALL: List<Lines> = listOf(
+        AbbotLangleyLines,
         AbigailaLines,
         AeonisigLines,
         AereckLines,
@@ -72,6 +74,8 @@ object DialogueLines {
         BobLines,
         BonesLines,
         BorderGuardLines,
+        BrotherAlthricLines,
+        BrotherJeredLines,
         CamelLines,
         CampArcherLines,
         CampMonkLines,
@@ -79,6 +83,7 @@ object DialogueLines {
         CampWizardLines,
         CandleSellerLines,
         CharlieLines,
+        ClanLines,
         ClimbLines,
         CombatLines,
         CookLines,
@@ -106,6 +111,7 @@ object DialogueLines {
         DukeLines,
         EdgevilleClosedLines,
         EdgevilleLines,
+        EdgevilleMonkLines,
         EdgevilleShopAssistantLines,
         EdgevilleShopKeeperLines,
         EllamariaLines,

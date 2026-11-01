@@ -1,3 +1,2 @@
-# Sam reviews every change to the workflows: they hold the deploy, the alerts and the launcher's release path, which
-# signs with the key in the release Environment.
+# Sam reviews every change to the workflows: they hold the deploy checks, the alerts and the merge queue.
 /.github/workflows/ @SamSjosten

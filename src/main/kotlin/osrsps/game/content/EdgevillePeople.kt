@@ -353,11 +353,15 @@ object EdgevillePeople {
         }
     }
 
-    /** Lucien's talk; [give] hands the player a new pendant when they own none (carried, worn or banked). */
-    internal suspend fun Dialogue.lucien(give: (Player, Int) -> Unit) = with(LucienLines) {
+    /**
+     * Lucien's talk; [give] hands the player a new pendant when they own none: carried, worn, banked, or [elsewhere]
+     * (their drop still on the ground, or in their grave). The pendant can be dropped, so without [elsewhere] a player
+     * could drop it, ask again and pick the first one back up.
+     */
+    internal suspend fun Dialogue.lucien(elsewhere: (Player) -> Boolean = { false }, give: (Player, Int) -> Unit) = with(LucienLines) {
         chatNpc(ChatAnim.ANGRY, WHAT)
         val owns = player.inventory.count(PENDANT_OF_LUCIEN) > 0 || player.equipment.count(PENDANT_OF_LUCIEN) > 0 ||
-            player.bank.count(PENDANT_OF_LUCIEN) > 0
+            player.bank.count(PENDANT_OF_LUCIEN) > 0 || elsewhere(player)
         if (!owns) {
             chatPlayer(ChatAnim.SAD, LOST_PENDANT)
             give(player, PENDANT_OF_LUCIEN)
@@ -382,7 +386,11 @@ fun registerEdgevillePeople(world: World) {
             world.objTypes[obj]?.let { world.groundObjs.give(player, it, 1) } ?: logger.warn { "No item $obj in the cache" }
         }
         // A multi-NPC's options are the shown type's.
-        world.handlers.onNpc(LUCIEN_SHOWN, TALK_TO) { op -> world.dialogues.start(this, op.npc) { lucien(give) } }
+        val elsewhere: (Player) -> Boolean = { player ->
+            world.groundObjs.hasDropped(player, PENDANT_OF_LUCIEN) ||
+                (world.deaths.graveOf(player)?.items?.count(PENDANT_OF_LUCIEN) ?: 0) > 0
+        }
+        world.handlers.onNpc(LUCIEN_SHOWN, TALK_TO) { op -> world.dialogues.start(this, op.npc) { lucien(elsewhere, give) } }
 
         // The trapdoor: op 1 is Open while closed and Go-down while open; op 2 is Close.
         world.handlers.onLoc(TRAPDOOR, 1) { op ->

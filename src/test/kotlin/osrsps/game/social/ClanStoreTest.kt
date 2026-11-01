@@ -1,0 +1,52 @@
+package osrsps.game.social
+
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+class ClanStoreTest {
+    private fun founders() = listOf(ClanStore.Member("alice", "alice", 126, 1), ClanStore.Member("bob", "bob", 0, 1))
+
+    @Test
+    fun `a clan founded while the file can't be written is written at the next flush`(@TempDir dir: Path) {
+        // A file where the data directory should be: creating it fails until the file goes.
+        val blocker = dir.resolve("data")
+        Files.writeString(blocker, "in the way")
+        val store = ClanStore(blocker.resolve(ClanStore.FILE_NAME))
+        store.create("Odins Gate", 0, 20_000, founders())
+        assertTrue(store.unwritten)
+        Files.delete(blocker)
+        store.flush()
+        assertFalse(store.unwritten)
+        val reloaded = ClanStore(blocker.resolve(ClanStore.FILE_NAME))
+        assertEquals(listOf("alice", "bob"), reloaded.clanOf("bob")!!.members.map { it.name })
+        assertEquals(20_000, reloaded.foundedDay("alice"))
+    }
+
+    @Test
+    fun `names are compared as player names are, and a deleted clan's members may found again`(@TempDir dir: Path) {
+        val store = ClanStore(dir.resolve(ClanStore.FILE_NAME))
+        val clan = store.create("Odins Gate", 0, 20_000, founders())
+        assertTrue(store.nameTaken("odins_gate"))
+        assertFalse(store.nameTaken("Odins Gates"))
+        store.delete(clan)
+        assertNull(store.clanOf("alice"))
+        assertNull(store.foundedDay("alice"))
+        assertFalse(ClanStore(dir.resolve(ClanStore.FILE_NAME)).nameTaken("Odins Gate"))
+    }
+
+    @Test
+    fun `a name that only reads as a taken one, by an inner double space or an accent, isn't allowed`() {
+        val store = ClanStore(null)
+        store.create("Odins Gate", 0, 0, founders())
+        assertTrue(store.nameTaken("odins  gate"))
+        assertFalse(Clans.validName("Odins  Gate"))
+        assertFalse(Clans.validName("Ódins Gate"))
+        assertTrue(Clans.validName("Odins Gate 2"))
+    }
+}

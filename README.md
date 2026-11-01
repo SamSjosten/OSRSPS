@@ -57,8 +57,20 @@ times the vertex colours, snapped to the client's palette; y is turned over, as 
 ```
 
 Options: `--scale f`, `--mirror-x`, `--flip-faces` (for a model that shows mirrored or inside out), `--priority n`
-(0 to 10) and `--alpha material=n` (0 opaque to 254) per material. The output is a plain model file; serving it is the
-cache overlay's job (not built yet). Converted Jagex art stays in `data/`, outside git, like the cache.
+(0 to 10) and `--alpha material=n` (0 opaque to 254) per material. The output is a plain model file.
+
+The server serves every `data/models/<id>.dat` as model `<id>` on top of the cache (`osrsps.cache.overlay`): at start
+it adds each to index 7's reference table, in memory, with the CRC of the container it sends, and puts the table's new
+CRC in the master index, so a client fetches the table again and then the model when a loc or NPC points at it. The
+cache files on disk stay the live cache. An id has to be above every live model (65,000 and up is safe for revision
+241) and below 65,536, which is all a JS5 request carries. A changed file is served at the next start; a client that
+had the old one sees the new CRC and fetches it again. Converted Jagex art stays in `data/`, outside git, like the cache.
+
+Loc types of our own that use such models are code: `game/content/CustomLocs.kt` lists them (ids from 65,000), each a
+`LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
+the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
+server decodes back for itself, so the client and the server see the same loc. The lodestones (`Lodestones.kt`) are
+the first: the server places the Lumbridge stone at start.
 
 ## Run the server
 
@@ -135,14 +147,14 @@ that it needs the same password (see Accounts).
 ### Letting friends test
 
 Friends reach the server at `odinsgate.net`, a VPS that relays TCP 43594 and 43595 (and nothing else) to it; the Home
-Lab project runs the relay. They install Odin's Gate, our launcher, from the download page,
-https://samsjosten.github.io/OSRSPS/ (`docs/` in this repo, served by GitHub Pages once it is switched on in the
-repo's settings: Pages, deploy from a branch, `main`, `/docs`): one button per system, a guide for each, and the
-first-start steps for an app no paid certificate signs. The launcher downloads RuneLite from RuneLite's own servers,
-patches it in memory to our server and key, and updates itself from this repo's releases (`launcher/README.md`).
-Each friend logs in with a name and password of their own, never any other game's login; the first login as a name
-claims it (see Accounts). CI's `friend-page` job holds the page to its links (https, known hosts, every installer the
-release publishes exactly once) and to the names rule (`.github/scripts/friend-page.js`).
+Lab project runs the relay. They install Odin's Gate, our launcher, from its download page,
+https://samsjosten.github.io/OdinsGate/. The launcher, the page and every release live in the public repository
+OdinsGate (`github.com/SamSjosten/OdinsGate`, its `launcher/README.md`) since launcher 1.0.2, this repository's last
+launcher release: 1.0.2 raised the minimum shell version above every launcher installed from here (1.0.0, 1.0.1), so
+each shows "Please download the new installer." with the old page, `docs/` here, which now only forwards to
+OdinsGate's (CI's `friend-page` job holds it to that, `.github/scripts/friend-page.js`). The launcher downloads RuneLite
+from RuneLite's own servers and patches it in memory to our server and key. Each friend logs in with a name and
+password of their own, never any other game's login; the first login as a name claims it (see Accounts).
 
 - A friend who used RSProx before: the launcher keeps its own game settings, so RuneLite settings made under RSProx
   don't carry over; the name and password do. RSProx stays the developer route (above) and still works for friends on
@@ -151,25 +163,14 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
 - Nothing of the game's is handed out: the launcher and RSProx both download RuneLite and the game client themselves.
 - The launcher pins the RuneLite build per revision in `src/main/resources/runelite-pins.json` (a commit of RuneLite's
   [static.runelite.net history](https://github.com/runelite/static.runelite.net/commits/gh-pages/bootstrap.json); the
-  signed manifest carries the table, and RSProx's target names the same build). RuneLite moves to each new revision
-  within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
-  revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
-- The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
-  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases"). 1.0.1
-  the same day: the Windows runtime lacked the certificate store module (`jdk.crypto.mscapi`), so the game exited at
-  once; a 1.0.0 launcher sends its user to the download page for the new installer. 1.0.2 is this repository's last
-  launcher release and the bridge to the launcher's own public repository OdinsGate (`github.com/SamSjosten/OdinsGate`),
-  where the launcher, the download page (`https://samsjosten.github.io/OdinsGate/`) and every later release live: it
-  raises the minimum shell version above every launcher installed from here, so each shows "Please download the new
-  installer." and this page's buttons lead to OdinsGate's installer (the installed shell checks the repository built
-  into it, so no self-update could move it over). The pull request after it removes `launcher/`, `docs/` and the
-  launcher workflows from here.
+  signed manifest carries OdinsGate's copy of the table, and RSProx's target names the same build). RuneLite moves to
+  each new revision within hours of live, and our server turns a client of another revision away, so a revision bump
+  adds the new revision's build to both copies first (CONTRIBUTING.md, "The launcher's copies").
 
 ### Files for our own launcher
 
-Odin's Gate, our launcher (being built to replace RSProx for friends; its code is `launcher/`, its own Gradle build
-like the plugins'), reads its own files from the same HTTP port, each written for the host it was asked by like the
-others:
+Odin's Gate, our launcher (in the OdinsGate repository, above), reads its own files from the same HTTP port, each
+written for the host it was asked by like the others:
 
 - `/status.json`: whether the game is up (its game loop ended a cycle in the last 10 s) and taking logins, the revision
   it plays, the commit it runs (the one `/version` gives), how many players are in, and the JS5 count `/status` gives,
@@ -1000,6 +1001,42 @@ The words are in the dialogue file (keys `doris.*`, `evil_dave.*`, `hari.*`, `lu
 `test-runner/examples/edgeville-people.json` talks to Doris, opens, shuts and goes down the trapdoor, talks to Evil
 Dave, climbs the stairs, talks to Lucien and Hari, and tries each refused place; `EdgevillePeopleTest` does each talk's
 branches and `HeadlessEdgevillePeopleTest` the trapdoor, stairs, refusals, Doris and Lucien through the headless client.
+
+Step 3b is the outlaws' camp south-east of the town: spawns in `npc-spawns/edgeville.json`, combat and drops in
+`npc-combat.json` and `npc-drops.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Ten level 32 outlaws (`surok_outlaw1` to `10`, 4167 to 4176), one of each, in the camp at about 3116 to 3124, 3470 to 3477; not aggressive | mejrs's NPC list for the tiles; 241 cache (Attack only); the Wiki's Outlaw page; wander range guessed |
+| They crush for up to 3 (Strength 30, strength bonus -21), attack speed 4, no defence bonuses, back 4 ticks after the killing blow (the Wiki's 2, raised to the time the body stays, as for rats) | OSRS Wiki, Outlaw and the DPS calculator's 4167 (read 2026-11-01); the punch and block animations guessed |
+| The Wiki's XP bonus of -97.5%: a fortieth of the combat XP for their damage, Hitpoints' too, rounded down in tenths each hit (`xpBonus` in `npc-combat.json`, for any NPC) | OSRS Wiki, Outlaw; that it covers Hitpoints and not a spell's base XP is inferred |
+| Bones always and one roll: rope 46/128, the herb table 32/128, fishing bait, coins (5, 15, 25), cabbage, runes, a bronze med helm, copper ore, a knife | OSRS Wiki, Outlaw (members: herbs for the free-to-play 10 coins); its lines come to 127/128, so 1/128 of nothing is inferred |
+
+Left out: the shout before an attack, whose accuracy boost the Wiki has not confirmed. Check:
+`test-runner/examples/edgeville-outlaws.json` attacks an outlaw and kills it for its bones; `NpcCombatTest` and
+`NpcDropsTest` check the numbers, `CombatMathTest` the XP bonus, and `HeadlessEdgevilleOutlawsTest` kills one through
+the headless client for its 2 Attack XP.
+
+Step 4 is Edgeville Monastery, west of the town, `game/content/EdgevilleMonastery.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Six monks (`monk` 2579: four in the courtyard, two upstairs), Abbot Langley (2577), Brother Althric (1397) in the rose garden and Brother Jered (2578) upstairs | mejrs's NPC list for the tiles (it saw six monks; the Wiki says five); wander ranges guessed |
+| A monk's talk: three options; the heal gives 2 and a fifth of the Hitpoints level, to the level at most | OSRS Wiki, Monk and Transcript:Monk; rounding down guessed |
+| Monks fight back: level 5, 15 hitpoints, crush for up to 1, back in 25 ticks, bones | OSRS Wiki, Monk and the DPS calculator's 2579; the punch animations guessed; their heal of 2 now and then in a fight is left out (the Wiki gives no chance) |
+| Abbot Langley: the heal (as a monk's, guessed), where the player is, going upstairs (until joined) and the spirit shields (each spectral, arcane or elysian spirit shield in the backpack broken for its sigil) | OSRS Wiki, Transcript:Abbot Langley; with no shield, the yes does nothing (guessed) |
+| Joining the order at 31 Prayer, kept on varbit 4907 (`monastery_enter`); until then the south-eastern ladder (2641) brings the Abbot's line and join menu and the south-western one a monk's line; once joined both climb | OSRS Wiki, Transcript:Abbot Langley and Transcript:Monk; that varbit 4907 is the joined flag is inferred from its name |
+| Brother Jered: blesses an unblessed symbol (1716) into a holy symbol (1718), and at 99 Prayer sells the Skillcape of Prayer and hood for 99,000 coins (trimmed when another skill is 99) | OSRS Wiki, Transcript:Brother Jered |
+| Brother Althric's talk about his roses | OSRS Wiki, Transcript:Brother Althric (its standard talk) |
+| The upstairs altar (2640): prayer back to 2 above the level | OSRS Wiki, Edgeville Monastery |
+| A monk's robe top and bottom upstairs, back 100 ticks after taking; the garden's cabbages (1161) picked, back in 60 ticks, as every cabbage field's now | the Wiki's item pages; tiles from 2004Scape's map m47_54; the Cabbage page's 40 to 80 ticks, 60 guessed |
+
+Left out: the roses' Take-seed (Garden of Tranquillity), the Abbot's clue, letter and Corrupted Helm talk, the
+Kharid scorpion and the ghost (quests). The words are in the dialogue file (keys `edgeville_monk.*`,
+`abbot_langley.*`, `brother_jered.*`, `brother_althric.*`, `crop.cabbage_*`). Check:
+`test-runner/examples/edgeville-monastery.json` is refused at the ladder, joins, climbs, takes a robe, prays, talks to
+each of the people and picks a cabbage; `EdgevilleMonasteryTest` does each talk's branches and
+`HeadlessEdgevilleMonasteryTest` the ladders, joining and the altar through the headless client.
 
 ## Varrock
 

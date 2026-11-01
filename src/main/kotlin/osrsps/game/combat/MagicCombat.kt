@@ -305,13 +305,14 @@ class MagicCombat(
         val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
+        val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         if (defensive) {
-            player.skills.addTenths(Skill.MAGIC, CombatMath.defensiveSpellMagicXpTenths(damage))
-            player.skills.addTenths(Skill.DEFENCE, CombatMath.defensiveSpellDefenceXpTenths(damage))
+            player.skills.addTenths(Skill.MAGIC, CombatMath.withXpBonus(CombatMath.defensiveSpellMagicXpTenths(damage), bonus))
+            player.skills.addTenths(Skill.DEFENCE, CombatMath.withXpBonus(CombatMath.defensiveSpellDefenceXpTenths(damage), bonus))
         } else {
-            player.skills.addTenths(Skill.MAGIC, CombatMath.spellDamageXpTenths(damage))
+            player.skills.addTenths(Skill.MAGIC, CombatMath.withXpBonus(CombatMath.spellDamageXpTenths(damage), bonus))
         }
-        player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
+        player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
         inFlight += Cast(player, npc, spell, hit, damage, landTick, matchup.maxHit, Tile(player.x, player.z))
         return hit
     }

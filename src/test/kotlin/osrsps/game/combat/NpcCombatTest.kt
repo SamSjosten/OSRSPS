@@ -8,6 +8,7 @@ import kotlin.test.assertTrue
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.Skill
 import osrsps.game.SeqNames
 
 class NpcCombatTest {
@@ -19,14 +20,14 @@ class NpcCombatTest {
     ) + (1..8).map { "goblin_unarmed_melee_$it" } + "giantspider1" + listOf(
         "giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3",
         "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops", "goblin_armed", "unicorn",
-        "al_kharid_man", "al_kharid_warrior", "scorpion", "shantay_guard", "spider", "guard1",
-    ) + VARROCK_GUARDS
+        "al_kharid_man", "al_kharid_warrior", "scorpion", "shantay_guard", "spider", "guard1", "monk",
+    ) + VARROCK_GUARDS + OUTLAWS
     // The cache's Strength levels where they aren't 1, for the max hit check.
     private val strength = mapOf(
         "giantrat" to 3, "giantrat_grey" to 3, "giantrat_grey2" to 3, "giantrat_grey3" to 3, "giantrat1_2" to 5, "giantrat1_3" to 5,
         "little_frog_nodrops" to 4, "medium_frog_nodrops" to 6, "giant_frog_nodrops" to 8, "unicorn" to 13,
-        "al_kharid_warrior" to 5, "scorpion" to 12, "shantay_guard" to 16, "guard1" to 18,
-    ) + VARROCK_GUARDS.associateWith { 18 }
+        "al_kharid_warrior" to 5, "scorpion" to 12, "shantay_guard" to 16, "guard1" to 18, "monk" to 2,
+    ) + VARROCK_GUARDS.associateWith { 18 } + OUTLAWS.associateWith { 30 }
     private val types = NpcTypes.of(
         *names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name, stats = NpcStats(strength = strength[name] ?: 1)) }.toTypedArray(),
     )
@@ -35,6 +36,7 @@ class NpcCombatTest {
     private val seqs = SeqNames(
         mapOf(
             "human_unarmedpunch" to 422, "human_unarmedblock" to 424, "human_death" to 836,
+            "human_caststrike" to 711, "human_castconfuse" to 716,
             "mouse_attack" to 2705, "mouse_defend" to 2706, "mouse_death" to 2707,
             "imp_attack" to 169, "imp_block" to 170, "imp_death" to 172,
             "cow_update_attack" to 5849, "cow_update_defend" to 5850, "cow_update_death" to 5851,
@@ -149,6 +151,42 @@ class NpcCombatTest {
         assertEquals(18, edgeville.defence.against(AttackType.STAB))
         assertEquals(NpcCombatAnims(386, 387, 836), edgeville.anims)
         assertEquals(50, edgeville.respawnTicks)
+        // The outlaws punch for 3 with no defence bonuses, come back in 2 ticks and give a fortieth of the XP (-97.5%).
+        for (name in OUTLAWS) {
+            val outlaw = combat[types.find(name)!!]!!
+            assertEquals(AttackType.CRUSH, outlaw.attackType)
+            assertEquals(3, outlaw.maxHit)
+            assertEquals(-21, outlaw.strengthBonus)
+            assertEquals(0, outlaw.defence.against(AttackType.CRUSH))
+            assertEquals(NpcCombatAnims(422, 424, 836), outlaw.anims)
+            assertEquals(2, outlaw.respawnTicks)
+            assertEquals(-975, outlaw.xpBonusTenths)
+            assertNull(outlaw.aggression)
+        }
+        // The monastery's monks punch for 1 and come back in 25 ticks.
+        val monk = combat[types.find("monk")!!]!!
+        assertEquals(AttackType.CRUSH, monk.attackType)
+        assertEquals(1, monk.maxHit)
+        assertEquals(NpcCombatAnims(422, 424, 836), monk.anims)
+        assertEquals(25, monk.respawnTicks)
+        assertTrue((names - OUTLAWS.toSet()).all { combat[types.find(it)!!]!!.xpBonusTenths == 0 })
+    }
+
+    @Test
+    fun `Draynor's dark wizards cast Water Strike and Confuse from 10 tiles`() {
+        val wizard = NpcType(512, "Dark wizard", internalName = "young_dark_wizard")
+        val def = NpcCombat.load(NpcTypes.of(wizard), seqs)[wizard]!!
+        assertEquals(AttackType.MAGIC, def.attackType)
+        assertEquals(10, def.range)
+        assertEquals(2, def.maxHit)
+        assertEquals(3, def.defence.against(AttackType.MAGIC))
+        assertEquals(
+            listOf(
+                NpcRangedAttack(711, 93, 94, 95),
+                NpcRangedAttack(716, 102, 103, 104, maxHit = 0, drain = StatDrain(Skill.ATTACK, 5)),
+            ),
+            def.attacks,
+        )
     }
 
     @Test
@@ -199,5 +237,8 @@ class NpcCombatTest {
             "fai_varrock_guard02", "fai_varrock_guard02_variant01", "fai_varrock_guard02_variant02",
             "fai_varrock_guard02_f", "fai_varrock_guard02_f_variant01", "fai_varrock_guard02_f_variant02", "fai_varrock_guard_captain02",
         )
+
+        /** The camp south-east of Edgeville's ten outlaws, one type each (4167 to 4176). */
+        val OUTLAWS = (1..10).map { "surok_outlaw$it" }
     }
 }

@@ -6,6 +6,7 @@
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats: a max hit of 1"},
   {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now", "comment": "the man fights back"},
   {"step": "command", "text": "::sure max", "expectMessage": "deal their max now", "comment": "every punch lands for its max"},
+  {"step": "command", "text": "::varbit 20157 1", "expectMessage": "Varbit 20157", "comment": "level-up pop-ups off: the punches level Hitpoints, and a level-up box would hold up the next command"},
   {"step": "command", "text": "::varbit 14195 1", "expectMessage": "Varbit 14195", "comment": "settings_hitsplat_threshold: max hits of 1 or more"},
   {"step": "command", "text": "::varbit 14196 0", "expectMessage": "Varbit 14196", "comment": "hitsplat_maxhit_disabled off: Max hit hitsplats on"},
   {"step": "assertVarbit", "id": 14196, "value": 0},
@@ -24,6 +25,7 @@
   {"step": "command", "text": "::varbit 14195 0", "expectMessage": "Varbit 14195"},
   {"step": "command", "text": "::sure", "expectMessage": "Your attacks can miss again."},
   {"step": "command", "text": "::god", "expectMessage": "You can be hurt again."},
+  {"step": "command", "text": "::varbit 20157 0", "expectMessage": "Varbit 20157"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

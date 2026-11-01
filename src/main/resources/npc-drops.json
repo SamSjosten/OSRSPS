@@ -34,6 +34,19 @@
     }
   },
   "npcs": [
+    {"npcs": ["young_dark_wizard", "qip_ds_young_dark_wizard1", "qip_ds_young_dark_wizard2"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+      {"item": 1379, "name": "Staff", "weight": 8}, {"item": 1017, "name": "Wizard hat", "weight": 4}, {"item": 581, "name": "Black robe", "weight": 3},
+      {"item": 557, "name": "Earth rune", "count": 36, "weight": 4},
+      {"item": 556, "name": "Air rune", "count": 10, "weight": 3}, {"item": 555, "name": "Water rune", "count": 10, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 10, "weight": 3}, {"item": 554, "name": "Fire rune", "count": 10, "weight": 3},
+      {"item": 556, "name": "Air rune", "count": 18, "weight": 2}, {"item": 555, "name": "Water rune", "count": 18, "weight": 2}, {"item": 557, "name": "Earth rune", "count": 18, "weight": 2}, {"item": 554, "name": "Fire rune", "count": 18, "weight": 2},
+      {"item": 561, "name": "Nature rune", "count": 4, "weight": 7}, {"item": 562, "name": "Chaos rune", "count": 5, "weight": 6},
+      {"item": 558, "name": "Mind rune", "count": 10, "weight": 3}, {"item": 559, "name": "Body rune", "count": 10, "weight": 3},
+      {"item": 558, "name": "Mind rune", "count": 18, "weight": 2}, {"item": 559, "name": "Body rune", "count": 18, "weight": 2},
+      {"item": 565, "name": "Blood rune", "count": 2, "weight": 2}, {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 1}, {"item": 563, "name": "Law rune", "count": 3, "weight": 1},
+      {"item": 995, "name": "Coins", "count": 1, "weight": 17}, {"item": 995, "name": "Coins", "count": 4, "weight": 7}, {"item": 995, "name": "Coins", "count": 30, "weight": 1},
+      {"nothing": true, "weight": 16}, {"item": 1444, "name": "Water talisman", "weight": 1}, {"item": 1442, "name": "Fire talisman", "weight": 1},
+      {"item": 3012, "name": "Energy potion(2)", "weight": 16}, {"item": 3008, "name": "Energy potion(4)", "weight": 3}
+    ]}, "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/50"}], "source": "OSRS Wiki, Dark wizard (level 7), read 2026-10-30: the members table (wizard hat 4/128, blood runes); the Wilderness looting bag left out"},
     {
       "npcs": ["man", "man2", "man3", "man4", "woman", "woman2", "woman3", "al_kharid_man", "al_kharid_warrior", "varrock_man1", "varrock_woman1"],
       "always": [{"item": 526, "name": "Bones"}],
@@ -322,6 +335,35 @@
       "npcs": ["farming_market_guard"],
       "always": [{"item": 526, "name": "Bones"}],
       "source": "OSRS Wiki, Market Guard (Draynor), read 2026-10-30: bones always, nothing else"
+    },
+    {
+      "npcs": ["surok_outlaw1", "surok_outlaw2", "surok_outlaw3", "surok_outlaw4", "surok_outlaw5", "surok_outlaw6", "surok_outlaw7", "surok_outlaw8", "surok_outlaw9", "surok_outlaw10"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 1139, "name": "Bronze med helm", "weight": 2},
+          {"item": 558, "name": "Mind rune", "count": 9, "weight": 2},
+          {"item": 555, "name": "Water rune", "count": 6, "weight": 2},
+          {"item": 557, "name": "Earth rune", "count": 5, "weight": 2},
+          {"table": "herbs", "weight": 32},
+          {"item": 995, "name": "Coins", "count": 5, "weight": 12},
+          {"item": 995, "name": "Coins", "count": 15, "weight": 4},
+          {"item": 995, "name": "Coins", "count": 25, "weight": 1},
+          {"item": 954, "name": "Rope", "weight": 46},
+          {"item": 313, "name": "Fishing bait", "weight": 15},
+          {"item": 436, "name": "Copper ore", "weight": 2},
+          {"item": 1965, "name": "Cabbage", "weight": 6},
+          {"item": 946, "name": "Knife", "weight": 1},
+          {"nothing": true, "weight": 1}
+        ]
+      },
+      "source": "OSRS Wiki, Outlaw, read 2026-11-01. Members worlds: the herb table's 32/128 in place of the free-to-play 10 coins; Rat's paper is a quest drop, so left out. The Wiki's lines add up to 127/128, so the last 1/128 as nothing is inferred"
+    },
+    {
+      "npcs": ["monk"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Monk, read 2026-11-01: bones always; the medium clue key is the Ardougne monks' only"
     }
   ]
 }

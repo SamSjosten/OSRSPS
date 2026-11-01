@@ -257,13 +257,14 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Edgeville has four bankers behind the booths, the grange's seven men, its rats, giant spiders and imps, its shopkeepers, its guards, its people and the Basement of Doom`() {
+    fun `Edgeville has four bankers behind the booths, the grange's seven men, its rats, giant spiders and imps, its shopkeepers, its guards, its people, the Basement of Doom, the outlaws' camp and the monastery`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3107 to "man2", 3108 to "man3", 2854 to "rat", 3017 to "giantspider1", 5007 to "imp",
             2821 to "generalshopkeeper5", 2822 to "generalassistant5", 7457 to "lost_property_merchant_standard", 822 to "oziach", 2200 to "wilderness_capeseller_6",
             3254 to "guard1", 4808 to "hundred_dave_mum", 1325 to "canoeing_hari", 13644 to "ikov_lucien2", 4806 to "hundred_evil_dave",
             4809 to "hundred_dave_hellrat", 6793 to "hundred_dave_bigrat",
-        )
+            2579 to "monk", 2577 to "abbot_langley", 2578 to "brother_jered", 1397 to "brother_althric",
+        ) + (4167..4176).associateWith { "surok_outlaw${it - 4166}" }
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("edgeville.json"), types, "edgeville.json")
         assertEquals(emptyList(), result.unknown)
@@ -290,8 +291,19 @@ class NpcSpawnFileTest {
         val basement = spawns.filter { it.type.id in setOf(4806, 4809, 6793) }
         assertEquals(listOf(1, 18, 4), listOf(4806, 4809, 6793).map { id -> basement.count { it.type.id == id } })
         assertTrue(basement.all { it.x in 3064..3090 && it.z in 9870..9905 && it.level == 0 })
+        // One of each of the ten outlaws, in their camp.
+        val outlaws = spawns.filter { it.type.id in 4167..4176 }
+        assertEquals((4167..4176).toList(), outlaws.map { it.type.id }.sorted())
+        assertTrue(outlaws.all { it.x in 3114..3126 && it.z in 3468..3479 && it.level == 0 })
+        // The monastery, west of the town: six monks (four in the courtyard, two upstairs), the Abbot and Brother Althric
+        // downstairs and Brother Jered upstairs.
+        val monastery = spawns.filter { it.type.id in setOf(2579, 2577, 2578, 1397) }
+        assertEquals(listOf(6, 1, 1, 1), listOf(2579, 2577, 2578, 1397).map { id -> monastery.count { it.type.id == id } })
+        assertEquals(listOf(0, 0, 0, 0, 1, 1), monastery.filter { it.type.id == 2579 }.map { it.level }.sorted())
+        assertEquals(1, monastery.single { it.type.id == 2578 }.level)
+        assertTrue(monastery.all { it.x in 3040..3062 && it.z in 3478..3510 })
         // The rest south of the Wilderness Ditch (z 3521), within map square 48,54 but for Oziach's hut just west of it (x 3069).
-        assertTrue((spawns - basement.toSet()).all { it.x in 3064..3135 && it.z in 3456..3520 && it.level == (if (it.type.id == 7457) 1 else 0) && it.source.isNotBlank() })
+        assertTrue((spawns - basement.toSet() - monastery.toSet()).all { it.x in 3064..3135 && it.z in 3456..3520 && it.level == (if (it.type.id == 7457) 1 else 0) && it.source.isNotBlank() })
     }
 
     @Test
@@ -301,7 +313,7 @@ class NpcSpawnFileTest {
             2797 to "pig_2", 2798 to "piglet_1", 2799 to "piglet_2", 2800 to "piglet_3", 3251 to "farmer_farming_on_48_51", Fishing.DRAYNOR_SPOT to "0_48_50_saltfish",
             1260 to "rag_wine_merchant", 500 to "seed_merchant", 8693 to "aprilfoolshorsesalesman", 4280 to "ned", 4284 to "aggie", 4276 to "jailguard",
             4277 to "jailguard_two_patrol", 4278 to "jailguard_three_patrol", 4279 to "jailguard_four_patrol", 4274 to "leela", 3479 to "morgan",
-            2109 to "wom_multi", 2114 to "wom_bed_inactive", 2116 to "wom_gossip", 2123 to "wom_bankguard", 5732 to "farming_market_guard", 5730 to "master_farmer_1",
+            2109 to "wom_multi", 2114 to "wom_bed_inactive", 2116 to "wom_gossip", 2123 to "wom_bankguard", 5732 to "farming_market_guard", 5730 to "master_farmer_1", 512 to "young_dark_wizard",
         )
         val draynorTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("draynor.json"), draynorTypes, "draynor.json")
@@ -332,6 +344,8 @@ class NpcSpawnFileTest {
         assertEquals(listOf(3247, 3253), spawns.filter { it.type.id == 5732 }.map { it.z }.sorted())
         // The Master Farmer in the market.
         assertEquals(Tile(3080, 3250), spawns.single { it.type.id == 5730 }.let { Tile(it.x, it.z) })
+        // The two level 7 dark wizards south of the bank.
+        assertEquals(listOf(3236, 3238), spawns.filter { it.type.id == 512 }.map { it.z }.sorted())
     }
 
     @Test
