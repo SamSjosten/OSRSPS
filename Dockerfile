@@ -13,7 +13,7 @@ COPY src ./src
 # fills up. Incremental compilation is off: every image build is a full one, and its
 # snapshots only cost heap. Metaspace needs about 250 MB
 # here, because every image build is a cold one that also compiles the build scripts (192 MB failed with
-# "OutOfMemoryError: Metaspace"); a cold build peaks around 1 GB.
+# "OutOfMemoryError: Metaspace").
 ENV GRADLE_OPTS="-Xmx64m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
 # If memory runs out anyway, the kernel should kill this step, not the server. Build steps seem to keep the Docker
 # daemon's low OOM score (in that deploy the kernel killed the 300-440 MB server four times and spared the build), so
