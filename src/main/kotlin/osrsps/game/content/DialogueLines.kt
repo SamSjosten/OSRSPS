@@ -44,6 +44,7 @@ import osrsps.game.trade.TradeLines
  */
 object DialogueLines {
     val ALL: List<Lines> = listOf(
+        AbbotLangleyLines,
         AbigailaLines,
         AeonisigLines,
         AereckLines,
@@ -73,6 +74,8 @@ object DialogueLines {
         BobLines,
         BonesLines,
         BorderGuardLines,
+        BrotherAlthricLines,
+        BrotherJeredLines,
         CamelLines,
         CampArcherLines,
         CampMonkLines,
@@ -108,6 +111,7 @@ object DialogueLines {
         DukeLines,
         EdgevilleClosedLines,
         EdgevilleLines,
+        EdgevilleMonkLines,
         EdgevilleShopAssistantLines,
         EdgevilleShopKeeperLines,
         EllamariaLines,
