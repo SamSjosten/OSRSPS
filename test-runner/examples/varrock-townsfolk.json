@@ -1,0 +1,435 @@
+{
+ "name": "Varrock step 8a (with ::keys on): Romeo, Shilop, Aris, Iffie, the Town Crier, Dr Harlow, Jonny the Beard, Charlie the Tramp (given a coin), Draul Leptoc and Gertrude (a kitten bought for 100 coins)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3212 3427 0",
+   "expectMessage": "Teleported to 3212, 3427, 0",
+   "comment": "the square, by Romeo"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5037,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Romeo"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[romeo.dreadful"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[romeo.cousin"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3501,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Shilop, playing in the square"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[shilop.hello"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[shilop.strangers"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[shilop.not_old"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3204 3422 0",
+   "expectMessage": "Teleported to 3204, 3422, 0",
+   "comment": "by Aris's tent, south-west of the square"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 11868,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Aris"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aris.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aris.demon"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[aris.how_knew]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aris.how_knew"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[aris.knowing"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2899,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Iffie, knitting in Thessalia's shop"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[iffie.hello"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[iffie.count"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[iffie.sister"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3253 3427 0",
+   "expectMessage": "Teleported to 3253, 3427, 0",
+   "comment": "by the Town Crier, west of the east bank"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 276,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the Town Crier"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[town_crier.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[town_crier.goodbye]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[town_crier.goodbye"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[town_crier.farewell"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3224 3398 0",
+   "expectMessage": "Teleported to 3224, 3398, 0",
+   "comment": "the Blue Moon Inn"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 16277,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Dr Harlow"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dr_harlow.drink"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dr_harlow.enough"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 14139,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Jonny the Beard"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[jonny_the_beard.not_interested"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 101",
+   "expectMessage": "Added 101 x Coins",
+   "comment": "100 for a kitten, 1 for Charlie"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3209 3393 0",
+   "expectMessage": "Teleported to 3209, 3393, 0",
+   "comment": "by Charlie the Tramp"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5209,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Charlie the Tramp"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[charlie.spare"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[charlie.here]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[charlie.here"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[charlie.thanks"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[charlie.no_problem]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[charlie.no_problem"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 100,
+   "timeoutMs": 10000,
+   "comment": "one coin to Charlie"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3160 3433 0",
+   "expectMessage": "Teleported to 3160, 3433, 0",
+   "comment": "outside Juliet's house, west of the city"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5039,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Draul Leptoc"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[draul_leptoc.proud"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3153 3411 0",
+   "expectMessage": "Teleported to 3153, 3411, 0",
+   "comment": "Gertrude's house"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 7723,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Gertrude"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gertrude.hello_again"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gertrude.ratcatchers"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gertrude.strange"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gertrude.help"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[gertrude.kittens]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gertrude.kittens"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gertrude.cost"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[gertrude.yes]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gertrude.yes"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[gertrude.given]",
+   "comment": "the item box"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "timeoutMs": 10000,
+   "comment": "100 coins for the kitten"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pet kitten",
+   "count": 1,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
