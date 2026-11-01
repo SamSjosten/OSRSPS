@@ -1416,6 +1416,7 @@ a fight started on a seed plays the same way each time.
 |---------------------|--------|
 | Fights running in the NPC phase, after NPC scripts | guessed, until a recording shows a boss |
 | A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
+| A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |
 | Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
 | A fight outside an instance covering 32 tiles round the boss's spawn | testing only: the raid's rooms are instances |

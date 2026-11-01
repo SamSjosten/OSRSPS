@@ -31,6 +31,7 @@ class RaidCommandsTest {
         world.run("raid")
         world.run("raid log")
         world.run("raid digest 0")
+        world.run("raid digest 1")
         world.run("raid guardian")
         world.run("raid stop")
         world.run("raid")
@@ -40,6 +41,7 @@ class RaidCommandsTest {
                 "guardian #1: phase 2 (grounded) for 0 of 0 ticks; Archive Guardian 1950/1950 hp; 0 players, 0 adds, 0 hazards",
                 "0 grounded: phase starts",
                 "guardian to tick 0: 1 lines, digest %08x".format("0 grounded: phase starts".hashCode()),
+                "The fight has run to tick 0 so far",
                 "You're in guardian already: ::raid stop first",
                 "Stopped guardian.",
                 "You're not in a fight. Bosses: guardian",

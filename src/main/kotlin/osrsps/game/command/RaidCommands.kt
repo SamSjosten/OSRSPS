@@ -39,8 +39,9 @@ fun CommandRegistry.registerRaidCommands(world: World) {
             "digest" -> {
                 if (args.size > 2) fail(usage)
                 val fight = mine()
-                val upTo = args.getOrNull(1)?.let { it.toLongOrNull()?.takeIf { n -> n >= 0 } ?: fail("The ticks must be 0 or more") } ?: fight.ticks
-                if (upTo > fight.ticks) fail("The fight is only ${fight.ticks} ticks in")
+                val upTo = args.getOrNull(1)?.let { it.toLongOrNull()?.takeIf { n -> n >= 0 } ?: fail("The ticks must be 0 or more") } ?: fight.processedTicks
+                // This tick's part of the fight runs after commands, so it isn't in the log yet.
+                if (upTo > fight.processedTicks) fail("The fight has run to tick ${fight.processedTicks} so far")
                 // Its log keeps the last lines only; a digest missing the first would differ from another run's.
                 if (fight.droppedLines > 0) fail("The log has let go of its first ${fight.droppedLines} lines, so it can't be summed up from the start")
                 val lines = fight.lines.filter { it.substringBefore(' ').toLong() <= upTo }

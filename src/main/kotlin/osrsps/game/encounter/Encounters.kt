@@ -103,14 +103,23 @@ class Encounter internal constructor(
     /** Ticks since the fight began. */
     val ticks: Long get() = world.tick - startTick
 
+    /** The last tick the fight has run, its start included. */
+    private var lastTick = -1L
+
+    /** How many ticks after its start the fight has run to; its log is complete up to here. */
+    val processedTicks: Long get() = lastTick - startTick
+
     /** Whether [x], [z] is in the fight's area. */
     fun covers(x: Int, z: Int): Boolean = inArea(x, z)
 
+    /**
+     * Starts the fight and runs its first tick now, steps with no delay and hazards due at once included, so it plays
+     * the same whether it starts while the world runs or while it is paused. The NPC phase of the same tick then
+     * leaves it be.
+     */
     internal fun begin() {
         startPhase(phase)
-        // A first step with no delay runs now, on the tick the fight starts, also when the world is paused.
-        if (!bossLeft()) runCycle()
-        bossLeft()
+        runTick()
     }
 
     /** Ends the fight, and says so, when its boss has died or left the world, as a hit's side effect can make it. */
@@ -132,8 +141,14 @@ class Encounter internal constructor(
         def.onStart(this)
     }
 
-    /** One tick of the fight, in the NPC phase. */
+    /** One tick of the fight, in the NPC phase; nothing on the tick it started, which [begin] ran. */
     internal fun process() {
+        if (lastTick == world.tick) return
+        runTick()
+    }
+
+    private fun runTick() {
+        lastTick = world.tick
         // Adds that have left the world, dead or removed, are let go of; one dying still counts until it is gone.
         addList.removeAll { world.npcs[it.index] !== it }
         if (bossLeft()) return
@@ -222,7 +237,7 @@ class Encounters(private val world: World, defs: List<EncounterDef> = emptyList(
 
     /**
      * Starts [def] against [boss], with the players [inArea] says are in the fight, from the phase at [startPhase]. The
-     * phase's start runs now, and its cycle's first step on the tick it is due, this one for a step with no delay.
+     * fight's first tick runs now: the phase's start, steps with no delay and hazards due at once.
      */
     fun start(def: EncounterDef, boss: Npc, inArea: (Int, Int) -> Boolean, startPhase: Int = 0): Encounter {
         require(startPhase in def.phases.indices) { "${def.name} has no phase $startPhase" }

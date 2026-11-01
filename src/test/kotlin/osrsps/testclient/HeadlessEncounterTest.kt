@@ -84,10 +84,24 @@ class HeadlessEncounterTest {
         ),
     )
 
+    /** A 3-damage hazard on every player's tile at once, for one tick, then nothing for a while. */
+    private val zap = EncounterDef(
+        "zap", guardian,
+        listOf(
+            PhaseDef(
+                "open",
+                cycle = listOf(
+                    CycleStep(0) { hazard(players.map { Tile(it.x, it.z) }, warning = -1, warnTicks = 0, ticks = 1, minDamage = 3, maxDamage = 3) },
+                    CycleStep(50) {},
+                ),
+            ),
+        ),
+    )
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, npcTypes = types, partyScaling = PartyScaling.load(types),
-            encounterDefs = listOf(drill, steps, vanish), cycleMillis = millis,
+            encounterDefs = listOf(drill, steps, vanish, zap), cycleMillis = millis,
         ).also { running = it }
     }
 
@@ -156,7 +170,7 @@ class HeadlessEncounterTest {
                 // The boss leaving ends the fight and takes its add.
                 alice.commandReply("delnpc 1") { it.startsWith("Removed") }
                 alice.awaitTicks(2)
-                assertEquals("You're not in a fight. Bosses: drill, steps, vanish", alice.commandReply("raid") { it.startsWith("You're not") })
+                assertEquals("You're not in a fight. Bosses: drill, steps, vanish, zap", alice.commandReply("raid") { it.startsWith("You're not") })
                 assertEquals("No NPCs within 15 tiles.", alice.commandReply("npcs") { it.startsWith("No NPCs") || it.contains("NPC") })
             }
         }
@@ -169,8 +183,30 @@ class HeadlessEncounterTest {
                 alice.await("the login rebuild") { alice.position }
                 alice.commandReply("raid vanish") { it.startsWith("Started") }
                 alice.awaitTicks(6)
-                assertEquals("You're not in a fight. Bosses: drill, steps, vanish", alice.commandReply("raid") { it.startsWith("You're not") })
+                assertEquals("You're not in a fight. Bosses: drill, steps, vanish, zap", alice.commandReply("raid") { it.startsWith("You're not") })
                 assertEquals("You have 10/10 hitpoints.", alice.commandReply("hp") { it.startsWith("You have") })
+            }
+        }
+    }
+
+    @Test
+    fun `a hazard due as the fight starts lands once, whether the world is paused or running`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("pause") { it.isNotEmpty() }
+                alice.commandReply("raid zap") { it.startsWith("Started") }
+                assertEquals("You have 7/10 hitpoints.", alice.commandReply("hp") { it.startsWith("You have") })
+                alice.commandReply("step 2") { it.isNotEmpty() }
+                alice.awaitTicks(2)
+                alice.commandReply("resume") { it.isNotEmpty() }
+                alice.awaitTicks(2)
+                assertEquals("You have 7/10 hitpoints.", alice.commandReply("hp") { it.startsWith("You have") }, "landed once")
+                alice.commandReply("raid stop") { it.startsWith("Stopped") }
+
+                alice.commandReply("raid zap") { it.startsWith("Started") }
+                alice.awaitTicks(3)
+                assertEquals("You have 4/10 hitpoints.", alice.commandReply("hp") { it.startsWith("You have") }, "and once more running")
             }
         }
     }
