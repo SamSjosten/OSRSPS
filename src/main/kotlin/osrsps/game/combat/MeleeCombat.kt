@@ -725,8 +725,10 @@ class MeleeCombat(
         toZ = player.z,
         startHeight = PROJECTILE_START_HEIGHT,
         endHeight = PROJECTILE_END_HEIGHT,
-        startTime = PROJECTILE_START,
-        endTime = maxOf(PROJECTILE_START + 1, ticks * CYCLES_PER_TICK),
+        // A player's spell leaves at cycle 51, but an NPC's lands a tick sooner (no HitDelay.ON_NPC): a short flight leaves
+        // earlier so it still arrives as the hit lands. Guessed.
+        startTime = minOf(PROJECTILE_START, ticks * CYCLES_PER_TICK - PROJECTILE_MIN_FLIGHT).coerceAtLeast(0),
+        endTime = maxOf(1, ticks * CYCLES_PER_TICK),
         angle = PROJECTILE_ANGLE,
         progress = PROJECTILE_PROGRESS,
         sourceIndex = npc.index + 1,
@@ -940,6 +942,9 @@ class MeleeCombat(
 
         private const val CYCLES_PER_TICK = 30
         private const val PROJECTILE_START = 51
+
+        /** The fewest client cycles an NPC's projectile flies for. Guessed. */
+        private const val PROJECTILE_MIN_FLIGHT = 10
         private const val PROJECTILE_START_HEIGHT = 172
         private const val PROJECTILE_END_HEIGHT = 124
         private const val PROJECTILE_ANGLE = 16

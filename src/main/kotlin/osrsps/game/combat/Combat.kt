@@ -140,7 +140,7 @@ class Combat(
         val strength = PrayerBoosts.boost(skills.currentLevel(Skill.STRENGTH), boosts.strength)
         val attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type))
         val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(against ?: type))
-        val npcAttackRoll = CombatMath.npcAttackRoll(npc.level(NpcStat.ATTACK), def.attackBonus)
+        val npcAttackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, def), def.attackBonus)
         val playerDefenceRoll = playerDefenceRoll(player, style, bonuses, def.attackType, boosts)
         return MeleeMatchup(
             style = style,
@@ -276,16 +276,18 @@ class Combat(
     fun npcAttack(npc: Npc, player: Player): NpcAttack? {
         val def = npcCombat[npc.type] ?: return null
         val style = style(player)
-        val level = when (def.attackType) {
-            AttackType.MAGIC -> npc.level(NpcStat.MAGIC)
-            AttackType.RANGED -> npc.level(NpcStat.RANGED)
-            else -> npc.level(NpcStat.ATTACK)
-        }
         return NpcAttack(
-            attackRoll = CombatMath.npcAttackRoll(level, def.attackBonus),
+            attackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, def), def.attackBonus),
             defenceRoll = playerDefenceRoll(player, style, bonuses(player), def.attackType, prayerBoosts(player)),
             maxHit = npcMaxHit(npc, def),
         )
+    }
+
+    /** The level [npc] attacks with: its Magic or Ranged for a magic or ranged NPC, else its Attack. */
+    private fun npcAttackLevel(npc: Npc, def: NpcCombatDef): Int = when (def.attackType) {
+        AttackType.MAGIC -> npc.level(NpcStat.MAGIC)
+        AttackType.RANGED -> npc.level(NpcStat.RANGED)
+        else -> npc.level(NpcStat.ATTACK)
     }
 
     /**

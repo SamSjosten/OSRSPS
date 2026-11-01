@@ -119,6 +119,25 @@ class NpcRangedAttackTest {
     }
 
     @Test
+    fun `a spell cast from beside the player still flies before it lands a tick later`() {
+        val npc = spawn(wizard, 3213)
+        melee.provoke(npc, alice, tick)
+        tick()
+        val shot = projectiles.single()
+        // 1 + (1 + 1) / 3 = 1 tick: 30 client cycles.
+        assertEquals(30, shot.endTime)
+        assertTrue(shot.startTime in 0 until shot.endTime, "leaves at ${shot.startTime}, lands at ${shot.endTime}")
+    }
+
+    @Test
+    fun `the melee matchup reports a caster's attack roll from its Magic, as its spells roll`() {
+        val npc = spawn(wizard, 3217)
+        val matchup = combat.matchup(alice, npc)!!
+        assertEquals(CombatMath.npcAttackRoll(6, 0), matchup.npcAttackRoll)
+        assertEquals(combat.npcAttack(npc, alice)!!.attackRoll, matchup.npcAttackRoll)
+    }
+
+    @Test
     fun `a wandering caster stands still while it fights, and keeps the fight its own`() {
         val npc = npcs.add(NpcSpawn(wizard, 3217, 3210, wander = 4, source = "test"))!!
         melee.provoke(npc, alice, tick)
