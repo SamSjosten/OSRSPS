@@ -160,6 +160,17 @@ class HeadlessClanTest {
                     bob.toHub()
                     alice.playerOp(bob.index, 1)
                     bob.await("bob's invitation") { bob.messages().firstOrNull { it.type == Clans.CHATTYPE_CLAN_CREATION_INVITATION } }
+                    // Leaving the Hub drops the invitation: back in, bob's option 1 invites alice rather than accepting.
+                    bob.commandReply("tele 3222 3218") { it.startsWith("Teleported") }
+                    bob.toHub()
+                    bob.playerOp(alice.index, 1)
+                    alice.await("alice's invitation from bob") { alice.messages().firstOrNull { it.type == Clans.CHATTYPE_CLAN_CREATION_INVITATION && it.name == "bob" } }
+                    assertNull(server.world.clans.formingOf(server.world.playerNamed("alice")!!)?.founders?.firstOrNull())
+                    // Alice leaves too, dropping bob's invitation, so her option 1 invites him again.
+                    alice.commandReply("tele 3222 3218") { it.startsWith("Teleported") }
+                    alice.toHub()
+                    alice.playerOp(bob.index, 1)
+                    bob.await("bob's second invitation") { bob.messages().count { it.type == Clans.CHATTYPE_CLAN_CREATION_INVITATION } == 2 }
                     bob.playerOp(alice.index, 1)
                     alice.saw("[clan.joined name=bob]")
                     alice.ifButton(Clans.CREATION, Clans.CREATION_NAME, 1)

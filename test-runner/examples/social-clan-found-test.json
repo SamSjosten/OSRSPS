@@ -4,7 +4,7 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::keys on", "expectMessage": "keys"},
-  {"step": "command", "text": "::clandisband", "expectMessage": "clan", "comment": "the last run's clan, if any: 'Clan ... deleted' or 'You aren't in a clan'"},
+  {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "the last run's clan, if any: 'Clan ... deleted' or 'You aren't in a clan'"},
   {"step": "command", "text": "::clanfounding 2 0", "expectMessage": "Founding a clan now takes 2 founders"},
   {"step": "command", "text": "::tele 3181 3474 0", "expectMessage": "Teleported", "comment": "the Clan Hub, beside its clerk"},
   {"step": "clickWidget", "interfaceId": 707, "component": 3, "comment": "the Clans tab's Your Clan tab"},

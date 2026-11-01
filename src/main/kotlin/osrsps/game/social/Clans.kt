@@ -136,6 +136,7 @@ class Clans(
 
     fun logout(player: Player) {
         leaveForming(player)
+        dropInvitations(player)
         clanOf(player)?.let { leaveChannel(player, it, tell = false) }
         tabs.remove(player.saveKey)
         inHub.remove(player.saveKey)
@@ -148,7 +149,10 @@ class Clans(
         val was = player.saveKey in inHub
         if (now == was) return
         if (now) inHub += player.saveKey else inHub -= player.saveKey
-        if (!now) leaveForming(player)
+        if (!now) {
+            leaveForming(player)
+            dropInvitations(player)
+        }
         showRecruit(player)
         if (tabs[player.saveKey] == TAB_YOUR_CLAN && clanOf(player) == null) openYourClan(player)
     }
@@ -266,6 +270,14 @@ class Clans(
         group.invited += target.saveKey
         send(target, MessageGame(CHATTYPE_CLAN_CREATION_INVITATION, leader.username, words(target).get(ClanLines.INVITATION)))
         tell(leader, ClanLines.INVITE_SENT, target.username)
+    }
+
+    /**
+     * Forgets [player]'s invitations when they leave the Hub or log out (an invitation is only good in the Hub), so a
+     * group's invited never holds more than the players in the Hub.
+     */
+    private fun dropInvitations(player: Player) {
+        for (group in forming.values) group.invited -= player.saveKey
     }
 
     private fun accept(player: Player, group: Forming) {
