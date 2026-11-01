@@ -50,6 +50,13 @@ class LocCollision(private val map: CollisionMap) {
     fun removeLoc(type: LocCollisionType, x: Int, z: Int, level: Int, shape: Int, rotation: Int) =
         changeLoc(type, x, z, level, shape, rotation, map::remove)
 
+    /**
+     * Calls [visit] with each tile a loc's collision touches and the flags it puts there, without changing the map:
+     * what [addLoc] would add, tile by tile.
+     */
+    fun cells(type: LocCollisionType, x: Int, z: Int, level: Int, shape: Int, rotation: Int, visit: (x: Int, z: Int, mask: Int) -> Unit) =
+        changeLoc(type, x, z, level, shape, rotation) { tx, tz, _, mask -> visit(tx, tz, mask) }
+
     private fun changeLoc(
         type: LocCollisionType,
         x: Int,
