@@ -278,8 +278,9 @@ class RangedCombat(
     private fun reserve(player: Player, npc: Npc, style: AttackStyle, rolled: Int): Int {
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
-        for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
-        player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
+        val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
+        for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
+        player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
         return damage
     }
 

@@ -20,13 +20,13 @@ class NpcCombatTest {
         "giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3",
         "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops", "goblin_armed", "unicorn",
         "al_kharid_man", "al_kharid_warrior", "scorpion", "shantay_guard", "spider", "guard1",
-    ) + VARROCK_GUARDS
+    ) + VARROCK_GUARDS + OUTLAWS
     // The cache's Strength levels where they aren't 1, for the max hit check.
     private val strength = mapOf(
         "giantrat" to 3, "giantrat_grey" to 3, "giantrat_grey2" to 3, "giantrat_grey3" to 3, "giantrat1_2" to 5, "giantrat1_3" to 5,
         "little_frog_nodrops" to 4, "medium_frog_nodrops" to 6, "giant_frog_nodrops" to 8, "unicorn" to 13,
         "al_kharid_warrior" to 5, "scorpion" to 12, "shantay_guard" to 16, "guard1" to 18,
-    ) + VARROCK_GUARDS.associateWith { 18 }
+    ) + VARROCK_GUARDS.associateWith { 18 } + OUTLAWS.associateWith { 30 }
     private val types = NpcTypes.of(
         *names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name, stats = NpcStats(strength = strength[name] ?: 1)) }.toTypedArray(),
     )
@@ -149,6 +149,19 @@ class NpcCombatTest {
         assertEquals(18, edgeville.defence.against(AttackType.STAB))
         assertEquals(NpcCombatAnims(386, 387, 836), edgeville.anims)
         assertEquals(50, edgeville.respawnTicks)
+        // The outlaws punch for 3 with no defence bonuses, come back in 2 ticks and give a fortieth of the XP (-97.5%).
+        for (name in OUTLAWS) {
+            val outlaw = combat[types.find(name)!!]!!
+            assertEquals(AttackType.CRUSH, outlaw.attackType)
+            assertEquals(3, outlaw.maxHit)
+            assertEquals(-21, outlaw.strengthBonus)
+            assertEquals(0, outlaw.defence.against(AttackType.CRUSH))
+            assertEquals(NpcCombatAnims(422, 424, 836), outlaw.anims)
+            assertEquals(2, outlaw.respawnTicks)
+            assertEquals(-975, outlaw.xpBonusTenths)
+            assertNull(outlaw.aggression)
+        }
+        assertTrue((names - OUTLAWS.toSet()).all { combat[types.find(it)!!]!!.xpBonusTenths == 0 })
     }
 
     @Test
@@ -199,5 +212,8 @@ class NpcCombatTest {
             "fai_varrock_guard02", "fai_varrock_guard02_variant01", "fai_varrock_guard02_variant02",
             "fai_varrock_guard02_f", "fai_varrock_guard02_f_variant01", "fai_varrock_guard02_f_variant02", "fai_varrock_guard_captain02",
         )
+
+        /** The camp south-east of Edgeville's ten outlaws, one type each (4167 to 4176). */
+        val OUTLAWS = (1..10).map { "surok_outlaw$it" }
     }
 }
