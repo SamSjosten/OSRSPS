@@ -1,0 +1,465 @@
+{
+ "name": "Edgeville piece step 2: the General Store's Trade (a knife bought and sold back) and its assistant's talk, Oziach's shop and talk (two options), and Richard's talk into his cape shop, then a yew chopped, a bronze bar smelted at the furnace and a shrimp cooked on Evil Dave's stove (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 10000",
+   "expectMessage": "Added 10,000 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3080 3511 0",
+   "expectMessage": "Teleported to 3080, 3511, 0",
+   "comment": "the Edgeville General Store's shop keeper's spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shop keeper",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 12,
+   "op": 2,
+   "comment": "Buy 1 of the twelfth item, Knife (Edgeville's one item Al Kharid's store lacks)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Knife",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Knife",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3081 3511 0",
+   "expectMessage": "Teleported to 3081, 3511, 0",
+   "comment": "the shop assistant's spawn tile; the teleport closes the shop"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Shop assistant",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[edgeville_shop_assistant.help]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[edgeville_shop_assistant.selling]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "the first option opens the shop"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3069 3517 0",
+   "expectMessage": "Teleported to 3069, 3517, 0",
+   "comment": "Oziach's spawn tile, in his hut north-west of the town"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Oziach",
+   "option": "Trade",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 3,
+   "op": 2,
+   "comment": "Buy 1 of the third item, Anti-dragon shield (26 coins; the platebody is 84,500)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Anti-dragon shield",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Anti-dragon shield",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3069 3517 0",
+   "expectMessage": "Teleported to 3069, 3517, 0",
+   "comment": "again, to close his shop for his talk"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Oziach",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[oziach.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[oziach.nice_day]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[oziach.nice_day]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[oziach.nice_day_reply]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "the talk is over; talk again for the buy option"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Oziach",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[oziach.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[oziach.buy]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[oziach.buy]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "asking to buy opens his shop"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3099 3518 0",
+   "expectMessage": "Teleported to 3099, 3518, 0",
+   "comment": "a tile south of Richard (two tiles wide), by the Wilderness Ditch north of the bank"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Richard",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[richard.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[richard.what_for]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[richard.what_for]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[richard.explain_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[richard.explain_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[richard.explain_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[richard.want_one]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[richard.yes]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 of the first cape, Team-6 cape (his talk ends in his shop)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Team-6 cape",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 back (slot 1, after the coins)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Team-6 cape",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::setlevel woodcutting 60",
+   "expectMessage": "Woodcutting set to level 60"
+  },
+  {
+   "step": "command",
+   "text": "::item 1359",
+   "expectMessage": "Added 1 x Rune axe"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3086 3480 0",
+   "comment": "east of the yew south-west of the bank"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3086,
+   "y": 3480,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 10822,
+   "option": "Chop down",
+   "x": 3085,
+   "y": 3480
+  },
+  {
+   "step": "assertMessage",
+   "contains": "woodcutting.swing"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Yew logs",
+   "count": 1,
+   "timeoutMs": 180000
+  },
+  {
+   "step": "command",
+   "text": "::item 436",
+   "expectMessage": "Added 1 x Copper ore"
+  },
+  {
+   "step": "command",
+   "text": "::item 438",
+   "expectMessage": "Added 1 x Tin ore"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3109 3499 0",
+   "comment": "inside the furnace house, west of the furnace"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3109,
+   "y": 3499,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 16469,
+   "option": "Smelt",
+   "x": 3110,
+   "y": 3499
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "comment": "skillmulti, the Make-X box over the bars"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 15,
+   "comment": "the bronze bar, first in the box"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze bar",
+   "count": 1,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::setlevel cooking 99",
+   "expectMessage": "Cooking set to level 99",
+   "comment": "so none burn"
+  },
+  {
+   "step": "command",
+   "text": "::item 317 2",
+   "expectMessage": "Added 2 x Raw shrimps",
+   "comment": "two, so the Make-X box shows (one alone cooks straight away)"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3077 3496 0",
+   "comment": "in the house west of the bank, north of Evil Dave's stove"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3077,
+   "y": 3496,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 12269,
+   "option": "Cook",
+   "x": 3077,
+   "y": 3495
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 270,
+   "comment": "skillmulti: the stove cooks as a range"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 270,
+   "component": 15,
+   "comment": "the shrimps; the box suggests both"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Shrimps",
+   "count": 2,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

@@ -102,6 +102,7 @@ import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
+import osrsps.game.content.registerEdgevilleShops
 import osrsps.game.content.registerHaystacks
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
@@ -589,6 +590,7 @@ class World(
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)
+        registerEdgevilleShops(this)
         registerHaystacks(this)
         registerVarrock(this)
         registerCrops(this)
