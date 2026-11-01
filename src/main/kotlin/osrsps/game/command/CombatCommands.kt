@@ -149,19 +149,27 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply("Your spellbook is $name now.")
     }
 
-    register("god", "::god", admin = true) {
-        player.god = !player.god
+    // on and off as well as the toggle, so a test script sets the state it needs whatever an earlier one left.
+    register("god", "::god [on|off]", admin = true) {
+        player.god = when (args.singleOrNull()) {
+            null -> !player.god
+            "on" -> true
+            "off" -> false
+            else -> fail("Usage: ::god [on|off]")
+        }
         reply(if (player.god) "You can't be hurt now (::god again to turn it off)." else "You can be hurt again.")
     }
 
-    register("sure", "::sure [max]", admin = true) {
+    register("sure", "::sure [on|off|max]", admin = true) {
         // max: melee hits deal their max too, so a test can count on a hit doing damage.
-        val max = when (args.singleOrNull()) {
-            null -> false
-            "max" -> true
-            else -> fail("Usage: ::sure [max]")
+        val arg = args.singleOrNull()
+        val max = arg == "max"
+        player.sureHits = when (arg) {
+            null -> !player.sureHits
+            "on", "max" -> true
+            "off" -> false
+            else -> fail("Usage: ::sure [on|off|max]")
         }
-        player.sureHits = max || !player.sureHits
         player.sureMaxHits = max
         reply(
             when {

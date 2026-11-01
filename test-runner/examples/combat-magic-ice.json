@@ -9,8 +9,8 @@
   {"step": "command", "text": "::item water rune 6", "expectMessage": "Added 6 x Water rune"},
   {"step": "command", "text": "::item blood rune 2", "expectMessage": "Added 2 x Blood rune"},
   {"step": "command", "text": "::item death rune 4", "expectMessage": "Added 4 x Death rune"},
-  {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now", "comment": "the imps fight back once hit"},
-  {"step": "command", "text": "::sure", "expectMessage": "Your attacks can't miss now", "comment": "a splash freezes nothing, so both imps' accuracy rolls pass"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now", "comment": "the imps fight back once hit"},
+  {"step": "command", "text": "::sure on", "expectMessage": "Your attacks can't miss now", "comment": "a splash freezes nothing, so both imps' accuracy rolls pass"},
   {"step": "command", "text": "::tele 3218 3219 0", "expectMessage": "Teleported to 3218, 3219, 0", "comment": "the castle courtyard, where the Bind script casts; north of the castle the cast got the can't-reach message on the VM"},
   {"step": "command", "text": "::npc imp 0", "expectMessage": "Spawned Imp", "comment": "imps, not men: the courtyard's men wander about here"},
   {"step": "command", "text": "::tele 3219 3219 0", "expectMessage": "Teleported to 3219, 3219, 0"},
@@ -28,8 +28,8 @@
   {"step": "command", "text": "::npcs 0", "expectMessage": "; frozen ", "comment": "the imp cast on"},
   {"step": "command", "text": "::multi off", "expectMessage": "Combat is single-way"},
   {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed 2 NPCs you put in."},
-  {"step": "command", "text": "::sure", "expectMessage": "Your attacks can miss again."},
-  {"step": "command", "text": "::god", "expectMessage": "You can be hurt again."},
+  {"step": "command", "text": "::sure off", "expectMessage": "Your attacks can miss again."},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
   {"step": "command", "text": "::spellbook standard", "expectMessage": "Your spellbook is standard now."},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]

@@ -41,7 +41,7 @@ class HeadlessBulwarkTest {
 
     // Shaped like the 241 cache's: param 14 its attack speed, obj category 1014, which is the bulwark's weapon category 28.
     private val bulwark = ObjType(
-        BULWARK, "Dinh's bulwark", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD,
+        BULWARK, "Dinh's bulwark", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD,
         params = mapOf(14 to 5), internalName = "dinhs_bulwark", category = 1014,
     )
 

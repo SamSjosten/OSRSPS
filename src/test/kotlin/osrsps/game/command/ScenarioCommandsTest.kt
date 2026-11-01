@@ -160,6 +160,24 @@ class ScenarioCommandsTest {
     }
 
     @Test
+    fun `scenario and reset turn god mode and sure hits off, and both take on and off`() {
+        run("god on")
+        run("sure max")
+        run("scenario cows")
+        assertEquals(listOf(false, false, false), listOf(player.god, player.sureHits, player.sureMaxHits))
+        run("god on")
+        run("god on")
+        run("sure on")
+        assertEquals(listOf(true, true, false), listOf(player.god, player.sureHits, player.sureMaxHits))
+        run("reset")
+        assertEquals(listOf(false, false, false), listOf(player.god, player.sureHits, player.sureMaxHits))
+        replies.clear()
+        run("god off")
+        run("sure off")
+        assertEquals(listOf("You can be hurt again.", "Your attacks can miss again."), replies)
+    }
+
+    @Test
     fun `scenario and reset end every fight the player is in`() {
         val man = NpcType(3106, "Man", internalName = "man")
         val npc = world.spawnNpc(NpcSpawn(man, 3225, 3218, 0, source = "test"))!!

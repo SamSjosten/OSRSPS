@@ -1,6 +1,7 @@
 package osrsps.game.command
 
 import osrsps.game.Experience
+import osrsps.game.Player
 import osrsps.game.PlayerSave
 import osrsps.game.PlayerSkills
 import osrsps.game.Scenario
@@ -33,6 +34,7 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         val name = player.scenario
         world.scripts.clearAll(player)
         world.meleeCombat.endFights(player)
+        player.testCheatsOff()
         before.restoreTo(player)
         // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
         world.prayers.deactivateAll(player)
@@ -70,6 +72,7 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     // Nor poison, venom or an antipoison's immunity from before; ::reset puts the poison varp back with the rest.
     world.poison.clear(player)
     world.statusEffects.clear(player)
+    player.testCheatsOff()
     // Full special attack energy, as the run energy is full; a scenario's varps can set it otherwise.
     world.specialAttacks.refill(player)
     for (skill in Skill.entries) {
@@ -98,4 +101,14 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     world.prayers.deactivateAll(player)
     world.teleport(player, scenario.x, scenario.z, scenario.level)
     player.scenario = scenario.name
+}
+
+/**
+ * `::god` and `::sure` off: a scenario starts, and `::reset` ends, without them, so a test script that failed with them
+ * on doesn't leave the next one hurt-proof or never missing.
+ */
+private fun Player.testCheatsOff() {
+    god = false
+    sureHits = false
+    sureMaxHits = false
 }
