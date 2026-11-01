@@ -41,7 +41,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             val it = combat.npcAttack(target, player)!!
             val speed = combat.attackSpeed(player) - if (style.stance == AttackStance.RAPID) 1 else 0
             reply("${style.name} (${style.stance.name.lowercase()}, ranged $weight), speed $speed: attack roll ${ranged.attackRoll}, max hit ${ranged.maxHit}")
-            reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${type.stats.hitpoints} hp): defence roll ${ranged.defenceRoll}, you hit ${percent(ranged.hitChance)}")
+            reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${target.maxHitpoints} hp): defence roll ${ranged.defenceRoll}, you hit ${percent(ranged.hitChance)}")
             reply("It: attack roll ${it.attackRoll} vs your ${it.defenceRoll}, hits ${percent(CombatMath.hitChance(it.attackRoll, it.defenceRoll))}, max hit ${it.maxHit}")
             return@register
         }
@@ -51,7 +51,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             val it = combat.npcAttack(target, player)!!
             reply("${style.name} (${spell.name}), speed ${combat.attackSpeed(player)}: attack roll ${magic.attackRoll}, max hit ${magic.maxHit}")
             val weakness = combat.npcCombat[type]?.weakness?.let { ", weak to ${it.element.name.lowercase()} (${it.percent}%)" }.orEmpty()
-            reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${type.stats.hitpoints} hp$weakness): defence roll ${magic.defenceRoll}, you hit ${percent(magic.hitChance)}")
+            reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${target.maxHitpoints} hp$weakness): defence roll ${magic.defenceRoll}, you hit ${percent(magic.hitChance)}")
             reply("It: attack roll ${it.attackRoll} vs your ${it.defenceRoll}, hits ${percent(CombatMath.hitChance(it.attackRoll, it.defenceRoll))}, max hit ${it.maxHit}")
             return@register
         }
@@ -60,7 +60,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         val stance = style.stance.name.lowercase()
         val attackType = style.type.name.lowercase()
         reply("${style.name} ($stance, $attackType), speed ${combat.attackSpeed(player)}: attack roll ${m.attackRoll}, max hit ${m.maxHit}")
-        reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${type.stats.hitpoints} hp): defence roll ${m.defenceRoll}, you hit ${percent(m.hitChance)}")
+        reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${target.maxHitpoints} hp): defence roll ${m.defenceRoll}, you hit ${percent(m.hitChance)}")
         reply("It: attack roll ${m.npcAttackRoll} vs your ${m.playerDefenceRoll}, hits ${percent(m.npcHitChance)}, max hit ${m.npcMaxHit}")
         world.specialAttacks.special(combat.weapon(player))?.let { spec ->
             val s = spec.against?.let { combat.matchup(player, target, it) } ?: m
@@ -78,7 +78,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             else -> fail("You are not fighting anything.")
         }
         val wait = (player.nextAttackTick - world.tick).coerceAtLeast(0)
-        reply("You are fighting ${npc.type.name} #${npc.index} (${npc.hitpoints}/${npc.type.stats.hitpoints} hp); next swing in $wait tick${if (wait == 1L) "" else "s"}.")
+        reply("You are fighting ${npc.type.name} #${npc.index} (${npc.hitpoints}/${npc.maxHitpoints} hp); next swing in $wait tick${if (wait == 1L) "" else "s"}.")
     }
 
     register("hp", "::hp", admin = false) {
@@ -273,7 +273,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         if (target.dead) fail("${target.type.name} #${target.index} is already dead")
         if (world.combat.npcCombat[target.type] == null) fail("${target.type.name} #${target.index} can't be fought")
         val dealt = world.meleeCombat.hit(target, player, damage, world.tick)
-        reply("Hit ${target.type.name} #${target.index} for $dealt: ${target.hitpoints}/${target.type.stats.hitpoints} hp" + if (target.dead) ", dead" else "")
+        reply("Hit ${target.type.name} #${target.index} for $dealt: ${target.hitpoints}/${target.maxHitpoints} hp" + if (target.dead) ", dead" else "")
     }
 
     register("drops", "::drops [index|name]", admin = false) {

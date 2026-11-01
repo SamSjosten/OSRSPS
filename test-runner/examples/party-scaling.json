@@ -1,0 +1,16 @@
+{
+ "name": "Raid party scaling: the Archive Guardian put in with ::raidnpc gets the Wiki's hitpoints for a player alone (counted as two), 3 and 8 players, flying and grounded, read off its replies and ::npcs",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3240 3220 0", "expectMessage": "Teleported to 3240, 3220, 0", "comment": "the open grass east of the castle, room for a 5 x 5 NPC"},
+  {"step": "command", "text": "::raidparty", "expectMessage": "You're not in a party.", "comment": "alone, so the scaling counts two"},
+  {"step": "command", "text": "::raidnpc tfa_guardian", "expectMessage": "for a party of 1 (counted as 2): 550 hp", "comment": "Wiki: Archive Guardian (Flying), 550 at 1 and 2 players"},
+  {"step": "command", "text": "::raidnpc tfa_guardian 3", "expectMessage": "for a party of 3: 800 hp"},
+  {"step": "command", "text": "::raidnpc tfa_guardian 8", "expectMessage": "for a party of 8: 1950 hp"},
+  {"step": "command", "text": "::raidnpc tfa_guardian_unshielded 1", "expectMessage": "for a party of 1 (counted as 2): 1100 hp", "comment": "Wiki: Archive Guardian (Grounded)"},
+  {"step": "command", "text": "::raidnpc tfa_guardian_unshielded 8", "expectMessage": "for a party of 8: 3910 hp"},
+  {"step": "command", "text": "::npcs 0", "expectMessage": "scaled for 3 players, 800 hp", "comment": "the server's own record of the scaled maximum"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed 5 NPCs you put in."}
+ ]
+}
