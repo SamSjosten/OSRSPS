@@ -18,7 +18,7 @@ fun CommandRegistry.registerRaidCommands(world: World) {
     val usage = "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop"
 
     register("raid", "::raid [boss [phase=] [party=] [seed=]] | log | digest | stop", admin = true) {
-        fun here(): Encounter? = encounters.all.firstOrNull { it.boss.level == player.level && it.covers(player.x, player.z) }
+        fun here(): Encounter? = encounters.all.firstOrNull { !it.ended && it.boss.level == player.level && it.covers(player.x, player.z) }
         fun mine(): Encounter = here() ?: fail("You're not in a fight.")
         when (args.firstOrNull()?.lowercase()) {
             null -> {
@@ -41,6 +41,8 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                 val fight = mine()
                 val upTo = args.getOrNull(1)?.let { it.toLongOrNull()?.takeIf { n -> n >= 0 } ?: fail("The ticks must be 0 or more") } ?: fight.ticks
                 if (upTo > fight.ticks) fail("The fight is only ${fight.ticks} ticks in")
+                // Its log keeps the last lines only; a digest missing the first would differ from another run's.
+                if (fight.droppedLines > 0) fail("The log has let go of its first ${fight.droppedLines} lines, so it can't be summed up from the start")
                 val lines = fight.lines.filter { it.substringBefore(' ').toLong() <= upTo }
                 reply("${fight.def.name} to tick $upTo: ${lines.size} lines, digest ${"%08x".format(lines.joinToString("\n").hashCode())}")
             }

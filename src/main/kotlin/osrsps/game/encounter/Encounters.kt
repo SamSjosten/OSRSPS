@@ -41,6 +41,10 @@ class Encounter internal constructor(
      */
     val lines = ArrayDeque<String>()
 
+    /** How many of its oldest lines [lines] has let go of; a digest from the start can't be made once any have gone. */
+    var droppedLines: Int = 0
+        private set
+
     /** True once it is over. */
     var ended: Boolean = false
         private set
@@ -90,7 +94,10 @@ class Encounter internal constructor(
 
     override fun log(text: String) {
         lines.addLast("${world.tick - startTick} ${def.phases[phase].name}: $text")
-        while (lines.size > LOG_LINES) lines.removeFirst()
+        while (lines.size > LOG_LINES) {
+            lines.removeFirst()
+            droppedLines++
+        }
     }
 
     /** Ticks since the fight began. */
@@ -101,6 +108,18 @@ class Encounter internal constructor(
 
     internal fun begin() {
         startPhase(phase)
+        // A first step with no delay runs now, on the tick the fight starts, also when the world is paused.
+        if (!bossLeft()) runCycle()
+        bossLeft()
+    }
+
+    /** Ends the fight, and says so, when its boss has died or left the world, as a hit's side effect can make it. */
+    private fun bossLeft(): Boolean {
+        if (ended) return true
+        val gone = world.npcs[boss.index] !== boss
+        if (!boss.dead && !gone) return false
+        end(if (boss.dead) "boss dead" else "boss gone")
+        return true
     }
 
     private fun startPhase(index: Int) {
@@ -115,14 +134,16 @@ class Encounter internal constructor(
 
     /** One tick of the fight, in the NPC phase. */
     internal fun process() {
-        if (boss.dead || world.npcs[boss.index] !== boss) {
-            end(if (boss.dead) "boss dead" else "boss gone")
-            return
-        }
+        // Adds that have left the world, dead or removed, are let go of; one dying still counts until it is gone.
+        addList.removeAll { world.npcs[it.index] !== it }
+        if (bossLeft()) return
         val current = def.phases[phase]
         if (phase < def.phases.size - 1 && phaseOver(current)) startPhase(phase + 1)
+        if (bossLeft()) return
         runCycle()
+        if (bossLeft()) return
         landHazards()
+        bossLeft()
     }
 
     private fun phaseOver(phase: PhaseDef): Boolean {
@@ -139,7 +160,7 @@ class Encounter internal constructor(
         while (world.tick >= stepDue) {
             val due = cycle[step]
             due.action(this)
-            if (ended || boss.dead) return
+            if (ended || boss.dead || world.npcs[boss.index] !== boss) return
             step = (step + 1) % cycle.size
             stepDue += cycle[step].delay
         }
@@ -148,12 +169,15 @@ class Encounter internal constructor(
     private fun landHazards() {
         val now = world.tick
         hazards.removeAll { it.endTick < now }
-        for (hazard in hazards) {
+        for (hazard in hazards.toList()) {
+            if (boss.dead || world.npcs[boss.index] !== boss) return
             if (hazard.startTick > now) continue
             if (hazard.startTick == now && hazard.spotanim >= 0) {
                 for (tile in hazard.tiles) world.zones.mapAnim(tile.x, tile.z, hazard.level, hazard.spotanim)
             }
             for (player in players) {
+                // A hit can end the fight (Retribution killing the boss); nothing lands after that.
+                if (boss.dead || world.npcs[boss.index] !== boss) return
                 if (player.level != hazard.level || Tile(player.x, player.z) !in hazard.tiles) continue
                 // From no one, so standing in one neither starts a fight nor makes the player hit back. Guessed.
                 val dealt = world.meleeCombat.hitPlayer(player, null, roll(hazard.minDamage, hazard.maxDamage), now)

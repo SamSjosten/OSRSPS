@@ -7,6 +7,7 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
 import osrsps.game.World
+import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
 import osrsps.game.raid.PartyScaling
@@ -74,5 +75,37 @@ class RaidCommandsTest {
             replies,
         )
         assertEquals(0, world.npcs.count)
+    }
+
+    @Test
+    fun `a first step with no delay runs on the tick the fight starts`() {
+        val quick = EncounterDef("quick", guardian, listOf(PhaseDef("open", cycle = listOf(CycleStep(0) { log("first") }, CycleStep(3) { log("second") }))))
+        val world = world(quick)
+        world.run("raid quick")
+        replies.clear()
+        world.run("raid log")
+        assertEquals(listOf("0 open: phase starts", "0 open: first"), replies)
+    }
+
+    @Test
+    fun `a fight whose boss leaves in its first step ends there`() {
+        lateinit var world: World
+        val vanish = EncounterDef("vanish", guardian, listOf(PhaseDef("open", cycle = listOf(CycleStep(0) { world.removeNpc(boss) }, CycleStep(3) {}))))
+        world = world(vanish)
+        world.run("raid vanish")
+        replies.clear()
+        world.run("raid")
+        assertEquals(listOf("You're not in a fight. Bosses: vanish"), replies)
+        assertEquals("0 open: ends: boss gone", world.encounters.all.single().lines.last())
+    }
+
+    @Test
+    fun `a digest is refused once the log has let go of its first lines`() {
+        val noisy = EncounterDef("noisy", guardian, listOf(PhaseDef("open", onStart = { repeat(250) { log("line $it") } })))
+        val world = world(noisy)
+        world.run("raid noisy")
+        replies.clear()
+        world.run("raid digest 0")
+        assertEquals(listOf("The log has let go of its first 51 lines, so it can't be summed up from the start"), replies)
     }
 }

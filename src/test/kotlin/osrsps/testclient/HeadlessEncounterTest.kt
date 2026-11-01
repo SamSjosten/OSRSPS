@@ -64,11 +64,31 @@ class HeadlessEncounterTest {
         ),
     )
 
+    /** The world the test server runs, for a boss that takes itself out mid-step. */
+    private lateinit var running: World
+
+    /** A hazard on every player's tile, then the boss leaves in the same step: nothing should land. */
+    private val vanish = EncounterDef(
+        "vanish", guardian,
+        listOf(
+            PhaseDef(
+                "open",
+                cycle = listOf(
+                    CycleStep(2) {
+                        hazard(players.map { Tile(it.x, it.z) }, warning = -1, warnTicks = 0, ticks = 5, minDamage = 1, maxDamage = 1)
+                        running.removeNpc(boss)
+                    },
+                    CycleStep(5) {},
+                ),
+            ),
+        ),
+    )
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, npcTypes = types, partyScaling = PartyScaling.load(types),
-            encounterDefs = listOf(drill, steps), cycleMillis = millis,
-        )
+            encounterDefs = listOf(drill, steps, vanish), cycleMillis = millis,
+        ).also { running = it }
     }
 
     /** Fights the drill on [seed] and returns `::raid digest 100`. */
@@ -136,8 +156,21 @@ class HeadlessEncounterTest {
                 // The boss leaving ends the fight and takes its add.
                 alice.commandReply("delnpc 1") { it.startsWith("Removed") }
                 alice.awaitTicks(2)
-                assertEquals("You're not in a fight. Bosses: drill, steps", alice.commandReply("raid") { it.startsWith("You're not") })
+                assertEquals("You're not in a fight. Bosses: drill, steps, vanish", alice.commandReply("raid") { it.startsWith("You're not") })
                 assertEquals("No NPCs within 15 tiles.", alice.commandReply("npcs") { it.startsWith("No NPCs") || it.contains("NPC") })
+            }
+        }
+    }
+
+    @Test
+    fun `a boss that leaves in a step takes the hazard it just put down with it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("raid vanish") { it.startsWith("Started") }
+                alice.awaitTicks(6)
+                assertEquals("You're not in a fight. Bosses: drill, steps, vanish", alice.commandReply("raid") { it.startsWith("You're not") })
+                assertEquals("You have 10/10 hitpoints.", alice.commandReply("hp") { it.startsWith("You have") })
             }
         }
     }
