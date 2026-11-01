@@ -15,12 +15,18 @@ import io.netty.channel.nio.NioIoHandler
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.codec.http.DefaultFullHttpResponse
 import io.netty.handler.codec.http.FullHttpRequest
+import io.netty.handler.codec.http.HttpContent
 import io.netty.handler.codec.http.HttpHeaderNames
+import io.netty.handler.codec.http.HttpMethod
 import io.netty.handler.codec.http.HttpObjectAggregator
+import io.netty.handler.codec.http.HttpRequest
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.HttpServerCodec
 import io.netty.handler.codec.http.HttpUtil
 import io.netty.handler.codec.http.QueryStringDecoder
+import io.netty.channel.ChannelInboundHandlerAdapter
+import io.netty.util.ReferenceCountUtil
+import org.jire.netty.haproxy.HAProxyAttributes.haproxyAttribute
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -50,6 +56,9 @@ private val logger = KotlinLogging.logger {}
  * a VPN or relay at another address are each sent their own. [publicHost] is the fallback, for a request with no
  * usable Host header: 127.0.0.1 through an SSH tunnel, or the Proxmox host's LAN address.
  *
+ * The one thing it takes is a POST of a problem report to `/report`, from the Odin's Gate launcher's "Send problem report"
+ * button; [reports] keeps it ([ProblemReports]) and the answer is the report's number.
+ *
  * Served with Netty rather than the JDK's HTTP server so that, like the game port, it reads a relay's PROXY header
  * ([proxy]): the VPS's HAProxy puts one in front of both ports or neither.
  */
@@ -71,6 +80,8 @@ class ClientConfig(
     private val proxy: ProxyProtocol = ProxyProtocol.OFF,
     /** The RuneLite build for each revision; the RSProx target names the one for [Revision.MAJOR]. */
     private val runelitePins: RuneLitePins = RuneLitePins.NONE,
+    /** Where POST /report keeps the launcher's problem reports; null (tests) answers 503. */
+    private val reports: ProblemReports? = null,
 ) {
     private var group: EventLoopGroup? = null
     private var server: Channel? = null
@@ -274,20 +285,66 @@ class ClientConfig(
     @ChannelHandler.Sharable
     private inner class HttpInitializer : ChannelInitializer<Channel>() {
         override fun initChannel(ch: Channel) {
-            ch.pipeline().addLast(HttpServerCodec(), HttpObjectAggregator(MAX_REQUEST_BYTES), RequestHandler())
+            ch.pipeline().addLast(HttpServerCodec(), BodyLimit(), HttpObjectAggregator(ProblemReports.MAX_BYTES), RequestHandler())
+        }
+    }
+
+    /**
+     * Refuses a body on anything but a POST of a report before the aggregator buffers it: the aggregator's own limit is
+     * a report's, which a GET has no use for. A request it refuses gets a 413 and the connection is closed, and anything
+     * still arriving for it is dropped.
+     */
+    private class BodyLimit : ChannelInboundHandlerAdapter() {
+        private var dropping = false
+
+        override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+            if (msg is HttpRequest) {
+                dropping = !isReport(msg) && (HttpUtil.isTransferEncodingChunked(msg) || HttpUtil.getContentLength(msg, 0L) > MAX_REQUEST_BYTES)
+                if (dropping) {
+                    val reply = DefaultFullHttpResponse(msg.protocolVersion(), HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE)
+                    HttpUtil.setContentLength(reply, 0)
+                    ctx.writeAndFlush(reply).addListener(ChannelFutureListener.CLOSE)
+                }
+            }
+            if (dropping && (msg is HttpRequest || msg is HttpContent)) ReferenceCountUtil.release(msg) else ctx.fireChannelRead(msg)
+        }
+
+        private fun isReport(request: HttpRequest) =
+            request.method() == HttpMethod.POST && QueryStringDecoder(request.uri()).path() == REPORT_PATH
+    }
+
+    /** The answer to a POST /report: the report's number, or why it wasn't taken. */
+    internal fun report(body: ByteArray, address: String): Response {
+        val result = reports?.submit(body, address) ?: ProblemReports.Result.Unavailable
+        fun text(status: HttpResponseStatus, line: String) = Response("text/plain; charset=UTF-8", "$line\n".toByteArray(Charsets.UTF_8), status)
+        return when (result) {
+            is ProblemReports.Result.Accepted -> text(HttpResponseStatus.CREATED, result.id)
+            ProblemReports.Result.NotAReport -> text(HttpResponseStatus.BAD_REQUEST, "not a problem report")
+            ProblemReports.Result.TooLarge -> text(HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE, "too large")
+            ProblemReports.Result.TooMany -> text(HttpResponseStatus.TOO_MANY_REQUESTS, "too many reports, try again in an hour")
+            ProblemReports.Result.Unavailable -> text(HttpResponseStatus.SERVICE_UNAVAILABLE, "reports can't be taken right now")
         }
     }
 
     private inner class RequestHandler : SimpleChannelInboundHandler<FullHttpRequest>() {
         override fun channelRead0(ctx: ChannelHandlerContext, request: FullHttpRequest) {
-            val response = if (request.decoderResult().isSuccess) {
-                respond(QueryStringDecoder(request.uri()).path(), hostOf(request.headers().get(HttpHeaderNames.HOST)) ?: publicHost)
-                    ?: Response("text/plain", ByteArray(0), HttpResponseStatus.NOT_FOUND)
-            } else {
+            val path = if (request.decoderResult().isSuccess) QueryStringDecoder(request.uri()).path() else null
+            val response = if (path == null) {
                 Response("text/plain", ByteArray(0), HttpResponseStatus.BAD_REQUEST)
+            } else if (path == REPORT_PATH) {
+                if (request.method() == HttpMethod.POST) {
+                    val body = ByteArray(request.content().readableBytes()).also { request.content().readBytes(it) }
+                    report(body, addressOf(ctx.channel()))
+                } else {
+                    Response("text/plain", ByteArray(0), HttpResponseStatus.METHOD_NOT_ALLOWED)
+                }
+            } else {
+                respond(path, hostOf(request.headers().get(HttpHeaderNames.HOST)) ?: publicHost)
+                    ?: Response("text/plain", ByteArray(0), HttpResponseStatus.NOT_FOUND)
             }
             val reply = DefaultFullHttpResponse(request.protocolVersion(), response.status, Unpooled.wrappedBuffer(response.body))
             reply.headers().set(HttpHeaderNames.CONTENT_TYPE, response.contentType)
+            if (response.status == HttpResponseStatus.TOO_MANY_REQUESTS) reply.headers().set(HttpHeaderNames.RETRY_AFTER, 3600)
             HttpUtil.setContentLength(reply, response.body.size.toLong())
             val keepAlive = HttpUtil.isKeepAlive(request) && request.decoderResult().isSuccess
             HttpUtil.setKeepAlive(reply, keepAlive)
@@ -353,8 +410,16 @@ class ClientConfig(
         /** A full commit hash, as deploy/auto-deploy.sh writes them. */
         private val COMMIT = Regex("[0-9a-f]{40}")
 
-        /** Requests are bodiless GETs; anything bigger is refused. */
+        /** Requests other than a report are bodiless GETs; a body bigger than this on one is refused. */
         private const val MAX_REQUEST_BYTES = 8192
+
+        const val REPORT_PATH = "/report"
+
+        /** Who sent a request: the PROXY header's source for one through the relay, else the connection's own address. */
+        private fun addressOf(channel: Channel): String =
+            channel.haproxyAttribute?.sourceHost
+                ?: (channel.remoteAddress() as? InetSocketAddress)?.address?.hostAddress
+                ?: channel.remoteAddress().toString()
 
         /** Members world. */
         const val WORLD_PROPERTIES = 1

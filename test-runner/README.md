@@ -170,6 +170,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   searched (any of the three outcomes), a coffin in the mausoleum opened and shut, the leather gloves taken, a wardrobe
   in the east house opened, searched and shut, Cross on the Wilderness Ditch refused, and the bank opened from a
   banker's talk and from a booth.
+- `edgeville-shops.json`: Edgeville step 2 (with `::keys on`): a knife bought and sold back at the General Store, its
+  assistant's talk into the shop, an anti-dragon shield bought and sold back at Oziach's, two of his talk's options,
+  Richard's talk into his shop for a cape bought and sold back, then a yew chopped, a bronze bar smelted at the furnace
+  and two shrimps cooked on Evil Dave's stove.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
@@ -191,6 +195,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-palace.json`: Varrock step 6 (with `::keys on`): King Roald, Aeonisig Raispher, Sir Prysin, Queen
   Ellamaria, Reldo and three of the library's bookcases, the altar, Ambassador Ferrnook, Captain Rovin, the roof by
   ladder and the training Captain, then down the spiral stairs to the ground floor.
+- `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
+  chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
+  inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
@@ -311,6 +318,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `settings-buttons.json`: the All Settings window's buttons. The Wilderness teleport and tablet warnings switched on
   and off a section at a time, the opaque chat colours reset, the keybinds restored and the volumes reset; then close,
   relog and check, and the keys put back to none.
+- `settings-maxhit.json` (needs 0.20.0): Max hit hitsplats. With `::sure max` and a threshold of 1, a new account's
+  punches of 1 on a man show as max hits (hitmark 43) with the toggle on and off, and as ordinary hits at a threshold of 2.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
@@ -394,7 +403,7 @@ server's answer instead of failing on what was there before.
 | `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. (0.17.0) Clicks a level-up box away too; `assertDialogue` and `assertNoDialogue` still ignore it. |
 | `assertMessage` | `contains` | Waits for a chat message containing `contains`, counting only messages since the last step that acted. |
 | `waitTicks` | `ticks` | Waits that many game ticks. |
-| `assertHitsplat` | `npc` (name) or `self: true`, `amount` | Waits for a hitsplat on the NPC of that name (the one the player is fighting or talking to, else the nearest; several castle NPCs are a `Man`), or on the player, counting only hitsplats since the last step that acted. With `amount`, one showing exactly that; a miss shows 0. |
+| `assertHitsplat` | `npc` (name) or `self: true`, `amount`, `types` | Waits for a hitsplat on the NPC of that name (the one the player is fighting or talking to, else the nearest; several castle NPCs are a `Man`), or on the player, counting only hitsplats since the last step that acted. With `amount`, one showing exactly that; a miss shows 0. With `types` (0.20.0), one of those hitmark ids: RuneLite may report the id sent or the one its multimark turns it into, so list both (43, damage_max_me, shows as 48 with Max hit hitsplats on and 28 with it off). |
 | `assertNpcHealth` | `npc` (name) or `npcId`, `min`, `max` | Waits until that NPC's health bar (the NPC chosen as for `assertHitsplat`) is within the bounds, in percent (`max: 99` is "hurt"). The client is only told an NPC's health once it is hit, so this also waits for the first hit to show, and says `no health bar` until then. |
 | `assertStat` | `skill`, `level`, `xp` | Waits until the player's real (unboosted) level and experience in the skill are at least those given. `skill` is a name as the stats tab shows it, such as `Attack`. |
 | `assertGroundItem` | `item` (name) or `itemId`, `x`+`y`, `absent` | Waits until such an item lies on the ground in the scene on the player's plane (on the tile, with `x` and `y`), or, with `absent: true`, until none does; absence on a tile counts only once that tile is in the loaded scene. |
@@ -439,7 +448,10 @@ objectbox_double, the box with two items.
   the canvas's keyboard focus and presses Enter again, up to five times two ticks apart (0.5.1); the result says
   whether the canvas had focus. (0.17.0) An open chatbox prompt takes the Enter for itself, so one of those tries
   closes it instead (once per line), and the result also says whether the Swing thread had sent the last Enter,
-  where the keyboard focus was, whether the window was active and any prompt still open. If the line still stays,
+  where the keyboard focus was, whether the window was active and any prompt still open. (0.19.0) It also names
+  which of the chatbox's own checks would drop the key: no key handler on chatbox:universe, a hidden mes_layer_hide or
+  chatdisplay, varbit has_displayname_transmitter at 0 or keyboard_timeout; or that none of them would. The listening
+  varcs and settings search varbits, which count only with a window open, are noted apart. If the line still stays,
   restart the client and keep that result: its detail is what will find the cause.
 - `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles. When the tile
   is off screen it turns the camera toward it, so a script can leave the camera however it finds it.

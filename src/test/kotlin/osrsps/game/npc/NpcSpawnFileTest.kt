@@ -257,8 +257,12 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Edgeville has four bankers behind the booths, the grange's seven men, and its rats, giant spiders and imps`() {
-        val names = mapOf(1613 to "banker1", 1618 to "banker2", 3106 to "man", 3107 to "man2", 3108 to "man3", 2854 to "rat", 3017 to "giantspider1", 5007 to "imp")
+    fun `Edgeville has four bankers behind the booths, the grange's seven men, its rats, giant spiders and imps, its shopkeepers and its guards`() {
+        val names = mapOf(
+            1613 to "banker1", 1618 to "banker2", 3106 to "man", 3107 to "man2", 3108 to "man3", 2854 to "rat", 3017 to "giantspider1", 5007 to "imp",
+            2821 to "generalshopkeeper5", 2822 to "generalassistant5", 7457 to "lost_property_merchant_standard", 822 to "oziach", 2200 to "wilderness_capeseller_6",
+            3254 to "guard1",
+        )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("edgeville.json"), types, "edgeville.json")
         assertEquals(emptyList(), result.unknown)
@@ -274,8 +278,14 @@ class NpcSpawnFileTest {
         assertEquals(3, spawns.count { it.type.id == 2854 })
         assertEquals(3, spawns.count { it.type.id == 3017 })
         assertEquals(4, spawns.count { it.type.id == 5007 })
-        // South of the Wilderness Ditch (z 3521), within map square 48,54.
-        assertTrue(spawns.all { it.x in 3072..3135 && it.z in 3456..3520 && it.level == 0 && it.source.isNotBlank() })
+        // Six guards (the Wiki's count) along the ditch, north of the town.
+        val guards = spawns.filter { it.type.id == 3254 }
+        assertEquals(6, guards.size)
+        assertTrue(guards.all { it.z in 3512..3518 })
+        // One each of the General Store's keepers, Perdu (upstairs, level 1), Oziach and Richard.
+        assertEquals(listOf(2821, 2822, 7457, 822, 2200), spawns.map { it.type.id }.filter { it in setOf(2821, 2822, 7457, 822, 2200) })
+        // South of the Wilderness Ditch (z 3521), within map square 48,54 but for Oziach's hut just west of it (x 3069).
+        assertTrue(spawns.all { it.x in 3064..3135 && it.z in 3456..3520 && it.level == (if (it.type.id == 7457) 1 else 0) && it.source.isNotBlank() })
     }
 
     @Test
@@ -376,7 +386,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers and the palace's people`() {
+    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches' and the inns'`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -393,6 +403,9 @@ class NpcSpawnFileTest {
             2557 to "aluft_gnome_diplomat_varrock", 5085 to "captain_rovin", 11906 to "fai_varrock_guard_trainer02",
             11907 to "fai_varrock_guard_training02", 11908 to "fai_varrock_guard_training02_variant01",
             11909 to "fai_varrock_guard_training02_f", 11910 to "fai_varrock_guard_training02_f_variant01",
+            5038 to "father_lawrence", 2900 to "varrock_granny_2", 2582 to "rcu_zammy_mage1_edgeb", 1310 to "jollyboar_bartender",
+            1311 to "donkey_bartender", 1312 to "bluemoon_bartender", 2895 to "fai_varrock_bluemoon_chef",
+            2896 to "fai_varrock_jollyboar_chef",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -432,8 +445,17 @@ class NpcSpawnFileTest {
         val trainees = palace.filter { it.type.id in 11907..11910 }
         assertEquals(5, trainees.count { it.level == 2 && it.wander == 0 })
         assertTrue(palace.all { it.x in 3200..3230 && it.z in 3460..3500 })
+        // Step 7: Father Lawrence, Elsie (upstairs, sitting) and the Mage of Zamorak; a bartender in each inn and two cooks, indoors.
+        val churches = spawns.filter { it.type.id in listOf(2582, 2900, 5038) }
+        assertEquals(listOf(2582, 2900, 5038), churches.map { it.type.id }.sorted())
+        val elsie = churches.single { it.type.id == 2900 }
+        assertEquals(1, elsie.level)
+        assertEquals(0, elsie.wander)
+        val inns = spawns.filter { it.type.id in listOf(1310, 1311, 1312, 2895, 2896) }
+        assertEquals(listOf(1310, 1311, 1312, 2895, 2896), inns.map { it.type.id }.sorted())
+        assertTrue(inns.all { it.restrict == MoveRestrict.INDOORS })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
         assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet()).all { it.wander > 0 })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - elsie).all { it.wander > 0 })
     }
 }

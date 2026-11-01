@@ -556,6 +556,21 @@ test('a batch promoted with its codex-review filed under the batch branch is put
   assert.deepStrictEqual(calls, [['check', copy, 'success'], ['dispatch', 'build.yml', 'branch-2']]);
 });
 
+test('a promotion the carrier\'s branch refuses builds nothing again', async () => {
+  const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2) }, {
+    batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] },
+  });
+  const pushed = [];
+  const inner = fakeGit(batchTrees, pushed, { [B]: { tree: 't2', second: H('2'), message: batchMessage(H('m'), [1, 2]) } });
+  const git = (args, input) => {
+    if (args[0] === 'push' && args[args.length - 1].endsWith('refs/heads/branch-2')) throw new Error('stale info');
+    return inner(args, input);
+  };
+  await queue(github, git);
+  assert.deepStrictEqual([...pushed], [], 'no batch branch pushed, so no new batch');
+  assert.deepStrictEqual(calls, []);
+});
+
 test('a head that gets a build dispatched does not hold back promoting a green batch', async () => {
   const { github, calls } = fakeGitHub({
     1: ready(1),

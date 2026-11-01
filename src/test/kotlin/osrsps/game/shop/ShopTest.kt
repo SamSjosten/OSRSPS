@@ -50,6 +50,8 @@ class ShopTest {
         950 to 30, 1005 to 2, 1129 to 21, 1059 to 6, 1061 to 6, 1757 to 2, 1013 to 2, 1015 to 2, 1011 to 2, 1007 to 2, 428 to 5, 426 to 5,
         1949 to 2, 579 to 2, 1023 to 32, 958 to 50, 948 to 10, 1025 to 2,
         10088 to 10, 10090 to 13, 10091 to 15, 10089 to 16, 10087 to 20, 1978 to 10,
+        // Edgeville's shops.
+        1127 to 65000, 1135 to 7800, 1540 to 20, 4325 to 50, 4345 to 50, 4365 to 50, 4385 to 50, 4405 to 50,
     )
 
     /**
@@ -96,6 +98,10 @@ class ShopTest {
             NpcType(10478, "Thessalia", internalName = "thessalia_league"),
             NpcType(2887, "Asyff", internalName = "tailorp"),
             NpcType(8687, "Tea Seller", internalName = "tea_seller"),
+            NpcType(2821, "Shop keeper", internalName = "generalshopkeeper5"),
+            NpcType(2822, "Shop assistant", internalName = "generalassistant5"),
+            NpcType(822, "Oziach", internalName = "oziach"),
+            NpcType(2200, "Richard", internalName = "wilderness_capeseller_6"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -142,6 +148,10 @@ class ShopTest {
         "thessalias_fine_clothes" to listOf(2, 21, 6, 6, 2, 2, 2, 2, 2, 30, 5, 5),
         "fancy_clothes_store" to listOf(2, 2, 41, 65, 13, 1, 1, 7, 7, 6, 6, 2, 2, 2, 2, 2, 2, 13, 16, 19, 20, 26),
         "ye_olde_tea_shoppe" to listOf(10),
+        // Edgeville's shops, read 2026-10-30.
+        "edgeville_general_store" to listOf(1, 1, 182, 1, 2, 650, 5, 13, 1, 1, 1, 7, 1, 2),
+        "oziachs_armour" to listOf(84500, 10140, 26),
+        "richards_wilderness_cape_shop" to listOf(50, 50, 50, 50, 50),
     )
 
     @Test
@@ -156,6 +166,9 @@ class ShopTest {
         assertEquals(shops["diangos_toy_store"], shops.ofNpc(8693))
         assertEquals(shops["al_kharid_general_store"], shops.ofNpc(2818))
         assertEquals(shops["alis_discount_wares"], shops.ofNpc(3533))
+        assertEquals(shops["edgeville_general_store"], shops.ofNpc(2822))
+        assertEquals(shops["oziachs_armour"], shops.ofNpc(822))
+        assertEquals(shops["richards_wilderness_cape_shop"], shops.ofNpc(2200))
         // The Al Kharid General Store won't buy silk (the Wiki's page); no other shop refuses anything.
         assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
@@ -181,7 +194,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(23, shops.warnings.size)
+        assertEquals(26, shops.warnings.size)
     }
 
     @Test

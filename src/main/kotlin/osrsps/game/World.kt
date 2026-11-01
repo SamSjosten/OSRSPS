@@ -105,6 +105,7 @@ import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
+import osrsps.game.content.registerEdgevilleShops
 import osrsps.game.content.registerHaystacks
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
@@ -602,6 +603,7 @@ class World(
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)
+        registerEdgevilleShops(this)
         registerHaystacks(this)
         registerVarrock(this)
         registerCrops(this)
@@ -1299,7 +1301,24 @@ class World(
     } catch (e: Exception) {
         unwritten[key] = text
         logger.error(e) { "Couldn't write the save for $key; keeping it in memory to write again" }
+        journalLater(key, text)
         false
+    }
+
+    /**
+     * A save that couldn't be written for a player an unfinished trade journal names goes into the journal in place of
+     * the trade's, so a crash replays where they are now: replaying the trade's save would bring back items they have
+     * handed on since, to someone whose save did land (exploit review round 5, SOC-1). The newer save still records the
+     * trade, so the replay and [journalResolved] treat it as the trade's.
+     */
+    private fun journalLater(key: String, text: String) {
+        try {
+            val journal = TradeJournal.fromJson(saves.readJournal() ?: return)
+            if (key !in journal.saves) return
+            saves.writeJournal(TradeJournal(journal.id, journal.saves + (key to text)).toJson())
+        } catch (e: Exception) {
+            logger.error(e) { "Couldn't put $key's newer save into the trade journal" }
+        }
     }
 
     /**
