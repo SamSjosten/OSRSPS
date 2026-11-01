@@ -12,6 +12,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.bank.BankScreen
 import osrsps.game.command.Admins
 import osrsps.game.content.RottenPotato
 import osrsps.game.content.RottenPotatoLines
@@ -21,7 +22,7 @@ import osrsps.game.NpcTypes
 import osrsps.game.script.ScriptContext
 import osrsps.map.CollisionMap
 
-/** Admin tools step 1: the rotten potato and its Eat menu, through the headless client. */
+/** Admin tools: the rotten potato and its menus, through the headless client. */
 class HeadlessRottenPotatoTest {
     private val potato = ObjType(RottenPotato.OBJ, "Rotten potato", iops = listOf("Eat", "Slice", "Peel", "Mash", "Drop"), internalName = "rotten_potato")
     private val coins = ObjType(COINS, "Coins", stackable = true)
@@ -41,6 +42,9 @@ class HeadlessRottenPotatoTest {
 
     private fun HeadlessClient.eat() =
         ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, EAT_BUTTON_OP, slotOf(RottenPotato.OBJ), RottenPotato.OBJ)
+
+    private fun HeadlessClient.peel() =
+        ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, PEEL_BUTTON_OP, slotOf(RottenPotato.OBJ), RottenPotato.OBJ)
 
     private fun HeadlessClient.seen(text: String) = await(text) { messages().firstOrNull { it.text == text } }
 
@@ -133,6 +137,36 @@ class HeadlessRottenPotatoTest {
     }
 
     @Test
+    fun `Peel opens the bank, teleports to a tile and spawns an item`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login(ADMIN).use { boss ->
+                boss.ready()
+                boss.command("item ${RottenPotato.OBJ}")
+                boss.peel()
+                val menu = boss.awaitDialogue("the Peel menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(listOf(DialogueText.NONE[RottenPotatoLines.BANK_MENU], RottenPotato.TELEPORT_TO_TILE, RottenPotato.SPAWN_ITEM), menu.options)
+                boss.chooseOption(1)
+                boss.await("the bank") { boss.openInterfaces().takeIf { BankScreen.MAIN in it } }
+                boss.closeModal()
+
+                boss.peel()
+                boss.awaitDialogue("the Peel menu again") { it is DialogueView.Menu }
+                boss.chooseOption(2)
+                boss.prompted(ScriptContext.MESLAYER_MODE9)
+                boss.resumeString("3226 3221")
+                boss.await("the teleport") { boss.position?.takeIf { it == Coord(3226, 3221) } }
+
+                boss.peel()
+                boss.awaitDialogue("the Peel menu a third time") { it is DialogueView.Menu }
+                boss.chooseOption(3)
+                boss.prompted(ScriptContext.MESLAYER_MODE9)
+                boss.resumeString("$COINS 250")
+                boss.await("the coins") { boss.inventory(BACKPACK).firstOrNull { it?.id == COINS }?.takeIf { it.count == 250 } }
+            }
+        }
+    }
+
+    @Test
     fun `a non-admin's potato is taken, and nothing opens`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login(ADMIN).use { boss ->
@@ -161,5 +195,6 @@ class HeadlessRottenPotatoTest {
 
         /** iop1 is button op 2 (see InventoryTab.click). */
         const val EAT_BUTTON_OP = 2
+        const val PEEL_BUTTON_OP = 4
     }
 }

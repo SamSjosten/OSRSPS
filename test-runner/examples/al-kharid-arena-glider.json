@@ -1,0 +1,218 @@
+{
+ "name": "Al Kharid step 9: the Emir's Arena and the glider as stubs (::keys on): Captain Dalbur's Glider and his talk end at the stub, Arena Guard Fronk, the Duel Guide and the 1v1 Tournament Guide talk, and the recruitment board and the staging area steps say the Arena isn't open",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3285 3212 0",
+   "expectMessage": "Teleported to 3285, 3212, 0",
+   "comment": "beside Captain Dalbur (3284 3212), by his glider"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Captain Dalbur",
+   "option": "Glider",
+   "timeoutMs": 20000,
+   "comment": "the gliders don't fly anywhere built yet: the stub"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arena_stub.glider_closed]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Captain Dalbur",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "chooseOption",
+   "text": "[dalbur.glider]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dalbur.glider]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dalbur.of_course]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[arena_stub.glider_closed]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3352 3264 0",
+   "expectMessage": "Teleported to 3352, 3264, 0",
+   "comment": "south of the Arena's access gate, by Arena Guard Fronk (3352 3265)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Arena Guard Fronk",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fronk.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[fronk.place]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fronk.place]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fronk.place_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fronk.place_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[fronk.fine]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[fronk.fine]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3366 3267 0",
+   "expectMessage": "Teleported to 3366, 3267, 0",
+   "comment": "in the Arena's lobby, between the Guides (3364 3268, 3368 3268)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Duel Guide",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[duel_guide.welcome]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[duel_guide.what]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[duel_guide.what]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[duel_guide.what_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[duel_guide.okay]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[duel_guide.okay]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "1v1 Tournament Guide",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tournament_guide.welcome]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[tournament_guide.okay]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tournament_guide.okay]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "locOption",
+   "loc": "Arena recruitment board",
+   "option": "View",
+   "x": 3362,
+   "y": 3268
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[arena_stub.arena_closed]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staging area steps",
+   "option": "Climb-up",
+   "x": 3362,
+   "y": 3277,
+   "comment": "the Arena isn't open yet: no staging area"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[arena_stub.arena_closed]"
+  }
+ ]
+}

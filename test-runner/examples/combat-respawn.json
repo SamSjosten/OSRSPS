@@ -1,0 +1,22 @@
+{
+ "name": "NPC respawn: a castle man stays gone 25 ticks and a cow 45, timed by ::respawns",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "command", "text": "::kill man", "expectMessage": "Killed Man #"},
+  {"step": "assertAnimation", "id": 836, "npc": "Man", "comment": "human_death"},
+  {"step": "command", "text": "::respawns", "expectMessage": "waiting to respawn:", "comment": "the man is listed, about 25 ticks off"},
+  {"step": "waitTicks", "ticks": 15},
+  {"step": "command", "text": "::respawns", "expectMessage": "waiting to respawn:", "comment": "still gone 15 ticks on"},
+  {"step": "waitTicks", "ticks": 12},
+  {"step": "command", "text": "::respawns", "expectMessage": "No NPCs waiting to respawn.", "comment": "back after the Wiki's 25"},
+  {"step": "command", "text": "::tele 3256 3258 0", "expectMessage": "Teleported to 3256, 3258, 0"},
+  {"step": "command", "text": "::kill cow", "expectMessage": "Killed Cow #"},
+  {"step": "command", "text": "::respawns", "expectMessage": "Cow (", "comment": "the cow is listed, about 45 ticks off"},
+  {"step": "waitTicks", "ticks": 35},
+  {"step": "command", "text": "::respawns", "expectMessage": "Cow (", "comment": "still gone 35 ticks on"},
+  {"step": "waitTicks", "ticks": 12},
+  {"step": "command", "text": "::respawns", "expectMessage": "No NPCs waiting to respawn.", "comment": "back after the Wiki's 45"}
+ ]
+}
