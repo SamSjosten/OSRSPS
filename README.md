@@ -839,9 +839,13 @@ village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/co
 | The cell door (`alidoor` 2881, `game/content/DraynorJail.kt`) lets the player out from inside, swinging as `poshdooropen` and shutting behind them, and is locked from outside | 2004Scape's quest_prince script; the swing and two ticks open guessed |
 | Leela's talk after Prince Ali Rescue; Morgan's first talk after Vampyre Slayer, then his later one (multi-NPC on varbit 15611, `morgan_postquest_dialogue`) | the Wiki's transcripts; the varbit's use inferred from its name |
 
+| Step 10: the Draynor Sewers' two trapdoors (`6434`, west of the jail and north of the market) open for everyone into `6435` with Climb-down, for 300 ticks, and the ladders below climb back up (`game/content/DraynorSewers.kt`); the east ladder is a tile south of the dungeon's 6400, so each climb keeps the player's side of the trapdoor or ladder | the 241 map; how long a trapdoor stays open, the open animation and where a climb lands guessed |
+| The sewers' seven zombies (13 and 24), four skeletons (22 and 25) and ten rats (`npc-spawns/draynor-sewers.json`) fight and drop as the Wiki has them, aggressive and with their elemental weaknesses; the gem drop table is in `npc-drops.json` (its rows add up to 131, with the mega-rare table giving nothing) | the Wiki's Zombie, Skeleton, Gem drop table and Draynor Sewers pages (read 2026-11-01); tiles from mejrs's list; animations from the NPCs' own stand animations, the unarmed skeleton's attack guessed |
+| Ruantun's talk after Desert Treasure I; the house's anvil and fire smith and cook as any other | the Wiki's Transcript:Ruantun; the 241 types |
+
 Left out until their steps: the market's stalls and guards, the Wise Old Man's talk,
-the bank guard, Miss Schism, the town crier, the dark wizards, the sewers' trapdoors and
-the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
+the bank guard, Miss Schism, the town crier, the dark wizards,
+and the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
 holiday items to reclaim), and Olivia's refusal after a theft comes with thieving. The wheat field picks as Lumbridge's does (`Crops`).
 Spria isn't spawned: after A Porcine of Interest she is a Slayer master (`slayer_master_9_active`), and Slayer isn't built.
 
@@ -852,7 +856,9 @@ client, and `GatesTest` turns a gate every way round. `test-runner/examples/dray
 the logs, chops a willow, nets a shrimp and cooks it on the permanent fire; `HeadlessFishingTest` and `HeadlessCookingTest`
 do the Small Net spots and the fire. `test-runner/examples/draynor-ned-aggie.json` buys Ned's rope both ways and gets
 Aggie's red dye and fine; `NedAndAggieTest` walks every branch of both talks. `test-runner/examples/draynor-jail.json`
-does Leela, the cell door, a jail guard and Morgan; `DraynorTalkTest` and `HeadlessDraynorTest` cover them too.
+does Leela, the cell door, a jail guard and Morgan; `DraynorTalkTest` and `HeadlessDraynorTest` cover them too. `test-runner/examples/draynor-sewers.json`
+goes down and up both sewer entrances, fights a zombie and talks to Ruantun; `HeadlessDraynorSewersTest` does the
+entrances and the talk through the headless client.
 
 ## Lumbridge church
 
