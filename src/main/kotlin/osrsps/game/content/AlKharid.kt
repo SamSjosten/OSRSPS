@@ -108,6 +108,7 @@ fun registerAlKharid(world: World) {
     registerAlKharidPalace(world)
     registerAlKharidCamels(world)
     registerShantayPass(world)
+    registerEmirsArena(world)
     with(AlKharid) {
         world.doors.registerDouble(PALACE_DOOR_LEFT, PALACE_DOOR_LEFT_OPEN, PALACE_DOOR_RIGHT, PALACE_DOOR_RIGHT_OPEN)
         world.doors.register(CURTAIN, CURTAIN_OPEN)

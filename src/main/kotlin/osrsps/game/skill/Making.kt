@@ -128,6 +128,11 @@ class Making(private val world: World) {
         // The box closes as the making starts, so the weak queue isn't held up by it.
         world.interfaces.closeChatModal(player)
         world.scripts.clearQueue(player, QUEUE)
+        // Making is a new action, so it ends a repeating one (smelting, chopping). A gathering skill stops only when it
+        // finds a box open, and a scripted client that answers the box on the tick it opens never leaves one: without
+        // this both ran, two skills' XP at once (found 30 Oct 2026). An item used on a loc that starts this is already
+        // over, so clearing it is safe.
+        player.interaction = null
         if (!levelled(player, recipe, tell = true)) return
         if (quantity <= 0 || recipe.times(player.inventory) <= 0) return
         val job = Job(recipe, quantity)

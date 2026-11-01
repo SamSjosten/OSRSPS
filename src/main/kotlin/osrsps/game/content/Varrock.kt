@@ -119,6 +119,7 @@ object Varrock {
 
 fun registerVarrock(world: World) {
     registerGrandExchangeClerks(world)
+    registerVarrockPalace(world)
     registerVarrockShopkeepers(world)
     registerVarrockStores(world)
     registerVarrockTraders(world)

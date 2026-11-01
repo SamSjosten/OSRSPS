@@ -203,7 +203,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Al Kharid has two Border Guards each side of the toll gate, five bankers, a keeper for each shop, its fighters and camels`() {
+    fun `Al Kharid has two Border Guards each side of the toll gate, five bankers, a keeper for each shop, its fighters, camels and the Arena's people`() {
         val names = mapOf(
             4287 to "borderguard1", 4288 to "borderguard2", 3090 to "kharidbanker1", 3091 to "kharidbanker2",
             2817 to "generalshopkeeper3", 2818 to "generalassistant3", 2875 to "zeke", 2879 to "dommik", 2876 to "louie_legs",
@@ -213,6 +213,7 @@ class NpcSpawnFileTest {
             5950 to "elly_the_camel", 5951 to "ollie_the_camel", 5952 to "cam_the_camel", 5953 to "alice_the_camel_multinpc",
             1528 to "0_51_49_saltfish", 4642 to "shantay", 4643 to "shantay_guard", 4648 to "shantay_guard_still",
             4641 to "tourtrap_qip_irena_happy", 3106 to "man", 3107 to "man2", 3108 to "man3", 3019 to "spider",
+            6089 to "pilot_al_kharid", 11664 to "pvpa_guard_1", 11673 to "pvpa_duel_guide", 11672 to "pvpa_1v1_guide",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("al-kharid.json"), types, "al-kharid.json")
@@ -247,9 +248,34 @@ class NpcSpawnFileTest {
         // The Shantay Pass: Shantay, the gate guard, three guards and Irena.
         assertEquals(3, spawns.count { it.type.id == 4643 })
         for (id in listOf(4642, 4648, 4641)) assertEquals(1, spawns.count { it.type.id == id && it.z in 3110..3130 })
-        // Al Kharid: east of the toll gate's fence line, from the Shantay Pass to the mine's north end.
-        assertTrue(spawns.all { it.x in 3267..3330 && it.z in 3110..3320 && it.level == 0 && it.source.isNotBlank() })
+        // Captain Dalbur by his glider, and the Emir's Arena's guard and Guides (at guessed tiles) by its gate and in its lobby.
+        assertEquals(1, spawns.count { it.type.id == 6089 && it.x == 3284 && it.z == 3212 })
+        for (id in listOf(11664, 11673, 11672)) assertEquals(1, spawns.count { it.type.id == id && it.x in 3340..3380 && it.z in 3260..3280 })
+        // Al Kharid: east of the toll gate's fence line, from the Shantay Pass to the mine's north end, and the Arena.
+        assertTrue(spawns.all { it.x in 3267..3380 && it.z in 3110..3320 && it.level == 0 && it.source.isNotBlank() })
         assertTrue(spawns.filter { it.type.id in listOf(4287, 4288, 3090, 3091) }.all { it.wander == 0 })
+    }
+
+    @Test
+    fun `Edgeville has four bankers behind the booths, the grange's seven men, and its rats, giant spiders and imps`() {
+        val names = mapOf(1613 to "banker1", 1618 to "banker2", 3106 to "man", 3107 to "man2", 3108 to "man3", 2854 to "rat", 3017 to "giantspider1", 5007 to "imp")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("edgeville.json"), types, "edgeville.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        // Four bankers (the Wiki's count), behind the booths at x 3095 and z 3493, standing still.
+        val bankers = spawns.filter { it.type.id == 1613 || it.type.id == 1618 }
+        assertEquals(4, bankers.size)
+        assertTrue(bankers.all { it.x in 3096..3098 && it.z in 3489..3492 && it.wander == 0 })
+        // Seven men (the Wiki's count), indoors in the grange north of the bank.
+        val men = spawns.filter { it.type.id in 3106..3108 }
+        assertEquals(7, men.size)
+        assertTrue(men.all { it.x in 3092..3101 && it.z in 3508..3512 && it.restrict == MoveRestrict.INDOORS })
+        assertEquals(3, spawns.count { it.type.id == 2854 })
+        assertEquals(3, spawns.count { it.type.id == 3017 })
+        assertEquals(4, spawns.count { it.type.id == 5007 })
+        // South of the Wilderness Ditch (z 3521), within map square 48,54.
+        assertTrue(spawns.all { it.x in 3072..3135 && it.z in 3456..3520 && it.level == 0 && it.source.isNotBlank() })
     }
 
     @Test
@@ -346,7 +372,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's and the shop keepers`() {
+    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers and the palace's people`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -358,7 +384,11 @@ class NpcSpawnFileTest {
             2149 to "ge_clerk_2", 2150 to "ge_clerk_3", 2151 to "ge_clerk_4", 2884 to "swordshop1", 2885 to "swordshop2",
             2882 to "horvik_the_armourer", 2883 to "lowe", 2880 to "zaff", 2815 to "generalshopkeeper2", 2816 to "generalassistant2",
             2886 to "aubury", 534 to "thessalia", 2887 to "tailorp", 8687 to "tea_seller", 5036 to "apothecary", 2881 to "baraek",
-            5216 to "qip_soa_newspaperseller",
+            5216 to "qip_soa_newspaperseller", 5215 to "king_roald", 3774 to "myq3_aeonisig_roalds_advisor",
+            1390 to "queen_ellamaria", 5083 to "sir_prysin", 6203 to "reldo", 528 to "chaosmonk2",
+            2557 to "aluft_gnome_diplomat_varrock", 5085 to "captain_rovin", 11906 to "fai_varrock_guard_trainer02",
+            11907 to "fai_varrock_guard_training02", 11908 to "fai_varrock_guard_training02_variant01",
+            11909 to "fai_varrock_guard_training02_f", 11910 to "fai_varrock_guard_training02_f_variant01",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -392,8 +422,14 @@ class NpcSpawnFileTest {
         val traders = spawns.filter { it.type.id in listOf(2881, 5036, 5216) }
         assertEquals(listOf(2881, 5036, 5216), traders.map { it.type.id }.sorted())
         assertEquals(listOf(5036), traders.filter { it.restrict == MoveRestrict.INDOORS }.map { it.type.id })
+        // Step 6: the palace's people, one each but the five Trainee Guards (the 2022 looks), who stand at the roof's dummies.
+        val palace = spawns.filter { it.type.id in listOf(528, 1390, 2557, 3774, 5083, 5085, 5215, 6203, 11906) + (11907..11910) }
+        assertEquals(listOf(528, 1390, 2557, 3774, 5083, 5085, 5215, 6203, 11906), palace.filter { it.type.id !in 11907..11910 }.map { it.type.id }.sorted())
+        val trainees = palace.filter { it.type.id in 11907..11910 }
+        assertEquals(5, trainees.count { it.level == 2 && it.wander == 0 })
+        assertTrue(palace.all { it.x in 3200..3230 && it.z in 3460..3500 })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
         assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
-        assertTrue((spawns - bankers.toSet() - exchange.toSet()).all { it.wander > 0 })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet()).all { it.wander > 0 })
     }
 }
