@@ -439,8 +439,10 @@ async function promote(github, git, repo, core, batch, carrier, pr, result) {
     // Only over the head the queue saw: the last member's own head, or (put right) the batch commit it replaces.
     git(['push', '--quiet', `--force-with-lease=refs/heads/${pr.head.ref}:${pr.head.sha}`, 'origin', `${sha}:refs/heads/${pr.head.ref}`]);
   } catch (error) {
-    core.info(`batch ${batch.sha.slice(0, 7)}: #${carrier.number}'s branch refused it (${error.message}); building again`);
-    return false;
+    // Most often another queue run promoted it a moment before (two ran at once at 04:45Z on 2026-11-01, and the
+    // loser built the whole batch again). The next run sees which: the copy, or a thread's push that moved the branch.
+    core.info(`batch ${batch.sha.slice(0, 7)}: #${carrier.number}'s branch moved meanwhile (${error.message}); looking again next run`);
+    return true;
   }
   core.info(`batch ${batch.sha.slice(0, 7)} is green: it becomes #${carrier.number}'s head as ${sha.slice(0, 7)}`);
   await writeCheck(github, repo, sha, result);
