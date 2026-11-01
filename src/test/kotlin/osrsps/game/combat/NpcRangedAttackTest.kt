@@ -119,6 +119,33 @@ class NpcRangedAttackTest {
     }
 
     @Test
+    fun `a wandering caster stands still while it fights, and keeps the fight its own`() {
+        val npc = npcs.add(NpcSpawn(wizard, 3217, 3210, wander = 4, source = "test"))!!
+        melee.provoke(npc, alice, tick)
+        repeat(40) {
+            tick()
+            assertEquals(3217 to 3210, npc.x to npc.z, "on tick $tick")
+            assertNull(npc.destination)
+            // It refreshes its fight with every cast, as a melee swing does.
+            assertTrue(tick - npc.fightTick <= 4, "fought on tick ${npc.fightTick}, now $tick")
+            flush(npc)
+            alice.hitpoints = 10
+        }
+    }
+
+    @Test
+    fun `a spell that leaves no hitsplat still sets an auto-retaliating player on the caster`() {
+        alice.skills.setLevel(Skill.ATTACK, 40)
+        val npc = spawn(confuser, 3216)
+        melee.provoke(npc, alice, tick)
+        assertTrue(alice.autoRetaliate)
+        repeat(4) { tick(); flush(npc) }
+        assertEquals(38, alice.skills.currentLevel(Skill.ATTACK), "Confuse landed")
+        assertEquals(npc, alice.attackedBy)
+        assertTrue(alice.interaction != null, "she turns on it")
+    }
+
+    @Test
     fun `Confuse lowers Attack 5% with no hitsplat, once, and Protect from Magic blocks it`() {
         alice.skills.setLevel(Skill.ATTACK, 40)
         val npc = spawn(confuser, 3216)

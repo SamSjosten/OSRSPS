@@ -638,6 +638,8 @@ class MeleeCombat(
         npc.face(player)
         if (tick < npc.nextAttackTick || def.attacks.isEmpty()) return
         npc.nextAttackTick = tick + def.attackSpeed
+        // As a melee swing does, so another player can't take it over while it keeps firing.
+        npc.fightTick = tick
         val attack = pick(def.attacks)
         val anim = if (attack.anim >= 0) attack.anim else def.anims.attack
         if (anim >= 0) npc.effects.anim(anim)
@@ -649,7 +651,9 @@ class MeleeCombat(
         val max = attack.maxHit ?: roll.maxHit
         val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
         val blocked = protects(player, def.attackType)
-        shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else damage, tick + delay)
+        // Dinh's bulwark counts as it fires, as the prayer does and as for a melee swing.
+        val reduced = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
+        shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay)
     }
 
     private fun pick(attacks: List<NpcRangedAttack>): NpcRangedAttack {
@@ -678,19 +682,27 @@ class MeleeCombat(
             }
             if (!shot.hit || shot.blocked) {
                 player.effects.spotanim(0, SPLASH, IMPACT_HEIGHT, 0)
-                player.attackedBy = shot.npc
-                player.attackedTick = tick
+                attackedWithoutHit(player, shot.npc, tick)
                 continue
             }
             if (shot.attack.impact >= 0) player.effects.spotanim(0, shot.attack.impact, IMPACT_HEIGHT, 0)
             shot.attack.drain?.let { drain(player, it) }
             if (shot.attack.maxHit == 0) {
-                player.attackedBy = shot.npc
-                player.attackedTick = tick
+                attackedWithoutHit(player, shot.npc, tick)
             } else {
                 hitPlayer(player, shot.npc, shot.damage, tick)
             }
         }
+    }
+
+    /**
+     * [npc]'s shot reached [player] without a hitsplat (a splash, or a drain-only spell): they are attacked by it all the
+     * same, and auto-retaliate turns them on it as a hit would ([hitPlayer]).
+     */
+    private fun attackedWithoutHit(player: Player, npc: Npc, tick: Long) {
+        player.attackedBy = npc
+        player.attackedTick = tick
+        if (player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) retaliate(player, npc, tick)
     }
 
     /** Lowers [drain]'s skill by its percent of the base level (at least 1), unless it is that low already (Confuse). */
