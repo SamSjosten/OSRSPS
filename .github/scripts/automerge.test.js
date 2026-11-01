@@ -212,6 +212,13 @@ function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'require
         if (pr.refuseApproval) throw Object.assign(new Error('not a fork'), { status: 403 });
         pr.held = pr.held.filter(id => id !== run_id);
       },
+      // A refused run looked at again: still waiting, unless `startsAnyway` (GitHub had only just created it).
+      getWorkflowRun: async ({ run_id }) => {
+        calls.push(['recheck', run_id]);
+        const pr = Object.values(prs).find(p => (p.held || []).includes(run_id));
+        if (!pr || pr.startsAnyway) return { data: { id: run_id, status: 'in_progress', conclusion: null } };
+        return { data: { id: run_id, status: 'completed', conclusion: 'action_required' } };
+      },
     },
   };
   const paginate = async (what, args) => {
@@ -479,6 +486,36 @@ test("held runs on a head are approved before main is merged in again, and Sam i
   assert.strictEqual(asked.length, 1);
   assert.ok(asked[0][2].includes(`${automerge.APPROVE} ${H('3')} -->`));
   assert.deepStrictEqual(refused.calls.filter(call => call[0] === 'updateBranch'), [['updateBranch', 4]]);
+  assert.ok(refused.calls.some(call => call[0] === 'recheck' && call[1] === 5), 'looked at the run again first');
+});
+
+test("a refused run that starts by itself when looked at again gets no comment", async () => {
+  const slept = [];
+  const { github, calls } = fakeGitHub({
+    3: { head: H('3'), held: [5], refuseApproval: true, startsAnyway: true, behind: 1, checks: [codexPass], comments: [summary(H('3'), false)] },
+  });
+  await automerge.queue({ github, context: { repo, payload: {} }, core, git: fakeGit({}), sleep: async ms => { slept.push(ms); }, now: () => NOW });
+  assert.deepStrictEqual(calls.filter(call => call[0] === 'comment'), []);
+  assert.deepStrictEqual(calls.filter(call => call[0] === 'recheck'), [['recheck', 5]]);
+  assert.ok(slept.includes(45000), 'waited before looking again');
+});
+
+test("a head Sam was already asked about isn't looked at again", async () => {
+  const marked = { body: `${automerge.APPROVE} ${H('3')} -->` };
+  const { github, calls } = fakeGitHub({
+    3: { head: H('3'), held: [5], refuseApproval: true, behind: 1, checks: [codexPass], comments: [summary(H('3'), false), marked] },
+  });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls.filter(call => call[0] === 'comment' || call[0] === 'recheck'), []);
+});
+
+test("a merge of main whose held runs are refused but start anyway gets no comment", async () => {
+  const { github, calls } = fakeGitHub({
+    7: { head: H('7'), mergedHead: H('8'), heldAfterUpdate: [41], refuseApproval: true, startsAnyway: true, behind: 2, checks: [...green, codexPass], comments: [summary(H('7'), false)] },
+  });
+  await queue(github, fakeGit({ [H('7')]: 'p', [H('8')]: 'p' }));
+  assert.deepStrictEqual(calls.filter(call => call[0] === 'comment'), []);
+  assert.deepStrictEqual(calls.filter(call => call[0] === 'recheck'), [['recheck', 41]]);
 });
 
 // Batches.
