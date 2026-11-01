@@ -43,7 +43,9 @@ object MapCollisionLoader {
 
     fun load(library: CacheLibrary): CollisionMap = loadWorld(library).collision
 
-    fun loadWorld(library: CacheLibrary): WorldMap = buildWorld(loadLocTypes(library), mapSquares(library))
+    /** [extraTypes] are loc types of our own, served through the cache overlay, which the cache's map never places. */
+    fun loadWorld(library: CacheLibrary, extraTypes: Collection<LocType> = emptyList()): WorldMap =
+        buildWorld(loadLocTypes(library).with(extraTypes), mapSquares(library))
 
     /**
      * Builds the world from loc types and map squares, wherever they were read from: the server's cache, or a cache

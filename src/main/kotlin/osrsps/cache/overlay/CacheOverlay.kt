@@ -6,19 +6,30 @@ import java.nio.file.Path
 import kotlin.io.path.name
 
 /**
- * Groups of our own to serve on top of the live cache: custom models from `data/models/<id>.dat`, each a model in
- * the client's format (`osrsps import-model` writes one). [osrsps.net.Js5Store] adds them to the cache it serves,
- * in memory, so the files on disk stay the live cache. An id has to be above every live group of its index, as the
- * client takes the group it already has for a known id, and below 65536, as a JS5 request carries a 2-byte group id.
+ * What we serve on top of the live cache, in memory, so the files on disk stay the live cache
+ * ([osrsps.net.Js5Store] adds it to the cache it serves):
+ *
+ * - [groups] of our own: custom models from `data/models/<id>.dat`, each a model in the client's format
+ *   (`osrsps import-model` writes one). An id has to be above every live group of its index, as the client takes the
+ *   group it already has for a known id, and below 65536, as a JS5 request carries a 2-byte group id.
+ * - [files] added to live groups: our own loc types in config archive 6, encoded in code
+ *   ([osrsps.game.content.CustomLocs]). A file id has to be above every live file of its group.
  */
-class CacheOverlay(val groups: List<Group>) {
+class CacheOverlay(val groups: List<Group>, val files: List<File> = emptyList()) {
     class Group(val index: Int, val group: Int, val data: ByteArray)
 
-    val size: Int get() = groups.size
+    class File(val index: Int, val group: Int, val file: Int, val data: ByteArray)
+
+    val size: Int get() = groups.size + files.size
 
     fun byIndex(): Map<Int, List<Group>> = groups.groupBy { it.index }
 
-    override fun toString(): String = groups.joinToString { "${it.index}/${it.group}" }
+    fun filesByGroup(): Map<Pair<Int, Int>, List<File>> = files.groupBy { it.index to it.group }
+
+    operator fun plus(more: List<File>): CacheOverlay = CacheOverlay(groups, files + more)
+
+    override fun toString(): String =
+        (groups.map { "${it.index}/${it.group}" } + files.map { "${it.index}/${it.group}/${it.file}" }).joinToString()
 
     companion object {
         val NONE = CacheOverlay(emptyList())

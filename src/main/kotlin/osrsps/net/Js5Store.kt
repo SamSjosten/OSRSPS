@@ -7,6 +7,7 @@ import net.rsprot.protocol.api.js5.Js5GroupProvider
 import net.rsprot.protocol.api.js5.Js5Service
 import osrsps.cache.overlay.CacheOverlay
 import osrsps.cache.overlay.Js5Container
+import osrsps.cache.overlay.Js5Group
 import osrsps.cache.overlay.ReferenceTable
 
 /**
@@ -28,9 +29,10 @@ class Js5Store private constructor(
         const val MASTER = 255
 
         /**
-         * Everything in [library], plus [overlay]'s groups: each is added to its index's reference table with the CRC
-         * of the container it is sent in, and the table's new CRC goes in the master index, so a client sees the
-         * index changed, fetches the table again and asks for the new group when something points at it.
+         * Everything in [library], plus [overlay]: each of its groups is added to its index's reference table with
+         * the CRC of the container it is sent in, each of its files goes into its live group, which is packed again
+         * and gets its new CRC in the table, and each changed table's CRC goes in the master index, so a client sees
+         * the index changed, fetches the table again and then whatever it lists with a CRC the client doesn't have.
          */
         fun load(library: CacheLibrary, overlay: CacheOverlay = CacheOverlay.NONE): Js5Store {
             val indices = library.indices.filterNotNull().sortedBy { it.id }
@@ -49,10 +51,16 @@ class Js5Store private constructor(
                     responses[key(index.id, group)] = frame(index.id, group, stripVersionTrailer(data))
                 }
             }
-            for ((indexId, groups) in overlay.byIndex()) {
+            val storedTables = HashMap<Int, ByteArray>()
+            val tables = HashMap<Int, ReferenceTable>()
+            fun table(indexId: Int): ReferenceTable = tables.getOrPut(indexId) {
                 require(indexId in indices.map { it.id }) { "The overlay names index $indexId, which the cache doesn't have" }
                 val stored = library.index255?.readArchiveSector(indexId)?.data ?: error("The cache has no reference table for index $indexId")
-                val table = ReferenceTable.decode(Js5Container.unpack(stored))
+                storedTables[indexId] = stored
+                ReferenceTable.decode(Js5Container.unpack(stored))
+            }
+            for ((indexId, groups) in overlay.byIndex()) {
+                val table = table(indexId)
                 val liveMax = table.maxGroupId
                 for (group in groups) {
                     require(group.group > liveMax) { "Custom group ${group.group} of index $indexId has to be above the cache's own groups, which go up to $liveMax" }
@@ -62,7 +70,27 @@ class Js5Store private constructor(
                     table.put(ReferenceTable.Group(group.group, 0, Js5Container.crc(container), container.size, group.data.size, OVERLAY_VERSION, listOf(ReferenceTable.File(0, 0))))
                     responses[key(indexId, group.group)] = frame(indexId, group.group, container)
                 }
-                val rewritten = Js5Container.pack(table.encode(), Js5Container.type(stored))
+            }
+            for ((where, files) in overlay.filesByGroup()) {
+                val (indexId, groupId) = where
+                val table = table(indexId)
+                val entry = table.group(groupId) ?: error("Index $indexId has no group $groupId to add files to")
+                val stored = library.index(indexId)?.readArchiveSector(groupId)?.data ?: error("The cache has no data for group $indexId/$groupId")
+                val container = stripVersionTrailer(stored)
+                val unpacked = Js5Group.unpack(Js5Container.unpack(container), entry.files.map { it.id })
+                val liveMax = entry.files.maxOf { it.id }
+                for (file in files) {
+                    require(file.file > liveMax) { "Custom file ${file.file} of group $indexId/$groupId has to be above the cache's own files, which go up to $liveMax" }
+                    require(unpacked.put(file.file, file.data) == null) { "File ${file.file} of group $indexId/$groupId is in the overlay twice" }
+                }
+                val data = Js5Group.pack(unpacked)
+                val repacked = Js5Container.pack(data, Js5Container.type(container))
+                val fileList = (entry.files + files.map { ReferenceTable.File(it.file, 0) }).sortedBy { it.id }
+                table.put(ReferenceTable.Group(groupId, entry.nameHash, Js5Container.crc(repacked), repacked.size, data.size, entry.version, fileList))
+                responses[key(indexId, groupId)] = frame(indexId, groupId, repacked)
+            }
+            for ((indexId, table) in tables) {
+                val rewritten = Js5Container.pack(table.encode(), Js5Container.type(storedTables.getValue(indexId)))
                 crcs[indexId] = Js5Container.crc(rewritten)
                 responses[key(MASTER, indexId)] = frame(MASTER, indexId, rewritten)
             }

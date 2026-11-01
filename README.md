@@ -66,6 +66,12 @@ cache files on disk stay the live cache. An id has to be above every live model 
 241) and below 65,536, which is all a JS5 request carries. A changed file is served at the next start; a client that
 had the old one sees the new CRC and fetches it again. Converted Jagex art stays in `data/`, outside git, like the cache.
 
+Loc types of our own that use such models are code: `game/content/CustomLocs.kt` lists them (ids from 65,000), each a
+`LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
+the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
+server decodes back for itself, so the client and the server see the same loc. The lodestones (`Lodestones.kt`) are
+the first: the server places the Lumbridge stone at start.
+
 ## Run the server
 
 ```bash

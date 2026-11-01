@@ -21,8 +21,12 @@ import osrsps.GameServer
 import osrsps.Revision
 import osrsps.cache.model.ModelCodec
 import osrsps.cache.model.OsrsModel
+import osrsps.cache.LocTypeDecoder
 import osrsps.cache.overlay.Js5Container
+import osrsps.cache.overlay.Js5Group
 import osrsps.cache.overlay.ReferenceTable
+import osrsps.game.content.CustomLocs
+import osrsps.game.content.Lodestones
 import osrsps.testclient.Js5Crcs
 
 /** Boots the real server on a tiny generated cache and talks JS5 to it over a socket. */
@@ -37,6 +41,8 @@ class GameServerTest {
         library.put(10, "huffman", ByteArray(256) { 8 })
         library.put(0, 1, byteArrayOf(1, 2, 3))
         library.put(7, 3, byteArrayOf(4, 5, 6))
+        // One loc type, so the server has a loc types group to add its own to.
+        library.put(2, 6, 0, byteArrayOf(0))
         library.update()
         library.close()
     }
@@ -139,6 +145,18 @@ class GameServerTest {
             val group = Js5Crcs.fetchGroup("127.0.0.1", port, 7, 65000)
             assertEquals(table.group(65000)!!.crc, Js5Container.crc(group))
             assertContentEquals(model, Js5Container.unpack(group))
+
+            // Our own loc types ride in the cache's loc types group the same way.
+            val configs = ReferenceTable.decode(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, 255, 2)))
+            assertEquals(crcs[2], Js5Container.crc(Js5Crcs.fetchGroup("127.0.0.1", port, 255, 2)))
+            val locTypes = configs.group(6)!!
+            assertEquals(listOf(0) + CustomLocs.ALL.map { it.id }, locTypes.files.map { it.id })
+            val locGroup = Js5Crcs.fetchGroup("127.0.0.1", port, 2, 6)
+            assertEquals(locTypes.crc, Js5Container.crc(locGroup))
+            val files = Js5Group.unpack(Js5Container.unpack(locGroup), locTypes.files.map { it.id })
+            val lodestone = LocTypeDecoder.decode(Lodestones.DORMANT, files.getValue(Lodestones.DORMANT))
+            assertEquals("Lodestone", lodestone.name)
+            assertEquals("Activate", lodestone.ops[0])
         } finally {
             server.stop()
         }
