@@ -6,6 +6,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.Line
@@ -23,6 +24,7 @@ object FletchingLines : Lines("fletching", "Fletching") {
     val HEADLESS = line("headless", "Headless arrow: the message on attaching feathers to shafts", "amount")
     val ARROWS = line("arrows", "Bronze arrow and the other arrows: the message on attaching the tips", "amount", "item")
     val DARTS = line("darts", "Bronze dart and the other darts: the message on attaching feathers", "amount", "item")
+    val DART_SETS_TITLE = line("dart_sets_title", "Bronze dart and the other darts: the Make-X box's title with the Make-X for darts setting on, in sets of 10; guessed to follow the arrows' title")
 
     /** The line called [name] in fletching.json. */
     fun named(name: String): Line = lines.firstOrNull { it.key == "$prefix.$name" } ?: error("No fletching line '$name'")
@@ -142,6 +144,13 @@ class FletchingData(
  * as on live, so the box matches).
  */
 class Fletching(private val world: World, val data: FletchingData) {
+    /**
+     * The All Settings toggle "Make-X for darts and bolts" (varbit option_fletch_dart_or_bolt_makex): on, feathers on
+     * dart tips open the Make-X box instead of making one set at once. Off is the default. Bolts aren't built.
+     */
+    private fun dartsMakeX(player: Player): Boolean =
+        player.vars.types.varbit(VARBIT_DARTS_MAKEX) != null && player.vars.getVarbit(VARBIT_DARTS_MAKEX) == 1
+
     fun register() {
         for ((log, recipes) in data.knifeOnLogs) {
             world.handlers.onObjOnObj(data.knife, log) { world.making.choose(this, recipes) }
@@ -158,7 +167,14 @@ class Fletching(private val world: World, val data: FletchingData) {
             world.handlers.onObjOnObj(tips, recipe.inputs[0].obj) { world.making.choose(this, listOf(recipe), FletchingLines.SETS_TITLE) }
         }
         for ((tips, recipe) in data.darts) {
-            world.handlers.onObjOnObj(data.feather, tips) { world.making.makeNow(this, recipe) }
+            world.handlers.onObjOnObj(data.feather, tips) {
+                if (dartsMakeX(player)) world.making.choose(this, listOf(recipe), FletchingLines.DART_SETS_TITLE) else world.making.makeNow(this, recipe)
+            }
         }
+    }
+
+    companion object {
+        /** option_fletch_dart_or_bolt_makex. */
+        const val VARBIT_DARTS_MAKEX = 10971
     }
 }
