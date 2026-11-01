@@ -35,7 +35,7 @@ class HeadlessEdgevilleOutlawsTest {
     }
 
     @Test
-    fun `killing an outlaw gives a fortieth of the XP for its 20 hitpoints, and it is back two ticks on`(@TempDir dir: Path) {
+    fun `killing an outlaw gives a fortieth of the XP for its 20 hitpoints, and it comes back`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("olive").use { client ->
                 // Beside the login tile, which the test map has loaded; the camp's own tiles are the spawn file's test.
@@ -46,7 +46,7 @@ class HeadlessEdgevilleOutlawsTest {
                 client.commandReply("setlevel strength 99") { it.contains("99") }
                 val hitpoints = client.stat(HITPOINTS)!!.xp
                 client.npcOp(npc.index, 2)
-                // Back two ticks after its death, too soon to see it gone: its bones show it died.
+                // Back four ticks after the killing blow, too soon to see it gone: its bones show it died.
                 client.await("the bones", timeoutMillis = 10_000) { client.groundObjs().map { it.id }.takeIf { BONES in it } }
                 // Punching (Attack): 4 XP a point is 80 for 20 hitpoints, and -97.5% leaves 2.0 however the hits fell.
                 assertEquals(2, client.stat(ATTACK)!!.xp)

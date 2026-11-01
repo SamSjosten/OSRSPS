@@ -226,7 +226,7 @@
       "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
       "respawnTicks": 2,
       "xpBonus": -97.5,
-      "source": "OSRS Wiki, Outlaw (ids 4167 to 4176 share the infobox) and the DPS calculator's 4167, read 2026-11-01: not aggressive, XP bonus -97.5%, respawn 2 ticks as the infobox gives it. The animations are guessed (a crush with no weapon). Left out: the 'Stand and deliver!' shout, whose accuracy boost the Wiki has not confirmed"
+      "source": "OSRS Wiki, Outlaw (ids 4167 to 4176 share the infobox) and the DPS calculator's 4167, read 2026-11-01: not aggressive, XP bonus -97.5%, respawn 2 ticks as the infobox gives it, which the engine raises to the body's 4 ticks (MeleeCombat.DEATH_TICKS), as for rats. The animations are guessed (a crush with no weapon). Left out: the shout before an attack, whose accuracy boost the Wiki has not confirmed"
     }
   ]
 }
