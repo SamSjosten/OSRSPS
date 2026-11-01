@@ -125,13 +125,10 @@ class Clans(
             val members = channels[clan.id]
             send(player, if (members != null && player in members) channelFull(clan, members) else ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
         }
-        // The old connection may have missed page changes and name updates: forget what it was sent and open the page
-        // again, clearing the name the client keeps first, so the page's onload script and showForming redraw it all.
-        shownName.remove(player.saveKey)
-        if (tabs[player.saveKey] == TAB_YOUR_CLAN) {
-            if (clanOf(player) == null && inHub(player)) updateNameButton(player, "")
-            openYourClan(player)
-        }
+        // The old connection may have missed page changes and name updates: the name the client keeps is unknown now,
+        // so the creation panel's next showForming sends the group's name, or clears it; and the page opens again.
+        shownName[player.saveKey] = UNKNOWN_NAME
+        if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
     }
 
     /** Writes the clans again if a write failed; see [ClanStore.flush]. */
@@ -545,6 +542,10 @@ class Clans(
         /** clan_create_side_list_players and clan_create_update_button_text, and the enum the latter reads. */
         const val SCRIPT_LIST_PLAYERS = 4448
         const val SCRIPT_UPDATE_BUTTON = 4447
+
+        /** [shownName] after a reconnect: no group name is empty, so this never equals one. */
+        private const val UNKNOWN_NAME = ""
+
         const val ENUM_CREATION_BUTTONS = 3824
 
         const val VARBIT_AFFINITY = 933

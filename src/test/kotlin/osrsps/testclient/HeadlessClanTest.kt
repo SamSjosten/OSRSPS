@@ -229,6 +229,38 @@ class HeadlessClanTest {
         }
     }
 
+    @Test
+    fun `a reconnect on another page still clears the old name when the creation panel next opens`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { bob ->
+                val alice = server.login("alice")
+                alice.commandReply("clanfounding 2 0") { it.startsWith("Founding") }
+                alice.toHub()
+                bob.toHub()
+                alice.yourClanTab()
+                alice.playerOp(bob.index, 1)
+                bob.await("bob's invitation") { bob.messages().firstOrNull { it.type == Clans.CHATTYPE_CLAN_CREATION_INVITATION } }
+                bob.playerOp(alice.index, 1)
+                alice.saw("[clan.joined name=bob]")
+                alice.ifButton(Clans.CREATION, Clans.CREATION_NAME, 1)
+                alice.awaitTicks(2)
+                alice.resumeString("Lost")
+                alice.await("the name on the button") { alice.shownName()?.takeIf { it == "Lost" } }
+                // On the chat-channel page when the connection drops.
+                alice.ifButton(Clans.SIDE_CHANNELS, 2, 1)
+                server.reconnect("alice", alice).use { back ->
+                    back.awaitTicks(2)
+                    // Leaving the Hub ends her group; back in, the creation panel clears the name her client kept.
+                    back.commandReply("tele 3222 3218") { it.startsWith("Teleported") }
+                    back.toHub()
+                    back.yourClanTab()
+                    back.await("the name cleared") { back.shownName()?.takeIf { it.isEmpty() } }
+                }
+                alice.close()
+            }
+        }
+    }
+
     private companion object {
         const val HUB_X = 3181
         const val HUB_Z = 3474
