@@ -188,6 +188,36 @@ class HeadlessClanTest {
         }
     }
 
+    @Test
+    fun `a reconnect brings back the group's name, and the clan page once the clan is founded`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val bob = server.login("bob")
+                alice.commandReply("clanfounding 2 0") { it.startsWith("Founding") }
+                alice.toHub()
+                bob.toHub()
+                alice.yourClanTab()
+                bob.yourClanTab()
+                alice.playerOp(bob.index, 1)
+                bob.await("bob's invitation") { bob.messages().firstOrNull { it.type == Clans.CHATTYPE_CLAN_CREATION_INVITATION } }
+                bob.playerOp(alice.index, 1)
+                alice.saw("[clan.joined name=bob]")
+                alice.ifButton(Clans.CREATION, Clans.CREATION_NAME, 1)
+                alice.awaitTicks(2)
+                alice.resumeString("Rejoined")
+                bob.await("the name on bob's button") { bob.shownName()?.takeIf { it == "Rejoined" } }
+                // The server has sent bob the name already; a new connection gets it again all the same.
+                server.reconnect("bob", bob).use { back ->
+                    back.await("the name sent again") { back.shownName()?.takeIf { it == "Rejoined" } }
+                    alice.ifButton(Clans.CREATION, Clans.CREATION_CONFIRM, 1)
+                    back.saw("[clan.formed name=Rejoined]")
+                    back.await("bob's clan page") { back.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                }
+                bob.close()
+            }
+        }
+    }
+
     private companion object {
         const val HUB_X = 3181
         const val HUB_Z = 3474

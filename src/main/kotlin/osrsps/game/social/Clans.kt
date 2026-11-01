@@ -122,7 +122,13 @@ class Clans(
             val members = channels[clan.id]
             send(player, if (members != null && player in members) channelFull(clan, members) else ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
         }
-        showForming(player)
+        // The old connection may have missed page changes and name updates: forget what it was sent and open the page
+        // again, clearing the name the client keeps first, so the page's onload script and showForming redraw it all.
+        shownName.remove(player.saveKey)
+        if (tabs[player.saveKey] == TAB_YOUR_CLAN) {
+            if (clanOf(player) == null && inHub(player)) updateNameButton(player, "")
+            openYourClan(player)
+        }
     }
 
     /** Writes the clans again if a write failed; see [ClanStore.flush]. */
