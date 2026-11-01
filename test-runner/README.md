@@ -65,7 +65,9 @@ the last one's result is in, and prints each script's result, steps passed, time
 .\test-runner\run-scripts.ps1 .\test-runner\examples\castle-talk-cook.json .\test-runner\examples\hans-demo.json
 ```
 
-It exits with 0 only when every script passed. Where Windows won't run scripts, start it with
+It exits with 0 only when every script passed. Every example says `"account": "test"`; on a client logged in as another test account (VM 217 is `test2`),
+add `-Account test2` and each copy dropped into the tests folder says that instead, while the files in git stay as
+they are. Scripts written for another account (the second half of a two-player pair) are left as written. Where Windows won't run scripts, start it with
 `powershell -ExecutionPolicy Bypass -File .\test-runner\run-scripts.ps1 ...`, which allows it for that one run only.
 
 ```powershell
