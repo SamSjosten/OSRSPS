@@ -309,7 +309,7 @@ class ClientConfig(
     private val connections = ConcurrentHashMap<Channel, Activity>()
 
     /** How many report bodies are being read now, so a test can tell a report was taken in before it moves the clock. */
-    internal val reportsBeingRead: Int get() = reportsReading.get()
+    internal val reportsBeingRead: Int get() = connections.values.count { it.readingSince != null }
 
     /** How many reads the connections have had, so a test can tell the server has seen what it sent. */
     internal val reads = java.util.concurrent.atomic.AtomicLong()
