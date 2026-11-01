@@ -10,6 +10,7 @@ import osrsps.game.GameRandom
 import osrsps.game.Interfaces
 import osrsps.game.NpcType
 import osrsps.game.Player
+import osrsps.game.VarTypes
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.dialogue.Dialogue
@@ -24,14 +25,14 @@ import osrsps.map.CollisionMap
  * A content conversation with no dialogue file, so every line shows its key, and what the chatbox shows read back:
  * [expect] the pages since the last check, then [menu] or [pick] for an option menu.
  */
-class DialogueHarness(npcName: String = "Someone") {
+class DialogueHarness(npcName: String = "Someone", varTypes: VarTypes = VarTypes.NONE) {
     private val sent = mutableListOf<OutgoingGameMessage>()
     private val send: (Player, OutgoingGameMessage) -> Unit = { _, message -> sent += message }
     private val interfaces = Interfaces(send)
     private val scripts = ScriptRunner(Handlers(), interfaces::closeModals) { 0 }
     val dialogues = Dialogues(interfaces, scripts, ChatFont.APPROXIMATE, { npc, _ -> npc.type }, send)
     val npc = Npcs(CollisionMap(), GameRandom(1)).add(NpcSpawn(NpcType(1, npcName), 3221, 3219, source = "test"))!!
-    val player = Player(1, "Zezima", 3222, 3219, 0)
+    val player = Player(1, "Zezima", 3222, 3219, 0, varTypes)
 
     /** The interface of the page showing now, to continue it. */
     private var page = -1

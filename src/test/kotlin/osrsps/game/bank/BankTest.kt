@@ -175,6 +175,22 @@ class BankTest {
     }
 
     @Test
+    fun `a fee taken from the bank leaves the rest, and taking a tab's last stack takes the tab away`() {
+        vault.fill(COINS, 50)
+        vault.fill(SWORD, 1)
+        tabs[1] = 1
+        tabs.current = 1
+        assertEquals(20, bank.take(vault, tabs, COINS, 20))
+        assertEquals(30, vault.count(COINS))
+        assertEquals(listOf(1), sizes())
+        assertEquals(30, bank.take(vault, tabs, COINS, 30))
+        assertEquals(listOf(SWORD), ids())
+        assertEquals(emptyList(), sizes())
+        assertEquals(0, tabs.current)
+        assertEquals(0, bank.take(vault, tabs, COINS, 5))
+    }
+
+    @Test
     fun `dragging onto a tab or past its end moves the item to that tab's end, and onto the next tab makes a new one`() {
         swords(5, 2)
         assertTrue(bank.moveToTab(vault, tabs, 4, 1))
