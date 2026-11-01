@@ -326,6 +326,10 @@ class PlayerSave(
             player: Player,
             inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
             bank: Map<Int, InvObj> = player.bank.contents().toMap(),
+            /** Where they are saved, by default where they stand. */
+            x: Int = player.x,
+            z: Int = player.z,
+            level: Int = player.level,
         ): PlayerSave {
             val varps = LinkedHashMap<Int, Int>()
             player.vars.forEachNonZero { varp, value -> varps[varp] = value }
@@ -334,7 +338,7 @@ class PlayerSave(
             val skills = Skill.entries.associateWith { SkillSave(player.skills.tenths(it), player.skills.currentLevel(it)) }
             val equipment = player.equipment.contents().toMap()
             return PlayerSave(
-                player.x, player.z, player.level, player.runEnergy, varps, skills, withOffer(player, inventory), equipment,
+                x, z, level, player.runEnergy, varps, skills, withOffer(player, inventory), equipment,
                 player.scenario, player.beforeScenario, player.createdAt, player.playedTicks, player.charges.contents(),
                 bank,
                 BoostSegments(StatRestore.segment(player.statTimers.combatBoost), StatRestore.segment(player.statTimers.skillBoost)),
