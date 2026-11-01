@@ -61,6 +61,12 @@ class StaticLocs {
         }
     }
 
+    /** Drops every loc in the zone whose south-west tile is [zoneBaseX], [zoneBaseZ] on [level]: an instance's, at its end. */
+    fun removeZone(zoneBaseX: Int, zoneBaseZ: Int, level: Int) {
+        val zone = zones.remove(ZoneKey.of(zoneBaseX, zoneBaseZ, level).packed) ?: return
+        size -= zone.count
+    }
+
     /** The loc on a tile's [layer], if any. The client keeps only one, so a later one in the file wins. */
     fun at(x: Int, z: Int, level: Int, layer: Int): ZoneLoc? = at(x, z, level).lastOrNull { it.layer == layer }
 

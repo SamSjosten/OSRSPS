@@ -368,6 +368,12 @@ class RangedCombat(
         inFlight += bounced
     }
 
+    /** Forgets the shots at NPCs on the tiles where [inside] holds (an instance ending), so none drops its ammunition there. */
+    fun forgetArea(inside: (Int, Int) -> Boolean) {
+        for (shot in inFlight) if (inside(shot.npc.x, shot.npc.z)) shot.npc.incoming -= shot.damage
+        inFlight.removeIf { inside(it.npc.x, it.npc.z) }
+    }
+
     /** Shots fired and not landed yet, for tests and commands. */
     val shotsInFlight: Int get() = inFlight.size
 

@@ -760,6 +760,11 @@ class MeleeCombat(
     val respawning: Int get() = dying.size
 
     /** The spawns of the dead NPCs that will come back, with the tick each comes back on, soonest first. */
+    /** Forgets the deaths of NPCs in, or from, the tiles where [inside] holds (an instance ending): none comes back there. */
+    fun forgetArea(inside: (Int, Int) -> Boolean) {
+        dying.removeIf { inside(it.npc.x, it.npc.z) || inside(it.npc.spawn.x, it.npc.spawn.z) }
+    }
+
     fun pendingRespawns(): List<Pair<NpcSpawn, Long>> =
         dying.filter { it.npc.spawn.respawns }.map { it.npc.spawn to it.respawnTick }.sortedBy { it.second }
 

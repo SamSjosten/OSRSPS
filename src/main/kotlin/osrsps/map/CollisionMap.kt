@@ -8,16 +8,30 @@ class CollisionMap {
     private val zones = HashMap<Int, IntArray>()
     private val loadedSquares = HashSet<Int>()
 
+    /** Zones loaded on their own, in squares that aren't: an instance's copied zones ([osrsps.game.instance.Instances]). */
+    private val loadedZones = HashSet<Int>()
+
     /** Marks the 64x64 map square at [squareX], [squareZ] as part of the world, on every level. */
     fun markLoaded(squareX: Int, squareZ: Int) {
         loadedSquares.add(squareKey(squareX, squareZ))
+    }
+
+    /** Marks the 8x8 zone at [zoneX], [zoneZ] (in zones) as part of the world, on every level. */
+    fun markZoneLoaded(zoneX: Int, zoneZ: Int) {
+        loadedZones.add(zoneKey2d(zoneX, zoneZ))
+    }
+
+    /** Takes the zone at [zoneX], [zoneZ] (in zones) out of the world: its tiles read as unloaded and lose their flags. */
+    fun unloadZone(zoneX: Int, zoneZ: Int) {
+        loadedZones.remove(zoneKey2d(zoneX, zoneZ))
+        for (level in 0..3) zones.remove(zoneKey(zoneX shl 3, zoneZ shl 3, level))
     }
 
     operator fun get(x: Int, z: Int, level: Int): Int {
         if (x < 0 || z < 0 || level !in 0..3) return CollisionFlag.UNLOADED
         // A wall or large loc on a square's edge can flag tiles in a neighbouring square with no terrain; those
         // tiles still read as unloaded.
-        if (squareKey(x shr 6, z shr 6) !in loadedSquares) return CollisionFlag.UNLOADED
+        if (squareKey(x shr 6, z shr 6) !in loadedSquares && zoneKey2d(x shr 3, z shr 3) !in loadedZones) return CollisionFlag.UNLOADED
         return zones[zoneKey(x, z, level)]?.get(tileIndex(x, z)) ?: 0
     }
 
@@ -51,6 +65,8 @@ class CollisionMap {
     }
 
     private fun squareKey(squareX: Int, squareZ: Int) = (squareX shl 8) or squareZ
+
+    private fun zoneKey2d(zoneX: Int, zoneZ: Int) = (zoneX shl 14) or zoneZ
 
     private fun zoneKey(x: Int, z: Int, level: Int) = (level shl 28) or ((x shr 3) shl 14) or (z shr 3)
 
