@@ -116,6 +116,7 @@ import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
 import osrsps.game.dialogue.ChatFont
+import osrsps.game.dialogue.Chatbox
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
@@ -160,6 +161,7 @@ import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.FriendLists
 import osrsps.game.social.IgnoreLists
 import osrsps.game.social.PrivateMessages
+import osrsps.game.social.Reports
 import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.Trades
 import osrsps.game.zone.Zones
@@ -208,6 +210,8 @@ class World(
     chatFont: ChatFont = ChatFont.APPROXIMATE,
     /** The dialogue file, read at start and again by `::dialogue`; null for none, so every line shows its key. */
     private val dialogueFile: Path? = null,
+    /** Where reports are appended (data/reports.jsonl); null keeps them in memory (tests). */
+    private val reportsFile: Path? = null,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
     /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
@@ -475,6 +479,19 @@ class World(
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
         varbit = { player, id -> player.vars.getVarbitIfKnown(id) },
         commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
+    )
+
+    /** Report abuse; see [Reports]. */
+    val reports = Reports(
+        reportsFile,
+        { player ->
+            interfaces.closeModals(player)
+            // Inferred: clamped, as the screen is the chatbox's own size.
+            interfaces.openChatModal(player, Reports.INTERFACE, 0)
+        },
+        interfaces::runClientScript,
+        interfaces::closeChatModal,
+        { player, line -> player.message(textFor(player)[line]) },
     )
 
     /** Private messages; see [PrivateMessages]. */
@@ -1667,7 +1684,7 @@ class World(
             return
         }
         // Any of the options replaces what the player was doing, a follow included. Guessed for Trade with and Report,
-        // which aren't built, and for a player who has left: they stop the player where they stand.
+        // and for a player who has left: they stop the player where they stand.
         scripts.interrupt(player)
         player.interaction = null
         npcInteractions.leave(player)
@@ -1687,7 +1704,7 @@ class World(
             else -> {
                 // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
                 player.session.queue(SetMapFlagV2.RESET)
-                player.message(PlayerOps.REPORT_NOT_BUILT)
+                reports.open(player, target.username)
             }
         }
     }
@@ -1824,8 +1841,15 @@ class World(
 
     /** Public chat is game input like a click, so while paused it is held for the next tick. */
     fun onPublicChat(player: Player, message: MessagePublic) = act(player) {
-        if (message.type == PublicChat.TYPE_FRIENDS_CHAT) friendChats.talk(player, message.message) else sayPublicChat(player, message)
+        if (message.type == PublicChat.TYPE_FRIENDS_CHAT) {
+            friendChats.talk(player, message.message)
+        } else {
+            sayPublicChat(player, message)?.let { reports.heard(player, it) }
+        }
     }
+
+    /** SEND_SNAPSHOT: a rule picked on the report screen. */
+    fun onReport(player: Player, name: String, rule: Int, mute: Boolean) = actWhileDead(player) { reports.submit(player, name, rule, mute) }
 
     /** A rank picked for a friend in the friends chat setup list. */
     fun onFriendsChatSetRank(player: Player, name: String, rank: Int) = actWhileDead(player) {
@@ -1849,6 +1873,14 @@ class World(
         }
         if (trades.click(player, interfaceId, componentId, sub, obj, op)) return@act
         trades.interrupt(player)
+        if (interfaceId == Chatbox.CHATBOX && componentId == Reports.CHATBOX_BUTTON && op == Reports.OP_REPORT_ABUSE) {
+            reports.open(player, null)
+            return@act
+        }
+        if (interfaceId == Reports.INTERFACE && componentId == Reports.CLOSE) {
+            interfaces.closeChatModal(player)
+            return@act
+        }
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act

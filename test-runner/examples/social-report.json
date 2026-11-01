@@ -1,0 +1,18 @@
+{
+ "name": "Report abuse, one player: test opens the report screen from the chatbox's Report button, types test2's name, picks Scamming, is thanked, and ::reports shows the report; the ignore tick box's ignore is cleared after",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "clickWidget", "interfaceId": 162, "component": 31, "op": 2, "comment": "the chatbox's Report button: Report abuse"},
+  {"step": "assertInterface", "interfaceId": 875},
+  {"step": "typeText", "text": "test2", "comment": "the screen's name box reads the keyboard itself"},
+  {"step": "assertWidgetText", "interfaceId": 875, "component": 4, "contains": "test2"},
+  {"step": "clickWidget", "interfaceId": 875, "component": 5, "comment": "Next: the rules"},
+  {"step": "clickWidget", "interfaceId": 875, "component": 19, "name": "Scamming", "op": 1, "comment": "Report for on the Scamming row"},
+  {"step": "assertMessage", "contains": "[report.received]"},
+  {"step": "assertInterface", "interfaceId": 875, "absent": true},
+  {"step": "command", "text": "::reports", "expectMessage": "reported test2: scamming"},
+  {"step": "command", "text": "::clearignores", "expectMessage": "Ignore list emptied", "comment": "the screen's ignore tick box is on by default"}
+ ]
+}
