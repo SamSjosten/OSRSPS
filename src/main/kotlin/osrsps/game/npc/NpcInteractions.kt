@@ -20,6 +20,7 @@ import osrsps.game.script.ScriptRunner
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.Reach
+import osrsps.map.Route
 import osrsps.map.RouteTarget
 import osrsps.map.Tile
 import kotlin.math.abs
@@ -182,8 +183,52 @@ class NpcInteractions(
     private fun route(player: Player, interaction: NpcInteraction, invertRun: Boolean = player.invertRun): Boolean {
         val npc = interaction.npc
         interaction.routedTo = Tile(npc.x, npc.z)
-        val route = movement.request(player, RouteTarget.entity(npc.x, npc.z, npc.type.size), invertRun)
+        val beside = movement.find(player, RouteTarget.entity(npc.x, npc.z, npc.type.size))
+        val route = acrossCounter(player, npc, beside) ?: beside
+        movement.follow(player, route, invertRun)
         return route.waypoints.isNotEmpty()
+    }
+
+    /**
+     * For an NPC used from across a counter ([reachOverCounter]), the shortest walk to a tile it can be used from,
+     * when that beats [beside] (which, behind a counter, is only the closest the player can get). Without this a
+     * player who clicks a banker at the end of a row walks to the corner of the booths, diagonal to them, and stops
+     * there. An empty route when the player already stands across the counter; null when no such tile is reachable,
+     * or [beside] is as short and really reaches the NPC.
+     */
+    private fun acrossCounter(player: Player, npc: Npc, beside: Route): Route? {
+        if (!countsOverCounter(player, npc)) return null
+        // Already across the counter: stay put, rather than take [beside]'s walk to the corner of the booths.
+        if (overCounterFrom(player.x, player.z, player.level, npc)) return Route(emptyList(), false)
+        var best: Route? = null
+        var bestLength = Int.MAX_VALUE
+        for ((dx, dz) in COUNTER_OFFSETS) {
+            val x = npc.x + dx
+            val z = npc.z + dz
+            if (!overCounterFrom(x, z, player.level, npc)) continue
+            val route = movement.find(player, RouteTarget.tile(x, z))
+            if (route.alternative) continue
+            val length = length(player, route)
+            if (length < bestLength) {
+                best = route
+                bestLength = length
+            }
+        }
+        if (best == null) return null
+        return if (!beside.alternative && length(player, beside) <= bestLength) null else best
+    }
+
+    /** Steps along [route] from where [player] stands. */
+    private fun length(player: Player, route: Route): Int {
+        var x = player.x
+        var z = player.z
+        var steps = 0
+        for (tile in route.waypoints) {
+            steps += maxOf(abs(tile.x - x), abs(tile.z - z))
+            x = tile.x
+            z = tile.z
+        }
+        return steps
     }
 
     /**
@@ -261,24 +306,30 @@ class NpcInteractions(
     /**
      * Lets players use NPC type [id] (the type they see, for a multi-NPC) from across a counter, such as a banker behind
      * a bank booth: from two tiles away in a straight line, with a loc between that blocks walking but not projectiles,
-     * and no wall. Live talks to bankers across their booths; the rule's shape (the RS2 engine's approach range of 2,
+     * and no wall, or from beside it across a wall that doesn't block projectiles (the Grand Exchange's booths). A click
+     * on one walks the player to the nearest such tile when that is closer than the NPC's side. Live talks to bankers across their booths; the rule's shape (the RS2 engine's approach range of 2,
      * as 2004Scape has it for bankers) is inferred, not from a recording.
      */
     fun reachOverCounter(id: Int) {
         overCounter += id
     }
 
-    private fun overCounter(player: Player, npc: Npc): Boolean {
-        if (npc.type.size != 1) return false
-        if (npc.type.id !in overCounter && shownType(npc, player)?.id !in overCounter) return false
-        val dx = npc.x - player.x
-        val dz = npc.z - player.z
-        if (!((dx == 0 && abs(dz) == 2) || (dz == 0 && abs(dx) == 2))) return false
-        val midX = player.x + dx / 2
-        val midZ = player.z + dz / 2
-        val level = player.level
-        val counter = collision[midX, midZ, level]
-        if (counter and CollisionFlag.LOC == 0 || counter and CollisionFlag.LOC_PROJ != 0) return false
+    private fun countsOverCounter(player: Player, npc: Npc): Boolean =
+        npc.type.size == 1 && (npc.type.id in overCounter || shownType(npc, player)?.id in overCounter)
+
+    private fun overCounter(player: Player, npc: Npc): Boolean =
+        countsOverCounter(player, npc) && overCounterFrom(player.x, player.z, player.level, npc)
+
+    /**
+     * Whether [npc] is across a counter from [x], [z]: two tiles away in a straight line with a loc between that blocks
+     * walking but not projectiles (a bank booth), or beside it with a wall between that doesn't block projectiles (the
+     * Grand Exchange's booths, which are walls). No other wall may be in the way.
+     */
+    private fun overCounterFrom(x: Int, z: Int, level: Int, npc: Npc): Boolean {
+        val dx = npc.x - x
+        val dz = npc.z - z
+        val distance = abs(dx) + abs(dz)
+        if ((dx != 0 && dz != 0) || distance !in 1..2) return false
         // The wall flags on each side of each tile crossed, going from the player towards the NPC.
         val (leaving, entering) = when {
             dz > 0 -> CollisionFlag.WALL_NORTH to CollisionFlag.WALL_SOUTH
@@ -286,8 +337,16 @@ class NpcInteractions(
             dx > 0 -> CollisionFlag.WALL_EAST to CollisionFlag.WALL_WEST
             else -> CollisionFlag.WALL_WEST to CollisionFlag.WALL_EAST
         }
-        return collision[player.x, player.z, level] and leaving == 0 && counter and (leaving or entering) == 0 &&
-            collision[npc.x, npc.z, level] and entering == 0
+        val from = collision[x, z, level]
+        val to = collision[npc.x, npc.z, level]
+        if (distance == 1) {
+            // A wall counter: walled on both sides of the edge, and the wall lets projectiles over.
+            val projectile = (leaving or entering) shl CollisionFlag.PROJ_SHIFT
+            return from and leaving != 0 && to and entering != 0 && (from or to) and projectile == 0
+        }
+        val counter = collision[x + dx / 2, z + dz / 2, level]
+        if (counter and CollisionFlag.LOC == 0 || counter and CollisionFlag.LOC_PROJ != 0) return false
+        return from and leaving == 0 && counter and (leaving or entering) == 0 && to and entering == 0
     }
 
     internal fun face(player: Player, npc: Npc?) {
@@ -384,6 +443,9 @@ class NpcInteractions(
          * Turns the player to [npc], or stops turning when null. walkMode 0 is the old face-entity behaviour as RSProt
          * maps it; inferred, not checked against live.
          */
+        /** Where a player can stand to use an NPC across a counter: two tiles off in a straight line, or beside it. */
+        private val COUNTER_OFFSETS = listOf(0 to -2, 0 to 2, -2 to 0, 2 to 0, 0 to -1, 0 to 1, -1 to 0, 1 to 0)
+
         private fun sendFaceNpc(player: Player, npc: Npc?) {
             val info = player.infos.playerInfo.avatar.extendedInfo
             if (npc == null) {

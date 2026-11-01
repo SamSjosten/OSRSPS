@@ -227,6 +227,47 @@ class NpcInteractionsTest {
     }
 
     @Test
+    fun `a click on a banker at the end of a row walks the player across the booth, not to the corner`() {
+        // Varrock East Bank's shape: booths at x 3211 to 3215 on z 3211, open floor past the row's east end, the
+        // bankers' row (z 3212) closed off. The NPC is behind the east booth; the closest tile to it the player can
+        // walk to is 3216, 3211, diagonal to it, where it can't be used. Running, the player passes the tile across the
+        // booth mid-tick, so only a route that ends there gets them to it.
+        interactions.reachOverCounter(HANS)
+        player.runEnabled = true
+        for (x in 3211..3215) LocCollision(map).addLoc(LocCollisionType(blocksProjectile = false), x, 3211, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        for (x in 3200..3263) map.add(x, 3212, 0, osrsps.map.CollisionFlag.FLOOR)
+        val npc = spawn(x = 3215, z = 3212)
+        val used = mutableListOf<Long>()
+        handlers.onNpc(HANS, 1) { used += tick }
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        repeat(5) { tick() }
+        assertEquals(3215 to 3210, player.x to player.z)
+        assertEquals(1, used.size)
+        assertEquals(emptyList(), messages)
+    }
+
+    @Test
+    fun `a counter that is a wall is used across from beside it, unless it blocks projectiles`() {
+        // The Grand Exchange's booths: walls along the north edge of z 3210, the NPC just north of them.
+        interactions.reachOverCounter(HANS)
+        for (x in 3200..3263) LocCollision(map).addLoc(LocCollisionType(blocksProjectile = false), x, 3210, 0, LocShape.WALL_STRAIGHT, 1)
+        val npc = spawn(x = 3214, z = 3211)
+        val used = mutableListOf<Long>()
+        handlers.onNpc(HANS, 1) { used += tick }
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        repeat(4) { tick() }
+        assertEquals(3214 to 3210, player.x to player.z)
+        assertEquals(1, used.size)
+
+        // The same wall blocking projectiles is an ordinary wall.
+        for (x in 3200..3263) LocCollision(map).addLoc(LocCollisionType(blocksProjectile = true), x, 3210, 0, LocShape.WALL_STRAIGHT, 1)
+        interactions.click(player, npc.index, 1, -1, invertRun = false)
+        repeat(3) { tick() }
+        assertEquals(1, used.size)
+        assertEquals(listOf("[game.cant_reach]"), messages)
+    }
+
+    @Test
     fun `the NPC going away ends the interaction quietly`() {
         val npc = spawn()
         interactions.click(player, npc.index, 1, -1, invertRun = false)
