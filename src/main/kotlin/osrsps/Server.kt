@@ -57,7 +57,9 @@ import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.SkillUnlocks
 import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
+import osrsps.net.GitHubIssues
 import osrsps.net.ProblemReports
+import osrsps.net.ReportForwarder
 import osrsps.net.RelayAwareValidator
 import osrsps.net.NetworkFactory
 import osrsps.net.ProxyProtocol
@@ -96,6 +98,19 @@ class GameServer(
     private val clientConfig = ClientConfig(
         publicHost, httpPort, gamePort = port, version = version, deployState = deployState, proxy = proxy,
         runelitePins = RuneLitePins.load(), reports = ProblemReports(dataDir.resolve(ProblemReports.FOLDER)),
+    )
+
+    /** Files the launcher's problem reports as issues once Sam has put a token in the data folder; see [ReportForwarder]. */
+    private val reportForwarder = ReportForwarder(
+        dataDir.resolve(ProblemReports.FOLDER),
+        tracker = { GitHubIssues.fromTokenFile(dataDir.resolve(GitHubIssues.TOKEN_FILE), System.getenv("OSRSPS_REPORTS_REPO") ?: GitHubIssues.REPO) },
+        facts = {
+            val game = clientConfig.gameStatus()
+            listOf(
+                "commit ${clientConfig.servedVersion()}, revision ${Revision.MAJOR}",
+                if (game.up) "game up, ${game.players} player(s) in, ${if (game.acceptingLogins) "taking logins" else "NOT taking logins"}" else "game DOWN",
+            )
+        },
     )
     private val js5Connections = AtomicLong()
     private lateinit var factory: NetworkFactory
@@ -223,6 +238,7 @@ class GameServer(
         try {
             clientConfig.start()
             world.start()
+            reportForwarder.start()
         } catch (e: Exception) {
             // Don't leave the game port open with no world behind it: fail the whole start.
             clientConfig.stop()
@@ -252,6 +268,7 @@ class GameServer(
     }
 
     fun stop() {
+        reportForwarder.stop()
         world.stop()
         clientConfig.stop()
         stopNetwork()
