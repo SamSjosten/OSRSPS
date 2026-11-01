@@ -21,9 +21,9 @@
       "npcs": ["fai_varrock_guard02", "fai_varrock_guard02_variant01", "fai_varrock_guard02_variant02", "fai_varrock_guard02_f", "fai_varrock_guard02_f_variant01", "fai_varrock_guard02_f_variant02", "fai_varrock_guard_captain02"],
       "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 4, "strengthBonus": 5,
       "defence": { "stab": 24, "slash": 30, "crush": 25, "magic": -9, "light": 25, "standard": 25, "heavy": 25 },
-      "anims": { "attack": "human_blunt_pound", "defend": "human_blunt_block", "death": "human_death" },
+      "anims": { "attack": "human_blunt_pound", "defend": "human_shield_defence", "death": "human_death" },
       "respawnTicks": 50,
-      "source": "OSRS Wiki, Guard (Varrock 1 to 7, the 2022 guards 11911 to 11917) and the DPS calculator's 11911, 11914 and 11917, read 2026-10-30. Their attack and block animations are GUESSED from the crush style (human_blunt_pound, human_blunt_block); not yet watched on live"
+      "source": "OSRS Wiki, Guard (Varrock 1 to 7, the 2022 guards 11911 to 11917) and the DPS calculator's 11911, 11914 and 11917, read 2026-10-30. Their attack animation is GUESSED from the crush style (human_blunt_pound); not yet watched on live. Their block is INFERRED: all seven carry a kiteshield (the Wiki's pictures of Varrock 1 to 7; the cache types wear a longsword, model 518, and a shield), and a human holding a shield blocks with human_shield_defence (1156), as a player holding a shield does on live (from memory, not checked against a recording). human_blunt_block, guessed before, swung the shield up over the guard's head (Sam's screenshot, 2026-11-01)"
     },
     {
       "npcs": ["guard1"],
@@ -187,6 +187,19 @@
       "anims": { "attack": "unicorn_rework_attack", "defend": "unicorn_rework_defend", "death": "unicorn_rework_death" },
       "respawnTicks": 90,
       "source": "OSRS Wiki, Unicorn (id 2837) and the DPS calculator, read 2026-10-30; it stands and walks with unicorn_rework_ready and _walk"
+    },
+    {
+      "npcs": ["jailguard", "jailguard_two_patrol", "jailguard_three_patrol", "jailguard_four_patrol"],
+      "attackSpeed": 5,
+      "maxHit": 3,
+      "attackType": "crush",
+      "attackBonus": 9,
+      "strengthBonus": 5,
+      "defence": {"stab": 8, "slash": 9, "crush": 10, "magic": 4, "light": 9, "standard": 9, "heavy": 9},
+      "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
+      "respawnTicks": 30,
+      "aggressive": true,
+      "source": "OSRS Wiki, Jail guard (id 4276; the DPS calculator has 4277 to 4279 the same), read 2026-10-30, aggressive as its infobox says. The animations are guessed: the Wiki has none and 2004Scape's jailguard none of its own"
     }
   ]
 }

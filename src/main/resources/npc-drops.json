@@ -312,6 +312,11 @@
       "always": [{"item": 526, "name": "Bones"}, {"item": 237, "name": "Unicorn horn"}],
       "tertiary": [{"item": 13465, "name": "Ensouled unicorn head", "chance": "1/35"}],
       "source": "OSRS Wiki, Unicorn, read 2026-10-30 (the unicorn bone drops only during Rag and Bone Man I)"
+    },
+    {
+      "npcs": ["jailguard", "jailguard_two_patrol", "jailguard_three_patrol", "jailguard_four_patrol"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Jail guard, read 2026-10-30: bones always, nothing else"
     }
   ]
 }

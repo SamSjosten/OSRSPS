@@ -86,6 +86,8 @@ import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
+import osrsps.game.content.HomeTeleport
+import osrsps.game.content.message
 import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerCandleSeller
@@ -111,11 +113,13 @@ import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
+import osrsps.game.content.registerDraynorJail
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
 import osrsps.game.dialogue.ChatFont
+import osrsps.game.dialogue.Chatbox
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
@@ -160,6 +164,7 @@ import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.FriendLists
 import osrsps.game.social.IgnoreLists
 import osrsps.game.social.PrivateMessages
+import osrsps.game.social.Reports
 import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.Trades
 import osrsps.game.zone.Zones
@@ -208,6 +213,8 @@ class World(
     chatFont: ChatFont = ChatFont.APPROXIMATE,
     /** The dialogue file, read at start and again by `::dialogue`; null for none, so every line shows its key. */
     private val dialogueFile: Path? = null,
+    /** Where reports are appended (data/reports.jsonl); null keeps them in memory (tests). */
+    private val reportsFile: Path? = null,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
     /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
@@ -434,6 +441,13 @@ class World(
         multi = multiCombat, poweredStaves = poweredStaves, words = ::textFor,
     )
 
+    /** Lumbridge Home Teleport; see [HomeTeleport]. Its destination and cooldown are seams other teleports can swap. */
+    val homeTeleport = HomeTeleport(
+        currentTick = { tick }, nowMinutes = { System.currentTimeMillis() / 60_000 }, inCombat = { inCombat(it) },
+        teleport = { player, to -> teleport(player, to.x, to.z, to.level) },
+        message = { player, line, values -> message(player, line, *values) },
+    )
+
     /** Player death and gravestones; see [Deaths]. */
     val deaths: Deaths = Deaths(
         objTypes, graveType = npcTypes[Deaths.GRAVE], currentTick = { tick },
@@ -477,9 +491,22 @@ class World(
         commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
     )
 
+    /** Report abuse; see [Reports]. */
+    val reports = Reports(
+        reportsFile,
+        { player ->
+            interfaces.closeModals(player)
+            // Inferred: clamped, as the screen is the chatbox's own size.
+            interfaces.openChatModal(player, Reports.INTERFACE, 0)
+        },
+        interfaces::runClientScript,
+        interfaces::closeChatModal,
+        { player, line -> player.message(textFor(player)[line]) },
+    )
+
     /** Private messages; see [PrivateMessages]. */
     val friendChats = FriendChats(
-        { onlinePlayers }, ::channelOwner, ignoreLists, ::textFor, { privateMessages.nextCounter() },
+        { onlinePlayers }, { tick }, ::channelOwner, ignoreLists, ::textFor, { privateMessages.nextCounter() },
     )
 
     val privateMessages = PrivateMessages(
@@ -590,6 +617,7 @@ class World(
         registerDraynorMarket(this)
         registerNed(this)
         registerAggie(this)
+        registerDraynorJail(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -606,6 +634,7 @@ class World(
         registerVarrock(this)
         registerCrops(this)
         ducks.register()
+        homeTeleport.register(handlers)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
         interfaces.onClose(Trades.MAIN, trades::mainClosed)
@@ -1543,6 +1572,8 @@ class World(
         ignoreLists.sendAll(player)
         friendLists.sendAll(player)
         friendChats.resend(player)
+        // A toggle's SET_PLAYER_OP may have been lost with the old connection.
+        PlayerOps.send(player.vars, player.session::queue)
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
@@ -1567,7 +1598,7 @@ class World(
         DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         sendRunState(player)
-        PlayerOps.send(player.session::queue)
+        PlayerOps.send(player.vars, player.session::queue)
         allowChat(player)
         // Guessed: live sends the saved filters at login; a new account's are all on.
         sendChatFilters(player)
@@ -1660,12 +1691,12 @@ class World(
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (held(player)) return
         trades.interrupt(player)
-        if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT) {
+        if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT || !PlayerOps.shown(player.vars, option)) {
             logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
         }
         // Any of the options replaces what the player was doing, a follow included. Guessed for Trade with and Report,
-        // which aren't built, and for a player who has left: they stop the player where they stand.
+        // and for a player who has left: they stop the player where they stand.
         scripts.interrupt(player)
         player.interaction = null
         npcInteractions.leave(player)
@@ -1685,8 +1716,27 @@ class World(
             else -> {
                 // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
                 player.session.queue(SetMapFlagV2.RESET)
-                player.message(PlayerOps.REPORT_NOT_BUILT)
+                reports.open(player, target.username)
             }
+        }
+    }
+
+    /**
+     * The player used something on the player at [index]: the item in slot [sub] of [interfaceId]:[componentId], or a
+     * spell. Only inventory items are handled; see [InventoryTab.useOnPlayer].
+     */
+    fun onPlayerTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int) {
+        // Looked up as the packet is read, as for an option on a player.
+        val clicked = players.getOrNull(index)
+        act(player) {
+            if (held(player)) return@act
+            trades.interrupt(player)
+            val target = clicked?.takeIf { players[it.index] === it && it !== player }
+            if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS || target == null) {
+                logger.info { "${player.username} used $interfaceId:$componentId sub $sub on player ${clicked?.username} (not handled)" }
+                return@act
+            }
+            inventoryTab.useOnPlayer(player, sub, obj, target)
         }
     }
 
@@ -1822,8 +1872,23 @@ class World(
 
     /** Public chat is game input like a click, so while paused it is held for the next tick. */
     fun onPublicChat(player: Player, message: MessagePublic) = act(player) {
-        if (message.type == PublicChat.TYPE_FRIENDS_CHAT) friendChats.talk(player, message.message) else sayPublicChat(player, message)
+        if (message.type == PublicChat.TYPE_FRIENDS_CHAT) {
+            friendChats.talk(player, message.message)
+        } else {
+            sayPublicChat(player, message)?.let { reports.heard(player, it) }
+        }
     }
+
+    /** SEND_SNAPSHOT: a rule picked on the report screen. */
+    fun onReport(player: Player, name: String, rule: Int, mute: Boolean) = actWhileDead(player) { reports.submit(player, name, rule, mute) }
+
+    /** A rank picked for a friend in the friends chat setup list. */
+    fun onFriendsChatSetRank(player: Player, name: String, rank: Int) = actWhileDead(player) {
+        if (friendChats.setRank(player, name, rank)) friendLists.resend(player, name)
+    }
+
+    /** Kick user on a friends chat member. */
+    fun onFriendsChatKick(player: Player, name: String) = act(player) { friendChats.kick(player, name) }
 
     /** Join Chat's typed name, or Leave Chat (no name). Works while dead, as the client changes its panel at once. */
     fun onFriendsChatJoinLeave(player: Player, name: String?) = actWhileDead(player) {
@@ -1839,6 +1904,14 @@ class World(
         }
         if (trades.click(player, interfaceId, componentId, sub, obj, op)) return@act
         trades.interrupt(player)
+        if (interfaceId == Chatbox.CHATBOX && componentId == Reports.CHATBOX_BUTTON && op == Reports.OP_REPORT_ABUSE) {
+            reports.open(player, null)
+            return@act
+        }
+        if (interfaceId == Reports.INTERFACE && componentId == Reports.CLOSE) {
+            interfaces.closeChatModal(player)
+            return@act
+        }
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
@@ -1911,6 +1984,10 @@ class World(
                     friendChats.showSetup(player)
                 }
             }
+            return@act
+        }
+        if (interfaceId == FriendChats.SETUP && componentId in FriendChats.SETUP_OPTIONS) {
+            if (friendChats.setOption(player, componentId, op)) friendChats.showSetup(player)
             return@act
         }
         if (interfaceId == JournalTab.SIDE_JOURNAL) {
@@ -2391,6 +2468,10 @@ class World(
         interfaces.openModal(player, FrameSlot.MAINMODAL, FriendChats.SETUP)
         friendChats.showSetup(player)
         interfaces.setEvents(player, FriendChats.SETUP, FriendChats.SETUP_PREFIX, -1, -1, Interfaces.IF_EVENT_OP1 or Interfaces.IF_EVENT_OP2)
+        // Ops 1 to 9 on who may enter and talk, 4 to 9 on who may kick (chatchannel_setup's transmitop lists).
+        interfaces.setEvents(player, FriendChats.SETUP, FriendChats.SETUP_ENTER, -1, -1, OPS_1_TO_9)
+        interfaces.setEvents(player, FriendChats.SETUP, FriendChats.SETUP_TALK, -1, -1, OPS_1_TO_9)
+        interfaces.setEvents(player, FriendChats.SETUP, FriendChats.SETUP_KICK, -1, -1, OPS_1_TO_9 and 0b1_1111_1000)
     }
 
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
@@ -2445,6 +2526,9 @@ class World(
 
         /** 3 minutes of cycles. */
         const val AUTOSAVE_CYCLES = 300L
+
+        /** IF_SETEVENTS ops 1 to 9: bits 0 to 8. */
+        const val OPS_1_TO_9 = 0b1_1111_1111
 
         /** How long the game may go without ending a cycle before [isUp] calls it down: 10 s. Our own figure. */
         const val STALL_MILLIS = 10_000L

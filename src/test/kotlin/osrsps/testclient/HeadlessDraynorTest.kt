@@ -11,7 +11,9 @@ import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.game.content.AxeLogs
 import osrsps.game.content.Bankers
+import osrsps.game.content.DraynorJail
 import osrsps.game.content.DraynorSearchLines
+import osrsps.game.content.JailLines
 import osrsps.game.content.DraynorVillage
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
@@ -47,6 +49,8 @@ class HeadlessDraynorTest {
             type(DraynorVillage.GARLIC_CUPBOARD_OPEN, "Cupboard", 1, 2, "Search", "Close"),
             type(AxeLogs.WITH_AXE, "Logs", 1, 1, "Take-axe"),
             type(AxeLogs.WITHOUT_AXE, "Logs", 1, 1),
+            type(DraynorJail.CELL_DOOR, "Prison Gate", 1, 1, "Open"),
+            type(DraynorJail.CELL_DOOR_OPEN, "Door", 1, 1, null, "Close"),
         ).associateBy { it.id },
     )
 
@@ -59,6 +63,7 @@ class HeadlessDraynorTest {
         ZoneLoc(DraynorVillage.NARROW_STAIRS_TOP, LocShape.CENTREPIECE_STRAIGHT, 3, 3091, 3251, 1),
         ZoneLoc(DraynorVillage.GARLIC_CUPBOARD, LocShape.CENTREPIECE_STRAIGHT, 0, 3096, 3269, 1),
         ZoneLoc(AxeLogs.WITH_AXE, LocShape.CENTREPIECE_STRAIGHT, 2, 3097, 3239, 0),
+        ZoneLoc(DraynorJail.CELL_DOOR, LocShape.WALL_STRAIGHT, 1, 3123, 3243, 0),
     )
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
@@ -69,6 +74,7 @@ class HeadlessDraynorTest {
             markLoaded(3077 shr 6, 3258 shr 6)
             markLoaded(3096 shr 6, 3269 shr 6)
             markLoaded(3097 shr 6, 3239 shr 6)
+            markLoaded(3123 shr 6, 3243 shr 6)
         }
         World(crcs, map, objTypes = ObjTypes(objs), locTypes = types, staticLocs = StaticLocs().apply { locs.forEach(::add) }, cycleMillis = millis)
     }
@@ -156,6 +162,47 @@ class HeadlessDraynorTest {
                 assertNotNull(server.world.locs.find(AxeLogs.WITHOUT_AXE, 3097, 3239, 0))
                 client.await("the axe back on the logs", timeoutMillis = 60_000) { server.world.locs.find(AxeLogs.WITH_AXE, 3097, 3239, 0) }
             }
+        }
+    }
+
+    @Test
+    fun `the jail's cell door lets the player out and is locked from outside`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3123, 3244, 0)
+                val locked = DialogueText.NONE[JailLines.LOCKED]
+                client.locOp(DraynorJail.CELL_DOOR, 3123, 3243, 1)
+                client.await("the door locked") { client.messages().firstOrNull { it.text == locked } }
+                assertEquals(Coord(3123, 3244, 0), client.position)
+
+                client.tele(3123, 3242, 0)
+                client.locOp(DraynorJail.CELL_DOOR, 3123, 3243, 1)
+                client.awaitAt(3123, 3244, 0)
+                client.await("the door shut again") { server.world.locs.find(DraynorJail.CELL_DOOR, 3123, 3243, 0) }
+                // Closed by hand while open, it goes back to the cell door too.
+                assertEquals(DraynorJail.CELL_DOOR_OPEN, server.world.doors.openType(DraynorJail.CELL_DOOR))
+            }
+        }
+    }
+
+    @Test
+    fun `the cell door shuts even when the player who opened it logs out in the doorway`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val world = server.world
+            server.login("frank").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3123, 3242, 0)
+                client.locOp(DraynorJail.CELL_DOOR, 3123, 3243, 1)
+                client.await("the door open") { if (world.locs.find(DraynorJail.CELL_DOOR, 3123, 3243, 0) == null) Unit else null }
+            }
+            // The client is gone, so nothing of the player's runs any more: the world's timer has to shut it.
+            val deadline = System.nanoTime() + 10_000_000_000L
+            while (world.locs.find(DraynorJail.CELL_DOOR, 3123, 3243, 0) == null) {
+                check(System.nanoTime() < deadline) { "The cell door stayed open after the logout" }
+                Thread.sleep(20)
+            }
+            assertEquals(0, world.locs.changed)
         }
     }
 

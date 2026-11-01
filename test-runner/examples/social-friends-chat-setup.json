@@ -1,0 +1,24 @@
+{
+ "name": "Friends chat setup, one player: test names its channel, sets who may enter, talk and kick on the setup screen, disables the channel and names it again",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "setFriendsChatName", "name": "Setup Hut"},
+  {"step": "assertWidgetText", "interfaceId": 94, "component": 10, "contains": "Setup Hut"},
+  {"step": "clickWidget", "interfaceId": 94, "component": 13, "op": 2, "comment": "Who can enter: Any friends"},
+  {"step": "assertWidgetText", "interfaceId": 94, "component": 13, "contains": "[friends_chat.option_friends]"},
+  {"step": "clickWidget", "interfaceId": 94, "component": 16, "op": 3, "comment": "Who can talk: Recruit+"},
+  {"step": "assertWidgetText", "interfaceId": 94, "component": 16, "contains": "[friends_chat.option_recruit]"},
+  {"step": "clickWidget", "interfaceId": 94, "component": 19, "op": 4, "comment": "Who can kick: Corporal+"},
+  {"step": "assertWidgetText", "interfaceId": 94, "component": 19, "contains": "[friends_chat.option_corporal]"},
+  {"step": "clickWidget", "interfaceId": 94, "component": 10, "op": 2, "comment": "Disable"},
+  {"step": "assertWidgetText", "interfaceId": 94, "component": 10, "contains": "[friends_chat.setup_disabled]"},
+  {"step": "setFriendsChatName", "name": "Setup Hut"},
+  {"step": "assertWidgetText", "interfaceId": 94, "component": 10, "contains": "Setup Hut"},
+  {"step": "clickWidget", "interfaceId": 94, "component": 13, "op": 1, "comment": "back to Anyone"},
+  {"step": "clickWidget", "interfaceId": 94, "component": 16, "op": 1},
+  {"step": "clickWidget", "interfaceId": 94, "component": 19, "op": 9, "comment": "back to Only me"},
+  {"step": "assertWidgetText", "interfaceId": 94, "component": 19, "contains": "[friends_chat.option_only_me]"}
+ ]
+}

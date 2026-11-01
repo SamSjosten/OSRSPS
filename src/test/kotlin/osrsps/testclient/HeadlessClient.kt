@@ -149,6 +149,7 @@ class HeadlessClient private constructor(
     private val animTicks = ArrayList<Int>()
     private val npcSaid = ArrayList<NpcSaid>()
     private val npcHits = ArrayList<NpcHit>()
+    private val playerOps = HashMap<Int, String?>()
     private val moves = ArrayList<TickMove>()
     private var ticks = 0
     private var cycles = 0
@@ -208,6 +209,9 @@ class HeadlessClient private constructor(
 
     /** Every NPC's overhead text seen so far, oldest first. */
     fun npcSaid(): List<NpcSaid> = lock.withLock { npcSaid.toList() }
+
+    /** The options on other players' menus, by slot, as SET_PLAYER_OP last set them; null for a cleared slot. */
+    fun playerOps(): Map<Int, String?> = lock.withLock { playerOps.toMap() }
 
     /** Every hitsplat seen on an NPC, oldest first; only read while the NPC's other blocks are ones the reader knows. */
     fun npcHits(): List<NpcHit> = lock.withLock { npcHits.toList() }
@@ -439,6 +443,19 @@ class HeadlessClient private constructor(
         }
     }
 
+    /**
+     * Component [componentId] of [interfaceId] (slot [sub], showing [obj]) used on the player at [index], as OPPLAYERT:
+     * an inventory item's Use, then a click on the player. Laid out as RSProt's 241 OpPlayerTDecoder reads it.
+     */
+    fun playerTarget(index: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
+        send(GameClientProt.OPPLAYERT) {
+            p2Alt1(sub and 0xFFFF)
+            p4((interfaceId shl 16) or componentId)
+            p1Alt1(if (ctrl) 1 else 0)
+            p2Alt2(obj and 0xFFFF)
+            p2Alt2(index)
+        }
+
     /** The Add Friend box (FRIENDLIST_ADD). The real client refuses its own name, a duplicate and a full list first. */
     fun addFriend(name: String) = send(GameClientProt.FRIENDLIST_ADD) { pjstr(name) }
 
@@ -467,6 +484,30 @@ class HeadlessClient private constructor(
         p1(0)
         HUFFMAN.encode(this, text)
     }
+
+    /** A line typed in public chat (MESSAGE_PUBLIC type 0, plain yellow). */
+    fun say(text: String) = send(GameClientProt.MESSAGE_PUBLIC) {
+        p1(0)
+        p1(0)
+        p1(0)
+        HUFFMAN.encode(this, text)
+    }
+
+    /** A rule picked on the report screen for [name] (SEND_SNAPSHOT). */
+    fun sendReport(name: String, rule: Int, mute: Boolean = false) = send(GameClientProt.SEND_SNAPSHOT) {
+        pjstr(name)
+        p1(rule)
+        p1(if (mute) 1 else 0)
+    }
+
+    /** A rank picked for a friend in the friends chat setup list (FRIENDCHAT_SETRANK): 0 none, 1 Recruit to 6 General. */
+    fun setFriendsChatRank(name: String, rank: Int) = send(GameClientProt.FRIENDCHAT_SETRANK) {
+        p1(rank)
+        pjstr(name)
+    }
+
+    /** Kick user on a friends chat member (FRIENDCHAT_KICK). */
+    fun kickFromFriendsChat(name: String) = send(GameClientProt.FRIENDCHAT_KICK) { pjstr(name) }
 
     /** Text typed into a chatbox text prompt (RESUME_P_STRINGDIALOG). */
     fun resumeString(text: String) = send(GameClientProt.RESUME_P_STRINGDIALOG) { pjstr(text) }
@@ -696,6 +737,12 @@ class HeadlessClient private constructor(
                 )
                 for ((npc, text) in npcInfo.said) npcSaid += NpcSaid(npc, text, ticks)
                 for ((npc, type, value) in npcInfo.hits) npcHits += NpcHit(npc, type, value, ticks)
+            }
+            GameServerProt.SET_PLAYER_OP -> {
+                // RSProt's SetPlayerOpEncoder: the slot, the text ("null" clears it) and the priority flag.
+                val slot = buf.g1Alt3()
+                playerOps[slot] = buf.gjstr().takeIf { it != "null" }
+                buf.g1()
             }
             GameServerProt.IF_OPENTOP -> topLevel = buf.g2Alt2()
             GameServerProt.IF_OPENSUB -> {

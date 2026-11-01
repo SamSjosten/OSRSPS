@@ -308,6 +308,14 @@ installers, then the manifest and its `.sig` last, and only then publishes it as
      bumps `version.txt`: its merge is the first release (done 2026-10-30, version 1.0.0). Before it every real run
      stopped at `verify` with "no release keys are built into this launcher yet".
   4. `.github/CODEOWNERS` names Sam for `.github/workflows/`, so a change to the release path asks for his review.
+- From 1.0.2 the launcher lives in its own public repository, OdinsGate (`github.com/SamSjosten/OdinsGate`), and its
+  releases are published there: `Updater.RELEASES`, the notice file and the download page
+  (`https://samsjosten.github.io/OdinsGate/`) point at it, and so do the buttons on `docs/` here. 1.0.2 here is this
+  repository's last launcher release and raises `min-bootstrap-version.txt` to 1.0.2 on purpose: the installed shell
+  is what checks for updates, against the repository built into it, and a downloaded version runs with `--manifest`
+  and checks nothing, so no self-update could move a launcher over. Every launcher installed from here therefore
+  shows "Please download the new installer." and this page, whose buttons lead to OdinsGate's installer. The
+  launcher code, the page and the launcher workflows leave this repository in the pull request after it.
 - A release that turns out broken ships again as a new, higher version: the updater never downgrades. A fix to the
   runtime (1.0.1, 2026-10-30: the Windows certificate store module) also raises `min-bootstrap-version.txt` to the
   new version, since the self-update replaces jars and never the runtime: every older launcher then shows "Please

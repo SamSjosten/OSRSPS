@@ -1,5 +1,6 @@
 package osrsps.game.script
 
+import osrsps.game.Player
 import osrsps.game.npc.Npc
 import osrsps.game.zone.ZoneLoc
 import osrsps.game.zone.ZoneObj
@@ -32,6 +33,9 @@ enum class OpTarget {
 
     /** An inventory item used on a loc, by loc type id, with the item in [Op.obj] and its slot in [Op.sub]. */
     OBJ_ON_LOC,
+
+    /** An inventory item used on another player, by the item's obj type id, its slot in [Op.sub], the player in [Op.player]. */
+    OBJ_ON_PLAYER,
 }
 
 /**
@@ -40,7 +44,8 @@ enum class OpTarget {
  * sub-option of an NPC option; -1 when there is none. [loc] is the loc clicked, for a loc op; [groundObj] the obj clicked
  * on the ground, for [OpTarget.GROUND_OBJ]; [npc] the NPC, for an NPC op or an item used on an NPC. For an item used
  * on an NPC or a loc, [obj] is the item and [sub] its inventory slot. For an item used on another, [obj] and [objSlot]
- * are the one used and [id] and [sub] the one it was used on. [repeat] is true when a handler re-ran its own op (RS2's
+ * are the one used and [id] and [sub] the one it was used on. For an item used on a player, [id] and [obj] are the item,
+ * [sub] its slot and [player] the player it was used on. [repeat] is true when a handler re-ran its own op (RS2's
  * `p_oploc`, see [osrsps.game.World.repeatOp]) rather than the player clicking.
  */
 data class Op(
@@ -53,6 +58,7 @@ data class Op(
     val npc: Npc? = null,
     val obj: Int = -1,
     val objSlot: Int = -1,
+    val player: Player? = null,
     val repeat: Boolean = false,
 ) {
     val interfaceId: Int get() = id ushr 16
@@ -63,6 +69,7 @@ data class Op(
         OpTarget.OBJ_ON_NPC -> "obj $obj on npc $id"
         OpTarget.OBJ_ON_OBJ -> "obj $obj on obj $id"
         OpTarget.OBJ_ON_LOC -> "obj $obj on loc $id"
+        OpTarget.OBJ_ON_PLAYER -> "obj $obj on player ${player?.username}"
         else -> "${target.name.lowercase()} $id op $option"
     }
 
@@ -78,6 +85,9 @@ data class Op(
 
         /** Item [obj] from inventory slot [objSlot] used on item [target] in slot [slot]. */
         fun objOnObj(obj: Int, objSlot: Int, target: Int, slot: Int) = Op(OpTarget.OBJ_ON_OBJ, target, 1, slot, obj = obj, objSlot = objSlot)
+
+        /** Item [obj] from inventory slot [slot] used on [player]. */
+        fun objOnPlayer(obj: Int, slot: Int, player: Player) = Op(OpTarget.OBJ_ON_PLAYER, obj, 1, slot, obj = obj, player = player)
 
         fun packButton(interfaceId: Int, componentId: Int): Int {
             require(interfaceId in 0..0xFFFF && componentId in 0..0xFFFF) { "Bad component $interfaceId:$componentId" }
@@ -137,18 +147,30 @@ class Handlers {
         handlers[key] = handler
     }
 
-    /** Item [a] used on item [b], or [b] on [a]: the handler finds which was which in the [Op]. */
+    /**
+     * Item [a] used on item [b], or [b] on [a]: the handler finds which was which in the [Op]. With [ANY_OBJ] for [b] it
+     * catches [a] with every item that has no pair of its own, either way round.
+     */
     fun onObjOnObj(a: Int, b: Int, handler: Handler) {
-        require(a >= 0 && b >= 0) { "Bad objs $a and $b" }
-        for (key in setOf(Key(OpTarget.OBJ_ON_OBJ, a, b), Key(OpTarget.OBJ_ON_OBJ, b, a))) {
+        require(a >= 0 && (b >= 0 || b == ANY_OBJ)) { "Bad objs $a and $b" }
+        val keys = if (b == ANY_OBJ) setOf(Key(OpTarget.OBJ_ON_OBJ, a, ANY_OBJ)) else setOf(Key(OpTarget.OBJ_ON_OBJ, a, b), Key(OpTarget.OBJ_ON_OBJ, b, a))
+        for (key in keys) {
             require(key !in handlers) { "obj $a on obj $b already has a handler" }
             handlers[key] = handler
         }
     }
 
+    /** Item [objId] used on another player. */
+    fun onObjOnPlayer(objId: Int, handler: Handler) {
+        require(objId >= 0) { "Bad obj $objId" }
+        val key = Key(OpTarget.OBJ_ON_PLAYER, objId, 1)
+        require(key !in handlers) { "obj $objId on a player already has a handler" }
+        handlers[key] = handler
+    }
+
     fun register(target: OpTarget, id: Int, option: Int, handler: Handler) {
-        require(target != OpTarget.OBJ_ON_NPC && target != OpTarget.OBJ_ON_OBJ && target != OpTarget.OBJ_ON_LOC) {
-            "Register items used on things with onObjOnNpc, onObjOnObj or onObjOnLoc"
+        require(target != OpTarget.OBJ_ON_NPC && target != OpTarget.OBJ_ON_OBJ && target != OpTarget.OBJ_ON_LOC && target != OpTarget.OBJ_ON_PLAYER) {
+            "Register items used on things with onObjOnNpc, onObjOnObj, onObjOnLoc or onObjOnPlayer"
         }
         val maxOption = when (target) {
             OpTarget.BUTTON -> MAX_BUTTON_OPTION
@@ -166,7 +188,10 @@ class Handlers {
         if (op.target == OpTarget.OBJ_ON_NPC || op.target == OpTarget.OBJ_ON_LOC) {
             return handlers[Key(op.target, op.id, op.obj)] ?: handlers[Key(op.target, op.id, ANY_OBJ)]
         }
-        if (op.target == OpTarget.OBJ_ON_OBJ) return handlers[Key(op.target, op.id, op.obj)]
+        if (op.target == OpTarget.OBJ_ON_OBJ) {
+            // A pair's own handler first, then one for either item with any other.
+            return handlers[Key(op.target, op.id, op.obj)] ?: handlers[Key(op.target, op.id, ANY_OBJ)] ?: handlers[Key(op.target, op.obj, ANY_OBJ)]
+        }
         return handlers[Key(op.target, op.id, op.option)] ?: handlers[Key(op.target, op.id, ANY_OPTION)]
     }
 

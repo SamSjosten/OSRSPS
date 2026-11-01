@@ -142,6 +142,23 @@ class GrandExchangeTest {
     }
 
     @Test
+    fun `an item with a price but no buy limit sells only the fallback number every four hours, and buys without one`() {
+        // Lobster has a guide price and no limit in this snapshot: before the round 7 fix the bot market bought any number.
+        assertEquals(Int.MAX_VALUE, ge.limitLeft(player, types[LOBSTER]!!))
+        assertEquals(GrandExchange.NO_LIMIT_SELLS, ge.sellLimitLeft(player, types[LOBSTER]!!))
+        for (slot in 0 until 4) {
+            give(LOBSTER, 28)
+            assertEquals(PlaceResult.PLACED, ge.sell(player, LOBSTER, 28, 150, slot))
+            nextTick()
+        }
+        assertEquals(GrandExchange.NO_LIMIT_SELLS, (0 until 4).sumOf { player.ge[it]!!.completed })
+        assertEquals(0, ge.sellLimitLeft(player, types[LOBSTER]!!))
+        now += GrandExchange.LIMIT_WINDOW_MILLIS
+        nextTick()
+        assertEquals(4 * 28, (0 until 4).sumOf { player.ge[it]!!.completed })
+    }
+
+    @Test
     fun `a potion's doses share one buy limit`() {
         give(COINS, 1_000_000)
         ge.buy(player, PRAYER_4, 1500, 100)

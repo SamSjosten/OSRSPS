@@ -289,11 +289,12 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Draynor has three bankers, its townsfolk, seven pigs, the farmer, two fishing spots, Ned and Aggie`() {
+    fun `Draynor has three bankers, its townsfolk, seven pigs, the farmer, two fishing spots, Ned, Aggie, the jail guards, Leela and Morgan`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3111 to "woman", 2854 to "rat", 5007 to "imp", 2796 to "pig_1",
             2797 to "pig_2", 2798 to "piglet_1", 2799 to "piglet_2", 2800 to "piglet_3", 3251 to "farmer_farming_on_48_51", Fishing.DRAYNOR_SPOT to "0_48_50_saltfish",
-            1260 to "rag_wine_merchant", 500 to "seed_merchant", 8693 to "aprilfoolshorsesalesman", 4280 to "ned", 4284 to "aggie",
+            1260 to "rag_wine_merchant", 500 to "seed_merchant", 8693 to "aprilfoolshorsesalesman", 4280 to "ned", 4284 to "aggie", 4276 to "jailguard",
+            4277 to "jailguard_two_patrol", 4278 to "jailguard_three_patrol", 4279 to "jailguard_four_patrol", 4274 to "leela", 3479 to "morgan",
         )
         val draynorTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("draynor.json"), draynorTypes, "draynor.json")
@@ -313,6 +314,9 @@ class NpcSpawnFileTest {
         // Ned and Aggie in their houses.
         assertEquals(Tile(3100, 3258), spawns.single { it.type.id == 4280 }.let { Tile(it.x, it.z) })
         assertEquals(Tile(3086, 3259), spawns.single { it.type.id == 4284 }.let { Tile(it.x, it.z) })
+        // The jail's four guards, one of each type, and Leela and Morgan.
+        assertEquals(listOf(4276, 4277, 4278, 4279), spawns.map { it.type.id }.filter { it in 4276..4279 }.sorted())
+        assertEquals(listOf(1, 1), listOf(4274, 3479).map { id -> spawns.count { it.type.id == id } })
     }
 
     @Test
@@ -382,7 +386,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches' and the inns'`() {
+    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches', the inns' and the townsfolk`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -401,7 +405,10 @@ class NpcSpawnFileTest {
             11909 to "fai_varrock_guard_training02_f", 11910 to "fai_varrock_guard_training02_f_variant01",
             5038 to "father_lawrence", 2900 to "varrock_granny_2", 2582 to "rcu_zammy_mage1_edgeb", 1310 to "jollyboar_bartender",
             1311 to "donkey_bartender", 1312 to "bluemoon_bartender", 2895 to "fai_varrock_bluemoon_chef",
-            2896 to "fai_varrock_jollyboar_chef",
+            2896 to "fai_varrock_jollyboar_chef", 5037 to "romeo", 5035 to "juliet", 5039 to "draul_leptoc", 5040 to "phillipa",
+            7723 to "gertrude_post", 3501 to "shilop", 3502 to "philop", 3503 to "wilough", 3504 to "kanel", 11868 to "aris",
+            5209 to "tramppg", 3255 to "tramp", 16277 to "dr_harlow_vis", 14139 to "jonny_the_beard_2op", 2899 to "varrock_granny_1",
+            276 to "pmod_town_crier_varrock",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -450,8 +457,13 @@ class NpcSpawnFileTest {
         val inns = spawns.filter { it.type.id in listOf(1310, 1311, 1312, 2895, 2896) }
         assertEquals(listOf(1310, 1311, 1312, 2895, 2896), inns.map { it.type.id }.sorted())
         assertTrue(inns.all { it.restrict == MoveRestrict.INDOORS })
+        // Step 8a: one of each townsperson, the multi-NPCs as the types they show after their quests; Iffie sits still.
+        val townsfolk = listOf(276, 2899, 3255, 3501, 3502, 3503, 3504, 5035, 5037, 5039, 5040, 5209, 7723, 11868, 14139, 16277)
+        assertEquals(townsfolk, spawns.filter { it.type.id in townsfolk }.map { it.type.id }.sorted())
+        val iffie = spawns.single { it.type.id == 2899 }
+        assertEquals(0, iffie.wander)
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
         assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - elsie).all { it.wander > 0 })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - elsie - iffie).all { it.wander > 0 })
     }
 }

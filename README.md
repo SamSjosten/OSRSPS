@@ -142,7 +142,13 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
 - The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
   `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases"). 1.0.1
   the same day: the Windows runtime lacked the certificate store module (`jdk.crypto.mscapi`), so the game exited at
-  once; a 1.0.0 launcher sends its user to the download page for the new installer.
+  once; a 1.0.0 launcher sends its user to the download page for the new installer. 1.0.2 is this repository's last
+  launcher release and the bridge to the launcher's own public repository OdinsGate (`github.com/SamSjosten/OdinsGate`),
+  where the launcher, the download page (`https://samsjosten.github.io/OdinsGate/`) and every later release live: it
+  raises the minimum shell version above every launcher installed from here, so each shows "Please download the new
+  installer." and this page's buttons lead to OdinsGate's installer (the installed shell checks the repository built
+  into it, so no self-update could move it over). The pull request after it removes `launcher/`, `docs/` and the
+  launcher workflows from here.
 
 ### Files for our own launcher
 
@@ -163,7 +169,18 @@ others:
   and saved as `reports/R-0001.json` and on in the data folder, outside git; the answer is `201` with the number. At
   most 256 KB a report, 5 an hour from one address and 50 an hour in all (`429`, Retry-After one hour), and 500 waiting
   unforwarded (`503`); anything that isn't a launcher's report is a `400`. A body on any other request is refused with
-  `413`. Turning saved reports into issues is the next step.
+  `413`.
+
+  Every minute the server files waiting reports as issues in this repository (`OSRSPS_REPORTS_REPO` to change it)
+  and moves each to `reports/sent/`. Each issue is labelled `bug-report` plus what the checks found: `verified` (a
+  released launcher, from OdinsGate or the two released here, and the server's revision), `unreleased-launcher`,
+  `unchecked-launcher` (GitHub couldn't say) or `revision-mismatch`. It lists the server's commit and whether the game
+  was up when it was filed. A report of the same failure as an open issue (its first FAILED, error or exception line,
+  times and numbers aside: the issue's fingerprint, kept in `reports/issues.json`) is a comment there instead. Filing
+  needs `github-report-token.txt` in the data folder: a fine-grained token for this repository only, with Issues read
+  and write, one line, made and put there by hand, never in git. Without it (or with anything in the file that
+  isn't one token) reports wait. A report GitHub refuses outright (400, 422) goes to `reports/rejected/` so it
+  can't hold up the rest.
 
 ## Walking
 
@@ -265,7 +282,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::areasound id [radius] [loops]` | Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
 | `::jingle id` | **everyone.** Plays jingle `id` to you alone |
 | `::item id\|name [count]` | Puts items in your inventory, by id, menu name or gameval name: `::item 1351`, `::item bronze axe 2`, `::item coins 10k`. Adds what fits |
-| `::bank` | Opens your bank wherever you are |
+| `::openbank` | Opens your bank wherever you are (not `::bank`: the client turns that into a chat line and never sends it) |
 | `::empty` | Empties your inventory |
 | `::locs [radius]` | **everyone.** Lists the locs within radius tiles of you (default 1): id, name, tile, shape and angle, and whether they differ from the cache |
 | `::addloc id [shape] [angle]` | Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
@@ -789,11 +806,16 @@ village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/co
 | Step 4: Ned (`game/content/Ned.kt`) sells a rope for 15 coins or makes one from 4 balls of wool; after buying (or trying to) he tells the yak hair story and gives a free rope with a slot for it, as after Dragon Slayer I and The Fremennik Isles; Trade opens Ned's Handmade Rope at its post-Isles 90% (16 coins) | the Wiki's Transcript:Ned and shop page (read 2026-10-30); the shop's inv is borrowed (`dmm_all_star_friends_shop`), since no 241 inv is plainly Ned's |
 | Aggie (`game/content/Aggie.kt`) makes red, yellow and blue dye for 3 redberries, 2 onions or 2 woad leaves and 5 coins, from her talk, her Dyes option or an ingredient used on her, and takes 5 coins (21 to 100 held), 20 coins (101 or more) or a pot of flour for an insult | the Wiki's Transcript:Aggie; the coin check and using ingredients on her from 2004Scape's script |
 | Every account has met Aggie (varbit 13597, `gobdip_met_aggie`, set at login with the quests in `Quests.AFTER_QUESTS`), so her multi-NPC shows `aggie_2ops` with Dyes | the 241 cache's NPC 4284 |
+| Step 5: the jail's four guards (`jailguard` 4276 and its three patrol types, Attack only in 241) fight as `npc-combat.json` has them (Wiki infobox) and drop bones; they wander, as the patrols' routes aren't known, and are aggressive | the Wiki's Jail guard page; tiles from mejrs's list; animations guessed |
+| Joe, Lady Keli and the jailed Prince Ali aren't spawned: the 241 cache's `joe`, `lady_keli` and `prince_ali_prison` show nothing after Prince Ali Rescue (varp 273) | the 241 cache's multi-NPCs |
+| The cell door (`alidoor` 2881, `game/content/DraynorJail.kt`) lets the player out from inside, swinging as `poshdooropen` and shutting behind them, and is locked from outside | 2004Scape's quest_prince script; the swing and two ticks open guessed |
+| Leela's talk after Prince Ali Rescue; Morgan's first talk after Vampyre Slayer, then his later one (multi-NPC on varbit 15611, `morgan_postquest_dialogue`) | the Wiki's transcripts; the varbit's use inferred from its name |
 
-Left out until their steps: the market's stalls and guards, the jail, Morgan's and the Wise Old Man's talk,
+Left out until their steps: the market's stalls and guards, the Wise Old Man's talk,
 the bank guard, Miss Schism, the town crier, the dark wizards, the sewers' trapdoors and
 the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
 holiday items to reclaim), and Olivia's refusal after a theft comes with thieving. The wheat field picks as Lumbridge's does (`Crops`).
+Spria isn't spawned: after A Porcine of Interest she is a Slayer master (`slayer_master_9_active`), and Slayer isn't built.
 
 Check: `test-runner/examples/draynor-village.json` opens and shuts the pig pen's gate, climbs both staircases, takes
 garlic from Morgan's cupboard, opens Aggie's wardrobe and sees her cheese and tomato, and opens the bank from a banker
@@ -801,7 +823,8 @@ and from a booth; `HeadlessDraynorTest` does the gate, the stairs, the cupboard 
 client, and `GatesTest` turns a gate every way round. `test-runner/examples/draynor-willows.json` takes the axe off
 the logs, chops a willow, nets a shrimp and cooks it on the permanent fire; `HeadlessFishingTest` and `HeadlessCookingTest`
 do the Small Net spots and the fire. `test-runner/examples/draynor-ned-aggie.json` buys Ned's rope both ways and gets
-Aggie's red dye and fine; `NedAndAggieTest` walks every branch of both talks.
+Aggie's red dye and fine; `NedAndAggieTest` walks every branch of both talks. `test-runner/examples/draynor-jail.json`
+does Leela, the cell door, a jail guard and Morgan; `DraynorTalkTest` and `HeadlessDraynorTest` cover them too.
 
 ## Lumbridge church
 
@@ -961,12 +984,13 @@ Village piece's.
 | Step 5c: the Apothecary's potions screen (`apothecary_potions`, interface 556), from his Potions and from asking in his talk: Buy-1, -5, -X and -All make a strength potion(4) (limpwurt root, red spiders' eggs, 5 coins), an energy potion(4) (two limpwurt roots, chocolate dust) or an antipoison(4) (limpwurt root, cadava berries, 5 coins) for as many as the player holds ingredients and coins for; the screen's titles and ingredient texts and its messages are `apothecary_potions.*` | OSRS Wiki, Strength potion, Energy potion and Antipoison (the Apothecary's recipes); the screen's components from the 241 cache; the energy potion's 5 coins, every message and the model zoom guessed |
 | Step 6: Varrock Palace's people: King Roald (5215) with his advisor Aeonisig Raispher (3774) speaking up in his talk, Queen Ellamaria (1390) in her garden, Sir Prysin (5083), who sells a lost Silverlight back for 500 coins to a player with none held, worn or banked, Captain Rovin (5085) at the top of the palace, Reldo (multi-NPC 6203, both types) in the library, Ambassador Ferrnook (2557), the training Captain (`fai_varrock_guard_trainer02` 11906), who shouts at his five Trainee Guards (the 2022 looks, 11907 to 11910), and the caged Monk of Zamorak (528); their talk every way it goes (`king_roald.*`, `aeonisig.*`, `ellamaria.*`, `prysin.*`, `rovin.*`, `reldo.*`, `ferrnook.*`, `guard_captain.*`); the library's quest bookcases and its north-east alcove's two (`palace_library.*`). The floors, stairs and furniture are step 1's, the altar (409) is Lumbridge church's | OSRS Wiki, each NPC's transcript (King Roald after The Blood Moon Rises, Reldo after Shield of Arrav, Queen Ellamaria after Garden of Tranquillity), Varrock Palace Library and Monk of Zamorak (the cage) and Sir Prysin (Silverlight 500 coins, Darklight 1000); tiles from mejrs's live NPC list; which of the King's after-quest talks shows, which trainee look stands where, which alcove bookcase says which, the Captain's 15 to 30 ticks between shouts, every expression and the wander ranges guessed |
 | Step 7: Varrock's churches and inns: Pray-at at the church's altar (`fai_varrock_church_altar` 14860) and the Zamorakian chapel's chaos altar (61), each as Lumbridge's; Father Lawrence (5038) and Elsie (2900, upstairs), who tells her story for a cup of tea used on her; the Mage of Zamorak (2582, spawned as the type the multi-NPC 3229 shows after Rune Mysteries); the Blue Moon's (1312), Dancing Donkey's (1311) and Jolly Boar's (1310) bartenders, each selling a beer for 2 coins; the Blue Moon's cook (2895), who sells a cabbage for 1, and the Jolly Boar's (2896); their talk every way it goes (`father_lawrence.*`, `elsie.*`, `mage_of_zamorak.*`, `bluemoon_bartender.*`, `donkey_bartender.*`, `jollyboar_bartender.*`, `bluemoon_cook.*`, `jollyboar_cook.*`) | OSRS Wiki, each NPC's transcript (Father Lawrence after Romeo & Juliet, the Mage of Zamorak after Enter the Abyss); tiles from mejrs's live NPC list; which lines of the long passages the player says, that the Mage always gives his asked-before incantation answer, that a beer bought with a full backpack lands at the player's feet, that the Jolly Boar's cook always opens with his busy line, every expression and the wander ranges guessed |
+| Step 8a: Varrock's townsfolk talking: Romeo (5037), Juliet (5035, upstairs) and her parents Draul Leptoc (5039) and Phillipa (5040, upstairs), Gertrude (7723, the type her multi-NPC 3500 shows after Gertrude's Cat), who sells a kitten of a random colour for 100 coins through her talk or her Kitten option but not while a kitten or cat is held or banked, the children Shilop (3501), Wilough (3503), Philop (3502) and Kanel (3504), Aris (11868), Charlie the Tramp (5209) and a tramp (3255), each begging a coin, Dr Harlow (16277) and Jonny the Beard (14139) in the Blue Moon Inn, Iffie (2899) and the Town Crier (276), with a random tip of 27; their talk every way it goes (`romeo.*`, `juliet.*`, `draul_leptoc.*`, `phillipa.*`, `gertrude.*`, `shilop.*`, `wilough.*`, `playing_child.*`, `aris.*`, `charlie.*`, `tramp.*`, `dr_harlow.*`, `jonny_the_beard.*`, `iffie.*`, `town_crier.*`) | OSRS Wiki, each NPC's transcript (after each one's quest) and Gertrude (kittens 100 coins, one at a time); tiles from mejrs's live NPC list; Charlie's alley talk for a Black Arm Gang member, the Town Crier's menu as one loop, that Gertrude's talk also refuses while a cat is owned and which pets count, her kitten in an item box, the tramp's grumble a tick after the talk, every expression and the wander ranges guessed |
 
 Left out from step 1: the guards' Pickpocket (Thieving, step 13) and their joining in when another guard is attacked,
 the general seed table's higher subtables (no monster yet is level 49 or more), the player's own overhead lines when shooing or petting a dog, the dog
 following the player after Pet or after being fed and running off when shooed, the staircases down to basements and the sewers (`fai_varrock_bank_stairs`, `fai_varrock_ladder_deep`,
-the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. Left out from step 4: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, the keepers' treasure trail and diary talk, and Zaff's daily battlestaves, What Lies Below ring and Bryophyta's essence options. Left out from step 5: Aubury's Teleport and its talk option (no rune essence mine yet) and his Runecraft cape stock, Thessalia's Makeover and its change top and legwear options (no makeover screen yet) and her scythe, bunny ears and frog token options, Asyff's Fur Clothing, bird costume, hunting clothing and priest gown options, and the Tea Seller's shouts at a thief (Thieving, step 13). Left out from step 5b: the Apothecary's quest topics, Baraek's Ring of Charos(a) option and treasure trail clue, and Benny's overhead shouts. Left out from step 6: Reldo's Wise Old Man message, Darklight, the Monk of Zamorak's combat (he casts; the fighters' step), the Varrock Census, Surok Magis (gone once What Lies Below is done), and the White Tree's fruit and Treznor's tree patch (Farming). Left out from step 7: the chaos altar's Check, the church's sleeping church-goers, and the Mage of Zamorak's treasure trail talk. The furniture's and dogs' words are in the dialogue
-file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`, and steps 6's and 7's keys above).
+the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. Left out from step 4: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, the keepers' treasure trail and diary talk, and Zaff's daily battlestaves, What Lies Below ring and Bryophyta's essence options. Left out from step 5: Aubury's Teleport and its talk option (no rune essence mine yet) and his Runecraft cape stock, Thessalia's Makeover and its change top and legwear options (no makeover screen yet) and her scythe, bunny ears and frog token options, Asyff's Fur Clothing, bird costume, hunting clothing and priest gown options, and the Tea Seller's shouts at a thief (Thieving, step 13). Left out from step 5b: the Apothecary's quest topics, Baraek's Ring of Charos(a) option and treasure trail clue, and Benny's overhead shouts. Left out from step 6: Reldo's Wise Old Man message, Darklight, the Monk of Zamorak's combat (he casts; the fighters' step), the Varrock Census, Surok Magis (gone once What Lies Below is done), and the White Tree's fruit and Treznor's tree patch (Farming). Left out from step 7: the chaos altar's Check, the church's sleeping church-goers, and the Mage of Zamorak's treasure trail talk. Left out from step 8a: Gertrude's pick-your-own kitten option and the Ring of Charos(a) colour screen, Shilop's and Wilough's talk once paid, Charlie's treasure trail requests, Jonny the Beard's Attack (the fighters' step), the tramp's second-time opening, Iffie's talk after the Halloween 2021 event, the Town Crier's moderator branch, Rules of Conduct book and overheads, the sleeping church-goers Martina Scorsby and Jeremy Clerksin, and Toby (the Achievement Diary). The furniture's and dogs' words are in the dialogue
+file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`, and steps 6's, 7's and 8a's keys above).
 
 Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
 both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `varrock-guards.json` kills a Varrock and an Edgeville guard for their bones; `varrock-grand-exchange.json` uses the Grand Exchange's clerks, booths and a banker; `varrock-shops.json` and `varrock-stores.json` buy and sell back at each shop and talk into each; `varrock-traders.json` buys Benny's newspaper and a fur from Baraek, sells it back, talks to the Apothecary and buys a strength potion on his potions screen; `varrock-palace.json` climbs every palace floor (the roof by ladder), talks to each of its people, searches the library's bookcases and prays at the altar; `HeadlessVarrockTest`
@@ -1321,6 +1345,27 @@ devices and special attacks.
 Check: `./gradlew test --tests 'osrsps.game.combat.Ranged*' --tests 'osrsps.testclient.HeadlessRangedTest'`, and in
 RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
 
+## Home teleport
+
+Lumbridge Home Teleport, the standard spellbook's first spell (`game/content/HomeTeleport.kt`): Cast plays five stages
+on the spot and lands the player in the castle courtyard 24 ticks after the click. The cooldown is varp 892, which
+RuneLite's home teleport timer reads; `::varp 892 0` clears it for testing. Not in yet: the other books' home teleports,
+the Wilderness limit (no Wilderness yet) and teleport animation overrides. `HomeTeleport.destination` and
+`cooldownApplies` are seams another teleport (lodestones) can set from `World`'s init.
+
+| Home teleport behaviour | Source |
+|-------------------------|--------|
+| Free, no Magic level, no XP; a 30-minute cooldown shared by every home teleport | Wiki, Lumbridge Home Teleport and Home Teleport |
+| The default animation lasts 24 ticks | Wiki, Teleport override |
+| Not castable in combat or for 10 seconds after (as logging out, 16 ticks); combat interrupts it | Wiki, Home Teleport |
+| Varp 892 (`aide_tele_timer`) holds the minute (since 1970) of the last home teleport | RuneLite, Timers and Buffs plugin |
+| 218:6 (`magic_spellbook:teleport_home_standard`), op1 Cast; the stages' seqs 4847, 4850, 4853, 4855, 4857 and spotanims 800 to 804 (`aide_*`) | 241 cache |
+| The stages starting 0, 7, 13, 16 and 19 ticks in; landing on 3222, 3218; casting stopping a queued activity; only the standard book casting it; the cooldown starting on landing, so a cast cut short costs nothing; minutes left rounded down; a second click while casting doing nothing | guessed |
+| The two messages' words (`home_teleport.cooldown`, `home_teleport.in_combat`) | not on the Wiki; to be found |
+
+Check: `./gradlew test --tests 'osrsps.game.content.HomeTeleportTest' --tests 'osrsps.testclient.HeadlessHomeTeleportTest'`,
+and in RuneLite `test-runner/examples/magic-home-teleport.json`.
+
 ## NPC aggression
 
 Monsters with `"aggressive"` in `npc-combat.json` go for players unprovoked (`game/combat/Aggression.kt`), each tick
@@ -1590,7 +1635,7 @@ you were with your own stats and items.
 
 Live's J-Mod tool, obj 5733, as an admins' tool: `::item 5733` gives one. The cache gives it Eat, Slice, Peel and Mash,
 as live, so RuneLite shows it as it does there. Each option opens a menu of testing tools that run the `::` commands, so
-every pick is logged and a non-admin is refused as for a typed command. Built a menu at a time; Eat, Slice and Peel are done.
+every pick is logged and a non-admin is refused as for a typed command. Every menu is done; Use (an item on the potato, the potato on a player) comes next.
 
 | Eat | What it does | Source |
 |-----|--------------|--------|
@@ -1602,7 +1647,7 @@ every pick is logged and a non-admin is refused as for a typed command. Built a 
 
 | Peel | What it does | Source |
 |------|--------------|--------|
-| Bank menu | `::bank`: opens your bank wherever you are | Wiki |
+| Bank menu | `::openbank`: opens your bank wherever you are | Wiki |
 | Teleport to a tile | Asks for `x z [level]`, then `::tele` | ours, in place of Teleport to RARE!: there are no rares |
 | Spawn an item | Asks for `id\|name [count]`, then `::item` | ours, in place of Spawn RARE! |
 
@@ -1615,6 +1660,18 @@ Live's AMEs for all! is left out: there are no random events.
 | Set the XP rate | Asks for a rate or `restore`, then `::xprate` (for everyone) | ours |
 | Start a scenario | Asks for a name, then `::scenario`; the potato goes back in the inventory the scenario sets, or with no room there you are told `::reset` ends it | ours |
 | Reset (end the scenario) | `::reset` | ours |
+
+| Mash | What it does | Source |
+|------|--------------|--------|
+| Kick me out | Logs you out as the logout button does: at the end of the tick, and not within 16 ticks of a hit | Wiki; the combat lock is guessed |
+| Kill me | `::hit` of every hitpoint you have, so the death is the game's own (grave, items kept); `::god` stops it | Wiki |
+
+Live's Keep me logged in turns off an idle logout we don't have, and Transmogrify me isn't built.
+
+| Use | What it does | Source |
+|-----|--------------|--------|
+| Any item on the potato, or the potato on it | Deletes that item | Wiki |
+| The potato on a player | Lists their inventory in your chatbox, one line a stack | Wiki that it shows it; the chatbox list is ours. Runs where you stand, with no walk to them (guessed) |
 
 A non-admin who clicks one loses it with a message (guessed: what live does isn't known). The options' words are live's,
 so they are keys under `rotten_potato.` in the dialogue file, except our own (Heal me, Peel's Teleport to a tile and Spawn an item, and all of Slice).

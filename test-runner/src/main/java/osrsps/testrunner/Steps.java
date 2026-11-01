@@ -697,6 +697,49 @@ final class Steps
 		}
 	}
 
+	/**
+	 * Passes when the right-click options on other players ({@link Game#playerOptions}) include one equal to the text,
+	 * ignoring case, or with absent, when none does. One client is enough: the options are the same for every player.
+	 */
+	static final class AssertPlayerOption extends Step
+	{
+		final String option;
+		final boolean absent;
+
+		AssertPlayerOption(long timeoutMs, String option, boolean absent)
+		{
+			super("assertPlayerOption", timeoutMs, false);
+			this.option = option;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			String[] options = run.game.playerOptions();
+			List<String> shown = new java.util.ArrayList<>();
+			boolean found = false;
+			for (int i = 0; options != null && i < options.length; i++)
+			{
+				String o = options[i];
+				if (o == null || o.isEmpty() || o.equals("null"))
+				{
+					continue;
+				}
+				shown.add((i + 1) + ":" + o);
+				found |= o.equalsIgnoreCase(option);
+			}
+			String seen = "player options " + shown;
+			return found != absent ? Poll.pass(seen) : Poll.waiting(seen);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert player option " + option + (absent ? " absent" : "");
+		}
+	}
+
 	static final class AssertWeight extends Step
 	{
 		final int kg;
@@ -767,6 +810,53 @@ final class Steps
 		String describe()
 		{
 			return "enter amount " + amount;
+		}
+	}
+
+	/**
+	 * (0.24.0) Types text into the chatbox's text prompt, as the rotten potato's name and coordinate prompts ask for (the
+	 * server's stringDialog, meslayer_mode9).
+	 */
+	static final class EnterText extends Step
+	{
+		/** meslayer_mode9's mode: the chatbox asks for text. */
+		static final int TEXT_PROMPT = 9;
+
+		final String text;
+		private boolean sent;
+
+		EnterText(long timeoutMs, String text)
+		{
+			super("enterText", timeoutMs, false);
+			this.text = text;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int mode = run.game.promptMode();
+			if (!sent)
+			{
+				if (mode != TEXT_PROMPT)
+				{
+					return Poll.waiting("no text prompt open (meslayermode " + mode + ")");
+				}
+				run.markAction();
+				String error = run.game.enterText(text);
+				if (error != null)
+				{
+					return Poll.fail(error);
+				}
+				sent = true;
+				return Poll.waiting("entered, waiting for the prompt to close");
+			}
+			return mode == TEXT_PROMPT ? Poll.waiting("the prompt is still open") : Poll.pass("entered \"" + text + "\"");
+		}
+
+		@Override
+		String describe()
+		{
+			return "enter text \"" + text + "\"";
 		}
 	}
 
@@ -1544,14 +1634,22 @@ final class Steps
 		final int component;
 		/** -1 for the component itself. */
 		final int sub;
+		/** The name a script-built slot is for (a friends chat list's row), instead of {@code sub}; null for none. */
+		final String name;
 		final int op;
 
 		ClickWidget(long timeoutMs, int interfaceId, int component, int sub, int op)
+		{
+			this(timeoutMs, interfaceId, component, sub, null, op);
+		}
+
+		ClickWidget(long timeoutMs, int interfaceId, int component, int sub, String name, int op)
 		{
 			super("clickWidget", timeoutMs, false);
 			this.interfaceId = interfaceId;
 			this.component = component;
 			this.sub = sub;
+			this.name = name;
 			this.op = op;
 		}
 
@@ -1559,7 +1657,9 @@ final class Steps
 		Poll poll(Run run)
 		{
 			run.markAction();
-			String error = run.game.clickWidget(interfaceId, component, sub, op);
+			String error = name != null
+				? run.game.clickWidgetNamed(interfaceId, component, name, op)
+				: run.game.clickWidget(interfaceId, component, sub, op);
 			// An interface the server has just been asked for may not be open yet: keep trying.
 			return error == null ? Poll.pass("clicked") : Poll.waiting(error);
 		}
@@ -1567,7 +1667,7 @@ final class Steps
 		@Override
 		String describe()
 		{
-			return "click op " + op + " on " + interfaceId + ":" + component + (sub < 0 ? "" : " slot " + sub);
+			return "click op " + op + " on " + interfaceId + ":" + component + (name != null ? " for " + name : sub < 0 ? "" : " slot " + sub);
 		}
 	}
 
@@ -1894,13 +1994,21 @@ final class Steps
 		final String owner;
 		final String member;
 		final boolean absent;
+		/** The rank {@code member} must show with, as the server numbers them; null for any. */
+		final Integer rank;
 
 		AssertFriendsChat(long timeoutMs, String owner, String member, boolean absent)
+		{
+			this(timeoutMs, owner, member, absent, null);
+		}
+
+		AssertFriendsChat(long timeoutMs, String owner, String member, boolean absent, Integer rank)
 		{
 			super("assertFriendsChat", timeoutMs, false);
 			this.owner = owner;
 			this.member = member;
 			this.absent = absent;
+			this.rank = rank;
 		}
 
 		@Override
@@ -1921,6 +2029,15 @@ final class Steps
 			}
 			java.util.List<String> members = run.game.friendsChatMembers();
 			boolean listed = members.stream().anyMatch(m -> AssertFriend.key(m).equals(AssertFriend.key(member)));
+			if (listed && rank != null)
+			{
+				Integer shown = run.game.friendsChatRank(member);
+				if (!rank.equals(shown))
+				{
+					return Poll.waiting(member + " shows rank " + shown);
+				}
+				return Poll.pass(member + " in " + owner + "'s friends chat at rank " + rank);
+			}
 			if (listed != absent)
 			{
 				return Poll.pass(member + (absent ? " not" : "") + " in " + owner + "'s friends chat");
@@ -1935,7 +2052,8 @@ final class Steps
 			{
 				return "in no friends chat";
 			}
-			return member == null ? "in " + owner + "'s friends chat" : member + (absent ? " not" : "") + " in " + owner + "'s friends chat";
+			return member == null ? "in " + owner + "'s friends chat"
+				: member + (absent ? " not" : "") + " in " + owner + "'s friends chat" + (rank == null ? "" : " at rank " + rank);
 		}
 	}
 

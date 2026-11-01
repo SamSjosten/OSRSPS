@@ -51,6 +51,9 @@ class HeadlessRottenPotatoTest {
     private fun HeadlessClient.slice() =
         ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, SLICE_BUTTON_OP, slotOf(RottenPotato.OBJ), RottenPotato.OBJ)
 
+    private fun HeadlessClient.mash() =
+        ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, MASH_BUTTON_OP, slotOf(RottenPotato.OBJ), RottenPotato.OBJ)
+
     private fun HeadlessClient.peel() =
         ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, PEEL_BUTTON_OP, slotOf(RottenPotato.OBJ), RottenPotato.OBJ)
 
@@ -233,6 +236,90 @@ class HeadlessRottenPotatoTest {
     }
 
     @Test
+    fun `Mash's Kill me kills you with a hit of every hitpoint`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login(ADMIN).use { boss ->
+                boss.ready()
+                boss.command("item ${RottenPotato.OBJ}")
+                boss.mash()
+                val menu = boss.awaitDialogue("the Mash menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(listOf(DialogueText.NONE[RottenPotatoLines.KICK_ME_OUT], DialogueText.NONE[RottenPotatoLines.KILL_ME]), menu.options)
+                boss.chooseOption(2)
+                boss.awaitMessage("the killing hit") { it.startsWith("Hit yourself for 10") && it.endsWith(", dead") }
+            }
+        }
+    }
+
+    @Test
+    fun `Mash's Kick me out logs you out as the logout button does`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login(ADMIN).use { boss ->
+                boss.ready()
+                boss.command("item ${RottenPotato.OBJ}")
+                boss.mash()
+                boss.awaitDialogue("the Mash menu") { it is DialogueView.Menu }
+                boss.chooseOption(1)
+                boss.await("the logout") { boss.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+        }
+    }
+
+    /** The item in [from] used on the one in [to], as the inventory's Use then a click. */
+    private fun HeadlessClient.use(from: Int, to: Int) {
+        val inv = inventory(BACKPACK)
+        val i = InventoryTab.INTERFACE
+        val c = InventoryTab.ITEMS
+        ifButtonT(i, c, from, inv[from]!!.id, i, c, to, inv[to]!!.id)
+    }
+
+    @Test
+    fun `any item used on the potato, or the potato on it, is deleted`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login(ADMIN).use { boss ->
+                boss.ready()
+                boss.command("item ${RottenPotato.OBJ}")
+                boss.command("item $COINS 500")
+                boss.command("item $BONES")
+                val potatoSlot = boss.slotOf(RottenPotato.OBJ)
+                boss.use(boss.slotOf(COINS), potatoSlot)
+                boss.await("the coins gone") { boss.inventory(BACKPACK).takeIf { inv -> inv.none { it?.id == COINS } } }
+                boss.use(potatoSlot, boss.slotOf(BONES))
+                boss.await("the bones gone") { boss.inventory(BACKPACK).takeIf { inv -> inv.none { it?.id == BONES } } }
+                assertEquals(listOf(RottenPotato.OBJ), boss.inventory(BACKPACK).filterNotNull().map { it.id })
+            }
+        }
+    }
+
+    @Test
+    fun `the potato used on a player lists their inventory`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login(ADMIN).use { boss ->
+                    alice.ready()
+                    boss.ready()
+                    boss.commandReply("pause") { it.startsWith("Paused") }
+                    server.world.playerNamed("alice")!!.inventory.add(coins, 250)
+                    server.world.playerNamed("alice")!!.inventory.add(bones, 2)
+                    boss.commandReply("resume") { it.startsWith("Resumed") }
+                    boss.command("item ${RottenPotato.OBJ}")
+                    val index = server.world.playerNamed("alice")!!.index
+                    boss.playerTarget(index, InventoryTab.INTERFACE, InventoryTab.ITEMS, boss.slotOf(RottenPotato.OBJ), RottenPotato.OBJ)
+                    boss.seen("${RottenPotato.INVENTORY_OF} alice:")
+                    boss.seen("250 x Coins")
+                    boss.await("both bones") { boss.messages().count { it.text == "1 x Bones" }.takeIf { it == 2 } }
+
+                    // With nothing held, it says so.
+                    boss.commandReply("pause") { it.startsWith("Paused") }
+                    server.world.playerNamed("alice")!!.inventory.clear()
+                    boss.commandReply("resume") { it.startsWith("Resumed") }
+                    boss.playerTarget(index, InventoryTab.INTERFACE, InventoryTab.ITEMS, boss.slotOf(RottenPotato.OBJ), RottenPotato.OBJ)
+                    boss.seen("${RottenPotato.INVENTORY_OF} alice: ${RottenPotato.EMPTY}")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a non-admin's potato is taken, and nothing opens`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login(ADMIN).use { boss ->
@@ -264,5 +351,6 @@ class HeadlessRottenPotatoTest {
         const val EAT_BUTTON_OP = 2
         const val SLICE_BUTTON_OP = 3
         const val PEEL_BUTTON_OP = 4
+        const val MASH_BUTTON_OP = 6
     }
 }

@@ -26,6 +26,8 @@ data class FriendsChatSettings(
     val enter: Int = FriendChats.RANK_ANYONE,
     val talk: Int = FriendChats.RANK_ANYONE,
     val kick: Int = FriendChats.RANK_OWNER,
+    /** Ranks given to friends (Recruit 1 to General 6), by the friend's save key. */
+    val ranks: Map<String, Int> = emptyMap(),
 ) {
     companion object {
         val DEFAULT = FriendsChatSettings()
@@ -47,6 +49,8 @@ data class FriendsChatSettings(
 class FriendChats(
     /** Everyone in the world, a dropped connection waiting for a reconnect included. */
     private val online: () -> List<Player>,
+    /** The current tick, for kicks' bans. */
+    private val tick: () -> Long,
     /** The owner whose display name or save key is [name]: their settings and friends, from them or their save. */
     private val owner: (String) -> ChannelOwner?,
     private val ignores: IgnoreLists,
@@ -60,6 +64,9 @@ class FriendChats(
     /** An open channel, keyed by its owner's save key. */
     class Channel(val ownerKey: String, var ownerName: String, var settings: FriendsChatSettings, var ownerFriends: List<String>) {
         val members = ArrayList<Player>()
+
+        /** Kicked players' save keys, and the tick each may join again. Gone with the channel when it empties. */
+        val banned = HashMap<String, Long>()
     }
 
     private val channels = HashMap<String, Channel>()
@@ -84,6 +91,12 @@ class FriendChats(
             notify(player, FriendsChatLines.NO_CHANNEL)
             return
         }
+        val bannedUntil = channel.banned[player.saveKey]
+        if (bannedUntil != null && tick() < bannedUntil) {
+            notify(player, FriendsChatLines.BANNED)
+            return
+        }
+        if (bannedUntil != null) channel.banned.remove(player.saveKey)
         if (rank(channel, player) < channel.settings.enter) {
             notify(player, FriendsChatLines.NOT_ALLOWED)
             if (channel.members.isEmpty()) channels.remove(channel.ownerKey)
@@ -177,9 +190,81 @@ class FriendChats(
         }
     }
 
-    /** The owner's friends list changed, so the ranks their friends hold do too. */
+    /** The owner's friends list changed, so the ranks their friends hold do too. A deleted friend's rank goes. */
     fun ownerFriendsChanged(owner: Player) {
+        val keys = owner.friends.mapNotNull(SaveStore::saveKey).toSet()
+        if (owner.friendsChat.ranks.keys.any { it !in keys }) {
+            owner.friendsChat = owner.friendsChat.copy(ranks = owner.friendsChat.ranks.filterKeys { it in keys })
+        }
         val channel = channels[owner.saveKey] ?: return
+        channel.ownerFriends = owner.friends.toList()
+        channel.settings = owner.friendsChat
+        broadcastFull(channel)
+    }
+
+    /**
+     * The owner picked a rank for a friend in the setup screen's list (FRIENDCHAT_SETRANK): 0 takes it away, back to
+     * Friend; 1 to 6 are Recruit to General. Only a friend can hold one (the list is the friends list).
+     */
+    fun setRank(owner: Player, name: String, rank: Int): Boolean {
+        val friend = owner.friends.firstOrNull { sameName(it, name.trim()) } ?: return false
+        val key = SaveStore.saveKey(friend) ?: return false
+        if (rank !in RANK_FRIEND..RANK_GENERAL) return false
+        val ranks = LinkedHashMap(owner.friendsChat.ranks)
+        if (rank != RANK_FRIEND && key !in ranks && ranks.size >= MAX_RANKS) return false
+        if (rank == RANK_FRIEND) ranks.remove(key) else ranks[key] = rank
+        owner.friendsChat = owner.friendsChat.copy(ranks = ranks)
+        updateOpen(owner)
+        return true
+    }
+
+    /**
+     * The owner picked who may enter, talk or kick on the setup screen ([SETUP_ENTER], [SETUP_TALK] or [SETUP_KICK],
+     * option [op]). Inferred: players already in stay, whatever the new entry rank.
+     */
+    fun setOption(owner: Player, component: Int, op: Int): Boolean {
+        val rank = when (op) {
+            1 -> RANK_ANYONE
+            in 2..9 -> op - 2
+            else -> return false
+        }
+        owner.friendsChat = when (component) {
+            SETUP_ENTER -> owner.friendsChat.copy(enter = rank)
+            SETUP_TALK -> owner.friendsChat.copy(talk = rank)
+            // Only Corporal+ and up: the menu offers nothing lower (chatchannel_setup's opt_kick).
+            SETUP_KICK -> if (rank < RANK_CORPORAL) return false else owner.friendsChat.copy(kick = rank)
+            else -> return false
+        }
+        updateOpen(owner)
+        return true
+    }
+
+    /**
+     * Kick user on a member (FRIENDCHAT_KICK): the kicker needs the channel's kick rank and a rank above the member's.
+     * The member is put out and can't join again for an hour, unless the channel empties first (OSRS Wiki, Friends chat).
+     */
+    fun kick(kicker: Player, name: String) {
+        val channel = channelOf(kicker) ?: return
+        val target = channel.members.firstOrNull { sameName(it.username, name.trim()) } ?: return
+        val kickerRank = rank(channel, kicker)
+        if (kickerRank < channel.settings.kick || kickerRank <= rank(channel, target)) {
+            notify(kicker, FriendsChatLines.CANT_KICK)
+            return
+        }
+        // Bans past their hour go first, so a channel that never empties keeps only the last hour's kicks.
+        val now = tick()
+        channel.banned.values.removeIf { it <= now }
+        channel.banned[target.saveKey] = now + BAN_TICKS
+        leave(target, quiet = true)
+        target.friendsChatOwner = null
+        notify(target, FriendsChatLines.KICKED)
+        logger.info { "${kicker.username} kicked ${target.username} from ${channel.ownerName}'s friends chat" }
+    }
+
+    /** Sends the owner's open channel, if any, its new settings. */
+    private fun updateOpen(owner: Player) {
+        val channel = channels[owner.saveKey] ?: return
+        channel.settings = owner.friendsChat
         channel.ownerFriends = owner.friends.toList()
         broadcastFull(channel)
     }
@@ -208,7 +293,7 @@ class FriendChats(
     /** [player]'s rank in [channel]: owner, a friend of the owner, or none. Pass [friends] when ranking many at once. */
     fun rank(channel: Channel, player: Player, friends: List<String> = ownerFriends(channel)): Int = when {
         player.saveKey == channel.ownerKey -> RANK_OWNER
-        friends.any { sameName(it, player.username) } -> RANK_FRIEND
+        friends.any { sameName(it, player.username) } -> channel.settings.ranks[player.saveKey] ?: RANK_FRIEND
         else -> RANK_NONE
     }
 
@@ -239,8 +324,13 @@ class FriendChats(
     private fun optionLine(rank: Int): Line = when (rank) {
         RANK_ANYONE -> FriendsChatLines.OPTION_ANYONE
         RANK_FRIEND -> FriendsChatLines.OPTION_FRIENDS
-        RANK_OWNER -> FriendsChatLines.OPTION_ONLY_ME
-        else -> FriendsChatLines.OPTION_RANK_PLUS
+        1 -> FriendsChatLines.OPTION_RECRUIT
+        2 -> FriendsChatLines.OPTION_CORPORAL
+        3 -> FriendsChatLines.OPTION_SERGEANT
+        4 -> FriendsChatLines.OPTION_LIEUTENANT
+        5 -> FriendsChatLines.OPTION_CAPTAIN
+        6 -> FriendsChatLines.OPTION_GENERAL
+        else -> FriendsChatLines.OPTION_ONLY_ME
     }
 
     private fun notify(player: Player, line: Line, vararg values: Pair<String, Any>) {
@@ -261,6 +351,7 @@ class FriendChats(
         const val SETUP_ENTER = 13
         const val SETUP_TALK = 16
         const val SETUP_KICK = 19
+        val SETUP_OPTIONS = setOf(SETUP_ENTER, SETUP_TALK, SETUP_KICK)
 
         /**
          * Ranks, as the client's friends chat packets carry them: none (not on the owner's list), Friend, Recruit to
@@ -269,7 +360,16 @@ class FriendChats(
         const val RANK_ANYONE = -2
         const val RANK_NONE = -1
         const val RANK_FRIEND = 0
+        const val RANK_RECRUIT = 1
+        const val RANK_CORPORAL = 2
+        const val RANK_GENERAL = 6
         const val RANK_OWNER = 7
+
+        /** A kick bars the player for 60 minutes (OSRS Wiki, Friends chat): 6,000 ticks. */
+        const val BAN_TICKS = 6_000L
+
+        /** Ranks an owner may give out (OSRS Wiki: 400 for members). */
+        const val MAX_RANKS = 400
 
         /** OSRS Wiki, Friends chat: a channel holds 500. */
         const val MAX_MEMBERS = 500
@@ -298,6 +398,14 @@ object FriendsChatLines : Lines("friends_chat", "Friends chat") {
     val BAD_NAME = line("bad_name", "a channel name that isn't 1 to 12 letters, digits and spaces; words guessed")
     val OPTION_ANYONE = line("option_anyone", "a setup option: Anyone")
     val OPTION_FRIENDS = line("option_friends", "a setup option: Any friends")
-    val OPTION_RANK_PLUS = line("option_rank_plus", "a setup option: a rank and above")
+    val OPTION_RECRUIT = line("option_recruit", "a setup option: Recruit and above")
+    val OPTION_CORPORAL = line("option_corporal", "a setup option: Corporal and above")
+    val OPTION_SERGEANT = line("option_sergeant", "a setup option: Sergeant and above")
+    val OPTION_LIEUTENANT = line("option_lieutenant", "a setup option: Lieutenant and above")
+    val OPTION_CAPTAIN = line("option_captain", "a setup option: Captain and above")
+    val OPTION_GENERAL = line("option_general", "a setup option: General and above")
+    val KICKED = line("kicked", "kicked from the channel")
+    val BANNED = line("banned", "joining a channel within an hour of a kick from it")
+    val CANT_KICK = line("cant_kick", "Kick user without the rank for it; words guessed")
     val OPTION_ONLY_ME = line("option_only_me", "a setup option: Only me")
 }

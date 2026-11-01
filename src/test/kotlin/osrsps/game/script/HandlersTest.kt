@@ -76,4 +76,26 @@ class HandlersTest {
         assertFailsWith<IllegalArgumentException> { handlers.onObjOnLoc(24961, 1947) {} }
         assertFailsWith<IllegalArgumentException> { handlers.register(OpTarget.OBJ_ON_LOC, 24961, 1) {} }
     }
+
+    @Test
+    fun `an any-item handler catches its item with others either way round, after a pair's own`() {
+        val any: Handler = {}
+        val pair: Handler = {}
+        handlers.onObjOnObj(5733, Handlers.ANY_OBJ, any)
+        handlers.onObjOnObj(5733, 995, pair)
+        assertSame(any, handlers.find(Op.objOnObj(526, 0, 5733, 1)))
+        assertSame(any, handlers.find(Op.objOnObj(5733, 1, 526, 0)))
+        assertSame(pair, handlers.find(Op.objOnObj(995, 0, 5733, 1)))
+        assertSame(pair, handlers.find(Op.objOnObj(5733, 1, 995, 0)))
+        assertNull(handlers.find(Op.objOnObj(526, 0, 995, 1)))
+        assertFailsWith<IllegalArgumentException> { handlers.onObjOnObj(5733, Handlers.ANY_OBJ) {} }
+    }
+
+    @Test
+    fun `items used on players are found by the item`() {
+        val potato: Handler = {}
+        handlers.onObjOnPlayer(5733, potato)
+        assertFailsWith<IllegalArgumentException> { handlers.onObjOnPlayer(5733) {} }
+        assertFailsWith<IllegalArgumentException> { handlers.register(OpTarget.OBJ_ON_PLAYER, 5733, 1) {} }
+    }
 }

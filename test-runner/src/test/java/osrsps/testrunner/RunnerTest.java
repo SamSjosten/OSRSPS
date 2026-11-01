@@ -646,6 +646,23 @@ public class RunnerTest
 	}
 
 	@Test
+	public void playerOptionsPassOnTheShownOrMissingText() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertPlayerOption\",\"option\":\"trade with\",\"absent\":true},"
+			+ "{\"step\":\"assertPlayerOption\",\"option\":\"Trade with\"}"), "file");
+		game.playerOptions = new String[] {null, "null", "Follow", "Trade with", null, null, null, "Report"};
+		assertNull(cycle());
+		game.playerOptions = new String[] {null, "null", "Follow", "", null, null, null, "Report"};
+		assertNull(cycle());
+		game.playerOptions = new String[] {null, "null", "Follow", "Trade with", null, null, null, "Report"};
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("assert player option trade with absent", r.steps.get(0).description);
+		assertEquals("player options [3:Follow, 8:Report]", r.steps.get(0).detail);
+		assertEquals("player options [3:Follow, 4:Trade with, 8:Report]", r.steps.get(1).detail);
+	}
+
+	@Test
 	public void npcHealthWaitsForTheBarThenChecksTheBounds() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertNpcHealth\",\"npc\":\"Man\",\"max\":99,\"timeoutMs\":100}"), "file");
@@ -767,6 +784,25 @@ public class RunnerTest
 		assertEquals("enter amount 5000", r.steps.get(0).description);
 		assertEquals("entered 5000", r.steps.get(0).detail);
 		assertEquals("step 2 (enter amount 1): timed out after 40 ms: no number prompt open (meslayermode 0)", r.failure);
+	}
+
+	@Test
+	public void textWaitsForTheTextPromptAndItsClosing() throws Exception
+	{
+		runner.start(script("{\"step\":\"enterText\",\"text\":\"alice\"},{\"step\":\"enterText\",\"text\":\"bob\",\"timeoutMs\":40}"), "file");
+		game.promptMode = 7;
+		assertNull(cycle());
+		assertFalse(game.actions.contains("text alice"));
+		game.promptMode = 9;
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertTrue(game.actions.contains("text alice"));
+		assertEquals("enter text \"alice\"", r.steps.get(0).description);
+		assertEquals("entered \"alice\"", r.steps.get(0).detail);
+		assertEquals("step 2 (enter text \"bob\"): timed out after 40 ms: no text prompt open (meslayermode 0)", r.failure);
 	}
 
 	@Test
@@ -1118,6 +1154,38 @@ public class RunnerTest
 		assertEquals(Result.PASS, r.result);
 		assertEquals("test2 in Test's friends chat", r.steps.get(2).detail);
 		assertEquals("test3 not in test's friends chat", r.steps.get(3).description);
+	}
+
+	@Test
+	public void friendsChatRankAndAClickOnANamedRow() throws Exception
+	{
+		game.friendsChatOwner = "test";
+		game.friendsChatMembers.add("test2");
+		runner.start(script("{\"step\":\"clickWidget\",\"interfaceId\":94,\"component\":28,\"name\":\"test2\",\"op\":4},"
+			+ "{\"step\":\"assertFriendsChat\",\"owner\":\"test\",\"member\":\"test2\",\"rank\":3,\"timeoutMs\":1000}"), "file");
+		assertNull(cycle());
+		assertEquals(List.of("click 94:28 test2 op 4"), game.actions);
+		// Listed, but not yet at the rank: still waiting.
+		game.friendsChatRanks.put("test2", 0);
+		assertNull(cycle());
+		game.friendsChatRanks.put("test2", 3);
+		Result r = null;
+		for (int i = 0; i < 5 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertEquals(Result.PASS, r.result);
+		assertEquals("click op 4 on 94:28 for test2", r.steps.get(0).description);
+		assertEquals("test2 in test's friends chat at rank 3", r.steps.get(1).detail);
+	}
+
+	@Test
+	public void clickWidgetNameAndFriendsChatRankAreChecked()
+	{
+		Script.Invalid slot = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"clickWidget\",\"interfaceId\":7,\"component\":12,\"slot\":0,\"name\":\"a\"}"));
+		assertTrue(slot.getMessage(), slot.getMessage().contains("\"name\""));
+		Script.Invalid rank = org.junit.Assert.assertThrows(Script.Invalid.class, () -> script("{\"step\":\"assertFriendsChat\",\"owner\":\"a\",\"rank\":1}"));
+		assertTrue(rank.getMessage(), rank.getMessage().contains("\"rank\""));
 	}
 
 	@Test
