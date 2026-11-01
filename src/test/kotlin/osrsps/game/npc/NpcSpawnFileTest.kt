@@ -257,11 +257,12 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Edgeville has four bankers behind the booths, the grange's seven men, its rats, giant spiders and imps, its shopkeepers and its guards`() {
+    fun `Edgeville has four bankers behind the booths, the grange's seven men, its rats, giant spiders and imps, its shopkeepers, its guards, its people and the Basement of Doom`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3107 to "man2", 3108 to "man3", 2854 to "rat", 3017 to "giantspider1", 5007 to "imp",
             2821 to "generalshopkeeper5", 2822 to "generalassistant5", 7457 to "lost_property_merchant_standard", 822 to "oziach", 2200 to "wilderness_capeseller_6",
-            3254 to "guard1",
+            3254 to "guard1", 4808 to "hundred_dave_mum", 1325 to "canoeing_hari", 13644 to "ikov_lucien2", 4806 to "hundred_evil_dave",
+            4809 to "hundred_dave_hellrat", 6793 to "hundred_dave_bigrat",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("edgeville.json"), types, "edgeville.json")
@@ -284,8 +285,13 @@ class NpcSpawnFileTest {
         assertTrue(guards.all { it.z in 3512..3518 })
         // One each of the General Store's keepers, Perdu (upstairs, level 1), Oziach and Richard.
         assertEquals(listOf(2821, 2822, 7457, 822, 2200), spawns.map { it.type.id }.filter { it in setOf(2821, 2822, 7457, 822, 2200) })
-        // South of the Wilderness Ditch (z 3521), within map square 48,54 but for Oziach's hut just west of it (x 3069).
-        assertTrue(spawns.all { it.x in 3064..3135 && it.z in 3456..3520 && it.level == (if (it.type.id == 7457) 1 else 0) && it.source.isNotBlank() })
+        // One each of Doris, Hari and Lucien; Evil Dave, 18 hell-rats and the Wiki's four behemoths in the Basement of Doom.
+        assertEquals(listOf(4808, 1325, 13644), spawns.map { it.type.id }.filter { it in setOf(4808, 1325, 13644) })
+        val basement = spawns.filter { it.type.id in setOf(4806, 4809, 6793) }
+        assertEquals(listOf(1, 18, 4), listOf(4806, 4809, 6793).map { id -> basement.count { it.type.id == id } })
+        assertTrue(basement.all { it.x in 3064..3090 && it.z in 9870..9905 && it.level == 0 })
+        // The rest south of the Wilderness Ditch (z 3521), within map square 48,54 but for Oziach's hut just west of it (x 3069).
+        assertTrue((spawns - basement.toSet()).all { it.x in 3064..3135 && it.z in 3456..3520 && it.level == (if (it.type.id == 7457) 1 else 0) && it.source.isNotBlank() })
     }
 
     @Test
