@@ -393,6 +393,21 @@ class RangedCombatTest {
     }
 
     @Test
+    fun `shots at an NPC in an area that is going away are forgotten and drop nothing`() {
+        val npc = spawn(type = dummy)
+        wield(alice, darkbow, bronzeArrow, 3)
+        attack(alice, npc)
+        tick()
+        assertEquals(2, ranged.shotsInFlight)
+        alice.interaction = null
+        ranged.forgetArea { x, z -> x == npc.x && z == npc.z }
+        assertEquals(0, ranged.shotsInFlight)
+        assertEquals(0, npc.incoming)
+        repeat(12) { tick() }
+        assertTrue(dropped.isEmpty(), dropped.toString())
+    }
+
+    @Test
     fun `the dark bow fires two arrows at once, or one when one is left`() {
         val npc = spawn(type = dummy)
         wield(alice, darkbow, bronzeArrow, 3)
