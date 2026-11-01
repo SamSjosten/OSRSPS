@@ -110,9 +110,11 @@ class Player(
 
     /**
      * The friends and ignore lists go again when the client next says its map is built (MAP_BUILD_COMPLETE) after a
-     * login or reconnect: the client had dropped the ones sent with the login (VM 215, 2026-11-01: FRIENDLIST_LOADED
-     * reached it in the first tick, yet its Friends tab stayed on "Loading friends list").
+     * login or reconnect. Seen (VM 215, 2026-11-01, RSProx): FRIENDLIST_LOADED reached the client in the login's first
+     * tick, yet its Friends tab stayed on "Loading friends list".
      */
+    // Inferred: that the client drops lists that early, and that sending them again after the map build fixes it.
+    // Not checked against live, which may send them later in the login instead.
     var listsAfterMapBuild = false
 
     /** Whether the connection is gone and the player waits in the world for the client to reconnect. */
