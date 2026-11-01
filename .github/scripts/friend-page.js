@@ -1,12 +1,14 @@
-// The friend download page and guides (docs/, served by GitHub Pages; README.md, "Letting friends test"), checked
-// by the friend-page job in .github/workflows/build.yml:
-//   - no page carries a banned word (the launcher's Names.BANNED, read from Names.java) outside its links, which
-//     may name this repo;
-//   - every link is https to a known host or a file in docs/; a download link under OdinsGate's (the launcher's own
-//     repository since 1.0.2) releases/latest/download/ names an installer the launcher's Names.java knows;
-//   - index.html links every installer exactly once.
+// The old friend download page (docs/, served by GitHub Pages; README.md, "Letting friends test"), checked by the
+// friend-page job in .github/workflows/build.yml. The launcher and its page moved to the public repository OdinsGate
+// with launcher 1.0.2, but every launcher installed from here (1.0.0, 1.0.1) still sends its user to this page for
+// "Please download the new installer", so it stays as a forward to the same page there, until this repository goes
+// private and Pages here ends:
+//   - every page forwards at once (a meta refresh) to the page of the same name under OdinsGate's page, and links
+//     that one, and only that one, for a browser that doesn't follow the refresh;
+//   - no page carries a banned word (the launcher's Names.BANNED) outside its links;
+//   - nothing but such pages is there (and .nojekyll, which serves the files as they are), and index.html is.
 //
-//   node .github/scripts/friend-page.js [docs dir] [Names.java]
+//   node .github/scripts/friend-page.js [docs dir]
 //
 // The checks are check() below, on plain data; the command line reads the files and prints each problem.
 
@@ -14,73 +16,56 @@ const fs = require('fs');
 const path = require('path');
 
 const DOCS = 'docs';
-const NAMES = 'launcher/src/main/java/net/odinsgate/launcher/Names.java';
-const DOWNLOAD = 'https://github.com/SamSjosten/OdinsGate/releases/latest/download/';
-const HOSTS = ['github.com', 'runelite.net', 'samsjosten.github.io'];
+const MOVED_TO = 'https://samsjosten.github.io/OdinsGate/';
+// The launcher's Names.BANNED (OdinsGate, launcher/src/main/java/net/odinsgate/launcher/Names.java).
+const BANNED = /runescape|osrs|jagex|scape|rsps/i;
 
-// The banned pattern and the installer names, read from Names.java so the page can't drift from the code.
-function namesFrom(javaText) {
-  const banned = javaText.match(/BANNED = Pattern\.compile\("([^"]+)"/);
-  if (!banned) throw new Error('Names.java has no BANNED pattern');
-  const installers = [...javaText.matchAll(/static final String [A-Z0-9_]*INSTALLER[A-Z0-9_]* = "([^"]+)"/g)]
-    .map(m => m[1]);
-  if (installers.length === 0) throw new Error('Names.java names no installer');
-  return { banned: new RegExp(banned[1], 'i'), installers };
+// Where a page of this name forwards to: OdinsGate's page of the same name, its index as the folder itself.
+function forwardFor(file) {
+  return MOVED_TO + (file === 'index.html' ? '' : file);
 }
 
-// The problems with the pages: `files` maps each file name under docs/ to its text, `names` is namesFrom().
-function check(files, names) {
+// The problems with the pages: `files` maps each file name under docs/ to its text.
+function check(files) {
   const problems = [];
-  const counts = new Map(names.installers.map(name => [name, 0]));
   for (const [file, text] of Object.entries(files)) {
-    const words = text.replace(/\b(?:href|src)="[^"]*"/g, '');
-    const banned = words.match(names.banned);
+    if (file === '.nojekyll') continue;
+    if (!file.endsWith('.html')) {
+      problems.push(`${file}: only forwarding pages belong here`);
+      continue;
+    }
+    const banned = text.replace(/\b(?:href|src|content)="[^"]*"/g, '').match(BANNED);
     if (banned) problems.push(`${file}: holds the banned word "${banned[0]}"`);
-    if (!file.endsWith('.html')) continue;
-    for (const [, href] of text.matchAll(/\bhref="([^"]*)"/g)) {
-      if (href.startsWith('#')) continue;
-      if (/^[a-z]+:/i.test(href)) {
-        let url;
-        try { url = new URL(href); } catch { problems.push(`${file}: "${href}" isn't a URL`); continue; }
-        if (url.protocol !== 'https:') { problems.push(`${file}: "${href}" isn't https`); continue; }
-        if (!HOSTS.includes(url.hostname)) { problems.push(`${file}: "${href}" is on a host the page shouldn't link`); continue; }
-        if (href.startsWith(DOWNLOAD)) {
-          const name = href.slice(DOWNLOAD.length);
-          if (!counts.has(name)) problems.push(`${file}: "${name}" isn't an installer Names.java knows`);
-          else if (file === 'index.html') counts.set(name, counts.get(name) + 1);
-        } else if (href.startsWith('https://github.com/SamSjosten/OdinsGate/')) {
-          problems.push(`${file}: "${href}" points into the repo; friends only get releases/latest/download/ links`);
-        }
-        continue;
-      }
-      const target = href.split('#')[0];
-      if (!(target in files)) problems.push(`${file}: "${href}" isn't a file in docs/`);
+    const to = forwardFor(file);
+    const refresh = text.match(/<meta http-equiv="refresh" content="0; url=([^"]*)">/);
+    if (!refresh) problems.push(`${file}: doesn't forward at once`);
+    else if (refresh[1] !== to) problems.push(`${file}: forwards to "${refresh[1]}", not ${to}`);
+    const links = [...text.matchAll(/<a\b[^>]*\bhref="([^"]*)"/g)].map(m => m[1]);
+    if (!links.includes(to)) problems.push(`${file}: doesn't link ${to}`);
+    for (const link of links) {
+      if (link !== to) problems.push(`${file}: links "${link}", not only ${to}`);
     }
   }
   if (!('index.html' in files)) problems.push('docs/ has no index.html');
-  for (const [name, count] of counts) {
-    if (count !== 1) problems.push(`index.html links ${name} ${count} time(s), not once`);
-  }
   return problems;
 }
 
 function main(argv) {
   const docs = argv[0] || DOCS;
-  const namesFile = argv[1] || NAMES;
   const files = {};
   for (const entry of fs.readdirSync(docs, { withFileTypes: true })) {
     if (entry.isFile()) files[entry.name] = fs.readFileSync(path.join(docs, entry.name), 'utf8');
   }
-  const problems = check(files, namesFrom(fs.readFileSync(namesFile, 'utf8')));
+  const problems = check(files);
   for (const problem of problems) console.log(problem);
   if (problems.length > 0) {
     console.log(`${problems.length} problem(s) with the friend page`);
     return 1;
   }
-  console.log(`friend page: ${Object.keys(files).length} file(s) in ${docs} checked, all links and words fine`);
+  console.log(`friend page: ${Object.keys(files).filter(f => f.endsWith(".html")).length} page(s) in ${docs} forward to ${MOVED_TO}`);
   return 0;
 }
 
-module.exports = { check, namesFrom, DOWNLOAD, HOSTS };
+module.exports = { check, forwardFor, MOVED_TO };
 
 if (require.main === module) process.exit(main(process.argv.slice(2)));

@@ -24,7 +24,7 @@ on:
   # Every workflow whose checks land on a pull request's head: merging by itself, the queue waits for all of them, and
   # nothing else wakes it when the last one to finish isn't build.
   workflow_run:
-    workflows: [build, mergeable, pin-health, release]
+    workflows: [build, mergeable]
     types: [completed]
   # The queue only moves on an event: when nobody pushes or comments for a while, green pull requests that fell behind
   # main would wait for the next one (2026-10-30 19:31Z to 2026-11-01 02:02Z). This looks again every 15 minutes.

@@ -120,14 +120,14 @@ that it needs the same password (see Accounts).
 ### Letting friends test
 
 Friends reach the server at `odinsgate.net`, a VPS that relays TCP 43594 and 43595 (and nothing else) to it; the Home
-Lab project runs the relay. They install Odin's Gate, our launcher, from the download page,
-https://samsjosten.github.io/OSRSPS/ (`docs/` in this repo, served by GitHub Pages once it is switched on in the
-repo's settings: Pages, deploy from a branch, `main`, `/docs`): one button per system, a guide for each, and the
-first-start steps for an app no paid certificate signs. The launcher downloads RuneLite from RuneLite's own servers,
-patches it in memory to our server and key, and updates itself from this repo's releases (`launcher/README.md`).
-Each friend logs in with a name and password of their own, never any other game's login; the first login as a name
-claims it (see Accounts). CI's `friend-page` job holds the page to its links (https, known hosts, every installer the
-release publishes exactly once) and to the names rule (`.github/scripts/friend-page.js`).
+Lab project runs the relay. They install Odin's Gate, our launcher, from its download page,
+https://samsjosten.github.io/OdinsGate/. The launcher, the page and every release live in the public repository
+OdinsGate (`github.com/SamSjosten/OdinsGate`, its `launcher/README.md`) since launcher 1.0.2, this repository's last
+launcher release: 1.0.2 raised the minimum shell version above every launcher installed from here (1.0.0, 1.0.1), so
+each shows "Please download the new installer." with the old page, `docs/` here, which now only forwards to
+OdinsGate's (CI's `friend-page` job holds it to that, `.github/scripts/friend-page.js`). The launcher downloads RuneLite
+from RuneLite's own servers and patches it in memory to our server and key. Each friend logs in with a name and
+password of their own, never any other game's login; the first login as a name claims it (see Accounts).
 
 - A friend who used RSProx before: the launcher keeps its own game settings, so RuneLite settings made under RSProx
   don't carry over; the name and password do. RSProx stays the developer route (above) and still works for friends on
@@ -136,25 +136,14 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
 - Nothing of the game's is handed out: the launcher and RSProx both download RuneLite and the game client themselves.
 - The launcher pins the RuneLite build per revision in `src/main/resources/runelite-pins.json` (a commit of RuneLite's
   [static.runelite.net history](https://github.com/runelite/static.runelite.net/commits/gh-pages/bootstrap.json); the
-  signed manifest carries the table, and RSProx's target names the same build). RuneLite moves to each new revision
-  within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
-  revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
-- The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
-  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases"). 1.0.1
-  the same day: the Windows runtime lacked the certificate store module (`jdk.crypto.mscapi`), so the game exited at
-  once; a 1.0.0 launcher sends its user to the download page for the new installer. 1.0.2 is this repository's last
-  launcher release and the bridge to the launcher's own public repository OdinsGate (`github.com/SamSjosten/OdinsGate`),
-  where the launcher, the download page (`https://samsjosten.github.io/OdinsGate/`) and every later release live: it
-  raises the minimum shell version above every launcher installed from here, so each shows "Please download the new
-  installer." and this page's buttons lead to OdinsGate's installer (the installed shell checks the repository built
-  into it, so no self-update could move it over). The pull request after it removes `launcher/`, `docs/` and the
-  launcher workflows from here.
+  signed manifest carries OdinsGate's copy of the table, and RSProx's target names the same build). RuneLite moves to
+  each new revision within hours of live, and our server turns a client of another revision away, so a revision bump
+  adds the new revision's build to both copies first (CONTRIBUTING.md, "The launcher's copies").
 
 ### Files for our own launcher
 
-Odin's Gate, our launcher (being built to replace RSProx for friends; its code is `launcher/`, its own Gradle build
-like the plugins'), reads its own files from the same HTTP port, each written for the host it was asked by like the
-others:
+Odin's Gate, our launcher (in the OdinsGate repository, above), reads its own files from the same HTTP port, each
+written for the host it was asked by like the others:
 
 - `/status.json`: whether the game is up (its game loop ended a cycle in the last 10 s) and taking logins, the revision
   it plays, the commit it runs (the one `/version` gives), how many players are in, and the JS5 count `/status` gives,
