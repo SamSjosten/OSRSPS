@@ -55,6 +55,8 @@ final class Steps
 		private String focusNote;
 		/** Set once a chatbox prompt has been closed for this line. */
 		private String promptNote;
+		/** The game tick the level-up box was last clicked on before sending, or -1. */
+		private int levelUpTick = -1;
 
 		Chat(String type, long timeoutMs, String text, String expectMessage)
 		{
@@ -68,6 +70,23 @@ final class Steps
 		{
 			if (!sent)
 			{
+				// (0.19.0) A level-up box over the chatbox (XP from the step before) leaves no chat input to type into,
+				// so the line never went (the artisan thread's scripts, 1 Nov 2026). Click it away first, as a player
+				// would, and send once it has gone.
+				Dialogue levelUp = run.game.dialogue() == null ? run.game.levelUp() : null;
+				if (levelUp != null)
+				{
+					if (levelUpTick < 0 || run.gameTicks() - levelUpTick >= FinishDialogue.SAME_PAGE_TICKS)
+					{
+						String error = run.game.continueDialogue();
+						if (error != null)
+						{
+							return Poll.fail(error);
+						}
+						levelUpTick = run.gameTicks();
+					}
+					return Poll.waiting("closing the level-up box first: " + levelUp);
+				}
 				run.markAction();
 				String error = run.game.sendChat(text);
 				if (error != null)

@@ -434,7 +434,8 @@ objectbox_double, the box with two items.
   whether the canvas had focus. (0.17.0) An open chatbox prompt takes the Enter for itself, so one of those tries
   closes it instead (once per line), and the result also says whether the Swing thread had sent the last Enter,
   where the keyboard focus was, whether the window was active and any prompt still open. If the line still stays,
-  restart the client and keep that result: its detail is what will find the cause.
+  restart the client and keep that result: its detail is what will find the cause. (0.19.0) A level-up box over the
+  chatbox leaves no input to type into, so `command` and `chat` click it away first and send once it has gone.
 - `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles. When the tile
   is off screen it turns the camera toward it, so a script can leave the camera however it finds it.
 - Auto login starts the login by setting the client's game state to LOGGING_IN, as RuneLite's developer tools do.

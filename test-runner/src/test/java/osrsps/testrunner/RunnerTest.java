@@ -423,6 +423,23 @@ public class RunnerTest
 	}
 
 	@Test
+	public void chatClicksALevelUpBoxAwayBeforeSending() throws Exception
+	{
+		// The step before gave a level: its box sits over the chatbox, where the line would be typed.
+		game.levelUp = new Dialogue(Dialogue.Kind.LEVEL_UP, "[levelup.title article=a skill=Crafting]", "[levelup.body skill=Crafting level=2]", null);
+		runner.start(script("{\"step\":\"command\",\"text\":\"::stats\",\"timeoutMs\":70}"), "file");
+		assertNull(cycle());
+		assertEquals(List.of("continue"), game.actions);
+		// Not clicked again until a few ticks have gone by.
+		assertNull(cycle());
+		assertEquals(List.of("continue"), game.actions);
+		game.levelUp = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("continue", "chat ::stats"), game.actions);
+	}
+
+	@Test
 	public void chatClosesAPromptThatHoldsTheLine() throws Exception
 	{
 		// A chatbox prompt takes the Enter: the line stays until the prompt is closed (two nightly runs, 30 Oct 2026).
