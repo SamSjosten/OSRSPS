@@ -957,6 +957,23 @@ its assistant into the shop, buys and sells an anti-dragon shield at Oziach's, t
 talks to Richard into his shop for a cape, then chops a yew, smelts a bronze bar and cooks on Evil Dave's stove; `EdgevilleShopsTest` does each talk's options, `HeadlessEdgevilleShopsTest` the talk into each shop through the headless client, `HeadlessCookingTest` the stove, and `ShopTest` the stock and
 the Wiki's prices.
 
+Step 3a is the town's people and the places not built yet, `game/content/EdgevillePeople.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Doris (`hundred_dave_mum` 4808) in her house west of the bank: four options, each answered once | OSRS Wiki, Transcript:Doris; mejrs's NPC list for the tile; expressions guessed |
+| The Basement of Doom below Doris's house: the trapdoor (`100_dave_celler_trapdoor` 12266, 3077, 3493) is each player's own on varbit 1888 (`hundred_dave_trapdoor`), Open, Close and Go-down; the cellar stairs (12265) climb back up | 241 cache (multiloc, children 12267/12268, ops); the landing tiles (3077, 9893 and 3078, 3493) and the open/close animations are guessed |
+| Evil Dave (`hundred_evil_dave` 4806) talks as after Recipe for Disaster: the basement and demon-summoning menu, giving up evil, the time-travel menu (looping), and one of five random farewells | OSRS Wiki, Transcript:Evil Dave (which box is whose, from the transcript); expressions guessed |
+| 18 hell-rats and four Hell-Rat Behemoths in the basement, with no options (they wait for cats) | mejrs's NPC list for the tiles; 241 cache (no ops); the Wiki's Basement of Doom page (four behemoths) |
+| Hari (`canoeing_hari` 1325) by the canoe station: who he is, and canoes by the Woodcutting level (Barfy Bill's bands) | OSRS Wiki, Transcript:Hari |
+| Lucien (`ikov_lucien2` 13644, a multi-NPC on varbit 10753 `ikov_lucien_vis`) in the house east of the willows, Talk-to only, as after Temple of Ikov on his side; a new Pendant of Lucien (86) if the player owns none | OSRS Wiki, Transcript:Lucien; that 1 means "after the quest, his side" is inferred, and the side is our pick |
+| Refusals, in our own words: the Wilderness lever (26761), the fairy ring (29495, all four options), the Soul Wars portal (40474), Death's Domain (39547) and the canoe station (12166) | ours: none of those places is built yet |
+
+The words are in the dialogue file (keys `doris.*`, `evil_dave.*`, `hari.*`, `lucien.*`, `edgeville_closed.*`). Check:
+`test-runner/examples/edgeville-people.json` talks to Doris, opens, shuts and goes down the trapdoor, talks to Evil
+Dave, climbs the stairs, talks to Lucien and Hari, and tries each refused place; `EdgevillePeopleTest` does each talk's
+branches and `HeadlessEdgevillePeopleTest` the trapdoor, stairs, refusals, Doris and Lucien through the headless client.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
