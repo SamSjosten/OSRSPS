@@ -70,7 +70,7 @@ final class Steps
 		{
 			if (!sent)
 			{
-				// (0.20.0) A level-up box over the chatbox (XP from the step before) leaves no chat input to type into,
+				// (0.21.0) A level-up box over the chatbox (XP from the step before) leaves no chat input to type into,
 				// so the line never went (the artisan thread's scripts, 1 Nov 2026). Click it away first, as a player
 				// would, and send once it has gone.
 				Dialogue levelUp = run.game.dialogue() == null ? run.game.levelUp() : null;
