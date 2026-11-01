@@ -441,14 +441,13 @@ class ClientConfig(
                 return
             }
             val last = msg is LastHttpContent
+            // The next request's headers start their deadline now: on a kept-alive connection they may already be
+            // waiting in the codec, with no read of their own to start it. So a kept-alive connection has
+            // [HEADERS_DEADLINE_SECONDS] from one answer to the next request's headers. Set before the request goes on
+            // to be answered, so the deadline is running by the time the client has its answer.
+            if (last) connections[ctx.channel()]?.let { it.inRequest = false; it.headersSince = clock() }
             ctx.fireChannelRead(msg)
-            if (last) {
-                done(ctx)
-                // The next request's headers start their deadline now: on a kept-alive connection they may already be
-                // waiting in the codec, with no read of their own to start it. So a kept-alive connection has
-                // [HEADERS_DEADLINE_SECONDS] from one answer to the next request's headers.
-                connections[ctx.channel()]?.let { it.inRequest = false; it.headersSince = clock() }
-            }
+            if (last) done(ctx)
         }
 
         /** Why a report from [address] can't be read now, or null when it can, counting it as being read. */
