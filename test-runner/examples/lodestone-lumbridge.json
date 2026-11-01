@@ -1,0 +1,50 @@
+{
+ "name": "Lodestone step 4: the Lumbridge stone is drawn outside the castle's east gate with Activate, and Activate shows the active stone with Teleport for 30 seconds (a look for Sam; no teleport yet)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3236 3221 0",
+   "expectMessage": "Teleported to 3236, 3221, 0",
+   "comment": "east of the stone, between it and the bridge"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Lodestone",
+   "x": 3232,
+   "y": 3220,
+   "option": "Activate",
+   "comment": "the client decoded our loc type and shows the stone (south-west tile; 3 by 3)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lodestone",
+   "option": "Activate",
+   "x": 3232,
+   "y": 3220
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Lodestone",
+   "x": 3232,
+   "y": 3220,
+   "option": "Teleport",
+   "comment": "the active stone, model 65001, for 30 seconds"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lodestone",
+   "option": "Examine",
+   "x": 3232,
+   "y": 3220
+  },
+  {
+   "step": "assertMessage",
+   "contains": "examine.loc_65000",
+   "comment": "the key until the Words thread writes the text; with words, the text itself"
+  }
+ ]
+}

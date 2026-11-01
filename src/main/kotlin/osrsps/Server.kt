@@ -20,6 +20,7 @@ import osrsps.cache.SkillUnlockLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
 import osrsps.cache.overlay.CacheOverlay
+import osrsps.game.content.CustomLocs
 import osrsps.game.EffectIds
 import osrsps.game.AllSettings
 import osrsps.game.SettingsCatalog
@@ -138,10 +139,10 @@ class GameServer(
         val skillUnlocks: SkillUnlocks
         val settings: SettingsCatalog
         try {
-            val overlay = CacheOverlay.load(dataDir)
-            if (overlay.size > 0) logger.info { "Cache overlay: ${overlay.size} custom group(s): $overlay" }
+            val overlay = CacheOverlay.load(dataDir) + CustomLocs.overlayFiles
+            logger.info { "Cache overlay: ${overlay.size} custom group(s) and file(s): $overlay" }
             js5 = Js5Store.load(library, overlay)
-            map = MapCollisionLoader.loadWorld(library)
+            map = MapCollisionLoader.loadWorld(library, CustomLocs.types)
             varTypes = VarTypeLoader.load(library)
             objTypes = ObjTypeLoader.load(library)
             npcTypes = NpcTypeLoader.load(library)

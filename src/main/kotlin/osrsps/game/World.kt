@@ -113,6 +113,7 @@ import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerEdgevillePeople
 import osrsps.game.content.registerEdgevilleShops
 import osrsps.game.content.registerHaystacks
+import osrsps.game.content.registerLodestones
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerNed
@@ -662,6 +663,7 @@ class World(
         registerEdgevilleShops(this)
         registerEdgevillePeople(this)
         registerHaystacks(this)
+        registerLodestones(this)
         registerVarrock(this)
         registerCrops(this)
         ducks.register()
