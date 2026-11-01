@@ -439,8 +439,8 @@ objectbox_double, the box with two items.
   closes it instead (once per line), and the result also says whether the Swing thread had sent the last Enter,
   where the keyboard focus was, whether the window was active and any prompt still open. (0.19.0) It also names
   which of the chatbox's own checks would drop the key: no key handler on chatbox:universe, a hidden mes_layer_hide or
-  chatdisplay, varbit has_displayname_transmitter at 0, keyboard_timeout, the listening varcs, or the settings search
-  varbits; or that none of them would. If the line still stays,
+  chatdisplay, varbit has_displayname_transmitter at 0 or keyboard_timeout; or that none of them would. The listening
+  varcs and settings search varbits, which count only with a window open, are noted apart. If the line still stays,
   restart the client and keep that result: its detail is what will find the cause.
 - `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles. When the tile
   is off screen it turns the camera toward it, so a script can leave the camera however it finds it.

@@ -272,21 +272,30 @@ final class ClientGame implements Game
 		{
 			found.add("varc keyboard_timeout " + timeout + " is past clientclock " + client.getGameCycle());
 		}
+		if (found.isEmpty())
+		{
+			found.add("none of the chatbox's own checks would drop the key");
+		}
+		// These block keys only while a window is open in the main modal or floater slot (keypress_permit, which also
+		// wants both search varbits at 1), so they are noted, not counted.
+		List<String> context = new ArrayList<>();
 		for (int varc : new int[]{VARC_DISPLAYNAME_LISTENING, VARC_SMITHING_LISTENING, VARC_CRAFTING_LISTENING, VARC_WORLDMAP_SEARCHING})
 		{
 			int value = client.getVarcIntValue(varc);
 			if (value != 0)
 			{
-				found.add("varc " + varc + " is " + value);
+				context.add("varc " + varc + " " + value);
 			}
 		}
-		if (client.getVarbitValue(VARBIT_FLOATER_SEARCHING) != 0 || client.getVarbitValue(VARBIT_FLOATER_SEARCH_KEYBOARD) != 0)
+		int searching = client.getVarbitValue(VARBIT_FLOATER_SEARCHING);
+		int searchKeyboard = client.getVarbitValue(VARBIT_FLOATER_SEARCH_KEYBOARD);
+		if (searching != 0 || searchKeyboard != 0)
 		{
-			found.add("settings search varbits 16073/16074 are " + client.getVarbitValue(VARBIT_FLOATER_SEARCHING) + "/" + client.getVarbitValue(VARBIT_FLOATER_SEARCH_KEYBOARD));
+			context.add("settings search varbits 16073/16074 " + searching + "/" + searchKeyboard);
 		}
-		if (found.isEmpty())
+		if (!context.isEmpty())
 		{
-			found.add("none of the chatbox's own checks would drop the key");
+			found.add("with a window open these would count: " + String.join(", ", context));
 		}
 		return found;
 	}
