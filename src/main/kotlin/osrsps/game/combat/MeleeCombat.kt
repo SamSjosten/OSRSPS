@@ -617,7 +617,8 @@ class MeleeCombat(
     /**
      * [npc] takes [damage] of poison or venom with [hitsplat], capped at what it has left: the hitsplat and health bar,
      * but no block animation, no XP and no one to turn on. Killed by it, its drops go to whoever fought it last, even
-     * once that fight is over ([Npc.lastAttacker]).
+     * once that fight is over ([Npc.lastAttacker]). Taken down to its [NpcCombatDef.retreatsAt] share while fighting,
+     * it retreats from its target at once, before this tick's movement, as from a hit ([hitBy]).
      * Returns the damage dealt.
      */
     fun statusHit(npc: Npc, damage: Int, hitsplat: Int): Int {
@@ -628,6 +629,7 @@ class MeleeCombat(
         npc.effects.hit(-1, hitsplat, hitsplat, dealt)
         npc.effects.headBar(-1, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.type.stats.hitpoints))
         if (npc.hitpoints <= 0) die(npc, def, npc.attacker ?: npc.lastAttacker, currentTick())
+        else npc.target?.let { if (lowOnHitpoints(npc, def)) retreat(npc, it) }
         return dealt
     }
 

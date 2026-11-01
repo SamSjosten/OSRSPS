@@ -126,12 +126,15 @@ class RetreatTest {
     }
 
     @Test
-    fun `a fighting unicorn poisoned down to a quarter of its hitpoints gives up the fight`() {
+    fun `a fighting unicorn poisoned down to a quarter of its hitpoints gives up the fight at once`() {
         val npc = spawn(unicorn)
         alice.x = 3221
         melee.hit(npc, alice, 0, tick, attackedFrom = Tile(3221, 3220))
         assertSame(alice, npc.target)
         melee.statusHit(npc, 14, Poison.POISON_HITSPLAT)
+        // World.tick poisons after the combat phase, so the retreat has to start with the hit, before the movement.
+        assertSame(alice, npc.retreatingFrom)
+        assertNull(npc.target)
         process()
         assertSame(alice, npc.retreatingFrom)
         assertNull(npc.target)
