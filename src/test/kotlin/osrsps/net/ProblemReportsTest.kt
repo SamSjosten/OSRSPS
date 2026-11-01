@@ -112,6 +112,9 @@ class ProblemReportsTest {
         // A forwarder moves some to a folder of its own while the server runs: the count follows, the numbers don't go back.
         Files.createDirectories(dir.resolve("sent"))
         repeat(10) { Files.move(dir.resolve("R-%04d.json".format(it + 1)), dir.resolve("sent/R-%04d.json".format(it + 1))) }
+        // The count is trusted for a minute, so a flood doesn't read the folder once a report.
+        assertEquals(Result.Unavailable, reports.submit(report(), "1.2.3.5"))
+        now += ProblemReports.RECOUNT
         assertEquals(Result.Accepted("R-%04d".format(ProblemReports.MAX_WAITING + 1)), reports.submit(report(), "1.2.3.4"))
     }
 
@@ -159,7 +162,8 @@ class ProblemReportsTest {
             // A small body on a GET is still just ignored, as before.
             assertEquals(200, request(port, "GET", "/version", ByteArray(10)).code)
 
-            repeat(ProblemReports.PER_ADDRESS_PER_HOUR - 1) { assertEquals(201, request(port, "POST", "/report", report()).code) }
+            // The refused "hello" counts toward this address's hour too: every report sent does, taken or not.
+            repeat(ProblemReports.PER_ADDRESS_PER_HOUR - 2) { assertEquals(201, request(port, "POST", "/report", report()).code) }
             val limited = request(port, "POST", "/report", report())
             assertEquals(429, limited.code)
             assertContains(limited.head, "retry-after: 3600")
@@ -177,6 +181,128 @@ class ProblemReportsTest {
             http.stop()
         }
     }
+
+    @Test
+    fun `an address the server keeps refusing is still held to its limit`(@TempDir dir: Path) {
+        repeat(ProblemReports.MAX_WAITING) { Files.writeString(dir.resolve("R-%04d.json".format(it + 1)), "{}") }
+        val reports = ProblemReports(dir) { now }
+        repeat(ProblemReports.PER_ADDRESS_PER_HOUR) { assertEquals(Result.Unavailable, reports.submit(report(), "6.6.6.6")) }
+        // Refused for a full queue or for text that isn't a report, it is still a report sent.
+        assertEquals(Result.TooMany, reports.submit(report(), "6.6.6.6"))
+        assertFalse(reports.admits("6.6.6.6"))
+        repeat(ProblemReports.PER_ADDRESS_PER_HOUR) { assertEquals(Result.NotAReport, reports.submit("hello".toByteArray(), "7.7.7.7")) }
+        assertEquals(Result.TooMany, reports.submit(report(), "7.7.7.7"))
+        assertTrue(reports.admits("8.8.8.8"))
+    }
+
+    @Test
+    fun `a sender over the limit is refused before its body is read`(@TempDir dir: Path) {
+        val reports = ProblemReports(dir) { now }
+        repeat(ProblemReports.PER_ADDRESS_PER_HOUR) { assertTrue(reports.submit(report(), "127.0.0.1") is Result.Accepted) }
+        serve(reports) { port ->
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 5000
+                // Headers only: the answer comes without waiting for the body they promise.
+                socket.getOutputStream().write(header(port, ProblemReports.MAX_BYTES))
+                assertEquals("HTTP/1.1 429", String(socket.getInputStream().readNBytes(12), Charsets.US_ASCII))
+            }
+        }
+    }
+
+    @Test
+    fun `half-sent report bodies are dropped, and one address can't hold more than two at once`(@TempDir dir: Path) {
+        serve(ProblemReports(dir) { now }, readTimeout = Duration.ofSeconds(1)) { port ->
+            val sockets = (1..20).map { Socket("127.0.0.1", port) }
+            try {
+                for (socket in sockets) {
+                    socket.soTimeout = 5000
+                    runCatching {
+                        socket.getOutputStream().apply { write(header(port, ProblemReports.MAX_BYTES)); write(ByteArray(ProblemReports.MAX_BYTES - 1)); flush() }
+                    }
+                }
+                // All but two are answered 429 at once; those two are closed once the rest stops coming.
+                val started = System.nanoTime()
+                val answers = sockets.map(::answer)
+                assertEquals(ClientConfig.MAX_REPORTS_READING_PER_ADDRESS, answers.count { it == "closed" }, answers.toString())
+                assertEquals(20 - ClientConfig.MAX_REPORTS_READING_PER_ADDRESS, answers.count { it == "HTTP/1.1 429" }, answers.toString())
+                assertTrue(Duration.ofNanos(System.nanoTime() - started) < Duration.ofSeconds(4))
+            } finally {
+                sockets.forEach { runCatching { it.close() } }
+            }
+        }
+    }
+
+    @Test
+    fun `a body that trickles in is cut off at the deadline`(@TempDir dir: Path) {
+        serve(ProblemReports(dir) { now }, readTimeout = Duration.ofSeconds(5), reportDeadline = Duration.ofSeconds(1)) { port ->
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 200
+                val out = socket.getOutputStream()
+                out.write(header(port, ProblemReports.MAX_BYTES))
+                val started = System.nanoTime()
+                var closed = false
+                // A byte every 100 ms keeps the read timeout away, not the deadline.
+                while (!closed && Duration.ofNanos(System.nanoTime() - started) < Duration.ofSeconds(4)) {
+                    closed = runCatching { out.write(0); out.flush(); socket.getInputStream().read() == -1 }
+                        .getOrElse { it !is java.net.SocketTimeoutException }
+                }
+                assertTrue(closed, "the trickled body was still being read after 4 s")
+            }
+        }
+    }
+
+    @Test
+    fun `only so many report bodies are read at once, from everyone`(@TempDir dir: Path) {
+        val proxy = ProxyProtocol(setOf("127.0.0.1"), ProxyProtocol.Mode.OPTIONAL)
+        serve(ProblemReports(dir) { now }, proxy = proxy) { port ->
+            val sockets = (1..ClientConfig.MAX_REPORTS_READING + 1).map { Socket("127.0.0.1", port) }
+            try {
+                sockets.forEachIndexed { i, socket ->
+                    socket.soTimeout = 3000
+                    socket.getOutputStream().apply { write(ProxyHeaders.v1("203.0.113.${i + 1}", 40000)); write(header(port, 1000)); flush() }
+                    // The server takes them in turn, so the last is the one past the cap.
+                    if (i < ClientConfig.MAX_REPORTS_READING) Thread.sleep(50)
+                }
+                assertEquals("HTTP/1.1 503", String(sockets.last().getInputStream().readNBytes(12), Charsets.US_ASCII))
+                // One finishing makes room for the next.
+                sockets.first().getOutputStream().apply { write(report().copyOf(1000)); flush() }
+                assertEquals("HTTP/1.1 201", String(sockets.first().getInputStream().readNBytes(12), Charsets.US_ASCII))
+                Socket("127.0.0.1", port).use { socket ->
+                    socket.soTimeout = 3000
+                    val body = report()
+                    socket.getOutputStream().apply { write(ProxyHeaders.v1("203.0.113.99", 40000)); write(header(port, body.size)); write(body); flush() }
+                    assertEquals("HTTP/1.1 201", String(socket.getInputStream().readNBytes(12), Charsets.US_ASCII))
+                }
+            } finally {
+                sockets.forEach { runCatching { it.close() } }
+            }
+        }
+    }
+
+    private fun serve(
+        reports: ProblemReports,
+        proxy: ProxyProtocol = ProxyProtocol.OFF,
+        readTimeout: Duration = Duration.ofSeconds(ClientConfig.READ_TIMEOUT_SECONDS.toLong()),
+        reportDeadline: Duration = Duration.ofSeconds(ClientConfig.REPORT_DEADLINE_SECONDS.toLong()),
+        block: (Int) -> Unit,
+    ) {
+        val http = ClientConfig("127.0.0.1", 0, gamePort = 43594, proxy = proxy, reports = reports, readTimeout = readTimeout, reportDeadline = reportDeadline)
+        http.start()
+        try {
+            block(http.boundPort)
+        } finally {
+            http.stop()
+        }
+    }
+
+    private fun header(port: Int, length: Int) =
+        "POST /report HTTP/1.1\r\nHost: 127.0.0.1:$port\r\nContent-Length: $length\r\n\r\n".toByteArray(Charsets.US_ASCII)
+
+    /** The status line the server answered on [socket], or "closed" when it closed without one. */
+    private fun answer(socket: Socket): String = runCatching {
+        val bytes = socket.getInputStream().readNBytes(12)
+        if (bytes.isEmpty()) "closed" else String(bytes, Charsets.US_ASCII)
+    }.getOrElse { if (it is java.net.SocketTimeoutException) "open" else "closed" }
 
     private class Reply(val code: Int, val head: String, val body: String)
 
