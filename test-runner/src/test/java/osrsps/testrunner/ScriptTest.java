@@ -96,6 +96,8 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\"}]}", "needs \"npc\" (a name) or \"self\": true");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\",\"npc\":\"Man\",\"self\":true}]}", "not both");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\",\"self\":true,\"amount\":-1}]}", "\"amount\" must be 0 or more");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\",\"self\":true,\"types\":[]}]}", "\"types\" needs at least one hitmark id");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\",\"self\":true,\"types\":[1.5]}]}", "\"types\" must be whole numbers");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertNpcHealth\",\"npc\":\"Man\"}]}", "needs \"min\" or \"max\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertNpcHealth\",\"npc\":\"Man\",\"max\":101}]}", "0 to 100");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertStat\",\"skill\":\"Luck\",\"xp\":1}]}", "no skill \"Luck\"");

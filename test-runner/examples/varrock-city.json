@@ -264,7 +264,9 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[man.hello]"
+   "contains": "[man.hello]",
+   "timeoutMs": 30000,
+   "comment": "the man may have wandered off; the player chases him"
   },
   {
    "step": "command",

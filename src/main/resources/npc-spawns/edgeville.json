@@ -1,5 +1,5 @@
 {
-  "about": "Edgeville (Edgeville piece step 1): the bank's four bankers, the grange's seven men, and the rats, giant spiders and imps round the town. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Edgeville page (four bankers, seven men). Every wander range is guessed until recorded. The guards by the ditch, the shops' keepers, Oziach, Richard, Perdu, Doris, Lucien, Hari, the outlaws, the monastery and the Wilderness's NPCs come with their own steps.",
+  "about": "Edgeville (Edgeville piece step 1): the bank's four bankers, the grange's seven men, and the rats, giant spiders and imps round the town. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Edgeville page (four bankers, seven men). Every wander range is guessed until recorded. Step 2 added the General Store's keepers, Perdu upstairs, Oziach, Richard and the six guards by the ditch (guard1, whose combat and drops are the Varrock piece's). Doris, Lucien, Hari, the outlaws, the monastery and the Wilderness's NPCs come with their own steps.",
   "spawns": [
     {"npc": 1613, "x": 3096, "z": 3489, "direction": "W", "source": "Banker (banker1), Edgeville bank, behind the booth at 3095,3489. mejrs NPCList_OSRS"},
     {"npc": 1618, "x": 3096, "z": 3491, "direction": "W", "source": "Banker (banker2), Edgeville bank, behind the booth at 3095,3491. mejrs NPCList_OSRS"},
@@ -21,6 +21,17 @@
     {"npc": 5007, "x": 3073, "z": 3498, "wander": 5, "source": "Imp, west of Evil Dave's house. mejrs NPCList_OSRS; Wiki, Edgeville (Imp)"},
     {"npc": 5007, "x": 3078, "z": 3461, "wander": 5, "source": "Imp, south-west of the ruins. mejrs NPCList_OSRS; Wiki, Edgeville (Imp)"},
     {"npc": 5007, "x": 3078, "z": 3499, "wander": 5, "source": "Imp, by Evil Dave's house. mejrs NPCList_OSRS; Wiki, Edgeville (Imp)"},
-    {"npc": 5007, "x": 3134, "z": 3487, "wander": 5, "source": "Imp, east of the house east of the willows. mejrs NPCList_OSRS; Wiki, Edgeville (Imp)"}
+    {"npc": 5007, "x": 3134, "z": 3487, "wander": 5, "source": "Imp, east of the house east of the willows. mejrs NPCList_OSRS; Wiki, Edgeville (Imp)"},
+    {"npc": 2821, "x": 3080, "z": 3511, "wander": 2, "restrict": "indoors", "source": "Shop keeper (generalshopkeeper5), Edgeville General Store. mejrs NPCList_OSRS"},
+    {"npc": 2822, "x": 3081, "z": 3511, "wander": 2, "restrict": "indoors", "source": "Shop assistant (generalassistant5), Edgeville General Store. mejrs NPCList_OSRS"},
+    {"npc": 7457, "x": 3080, "z": 3513, "level": 1, "wander": 2, "restrict": "indoors", "source": "Perdu (lost_property_merchant_standard, seen as 7456), upstairs in the General Store. mejrs NPCList_OSRS; Wiki, Edgeville (Perdu's place on normal worlds)"},
+    {"npc": 822, "x": 3069, "z": 3517, "wander": 2, "restrict": "indoors", "source": "Oziach, his house just north-west of Edgeville. mejrs NPCList_OSRS"},
+    {"npc": 2200, "x": 3099, "z": 3519, "wander": 2, "source": "Richard (wilderness_capeseller_6), north of the bank by the Wilderness Ditch. mejrs NPCList_OSRS; Wiki, Richard (merchant)"},
+    {"npc": 3254, "x": 3085, "z": 3518, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"},
+    {"npc": 3254, "x": 3093, "z": 3518, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"},
+    {"npc": 3254, "x": 3109, "z": 3513, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"},
+    {"npc": 3254, "x": 3110, "z": 3515, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"},
+    {"npc": 3254, "x": 3114, "z": 3512, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"},
+    {"npc": 3254, "x": 3114, "z": 3517, "wander": 5, "source": "Guard (guard1), by the Wilderness Ditch north of the town. mejrs NPCList_OSRS; the Wiki's Edgeville page (six guards)"}
   ]
 }

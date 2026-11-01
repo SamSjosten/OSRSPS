@@ -701,6 +701,7 @@ class AllSettings(
             osrsps.game.bank.DepositBox.VARBIT_NO_QUANTITY_CHECK to VarbitType(1425, 29, 29),
             osrsps.game.skill.Fletching.VARBIT_DARTS_MAKEX to VarbitType(3109, 31, 31),
             osrsps.game.combat.LootNotifications.VARBIT_UNTRADEABLE to VarbitType(1053, 31, 31),
+            osrsps.game.combat.MeleeCombat.VARBIT_MAX_HIT_THRESHOLD to VarbitType(3552, 3, 11),
             VARBIT_COMBAT_KEY to VarbitType(1224, 0, 4),
             VARBIT_STATS_KEY to VarbitType(1224, 5, 9),
             VARBIT_JOURNAL_KEY to VarbitType(1224, 10, 14),
