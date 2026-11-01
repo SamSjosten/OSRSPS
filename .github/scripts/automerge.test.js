@@ -103,8 +103,9 @@ test('a review covers the head when it is the head or makes the same tree with m
 // A repository whose pull requests are { number: { head, ref, behind, checks: [{ name, status, conclusion }],
 // comments, autoMerge, mergeable } }.
 // `batch`: the batch branch, { sha, message, checks, committed }; `commits`: commit messages by sha.
-// `builds`: build.yml runs not finished, { id, status, event, head_branch, head_sha, triggering_actor }.
-function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'required_status_checks' }], mainMoved = false, suites = {}, builds = [] } = {}) {
+// `builds`: build.yml runs not finished, { id, status, event, head_branch, head_sha, triggering_actor }; `live`: a
+// branch's head as read again (null: deleted), when it differs from the pull requests listed.
+function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'required_status_checks' }], mainMoved = false, suites = {}, builds = [], live = {} } = {}) {
   const calls = [];
   let nextId = 1000;
   const prData = n => {
@@ -169,6 +170,10 @@ function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'require
       },
       getBranch: async ({ branch }) => {
         if (branch === 'main') return { data: { commit: { sha: H('m') } } };
+        if (live[branch] !== undefined) {
+          if (!live[branch]) throw Object.assign(new Error('Branch not found'), { status: 404 });
+          return { data: { commit: { sha: live[branch] } } };
+        }
         if (branch === BATCH && batch) {
           return { data: { commit: { sha: batch.sha, commit: { message: batch.message, committer: { date: batch.committed || '2026-10-30T00:58:00Z' } } } } };
         }
@@ -821,14 +826,17 @@ test('a head whose dispatched build waits for a runner gets no other, and its ol
       dispatched(11, 'branch-5', H('5'), 'in_progress'),
       dispatched(12, 'branch-5', H('5')),
       dispatched(13, 'branch-5', H('5')),
+      dispatched(10, 'branch-5', H('5'), 'in_progress'), // started: left to finish
       dispatched(9, 'branch-5', H('4')), // an older head of the same branch
       dispatched(8, 'gone', H('6')), // a branch no open pull request has
+      dispatched(6, 'branch-7', H('7')), // pushed by another queue run after the listing: still its head
       { ...dispatched(7, 'main', H('m')) }, // main's own runs are left alone
       { ...dispatched(14, 'branch-5', H('5')), event: 'pull_request', triggering_actor: { login: 'a-thread' } },
     ],
+    live: { gone: null, 'branch-5': H('5'), 'branch-7': H('7') },
   });
   await queue(github, fakeGit({}));
-  assert.deepStrictEqual(calls.filter(c => c[0] === 'cancel').map(c => c[1]).sort(), [11, 12, 8, 9].sort());
+  assert.deepStrictEqual(calls.filter(c => c[0] === 'cancel').map(c => c[1]).sort(), [8, 9, 12, 13].sort());
   assert.ok(!calls.some(c => c[0] === 'dispatch'), 'no build dispatched while one is queued');
 });
 

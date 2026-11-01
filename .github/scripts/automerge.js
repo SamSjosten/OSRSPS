@@ -356,13 +356,17 @@ function isBatch(git, number, batch, head) {
 }
 
 // The build.yml runs not finished yet, as the set of commits they are on. A queued run has no `build` check yet: that
-// job waits for the others, so a head or batch whose run sits in GitHub's queue looked like one no build ever ran on,
+// job waits for the others, so a head or batch whose run sat in GitHub's queue looked like one no build ever ran on,
 // and each queue run dispatched another. With the runners busy that fed itself: 148 runs queued, 85 of them the
 // queue's own dispatches of three heads and the batch, and the queue's own jobs waited an hour for a runner, so
-// nothing merged after 06:10Z (2026-11-01). So the queue's dispatches that can't matter any more are cancelled here:
-// any on a commit that is no longer its branch's head, and on each head all but the newest, whose checks are the
-// head's latest by id (latestChecks). Force-cancelled: a plain cancel still runs `build`, which is `if: always()`.
-// Only the queue's own dispatches, never main's runs or a thread's pull_request runs.
+// nothing merged after 06:10Z (2026-11-01). So the queue's own dispatches that can't matter any more are cancelled:
+// - on a commit that is no longer its branch's head, read again just before (queue runs overlap, and another may have
+//   just pushed that branch and dispatched its build);
+// - on a head, a run older than the newest there that hasn't started: its checks are all older than the newest
+//   run's, so latestChecks (and the ruleset) still go by the newest. A started one is left to finish, as its later
+//   jobs (`build` waits for the others) can file checks after the newest run's.
+// Force-cancelled: a plain cancel still runs `build`, which is `if: always()`. Never main's runs or a thread's
+// pull_request runs.
 async function pendingBuilds(github, repo, core, heads) {
   const runs = [];
   for (const status of ['queued', 'in_progress']) {
@@ -372,15 +376,32 @@ async function pendingBuilds(github, repo, core, heads) {
     (run.triggering_actor || run.actor || {}).login === 'github-actions[bot]';
   const newest = new Map();
   for (const run of runs) {
-    if (ours(run) && heads.get(run.head_branch) === run.head_sha && !(newest.get(run.head_sha) > run.id)) newest.set(run.head_sha, run.id);
+    if (!(newest.get(run.head_sha) > run.id)) newest.set(run.head_sha, run.id);
   }
+  const live = new Map();
+  const headNow = async branch => {
+    if (!live.has(branch)) {
+      try {
+        live.set(branch, (await github.rest.repos.getBranch({ ...repo, branch })).data.commit.sha);
+      } catch (error) {
+        if (error.status !== 404) throw error;
+        live.set(branch, null);
+      }
+    }
+    return live.get(branch);
+  };
   const building = new Set();
   for (const run of runs) {
-    if (!ours(run) || newest.get(run.head_sha) === run.id) {
+    let why = null;
+    if (ours(run) && heads.get(run.head_branch) !== run.head_sha && await headNow(run.head_branch) !== run.head_sha) {
+      why = 'no longer its branch\'s head';
+    } else if (ours(run) && run.status === 'queued' && newest.get(run.head_sha) !== run.id) {
+      why = `run ${newest.get(run.head_sha)} is newer on the same commit`;
+    }
+    if (!why) {
       building.add(run.head_sha);
       continue;
     }
-    const why = heads.get(run.head_branch) === run.head_sha ? 'a newer one is on the same commit' : 'no longer its branch\'s head';
     try {
       await github.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/force-cancel', { ...repo, run_id: run.id });
       core.info(`build run ${run.id} on ${run.head_branch} ${run.head_sha.slice(0, 7)} cancelled: ${why}`);
