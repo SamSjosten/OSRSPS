@@ -33,10 +33,12 @@ class HeadlessFriendsChatTest {
         TestServer(dir).use { server ->
             server.login("alice").use { alice ->
                 alice.await("the friends chat panel") { alice.openInterfaces().takeIf { FriendChats.CURRENT in it } }
-                assertEquals("[friends_chat.setup_disabled]", run {
-                    alice.ifButton(FriendChats.CURRENT, FriendChats.CURRENT_SETUP, 1)
-                    alice.await("the setup screen") { alice.text(FriendChats.SETUP, FriendChats.SETUP_PREFIX) }
-                })
+                alice.ifButton(FriendChats.CURRENT, FriendChats.CURRENT_SETUP, 1)
+                // Waits for the exact text, and a failure names what was there instead.
+                val shown = runCatching {
+                    alice.await("the setup screen") { alice.text(FriendChats.SETUP, FriendChats.SETUP_PREFIX)?.takeIf { it == "[friends_chat.setup_disabled]" } }
+                }
+                assertTrue(shown.isSuccess, "the setup screen's name line shows ${alice.text(FriendChats.SETUP, FriendChats.SETUP_PREFIX)}")
                 assertEquals("[friends_chat.option_anyone]", alice.text(FriendChats.SETUP, FriendChats.SETUP_ENTER))
                 assertEquals("[friends_chat.option_only_me]", alice.text(FriendChats.SETUP, FriendChats.SETUP_KICK))
                 alice.nameChannel("Alices Hut")
