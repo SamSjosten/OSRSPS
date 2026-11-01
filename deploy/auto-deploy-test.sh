@@ -276,6 +276,37 @@ expect_status 1
 expect_no_calls
 rm -f "$tmp/vm/.git/index.lock"
 
+step="a ref lock in use fails the fast-forward and leaves the checkout clean"
+merge src/main/RefLock.kt=10 README.md=10
+touch "$tmp/vm/.git/refs/heads/main.lock"
+deploy
+expect_status 1
+expect_no_calls
+rm -f "$tmp/vm/.git/refs/heads/main.lock"
+[[ -z $(git -C "$tmp/vm" status --porcelain --untracked-files=no) ]] || fail "the failed fast-forward left changes in the checkout"
+expect_state failed "$head"
+
+step="a fast-forward that stopped half way is undone, and the next merge deploys"
+merge src/main/Half.kt=11 README.md=11
+git -C "$tmp/vm" fetch -q origin main
+git -C "$tmp/vm" read-tree -u -m HEAD origin/main
+[[ -n $(git -C "$tmp/vm" status --porcelain --untracked-files=no) ]] || fail "the test didn't leave a half-done fast-forward"
+merge src/main/After.kt=12
+deploy
+expect_status 0
+grep -q "stopped half way" "$tmp/out" || fail "the log doesn't say the half-done fast-forward was undone"
+expect_calls "compose build OSRSPS_COMMIT=$head" 1
+expect_checkout "$head"
+
+step="a stale lock under .git/logs is cleared too"
+merge src/main/Logs.kt=13
+mkdir -p "$tmp/vm/.git/logs"
+touch -d '-20 minutes' "$tmp/vm/.git/logs/HEAD.lock"
+deploy
+expect_status 0
+[[ ! -e $tmp/vm/.git/logs/HEAD.lock ]] || fail "the stale .git/logs lock is still there"
+expect_checkout "$head"
+
 if ((failures)); then
 	echo "$failures check(s) failed"
 	exit 1
