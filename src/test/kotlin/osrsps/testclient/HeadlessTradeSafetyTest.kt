@@ -14,6 +14,7 @@ import osrsps.game.trade.Trades
 import osrsps.map.CollisionMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
@@ -99,18 +100,29 @@ class HeadlessTradeSafetyTest {
         delayServer(dir).use { server ->
             server.login("alice").use { alice ->
                 server.login("bob").use { bob ->
-                    alice.give("::item $COINS 1000", 1)
-                    open(alice, bob)
-                    alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 3, sub = 0, obj = COINS) // Offer-10
-                    bob.await("the countdown") { bob.varp(VARP_DELAY).takeIf { it > 0 } }
-                    // Too soon: nothing.
-                    bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
-                    alice.awaitTicks(2)
-                    assertTrue(server.world.playerNamed("bob")!!.trade!!.sideOf(server.world.playerNamed("bob")!!).accepted.not())
-                    bob.await("the countdown's end") { bob.varp(VARP_DELAY).takeIf { it == 0 } }
-                    bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
-                    alice.await("he accepted") { alice.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
-
+                    server.login("carol").use { carol ->
+                        alice.give("::item $COINS 1000", 1)
+                        open(alice, bob)
+                        // Carol, out of the trade, pauses the world and steps it, so the test needn't click within the
+                        // 3 seconds however slow it runs.
+                        carol.commandReply("pause") { it.startsWith("Paused after tick") }
+                        alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 3, sub = 0, obj = COINS) // Offer-10
+                        carol.stepTicks(1)
+                        bob.await("the countdown") { bob.varp(VARP_DELAY).takeIf { it > 0 } }
+                        // Too soon: nothing.
+                        bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+                        carol.stepTicks(1)
+                        val bobPlayer = server.world.playerNamed("bob")!!
+                        assertFalse(bobPlayer.trade!!.sideOf(bobPlayer).accepted)
+                        bob.awaitCycles(2) // after the stepped tick's packets to him
+                        val left = bob.varp(VARP_DELAY)
+                        assertTrue(left > 0)
+                        carol.stepTicks(left)
+                        bob.await("the countdown's end") { bob.varp(VARP_DELAY).takeIf { it == 0 } }
+                        bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+                        carol.stepTicks(1)
+                        alice.await("he accepted") { alice.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
+                    }
                 }
             }
         }
