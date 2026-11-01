@@ -95,6 +95,9 @@ class Clans(
 
     /** At login, after the game frame: their clan, or that they have none, and its channel. */
     fun login(player: Player) {
+        // The game frame opens the chat-channel page at login; the saved tab selection is set to match (inferred).
+        tabs[player.saveKey] = TAB_CHAT_CHANNEL
+        setVarbit(player, VARBIT_TAB_SELECTED, TAB_CHAT_CHANNEL)
         val clan = clanOf(player)
         setVarbit(player, VARBIT_GUEST_AFFINITY, AFFINITY_NONE)
         if (clan == null) {
