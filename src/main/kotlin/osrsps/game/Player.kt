@@ -257,6 +257,9 @@ class Player(
     /** The first tick they may swing again; see [osrsps.game.combat.MeleeCombat]. */
     var nextAttackTick: Long = 0
 
+    /** The first tick they may pickpocket again; see [osrsps.game.skill.Pickpocketing]. Food eaten before it pushes it back. */
+    var nextPickpocketTick: Long = 0
+
     /** The first tick they may eat again, and eat a combo food again; see [osrsps.game.combat.Foods]. Not saved. */
     var foodDelayUntil: Long = 0
     var comboFoodDelayUntil: Long = 0
