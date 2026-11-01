@@ -49,6 +49,18 @@ class StaticLocs {
         return found ?: emptyList()
     }
 
+    /** Calls [visit] with every loc in the zone whose south-west tile is [zoneBaseX], [zoneBaseZ] on [level]. */
+    fun forEachInZone(zoneBaseX: Int, zoneBaseZ: Int, level: Int, visit: (ZoneLoc) -> Unit) {
+        val zone = zones[ZoneKey.of(zoneBaseX, zoneBaseZ, level).packed] ?: return
+        val baseX = zoneBaseX and 7.inv()
+        val baseZ = zoneBaseZ and 7.inv()
+        for (i in 0 until zone.count) {
+            val packed = zone.packed[i]
+            val tile = (packed ushr 7) and 0x3F
+            visit(ZoneLoc(packed ushr 13, (packed ushr 2) and 0x1F, packed and 3, baseX + (tile shr 3), baseZ + (tile and 7), level))
+        }
+    }
+
     /** The loc on a tile's [layer], if any. The client keeps only one, so a later one in the file wins. */
     fun at(x: Int, z: Int, level: Int, layer: Int): ZoneLoc? = at(x, z, level).lastOrNull { it.layer == layer }
 

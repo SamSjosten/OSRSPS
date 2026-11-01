@@ -21,13 +21,29 @@ class CollisionMap {
         return zones[zoneKey(x, z, level)]?.get(tileIndex(x, z)) ?: 0
     }
 
+    /** A tile's flags as stored, even in a square with no terrain (which [get] reads as unloaded). */
+    fun stored(x: Int, z: Int, level: Int): Int {
+        if (x < 0 || z < 0 || level !in 0..3) return 0
+        return zones[zoneKey(x, z, level)]?.get(tileIndex(x, z)) ?: 0
+    }
+
+    /** Replaces a tile's flags. */
+    fun set(x: Int, z: Int, level: Int, flags: Int) {
+        if (x < 0 || z < 0 || level !in 0..3) return
+        val zone = zones[zoneKey(x, z, level)] ?: if (flags == 0) return else IntArray(64).also { zones[zoneKey(x, z, level)] = it }
+        zone[tileIndex(x, z)] = flags
+    }
+
     fun add(x: Int, z: Int, level: Int, mask: Int) {
         if (x < 0 || z < 0 || level !in 0..3) return
         val zone = zones.getOrPut(zoneKey(x, z, level)) { IntArray(64) }
         zone[tileIndex(x, z)] = zone[tileIndex(x, z)] or mask
     }
 
-    /** Clears [mask] on a tile, as the client does when a loc is removed: a flag two locs both set goes with either. */
+    /**
+     * Clears [mask] on a tile, as the client does when a loc is removed: a flag two locs both set goes with either.
+     * [osrsps.game.loc.Locs] doesn't use it for that reason; it works each changed tile out again from the locs on it.
+     */
     fun remove(x: Int, z: Int, level: Int, mask: Int) {
         if (x < 0 || z < 0 || level !in 0..3) return
         val zone = zones[zoneKey(x, z, level)] ?: return
