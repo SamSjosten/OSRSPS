@@ -884,6 +884,7 @@ final class Steps
 	static final class ContinueDialogue extends Step
 	{
 		private String clicked;
+		private int clickedTick;
 
 		ContinueDialogue(long timeoutMs)
 		{
@@ -907,7 +908,21 @@ final class Steps
 					return Poll.fail(error);
 				}
 				clicked = d.toString();
+				clickedTick = run.gameTicks();
 				return Poll.waiting("clicked continue, " + clicked + " still open");
+			}
+			if (d != null && d.kind == Dialogue.Kind.LEVEL_UP && d.toString().equals(clicked)
+				&& run.gameTicks() - clickedTick >= FinishDialogue.SAME_PAGE_TICKS)
+			{
+				// The server drops a click while the player is delayed (burying bones, say), and then the level-up box
+				// stayed however long the step waited (the Lumbridge run on 215, 1 Nov 2026): click it again. A dialogue
+				// page isn't clicked twice, as its next page can look the same.
+				String error = run.game.continueDialogue();
+				if (error != null)
+				{
+					return Poll.fail(error);
+				}
+				clickedTick = run.gameTicks();
 			}
 			return d == null || !d.toString().equals(clicked) ? Poll.pass("continued " + clicked) : Poll.waiting("clicked continue, " + clicked + " still open");
 		}

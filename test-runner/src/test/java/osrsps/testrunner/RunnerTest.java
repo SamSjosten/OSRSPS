@@ -315,6 +315,25 @@ public class RunnerTest
 	}
 
 	@Test
+	public void continueDialogueClicksALevelUpBoxAgainWhenTheClickWasDropped() throws Exception
+	{
+		// The server drops a click while the player is delayed, so the box stays after the first one.
+		game.levelUp = new Dialogue(Dialogue.Kind.LEVEL_UP, "[levelup.title article=a skill=Prayer]", "[levelup.body skill=Prayer level=5]", null);
+		runner.start(script("{\"step\":\"continueDialogue\"}"), "file");
+		assertNull(cycle());
+		assertEquals(List.of("continue"), game.actions);
+		runner.gameTick();
+		assertNull(cycle());
+		assertEquals(List.of("continue"), game.actions);
+		runner.gameTick();
+		runner.gameTick();
+		assertNull(cycle());
+		assertEquals(List.of("continue", "continue"), game.actions);
+		game.levelUp = null;
+		assertEquals(Result.PASS, cycle().result);
+	}
+
+	@Test
 	public void finishDialogueClicksAgainWhenTheNextPageLooksTheSame() throws Exception
 	{
 		game.dialogue = npc("[man.help]");
