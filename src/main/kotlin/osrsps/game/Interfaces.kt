@@ -12,6 +12,7 @@ import net.rsprot.protocol.game.outgoing.varp.VarpSmall
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.script.ScriptContext
+import osrsps.game.social.Clans
 import osrsps.game.social.FriendChats
 
 /**
@@ -33,10 +34,9 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
             send(player, IfOpenSub(frame.interfaceId, frame.component(overlay.slot), overlay.interfaceId, OVERLAY))
         }
         openJournalTab(player, JournalTab.forValue(journalTabVarbit(player)?.let { player.vars.getVarbit(it) } ?: 0))
-        // The Chat-channel tab's friends chat panel, in side_channels' contents as the journal's tabs sit in theirs, and
-        // its Setup button. Guessed: the other three channel tabs (clans, grouping) aren't built, so this one stays.
-        send(player, IfOpenSub(FriendChats.SIDE_CHANNELS, FriendChats.SIDE_CHANNELS_CONTENTS, FriendChats.CURRENT, OVERLAY))
-        send(player, IfSetEventsV2(FriendChats.CURRENT, FriendChats.CURRENT_SETUP, -1, -1, 0, IF_EVENT_OP1))
+        openChatChannel(player)
+        // The Clans tab's four tabs (side_channels_tabinit), which tell the server which page to show.
+        for (tab in Clans.SIDE_CHANNELS_TABS) send(player, IfSetEventsV2(Clans.SIDE_CHANNELS, tab, -1, -1, 0, IF_EVENT_OP1))
         // Lets the client send clicks on the "Game client layout" dropdown's three options.
         send(player, IfSetEventsV2(GameFrame.SETTINGS_SIDE, GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS, 1, 3, 0, IF_EVENT_OP1))
         // And on the attack priority dropdowns' options: client-made children 1 to n of their buttons components.
@@ -140,6 +140,20 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     /** Shows side panel tab [tab] ([GameFrame.SIDE_TAB_COMBAT] and so on), as a click on its stone does. */
     fun switchSideTab(player: Player, tab: Int) {
         send(player, RunClientScript(GameFrame.SIDEBUTTON_SWITCH_SCRIPT, listOf<Any>(tab)))
+    }
+
+    /**
+     * The Clans tab's Chat-channel page: the friends chat panel, in side_channels' contents as the journal's tabs sit in
+     * theirs, and its Setup button. The page at login (inferred: the tab the client selects first).
+     */
+    fun openChatChannel(player: Player) {
+        openClansTab(player, FriendChats.CURRENT)
+        send(player, IfSetEventsV2(FriendChats.CURRENT, FriendChats.CURRENT_SETUP, -1, -1, 0, IF_EVENT_OP1))
+    }
+
+    /** Opens [interfaceId] as the Clans tab's page, in place of what is there. */
+    fun openClansTab(player: Player, interfaceId: Int) {
+        send(player, IfOpenSub(Clans.SIDE_CHANNELS, Clans.SIDE_CHANNELS_CONTENTS, interfaceId, OVERLAY))
     }
 
     /** Opens [interfaceId] in side panel [slot] in place of what is there, as an overlay like the side panels. */

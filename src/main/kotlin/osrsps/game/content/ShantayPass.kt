@@ -155,7 +155,8 @@ object ShantayPass {
     const val PRISON_X = 3017
     const val PRISON_Z = 3182
     const val PRISON_DOOR = 9565
-    const val PICK_LOCK = 2
+    /** Pick-lock is the door's op5 in the rev 241 cache (op1 Open, ops 2 to 4 empty), checked 2026-11-01. */
+    const val PICK_LOCK = 5
 
     /** [Player.charges] names: talked to Shantay before, jailed in his cell, Pick-lock attempts in a row. */
     const val TALKED = "shantay_talked"

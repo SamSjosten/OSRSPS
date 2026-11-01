@@ -44,6 +44,13 @@ class LocTypes(private val types: Map<Int, LocType>) {
 
     val all: Collection<LocType> get() = types.values
 
+    /** These plus [extra], whose ids must be new. */
+    fun with(extra: Collection<LocType>): LocTypes {
+        val merged = HashMap(types)
+        for (type in extra) require(merged.put(type.id, type) == null) { "Loc type ${type.id} is already in the cache" }
+        return LocTypes(merged)
+    }
+
     companion object {
         val NONE = LocTypes(emptyMap())
     }

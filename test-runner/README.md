@@ -181,6 +181,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `edgeville-people.json`: Edgeville step 3a (with `::keys on`): Doris's talk, the Basement of Doom's trapdoor opened,
   shut, opened and gone down, Evil Dave's talk, the cellar stairs back up, Lucien's and Hari's talk, and the refusals
   on the canoe station, fairy ring, Wilderness lever, Soul Wars portal and Death's Domain.
+- `edgeville-outlaws.json`: Edgeville step 3b: an outlaw in the camp attacked (a punch and a hitsplat), killed with
+  `::kill`, dying with `human_death` and leaving bones.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
@@ -338,6 +340,11 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   it from the channel's list; `test2` sees itself as a Corporal, is kicked, and is refused when it tries to join again.
 - `social-report.json` (needs 0.23.0): `test` opens the report screen from the chatbox's Report button, types `test2`,
   picks Scamming, is thanked, and `::reports` lists it; `::clearignores` after, as the screen's ignore tick box is on.
+- `social-clan-found-test.json` and `social-clan-found-test2.json` (need 0.24.0, for `enterText`): two players at once
+  in the Clan Hub, with `::clanfounding 2 0` (put back to live's `5 25` after); `test` opens Your Clan's creation
+  panel and recruits `test2`, which accepts with its own Recruit (as the invitation's Form clan does); `test` presses
+  Confirm, names the clan in the prompt, and both are in it, with Your Clan showing it. `::clandisband` first deletes
+  the last run's clan.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
 - `social-ignore-2.json` (needs 0.14.0): the same with the names swapped, for a client logged in as `test2` (the nightly run's account).
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's

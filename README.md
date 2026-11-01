@@ -57,8 +57,20 @@ times the vertex colours, snapped to the client's palette; y is turned over, as 
 ```
 
 Options: `--scale f`, `--mirror-x`, `--flip-faces` (for a model that shows mirrored or inside out), `--priority n`
-(0 to 10) and `--alpha material=n` (0 opaque to 254) per material. The output is a plain model file; serving it is the
-cache overlay's job (not built yet). Converted Jagex art stays in `data/`, outside git, like the cache.
+(0 to 10) and `--alpha material=n` (0 opaque to 254) per material. The output is a plain model file.
+
+The server serves every `data/models/<id>.dat` as model `<id>` on top of the cache (`osrsps.cache.overlay`): at start
+it adds each to index 7's reference table, in memory, with the CRC of the container it sends, and puts the table's new
+CRC in the master index, so a client fetches the table again and then the model when a loc or NPC points at it. The
+cache files on disk stay the live cache. An id has to be above every live model (65,000 and up is safe for revision
+241) and below 65,536, which is all a JS5 request carries. A changed file is served at the next start; a client that
+had the old one sees the new CRC and fetches it again. Converted Jagex art stays in `data/`, outside git, like the cache.
+
+Loc types of our own that use such models are code: `game/content/CustomLocs.kt` lists them (ids from 65,000), each a
+`LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
+the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
+server decodes back for itself, so the client and the server see the same loc. The lodestones (`Lodestones.kt`) are
+the first: the server places the Lumbridge stone at start.
 
 ## Run the server
 
@@ -999,6 +1011,21 @@ The words are in the dialogue file (keys `doris.*`, `evil_dave.*`, `hari.*`, `lu
 `test-runner/examples/edgeville-people.json` talks to Doris, opens, shuts and goes down the trapdoor, talks to Evil
 Dave, climbs the stairs, talks to Lucien and Hari, and tries each refused place; `EdgevillePeopleTest` does each talk's
 branches and `HeadlessEdgevillePeopleTest` the trapdoor, stairs, refusals, Doris and Lucien through the headless client.
+
+Step 3b is the outlaws' camp south-east of the town: spawns in `npc-spawns/edgeville.json`, combat and drops in
+`npc-combat.json` and `npc-drops.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Ten level 32 outlaws (`surok_outlaw1` to `10`, 4167 to 4176), one of each, in the camp at about 3116 to 3124, 3470 to 3477; not aggressive | mejrs's NPC list for the tiles; 241 cache (Attack only); the Wiki's Outlaw page; wander range guessed |
+| They crush for up to 3 (Strength 30, strength bonus -21), attack speed 4, no defence bonuses, back 4 ticks after the killing blow (the Wiki's 2, raised to the time the body stays, as for rats) | OSRS Wiki, Outlaw and the DPS calculator's 4167 (read 2026-11-01); the punch and block animations guessed |
+| The Wiki's XP bonus of -97.5%: a fortieth of the combat XP for their damage, Hitpoints' too, rounded down in tenths each hit (`xpBonus` in `npc-combat.json`, for any NPC) | OSRS Wiki, Outlaw; that it covers Hitpoints and not a spell's base XP is inferred |
+| Bones always and one roll: rope 46/128, the herb table 32/128, fishing bait, coins (5, 15, 25), cabbage, runes, a bronze med helm, copper ore, a knife | OSRS Wiki, Outlaw (members: herbs for the free-to-play 10 coins); its lines come to 127/128, so 1/128 of nothing is inferred |
+
+Left out: the shout before an attack, whose accuracy boost the Wiki has not confirmed. Check:
+`test-runner/examples/edgeville-outlaws.json` attacks an outlaw and kills it for its bones; `NpcCombatTest` and
+`NpcDropsTest` check the numbers, `CombatMathTest` the XP bonus, and `HeadlessEdgevilleOutlawsTest` kills one through
+the headless client for its 2 Attack XP.
 
 ## Varrock
 

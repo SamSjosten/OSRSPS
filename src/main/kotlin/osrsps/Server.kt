@@ -19,6 +19,8 @@ import osrsps.cache.SettingsLoader
 import osrsps.cache.SkillUnlockLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
+import osrsps.cache.overlay.CacheOverlay
+import osrsps.game.content.CustomLocs
 import osrsps.game.EffectIds
 import osrsps.game.AllSettings
 import osrsps.game.SettingsCatalog
@@ -137,8 +139,10 @@ class GameServer(
         val skillUnlocks: SkillUnlocks
         val settings: SettingsCatalog
         try {
-            js5 = Js5Store.load(library)
-            map = MapCollisionLoader.loadWorld(library)
+            val overlay = CacheOverlay.load(dataDir) + CustomLocs.overlayFiles
+            logger.info { "Cache overlay: ${overlay.size} custom group(s) and file(s): $overlay" }
+            js5 = Js5Store.load(library, overlay)
+            map = MapCollisionLoader.loadWorld(library, CustomLocs.types)
             varTypes = VarTypeLoader.load(library)
             objTypes = ObjTypeLoader.load(library)
             npcTypes = NpcTypeLoader.load(library)
@@ -226,7 +230,7 @@ class GameServer(
             js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir),
             Accounts(FileSaveStore(accountDir), lock = FileAccountLock(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
-            reportsFile = dataDir.resolve(Reports.FILE_NAME), admins = admins,
+            reportsFile = dataDir.resolve(Reports.FILE_NAME), clansDir = dataDir, admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, partyScaling = partyScaling, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
