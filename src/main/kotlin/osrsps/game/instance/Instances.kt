@@ -43,9 +43,6 @@ class Instance internal constructor(
 
     fun contains(x: Int, z: Int): Boolean = x in baseX..maxX && z in baseZ..maxZ
 
-    /** The map zone the instance zone holding tile [x], [z] on [level] copies, or null where it copies none. */
-    fun sourceOf(x: Int, z: Int, level: Int): ZoneKey? = sources[ZoneKey.of(x, z, level).packed]
-
     override fun toString() = "Instance #$id at $baseX, $baseZ"
 }
 
@@ -70,8 +67,6 @@ class Instances(private val collision: CollisionMap, private val staticLocs: Sta
 
     /** Every instance there is now, oldest first. */
     val all: Collection<Instance> get() = byId.values
-
-    operator fun get(id: Int): Instance? = byId[id]
 
     /** The instance holding tile [x], [z], if any. */
     fun at(x: Int, z: Int): Instance? = if (!inDynamicArea(x, z)) null else byId.values.firstOrNull { it.contains(x, z) }
