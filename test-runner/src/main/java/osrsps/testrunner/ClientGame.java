@@ -1078,20 +1078,6 @@ final class ClientGame implements Game
 	}
 
 	@Override
-	public String enterText(String text)
-	{
-		Canvas canvas = client.getCanvas();
-		if (canvas == null)
-		{
-			return "the client has no canvas";
-		}
-		// As for a number: meslayer_enter sends what this varc holds, as RESUME_P_STRINGDIALOG for mode 9.
-		client.setVarcStrValue(VarClientID.MESLAYERINPUT, text);
-		pressEnter(canvas);
-		return null;
-	}
-
-	@Override
 	public String typeText(String text)
 	{
 		Canvas canvas = client.getCanvas();

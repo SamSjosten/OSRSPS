@@ -169,9 +169,6 @@ interface Game
 	/** Puts the amount in the open prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
 	String enterAmount(int amount);
 
-	/** (0.24.0) Puts the text in the open text prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
-	String enterText(String text);
-
 	/** (0.12.0) Types the text into the client as key presses, one character at a time, as a player's keyboard does. */
 	String typeText(String text);
 
