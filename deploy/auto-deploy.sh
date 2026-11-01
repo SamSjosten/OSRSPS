@@ -40,6 +40,18 @@ fast_forward() {
 	fi
 }
 
+# Lock files a git that crashed left behind (.git/HEAD.lock and .git/gc.pid.lock stalled every deploy from 06:40 to
+# 14:38 CDT on 2026-10-30): git refuses to run while they are there and never removes them itself. One counts as stale
+# when it is older than ten minutes and no git of this user is running; it is removed, and the log says so.
+clear_stale_locks() {
+	pgrep -u "$(id -u)" -x git >/dev/null && return 0
+	local lock
+	while IFS= read -r lock; do
+		echo "Removing $lock: a stale git lock (older than ten minutes, and no git is running)"
+		rm -f -- "$lock"
+	done < <(find .git -maxdepth 1 -name '*.lock' -mmin +10 2>/dev/null; find .git/refs -name '*.lock' -mmin +10 2>/dev/null)
+}
+
 main() {
 	local force=0
 	[[ ${1:-} == --force ]] && force=1
@@ -54,6 +66,7 @@ main() {
 		return 0
 	fi
 
+	clear_stale_locks
 	git fetch --quiet origin main
 	local target deployed failed built
 	target=$(git rev-parse origin/main)
