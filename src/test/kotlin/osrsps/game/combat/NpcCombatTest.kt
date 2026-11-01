@@ -138,8 +138,9 @@ class NpcCombatTest {
             assertEquals(AttackType.CRUSH, guard.attackType)
             assertEquals(3, guard.maxHit)
             assertEquals(30, guard.defence.against(AttackType.SLASH))
-            // They carry kiteshields, so they block with the shield (human_shield_defence), not a blunt block.
-            assertEquals(NpcCombatAnims(401, 1156, 836), guard.anims)
+            // They hold a longsword and a kiteshield: they swing the sword (human_sword_slash) and block with the shield
+            // (human_shield_defence), not a mace's pound and block.
+            assertEquals(NpcCombatAnims(390, 1156, 836), guard.anims)
             assertEquals(50, guard.respawnTicks)
         }
         val edgeville = combat[types.find("guard1")!!]!!
