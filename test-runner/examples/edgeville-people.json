@@ -185,6 +185,21 @@
    "comment": "back in Doris's house (landing tile guessed)"
   },
   {
+   "step": "locOption",
+   "loc": "Open trapdoor",
+   "option": "Close",
+   "x": 3077,
+   "y": 3493,
+   "comment": "shut again: the trapdoor is this player's own and stays as they left it, so the next run finds it closed"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Trapdoor",
+   "option": "Open",
+   "x": 3077,
+   "y": 3493
+  },
+  {
    "step": "command",
    "text": "::tele 3122 3484 0",
    "expectMessage": "Teleported to 3122, 3484, 0",
