@@ -61,11 +61,13 @@ object YarloLines : Lines("yarlo", "Transcript:Old Man Yarlo") {
  * The Fitzharmons and Old Man Yarlo (the Varrock piece's step 8b), talking as once every quest is done.
  * Dimintheis (4984) in his house east of the palace hands back a lost pair of family gauntlets for free; his son
  * Johnathon (multi-NPC 4988, spawned as `johnathon_fitzharmon_2ops` 5445, the type varp 148 shows once Family Crest is
- * done) upstairs in the Jolly Boar Inn turns a pair into chaos gauntlets for 25,000 coins, through his talk or his
+ * done) upstairs in the Jolly Boar Inn turns a plain pair into chaos gauntlets for free and another son's pair for 25,000 coins, through his talk or his
  * Gauntlets option; Old Man Yarlo (10425) south of the square.
  *
- * Guessed: every expression; that Dimintheis hands back the plain family gauntlets (live gives back the pair the
- * player last had, which nothing records yet); which items count as owned (any of the four pairs in the backpack,
+ * Johnathon enchants a plain pair for free, skipping his price (Wiki: only another son's enchantment costs), and
+ * Dimintheis hands back the pair the player last had enchanted ([lastPair]).
+ *
+ * Guessed: every expression; that a plain pair goes straight to his chant with no menu; which items count as owned (any of the four pairs in the backpack,
  * worn or banked); that Johnathon changes the pair worn before one carried; his two lines without gauntlets or coins.
  * Left out: Yarlo's Construction cutscene (the player only thanks him), and Avan's and Caleb's own changes.
  */
@@ -85,6 +87,12 @@ object VarrockFitzharmons {
     /** The pairs Johnathon can turn into his, every pair but his own. */
     val CHANGEABLE = listOf(COOKING_GAUNTLETS, GOLDSMITH_GAUNTLETS, FAMILY_GAUNTLETS)
     const val CHANGE_PRICE = 25_000
+
+    /**
+     * Where the pair the player last had enchanted is kept ([osrsps.game.Charges], saved with the account), as its obj
+     * id. Guessed: live keeps it in a var the cache doesn't name.
+     */
+    const val LAST_PAIR = "family_gauntlets"
 
     fun ownsGauntlets(player: Player): Boolean = ALL_GAUNTLETS.any {
         player.inventory.count(it) > 0 || player.equipment.count(it) > 0 || player.bank.count(it) > 0
@@ -119,8 +127,9 @@ object VarrockFitzharmons {
         if (choice(YES_PLEASE, NOT_NOW) == 1) {
             chatPlayer(ChatAnim.HAPPY, YES_PLEASE)
             // Checked again: the player may have got a pair while the box was open.
-            if (!ownsGauntlets(player)) give(FAMILY_GAUNTLETS)
-            objbox(FAMILY_GAUNTLETS, HANDS_OVER)
+            val pair = lastPair(player)
+            if (!ownsGauntlets(player)) give(pair)
+            objbox(pair, HANDS_OVER)
         } else {
             chatPlayer(ChatAnim.NEUTRAL, NOT_NOW)
             chatNpc(ChatAnim.NEUTRAL, ANY_TIME)
@@ -141,37 +150,51 @@ object VarrockFitzharmons {
 
     /** His price, and the change if the player takes it. Also his Gauntlets option. */
     internal suspend fun Dialogue.johnathonChange() = with(JohnathonLines) {
-        if (changeable(player) == null) {
+        val first = changeable(player)
+        if (first == null) {
             chatNpc(ChatAnim.NEUTRAL, NO_GAUNTLETS)
             return@with
         }
-        chatNpc(ChatAnim.NEUTRAL, PRICE, "price" to "%,d".format(CHANGE_PRICE))
-        if (choice(ACCEPT, DECLINE) == 2) {
-            chatPlayer(ChatAnim.NEUTRAL, DECLINE)
-            return@with
+        // A plain pair is enchanted for free (Wiki); only another son's enchantment costs his price.
+        if (first.id != FAMILY_GAUNTLETS) {
+            chatNpc(ChatAnim.NEUTRAL, PRICE, "price" to "%,d".format(CHANGE_PRICE))
+            if (choice(ACCEPT, DECLINE) == 2) {
+                chatPlayer(ChatAnim.NEUTRAL, DECLINE)
+                return@with
+            }
+            chatPlayer(ChatAnim.HAPPY, ACCEPT)
         }
-        chatPlayer(ChatAnim.HAPPY, ACCEPT)
         // The pair is found again after the menu, and paid for and changed with nothing suspending in between.
         val pair = changeable(player)
         if (pair == null) {
             chatNpc(ChatAnim.NEUTRAL, NO_GAUNTLETS)
             return@with
         }
-        if (player.inventory.count(ShopScreen.COINS) < CHANGE_PRICE || !AlKharidTraders.pay(player, CHANGE_PRICE)) {
+        val price = if (pair.id == FAMILY_GAUNTLETS) 0 else CHANGE_PRICE
+        if (price > 0 && (player.inventory.count(ShopScreen.COINS) < price || !AlKharidTraders.pay(player, price))) {
             chatNpc(ChatAnim.NEUTRAL, NO_COINS)
             return@with
         }
-        pair()
+        pair.change()
+        player.charges[LAST_PAIR] = CHAOS_GAUNTLETS
         objbox(CHAOS_GAUNTLETS, CHANTS)
     }
 
-    /** What changes the player's pair, worn before carried, or null without one. */
-    private fun changeable(player: Player): (() -> Unit)? {
+    /** The player's pair Johnathon would change, and what changes it. */
+    private class Changeable(val id: Int, val change: () -> Unit)
+
+    /** The player's pair to change, worn before carried, or null without one. */
+    private fun changeable(player: Player): Changeable? {
         val worn = player.equipment[WearPos.HANDS]
-        if (worn != null && worn.id in CHANGEABLE) return { player.equipment[WearPos.HANDS] = InvObj(CHAOS_GAUNTLETS, 1) }
-        val slot = player.inventory.contents().firstOrNull { it.second.id in CHANGEABLE }?.first ?: return null
-        return { player.inventory[slot] = InvObj(CHAOS_GAUNTLETS, 1) }
+        if (worn != null && worn.id in CHANGEABLE) {
+            return Changeable(worn.id) { player.equipment[WearPos.HANDS] = InvObj(CHAOS_GAUNTLETS, 1) }
+        }
+        val (slot, obj) = player.inventory.contents().firstOrNull { it.second.id in CHANGEABLE } ?: return null
+        return Changeable(obj.id) { player.inventory[slot] = InvObj(CHAOS_GAUNTLETS, 1) }
     }
+
+    /** The pair the player last had enchanted, which Dimintheis hands back; the plain pair before any. */
+    fun lastPair(player: Player): Int = player.charges[LAST_PAIR].takeIf { it in ALL_GAUNTLETS } ?: FAMILY_GAUNTLETS
 
     internal suspend fun Dialogue.yarlo() = with(YarloLines) {
         chatNpc(ChatAnim.HAPPY, HAPPIER)

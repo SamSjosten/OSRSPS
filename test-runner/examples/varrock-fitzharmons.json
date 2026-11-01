@@ -1,5 +1,5 @@
 {
- "name": "Varrock step 8b (with ::keys on): Dimintheis handing back family gauntlets, Johnathon turning them into chaos gauntlets for 25,000 coins and his talk, and Old Man Yarlo",
+ "name": "Varrock step 8b (with ::keys on): Dimintheis handing back family gauntlets, Johnathon turning them into chaos gauntlets for free (a plain pair) and his talk, and Old Man Yarlo",
  "account": "test",
  "steps": [
   {
@@ -109,26 +109,8 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[johnathon.price"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[johnathon.accept]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[johnathon.accept"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
    "contains": "[johnathon.chants]",
-   "comment": "the item box"
+   "comment": "the item box: a plain pair is enchanted for free, without his price"
   },
   {
    "step": "continueDialogue"
@@ -145,9 +127,9 @@
   {
    "step": "assertInventory",
    "item": "Coins",
-   "count": 0,
+   "count": 25000,
    "timeoutMs": 10000,
-   "comment": "25,000 coins for the change"
+   "comment": "the coins kept: a plain pair is free"
   },
   {
    "step": "npcOption",

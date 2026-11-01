@@ -17,8 +17,9 @@ import osrsps.map.CollisionMap
 
 /**
  * Varrock step 8b through the headless client: Dimintheis's talk every way, handing back family gauntlets only to a
- * player without a pair; Johnathon's talk and his Gauntlets option, turning a pair into chaos gauntlets for 25,000
- * coins, not for less and not without a pair; Old Man Yarlo's talk. The rl-client script
+ * player without a pair; Johnathon's talk and his Gauntlets option, turning another son's pair into chaos gauntlets for
+ * 25,000 coins (not for less, not without a pair) and a plain pair for free, after which Dimintheis hands back the chaos
+ * pair; Old Man Yarlo's talk. The rl-client script
  * test-runner/examples/varrock-fitzharmons.json talks to them in the real city.
  */
 class HeadlessVarrockFitzharmonsTest {
@@ -139,19 +140,30 @@ class HeadlessVarrockFitzharmonsTest {
                 assertEquals(24_999, client.held(COINS))
                 assertEquals(1, client.held(VarrockFitzharmons.COOKING_GAUNTLETS))
 
-                // Changed, through the talk and through the option.
-                for ((pair, viaTalk) in listOf(VarrockFitzharmons.GOLDSMITH_GAUNTLETS to true, VarrockFitzharmons.FAMILY_GAUNTLETS to false)) {
-                    client.holding(COINS to 25_000, pair to 1)
-                    val steps = arrayOf("price price=25,000", "1:accept,decline", "accept", "@chants")
-                    if (viaTalk) {
-                        client.walk(VarrockFitzharmons.JOHNATHON, "johnathon", *opening, "1:change,no_thanks", "change", *steps)
-                    } else {
-                        client.walk(VarrockFitzharmons.JOHNATHON, "johnathon", *steps, option = VarrockFitzharmons.GAUNTLETS_OP)
-                    }
-                    client.await("chaos gauntlets") { if (client.held(VarrockFitzharmons.CHAOS_GAUNTLETS) == 1) Unit else null }
-                    assertEquals(0, client.held(pair))
-                    assertEquals(0, client.held(COINS))
-                }
+                // Changed: another son's pair for his price through the talk, a plain pair for free through the option.
+                client.holding(COINS to 25_000, VarrockFitzharmons.GOLDSMITH_GAUNTLETS to 1)
+                client.walk(
+                    VarrockFitzharmons.JOHNATHON, "johnathon", *opening, "1:change,no_thanks", "change",
+                    "price price=25,000", "1:accept,decline", "accept", "@chants",
+                )
+                client.await("chaos gauntlets") { if (client.held(VarrockFitzharmons.CHAOS_GAUNTLETS) == 1) Unit else null }
+                assertEquals(0, client.held(VarrockFitzharmons.GOLDSMITH_GAUNTLETS))
+                assertEquals(0, client.held(COINS))
+
+                client.holding(COINS to 25_000, VarrockFitzharmons.FAMILY_GAUNTLETS to 1)
+                client.walk(VarrockFitzharmons.JOHNATHON, "johnathon", "@chants", option = VarrockFitzharmons.GAUNTLETS_OP)
+                client.await("chaos gauntlets") { if (client.held(VarrockFitzharmons.CHAOS_GAUNTLETS) == 1) Unit else null }
+                assertEquals(0, client.held(VarrockFitzharmons.FAMILY_GAUNTLETS))
+                assertEquals(25_000, client.held(COINS))
+
+                // Lost: Dimintheis hands back the chaos pair, the one last enchanted.
+                client.holding()
+                client.walk(
+                    VarrockFitzharmons.DIMINTHEIS, "dimintheis", "2:quests,other", "greeting", "gauntlets", "returned",
+                    "1:yes_please,not_now", "yes_please", "@hands_over",
+                )
+                client.await("the chaos gauntlets") { if (client.held(VarrockFitzharmons.CHAOS_GAUNTLETS) == 1) Unit else null }
+                assertEquals(0, client.held(VarrockFitzharmons.FAMILY_GAUNTLETS))
 
                 client.walk(VarrockFitzharmons.YARLO, "yarlo", "happier", "1:good_news,construction", "good_news")
                 client.walk(VarrockFitzharmons.YARLO, "yarlo", "happier", "2:good_news,construction", "construction", "thanks")
