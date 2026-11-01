@@ -313,7 +313,7 @@ class NpcSpawnFileTest {
             2797 to "pig_2", 2798 to "piglet_1", 2799 to "piglet_2", 2800 to "piglet_3", 3251 to "farmer_farming_on_48_51", Fishing.DRAYNOR_SPOT to "0_48_50_saltfish",
             1260 to "rag_wine_merchant", 500 to "seed_merchant", 8693 to "aprilfoolshorsesalesman", 4280 to "ned", 4284 to "aggie", 4276 to "jailguard",
             4277 to "jailguard_two_patrol", 4278 to "jailguard_three_patrol", 4279 to "jailguard_four_patrol", 4274 to "leela", 3479 to "morgan",
-            2109 to "wom_multi", 2114 to "wom_bed_inactive", 2116 to "wom_gossip", 2123 to "wom_bankguard", 5732 to "farming_market_guard", 5730 to "master_farmer_1",
+            2109 to "wom_multi", 2114 to "wom_bed_inactive", 2116 to "wom_gossip", 2123 to "wom_bankguard", 5732 to "farming_market_guard", 5730 to "master_farmer_1", 512 to "young_dark_wizard",
         )
         val draynorTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("draynor.json"), draynorTypes, "draynor.json")
@@ -344,6 +344,8 @@ class NpcSpawnFileTest {
         assertEquals(listOf(3247, 3253), spawns.filter { it.type.id == 5732 }.map { it.z }.sorted())
         // The Master Farmer in the market.
         assertEquals(Tile(3080, 3250), spawns.single { it.type.id == 5730 }.let { Tile(it.x, it.z) })
+        // The two level 7 dark wizards south of the bank.
+        assertEquals(listOf(3236, 3238), spawns.filter { it.type.id == 512 }.map { it.z }.sorted())
     }
 
     @Test

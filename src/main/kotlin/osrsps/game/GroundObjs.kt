@@ -277,6 +277,9 @@ class GroundObjs(
         }
     }
 
+    /** Whether an obj [id] that [player] dropped (or was dropped for them) still lies anywhere, private or public. */
+    fun hasDropped(player: Player, id: Int): Boolean = timed.any { it.id == id && it.droppedBy == player.saveKey && zones.hasObj(it) }
+
     /** The objs [player] can see on a tile, oldest first. */
     fun visibleAt(player: Player, x: Int, z: Int, level: Int): List<ZoneObj> =
         zones.objsAt(x, z, level).filter { it.visibleTo(player.saveKey) }

@@ -1,0 +1,14 @@
+{"name": "Draynor piece step 9: a dark wizard south of the bank, attacked, casts back from where it stands: its casting graphic, then Water Strike's or Confuse's impact or a splash on the player",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "::reset at the end puts the account back"},
+  {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "99", "comment": "so a run of Water Strikes can't kill"},
+  {"step": "command", "text": "::tele 3084 3241 0", "expectMessage": "Teleported to 3084, 3241, 0", "comment": "north of the two wizards"},
+  {"step": "npcOption", "npc": "Dark wizard", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertAnimation", "id": 422, "timeoutMs": 20000, "comment": "human_unarmedpunch, after the walk up"},
+  {"step": "assertSpotanim", "npc": "Dark wizard", "ids": [93, 102], "timeoutMs": 20000, "comment": "waterstrike_casting or confuse_casting on the wizard"},
+  {"step": "assertSpotanim", "ids": [95, 104, 85], "timeoutMs": 20000, "comment": "waterstrike_impact, confuse_impact, or failedspell_impact on the player"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
