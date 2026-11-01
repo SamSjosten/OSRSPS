@@ -299,6 +299,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::los npcIndex` / `::los dx dz` | **everyone.** Distance, line of sight and hit delays from you to an NPC or a tile (see Line of sight) |
 | `::instance [radius]` / `::instance leave` | Makes a private copy of the map around you, `radius` zones each way (default 6, 13 x 13 zones), and puts you on the same spot in it; `leave` takes you back to where you made it (see Instances) |
 | `::raidparty` / `::raidparty invite\|accept\|kick name` / `::raidparty leave` | Shows your raid party, or invites a player to it (starting one you lead), joins the party of a leader who invited you, puts a member out, or leaves (see Raid parties) |
+| `::raid boss [phase=name\|n] [party=n] [seed=n]` / `::raid` / `::raid log [lines]` / `::raid digest [ticks]` / `::raid stop` | Starts a boss fight on your tile at a phase, scaled for a party size, on a seed; shows the fight you're in (or lists the bosses), its last log lines, a digest of its log to a tick, or stops it (see Encounters) |
 | `::raidnpc id\|name [party size]` | Puts in a raid NPC on your tile with its hitpoints for a party of that size, or of your raid party's size, or of one alone (see Raid parties); `::delnpc mine` takes it out |
 | `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
 | `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
@@ -1437,6 +1438,32 @@ Check: `./gradlew test --tests 'osrsps.game.raid.*' --tests 'osrsps.game.command
 --tests 'osrsps.testclient.HeadlessPartyTest'` (the Guardian's hitpoints at 1, 2, 3 and 8 players are the Wiki's; three
 players form a party, the Guardian's hitpoints follow its size, it lasts through a death, and a member who logs out
 leaves), and in RuneLite `test-runner/examples/party-scaling.json` (the Guardian's hitpoints alone, for 3 and for 8).
+
+## Encounters
+
+A boss fight is written as an encounter (raid step 12): `game/encounter/Encounter.kt` has the boss, its phases, and each
+phase's attack cycle, steps a set number of ticks apart that repeat. A phase ends when the boss's hitpoints fall to a
+share of its maximum, or after so many ticks, and the next begins. A step can hit a player, put down tile hazards (a
+warning graphic now, then damage each tick to whoever stands on the tiles), or put in adds.
+`game/encounter/Encounters.kt` runs every fight once a tick. A fight ends when its boss dies or leaves the world, and its
+adds and hazards go with it. Each fight keeps a log of what it did, by tick. Every roll comes from the world's random, so
+a fight started on a seed plays the same way each time.
+
+| Encounter behaviour | Source |
+|---------------------|--------|
+| Fights running in the NPC phase, after NPC scripts | guessed, until a recording shows a boss |
+| A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
+| A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |
+| Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
+| Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
+| A fight outside an instance covering 32 tiles round the boss's spawn | testing only: the raid's rooms are instances |
+| No bosses yet: each one comes with its own step, from 16 on, with its room and gear sets for `::raid` | not in yet |
+
+`::raid boss phase=2 party=3 seed=42` starts a fight where you stand, and `::raid digest 100` sums up its first 100
+ticks. Check: `./gradlew test --tests 'osrsps.game.encounter.*' --tests 'osrsps.game.command.RaidCommandsTest'
+--tests 'osrsps.testclient.HeadlessEncounterTest'` (a test boss plays the same 100 ticks on two runs with the same seed
+and differently on another; its phases change at half hitpoints and on time, with an add and a hazard, and the fight
+ends when the boss leaves).
 
 ## Line of sight
 
