@@ -142,7 +142,7 @@ class HeadlessVarrockChurchesInnsTest {
                 }
 
                 val menu = "making,story,rich"
-                client.walk(elsie.id, "elsie", "greeting", "1:$menu", "making", "stole", "3:$menu", "rich", "trade", "ore_food", "thanks", "2:$menu", "story", "for_tea", "1:think")
+                client.walk(elsie.id, "elsie", "greeting", "1:$menu", "making", "stole", "3:$menu", "rich", "trade", "trade_2", "ore_food", "thanks", "2:$menu", "story", "for_tea", "1:think")
                 client.command("item ${VarrockChurches.CUP_OF_TEA} 1")
                 client.await("a cup of tea") { if (client.held(VarrockChurches.CUP_OF_TEA) == 1) Unit else null }
                 client.useOn(elsie.id, VarrockChurches.CUP_OF_TEA)
@@ -196,11 +196,11 @@ class HeadlessVarrockChurchesInnsTest {
                 client.walk(blueMoonCook.id, "bluemoon_cook", *cook, "1:buy,dont_like", "buy", "eat_it")
                 assertEquals(1, client.await("a cabbage") { client.held(VarrockInns.CABBAGE).takeIf { it == 1 } })
                 assertEquals(0, client.held(COINS))
-                client.walk(blueMoonCook.id, "bluemoon_cook", *cook, "no_money", "waste")
+                client.walk(blueMoonCook.id, "bluemoon_cook", *cook, "no_money", "waste_money")
                 client.command("item $COINS 1")
                 client.command("item $POT 23")
                 client.await("a full backpack") { if (client.held(POT) == 23 && client.held(COINS) == 1) Unit else null }
-                client.walk(blueMoonCook.id, "bluemoon_cook", *cook, "no_space", "waste")
+                client.walk(blueMoonCook.id, "bluemoon_cook", *cook, "no_space", "waste_space")
                 assertEquals(1, client.held(COINS))
             }
         }
