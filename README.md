@@ -1311,7 +1311,7 @@ the Wilderness limit (no Wilderness yet) and teleport animation overrides. `Home
 | Not castable in combat or for 10 seconds after (as logging out, 16 ticks); combat interrupts it | Wiki, Home Teleport |
 | Varp 892 (`aide_tele_timer`) holds the minute (since 1970) of the last home teleport | RuneLite, Timers and Buffs plugin |
 | 218:6 (`magic_spellbook:teleport_home_standard`), op1 Cast; the stages' seqs 4847, 4850, 4853, 4855, 4857 and spotanims 800 to 804 (`aide_*`) | 241 cache |
-| The stages starting 0, 7, 13, 16 and 19 ticks in; landing on 3222, 3218; the cooldown starting on landing, so a cast cut short costs nothing; minutes left rounded down; a second click while casting doing nothing | guessed |
+| The stages starting 0, 7, 13, 16 and 19 ticks in; landing on 3222, 3218; casting stopping a queued activity; only the standard book casting it; the cooldown starting on landing, so a cast cut short costs nothing; minutes left rounded down; a second click while casting doing nothing | guessed |
 | The two messages' words (`home_teleport.cooldown`, `home_teleport.in_combat`) | not on the Wiki; to be found |
 
 Check: `./gradlew test --tests 'osrsps.game.content.HomeTeleportTest' --tests 'osrsps.testclient.HeadlessHomeTeleportTest'`,

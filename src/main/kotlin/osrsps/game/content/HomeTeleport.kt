@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import osrsps.game.Player
+import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
@@ -65,6 +66,8 @@ class HomeTeleport(
     fun casting(player: Player): Boolean = player.scripts.weakQueue.any { it.name == QUEUE }
 
     private suspend fun ScriptContext.cast() {
+        // Only the standard book's home teleport is built; the button is the standard book's own.
+        if (Spellbook.of(player) != Spellbook.STANDARD) return
         if (casting(player)) return
         if (inCombat(player)) {
             message(player, HomeTeleportLines.IN_COMBAT, emptyArray())
@@ -78,7 +81,9 @@ class HomeTeleport(
             }
         }
         val to = destination() ?: return
-        // Casting stops the player where they stand (inferred: the stages are animations on the spot).
+        // Casting stops whatever the player was doing and keeps them where they stand (inferred: the stages are
+        // animations on the spot); a queued activity (milking, making) would otherwise carry on beside the cast.
+        player.scripts.weakQueue.clear()
         player.waypoints.clear()
         player.interaction = null
         step(to, currentTick(), 0)

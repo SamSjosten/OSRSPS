@@ -6,9 +6,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import osrsps.game.Player
 import osrsps.game.World
+import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
+import osrsps.game.script.QueueType
 import osrsps.game.script.ScriptRunner
 import osrsps.map.CollisionMap
 import osrsps.map.Tile
@@ -133,6 +135,25 @@ class HomeTeleportTest {
         assertEquals(listOf("home_teleport.in_combat"), said)
         assertFalse(home.casting(player))
         assertTrue(anims.isEmpty())
+    }
+
+    @Test
+    fun `casting stops a queued activity`() {
+        var made = 0
+        scripts.queue(player, "making", QueueType.WEAK, 1) { made++ }
+        click()
+        run(24)
+        assertEquals(0, made)
+        assertEquals(1, landed.size)
+    }
+
+    @Test
+    fun `only the standard book casts it`() {
+        Spellbook.set(player, Spellbook.ANCIENT)
+        click()
+        assertFalse(home.casting(player))
+        run(30)
+        assertTrue(landed.isEmpty())
     }
 
     @Test
