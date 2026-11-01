@@ -265,7 +265,6 @@ class FriendChats(
         broadcastFull(channel)
     }
 
-
     /** Fills in the setup screen's options as [owner]'s settings are. */
     fun showSetup(owner: Player) {
         val settings = owner.friendsChat
