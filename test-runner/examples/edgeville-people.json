@@ -274,6 +274,12 @@
   },
   {
    "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "Woodcutting 1, so Hari takes the below-level-12 branch; ::reset after his talk puts the account back"
+  },
+  {
+   "step": "command",
    "text": "::tele 3132 3509 0",
    "expectMessage": "Teleported to 3132, 3509, 0",
    "comment": "by Hari, north-east of the town"
@@ -311,11 +317,29 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[hari.",
-   "comment": "his canoe lines by this account's Woodcutting level"
+   "contains": "[hari.no_skill]"
   },
   {
    "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hari.level_12]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hari.quicker]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
   },
   {
    "step": "command",
