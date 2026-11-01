@@ -202,6 +202,9 @@ class Npc(
     var retreatingFrom: Player? = null
         internal set
 
+    /** The tick its retreat began or it was last hit from out of range while retreating; see [osrsps.game.combat.MeleeCombat]. */
+    internal var retreatTick: Long = -1
+
     /** The first tick it may swing at its target again. */
     internal var nextAttackTick: Long = 0
 

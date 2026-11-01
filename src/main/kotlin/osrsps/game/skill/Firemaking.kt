@@ -61,6 +61,11 @@ class Firemaking(private val world: World, private val collision: CollisionMap) 
         }
     }
 
+    /** Forgets the fires on the tiles where [inside] holds (an instance ending), so none goes out there later. */
+    fun forgetArea(inside: (Int, Int) -> Boolean) {
+        fires.removeIf { inside(it.loc.x, it.loc.z) }
+    }
+
     /** Puts out the fires whose time is up, leaving ashes. Call once a tick. */
     fun process() {
         if (fires.isEmpty()) return
@@ -140,10 +145,17 @@ class Firemaking(private val world: World, private val collision: CollisionMap) 
         player.infos.playerInfo.avatar.extendedInfo.setFaceLoc(obj.x, obj.z, 1, 1, instant = false, walkMode = 0)
         player.message(world.textFor(player)[FiremakingLines.CATCHES])
         val duration = world.random.between(BURN_LOW, BURN_HIGH)
-        val fire = ZoneLoc(FIRE, LocShape.CENTREPIECE_STRAIGHT, 0, obj.x, obj.z, obj.level)
-        world.locs.add(fire)
-        fires += Fire(fire, tick + duration)
+        burn(ZoneLoc(FIRE, LocShape.CENTREPIECE_STRAIGHT, 0, obj.x, obj.z, obj.level), tick + duration)
     }
+
+    /** Puts [fire] down, to go out on [outTick]. */
+    internal fun burn(fire: ZoneLoc, outTick: Long) {
+        world.locs.add(fire)
+        fires += Fire(fire, outTick)
+    }
+
+    /** How many fires are burning, for tests. */
+    internal val burning: Int get() = fires.size
 
     /** Walks [player] a step off the logs' tile: west if they can, else east, south, north; nowhere if all are blocked. */
     private fun stepOff(player: Player, x: Int, z: Int) {

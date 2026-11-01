@@ -104,9 +104,9 @@ class HeadlessVarrockFitzharmonsTest {
                 client.walk(VarrockFitzharmons.DIMINTHEIS, "dimintheis", *quests, "2:money,help", "help", "sons", "straight_there", "!rewards")
 
                 val other = arrayOf("2:quests,other", "greeting", "gauntlets")
-                client.walk(VarrockFitzharmons.DIMINTHEIS, "dimintheis", *other, "returned", "2:yes_please,not_now", "not_now", "any_time")
+                client.walk(VarrockFitzharmons.DIMINTHEIS, "dimintheis", *other, "returned_steel", "2:yes_please,not_now", "not_now", "any_time")
                 assertEquals(0, client.held(VarrockFitzharmons.FAMILY_GAUNTLETS))
-                client.walk(VarrockFitzharmons.DIMINTHEIS, "dimintheis", *other, "returned", "1:yes_please,not_now", "yes_please", "@hands_over")
+                client.walk(VarrockFitzharmons.DIMINTHEIS, "dimintheis", *other, "returned_steel", "1:yes_please,not_now", "yes_please", "here_you_go", "@hands_over")
                 client.await("the gauntlets") { if (client.held(VarrockFitzharmons.FAMILY_GAUNTLETS) == 1) Unit else null }
 
                 // Any pair owned, his sons' too: he hasn't got them.
@@ -159,8 +159,8 @@ class HeadlessVarrockFitzharmonsTest {
                 // Lost: Dimintheis hands back the chaos pair, the one last enchanted.
                 client.holding()
                 client.walk(
-                    VarrockFitzharmons.DIMINTHEIS, "dimintheis", "2:quests,other", "greeting", "gauntlets", "returned",
-                    "1:yes_please,not_now", "yes_please", "@hands_over",
+                    VarrockFitzharmons.DIMINTHEIS, "dimintheis", "2:quests,other", "greeting", "gauntlets", "returned_chaos",
+                    "1:yes_please,not_now", "yes_please", "here_you_go", "@hands_over",
                 )
                 client.await("the chaos gauntlets") { if (client.held(VarrockFitzharmons.CHAOS_GAUNTLETS) == 1) Unit else null }
                 assertEquals(0, client.held(VarrockFitzharmons.FAMILY_GAUNTLETS))

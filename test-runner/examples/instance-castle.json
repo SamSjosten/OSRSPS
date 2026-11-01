@@ -1,0 +1,18 @@
+{
+ "name": "Instances: a copy of Lumbridge Castle's west large doors made with ::instance, shut and blocking line of sight, opened from inside the copy, then ::instance leave back to the real castle",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3215 3221 0", "expectMessage": "Teleported to 3215, 3221, 0", "comment": "inside the castle's west large doors"},
+  {"step": "command", "text": "::resetlocs 2", "expectMessage": "Put the locs within 2 of", "comment": "the real doors shut, for the check at the end"},
+  {"step": "command", "text": "::instance", "expectMessage": "Made instance #", "comment": "13 x 13 zones round us, us on the same spot in the copy"},
+  {"step": "waitTicks", "ticks": 2, "comment": "the client draws the copy from the REBUILD_REGION"},
+  {"step": "command", "text": "::los -4 0", "expectMessage": "distance 4, line of sight blocked", "comment": "through the copy's shut door, which starts as the cache has it"},
+  {"step": "locOption", "loc": "Large door", "option": "Open", "comment": "the nearest: the copy's left leaf, which the client only shows if it drew the copy"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "command", "text": "::los -3 0", "expectMessage": "distance 3, line of sight clear", "comment": "from the tile by the door, through the open doorway"},
+  {"step": "command", "text": "::instance leave", "expectMessage": "Left instance #", "comment": "back where we made it; the copy ends now nobody is in it"},
+  {"step": "assertLocation", "x": 3215, "y": 3221, "plane": 0},
+  {"step": "command", "text": "::los -4 0", "expectMessage": "3211, 3221: distance 4, line of sight blocked", "comment": "the real doors were never opened"}
+ ]
+}

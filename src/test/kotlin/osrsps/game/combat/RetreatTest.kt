@@ -20,7 +20,10 @@ import osrsps.game.npc.Npcs
 import osrsps.map.CollisionMap
 import osrsps.map.Tile
 
-/** NPCs retreating: attacked from outside their aggression range, or low on hitpoints, they walk away and don't fight. */
+/**
+ * NPCs retreating: attacked from outside their aggression range, or low on hitpoints, they walk away and don't fight.
+ * And NPCs letting go of a player who stands off past where they can follow.
+ */
 class RetreatTest {
     private var tick = 0L
     private val man = NpcType(3106, "Man", combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
@@ -34,11 +37,12 @@ class RetreatTest {
     private val map = CollisionMap().apply { markLoaded(50, 50) }
     private val npcs = Npcs(map, GameRandom(1))
     private val alice = Player(1, "alice", 3220, 3220, 0)
+    private val bob = Player(2, "bob", 3240, 3240, 0)
     private val melee = MeleeCombat(
         npcs, map, Movement(map), Combat(Equipment(ObjTypes.of()), AttackStyles.fromRows(emptyList()), npcCombat), GameRandom(5), { tick },
-        removeNpc = { npcs.remove(it) }, spawnNpc = {}, players = { sequenceOf(alice) },
+        removeNpc = { npcs.remove(it) }, spawnNpc = {}, players = { sequenceOf(alice, bob) },
     )
-    private val aggression = Aggression(npcs, map, { npcCombat[it.type] }, melee, GameRandom(7), { tick }) { sequenceOf(alice) }
+    private val aggression = Aggression(npcs, map, { npcCombat[it.type] }, melee, GameRandom(7), { tick }) { sequenceOf(alice, bob) }
 
     private fun entry(name: String, extra: String = "") = """{ "npcs": ["$name"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush",
         "attackBonus": 0, "strengthBonus": 0, $extra
@@ -150,5 +154,62 @@ class RetreatTest {
         assertSame(alice, npc.retreatingFrom)
         assertNull(npc.target)
         assertTrue(abs(npc.x - 3220) <= Npcs.MAX_RANGE)
+    }
+
+    @Test
+    fun `a retreat ends 8 ticks after the last hit, and an aggressive NPC hunts again`() {
+        val npc = spawn(spider)
+        alice.x = 3220 - 9
+        melee.hit(npc, alice, 0, tick, attackedFrom = Tile(alice.x, alice.z))
+        // Hit again from out there 5 ticks on, it keeps going past the first 8.
+        repeat(5) { process() }
+        melee.hit(npc, alice, 0, tick, attackedFrom = Tile(alice.x, alice.z))
+        repeat(MeleeCombat.IN_COMBAT_TICKS) { process() }
+        assertSame(alice, npc.retreatingFrom, "8 ticks after the second hit")
+        // Bob comes up beside it while she stands out there; once she has stopped hitting it, it goes for him.
+        bob.x = npc.x + 1
+        bob.z = npc.z
+        process()
+        assertNull(npc.retreatingFrom)
+        // It hunts from the next tick: hunting comes before fighting in a tick.
+        process()
+        assertSame(bob, npc.target)
+    }
+
+    @Test
+    fun `an aggressive NPC lured past its range gives up after 8 ticks, walks home and hunts again`() {
+        val npc = spawn(spider)
+        alice.x = 3221
+        process()
+        assertSame(alice, npc.target)
+        // She steps off 12 east of its spawn: past the 7 it follows to, within the 18 it gives up at.
+        alice.x = 3220 + 12
+        repeat(MeleeCombat.IN_COMBAT_TICKS) { process() }
+        assertSame(alice, npc.target, "8 ticks after it went for her")
+        assertEquals(3220 + Npcs.MAX_RANGE, npc.x, "it followed her to its max range")
+        process()
+        assertNull(npc.target)
+        repeat(Npcs.MAX_RANGE) { process() }
+        assertEquals(3220 to 3220, npc.x to npc.z, "home")
+        assertTrue(alice.effects.pendingHits.isEmpty(), "it never reached her")
+        bob.x = 3220
+        bob.z = 3219
+        process()
+        assertSame(bob, npc.target)
+    }
+
+    @Test
+    fun `a fighting NPC keeps on a player outside its range who is hitting it, and one it swung at lately`() {
+        val npc = spawn(spider)
+        alice.x = 3221
+        process()
+        alice.x = 3220 + 12
+        repeat(MeleeCombat.IN_COMBAT_TICKS - 1) { process() }
+        // A hit from within its aggression range (her last swing as she stepped off) holds it 8 more ticks.
+        melee.hit(npc, alice, 0, tick, attackedFrom = Tile(3228, 3220))
+        repeat(MeleeCombat.IN_COMBAT_TICKS) { process() }
+        assertSame(alice, npc.target)
+        process()
+        assertNull(npc.target)
     }
 }

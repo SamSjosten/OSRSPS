@@ -21,9 +21,9 @@
       "npcs": ["fai_varrock_guard02", "fai_varrock_guard02_variant01", "fai_varrock_guard02_variant02", "fai_varrock_guard02_f", "fai_varrock_guard02_f_variant01", "fai_varrock_guard02_f_variant02", "fai_varrock_guard_captain02"],
       "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 4, "strengthBonus": 5,
       "defence": { "stab": 24, "slash": 30, "crush": 25, "magic": -9, "light": 25, "standard": 25, "heavy": 25 },
-      "anims": { "attack": "human_blunt_pound", "defend": "human_shield_defence", "death": "human_death" },
+      "anims": { "attack": "human_sword_slash", "defend": "human_shield_defence", "death": "human_death" },
       "respawnTicks": 50,
-      "source": "OSRS Wiki, Guard (Varrock 1 to 7, the 2022 guards 11911 to 11917) and the DPS calculator's 11911, 11914 and 11917, read 2026-10-30. Their attack animation is GUESSED from the crush style (human_blunt_pound); not yet watched on live. Their block is INFERRED: all seven carry a kiteshield (the Wiki's pictures of Varrock 1 to 7; the cache types wear a longsword, model 518, and a shield), and a human holding a shield blocks with human_shield_defence (1156), as a player holding a shield does on live (from memory, not checked against a recording). human_blunt_block, guessed before, swung the shield up over the guard's head (Sam's screenshot, 2026-11-01)"
+      "source": "OSRS Wiki, Guard (Varrock 1 to 7, the 2022 guards 11911 to 11917) and the DPS calculator's 11911, 11914 and 11917, read 2026-10-30. Their attack animation is INFERRED from the longsword they hold: human_sword_slash (390), the swing a player with a longsword makes; not yet watched on live. human_blunt_pound, guessed before from the crush style, raised the sword straight over the guard's head (Sam's screenshot at the palace fountain, 2026-11-01). Their block is INFERRED: all seven carry a kiteshield (the Wiki's pictures of Varrock 1 to 7; the cache types wear a longsword, model 518, and a shield), and a human holding a shield blocks with human_shield_defence (1156), as a player holding a shield does on live (from memory, not checked against a recording). human_blunt_block, guessed before, swung the shield up over the guard's head (Sam's screenshot, 2026-11-01)"
     },
     {
       "npcs": ["guard1"],
