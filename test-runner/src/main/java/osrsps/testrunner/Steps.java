@@ -814,6 +814,53 @@ final class Steps
 	}
 
 	/**
+	 * (0.24.0) Types text into the chatbox's text prompt, as the rotten potato's name and coordinate prompts ask for (the
+	 * server's stringDialog, meslayer_mode9).
+	 */
+	static final class EnterText extends Step
+	{
+		/** meslayer_mode9's mode: the chatbox asks for text. */
+		static final int TEXT_PROMPT = 9;
+
+		final String text;
+		private boolean sent;
+
+		EnterText(long timeoutMs, String text)
+		{
+			super("enterText", timeoutMs, false);
+			this.text = text;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			int mode = run.game.promptMode();
+			if (!sent)
+			{
+				if (mode != TEXT_PROMPT)
+				{
+					return Poll.waiting("no text prompt open (meslayermode " + mode + ")");
+				}
+				run.markAction();
+				String error = run.game.enterText(text);
+				if (error != null)
+				{
+					return Poll.fail(error);
+				}
+				sent = true;
+				return Poll.waiting("entered, waiting for the prompt to close");
+			}
+			return mode == TEXT_PROMPT ? Poll.waiting("the prompt is still open") : Poll.pass("entered \"" + text + "\"");
+		}
+
+		@Override
+		String describe()
+		{
+			return "enter text \"" + text + "\"";
+		}
+	}
+
+	/**
 	 * (0.12.0) Types text as key presses, for what reads the keyboard itself, such as the All Settings search. Passes a
 	 * game tick after the keys reach the canvas, so the client has run its key scripts before the next step acts.
 	 */
