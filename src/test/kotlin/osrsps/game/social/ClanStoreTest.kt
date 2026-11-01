@@ -39,4 +39,14 @@ class ClanStoreTest {
         assertNull(store.foundedDay("alice"))
         assertFalse(ClanStore(dir.resolve(ClanStore.FILE_NAME)).nameTaken("Odins Gate"))
     }
+
+    @Test
+    fun `a name that only reads as a taken one, by an inner double space or an accent, isn't allowed`() {
+        val store = ClanStore(null)
+        store.create("Odins Gate", 0, 0, founders())
+        assertTrue(store.nameTaken("odins  gate"))
+        assertFalse(Clans.validName("Odins  Gate"))
+        assertFalse(Clans.validName("Ódins Gate"))
+        assertTrue(Clans.validName("Odins Gate 2"))
+    }
 }

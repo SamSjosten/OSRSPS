@@ -261,6 +261,23 @@ class HeadlessClanTest {
         }
     }
 
+    @Test
+    fun `asking a player again doesn't send them another invitation line`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.toHub()
+                    bob.toHub()
+                    alice.await("bob in view") { alice.otherPlayers().takeIf { it.isNotEmpty() } }
+                    repeat(10) { alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT) }
+                    bob.await("the invitation") { bob.messages().firstOrNull { it.type == Clans.CHATTYPE_CLAN_CREATION_INVITATION } }
+                    alice.awaitTicks(3)
+                    assertEquals(1, bob.messages().count { it.type == Clans.CHATTYPE_CLAN_CREATION_INVITATION })
+                }
+            }
+        }
+    }
+
     private companion object {
         const val HUB_X = 3181
         const val HUB_Z = 3474
