@@ -106,6 +106,8 @@ import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerHaystacks
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
+import osrsps.game.content.registerNed
+import osrsps.game.content.registerAggie
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
@@ -579,6 +581,8 @@ class World(
         registerDraynorVillage(this)
         registerAxeLogs(this)
         registerDraynorMarket(this)
+        registerNed(this)
+        registerAggie(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)

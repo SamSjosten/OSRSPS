@@ -24,6 +24,8 @@ class ShopTest {
         11709 to 30, 12727 to 150, 13188 to 500, 13328 to 49, 13660 to 200, 13658 to 100, 13679 to 100, 13681 to 200, 13215 to 100,
         13216 to 100, 13217 to 100, 13218 to 100, 21314 to 80, 22355 to 1, 22358 to 1, 22361 to 1, 19699 to 10, 21354 to 0,
         13203 to 1, 12600 to 1, 981 to 120, 22364 to 40,
+        // Ned's rope.
+        954 to 18,
         // Al Kharid's shops.
         1321 to 32, 1323 to 112, 1325 to 400, 1329 to 1040,
         1592 to 5, 1597 to 5, 1595 to 5, 1733 to 1, 1734 to 1, 1599 to 5, 2976 to 10, 5523 to 100, 9434 to 25, 11065 to 5,
@@ -71,6 +73,7 @@ class ShopTest {
             NpcType(1260, "Fortunato", internalName = "rag_wine_merchant"),
             NpcType(500, "Olivia", internalName = "seed_merchant"),
             NpcType(8693, "Diango", internalName = "aprilfoolshorsesalesman"),
+            NpcType(4280, "Ned", internalName = "ned"),
             NpcType(2817, "Shop keeper", internalName = "generalshopkeeper3"),
             NpcType(2818, "Shop assistant", internalName = "generalassistant3"),
             NpcType(2875, "Zeke", internalName = "zeke"),
@@ -114,6 +117,8 @@ class ShopTest {
             225 to null, 750 to null, 73 to null, 300 to null, 150 to 50, 150 to null, 300 to null, 150 to null, 150 to null,
             150 to null, 150 to null, 120 to null, 1 to 0, 1 to 0, 1 to 0, 15 to 5, 1 to 0, 1 to 0, 1 to 0, 21000 to 60, 60 to null,
         ),
+        // After The Fremennik Isles.
+        "neds_rope_shop" to listOf(16 to 3),
     )
 
     /** The Wiki's "Price sold at" for each item of Al Kharid's shops at its starting stock, read 2026-10-30. */
@@ -144,7 +149,8 @@ class ShopTest {
         val shops = realShops()
         assertEquals(emptyList(), shops.warnings)
         assertEquals(
-            listOf("lumbridge_general_store", "bobs_brilliant_axes", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store") + wikiSoldAt.keys,
+            listOf("lumbridge_general_store", "bobs_brilliant_axes", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store", "neds_rope_shop") +
+                wikiSoldAt.keys,
             shops.all.map { it.key },
         )
         assertEquals(shops["diangos_toy_store"], shops.ofNpc(8693))
@@ -154,6 +160,7 @@ class ShopTest {
         assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
         assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
+        assertEquals(shops["neds_rope_shop"], shops.ofNpc(4280))
         for (type in shops.all) {
             val shop = Shop(type)
             val sold = wikiSoldAt[type.key]
@@ -174,7 +181,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(22, shops.warnings.size)
+        assertEquals(23, shops.warnings.size)
     }
 
     @Test
