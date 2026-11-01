@@ -1,0 +1,203 @@
+{
+ "name": "Draynor piece step 11: Draynor Manor's grounds: Veronica, an undead tree's Chop and swipe, the vines, the compost heap, the fountain and the front doors (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "the undead trees and the vines hit"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3110 3331 0",
+   "expectMessage": "Teleported to 3110, 3331, 0",
+   "comment": "in the gap in the fence, by Veronica"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Veronica",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[veronica.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[veronica.where]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[veronica.warty]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3108 3337 0",
+   "expectMessage": "Teleported to 3108, 3337, 0",
+   "comment": "east of the undead tree at 3107 3337"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Undead tree",
+   "option": "Chop",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_manor.tree_no_axe]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertHitsplat",
+   "timeoutMs": 15000,
+   "comment": "the tree swipes the player beside it: a 0 under ::god"
+  },
+  {
+   "step": "command",
+   "text": "::item bronze axe",
+   "expectMessage": "Added 1 x Bronze axe"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Undead tree",
+   "option": "Chop",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_manor.tree_bounce]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3115 3340 0",
+   "expectMessage": "Teleported to 3115, 3340, 0",
+   "comment": "in the vines' zone, south-east of the manor"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_manor.vine]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3086 3360 0",
+   "expectMessage": "Teleported to 3086, 3360, 0",
+   "comment": "beside the compost heap"
+  },
+  {
+   "step": "locOption",
+   "loc": "Compost heap",
+   "option": "Search",
+   "x": 3084,
+   "y": 3360
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[draynor_manor.compost_hands]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3089 3334 0",
+   "expectMessage": "Teleported to 3089, 3334, 0",
+   "comment": "beside the fountain"
+  },
+  {
+   "step": "locOption",
+   "loc": "Fountain",
+   "option": "Search",
+   "x": 3087,
+   "y": 3334
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[draynor_manor.fountain_fish]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3108 3352 0",
+   "expectMessage": "Teleported to 3108, 3352, 0",
+   "comment": "south of the front doors"
+  },
+  {
+   "step": "locOption",
+   "loc": "Large door",
+   "option": "Open",
+   "x": 3108,
+   "y": 3353
+  },
+  {
+   "step": "assertLocation",
+   "x": 3108,
+   "y": 3354,
+   "plane": 0,
+   "comment": "inside"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_manor.doors_slam]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "locOption",
+   "loc": "Large door",
+   "option": "Open",
+   "x": 3109,
+   "y": 3353
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_manor.doors_wont_open]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again."
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

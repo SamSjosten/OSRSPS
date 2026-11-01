@@ -123,6 +123,8 @@ import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
 import osrsps.game.content.registerDraynorSewers
+import osrsps.game.content.registerDraynorManorGrounds
+import osrsps.game.content.ManorHazards
 import osrsps.game.content.registerWiseOldMan
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRottenPotato
@@ -590,6 +592,7 @@ class World(
 
     val mining = Mining(this)
     val thieving = Thieving(this, collision)
+    val manorHazards = ManorHazards(this)
     val pickpocketing = Pickpocketing(this)
 
     val fishing = Fishing(this)
@@ -686,6 +689,7 @@ class World(
         registerAggie(this)
         registerDraynorJail(this)
         registerDraynorSewers(this)
+        registerDraynorManorGrounds(this)
         registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
@@ -1063,6 +1067,7 @@ class World(
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
+            manorHazards.process(player)
             // Outside a player's own scripts, so a failure here would otherwise skip the rest of the tick for everyone.
             perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
             perPlayer(player, "Clans") { clans.process(player) }

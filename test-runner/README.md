@@ -251,6 +251,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   `assertSpotanim`.
 - `draynor-sewers.json`: Draynor step 10: both Draynor Sewers entrances opened, climbed down and back up (each landing
   beside the trapdoor or ladder), a zombie fought (`::god on`), Ruantun's anvil talk (`::keys on`) and the anvil.
+- `draynor-manor-grounds.json`: Draynor step 11: Veronica's talk (`::keys on`), Chop on an undead tree without and with
+  an axe and its swipe (`::god on`), a vine's whip, the compost heap, the fountain, and in by the front doors that
+  won't open from inside.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
