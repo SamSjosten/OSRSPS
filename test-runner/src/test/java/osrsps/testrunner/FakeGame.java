@@ -355,6 +355,14 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public String enterText(String text)
+	{
+		actions.add("text " + text);
+		promptMode = 0;
+		return null;
+	}
+
+	@Override
 	public int[] varbit(int id)
 	{
 		return varbits.get(id);

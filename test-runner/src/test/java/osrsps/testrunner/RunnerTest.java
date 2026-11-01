@@ -787,6 +787,25 @@ public class RunnerTest
 	}
 
 	@Test
+	public void textWaitsForTheTextPromptAndItsClosing() throws Exception
+	{
+		runner.start(script("{\"step\":\"enterText\",\"text\":\"alice\"},{\"step\":\"enterText\",\"text\":\"bob\",\"timeoutMs\":40}"), "file");
+		game.promptMode = 7;
+		assertNull(cycle());
+		assertFalse(game.actions.contains("text alice"));
+		game.promptMode = 9;
+		Result r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertTrue(game.actions.contains("text alice"));
+		assertEquals("enter text \"alice\"", r.steps.get(0).description);
+		assertEquals("entered \"alice\"", r.steps.get(0).detail);
+		assertEquals("step 2 (enter text \"bob\"): timed out after 40 ms: no text prompt open (meslayermode 0)", r.failure);
+	}
+
+	@Test
 	public void typeTextTypesOnceAndPassesATickAfterTheKeysGo() throws Exception
 	{
 		runner.start(script("{\"step\":\"typeText\",\"text\":\"roof\"},{\"step\":\"assertNoDialogue\"}"), "file");
