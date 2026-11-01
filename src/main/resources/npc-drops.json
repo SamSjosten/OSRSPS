@@ -322,6 +322,30 @@
       "npcs": ["farming_market_guard"],
       "always": [{"item": 526, "name": "Bones"}],
       "source": "OSRS Wiki, Market Guard (Draynor), read 2026-10-30: bones always, nothing else"
+    },
+    {
+      "npcs": ["surok_outlaw1", "surok_outlaw2", "surok_outlaw3", "surok_outlaw4", "surok_outlaw5", "surok_outlaw6", "surok_outlaw7", "surok_outlaw8", "surok_outlaw9", "surok_outlaw10"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 1139, "name": "Bronze med helm", "weight": 2},
+          {"item": 558, "name": "Mind rune", "count": 9, "weight": 2},
+          {"item": 555, "name": "Water rune", "count": 6, "weight": 2},
+          {"item": 557, "name": "Earth rune", "count": 5, "weight": 2},
+          {"table": "herbs", "weight": 32},
+          {"item": 995, "name": "Coins", "count": 5, "weight": 12},
+          {"item": 995, "name": "Coins", "count": 15, "weight": 4},
+          {"item": 995, "name": "Coins", "count": 25, "weight": 1},
+          {"item": 954, "name": "Rope", "weight": 46},
+          {"item": 313, "name": "Fishing bait", "weight": 15},
+          {"item": 436, "name": "Copper ore", "weight": 2},
+          {"item": 1965, "name": "Cabbage", "weight": 6},
+          {"item": 946, "name": "Knife", "weight": 1},
+          {"nothing": true, "weight": 1}
+        ]
+      },
+      "source": "OSRS Wiki, Outlaw, read 2026-11-01. Members worlds: the herb table's 32/128 in place of the free-to-play 10 coins; Rat's paper is a quest drop, so left out. The Wiki's lines add up to 127/128, so the last 1/128 as nothing is inferred"
     }
   ]
 }
