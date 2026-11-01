@@ -73,6 +73,9 @@ class MeleeCombatTest {
     private val faced = mutableListOf<Pair<Player, Npc?>>()
     private val removed = mutableListOf<Npc>()
     private val respawned = mutableListOf<NpcSpawn>()
+
+    /** Whether a respawn puts the replacement in the world, not only records it. */
+    private var addRespawns = false
     private val deadPlayers = mutableListOf<Player>()
     private val looted = mutableListOf<Pair<Npc, Player?>>()
     private val poisonedDagger = ObjType(5688, "Bronze dagger(p++)", wearpos1 = WearPos.WEAPON, internalName = "bronze_dagger_p++")
@@ -99,7 +102,7 @@ class MeleeCombatTest {
 
     init {
         melee = MeleeCombat(
-            npcs, map, movement, combat, random, { tick }, removeNpc = { npcs.remove(it); removed += it }, spawnNpc = { respawned += it },
+            npcs, map, movement, combat, random, { tick }, removeNpc = { npcs.remove(it); removed += it }, spawnNpc = { respawned += it; if (addRespawns) npcs.add(it) },
             message = { player, text -> messages += player to text },
             players = { sequenceOf(alice, bob) },
             face = { player, npc -> faced += player to npc }, stopFacing = { player -> faced += player to null },
@@ -673,14 +676,16 @@ class MeleeCombatTest {
     }
 
     @Test
-    fun `each NPC gets a hitpoint back a minute after its spawn, then every minute, whatever the world clock says`() {
-        // Not on a minute of the world clock: the NPC's own countdown starts at its spawn.
+    fun `each NPC gets a hitpoint back a minute after the tick it appears on, then every minute, whatever the world clock says`() {
+        // Not on a minute of the world clock: the NPC's own countdown starts on the tick it appears.
         tick = 37L
         val npc = spawn()
         val full = spawn(hans, x = 3211)
         npc.hitpoints = 3
-        repeat(MeleeCombat.REGEN_TICKS - 1) { tick() }
+        // The tick it appeared on, then 99 more.
+        repeat(MeleeCombat.REGEN_TICKS) { tick() }
         assertEquals(3, npc.hitpoints)
+        // A hundred ticks after that first one.
         tick()
         assertEquals(4, npc.hitpoints)
         assertEquals(MeleeCombat.REGEN_TICKS, npc.hitpointsRegenTicks)
@@ -692,11 +697,25 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `a respawned NPC's first hitpoint comes a full minute after the tick it comes back`() {
+        addRespawns = true
+        val npc = spawn()
+        melee.hit(npc, alice, 100, tick)
+        val back = (1..200).firstNotNullOf { _ -> tick(); npcs.all.firstOrNull { it !== npc && it.spawn === npc.spawn } }
+        val respawnTick = tick
+        back.hitpoints = 2
+        while (tick < respawnTick + MeleeCombat.REGEN_TICKS - 1) tick()
+        assertEquals(2, back.hitpoints)
+        tick()
+        assertEquals(3, back.hitpoints)
+    }
+
+    @Test
     fun `an NPC hurt late in its minute heals at the minute's end, not a full minute after the hit`() {
         val npc = spawn()
         repeat(MeleeCombat.REGEN_TICKS - 10) { tick() }
         npc.hitpoints = 2
-        repeat(9) { tick() }
+        repeat(10) { tick() }
         assertEquals(2, npc.hitpoints)
         tick()
         assertEquals(3, npc.hitpoints)

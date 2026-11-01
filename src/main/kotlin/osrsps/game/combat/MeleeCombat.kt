@@ -625,7 +625,7 @@ class MeleeCombat(
     }
 
     /**
-     * Each NPC's own hitpoints countdown ([Npc.hitpointsRegenTicks]), started at its spawn: at 0 a hurt NPC gets a
+     * Each NPC's own hitpoints countdown ([Npc.hitpointsRegenTicks]), started on the tick it spawns: at 0 a hurt NPC gets a
      * hitpoint back and it starts again at [REGEN_TICKS], in a fight or out of one. The default rate is the players'
      * one a minute (OSRS Wiki, Guardian (Chambers of Xeric), quoting Mod Ash: "default should be 100"; User:Orion/Regen
      * measures 100 ticks for most monsters and has no in-or-out-of-combat condition). Inferred: the countdown starts at
@@ -636,6 +636,12 @@ class MeleeCombat(
     private fun regenerateNpcs() {
         for (npc in npcs.all) {
             if (npc.dead || combat.npcCombat[npc.type] == null) continue
+            // The tick it appears on starts the countdown without counting, whether it came before this phase (a
+            // command, the server starting) or in it (a respawn), so the first hitpoint comes a full minute later.
+            if (npc.hitpointsRegenTicks < 0) {
+                npc.hitpointsRegenTicks = REGEN_TICKS
+                continue
+            }
             if (--npc.hitpointsRegenTicks > 0) continue
             npc.hitpointsRegenTicks = REGEN_TICKS
             if (npc.hitpoints < npc.type.stats.hitpoints) npc.hitpoints++

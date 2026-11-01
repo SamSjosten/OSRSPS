@@ -157,11 +157,11 @@ class Npc(
     var hitpoints: Int = spawn.type.stats.hitpoints
 
     /**
-     * Ticks to its next hitpoint back, counted from its spawn; see [osrsps.game.combat.MeleeCombat]. Each NPC has its own
-     * timer (OSRS Wiki, User:Orion/Regen, quoting Mod Ash: changing an NPC's version doesn't make its next regen tick
-     * come sooner).
+     * Ticks to its next hitpoint back, -1 until the NPC phase of the tick it appeared on starts it; see
+     * [osrsps.game.combat.MeleeCombat]. Each NPC has its own timer (OSRS Wiki, User:Orion/Regen, quoting Mod Ash:
+     * changing an NPC's version doesn't make its next regen tick come sooner).
      */
-    var hitpointsRegenTicks: Int = osrsps.game.combat.MeleeCombat.REGEN_TICKS
+    var hitpointsRegenTicks: Int = -1
         internal set
 
     /**
