@@ -221,6 +221,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   legs: the general store, Fred's farmhouse and Mill Lane Mill; Bob's axes, the church's west door, over the bridge
   and north to the Groats' farm; the swamp, its east and west mines and the adventurers' camp. Takes about six
   minutes.
+- `draynor-jail.json`: Draynor step 5: Leela's talk (`::keys on`), out of the jail cell through its door and locked
+  from outside, a hit on a jail guard, Morgan's first talk after Vampyre Slayer (`assertVarbit` 15611) and a later one.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
