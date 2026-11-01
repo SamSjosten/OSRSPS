@@ -1,0 +1,11 @@
+{
+ "name": "::openbank opens the bank away from any booth (the client never sends ::bank: it says a line in public chat instead)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "the Lumbridge spawn, out of reach of any bank; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::openbank"},
+  {"step": "assertInterface", "interfaceId": 12, "comment": "bankmain"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were", "comment": "closes the bank too"}
+ ]
+}

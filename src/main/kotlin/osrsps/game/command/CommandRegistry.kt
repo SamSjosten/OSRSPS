@@ -50,6 +50,7 @@ class CommandRegistry(private val isAdmin: (Player) -> Boolean = { true }) {
         val key = name.lowercase()
         require(key.isNotEmpty() && key.none(Char::isWhitespace)) { "Bad command name '$name'" }
         require(key !in commands) { "::$key is already registered" }
+        require(CLIENT_PREFIXES.none { key.startsWith(it) }) { "::$key never reaches the server: the client keeps lines starting ::${CLIENT_PREFIXES.first { key.startsWith(it) }}" }
         commands[key] = Command(key, usage, admin, run)
     }
 
@@ -91,7 +92,23 @@ class CommandRegistry(private val isAdmin: (Player) -> Boolean = { true }) {
         }
     }
 
-    private companion object {
-        val WHITESPACE = Regex("\\s+")
+    companion object {
+        private val WHITESPACE = Regex("\\s+")
+
+        /**
+         * Starts of `::` lines the client handles itself and never sends as a ClientCheat, so a command named with one
+         * can't be run (rev 241's chatdefault_onkey, osrs-dumps 2026-10-28): `::bank` says a line in public chat instead,
+         * `::toggleroof` and `::wiki` stay in the client, and a line starting with an emote's name plays that emote
+         * (emote_from_chat). Matched as prefixes, as the client does.
+         */
+        val CLIENT_PREFIXES = listOf(
+            "bank", "toggleroof", "wiki",
+            "yes", "nod", "no", "shakehead", "bow", "angry", "think", "wave", "shrug", "cheer", "beckon", "laugh", "jump",
+            "yawn", "dance", "jig", "spin", "headbang", "cry", "blowkiss", "panic", "raspberry", "clap", "salute",
+            "goblinbow", "goblinsalute", "glassbox", "climbrope", "lean", "glasswall", "idea", "stamp", "flap", "slaphead",
+            "zombiewalk", "zombiedance", "scared", "rabbithop", "bunnyhop", "skillcape", "zombiehand", "musiccape",
+            "situp", "pushup", "pressup", "starjump", "jog", "run", "flex", "ash", "hypermobiledrinker", "uri",
+            "smoothdance", "crazydance", "premiershield", "explore", "relic", "party", "trick", "bats", "sit", "fortis",
+        )
     }
 }
