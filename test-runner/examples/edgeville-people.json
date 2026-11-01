@@ -191,6 +191,12 @@
    "comment": "in Lucien's house east of the willows"
   },
   {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied.",
+   "comment": "no pendant carried, so he gives one (a banked one would skip it; test accounts bank none)"
+  },
+  {
    "step": "npcOption",
    "npc": "Lucien",
    "option": "Talk-to",
@@ -203,6 +209,53 @@
   },
   {
    "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.lost_pendant]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.new_pendant]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.pendant_given]",
+   "comment": "the item box showing the new pendant"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.nothing]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.leave]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pendant of Lucien",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied.",
+   "comment": "so the next run's Lucien again finds no pendant and gives one"
   },
   {
    "step": "command",
