@@ -39,7 +39,7 @@ class EdgevillePeopleTest {
         h.expect("evil_dave.greeting")
         h.menu("evil_dave.nice_basement", "evil_dave.give_up", "evil_dave.time_travel")
         h.pick(1)
-        h.expect("evil_dave.nice_basement", "evil_dave.is_it_nice", "evil_dave.evil", "evil_dave.plans")
+        h.expect("evil_dave.nice_basement", "evil_dave.is_it_nice", "evil_dave.evil", "evil_dave.plans", "evil_dave.plans_laugh")
         h.menu(*basementMenu)
         h.pick(1)
         h.expect("evil_dave.summoning", *(1..4).map { "evil_dave.summoning_$it" }.toTypedArray())
@@ -55,7 +55,7 @@ class EdgevillePeopleTest {
 
     @Test
     fun `Evil Dave's time travel menu loops until the magic or never mind`() {
-        val menu = arrayOf("evil_dave.frozen", "evil_dave.saved", "evil_dave.food", "evil_dave.magic", "evil_dave.never_mind")
+        val menu = arrayOf("evil_dave.frozen", "evil_dave.saved", "evil_dave.food_option", "evil_dave.magic", "evil_dave.never_mind")
         h.talk { evilDave { 0 } }
         h.expect("evil_dave.greeting")
         h.menu("evil_dave.nice_basement", "evil_dave.give_up", "evil_dave.time_travel")
@@ -126,9 +126,10 @@ class EdgevillePeopleTest {
     fun `Lucien gives a new pendant only to a player who owns none`() {
         val given = mutableListOf<Int>()
         h.talk { lucien { _, obj -> given += obj } }
-        h.expect("lucien.what", "lucien.lost_pendant", "lucien.new_pendant", "lucien.nothing", "lucien.leave")
+        h.expect("lucien.what", "lucien.lost_pendant", "lucien.new_pendant", "lucien.pendant_given", "lucien.nothing", "lucien.leave")
         h.ends()
         assertEquals(listOf(EdgevillePeople.PENDANT_OF_LUCIEN), given)
+        assertEquals(listOf(EdgevillePeople.PENDANT_OF_LUCIEN), h.boxObjs)
 
         h.player.bank.add(ObjType(EdgevillePeople.PENDANT_OF_LUCIEN, "Pendant of Lucien"), 1)
         h.talk { lucien { _, obj -> given += obj } }

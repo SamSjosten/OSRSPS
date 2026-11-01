@@ -39,6 +39,7 @@ object EvilDaveLines : Lines("evil_dave", "Transcript:Evil Dave") {
     val IS_IT_NICE = line("is_it_nice", "the basement: he asks if it's nice")
     val EVIL = line("evil", "the basement: the player means evil")
     val PLANS = line("plans", "the basement: his plans to conquer the world")
+    val PLANS_LAUGH = line("plans_laugh", "the basement: his laugh after his plans, before the menu")
     val SUMMONING = line("summoning", "basement menu, option 1: the demon-summoning, which the player then says")
     val SUMMONING_REPLIES = series("summoning", 4, "the demon-summoning, after the player's question (Dave, player, Dave, Dave)")
     val GIVE_UP = line("give_up", "menus: giving up evil, which the player then says")
@@ -53,7 +54,8 @@ object EvilDaveLines : Lines("evil_dave", "Transcript:Evil Dave") {
     val FROZEN_REPLIES = series("frozen", 9, "still in the time freeze, after the player's line (D, P, D, P, D, D, D, P, D)")
     val SAVED = line("saved", "time travel menu, option 2: saved from his point of view, which the player then says")
     val SAVED_REPLIES = series("saved", 5, "saved, after the player's line (D, P, D, P, D)")
-    val FOOD = line("food", "time travel menu, option 3: taking the food back, which the player then says")
+    val FOOD_OPTION = line("food_option", "time travel menu, option 3: taking the food back (the menu's wording)")
+    val FOOD = line("food", "time travel menu, option 3: taking the food back, as the player then says it")
     val FOOD_REPLIES = series("food", 5, "the food, after the player's line (D, P, D, P, D), before the why menu")
     val ALREADY = line("already", "why menu, option 1: the player already has, which the player then says")
     val ALREADY_REPLIES = series("already", 3, "already, after the player's line (D, P, D)")
@@ -114,6 +116,7 @@ object LucienLines : Lines("lucien", "Transcript:Lucien") {
     val WHAT = line("what", "after Temple of Ikov, sided with Lucien: what the player wants")
     val LOST_PENDANT = line("lost_pendant", "with no Pendant of Lucien: the player lost it")
     val NEW_PENDANT = line("new_pendant", "with no Pendant of Lucien: he gives another")
+    val PENDANT_GIVEN = line("pendant_given", "with no Pendant of Lucien: the item box showing the new pendant")
     val NOTHING = line("nothing", "the player says it's nothing")
     val LEAVE = line("leave", "he tells the player to leave")
 }
@@ -224,6 +227,7 @@ object EdgevillePeople {
         chatNpc(ChatAnim.CONFUSED, IS_IT_NICE)
         chatPlayer(ChatAnim.NEUTRAL, EVIL)
         chatNpc(ChatAnim.LAUGH, PLANS)
+        chatNpc(ChatAnim.LAUGH, PLANS_LAUGH)
         while (true) {
             when (choice(SUMMONING, GIVE_UP, SEE_YOU)) {
                 1 -> {
@@ -250,7 +254,7 @@ object EdgevillePeople {
     private suspend fun Dialogue.timeTravel() = with(EvilDaveLines) {
         chatPlayer(ChatAnim.NEUTRAL, TIME_TRAVEL)
         while (true) {
-            when (choice(FROZEN, SAVED, FOOD, MAGIC, NEVER_MIND)) {
+            when (choice(FROZEN, SAVED, FOOD_OPTION, MAGIC, NEVER_MIND)) {
                 1 -> {
                     chatPlayer(ChatAnim.NEUTRAL, FROZEN)
                     exchange(FROZEN_REPLIES, FROZEN_SPEAKERS)
@@ -358,6 +362,7 @@ object EdgevillePeople {
             chatPlayer(ChatAnim.SAD, LOST_PENDANT)
             give(player, PENDANT_OF_LUCIEN)
             chatNpc(ChatAnim.ANGRY, NEW_PENDANT)
+            objbox(PENDANT_OF_LUCIEN, PENDANT_GIVEN)
         }
         chatPlayer(ChatAnim.NEUTRAL, NOTHING)
         chatNpc(ChatAnim.ANGRY, LEAVE)
