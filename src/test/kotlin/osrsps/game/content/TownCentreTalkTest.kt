@@ -134,6 +134,22 @@ class TownCentreTalkTest {
     }
 
     @Test
+    fun `Doric's thanks has the player's name`() {
+        h.talk { with(DonieAndGee) { talk(GeeLines, 2) } }
+        h.expect("gee.hello")
+        h.menu("gee.whats_up", "gee.quests", "gee.stick")
+        h.pick(2)
+        h.expect("gee.know_quests", "gee.what_kind")
+        h.menu("gee.fight", "gee.easy", "gee.thinker", "gee.all_kinds", "gee.another_time")
+        h.pick(3)
+        h.expect("gee.thinker", "gee.skills_1", "gee.skills_2", "gee.skills_3")
+        h.menu("gee.fred", "gee.doric", "gee.another_time")
+        h.pick(2)
+        h.expect("gee.doric_said", "gee.doric_1", "gee.doric_done", "gee.doric_thanks name=Zezima")
+        h.ends()
+    }
+
+    @Test
     fun `Where am I leads to a second menu`() {
         h.talk { with(DonieAndGee) { talk(DonieLines, 4) } }
         h.expect("donie.hello")

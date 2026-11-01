@@ -9,6 +9,7 @@ import osrsps.game.World
 import osrsps.game.bank.BankLines
 import osrsps.game.combat.CombatLines
 import osrsps.game.combat.FoodLines
+import osrsps.game.combat.LootLines
 import osrsps.game.combat.PoisonLines
 import osrsps.game.combat.PotionLines
 import osrsps.game.combat.PrayerLines
@@ -42,6 +43,7 @@ object DialogueLines {
         AbigailaLines,
         AeonisigLines,
         AereckLines,
+        AggieLines,
         AlKharidShopAssistantLines,
         AlKharidShopKeeperLines,
         AliMorrisaneLines,
@@ -127,6 +129,7 @@ object DialogueLines {
         KebabLines,
         KingRoaldLines,
         LevelUpLines,
+        LootLines,
         LouieLegsLines,
         LoweLines,
         LumbridgeGuideLines,
@@ -136,6 +139,7 @@ object DialogueLines {
         MillieLines,
         MiningLines,
         MiningTutorLines,
+        NedLines,
         NigelLines,
         OliviaLines,
         OsmanLines,
