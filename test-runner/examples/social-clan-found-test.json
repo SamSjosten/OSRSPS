@@ -1,0 +1,23 @@
+{
+ "name": "Clan founding, two players (run with social-clan-found-test2.json on the other VM at the same time): with ::clanfounding 2 0, test recruits test2 in the Clan Hub, test2 accepts, test names the clan on Confirm, and both have it",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::clandisband", "expectMessage": "clan", "comment": "the last run's clan, if any: 'Clan ... deleted' or 'You aren't in a clan'"},
+  {"step": "command", "text": "::clanfounding 2 0", "expectMessage": "Founding a clan now takes 2 founders"},
+  {"step": "command", "text": "::tele 3181 3474 0", "expectMessage": "Teleported", "comment": "the Clan Hub, beside its clerk"},
+  {"step": "clickWidget", "interfaceId": 707, "component": 3, "comment": "the Clans tab's Your Clan tab"},
+  {"step": "assertInterface", "interfaceId": 705, "comment": "the clan creation panel"},
+  {"step": "playerOption", "player": "test2", "option": "Recruit", "x": 3183, "y": 3474, "timeoutMs": 180000, "comment": "once test2 stands on the meeting tile, after its ::keys on"},
+  {"step": "assertMessage", "contains": "[clan.invite_sent name=test2]"},
+  {"step": "assertMessage", "contains": "[clan.joined name=test2]", "timeoutMs": 60000},
+  {"step": "clickWidget", "interfaceId": 705, "component": 11, "comment": "Confirm, with no name yet: it asks for one"},
+  {"step": "enterText", "text": "Gate Testers"},
+  {"step": "assertMessage", "contains": "[clan.formed name=Gate Testers]"},
+  {"step": "assertInterface", "interfaceId": 701, "comment": "Your Clan shows the clan"},
+  {"step": "command", "text": "::clan", "expectMessage": "Clan Gate Testers: test (rank 126), test2 (rank 0), in its channel"},
+  {"step": "waitTicks", "ticks": 10, "comment": "time for test2's checks"},
+  {"step": "command", "text": "::clanfounding 5 25", "expectMessage": "Founding a clan now takes 5 founders, 25 hours each"}
+ ]
+}
