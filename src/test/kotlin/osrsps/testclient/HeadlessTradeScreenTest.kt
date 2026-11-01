@@ -105,6 +105,7 @@ class HeadlessTradeScreenTest {
                 alice.awaitMessage("refused") { it == "[trade.untradeable]" }
                 alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 3, sub = 0, obj = COINS) // Offer-10
                 alice.await("10 coins") { alice.inventory(Trades.TRADEOFFER).firstOrNull()?.takeIf { it == InvObj(COINS, 10) } }
+                alice.awaitTicks(Trades.ACCEPT_DELAY_TICKS) // the Accept trade delay
                 alice.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
                 alice.await("waiting") { alice.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.waiting]" } }
                 bob.await("she accepted") { bob.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
@@ -152,8 +153,10 @@ class HeadlessTradeScreenTest {
                 bob.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 1, sub = 0, obj = AXE)
                 bob.await("both offers") { bob.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).firstOrNull()?.takeIf { it == InvObj(COINS, 10) } }
                 alice.await("bob's offer") { alice.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).firstOrNull()?.takeIf { it == InvObj(AXE, 1) } }
+                alice.awaitTicks(Trades.ACCEPT_DELAY_TICKS) // the Accept trade delay
                 alice.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
                 bob.await("she accepted") { bob.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
+                bob.awaitTicks(Trades.ACCEPT_DELAY_TICKS) // the Accept trade delay
                 bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
                 alice.await("the second screen") { alice.openInterfaces().takeIf { Trades.CONFIRM in it } }
                 bob.await("the second screen") { bob.openInterfaces().takeIf { Trades.CONFIRM in it } }
@@ -199,8 +202,10 @@ class HeadlessTradeScreenTest {
                 bob.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 1, sub = 0, obj = AXE)
                 bob.await("both offers") { bob.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).firstOrNull()?.takeIf { it == InvObj(COINS, 10) } }
                 alice.await("bob's offer") { alice.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).firstOrNull()?.takeIf { it == InvObj(AXE, 1) } }
+                alice.awaitTicks(Trades.ACCEPT_DELAY_TICKS) // the Accept trade delay
                 alice.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
                 bob.await("she accepted") { bob.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
+                bob.awaitTicks(Trades.ACCEPT_DELAY_TICKS) // the Accept trade delay
                 bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
                 alice.await("the second screen") { alice.openInterfaces().takeIf { Trades.CONFIRM in it } }
                 alice.ifButton(Trades.CONFIRM, Trades.CONFIRM_ACCEPT, 1)
@@ -230,8 +235,10 @@ class HeadlessTradeScreenTest {
             trading(server, again = true) { alice, bob ->
                 alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 1, sub = 1, obj = AXE)
                 alice.await("her offer") { alice.inventory(Trades.TRADEOFFER).firstOrNull() }
+                alice.awaitTicks(Trades.ACCEPT_DELAY_TICKS) // the Accept trade delay
                 alice.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
                 bob.await("she accepted") { bob.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
+                bob.awaitTicks(Trades.ACCEPT_DELAY_TICKS) // the Accept trade delay
                 bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
                 bob.await("no room") { bob.messages().firstOrNull { it.text == "[trade.no_room]" } }
                 alice.await("his no room") { alice.messages().firstOrNull { it.text == "[trade.other_no_room]" } }
