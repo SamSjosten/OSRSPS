@@ -1662,6 +1662,7 @@ class World(
         sendWeight(player)
         ignoreLists.sendAll(player)
         friendLists.sendAll(player)
+        player.listsAfterMapBuild = true
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
         PlayerOps.send(player.vars, player.session::queue)
@@ -1691,6 +1692,7 @@ class World(
         sendChatFilters(player)
         ignoreLists.sendAll(player)
         friendLists.login(player)
+        player.listsAfterMapBuild = true
         quests.completeAll(player.vars)
         prayers.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -1991,6 +1993,14 @@ class World(
     }
 
     /** SEND_SNAPSHOT: a rule picked on the report screen. */
+    /** MAP_BUILD_COMPLETE: the first one after a login or reconnect sends the friends and ignore lists again. */
+    fun onMapBuildComplete(player: Player) = actWhileDead(player) {
+        if (!player.listsAfterMapBuild) return@actWhileDead
+        player.listsAfterMapBuild = false
+        ignoreLists.sendAll(player)
+        friendLists.sendAll(player)
+    }
+
     fun onReport(player: Player, name: String, rule: Int, mute: Boolean) = actWhileDead(player) { reports.submit(player, name, rule, mute) }
 
     /** A rank picked for a friend in the friends chat setup list. */

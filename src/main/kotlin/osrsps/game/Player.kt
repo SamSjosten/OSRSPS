@@ -108,6 +108,13 @@ class Player(
     @Volatile
     var droppedSession: Session<Player>? = null
 
+    /**
+     * The friends and ignore lists go again when the client next says its map is built (MAP_BUILD_COMPLETE) after a
+     * login or reconnect: the client had dropped the ones sent with the login (VM 215, 2026-11-01: FRIENDLIST_LOADED
+     * reached it in the first tick, yet its Friends tab stayed on "Loading friends list").
+     */
+    var listsAfterMapBuild = false
+
     /** Whether the connection is gone and the player waits in the world for the client to reconnect. */
     val connectionLost: Boolean
         get() {
