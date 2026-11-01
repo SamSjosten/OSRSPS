@@ -208,29 +208,33 @@ async function latestChecks(github, repo, sha) {
 // wake the thread with the same failing check each time. Gate runs aren't serialized (see automerge.yml), so a run
 // whose evaluation started before the newest check on the head was written leaves that check alone; the queue looks
 // again at any check that isn't passing, so a run that lost such a race to a stale one is put right there.
-async function gate(github, git, repo, core, number, current, now = Date.now) {
+// The queue passes the pull request it just listed, saving a call. Returns the check now on the head, or null when it
+// left a newer one alone.
+async function gate(github, git, repo, core, number, current, now = Date.now, listed = null) {
   const started = now();
-  const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number: number });
-  if (pr.state !== 'open') return;
+  const pr = listed || (await github.rest.pulls.get({ ...repo, pull_number: number })).data;
+  if (pr.state !== 'open') return null;
   const result = await evaluate(github, git, repo, pr);
   core.info(`#${number}: ${CHECK} ${result.conclusion || result.status}: ${result.title}`);
   const latest = (await latestChecks(github, repo, pr.head.sha)).find(run => run.name === CHECK);
   if (latest && latest.started_at && Date.parse(latest.started_at) > started) {
     core.info(`#${number}: a newer ${CHECK} was written meanwhile; leaving it`);
-    return;
+    return null;
   }
   const seen = current || latest;
   const same = seen && seen.status === result.status && (seen.conclusion || null) === (result.conclusion || null)
     && seen.output && seen.output.title === result.title;
-  if (!same) await writeCheck(github, repo, pr.head.sha, result);
+  if (same) return seen;
+  await writeCheck(github, repo, pr.head.sha, result);
+  return { name: CHECK, status: result.status, conclusion: result.conclusion || null, output: { title: result.title } };
 }
 
 // The pull_request runs GitHub holds for "approval from a maintainer" on a head: a merge of main the queue pushed with
 // the workflow token gets them, and until they run, the ruleset waits on their checks and the pull request stays
 // blocked (a dispatched build doesn't stand in for them). Approves each; returns how many waited and how many ran.
-async function approveWaiting(github, repo, core, sha) {
-  const { data } = await github.rest.actions.listWorkflowRunsForRepo({ ...repo, head_sha: sha, status: 'action_required', per_page: 100 });
-  const runs = data.workflow_runs || [];
+// `waitingRuns` is the repository's waiting runs, listed once per queue run; without it, the head's are listed.
+async function approveWaiting(github, repo, core, sha, waitingRuns = null) {
+  const runs = waitingRuns ? waitingRuns.filter(run => run.head_sha === sha) : (await github.rest.actions.listWorkflowRunsForRepo({ ...repo, head_sha: sha, status: 'action_required', per_page: 100 })).data.workflow_runs || [];
   let approved = 0;
   for (const run of runs) {
     try {
@@ -447,6 +451,11 @@ async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha,
 async function advance(github, git, repo, core, sleep, now) {
   const open = await github.paginate(github.rest.pulls.list, { ...repo, state: 'open', base: 'main', per_page: 100 });
   const queued = open.filter(pr => pr.auto_merge && !pr.draft).sort((a, b) => a.number - b.number);
+  // One listing of the runs waiting for approval, not one per pull request: the queue runs after nearly every event,
+  // and per-pull-request calls used up the token's 5,000 an hour (2026-11-01 02:47Z).
+  const waitingRuns = queued.length
+    ? await github.paginate(github.rest.actions.listWorkflowRunsForRepo, { ...repo, status: 'action_required', per_page: 100 })
+    : [];
 
   const scanned = new Map();
   let waiting = null; // an up-to-date pull request whose checks are still running: no other gets main merged in meanwhile
@@ -459,7 +468,7 @@ async function advance(github, git, repo, core, sleep, now) {
       continue;
     }
     // Held runs first: merging main in again would only push another head whose runs are held the same way.
-    const held = await approveWaiting(github, repo, core, pr.head.sha);
+    const held = await approveWaiting(github, repo, core, pr.head.sha, waitingRuns);
     if (held.waiting) {
       if (held.approved === held.waiting) {
         core.info(`#${pr.number}: approved its waiting runs; waiting for them`);
@@ -474,8 +483,8 @@ async function advance(github, git, repo, core, sleep, now) {
     // Missing (opened before this workflow, or an event was missed), waiting or failing: Codex may have answered
     // since, or a slower gate run may have written a stale result. Written again only when it changes.
     if (!current || current.conclusion !== 'success') {
-      await gate(github, git, repo, core, pr.number, current, now);
-      checks = await latestChecks(github, repo, pr.head.sha);
+      const written = await gate(github, git, repo, core, pr.number, current, now, pr);
+      checks = written ? [...checks.filter(run => run.name !== CHECK), written] : await latestChecks(github, repo, pr.head.sha);
     }
     if (!behind && !checks.some(run => run.name === BUILD)) {
       // An up-to-date head that no build ever ran on: a merge of main whose dispatch was lost (the update showed up
@@ -531,6 +540,12 @@ module.exports.gate = async function ({ github, context, core, git = shellGit, s
 
 // The `queue` job, after every event.
 module.exports.queue = async function ({ github, context, core, git = shellGit, sleep = wait, now = Date.now }) {
+  // Codex marking its summary "running" changes nothing the queue goes by; the edit when it finishes wakes it again.
+  const comment = context.payload && context.payload.comment;
+  if (comment && /"status":"running"/.test(comment.body || '')) {
+    core.info('Codex started a review; nothing for the queue to do');
+    return;
+  }
   retrying(github, sleep);
   await advance(github, git, context.repo, core, sleep, now);
 };
