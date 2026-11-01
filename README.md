@@ -158,6 +158,12 @@ others:
   world hopper never offers one of Jagex's worlds; RuneLite's other API calls get a 404 there.
 - `/launcher/jav_config.ws` and `/launcher/world_list.ws`: copies of RSProx's two files that leave the game's names out
   (title Odin's Gate, cache folder `odinsgate`, world activity Odin's Gate). RSProx's own files keep their names.
+- `POST /report`: a problem report from the launcher's "Send problem report" button (the same text "Copy problem
+  report" copies). It is scrubbed again (lines mentioning a password or token, home folder names, control characters)
+  and saved as `reports/R-0001.json` and on in the data folder, outside git; the answer is `201` with the number. At
+  most 256 KB a report, 5 an hour from one address and 50 an hour in all (`429`, Retry-After one hour), and 500 waiting
+  unforwarded (`503`); anything that isn't a launcher's report is a `400`. A body on any other request is refused with
+  `413`. Turning saved reports into issues is the next step.
 
 ## Walking
 
