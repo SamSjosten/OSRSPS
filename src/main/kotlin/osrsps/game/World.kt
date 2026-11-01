@@ -13,6 +13,7 @@ import net.rsprot.protocol.game.outgoing.info.util.safeReleaseOrThrow
 import net.rsprot.protocol.game.outgoing.logout.Logout
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
+import net.rsprot.protocol.game.outgoing.map.RebuildRegionV2
 import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
@@ -37,6 +38,7 @@ import osrsps.game.command.registerCombatCommands
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
+import osrsps.game.command.registerInstanceCommands
 import osrsps.game.command.registerIpCommands
 import osrsps.game.command.registerGrandExchangeCommands
 import osrsps.game.command.registerItemCommands
@@ -128,6 +130,8 @@ import osrsps.game.dialogue.Dialogues
 import osrsps.game.ge.GrandExchange
 import osrsps.game.ge.GrandExchangeScreen
 import osrsps.game.ge.PriceChecker
+import osrsps.game.instance.Instance
+import osrsps.game.instance.Instances
 import osrsps.game.loc.Doors
 import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
@@ -276,6 +280,9 @@ class World(
     val locs = Locs(locTypes, staticLocs, collision, zones) { tick }
 
     val doors = Doors(locs)
+
+    /** Private copies of parts of the map; see [Instances]. */
+    val instances = Instances(collision, staticLocs, locTypes)
 
     /** Fence gates, both leaves at once; see [Gates]. */
     val gates = Gates(locs)
@@ -586,6 +593,7 @@ class World(
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
+        registerInstanceCommands(this@World)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
         registerGrandExchangeCommands(this@World)
@@ -957,6 +965,7 @@ class World(
         tick++
         phase = TickPhase.WORLD
         for (player in players) if (player != null) prayers.startTick(player)
+        endEmptyInstances()
         groundObjs.process()
         phase = TickPhase.INPUT
         readInput(ticking = true)
@@ -1295,6 +1304,14 @@ class World(
             specialAttacks.refill(it)
         }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
+        // A save from inside an instance, from before saves moved players to its exit, lands where no map is now.
+        if (instances.inDynamicArea(player.x, player.z) && instances.at(player.x, player.z) == null) {
+            player.x = SPAWN_X
+            player.z = SPAWN_Z
+            player.level = SPAWN_LEVEL
+            player.buildAreaZoneX = SPAWN_X shr 3
+            player.buildAreaZoneZ = SPAWN_Z shr 3
+        }
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
         if (player.hitpoints <= 0) player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
@@ -1311,6 +1328,14 @@ class World(
     /** [player]'s state as a save has it, the items in the guide prices screen counted as in the inventory. */
     fun snapshot(player: Player): PlayerSave {
         val (inventory, bank) = priceChecker.saved(player)
+        // Nobody is saved in an instance, which won't be there when they log in: they are saved at its exit.
+        if (instances.inDynamicArea(player.x, player.z)) {
+            val instance = instances.at(player.x, player.z)
+            return PlayerSave.of(
+                player, inventory, bank,
+                x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
+            )
+        }
         return PlayerSave.of(player, inventory, bank)
     }
 
@@ -1578,12 +1603,7 @@ class World(
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
         PlayerOps.send(player.vars, player.session::queue)
-        player.buildAreaZoneX = player.x shr 3
-        player.buildAreaZoneZ = player.z shr 3
-        player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
-        player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
-        // The ground items and loc changes it missed go again too, as after any rebuild.
-        player.zoneView.reset()
+        rebuild(player)
         interfaces.resendClosesWhileAway(player)
         interfaces.closeEmptyModalSlots(player)
     }
@@ -2090,6 +2110,8 @@ class World(
 
     /** Puts an NPC in the world. Returns null, after logging why, if there is no room for it. */
     fun spawnNpc(spawn: NpcSpawn): Npc? {
+        // A respawn into an instance that has ended has nowhere to go.
+        if (instances.inDynamicArea(spawn.x, spawn.z) && instances.at(spawn.x, spawn.z) == null) return null
         val npc = npcs.add(spawn, tick)
         if (npc == null) {
             logger.warn { "No free NPC slot for ${spawn.type} from ${spawn.source}" }
@@ -2406,15 +2428,57 @@ class World(
         val localX = player.x - originX
         val localZ = player.z - originZ
         if (localX in REBUILD_MARGIN until BUILD_AREA_SIZE - REBUILD_MARGIN &&
-            localZ in REBUILD_MARGIN until BUILD_AREA_SIZE - REBUILD_MARGIN
+            localZ in REBUILD_MARGIN until BUILD_AREA_SIZE - REBUILD_MARGIN &&
+            instances.at(player.x, player.z) === player.buildAreaInstance
         ) return
+        rebuild(player)
+    }
+
+    /**
+     * Centres [player]'s build area on them and tells the client: a REBUILD_NORMAL out in the world, or in an instance a
+     * REBUILD_REGION naming the map zone each of its zones copies ([Instances.referenceZone]). Also when they go into or
+     * out of an instance, however short the step.
+     */
+    private fun rebuild(player: Player) {
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
-        player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
+        val instance = instances.at(player.x, player.z)
+        player.buildAreaInstance = instance
+        if (instance == null) {
+            player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
+        } else {
+            // Guessed: reload, so the client draws the region again even where its zones look the same as before.
+            player.session.queue(RebuildRegionV2(player.buildAreaZoneX, player.buildAreaZoneZ, true, instances::referenceZone))
+        }
         // Guessed safe rather than checked: the client may carry zones that stay in view across a rebuild, but sending
-        // them all again in full is right either way.
+        // them all again in full is right either way. The ground items and loc changes a reconnect missed go again too.
         player.zoneView.reset()
+    }
+
+    /**
+     * Ends each instance nobody is in any more, with everything in it: NPCs, objs and loc changes. A player whose
+     * connection dropped still counts until they are removed, so a reconnect finds it.
+     */
+    private fun endEmptyInstances() {
+        if (instances.all.isEmpty()) return
+        for (instance in instances.all.toList()) {
+            if (players.any { it != null && instance.contains(it.x, it.z) }) continue
+            endInstance(instance)
+        }
+    }
+
+    /** Ends [instance] now, with everything in it. Anyone still inside is first sent to its exit. */
+    fun endInstance(instance: Instance) {
+        for (player in players) {
+            if (player != null && instance.contains(player.x, player.z)) teleport(player, instance.exitX, instance.exitZ, instance.exitLevel)
+        }
+        for (npc in npcs.all.toList()) if (instance.contains(npc.x, npc.z)) removeNpc(npc)
+        groundObjs.forgetArea(instance.baseX, instance.baseZ, instance.maxX, instance.maxZ)
+        locs.forgetArea(instance.baseX, instance.baseZ, instance.maxX, instance.maxZ)
+        zones.forgetArea(instance.baseX shr 3, instance.baseZ shr 3, instance.maxX shr 3, instance.maxZ shr 3)
+        instances.destroy(instance)
+        logger.info { "Ended $instance" }
     }
 
     private fun sendInfo(player: Player, tickEnd: Boolean) {

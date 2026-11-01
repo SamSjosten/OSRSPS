@@ -212,6 +212,19 @@ class GroundObjs(
         return objs.size
     }
 
+    /**
+     * Forgets every obj, timer and spawn on the tiles from [fromX], [fromZ] to [toX], [toZ], sending nothing: for an
+     * instance's area at its end, when nobody is left to see it. The objs themselves go with the area's zones
+     * ([Zones.forgetArea]), which the caller clears after this.
+     */
+    fun forgetArea(fromX: Int, fromZ: Int, toX: Int, toZ: Int) {
+        fun inArea(x: Int, z: Int) = x in fromX..toX && z in fromZ..toZ
+        timed.removeIf { inArea(it.x, it.z) }
+        spawned.keys.removeIf { inArea(it.x, it.z) }
+        respawns.removeIf { inArea(it.spawn.x, it.spawn.z) }
+        spawnList.removeIf { inArea(it.x, it.z) }
+    }
+
     /** Takes [obj] off the ground, as content using it up does. Returns false if it was already gone. */
     fun remove(obj: ZoneObj): Boolean {
         if (!zones.removeObj(obj)) return false

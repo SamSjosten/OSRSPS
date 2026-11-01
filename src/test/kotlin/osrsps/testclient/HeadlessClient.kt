@@ -46,6 +46,9 @@ data class GameMessage(
 /** A move of the local player, with the number of ticks the client had seen end before it. */
 data class TickMove(val tick: Int, val move: PlayerMove)
 
+/** A zone of the map a REBUILD_REGION draws in another's place: its x and z in zones, its level and its rotation. */
+data class CopiedZone(val zoneX: Int, val zoneZ: Int, val level: Int, val rotation: Int)
+
 /** One inventory slot's item. */
 data class InvObj(val id: Int, val count: Int)
 
@@ -137,6 +140,9 @@ class HeadlessClient private constructor(
     private var dialogueMark = 0
     private var rebuilt = false
 
+    /** What the last REBUILD_REGION copied, by build-area zone (x, z, level in zones); null after a REBUILD_NORMAL. */
+    private var regionZones: Map<Triple<Int, Int, Int>, CopiedZone>? = null
+
     init {
         if (gpiInit != null) {
             playerInfo.init(gpiInit)
@@ -218,6 +224,12 @@ class HeadlessClient private constructor(
 
     /** The top-level interface and every interface open in another's component. */
     fun openInterfaces(): Set<Int> = lock.withLock { subs.values.toSet() + topLevel }
+
+    /**
+     * The zones the client was last told to draw as copies of others (an instance), by zone x, z and level, or null
+     * when its last map rebuild was the world's own.
+     */
+    fun regionZones(): Map<Triple<Int, Int, Int>, CopiedZone>? = lock.withLock { regionZones }
 
     /**
      * Whether the server has enabled op [op] (1 to 32) on slot [sub] of a component with IF_SETEVENTS. The real client
@@ -716,6 +728,28 @@ class HeadlessClient private constructor(
                 }
                 val zoneZ = buf.g2()
                 zones.rebuild(centreX = buf.g2Alt1(), centreZ = zoneZ)
+                regionZones = null
+            }
+            // RSProt's RebuildRegionV2Encoder: the centre zone x, the reload flag, the centre zone z, how many map squares
+            // it draws from, then a bit for each of the 4 x 13 x 13 zones and, where set, the 26-bit zone it copies.
+            GameServerProt.REBUILD_REGION_V2 -> {
+                val zoneX = buf.g2()
+                buf.g1Alt2()
+                val zoneZ = buf.g2Alt1()
+                buf.g2()
+                zones.rebuild(centreX = zoneX, centreZ = zoneZ)
+                val bits = BitReader(packet.payload.copyOfRange(REBUILD_REGION_HEADER, packet.payload.size))
+                val copied = HashMap<Triple<Int, Int, Int>, CopiedZone>()
+                for (level in 0 until 4) {
+                    for (x in zoneX - 6..zoneX + 6) {
+                        for (z in zoneZ - 6..zoneZ + 6) {
+                            if (bits.read(1) == 0) continue
+                            val packed = bits.read(26)
+                            copied[Triple(x, z, level)] = CopiedZone((packed shr 14) and 0x3FF, (packed shr 3) and 0x7FF, (packed shr 24) and 3, (packed shr 1) and 3)
+                        }
+                    }
+                }
+                regionZones = copied
             }
             GameServerProt.PLAYER_INFO -> {
                 cycles++
@@ -966,6 +1000,9 @@ class HeadlessClient private constructor(
 
         /** Twice the test server's 100 ms tick, so a run of steps has room on a slow CI machine. */
         private const val STEP_MILLIS = 200L
+
+        /** REBUILD_REGION_V2's fields before its zone bits: the centre x (2), reload (1), centre z (2) and map square count (2). */
+        private const val REBUILD_REGION_HEADER = 7
 
         private const val INIT_GAME_CONNECTION = 14
         private const val GAMELOGIN = 16

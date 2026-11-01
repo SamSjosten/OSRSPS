@@ -272,6 +272,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::los npcIndex` / `::los dx dz` | **everyone.** Distance, line of sight and hit delays from you to an NPC or a tile (see Line of sight) |
+| `::instance [radius]` / `::instance leave` | Makes a private copy of the map around you, `radius` zones each way (default 6, 13 x 13 zones), and puts you on the same spot in it; `leave` takes you back to where you made it (see Instances) |
 | `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
 | `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
 | `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
@@ -1316,6 +1317,33 @@ player alone. Zone updates are sent on paused cycles too, so `::gfx` typed while
 Check with two clients logged in near each other: `::gfx 85` on one shows the graphic on both (any spotanim id works;
 85 is `failedspell_impact`, the magic splash, in the 241 cache's names). `::groundobj 1351` shows a bronze axe to both at once; walk the second client 40
 tiles away and back, or log it out and in, and the axe is still there.
+
+## Instances
+
+An instance is a private copy of part of the map, as raids and bosses give each party (raid step 10).
+`game/instance/Instances.kt` gives each one a block of map squares in the dynamic area, from x 6400 east where the cache
+has no maps. It copies each zone of the original into the block, on every level: the terrain's collision, and the cache
+locs with their collision. Walking, doors and line of sight then work as in the original. A player in an instance gets a
+REBUILD_REGION, which tells the client to draw each zone of the block from the original's map data. Outside one, they get
+the usual REBUILD_NORMAL, also after a step into or out of one.
+
+An instance ends once nobody is in it, with its NPCs, ground items and loc changes. A player who loses their connection
+still counts until they are removed, so a reconnect finds it. Nobody is saved in an instance: a save, a logout included,
+puts them at its exit. Blocks are kept a map square apart, so nobody in one sees anyone in another.
+
+| Instance behaviour | Source |
+|--------------------|--------|
+| Zones drawn as other zones of the map with REBUILD_REGION; empty zones left out | RSProt's RebuildRegionV2 (the client's dynamic regions) |
+| The dynamic area from map square 100 (x 6400); a free map square between blocks | guessed |
+| An instance starts as the cache has it: changes in the original (an open door) aren't copied | guessed |
+| The client told to reload the region on each REBUILD_REGION | guessed |
+| An instance ending as soon as nobody is in it; saves at its exit | guessed; raids that keep a place for a disconnected player come with parties |
+| Unrotated copies only | not in yet: the raid's rooms bring rotation if they need it |
+
+`::instance` makes one around you for testing. Check: `./gradlew test --tests 'osrsps.game.instance.InstancesTest'
+--tests 'osrsps.testclient.HeadlessInstanceTest'` (two players in copies of the same spot can't see each other, and
+leaving puts them back), and in RuneLite `test-runner/examples/instance-castle.json` (the castle's large doors in a copy:
+shut, they block line of sight; opened, they don't; then back out).
 
 ## Line of sight
 
