@@ -65,7 +65,9 @@ the last one's result is in, and prints each script's result, steps passed, time
 .\test-runner\run-scripts.ps1 .\test-runner\examples\castle-talk-cook.json .\test-runner\examples\hans-demo.json
 ```
 
-It exits with 0 only when every script passed. Where Windows won't run scripts, start it with
+It exits with 0 only when every script passed. Every example says `"account": "test"`; on a client logged in as another test account (VM 217 is `test2`),
+add `-Account test2` and each copy dropped into the tests folder says that instead, while the files in git stay as
+they are. Scripts written for another account (the second half of a two-player pair) are left as written. Where Windows won't run scripts, start it with
 `powershell -ExecutionPolicy Bypass -File .\test-runner\run-scripts.ps1 ...`, which allows it for that one run only.
 
 ```powershell
@@ -397,7 +399,7 @@ server's answer instead of failing on what was there before.
 | `takeItem` | `item` (name) or `itemId`, `x`+`y` | Clicks Take on the nearest such item on the ground on the player's plane, retrying until one is in the scene. With `x` and `y`, only an item on that tile. Take is the third ground option, as the server has it. Doesn't wait for the result: follow it with `assertInventory`. |
 | `assertInventory` | `item` (name) or `itemId`, `count` | Waits until the inventory holds exactly `count` of the item (all stacks added up), or any at all without `count`. `count` 0 waits until there are none. |
 | `assertDialogue` | `contains`, `speaker` | Waits until an open dialogue's text contains `contains` and its name is `speaker` (both optional). Colour tags and line breaks are removed first. |
-| `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. (0.17.0) The level-up box counts too. |
+| `continueDialogue` | | Waits for a dialogue with Click here to continue, clicks it, and waits until that dialogue has changed or closed. (0.17.0) The level-up box counts too; (0.21.0) it is clicked again every 3 ticks while it stays, as the server drops a click while the player is delayed. |
 | `chooseOption` | `text` | Waits for an option menu, clicks the option equal to `text` (else the first containing it), and waits until the menu has gone. |
 | `assertNoDialogue` | | Waits until no dialogue is open. |
 | `finishDialogue` | | Clicks through whatever dialogue is open until none is: continue on each page, the first option on a menu. Passes at once when none is open. For talks that go a random way. (0.17.0) Clicks a level-up box away too; `assertDialogue` and `assertNoDialogue` still ignore it. |
@@ -412,7 +414,7 @@ server's answer instead of failing on what was there before.
 | `castOnNpc` | `interfaceId`, `component`, `npc` (name) or `npcId` | (0.7.0) Picks the spell at that component (the standard spellbook is 218; Fire Strike is 218:19) and casts it on the NPC, chosen as for `assertHitsplat`, as clicking the spell and then Cast on the NPC would; retries until the interface is loaded and the NPC in view. Doesn't wait for the result. |
 | `itemOption` | `item` (name) or `itemId`, `option` | Clicks the option (such as `Wield`, `Wear`, `Eat`, `Drop`, or `Examine`) on the first such item in the inventory, retrying until there is one. Doesn't wait for the result: follow it with an assert. |
 | `wornOption` | `slot`, `option` | Clicks the option (`Remove`, `Examine`, or one of the item's own) on a slot of the equipment tab. `slot` is one of `head`, `cape`, `neck`, `weapon`, `body`, `shield`, `legs`, `hands`, `feet`, `ring`, `ammo`. |
-| `clickWidget` | `interfaceId`, `component`, `slot`, `op` | Clicks op `op` (default 1) on an interface component, or on its slot `slot` (an item in an interface's inventory), as that menu entry would; retries until the interface is open. The equipment tab's View equipment stats is 387:1. |
+| `clickWidget` | `interfaceId`, `component`, `slot`, `op` | Clicks op `op` (default 1) on an interface component, or on its slot `slot` (an item in an interface's inventory), as that menu entry would; retries until the interface is open. The equipment tab's View equipment stats is 387:1. (0.21.0) Op 1 on an old-style (if1) button, such as the tanning screen's Tan buttons, is sent as that button's click rather than an if3 op. |
 | `assertEquipment` | `slot`, `item` (name) or `itemId`, `empty` | Waits until the slot of the worn inventory holds the item, or with `empty: true` nothing, and the player's model shows the same (rings and ammo aren't on the model). |
 | `assertWidgetText` | `interfaceId`, `component`, `contains` | Waits until the component's text, with everything inside it, contains `contains`; without `component`, any text in the interface. Colour tags are removed first. The interface must be open. Text the server sets (IF_SETTEXT) is there on a side tab that isn't showing, but text a tab's own client scripts write (the combat tab's style buttons) only follows changes while that tab shows: open it first with `clickWidget` on its stone (fixed frame 548, stone0 64 for combat). |
 | `assertPose` | `idle` | Waits until the player stands in that animation: the ready pose of their weapon's stance (808 is human_ready). |
@@ -453,7 +455,8 @@ objectbox_double, the box with two items.
   which of the chatbox's own checks would drop the key: no key handler on chatbox:universe, a hidden mes_layer_hide or
   chatdisplay, varbit has_displayname_transmitter at 0 or keyboard_timeout; or that none of them would. The listening
   varcs and settings search varbits, which count only with a window open, are noted apart. If the line still stays,
-  restart the client and keep that result: its detail is what will find the cause.
+  restart the client and keep that result: its detail is what will find the cause. (0.21.0) A level-up box over the
+  chatbox leaves no input to type into, so `command` and `chat` click it away first and send once it has gone.
 - `walk` needs the tile on screen: it clicks the 3D view, as a player does. Walk in stages for far tiles. When the tile
   is off screen it turns the camera toward it, so a script can leave the camera however it finds it.
 - Auto login starts the login by setting the client's game state to LOGGING_IN, as RuneLite's developer tools do.
