@@ -172,7 +172,9 @@ others:
   was up when it was filed. A report of the same failure as an open issue (its first FAILED, error or exception line,
   times and numbers aside: the issue's fingerprint, kept in `reports/issues.json`) is a comment there instead. Filing
   needs `github-report-token.txt` in the data folder: a fine-grained token for this repository only, with Issues read
-  and write, one line, made and put there by hand, never in git. Without it reports wait.
+  and write, one line, made and put there by hand, never in git. Without it (or with anything in the file that
+  isn't one token) reports wait. A report GitHub refuses outright (400, 422) goes to `reports/rejected/` so it
+  can't hold up the rest.
 
 ## Walking
 

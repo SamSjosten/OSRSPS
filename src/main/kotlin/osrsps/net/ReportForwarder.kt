@@ -58,6 +58,11 @@ class ReportForwarder(
             try {
                 file(tracker, file)
                 filed++
+            } catch (e: Rejected) {
+                // Trying it again would only block every report behind it; it is kept aside for a look by hand.
+                logger.warn { "Problem report ${file.name} can't be filed (${e.message}); moved to $REJECTED/" }
+                Files.createDirectories(dir.resolve(REJECTED))
+                Files.move(file, dir.resolve(REJECTED).resolve(file.name), StandardCopyOption.REPLACE_EXISTING)
             } catch (e: Exception) {
                 logger.warn(e) { "Problem report ${file.name} couldn't be filed; trying again next pass" }
                 break
@@ -124,8 +129,8 @@ class ReportForwarder(
         appendLine()
         appendLine("Fingerprint: `${print ?: "none (no failure line found)"}`")
         appendLine()
-        val shown = shorten(body)
-        val fence = "`".repeat(maxOf(3, (Regex("`+").findAll(shown).maxOfOrNull { it.value.length } ?: 0) + 1))
+        val shown = shorten(body).replace(LONG_BACKTICKS, "`".repeat(FENCE - 1) + "[…]")
+        val fence = "`".repeat(FENCE)
         appendLine(fence)
         appendLine(shown)
         appendLine(fence)
@@ -160,6 +165,9 @@ class ReportForwarder(
         executor = null
     }
 
+    /** The tracker will never take this report (GitHub's 400 or 422): it is set aside, not tried again. */
+    class Rejected(message: String) : Exception(message)
+
     /** Files and comments on issues, and knows which launcher versions were released. */
     interface IssueTracker {
         /** Whether [version] is a released launcher; null when that couldn't be found out. */
@@ -172,6 +180,7 @@ class ReportForwarder(
 
     companion object {
         const val SENT = "sent"
+        const val REJECTED = "rejected"
         const val INDEX = "issues.json"
         const val LABEL = "bug-report"
         const val LABEL_VERIFIED = "verified"
@@ -188,6 +197,13 @@ class ReportForwarder(
 
         /** GitHub refuses an issue body over 65,536 characters; this leaves room for the rest of the issue. */
         const val MAX_SHOWN = 60_000
+
+        /**
+         * The report sits in a fence of this many backticks, and any longer run inside it is cut short, so no log line
+         * can close the block and the fence costs a fixed few characters, whatever the report holds.
+         */
+        const val FENCE = 10
+        private val LONG_BACKTICKS = Regex("`{$FENCE,}")
 
         private val REPORT = Regex("R-\\d{1,9}\\.json")
         private val REVISION_LINE = Regex("(?m)^revision (\\d{1,4})\\b")

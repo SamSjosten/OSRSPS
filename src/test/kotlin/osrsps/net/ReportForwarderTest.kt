@@ -165,7 +165,30 @@ class ReportForwarderTest {
         assertTrue(issue.length < 65_536)
         assertContains(issue, "characters cut")
         assertContains(issue, "THE END")
-        assertContains(issue, "\n````\n${ProblemReports.TITLE}")
+        assertContains(issue, "\n${"`".repeat(ReportForwarder.FENCE)}\n${ProblemReports.TITLE}")
+    }
+
+    @Test
+    fun `a report full of backticks still fits an issue, and one GitHub refuses is set aside, not retried forever`(@TempDir dir: Path) {
+        val tracker = FakeTracker()
+        send(dir, body(extra = "`".repeat(59_000)), "1.1.1.1")
+        ReportForwarder(dir, { tracker }).pass()
+        val issue = tracker.issues.single().body
+        assertTrue(issue.length < 65_536, "${issue.length}")
+        assertFalse(issue.contains("`".repeat(ReportForwarder.FENCE + 1)))
+
+        val refusing = object : ReportForwarder.IssueTracker by tracker {
+            var refused = 0
+            override fun create(title: String, body: String, labels: List<String>): Int {
+                if (refused++ == 0) throw ReportForwarder.Rejected("GitHub refused opening an issue (422)")
+                return tracker.create(title, body, labels)
+            }
+        }
+        val bad = send(dir, body(failure = "FAILED bad"), "2.2.2.2")
+        val good = send(dir, body(failure = "FAILED good"), "3.3.3.3")
+        assertEquals(1, ReportForwarder(dir, { refusing }).pass())
+        assertTrue(Files.exists(dir.resolve("rejected/$bad.json")))
+        assertTrue(Files.exists(dir.resolve("sent/$good.json")), "the report behind it still went")
     }
 
     @Test
@@ -181,6 +204,7 @@ class ReportForwarderTest {
                 "/repos/o/server/issues" -> 201 to """{"number":17}"""
                 "/repos/o/server/issues/17" -> 200 to """{"state":"closed"}"""
                 "/repos/o/server/issues/17/comments" -> 201 to "{}"
+                "/repos/o/server/issues/422/comments" -> 422 to "{}"
                 else -> 500 to "{}"
             }
             exchange.sendResponseHeaders(code, reply.length.toLong())
@@ -203,6 +227,7 @@ class ReportForwarderTest {
             // An error names what failed and never the token.
             val error = runCatching { github.comment(99, "x") }.exceptionOrNull()!!
             assertEquals("GitHub answered 500 commenting on #99", error.message)
+            assertTrue(runCatching { github.comment(422, "x") }.exceptionOrNull() is ReportForwarder.Rejected)
         } finally {
             server.stop(0)
         }
@@ -214,7 +239,12 @@ class ReportForwarderTest {
         assertNull(GitHubIssues.fromTokenFile(file))
         Files.writeString(file, "\n")
         assertNull(GitHubIssues.fromTokenFile(file))
-        Files.writeString(file, "github_pat_x\n")
+        Files.writeString(file, "github_pat_11ABCDEFG0123456789_abcdefXYZ\n")
         assertTrue(GitHubIssues.fromTokenFile(file) != null)
+        // A second line pasted after it, or a space, would break the header or print the token: no tracker.
+        Files.writeString(file, "github_pat_11ABCDEFG0123456789_abcdefXYZ\nsomething else\n")
+        assertNull(GitHubIssues.fromTokenFile(file))
+        Files.writeString(file, "Bearer github_pat_11ABCDEFG0123456789_abcdefXYZ")
+        assertNull(GitHubIssues.fromTokenFile(file))
     }
 }

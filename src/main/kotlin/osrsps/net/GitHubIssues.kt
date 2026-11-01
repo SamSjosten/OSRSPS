@@ -17,6 +17,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 
+private val logger = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
+
 /**
  * [ReportForwarder.IssueTracker] on GitHub's REST API: issues in [repo] (the private server repository), releases
  * looked up in [launcherRepo] (the public launcher repository). [token] is a fine-grained token with Issues read and
@@ -71,8 +73,11 @@ class GitHubIssues(
     }
 
     private fun ok(response: HttpResponse<String>, what: String): HttpResponse<String> {
-        if (response.statusCode() !in 200..299) throw IOException("GitHub answered ${response.statusCode()} $what")
-        return response
+        val status = response.statusCode()
+        if (status in 200..299) return response
+        // 400 and 422 are GitHub saying this request will never do (a body it won't take): not worth trying again.
+        if (status == 400 || status == 422) throw ReportForwarder.Rejected("GitHub refused $what ($status)")
+        throw IOException("GitHub answered $status $what")
     }
 
     companion object {
@@ -83,9 +88,19 @@ class GitHubIssues(
         /** The data folder's token file: one line, the token. Sam puts it there by hand; it is never in git. */
         const val TOKEN_FILE = "github-report-token.txt"
 
-        /** A tracker for the token in [file], or null when there is none yet. */
+        /** What a GitHub token is made of; anything else (a second line, a space) would break or leak in a header. */
+        private val TOKEN = Regex("[A-Za-z0-9_]{20,255}")
+
+        /**
+         * A tracker for the token in [file], or null when there is none yet or it isn't a token: one line of
+         * letters, digits and underscores, as GitHub's are. What is wrong with a bad one is logged, never the token.
+         */
         fun fromTokenFile(file: Path, repo: String = REPO): GitHubIssues? {
             val token = runCatching { Files.readString(file).trim() }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return null
+            if (!TOKEN.matches(token)) {
+                logger.warn { "${file.fileName} isn't one line holding a GitHub token (letters, digits and _); reports wait" }
+                return null
+            }
             return GitHubIssues(repo, token)
         }
     }
