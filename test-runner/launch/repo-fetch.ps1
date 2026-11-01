@@ -83,8 +83,8 @@ try
 	{
 		if (-not $token) { throw "an artifact needs the read token in $TokenFile" }
 		$headers = Get-RepoHeaders $token 'application/vnd.github+json'
-		$listing = (Invoke-RepoGet (Get-RepoArtifactsUrl $Artifact) $headers $null) | ConvertFrom-Json
-		$chosen = Select-RepoArtifact $listing $Artifact $Branch $Commit
+		$getPage = { param($page) (Invoke-RepoGet (Get-RepoArtifactsUrl $Artifact $page) $headers $null) | ConvertFrom-Json }
+		$chosen = Find-RepoArtifact $getPage $Artifact $Branch $Commit
 		Invoke-RepoGet $chosen.archive_download_url $headers $OutFile
 		Write-Host "repo-fetch: $Artifact from $Branch at $($chosen.workflow_run.head_sha) -> $OutFile ($((Get-Item -LiteralPath $OutFile).Length) bytes)"
 	}

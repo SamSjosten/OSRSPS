@@ -50,22 +50,44 @@ try
 	Throws 'a missing ref is refused' { Get-RepoFileUrl 'README.md' '' } 'no commit or branch'
 
 	Write-Host 'Get-RepoArtifactsUrl'
-	Check 'the listing by name' ((Get-RepoArtifactsUrl 'test-runner-jar') -ceq
-		'https://api.github.com/repos/SamSjosten/OSRSPS/actions/artifacts?name=test-runner-jar&per_page=50')
+	Check 'a page of the listing by name' ((Get-RepoArtifactsUrl 'test-runner-jar' 2) -ceq
+		'https://api.github.com/repos/SamSjosten/OSRSPS/actions/artifacts?name=test-runner-jar&per_page=100&page=2')
+
+	# An artifact as the API lists it; $from is the repository its build's head came from (ours is 7).
+	function Artifact([long] $id, [string] $branch, [string] $sha, [bool] $expired = $false, [long] $from = 7, [string] $name = 'test-runner-jar')
+	{
+		[pscustomobject]@{ id = $id; name = $name; expired = $expired; archive_download_url = "u$id"
+			workflow_run = [pscustomobject]@{ head_branch = $branch; head_sha = $sha; repository_id = 7; head_repository_id = $from } }
+	}
+	function Listing([object[]] $artifacts, [long] $total) { [pscustomobject]@{ total_count = $total; artifacts = @($artifacts) } }
 
 	Write-Host 'Select-RepoArtifact'
-	$listing = '{"artifacts":[
-		{"id":105,"name":"test-runner-jar","expired":false,"archive_download_url":"u105","workflow_run":{"head_branch":"claude/x","head_sha":"fff"}},
-		{"id":104,"name":"test-runner-jar","expired":true,"archive_download_url":"u104","workflow_run":{"head_branch":"main","head_sha":"eee"}},
-		{"id":101,"name":"test-runner-jar","expired":false,"archive_download_url":"u101","workflow_run":{"head_branch":"main","head_sha":"abc111"}},
-		{"id":103,"name":"test-runner-jar","expired":false,"archive_download_url":"u103","workflow_run":{"head_branch":"main","head_sha":"def333"}},
-		{"id":106,"name":"tick-recorder-jar","expired":false,"archive_download_url":"u106","workflow_run":{"head_branch":"main","head_sha":"ggg"}}
-	]}' | ConvertFrom-Json
-	Check "the newest unexpired build on main, not a branch's or an expired one" ((Select-RepoArtifact $listing 'test-runner-jar' 'main' $null).id -eq 103)
+	$listing = Listing @(
+		(Artifact 107 'main' 'fork1' -from 99),
+		(Artifact 105 'claude/x' 'fff'),
+		(Artifact 104 'main' 'eee' -expired $true),
+		(Artifact 101 'main' 'abc111'),
+		(Artifact 103 'main' 'def333'),
+		(Artifact 106 'main' 'ggg' -name 'tick-recorder-jar')) 6
+	Check "the newest unexpired build of our main: not a fork's main, a branch's or an expired one" ((Select-RepoArtifact $listing 'test-runner-jar' 'main' $null).id -eq 103)
 	Check 'a commit picks its build, by a prefix of any case' ((Select-RepoArtifact $listing 'test-runner-jar' 'main' 'ABC1').id -eq 101)
 	Check 'another branch when asked' ((Select-RepoArtifact $listing 'test-runner-jar' 'claude/x' $null).id -eq 105)
-	Throws 'none left is an error naming what was asked' { Select-RepoArtifact $listing 'test-runner-jar' 'main' '999' } 'no artifact test-runner-jar built on main at 999'
-	Throws 'an empty listing is an error' { Select-RepoArtifact ('{"artifacts":[]}' | ConvertFrom-Json) 'x' 'main' $null } 'no artifact x'
+	Check "a fork's build is never chosen, even by its commit" ($null -eq (Select-RepoArtifact $listing 'test-runner-jar' 'main' 'fork1'))
+	Check 'none on the page is nothing' ($null -eq (Select-RepoArtifact (Listing @() 0) 'x' 'main' $null))
+
+	Write-Host 'Find-RepoArtifact'
+	$script:asked = @()
+	$fullPage = @(1..100 | ForEach-Object { Artifact (1000 - $_) 'claude/y' 'yyy' })
+	$pages = @{ 1 = (Listing $fullPage 102); 2 = (Listing @((Artifact 800 'main' 'abc222'), (Artifact 799 'main' 'abc111')) 102) }
+	$getPage = { param($page) $script:asked += $page; $pages[$page] }
+	Check 'a build past the first page is found on the next' ((Find-RepoArtifact $getPage 'test-runner-jar' 'main' 'abc111').id -eq 799)
+	Check 'pages are read in order' (($script:asked -join ',') -eq '1,2')
+	$script:asked = @()
+	Check 'the first page with a match holds the newest, so no more are read' ((Find-RepoArtifact $getPage 'test-runner-jar' 'claude/y' $null).id -eq 999 -and ($script:asked -join ',') -eq '1')
+	$script:asked = @()
+	Throws 'none on any page is an error naming what was asked' { Find-RepoArtifact $getPage 'test-runner-jar' 'main' '999' } 'no artifact test-runner-jar built on main at 999'
+	Check 'it stops at the last page' (($script:asked -join ',') -eq '1,2')
+	Throws 'an empty listing is an error' { Find-RepoArtifact { param($page) Listing @() 0 } 'x' 'main' $null } 'no artifact x built on main'
 
 	Write-Host 'Get-RedirectHeaders'
 	$headers = Get-RepoHeaders 'tok' 'application/vnd.github+json'

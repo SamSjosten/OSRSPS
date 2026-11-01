@@ -41,27 +41,47 @@ function Get-RepoFileUrl([string] $Path, [string] $Ref)
 	"$script:RepoApi/contents/$($segments -join '/')?ref=$([Uri]::EscapeDataString($Ref))"
 }
 
-# The listing of a named artifact's builds, newest first by the API's own order.
-function Get-RepoArtifactsUrl([string] $Name)
+$script:ArtifactsPerPage = 100
+
+# One page of the listing of a named artifact's builds, newest first by the API's own order.
+function Get-RepoArtifactsUrl([string] $Name, [int] $Page)
 {
-	"$script:RepoApi/actions/artifacts?name=$([Uri]::EscapeDataString($Name))&per_page=50"
+	"$script:RepoApi/actions/artifacts?name=$([Uri]::EscapeDataString($Name))&per_page=$script:ArtifactsPerPage&page=$Page"
 }
 
-# The artifact to download from that listing (the parsed JSON): the newest of that name built on that branch that
-# hasn't expired, and when $Commit is given, built from the commit it starts with. Newest is the highest id, which
-# GitHub hands out in order, so no date has to be read in this PowerShell's culture.
+# The artifact to download from one page of that listing (the parsed JSON), or $null when the page has none: the
+# newest of that name built on that branch of this repository (a fork's pull request may come from a branch of the
+# same name, and its build is no build of ours) that hasn't expired, and when $Commit is given, built from the commit
+# it starts with. Newest is the highest id, which GitHub hands out in order, so no date has to be read in this
+# PowerShell's culture.
 function Select-RepoArtifact([object] $Listing, [string] $Name, [string] $Branch, [string] $Commit)
 {
 	$found = @($Listing.artifacts | Where-Object {
 		$_.name -eq $Name -and -not $_.expired -and $_.workflow_run.head_branch -eq $Branch -and
+			$null -ne $_.workflow_run.repository_id -and $_.workflow_run.head_repository_id -eq $_.workflow_run.repository_id -and
 			(-not $Commit -or ([string] $_.workflow_run.head_sha).StartsWith($Commit, [StringComparison]::OrdinalIgnoreCase))
 	})
-	if ($found.Count -eq 0)
-	{
-		$from = if ($Commit) { "$Branch at $Commit" } else { $Branch }
-		throw "no artifact $Name built on $from that hasn't expired"
-	}
+	if ($found.Count -eq 0) { return $null }
 	$found | Sort-Object { [long] $_.id } -Descending | Select-Object -First 1
+}
+
+# The artifact to download, page by page through the listing ($GetPage gets page n, from 1, as parsed JSON): the
+# listing is newest first, so the first page with a match holds the newest. Pull requests' and other branches' builds
+# share the listing, so the one asked for may be many pages in. Throws when no page has one.
+function Find-RepoArtifact([scriptblock] $GetPage, [string] $Name, [string] $Branch, [string] $Commit)
+{
+	$seen = 0
+	for ($page = 1; $page -le 100; $page++)
+	{
+		$listing = & $GetPage $page
+		$items = @($listing.artifacts)
+		$chosen = Select-RepoArtifact $listing $Name $Branch $Commit
+		if ($null -ne $chosen) { return $chosen }
+		$seen += $items.Count
+		if ($items.Count -lt $script:ArtifactsPerPage -or $seen -ge [long] $listing.total_count) { break }
+	}
+	$from = if ($Commit) { "$Branch at $Commit" } else { $Branch }
+	throw "no artifact $Name built on $from of this repository that hasn't expired"
 }
 
 # The headers that go on to where a redirect points: all of them on the API's own host, and none of the token
