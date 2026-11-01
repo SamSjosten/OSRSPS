@@ -195,6 +195,13 @@ class Npc(
     var target: Player? = null
         internal set
 
+    /** The tick it last took on or swung at its [target]; see [osrsps.game.combat.MeleeCombat.foughtByAnother]. */
+    internal var fightTick: Long = -1
+
+    /** The player it retreats from, walking away and not fighting back; see [osrsps.game.combat.MeleeCombat]. */
+    var retreatingFrom: Player? = null
+        internal set
+
     /** The first tick it may swing at its target again. */
     internal var nextAttackTick: Long = 0
 

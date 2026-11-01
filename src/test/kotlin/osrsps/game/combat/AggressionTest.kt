@@ -21,6 +21,9 @@ import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.map.CollisionMap
+import osrsps.map.LocCollision
+import osrsps.map.LocCollisionType
+import osrsps.map.LocShape
 import osrsps.map.Tile
 
 /** Aggressive NPCs: who they go for, from where, and the ten minutes after which tolerant ones stop. */
@@ -46,7 +49,7 @@ class AggressionTest {
         npcs, map, Movement(map), Combat(Equipment(ObjTypes.of()), AttackStyles.fromRows(emptyList()), npcCombat), GameRandom(5), { tick },
         removeNpc = { npcs.remove(it) }, spawnNpc = {}, players = { players.asSequence() }, multi = multi,
     )
-    private val aggression = Aggression(npcs, { npcCombat[it.type] }, melee, GameRandom(7), { tick }) { players.asSequence() }
+    private val aggression = Aggression(npcs, map, { npcCombat[it.type] }, melee, GameRandom(7), { tick }) { players.asSequence() }
 
     private fun entry(name: String, extra: String = "") = """{ "npcs": ["$name"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush",
         "attackBonus": 0, "strengthBonus": 0, $extra
@@ -146,6 +149,29 @@ class AggressionTest {
     }
 
     @Test
+    fun `it doesn't go for a player it can't see, and a big NPC sees from its tile closest to them`() {
+        val npc = spawn(spider)
+        // A projectile-blocking loc between them, as a wall would be.
+        LocCollision(map).addLoc(LocCollisionType(blocksProjectile = true), 3222, 3220, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        at(alice, 3224, 3220)
+        process()
+        assertNull(npc.target)
+        // Round the side, in sight.
+        at(alice, 3223, 3222)
+        process()
+        assertSame(alice, npc.target)
+        // A 3x3 boss looks from its tile closest to the player: a loc off its south-east corner, in the way of a line
+        // from its south-west tile, doesn't hide a player two tiles east of it.
+        val bossNpc = spawn(boss, 3240, 3240)
+        val bossHunt = NpcAggression(ignoresLevels = true, tolerant = false)
+        LocCollision(map).addLoc(LocCollisionType(blocksProjectile = true), 3243, 3241, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        at(bob, 3244, 3242)
+        assertTrue(aggression.huntable(bossNpc, bossHunt, bob))
+        LocCollision(map).addLoc(LocCollisionType(blocksProjectile = true), 3243, 3242, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        assertFalse(aggression.huntable(bossNpc, bossHunt, bob))
+    }
+
+    @Test
     fun `it picks the nearer of two players`() {
         val npc = spawn(spider)
         at(alice, 3224, 3220)
@@ -204,6 +230,56 @@ class AggressionTest {
         assertFalse(melee.foughtByAnother(alice, npc))
         multi.set(0, 3220, 3220, true)
         assertFalse(melee.foughtByAnother(bob, npc))
+        multi.set(0, 3220, 3220, false)
+        // Taking her on counts for eight ticks; after that, with no swing at her, it is free for others.
+        tick += MeleeCombat.IN_COMBAT_TICKS
+        assertTrue(melee.foughtByAnother(bob, npc))
+        tick++
+        assertFalse(melee.foughtByAnother(bob, npc))
+    }
+
+    @Test
+    fun `a provoked NPC, as a market guard called on a thief, keeps to single-way combat as an aggressive one does`() {
+        val guard = spawn(man)
+        val other = spawn(man, 3224, 3220)
+        at(alice, 3221, 3220)
+        // She is fighting another NPC: the guard stays out of it until that wears off.
+        alice.attackedNpc = other
+        alice.attackedNpcTick = tick
+        melee.provoke(guard, alice, tick)
+        assertNull(guard.target, "she is fighting another")
+        tick += MeleeCombat.IN_COMBAT_TICKS + 1
+        melee.provoke(guard, alice, tick)
+        assertSame(alice, guard.target, "her fight has worn off")
+        // Turned on her unprovoked: no hit of hers is made up, so she isn't holding it.
+        assertNull(guard.attacker)
+    }
+
+    @Test
+    fun `in single-way combat it leaves a player fighting another NPC alone until that wears off, and in multi-way it joins in`() {
+        val npc = spawn(spider)
+        val other = spawn(spider, 3224, 3220)
+        at(alice, 3221, 3220)
+        // A click on the other one isn't a fight until an attack is made: a bow with no arrows never makes one.
+        alice.interaction = MeleeInteraction(other, melee)
+        process()
+        assertSame(alice, npc.target, "only clicked")
+        melee.endFights(alice)
+        alice.attackedNpc = other
+        alice.attackedNpcTick = tick
+        repeat(MeleeCombat.IN_COMBAT_TICKS.toInt() - 1) { process() }
+        assertNull(npc.target, "she hit the other one lately")
+        multi.set(0, 3221, 3220, true)
+        process()
+        assertSame(alice, npc.target, "multi-way")
+        val third = spawn(spider, 3240, 3240)
+        at(alice, 3241, 3240)
+        alice.attackedNpc = other
+        alice.attackedNpcTick = tick
+        repeat(MeleeCombat.IN_COMBAT_TICKS.toInt()) { process() }
+        assertNull(third.target, "still in her fight")
+        process()
+        assertSame(alice, third.target, "her hit has worn off")
     }
 
     @Test

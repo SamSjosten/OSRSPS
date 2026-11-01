@@ -43,7 +43,10 @@ fun CommandRegistry.registerNpcCommands(world: World) {
             val hurt = if (npc.hitpoints < max) "; ${npc.hitpoints}/$max hp" else ""
             val poison = world.poison.describe(npc)?.let { "; $it" }.orEmpty()
             val drained = world.npcDrains.describe(npc)?.let { "; $it" }.orEmpty()
-            val fighting = npc.target?.let { "; fighting ${it.username}" }.orEmpty()
+            // One that can fight says so when it isn't, so a test can tell an idle monster from one fighting someone.
+            val fighting = npc.target?.let { "; fighting ${it.username}" }
+                ?: npc.retreatingFrom?.let { "; retreating from ${it.username}" }
+                ?: if (world.combat.npcCombat[npc.type] != null) "; fighting no one" else ""
             reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$freeze$hurt$poison$drained$fighting")
         }
         if (near.size > MAX_LISTED) reply("...and ${near.size - MAX_LISTED} more.")

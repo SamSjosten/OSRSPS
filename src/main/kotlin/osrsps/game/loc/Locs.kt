@@ -100,6 +100,21 @@ class Locs(
         }
     }
 
+    /**
+     * Forgets every change and timed revert on the tiles from [fromX], [fromZ] to [toX], [toZ] on every level, sending
+     * nothing and leaving collision alone: for an instance's area at its end, when nobody is left to see it and its
+     * collision goes too ([osrsps.game.instance.Instances]).
+     */
+    fun forgetArea(fromX: Int, fromZ: Int, toX: Int, toZ: Int) {
+        val inArea = { slot: Long ->
+            val x = (slot shr 16).toInt() and 0x3FFF
+            val z = (slot shr 2).toInt() and 0x3FFF
+            x in fromX..toX && z in fromZ..toZ
+        }
+        changes.keys.removeIf(inArea)
+        reverts.keys.removeIf(inArea)
+    }
+
     /** Tiles that differ from the cache now, for ::locs and tests. */
     val changed: Int get() = changes.size
 
@@ -201,7 +216,7 @@ class Locs(
         const val LAYERS = 4
 
         /** Flags only the terrain sets, which no loc change touches. */
-        private const val TERRAIN = CollisionFlag.FLOOR or CollisionFlag.ROOF
+        const val TERRAIN = CollisionFlag.FLOOR or CollisionFlag.ROOF
         private const val MAX_COORD = 1 shl 14
     }
 }

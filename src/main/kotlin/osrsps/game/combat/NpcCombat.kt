@@ -99,6 +99,8 @@ data class NpcCombatDef(
     val drainCaps: Map<NpcStat, Int> = emptyMap(),
     /** How it attacks players unprovoked ([Aggression]); null for a monster that only fights back. */
     val aggression: NpcAggression? = null,
+    /** At or below this share of its hitpoints, in percent and rounded up, it retreats ([MeleeCombat]); 0 never. */
+    val retreatsAt: Int = 0,
 )
 
 /** NPC combat definitions by NPC type id. An NPC with none can't be attacked. */
@@ -136,7 +138,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * An animation may be `null` for none. An entry may add `"magicAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
          * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom"]` and
          * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent) and `"aggressive"`: `true`, or
-         * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]).
+         * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]), and
+         * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats).
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
          * [seqs] turns into ids; a name it doesn't know fails the file, unless it knows no names at all (a cache with
@@ -209,6 +212,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                     NpcStat.parse(stat) to percent.jsonPrimitive.int.also { require(it in 0..100) { "a drain cap of $it%" } }
                 }.orEmpty(),
                 aggression = entry["aggressive"]?.let(::aggression),
+                retreatsAt = (entry["retreatsAt"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..100) { "retreats at $it%" } },
             )
         }
 

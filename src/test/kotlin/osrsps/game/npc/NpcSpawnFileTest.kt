@@ -301,6 +301,7 @@ class NpcSpawnFileTest {
             2797 to "pig_2", 2798 to "piglet_1", 2799 to "piglet_2", 2800 to "piglet_3", 3251 to "farmer_farming_on_48_51", Fishing.DRAYNOR_SPOT to "0_48_50_saltfish",
             1260 to "rag_wine_merchant", 500 to "seed_merchant", 8693 to "aprilfoolshorsesalesman", 4280 to "ned", 4284 to "aggie", 4276 to "jailguard",
             4277 to "jailguard_two_patrol", 4278 to "jailguard_three_patrol", 4279 to "jailguard_four_patrol", 4274 to "leela", 3479 to "morgan",
+            2109 to "wom_multi", 2114 to "wom_bed_inactive", 2116 to "wom_gossip", 2123 to "wom_bankguard", 5732 to "farming_market_guard",
         )
         val draynorTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("draynor.json"), draynorTypes, "draynor.json")
@@ -323,6 +324,12 @@ class NpcSpawnFileTest {
         // The jail's four guards, one of each type, and Leela and Morgan.
         assertEquals(listOf(4276, 4277, 4278, 4279), spawns.map { it.type.id }.filter { it in 4276..4279 }.sorted())
         assertEquals(listOf(1, 1), listOf(4274, 3479).map { id -> spawns.count { it.type.id == id } })
+        // The Wise Old Man in his house, his bed upstairs, Miss Schism and the bank guard.
+        assertEquals(Tile(3088, 3255), spawns.single { it.type.id == 2109 }.let { Tile(it.x, it.z) })
+        assertEquals(1, spawns.single { it.type.id == 2114 }.level)
+        assertEquals(listOf(1, 1), listOf(2116, 2123).map { id -> spawns.count { it.type.id == id } })
+        // The market's two guards.
+        assertEquals(listOf(3247, 3253), spawns.filter { it.type.id == 5732 }.map { it.z }.sorted())
     }
 
     @Test

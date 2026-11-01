@@ -272,6 +272,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::los npcIndex` / `::los dx dz` | **everyone.** Distance, line of sight and hit delays from you to an NPC or a tile (see Line of sight) |
+| `::instance [radius]` / `::instance leave` | Makes a private copy of the map around you, `radius` zones each way (default 6, 13 x 13 zones), and puts you on the same spot in it; `leave` takes you back to where you made it (see Instances) |
 | `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
 | `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
 | `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
@@ -289,7 +290,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
@@ -769,8 +770,7 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 | For the tutors: that a banked pickaxe or net counts as owned (as for the Woodsman tutor's axe); the items in the boxes the Wiki doesn't name; the fish menu's one slot for the lobster pot (Fishing 29-38) or the harpoon (39 and up), as a menu holds five options; the fishing tutor one tile east of RSMod's, which the 241 map has as water; their wander ranges (2) | guessed |
 | Every chathead expression; that a worn ghostspeak amulet counts as carried; the bank as the only store Urhney checks (no Death's Office or item retrieval yet); the candle landing at the player's feet with no free slot; having heard about lanterns kept with the account by name | guessed |
 
-Left out: the unicorn retreats at low hitpoints, which waits for NPC retreat (raid step 9b; ranges from the spawn
-point). The tutors' offers to show a place on the world
+The unicorn retreats at a quarter of its hitpoints ([NPC aggression](#npc-aggression), guessed threshold). The tutors' offers to show a place on the world
 map lead back to the first menu without opening the map, which isn't built yet; the fishing spots and the mines are the
 gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
 now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
@@ -1318,6 +1318,37 @@ Check with two clients logged in near each other: `::gfx 85` on one shows the gr
 85 is `failedspell_impact`, the magic splash, in the 241 cache's names). `::groundobj 1351` shows a bronze axe to both at once; walk the second client 40
 tiles away and back, or log it out and in, and the axe is still there.
 
+## Instances
+
+An instance is a private copy of part of the map, as raids and bosses give each party (raid step 10).
+`game/instance/Instances.kt` gives each one a block of map squares in the dynamic area, from x 6400 east where the cache
+has no maps. It copies each zone of the original into the block, on every level: the terrain's collision, and the cache
+locs with their collision. Walking, doors and line of sight then work as in the original. A player in an instance gets a
+REBUILD_REGION, which tells the client to draw each zone of the block from the original's map data. Outside one, they get
+the usual REBUILD_NORMAL, also after a step into or out of one.
+
+An instance ends once nobody is in it, with its NPCs, ground items and loc changes (a door on its edge opened onto the
+tile beyond included), and the respawns, shots and fires due there later; a grave in it moves to its exit. A trade in
+one saves both players at its exit, as any save does. A player who loses their connection
+still counts until they are removed, so a reconnect finds it. Nobody is saved in an instance: a save, a logout included,
+puts them at its exit. Blocks are kept a map square apart, so nobody in one sees anyone in another.
+
+| Instance behaviour | Source |
+|--------------------|--------|
+| Zones drawn as other zones of the map with REBUILD_REGION; empty zones left out | RSProt's RebuildRegionV2 (the client's dynamic regions) |
+| The dynamic area from map square 100 (x 6400); a free map square between blocks | guessed |
+| An instance starts as the cache has it: changes in the original (an open door) aren't copied | guessed |
+| The client told to reload the region on each REBUILD_REGION | guessed |
+| An instance ending as soon as nobody is in it; saves at its exit | guessed; raids that keep a place for a disconnected player come with parties |
+| A grave left in an ended instance moving to its exit, with its items and time left | guessed |
+| Only doors and gates working on copied locs; content's handlers, written for the original's tiles (the Al Kharid toll gate), not run there, so the player is told "Nothing interesting happens." | guessed, until the raid's rooms bring handlers of their own |
+| Unrotated copies only | not in yet: the raid's rooms bring rotation if they need it |
+
+`::instance` makes one around you for testing. Check: `./gradlew test --tests 'osrsps.game.instance.*'
+--tests 'osrsps.testclient.HeadlessInstanceTest'` (two players in copies of the same spot can't see each other, and
+leaving puts them back), and in RuneLite `test-runner/examples/instance-castle.json` (the castle's large doors in a copy:
+shut, they block line of sight; opened, they don't; then back out).
+
 ## Line of sight
 
 Ranged and magic attacks need the target in line of sight and within the weapon's range (OSRS Wiki, Line of sight).
@@ -1398,13 +1429,27 @@ each NPC fights.
 | After ten minutes (1000 ticks) in an area tolerant monsters leave the player alone; leaving and coming back starts again, logging out doesn't. Bosses can be made never tolerant | OSRS Wiki, Aggressiveness |
 | The two 21x21 areas the ten minutes are counted in, moved on when the player leaves both, and a jump of more than 40 tiles (a teleport) starting again | RuneLite's NPC Aggression Timer plugin |
 | Not a player another monster is fighting, in single-way combat | OSRS Wiki, Single-way combat |
+| Not a player fighting another monster (attacking one, or hit one in the last 8 ticks), in single-way combat; an NPC is someone else's while it took on or swung at them in the last 8 ticks | guessed |
+| Only a player in its line of sight, as a ranged attack needs ([Line of sight](#line-of-sight)), from its tile closest to them, so a big monster sees round its own bulk; a player under it counts as seen | RS2's hunt modes have a check_vis; guessed that every aggressive monster uses it |
 | The hunt range of 5 (the 2004Scape engine's default), hunting every tick, picking the nearest player with ties at random, melee's 1 tile as everyone's attack range, the count running in logged-in ticks only, the Level 6 giant rats being aggressive | guessed |
 
-Not in yet: line of sight for the hunt, retreat, and monsters that attack from afar.
+Retreat (`MeleeCombat.hitBy`): a monster attacked from outside its aggression range, or at or below its
+`"retreatsAt"` share of its hitpoints (the unicorn and chickens, 25%), walks away from the player instead of fighting
+back.
+
+| Retreat behaviour | Source |
+|-------------------|--------|
+| Attacked from outside its aggression range (where the player stood as they swung, fired or cast), or low on hitpoints, it retreats | OSRS Wiki, Retreat |
+| Retreating, it keeps within its max range (7) of its spawn, until the player leaves its interaction range (7 + 11) | OSRS Wiki, Retreat |
+| The unicorn and chickens retreat at low hitpoints | OSRS Wiki, Retreat (its list) |
+| The 25% threshold, rounded up; walking straight away, diagonals first; a hit from within the aggression range ending a retreat its hitpoints don't call for; a retreating aggressive monster not hunting | guessed |
+
+Not in yet: monsters that attack from afar (the Draynor dark wizards' step).
 
 Check: `./gradlew test --tests 'osrsps.game.combat.AggressionTest' --tests 'osrsps.testclient.HeadlessAggressionTest'`
-(two players: the spider goes for the nearer, then for the other once the nearer is tolerated), and in RuneLite
-`test-runner/examples/aggro.json`.
+(two players: the spider goes for the nearer, then for the other once the nearer is tolerated; and a player behind a
+wall left alone until it goes), `RetreatTest` and `HeadlessRetreatTest`, and in RuneLite
+`test-runner/examples/aggro.json`, `aggro-sight.json` (the castle's shut large doors, then opened) and `retreat.json`.
 
 ## Animations, spotanims and sounds
 

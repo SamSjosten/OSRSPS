@@ -67,6 +67,7 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 // GitHub's API answers 5xx now and then (500s listing a commit's check runs, 14:21-14:25Z on 2026-10-30), and an
 // error left unhandled kills the run, the queue's and the gate's alike, with a codex-review possibly half written.
 // So each request is tried again on a 5xx, or no answer at all, after 2, 4 and 8 seconds.
+const RECHECK_MS = 45000; // how long a run whose approval was refused gets before Sam is asked to approve it
 const RETRIES = [2000, 4000, 8000];
 const RETRYING = Symbol('automerge retries');
 
@@ -259,23 +260,45 @@ async function filedElsewhere(github, repo, sha, ref) {
 async function approveWaiting(github, repo, core, sha, waitingRuns = null) {
   const runs = waitingRuns ? waitingRuns.filter(run => run.head_sha === sha) : (await github.rest.actions.listWorkflowRunsForRepo({ ...repo, head_sha: sha, status: 'action_required', per_page: 100 })).data.workflow_runs || [];
   let approved = 0;
+  const refused = [];
   for (const run of runs) {
     try {
       await github.rest.actions.approveWorkflowRun({ ...repo, run_id: run.id });
       approved++;
     } catch (error) {
+      refused.push(run.id);
       core.warning(`run ${run.id} on ${sha.slice(0, 7)}: approval refused (${error.status}): ${error.message}`);
     }
   }
   if (runs.length) core.info(`${sha.slice(0, 7)}: approved ${approved} of ${runs.length} waiting runs`);
-  return { waiting: runs.length, approved };
+  return { waiting: runs.length, approved, refused };
 }
 
-// Once per head: the runs on it wait for a maintainer and the queue couldn't approve them.
-async function askForApproval(github, repo, number, sha) {
+// How many of the runs whose approval was refused still wait for a maintainer after RECHECK_MS. GitHub lists a run
+// it has only just created as waiting for a few seconds, and refuses to approve it, since it needs no approval: those
+// comments were false alarms (8bb638c 2026-11-01 11:38Z; 969ae05 and 4a6d675 on #366, 12:14Z).
+async function stillWaiting(github, repo, core, sleep, sha, refused) {
+  await sleep(RECHECK_MS);
+  let still = 0;
+  for (const id of refused) {
+    try {
+      const { data: run } = await github.rest.actions.getWorkflowRun({ ...repo, run_id: id });
+      if (run.status === 'action_required' || run.conclusion === 'action_required') still++;
+    } catch (error) {
+      core.info(`run ${id} on ${sha.slice(0, 7)}: couldn't look again (${error.status}): ${error.message}`);
+    }
+  }
+  core.info(`${sha.slice(0, 7)}: ${still} of ${refused.length} refused runs still wait for approval`);
+  return still;
+}
+
+// Once per head: the runs on it wait for a maintainer, the queue couldn't approve them, and they still wait when it
+// looks again.
+async function askForApproval(github, repo, core, sleep, number, sha, refused) {
   const marker = `${APPROVE} ${sha} -->`;
   const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: number, per_page: 100 });
   if (comments.some(comment => (comment.body || '').includes(marker))) return;
+  if (!(await stillWaiting(github, repo, core, sleep, sha, refused))) return;
   await github.rest.issues.createComment({
     ...repo,
     issue_number: number,
@@ -465,7 +488,7 @@ async function updateOne(github, git, repo, core, sleep, pr) {
   if (!held.waiting) {
     await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
   } else if (held.approved < held.waiting) {
-    await askForApproval(github, repo, pr.number, head);
+    await askForApproval(github, repo, core, sleep, pr.number, head, held.refused);
   }
   const { data: updated } = await github.rest.pulls.get({ ...repo, pull_number: pr.number });
   const result = await evaluate(github, git, repo, updated);
@@ -656,7 +679,7 @@ async function advance(github, git, repo, core, sleep, now) {
         waiting = waiting || pr;
         continue;
       }
-      await askForApproval(github, repo, pr.number, pr.head.sha);
+      await askForApproval(github, repo, core, sleep, pr.number, pr.head.sha, held.refused);
       continue;
     }
     let checks = await latestChecks(github, repo, pr.head.sha);

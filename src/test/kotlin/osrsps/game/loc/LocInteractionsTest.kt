@@ -254,6 +254,32 @@ class LocInteractionsTest {
     }
 
     @Test
+    fun `in an instance content's handlers don't run, an item used does nothing interesting, and a door is the generic one`() {
+        val copied = LocInteractions(
+            locs, map, movement, handlers, scripts, doors,
+            message = { _, text -> messages += text }, faceLoc = { _, target -> faced += target }, clearFlag = {}, inInstance = { _, _ -> true },
+        )
+        val ops = mutableListOf<Op>()
+        handlers.onLoc(LADDER, 1) { ops += it }
+        handlers.onLoc(DOOR, 1) { ops += it }
+        handlers.onObjOnLoc(LADDER, BUCKET) { ops += it }
+        player.x = 3210
+        player.z = 3213
+        copied.click(player, LADDER, 3210, 3214, 1, invertRun = false)
+        tick()
+        player.inventory[0] = InvObj(BUCKET, 1)
+        copied.useObj(player, LADDER, 3210, 3214, slot = 0, obj = BUCKET, invertRun = false)
+        tick()
+        assertEquals(listOf("[game.nothing_interesting]", "[game.nothing_interesting]"), messages)
+        player.x = 3215
+        player.z = 3210
+        copied.click(player, DOOR, 3215, 3210, 1, invertRun = false)
+        tick()
+        assertEquals(emptyList(), ops)
+        assertEquals(emptyList(), locs.at(3215, 3210, 0), "opened")
+    }
+
+    @Test
     fun `double doors are left to content`() {
         // A second closed door beside the first, in the same wall.
         locs.add(ZoneLoc(DOOR, LocShape.WALL_STRAIGHT, 2, 3215, 3211, 0))

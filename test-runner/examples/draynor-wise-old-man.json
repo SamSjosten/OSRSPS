@@ -1,0 +1,749 @@
+{
+ "name": "Draynor piece step 6: the Wise Old Man's hood, cape and a topic, the bank guard's recording, Miss Schism's news, the telescope and the hat talk after the recording (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 960 0",
+   "expectMessage": "Varbit 960",
+   "comment": "wom_bankjob: the robbery's recording not yet seen"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3089 3254 0",
+   "expectMessage": "Teleported to 3089, 3254, 0",
+   "comment": "in the Wise Old Man's house"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Wise Old Man",
+   "option": "Talk-to",
+   "comment": "shown at all, so Swan Song's end value shows wise_old_man"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.greetings"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.hood]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hood"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hood_given"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Quest point hood",
+   "count": 1
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.more]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.anything]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.anything"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.nothing_now"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 99000",
+   "expectMessage": "Added 99,000 x Coins"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Wise Old Man",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.greetings"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.cape]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.cape"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.cape_price"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.cape_okay]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.cape_okay"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.cape_given"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Quest point cape",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Quest point hood",
+   "count": 2
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.more]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.ask]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.ask"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.please_do"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.distant]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.wilderness]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.wilderness_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.wilderness_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.wilderness_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.wilderness_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.wilderness_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.wilderness_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.wilderness_7"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.close"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.thanks"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.farewell"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3089 3247 0",
+   "expectMessage": "Teleported to 3089, 3247, 0",
+   "comment": "in the bank, by its guard"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Bank guard",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.yes_q"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.first_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.first_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.first_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.first_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wom_bankguard.see]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.see"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.see_long"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wom_bankguard.show]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.show"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.show_how"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.eyes"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.plays"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wom_bankguard.end"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 960,
+   "value": 1,
+   "comment": "wom_bankjob: the recording seen"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3095 3251 0",
+   "expectMessage": "Teleported to 3095, 3251, 0",
+   "comment": "by Miss Schism"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Miss Schism",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[miss_schism.news_opener"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[miss_schism.news]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[miss_schism.seen_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[miss_schism.seen_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[miss_schism.seen_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[miss_schism.seen_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[miss_schism.seen_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[miss_schism.seen_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[miss_schism.seen_7"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[miss_schism.enough]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[miss_schism.enough"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[miss_schism.enough_answer"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3089 3252 1",
+   "expectMessage": "Teleported to 3089, 3252, 1",
+   "comment": "upstairs in the Wise Old Man's house"
+  },
+  {
+   "step": "locOption",
+   "loc": "Telescope",
+   "option": "Observe",
+   "x": 3089,
+   "y": 3251
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.telescope_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.telescope_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.telescope_seen_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.telescope_seen_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.telescope_seen_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3089 3254 0",
+   "expectMessage": "Teleported to 3089, 3254, 0"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Wise Old Man",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.greetings"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.more]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.ask]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.ask"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.please_do"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.you]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.hat]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_7"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_8"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_9"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_10"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_11"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_12"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_13"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_14"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_15"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_16"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_17"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_18"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.hat_seen_19"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wise_old_man.thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.thanks"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wise_old_man.farewell"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 960,
+   "value": 2,
+   "comment": "wom_bankjob: the Wise Old Man confronted"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
