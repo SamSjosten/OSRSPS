@@ -1,0 +1,23 @@
+{
+  "name": "Edgeville piece step 3b: an outlaw in the camp south-east of Edgeville attacked (a punch, a hitsplat), killed, dying with human_death and leaving bones",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing worn or carried and no fight going on; ::reset at the end puts the account back"},
+    {"step": "command", "text": "::setlevel all 99", "expectMessage": "All skills set to level 99", "comment": "at 99 the live server's XP rate can't open a level-up box mid-fight"},
+    {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now"},
+    {"step": "command", "text": "::tele 3120 3474 0", "expectMessage": "Teleported to 3120, 3474, 0", "comment": "the middle of the outlaws' camp"},
+    {"step": "assertLocation", "x": 3120, "y": 3474, "plane": 0},
+    {"step": "npcOption", "npc": "Outlaw", "option": "Attack", "timeoutMs": 20000, "comment": "the nearest of the ten"},
+    {"step": "assertAnimation", "id": 422, "timeoutMs": 20000, "comment": "human_unarmedpunch on the first swing (the animation is guessed)"},
+    {"step": "assertHitsplat", "npc": "Outlaw", "timeoutMs": 20000, "comment": "a hit or a miss (0)"},
+    {"step": "command", "text": "::fight", "expectMessage": "You are fighting Outlaw #"},
+    {"step": "command", "text": "::kill outlaw", "expectMessage": "Killed Outlaw #"},
+    {"step": "assertAnimation", "id": 836, "npc": "Outlaw", "timeoutMs": 10000, "comment": "human_death"},
+    {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 15000, "comment": "an outlaw always drops bones; the rest of the table is checked in NpcDropsTest, and the -97.5% XP in HeadlessEdgevilleOutlawsTest"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::fight", "expectMessage": "You are not fighting anything."},
+    {"step": "command", "text": "::god", "expectMessage": "You can be hurt again"},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

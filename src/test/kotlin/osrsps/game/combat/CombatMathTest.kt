@@ -80,6 +80,18 @@ class CombatMathTest {
     }
 
     @Test
+    fun `an XP bonus scales the XP for damage, rounded down in tenths`() {
+        // The outlaws' -97.5%: a fortieth, so 3 damage on one skill (12 XP) gives 0.3, its Hitpoints XP (4.0) 0.1, and
+        // 1 damage's 1.3 Hitpoints XP nothing.
+        assertEquals(3, CombatMath.withXpBonus(120, -975))
+        assertEquals(1, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(3), -975))
+        assertEquals(0, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(1), -975))
+        // No bonus leaves it as it is; +25% adds a quarter.
+        assertEquals(133, CombatMath.withXpBonus(133, 0))
+        assertEquals(150, CombatMath.withXpBonus(120, 250))
+    }
+
+    @Test
     fun `ranged rolls and max hits, accurate adding 3 to both`() {
         // Level 1 with a shortbow (+8) and bronze arrows (7): (1 + 3 + 8) * 72 and (12 * 71 + 320) / 640.
         assertEquals(864, CombatMath.playerRangedAttackRoll(1, AttackStance.ACCURATE, 8))
