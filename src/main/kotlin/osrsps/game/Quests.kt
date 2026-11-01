@@ -50,6 +50,9 @@ class Quests(val all: List<Quest>) {
         vars[VARP_QUEST_POINTS] = totalQuestPoints
         // The quest list's footer reads these (client procs questlist_completed and questlist_qp); left at 0 it
         // showed "Completed: 0/0" and "Quest Points: 342/0" beside a list of finished quests.
+        // Inferred: live's quests_total_count leaves out miniquests and Recipe for Disaster's parts, as each has its
+        // own completed counter (subquests_completed_count, miniquests_completed_count); not checked against a live
+        // account's tab.
         val counters = mapOf(
             VARBIT_QP_MAX to totalQuestPoints,
             VARBIT_QUESTS_COMPLETED to count(QuestKind.QUEST),
