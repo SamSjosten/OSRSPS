@@ -57,8 +57,14 @@ times the vertex colours, snapped to the client's palette; y is turned over, as 
 ```
 
 Options: `--scale f`, `--mirror-x`, `--flip-faces` (for a model that shows mirrored or inside out), `--priority n`
-(0 to 10) and `--alpha material=n` (0 opaque to 254) per material. The output is a plain model file; serving it is the
-cache overlay's job (not built yet). Converted Jagex art stays in `data/`, outside git, like the cache.
+(0 to 10) and `--alpha material=n` (0 opaque to 254) per material. The output is a plain model file.
+
+The server serves every `data/models/<id>.dat` as model `<id>` on top of the cache (`osrsps.cache.overlay`): at start
+it adds each to index 7's reference table, in memory, with the CRC of the container it sends, and puts the table's new
+CRC in the master index, so a client fetches the table again and then the model when a loc or NPC points at it. The
+cache files on disk stay the live cache. An id has to be above every live model (65,000 and up is safe for revision
+241) and below 65,536, which is all a JS5 request carries. A changed file is served at the next start; a client that
+had the old one sees the new CRC and fetches it again. Converted Jagex art stays in `data/`, outside git, like the cache.
 
 ## Run the server
 

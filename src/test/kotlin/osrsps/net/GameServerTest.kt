@@ -12,12 +12,18 @@ import java.nio.file.Path
 import kotlin.io.path.createFile
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.GameServer
 import osrsps.Revision
+import osrsps.cache.model.ModelCodec
+import osrsps.cache.model.OsrsModel
+import osrsps.cache.overlay.Js5Container
+import osrsps.cache.overlay.ReferenceTable
+import osrsps.testclient.Js5Crcs
 
 /** Boots the real server on a tiny generated cache and talks JS5 to it over a socket. */
 class GameServerTest {
@@ -30,6 +36,7 @@ class GameServerTest {
         // 256 eight-bit codewords: a valid (if useless) Huffman table.
         library.put(10, "huffman", ByteArray(256) { 8 })
         library.put(0, 1, byteArrayOf(1, 2, 3))
+        library.put(7, 3, byteArrayOf(4, 5, 6))
         library.update()
         library.close()
     }
@@ -101,6 +108,37 @@ class GameServerTest {
                 """{"up":true,"revision":${Revision.MAJOR},"commit":"unknown","players":0,"acceptingLogins":true,"js5Connections":1}""",
                 URI("http://127.0.0.1:$httpPort/status.json").toURL().readText(),
             )
+        } finally {
+            server.stop()
+        }
+    }
+
+    @Test
+    fun `serves a model from data models over JS5 as part of the cache`(@TempDir dataDir: Path) {
+        writeTinyCache(dataDir)
+        Files.writeString(dataDir.resolve("cache-source.txt"), "openrs2 runescape/2746 build ${Revision.MAJOR} 2026-10-20\n")
+        val model = ModelCodec.encode(
+            OsrsModel(
+                vertexX = intArrayOf(0, 100, 0), vertexY = intArrayOf(0, 0, -50), vertexZ = intArrayOf(0, 0, 100),
+                faceA = intArrayOf(0), faceB = intArrayOf(1), faceC = intArrayOf(2), faceColors = intArrayOf(0x7F),
+            ),
+        )
+        Files.write(Files.createDirectories(dataDir.resolve("models")).resolve("65000.dat"), model)
+
+        val port = ServerSocket(0).use { it.localPort }
+        val server = GameServer(dataDir, port, ServerSocket(0).use { it.localPort }, "127.0.0.1")
+        server.start()
+        try {
+            // What the client does: the master index says index 7 changed, so it fetches the table, which lists the
+            // new group with the CRC of the container it then receives.
+            val crcs = Js5Crcs.fetch("127.0.0.1", port)
+            val tableContainer = Js5Crcs.fetchGroup("127.0.0.1", port, 255, 7)
+            assertEquals(crcs[7], Js5Container.crc(tableContainer))
+            val table = ReferenceTable.decode(Js5Container.unpack(tableContainer))
+            assertEquals(listOf(3, 65000), table.groups.map { it.id })
+            val group = Js5Crcs.fetchGroup("127.0.0.1", port, 7, 65000)
+            assertEquals(table.group(65000)!!.crc, Js5Container.crc(group))
+            assertContentEquals(model, Js5Container.unpack(group))
         } finally {
             server.stop()
         }
