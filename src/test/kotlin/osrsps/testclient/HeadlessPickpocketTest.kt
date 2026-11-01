@@ -94,12 +94,10 @@ class HeadlessPickpocketTest {
                         client.npcOp(client.npc(MAN).index, Pickpocketing.PICKPOCKET)
                         client.awaitTicks(2)
                         assertEquals(attempts, client.seen("[pickpocket.attempt who=man]"))
-                        client.await("the stun to end") { if (!server.world.statusEffects.isStunned(server.world.playerNamed("alice")!!)) Unit else null }
-                        // With the stun over, a next pickpocket still waits 8 ticks.
-                        client.npcOp(client.npc(MAN).index, Pickpocketing.PICKPOCKET)
-                        client.awaitTicks(2)
-                        assertEquals(attempts, client.seen("[pickpocket.attempt who=man]"))
-                        client.awaitTicks(Pickpocketing.AFTER_STUN_TICKS)
+                        // The next pickpocket waits 2 + 8 ticks from the failure, a tick past the 9-tick stun.
+                        val alice = server.world.playerNamed("alice")!!
+                        assertEquals(alice.stunnedUntil + 1, alice.nextPickpocketTick)
+                        client.await("the wait to end") { if (server.world.tick >= alice.nextPickpocketTick) Unit else null }
                         client.command("heal")
                     }
                 }
@@ -109,20 +107,24 @@ class HeadlessPickpocketTest {
     }
 
     @Test
-    fun `eating pushes the next pickpocket back past the food's delay`(@TempDir dir: Path) {
+    fun `food eaten while a pickpocket waits pushes it back by the food's attack delay`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.command("item $SHARK 1")
                 val shark = client.slotOf(SHARK)
-                val attempts = client.seen("[pickpocket.attempt who=man]")
+                val dave = server.world.playerNamed("dave")!!
+                // A failure's 10-tick wait leaves time to eat in it.
+                var tries = 0
+                while (client.tryOnce(MAN, "man")) {
+                    assertTrue(++tries < 60, "a failure at 70.7% within 60 tries")
+                    client.await("the wait to end") { if (server.world.tick >= dave.nextPickpocketTick) Unit else null }
+                }
+                val waiting = dave.nextPickpocketTick
+                assertTrue(waiting > server.world.tick, "waiting after a try")
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, EAT_BUTTON_OP, shark, SHARK)
-                client.npcOp(client.npc(MAN).index, Pickpocketing.PICKPOCKET)
                 client.await("the shark eaten") { if (client.count(SHARK) == 0) Unit else null }
-                client.awaitTicks(1)
-                assertEquals(attempts, client.seen("[pickpocket.attempt who=man]"), "within the shark's 3 ticks")
-                client.awaitTicks(Foods.DEFAULT_DELAY)
-                client.tryOnce(MAN, "man")
+                assertEquals(waiting + Foods.DEFAULT_DELAY, dave.nextPickpocketTick)
             }
         }
     }
@@ -162,8 +164,8 @@ class HeadlessPickpocketTest {
                 var tries = 0
                 while (!client.tryOnce(FARMER, "Master Farmer")) {
                     assertTrue(++tries < 10, "94% at 99 lands within 10 tries")
-                    client.await("the stun to end") { if (!server.world.statusEffects.isStunned(server.world.playerNamed("carol")!!)) Unit else null }
-                    client.awaitTicks(Pickpocketing.AFTER_STUN_TICKS)
+                    val carol = server.world.playerNamed("carol")!!
+                    client.await("the wait to end") { if (server.world.tick >= carol.nextPickpocketTick) Unit else null }
                     client.command("heal")
                 }
                 val seed = client.await("a seed") { client.inventory(BACKPACK).filterNotNull().firstOrNull { it.id != POT && it.id != COINS } }

@@ -57,8 +57,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 19,
-   "comment": "past a stun and the 8 ticks after it, if there was one"
+   "ticks": 12,
+   "comment": "past a stun and the 10-tick wait after a failure, if there was one"
   },
   {
    "step": "command",

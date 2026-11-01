@@ -60,7 +60,8 @@ class Pocket(
  * - Success plays the pickpocket animation, gives the XP and the loot: men and women a coin pouch (3 coins each), which
  *   stack to [MAX_POUCHES] and must be opened before pickpocketing again; the Master Farmer a seed from his table.
  * - Failure: the NPC says its line overhead, faces the player and hits them for its damage, and they are stunned for
- *   [StatusEffects.PICKPOCKET_TICKS] with the thieving birds ([StatusEffects.stun]), which blocks the next attempt.
+ *   [StatusEffects.PICKPOCKET_TICKS] with the thieving birds ([StatusEffects.stun]); the next attempt waits
+ *   [ATTEMPT_TICKS] plus [FAIL_TICKS], and food eaten meanwhile adds its attack delay ([Player.nextPickpocketTick]).
  * - No pickpocketing in combat (hit by an NPC in the last [COMBAT_TICKS] ticks, 2004Scape's %lastcombat + 8), below the
  *   level, with no room for the loot, or while stunned.
  *
@@ -71,8 +72,6 @@ class Pocket(
  * pickpocketing NPCs outside Misthalin's builds so far (farmers, H.A.M. members, warriors, guards and on).
  */
 class Pickpocketing(private val world: World) {
-    /** The tick each player can next try, by account name. */
-    private val nextAttempt = mutableMapOf<String, Long>()
 
     fun register() {
         for (pocket in POCKETS) {
@@ -87,9 +86,7 @@ class Pickpocketing(private val world: World) {
         arriveDelay()
         val text = world.textFor(player)
         if (world.statusEffects.isStunned(player, tick)) return
-        if ((nextAttempt[player.username] ?: 0L) > tick) return
-        // Eating (a stunned player may) pushes the next pickpocket back past the food's own delay (Wiki, Pickpocketing).
-        if (tick < player.foodDelayUntil) return
+        if (player.nextPickpocketTick > tick) return
         if (player.skills.currentLevel(Skill.THIEVING) < pocket.level) {
             player.message(text[PickpocketLines.LEVEL, "level" to pocket.level, "who" to pocket.who])
             return
@@ -107,7 +104,7 @@ class Pickpocketing(private val world: World) {
             player.message(text[PickpocketLines.INVENTORY_FULL])
             return
         }
-        nextAttempt[player.username] = tick + ATTEMPT_TICKS
+        player.nextPickpocketTick = tick + ATTEMPT_TICKS
         player.message(text[PickpocketLines.ATTEMPT, "who" to pocket.who])
         delay(1)
         if (npc.dead) {
@@ -133,7 +130,7 @@ class Pickpocketing(private val world: World) {
         player.message(text[PickpocketLines.FAIL, "who" to pocket.who])
         world.statusEffects.stun(player, StatusEffects.PICKPOCKET_TICKS, pocket.damage, npc, StatusEffects.THIEVING_SPOTANIM)
         player.message(text[PickpocketLines.STUNNED])
-        nextAttempt[player.username] = tick + StatusEffects.PICKPOCKET_TICKS + AFTER_STUN_TICKS
+        player.nextPickpocketTick = tick + ATTEMPT_TICKS + FAIL_TICKS
     }
 
     private fun give(player: Player, pocket: Pocket) {
@@ -180,7 +177,7 @@ class Pickpocketing(private val world: World) {
 
     /** Every pickpocket wait for [player] ends (`::reset`). */
     fun forgive(player: Player) {
-        nextAttempt.remove(player.username)
+        player.nextPickpocketTick = 0
     }
 
     companion object {
@@ -193,8 +190,11 @@ class Pickpocketing(private val world: World) {
         const val COMBAT_TICKS = 8
         const val ATTEMPT_TICKS = 2
 
-        /** After a stun ends, the next pickpocket waits this much longer (StatusEffects: nine ticks' stun, eight more). */
-        const val AFTER_STUN_TICKS = 8
+        /**
+         * A failed pickpocket's next one waits this much longer than [ATTEMPT_TICKS]: the Wiki's eight ticks, its average
+         * of 2 + 8(1 - p) ticks a try. The nine-tick stun only stops walking past that.
+         */
+        const val FAIL_TICKS = 8
         const val MAX_POUCHES = 28
 
         const val COINS = 995

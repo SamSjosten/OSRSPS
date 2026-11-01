@@ -5,9 +5,9 @@ import osrsps.game.npc.Npc
 
 /**
  * Stuns on a player (OSRS Wiki, Stun (status) and Pickpocketing, read 2026-10-30): a stunned player can't move or
- * attack, with yellow birds circling their head until it ends. Pickpocketing's stun lasts nine ticks and blocks another
- * pickpocket for eight more (that wait is the thieving code's); eating while stunned is allowed, as the Wiki's
- * pickpocketing page says it only pushes the next pickpocket back. [stun] stops what the player was doing and
+ * attack, with yellow birds circling their head until it ends. Pickpocketing's stun lasts nine ticks; the wait before
+ * another pickpocket is the thieving code's ([osrsps.game.skill.Pickpocketing.FAIL_TICKS]); eating while stunned is
+ * allowed, as the Wiki's pickpocketing page says it only pushes the next pickpocket back. [stun] stops what the player was doing and
  * [isStunned] is what the walk, option and retaliation code checks.
  *
  * Guessed: that a stunned player's clicks on the map, NPCs, locs, objs on the ground and other players are dropped, not
