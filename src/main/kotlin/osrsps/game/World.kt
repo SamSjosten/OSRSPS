@@ -422,7 +422,7 @@ class World(
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
-    val aggression = Aggression(npcs, { combat.npcCombat[it.type] }, meleeCombat, random, { tick }, players = { players.asSequence().filterNotNull().filter { !it.loggedOut } })
+    val aggression = Aggression(npcs, collision, { combat.npcCombat[it.type] }, meleeCombat, random, { tick }, players = { players.asSequence().filterNotNull().filter { !it.loggedOut } })
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
     val rangedCombat: RangedCombat = RangedCombat(

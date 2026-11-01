@@ -21,6 +21,9 @@ import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.map.CollisionMap
+import osrsps.map.LocCollision
+import osrsps.map.LocCollisionType
+import osrsps.map.LocShape
 import osrsps.map.Tile
 
 /** Aggressive NPCs: who they go for, from where, and the ten minutes after which tolerant ones stop. */
@@ -46,7 +49,7 @@ class AggressionTest {
         npcs, map, Movement(map), Combat(Equipment(ObjTypes.of()), AttackStyles.fromRows(emptyList()), npcCombat), GameRandom(5), { tick },
         removeNpc = { npcs.remove(it) }, spawnNpc = {}, players = { players.asSequence() }, multi = multi,
     )
-    private val aggression = Aggression(npcs, { npcCombat[it.type] }, melee, GameRandom(7), { tick }) { players.asSequence() }
+    private val aggression = Aggression(npcs, map, { npcCombat[it.type] }, melee, GameRandom(7), { tick }) { players.asSequence() }
 
     private fun entry(name: String, extra: String = "") = """{ "npcs": ["$name"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush",
         "attackBonus": 0, "strengthBonus": 0, $extra
@@ -143,6 +146,29 @@ class AggressionTest {
         for (skill in Skill.entries) alice.skills.setLevel(skill, 99)
         at(alice, 3241, 3240)
         assertTrue(aggression.huntable(strong, aggressive, alice), "level ${alice.skills.combatLevel} against 63")
+    }
+
+    @Test
+    fun `it doesn't go for a player it can't see, and a big NPC sees from its tile closest to them`() {
+        val npc = spawn(spider)
+        // A projectile-blocking loc between them, as a wall would be.
+        LocCollision(map).addLoc(LocCollisionType(blocksProjectile = true), 3222, 3220, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        at(alice, 3224, 3220)
+        process()
+        assertNull(npc.target)
+        // Round the side, in sight.
+        at(alice, 3223, 3222)
+        process()
+        assertSame(alice, npc.target)
+        // A 3x3 boss looks from its tile closest to the player: a loc off its south-east corner, in the way of a line
+        // from its south-west tile, doesn't hide a player two tiles east of it.
+        val bossNpc = spawn(boss, 3240, 3240)
+        val bossHunt = NpcAggression(ignoresLevels = true, tolerant = false)
+        LocCollision(map).addLoc(LocCollisionType(blocksProjectile = true), 3243, 3241, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        at(bob, 3244, 3242)
+        assertTrue(aggression.huntable(bossNpc, bossHunt, bob))
+        LocCollision(map).addLoc(LocCollisionType(blocksProjectile = true), 3243, 3242, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        assertFalse(aggression.huntable(bossNpc, bossHunt, bob))
     }
 
     @Test

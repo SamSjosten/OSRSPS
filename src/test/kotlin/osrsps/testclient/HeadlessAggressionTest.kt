@@ -17,20 +17,23 @@ import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.npc.NpcSpawn
 import osrsps.map.CollisionMap
+import osrsps.map.LocCollision
+import osrsps.map.LocCollisionType
+import osrsps.map.LocShape
 
 /**
  * Aggression through two headless players, with the real NPC combat file: a giant spider goes for the nearer of
- * them, and once that one has had their ten minutes, for the other. The rl-client script
- * test-runner/examples/aggro.json does the first part in the real client.
+ * them, and once that one has had their ten minutes, for the other; and it leaves a player behind a wall alone until
+ * the wall goes. The rl-client scripts test-runner/examples/aggro.json and aggro-sight.json do these in the real client.
  */
 class HeadlessAggressionTest {
     private val spider = NpcType(3017, "Giant spider", ops = listOf(null, "Attack", null, null, null), combatLevel = 2, internalName = "giantspider1", stats = NpcStats(hitpoints = 5))
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, map: CollisionMap = CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }) = TestServer(dir) { crcs, millis ->
         val types = NpcTypes.of(spider)
         val objTypes = DropTestItems.objTypes()
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
+            crcs, map, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
             // Far enough from the login tile that it leaves everyone alone until they are put beside it.
             npcSpawns = listOf(NpcSpawn(spider, 3245, 3218, source = "test")),
             npcCombat = NpcCombat.load(types, SeqNames.NONE), npcDrops = NpcDrops.load(types, objTypes), cycleMillis = millis,
@@ -75,6 +78,29 @@ class HeadlessAggressionTest {
                     assertTrue(spiderLine(alice).endsWith("; fighting alice"), "bob is tolerated, so alice")
                     alice.commandReply("resume") { it.startsWith("Resumed") }
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `a giant spider leaves a player behind a wall alone, and goes for them once the wall is gone`(@TempDir dir: Path) {
+        val map = CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }
+        // A projectile-blocking loc between the spider's tile and where alice will stand, as a shut door would be.
+        val wall = LocCollisionType(blocksProjectile = true)
+        LocCollision(map).addLoc(wall, 3247, 3218, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+        server(dir, map).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("pause") { it.startsWith("Paused after tick") }
+                // 4 tiles east of it, within its hunt range, behind the wall.
+                alice.commandReply("tele 3249 3218") { it.startsWith("Teleported") }
+                alice.stepTicks(3)
+                assertTrue(spiderLine(alice).endsWith("; fighting no one"), "it can't see her")
+                // The door opens.
+                LocCollision(map).removeLoc(wall, 3247, 3218, 0, LocShape.CENTREPIECE_STRAIGHT, 0)
+                alice.stepTicks(1)
+                assertTrue(spiderLine(alice).endsWith("; fighting alice"), "in sight now")
+                alice.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }
