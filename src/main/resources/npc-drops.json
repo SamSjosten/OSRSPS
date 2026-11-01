@@ -359,6 +359,11 @@
         ]
       },
       "source": "OSRS Wiki, Outlaw, read 2026-11-01. Members worlds: the herb table's 32/128 in place of the free-to-play 10 coins; Rat's paper is a quest drop, so left out. The Wiki's lines add up to 127/128, so the last 1/128 as nothing is inferred"
+    },
+    {
+      "npcs": ["monk"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Monk, read 2026-11-01: bones always; the medium clue key is the Ardougne monks' only"
     }
   ]
 }

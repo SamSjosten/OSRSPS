@@ -1027,6 +1027,27 @@ Left out: the shout before an attack, whose accuracy boost the Wiki has not conf
 `NpcDropsTest` check the numbers, `CombatMathTest` the XP bonus, and `HeadlessEdgevilleOutlawsTest` kills one through
 the headless client for its 2 Attack XP.
 
+Step 4 is Edgeville Monastery, west of the town, `game/content/EdgevilleMonastery.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Six monks (`monk` 2579: four in the courtyard, two upstairs), Abbot Langley (2577), Brother Althric (1397) in the rose garden and Brother Jered (2578) upstairs | mejrs's NPC list for the tiles (it saw six monks; the Wiki says five); wander ranges guessed |
+| A monk's talk: three options; the heal gives 2 and a fifth of the Hitpoints level, to the level at most | OSRS Wiki, Monk and Transcript:Monk; rounding down guessed |
+| Monks fight back: level 5, 15 hitpoints, crush for up to 1, back in 25 ticks, bones | OSRS Wiki, Monk and the DPS calculator's 2579; the punch animations guessed; their heal of 2 now and then in a fight is left out (the Wiki gives no chance) |
+| Abbot Langley: the heal (as a monk's, guessed), where the player is, going upstairs (until joined) and the spirit shields (each spectral, arcane or elysian spirit shield in the backpack broken for its sigil) | OSRS Wiki, Transcript:Abbot Langley; with no shield, the yes does nothing (guessed) |
+| Joining the order at 31 Prayer, kept on varbit 4907 (`monastery_enter`); until then the south-eastern ladder (2641) brings the Abbot's line and join menu and the south-western one a monk's line; once joined both climb | OSRS Wiki, Transcript:Abbot Langley and Transcript:Monk; that varbit 4907 is the joined flag is inferred from its name |
+| Brother Jered: blesses an unblessed symbol (1716) into a holy symbol (1718), and at 99 Prayer sells the Skillcape of Prayer and hood for 99,000 coins (trimmed when another skill is 99) | OSRS Wiki, Transcript:Brother Jered |
+| Brother Althric's talk about his roses | OSRS Wiki, Transcript:Brother Althric (its standard talk) |
+| The upstairs altar (2640): prayer back to 2 above the level | OSRS Wiki, Edgeville Monastery |
+| A monk's robe top and bottom upstairs, back 100 ticks after taking; the garden's cabbages (1161) picked, back in 60 ticks, as every cabbage field's now | the Wiki's item pages; tiles from 2004Scape's map m47_54; the Cabbage page's 40 to 80 ticks, 60 guessed |
+
+Left out: the roses' Take-seed (Garden of Tranquillity), the Abbot's clue, letter and Corrupted Helm talk, the
+Kharid scorpion and the ghost (quests). The words are in the dialogue file (keys `edgeville_monk.*`,
+`abbot_langley.*`, `brother_jered.*`, `brother_althric.*`, `crop.cabbage_*`). Check:
+`test-runner/examples/edgeville-monastery.json` is refused at the ladder, joins, climbs, takes a robe, prays, talks to
+each of the people and picks a cabbage; `EdgevilleMonasteryTest` does each talk's branches and
+`HeadlessEdgevilleMonasteryTest` the ladders, joining and the altar through the headless client.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).

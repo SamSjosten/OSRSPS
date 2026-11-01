@@ -267,7 +267,8 @@ class Clans(
             return
         }
         if (ignores.ignores(target, leader)) return
-        group.invited += target.saveKey
+        // One invitation line per invite: asking again doesn't send another (exploit review round 9, CLAN-1; guessed).
+        if (!group.invited.add(target.saveKey)) return
         send(target, MessageGame(CHATTYPE_CLAN_CREATION_INVITATION, leader.username, words(target).get(ClanLines.INVITATION)))
         tell(leader, ClanLines.INVITE_SENT, target.username)
     }
@@ -603,8 +604,12 @@ class Clans(
 
         fun component(interfaceId: Int, component: Int): Int = (interfaceId shl 16) or component
 
-        /** Letters, digits and spaces, 1 to 12 characters, not starting or ending with a space (guessed). */
-        fun validName(name: String): Boolean = name.length in 1..MAX_NAME && name == name.trim() && name.all { it.isLetterOrDigit() || it == ' ' }
+        /**
+         * ASCII letters, digits and single spaces, 1 to 12 characters, not starting or ending with a space (guessed, as
+         * player names), so no name reads as another's (exploit review round 9, CLAN-2).
+         */
+        fun validName(name: String): Boolean = name.length in 1..MAX_NAME && name == name.trim() && "  " !in name &&
+            name.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == ' ' }
     }
 }
 

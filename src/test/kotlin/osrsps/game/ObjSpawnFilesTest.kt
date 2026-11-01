@@ -91,12 +91,16 @@ class ObjSpawnFilesTest {
     }
 
     @Test
-    fun `Edgeville's spawns are the Wiki's leather gloves south of the bank and iron mace in the jail`() {
-        val town = ObjTypes.of(ObjType(1059, "Leather gloves", internalName = "leather_gloves"), ObjType(1420, "Iron mace", internalName = "iron_mace"))
+    fun `Edgeville's spawns are the Wiki's leather gloves, iron mace and the monastery's robes upstairs`() {
+        val town = ObjTypes.of(
+            ObjType(1059, "Leather gloves", internalName = "leather_gloves"), ObjType(1420, "Iron mace", internalName = "iron_mace"),
+            ObjType(544, "Monk's robe top", internalName = "monkrobetop"), ObjType(542, "Monk's robe", internalName = "monkrobebottom"),
+        )
         val text = ObjSpawnFiles.resources().toMap().getValue("edgeville.tsv")
         val spawns = ObjSpawnFiles.parse(text, town, "edgeville.tsv")
-        assertEquals(listOf(1059, 1420), spawns.map { it.id })
-        assertEquals(listOf(3097 to 3486, 3111 to 3517), spawns.map { it.x to it.z })
+        assertEquals(listOf(1059, 1420, 544, 542), spawns.map { it.id })
+        assertEquals(listOf(3097 to 3486, 3111 to 3517, 3059 to 3487, 3059 to 3488), spawns.map { it.x to it.z })
+        assertEquals(listOf(0, 0, 1, 1), spawns.map { it.level })
     }
 
     @Test

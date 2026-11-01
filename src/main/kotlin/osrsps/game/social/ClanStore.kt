@@ -142,6 +142,8 @@ class ClanStore(private val file: Path? = null) {
 
         fun sameName(a: String, b: String): Boolean = normal(a) == normal(b)
 
-        private fun normal(name: String) = name.trim().lowercase().replace('_', ' ')
+        private fun normal(name: String) = name.trim().lowercase().replace('_', ' ').replace(SPACES, " ")
+
+        private val SPACES = Regex("\\s+")
     }
 }

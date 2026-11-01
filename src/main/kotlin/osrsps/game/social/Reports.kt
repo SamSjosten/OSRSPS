@@ -198,24 +198,28 @@ class Reports(
         private val HOUR: Duration = Duration.ofHours(1)
         const val FILE_CAP = 50L * 1024 * 1024
 
-        /** The rules the screen offers, by the id it sends, with our own short names for admins (reportabuse_init). */
+        /**
+         * The rules the screen offers, by the id the client sends, with our own short names for admins. The client sends
+         * one less than the id in the screen's scripts (reportabuse_init): Scamming is 15 there and 14 on the wire, as
+         * RSProx showed on VM 215 (its table has the same ids).
+         */
         val RULES: Map<Int, String> = mapOf(
-            4 to "bug abuse",
-            5 to "staff impersonation",
-            6 to "account trading",
-            7 to "botting",
-            8 to "pvp cheating",
-            9 to "real-world trading or encouraging rule breaking",
-            11 to "advertising",
-            13 to "contact information",
-            15 to "scamming",
-            16 to "offensive language",
-            17 to "solicitation",
-            18 to "disruptive behaviour",
-            19 to "offensive name",
-            20 to "real-life threats",
-            21 to "breaking real-world laws",
-            22 to "games of chance or deathmatching",
+            3 to "bug abuse",
+            4 to "staff impersonation",
+            5 to "account trading",
+            6 to "botting",
+            7 to "pvp cheating",
+            8 to "real-world trading or encouraging rule breaking",
+            10 to "advertising",
+            12 to "contact information",
+            14 to "scamming",
+            15 to "offensive language",
+            16 to "solicitation",
+            17 to "disruptive behaviour",
+            18 to "offensive name",
+            19 to "real-life threats",
+            20 to "breaking real-world laws",
+            21 to "games of chance or deathmatching",
         )
     }
 }

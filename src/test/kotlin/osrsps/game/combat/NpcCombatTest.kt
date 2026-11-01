@@ -20,13 +20,13 @@ class NpcCombatTest {
     ) + (1..8).map { "goblin_unarmed_melee_$it" } + "giantspider1" + listOf(
         "giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3",
         "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops", "goblin_armed", "unicorn",
-        "al_kharid_man", "al_kharid_warrior", "scorpion", "shantay_guard", "spider", "guard1",
+        "al_kharid_man", "al_kharid_warrior", "scorpion", "shantay_guard", "spider", "guard1", "monk",
     ) + VARROCK_GUARDS + OUTLAWS
     // The cache's Strength levels where they aren't 1, for the max hit check.
     private val strength = mapOf(
         "giantrat" to 3, "giantrat_grey" to 3, "giantrat_grey2" to 3, "giantrat_grey3" to 3, "giantrat1_2" to 5, "giantrat1_3" to 5,
         "little_frog_nodrops" to 4, "medium_frog_nodrops" to 6, "giant_frog_nodrops" to 8, "unicorn" to 13,
-        "al_kharid_warrior" to 5, "scorpion" to 12, "shantay_guard" to 16, "guard1" to 18,
+        "al_kharid_warrior" to 5, "scorpion" to 12, "shantay_guard" to 16, "guard1" to 18, "monk" to 2,
     ) + VARROCK_GUARDS.associateWith { 18 } + OUTLAWS.associateWith { 30 }
     private val types = NpcTypes.of(
         *names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name, stats = NpcStats(strength = strength[name] ?: 1)) }.toTypedArray(),
@@ -163,6 +163,12 @@ class NpcCombatTest {
             assertEquals(-975, outlaw.xpBonusTenths)
             assertNull(outlaw.aggression)
         }
+        // The monastery's monks punch for 1 and come back in 25 ticks.
+        val monk = combat[types.find("monk")!!]!!
+        assertEquals(AttackType.CRUSH, monk.attackType)
+        assertEquals(1, monk.maxHit)
+        assertEquals(NpcCombatAnims(422, 424, 836), monk.anims)
+        assertEquals(25, monk.respawnTicks)
         assertTrue((names - OUTLAWS.toSet()).all { combat[types.find(it)!!]!!.xpBonusTenths == 0 })
     }
 

@@ -182,7 +182,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   shut, opened and gone down, Evil Dave's talk, the cellar stairs back up, Lucien's and Hari's talk, and the refusals
   on the canoe station, fairy ring, Wilderness lever, Soul Wars portal and Death's Domain.
 - `edgeville-outlaws.json`: Edgeville step 3b: an outlaw in the camp attacked (a punch and a hitsplat), killed with
-  `::kill`, dying with `human_death` and leaving bones.
+  `::kill` and leaving bones.
+- `edgeville-monastery.json`: Edgeville step 4 (with `::keys on`): the ladder's refusal and the Abbot's join menu at
+  30 and 31 Prayer (`assertVarbit` 4907), the climb, a monk's robe top taken, the altar, Brother Jered, the climb down,
+  the Abbot's and a monk's heal, Brother Althric and a cabbage picked. Needs 0.8.0 for `assertVarbit`.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
