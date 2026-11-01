@@ -317,6 +317,11 @@
       "npcs": ["jailguard", "jailguard_two_patrol", "jailguard_three_patrol", "jailguard_four_patrol"],
       "always": [{"item": 526, "name": "Bones"}],
       "source": "OSRS Wiki, Jail guard, read 2026-10-30: bones always, nothing else"
+    },
+    {
+      "npcs": ["farming_market_guard"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Market Guard (Draynor), read 2026-10-30: bones always, nothing else"
     }
   ]
 }

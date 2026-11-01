@@ -129,6 +129,7 @@ fun registerDraynorMarket(world: World) {
     )
     for ((id, talk) in talks) {
         world.handlers.onNpc(id, DraynorMarket.TALK_TO) { op ->
+            if (world.thieving.refuses(player, op.npc!!, tick)) return@onNpc
             var trade = false
             world.dialogues.start(this, op.npc) { trade = talk() }
             if (trade) openShop(player, id)

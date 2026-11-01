@@ -160,6 +160,7 @@ import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
+import osrsps.game.skill.Thieving
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
@@ -222,6 +223,8 @@ class World(
     private val dialogueFile: Path? = null,
     /** Where reports are appended (data/reports.jsonl); null keeps them in memory (tests). */
     private val reportsFile: Path? = null,
+    /** The time reports are stamped and rate-limited by; tests move it. */
+    private val reportsClock: () -> java.time.Instant = java.time.Instant::now,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
     /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
@@ -514,6 +517,7 @@ class World(
         interfaces::runClientScript,
         interfaces::closeChatModal,
         { player, line -> player.message(textFor(player)[line]) },
+        reportsClock,
     )
 
     /** Private messages; see [PrivateMessages]. */
@@ -539,6 +543,7 @@ class World(
     val firemaking = Firemaking(this, collision)
 
     val mining = Mining(this)
+    val thieving = Thieving(this, collision)
 
     val fishing = Fishing(this)
 
@@ -659,6 +664,7 @@ class World(
         birdNests.register()
         firemaking.register()
         mining.register()
+        thieving.register()
         fishing.register()
         cooking.register()
         smithing.register()
@@ -988,6 +994,7 @@ class World(
         }
         deaths.process()
         npcScripts.process()
+        thieving.process()
         npcs.process()
         fishing.process()
         shopScreen.restock(tick)
@@ -1945,7 +1952,7 @@ class World(
             return@act
         }
         if (interfaceId == Reports.INTERFACE && componentId == Reports.CLOSE) {
-            interfaces.closeChatModal(player)
+            if (player.chatModal == Reports.INTERFACE) interfaces.closeChatModal(player)
             return@act
         }
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
@@ -2575,6 +2582,7 @@ class World(
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
             trades.leave(player)
+            thieving.forgive(player)
             friendChats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)

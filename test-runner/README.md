@@ -234,6 +234,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `draynor-wise-old-man.json`: Draynor step 6: the Wise Old Man shown after Swan Song (`::keys on`), his free hood, the
   cape for 99,000 coins and the Wilderness topic; the bank guard's recording (`assertVarbit` 960), Miss Schism's news
   after it, the telescope upstairs and the hat talk that confronts him.
+- `draynor-stalls.json`: Draynor step 7: the seed stall's level box at level 1 (`::keys on`), a theft at 27 (one seed,
+  10 XP, the stall empty and back 4 ticks later), and Olivia refusing to trade after it. `::reset` makes her forget.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
