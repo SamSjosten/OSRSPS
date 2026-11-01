@@ -320,6 +320,28 @@ class ReportForwarderTest {
         assertEquals(ReportForwarder.PER_DAY, posts)
     }
 
+    @Test
+    fun `while the day's count can't be saved nothing is posted, and posting resumes once it can`(@TempDir dir: Path) {
+        val tracker = FakeTracker()
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { now })
+        send(dir, body(failure = "ERROR first"))
+        assertEquals(1, forwarder.pass())
+        // A folder with something in it where the file goes: saving it fails (as on a full disk).
+        val budget = dir.resolve(ReportForwarder.BUDGET)
+        java.nio.file.Files.delete(budget)
+        java.nio.file.Files.createDirectories(budget.resolve("in-the-way"))
+        send(dir, body(failure = "ERROR second"))
+        val posts = tracker.issues.size
+        repeat(3) { assertEquals(0, forwarder.pass()) }
+        assertEquals(posts, tracker.issues.size)
+        assertEquals(0, tracker.attempts - posts, "GitHub wasn't even asked")
+        java.nio.file.Files.delete(budget.resolve("in-the-way"))
+        java.nio.file.Files.delete(budget)
+        assertEquals(1, forwarder.pass())
+        assertTrue(waiting(dir).isEmpty())
+        assertTrue(java.nio.file.Files.readString(budget).contains("posted"))
+    }
+
     private fun waiting(dir: Path) = dir.listDirectoryEntries().map { it.name }.filter { it.startsWith("R-") }.sorted()
 
     @Test

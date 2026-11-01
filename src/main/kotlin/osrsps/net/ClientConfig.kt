@@ -444,7 +444,10 @@ class ClientConfig(
             ctx.fireChannelRead(msg)
             if (last) {
                 done(ctx)
-                connections[ctx.channel()]?.inRequest = false
+                // The next request's headers start their deadline now: on a kept-alive connection they may already be
+                // waiting in the codec, with no read of their own to start it. So a kept-alive connection has
+                // [HEADERS_DEADLINE_SECONDS] from one answer to the next request's headers.
+                connections[ctx.channel()]?.let { it.inRequest = false; it.headersSince = clock() }
             }
         }
 

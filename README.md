@@ -184,11 +184,12 @@ others:
   passes while GitHub answered, goes to `reports/rejected/` so it can't hold up the rest; one that fails is tried again next pass after the
   others. A matching issue that was deleted, moved or locked gets a new issue instead. At most 20 issues and comments
   are posted a day (kept in `reports/posted.json`, so a restart keeps the count; if that file is damaged the day counts
-  as full, and while it can't be read nothing is posted); past that the rest wait, and
+  as full, and while it can't be read or saved nothing is posted); past that the rest wait, and
   one `report-cap` issue a day says so.
 
   The HTTP port holds at most 256 connections, 16 from one address; a connection silent for 15 s, sending one
-  request's headers for 10 s or one report's body for 30 s is closed.
+  request's headers for 10 s (on a kept-alive connection, counted from the last answer) or one report's body for
+  30 s is closed.
 
 ## Walking
 

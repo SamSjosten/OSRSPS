@@ -81,13 +81,14 @@ class ReportForwarder(
             try {
                 // Counted the moment GitHub takes it, so a local failure after (the index, the move to sent/) can't
                 // post the same report again and again outside the day's count.
-                file(tracker, file) {
-                    posted.addLast(now)
-                    writeBudget()
-                }
+                file(tracker, file, now)
                 filed++
                 failedInARow = 0
                 failures.remove(file.name)
+            } catch (e: BudgetUnsaved) {
+                // Posting on with the count only in memory would let a restart post the day's worth again.
+                logger.warn { "${e.message}; no reports are posted until it can be" }
+                break
             } catch (e: Rejected) {
                 // Trying it again would only block every report behind it; it is kept aside for a look by hand.
                 logger.warn { "Problem report ${file.name} can't be filed (${e.message}); moved to $REJECTED/" }
@@ -143,7 +144,7 @@ class ReportForwarder(
             logger.error { "$BUDGET is damaged; counting today as full ($PER_DAY posts), so reports wait a day" }
             repeat(PER_DAY) { posted.addLast(now) }
             saidCapped = now
-            writeBudget()
+            runCatching(::saveBudget)
             return true
         }
         times.forEach { posted.addLast(it!!) }
@@ -151,14 +152,37 @@ class ReportForwarder(
         return true
     }
 
-    private fun writeBudget() {
+    private fun saveBudget() {
         val json = JsonObject(buildMap {
             put("posted", JsonArray(posted.map { JsonPrimitive(it.toString()) }))
             saidCapped?.let { put("capped", JsonPrimitive(it.toString())) }
         })
-        runCatching { writeAtomically(budget, "$json\n") }
-            .onFailure { logger.warn(it) { "The day's report posts couldn't be saved in $BUDGET" } }
+        writeAtomically(budget, "$json\n")
     }
+
+    /**
+     * Does [post] (an issue or a comment) against the day's count, saved in [BUDGET] before it goes: if that can't be
+     * saved nothing is posted ([BudgetUnsaved]), and a post that fails gives its place back.
+     */
+    private fun <T> budgeted(now: Instant, post: () -> T): T {
+        posted.addLast(now)
+        try {
+            saveBudget()
+        } catch (e: Exception) {
+            posted.removeLast()
+            throw BudgetUnsaved(e)
+        }
+        try {
+            return post()
+        } catch (e: Exception) {
+            posted.removeLast()
+            runCatching(::saveBudget)
+            throw e
+        }
+    }
+
+    /** [BUDGET] couldn't be saved, so nothing more is posted this pass. */
+    class BudgetUnsaved(cause: Exception) : Exception("The day's report posts couldn't be saved in $BUDGET (${cause.message})", cause)
 
     /**
      * Every issue and comment emails Sam, and anyone may send reports, so at most [PER_DAY] are posted a day: the rest
@@ -167,6 +191,15 @@ class ReportForwarder(
     private fun capped(tracker: IssueTracker, now: Instant, left: Int) {
         val last = saidCapped
         if (last != null && Duration.between(last, now) < DAY) return
+        // Saved before it goes, like every post, so a restart can't open a second one the same day.
+        saidCapped = now
+        try {
+            saveBudget()
+        } catch (e: Exception) {
+            saidCapped = last
+            logger.warn(e) { "Problem reports hit the daily cap of $PER_DAY; $BUDGET couldn't be saved, so no issue says so yet" }
+            return
+        }
         try {
             val number = tracker.create(
                 "Problem reports: more than $PER_DAY in a day",
@@ -175,10 +208,10 @@ class ReportForwarder(
                     "a flood rather than real problems: have a look before they all come through.",
                 listOf(LABEL, LABEL_CAPPED),
             )
-            saidCapped = now
-            writeBudget()
             logger.warn { "Problem reports hit the daily cap of $PER_DAY; $left wait; said so in issue #$number" }
         } catch (e: Exception) {
+            saidCapped = last
+            runCatching(::saveBudget)
             logger.warn(e) { "Problem reports hit the daily cap of $PER_DAY; couldn't open an issue to say so" }
         }
     }
@@ -189,7 +222,7 @@ class ReportForwarder(
         Files.move(file, dir.resolve(REJECTED).resolve(file.name), StandardCopyOption.REPLACE_EXISTING)
     }
 
-    private fun file(tracker: IssueTracker, file: Path, posted: () -> Unit) {
+    private fun file(tracker: IssueTracker, file: Path, now: Instant) {
         val report = Json.parseToJsonElement(Files.readString(file)).jsonObject
         val id = report.string("id") ?: file.name.removeSuffix(".json")
         val body = report.string("body").orEmpty()
@@ -200,8 +233,7 @@ class ReportForwarder(
         val existing = print?.let { known[it] }?.takeIf(tracker::isOpen)
         val text = issueBody(id, report.string("received"), check, print, body)
         val commented = existing != null && try {
-            tracker.comment(existing, text)
-            posted()
+            budgeted(now) { tracker.comment(existing, text) }
             true
         } catch (e: Gone) {
             logger.info { "Problem report $id matches issue #$existing, which ${e.message}; filing a new one" }
@@ -210,8 +242,7 @@ class ReportForwarder(
         if (commented) {
             logger.info { "Problem report $id is the same failure as issue #$existing; commented there" }
         } else {
-            val number = tracker.create(title(id, launcher, body), text, check.labels)
-            posted()
+            val number = budgeted(now) { tracker.create(title(id, launcher, body), text, check.labels) }
             if (print != null) writeIndex(known + (print to number))
             logger.info { "Problem report $id filed as issue #$number" }
         }

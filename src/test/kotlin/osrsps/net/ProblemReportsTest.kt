@@ -404,6 +404,27 @@ class ProblemReportsTest {
         }
     }
 
+    @Test
+    fun `a second request sent along with the first has its headers' deadline from the first one's end`(@TempDir dir: Path) {
+        serve(ProblemReports(dir) { now }) { http, port ->
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 5000
+                val out = socket.getOutputStream()
+                val input = socket.getInputStream()
+                // One write: a whole request and the start of the next, so no later read starts the second's deadline.
+                out.write("GET /version HTTP/1.1\r\nHost: x\r\n\r\nGET /version HTTP/1.1\r\nX-Slow: ".toByteArray())
+                out.flush()
+                assertEquals("HTTP/1.1 200", String(input.readNBytes(12), Charsets.US_ASCII))
+                val rest = StringBuilder()
+                while (!rest.endsWith("\r\n\r\n")) rest.append(input.read().toChar())
+                input.readNBytes(Regex("(?i)content-length: (\\d+)").find(rest)!!.groupValues[1].toInt())
+                clock += Duration.ofSeconds(ClientConfig.HEADERS_DEADLINE_SECONDS.toLong())
+                http.sweep()
+                assertClosed(socket, "the second request's headers outlived their deadline")
+            }
+        }
+    }
+
     /** The HTTP side's clock, which only the tests move: the read timeout and the deadline never wait on real time. */
     private var clock = Instant.parse("2026-11-01T03:00:00Z")
 
