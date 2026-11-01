@@ -95,9 +95,14 @@ class ProblemReportsTest {
     }
 
     @Test
-    fun `when too many wait unforwarded, more are refused`(@TempDir dir: Path) {
+    fun `when too many wait unforwarded, more are refused until some move away`(@TempDir dir: Path) {
         repeat(ProblemReports.MAX_WAITING) { Files.writeString(dir.resolve("R-%04d.json".format(it + 1)), "{}") }
-        assertEquals(Result.Unavailable, ProblemReports(dir) { now }.submit(report(), "1.2.3.4"))
+        val reports = ProblemReports(dir) { now }
+        assertEquals(Result.Unavailable, reports.submit(report(), "1.2.3.4"))
+        // A forwarder moves some to a folder of its own while the server runs: the count follows, the numbers don't go back.
+        Files.createDirectories(dir.resolve("sent"))
+        repeat(10) { Files.move(dir.resolve("R-%04d.json".format(it + 1)), dir.resolve("sent/R-%04d.json".format(it + 1))) }
+        assertEquals(Result.Accepted("R-%04d".format(ProblemReports.MAX_WAITING + 1)), reports.submit(report(), "1.2.3.4"))
     }
 
     @Test
@@ -109,6 +114,7 @@ class ProblemReportsTest {
                 "an Authorization: Bearer abc header",
                 "loaded C:\\Users\\SamSmith\\AppData\\Local\\OdinsGate\\home",
                 "mac /Users/jane/Library and linux /home/bob/.runelite",
+                "spaced C:\\Users\\Sam Smith\\AppData and /Users/O'Connor/Library",
                 "bell\u0007 and escape\u001B[0m",
             ),
             "1.2.3.4",
@@ -120,7 +126,8 @@ class ProblemReportsTest {
         assertContains(body.lines(), "loaded C:\\Users\\<user>\\AppData\\Local\\OdinsGate\\home")
         assertContains(body.lines(), "mac /Users/<user>/Library and linux /home/<user>/.runelite")
         assertContains(body.lines(), "bell and escape[0m")
-        assertFalse(body.contains("SamSmith") || body.contains("jane") || body.contains("bob"))
+        assertContains(body.lines(), "spaced C:\\Users\\<user>\\AppData and /Users/<user>/Library")
+        assertFalse(listOf("SamSmith", "jane", "bob", "Smith", "Connor").any(body::contains))
     }
 
     @Test

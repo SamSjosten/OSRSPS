@@ -35,8 +35,8 @@ class ProblemReports(
 ) {
     /** When each accepted report came in, oldest first, with the address it came from. */
     private val accepted = ArrayDeque<Pair<Instant, String>>()
-    private var lastNumber = -1
-    private var waiting = -1
+    private var lastNumber = 0
+    private var waiting = 0
 
     sealed interface Result {
         data class Accepted(val id: String) : Result
@@ -63,7 +63,7 @@ class ProblemReports(
         if (accepted.size >= PER_HOUR || accepted.count { it.second == address } >= PER_ADDRESS_PER_HOUR) return Result.TooMany
 
         try {
-            if (lastNumber < 0) scan()
+            scan()
             if (waiting >= MAX_WAITING) return Result.Unavailable
             val id = "R-%04d".format(lastNumber + 1)
             val json = buildJsonObject {
@@ -80,8 +80,6 @@ class ProblemReports(
             } finally {
                 Files.deleteIfExists(temp)
             }
-            lastNumber++
-            waiting++
             accepted.addLast(now to address)
             logger.info { "Problem report $id from launcher $launcher saved in ${dir.toAbsolutePath()}" }
             return Result.Accepted(id)
@@ -92,8 +90,9 @@ class ProblemReports(
     }
 
     /**
-     * Finds the highest number used so far, here or in any folder under [dir] (where a forwarder may move reports it
-     * has sent), so a number is never given twice across restarts, and counts the reports still waiting here.
+     * Finds the highest number used so far, here or in any folder under [dir] (where a forwarder may move reports
+     * it has sent), so a number is never given twice across restarts, and counts the reports still waiting here.
+     * Read again for each report, as a forwarder or Sam moves them away meanwhile; at most [PER_HOUR] times an hour.
      */
     private fun scan() {
         var highest = 0
@@ -135,8 +134,12 @@ class ProblemReports(
         private val SECRET = Regex("password|passwd|secret|token|authorization", RegexOption.IGNORE_CASE)
         const val LEFT_OUT = "[a line that may hold a password was left out]"
 
-        /** A user's home folder on Windows, macOS or Linux, whose name is often the person's own. */
-        private val HOME_FOLDER = Regex("""(?i)([A-Z]:[\\/]+Users[\\/]+|/Users/|/home/)[^\\/\s"']+""")
+        /**
+         * A user's home folder on Windows, macOS or Linux, whose name is often the person's own. The name runs to the
+         * next separator, quote or the end of the line, spaces and apostrophes included, since names may hold them;
+         * a path at the end of a sentence loses the rest of the line too, which hides more, never less.
+         */
+        private val HOME_FOLDER = Regex("""(?i)([A-Z]:[\\/]+Users[\\/]+|/Users/|/home/)[^\\/"]+""")
 
         /** Control characters other than tab, which a log line may carry and an issue shouldn't. */
         private val CONTROL = Regex("[\\u0000-\\u0008\\u000B-\\u001F\\u007F]")
