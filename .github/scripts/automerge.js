@@ -484,7 +484,8 @@ async function advance(github, git, repo, core, sleep, now) {
       if (now() - Date.parse(commit.commit.committer.date) > 10 * 60 * 1000) {
         core.info(`#${pr.number}: no build on ${pr.head.sha.slice(0, 7)}; starting one`);
         await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
-        return;
+        waiting = waiting || pr; // and the scan goes on, so a green batch isn't held back by it (#319, 2026-10-30)
+        continue;
       }
     }
     const others = checks.filter(run => !OWN.includes(run.name));

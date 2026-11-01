@@ -5,12 +5,15 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.AllSettings
 import osrsps.game.GameRandom
 import osrsps.game.InventoryTab
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.dialogue.Chatbox
+import osrsps.game.skill.Fletching
 import osrsps.game.skill.FletchingData
 import osrsps.map.CollisionMap
 
@@ -37,7 +40,7 @@ class HeadlessFletchingTest {
         objs[BRONZE_DART] = ObjType(BRONZE_DART, "Bronze dart", stackable = true, tradeable = true)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(3),
-            cycleMillis = millis,
+            cycleMillis = millis, varTypes = VarTypes(6_000, AllSettings.VARBITS),
         )
     }
 
@@ -274,6 +277,25 @@ class HeadlessFletchingTest {
                 assertTrue(client.clientScripts().none { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }, "no Make-X box for darts")
                 assertEquals(listOf(10, 10, 5).map { "[fletching.darts amount=$it item=bronze dart]" }, client.made().map { it.text })
                 assertEquals(45, client.await("45 XP") { client.xpOver99().takeIf { it >= 45 } })
+            }
+        }
+    }
+
+    @Test
+    fun `with the Make-X for darts setting on, a feather on dart tips opens the box for as many sets as asked`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("iris").use { client ->
+                client.ready("iris")
+                client.command("varbit ${Fletching.VARBIT_DARTS_MAKEX} 1")
+                client.give(BRONZE_DART_TIPS, 30)
+                client.give(FEATHER, 30)
+                client.use(FEATHER, BRONZE_DART_TIPS)
+                val setup = client.box()
+                assertTrue("[fletching.dart_sets_title]" in setup.args, "the darts' title: ${setup.args}")
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 2)
+                client.await("20 darts") { if (client.count(BRONZE_DART) == 20) Unit else null }
+                client.awaitTicks(8)
+                assertEquals(20, client.count(BRONZE_DART), "made more sets than asked")
             }
         }
     }
