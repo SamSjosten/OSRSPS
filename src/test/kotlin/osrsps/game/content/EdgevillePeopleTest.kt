@@ -137,4 +137,13 @@ class EdgevillePeopleTest {
         h.ends()
         assertEquals(1, given.size)
     }
+
+    @Test
+    fun `Lucien gives no new pendant while the player's dropped one is still on the ground or in their grave`() {
+        val given = mutableListOf<Int>()
+        h.talk { lucien({ true }) { _, obj -> given += obj } }
+        h.expect("lucien.what", "lucien.nothing", "lucien.leave")
+        h.ends()
+        assertEquals(emptyList(), given)
+    }
 }
