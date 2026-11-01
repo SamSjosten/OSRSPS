@@ -40,6 +40,7 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         world.prayers.deactivateAll(player)
         // A stall owner's grudge from a test theft goes too, so the next script can trade with them.
         world.thieving.forgive(player)
+        world.pickpocketing.forgive(player)
         world.teleport(player, before.x, before.z, before.level)
         player.scenario = null
         player.beforeScenario = null

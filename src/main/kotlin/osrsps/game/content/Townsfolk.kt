@@ -148,7 +148,7 @@ object Townsfolk {
     }
 }
 
-/** Men's and women's Talk-to. Attack and Pickpocket do nothing yet. */
+/** Men's and women's Talk-to. Attack is combat's, Pickpocket [osrsps.game.skill.Pickpocketing]'s. */
 fun registerTownsfolk(world: World) {
     for ((ids, lines) in listOf(Townsfolk.MEN to ManLines, Townsfolk.WOMEN to WomanLines)) {
         for (id in ids) {
