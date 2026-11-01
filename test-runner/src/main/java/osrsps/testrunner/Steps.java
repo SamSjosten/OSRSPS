@@ -1085,7 +1085,8 @@ final class Steps
 	/**
 	 * Passes when a hitsplat has shown on the player, or on the NPC of the given name ({@link Game#npcIndex}: the one
 	 * the player is fighting, else the nearest), since the last step that acted; with an amount, one showing exactly
-	 * that (0 is a miss's blue splat).
+	 * that (0 is a miss's blue splat); with types, one of those hitmark ids (such as 43, damage_max_me, or 48 and 28,
+	 * what its multimark turns it into).
 	 */
 	static final class AssertHitsplat extends Step
 	{
@@ -1093,12 +1094,20 @@ final class Steps
 		final String npc;
 		/** -1 for any. */
 		final int amount;
+		/** Hitmark ids, any of which passes; null for any. */
+		final int[] types;
 
 		AssertHitsplat(long timeoutMs, String npc, int amount)
+		{
+			this(timeoutMs, npc, amount, null);
+		}
+
+		AssertHitsplat(long timeoutMs, String npc, int amount, int[] types)
 		{
 			super("assertHitsplat", timeoutMs, false);
 			this.npc = npc;
 			this.amount = amount;
+			this.types = types;
 		}
 
 		@Override
@@ -1109,13 +1118,14 @@ final class Steps
 			{
 				return Poll.waiting("no NPC \"" + npc + "\" in view");
 			}
-			Run.Hitsplat seen = run.hitsplatSinceAction(index, amount);
+			Run.Hitsplat seen = run.hitsplatSinceAction(index, amount, types);
 			return seen != null ? Poll.pass("hitsplat " + seen) : Poll.waiting("no hitsplat " + what() + " since the last action");
 		}
 
 		private String what()
 		{
-			return (amount < 0 ? "" : "of " + amount + " ") + "on " + (npc == null ? "you" : npc);
+			return (amount < 0 ? "" : "of " + amount + " ") + "on " + (npc == null ? "you" : npc)
+				+ (types == null ? "" : " of type " + java.util.Arrays.stream(types).mapToObj(String::valueOf).collect(java.util.stream.Collectors.joining(" or ")));
 		}
 
 		@Override

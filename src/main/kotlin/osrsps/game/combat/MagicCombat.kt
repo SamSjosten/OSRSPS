@@ -101,7 +101,7 @@ class MagicCombat(
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     /** A spell on its way to [npc], landing on [landTick] for [damage] if [hit], or splashing. */
-    private class Cast(val player: Player, val npc: Npc, val spell: CombatSpell, val hit: Boolean, val damage: Int, val landTick: Long)
+    private class Cast(val player: Player, val npc: Npc, val spell: CombatSpell, val hit: Boolean, val damage: Int, val landTick: Long, val maxHit: Int)
 
     private val inFlight = ArrayList<Cast>()
 
@@ -310,7 +310,7 @@ class MagicCombat(
             player.skills.addTenths(Skill.MAGIC, CombatMath.spellDamageXpTenths(damage))
         }
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
-        inFlight += Cast(player, npc, spell, hit, damage, landTick)
+        inFlight += Cast(player, npc, spell, hit, damage, landTick, matchup.maxHit)
         return hit
     }
 
@@ -363,7 +363,7 @@ class MagicCombat(
             if (cast.hit) {
                 if (cast.spell.impact >= 0) npc.effects.spotanim(0, cast.spell.impact, IMPACT_HEIGHT)
                 // Guessed: Bind, which can't do damage, shows no hitsplat, as a splash shows none.
-                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick) else melee.hit(npc, cast.player, cast.damage, tick)
+                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick) else melee.hit(npc, cast.player, cast.damage, tick, cast.maxHit)
                 if (cast.spell.freezeTicks > 0 && !npc.dead) npcs.freeze(npc, cast.spell.freezeTicks)
             } else {
                 if (spells.splash >= 0) npc.effects.spotanim(0, spells.splash, IMPACT_HEIGHT)
