@@ -443,6 +443,19 @@ class HeadlessClient private constructor(
         }
     }
 
+    /**
+     * Component [componentId] of [interfaceId] (slot [sub], showing [obj]) used on the player at [index], as OPPLAYERT:
+     * an inventory item's Use, then a click on the player. Laid out as RSProt's 241 OpPlayerTDecoder reads it.
+     */
+    fun playerTarget(index: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
+        send(GameClientProt.OPPLAYERT) {
+            p2Alt1(sub and 0xFFFF)
+            p4((interfaceId shl 16) or componentId)
+            p1Alt1(if (ctrl) 1 else 0)
+            p2Alt2(obj and 0xFFFF)
+            p2Alt2(index)
+        }
+
     /** The Add Friend box (FRIENDLIST_ADD). The real client refuses its own name, a duplicate and a full list first. */
     fun addFriend(name: String) = send(GameClientProt.FRIENDLIST_ADD) { pjstr(name) }
 

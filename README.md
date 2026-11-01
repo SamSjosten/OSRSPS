@@ -1656,6 +1656,11 @@ Live's AMEs for all! is left out: there are no random events.
 
 Live's Keep me logged in turns off an idle logout we don't have, and Transmogrify me isn't built.
 
+| Use | What it does | Source |
+|-----|--------------|--------|
+| Any item on the potato, or the potato on it | Deletes that item | Wiki |
+| The potato on a player | Lists their inventory in your chatbox, one line a stack | Wiki that it shows it; the chatbox list is ours. Runs where you stand, with no walk to them (guessed) |
+
 A non-admin who clicks one loses it with a message (guessed: what live does isn't known). The options' words are live's,
 so they are keys under `rotten_potato.` in the dialogue file, except our own (Heal me, Peel's Teleport to a tile and Spawn an item, and all of Slice).
 

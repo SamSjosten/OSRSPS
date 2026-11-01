@@ -1704,6 +1704,25 @@ class World(
         }
     }
 
+    /**
+     * The player used something on the player at [index]: the item in slot [sub] of [interfaceId]:[componentId], or a
+     * spell. Only inventory items are handled; see [InventoryTab.useOnPlayer].
+     */
+    fun onPlayerTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int) {
+        // Looked up as the packet is read, as for an option on a player.
+        val clicked = players.getOrNull(index)
+        act(player) {
+            if (held(player)) return@act
+            trades.interrupt(player)
+            val target = clicked?.takeIf { players[it.index] === it && it !== player }
+            if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS || target == null) {
+                logger.info { "${player.username} used $interfaceId:$componentId sub $sub on player ${clicked?.username} (not handled)" }
+                return@act
+            }
+            inventoryTab.useOnPlayer(player, sub, obj, target)
+        }
+    }
+
     /** Examine on obj [id] on the ground: the same examine as in the inventory. Guessed, not checked against live. */
     fun onGroundObjExamine(player: Player, id: Int, x: Int, z: Int) = act(player) {
         val obj = groundObjs.visibleAt(player, x, z, player.level).firstOrNull { it.id == id } ?: return@act

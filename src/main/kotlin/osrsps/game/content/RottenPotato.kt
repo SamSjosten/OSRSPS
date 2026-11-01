@@ -4,7 +4,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.Experience
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.Player
 import osrsps.game.dialogue.Lines
+import osrsps.game.script.Handlers
 import osrsps.game.script.ScriptContext
 
 private val logger = KotlinLogging.logger {}
@@ -37,7 +39,8 @@ object RottenPotatoLines : Lines("rotten_potato", "Rotten potato") {
  * POH, is Heal me here, as there are no houses. Peel (iop3) keeps its Bank menu; with no rares or random events, Teleport
  * to RARE! and Spawn RARE! become Teleport to a tile and Spawn an item, and AMEs for all! is left out. Slice (iop2),
  * live's random events, holds our testing tools. Mash (iop4) keeps Kick me out and Kill me; there is no idle logout
- * for Keep me logged in to turn off, and no Transmogrify me yet.
+ * for Keep me logged in to turn off, and no Transmogrify me yet. Using any item on the potato, or the potato on it, deletes
+ * the item; using the potato on a player lists their inventory in the chatbox.
  */
 object RottenPotato {
     const val OBJ = 5733
@@ -68,6 +71,10 @@ object RottenPotato {
     const val SCENARIO_PROMPT = "Scenario name:"
     const val RESET = "Reset (end the scenario)"
     const val NO_ROOM = "The scenario fills your inventory, so the rotten potato couldn't go back in; ::reset ends it."
+
+    /** Ours: live shows the player's inventory some other way, which the Wiki doesn't describe. */
+    const val INVENTORY_OF = "Inventory of"
+    const val EMPTY = "nothing"
 }
 
 fun registerRottenPotato(world: World) {
@@ -77,6 +84,15 @@ fun registerRottenPotato(world: World) {
     world.handlers.onObj(RottenPotato.OBJ, RottenPotato.SLICE) { op -> if (admin(world, op.sub)) slice(world) }
     world.handlers.onObj(RottenPotato.OBJ, RottenPotato.PEEL) { op -> if (admin(world, op.sub)) peel(world) }
     world.handlers.onObj(RottenPotato.OBJ, RottenPotato.MASH) { op -> if (admin(world, op.sub)) mash(world) }
+    world.handlers.onObjOnObj(RottenPotato.OBJ, Handlers.ANY_OBJ) { op ->
+        // Either way round: the item that isn't the potato goes.
+        val (potatoSlot, otherSlot) = if (op.id == RottenPotato.OBJ) op.sub to op.objSlot else op.objSlot to op.sub
+        if (admin(world, potatoSlot)) deleteItem(world, otherSlot)
+    }
+    world.handlers.onObjOnPlayer(RottenPotato.OBJ) { op ->
+        val target = op.player
+        if (target != null && admin(world, op.sub)) showInventory(world, target)
+    }
 }
 
 /** Whether the player is an admin; a non-admin's potato in [slot] is taken. */
@@ -188,4 +204,25 @@ private fun ScriptContext.wipeInventory() {
         if (obj.id != RottenPotato.OBJ) inventory.remove(slot)
     }
     logger.info { "${player.username} wiped their inventory with a rotten potato" }
+}
+
+/** The item in [slot] goes, whatever it is, unless it's a potato too. */
+private fun ScriptContext.deleteItem(world: World, slot: Int) {
+    if (player.dead) return
+    val obj = player.inventory[slot] ?: return
+    if (obj.id == RottenPotato.OBJ) return
+    player.inventory.remove(slot)
+    logger.info { "${player.username} deleted ${obj.count} x ${world.objTypes[obj.id]?.name ?: obj.id} (obj ${obj.id}) with a rotten potato" }
+}
+
+/** [target]'s inventory, one line per stack, in slot order. */
+private fun ScriptContext.showInventory(world: World, target: Player) {
+    // They may have left since the click.
+    if (world.playerNamed(target.username) !== target) return
+    val items = (0 until target.inventory.capacity).mapNotNull { slot ->
+        target.inventory[slot]?.let { obj -> "${obj.count} x ${world.objTypes[obj.id]?.name ?: "obj ${obj.id}"}" }
+    }
+    logger.info { "${player.username} looked at ${target.username}'s inventory with a rotten potato" }
+    player.message("${RottenPotato.INVENTORY_OF} ${target.username}:" + if (items.isEmpty()) " ${RottenPotato.EMPTY}" else "")
+    items.forEach { player.message(it) }
 }
