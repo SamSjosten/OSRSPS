@@ -61,6 +61,12 @@
    "step": "waitForLogin"
   },
   {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "keys are off again after a login (VM 217, 2026-11-01)"
+  },
+  {
    "step": "npcOption",
    "npc": "Banker",
    "option": "Talk-to",
@@ -101,6 +107,12 @@
   },
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "keys are off again after a login (VM 217, 2026-11-01)"
   },
   {
    "step": "npcOption",
