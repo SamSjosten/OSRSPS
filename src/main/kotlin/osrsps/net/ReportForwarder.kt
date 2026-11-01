@@ -79,9 +79,12 @@ class ReportForwarder(
                 break
             }
             try {
-                file(tracker, file)
-                posted.addLast(now)
-                writeBudget()
+                // Counted the moment GitHub takes it, so a local failure after (the index, the move to sent/) can't
+                // post the same report again and again outside the day's count.
+                file(tracker, file) {
+                    posted.addLast(now)
+                    writeBudget()
+                }
                 filed++
                 failedInARow = 0
                 failures.remove(file.name)
@@ -186,7 +189,7 @@ class ReportForwarder(
         Files.move(file, dir.resolve(REJECTED).resolve(file.name), StandardCopyOption.REPLACE_EXISTING)
     }
 
-    private fun file(tracker: IssueTracker, file: Path) {
+    private fun file(tracker: IssueTracker, file: Path, posted: () -> Unit) {
         val report = Json.parseToJsonElement(Files.readString(file)).jsonObject
         val id = report.string("id") ?: file.name.removeSuffix(".json")
         val body = report.string("body").orEmpty()
@@ -198,6 +201,7 @@ class ReportForwarder(
         val text = issueBody(id, report.string("received"), check, print, body)
         val commented = existing != null && try {
             tracker.comment(existing, text)
+            posted()
             true
         } catch (e: Gone) {
             logger.info { "Problem report $id matches issue #$existing, which ${e.message}; filing a new one" }
@@ -207,6 +211,7 @@ class ReportForwarder(
             logger.info { "Problem report $id is the same failure as issue #$existing; commented there" }
         } else {
             val number = tracker.create(title(id, launcher, body), text, check.labels)
+            posted()
             if (print != null) writeIndex(known + (print to number))
             logger.info { "Problem report $id filed as issue #$number" }
         }

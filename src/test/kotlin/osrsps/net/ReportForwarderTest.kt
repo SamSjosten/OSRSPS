@@ -308,6 +308,18 @@ class ReportForwarderTest {
         assertTrue(waiting(dir).isEmpty())
     }
 
+    @Test
+    fun `a report GitHub took but that couldn't be moved to sent still counts against the day`(@TempDir dir: Path) {
+        val tracker = FakeTracker()
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { now })
+        send(dir, body(failure = "ERROR stuck"))
+        // A file where sent/ should be: every move fails after GitHub has taken the report.
+        java.nio.file.Files.writeString(dir.resolve("sent"), "")
+        repeat(ReportForwarder.PER_DAY + 5) { forwarder.pass() }
+        val posts = tracker.issues.count { ReportForwarder.LABEL_CAPPED !in it.labels } + tracker.issues.sumOf { it.comments.size }
+        assertEquals(ReportForwarder.PER_DAY, posts)
+    }
+
     private fun waiting(dir: Path) = dir.listDirectoryEntries().map { it.name }.filter { it.startsWith("R-") }.sorted()
 
     @Test
