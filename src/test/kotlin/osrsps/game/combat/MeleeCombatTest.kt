@@ -654,12 +654,9 @@ class MeleeCombatTest {
 
     @Test
     fun `hitpoints come back one a minute for the hurt`() {
-        val npc = spawn()
-        val other = spawn(hans, x = 3211)
         alice.hitpoints = 5
         bob.hitpoints = 10
-        npc.hitpoints = 3
-        // Each player has their own countdown; NPCs go by the world clock.
+        // Each player has their own countdown.
         alice.hitpointsRegenTicks = 1
         tick = MeleeCombat.REGEN_TICKS - 2L
         tick()
@@ -669,13 +666,52 @@ class MeleeCombatTest {
         // This tick was its first.
         assertEquals(MeleeCombat.REGEN_TICKS - 1, alice.hitpointsRegenTicks)
         assertEquals(10, bob.hitpoints)
-        assertEquals(4, npc.hitpoints)
-        assertEquals(other.type.stats.hitpoints, other.hitpoints)
         repeat(MeleeCombat.REGEN_TICKS - 1) { tick() }
         assertEquals(6, alice.hitpoints)
         tick()
         assertEquals(7, alice.hitpoints)
+    }
+
+    @Test
+    fun `each NPC gets a hitpoint back a minute after its spawn, then every minute, whatever the world clock says`() {
+        // Not on a minute of the world clock: the NPC's own countdown starts at its spawn.
+        tick = 37L
+        val npc = spawn()
+        val full = spawn(hans, x = 3211)
+        npc.hitpoints = 3
+        repeat(MeleeCombat.REGEN_TICKS - 1) { tick() }
+        assertEquals(3, npc.hitpoints)
+        tick()
+        assertEquals(4, npc.hitpoints)
+        assertEquals(MeleeCombat.REGEN_TICKS, npc.hitpointsRegenTicks)
+        assertEquals(full.type.stats.hitpoints, full.hitpoints)
+        repeat(MeleeCombat.REGEN_TICKS - 1) { tick() }
+        assertEquals(4, npc.hitpoints)
+        tick()
         assertEquals(5, npc.hitpoints)
+    }
+
+    @Test
+    fun `an NPC hurt late in its minute heals at the minute's end, not a full minute after the hit`() {
+        val npc = spawn()
+        repeat(MeleeCombat.REGEN_TICKS - 10) { tick() }
+        npc.hitpoints = 2
+        repeat(9) { tick() }
+        assertEquals(2, npc.hitpoints)
+        tick()
+        assertEquals(3, npc.hitpoints)
+    }
+
+    @Test
+    fun `an NPC never heals past its hitpoints level`() {
+        val npc = spawn()
+        npc.hitpointsRegenTicks = 1
+        npc.hitpoints = npc.type.stats.hitpoints - 1
+        tick()
+        assertEquals(npc.type.stats.hitpoints, npc.hitpoints)
+        npc.hitpointsRegenTicks = 1
+        tick()
+        assertEquals(npc.type.stats.hitpoints, npc.hitpoints)
     }
 
     @Test
