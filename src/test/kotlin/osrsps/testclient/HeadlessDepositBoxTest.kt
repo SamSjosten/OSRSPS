@@ -2,6 +2,7 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertTrue
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.Inventory
@@ -184,6 +185,23 @@ class HeadlessDepositBoxTest {
         }
     }
 
+    @Test
+    fun `with the quantity check off, an item used on a deposit box goes in, all of them, without asking`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dora").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("varbit ${DepositBox.VARBIT_NO_QUANTITY_CHECK} 1")
+                client.command("item $AXE")
+                client.command("item $LOGS 3")
+                client.await("the items") { if (client.backpack().size == 4) Unit else null }
+                client.locTarget(BOX, 3219, 3218, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(LOGS), LOGS)
+                client.awaitBackpack(InvObj(AXE, 1))
+                assertTrue(client.clientScripts().none { it.id == ScriptContext.MESLAYER_MODE7 }, "it asked how many")
+                client.awaitBankAtBooth(InvObj(LOGS, 3))
+            }
+        }
+    }
+
     private companion object {
         const val LOGS = 1511
         const val COINS = 995
@@ -196,6 +214,12 @@ class HeadlessDepositBoxTest {
         /** depositbox_mode sits alone on a spare varp here, so the varp is the mode. */
         const val VARP_MODE = 5_100
 
-        val VARS = VarTypes(6_000, mapOf(DepositBox.VARBIT_MODE to VarbitType(VARP_MODE, 0, 2)))
+        val VARS = VarTypes(
+            6_000,
+            mapOf(
+                DepositBox.VARBIT_MODE to VarbitType(VARP_MODE, 0, 2),
+                DepositBox.VARBIT_NO_QUANTITY_CHECK to VarbitType(VARP_MODE + 1, 0, 0),
+            ),
+        )
     }
 }

@@ -257,6 +257,25 @@ expect_status 0
 expect_calls "compose build OSRSPS_COMMIT=$head" 1
 expect_checkout "$head"
 
+step="a stale git lock is cleared, and the deploy goes on"
+merge src/main/Locked.kt=8
+touch -d '-20 minutes' "$tmp/vm/.git/HEAD.lock" "$tmp/vm/.git/gc.pid.lock"
+deploy
+expect_status 0
+grep -q "Removing .git/HEAD.lock: a stale git lock" "$tmp/out" || fail "the log doesn't name the stale lock"
+[[ ! -e $tmp/vm/.git/HEAD.lock && ! -e $tmp/vm/.git/gc.pid.lock ]] || fail "the stale locks are still there"
+expect_calls "compose build OSRSPS_COMMIT=$head" 1
+expect_checkout "$head"
+
+step="a fresh git lock is left alone"
+merge src/main/Fresh.kt=9
+touch "$tmp/vm/.git/index.lock"
+deploy
+expect_status 1
+[[ -e $tmp/vm/.git/index.lock ]] || fail "a fresh lock was removed"
+expect_no_calls
+rm -f "$tmp/vm/.git/index.lock"
+
 if ((failures)); then
 	echo "$failures check(s) failed"
 	exit 1

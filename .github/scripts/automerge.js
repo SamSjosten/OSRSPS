@@ -28,6 +28,16 @@
 // member; it is up to date with main and its checks have run, so auto-merge merges it, and with it every other member,
 // whose head is now in main, which GitHub marks merged. Red, the first half of the batch goes again, down to one pull
 // request, which goes the one-at-a-time way above, so its own checks show the failure to the thread that owns it.
+//
+// Merging itself: on a private repository without GitHub Pro there are no rulesets, so GitHub neither enforces the
+// required checks nor offers auto-merge. When no rule on main requires status checks, the queue enforces them: a pull
+// request with the `automerge` label (or auto-merge on) that is up to date with main, whose `build` passed, with every
+// other check done and none failing and a passing `codex-review`, is merged here, with a merge commit. A merge made
+// with the workflow's token starts no workflow, so it then starts main's: build (its caches), mergeable and this one,
+// which goes on to the next pull request. A pull request that changes the workflows is left to Sam, who reviews and
+// merges those by hand (CODEOWNERS). A green batch, made on main, becomes main. Main moves only as a
+// fast-forward from the commit the pull request or batch was up to date with, so nothing merges onto a main it
+// hasn't been built with.
 
 const { execFileSync } = require('node:child_process');
 
@@ -47,6 +57,9 @@ const BATCH = 'automerge/batch';
 const BATCH_MAX = 6;
 const BASE_TRAILER = 'Automerge-Base:';
 const MEMBER_TRAILER = 'Automerge-Member:';
+const LABEL = 'automerge';
+// The workflows a push to main starts, started by hand after a merge made with the workflow's token.
+const AFTER_MERGE = ['build.yml', 'mergeable.yml', 'automerge.yml'];
 const BOT = ['-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com'];
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -208,29 +221,35 @@ async function latestChecks(github, repo, sha) {
 // wake the thread with the same failing check each time. Gate runs aren't serialized (see automerge.yml), so a run
 // whose evaluation started before the newest check on the head was written leaves that check alone; the queue looks
 // again at any check that isn't passing, so a run that lost such a race to a stale one is put right there.
-async function gate(github, git, repo, core, number, current, now = Date.now) {
+// The queue passes the pull request it just listed, saving a call. Returns the head's checks as they are now (fetched
+// here, after the evaluation, with this result in place of the old one), or null when it left a newer one alone.
+async function gate(github, git, repo, core, number, current, now = Date.now, listed = null) {
   const started = now();
-  const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number: number });
-  if (pr.state !== 'open') return;
+  const pr = listed || (await github.rest.pulls.get({ ...repo, pull_number: number })).data;
+  if (pr.state !== 'open') return null;
   const result = await evaluate(github, git, repo, pr);
   core.info(`#${number}: ${CHECK} ${result.conclusion || result.status}: ${result.title}`);
-  const latest = (await latestChecks(github, repo, pr.head.sha)).find(run => run.name === CHECK);
+  const all = await latestChecks(github, repo, pr.head.sha);
+  const latest = all.find(run => run.name === CHECK);
   if (latest && latest.started_at && Date.parse(latest.started_at) > started) {
     core.info(`#${number}: a newer ${CHECK} was written meanwhile; leaving it`);
-    return;
+    return null;
   }
   const seen = current || latest;
   const same = seen && seen.status === result.status && (seen.conclusion || null) === (result.conclusion || null)
     && seen.output && seen.output.title === result.title;
-  if (!same) await writeCheck(github, repo, pr.head.sha, result);
+  const others = all.filter(run => run.name !== CHECK);
+  if (same) return [...others, seen];
+  await writeCheck(github, repo, pr.head.sha, result);
+  return [...others, { name: CHECK, status: result.status, conclusion: result.conclusion || null, output: { title: result.title } }];
 }
 
 // The pull_request runs GitHub holds for "approval from a maintainer" on a head: a merge of main the queue pushed with
 // the workflow token gets them, and until they run, the ruleset waits on their checks and the pull request stays
 // blocked (a dispatched build doesn't stand in for them). Approves each; returns how many waited and how many ran.
-async function approveWaiting(github, repo, core, sha) {
-  const { data } = await github.rest.actions.listWorkflowRunsForRepo({ ...repo, head_sha: sha, status: 'action_required', per_page: 100 });
-  const runs = data.workflow_runs || [];
+// `waitingRuns` is the repository's waiting runs, listed once per queue run; without it, the head's are listed.
+async function approveWaiting(github, repo, core, sha, waitingRuns = null) {
+  const runs = waitingRuns ? waitingRuns.filter(run => run.head_sha === sha) : (await github.rest.actions.listWorkflowRunsForRepo({ ...repo, head_sha: sha, status: 'action_required', per_page: 100 })).data.workflow_runs || [];
   let approved = 0;
   for (const run of runs) {
     try {
@@ -390,7 +409,7 @@ branch, check the merge, and comment \`@codex review\`.`,
 
 // What to do about the batch on its branch, if it is still about main and its members: true when the queue is done
 // for this run (the batch is building, was promoted or went again), false to go on as if there were none.
-async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha, scanned, waiting) {
+async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha, scanned, waiting, self) {
   if (!batch || batch.base !== mainSha) return false;
   const carrier = batch.members[batch.members.length - 1];
   const carrierState = scanned.get(carrier.number);
@@ -431,6 +450,8 @@ async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha,
       core.info(`batch ${batch.sha.slice(0, 7)}: ${result.title}; building again without it`);
       return false;
     }
+    // Merging itself, the batch, made on main, becomes main: every member's head is in it.
+    if (self) return moveMain(github, repo, core, batch.base, batch.sha, `batch ${batch.sha.slice(0, 7)}`);
     core.info(`batch ${batch.sha.slice(0, 7)} is green: it becomes #${carrier.number}'s head`);
     await github.rest.git.updateRef({ ...repo, ref: `heads/${carrierState.pr.head.ref}`, sha: batch.sha, force: false });
     await writeCheck(github, repo, batch.sha, result);
@@ -444,9 +465,59 @@ async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha,
   return first.ready ? updateOne(github, git, repo, core, sleep, first.pr) : false;
 }
 
+// Whether GitHub enforces the merge rules on main: a rule requiring status checks. Without one (a private repository
+// on the free plan, where the call may be refused outright) the queue merges by itself.
+async function enforced(github, repo, core) {
+  try {
+    const { data } = await github.rest.repos.getBranchRules({ ...repo, branch: 'main', per_page: 100 });
+    return data.some(rule => rule.type === 'required_status_checks');
+  } catch (error) {
+    core.info(`main's rules can't be read (${error.status}): the queue merges by itself`);
+    return false;
+  }
+}
+
+// Moves main from `base` to `sha`, a commit on top of it, and starts what a push to main would have. The ref moves only
+// as a fast-forward, so if main moved since `base` was read nothing changes: like the ruleset's "up to date", two
+// queue runs at once can't merge two pull requests that were each only up to date with the main before.
+async function moveMain(github, repo, core, base, sha, what) {
+  try {
+    await github.rest.git.updateRef({ ...repo, ref: 'heads/main', sha, force: false });
+  } catch (error) {
+    core.info(`${what}: main moved since ${base.slice(0, 7)} (${error.status}): ${error.message}`);
+    return false;
+  }
+  core.info(`${what}: merged, main is ${sha.slice(0, 7)}`);
+  for (const workflow of AFTER_MERGE) {
+    await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: workflow, ref: 'main' });
+  }
+  return true;
+}
+
+// Merges a pull request whose head is up to date with main at `base` (main's commit when that was looked at): a
+// merge commit with main and the head as parents and the head's tree, which is the merge's, as the head has all of
+// main. GitHub marks the pull request merged once its head is in main.
+async function mergeOne(github, repo, core, pr, base) {
+  const { data: head } = await github.rest.git.getCommit({ ...repo, commit_sha: pr.head.sha });
+  const { data: merge } = await github.rest.git.createCommit({
+    ...repo,
+    message: `Merge pull request #${pr.number} from ${repo.owner}/${pr.head.ref}\n\n${pr.title || ''}`.trim() + '\n',
+    tree: head.tree.sha,
+    parents: [base, pr.head.sha],
+  });
+  return moveMain(github, repo, core, base, merge.sha, `#${pr.number}`);
+}
+
 async function advance(github, git, repo, core, sleep, now) {
+  const self = !(await enforced(github, repo, core));
   const open = await github.paginate(github.rest.pulls.list, { ...repo, state: 'open', base: 'main', per_page: 100 });
-  const queued = open.filter(pr => pr.auto_merge && !pr.draft).sort((a, b) => a.number - b.number);
+  const labelled = pr => (pr.labels || []).some(label => label.name === LABEL);
+  const queued = open.filter(pr => (pr.auto_merge || (self && labelled(pr))) && !pr.draft).sort((a, b) => a.number - b.number);
+  // One listing of the runs waiting for approval, not one per pull request: the queue runs after nearly every event,
+  // and per-pull-request calls used up the token's 5,000 an hour (2026-11-01 02:47Z).
+  const waitingRuns = queued.length
+    ? await github.paginate(github.rest.actions.listWorkflowRunsForRepo, { ...repo, status: 'action_required', per_page: 100 })
+    : [];
 
   const scanned = new Map();
   let waiting = null; // an up-to-date pull request whose checks are still running: no other gets main merged in meanwhile
@@ -458,8 +529,17 @@ async function advance(github, git, repo, core, sleep, now) {
       core.info(`#${pr.number}: its commits are all in main; leaving it`);
       continue;
     }
+    // Merging itself, never a change to the workflows: that is Sam's to review and merge by hand (CODEOWNERS), and
+    // the workflow token can't push one to main anyway.
+    if (self) {
+      const files = await github.paginate(github.rest.pulls.listFiles, { ...repo, pull_number: pr.number, per_page: 100 });
+      if (files.some(file => file.filename.startsWith('.github/workflows/'))) {
+        core.info(`#${pr.number}: changes the workflows; Sam merges it by hand`);
+        continue;
+      }
+    }
     // Held runs first: merging main in again would only push another head whose runs are held the same way.
-    const held = await approveWaiting(github, repo, core, pr.head.sha);
+    const held = await approveWaiting(github, repo, core, pr.head.sha, waitingRuns);
     if (held.waiting) {
       if (held.approved === held.waiting) {
         core.info(`#${pr.number}: approved its waiting runs; waiting for them`);
@@ -474,8 +554,7 @@ async function advance(github, git, repo, core, sleep, now) {
     // Missing (opened before this workflow, or an event was missed), waiting or failing: Codex may have answered
     // since, or a slower gate run may have written a stale result. Written again only when it changes.
     if (!current || current.conclusion !== 'success') {
-      await gate(github, git, repo, core, pr.number, current, now);
-      checks = await latestChecks(github, repo, pr.head.sha);
+      checks = await gate(github, git, repo, core, pr.number, current, now, pr) || await latestChecks(github, repo, pr.head.sha);
     }
     if (!behind && !checks.some(run => run.name === BUILD)) {
       // An up-to-date head that no build ever ran on: a merge of main whose dispatch was lost (the update showed up
@@ -484,7 +563,8 @@ async function advance(github, git, repo, core, sleep, now) {
       if (now() - Date.parse(commit.commit.committer.date) > 10 * 60 * 1000) {
         core.info(`#${pr.number}: no build on ${pr.head.sha.slice(0, 7)}; starting one`);
         await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
-        return;
+        waiting = waiting || pr; // and the scan goes on, so a green batch isn't held back by it (#319, 2026-10-30)
+        continue;
       }
     }
     const others = checks.filter(run => !OWN.includes(run.name));
@@ -500,12 +580,15 @@ async function advance(github, git, repo, core, sleep, now) {
       waiting = waiting || pr;
       continue;
     }
+    if (self && !behind && !running && !failing && codexOk && checks.some(run => run.name === BUILD && run.conclusion === 'success')) {
+      if (await mergeOne(github, repo, core, pr, compare.base_commit.sha)) return;
+    }
     const ready = behind && !failing && codexOk;
     scanned.set(pr.number, { pr, failing, ready, batchable: ready && !running && checks.some(run => run.name === BUILD) });
   }
 
   const { data: main } = await github.rest.repos.getBranch({ ...repo, branch: 'main' });
-  if (await advanceBatch(github, git, repo, core, sleep, now, await readBatch(github, repo), main.commit.sha, scanned, waiting)) return;
+  if (await advanceBatch(github, git, repo, core, sleep, now, await readBatch(github, repo), main.commit.sha, scanned, waiting, self)) return;
 
   const batchable = [...scanned.values()].filter(state => state.batchable).slice(0, BATCH_MAX);
   if (batchable.length >= 2 && await startBatch(github, git, repo, core, batchable.map(state => ({ number: state.pr.number, sha: state.pr.head.sha })))) return;
@@ -530,6 +613,12 @@ module.exports.gate = async function ({ github, context, core, git = shellGit, s
 
 // The `queue` job, after every event.
 module.exports.queue = async function ({ github, context, core, git = shellGit, sleep = wait, now = Date.now }) {
+  // Codex marking its summary "running" changes nothing the queue goes by; the edit when it finishes wakes it again.
+  const comment = context.payload && context.payload.comment;
+  if (comment && /"status":"running"/.test(comment.body || '')) {
+    core.info('Codex started a review; nothing for the queue to do');
+    return;
+  }
   retrying(github, sleep);
   await advance(github, git, context.repo, core, sleep, now);
 };
@@ -539,6 +628,7 @@ module.exports.CODEX = CODEX;
 module.exports.NOTICE = NOTICE;
 module.exports.APPROVE = APPROVE;
 module.exports.OWN = OWN;
+module.exports.LABEL = LABEL;
 module.exports.verdict = verdict;
 module.exports.covers = covers;
 module.exports.retrying = retrying;
