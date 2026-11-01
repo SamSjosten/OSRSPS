@@ -148,6 +148,7 @@ class HeadlessClient private constructor(
     private val messages = ArrayList<GameMessage>()
     private val animTicks = ArrayList<Int>()
     private val npcSaid = ArrayList<NpcSaid>()
+    private val npcHits = ArrayList<NpcHit>()
     private val moves = ArrayList<TickMove>()
     private var ticks = 0
     private var cycles = 0
@@ -207,6 +208,9 @@ class HeadlessClient private constructor(
 
     /** Every NPC's overhead text seen so far, oldest first. */
     fun npcSaid(): List<NpcSaid> = lock.withLock { npcSaid.toList() }
+
+    /** Every hitsplat seen on an NPC, oldest first; only read while the NPC's other blocks are ones the reader knows. */
+    fun npcHits(): List<NpcHit> = lock.withLock { npcHits.toList() }
 
     /** The top-level interface and every interface open in another's component. */
     fun openInterfaces(): Set<Int> = lock.withLock { subs.values.toSet() + topLevel }
@@ -691,6 +695,7 @@ class HeadlessClient private constructor(
                     local = playerInfo.coord(index) ?: error("NPC info before the login rebuild"),
                 )
                 for ((npc, text) in npcInfo.said) npcSaid += NpcSaid(npc, text, ticks)
+                for ((npc, type, value) in npcInfo.hits) npcHits += NpcHit(npc, type, value, ticks)
             }
             GameServerProt.IF_OPENTOP -> topLevel = buf.g2Alt2()
             GameServerProt.IF_OPENSUB -> {

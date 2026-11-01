@@ -321,8 +321,27 @@ final class Script
 				{
 					throw new Invalid(f.where + ": \"amount\" must be 0 or more");
 				}
-				f.rejectUnknown("step", "timeoutMs", "npc", "self", "amount", "comment");
-				return new Steps.AssertHitsplat(timeout, npc, amount);
+				int[] types = null;
+				if (f.o.has("types"))
+				{
+					JsonArray array = f.array("types");
+					types = new int[array.size()];
+					for (int i = 0; i < types.length; i++)
+					{
+						JsonElement e = array.get(i);
+						if (!e.isJsonPrimitive() || !e.getAsJsonPrimitive().isNumber() || e.getAsInt() < 0 || e.getAsDouble() != e.getAsInt())
+						{
+							throw new Invalid(f.where + ": \"types\" must be whole numbers, 0 or more");
+						}
+						types[i] = e.getAsInt();
+					}
+					if (types.length == 0)
+					{
+						throw new Invalid(f.where + ": \"types\" needs at least one hitmark id");
+					}
+				}
+				f.rejectUnknown("step", "timeoutMs", "npc", "self", "amount", "types", "comment");
+				return new Steps.AssertHitsplat(timeout, npc, amount, types);
 			}
 			case "assertNpcHealth":
 			{
