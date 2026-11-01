@@ -123,10 +123,15 @@ class ProxyProtocol(relays: Set<String>, mode: Mode) {
             } finally {
                 msg.release()
             }
+            // Tells the handlers after this one the sender is known, so they can count it before any data comes.
+            ctx.fireUserEventTriggered(HeaderRead)
             ctx.pipeline().remove(this)
             if (!ctx.channel().config().isAutoRead) ctx.read()
         }
     }
+
+    /** Fired down the pipeline once a PROXY header has been read and its sender is known. */
+    object HeaderRead
 
     companion object {
         const val GUARD_NAME = "proxy-guard"

@@ -299,8 +299,9 @@ class ClientConfig(
         }
     }
 
-    /** HTTP connections open now, against [MAX_CONNECTIONS]. */
+    /** HTTP connections open now, in all and by address, against [MAX_CONNECTIONS] and [MAX_CONNECTIONS_PER_ADDRESS]. */
     private val openConnections = AtomicInteger()
+    private val openBy = ConcurrentHashMap<String, Int>()
     /** Report bodies being read now, in all and by address, against [MAX_REPORTS_READING] and [MAX_REPORTS_READING_PER_ADDRESS]. */
     private val reportsReading = AtomicInteger()
     private val reportsReadingBy = ConcurrentHashMap<String, Int>()
@@ -316,11 +317,15 @@ class ClientConfig(
 
     private class Activity(@Volatile var lastRead: Instant) {
         @Volatile var readingSince: Instant? = null
+        /** Since when the request now arriving has been arriving, until its headers are all in; null between requests. */
+        @Volatile var headersSince: Instant? = null
+        /** Whether a request's headers are in and its body (if any) is still to finish. */
+        @Volatile var inRequest = false
     }
 
     /**
-     * Closes every connection that has sent nothing for [READ_TIMEOUT_SECONDS], or has been sending one report's body
-     * for [REPORT_DEADLINE_SECONDS], however slowly it trickles. Runs every [SWEEP_SECONDS] once started; tests call it
+     * Closes every connection that has sent nothing for [READ_TIMEOUT_SECONDS], has been sending one request's headers
+     * for [HEADERS_DEADLINE_SECONDS], or one report's body for [REPORT_DEADLINE_SECONDS], however slowly they trickle. Runs every [SWEEP_SECONDS] once started; tests call it
      * with their own clock.
      */
     internal fun sweep() {
@@ -328,16 +333,21 @@ class ClientConfig(
         for ((channel, activity) in connections) {
             val idle = Duration.between(activity.lastRead, now) >= READ_TIMEOUT
             val late = activity.readingSince?.let { Duration.between(it, now) >= REPORT_DEADLINE } == true
-            if (idle || late) channel.close()
+            val slow = activity.headersSince?.let { Duration.between(it, now) >= HEADERS_DEADLINE } == true
+            if (idle || late || slow) channel.close()
         }
     }
 
     /**
-     * Closes a connection past [MAX_CONNECTIONS] the moment it opens. The port is reachable from the internet, and a
-     * connection costs a little memory however idle; [sweep] ends the idle ones.
+     * Closes a connection past [MAX_CONNECTIONS] the moment it opens, and one past [MAX_CONNECTIONS_PER_ADDRESS] from
+     * its sender, so one address can't hold them all. The port is reachable from the internet, and a connection costs
+     * a little memory however idle; [sweep] ends the idle and the slow ones. A relay's connection is counted by the
+     * address in its PROXY header, as soon as that header is read ([ProxyProtocol.HeaderRead]), or at its first bytes
+     * when it came without one; anyone else's by its own address, as it opens.
      */
     private inner class ConnectionLimit : ChannelInboundHandlerAdapter() {
         private var counted = false
+        private var address: String? = null
 
         override fun channelActive(ctx: ChannelHandlerContext) {
             if (openConnections.incrementAndGet() > MAX_CONNECTIONS) {
@@ -347,18 +357,49 @@ class ClientConfig(
             }
             counted = true
             connections[ctx.channel()] = Activity(clock())
+            if (!proxy.isRelay(ctx.channel().remoteAddress()) && !countAddress(ctx)) return
             ctx.fireChannelActive()
         }
 
         override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-            connections[ctx.channel()]?.lastRead = clock()
+            if (address == null && !countAddress(ctx)) {
+                ReferenceCountUtil.release(msg)
+                return
+            }
+            val now = clock()
+            connections[ctx.channel()]?.let { activity ->
+                activity.lastRead = now
+                if (!activity.inRequest && activity.headersSince == null) activity.headersSince = now
+            }
             reads.incrementAndGet()
             ctx.fireChannelRead(msg)
+        }
+
+        override fun userEventTriggered(ctx: ChannelHandlerContext, event: Any) {
+            if (event === ProxyProtocol.HeaderRead) {
+                connections[ctx.channel()]?.lastRead = clock()
+                reads.incrementAndGet()
+                if (address == null && !countAddress(ctx)) return
+            }
+            ctx.fireUserEventTriggered(event)
+        }
+
+        /** Counts this connection against its sender's; closes it and says false when that is one too many. */
+        private fun countAddress(ctx: ChannelHandlerContext): Boolean {
+            val from = addressOf(ctx.channel())
+            address = from
+            if (openBy.merge(from, 1, Int::plus)!! > MAX_CONNECTIONS_PER_ADDRESS) {
+                ctx.close()
+                return false
+            }
+            return true
         }
 
         override fun channelInactive(ctx: ChannelHandlerContext) {
             if (counted) openConnections.decrementAndGet()
             counted = false
+            address?.let { from -> openBy.computeIfPresent(from) { _, n -> (n - 1).takeIf { it > 0 } } }
+            address = null
             connections.remove(ctx.channel())
             ctx.fireChannelInactive()
         }
@@ -381,6 +422,7 @@ class ClientConfig(
         override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
             if (msg is HttpRequest) {
                 done(ctx)
+                connections[ctx.channel()]?.let { it.headersSince = null; it.inRequest = true }
                 val refusal = when {
                     !isReport(msg) ->
                         if (HttpUtil.isTransferEncodingChunked(msg) || HttpUtil.getContentLength(msg, 0L) > MAX_REQUEST_BYTES) HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE else null
@@ -400,7 +442,13 @@ class ClientConfig(
             }
             val last = msg is LastHttpContent
             ctx.fireChannelRead(msg)
-            if (last) done(ctx)
+            if (last) {
+                done(ctx)
+                // The next request's headers start their deadline now: on a kept-alive connection they may already be
+                // waiting in the codec, with no read of their own to start it. So a kept-alive connection has
+                // [HEADERS_DEADLINE_SECONDS] from one answer to the next request's headers.
+                connections[ctx.channel()]?.let { it.inRequest = false; it.headersSince = clock() }
+            }
         }
 
         /** Why a report from [address] can't be read now, or null when it can, counting it as being read. */
@@ -545,6 +593,10 @@ class ClientConfig(
         // Guessed: far above what a page load or a friend's launcher needs, low enough that a flood can't hold much.
         /** HTTP connections open at once, from everyone. */
         const val MAX_CONNECTIONS = 256
+        /** HTTP connections open at once from one address: a page load or a launcher needs a few. */
+        const val MAX_CONNECTIONS_PER_ADDRESS = 16
+        /** A request's headers must arrive whole within this long of its first byte, however slowly they come. */
+        const val HEADERS_DEADLINE_SECONDS = 10
         /** A connection that sends nothing for this long is closed. */
         const val READ_TIMEOUT_SECONDS = 15
         /** Report bodies read at once, from everyone and from one address: at most 8 x 256 KB held. */
@@ -554,6 +606,7 @@ class ClientConfig(
         const val REPORT_DEADLINE_SECONDS = 30
         private val READ_TIMEOUT: Duration = Duration.ofSeconds(READ_TIMEOUT_SECONDS.toLong())
         private val REPORT_DEADLINE: Duration = Duration.ofSeconds(REPORT_DEADLINE_SECONDS.toLong())
+        private val HEADERS_DEADLINE: Duration = Duration.ofSeconds(HEADERS_DEADLINE_SECONDS.toLong())
         /** How often [sweep] looks for connections to close. */
         private const val SWEEP_SECONDS = 1L
 

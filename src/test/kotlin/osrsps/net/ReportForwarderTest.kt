@@ -17,6 +17,7 @@ import kotlin.io.path.name
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
@@ -29,15 +30,32 @@ class ReportForwarderTest {
         data class Issue(val title: String, val body: String, val labels: List<String>, var open: Boolean = true, val comments: MutableList<String> = mutableListOf())
         val issues = mutableListOf<Issue>()
         var failNext = false
+        /** Whether GitHub fails every request, as when it is down. */
+        var down = false
+        var attempts = 0
+        /** Issues Sam deleted, and issues he locked. */
+        val deleted = mutableSetOf<Int>()
+        val locked = mutableSetOf<Int>()
+        /** A report GitHub fails to file every time, whatever is wrong with it. */
+        var failing: (String) -> Boolean = { false }
+        /** Every issue is made, but the answer saying so is lost. */
+        var answerLost = false
 
-        override fun isRelease(version: String) = if (releasesKnown) version in releases else null
-        override fun isOpen(issue: Int) = issues[issue - 1].open
+        override fun isRelease(version: String) = if (releasesKnown && !down) version in releases else null
+        override fun isOpen(issue: Int) = issue !in deleted && issues[issue - 1].open
         override fun create(title: String, body: String, labels: List<String>): Int {
-            if (failNext) { failNext = false; throw IOException("GitHub answered 502") }
+            attempts++
+            if (down || failing(body)) throw ReportForwarder.NotPosted("GitHub answered 502")
+            if (failNext) { failNext = false; throw ReportForwarder.NotPosted("GitHub answered 502") }
             issues += Issue(title, body, labels)
+            // GitHub took it, but its answer never came back.
+            if (answerLost) throw IOException("request timed out")
             return issues.size
         }
-        override fun comment(issue: Int, body: String) { issues[issue - 1].comments += body }
+        override fun comment(issue: Int, body: String) {
+            if (issue in locked) throw ReportForwarder.Gone("issue #$issue takes no comments (403)")
+            issues[issue - 1].comments += body
+        }
     }
 
     private fun body(launcher: String = "1.0.5", revision: Int? = Revision.MAJOR, failure: String? = "FAILED the server is offline: request timed out", extra: String = "") =
@@ -68,7 +86,7 @@ class ReportForwarderTest {
 
         val issue = tracker.issues.single()
         assertEquals("Problem report $id: FAILED the server is offline: request timed out", issue.title)
-        assertEquals(listOf("bug-report", "verified"), issue.labels)
+        assertEquals(listOf("bug-report", "known-version"), issue.labels)
         assertContains(issue.body, "- launcher 1.0.5: a released version")
         assertContains(issue.body, "- revision ${Revision.MAJOR}: the server's")
         assertContains(issue.body, "- game up, 2 player(s) in")
@@ -112,7 +130,7 @@ class ReportForwarderTest {
         assertContains(tracker.issues[0].body, "NOT a released version")
         assertEquals(listOf("bug-report", "revision-mismatch"), tracker.issues[1].labels)
         // 1.0.0 and 1.0.1 were released from the server repository, and a launcher that saw no revision isn't wrong.
-        assertEquals(listOf("bug-report", "verified"), tracker.issues[2].labels)
+        assertEquals(listOf("bug-report", "known-version"), tracker.issues[2].labels)
 
         val unsure = FakeTracker(releasesKnown = false)
         send(dir, body(failure = "FAILED four"), "4.4.4.4")
@@ -143,7 +161,7 @@ class ReportForwarderTest {
         assertEquals(ProblemReports.Result.Accepted("R-0001"), reports.submit(body(), "1.1.1.1"))
         forwarder.pass()
         assertEquals(ProblemReports.Result.Accepted("R-0002"), reports.submit(body(), "2.2.2.2"))
-        assertEquals(setOf("R-0002.json", "issues.json", "sent", ProblemReports.LAST_NUMBER), dir.listDirectoryEntries().map { it.name }.toSet())
+        assertEquals(setOf("R-0002.json", "issues.json", ReportForwarder.BUDGET, "sent", ProblemReports.LAST_NUMBER), dir.listDirectoryEntries().map { it.name }.toSet())
     }
 
     @Test
@@ -192,6 +210,179 @@ class ReportForwarderTest {
     }
 
     @Test
+    fun `a matching issue Sam deleted or locked gets a new issue, and nothing waits behind it`(@TempDir dir: Path) {
+        val tracker = FakeTracker()
+        val forwarder = ReportForwarder(dir, { tracker })
+        send(dir, body(failure = "ERROR spam 1"), from = "203.0.113.1")
+        assertEquals(1, forwarder.pass())
+        tracker.deleted += 1
+        send(dir, body(failure = "ERROR spam 2"), from = "203.0.113.1")
+        send(dir, body(failure = "ERROR the client crashed at login"), from = "198.51.100.7")
+        assertEquals(2, forwarder.pass())
+        assertEquals(3, tracker.issues.size, "the deleted one's match is a new issue; the friend's has its own")
+        assertTrue(waiting(dir).isEmpty())
+
+        tracker.locked += 2
+        send(dir, body(failure = "ERROR spam 3"), from = "203.0.113.2")
+        assertEquals(1, forwarder.pass())
+        assertEquals(4, tracker.issues.size, "a locked issue's match is a new issue too")
+        // The index now points at the new issue, so the next match is a comment there.
+        send(dir, body(failure = "ERROR spam 4"), from = "203.0.113.3")
+        assertEquals(1, forwarder.pass())
+        assertEquals(1, tracker.issues[3].comments.size)
+    }
+
+    @Test
+    fun `a report that keeps failing doesn't hold up the rest, and is set aside after an hour of passes`(@TempDir dir: Path) {
+        val tracker = FakeTracker().apply { failing = { it.contains("poison") } }
+        val forwarder = ReportForwarder(dir, { tracker })
+        val poison = send(dir, body(failure = "ERROR poison"), from = "203.0.113.1")
+        send(dir, body(failure = "ERROR the client crashed at login"), from = "198.51.100.7")
+        assertEquals(1, forwarder.pass(), "the friend's report behind it is filed")
+        assertEquals(listOf("$poison.json"), waiting(dir))
+        repeat(ReportForwarder.GIVE_UP_AFTER - 2) { assertEquals(0, forwarder.pass()) }
+        assertEquals(listOf("$poison.json"), waiting(dir))
+        forwarder.pass()
+        assertTrue(waiting(dir).isEmpty())
+        assertTrue(Files.exists(dir.resolve(ReportForwarder.REJECTED).resolve("$poison.json")))
+    }
+
+    @Test
+    fun `while GitHub is down a pass stops after a few failures instead of trying every report`(@TempDir dir: Path) {
+        val tracker = FakeTracker().apply { down = true }
+        val forwarder = ReportForwarder(dir, { tracker })
+        repeat(6) { send(dir, body(failure = "ERROR number $it went wrong ${"x".repeat(it)}"), from = "203.0.113.$it") }
+        assertEquals(0, forwarder.pass())
+        assertEquals(ReportForwarder.FAILURES_IN_A_ROW, tracker.attempts)
+        // However long it stays down, nothing is set aside for it.
+        repeat(ReportForwarder.GIVE_UP_AFTER + 5) { forwarder.pass() }
+        assertEquals(6, waiting(dir).size, "none is set aside for GitHub being down")
+        tracker.down = false
+        assertEquals(6, forwarder.pass())
+    }
+
+    @Test
+    fun `at most so many are posted a day, the rest wait, and one issue a day says so`(@TempDir dir: Path) {
+        var clock = now
+        val tracker = FakeTracker()
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { clock })
+        val extra = 5
+        repeat(ReportForwarder.PER_DAY + extra) { i ->
+            send(dir, body(failure = "ERROR flood ${"y".repeat(i)}"), from = "10.0.${i / 4}.${i % 4}")
+        }
+        assertEquals(ReportForwarder.PER_DAY, forwarder.pass())
+        val notice = tracker.issues.last()
+        assertEquals(listOf(ReportForwarder.LABEL, ReportForwarder.LABEL_CAPPED), notice.labels)
+        assertContains(notice.body, "($extra now)")
+        assertEquals(extra, waiting(dir).size)
+        clock += java.time.Duration.ofHours(23)
+        assertEquals(0, forwarder.pass())
+        assertEquals(ReportForwarder.PER_DAY + 1, tracker.issues.size, "one notice a day, not one a pass")
+        // A restart (every deploy is one) keeps the day's count and its notice.
+        val restarted = ReportForwarder(dir, { tracker }, clock = { clock })
+        assertEquals(0, restarted.pass())
+        assertEquals(ReportForwarder.PER_DAY + 1, tracker.issues.size)
+        clock += java.time.Duration.ofHours(1)
+        assertEquals(extra, restarted.pass())
+        assertTrue(waiting(dir).isEmpty())
+    }
+
+    @Test
+    fun `a budget file that can't be read holds reports back, and a damaged one counts as a full day`(@TempDir dir: Path) {
+        var clock = now
+        val tracker = FakeTracker()
+        send(dir, body(failure = "ERROR budget"))
+        // Unreadable (here a folder where the file should be): nothing goes until it can be read.
+        val budget = dir.resolve(ReportForwarder.BUDGET)
+        java.nio.file.Files.createDirectory(budget)
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { clock })
+        assertEquals(0, forwarder.pass())
+        assertEquals(1, waiting(dir).size)
+        java.nio.file.Files.delete(budget)
+        assertEquals(1, forwarder.pass())
+        // Damaged: the next process counts the day as full, opens no notice, and posts again a day later.
+        send(dir, body(failure = "ERROR budget again"))
+        java.nio.file.Files.writeString(budget, "{\"posted\": [\"not a time\"]")
+        val restarted = ReportForwarder(dir, { tracker }, clock = { clock })
+        val issues = tracker.issues.size
+        assertEquals(0, restarted.pass())
+        assertEquals(issues, tracker.issues.size, "no notice for a day it didn't count")
+        assertEquals(1, waiting(dir).size)
+        clock += java.time.Duration.ofHours(24)
+        assertEquals(1, restarted.pass())
+        assertTrue(waiting(dir).isEmpty())
+    }
+
+    @Test
+    fun `a report GitHub took but that couldn't be moved to sent still counts against the day`(@TempDir dir: Path) {
+        val tracker = FakeTracker()
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { now })
+        send(dir, body(failure = "ERROR stuck"))
+        // A file where sent/ should be: every move fails after GitHub has taken the report.
+        java.nio.file.Files.writeString(dir.resolve("sent"), "")
+        repeat(ReportForwarder.PER_DAY + 5) { forwarder.pass() }
+        val posts = tracker.issues.count { ReportForwarder.LABEL_CAPPED !in it.labels } + tracker.issues.sumOf { it.comments.size }
+        assertEquals(ReportForwarder.PER_DAY, posts)
+    }
+
+    @Test
+    fun `while the day's count can't be saved nothing is posted, and posting resumes once it can`(@TempDir dir: Path) {
+        val tracker = FakeTracker()
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { now })
+        send(dir, body(failure = "ERROR first"))
+        assertEquals(1, forwarder.pass())
+        // A folder with something in it where the file goes: saving it fails (as on a full disk).
+        val budget = dir.resolve(ReportForwarder.BUDGET)
+        java.nio.file.Files.delete(budget)
+        java.nio.file.Files.createDirectories(budget.resolve("in-the-way"))
+        send(dir, body(failure = "ERROR second"))
+        val posts = tracker.issues.size
+        repeat(3) { assertEquals(0, forwarder.pass()) }
+        assertEquals(posts, tracker.issues.size)
+        assertEquals(0, tracker.attempts - posts, "GitHub wasn't even asked")
+        java.nio.file.Files.delete(budget.resolve("in-the-way"))
+        java.nio.file.Files.delete(budget)
+        assertEquals(1, forwarder.pass())
+        assertTrue(waiting(dir).isEmpty())
+        assertTrue(java.nio.file.Files.readString(budget).contains("posted"))
+    }
+
+    @Test
+    fun `a post whose answer was lost still counts against the day, since GitHub may have it`(@TempDir dir: Path) {
+        val tracker = FakeTracker().apply { answerLost = true }
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { now })
+        send(dir, body(failure = "ERROR lost"))
+        repeat(ReportForwarder.PER_DAY + 5) { forwarder.pass() }
+        assertEquals(ReportForwarder.PER_DAY, tracker.issues.count { ReportForwarder.LABEL_CAPPED !in it.labels })
+    }
+
+    @Test
+    fun `GitHub that can't be reached or answers an error surely has nothing, so the post isn't counted`() {
+        val closed = java.net.ServerSocket(0).use { it.localPort }
+        val github = GitHubIssues("o/server", "tok123", api = "http://127.0.0.1:$closed")
+        assertFailsWith<ReportForwarder.NotPosted> { github.create("t", "b", emptyList()) }
+    }
+
+    @Test
+    fun `a post is dated when GitHub answered, so a slow pass's posts don't leave the day early`(@TempDir dir: Path) {
+        var clock = now
+        // Each issue takes GitHub ten minutes to answer.
+        val tracker = object : ReportForwarder.IssueTracker by FakeTracker() {
+            override fun create(title: String, body: String, labels: List<String>): Int {
+                clock += java.time.Duration.ofMinutes(10)
+                return 1
+            }
+        }
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { clock })
+        send(dir, body(failure = "ERROR slow"))
+        assertEquals(1, forwarder.pass())
+        val saved = java.nio.file.Files.readString(dir.resolve(ReportForwarder.BUDGET))
+        assertContains(saved, (now + java.time.Duration.ofMinutes(10)).toString())
+    }
+
+    private fun waiting(dir: Path) = dir.listDirectoryEntries().map { it.name }.filter { it.startsWith("R-") }.sorted()
+
+    @Test
     fun `GitHub is asked with the token for issues and comments in the repo and for releases in the launcher's`() {
         val seen = mutableListOf<String>()
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
@@ -205,6 +396,9 @@ class ReportForwarderTest {
                 "/repos/o/server/issues/17" -> 200 to """{"state":"closed"}"""
                 "/repos/o/server/issues/17/comments" -> 201 to "{}"
                 "/repos/o/server/issues/422/comments" -> 422 to "{}"
+                "/repos/o/server/issues/18" -> 410 to """{"message":"This issue was deleted"}"""
+                "/repos/o/server/issues/19" -> 301 to "{}"
+                "/repos/o/server/issues/20/comments" -> 403 to """{"message":"locked"}"""
                 else -> 500 to "{}"
             }
             exchange.sendResponseHeaders(code, reply.length.toLong())
@@ -216,18 +410,22 @@ class ReportForwarderTest {
             assertEquals(true, github.isRelease("1.0.5"))
             assertEquals(false, github.isRelease("9.9.9"))
             assertEquals(null, github.isRelease("1.2.3"))
-            assertEquals(17, github.create("t", "b", listOf("bug-report", "verified")))
+            assertEquals(17, github.create("t", "b", listOf("bug-report", "known-version")))
             assertFalse(github.isOpen(17))
             github.comment(17, "again")
             val create = seen.single { it.startsWith("POST /repos/o/server/issues ") }
             assertContains(create, "Bearer tok123")
             val json = Json.parseToJsonElement(create.substringAfter("Bearer tok123 ")).jsonObject
-            assertEquals(listOf("bug-report", "verified"), json["labels"]!!.jsonArray.map { it.jsonPrimitive.content })
+            assertEquals(listOf("bug-report", "known-version"), json["labels"]!!.jsonArray.map { it.jsonPrimitive.content })
             assertTrue(seen.any { it.startsWith("POST /repos/o/server/issues/17/comments Bearer tok123 {\"body\":\"again\"}") })
             // An error names what failed and never the token.
             val error = runCatching { github.comment(99, "x") }.exceptionOrNull()!!
             assertEquals("GitHub answered 500 commenting on #99", error.message)
             assertTrue(runCatching { github.comment(422, "x") }.exceptionOrNull() is ReportForwarder.Rejected)
+            // Deleted or moved isn't open, and a locked issue's comment is refused as gone, so a new issue is filed.
+            assertFalse(github.isOpen(18))
+            assertFalse(github.isOpen(19))
+            assertTrue(runCatching { github.comment(20, "x") }.exceptionOrNull() is ReportForwarder.Gone)
         } finally {
             server.stop(0)
         }
