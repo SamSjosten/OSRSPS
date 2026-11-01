@@ -75,7 +75,15 @@ class GitHubIssues(
             .method(method, json?.let { HttpRequest.BodyPublishers.ofString(it) } ?: HttpRequest.BodyPublishers.noBody())
             .apply { if (json != null) header("Content-Type", "application/json") }
             .build()
-        return http.send(request, HttpResponse.BodyHandlers.ofString())
+        return try {
+            http.send(request, HttpResponse.BodyHandlers.ofString())
+        } catch (e: IOException) {
+            // Never connected, so nothing was sent; any later failure (a timeout, a reset) may have reached GitHub.
+            if (e is java.net.ConnectException || e is java.net.UnknownHostException || e is java.net.http.HttpConnectTimeoutException) {
+                throw ReportForwarder.NotPosted("couldn't reach GitHub (${e.javaClass.simpleName})", e)
+            }
+            throw e
+        }
     }
 
     private fun ok(response: HttpResponse<String>, what: String): HttpResponse<String> {
@@ -83,7 +91,7 @@ class GitHubIssues(
         if (status in 200..299) return response
         // 400 and 422 are GitHub saying this request will never do (a body it won't take): not worth trying again.
         if (status == 400 || status == 422) throw ReportForwarder.Rejected("GitHub refused $what ($status)")
-        throw IOException("GitHub answered $status $what")
+        throw ReportForwarder.NotPosted("GitHub answered $status $what")
     }
 
     companion object {

@@ -17,6 +17,7 @@ import kotlin.io.path.name
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
@@ -37,14 +38,18 @@ class ReportForwarderTest {
         val locked = mutableSetOf<Int>()
         /** A report GitHub fails to file every time, whatever is wrong with it. */
         var failing: (String) -> Boolean = { false }
+        /** Every issue is made, but the answer saying so is lost. */
+        var answerLost = false
 
         override fun isRelease(version: String) = if (releasesKnown && !down) version in releases else null
         override fun isOpen(issue: Int) = issue !in deleted && issues[issue - 1].open
         override fun create(title: String, body: String, labels: List<String>): Int {
             attempts++
-            if (down || failing(body)) throw IOException("GitHub answered 502")
-            if (failNext) { failNext = false; throw IOException("GitHub answered 502") }
+            if (down || failing(body)) throw ReportForwarder.NotPosted("GitHub answered 502")
+            if (failNext) { failNext = false; throw ReportForwarder.NotPosted("GitHub answered 502") }
             issues += Issue(title, body, labels)
+            // GitHub took it, but its answer never came back.
+            if (answerLost) throw IOException("request timed out")
             return issues.size
         }
         override fun comment(issue: Int, body: String) {
@@ -340,6 +345,22 @@ class ReportForwarderTest {
         assertEquals(1, forwarder.pass())
         assertTrue(waiting(dir).isEmpty())
         assertTrue(java.nio.file.Files.readString(budget).contains("posted"))
+    }
+
+    @Test
+    fun `a post whose answer was lost still counts against the day, since GitHub may have it`(@TempDir dir: Path) {
+        val tracker = FakeTracker().apply { answerLost = true }
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { now })
+        send(dir, body(failure = "ERROR lost"))
+        repeat(ReportForwarder.PER_DAY + 5) { forwarder.pass() }
+        assertEquals(ReportForwarder.PER_DAY, tracker.issues.count { ReportForwarder.LABEL_CAPPED !in it.labels })
+    }
+
+    @Test
+    fun `GitHub that can't be reached or answers an error surely has nothing, so the post isn't counted`() {
+        val closed = java.net.ServerSocket(0).use { it.localPort }
+        val github = GitHubIssues("o/server", "tok123", api = "http://127.0.0.1:$closed")
+        assertFailsWith<ReportForwarder.NotPosted> { github.create("t", "b", emptyList()) }
     }
 
     private fun waiting(dir: Path) = dir.listDirectoryEntries().map { it.name }.filter { it.startsWith("R-") }.sorted()

@@ -9,6 +9,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import osrsps.Revision
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -144,7 +145,12 @@ class ReportForwarder(
             logger.error { "$BUDGET is damaged; counting today as full ($PER_DAY posts), so reports wait a day" }
             repeat(PER_DAY) { posted.addLast(now) }
             saidCapped = now
-            runCatching(::saveBudget)
+            try {
+                saveBudget()
+            } catch (e: Exception) {
+                // Still full in memory, so nothing goes; a restart reads the damaged file again and waits a day again.
+                logger.error(e) { "$BUDGET is damaged and couldn't be written afresh; it will be read as damaged again after a restart" }
+            }
             return true
         }
         times.forEach { posted.addLast(it!!) }
@@ -162,7 +168,8 @@ class ReportForwarder(
 
     /**
      * Does [post] (an issue or a comment) against the day's count, saved in [BUDGET] before it goes: if that can't be
-     * saved nothing is posted ([BudgetUnsaved]), and a post that fails gives its place back.
+     * saved nothing is posted ([BudgetUnsaved]). A post GitHub surely never took ([surelyNotPosted]) gives its place
+     * back; one whose answer was lost (a timeout, a dropped connection) may be on GitHub, so it keeps its place.
      */
     private fun <T> budgeted(now: Instant, post: () -> T): T {
         posted.addLast(now)
@@ -175,11 +182,25 @@ class ReportForwarder(
         try {
             return post()
         } catch (e: Exception) {
-            posted.removeLast()
-            runCatching(::saveBudget)
+            if (surelyNotPosted(e)) {
+                posted.removeLast()
+                refundSaved()
+            }
             throw e
         }
     }
+
+    /** Saves the count after a place was given back; if that fails the file only over-counts, which is safe. */
+    private fun refundSaved() {
+        try {
+            saveBudget()
+        } catch (e: Exception) {
+            logger.warn(e) { "A place given back in the day's report posts couldn't be saved in $BUDGET; it stays counted there" }
+        }
+    }
+
+    /** Whether GitHub surely didn't take a post: it answered no, or it was never reached at all. */
+    private fun surelyNotPosted(e: Exception): Boolean = e is NotPosted || e is Rejected || e is Gone
 
     /** [BUDGET] couldn't be saved, so nothing more is posted this pass. */
     class BudgetUnsaved(cause: Exception) : Exception("The day's report posts couldn't be saved in $BUDGET (${cause.message})", cause)
@@ -210,8 +231,11 @@ class ReportForwarder(
             )
             logger.warn { "Problem reports hit the daily cap of $PER_DAY; $left wait; said so in issue #$number" }
         } catch (e: Exception) {
-            saidCapped = last
-            runCatching(::saveBudget)
+            // As with any post: only one GitHub surely never took lets a later pass try the notice again today.
+            if (surelyNotPosted(e)) {
+                saidCapped = last
+                refundSaved()
+            }
             logger.warn(e) { "Problem reports hit the daily cap of $PER_DAY; couldn't open an issue to say so" }
         }
     }
@@ -325,6 +349,9 @@ class ReportForwarder(
         executor?.shutdownNow()
         executor = null
     }
+
+    /** GitHub surely didn't take the request: it answered with an error, or it couldn't be reached at all. */
+    class NotPosted(message: String, cause: Throwable? = null) : IOException(message, cause)
 
     /** The tracker will never take this report (GitHub's 400 or 422): it is set aside, not tried again. */
     class Rejected(message: String) : Exception(message)
