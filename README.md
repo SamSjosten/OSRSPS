@@ -271,7 +271,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::areasound id [radius] [loops]` | Plays sound effect `id` from your tile, heard by everyone within `radius` tiles (default 5, up to 31) |
 | `::jingle id` | **everyone.** Plays jingle `id` to you alone |
 | `::item id\|name [count]` | Puts items in your inventory, by id, menu name or gameval name: `::item 1351`, `::item bronze axe 2`, `::item coins 10k`. Adds what fits |
-| `::bank` | Opens your bank wherever you are |
+| `::openbank` | Opens your bank wherever you are (not `::bank`: the client turns that into a chat line and never sends it) |
 | `::empty` | Empties your inventory |
 | `::locs [radius]` | **everyone.** Lists the locs within radius tiles of you (default 1): id, name, tile, shape and angle, and whether they differ from the cache |
 | `::addloc id [shape] [angle]` | Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
@@ -1608,7 +1608,7 @@ every pick is logged and a non-admin is refused as for a typed command. Every me
 
 | Peel | What it does | Source |
 |------|--------------|--------|
-| Bank menu | `::bank`: opens your bank wherever you are | Wiki |
+| Bank menu | `::openbank`: opens your bank wherever you are | Wiki |
 | Teleport to a tile | Asks for `x z [level]`, then `::tele` | ours, in place of Teleport to RARE!: there are no rares |
 | Spawn an item | Asks for `id\|name [count]`, then `::item` | ours, in place of Spawn RARE! |
 

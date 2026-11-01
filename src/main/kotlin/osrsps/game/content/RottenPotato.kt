@@ -114,7 +114,7 @@ private suspend fun ScriptContext.peel(world: World) {
         picked = choice(text(RottenPotatoLines.BANK_MENU), RottenPotato.TELEPORT_TO_TILE, RottenPotato.SPAWN_ITEM)
     }
     when (picked) {
-        1 -> command(world, "bank")
+        1 -> command(world, "openbank")
         2 -> command(world, "tele " + stringDialog(RottenPotato.TILE_PROMPT))
         3 -> command(world, "item " + stringDialog(RottenPotato.ITEM_PROMPT))
     }

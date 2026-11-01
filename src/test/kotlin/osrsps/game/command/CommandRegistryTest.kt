@@ -17,6 +17,23 @@ class CommandRegistryTest {
     private fun run(input: String) = registry.execute(player, input, replies::add)
 
     @Test
+    fun `a command the client keeps to itself can't be registered`() {
+        // The client turns ::bank into a public chat line and ::bow... into the emote, so neither reaches the server.
+        assertFailsWith<IllegalArgumentException> { registry.register("bank", "::bank") {} }
+        assertFailsWith<IllegalArgumentException> { registry.register("Bowl", "::bowl") {} }
+        registry.register("openbank", "::openbank") { reply("opened") }
+        run("openbank")
+        assertEquals(listOf("opened"), replies)
+    }
+
+    @Test
+    fun `no command in the world starts the way a client-side line does`() {
+        val names = osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()).commands.all.map { it.name }
+        assertEquals(emptyList(), names.filter { name -> CommandRegistry.CLIENT_PREFIXES.any { name.startsWith(it) } })
+        assertEquals(true, "openbank" in names)
+    }
+
+    @Test
     fun `splits the arguments on whitespace`() {
         run("echo  a b\tc ")
         assertEquals(listOf("a|b|c"), replies)
