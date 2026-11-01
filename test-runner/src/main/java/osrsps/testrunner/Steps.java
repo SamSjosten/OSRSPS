@@ -55,6 +55,8 @@ final class Steps
 		private String focusNote;
 		/** Set once a chatbox prompt has been closed for this line. */
 		private String promptNote;
+		/** The game tick the level-up box was last clicked on before sending, or -1. */
+		private int levelUpTick = -1;
 
 		Chat(String type, long timeoutMs, String text, String expectMessage)
 		{
@@ -68,6 +70,23 @@ final class Steps
 		{
 			if (!sent)
 			{
+				// (0.21.0) A level-up box over the chatbox (XP from the step before) leaves no chat input to type into,
+				// so the line never went (the artisan thread's scripts, 1 Nov 2026). Click it away first, as a player
+				// would, and send once it has gone.
+				Dialogue levelUp = run.game.dialogue() == null ? run.game.levelUp() : null;
+				if (levelUp != null)
+				{
+					if (levelUpTick < 0 || run.gameTicks() - levelUpTick >= FinishDialogue.SAME_PAGE_TICKS)
+					{
+						String error = run.game.continueDialogue();
+						if (error != null)
+						{
+							return Poll.fail(error);
+						}
+						levelUpTick = run.gameTicks();
+					}
+					return Poll.waiting("closing the level-up box first: " + levelUp);
+				}
 				run.markAction();
 				String error = run.game.sendChat(text);
 				if (error != null)
@@ -865,6 +884,7 @@ final class Steps
 	static final class ContinueDialogue extends Step
 	{
 		private String clicked;
+		private int clickedTick;
 
 		ContinueDialogue(long timeoutMs)
 		{
@@ -888,7 +908,21 @@ final class Steps
 					return Poll.fail(error);
 				}
 				clicked = d.toString();
+				clickedTick = run.gameTicks();
 				return Poll.waiting("clicked continue, " + clicked + " still open");
+			}
+			if (d != null && d.kind == Dialogue.Kind.LEVEL_UP && d.toString().equals(clicked)
+				&& run.gameTicks() - clickedTick >= FinishDialogue.SAME_PAGE_TICKS)
+			{
+				// The server drops a click while the player is delayed (burying bones, say), and then the level-up box
+				// stayed however long the step waited (the Lumbridge run on 215, 1 Nov 2026): click it again. A dialogue
+				// page isn't clicked twice, as its next page can look the same.
+				String error = run.game.continueDialogue();
+				if (error != null)
+				{
+					return Poll.fail(error);
+				}
+				clickedTick = run.gameTicks();
 			}
 			return d == null || !d.toString().equals(clicked) ? Poll.pass("continued " + clicked) : Poll.waiting("clicked continue, " + clicked + " still open");
 		}

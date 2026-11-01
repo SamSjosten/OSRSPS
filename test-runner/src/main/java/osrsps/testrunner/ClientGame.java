@@ -1538,6 +1538,15 @@ final class ClientGame implements Game
 		}
 		String[] actions = (sub >= 0 ? w.getChild(sub) : w).getActions();
 		String option = actions != null && op - 1 < actions.length && actions[op - 1] != null ? actions[op - 1] : "";
+		Widget target = sub >= 0 ? w.getChild(sub) : w;
+		if (!target.isIf3() && op == 1)
+		{
+			// An if1 button (the tanning screen's Tan buttons, 324:124-155) has no if3 ops: the client sends a click on it as
+			// IF_BUTTON (WIDGET_TYPE_1), and a CC_OP on it only when the server has set events on it, which ours doesn't, so
+			// the click never left the client (Al Kharid thread, 1 Nov 2026; inferred from the cache, not seen in a capture).
+			client.menuAction(sub, packed, MenuAction.WIDGET_TYPE_1, 0, itemId, option, "");
+			return null;
+		}
 		client.menuAction(sub, packed, ccOp(op), op, itemId, option, "");
 		return null;
 	}

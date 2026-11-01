@@ -315,6 +315,25 @@ public class RunnerTest
 	}
 
 	@Test
+	public void continueDialogueClicksALevelUpBoxAgainWhenTheClickWasDropped() throws Exception
+	{
+		// The server drops a click while the player is delayed, so the box stays after the first one.
+		game.levelUp = new Dialogue(Dialogue.Kind.LEVEL_UP, "[levelup.title article=a skill=Prayer]", "[levelup.body skill=Prayer level=5]", null);
+		runner.start(script("{\"step\":\"continueDialogue\"}"), "file");
+		assertNull(cycle());
+		assertEquals(List.of("continue"), game.actions);
+		runner.gameTick();
+		assertNull(cycle());
+		assertEquals(List.of("continue"), game.actions);
+		runner.gameTick();
+		runner.gameTick();
+		assertNull(cycle());
+		assertEquals(List.of("continue", "continue"), game.actions);
+		game.levelUp = null;
+		assertEquals(Result.PASS, cycle().result);
+	}
+
+	@Test
 	public void finishDialogueClicksAgainWhenTheNextPageLooksTheSame() throws Exception
 	{
 		game.dialogue = npc("[man.help]");
@@ -420,6 +439,23 @@ public class RunnerTest
 		Result r = cycle();
 		assertEquals(Result.FAIL, r.result);
 		assertEquals("timed out after 40 ms: the chat input still holds the text: the client has not taken the Enter key after 2 tries (fake focus)", r.steps.get(0).detail);
+	}
+
+	@Test
+	public void chatClicksALevelUpBoxAwayBeforeSending() throws Exception
+	{
+		// The step before gave a level: its box sits over the chatbox, where the line would be typed.
+		game.levelUp = new Dialogue(Dialogue.Kind.LEVEL_UP, "[levelup.title article=a skill=Crafting]", "[levelup.body skill=Crafting level=2]", null);
+		runner.start(script("{\"step\":\"command\",\"text\":\"::stats\",\"timeoutMs\":70}"), "file");
+		assertNull(cycle());
+		assertEquals(List.of("continue"), game.actions);
+		// Not clicked again until a few ticks have gone by.
+		assertNull(cycle());
+		assertEquals(List.of("continue"), game.actions);
+		game.levelUp = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals(List.of("continue", "chat ::stats"), game.actions);
 	}
 
 	@Test
