@@ -231,13 +231,15 @@ class ProblemReportsTest {
             try {
                 for (socket in sockets) {
                     socket.soTimeout = 5000
-                    socket.getOutputStream().apply { write(header(port, ProblemReports.MAX_BYTES)); write(ByteArray(1000)); flush() }
+                    socket.getOutputStream().apply { write(header(port, ProblemReports.MAX_BYTES)); flush() }
                 }
                 // All but two are answered 429 at once, whatever order the server took them in.
                 val refused = waitForAnswers(sockets, 20 - ClientConfig.MAX_REPORTS_READING_PER_ADDRESS)
                 refused.forEach { assertEquals("HTTP/1.1 429", String(it.getInputStream().readNBytes(12), Charsets.US_ASCII)) }
                 val reading = sockets - refused.toSet()
                 assertTrue(reading.all { it.getInputStream().available() == 0 })
+                // Both are taken in, all they sent read, before the clock moves.
+                await { http.reportsBeingRead == ClientConfig.MAX_REPORTS_READING_PER_ADDRESS }
                 // Those two are closed once they have sent nothing for the read timeout.
                 clock += Duration.ofSeconds(ClientConfig.READ_TIMEOUT_SECONDS.toLong())
                 http.sweep()
@@ -254,7 +256,10 @@ class ProblemReportsTest {
             Socket("127.0.0.1", port).use { socket ->
                 socket.soTimeout = 5000
                 val out = socket.getOutputStream()
-                sent(http) { out.write(header(port, ProblemReports.MAX_BYTES)); out.flush() }
+                out.write(header(port, ProblemReports.MAX_BYTES))
+                out.flush()
+                // Taken in, so its deadline starts now, before the clock moves.
+                await { http.reportsBeingRead == 1 }
                 // A byte every 10 s keeps it from going idle, but not past the deadline.
                 repeat(2) {
                     clock += Duration.ofSeconds(10)
@@ -316,11 +321,16 @@ class ProblemReportsTest {
     private fun sent(http: ClientConfig, write: () -> Unit) {
         val before = http.reads.get()
         write()
+        await { http.reads.get() > before }
+    }
+
+    /** Waits up to 5 s for [done], polling: for the server to have done something, never for time to pass. */
+    private fun await(done: () -> Boolean) {
         repeat(500) {
-            if (http.reads.get() > before) return
+            if (done()) return
             Thread.sleep(10)
         }
-        error("the server read nothing")
+        error("the server never got there")
     }
 
     private fun header(port: Int, length: Int) =
