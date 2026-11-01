@@ -19,7 +19,17 @@ object Js5Crcs {
     private const val BLOCK_LENGTH = 512
 
     /** [header] is sent first, as a relay's PROXY header would be. */
-    fun fetch(host: String, port: Int, timeoutMillis: Int = 5000, header: ByteArray = ByteArray(0)): IntArray = Socket().use { socket ->
+    fun fetch(host: String, port: Int, timeoutMillis: Int = 5000, header: ByteArray = ByteArray(0)): IntArray {
+        val container = fetchGroup(host, port, MASTER, MASTER, timeoutMillis, header)
+        check(container[0].toInt() == 0) { "Expected the master index uncompressed, got compression ${container[0]}" }
+        val length = readInt(container, 1)
+        return IntArray(length / 8) { readInt(container, 5 + it * 8) }
+    }
+
+    /** One group's container as the server sends it: compressed as stored, without a version trailer. */
+    fun fetchGroup(
+        host: String, port: Int, archive: Int, group: Int, timeoutMillis: Int = 5000, header: ByteArray = ByteArray(0),
+    ): ByteArray = Socket().use { socket ->
         socket.connect(InetSocketAddress(host, port), timeoutMillis)
         socket.soTimeout = timeoutMillis
         val out = DataOutputStream(socket.getOutputStream())
@@ -33,17 +43,14 @@ object Js5Crcs {
         check(status == 0) { "JS5 handshake refused with status $status" }
 
         out.writeByte(URGENT_REQUEST)
-        out.writeByte(MASTER)
-        out.writeShort(MASTER)
+        out.writeByte(archive)
+        out.writeShort(group)
         out.flush()
-        val container = readResponse(input, MASTER, MASTER)
-        check(container[0].toInt() == 0) { "Expected the master index uncompressed, got compression ${container[0]}" }
-        val length = readInt(container, 1)
-        IntArray(length / 8) { readInt(container, 5 + it * 8) }
+        readResponse(input, archive, group)
     }
 
-    /** Reads one group's container, taking out the block separators. */
-    private fun readResponse(input: DataInputStream, archive: Int, group: Int): ByteArray {
+    /** Reads one group's framed response, taking out the block separators, and returns its container. */
+    fun readResponse(input: DataInputStream, archive: Int, group: Int): ByteArray {
         check(input.readUnsignedByte() == archive && input.readUnsignedShort() == group) { "JS5 answered for another group" }
         var blockRemaining = BLOCK_LENGTH - 3
         fun next(): Int {

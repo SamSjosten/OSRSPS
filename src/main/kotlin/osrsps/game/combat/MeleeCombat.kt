@@ -317,8 +317,9 @@ class MeleeCombat(
         // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way.
         val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
-        for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
-        player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
+        val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
+        for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
+        player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
         val poison = PoisonedWeapons.melee(combat.weapon(player))
         attackMade(player, npc, tick)
         landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect }, maxHit, Tile(player.x, player.z))
@@ -399,7 +400,7 @@ class MeleeCombat(
         val from = if (source != null) NpcEffects.PLAYER_SOURCE + source.index else -1
         if (dealt > 0) npc.effects.hit(from, damageMe(source, dealt, maxHit), HitsplatType.DAMAGE_OTHER, dealt)
         else npc.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, 0)
-        npc.effects.headBar(from, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.type.stats.hitpoints))
+        npc.effects.headBar(from, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.maxHitpoints))
         attacked(npc, source, tick)
         if (npc.hitpoints > 0) {
             // Its own swing this tick wins over the block (guessed).
@@ -458,7 +459,7 @@ class MeleeCombat(
 
     /** Whether [npc]'s hitpoints are at or below its [NpcCombatDef.retreatsAt] share, rounded up. */
     private fun lowOnHitpoints(npc: Npc, def: NpcCombatDef): Boolean =
-        def.retreatsAt > 0 && npc.hitpoints <= (npc.type.stats.hitpoints * def.retreatsAt + 99) / 100
+        def.retreatsAt > 0 && npc.hitpoints <= (npc.maxHitpoints * def.retreatsAt + 99) / 100
 
     /**
      * Ends [npc]'s retreat once [player] has left its interaction range, died or gone, or not hit it for
@@ -669,7 +670,7 @@ class MeleeCombat(
         val dealt = damage.coerceIn(0, npc.hitpoints)
         npc.hitpoints -= dealt
         npc.effects.hit(-1, hitsplat, hitsplat, dealt)
-        npc.effects.headBar(-1, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.type.stats.hitpoints))
+        npc.effects.headBar(-1, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.maxHitpoints))
         if (npc.hitpoints <= 0) die(npc, def, npc.attacker ?: npc.lastAttacker, currentTick())
         else npc.target?.let { if (lowOnHitpoints(npc, def)) retreat(npc, it) }
         return dealt
@@ -781,7 +782,7 @@ class MeleeCombat(
             }
             if (--npc.hitpointsRegenTicks > 0) continue
             npc.hitpointsRegenTicks = REGEN_TICKS
-            if (npc.hitpoints < npc.type.stats.hitpoints) npc.hitpoints++
+            if (npc.hitpoints < npc.maxHitpoints) npc.hitpoints++
         }
     }
 

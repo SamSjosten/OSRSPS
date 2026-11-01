@@ -27,8 +27,10 @@ private val logger = KotlinLogging.logger {}
  * the recent chat the reporter's client saw).
  *
  * The screen and its rule buttons are the client's own (client script reportabuse_init, run with the name). The
- * report is taken only while the screen is open, one per opening: the client closes it after sending (its rule select
- * script triggers the close button), and anything else is a client that didn't open it. The ignore tick box is the
+ * report is taken only while the screen is open, or just after its close button closed it, one per opening: the
+ * client's rule select script sends the report and then triggers the close button, and the real client's close click
+ * can reach the server first (seen on VM 215, 2026-11-01), so a report up to [CLOSE_GRACE] after that close is taken
+ * too. Anything else is a client that didn't open it. The ignore tick box is the
  * client's too: it sends an ordinary ignore add. The mute tick box only shows for Jagex moderators, so a mute flag is
  * logged and dropped.
  *
@@ -85,17 +87,33 @@ class Reports(
         while (lines.size > CHAT_LINES) lines.removeFirst()
     }
 
+    /** When each player's report screen was last closed by its close button, until a report uses it. */
+    private val closedAt = HashMap<String, Instant>()
+
     /** Report on a player ([name]), or the chatbox's Report button (null: the screen asks for a name). */
     fun open(player: Player, name: String?) {
+        closedAt.remove(player.saveKey)
         openScreen(player)
         // Args: a real report system (0 makes the screen say it's unavailable), whether a name is given, the name.
         runClientScript(player, INIT_SCRIPT, listOf(1, if (name != null) 1 else 0, name ?: ""))
     }
 
+    /** The screen's close button, with the screen open: closes it, and a report may follow for [CLOSE_GRACE]. */
+    fun close(player: Player) {
+        closeScreen(player)
+        closedAt[player.saveKey] = now()
+    }
+
+    /** Forgets [player]'s recent close (logout). */
+    fun forget(player: Player) {
+        closedAt.remove(player.saveKey)
+    }
+
     /** SEND_SNAPSHOT: a rule picked on the screen for [name]. */
     fun submit(player: Player, name: String, rule: Int, mute: Boolean) {
         val typed = name.trim()
-        if (player.chatModal != INTERFACE || rule !in RULES || typed.isEmpty() || typed.length > MAX_NAME) {
+        val justClosed = closedAt.remove(player.saveKey)?.let { Duration.between(it, now()) <= CLOSE_GRACE } == true
+        if ((player.chatModal != INTERFACE && !justClosed) || rule !in RULES || typed.isEmpty() || typed.length > MAX_NAME) {
             logger.info { "${player.username} sent a report on '$name' for rule $rule with no report screen open, or one it doesn't offer" }
             return
         }
@@ -105,7 +123,7 @@ class Reports(
         val refused = limited(player.saveKey, nameKey ?: typed.lowercase(), rule, time)
         if (refused != null) {
             logger.info { "${player.username}'s report on $typed for ${RULES[rule]} not kept: $refused" }
-            closeScreen(player)
+            if (player.chatModal == INTERFACE) closeScreen(player)
             message(player, ReportLines.RECEIVED)
             return
         }
@@ -116,7 +134,7 @@ class Reports(
         write(report)
         logger.info { "${player.username} reported $typed for ${RULES[rule]}" }
         // Closed here as well as by the client, so a second snapshot before its close arrives isn't taken.
-        closeScreen(player)
+        if (player.chatModal == INTERFACE) closeScreen(player)
         message(player, ReportLines.RECEIVED)
     }
 
@@ -172,29 +190,36 @@ class Reports(
         const val MAX_NAME = 12
 
         val COOLDOWN: Duration = Duration.ofSeconds(10)
+
+        /** How long after the close button a report is still taken (the real client's close can arrive first). */
+        val CLOSE_GRACE: Duration = Duration.ofSeconds(3)
         const val HOURLY = 20
         val REPEAT_WINDOW: Duration = Duration.ofMinutes(5)
         private val HOUR: Duration = Duration.ofHours(1)
         const val FILE_CAP = 50L * 1024 * 1024
 
-        /** The rules the screen offers, by the id it sends, with our own short names for admins (reportabuse_init). */
+        /**
+         * The rules the screen offers, by the id the client sends, with our own short names for admins. The client sends
+         * one less than the id in the screen's scripts (reportabuse_init): Scamming is 15 there and 14 on the wire, as
+         * RSProx showed on VM 215 (its table has the same ids).
+         */
         val RULES: Map<Int, String> = mapOf(
-            4 to "bug abuse",
-            5 to "staff impersonation",
-            6 to "account trading",
-            7 to "botting",
-            8 to "pvp cheating",
-            9 to "real-world trading or encouraging rule breaking",
-            11 to "advertising",
-            13 to "contact information",
-            15 to "scamming",
-            16 to "offensive language",
-            17 to "solicitation",
-            18 to "disruptive behaviour",
-            19 to "offensive name",
-            20 to "real-life threats",
-            21 to "breaking real-world laws",
-            22 to "games of chance or deathmatching",
+            3 to "bug abuse",
+            4 to "staff impersonation",
+            5 to "account trading",
+            6 to "botting",
+            7 to "pvp cheating",
+            8 to "real-world trading or encouraging rule breaking",
+            10 to "advertising",
+            12 to "contact information",
+            14 to "scamming",
+            15 to "offensive language",
+            16 to "solicitation",
+            17 to "disruptive behaviour",
+            18 to "offensive name",
+            19 to "real-life threats",
+            20 to "breaking real-world laws",
+            21 to "games of chance or deathmatching",
         )
     }
 }

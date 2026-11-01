@@ -214,6 +214,31 @@
       "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
       "respawnTicks": 50,
       "source": "OSRS Wiki, Market Guard (Draynor), read 2026-10-30. The animations are guessed, as the jail guards' are"
+    },
+    {
+      "npcs": ["surok_outlaw1", "surok_outlaw2", "surok_outlaw3", "surok_outlaw4", "surok_outlaw5", "surok_outlaw6", "surok_outlaw7", "surok_outlaw8", "surok_outlaw9", "surok_outlaw10"],
+      "attackSpeed": 4,
+      "maxHit": 3,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": -21,
+      "defence": {"stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0},
+      "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
+      "respawnTicks": 2,
+      "xpBonus": -97.5,
+      "source": "OSRS Wiki, Outlaw (ids 4167 to 4176 share the infobox) and the DPS calculator's 4167, read 2026-11-01: not aggressive, XP bonus -97.5%, respawn 2 ticks as the infobox gives it, which the engine raises to the body's 4 ticks (MeleeCombat.DEATH_TICKS), as for rats. The animations are guessed (a crush with no weapon). Left out: the shout before an attack, whose accuracy boost the Wiki has not confirmed"
+    },
+    {
+      "npcs": ["monk"],
+      "attackSpeed": 4,
+      "maxHit": 1,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": {"stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0},
+      "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Monk (level 5, id 2579, Edgeville Monastery) and the DPS calculator's 2579, read 2026-11-01: not aggressive. The animations are guessed (a crush with no weapon). Left out: healing itself 2 hitpoints now and then in a fight, whose chance the Wiki doesn't give"
     }
   ]
 }

@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -101,6 +102,11 @@ data class NpcCombatDef(
     val aggression: NpcAggression? = null,
     /** At or below this share of its hitpoints, in percent and rounded up, it retreats ([MeleeCombat]); 0 never. */
     val retreatsAt: Int = 0,
+    /**
+     * The Wiki's XP bonus in tenths of a percent, 0 for none: the outlaws' -97.5% is -975, so they give a fortieth of the
+     * XP for their damage ([CombatMath.withXpBonus]).
+     */
+    val xpBonusTenths: Int = 0,
 )
 
 /** NPC combat definitions by NPC type id. An NPC with none can't be attacked. */
@@ -139,7 +145,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom"]` and
          * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent) and `"aggressive"`: `true`, or
          * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]), and
-         * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats).
+         * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats) and `"xpBonus": -97.5` (the
+         * Wiki's XP bonus, in percent to a tenth).
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
          * [seqs] turns into ids; a name it doesn't know fails the file, unless it knows no names at all (a cache with
@@ -213,6 +220,10 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 }.orEmpty(),
                 aggression = entry["aggressive"]?.let(::aggression),
                 retreatsAt = (entry["retreatsAt"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..100) { "retreats at $it%" } },
+                xpBonusTenths = (entry["xpBonus"]?.jsonPrimitive?.double ?: 0.0).let { percent ->
+                    require(percent > -100.0 && percent <= 1000.0) { "an XP bonus of $percent%" }
+                    Math.round(percent * 10).toInt()
+                },
             )
         }
 
