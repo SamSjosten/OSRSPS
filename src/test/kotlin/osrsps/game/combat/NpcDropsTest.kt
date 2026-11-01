@@ -375,6 +375,54 @@ class NpcDropsTest {
         assertNull(counts["Coins x10"])
     }
 
+    @Test
+    fun `the Draynor Sewers' zombies and skeletons drop bones every time and the rest as the Wiki's tables say`() {
+        val names = listOf("zombie_unarmed_sewer1", "zombie_armed_sewer4", "skeleton_unarmed3", "skeleton_armed")
+        val sewerTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2000 + i, name, internalName = name) }.toTypedArray())
+        val sewer = NpcDrops.load(sewerTypes, objTypes)
+        assertTrue(sewer.warnings.all { it.startsWith("no NPC called") }, sewer.warnings.toString())
+        for (name in names) assertEquals(128, sewer[sewerTypes.find(name)!!]!!.table!!.slots, name)
+        // Skeletons leave a beginner clue now and then; zombies only their table.
+        assertEquals(listOf("Clue scroll (beginner)" to 100), sewer[sewerTypes.find("skeleton_armed")!!]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(emptyList(), sewer[sewerTypes.find("zombie_armed_sewer4")!!]!!.tertiary)
+        fun kills(name: String, seed: Long): Map<String, Int> {
+            val def = sewer[sewerTypes.find(name)!!]!!
+            val random = GameRandom(seed)
+            val counts = HashMap<String, Int>()
+            repeat(KILLS) {
+                val kill = def.roll(random)
+                assertEquals("Bones", kill.first().type.name)
+                for (drop in kill.drop(1).filter { !it.type.name.startsWith("Clue scroll") }) {
+                    val key = "${drop.type.name} x${drop.count}"
+                    counts[key] = (counts[key] ?: 0) + 1
+                }
+            }
+            return counts
+        }
+        fun Map<String, Int>.expect(key: String, weight: Int, of: Int = 128) {
+            val p = weight.toDouble() / of
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = this[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        val zombie = kills("zombie_armed_sewer4", 31)
+        zombie.expect("Fishing bait x7", 26)
+        zombie.expect("Coins x18", 21)
+        zombie.expect("Coins x10", 10)
+        zombie.expect("Iron mace x1", 3)
+        // The gem table, 1/128, gives an uncut sapphire 32 of its 131 slots.
+        zombie.expect("Uncut sapphire x1", 32, 128 * 131)
+        val skeleton = kills("skeleton_armed", 32)
+        skeleton.expect("Coins x5", 25)
+        skeleton.expect("Coins x10", 24)
+        skeleton.expect("Iron med helm x1", 6)
+        skeleton.expect("Bronze bar x1", 5)
+        // The unarmed skeleton's free-to-play 10 coins are left out.
+        assertNull(kills("skeleton_unarmed3", 33)["Coins x10"])
+        kills("zombie_unarmed_sewer1", 34).expect("Fishing bait x5", 37)
+    }
+
     companion object {
         private const val KILLS = 10_000
     }

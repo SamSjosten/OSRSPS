@@ -120,6 +120,7 @@ import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
+import osrsps.game.content.registerDraynorSewers
 import osrsps.game.content.registerWiseOldMan
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRottenPotato
@@ -674,6 +675,7 @@ class World(
         registerNed(this)
         registerAggie(this)
         registerDraynorJail(this)
+        registerDraynorSewers(this)
         registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)

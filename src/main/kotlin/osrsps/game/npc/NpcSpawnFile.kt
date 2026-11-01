@@ -47,6 +47,7 @@ object NpcSpawnFile {
         "lumbridge-swamp.json",
         "lumbridge-church.json",
         "draynor.json",
+        "draynor-sewers.json",
         "al-kharid.json",
         "varrock.json",
         "edgeville.json",

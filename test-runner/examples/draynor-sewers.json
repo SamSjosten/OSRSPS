@@ -1,0 +1,214 @@
+{
+ "name": "Draynor piece step 10: both Draynor Sewers entrances down and up, a zombie fought, Ruantun's talk and the anvil (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "the sewers' zombies and skeletons are aggressive"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3119 3244 0",
+   "expectMessage": "Teleported to 3119, 3244, 0",
+   "comment": "east of the trapdoor west of the jail"
+  },
+  {
+   "step": "locOption",
+   "loc": "Trapdoor",
+   "option": "Open",
+   "x": 3118,
+   "y": 3244
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Trapdoor",
+   "x": 3118,
+   "y": 3244,
+   "option": "Climb-down",
+   "comment": "open for everyone"
+  },
+  {
+   "step": "locOption",
+   "loc": "Trapdoor",
+   "option": "Climb-down",
+   "x": 3118,
+   "y": 3244
+  },
+  {
+   "step": "assertLocation",
+   "x": 3119,
+   "y": 9643,
+   "plane": 0,
+   "comment": "east of the ladder below, which is a tile south of the dungeon's 6400"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Zombie",
+   "option": "Attack",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 5,
+   "comment": "a swing or two each way"
+  },
+  {
+   "step": "command",
+   "text": "::kill zombie",
+   "expectMessage": "Killed Zombie #",
+   "comment": "::kill picks the zombie being fought"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3111 9690 0",
+   "expectMessage": "Teleported to 3111, 9690, 0",
+   "comment": "in the fallen-down house in the north room"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ruantun",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ruantun.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ruantun.go_away]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ruantun.anvil]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ruantun.anvil]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ruantun.anvil_yes]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ruantun.anvil_thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Anvil",
+   "x": 3112,
+   "y": 9689,
+   "option": "Smith"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3118 9644 0",
+   "expectMessage": "Teleported to 3118, 9644, 0",
+   "comment": "north of the east ladder"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3118,
+   "y": 9643
+  },
+  {
+   "step": "assertLocation",
+   "x": 3118,
+   "y": 3245,
+   "plane": 0,
+   "comment": "north of the trapdoor, not on it"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3085 3272 0",
+   "expectMessage": "Teleported to 3085, 3272, 0",
+   "comment": "east of the trapdoor north of the market"
+  },
+  {
+   "step": "locOption",
+   "loc": "Trapdoor",
+   "option": "Open",
+   "x": 3084,
+   "y": 3272
+  },
+  {
+   "step": "locOption",
+   "loc": "Trapdoor",
+   "option": "Climb-down",
+   "x": 3084,
+   "y": 3272
+  },
+  {
+   "step": "assertLocation",
+   "x": 3085,
+   "y": 9672,
+   "plane": 0,
+   "comment": "east of the west ladder, the dungeon's 6400 below"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3084,
+   "y": 9672
+  },
+  {
+   "step": "assertLocation",
+   "x": 3085,
+   "y": 3272,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again."
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

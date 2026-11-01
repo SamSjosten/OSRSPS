@@ -203,6 +203,7 @@ object DialogueLines {
         RomeoLines,
         RottenPotatoLines,
         RovinLines,
+        RuantunLines,
         SearchLines,
         SettingsLines,
         ShantayGateLines,

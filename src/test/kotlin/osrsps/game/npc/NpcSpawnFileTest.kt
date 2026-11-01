@@ -349,6 +349,25 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the Draynor Sewers have the Wiki's seven zombies, four skeletons, ten rats and Ruantun`() {
+        val names = mapOf(
+            38 to "zombie_unarmed_sewer1", 39 to "zombie_unarmed_sewer2", 40 to "zombie_unarmed_sewer3", 55 to "zombie_armed_sewer1",
+            56 to "zombie_armed_sewer2", 57 to "zombie_armed_sewer3", 58 to "zombie_armed_sewer4", 70 to "skeleton_unarmed",
+            72 to "skeleton_unarmed3", 77 to "skeleton_armed", 79 to "skeleton_armed3", 2854 to "rat", 3461 to "malak",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("draynor-sewers.json"), types, "draynor-sewers.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(7, spawns.count { it.type.id in 38..58 })
+        assertEquals(4, spawns.count { it.type.id in 70..79 })
+        assertEquals(10, spawns.count { it.type.id == 2854 })
+        assertEquals(Tile(3112, 9690), spawns.single { it.type.id == 3461 }.let { Tile(it.x, it.z) })
+        // All under the village, a dungeon's 6400 tiles north of it.
+        assertTrue(spawns.all { it.x in 3077..3127 && it.z in 9640..9700 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `the church has Father Aereck and the Prayer tutor inside, Nigel in the graveyard and Count Check by it`() {
         val names = mapOf(2812 to "father_aereck", 3223 to "aide_tutor_prayer", 6093 to "deadman_nigel", 7414 to "count_check")
         val churchTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
