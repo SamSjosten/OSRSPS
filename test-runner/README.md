@@ -249,6 +249,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `draynor-dark-wizards.json`: Draynor step 9: a dark wizard south of the bank, attacked, casting back from where it
   stands (its casting graphic, then Water Strike's or Confuse's impact or a splash on the player). Needs 0.7.0 for
   `assertSpotanim`.
+- `draynor-sewers.json`: Draynor step 10: both Draynor Sewers entrances opened, climbed down and back up (each landing
+  beside the trapdoor or ladder), a zombie fought (`::god on`), Ruantun's anvil talk (`::keys on`) and the anvil.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
