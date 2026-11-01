@@ -47,6 +47,8 @@ class Trade(val first: Player, val second: Player) {
         /** The offered items that stack, so a save can put the offer back as the inventory would hold it. */
         val stackable = HashSet<Int>()
         var accepted = false
+        /** Ticks until this player may accept the first screen again after a change (the Accept trade delay). */
+        var acceptDelay = 0
         /** The offer or the partner's changed since the screens' texts and inventories were last sent. */
         var dirty = true
     }
@@ -125,6 +127,8 @@ class Trades(
     private val overflow: (Player, InvObj) -> Unit = { _, _ -> },
     /** Sets a varbit for the player; nothing when the cache lacks it (tests). */
     private val setVarbit: (Player, Int, Int) -> Unit = { _, _, _ -> },
+    /** A varbit of the player's; 0 when the cache lacks it. */
+    private val varbit: (Player, Int) -> Int = { _, _ -> 0 },
     /**
      * Completes a trade: runs the swap, then saves both players together (World.commitTrade, the trade journal). Returns
      * false, after running the undo, when the trade couldn't be made safe to save.
@@ -227,6 +231,7 @@ class Trades(
             side.trade = trade
             setVarbit(side, VARBIT_THIS_REMOVED, 0)
             setVarbit(side, VARBIT_OTHER_REMOVED, 0)
+            setVarbit(side, VARBIT_ACCEPT_DELAY, 0)
             openModal(side, FrameSlot.MAINMODAL, MAIN)
             openModal(side, FrameSlot.SIDEMODAL, SIDE)
             send(side, RunClientScript(TRADE_PARTNER_SET_SCRIPT, listOf(trade.partnerOf(side).username)))
@@ -279,6 +284,19 @@ class Trades(
             else -> ""
         }
         send(player, IfSetText(MAIN, MAIN_STATUS, status))
+    }
+
+    /**
+     * Counts [player]'s Accept trade delay down one game tick. Run at the end of each game tick, not a paused world's
+     * cycles, and before the varps are sent so the client sees the new value the same tick.
+     */
+    fun tickDelay(player: Player) {
+        val trade = player.trade ?: return
+        if (trade.over) return
+        val mine = trade.sideOf(player)
+        if (mine.acceptDelay <= 0) return
+        mine.acceptDelay--
+        setVarbit(player, VARBIT_ACCEPT_DELAY, mine.acceptDelay)
     }
 
     /** Clears the dirty marks once both sides have been sent; run after every player's [flush]. */
@@ -378,6 +396,14 @@ class Trades(
         for (side in listOf(trade.firstSide, trade.secondSide)) {
             side.accepted = false
             side.dirty = true
+            // The Accept trade delay (OSRS Wiki, Settings): after a change, Accept waits 3 seconds, unless the player
+            // turned it off (varbit trade_delay_disabled). The client counts it down from varbit trade_accept_delay,
+            // showing "Check offer!" (trade_main_drawitems). Inferred: it counts in ticks, as the script converts it to
+            // seconds, and a change by either player starts it for both.
+            if (varbit(side.player, VARBIT_DELAY_DISABLED) == 0) {
+                side.acceptDelay = ACCEPT_DELAY_TICKS
+                setVarbit(side.player, VARBIT_ACCEPT_DELAY, ACCEPT_DELAY_TICKS)
+            }
         }
         val (remover, slots) = removed ?: return
         val partner = trade.partnerOf(remover)
@@ -398,6 +424,7 @@ class Trades(
         if (trade.over || trade.confirming != confirming) return
         val side = trade.sideOf(player)
         if (side.accepted) return
+        if (!confirming && side.acceptDelay > 0) return
         side.accepted = true
         side.dirty = true
         val partnerSide = trade.partnerSideOf(player)
@@ -642,6 +669,13 @@ class Trades(
         /** Varbits trade_this_player_removed and trade_other_player_removed, which mark a removal on the screens. */
         const val VARBIT_THIS_REMOVED = 4374
         const val VARBIT_OTHER_REMOVED = 4375
+
+        /** Varbits trade_accept_delay (the ticks left, counted down) and trade_delay_disabled (the setting, 1 for off). */
+        const val VARBIT_ACCEPT_DELAY = 13141
+        const val VARBIT_DELAY_DISABLED = 13130
+
+        /** OSRS Wiki, Settings: "you will have to wait 3 seconds after a change is made". */
+        const val ACCEPT_DELAY_TICKS = 5
 
         /** Client scripts: trade_partner_set (the trade chat tab's partner), trade_slot_changed, interface_inv_init. */
         const val TRADE_PARTNER_SET_SCRIPT = 209
