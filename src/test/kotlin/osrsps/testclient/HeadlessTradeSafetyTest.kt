@@ -124,12 +124,14 @@ class HeadlessTradeSafetyTest {
                     server.login("carol").use { carol ->
                         alice.give("::item $COINS 1000", 1)
                         open(alice, bob)
-                        alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 3, sub = 0, obj = COINS)
-                        bob.await("the countdown") { bob.varp(VARP_DELAY).takeIf { it > 0 } }
-                        // Carol, out of the trade, pauses the world: its paused cycles mustn't count.
+                        // Carol, out of the trade, pauses the world first, so the countdown starts paused however slow
+                        // the test is; one stepped tick makes sure the offer has gone through.
                         carol.commandReply("pause") { it.startsWith("Paused after tick") }
-                        // Two of Bob's cycles after her reply: the second is paused, and comes after the last tick's
-                        // packets to him.
+                        alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 3, sub = 0, obj = COINS)
+                        carol.stepTicks(1)
+                        bob.await("the countdown") { bob.varp(VARP_DELAY).takeIf { it > 0 } }
+                        // Two of Bob's cycles after that: the second is paused, and comes after the stepped tick's
+                        // packets to him. Its paused cycles mustn't count.
                         bob.awaitCycles(2)
                         val left = bob.varp(VARP_DELAY)
                         bob.awaitCycles(10) // ten paused cycles
