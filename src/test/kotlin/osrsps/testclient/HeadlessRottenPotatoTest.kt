@@ -51,6 +51,9 @@ class HeadlessRottenPotatoTest {
     private fun HeadlessClient.slice() =
         ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, SLICE_BUTTON_OP, slotOf(RottenPotato.OBJ), RottenPotato.OBJ)
 
+    private fun HeadlessClient.mash() =
+        ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, MASH_BUTTON_OP, slotOf(RottenPotato.OBJ), RottenPotato.OBJ)
+
     private fun HeadlessClient.peel() =
         ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, PEEL_BUTTON_OP, slotOf(RottenPotato.OBJ), RottenPotato.OBJ)
 
@@ -233,6 +236,35 @@ class HeadlessRottenPotatoTest {
     }
 
     @Test
+    fun `Mash's Kill me kills you with a hit of every hitpoint`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login(ADMIN).use { boss ->
+                boss.ready()
+                boss.command("item ${RottenPotato.OBJ}")
+                boss.mash()
+                val menu = boss.awaitDialogue("the Mash menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(listOf(DialogueText.NONE[RottenPotatoLines.KICK_ME_OUT], DialogueText.NONE[RottenPotatoLines.KILL_ME]), menu.options)
+                boss.chooseOption(2)
+                boss.awaitMessage("the killing hit") { it.startsWith("Hit yourself for 10") && it.endsWith(", dead") }
+            }
+        }
+    }
+
+    @Test
+    fun `Mash's Kick me out logs you out as the logout button does`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login(ADMIN).use { boss ->
+                boss.ready()
+                boss.command("item ${RottenPotato.OBJ}")
+                boss.mash()
+                boss.awaitDialogue("the Mash menu") { it is DialogueView.Menu }
+                boss.chooseOption(1)
+                boss.await("the logout") { boss.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+        }
+    }
+
+    @Test
     fun `a non-admin's potato is taken, and nothing opens`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login(ADMIN).use { boss ->
@@ -264,5 +296,6 @@ class HeadlessRottenPotatoTest {
         const val EAT_BUTTON_OP = 2
         const val SLICE_BUTTON_OP = 3
         const val PEEL_BUTTON_OP = 4
+        const val MASH_BUTTON_OP = 6
     }
 }
