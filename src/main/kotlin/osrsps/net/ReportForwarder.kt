@@ -46,6 +46,7 @@ class ReportForwarder(
     private val index: Path = dir.resolve(INDEX)
     private val budget: Path = dir.resolve(BUDGET)
     private var budgetRead = false
+    private var saidBudgetUnreadable = false
     private var executor: ScheduledExecutorService? = null
     private var saidNoTracker = false
     /** When each issue and comment of the last day was posted, oldest first, against [PER_DAY]. */
@@ -70,7 +71,7 @@ class ReportForwarder(
         var failedInARow = 0
         val failed = mutableListOf<Path>()
         val now = clock()
-        readBudget()
+        if (!readBudget(now)) return 0
         while (posted.isNotEmpty() && Duration.between(posted.first(), now) >= DAY) posted.removeFirst()
         for (file in waiting) {
             if (posted.size >= PER_DAY) {
@@ -110,15 +111,41 @@ class ReportForwarder(
         return filed
     }
 
-    /** The day's posts and the last cap notice, from [BUDGET], once: a restart (each deploy is one) keeps the day's count. */
-    private fun readBudget() {
-        if (budgetRead) return
-        budgetRead = true
-        val json = runCatching { Json.parseToJsonElement(Files.readString(budget)).jsonObject }.getOrNull() ?: return
-        (json["posted"] as? JsonArray)?.forEach { item ->
-            runCatching { Instant.parse(item.jsonPrimitive.content) }.getOrNull()?.let(posted::addLast)
+    /**
+     * The day's posts and the last cap notice, from [BUDGET], once: a restart (each deploy is one) keeps the day's count.
+     * No file is a fresh start. A file that can't be read now says false, so nothing is posted until it can be. One
+     * that isn't the budget at all (or a time in it that isn't one) counts as a day already full, so a damaged file
+     * never lets another day's worth through; it is then written afresh.
+     */
+    private fun readBudget(now: Instant): Boolean {
+        if (budgetRead) return true
+        if (!Files.exists(budget)) {
+            budgetRead = true
+            return true
         }
+        val text = try {
+            Files.readString(budget)
+        } catch (e: java.io.IOException) {
+            if (!saidBudgetUnreadable) logger.warn(e) { "$BUDGET can't be read; no reports are posted until it can" }
+            saidBudgetUnreadable = true
+            return false
+        }
+        saidBudgetUnreadable = false
+        budgetRead = true
+        val json = runCatching { Json.parseToJsonElement(text).jsonObject }.getOrNull()
+        val times = (json?.get("posted") as? JsonArray)?.map { item ->
+            (item as? JsonPrimitive)?.takeIf { it.isString }?.let { runCatching { Instant.parse(it.content) }.getOrNull() }
+        }
+        if (times == null || null in times) {
+            logger.error { "$BUDGET is damaged; counting today as full ($PER_DAY posts), so reports wait a day" }
+            repeat(PER_DAY) { posted.addLast(now) }
+            saidCapped = now
+            writeBudget()
+            return true
+        }
+        times.forEach { posted.addLast(it!!) }
         saidCapped = (json["capped"] as? JsonPrimitive)?.takeIf { it.isString }?.let { runCatching { Instant.parse(it.content) }.getOrNull() }
+        return true
     }
 
     private fun writeBudget() {

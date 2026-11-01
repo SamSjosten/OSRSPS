@@ -282,6 +282,32 @@ class ReportForwarderTest {
         assertTrue(waiting(dir).isEmpty())
     }
 
+    @Test
+    fun `a budget file that can't be read holds reports back, and a damaged one counts as a full day`(@TempDir dir: Path) {
+        var clock = now
+        val tracker = FakeTracker()
+        send(dir, body(failure = "ERROR budget"))
+        // Unreadable (here a folder where the file should be): nothing goes until it can be read.
+        val budget = dir.resolve(ReportForwarder.BUDGET)
+        java.nio.file.Files.createDirectory(budget)
+        val forwarder = ReportForwarder(dir, { tracker }, clock = { clock })
+        assertEquals(0, forwarder.pass())
+        assertEquals(1, waiting(dir).size)
+        java.nio.file.Files.delete(budget)
+        assertEquals(1, forwarder.pass())
+        // Damaged: the next process counts the day as full, opens no notice, and posts again a day later.
+        send(dir, body(failure = "ERROR budget again"))
+        java.nio.file.Files.writeString(budget, "{\"posted\": [\"not a time\"]")
+        val restarted = ReportForwarder(dir, { tracker }, clock = { clock })
+        val issues = tracker.issues.size
+        assertEquals(0, restarted.pass())
+        assertEquals(issues, tracker.issues.size, "no notice for a day it didn't count")
+        assertEquals(1, waiting(dir).size)
+        clock += java.time.Duration.ofHours(24)
+        assertEquals(1, restarted.pass())
+        assertTrue(waiting(dir).isEmpty())
+    }
+
     private fun waiting(dir: Path) = dir.listDirectoryEntries().map { it.name }.filter { it.startsWith("R-") }.sorted()
 
     @Test
