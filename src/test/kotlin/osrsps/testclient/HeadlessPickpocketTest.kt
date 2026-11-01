@@ -12,6 +12,7 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.combat.Foods
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.Pickpocketing
 import osrsps.map.CollisionMap
@@ -32,8 +33,10 @@ class HeadlessPickpocketTest {
         objs[COINS] = ObjType(COINS, "Coins", stackable = true)
         objs[POUCH] = ObjType(POUCH, "Coin pouch", stackable = true, iops = listOf("Open-all", "Open", null, null, "Destroy"))
         objs[POT] = ObjType(POT, "Pot")
+        objs[SHARK] = ObjType(SHARK, "Shark", iops = listOf("Eat", null, null, null, "Drop"), internalName = "shark")
+        val objTypes = ObjTypes(objs)
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(seed),
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = objTypes, foodList = Foods.load(objTypes), random = GameRandom(seed),
             npcTypes = NpcTypes.of(man, farmer),
             npcSpawns = listOf(NpcSpawn(man, 3223, 3218, source = "test"), NpcSpawn(farmer, 3221, 3218, source = "test")),
             cycleMillis = millis,
@@ -101,6 +104,25 @@ class HeadlessPickpocketTest {
                     }
                 }
                 assertTrue(won && lost, "40 tries at level 1 (70.7%) both work and fail")
+            }
+        }
+    }
+
+    @Test
+    fun `eating pushes the next pickpocket back past the food's delay`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $SHARK 1")
+                val shark = client.slotOf(SHARK)
+                val attempts = client.seen("[pickpocket.attempt who=man]")
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, EAT_BUTTON_OP, shark, SHARK)
+                client.npcOp(client.npc(MAN).index, Pickpocketing.PICKPOCKET)
+                client.await("the shark eaten") { if (client.count(SHARK) == 0) Unit else null }
+                client.awaitTicks(1)
+                assertEquals(attempts, client.seen("[pickpocket.attempt who=man]"), "within the shark's 3 ticks")
+                client.awaitTicks(Foods.DEFAULT_DELAY)
+                client.tryOnce(MAN, "man")
             }
         }
     }
@@ -179,5 +201,7 @@ class HeadlessPickpocketTest {
         const val BACKPACK = 93
         const val THIEVING = 17
         const val HITPOINTS = 3
+        const val SHARK = 385
+        const val EAT_BUTTON_OP = 2
     }
 }

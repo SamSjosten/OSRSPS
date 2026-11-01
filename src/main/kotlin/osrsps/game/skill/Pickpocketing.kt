@@ -88,6 +88,8 @@ class Pickpocketing(private val world: World) {
         val text = world.textFor(player)
         if (world.statusEffects.isStunned(player, tick)) return
         if ((nextAttempt[player.username] ?: 0L) > tick) return
+        // Eating (a stunned player may) pushes the next pickpocket back past the food's own delay (Wiki, Pickpocketing).
+        if (tick < player.foodDelayUntil) return
         if (player.skills.currentLevel(Skill.THIEVING) < pocket.level) {
             player.message(text[PickpocketLines.LEVEL, "level" to pocket.level, "who" to pocket.who])
             return
