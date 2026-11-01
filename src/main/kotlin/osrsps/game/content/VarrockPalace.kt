@@ -82,7 +82,7 @@ object PrysinLines : Lines("prysin", "Transcript:Sir Prysin") {
     val RELIEF = line("relief", "the second menu's option 1, which the player then says")
     val BORROW = line("borrow", "the second menu's option 2, which the player then says")
     val NOT_FREE = line("not_free", "option 2: it has grown stronger and isn't lent freely")
-    val PRICE = line("price", "option 2: its price, 500 coins for Silverlight (the transcript's line names Darklight's 1000)")
+    val PRICE = line("price", "option 2: its price; {price} is Silverlight's, 500 coins (the transcript's line names Darklight's 1000)", "price")
     val NOT_WORTH = line("not_worth", "the third menu's option 1, which the player then says")
     val PAY = line("pay", "the third menu's option 2, which the player then says")
     val TAKE_CARE = line("take_care", "paid: his send-off as Silverlight is handed over")
@@ -123,7 +123,7 @@ object GuardCaptainLines : Lines("guard_captain", "Transcript:Captain") {
     val ARMOUR = line("armour", "option 2 (and the later menus' option 1), which the player then says")
     val ONLY_GUARDS = line("only_guards", "the armour: only Varrock guards wear it")
     val BECOME = line("become", "the armour: the player offers to become a guard")
-    val RECORD = line("record", "the armour, at Thieving 31 or more: the player's criminal record")
+    val RECORD = line("record", "the armour, at Thieving 31 or more: the player's criminal record; {level} is their Thieving level", "level")
     val REPENT = line("repent", "the armour, at Thieving 31 or more: the player will repent")
     val REALLY = line("really", "the armour: does the player really want to be a guard?")
     val YES = line("yes", "the armour: the player does")
@@ -138,7 +138,8 @@ object GuardCaptainLines : Lines("guard_captain", "Transcript:Captain") {
     val WEAKLINGS = line("weaklings", "fit: they're weaklings")
     val WEAK = line("weak", "the recruits' menu: they look weak, which the player then says")
     val RESPECT = line("respect", "weak: respect his men")
-    val CONTRADICT = line("contradict", "the player says the other one: a contradiction, now go")
+    val CONTRADICT_FIT = line("contradict_fit", "the player said fit, then weak: a contradiction, now go")
+    val CONTRADICT_WEAK = line("contradict_weak", "the player said weak, then fit: a contradiction, now go")
     val SHOUTS = (1..10).map { line("shout_$it", "over his head at the recruits: shout $it of the Wiki's ten") }
 }
 
@@ -332,7 +333,7 @@ object VarrockPalace {
         }
         chatPlayer(ChatAnim.QUIZ, BORROW)
         chatNpc(ChatAnim.NEUTRAL, NOT_FREE)
-        chatNpc(ChatAnim.NEUTRAL, PRICE)
+        chatNpc(ChatAnim.NEUTRAL, PRICE, "price" to SILVERLIGHT_PRICE)
         if (choice(NOT_WORTH, PAY) == 1) {
             chatPlayer(ChatAnim.ANGRY, NOT_WORTH)
             return@with
@@ -399,7 +400,7 @@ object VarrockPalace {
                 chatNpc(ChatAnim.ANGRY, if (fit) WEAKLINGS else RESPECT)
                 if (choice(ARMOUR, if (fit) WEAK else FIT) == 2) {
                     chatPlayer(ChatAnim.NEUTRAL, if (fit) WEAK else FIT)
-                    chatNpc(ChatAnim.ANGRY, CONTRADICT)
+                    chatNpc(ChatAnim.ANGRY, if (fit) CONTRADICT_FIT else CONTRADICT_WEAK)
                     return@with
                 }
                 armour(thieving)
@@ -417,7 +418,7 @@ object VarrockPalace {
         chatNpc(ChatAnim.NEUTRAL, ONLY_GUARDS)
         chatPlayer(ChatAnim.QUIZ, BECOME)
         if (thieving >= RECORD_THIEVING) {
-            chatNpc(ChatAnim.SHIFTY, RECORD)
+            chatNpc(ChatAnim.SHIFTY, RECORD, "level" to thieving)
             chatPlayer(ChatAnim.SAD, REPENT)
         }
         chatNpc(ChatAnim.QUIZ, REALLY)

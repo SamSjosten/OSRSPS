@@ -109,10 +109,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   whip still worn after a logout, and Remove.
 - `ground-drop-take.json`: drop an axe, see it on the ground, take it back.
 - `lumbridge-bury-bones.json`: bury two bones, 4.5 Prayer XP each.
-- `rotten-potato-eat.json`: the rotten potato's Eat menu: Set all stats to 50 one skill a tick, Heal me after a `::hit`, and Wipe inventory keeping the potato. Teleport to player and Spawn NPC ask for text (meslayer mode 9), which no runner step types yet; the headless tests cover them.
-- `rotten-potato-peel.json`: the rotten potato's Peel, Bank menu opening the bank on the Lumbridge spawn. Its tile and item prompts are text, covered headless as above.
+- `rotten-potato-eat.json`: the rotten potato's Eat menu: Set all stats to 50 one skill a tick, Heal me after a `::hit`, and Wipe inventory keeping the potato. Teleport to player needs a second player and Spawn NPC would leave an NPC in Lumbridge, so the headless tests cover them.
+- `rotten-potato-peel.json` (needs 0.24.0): the rotten potato's Peel, Teleport to a tile and Spawn an item through the text prompt (`enterText`), then Bank menu opening the bank on the Lumbridge spawn.
 - `rotten-potato-slice.json`: the rotten potato's Slice, God mode and Sure hits on and off, then Reset ending the scenario. The XP rate and scenario prompts are text, covered headless.
 - `rotten-potato-mash.json`: the rotten potato's Mash, Kill me dying to a hit of every hitpoint. Kick me out ends the runner's session, so the headless tests cover it.
+- `rotten-potato-use.json`: the rotten potato's Use, coins used on it and it used on bones, both deleted. The potato used on a player needs a second account, so the headless tests cover it.
 - `lumbridge-bank.json`: at a castle bank booth, deposit, withdraw 5 and as notes, deposit the inventory, log out and
   back in and take out what is still banked. It can't type an amount, so Withdraw-X isn't in it.
 - `lumbridge-bank-tabs.json`: from `::scenario lumbridge-bank-tabs`, a tab with a placeholder that takes the logs back
@@ -201,6 +202,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
+- `varrock-townsfolk.json`: Varrock step 8a (with `::keys on`): Romeo, Shilop, Aris, Iffie, the Town Crier, Dr Harlow,
+  Jonny the Beard, Charlie the Tramp given a coin, Draul Leptoc, and a kitten bought from Gertrude for 100 coins.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
@@ -321,6 +324,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `social-friends-chat-ranks-test.json` and `social-friends-chat-ranks-test2.json` (need 0.23.0): two players at once;
   `test` adds `test2` as a friend, ranks it Corporal from the setup screen's list, sees it join at that rank and kicks
   it from the channel's list; `test2` sees itself as a Corporal, is kicked, and is refused when it tries to join again.
+- `social-report.json` (needs 0.23.0): `test` opens the report screen from the chatbox's Report button, types `test2`,
+  picks Scamming, is thanked, and `::reports` lists it; `::clearignores` after, as the screen's ignore tick box is on.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
 - `social-ignore-2.json` (needs 0.14.0): the same with the names swapped, for a client logged in as `test2` (the nightly run's account).
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
@@ -438,6 +443,7 @@ server's answer instead of failing on what was there before.
 | `groundItemOption` | `item` (name) or `itemId`, `op`, `option`, `x`+`y` | (0.10.0) Clicks ground op `op` (1 to 5; Take is 3, logs' Light is 4) on the nearest such item on the ground, as `takeItem` does Take; `option` is the menu text. RuneLite doesn't give an item's ground options, so the script names the op. |
 | `useItemOnItem` | `item` (name) or `itemId`, `onItem` or `onItemId` | (0.10.0) Clicks Use on the first such item in the inventory, then the first other slot holding the second item, as the server reads it (IF_BUTTONT). Retries until both are there; doesn't wait for the result. |
 | `useItemOnLoc` | `item` (name) or `itemId`, `loc` (name) or `locId`, `x`+`y` | (0.15.0) Clicks Use on the first such item in the inventory, then the nearest such loc (on that tile, when given), as the server reads it (OPLOCT). Retries until both are there; doesn't wait for the result. |
+| `enterText` | `text` | (0.24.0) Waits for the chatbox's text prompt (meslayer mode 9, as the rotten potato's Teleport to player asks for a name), puts the text in it and presses Enter, then waits until the prompt has closed. |
 | `enterAmount` | `amount` | (0.11.0) Waits for the chatbox's number prompt (meslayer mode 7, as after Withdraw-X or a settings number), puts the amount in it and presses Enter, then waits until the prompt has closed. |
 | `addFriend`, `deleteFriend` | `name` | (0.13.0) Clicks the Friends tab's Add Friend (or Delete Friend) button, waits for its chatbox prompt, types the name and presses Enter, as a player does; the client's own scripts then check it and tell the server. Waits for the list to arrive first and for the prompt to close after. Doesn't wait for the server's answer; follow it with `assertFriend`. |
 | `assertFriend` | `name`, `world` or `absent` | (0.13.0) Waits until the friends list shows the name (case and spaces against underscores don't matter) on world `world`, 0 for offline; or, with `absent: true`, until the name isn't on it. The result lists the whole list. |

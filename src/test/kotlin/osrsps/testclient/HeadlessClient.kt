@@ -443,6 +443,19 @@ class HeadlessClient private constructor(
         }
     }
 
+    /**
+     * Component [componentId] of [interfaceId] (slot [sub], showing [obj]) used on the player at [index], as OPPLAYERT:
+     * an inventory item's Use, then a click on the player. Laid out as RSProt's 241 OpPlayerTDecoder reads it.
+     */
+    fun playerTarget(index: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
+        send(GameClientProt.OPPLAYERT) {
+            p2Alt1(sub and 0xFFFF)
+            p4((interfaceId shl 16) or componentId)
+            p1Alt1(if (ctrl) 1 else 0)
+            p2Alt2(obj and 0xFFFF)
+            p2Alt2(index)
+        }
+
     /** The Add Friend box (FRIENDLIST_ADD). The real client refuses its own name, a duplicate and a full list first. */
     fun addFriend(name: String) = send(GameClientProt.FRIENDLIST_ADD) { pjstr(name) }
 
@@ -470,6 +483,21 @@ class HeadlessClient private constructor(
         p1(0)
         p1(0)
         HUFFMAN.encode(this, text)
+    }
+
+    /** A line typed in public chat (MESSAGE_PUBLIC type 0, plain yellow). */
+    fun say(text: String) = send(GameClientProt.MESSAGE_PUBLIC) {
+        p1(0)
+        p1(0)
+        p1(0)
+        HUFFMAN.encode(this, text)
+    }
+
+    /** A rule picked on the report screen for [name] (SEND_SNAPSHOT). */
+    fun sendReport(name: String, rule: Int, mute: Boolean = false) = send(GameClientProt.SEND_SNAPSHOT) {
+        pjstr(name)
+        p1(rule)
+        p1(if (mute) 1 else 0)
     }
 
     /** A rank picked for a friend in the friends chat setup list (FRIENDCHAT_SETRANK): 0 none, 1 Recruit to 6 General. */

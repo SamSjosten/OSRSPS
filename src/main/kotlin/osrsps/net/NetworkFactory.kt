@@ -39,6 +39,7 @@ import net.rsprot.protocol.game.incoming.npcs.OpNpc6
 import net.rsprot.protocol.game.incoming.npcs.OpNpcT
 import net.rsprot.protocol.game.incoming.npcs.OpNpcV2
 import net.rsprot.protocol.game.incoming.players.OpPlayer
+import net.rsprot.protocol.game.incoming.players.OpPlayerT
 import net.rsprot.protocol.game.incoming.social.FriendListAdd
 import net.rsprot.protocol.game.incoming.social.FriendListDel
 import net.rsprot.protocol.game.incoming.social.IgnoreListAdd
@@ -46,6 +47,7 @@ import net.rsprot.protocol.game.incoming.social.IgnoreListDel
 import net.rsprot.protocol.game.incoming.resumed.ResumePCountDialog
 import net.rsprot.protocol.game.incoming.resumed.ResumePObjDialog
 import net.rsprot.protocol.game.incoming.friendchat.FriendChatJoinLeave
+import net.rsprot.protocol.game.incoming.misc.user.SendSnapshot
 import net.rsprot.protocol.game.incoming.friendchat.FriendChatKick
 import net.rsprot.protocol.game.incoming.friendchat.FriendChatSetRank
 import net.rsprot.protocol.game.incoming.resumed.ResumePStringDialog
@@ -192,6 +194,9 @@ class NetworkFactory(
         builder.addListener(OpPlayer::class.java, MessageConsumer { player, message ->
             world.onPlayerOp(player, message.index, message.op, message.controlKey)
         })
+        builder.addListener(OpPlayerT::class.java, MessageConsumer { player, message ->
+            world.onPlayerTarget(player, message.index, message.selectedInterfaceId, message.selectedComponentId, message.selectedSub, message.selectedObj)
+        })
         builder.addListener(ResumePCountDialog::class.java, MessageConsumer { player, message ->
             world.onResumeCount(player, message.count)
         })
@@ -200,6 +205,7 @@ class NetworkFactory(
         })
         builder.addListener(FriendChatSetRank::class.java, MessageConsumer { player, message -> world.onFriendsChatSetRank(player, message.name, message.rank) })
         builder.addListener(FriendChatKick::class.java, MessageConsumer { player, message -> world.onFriendsChatKick(player, message.name) })
+        builder.addListener(SendSnapshot::class.java, MessageConsumer { player, message -> world.onReport(player, message.name, message.ruleId, message.mute) })
         builder.addListener(FriendChatJoinLeave::class.java, MessageConsumer { player, message -> world.onFriendsChatJoinLeave(player, message.name) })
         builder.addListener(ResumePStringDialog::class.java, MessageConsumer { player, message -> world.onResumeString(player, message.string) })
         builder.addListener(ResumePauseButton::class.java, MessageConsumer { player, message ->

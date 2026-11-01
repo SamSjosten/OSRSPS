@@ -270,6 +270,12 @@
    "comment": "out on the stairs' east side"
   },
   {
+   "step": "command",
+   "text": "::tele 3210 3494 1",
+   "expectMessage": "Teleported to 3210, 3494, 1",
+   "comment": "into the chapel: a wall along x 3207 keeps it out of a short walk from the stairs (the first VM run timed out walking round)"
+  },
+  {
    "step": "locOption",
    "loc": "Altar",
    "option": "Pray-at",
@@ -279,7 +285,8 @@
   {
    "step": "assertMessage",
    "contains": "[altar.",
-   "comment": "altar.full or altar.recharge: Lumbridge church's altar, the same loc"
+   "comment": "altar.full or altar.recharge: Lumbridge church's altar, the same loc",
+   "timeoutMs": 20000
   },
   {
    "step": "command",
