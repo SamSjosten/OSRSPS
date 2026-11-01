@@ -19,7 +19,8 @@ enum class PlaceResult { PLACED, NO_FREE_SLOT, NOT_TRADEABLE, NOT_ON_EXCHANGE, B
  * the price file changes or the offer is aborted. A buy fills only as far as its buy limit lets it; the rest fills once
  * the limit's window has passed. A sell fills only as far as the same limit lets the player sell in its own window,
  * which live doesn't have: there real buyers run out, and here an endless buyer at the guide price would turn anything
- * a shop sells below it into coins (round 6 exploit review, 1 Nov 2026). An item with no guide price never fills. Offers fill only while their owner is logged
+ * a shop sells below it into coins (round 6 exploit review, 1 Nov 2026); an item with no limit in the snapshot gets
+ * [NO_LIMIT_SELLS] instead. An item with no guide price never fills. Offers fill only while their owner is logged
  * in (inferred: on live they fill while logged out, which here would show the same on the first tick after login).
  */
 class GrandExchange(
@@ -218,16 +219,19 @@ class GrandExchange(
      * How many more of [type] the buy limit lets [player] buy now, counting what they bought of its other doses (see
      * [limitKey]); no limit in the snapshot means no limit.
      */
-    fun limitLeft(player: Player, type: ObjType): Int = left(player.ge.limits, type)
+    fun limitLeft(player: Player, type: ObjType): Int {
+        val limit = prices().limit(type) ?: return Int.MAX_VALUE
+        return left(player.ge.limits, type, limit)
+    }
 
     /**
      * How many more of [type] the bot market will buy from [player] now: the buy limit's number again, counted in its
-     * own window from the first item sold. Not live; see the class comment.
+     * own window from the first item sold, or [NO_LIMIT_SELLS] for an item with a price but no buy limit in the
+     * snapshot. Not live; see the class comment.
      */
-    fun sellLimitLeft(player: Player, type: ObjType): Int = left(player.ge.sellLimits, type)
+    fun sellLimitLeft(player: Player, type: ObjType): Int = left(player.ge.sellLimits, type, prices().limit(type) ?: NO_LIMIT_SELLS)
 
-    private fun left(uses: MutableMap<Int, BuyLimitUse>, type: ObjType): Int {
-        val limit = prices().limit(type) ?: return Int.MAX_VALUE
+    private fun left(uses: MutableMap<Int, BuyLimitUse>, type: ObjType, limit: Int): Int {
         val use = currentUse(uses, limitKey(type.id)) ?: return limit
         return (limit - use.bought).coerceAtLeast(0)
     }
@@ -331,6 +335,13 @@ class GrandExchange(
     private fun noteOf(type: ObjType): ObjType? = objTypes[type.certlink]?.takeIf { it.isCert && it.certlink == type.id }
 
     companion object {
+        /**
+         * How many of an item with a guide price but no buy limit in the snapshot the bot market buys from a player in
+         * four hours. GUESSED: live has real buyers instead; without a number, an endless buyer at the guide price would
+         * turn any such item a shop sells below it into coins (round 7 exploit review, 1 Nov 2026).
+         */
+        const val NO_LIMIT_SELLS = 100
+
         /**
          * How [coins] to collect are paid: as coins while they fit in a stack, else as platinum tokens for the
          * thousands and coins for the rest. The collection box's third slot holds the tokens (script818 and
