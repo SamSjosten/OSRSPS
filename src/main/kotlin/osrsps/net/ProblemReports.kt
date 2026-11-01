@@ -23,7 +23,8 @@ private val logger = KotlinLogging.logger {}
  * big one is ([MAX_BYTES], which the HTTP side enforces before the body is read), how many one address may send in an
  * hour ([PER_ADDRESS_PER_HOUR]), how many everyone together may send in an hour ([PER_HOUR]), and how many may wait
  * here unforwarded ([MAX_WAITING]). Every report sent counts towards its address's limit, taken or not, so an address
- * the server keeps refusing is still held to it; at most [TRACKED] are remembered, so the memory they take is bounded.
+ * the server keeps refusing is still held to it; at most [TRACKED] addresses are remembered, so the memory they take
+ * is bounded, and past that a new address is refused rather than an old one's count forgotten early.
  * The HTTP side asks [admits] before it reads a body. A sender's address is used for the limits and never written
  * down. The waiting reports are counted at most every [RECOUNT], not for every report.
  *
@@ -38,10 +39,12 @@ class ProblemReports(
     /** When each accepted report came in, oldest first. */
     private val accepted = ArrayDeque<Instant>()
     /**
-     * Every report sent in the last hour, taken or not, oldest first, with the address it came from: the per-address
-     * limit counts these, so an address the server refuses for any reason is still held to it. At most [TRACKED].
+     * For each address that sent a report in the last hour, taken or not, when its latest few came in, oldest first:
+     * the per-address limit counts these, so an address the server refuses for any reason is still held to it. Each
+     * keeps at most [PER_ADDRESS_PER_HOUR], and at most [TRACKED] addresses are kept; past that a new address is
+     * refused rather than any address's count let go before its hour is up.
      */
-    private val attempts = ArrayDeque<Pair<Instant, String>>()
+    private val attempts = HashMap<String, ArrayDeque<Instant>>()
     private var lastNumber = 0
     private var waiting = 0
     private var scanned = false
@@ -64,7 +67,12 @@ class ProblemReports(
     @Synchronized
     fun admits(address: String): Boolean {
         forget(clock())
-        return accepted.size < PER_HOUR && attempts.count { it.second == address } < PER_ADDRESS_PER_HOUR
+        return accepted.size < PER_HOUR && underLimit(address)
+    }
+
+    private fun underLimit(address: String): Boolean {
+        val sent = attempts[address] ?: return attempts.size < TRACKED
+        return sent.size < PER_ADDRESS_PER_HOUR
     }
 
     /** Takes the body of a POST /report from [address] (the sender's real address, a PROXY header's when relayed). */
@@ -73,10 +81,13 @@ class ProblemReports(
         if (body.size > MAX_BYTES) return Result.TooLarge
         val now = clock()
         forget(now)
-        val before = attempts.count { it.second == address }
-        attempts.addLast(now to address)
-        if (attempts.size > TRACKED) attempts.removeFirst()
-        if (before >= PER_ADDRESS_PER_HOUR || accepted.size >= PER_HOUR) return Result.TooMany
+        if (!underLimit(address)) {
+            // Still refused while it keeps sending: its newest stands in for its oldest, so its hour starts again.
+            attempts[address]?.let { it.removeFirst(); it.addLast(now) }
+            return Result.TooMany
+        }
+        attempts.getOrPut(address, ::ArrayDeque).addLast(now)
+        if (accepted.size >= PER_HOUR) return Result.TooMany
 
         val text = String(body, Charsets.UTF_8)
         val lines = text.lines()
@@ -111,7 +122,12 @@ class ProblemReports(
     /** Lets go of what is more than an hour old. */
     private fun forget(now: Instant) {
         while (accepted.isNotEmpty() && Duration.between(accepted.first(), now) >= HOUR) accepted.removeFirst()
-        while (attempts.isNotEmpty() && Duration.between(attempts.first().first, now) >= HOUR) attempts.removeFirst()
+        val each = attempts.values.iterator()
+        while (each.hasNext()) {
+            val sent = each.next()
+            while (sent.isNotEmpty() && Duration.between(sent.first(), now) >= HOUR) sent.removeFirst()
+            if (sent.isEmpty()) each.remove()
+        }
     }
 
     /**
@@ -185,7 +201,7 @@ class ProblemReports(
         const val PER_HOUR = 50
         const val MAX_WAITING = 500
 
-        /** How many attempts the per-address limit remembers at most, so a flood from many addresses can't fill memory. */
+        /** How many addresses the per-address limit remembers at most, so a flood from many can't fill memory. */
         const val TRACKED = 2_000
 
         /** How long a count of the waiting reports is trusted before the folder is counted again. */

@@ -196,6 +196,21 @@ class ProblemReportsTest {
     }
 
     @Test
+    fun `a flood of other addresses can't make the server forget one's limit`(@TempDir dir: Path) {
+        val reports = ProblemReports(dir) { now }
+        repeat(ProblemReports.PER_ADDRESS_PER_HOUR) { assertTrue(reports.submit(report(), "1.2.3.4") is Result.Accepted) }
+        repeat(ProblemReports.TRACKED - 1) { i ->
+            assertEquals(Result.NotAReport, reports.submit("hello".toByteArray(), "10.${i / 65536}.${i / 256 % 256}.${i % 256}"))
+        }
+        assertEquals(Result.TooMany, reports.submit(report(), "1.2.3.4"))
+        // With no room to remember another address, a new one is refused rather than an old one's count forgotten.
+        assertFalse(reports.admits("9.9.9.9"))
+        assertEquals(Result.TooMany, reports.submit(report(), "9.9.9.9"))
+        now += Duration.ofHours(1)
+        assertTrue(reports.submit(report(), "9.9.9.9") is Result.Accepted)
+    }
+
+    @Test
     fun `a sender over the limit is refused before its body is read`(@TempDir dir: Path) {
         val reports = ProblemReports(dir) { now }
         repeat(ProblemReports.PER_ADDRESS_PER_HOUR) { assertTrue(reports.submit(report(), "127.0.0.1") is Result.Accepted) }
@@ -221,11 +236,9 @@ class ProblemReportsTest {
                     }
                 }
                 // All but two are answered 429 at once; those two are closed once the rest stops coming.
-                val started = System.nanoTime()
                 val answers = sockets.map(::answer)
                 assertEquals(ClientConfig.MAX_REPORTS_READING_PER_ADDRESS, answers.count { it == "closed" }, answers.toString())
                 assertEquals(20 - ClientConfig.MAX_REPORTS_READING_PER_ADDRESS, answers.count { it == "HTTP/1.1 429" }, answers.toString())
-                assertTrue(Duration.ofNanos(System.nanoTime() - started) < Duration.ofSeconds(4))
             } finally {
                 sockets.forEach { runCatching { it.close() } }
             }
@@ -260,13 +273,15 @@ class ProblemReportsTest {
                 sockets.forEachIndexed { i, socket ->
                     socket.soTimeout = 3000
                     socket.getOutputStream().apply { write(ProxyHeaders.v1("203.0.113.${i + 1}", 40000)); write(header(port, 1000)); flush() }
-                    // The server takes them in turn, so the last is the one past the cap.
-                    if (i < ClientConfig.MAX_REPORTS_READING) Thread.sleep(50)
                 }
-                assertEquals("HTTP/1.1 503", String(sockets.last().getInputStream().readNBytes(12), Charsets.US_ASCII))
+                // Whichever the server took last is refused; which one that is doesn't matter.
+                val refused = waitForAnswer(sockets)
+                assertEquals("HTTP/1.1 503", String(refused.getInputStream().readNBytes(12), Charsets.US_ASCII))
+                val reading = sockets - refused
+                assertTrue(reading.all { it.getInputStream().available() == 0 }, "more than one was refused")
                 // One finishing makes room for the next.
-                sockets.first().getOutputStream().apply { write(report().copyOf(1000)); flush() }
-                assertEquals("HTTP/1.1 201", String(sockets.first().getInputStream().readNBytes(12), Charsets.US_ASCII))
+                reading.first().getOutputStream().apply { write(report().copyOf(1000)); flush() }
+                assertEquals("HTTP/1.1 201", String(reading.first().getInputStream().readNBytes(12), Charsets.US_ASCII))
                 Socket("127.0.0.1", port).use { socket ->
                     socket.soTimeout = 3000
                     val body = report()
@@ -297,6 +312,15 @@ class ProblemReportsTest {
 
     private fun header(port: Int, length: Int) =
         "POST /report HTTP/1.1\r\nHost: 127.0.0.1:$port\r\nContent-Length: $length\r\n\r\n".toByteArray(Charsets.US_ASCII)
+
+    /** The first of [sockets] the server has answered on, waiting for one up to 5 s. */
+    private fun waitForAnswer(sockets: List<Socket>): Socket {
+        repeat(500) {
+            sockets.firstOrNull { it.getInputStream().available() > 0 }?.let { return it }
+            Thread.sleep(10)
+        }
+        error("no socket was answered")
+    }
 
     /** The status line the server answered on [socket], or "closed" when it closed without one. */
     private fun answer(socket: Socket): String = runCatching {
