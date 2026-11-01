@@ -19,6 +19,7 @@ import osrsps.cache.SettingsLoader
 import osrsps.cache.SkillUnlockLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
+import osrsps.cache.overlay.CacheOverlay
 import osrsps.game.EffectIds
 import osrsps.game.AllSettings
 import osrsps.game.SettingsCatalog
@@ -53,6 +54,7 @@ import osrsps.game.combat.Spells
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
+import osrsps.game.raid.PartyScaling
 import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.social.Reports
@@ -136,7 +138,9 @@ class GameServer(
         val skillUnlocks: SkillUnlocks
         val settings: SettingsCatalog
         try {
-            js5 = Js5Store.load(library)
+            val overlay = CacheOverlay.load(dataDir)
+            if (overlay.size > 0) logger.info { "Cache overlay: ${overlay.size} custom group(s): $overlay" }
+            js5 = Js5Store.load(library, overlay)
             map = MapCollisionLoader.loadWorld(library)
             varTypes = VarTypeLoader.load(library)
             objTypes = ObjTypeLoader.load(library)
@@ -196,6 +200,8 @@ class GameServer(
         logger.info { "Loaded the combat of ${npcCombat.size} NPC types" }
         val npcDrops = NpcDrops.load(npcTypes, objTypes)
         logger.info { "Loaded the drops of ${npcDrops.size} NPC types" }
+        val partyScaling = PartyScaling.load(npcTypes)
+        logger.info { "Loaded the party scaling of ${partyScaling.size} raid NPC types" }
         val rangedWeapons = RangedWeapons.load(objTypes, seqNames, spotanimNames)
         logger.info { "Loaded ${rangedWeapons.weaponCount} bows and crossbows and ${rangedWeapons.ammoCount} kinds of ammunition" }
         val spells = Spells.load(objTypes, seqNames, spotanimNames)
@@ -224,7 +230,7 @@ class GameServer(
             Accounts(FileSaveStore(accountDir), lock = FileAccountLock(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
             reportsFile = dataDir.resolve(Reports.FILE_NAME), admins = admins,
-            attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, rangedWeapons = rangedWeapons,
+            attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, partyScaling = partyScaling, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
             specialAttackCosts = specialAttackCosts,

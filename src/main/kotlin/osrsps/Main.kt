@@ -6,6 +6,8 @@ import osrsps.cache.CacheInfo
 import osrsps.cache.MapCollisionLoader
 import osrsps.map.CollisionPrinter
 import osrsps.cache.OpenRs2Archive
+import osrsps.cache.model.ModelCodec
+import osrsps.cache.model.ObjModelImporter
 import osrsps.game.Accounts
 import osrsps.game.FileAccountLock
 import osrsps.game.FileSaveStore
@@ -43,11 +45,55 @@ fun main(args: Array<String>) {
         "collision" -> printCollision(args.getOrNull(1)?.toInt() ?: 3222, args.getOrNull(2)?.toInt() ?: 3218, args.getOrNull(3)?.toInt() ?: 0)
         "dialogue-keys" -> writeDialogueKeys()
         "set-password" -> setPassword(args.getOrNull(1))
+        "import-model" -> importModel(args.drop(1))
         else -> {
-            System.err.println("Usage: osrsps [fetch-cache [build] | cache-info | serve [port] | collision [x z [level]] | dialogue-keys | set-password name]  (HTTP config on port+1)")
+            System.err.println("Usage: osrsps [fetch-cache [build] | cache-info | serve [port] | collision [x z [level]] | dialogue-keys | set-password name | import-model in.obj out.dat [options]]  (HTTP config on port+1)")
             exitProcess(2)
         }
     }
+}
+
+private const val IMPORT_MODEL_USAGE = "Usage: osrsps import-model <in.obj> <out.dat> [--scale f] [--mirror-x] [--flip-faces] [--priority n] [--alpha material=n]..."
+
+/**
+ * Writes an OBJ as a model in the client's format, flat-coloured from its materials and textures, so it can be served
+ * from a data folder as a custom model. Scale 0.25 turns an RS3 model's 512 units a tile into the client's 128.
+ */
+private fun importModel(args: List<String>) {
+    if (args.size < 2) {
+        System.err.println(IMPORT_MODEL_USAGE)
+        exitProcess(2)
+    }
+    val input = Path.of(args[0])
+    val output = Path.of(args[1])
+    var scale = 1.0
+    var mirrorX = false
+    var flipFaces = false
+    var priority = 0
+    val alphas = HashMap<String, Int>()
+    val rest = args.drop(2).iterator()
+    while (rest.hasNext()) {
+        when (val option = rest.next()) {
+            "--scale" -> scale = rest.next().toDouble()
+            "--mirror-x" -> mirrorX = true
+            "--flip-faces" -> flipFaces = true
+            "--priority" -> priority = rest.next().toInt()
+            "--alpha" -> rest.next().let { alphas[it.substringBefore('=')] = it.substringAfter('=').toInt() }
+            else -> {
+                System.err.println("Unknown option $option\n$IMPORT_MODEL_USAGE")
+                exitProcess(2)
+            }
+        }
+    }
+    val result = ObjModelImporter.importFile(input, ObjModelImporter.Options(scale, mirrorX, flipFaces, alphas, priority))
+    val model = result.model
+    val bytes = ModelCodec.encode(model)
+    output.toAbsolutePath().parent?.let(Files::createDirectories)
+    Files.write(output, bytes)
+    println("Wrote ${output.toAbsolutePath()}: ${bytes.size} bytes, ${model.vertexCount} vertices, ${model.faceCount} faces" +
+        " (${result.droppedFaces} collapsed and dropped), ${model.faceColors.distinct().size} colours, materials ${result.materials}")
+    println("Footprint x ${model.vertexX.min()}..${model.vertexX.max()}, z ${model.vertexZ.min()}..${model.vertexZ.max()}" +
+        " (128 a tile); height ${-model.minY} above and ${model.maxY} below the ground")
 }
 
 /**
