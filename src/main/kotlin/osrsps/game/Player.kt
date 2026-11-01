@@ -286,6 +286,13 @@ class Player(
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
 
+    /**
+     * The NPC they last attacked (swung at, fired or cast on, or hit), and the tick they did; see
+     * [osrsps.game.combat.MeleeCombat.fightingAnother]. Not saved.
+     */
+    var attackedNpc: Npc? = null
+    var attackedNpcTick: Long = -1
+
     /** Where their ten minutes towards aggressive monsters' tolerance are counted; see [osrsps.game.combat.Aggression]. Saved. */
     val tolerance = osrsps.game.combat.Tolerance()
 

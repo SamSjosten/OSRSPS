@@ -63,9 +63,9 @@ class HeadlessNpcPoisonTest {
                     client.commandReply("poison npc 30 ${manView.index}") { it.startsWith("Man #") },
                 )
                 client.stepTicks(Poison.TICKS)
-                manLine(client, manView.index).let { assertTrue(it.endsWith("; poisoned, hitting 6 in 1 ticks") && " hp" !in it, "not hit yet: $it") }
+                manLine(client, manView.index).let { assertTrue(it.endsWith("; poisoned, hitting 6 in 1 ticks; fighting no one") && " hp" !in it, "not hit yet: $it") }
                 client.stepTicks(1)
-                assertTrue(manLine(client, manView.index).endsWith("; 1/7 hp; poisoned, hitting 6 in 30 ticks"), "hit 30 ticks on")
+                assertTrue(manLine(client, manView.index).endsWith("; 1/7 hp; poisoned, hitting 6 in 30 ticks; fighting no one"), "hit 30 ticks on")
                 client.commandReply("resume") { it.startsWith("Resumed") }
                 client.await("the man dead and gone", timeoutMillis = 40_000) { Unit.takeIf { client.npcs().none { it.index == manView.index } } }
                 assertEquals(0, client.stat(Skill.ATTACK.id)?.xp)

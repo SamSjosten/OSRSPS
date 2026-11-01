@@ -204,6 +204,39 @@ class AggressionTest {
         assertFalse(melee.foughtByAnother(alice, npc))
         multi.set(0, 3220, 3220, true)
         assertFalse(melee.foughtByAnother(bob, npc))
+        multi.set(0, 3220, 3220, false)
+        // Taking her on counts for eight ticks; after that, with no swing at her, it is free for others.
+        tick += MeleeCombat.IN_COMBAT_TICKS
+        assertTrue(melee.foughtByAnother(bob, npc))
+        tick++
+        assertFalse(melee.foughtByAnother(bob, npc))
+    }
+
+    @Test
+    fun `in single-way combat it leaves a player fighting another NPC alone until that wears off, and in multi-way it joins in`() {
+        val npc = spawn(spider)
+        val other = spawn(spider, 3224, 3220)
+        at(alice, 3221, 3220)
+        // A click on the other one isn't a fight until an attack is made: a bow with no arrows never makes one.
+        alice.interaction = MeleeInteraction(other, melee)
+        process()
+        assertSame(alice, npc.target, "only clicked")
+        melee.endFights(alice)
+        alice.attackedNpc = other
+        alice.attackedNpcTick = tick
+        repeat(MeleeCombat.IN_COMBAT_TICKS.toInt() - 1) { process() }
+        assertNull(npc.target, "she hit the other one lately")
+        multi.set(0, 3221, 3220, true)
+        process()
+        assertSame(alice, npc.target, "multi-way")
+        val third = spawn(spider, 3240, 3240)
+        at(alice, 3241, 3240)
+        alice.attackedNpc = other
+        alice.attackedNpcTick = tick
+        repeat(MeleeCombat.IN_COMBAT_TICKS.toInt()) { process() }
+        assertNull(third.target, "still in her fight")
+        process()
+        assertSame(alice, third.target, "her hit has worn off")
     }
 
     @Test

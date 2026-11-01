@@ -195,6 +195,9 @@ class Npc(
     var target: Player? = null
         internal set
 
+    /** The tick it last took on or swung at its [target]; see [osrsps.game.combat.MeleeCombat.foughtByAnother]. */
+    internal var fightTick: Long = -1
+
     /** The first tick it may swing at its target again. */
     internal var nextAttackTick: Long = 0
 
