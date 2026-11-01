@@ -96,6 +96,7 @@ class FriendChats(
             notify(player, FriendsChatLines.BANNED)
             return
         }
+        if (bannedUntil != null) channel.banned.remove(player.saveKey)
         if (rank(channel, player) < channel.settings.enter) {
             notify(player, FriendsChatLines.NOT_ALLOWED)
             if (channel.members.isEmpty()) channels.remove(channel.ownerKey)
@@ -250,7 +251,10 @@ class FriendChats(
             notify(kicker, FriendsChatLines.CANT_KICK)
             return
         }
-        channel.banned[target.saveKey] = tick() + BAN_TICKS
+        // Bans past their hour go first, so a channel that never empties keeps only the last hour's kicks.
+        val now = tick()
+        channel.banned.values.removeIf { it <= now }
+        channel.banned[target.saveKey] = now + BAN_TICKS
         leave(target, quiet = true)
         target.friendsChatOwner = null
         notify(target, FriendsChatLines.KICKED)
