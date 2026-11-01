@@ -315,13 +315,40 @@ class ProblemReportsTest {
                 Socket("127.0.0.1", port).use { one ->
                     one.soTimeout = 5000
                     runCatching { one.getOutputStream().apply { write("GET /version HTTP/1.1\r\n".toByteArray()); flush() } }
-                    assertEquals(-1, runCatching { one.getInputStream().read() }.getOrElse { -1 }, "one too many from one address")
+                    assertClosed(one, "one too many from one address")
                 }
                 // Someone else, through the relay, is answered all the same.
                 Socket("127.0.0.1", port).use { other ->
                     other.soTimeout = 5000
                     other.getOutputStream().apply {
                         write(ProxyHeaders.v1("203.0.113.9", 40000))
+                        write("GET /version HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n".toByteArray())
+                        flush()
+                    }
+                    assertEquals("HTTP/1.1 200", String(other.getInputStream().readNBytes(12), Charsets.US_ASCII))
+                }
+            } finally {
+                held.forEach { runCatching { it.close() } }
+            }
+        }
+    }
+
+    @Test
+    fun `connections that send only a PROXY header still count against their sender`(@TempDir dir: Path) {
+        val proxy = ProxyProtocol(setOf("127.0.0.1"), ProxyProtocol.Mode.OPTIONAL)
+        serve(ProblemReports(dir) { now }, proxy = proxy) { http, port ->
+            val held = (1..ClientConfig.MAX_CONNECTIONS_PER_ADDRESS).map { Socket("127.0.0.1", port).apply { soTimeout = 5000 } }
+            try {
+                for (socket in held) sent(http) { socket.getOutputStream().apply { write(ProxyHeaders.v1("203.0.113.50", 40000)); flush() } }
+                Socket("127.0.0.1", port).use { one ->
+                    one.soTimeout = 5000
+                    runCatching { one.getOutputStream().apply { write(ProxyHeaders.v1("203.0.113.50", 40001)); flush() } }
+                    assertClosed(one, "one too many from one address")
+                }
+                Socket("127.0.0.1", port).use { other ->
+                    other.soTimeout = 5000
+                    other.getOutputStream().apply {
+                        write(ProxyHeaders.v1("203.0.113.51", 40000))
                         write("GET /version HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n".toByteArray())
                         flush()
                     }
@@ -395,6 +422,13 @@ class ProblemReportsTest {
         val before = http.reads.get()
         write()
         await { http.reads.get() > before }
+    }
+
+    /** Asserts the server closed [socket]: a reset counts, but a read that times out (still open) fails. */
+    private fun assertClosed(socket: Socket, message: String) {
+        val read = runCatching { socket.getInputStream().read() }
+            .getOrElse { if (it is java.net.SocketTimeoutException) throw AssertionError("$message: still open", it) else -1 }
+        assertEquals(-1, read, message)
     }
 
     /** Waits up to 5 s for [done], polling: for the server to have done something, never for time to pass. */

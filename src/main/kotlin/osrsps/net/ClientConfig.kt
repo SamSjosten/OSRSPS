@@ -342,8 +342,8 @@ class ClientConfig(
      * Closes a connection past [MAX_CONNECTIONS] the moment it opens, and one past [MAX_CONNECTIONS_PER_ADDRESS] from
      * its sender, so one address can't hold them all. The port is reachable from the internet, and a connection costs
      * a little memory however idle; [sweep] ends the idle and the slow ones. A relay's connection is counted by the
-     * address in its PROXY header, which [ProxyProtocol]'s guard has read before the first bytes get here; anyone
-     * else's by its own address, as it opens.
+     * address in its PROXY header, as soon as that header is read ([ProxyProtocol.HeaderRead]), or at its first bytes
+     * when it came without one; anyone else's by its own address, as it opens.
      */
     private inner class ConnectionLimit : ChannelInboundHandlerAdapter() {
         private var counted = false
@@ -373,6 +373,15 @@ class ClientConfig(
             }
             reads.incrementAndGet()
             ctx.fireChannelRead(msg)
+        }
+
+        override fun userEventTriggered(ctx: ChannelHandlerContext, event: Any) {
+            if (event === ProxyProtocol.HeaderRead) {
+                connections[ctx.channel()]?.lastRead = clock()
+                reads.incrementAndGet()
+                if (address == null && !countAddress(ctx)) return
+            }
+            ctx.fireUserEventTriggered(event)
         }
 
         /** Counts this connection against its sender's; closes it and says false when that is one too many. */
