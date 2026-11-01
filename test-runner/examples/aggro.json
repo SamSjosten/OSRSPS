@@ -1,0 +1,19 @@
+{
+ "name": "NPC aggression: a giant spider spawned beside the player goes for them unprovoked, read off ::npcs, and ::aggro's tolerance count",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account, combat level 3, at most twice the spider's 2; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle, away from the courtyard's men"},
+  {"step": "command", "text": "::god", "expectMessage": "You can't be hurt now", "comment": "its bites do nothing; ::god again at the end"},
+  {"step": "command", "text": "::aggro 0", "expectMessage": "0 ticks in the areas around", "comment": "the ten minutes start again, so it isn't tolerant of us yet"},
+  {"step": "command", "text": "::npc giantspider1", "expectMessage": "Spawned Giant spider"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "command", "text": "::npcs 3", "expectMessage": "; fighting test", "comment": "nobody attacked it: it found us"},
+  {"step": "command", "text": "::aggro 1000", "expectMessage": "aggressive monsters here are tolerant of you."},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed 1 NPC you put in."},
+  {"step": "command", "text": "::aggro 0", "expectMessage": "aggressive monsters here leave you alone in 1000 ticks."},
+  {"step": "command", "text": "::god", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
