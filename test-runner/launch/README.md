@@ -46,8 +46,9 @@ It prints each stage with the time and exits with 1 and the reason when a stage 
 
 ## The Odin's Gate launcher instead of RSProx
 
-The launcher (`launcher/README.md`) is what friends will get instead of RSProx, and the VM runs it the same way:
-through a scheduled task, so the client runs on the signed-in desktop and outlives the session that started it.
+The launcher (the OdinsGate repository's `launcher/README.md`) is what friends get instead of RSProx, and the VM runs it
+the same way: through a scheduled task, so the client runs on the signed-in desktop and outlives the session that
+started it.
 
 - `OdinsGate.cmd` is that task's command. It runs the installed launcher at `C:\RSPS\launcher\app\bin` with
   `--auto --dev --home C:\RSPS\launcher --status-file C:\RSPS\launcher\status.json --manifest
@@ -79,8 +80,8 @@ through a scheduled task, so the client runs on the signed-in desktop and outliv
   and waiting on the status file); `start-client-functions.tests.ps1` checks them, in CI's `launch-scripts` job with
   PowerShell 7 on Linux or by hand with `pwsh -NoProfile -File .\test-runner\launch\start-client-functions.tests.ps1`.
 
-Installing it, once per launcher build (the `odinsgate-launcher` artifact of CI's `launcher` job is the installed
-layout, `bin\` and `lib\`; nightly.link serves it without a login):
+Installing it, once per launcher build (the `odinsgate-launcher` artifact of the OdinsGate repository's CI `launcher`
+job is the installed layout, `bin\` and `lib\`; nightly.link serves it without a login):
 
 ```powershell
 Expand-Archive .\odinsgate-launcher.zip C:\RSPS\launcher\app -Force
