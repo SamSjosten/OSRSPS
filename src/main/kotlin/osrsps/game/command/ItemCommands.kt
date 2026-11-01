@@ -32,9 +32,10 @@ fun CommandRegistry.registerItemCommands(world: World) {
         }
     }
 
-    // Bank anywhere; the rotten potato's Peel runs it too.
-    register("bank", "::bank") {
-        if (args.isNotEmpty()) fail("Usage: ::bank")
+    // Bank anywhere; the rotten potato's Peel runs it too. Not ::bank: the client keeps that one to itself (see
+    // CommandRegistry.CLIENT_PREFIXES).
+    register("openbank", "::openbank") {
+        if (args.isNotEmpty()) fail("Usage: ::openbank")
         world.scripts.interrupt(player)
         world.bankScreen.open(player)
     }

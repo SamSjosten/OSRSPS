@@ -1,0 +1,184 @@
+{
+ "name": "Draynor piece step 5: Leela's talk, out of the jail cell and locked from outside, a jail guard fought, Morgan's first and later talks (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3113 3262 0",
+   "expectMessage": "Teleported to 3113, 3262, 0",
+   "comment": "by Leela, north-west of the jail"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Leela",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[leela.friend]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[leela.here]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[leela.point]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[leela.luck]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3123 3242 0",
+   "expectMessage": "Teleported to 3123, 3242, 0",
+   "comment": "inside the cell"
+  },
+  {
+   "step": "locOption",
+   "loc": "Prison Gate",
+   "option": "Open",
+   "x": 3123,
+   "y": 3243
+  },
+  {
+   "step": "assertLocation",
+   "x": 3123,
+   "y": 3244,
+   "plane": 0,
+   "comment": "walked out through the cell door"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Prison Gate",
+   "x": 3123,
+   "y": 3243,
+   "comment": "and it shut behind"
+  },
+  {
+   "step": "locOption",
+   "loc": "Prison Gate",
+   "option": "Open",
+   "x": 3123,
+   "y": 3243
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_jail.locked]"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Jail guard",
+   "option": "Attack",
+   "comment": "any of the four"
+  },
+  {
+   "step": "assertHitsplat",
+   "npc": "Jail guard"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3098 3267 0",
+   "expectMessage": "Teleported to 3098, 3267, 0",
+   "comment": "Morgan's house; leaves the fight"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 15611 0",
+   "expectMessage": "Varbit 15611",
+   "comment": "morgan_postquest_dialogue: his first talk again, whatever an earlier run left"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Morgan",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[morgan.no_more]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[morgan.hero]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[morgan.helped]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 15611,
+   "value": 1,
+   "comment": "morgan_postquest_dialogue: the first talk after the quest is done"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Morgan",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[morgan.once]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[morgan.dont]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

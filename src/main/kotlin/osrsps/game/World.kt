@@ -86,6 +86,8 @@ import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
+import osrsps.game.content.HomeTeleport
+import osrsps.game.content.message
 import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerCandleSeller
@@ -111,6 +113,7 @@ import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
+import osrsps.game.content.registerDraynorJail
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
@@ -434,6 +437,13 @@ class World(
         multi = multiCombat, poweredStaves = poweredStaves, words = ::textFor,
     )
 
+    /** Lumbridge Home Teleport; see [HomeTeleport]. Its destination and cooldown are seams other teleports can swap. */
+    val homeTeleport = HomeTeleport(
+        currentTick = { tick }, nowMinutes = { System.currentTimeMillis() / 60_000 }, inCombat = { inCombat(it) },
+        teleport = { player, to -> teleport(player, to.x, to.z, to.level) },
+        message = { player, line, values -> message(player, line, *values) },
+    )
+
     /** Player death and gravestones; see [Deaths]. */
     val deaths: Deaths = Deaths(
         objTypes, graveType = npcTypes[Deaths.GRAVE], currentTick = { tick },
@@ -590,6 +600,7 @@ class World(
         registerDraynorMarket(this)
         registerNed(this)
         registerAggie(this)
+        registerDraynorJail(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -606,6 +617,7 @@ class World(
         registerVarrock(this)
         registerCrops(this)
         ducks.register()
+        homeTeleport.register(handlers)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
         interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
         interfaces.onClose(Trades.MAIN, trades::mainClosed)

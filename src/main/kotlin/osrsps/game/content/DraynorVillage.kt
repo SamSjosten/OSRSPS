@@ -2,6 +2,8 @@ package osrsps.game.content
 
 import osrsps.game.GameLines
 import osrsps.game.World
+import osrsps.game.dialogue.ChatAnim
+import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
 import osrsps.game.zone.ZoneLoc
@@ -12,6 +14,15 @@ object DraynorSearchLines : Lines("draynor_search", "Draynor Village") {
     val BOOKCASE_EMPTY = line("bookcase_empty", "Search on the bookcase in the north-east house")
     val GARLIC = line("garlic", "Search on Morgan's open cupboard upstairs: a clove of garlic is found (the Wiki, Garlic)")
     val GARLIC_NO_ROOM = line("garlic_no_room", "the same with a full inventory; words guessed")
+}
+
+/** Morgan's lines once Vampyre Slayer is done (the Wiki's Transcript:Morgan, read 2026-10-30). */
+object MorganLines : Lines("morgan", "Transcript:Morgan") {
+    val NO_MORE = line("no_more", "the first talk after Vampyre Slayer: the player's first line")
+    val HERO = line("hero", "the first talk: Morgan's answer")
+    val HELPED = line("helped", "the first talk: the player's last line")
+    val ONCE = line("once", "later talks: Morgan's line")
+    val DONT = line("dont", "later talks: the player's answer")
 }
 
 /**
@@ -59,6 +70,27 @@ object DraynorVillage {
     /** Garlic. */
     const val GARLIC = 1550
 
+    /**
+     * Morgan (3479, step 5) is a multi-NPC on varbit 15611 (morgan_postquest_dialogue): `morgan_pre` (16274) talks as
+     * the first time after Vampyre Slayer and sets the varbit, `morgan_post` (16275) as later times. Inferred from the
+     * names and the Wiki's "First time" and "Subsequent times"; the chathead expressions are guessed.
+     */
+    const val MORGAN_FIRST = 16274
+    const val MORGAN_LATER = 16275
+    const val MORGAN_VARBIT = 15611
+    const val TALK_TO = 1
+
+    internal suspend fun Dialogue.morganFirst(): Unit = with(MorganLines) {
+        chatPlayer(ChatAnim.HAPPY, NO_MORE)
+        chatNpc(ChatAnim.HAPPY, HERO)
+        chatPlayer(ChatAnim.HAPPY, HELPED)
+    }
+
+    internal suspend fun Dialogue.morganLater(): Unit = with(MorganLines) {
+        chatNpc(ChatAnim.HAPPY, ONCE)
+        chatPlayer(ChatAnim.HAPPY, DONT)
+    }
+
     /** Where each straight staircase, by the tile of the loc clicked, puts the player. */
     val STAIRS: Map<Triple<Int, Int, Int>, Destination> = mapOf(
         Triple(3099, 3266, 0) to Destination(3102, 3266, 1),
@@ -88,6 +120,12 @@ fun registerDraynorVillage(world: World) {
         world.handlers.onLoc(GARLIC_CUPBOARD, 1) { op -> swapFurniture(world, op.loc!!, GARLIC_CUPBOARD_OPEN, Searching.ANIM_OPEN) }
         world.handlers.onLoc(GARLIC_CUPBOARD_OPEN, 2) { op -> swapFurniture(world, op.loc!!, GARLIC_CUPBOARD, Searching.ANIM_SHUT) }
         world.handlers.onLoc(GARLIC_CUPBOARD_OPEN, 1) { searchGarlic(world) }
+
+        world.handlers.onNpc(MORGAN_FIRST, TALK_TO) { op ->
+            world.dialogues.start(this, op.npc) { morganFirst() }
+            if (player.vars.types.varbit(MORGAN_VARBIT) != null) player.vars.setVarbit(MORGAN_VARBIT, 1)
+        }
+        world.handlers.onNpc(MORGAN_LATER, TALK_TO) { op -> world.dialogues.start(this, op.npc) { morganLater() } }
     }
 }
 

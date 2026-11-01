@@ -135,47 +135,48 @@ object Aggie {
         dyeMenu(give)
     }
 
+    /** The colour menu, again after each "other colours" for as long as the player asks: a loop, so no frames pile up. */
     private suspend fun Dialogue.dyeMenu(give: (Player, Int) -> Unit): Unit = with(AggieLines) {
-        val picked = choice(RED, YELLOW, BLUE, HAPPY)
-        if (picked == 4) {
-            chatPlayer(ChatAnim.HAPPY, HAPPY)
-            chatNpc(ChatAnim.NEUTRAL, HAPPY_ANSWER)
-            return@with
-        }
-        val dye = Dye.entries[picked - 1]
-        chatPlayer(ChatAnim.QUIZ, dye.ask)
-        chatNpc(ChatAnim.NEUTRAL, dye.cost)
-        when (choice(dye.make, NOT_YET, PRICE, dye.where, OTHER)) {
-            1 -> {
-                chatPlayer(ChatAnim.HAPPY, dye.make)
-                make(dye, give)
+        while (true) {
+            val picked = choice(RED, YELLOW, BLUE, HAPPY)
+            if (picked == 4) {
+                chatPlayer(ChatAnim.HAPPY, HAPPY)
+                chatNpc(ChatAnim.NEUTRAL, HAPPY_ANSWER)
+                return@with
             }
-            2 -> {
-                chatPlayer(ChatAnim.NEUTRAL, NOT_YET)
-                chatNpc(ChatAnim.NEUTRAL, NOT_YET_ANSWER)
-            }
-            3 -> {
-                chatPlayer(ChatAnim.NEUTRAL, PRICE)
-                chatNpc(ChatAnim.ANGRY, PRICE_ANSWER)
-            }
-            4 -> {
-                if (dye.playerAsksWhere) chatPlayer(ChatAnim.QUIZ, dye.where)
-                chatNpc(ChatAnim.NEUTRAL, dye.whereAnswer)
-                if (choice(OTHER, THANKS) == 1) {
-                    otherColours(give)
-                } else {
-                    chatPlayer(ChatAnim.HAPPY, THANKS)
-                    chatNpc(ChatAnim.HAPPY, WELCOME)
+            val dye = Dye.entries[picked - 1]
+            chatPlayer(ChatAnim.QUIZ, dye.ask)
+            chatNpc(ChatAnim.NEUTRAL, dye.cost)
+            when (choice(dye.make, NOT_YET, PRICE, dye.where, OTHER)) {
+                1 -> {
+                    chatPlayer(ChatAnim.HAPPY, dye.make)
+                    make(dye, give)
+                    return@with
+                }
+                2 -> {
+                    chatPlayer(ChatAnim.NEUTRAL, NOT_YET)
+                    chatNpc(ChatAnim.NEUTRAL, NOT_YET_ANSWER)
+                    return@with
+                }
+                3 -> {
+                    chatPlayer(ChatAnim.NEUTRAL, PRICE)
+                    chatNpc(ChatAnim.ANGRY, PRICE_ANSWER)
+                    return@with
+                }
+                4 -> {
+                    if (dye.playerAsksWhere) chatPlayer(ChatAnim.QUIZ, dye.where)
+                    chatNpc(ChatAnim.NEUTRAL, dye.whereAnswer)
+                    if (choice(OTHER, THANKS) != 1) {
+                        chatPlayer(ChatAnim.HAPPY, THANKS)
+                        chatNpc(ChatAnim.HAPPY, WELCOME)
+                        return@with
+                    }
                 }
             }
-            else -> otherColours(give)
+            // Other colours: the player asks, Aggie answers, and the colour menu comes round again.
+            chatPlayer(ChatAnim.QUIZ, OTHER)
+            chatNpc(ChatAnim.NEUTRAL, OTHER_ANSWER)
         }
-    }
-
-    private suspend fun Dialogue.otherColours(give: (Player, Int) -> Unit) {
-        chatPlayer(ChatAnim.QUIZ, AggieLines.OTHER)
-        chatNpc(ChatAnim.NEUTRAL, AggieLines.OTHER_ANSWER)
-        dyeMenu(give)
     }
 
     /** Makes [dye] if the player has its ingredients and 5 coins: also what using an ingredient on Aggie does. */

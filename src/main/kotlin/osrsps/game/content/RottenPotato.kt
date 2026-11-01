@@ -23,6 +23,9 @@ object RottenPotatoLines : Lines("rotten_potato", "Rotten potato") {
 
     val BANK_MENU = line("bank_menu", "Peel, the first option")
 
+    val KICK_ME_OUT = line("kick_me_out", "Mash, the second option")
+    val KILL_ME = line("kill_me", "Mash, the third option")
+
     val SETSTAT = line("setstat", "Eat, Set all stats: the message for each skill", "skill", "level")
     val FINISHED = line("finished", "Eat, Set all stats: the last message")
 }
@@ -33,7 +36,8 @@ object RottenPotatoLines : Lines("rotten_potato", "Rotten potato") {
  * potato Eat, Slice, Peel and Mash; Eat's options are from the OSRS Wiki's page (read 2026-10-30). Live's third, Setup
  * POH, is Heal me here, as there are no houses. Peel (iop3) keeps its Bank menu; with no rares or random events, Teleport
  * to RARE! and Spawn RARE! become Teleport to a tile and Spawn an item, and AMEs for all! is left out. Slice (iop2),
- * live's random events, holds our testing tools.
+ * live's random events, holds our testing tools. Mash (iop4) keeps Kick me out and Kill me; there is no idle logout
+ * for Keep me logged in to turn off, and no Transmogrify me yet.
  */
 object RottenPotato {
     const val OBJ = 5733
@@ -41,6 +45,7 @@ object RottenPotato {
     const val EAT = 1
     const val SLICE = 2
     const val PEEL = 3
+    const val MASH = 4
 
     /** Our own, in place of Setup POH; not live's words, so not in the dialogue file. */
     const val HEAL_ME = "Heal me"
@@ -71,6 +76,7 @@ fun registerRottenPotato(world: World) {
     world.handlers.onObj(RottenPotato.OBJ, RottenPotato.EAT) { op -> if (admin(world, op.sub)) eat(world) }
     world.handlers.onObj(RottenPotato.OBJ, RottenPotato.SLICE) { op -> if (admin(world, op.sub)) slice(world) }
     world.handlers.onObj(RottenPotato.OBJ, RottenPotato.PEEL) { op -> if (admin(world, op.sub)) peel(world) }
+    world.handlers.onObj(RottenPotato.OBJ, RottenPotato.MASH) { op -> if (admin(world, op.sub)) mash(world) }
 }
 
 /** Whether the player is an admin; a non-admin's potato in [slot] is taken. */
@@ -108,7 +114,7 @@ private suspend fun ScriptContext.peel(world: World) {
         picked = choice(text(RottenPotatoLines.BANK_MENU), RottenPotato.TELEPORT_TO_TILE, RottenPotato.SPAWN_ITEM)
     }
     when (picked) {
-        1 -> command(world, "bank")
+        1 -> command(world, "openbank")
         2 -> command(world, "tele " + stringDialog(RottenPotato.TILE_PROMPT))
         3 -> command(world, "item " + stringDialog(RottenPotato.ITEM_PROMPT))
     }
@@ -133,6 +139,20 @@ private suspend fun ScriptContext.slice(world: World) {
             }
         }
         5 -> command(world, "reset")
+    }
+}
+
+private suspend fun ScriptContext.mash(world: World) {
+    var picked = 0
+    world.dialogues.start(this) { picked = choice(text(RottenPotatoLines.KICK_ME_OUT), text(RottenPotatoLines.KILL_ME)) }
+    when (picked) {
+        // As the logout button: the end of the tick, and not within 16 ticks of being hit. Guessed: live's may skip that.
+        1 -> {
+            logger.info { "${player.username} logged out with a rotten potato" }
+            player.logoutRequested = true
+        }
+        // A hit of every hitpoint left, so the death is the game's own: the grave, the items kept. ::god stops it.
+        2 -> if (!player.dead) command(world, "hit ${player.hitpoints} me")
     }
 }
 
