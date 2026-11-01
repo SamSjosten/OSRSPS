@@ -27,8 +27,8 @@ object JailLines : Lines("draynor_jail", "Draynor Village jail") {
  * counts as done.
  *
  * - The four jail guards (`jailguard` 4276 and its three `…_patrol` types) fight as npc-combat.json has them and drop
- *   bones; the 241 types have Attack only (the Wiki: Talk-to went with Beneath Cursed Sands). The Wiki calls them
- *   aggressive, which waits for NPC aggression.
+ *   bones; the 241 types have Attack only (the Wiki: Talk-to went with Beneath Cursed Sands). They're aggressive, as
+ *   the Wiki has them ([osrsps.game.combat.Aggression]).
  * - Joe, Lady Keli and the jailed Prince Ali are gone after the quest: the 241 cache's `joe`, `lady_keli` and
  *   `prince_ali_prison` show nothing once varp 273 is past 100, 40 and 90. None is spawned.
  * - The cell door (`alidoor` 2881) lets the player out from inside and is locked from outside, as 2004Scape's script
