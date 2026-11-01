@@ -26,9 +26,13 @@ object DimintheisLines : Lines("dimintheis", "Transcript:Dimintheis") {
     val REWARDS = line("rewards", "help: the closing box about rewards to come")
     val GREETING = line("greeting", "other: his greeting after Defender of Varrock")
     val GAUNTLETS = line("gauntlets", "other: the player asks for gauntlets")
-    val RETURNED = line("returned", "other, gauntlets lost: they were returned to him; does the player want them?")
+    val RETURNED_CHAOS = line("returned_chaos", "other, chaos gauntlets lost: they were returned to him; does the player want them?")
+    val RETURNED_COOKING = line("returned_cooking", "other, cooking gauntlets lost: as returned_steel")
+    val RETURNED_GOLDSMITH = line("returned_goldsmith", "other, goldsmith gauntlets lost: as returned_steel")
+    val RETURNED_STEEL = line("returned_steel", "other, the plain family gauntlets lost: as returned_chaos")
     val YES_PLEASE = line("yes_please", "the returned gauntlets' menu, option 1, which the player then says")
     val HANDS_OVER = line("hands_over", "yes please: the box as he hands them over")
+    val HERE_YOU_GO = line("here_you_go", "yes please: his line before the box")
     val NOT_NOW = line("not_now", "the returned gauntlets' menu, option 2, which the player then says")
     val ANY_TIME = line("any_time", "not now: come back any time")
     val HAVE_THEM = line("have_them", "other, gauntlets owned: he hasn't got them, the player has")
@@ -123,11 +127,12 @@ object VarrockFitzharmons {
             chatNpc(ChatAnim.NEUTRAL, HAVE_THEM)
             return@with
         }
-        chatNpc(ChatAnim.NEUTRAL, RETURNED)
+        val pair = lastPair(player)
+        chatNpc(ChatAnim.NEUTRAL, returned(pair))
         if (choice(YES_PLEASE, NOT_NOW) == 1) {
             chatPlayer(ChatAnim.HAPPY, YES_PLEASE)
-            // Checked again: the player may have got a pair while the box was open.
-            val pair = lastPair(player)
+            chatNpc(ChatAnim.HAPPY, HERE_YOU_GO)
+            // Checked again: the player may have got a pair while the boxes were open.
             if (!ownsGauntlets(player)) give(pair)
             objbox(pair, HANDS_OVER)
         } else {
@@ -191,6 +196,14 @@ object VarrockFitzharmons {
         }
         val (slot, obj) = player.inventory.contents().firstOrNull { it.second.id in CHANGEABLE } ?: return null
         return Changeable(obj.id) { player.inventory[slot] = InvObj(CHAOS_GAUNTLETS, 1) }
+    }
+
+    /** Dimintheis's line naming the returned [pair]. */
+    private fun returned(pair: Int) = when (pair) {
+        CHAOS_GAUNTLETS -> DimintheisLines.RETURNED_CHAOS
+        COOKING_GAUNTLETS -> DimintheisLines.RETURNED_COOKING
+        GOLDSMITH_GAUNTLETS -> DimintheisLines.RETURNED_GOLDSMITH
+        else -> DimintheisLines.RETURNED_STEEL
     }
 
     /** The pair the player last had enchanted, which Dimintheis hands back; the plain pair before any. */

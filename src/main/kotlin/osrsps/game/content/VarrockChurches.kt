@@ -24,8 +24,9 @@ object ElsieLines : Lines("elsie", "Transcript:Elsie") {
     val FOR_TEA = line("for_tea", "option 2: a story for a cup of tea")
     val THINK = line("think", "option 2's only option, which ends the talk")
     val RICH = line("rich", "option 3, which the player then says")
-    val TRADE = line("trade", "option 3: get a trade, don't fight in the Wilderness")
-    val ORE_FOOD = line("ore_food", "option 3: folk nearby buy ore and food")
+    val TRADE = line("trade", "option 3: her father's advice, the first of three boxes")
+    val TRADE_2 = line("trade_2", "option 3: the second box")
+    val ORE_FOOD = line("ore_food", "option 3: the third box")
     val THANKS = line("thanks", "option 3: the player's thanks")
     val TEA = line("tea", "a cup of tea used on her: is it for her?")
     val TEA_STORY = line("tea_story", "a cup of tea used on her: a story for it")
@@ -113,6 +114,7 @@ object VarrockChurches {
                 else -> {
                     chatPlayer(ChatAnim.QUIZ, RICH)
                     chatNpc(ChatAnim.NEUTRAL, TRADE)
+                    chatNpc(ChatAnim.NEUTRAL, TRADE_2)
                     chatNpc(ChatAnim.NEUTRAL, ORE_FOOD)
                     chatPlayer(ChatAnim.HAPPY, THANKS)
                 }

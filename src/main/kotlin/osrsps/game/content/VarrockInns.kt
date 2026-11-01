@@ -64,7 +64,8 @@ object BlueMoonCookLines : Lines("bluemoon_cook", "Transcript:Cook (Blue Moon In
     val CABBAGE = line("cabbage", "option 1: a cabbage, it's healthy")
     val NO_MONEY = line("no_money", "option 1, no coins: the player has no money")
     val NO_SPACE = line("no_space", "option 1, a full backpack: the player has no room")
-    val WASTE = line("waste", "after no money or no room: he scolds the player away")
+    val WASTE_MONEY = line("waste_money", "after no money: he scolds the player away for having none")
+    val WASTE_SPACE = line("waste_space", "after no room: he scolds the player away for not being able to carry it")
     val BUY = line("buy", "the cabbage menu's option 1, which the player then says")
     val EAT_IT = line("eat_it", "bought: eat it")
     val DONT_LIKE = line("dont_like", "the cabbage menu's option 2, which the player then says")
@@ -88,7 +89,7 @@ object JollyBoarCookLines : Lines("jollyboar_cook", "Transcript:Cook (Jolly Boar
     val WHY = line("why", "option 2, which the player then says")
     val WHY_LINES = (1..8).map { line("why_$it", "option 2: line $it of the Wiki's eight after the ask, his and the player's in turn") }
     val JOKE = line("joke", "option 3, which the player then says")
-    val JOKE_LINES = (1..5).map { line("joke_$it", "option 3: line $it of the Wiki's five after the ask (his three, the player's, his punchline and the player's)") }
+    val JOKE_LINES = (1..5).map { line("joke_$it", "option 3: line $it of the Wiki's five after the ask (his two, the player's, his punchline and the player's)") }
 }
 
 /**
@@ -218,11 +219,11 @@ object VarrockInns {
                 when {
                     coins() < CABBAGE_PRICE -> {
                         chatPlayer(ChatAnim.SAD, NO_MONEY)
-                        chatNpc(ChatAnim.ANGRY, WASTE)
+                        chatNpc(ChatAnim.ANGRY, WASTE_MONEY)
                     }
                     player.inventory.contents().size >= Inventory.INV_CAPACITY -> {
                         chatPlayer(ChatAnim.SAD, NO_SPACE)
-                        chatNpc(ChatAnim.ANGRY, WASTE)
+                        chatNpc(ChatAnim.ANGRY, WASTE_SPACE)
                     }
                     choice(BUY, DONT_LIKE) == 1 -> {
                         chatPlayer(ChatAnim.HAPPY, BUY)
