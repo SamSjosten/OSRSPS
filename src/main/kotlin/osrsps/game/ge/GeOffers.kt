@@ -39,7 +39,10 @@ data class GeOffer(
     val remaining: Int get() = quantity - completed
 }
 
-/** How much of [item] a player has bought in the buy limit's window, which started at [windowStart] (ms since 1970). */
+/**
+ * How much of [item] a player has bought in the buy limit's window, which started at [windowStart] (ms since 1970); or,
+ * in GeAccount.sellLimits, sold.
+ */
 data class BuyLimitUse(val item: Int, val windowStart: Long, val bought: Int)
 
 /**
@@ -58,6 +61,9 @@ class GeAccount {
 
     /** By item id; entries whose window has passed are dropped when next looked at. */
     val limits = LinkedHashMap<Int, BuyLimitUse>()
+
+    /** What the bot market has bought from the player against the same limits, by item; see GrandExchange.sellLimitLeft. */
+    val sellLimits = LinkedHashMap<Int, BuyLimitUse>()
 
     /** Offers collected to nothing since the screen last flushed, by slot; see GrandExchange.collect. Not saved. */
     val collected = arrayOfNulls<GeOffer>(SLOTS)
@@ -87,6 +93,7 @@ class GeAccount {
         offers.fill(null)
         collected.fill(null)
         limits.clear()
+        sellLimits.clear()
         history.clear()
     }
 

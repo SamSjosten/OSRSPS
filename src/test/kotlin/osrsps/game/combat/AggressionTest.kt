@@ -193,6 +193,20 @@ class AggressionTest {
     }
 
     @Test
+    fun `in single-way combat a monster hunting a player who doesn't fight back is still theirs, and in multi-way it isn't`() {
+        val npc = spawn(spider)
+        at(alice, 3221, 3220)
+        at(bob, 3260, 3260)
+        process()
+        assertSame(alice, npc.target)
+        assertNull(npc.attacker)
+        assertTrue(melee.foughtByAnother(bob, npc))
+        assertFalse(melee.foughtByAnother(alice, npc))
+        multi.set(0, 3220, 3220, true)
+        assertFalse(melee.foughtByAnother(bob, npc))
+    }
+
+    @Test
     fun `after ten minutes in the area tolerant monsters stop, and a boss doesn't`() {
         val spiderNpc = spawn(spider)
         val bossNpc = spawn(boss, 3216, 3216)

@@ -17,7 +17,9 @@ enum class PlaceResult { PLACED, NO_FREE_SLOT, NOT_TRADEABLE, NOT_ON_EXCHANGE, B
  * 2026-10-30): a buy at or above the guide price fills on the tick after it is placed, at the guide price, refunding
  * the difference; a sell at or below the guide price fills the same way at the guide price. Anything else waits until
  * the price file changes or the offer is aborted. A buy fills only as far as its buy limit lets it; the rest fills once
- * the limit's window has passed. An item with no guide price never fills. Offers fill only while their owner is logged
+ * the limit's window has passed. A sell fills only as far as the same limit lets the player sell in its own window,
+ * which live doesn't have: there real buyers run out, and here an endless buyer at the guide price would turn anything
+ * a shop sells below it into coins (round 6 exploit review, 1 Nov 2026). An item with no guide price never fills. Offers fill only while their owner is logged
  * in (inferred: on live they fill while logged out, which here would show the same on the first tick after login).
  */
 class GrandExchange(
@@ -171,14 +173,14 @@ class GrandExchange(
             val guide = prices().price(type) ?: continue
             when (offer.type) {
                 OfferType.BUY -> if (offer.price >= guide) fill(player, slot, minOf(offer.remaining, limitLeft(player, type)), guide)
-                OfferType.SELL -> if (offer.price <= guide) fill(player, slot, offer.remaining, guide)
+                OfferType.SELL -> if (offer.price <= guide) fill(player, slot, minOf(offer.remaining, sellLimitLeft(player, type)), guide)
             }
         }
     }
 
     /**
      * Fills [amount] of [slot]'s offer at [at] coins each (the offer's own price by default), as `::gefill` does: the
-     * buy limit counts the items but doesn't stop them. Returns how many filled.
+     * buy or sell limit counts the items but doesn't stop them. Returns how many filled.
      */
     fun fill(player: Player, slot: Int, amount: Int, at: Long? = null): Int {
         val offer = player.ge[slot] ?: return 0
@@ -187,16 +189,19 @@ class GrandExchange(
         val each = at ?: offer.price
         player.ge[slot] = when (offer.type) {
             OfferType.BUY -> {
-                recordBought(player, limitKey(offer.item), count)
+                recordUse(player.ge.limits, limitKey(offer.item), count)
                 offer.copy(
                     completed = offer.completed + count, exchanged = offer.exchanged + count * each,
                     collectItems = offer.collectItems + count, collectCoins = offer.collectCoins + count * (offer.price - each),
                 )
             }
-            OfferType.SELL -> offer.copy(
-                completed = offer.completed + count, exchanged = offer.exchanged + count * each,
-                collectCoins = offer.collectCoins + count * (each - tax(offer.item, each)), taxPaid = offer.taxPaid + count * tax(offer.item, each),
-            )
+            OfferType.SELL -> {
+                recordUse(player.ge.sellLimits, limitKey(offer.item), count)
+                offer.copy(
+                    completed = offer.completed + count, exchanged = offer.exchanged + count * each,
+                    collectCoins = offer.collectCoins + count * (each - tax(offer.item, each)), taxPaid = offer.taxPaid + count * tax(offer.item, each),
+                )
+            }
         }
         player.ge[slot]?.takeIf { it.finished }?.let { record(player, it) }
         return count
@@ -213,9 +218,17 @@ class GrandExchange(
      * How many more of [type] the buy limit lets [player] buy now, counting what they bought of its other doses (see
      * [limitKey]); no limit in the snapshot means no limit.
      */
-    fun limitLeft(player: Player, type: ObjType): Int {
+    fun limitLeft(player: Player, type: ObjType): Int = left(player.ge.limits, type)
+
+    /**
+     * How many more of [type] the bot market will buy from [player] now: the buy limit's number again, counted in its
+     * own window from the first item sold. Not live; see the class comment.
+     */
+    fun sellLimitLeft(player: Player, type: ObjType): Int = left(player.ge.sellLimits, type)
+
+    private fun left(uses: MutableMap<Int, BuyLimitUse>, type: ObjType): Int {
         val limit = prices().limit(type) ?: return Int.MAX_VALUE
-        val use = currentUse(player, limitKey(type.id)) ?: return limit
+        val use = currentUse(uses, limitKey(type.id)) ?: return limit
         return (limit - use.bought).coerceAtLeast(0)
     }
 
@@ -248,16 +261,16 @@ class GrandExchange(
      * the limit resets [LIMIT_WINDOW_MILLIS] later (the Wiki, Buying limit: "This timer is based on the first item
      * bought in the 4-hour slot").
      */
-    private fun currentUse(player: Player, item: Int): BuyLimitUse? {
-        val use = player.ge.limits[item] ?: return null
+    private fun currentUse(uses: MutableMap<Int, BuyLimitUse>, item: Int): BuyLimitUse? {
+        val use = uses[item] ?: return null
         if (now() - use.windowStart < LIMIT_WINDOW_MILLIS) return use
-        player.ge.limits.remove(item)
+        uses.remove(item)
         return null
     }
 
-    private fun recordBought(player: Player, item: Int, count: Int) {
-        val use = currentUse(player, item) ?: BuyLimitUse(item, now(), 0)
-        player.ge.limits[item] = use.copy(bought = (use.bought.toLong() + count).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+    private fun recordUse(uses: MutableMap<Int, BuyLimitUse>, item: Int, count: Int) {
+        val use = currentUse(uses, item) ?: BuyLimitUse(item, now(), 0)
+        uses[item] = use.copy(bought = (use.bought.toLong() + count).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
     }
 
     /**

@@ -124,6 +124,24 @@ class GrandExchangeTest {
     }
 
     @Test
+    fun `a sell fills only as far as the buy limit's number, in its own window, and the rest after four hours`() {
+        give(AXE, 15)
+        assertEquals(PlaceResult.PLACED, ge.sell(player, AXE, 15, 40))
+        nextTick()
+        assertEquals(10, player.ge[0]!!.completed)
+        assertEquals(10, player.ge.sellLimits[AXE]!!.bought)
+        // Selling doesn't use up the buy limit.
+        assertEquals(10, ge.limitLeft(player, types[AXE]!!))
+        now += GrandExchange.LIMIT_WINDOW_MILLIS - 1
+        nextTick()
+        assertEquals(10, player.ge[0]!!.completed)
+        now += 1
+        nextTick()
+        assertEquals(15, player.ge[0]!!.completed)
+        assertEquals(5, player.ge.sellLimits[AXE]!!.bought)
+    }
+
+    @Test
     fun `a potion's doses share one buy limit`() {
         give(COINS, 1_000_000)
         ge.buy(player, PRAYER_4, 1500, 100)
@@ -201,6 +219,8 @@ class GrandExchangeTest {
         save.applyTo(loaded)
         assertEquals(player.ge.contents().map { it.first to it.second.copy(placedTick = -1) }, loaded.ge.contents())
         assertEquals(player.ge.limits, loaded.ge.limits)
+        assertEquals(setOf(PRAYER_3), loaded.ge.sellLimits.keys)
+        assertEquals(player.ge.sellLimits, loaded.ge.sellLimits)
         assertEquals(player.ge.history.toList(), loaded.ge.history.toList())
     }
 
