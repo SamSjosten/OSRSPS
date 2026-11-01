@@ -54,9 +54,9 @@
    "step": "locOption",
    "loc": "Door",
    "option": "Pick-lock",
-   "x": 3017,
+   "x": 3018,
    "y": 3182,
-   "comment": "once out, a click from outside only says it's locked"
+   "comment": "the cell door is on the south edge of 3018,3182 in the 241 cache, beside the drop tile (VM 215, 2026-11-01); once out, a click from outside only says it's locked"
   },
   {
    "step": "waitTicks",
@@ -66,7 +66,7 @@
    "step": "locOption",
    "loc": "Door",
    "option": "Pick-lock",
-   "x": 3017,
+   "x": 3018,
    "y": 3182
   },
   {
@@ -77,7 +77,7 @@
    "step": "locOption",
    "loc": "Door",
    "option": "Pick-lock",
-   "x": 3017,
+   "x": 3018,
    "y": 3182
   },
   {
@@ -88,7 +88,7 @@
    "step": "locOption",
    "loc": "Door",
    "option": "Pick-lock",
-   "x": 3017,
+   "x": 3018,
    "y": 3182
   },
   {
@@ -97,7 +97,7 @@
   },
   {
    "step": "assertLocation",
-   "x": 3017,
+   "x": 3018,
    "y": 3181,
    "plane": 0,
    "comment": "out of the cell"

@@ -70,9 +70,9 @@
   },
   {
    "step": "command",
-   "text": "::tele 3290 3157 0",
-   "expectMessage": "Teleported to 3290, 3157, 0",
-   "comment": "outside the palace's south wall, below a big window"
+   "text": "::tele 3290 3159 0",
+   "expectMessage": "Teleported to 3290, 3159, 0",
+   "comment": "inside the palace by the big window at 3290,3158: in the 241 cache the window sits on that tile's north edge with a blocked strip and the outer wall south of it, so 3290,3157 outside can't reach it (VM 215, 2026-11-01). Whether live lets it be used from outside is unchecked"
   },
   {
    "step": "locOption",
