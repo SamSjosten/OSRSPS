@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.time.Duration
 import java.time.Instant
 
 private val logger = KotlinLogging.logger {}
@@ -30,6 +31,11 @@ private val logger = KotlinLogging.logger {}
  * script triggers the close button), and anything else is a client that didn't open it. The ignore tick box is the
  * client's too: it sends an ordinary ignore add. The mute tick box only shows for Jagex moderators, so a mute flag is
  * logged and dropped.
+ *
+ * Limits, so one account can't fill the server's disk (exploit review SOC-3): one report per [COOLDOWN] per reporter,
+ * [HOURLY] an hour, the same reporter, name and rule once per [REPEAT_WINDOW], and nothing more written once the file
+ * reaches [FILE_CAP] bytes (kept in memory only, with one logged error). Our own numbers. A report refused by a limit
+ * still closes the screen and gets the usual reply, so the reporter sees what a kept one shows.
  */
 class Reports(
     /** Where reports are appended; null keeps them in memory only (tests). */
@@ -60,6 +66,15 @@ class Reports(
 
     private val recent = ArrayDeque<Report>()
 
+    /** Each reporter's reports in the last hour, by save key, oldest first: when, the name's save key and the rule. */
+    private data class Sent(val time: Instant, val name: String, val rule: Int)
+    private val sent = object : LinkedHashMap<String, ArrayDeque<Sent>>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ArrayDeque<Sent>>) = size > PLAYERS_HEARD
+    }
+
+    /** Set once the file reached [FILE_CAP], so the error is logged once. */
+    private var fileFull = false
+
     /** The last reports, oldest first, for `::reports`. */
     fun recent(): List<Report> = recent.toList()
 
@@ -85,8 +100,17 @@ class Reports(
             return
         }
         if (mute) logger.info { "${player.username} asked to mute $typed; only moderators can, and there are none here" }
-        val chat = SaveStore.saveKey(typed)?.let { heard[it]?.toList() }.orEmpty()
-        val report = Report(now(), player.username, typed, rule, chat)
+        val nameKey = SaveStore.saveKey(typed)
+        val time = now()
+        val refused = limited(player.saveKey, nameKey ?: typed.lowercase(), rule, time)
+        if (refused != null) {
+            logger.info { "${player.username}'s report on $typed for ${RULES[rule]} not kept: $refused" }
+            closeScreen(player)
+            message(player, ReportLines.RECEIVED)
+            return
+        }
+        val chat = nameKey?.let { heard[it]?.toList() }.orEmpty()
+        val report = Report(time, player.username, typed, rule, chat)
         recent.addLast(report)
         while (recent.size > RECENT) recent.removeFirst()
         write(report)
@@ -96,10 +120,33 @@ class Reports(
         message(player, ReportLines.RECEIVED)
     }
 
+    /** Why a report from [reporter] on [name] for [rule] at [time] isn't kept, or null to keep it (and count it). */
+    private fun limited(reporter: String, name: String, rule: Int, time: Instant): String? {
+        val mine = sent.getOrPut(reporter) { ArrayDeque() }
+        while (mine.isNotEmpty() && Duration.between(mine.first().time, time) >= HOUR) mine.removeFirst()
+        val last = mine.lastOrNull()
+        return when {
+            last != null && Duration.between(last.time, time) < COOLDOWN -> "within ${COOLDOWN.seconds}s of the last"
+            mine.size >= HOURLY -> "$HOURLY already this hour"
+            mine.any { it.name == name && it.rule == rule && Duration.between(it.time, time) < REPEAT_WINDOW } ->
+                "the same report within ${REPEAT_WINDOW.toMinutes()} minutes"
+            else -> {
+                mine.addLast(Sent(time, name, rule))
+                null
+            }
+        }
+    }
+
     private fun write(report: Report) {
         val file = file ?: return
         try {
             file.parent?.let(Files::createDirectories)
+            if (Files.exists(file) && Files.size(file) >= FILE_CAP) {
+                if (!fileFull) logger.error { "${file.fileName} has reached $FILE_CAP bytes; new reports are kept in memory only until it's moved" }
+                fileFull = true
+                return
+            }
+            fileFull = false
             Files.writeString(file, report.toJson() + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
         } catch (e: Exception) {
             // Kept in memory still, so ::reports shows it until a restart.
@@ -123,6 +170,12 @@ class Reports(
         const val RECENT = 50
         const val PLAYERS_HEARD = 2_000
         const val MAX_NAME = 12
+
+        val COOLDOWN: Duration = Duration.ofSeconds(10)
+        const val HOURLY = 20
+        val REPEAT_WINDOW: Duration = Duration.ofMinutes(5)
+        private val HOUR: Duration = Duration.ofHours(1)
+        const val FILE_CAP = 50L * 1024 * 1024
 
         /** The rules the screen offers, by the id it sends, with our own short names for admins (reportabuse_init). */
         val RULES: Map<Int, String> = mapOf(

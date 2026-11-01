@@ -108,6 +108,7 @@
       "anims": { "attack": "chicken_attack", "defend": "chicken_block", "death": "chicken_death" },
       "respawnTicks": 25,
       "immune": ["poison", "venom"],
+      "retreatsAt": 25,
       "source": "OSRS Wiki, Chicken (ids 1173, 1174), read 2026-10-29; they stand and walk with lore_chicken_ready and lore_chicken_walk, so the chicken_ attack, block and death animations are guessed; immune to poison and venom, as their timer lays eggs (OSRS Wiki, Venom, read 2026-10-30)"
     },
     {
@@ -186,6 +187,7 @@
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
       "anims": { "attack": "unicorn_rework_attack", "defend": "unicorn_rework_defend", "death": "unicorn_rework_death" },
       "respawnTicks": 90,
+      "retreatsAt": 25,
       "source": "OSRS Wiki, Unicorn (id 2837) and the DPS calculator, read 2026-10-30; it stands and walks with unicorn_rework_ready and _walk"
     },
     {

@@ -208,6 +208,12 @@ class Npcs(
             if (npc == null) continue
             val frozen = npc.freezeTicks > 0
             val following = npc.following
+            val fleeing = npc.retreatingFrom
+            if (fleeing != null) {
+                if (npc.holdTicks > 0) npc.holdTicks--
+                if (!frozen) flee(npc, fleeing)
+                continue
+            }
             if (npc.holdTicks > 0) {
                 // Being fought, it stands and faces its attacker, unless it fights back: then it chases them. Guessed.
                 npc.holdTicks--
@@ -297,6 +303,21 @@ class Npcs(
         // Fighting, it keeps within its max range of its spawn (OSRS Wiki, Retreat: almost always 7 tiles), standing
         // at the edge rather than stepping past it. Guessed that this is the same range a chasing NPC keeps to.
         if (npc.target != null && (abs(npc.x + sx - npc.spawn.x) > MAX_RANGE || abs(npc.z + sz - npc.spawn.z) > MAX_RANGE)) return
+        move(npc, sx, sz)
+    }
+
+    /**
+     * One step away from [player], retreating ([osrsps.game.combat.MeleeCombat]): straight away diagonally first, then
+     * along either axis, never past its max range of its spawn, standing when it can't. Guessed, as the Wiki says only
+     * that it runs away within its max range.
+     */
+    private fun flee(npc: Npc, player: Player) {
+        val dx = (npc.x - player.x).sign
+        val dz = (npc.z - player.z).sign
+        val steps = if (dx == 0 && dz == 0) STEP_OUT.asSequence() else sequenceOf(dx to dz, dx to 0, 0 to dz).filter { (sx, sz) -> sx != 0 || sz != 0 }
+        val (sx, sz) = steps.firstOrNull { (sx, sz) ->
+            abs(npc.x + sx - npc.spawn.x) <= MAX_RANGE && abs(npc.z + sz - npc.spawn.z) <= MAX_RANGE && canStep(npc, sx, sz)
+        } ?: return
         move(npc, sx, sz)
     }
 

@@ -289,7 +289,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
@@ -769,8 +769,7 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 | For the tutors: that a banked pickaxe or net counts as owned (as for the Woodsman tutor's axe); the items in the boxes the Wiki doesn't name; the fish menu's one slot for the lobster pot (Fishing 29-38) or the harpoon (39 and up), as a menu holds five options; the fishing tutor one tile east of RSMod's, which the 241 map has as water; their wander ranges (2) | guessed |
 | Every chathead expression; that a worn ghostspeak amulet counts as carried; the bank as the only store Urhney checks (no Death's Office or item retrieval yet); the candle landing at the player's feet with no free slot; having heard about lanterns kept with the account by name | guessed |
 
-Left out: the unicorn retreats at low hitpoints, which waits for NPC retreat (raid step 9b; ranges from the spawn
-point). The tutors' offers to show a place on the world
+The unicorn retreats at a quarter of its hitpoints ([NPC aggression](#npc-aggression), guessed threshold). The tutors' offers to show a place on the world
 map lead back to the first menu without opening the map, which isn't built yet; the fishing spots and the mines are the
 gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
 now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
@@ -1399,13 +1398,26 @@ each NPC fights.
 | The two 21x21 areas the ten minutes are counted in, moved on when the player leaves both, and a jump of more than 40 tiles (a teleport) starting again | RuneLite's NPC Aggression Timer plugin |
 | Not a player another monster is fighting, in single-way combat | OSRS Wiki, Single-way combat |
 | Not a player fighting another monster (attacking one, or hit one in the last 8 ticks), in single-way combat; an NPC is someone else's while it took on or swung at them in the last 8 ticks | guessed |
+| Only a player in its line of sight, as a ranged attack needs ([Line of sight](#line-of-sight)), from its tile closest to them, so a big monster sees round its own bulk; a player under it counts as seen | RS2's hunt modes have a check_vis; guessed that every aggressive monster uses it |
 | The hunt range of 5 (the 2004Scape engine's default), hunting every tick, picking the nearest player with ties at random, melee's 1 tile as everyone's attack range, the count running in logged-in ticks only, the Level 6 giant rats being aggressive | guessed |
 
-Not in yet: line of sight for the hunt, retreat, and monsters that attack from afar.
+Retreat (`MeleeCombat.hitBy`): a monster attacked from outside its aggression range, or at or below its
+`"retreatsAt"` share of its hitpoints (the unicorn and chickens, 25%), walks away from the player instead of fighting
+back.
+
+| Retreat behaviour | Source |
+|-------------------|--------|
+| Attacked from outside its aggression range (where the player stood as they swung, fired or cast), or low on hitpoints, it retreats | OSRS Wiki, Retreat |
+| Retreating, it keeps within its max range (7) of its spawn, until the player leaves its interaction range (7 + 11) | OSRS Wiki, Retreat |
+| The unicorn and chickens retreat at low hitpoints | OSRS Wiki, Retreat (its list) |
+| The 25% threshold, rounded up; walking straight away, diagonals first; a hit from within the aggression range ending a retreat its hitpoints don't call for; a retreating aggressive monster not hunting | guessed |
+
+Not in yet: monsters that attack from afar (the Draynor dark wizards' step).
 
 Check: `./gradlew test --tests 'osrsps.game.combat.AggressionTest' --tests 'osrsps.testclient.HeadlessAggressionTest'`
-(two players: the spider goes for the nearer, then for the other once the nearer is tolerated), and in RuneLite
-`test-runner/examples/aggro.json`.
+(two players: the spider goes for the nearer, then for the other once the nearer is tolerated; and a player behind a
+wall left alone until it goes), `RetreatTest` and `HeadlessRetreatTest`, and in RuneLite
+`test-runner/examples/aggro.json`, `aggro-sight.json` (the castle's shut large doors, then opened) and `retreat.json`.
 
 ## Animations, spotanims and sounds
 

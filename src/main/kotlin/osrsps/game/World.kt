@@ -218,6 +218,8 @@ class World(
     private val dialogueFile: Path? = null,
     /** Where reports are appended (data/reports.jsonl); null keeps them in memory (tests). */
     private val reportsFile: Path? = null,
+    /** The time reports are stamped and rate-limited by; tests move it. */
+    private val reportsClock: () -> java.time.Instant = java.time.Instant::now,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
     /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
@@ -423,7 +425,7 @@ class World(
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
-    val aggression = Aggression(npcs, { combat.npcCombat[it.type] }, meleeCombat, random, { tick }, players = { players.asSequence().filterNotNull().filter { !it.loggedOut } })
+    val aggression = Aggression(npcs, collision, { combat.npcCombat[it.type] }, meleeCombat, random, { tick }, players = { players.asSequence().filterNotNull().filter { !it.loggedOut } })
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
     val rangedCombat: RangedCombat = RangedCombat(
@@ -505,6 +507,7 @@ class World(
         interfaces::runClientScript,
         interfaces::closeChatModal,
         { player, line -> player.message(textFor(player)[line]) },
+        reportsClock,
     )
 
     /** Private messages; see [PrivateMessages]. */
@@ -1917,7 +1920,7 @@ class World(
             return@act
         }
         if (interfaceId == Reports.INTERFACE && componentId == Reports.CLOSE) {
-            interfaces.closeChatModal(player)
+            if (player.chatModal == Reports.INTERFACE) interfaces.closeChatModal(player)
             return@act
         }
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act

@@ -8,17 +8,29 @@ import osrsps.map.CollisionMap
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
+import java.io.RandomAccessFile
+import java.time.Duration
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /** Report abuse: the report screen from Report on a player and the chatbox's Report button, and the report kept. */
 class HeadlessReportTest {
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, clock: () -> Instant = Instant::now) = TestServer(dir) { crcs, millis ->
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, cycleMillis = millis,
-            reportsFile = dir.resolve(Reports.FILE_NAME),
+            reportsFile = dir.resolve(Reports.FILE_NAME), reportsClock = clock,
         )
+    }
+
+    /** Opens the screen with the chatbox's Report button, reports [name] for [rule], and waits for the screen to close. */
+    private fun HeadlessClient.report(name: String, rule: Int) {
+        ifButton(Chatbox.CHATBOX, Reports.CHATBOX_BUTTON, Reports.OP_REPORT_ABUSE)
+        await("the report screen") { openInterfaces().takeIf { Reports.INTERFACE in it } }
+        sendReport(name, rule)
+        await("the screen closed") { if (Reports.INTERFACE in openInterfaces()) null else Unit }
     }
 
     private fun HeadlessClient.saw(text: String) = await(text) { messages().firstOrNull { it.text == text } }
@@ -88,6 +100,53 @@ class HeadlessReportTest {
                 assertEquals("Some One", report.name)
                 assertTrue(report.chat.isEmpty())
                 alice.await("the screen closed") { if (Reports.INTERFACE in alice.openInterfaces()) null else Unit }
+            }
+        }
+    }
+
+    @Test
+    fun `reports are limited per reporter so one account can't fill the disk, and a full file keeps them in memory`(@TempDir dir: Path) {
+        val time = AtomicReference(Instant.parse("2026-11-01T12:00:00Z"))
+        fun pass(d: Duration) = time.updateAndGet { it + d }
+        server(dir, time::get).use { server ->
+            server.login("alice").use { alice ->
+                val kept = { server.world.reports.recent().size }
+                alice.report("bob", 15)
+                assertEquals(1, kept())
+                // Within the cooldown: the screen still closes, nothing is kept.
+                alice.report("carol", 7)
+                assertEquals(1, kept())
+                pass(Reports.COOLDOWN)
+                // The same name and rule again inside the repeat window isn't kept; another rule is.
+                alice.report("bob", 15)
+                assertEquals(1, kept())
+                alice.report("bob", 7)
+                assertEquals(2, kept())
+                // Up to the hourly cap, then nothing until an hour after the first.
+                for (i in 3..Reports.HOURLY) {
+                    pass(Reports.COOLDOWN)
+                    alice.report("name$i", 15)
+                }
+                assertEquals(Reports.HOURLY, kept())
+                pass(Reports.COOLDOWN)
+                alice.report("one more", 15)
+                assertEquals(Reports.HOURLY, kept())
+                pass(Duration.ofHours(1))
+                alice.report("one more", 15)
+                assertEquals(Reports.HOURLY + 1, kept())
+                val file = dir.resolve(Reports.FILE_NAME)
+                assertEquals(Reports.HOURLY + 1, Files.readAllLines(file).size)
+                // A file at its cap isn't written to; the report is still kept in memory.
+                RandomAccessFile(file.toFile(), "rw").use { it.setLength(Reports.FILE_CAP) }
+                pass(Reports.COOLDOWN)
+                alice.report("bob", 16)
+                assertEquals(Reports.HOURLY + 2, kept())
+                assertEquals(Reports.FILE_CAP, Files.size(file))
+                // Another player isn't held up by alice's limits.
+                server.login("bob").use { bob ->
+                    bob.report("alice", 15)
+                    assertEquals(Reports.HOURLY + 3, kept())
+                }
             }
         }
     }

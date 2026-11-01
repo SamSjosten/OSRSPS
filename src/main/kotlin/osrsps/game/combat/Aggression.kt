@@ -6,6 +6,8 @@ import osrsps.game.GameRandom
 import osrsps.game.Player
 import osrsps.game.npc.Npc
 import osrsps.game.npc.Npcs
+import osrsps.map.CollisionMap
+import osrsps.map.LineOfSight
 import osrsps.map.Tile
 
 /**
@@ -76,16 +78,18 @@ class Tolerance {
  *   counting its size (Wiki); melee's 1 tile is taken for everyone until NPCs attack from afar;
  * - of a combat level at most twice its own, unless it is level 63 or more or ignores levels (Wiki);
  * - not tolerated: [Tolerance] has their ten minutes, unless it never becomes tolerant;
+ * - in its line of sight ([sees]);
  * - not under attack by another NPC, nor fighting one, in single-way combat ([MeleeCombat.underAttackByAnother],
  *   [MeleeCombat.fightingAnother]);
  * - one it may fight: in single-way combat, not while another player's hits still hold it ([MeleeCombat.foughtByAnother]),
  *   as the player couldn't fight back.
  * It picks the nearest by its south-west tile, ties at random, then chases and fights them as if they had hit it.
- * Guessed (the Wiki gives none of these): that it hunts every tick, that it picks the nearest, and the tie rule. Not
- * here yet: line of sight (a hunt mode's check_vis), retreat, and attacks from afar.
+ * Guessed (the Wiki gives none of these): that it hunts every tick, that it picks the nearest, and the tie rule. An NPC
+ * retreating ([MeleeCombat]) doesn't hunt. Not here yet: attacks from afar.
  */
 class Aggression(
     private val npcs: Npcs,
+    private val collision: CollisionMap,
     private val npcCombat: (Npc) -> NpcCombatDef?,
     private val melee: MeleeCombat,
     private val random: GameRandom,
@@ -123,7 +127,7 @@ class Aggression(
     private fun hunt(npc: Npc, tick: Long) {
         val def = npcCombat(npc) ?: return
         val aggression = def.aggression ?: return
-        if (npc.dead || npc.target != null || npc.engagedWith != null) return
+        if (npc.dead || npc.target != null || npc.engagedWith != null || npc.retreatingFrom != null) return
         var nearest = Int.MAX_VALUE
         val chosen = ArrayList<Player>(1)
         for (player in players()) {
@@ -145,19 +149,21 @@ class Aggression(
     fun huntable(npc: Npc, aggression: NpcAggression, player: Player): Boolean {
         if (player.loggedOut || player.dead || player.hitpoints <= 0 || player.level != npc.level) return false
         if (max(abs(player.x - npc.x), abs(player.z - npc.z)) > aggression.huntRange) return false
-        if (!inAggressionRange(npc, player)) return false
+        if (!inAggressionRange(npc, player.x, player.z)) return false
+        if (!sees(npc, player)) return false
         if (!aggression.ignoresLevels && npc.type.combatLevel < ALWAYS_LEVEL && player.skills.combatLevel > 2 * npc.type.combatLevel) return false
         if (aggression.tolerant && player.tolerance.tolerant) return false
         return !melee.underAttackByAnother(player, npc) && !melee.fightingAnother(player, npc) && !melee.foughtByAnother(player, npc)
     }
 
-    /** Whether [player] stands within [npc]'s max range plus attack range of its spawn point, counting its size. */
-    private fun inAggressionRange(npc: Npc, player: Player): Boolean {
-        val range = Npcs.MAX_RANGE + ATTACK_RANGE
-        val size = npc.type.size
-        val spawn = npc.spawn
-        return player.x in spawn.x - range until spawn.x + size + range && player.z in spawn.z - range until spawn.z + size + range
-    }
+    /**
+     * Whether [npc] can see [player] to hunt them: the line of sight a ranged attack needs ([LineOfSight.clear]), from
+     * its tile closest to them, so a big NPC sees round its own bulk. A player standing under it counts as seen. Guessed:
+     * that every aggressive NPC hunts by sight (RS2's hunt modes have a check_vis, set per NPC, which the Wiki doesn't
+     * give), so a wall or a shut door keeps a player safe.
+     */
+    private fun sees(npc: Npc, player: Player): Boolean =
+        npc.covers(player.x, player.z) || LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)
 
     /** What `::aggro` says of [player]'s tolerance. */
     fun describe(player: Player): String {
@@ -186,6 +192,14 @@ class Aggression(
 
         /** Melee's reach, the attack range in [inAggressionRange]. */
         const val ATTACK_RANGE = 1
+
+        /** Whether [x], [z] is within [npc]'s max range plus attack range of its spawn point, counting its size. */
+        fun inAggressionRange(npc: Npc, x: Int, z: Int): Boolean {
+            val range = Npcs.MAX_RANGE + ATTACK_RANGE
+            val size = npc.type.size
+            val spawn = npc.spawn
+            return x in spawn.x - range until spawn.x + size + range && z in spawn.z - range until spawn.z + size + range
+        }
 
         private fun chebyshev(a: Tile, b: Tile) = max(abs(a.x - b.x), abs(a.z - b.z))
 
