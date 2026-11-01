@@ -42,9 +42,10 @@ fast_forward() {
 
 # Lock files a git that crashed left behind (.git/HEAD.lock and .git/gc.pid.lock stalled every deploy from 06:40 to
 # 14:38 CDT on 2026-10-30): git refuses to run while they are there and never removes them itself. One counts as stale
-# when it is older than ten minutes and no git of this user is running; it is removed, and the log says so.
+# when it is older than ten minutes and no git of this user is running (a zombie, state Z, has exited and holds
+# nothing); it is removed, and the log says so.
 clear_stale_locks() {
-	pgrep -u "$(id -u)" -x git >/dev/null && return 0
+	ps -u "$(id -u)" -o stat=,comm= | awk '$2 == "git" && $1 !~ /^Z/ { found = 1 } END { exit !found }' && return 0
 	local lock
 	while IFS= read -r lock; do
 		echo "Removing $lock: a stale git lock (older than ten minutes, and no git is running)"
