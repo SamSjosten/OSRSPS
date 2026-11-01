@@ -157,6 +157,14 @@ class Npc(
     var hitpoints: Int = spawn.type.stats.hitpoints
 
     /**
+     * Ticks to its next hitpoint back, -1 until the NPC phase of the tick it appeared on starts it; see
+     * [osrsps.game.combat.MeleeCombat]. Each NPC has its own timer (OSRS Wiki, User:Orion/Regen, quoting Mod Ash:
+     * changing an NPC's version doesn't make its next regen tick come sooner).
+     */
+    var hitpointsRegenTicks: Int = -1
+        internal set
+
+    /**
      * Damage on its way, melee swings and ranged shots rolled and not landed yet, so two attacks can't both pay XP for
      * the same hitpoints; see [osrsps.game.combat.MeleeCombat].
      */
@@ -186,6 +194,16 @@ class Npc(
     /** The player it fights back against, chasing and hitting them; null for none. See [osrsps.game.combat.MeleeCombat]. */
     var target: Player? = null
         internal set
+
+    /** The tick it last took on or swung at its [target]; see [osrsps.game.combat.MeleeCombat.foughtByAnother]. */
+    internal var fightTick: Long = -1
+
+    /** The player it retreats from, walking away and not fighting back; see [osrsps.game.combat.MeleeCombat]. */
+    var retreatingFrom: Player? = null
+        internal set
+
+    /** The tick its retreat began or it was last hit from out of range while retreating; see [osrsps.game.combat.MeleeCombat]. */
+    internal var retreatTick: Long = -1
 
     /** The first tick it may swing at its target again. */
     internal var nextAttackTick: Long = 0

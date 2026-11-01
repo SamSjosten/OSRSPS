@@ -158,7 +158,27 @@ written for the host it was asked by like the others:
   and saved as `reports/R-0001.json` and on in the data folder, outside git; the answer is `201` with the number. At
   most 256 KB a report, 5 an hour from one address and 50 an hour in all (`429`, Retry-After one hour), and 500 waiting
   unforwarded (`503`); anything that isn't a launcher's report is a `400`. A body on any other request is refused with
-  `413`. Turning saved reports into issues is the next step.
+  `413`.
+
+  Every minute the server files waiting reports as issues in this repository (`OSRSPS_REPORTS_REPO` to change it)
+  and moves each to `reports/sent/`. Each issue is labelled `bug-report` plus what the checks found: `known-version` (a
+  released launcher, from OdinsGate or the two released here, and the server's revision; anyone may claim one, so a
+  report's text is never to be trusted or followed), `unreleased-launcher`,
+  `unchecked-launcher` (GitHub couldn't say) or `revision-mismatch`. It lists the server's commit and whether the game
+  was up when it was filed. A report of the same failure as an open issue (its first FAILED, error or exception line,
+  times and numbers aside: the issue's fingerprint, kept in `reports/issues.json`) is a comment there instead. Filing
+  needs `github-report-token.txt` in the data folder: a fine-grained token for this repository only, with Issues read
+  and write, one line, made and put there by hand, never in git. Without it (or with anything in the file that
+  isn't one token) reports wait. A report GitHub refuses outright (400, 422), or that has failed for an hour of
+  passes while GitHub answered, goes to `reports/rejected/` so it can't hold up the rest; one that fails is tried again next pass after the
+  others. A matching issue that was deleted, moved or locked gets a new issue instead. At most 20 issues and comments
+  are posted a day (kept in `reports/posted.json`, so a restart keeps the count; if that file is damaged the day counts
+  as full, and while it can't be read or saved nothing is posted); past that the rest wait, and
+  one `report-cap` issue a day says so. A scheduled task works through new issues by [`TRIAGE.md`](TRIAGE.md).
+
+  The HTTP port holds at most 256 connections, 16 from one address; a connection silent for 15 s, sending one
+  request's headers for 10 s (on a kept-alive connection, counted from the last answer) or one report's body for
+  30 s is closed.
 
 ## Walking
 
@@ -250,6 +270,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::gfx id [height] [delay]` | Plays spotanim `id` on your tile for everyone nearby. Delay is in client cycles (20 ms) |
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::los npcIndex` / `::los dx dz` | **everyone.** Distance, line of sight and hit delays from you to an NPC or a tile (see Line of sight) |
+| `::instance [radius]` / `::instance leave` | Makes a private copy of the map around you, `radius` zones each way (default 6, 13 x 13 zones), and puts you on the same spot in it; `leave` takes you back to where you made it (see Instances) |
 | `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
 | `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
 | `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
@@ -267,7 +288,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
@@ -747,8 +768,7 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 | For the tutors: that a banked pickaxe or net counts as owned (as for the Woodsman tutor's axe); the items in the boxes the Wiki doesn't name; the fish menu's one slot for the lobster pot (Fishing 29-38) or the harpoon (39 and up), as a menu holds five options; the fishing tutor one tile east of RSMod's, which the 241 map has as water; their wander ranges (2) | guessed |
 | Every chathead expression; that a worn ghostspeak amulet counts as carried; the bank as the only store Urhney checks (no Death's Office or item retrieval yet); the candle landing at the player's feet with no free slot; having heard about lanterns kept with the account by name | guessed |
 
-Left out: the unicorn retreats at low hitpoints, which waits for NPC retreat (raid step 9b; ranges from the spawn
-point). The tutors' offers to show a place on the world
+The unicorn retreats at a quarter of its hitpoints ([NPC aggression](#npc-aggression), guessed threshold). The tutors' offers to show a place on the world
 map lead back to the first menu without opening the map, which isn't built yet; the fishing spots and the mines are the
 gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
 now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
@@ -935,6 +955,23 @@ its assistant into the shop, buys and sells an anti-dragon shield at Oziach's, t
 talks to Richard into his shop for a cape, then chops a yew, smelts a bronze bar and cooks on Evil Dave's stove; `EdgevilleShopsTest` does each talk's options, `HeadlessEdgevilleShopsTest` the talk into each shop through the headless client, `HeadlessCookingTest` the stove, and `ShopTest` the stock and
 the Wiki's prices.
 
+Step 3a is the town's people and the places not built yet, `game/content/EdgevillePeople.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Doris (`hundred_dave_mum` 4808) in her house west of the bank: four options, each answered once | OSRS Wiki, Transcript:Doris; mejrs's NPC list for the tile; expressions guessed |
+| The Basement of Doom below Doris's house: the trapdoor (`100_dave_celler_trapdoor` 12266, 3077, 3493) is each player's own on varbit 1888 (`hundred_dave_trapdoor`), Open, Close and Go-down; the cellar stairs (12265) climb back up | 241 cache (multiloc, children 12267/12268, ops); the landing tiles (3077, 9893 and 3078, 3493) and the open/close animations are guessed |
+| Evil Dave (`hundred_evil_dave` 4806) talks as after Recipe for Disaster: the basement and demon-summoning menu, giving up evil, the time-travel menu (looping), and one of five random farewells | OSRS Wiki, Transcript:Evil Dave (which box is whose, from the transcript); expressions guessed |
+| 18 hell-rats and four Hell-Rat Behemoths in the basement, with no options (they wait for cats) | mejrs's NPC list for the tiles; 241 cache (no ops); the Wiki's Basement of Doom page (four behemoths) |
+| Hari (`canoeing_hari` 1325) by the canoe station: who he is, and canoes by the Woodcutting level (Barfy Bill's bands) | OSRS Wiki, Transcript:Hari |
+| Lucien (`ikov_lucien2` 13644, a multi-NPC on varbit 10753 `ikov_lucien_vis`) in the house east of the willows, Talk-to only, as after Temple of Ikov on his side; a new Pendant of Lucien (86) if the player owns none | OSRS Wiki, Transcript:Lucien; that 1 means "after the quest, his side" is inferred, and the side is our pick |
+| Refusals, in our own words: the Wilderness lever (26761), the fairy ring (29495, all four options), the Soul Wars portal (40474), Death's Domain (39547) and the canoe station (12166) | ours: none of those places is built yet |
+
+The words are in the dialogue file (keys `doris.*`, `evil_dave.*`, `hari.*`, `lucien.*`, `edgeville_closed.*`). Check:
+`test-runner/examples/edgeville-people.json` talks to Doris, opens, shuts and goes down the trapdoor, talks to Evil
+Dave, climbs the stairs, talks to Lucien and Hari, and tries each refused place; `EdgevillePeopleTest` does each talk's
+branches and `HeadlessEdgevillePeopleTest` the trapdoor, stairs, refusals, Doris and Lucien through the headless client.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
@@ -962,12 +999,14 @@ Village piece's.
 | Step 5c: the Apothecary's potions screen (`apothecary_potions`, interface 556), from his Potions and from asking in his talk: Buy-1, -5, -X and -All make a strength potion(4) (limpwurt root, red spiders' eggs, 5 coins), an energy potion(4) (two limpwurt roots, chocolate dust) or an antipoison(4) (limpwurt root, cadava berries, 5 coins) for as many as the player holds ingredients and coins for; the screen's titles and ingredient texts and its messages are `apothecary_potions.*` | OSRS Wiki, Strength potion, Energy potion and Antipoison (the Apothecary's recipes); the screen's components from the 241 cache; the energy potion's 5 coins, every message and the model zoom guessed |
 | Step 6: Varrock Palace's people: King Roald (5215) with his advisor Aeonisig Raispher (3774) speaking up in his talk, Queen Ellamaria (1390) in her garden, Sir Prysin (5083), who sells a lost Silverlight back for 500 coins to a player with none held, worn or banked, Captain Rovin (5085) at the top of the palace, Reldo (multi-NPC 6203, both types) in the library, Ambassador Ferrnook (2557), the training Captain (`fai_varrock_guard_trainer02` 11906), who shouts at his five Trainee Guards (the 2022 looks, 11907 to 11910), and the caged Monk of Zamorak (528); their talk every way it goes (`king_roald.*`, `aeonisig.*`, `ellamaria.*`, `prysin.*`, `rovin.*`, `reldo.*`, `ferrnook.*`, `guard_captain.*`); the library's quest bookcases and its north-east alcove's two (`palace_library.*`). The floors, stairs and furniture are step 1's, the altar (409) is Lumbridge church's | OSRS Wiki, each NPC's transcript (King Roald after The Blood Moon Rises, Reldo after Shield of Arrav, Queen Ellamaria after Garden of Tranquillity), Varrock Palace Library and Monk of Zamorak (the cage) and Sir Prysin (Silverlight 500 coins, Darklight 1000); tiles from mejrs's live NPC list; which of the King's after-quest talks shows, which trainee look stands where, which alcove bookcase says which, the Captain's 15 to 30 ticks between shouts, every expression and the wander ranges guessed |
 | Step 7: Varrock's churches and inns: Pray-at at the church's altar (`fai_varrock_church_altar` 14860) and the Zamorakian chapel's chaos altar (61), each as Lumbridge's; Father Lawrence (5038) and Elsie (2900, upstairs), who tells her story for a cup of tea used on her; the Mage of Zamorak (2582, spawned as the type the multi-NPC 3229 shows after Rune Mysteries); the Blue Moon's (1312), Dancing Donkey's (1311) and Jolly Boar's (1310) bartenders, each selling a beer for 2 coins; the Blue Moon's cook (2895), who sells a cabbage for 1, and the Jolly Boar's (2896); their talk every way it goes (`father_lawrence.*`, `elsie.*`, `mage_of_zamorak.*`, `bluemoon_bartender.*`, `donkey_bartender.*`, `jollyboar_bartender.*`, `bluemoon_cook.*`, `jollyboar_cook.*`) | OSRS Wiki, each NPC's transcript (Father Lawrence after Romeo & Juliet, the Mage of Zamorak after Enter the Abyss); tiles from mejrs's live NPC list; which lines of the long passages the player says, that the Mage always gives his asked-before incantation answer, that a beer bought with a full backpack lands at the player's feet, that the Jolly Boar's cook always opens with his busy line, every expression and the wander ranges guessed |
+| Step 8a: Varrock's townsfolk talking: Romeo (5037), Juliet (5035, upstairs) and her parents Draul Leptoc (5039) and Phillipa (5040, upstairs), Gertrude (7723, the type her multi-NPC 3500 shows after Gertrude's Cat), who sells a kitten of a random colour for 100 coins through her talk or her Kitten option but not while a kitten or cat is held or banked, the children Shilop (3501), Wilough (3503), Philop (3502) and Kanel (3504), Aris (11868), Charlie the Tramp (5209) and a tramp (3255), each begging a coin, Dr Harlow (16277) and Jonny the Beard (14139) in the Blue Moon Inn, Iffie (2899) and the Town Crier (276), who talks as on live today (the Wiki's transcript is his historical talk); their talk every way it goes (`romeo.*`, `juliet.*`, `draul_leptoc.*`, `phillipa.*`, `gertrude.*`, `shilop.*`, `wilough.*`, `playing_child.*`, `aris.*`, `charlie.*`, `tramp.*`, `dr_harlow.*`, `jonny_the_beard.*`, `iffie.*`, `town_crier.*`) | OSRS Wiki, each NPC's transcript (after each one's quest) and Gertrude (kittens 100 coins, one at a time); tiles from mejrs's live NPC list; Charlie's alley talk for a Black Arm Gang member, that Gertrude's talk also refuses while a kitten or pet cat is owned (not an overgrown, lazy or wily cat), her kitten in an item box, the tramp's grumble a tick after the talk, every expression and the wander ranges guessed |
+| Step 8b: Dimintheis (4984) in his house, who hands a lost pair of family gauntlets back for free (naming the pair, with a key for each), but not while any of the four pairs is held, worn or banked; his son Johnathon (5445, the type his multi-NPC 4988 shows after Family Crest) upstairs in the Jolly Boar Inn, who turns family gauntlets into chaos gauntlets for free and cooking or goldsmith gauntlets for 25,000 coins (the worn pair before one carried), through his talk or his Gauntlets option, after which Dimintheis hands back chaos gauntlets if they're lost; Old Man Yarlo (10425); their talk every way it goes (`dimintheis.*`, `johnathon.*`, `yarlo.*`) | OSRS Wiki, each NPC's transcript (after Family Crest and Daddy's Home); tiles from mejrs's live NPC list; where the last enchanted pair is kept (with charges), a plain pair going straight to his chant without a menu, which pairs count as owned, the worn pair first, Johnathon's lines without a pair or the coins, every expression and the wander ranges guessed |
 
 Left out from step 1: the guards' Pickpocket (Thieving, step 13) and their joining in when another guard is attacked,
 the general seed table's higher subtables (no monster yet is level 49 or more), the player's own overhead lines when shooing or petting a dog, the dog
 following the player after Pet or after being fed and running off when shooed, the staircases down to basements and the sewers (`fai_varrock_bank_stairs`, `fai_varrock_ladder_deep`,
-the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. Left out from step 4: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, the keepers' treasure trail and diary talk, and Zaff's daily battlestaves, What Lies Below ring and Bryophyta's essence options. Left out from step 5: Aubury's Teleport and its talk option (no rune essence mine yet) and his Runecraft cape stock, Thessalia's Makeover and its change top and legwear options (no makeover screen yet) and her scythe, bunny ears and frog token options, Asyff's Fur Clothing, bird costume, hunting clothing and priest gown options, and the Tea Seller's shouts at a thief (Thieving, step 13). Left out from step 5b: the Apothecary's quest topics, Baraek's Ring of Charos(a) option and treasure trail clue, and Benny's overhead shouts. Left out from step 6: Reldo's Wise Old Man message, Darklight, the Monk of Zamorak's combat (he casts; the fighters' step), the Varrock Census, Surok Magis (gone once What Lies Below is done), and the White Tree's fruit and Treznor's tree patch (Farming). Left out from step 7: the chaos altar's Check, the church's sleeping church-goers, and the Mage of Zamorak's treasure trail talk. The furniture's and dogs' words are in the dialogue
-file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`, and steps 6's and 7's keys above).
+the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. Left out from step 4: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, the keepers' treasure trail and diary talk, and Zaff's daily battlestaves, What Lies Below ring and Bryophyta's essence options. Left out from step 5: Aubury's Teleport and its talk option (no rune essence mine yet) and his Runecraft cape stock, Thessalia's Makeover and its change top and legwear options (no makeover screen yet) and her scythe, bunny ears and frog token options, Asyff's Fur Clothing, bird costume, hunting clothing and priest gown options, and the Tea Seller's shouts at a thief (Thieving, step 13). Left out from step 5b: the Apothecary's quest topics, Baraek's Ring of Charos(a) option and treasure trail clue, and Benny's overhead shouts. Left out from step 6: Reldo's Wise Old Man message, Darklight, the Monk of Zamorak's combat (he casts; the fighters' step), the Varrock Census, Surok Magis (gone once What Lies Below is done), and the White Tree's fruit and Treznor's tree patch (Farming). Left out from step 7: the chaos altar's Check, the church's sleeping church-goers, and the Mage of Zamorak's treasure trail talk. Left out from step 8a: Gertrude's pick-your-own kitten option and the Ring of Charos(a) colour screen, Shilop's and Wilough's talk once paid, Charlie's treasure trail requests, Jonny the Beard's Attack (the fighters' step), the tramp's second-time opening, Iffie's talk after the Halloween 2021 event, the Town Crier's overheads, the sleeping church-goers Martina Scorsby and Jeremy Clerksin, and Toby (the Achievement Diary). Left out from step 8b: Old Man Yarlo's Construction cutscene (the player only thanks him), and Avan's and Caleb's own gauntlet changes. The furniture's and dogs' words are in the dialogue
+file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`, and steps 6's, 7's, 8a's and 8b's keys above).
 
 Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
 both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `varrock-guards.json` kills a Varrock and an Edgeville guard for their bones; `varrock-grand-exchange.json` uses the Grand Exchange's clerks, booths and a banker; `varrock-shops.json` and `varrock-stores.json` buy and sell back at each shop and talk into each; `varrock-traders.json` buys Benny's newspaper and a fur from Baraek, sells it back, talks to the Apothecary and buys a strength potion on his potions screen; `varrock-palace.json` climbs every palace floor (the roof by ladder), talks to each of its people, searches the library's bookcases and prays at the altar; `HeadlessVarrockTest`
@@ -1277,6 +1316,37 @@ Check with two clients logged in near each other: `::gfx 85` on one shows the gr
 85 is `failedspell_impact`, the magic splash, in the 241 cache's names). `::groundobj 1351` shows a bronze axe to both at once; walk the second client 40
 tiles away and back, or log it out and in, and the axe is still there.
 
+## Instances
+
+An instance is a private copy of part of the map, as raids and bosses give each party (raid step 10).
+`game/instance/Instances.kt` gives each one a block of map squares in the dynamic area, from x 6400 east where the cache
+has no maps. It copies each zone of the original into the block, on every level: the terrain's collision, and the cache
+locs with their collision. Walking, doors and line of sight then work as in the original. A player in an instance gets a
+REBUILD_REGION, which tells the client to draw each zone of the block from the original's map data. Outside one, they get
+the usual REBUILD_NORMAL, also after a step into or out of one.
+
+An instance ends once nobody is in it, with its NPCs, ground items and loc changes (a door on its edge opened onto the
+tile beyond included), and the respawns, shots and fires due there later; a grave in it moves to its exit. A trade in
+one saves both players at its exit, as any save does. A player who loses their connection
+still counts until they are removed, so a reconnect finds it. Nobody is saved in an instance: a save, a logout included,
+puts them at its exit. Blocks are kept a map square apart, so nobody in one sees anyone in another.
+
+| Instance behaviour | Source |
+|--------------------|--------|
+| Zones drawn as other zones of the map with REBUILD_REGION; empty zones left out | RSProt's RebuildRegionV2 (the client's dynamic regions) |
+| The dynamic area from map square 100 (x 6400); a free map square between blocks | guessed |
+| An instance starts as the cache has it: changes in the original (an open door) aren't copied | guessed |
+| The client told to reload the region on each REBUILD_REGION | guessed |
+| An instance ending as soon as nobody is in it; saves at its exit | guessed; raids that keep a place for a disconnected player come with parties |
+| A grave left in an ended instance moving to its exit, with its items and time left | guessed |
+| Only doors and gates working on copied locs; content's handlers, written for the original's tiles (the Al Kharid toll gate), not run there, so the player is told "Nothing interesting happens." | guessed, until the raid's rooms bring handlers of their own |
+| Unrotated copies only | not in yet: the raid's rooms bring rotation if they need it |
+
+`::instance` makes one around you for testing. Check: `./gradlew test --tests 'osrsps.game.instance.*'
+--tests 'osrsps.testclient.HeadlessInstanceTest'` (two players in copies of the same spot can't see each other, and
+leaving puts them back), and in RuneLite `test-runner/examples/instance-castle.json` (the castle's large doors in a copy:
+shut, they block line of sight; opened, they don't; then back out).
+
 ## Line of sight
 
 Ranged and magic attacks need the target in line of sight and within the weapon's range (OSRS Wiki, Line of sight).
@@ -1357,13 +1427,30 @@ each NPC fights.
 | After ten minutes (1000 ticks) in an area tolerant monsters leave the player alone; leaving and coming back starts again, logging out doesn't. Bosses can be made never tolerant | OSRS Wiki, Aggressiveness |
 | The two 21x21 areas the ten minutes are counted in, moved on when the player leaves both, and a jump of more than 40 tiles (a teleport) starting again | RuneLite's NPC Aggression Timer plugin |
 | Not a player another monster is fighting, in single-way combat | OSRS Wiki, Single-way combat |
+| Not a player fighting another monster (attacking one, or hit one in the last 8 ticks), in single-way combat; an NPC is someone else's while it took on or swung at them in the last 8 ticks | guessed |
+| Only a player in its line of sight, as a ranged attack needs ([Line of sight](#line-of-sight)), from its tile closest to them, so a big monster sees round its own bulk; a player under it counts as seen | RS2's hunt modes have a check_vis; guessed that every aggressive monster uses it |
+| A monster fighting a player who stands outside its aggression range, where it can't follow, lets go once it hasn't swung at them, nor they hit it, for 8 ticks, and walks back to its spawn | the aggression range "defines the outer limit of where the player can stand and still be attacked" (OSRS Wiki, Aggressiveness); the 8 ticks and the walk home guessed |
 | The hunt range of 5 (the 2004Scape engine's default), hunting every tick, picking the nearest player with ties at random, melee's 1 tile as everyone's attack range, the count running in logged-in ticks only, the Level 6 giant rats being aggressive | guessed |
 
-Not in yet: line of sight for the hunt, retreat, and monsters that attack from afar.
+Retreat (`MeleeCombat.hitBy`): a monster attacked from outside its aggression range, or at or below its
+`"retreatsAt"` share of its hitpoints (the unicorn and chickens, 25%), walks away from the player instead of fighting
+back.
+
+| Retreat behaviour | Source |
+|-------------------|--------|
+| Attacked from outside its aggression range (where the player stood as they swung, fired or cast), or low on hitpoints, it retreats | OSRS Wiki, Retreat |
+| Retreating, it keeps within its max range (7) of its spawn, until the player leaves its interaction range (7 + 11) | OSRS Wiki, Retreat |
+| A retreat also ends 8 ticks after the player last hit it, so one standing near without hitting doesn't keep it from hunting others | guessed |
+| The unicorn and chickens retreat at low hitpoints | OSRS Wiki, Retreat (its list) |
+| The 25% threshold, rounded up; walking straight away, diagonals first; a hit from within the aggression range ending a retreat its hitpoints don't call for; a retreating aggressive monster not hunting | guessed |
+
+Not in yet: monsters that attack from afar (the Draynor dark wizards' step).
 
 Check: `./gradlew test --tests 'osrsps.game.combat.AggressionTest' --tests 'osrsps.testclient.HeadlessAggressionTest'`
-(two players: the spider goes for the nearer, then for the other once the nearer is tolerated), and in RuneLite
-`test-runner/examples/aggro.json`.
+(two players: the spider goes for the nearer, then for the other once the nearer is tolerated; a player behind a
+wall left alone until it goes; and one who lured it off past its range no longer keeping it from the other),
+`RetreatTest` and `HeadlessRetreatTest`, and in RuneLite `test-runner/examples/aggro.json`, `aggro-sight.json` (the
+castle's shut large doors, then opened), `aggro-leash.json` and `retreat.json`.
 
 ## Animations, spotanims and sounds
 
@@ -1644,6 +1731,11 @@ Live's AMEs for all! is left out: there are no random events.
 | Kill me | `::hit` of every hitpoint you have, so the death is the game's own (grave, items kept); `::god` stops it | Wiki |
 
 Live's Keep me logged in turns off an idle logout we don't have, and Transmogrify me isn't built.
+
+| Use | What it does | Source |
+|-----|--------------|--------|
+| Any item on the potato, or the potato on it | Deletes that item | Wiki |
+| The potato on a player | Lists their inventory in your chatbox, one line a stack | Wiki that it shows it; the chatbox list is ours. Runs where you stand, with no walk to them (guessed) |
 
 A non-admin who clicks one loses it with a message (guessed: what live does isn't known). The options' words are live's,
 so they are keys under `rotten_potato.` in the dialogue file, except our own (Heal me, Peel's Teleport to a tile and Spawn an item, and all of Slice).

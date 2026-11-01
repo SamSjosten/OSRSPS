@@ -13,6 +13,7 @@ import net.rsprot.protocol.game.outgoing.info.util.safeReleaseOrThrow
 import net.rsprot.protocol.game.outgoing.logout.Logout
 import net.rsprot.protocol.game.outgoing.map.RebuildLoginV2
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
+import net.rsprot.protocol.game.outgoing.map.RebuildRegionV2
 import net.rsprot.protocol.game.outgoing.misc.client.ServerTickEnd
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
@@ -37,6 +38,7 @@ import osrsps.game.command.registerCombatCommands
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
+import osrsps.game.command.registerInstanceCommands
 import osrsps.game.command.registerIpCommands
 import osrsps.game.command.registerGrandExchangeCommands
 import osrsps.game.command.registerItemCommands
@@ -107,6 +109,7 @@ import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
+import osrsps.game.content.registerEdgevillePeople
 import osrsps.game.content.registerEdgevilleShops
 import osrsps.game.content.registerHaystacks
 import osrsps.game.content.registerAxeLogs
@@ -114,17 +117,21 @@ import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
+import osrsps.game.content.registerWiseOldMan
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
 import osrsps.game.dialogue.ChatFont
+import osrsps.game.dialogue.Chatbox
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Dialogues
 import osrsps.game.ge.GrandExchange
 import osrsps.game.ge.GrandExchangeScreen
 import osrsps.game.ge.PriceChecker
+import osrsps.game.instance.Instance
+import osrsps.game.instance.Instances
 import osrsps.game.loc.Doors
 import osrsps.game.loc.Gates
 import osrsps.game.loc.LocInteractions
@@ -153,6 +160,7 @@ import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
+import osrsps.game.skill.Thieving
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
@@ -163,8 +171,10 @@ import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.FriendLists
 import osrsps.game.social.IgnoreLists
 import osrsps.game.social.PrivateMessages
+import osrsps.game.social.Reports
 import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.Trades
+import osrsps.game.zone.ZoneKey
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
@@ -211,6 +221,10 @@ class World(
     chatFont: ChatFont = ChatFont.APPROXIMATE,
     /** The dialogue file, read at start and again by `::dialogue`; null for none, so every line shows its key. */
     private val dialogueFile: Path? = null,
+    /** Where reports are appended (data/reports.jsonl); null keeps them in memory (tests). */
+    private val reportsFile: Path? = null,
+    /** The time reports are stamped and rate-limited by; tests move it. */
+    private val reportsClock: () -> java.time.Instant = java.time.Instant::now,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
     /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
@@ -270,6 +284,9 @@ class World(
     val locs = Locs(locTypes, staticLocs, collision, zones) { tick }
 
     val doors = Doors(locs)
+
+    /** Private copies of parts of the map; see [Instances]. */
+    val instances = Instances(collision, staticLocs, locTypes)
 
     /** Fence gates, both leaves at once; see [Gates]. */
     val gates = Gates(locs)
@@ -386,7 +403,9 @@ class World(
 
     private val follows = Follows(movement, { players[it.index] === it })
 
-    private val locInteractions = LocInteractions(locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor)
+    private val locInteractions = LocInteractions(
+        locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
+    )
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
@@ -416,7 +435,7 @@ class World(
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
-    val aggression = Aggression(npcs, { combat.npcCombat[it.type] }, meleeCombat, random, { tick }, players = { players.asSequence().filterNotNull().filter { !it.loggedOut } })
+    val aggression = Aggression(npcs, collision, { combat.npcCombat[it.type] }, meleeCombat, random, { tick }, players = { players.asSequence().filterNotNull().filter { !it.loggedOut } })
 
     /** Players shooting NPCs with bows and crossbows; see [RangedCombat]. */
     val rangedCombat: RangedCombat = RangedCombat(
@@ -487,6 +506,20 @@ class World(
         commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
     )
 
+    /** Report abuse; see [Reports]. */
+    val reports = Reports(
+        reportsFile,
+        { player ->
+            interfaces.closeModals(player)
+            // Inferred: clamped, as the screen is the chatbox's own size.
+            interfaces.openChatModal(player, Reports.INTERFACE, 0)
+        },
+        interfaces::runClientScript,
+        interfaces::closeChatModal,
+        { player, line -> player.message(textFor(player)[line]) },
+        reportsClock,
+    )
+
     /** Private messages; see [PrivateMessages]. */
     val friendChats = FriendChats(
         { onlinePlayers }, { tick }, ::channelOwner, ignoreLists, ::textFor, { privateMessages.nextCounter() },
@@ -510,6 +543,7 @@ class World(
     val firemaking = Firemaking(this, collision)
 
     val mining = Mining(this)
+    val thieving = Thieving(this, collision)
 
     val fishing = Fishing(this)
 
@@ -567,6 +601,7 @@ class World(
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
+        registerInstanceCommands(this@World)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
         registerGrandExchangeCommands(this@World)
@@ -601,6 +636,7 @@ class World(
         registerNed(this)
         registerAggie(this)
         registerDraynorJail(this)
+        registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerMillLaneMill(this)
@@ -613,6 +649,7 @@ class World(
         registerAlKharid(this)
         registerEdgeville(this)
         registerEdgevilleShops(this)
+        registerEdgevillePeople(this)
         registerHaystacks(this)
         registerVarrock(this)
         registerCrops(this)
@@ -627,6 +664,7 @@ class World(
         birdNests.register()
         firemaking.register()
         mining.register()
+        thieving.register()
         fishing.register()
         cooking.register()
         smithing.register()
@@ -936,6 +974,7 @@ class World(
         tick++
         phase = TickPhase.WORLD
         for (player in players) if (player != null) prayers.startTick(player)
+        endEmptyInstances()
         groundObjs.process()
         phase = TickPhase.INPUT
         readInput(ticking = true)
@@ -955,6 +994,7 @@ class World(
         }
         deaths.process()
         npcScripts.process()
+        thieving.process()
         npcs.process()
         fishing.process()
         shopScreen.restock(tick)
@@ -1274,6 +1314,14 @@ class World(
             specialAttacks.refill(it)
         }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
+        // A save from inside an instance, from before saves moved players to its exit, lands where no map is now.
+        if (instances.inDynamicArea(player.x, player.z) && instances.at(player.x, player.z) == null) {
+            player.x = SPAWN_X
+            player.z = SPAWN_Z
+            player.level = SPAWN_LEVEL
+            player.buildAreaZoneX = SPAWN_X shr 3
+            player.buildAreaZoneZ = SPAWN_Z shr 3
+        }
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
         if (player.hitpoints <= 0) player.hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
@@ -1290,7 +1338,24 @@ class World(
     /** [player]'s state as a save has it, the items in the guide prices screen counted as in the inventory. */
     fun snapshot(player: Player): PlayerSave {
         val (inventory, bank) = priceChecker.saved(player)
-        return PlayerSave.of(player, inventory, bank)
+        return saveOf(player, inventory, bank)
+    }
+
+    /**
+     * [player]'s save with [inventory] and [bank]. Nobody is saved in an instance, which won't be there when they log in:
+     * they are saved at its exit (the spawn if it has gone).
+     */
+    private fun saveOf(
+        player: Player,
+        inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
+        bank: Map<Int, InvObj> = player.bank.contents().toMap(),
+    ): PlayerSave {
+        if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank)
+        val instance = instances.at(player.x, player.z)
+        return PlayerSave.of(
+            player, inventory, bank,
+            x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
+        )
     }
 
     /** Writes [player]'s save. Returns false, after logging why, if it couldn't be written; see [unwritten]. */
@@ -1371,7 +1436,7 @@ class World(
         a.lastTrade = id
         b.lastTrade = id
         val texts = try {
-            val texts = mapOf(a.saveKey to PlayerSave.of(a).toJson(a.username), b.saveKey to PlayerSave.of(b).toJson(b.username))
+            val texts = mapOf(a.saveKey to saveOf(a).toJson(a.username), b.saveKey to saveOf(b).toJson(b.username))
             saves.writeJournal(TradeJournal(id, texts).toJson())
             texts
         } catch (e: Exception) {
@@ -1557,12 +1622,7 @@ class World(
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
         PlayerOps.send(player.vars, player.session::queue)
-        player.buildAreaZoneX = player.x shr 3
-        player.buildAreaZoneZ = player.z shr 3
-        player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
-        player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
-        // The ground items and loc changes it missed go again too, as after any rebuild.
-        player.zoneView.reset()
+        rebuild(player)
         interfaces.resendClosesWhileAway(player)
         interfaces.closeEmptyModalSlots(player)
     }
@@ -1679,7 +1739,7 @@ class World(
             return
         }
         // Any of the options replaces what the player was doing, a follow included. Guessed for Trade with and Report,
-        // which aren't built, and for a player who has left: they stop the player where they stand.
+        // and for a player who has left: they stop the player where they stand.
         scripts.interrupt(player)
         player.interaction = null
         npcInteractions.leave(player)
@@ -1699,8 +1759,27 @@ class World(
             else -> {
                 // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
                 player.session.queue(SetMapFlagV2.RESET)
-                player.message(PlayerOps.REPORT_NOT_BUILT)
+                reports.open(player, target.username)
             }
+        }
+    }
+
+    /**
+     * The player used something on the player at [index]: the item in slot [sub] of [interfaceId]:[componentId], or a
+     * spell. Only inventory items are handled; see [InventoryTab.useOnPlayer].
+     */
+    fun onPlayerTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int) {
+        // Looked up as the packet is read, as for an option on a player.
+        val clicked = players.getOrNull(index)
+        act(player) {
+            if (held(player)) return@act
+            trades.interrupt(player)
+            val target = clicked?.takeIf { players[it.index] === it && it !== player }
+            if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS || target == null) {
+                logger.info { "${player.username} used $interfaceId:$componentId sub $sub on player ${clicked?.username} (not handled)" }
+                return@act
+            }
+            inventoryTab.useOnPlayer(player, sub, obj, target)
         }
     }
 
@@ -1836,8 +1915,15 @@ class World(
 
     /** Public chat is game input like a click, so while paused it is held for the next tick. */
     fun onPublicChat(player: Player, message: MessagePublic) = act(player) {
-        if (message.type == PublicChat.TYPE_FRIENDS_CHAT) friendChats.talk(player, message.message) else sayPublicChat(player, message)
+        if (message.type == PublicChat.TYPE_FRIENDS_CHAT) {
+            friendChats.talk(player, message.message)
+        } else {
+            sayPublicChat(player, message)?.let { reports.heard(player, it) }
+        }
     }
+
+    /** SEND_SNAPSHOT: a rule picked on the report screen. */
+    fun onReport(player: Player, name: String, rule: Int, mute: Boolean) = actWhileDead(player) { reports.submit(player, name, rule, mute) }
 
     /** A rank picked for a friend in the friends chat setup list. */
     fun onFriendsChatSetRank(player: Player, name: String, rank: Int) = actWhileDead(player) {
@@ -1861,6 +1947,14 @@ class World(
         }
         if (trades.click(player, interfaceId, componentId, sub, obj, op)) return@act
         trades.interrupt(player)
+        if (interfaceId == Chatbox.CHATBOX && componentId == Reports.CHATBOX_BUTTON && op == Reports.OP_REPORT_ABUSE) {
+            reports.open(player, null)
+            return@act
+        }
+        if (interfaceId == Reports.INTERFACE && componentId == Reports.CLOSE) {
+            if (player.chatModal == Reports.INTERFACE) interfaces.closeChatModal(player)
+            return@act
+        }
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
@@ -2035,6 +2129,8 @@ class World(
 
     /** Puts an NPC in the world. Returns null, after logging why, if there is no room for it. */
     fun spawnNpc(spawn: NpcSpawn): Npc? {
+        // A respawn into an instance that has ended has nowhere to go.
+        if (instances.inDynamicArea(spawn.x, spawn.z) && instances.at(spawn.x, spawn.z) == null) return null
         val npc = npcs.add(spawn, tick)
         if (npc == null) {
             logger.warn { "No free NPC slot for ${spawn.type} from ${spawn.source}" }
@@ -2351,15 +2447,69 @@ class World(
         val localX = player.x - originX
         val localZ = player.z - originZ
         if (localX in REBUILD_MARGIN until BUILD_AREA_SIZE - REBUILD_MARGIN &&
-            localZ in REBUILD_MARGIN until BUILD_AREA_SIZE - REBUILD_MARGIN
+            localZ in REBUILD_MARGIN until BUILD_AREA_SIZE - REBUILD_MARGIN &&
+            instances.at(player.x, player.z) === player.buildAreaInstance
         ) return
+        rebuild(player)
+    }
+
+    /**
+     * Centres [player]'s build area on them and tells the client: a REBUILD_NORMAL out in the world, or in an instance a
+     * REBUILD_REGION naming the map zone each of its zones copies ([Instances.referenceZone]). Also when they go into or
+     * out of an instance, however short the step.
+     */
+    private fun rebuild(player: Player) {
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
-        player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
+        val instance = instances.at(player.x, player.z)
+        player.buildAreaInstance = instance
+        if (instance == null) {
+            player.session.queue(RebuildNormalV2(player.buildAreaZoneX, player.buildAreaZoneZ, -1))
+        } else {
+            // Guessed: reload, so the client draws the region again even where its zones look the same as before.
+            player.session.queue(RebuildRegionV2(player.buildAreaZoneX, player.buildAreaZoneZ, true, instances::referenceZone))
+        }
         // Guessed safe rather than checked: the client may carry zones that stay in view across a rebuild, but sending
-        // them all again in full is right either way.
+        // them all again in full is right either way. The ground items and loc changes a reconnect missed go again too.
         player.zoneView.reset()
+    }
+
+    /**
+     * Ends each instance nobody is in any more, with everything in it: NPCs, objs and loc changes. A player whose
+     * connection dropped still counts until they are removed, so a reconnect finds it.
+     */
+    private fun endEmptyInstances() {
+        if (instances.all.isEmpty()) return
+        for (instance in instances.all.toList()) {
+            if (players.any { it != null && instance.contains(it.x, it.z) }) continue
+            endInstance(instance)
+        }
+    }
+
+    /** Ends [instance] now, with everything in it. Anyone still inside is first sent to its exit. */
+    fun endInstance(instance: Instance) {
+        for (player in players) {
+            if (player != null && instance.contains(player.x, player.z)) teleport(player, instance.exitX, instance.exitZ, instance.exitLevel)
+        }
+        // A grave in it goes to the exit, so what its owner lost can still be taken back. Guessed.
+        deaths.moveGraves({ instance.contains(it.x, it.z) }, instance.exitX, instance.exitZ, instance.exitLevel)
+        for (npc in npcs.all.toList()) if (instance.contains(npc.x, npc.z)) removeNpc(npc)
+        // Nothing that was due there later comes back into the block, which the next instance may have by then.
+        meleeCombat.forgetArea(instance::contains)
+        rangedCombat.forgetArea(instance::contains)
+        firemaking.forgetArea(instance::contains)
+        // A zone further each way, into the free square round the block: a door or gate on its edge opens onto the tile
+        // beyond.
+        val fromX = instance.baseX - ZoneKey.SIZE
+        val fromZ = instance.baseZ - ZoneKey.SIZE
+        val toX = instance.maxX + ZoneKey.SIZE
+        val toZ = instance.maxZ + ZoneKey.SIZE
+        groundObjs.forgetArea(fromX, fromZ, toX, toZ)
+        locs.forgetArea(fromX, fromZ, toX, toZ)
+        zones.forgetArea(fromX shr 3, fromZ shr 3, toX shr 3, toZ shr 3)
+        instances.destroy(instance)
+        logger.info { "Ended $instance" }
     }
 
     private fun sendInfo(player: Player, tickEnd: Boolean) {
@@ -2432,6 +2582,7 @@ class World(
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
             trades.leave(player)
+            thieving.forgive(player)
             friendChats.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)

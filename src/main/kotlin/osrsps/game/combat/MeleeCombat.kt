@@ -45,7 +45,8 @@ class MeleeInteraction internal constructor(val npc: Npc, private val owner: Mel
  *
  * An NPC that is hit fights back ([process], in the NPC phase): it chases its attacker, keeping within its max range
  * of its spawn ([Npcs.MAX_RANGE]), and swings every attack-speed ticks once beside them; it gives up when they are
- * gone, dead, on another level, further than [CHASE_RANGE] from its spawn, or fought by another NPC. A player hit
+ * gone, dead, on another level, further than [CHASE_RANGE] from its spawn, or fought by another NPC, and walks home
+ * when they have stood outside its aggression range for a while ([leftBehind]). A player hit
  * with auto retaliate on fights back too (OSRS Wiki, Auto Retaliate: one tick after the hit, with their attack delay
  * set to half their weapon's speed, rounded up). Lumbridge is single-way: an NPC another player hit recently says
  * "Someone else is fighting that.", and a player another NPC is hitting can't attack a second one ("I'm already under
@@ -193,18 +194,42 @@ class MeleeCombat(
     }
 
     /**
-     * Whether [npc] is someone else's: it is fighting another player, one who never hit it too (an aggressive monster's
-     * prey with auto retaliate off), or another player hit it within the last [IN_COMBAT_TICKS] ticks and is still here.
-     * Guessed: the Wiki says a single-way NPC stays someone's for a while after their last hit, but not how long, and
-     * that only one player or monster can attack one at a time. Never for an NPC standing in a multi-way area (guessed:
-     * by the NPC's tile, not the player's).
+     * Whether [npc] is someone else's: it took on or swung at another player within the last [IN_COMBAT_TICKS] ticks,
+     * one who never hit it too (an aggressive monster's prey with auto retaliate off), or another player hit it within
+     * them and is still here. So an NPC held at its max range by a player out of its reach is free again once neither
+     * side has fought for that long. Guessed: the Wiki says a single-way NPC stays someone's for a while after their
+     * last hit, but not how long, and that only one player or monster can attack one at a time. Never for an NPC
+     * standing in a multi-way area (guessed: by the NPC's tile, not the player's).
      */
     internal fun foughtByAnother(player: Player, npc: Npc): Boolean {
         if (multi.at(npc.level, npc.x, npc.z)) return false
+        val tick = currentTick()
         val target = npc.target
-        if (target != null && target !== player && !target.loggedOut) return true
+        if (target != null && target !== player && !target.loggedOut && tick - npc.fightTick <= IN_COMBAT_TICKS) return true
         val other = npc.attacker ?: return false
-        return other !== player && currentTick() - npc.attackedTick <= IN_COMBAT_TICKS && !other.loggedOut
+        return other !== player && tick - npc.attackedTick <= IN_COMBAT_TICKS && !other.loggedOut
+    }
+
+    /** Whether [player] hit [npc] within the last [IN_COMBAT_TICKS] ticks. */
+    private fun hitBy(npc: Npc, player: Player): Boolean =
+        npc.attacker === player && currentTick() - npc.attackedTick <= IN_COMBAT_TICKS
+
+    /**
+     * Whether [player] is fighting an NPC other than [npc]: they attacked one (a swing, shot or cast made, not just
+     * clicked, so a bow with no arrows doesn't count) or hit one within the last [IN_COMBAT_TICKS] ticks, and it still
+     * stands. Never for a player standing in a multi-way area (by the player's tile, as [underAttackByAnother]). So an
+     * aggressive monster doesn't join in on a single-way fight.
+     */
+    internal fun fightingAnother(player: Player, npc: Npc): Boolean {
+        if (multi.at(player.level, player.x, player.z)) return false
+        val other = player.attackedNpc ?: return false
+        return other !== npc && !other.dead && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
+    }
+
+    /** [player] made an attack on [npc] on [tick], whatever it does when it lands; see [fightingAnother]. */
+    internal fun attackMade(player: Player, npc: Npc, tick: Long) {
+        player.attackedNpc = npc
+        player.attackedNpcTick = tick
     }
 
     /**
@@ -295,14 +320,16 @@ class MeleeCombat(
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, style.xp.size))
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
         val poison = PoisonedWeapons.melee(combat.weapon(player))
-        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect }, maxHit)
+        attackMade(player, npc, tick)
+        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect }, maxHit, Tile(player.x, player.z))
     }
 
     /**
      * A player's swing on its way to an NPC: it lands on [landTick], poisoning at [poison] if over 0, with [special]'s
-     * effect if it was one. [maxHit] is what it was rolled against, for the max hit hitsplat.
+     * effect if it was one. [maxHit] is what it was rolled against, for the max hit hitsplat; [from] is where the
+     * player stood to swing.
      */
-    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?, val maxHit: Int)
+    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?, val maxHit: Int, val from: Tile)
 
     private val landing = ArrayList<Swing>()
 
@@ -322,7 +349,7 @@ class MeleeCombat(
             val npc = swing.npc
             npc.incoming -= swing.damage
             if (npcs[npc.index] !== npc || npc.dead) continue
-            val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit)
+            val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit, swing.from)
             if (swing.special != null) specialLanded(npc, dealt, swing.special)
             weaponPoison(npc, dealt, swing.poison, venom = false, ranged = false)
         }
@@ -359,11 +386,12 @@ class MeleeCombat(
 
     /**
      * [npc] takes [damage] from [source] (null for none, as from a command), capped at what it has left, on [tick]:
-     * the hitsplat and health bar for everyone, its block animation, or its death. A hit NPC turns on whoever hit it.
-     * [maxHit] is the most a rolled hit could have done, 0 for damage that wasn't rolled against one (recoil,
-     * retribution, poison, commands). Returns the damage dealt.
+     * the hitsplat and health bar for everyone, its block animation, or its death. A hit NPC turns on whoever hit it, or
+     * retreats from them; [attackedFrom] is where they stood when they attacked, their tile now if null. [maxHit] is the
+     * most a rolled hit could have done, 0 for damage that wasn't rolled against one (recoil, retribution, poison,
+     * commands). Returns the damage dealt.
      */
-    fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0): Int {
+    fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0, attackedFrom: Tile? = null): Int {
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
         if (npc.dead) return 0
         val dealt = damage.coerceIn(0, npc.hitpoints)
@@ -376,7 +404,7 @@ class MeleeCombat(
         if (npc.hitpoints > 0) {
             // Its own swing this tick wins over the block (guessed).
             if (def.anims.defend >= 0 && npc.effects.anim == null) npc.effects.anim(def.anims.defend)
-            if (source != null) retaliate(npc, source, tick)
+            if (source != null) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
         } else {
             die(npc, def, source, tick)
         }
@@ -388,17 +416,81 @@ class MeleeCombat(
      * splash graphic alone), but the NPC is under attack all the same and turns on whoever cast it, as one that is hit
      * does (OSRS Wiki, Splashing: it is how players train Magic on monsters that fight back).
      */
-    fun splashed(npc: Npc, source: Player, tick: Long) {
-        combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
+    fun splashed(npc: Npc, source: Player, tick: Long, attackedFrom: Tile? = null) {
+        val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
         if (npc.dead) return
         attacked(npc, source, tick)
-        retaliate(npc, source, tick)
+        hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
+    }
+
+    /**
+     * [npc] was attacked by [player], who stood at [from] as they swung, fired or cast: it fights back, or retreats from them (OSRS Wiki, Retreat, read 2026-10-30). It
+     * retreats when attacked from outside its aggression range ([Aggression.inAggressionRange]), and when its
+     * hitpoints are at or below its [NpcCombatDef.retreatsAt]. Retreating, it walks away from the player and doesn't
+     * fight back, keeping within its max range of its spawn ([Npcs.MAX_RANGE]), until the player leaves its interaction
+     * range ([CHASE_RANGE], the max range plus 11) or dies or leaves. Guessed (the Wiki gives none of these): that a
+     * hit from within the aggression range ends a retreat its hitpoints don't call for, and it fights back; the
+     * hitpoints threshold of each NPC; walking straight away from the player, diagonals first; and that a retreat also
+     * ends [IN_COMBAT_TICKS] after the last hit, so a player standing within range without hitting it doesn't keep an
+     * aggressive NPC from hunting anyone else.
+     */
+    private fun hitBy(npc: Npc, def: NpcCombatDef, player: Player, from: Tile, tick: Long) {
+        val inRange = Aggression.inAggressionRange(npc, from.x, from.z)
+        if (lowOnHitpoints(npc, def) || (!inRange && npc.retreatingFrom == null)) return retreat(npc, player)
+        if (npc.retreatingFrom != null) {
+            if (!inRange) {
+                // Another hit from out of range keeps it going.
+                npc.retreatTick = tick
+                return
+            }
+            npc.retreatingFrom = null
+        }
+        retaliate(npc, player, tick)
+    }
+
+    /** [npc] stops fighting and walks away from [player], from this tick; see [hitBy]. */
+    private fun retreat(npc: Npc, player: Player) {
+        giveUp(npc)
+        npc.retreatingFrom = player
+        npc.retreatTick = currentTick()
+        npc.destination = null
+    }
+
+    /** Whether [npc]'s hitpoints are at or below its [NpcCombatDef.retreatsAt] share, rounded up. */
+    private fun lowOnHitpoints(npc: Npc, def: NpcCombatDef): Boolean =
+        def.retreatsAt > 0 && npc.hitpoints <= (npc.type.stats.hitpoints * def.retreatsAt + 99) / 100
+
+    /**
+     * Ends [npc]'s retreat once [player] has left its interaction range, died or gone, or not hit it for
+     * [IN_COMBAT_TICKS] (guessed); see [hitBy].
+     */
+    private fun keepRetreating(npc: Npc, player: Player, tick: Long) {
+        if (player.loggedOut || player.dead || player.level != npc.level || outOfRange(npc, player) || tick - npc.retreatTick > IN_COMBAT_TICKS) {
+            npc.retreatingFrom = null
+        }
+    }
+
+    /**
+     * [npc] turns on [player] unprovoked, as a market guard does on a thief: it faces them and attacks from the next tick,
+     * as an aggressive monster does, with [osrsps.game.combat.Aggression.huntable]'s single-way checks: it doesn't leave a
+     * fight with another player, nor join in while another NPC is hitting them or they are fighting one, and of two guards
+     * sent at once only the first to land a hit keeps on. Does nothing to an NPC that can't fight.
+     */
+    fun provoke(npc: Npc, player: Player, tick: Long) {
+        if (npc.dead || combat.npcCombat[npc.type] == null) return
+        if (foughtByAnother(player, npc) || underAttackByAnother(player, npc) || fightingAnother(player, npc)) return
+        npc.face(player)
+        aggress(npc, player, tick)
     }
 
     /** [npc] is in combat with [source] (null for none) from [tick], and faces them. */
     private fun attacked(npc: Npc, source: Player?, tick: Long) {
         npc.attacker = source
-        if (source != null) npc.lastAttacker = source
+        if (source != null) {
+            npc.lastAttacker = source
+            source.attackedNpc = npc
+            source.attackedNpcTick = tick
+        }
         npc.attackedTick = tick
         npc.holdTicks = IN_COMBAT_TICKS
         if (source != null) npc.face(source)
@@ -408,6 +500,7 @@ class MeleeCombat(
     private fun retaliate(npc: Npc, player: Player, tick: Long) {
         if (npc.target === player) return
         npc.target = player
+        npc.fightTick = tick
         npc.nextAttackTick = maxOf(npc.nextAttackTick, tick + 1)
         npcs.follow(npc, player)
     }
@@ -417,6 +510,7 @@ class MeleeCombat(
 
     private fun die(npc: Npc, def: NpcCombatDef, killer: Player?, tick: Long) {
         npc.dead = true
+        npc.retreatingFrom = null
         giveUp(npc)
         if (def.anims.death >= 0) npc.effects.anim(def.anims.death)
         // The body goes before the replacement comes, however short the respawn time (a rat's is 2 ticks).
@@ -436,7 +530,7 @@ class MeleeCombat(
     /**
      * The NPC phase's combat: last tick's player swings land, every fighting NPC chases and hits its target or gives
      * up, the NPCs whose death is over are taken out with their drops put down, those whose respawn time is up put
-     * back, and once a minute everyone heals a point.
+     * back, and every hurt player and NPC whose minute is up heals a point.
      */
     fun process() {
         val tick = currentTick()
@@ -457,26 +551,39 @@ class MeleeCombat(
             }
         }
         for (npc in npcs.all) {
+            npc.retreatingFrom?.let { keepRetreating(npc, it, tick) }
             val target = npc.target ?: continue
             fightBack(npc, target, tick)
         }
         regeneratePlayers()
-        if (tick % REGEN_TICKS == 0L) regenerate()
+        regenerateNpcs()
     }
 
     private fun fightBack(npc: Npc, player: Player, tick: Long) {
         val def = combat.npcCombat[npc.type] ?: return giveUp(npc)
         if (npc.dead) return
-        if (player.loggedOut || player.level != npc.level || player.hitpoints <= 0 || outOfRange(npc, player) || underAttackByAnother(player, npc)) {
+        // A newcomer in single-way combat doesn't make it give up on a player who is hitting it themselves.
+        if (player.loggedOut || player.level != npc.level || player.hitpoints <= 0 || outOfRange(npc, player) ||
+            (underAttackByAnother(player, npc) && !hitBy(npc, player))
+        ) {
             giveUp(npc)
             return
         }
+        if (leftBehind(npc, player, tick)) {
+            giveUp(npc)
+            // Home, so it hunts from its spawn again rather than from the edge of its range. Guessed.
+            npc.destination = Tile(npc.spawn.x, npc.spawn.z)
+            return
+        }
+        // Poison or another player can take it down to where it gives up the fight.
+        if (lowOnHitpoints(npc, def)) return retreat(npc, player)
         // Chase's own far limit may have let go of them; a fighting NPC keeps after them while they are in range.
         if (npc.following !== player) npcs.follow(npc, player)
         val size = npc.type.size
         if (!Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, player.x, player.z, 1, 1)) return
         if (tick < npc.nextAttackTick) return
         npc.nextAttackTick = tick + def.attackSpeed
+        npc.fightTick = tick
         if (def.anims.attack >= 0) npc.effects.anim(def.anims.attack)
         npc.face(player)
         val roll = combat.npcAttack(npc, player) ?: return
@@ -488,6 +595,16 @@ class MeleeCombat(
         // attack in four, as for a player's poisoned melee weapon; the Wiki gives no chance for monsters.
         if (def.poison > 0 && !player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(player, def.poison)
     }
+
+    /**
+     * Whether [npc] has lost [player]: they stand outside its aggression range ([Aggression.inAggressionRange]), where
+     * it can't follow them (it keeps within its max range of its spawn, [Npcs.MAX_RANGE]), it hasn't swung at them or
+     * taken them on for [IN_COMBAT_TICKS], and they haven't hit it in that time. The Wiki (Aggressiveness) says the
+     * aggression range "defines the outer limit of where the player can stand and still be attacked"; how long it
+     * waits there first is guessed.
+     */
+    private fun leftBehind(npc: Npc, player: Player, tick: Long): Boolean =
+        !Aggression.inAggressionRange(npc, player.x, player.z) && tick - npc.fightTick > IN_COMBAT_TICKS && !hitBy(npc, player)
 
     /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis. */
     private fun outOfRange(npc: Npc, player: Player): Boolean =
@@ -542,7 +659,8 @@ class MeleeCombat(
     /**
      * [npc] takes [damage] of poison or venom with [hitsplat], capped at what it has left: the hitsplat and health bar,
      * but no block animation, no XP and no one to turn on. Killed by it, its drops go to whoever fought it last, even
-     * once that fight is over ([Npc.lastAttacker]).
+     * once that fight is over ([Npc.lastAttacker]). Taken down to its [NpcCombatDef.retreatsAt] share while fighting,
+     * it retreats from its target at once, before this tick's movement, as from a hit ([hitBy]).
      * Returns the damage dealt.
      */
     fun statusHit(npc: Npc, damage: Int, hitsplat: Int): Int {
@@ -553,6 +671,7 @@ class MeleeCombat(
         npc.effects.hit(-1, hitsplat, hitsplat, dealt)
         npc.effects.headBar(-1, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.type.stats.hitpoints))
         if (npc.hitpoints <= 0) die(npc, def, npc.attacker ?: npc.lastAttacker, currentTick())
+        else npc.target?.let { if (lowOnHitpoints(npc, def)) retreat(npc, it) }
         return dealt
     }
 
@@ -642,10 +761,27 @@ class MeleeCombat(
         }
     }
 
-    /** A hitpoint back for every hurt NPC each [REGEN_TICKS]. Guessed for NPCs: the players' one a minute, on a world clock. */
-    private fun regenerate() {
+    /**
+     * Each NPC's own hitpoints countdown ([Npc.hitpointsRegenTicks]), started on the tick it spawns: at 0 a hurt NPC gets a
+     * hitpoint back and it starts again at [REGEN_TICKS], in a fight or out of one. The default rate is the players'
+     * one a minute (OSRS Wiki, Guardian (Chambers of Xeric), quoting Mod Ash: "default should be 100"; User:Orion/Regen
+     * measures 100 ticks for most monsters and has no in-or-out-of-combat condition). Inferred: the countdown starts at
+     * the spawn and runs while hitpoints are full, as the players' does. No health bar is sent for it: the client shows
+     * an NPC's bar only for 6 s after its last update (healthbar 0's duration, 300 client cycles, in the 241 cache), and
+     * nothing says live sends one for regeneration.
+     */
+    private fun regenerateNpcs() {
         for (npc in npcs.all) {
-            if (!npc.dead && npc.hitpoints < npc.type.stats.hitpoints && combat.npcCombat[npc.type] != null) npc.hitpoints++
+            if (npc.dead || combat.npcCombat[npc.type] == null) continue
+            // The tick it appears on starts the countdown without counting, whether it came before this phase (a
+            // command, the server starting) or in it (a respawn), so the first hitpoint comes a full minute later.
+            if (npc.hitpointsRegenTicks < 0) {
+                npc.hitpointsRegenTicks = REGEN_TICKS
+                continue
+            }
+            if (--npc.hitpointsRegenTicks > 0) continue
+            npc.hitpointsRegenTicks = REGEN_TICKS
+            if (npc.hitpoints < npc.type.stats.hitpoints) npc.hitpoints++
         }
     }
 
@@ -653,6 +789,11 @@ class MeleeCombat(
     val respawning: Int get() = dying.size
 
     /** The spawns of the dead NPCs that will come back, with the tick each comes back on, soonest first. */
+    /** Forgets the deaths of NPCs in, or from, the tiles where [inside] holds (an instance ending): none comes back there. */
+    fun forgetArea(inside: (Int, Int) -> Boolean) {
+        dying.removeIf { inside(it.npc.x, it.npc.z) || inside(it.npc.spawn.x, it.npc.spawn.z) }
+    }
+
     fun pendingRespawns(): List<Pair<NpcSpawn, Long>> =
         dying.filter { it.npc.spawn.respawns }.map { it.npc.spawn to it.respawnTick }.sortedBy { it.second }
 

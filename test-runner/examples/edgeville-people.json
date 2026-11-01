@@ -1,0 +1,343 @@
+{
+ "name": "Edgeville piece step 3a: Doris's talk, the Basement of Doom's trapdoor (open, close, down) and cellar stairs, Evil Dave's talk, Lucien and Hari, and the refusals on the canoe station, fairy ring, lever, Soul Wars portal and Death's Domain (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3079 3491 0",
+   "expectMessage": "Teleported to 3079, 3491, 0",
+   "comment": "in Doris's house, by her spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Doris",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[doris.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[doris.dave]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[doris.dave]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[doris.dave_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[doris.dave_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[doris.dave_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[doris.dave_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3078 3493 0",
+   "expectMessage": "Teleported to 3078, 3493, 0",
+   "comment": "east of the trapdoor"
+  },
+  {
+   "step": "locOption",
+   "loc": "Trapdoor",
+   "option": "Open",
+   "x": 3077,
+   "y": 3493
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Open trapdoor",
+   "option": "Go-down",
+   "x": 3077,
+   "y": 3493,
+   "comment": "varbit 1888 shows the open trapdoor to this player"
+  },
+  {
+   "step": "locOption",
+   "loc": "Open trapdoor",
+   "option": "Close",
+   "x": 3077,
+   "y": 3493
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Trapdoor",
+   "option": "Open",
+   "x": 3077,
+   "y": 3493
+  },
+  {
+   "step": "locOption",
+   "loc": "Trapdoor",
+   "option": "Open",
+   "x": 3077,
+   "y": 3493
+  },
+  {
+   "step": "locOption",
+   "loc": "Open trapdoor",
+   "option": "Go-down",
+   "x": 3077,
+   "y": 3493
+  },
+  {
+   "step": "assertLocation",
+   "x": 3077,
+   "y": 9893,
+   "plane": 0,
+   "comment": "the Basement of Doom, east of the cellar stairs (landing tile guessed)"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3079 9890 0",
+   "expectMessage": "Teleported to 3079, 9890, 0",
+   "comment": "by Evil Dave's spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Evil Dave",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[evil_dave.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[evil_dave.time_travel]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[evil_dave.time_travel]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[evil_dave.never_mind]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[evil_dave.never_mind]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3077 9893 0",
+   "expectMessage": "Teleported to 3077, 9893, 0"
+  },
+  {
+   "step": "locOption",
+   "loc": "Cellar stairs",
+   "option": "Climb",
+   "x": 3076,
+   "y": 9893
+  },
+  {
+   "step": "assertLocation",
+   "x": 3078,
+   "y": 3493,
+   "plane": 0,
+   "comment": "back in Doris's house (landing tile guessed)"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3122 3484 0",
+   "expectMessage": "Teleported to 3122, 3484, 0",
+   "comment": "in Lucien's house east of the willows"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Lucien",
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "shown by varbit 10753 as after Temple of Ikov"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lucien.what]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3132 3509 0",
+   "expectMessage": "Teleported to 3132, 3509, 0",
+   "comment": "by Hari, north-east of the town"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Hari",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hari.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hari.hello_reply]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[hari.teach]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hari.teach_me]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hari.",
+   "comment": "his canoe lines by this account's Woodcutting level"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3131 3508 0",
+   "expectMessage": "Teleported to 3131, 3508, 0",
+   "comment": "by the canoe station"
+  },
+  {
+   "step": "locOption",
+   "loc": "Canoe Station",
+   "option": "Chop-down",
+   "x": 3130,
+   "y": 3508
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[edgeville_closed.canoe]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3130 3497 0",
+   "expectMessage": "Teleported to 3130, 3497, 0",
+   "comment": "by the fairy ring"
+  },
+  {
+   "step": "locOption",
+   "loc": "Fairy ring",
+   "option": "Zanaris",
+   "x": 3129,
+   "y": 3496
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[edgeville_closed.fairy_ring]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3091 3475 0",
+   "expectMessage": "Teleported to 3091, 3475, 0",
+   "comment": "by the Wilderness lever"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever",
+   "option": "Pull",
+   "x": 3090,
+   "y": 3475
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[edgeville_closed.lever]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3083 3474 0",
+   "expectMessage": "Teleported to 3083, 3474, 0",
+   "comment": "by the Soul Wars portal"
+  },
+  {
+   "step": "locOption",
+   "loc": "Soul Wars Portal",
+   "option": "Enter",
+   "x": 3082,
+   "y": 3473
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[edgeville_closed.soul_wars]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3097 3477 0",
+   "expectMessage": "Teleported to 3097, 3477, 0",
+   "comment": "by Death's Domain"
+  },
+  {
+   "step": "locOption",
+   "loc": "Death's Domain",
+   "option": "Enter",
+   "x": 3096,
+   "y": 3476
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[edgeville_closed.deaths_domain]"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  }
+ ]
+}

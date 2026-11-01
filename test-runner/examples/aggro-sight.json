@@ -1,0 +1,28 @@
+{
+ "name": "NPC aggression by sight: a giant spider outside Lumbridge Castle's shut large doors leaves the player inside alone, and goes for them once they open the doors, read off ::npcs",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account, combat level 3, at most twice the spider's 2; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now", "comment": "its bites do nothing"},
+  {"step": "command", "text": "::tele 3214 3221 0", "expectMessage": "Teleported to 3214, 3221, 0", "comment": "inside the castle's west large doors"},
+  {"step": "command", "text": "::resetlocs 2", "expectMessage": "Put the locs within 2 of", "comment": "both leaves shut, as the cache has them"},
+  {"step": "command", "text": "::aggro 1000", "expectMessage": "aggressive monsters here are tolerant of you.", "comment": "so the spider leaves us alone while we stand on it to spawn it"},
+  {"step": "command", "text": "::tele 3211 3221 0", "expectMessage": "Teleported to 3211, 3221, 0", "comment": "outside the doors"},
+  {"step": "command", "text": "::npc giantspider1", "expectMessage": "Spawned Giant spider", "comment": "it stands still on 3211, 3221"},
+  {"step": "command", "text": "::tele 3215 3221 0", "expectMessage": "Teleported to 3215, 3221, 0", "comment": "4 tiles east of it, within its hunt range of 5"},
+  {"step": "command", "text": "::los -4 0", "expectMessage": "3211, 3221: distance 4, line of sight blocked", "comment": "the shut door is between us"},
+  {"step": "command", "text": "::aggro 0", "expectMessage": "0 ticks in the areas around", "comment": "no longer tolerated: only the door keeps it off"},
+  {"step": "waitTicks", "ticks": 5},
+  {"step": "command", "text": "::npcs 5", "expectMessage": "spawn 3211, 3221, wander 0; fighting no one", "comment": "it can't see us"},
+  {"step": "locOption", "loc": "Large door", "option": "Open", "x": 3213, "y": 3221, "comment": "the left leaf; both open, and we stand on 3214, 3221"},
+  {"step": "assertLoc", "loc": "Large door", "option": "Close", "x": 3212, "y": 3221, "comment": "open"},
+  {"step": "command", "text": "::los -3 0", "expectMessage": "3211, 3221: distance 3, line of sight clear", "comment": "through the open doorway"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "command", "text": "::npcs 5", "expectMessage": "; fighting test", "comment": "it sees us now and comes for us unprovoked; only it can be fighting us (its line may show it hurt once we hit back)"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed 1 NPC you put in."},
+  {"step": "command", "text": "::resetlocs 2", "expectMessage": "Put the locs within 2 of", "comment": "the doors shut again"},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

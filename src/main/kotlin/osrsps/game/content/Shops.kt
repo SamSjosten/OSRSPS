@@ -14,7 +14,9 @@ fun registerShops(world: World) {
     for (type in world.shopTypes.all) {
         for (npc in type.npcs) {
             world.npcInteractions.reachOverCounter(npc)
-            world.handlers.onNpc(npc, TRADE) { world.shopScreen.open(player, type) }
+            world.handlers.onNpc(npc, TRADE) { op ->
+                if (!world.thieving.refuses(player, op.npc!!, tick)) world.shopScreen.open(player, type)
+            }
         }
     }
 }

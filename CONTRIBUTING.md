@@ -67,8 +67,9 @@ or turn it off.
   has checks running, it waits for that one. If that merge of `main` changes the diff, it comments **Main merged in:**
   asking the thread for a new Codex review. GitHub may hold that merge's `pull_request` runs for "approval from a
   maintainer", which leaves the pull request blocked on checks that never start; the queue approves them (and only
-  dispatches `build` when no runs show up). If GitHub refuses the approval, it comments **Runs waiting:** once, and
-  Sam clicks "Approve workflows to run".
+  dispatches `build` when no runs show up). If GitHub refuses the approval, it looks at those runs again 45 seconds
+  later (GitHub lists a run it has only just created as waiting and refuses to approve it, though it then starts by
+  itself); only if they still wait does it comment **Runs waiting:**, once, and Sam clicks "Approve workflows to run".
 - **Batches**: when two or more such pull requests are ready, with their own checks finished and green, the queue
   merges up to six of them one after another onto `main` on the `automerge/batch` branch (leaving out any that
   conflicts with those before it) and runs `build` there once for all of them. Green, that commit becomes the head of

@@ -49,6 +49,9 @@ class Quests(val all: List<Quest>) {
         val AFTER_QUESTS: Map<Int, Int> = mapOf(
             // gobdip_met_aggie: Goblin Diplomacy has the player meet Aggie, who then shows Dyes ([osrsps.game.content.Aggie]).
             13597 to 1,
+            // ikov_lucien_vis: after Temple of Ikov on Lucien's side, he shows in his house, Talk-to only (inferred;
+            // [osrsps.game.content.EdgevillePeople]).
+            10753 to 1,
         )
 
         val NONE = Quests(emptyList())

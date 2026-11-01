@@ -1,0 +1,18 @@
+{
+ "name": "NPC retreat: a unicorn spawned east of the castle, put on 4 of its 19 hitpoints, walks away from the player who attacks it instead of fighting back, read off ::npcs",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's unarmed punch; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle, away from the courtyard's men"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now"},
+  {"step": "command", "text": "::npc unicorn", "expectMessage": "Spawned Unicorn"},
+  {"step": "command", "text": "::npchp 4 mine", "expectMessage": "1 NPC now on 4 hitpoints", "comment": "a quarter of 19, rounded up, is 5: at or below it, it retreats (guessed threshold)"},
+  {"step": "npcOption", "npc": "Unicorn", "option": "Attack", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 4},
+  {"step": "command", "text": "::npcs 10", "expectMessage": "; retreating from test"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed 1 NPC you put in."},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

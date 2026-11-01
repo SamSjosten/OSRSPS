@@ -101,7 +101,8 @@ class MagicCombat(
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
 ) {
     /** A spell on its way to [npc], landing on [landTick] for [damage] if [hit], or splashing. */
-    private class Cast(val player: Player, val npc: Npc, val spell: CombatSpell, val hit: Boolean, val damage: Int, val landTick: Long, val maxHit: Int)
+    /** [from]: where the player stood when they cast it, for the NPC's retreat ([MeleeCombat.hit]). */
+    private class Cast(val player: Player, val npc: Npc, val spell: CombatSpell, val hit: Boolean, val damage: Int, val landTick: Long, val maxHit: Int, val from: Tile)
 
     private val inFlight = ArrayList<Cast>()
 
@@ -282,6 +283,7 @@ class MagicCombat(
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
         val landTick = tick + HitDelay.MAGIC.ticks(distance) + HitDelay.ON_NPC
         if (spell.travel >= 0) projectile(flight(player, npc, spell.travel, landTick - tick))
+        melee.attackMade(player, npc, tick)
         val hit = roll(player, npc, spell, matchup, landTick, defensive)
         player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
         if (spell.area && multi.at(npc.level, npc.x, npc.z)) {
@@ -310,7 +312,7 @@ class MagicCombat(
             player.skills.addTenths(Skill.MAGIC, CombatMath.spellDamageXpTenths(damage))
         }
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
-        inFlight += Cast(player, npc, spell, hit, damage, landTick, matchup.maxHit)
+        inFlight += Cast(player, npc, spell, hit, damage, landTick, matchup.maxHit, Tile(player.x, player.z))
         return hit
     }
 
@@ -363,11 +365,11 @@ class MagicCombat(
             if (cast.hit) {
                 if (cast.spell.impact >= 0) npc.effects.spotanim(0, cast.spell.impact, IMPACT_HEIGHT)
                 // Guessed: Bind, which can't do damage, shows no hitsplat, as a splash shows none.
-                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick) else melee.hit(npc, cast.player, cast.damage, tick, cast.maxHit)
+                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick, cast.from) else melee.hit(npc, cast.player, cast.damage, tick, cast.maxHit, cast.from)
                 if (cast.spell.freezeTicks > 0 && !npc.dead) npcs.freeze(npc, cast.spell.freezeTicks)
             } else {
                 if (spells.splash >= 0) npc.effects.spotanim(0, spells.splash, IMPACT_HEIGHT)
-                melee.splashed(npc, cast.player, tick)
+                melee.splashed(npc, cast.player, tick, cast.from)
             }
         }
     }

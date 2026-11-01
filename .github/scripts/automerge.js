@@ -67,6 +67,7 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 // GitHub's API answers 5xx now and then (500s listing a commit's check runs, 14:21-14:25Z on 2026-10-30), and an
 // error left unhandled kills the run, the queue's and the gate's alike, with a codex-review possibly half written.
 // So each request is tried again on a 5xx, or no answer at all, after 2, 4 and 8 seconds.
+const RECHECK_MS = 45000; // how long a run whose approval was refused gets before Sam is asked to approve it
 const RETRIES = [2000, 4000, 8000];
 const RETRYING = Symbol('automerge retries');
 
@@ -259,23 +260,45 @@ async function filedElsewhere(github, repo, sha, ref) {
 async function approveWaiting(github, repo, core, sha, waitingRuns = null) {
   const runs = waitingRuns ? waitingRuns.filter(run => run.head_sha === sha) : (await github.rest.actions.listWorkflowRunsForRepo({ ...repo, head_sha: sha, status: 'action_required', per_page: 100 })).data.workflow_runs || [];
   let approved = 0;
+  const refused = [];
   for (const run of runs) {
     try {
       await github.rest.actions.approveWorkflowRun({ ...repo, run_id: run.id });
       approved++;
     } catch (error) {
+      refused.push(run.id);
       core.warning(`run ${run.id} on ${sha.slice(0, 7)}: approval refused (${error.status}): ${error.message}`);
     }
   }
   if (runs.length) core.info(`${sha.slice(0, 7)}: approved ${approved} of ${runs.length} waiting runs`);
-  return { waiting: runs.length, approved };
+  return { waiting: runs.length, approved, refused };
 }
 
-// Once per head: the runs on it wait for a maintainer and the queue couldn't approve them.
-async function askForApproval(github, repo, number, sha) {
+// How many of the runs whose approval was refused still wait for a maintainer after RECHECK_MS. GitHub lists a run
+// it has only just created as waiting for a few seconds, and refuses to approve it, since it needs no approval: those
+// comments were false alarms (8bb638c 2026-11-01 11:38Z; 969ae05 and 4a6d675 on #366, 12:14Z).
+async function stillWaiting(github, repo, core, sleep, sha, refused) {
+  await sleep(RECHECK_MS);
+  let still = 0;
+  for (const id of refused) {
+    try {
+      const { data: run } = await github.rest.actions.getWorkflowRun({ ...repo, run_id: id });
+      if (run.status === 'action_required' || run.conclusion === 'action_required') still++;
+    } catch (error) {
+      core.info(`run ${id} on ${sha.slice(0, 7)}: couldn't look again (${error.status}): ${error.message}`);
+    }
+  }
+  core.info(`${sha.slice(0, 7)}: ${still} of ${refused.length} refused runs still wait for approval`);
+  return still;
+}
+
+// Once per head: the runs on it wait for a maintainer, the queue couldn't approve them, and they still wait when it
+// looks again.
+async function askForApproval(github, repo, core, sleep, number, sha, refused) {
   const marker = `${APPROVE} ${sha} -->`;
   const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: number, per_page: 100 });
   if (comments.some(comment => (comment.body || '').includes(marker))) return;
+  if (!(await stillWaiting(github, repo, core, sleep, sha, refused))) return;
   await github.rest.issues.createComment({
     ...repo,
     issue_number: number,
@@ -355,6 +378,63 @@ function isBatch(git, number, batch, head) {
   }
 }
 
+// The build.yml runs not finished yet, as the set of commits they are on. A queued run has no `build` check yet: that
+// job waits for the others, so a head or batch whose run sat in GitHub's queue looked like one no build ever ran on,
+// and each queue run dispatched another. With the runners busy that fed itself: 148 runs queued, 85 of them the
+// queue's own dispatches of three heads and the batch, and the queue's own jobs waited an hour for a runner, so
+// nothing merged after 06:10Z (2026-11-01). So the queue's own dispatches that can't matter any more are cancelled:
+// - on a commit that is no longer its branch's head, read again just before (queue runs overlap, and another may have
+//   just pushed that branch and dispatched its build);
+// - on a head, a run older than the newest there that hasn't started: its checks are all older than the newest
+//   run's, so latestChecks (and the ruleset) still go by the newest. A started one is left to finish, as its later
+//   jobs (`build` waits for the others) can file checks after the newest run's.
+// Force-cancelled: a plain cancel still runs `build`, which is `if: always()`. Never main's runs or a thread's
+// pull_request runs.
+async function pendingBuilds(github, repo, core, heads) {
+  const runs = [];
+  for (const status of ['queued', 'in_progress']) {
+    runs.push(...await github.paginate(github.rest.actions.listWorkflowRuns, { ...repo, workflow_id: 'build.yml', status, per_page: 100 }));
+  }
+  const ours = run => run.event === 'workflow_dispatch' && run.head_branch !== 'main' &&
+    (run.triggering_actor || run.actor || {}).login === 'github-actions[bot]';
+  const newest = new Map();
+  for (const run of runs) {
+    if (!(newest.get(run.head_sha) > run.id)) newest.set(run.head_sha, run.id);
+  }
+  const live = new Map();
+  const headNow = async branch => {
+    if (!live.has(branch)) {
+      try {
+        live.set(branch, (await github.rest.repos.getBranch({ ...repo, branch })).data.commit.sha);
+      } catch (error) {
+        if (error.status !== 404) throw error;
+        live.set(branch, null);
+      }
+    }
+    return live.get(branch);
+  };
+  const building = new Set();
+  for (const run of runs) {
+    let why = null;
+    if (ours(run) && heads.get(run.head_branch) !== run.head_sha && await headNow(run.head_branch) !== run.head_sha) {
+      why = 'no longer its branch\'s head';
+    } else if (ours(run) && run.status === 'queued' && newest.get(run.head_sha) !== run.id) {
+      why = `run ${newest.get(run.head_sha)} is newer on the same commit`;
+    }
+    if (!why) {
+      building.add(run.head_sha);
+      continue;
+    }
+    try {
+      await github.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/force-cancel', { ...repo, run_id: run.id });
+      core.info(`build run ${run.id} on ${run.head_branch} ${run.head_sha.slice(0, 7)} cancelled: ${why}`);
+    } catch (error) {
+      core.info(`build run ${run.id} couldn't be cancelled (${error.status}): ${error.message}`);
+    }
+  }
+  return building;
+}
+
 // The batch branch as it is: { sha, at, base, members } or null.
 async function readBatch(github, repo) {
   let data;
@@ -408,7 +488,7 @@ async function updateOne(github, git, repo, core, sleep, pr) {
   if (!held.waiting) {
     await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
   } else if (held.approved < held.waiting) {
-    await askForApproval(github, repo, pr.number, head);
+    await askForApproval(github, repo, core, sleep, pr.number, head, held.refused);
   }
   const { data: updated } = await github.rest.pulls.get({ ...repo, pull_number: pr.number });
   const result = await evaluate(github, git, repo, updated);
@@ -452,7 +532,7 @@ async function promote(github, git, repo, core, batch, carrier, pr, result) {
   return true;
 }
 
-async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha, scanned, waiting, self) {
+async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha, scanned, waiting, self, building) {
   if (!batch || batch.base !== mainSha) return false;
   const carrier = batch.members[batch.members.length - 1];
   const carrierState = scanned.get(carrier.number);
@@ -475,7 +555,9 @@ async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha,
   const failing = checks.some(run => run.status === 'completed' && BAD.includes(run.conclusion));
   const running = checks.some(run => run.status !== 'completed');
   if (!failing && !checks.some(run => run.name === BUILD)) {
-    if (now() - batch.at > 10 * 60 * 1000) {
+    if (building.has(batch.sha)) {
+      core.info(`batch ${batch.sha.slice(0, 7)}: its build is waiting for a runner`);
+    } else if (now() - batch.at > 10 * 60 * 1000) {
       core.info(`batch ${batch.sha.slice(0, 7)}: no build after ten minutes; starting one`);
       await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: BATCH });
     }
@@ -565,6 +647,11 @@ async function advance(github, git, repo, core, sleep, now) {
     ? await github.paginate(github.rest.actions.listWorkflowRunsForRepo, { ...repo, status: 'action_required', per_page: 100 })
     : [];
 
+  const batch = await readBatch(github, repo);
+  const heads = new Map(open.map(pr => [pr.head.ref, pr.head.sha]));
+  if (batch) heads.set(BATCH, batch.sha);
+  const building = await pendingBuilds(github, repo, core, heads);
+
   const scanned = new Map();
   let waiting = null; // an up-to-date pull request whose checks are still running: no other gets main merged in meanwhile
   for (const pr of queued) {
@@ -592,7 +679,7 @@ async function advance(github, git, repo, core, sleep, now) {
         waiting = waiting || pr;
         continue;
       }
-      await askForApproval(github, repo, pr.number, pr.head.sha);
+      await askForApproval(github, repo, core, sleep, pr.number, pr.head.sha, held.refused);
       continue;
     }
     let checks = await latestChecks(github, repo, pr.head.sha);
@@ -601,6 +688,11 @@ async function advance(github, git, repo, core, sleep, now) {
     // since, or a slower gate run may have written a stale result. Written again only when it changes.
     if (!current || current.conclusion !== 'success') {
       checks = await gate(github, git, repo, core, pr.number, current, now, pr) || await latestChecks(github, repo, pr.head.sha);
+    }
+    if (!behind && !checks.some(run => run.name === BUILD) && building.has(pr.head.sha)) {
+      core.info(`#${pr.number}: its build on ${pr.head.sha.slice(0, 7)} is waiting for a runner`);
+      waiting = waiting || pr;
+      continue;
     }
     if (!behind && !checks.some(run => run.name === BUILD)) {
       // An up-to-date head that no build ever ran on: a merge of main whose dispatch was lost (the update showed up
@@ -634,7 +726,7 @@ async function advance(github, git, repo, core, sleep, now) {
   }
 
   const { data: main } = await github.rest.repos.getBranch({ ...repo, branch: 'main' });
-  if (await advanceBatch(github, git, repo, core, sleep, now, await readBatch(github, repo), main.commit.sha, scanned, waiting, self)) return;
+  if (await advanceBatch(github, git, repo, core, sleep, now, batch, main.commit.sha, scanned, waiting, self, building)) return;
 
   const batchable = [...scanned.values()].filter(state => state.batchable).slice(0, BATCH_MAX);
   if (batchable.length >= 2 && await startBatch(github, git, repo, core, batchable.map(state => ({ number: state.pr.number, sha: state.pr.head.sha })))) return;

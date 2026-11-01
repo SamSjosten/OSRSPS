@@ -47,7 +47,7 @@ class NpcCombatTest {
             "slice_surface_goblin_squat_attack_spear" to 6188, "slice_surface_goblin_defend_spear" to 6189, "slice_surface_goblin_death_spear" to 6190,
             "unicorn_rework_attack" to 6376, "unicorn_rework_defend" to 6375, "unicorn_rework_death" to 6377,
             "human_sword_slash" to 390, "human_sword_block" to 387, "human_sword_stab" to 386,
-            "human_blunt_pound" to 401, "human_blunt_block" to 403,
+            "human_blunt_pound" to 401, "human_shield_defence" to 1156,
             "scorpion_update_attack_tail" to 6254, "scorpion_update_defend" to 6255, "scorpion_update_death" to 6256,
         ),
     )
@@ -138,7 +138,9 @@ class NpcCombatTest {
             assertEquals(AttackType.CRUSH, guard.attackType)
             assertEquals(3, guard.maxHit)
             assertEquals(30, guard.defence.against(AttackType.SLASH))
-            assertEquals(NpcCombatAnims(401, 403, 836), guard.anims)
+            // They hold a longsword and a kiteshield: they swing the sword (human_sword_slash) and block with the shield
+            // (human_shield_defence), not a mace's pound and block.
+            assertEquals(NpcCombatAnims(390, 1156, 836), guard.anims)
             assertEquals(50, guard.respawnTicks)
         }
         val edgeville = combat[types.find("guard1")!!]!!

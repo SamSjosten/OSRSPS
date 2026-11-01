@@ -2,6 +2,7 @@ package osrsps.game.command
 
 import osrsps.game.World
 import osrsps.game.social.FriendLists
+import osrsps.game.social.Reports
 
 /** The friends and ignore lists as the server holds them, for tests that start from known lists. */
 fun CommandRegistry.registerSocialCommands(world: World) {
@@ -27,6 +28,19 @@ fun CommandRegistry.registerSocialCommands(world: World) {
         // As each delete does: the ranks given to them go too.
         world.friendChats.ownerFriendsChanged(player)
         reply("Friends list emptied. Log out and in to see it in the Friends tab")
+    }
+
+    register("reports", "::reports") {
+        if (args.isNotEmpty()) fail("Usage: ::reports")
+        val reports = world.reports.recent()
+        if (reports.isEmpty()) {
+            reply("No reports since the server started")
+            return@register
+        }
+        // The newest few; the file on the server (data/reports.jsonl) has them all, with the chat lines.
+        for (report in reports.takeLast(5)) {
+            reply("${report.reporter} reported ${report.name}: ${Reports.RULES[report.rule]} (${report.chat.size} chat lines)")
+        }
     }
 
     register("ignores", "::ignores", admin = false) {
