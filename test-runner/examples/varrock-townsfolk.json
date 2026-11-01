@@ -147,13 +147,6 @@
    "step": "continueDialogue"
   },
   {
-   "step": "assertDialogue",
-   "contains": "[iffie.sister"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
    "step": "assertNoDialogue"
   },
   {
@@ -178,18 +171,32 @@
   },
   {
    "step": "chooseOption",
-   "text": "[town_crier.goodbye]"
+   "text": "[town_crier.what_do]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[town_crier.goodbye"
+   "contains": "[town_crier.what_do"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[town_crier.farewell"
+   "contains": "[town_crier.explain"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[town_crier.i_see"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[town_crier.until"
   },
   {
    "step": "continueDialogue"

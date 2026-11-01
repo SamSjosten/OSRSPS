@@ -97,10 +97,12 @@ object CharlieLines : Lines("charlie", "Transcript:Charlie the Tramp") {
     val THANKS = line("thanks", "option 4, a coin given: his thanks")
     val NO_PROBLEM = line("no_problem", "the thanks menu's option 1, which the player then says")
     val HINT = line("hint", "the thanks menu's option 2, which the player then says")
-    val FOOD = line("food", "hint: he only wanted money for food")
+    val FOOD = line("food", "hint: he only wanted money for food, first box")
+    val FOOD_2 = line("food_2", "hint: second box")
     val NO_MONEY = line("no_money", "option 4, no coins: the player has none")
     val ALLEY = line("alley", "option 5, which the player then says")
-    val BLACK_ARM = line("black_arm", "option 5: the Black Arm Gang's headquarters")
+    val BLACK_ARM = line("black_arm", "option 5: the Black Arm Gang's headquarters, first box")
+    val BLACK_ARM_2 = line("black_arm_2", "option 5: second box")
     val WARNING = line("warning", "the alley menu's option 1, which the player then says")
     val WELCOME = line("welcome", "warning: no problem")
     val JOIN = line("join", "the alley menu's option 2, which the player then says")
@@ -121,29 +123,20 @@ object JonnyTheBeardLines : Lines("jonny_the_beard", "Transcript:Jonny the Beard
 /** Iffie's lines, from the Wiki's Transcript:Iffie (the Halloween 2021 event not done), read 2026-11-01. */
 object IffieLines : Lines("iffie", "Transcript:Iffie") {
     val HELLO = line("hello", "the player's greeting")
-    val COUNT = line("count", "her first line: she'll lose count")
-    val SISTER = line("sister", "her second line: her sister's upstairs in the church")
+    val COUNT = line("count", "her one box: she'll lose count, and her sister's upstairs in the church")
 }
 
-/** The Varrock Town Crier's lines, from the Wiki's Transcript:Town Crier (regular players), read 2026-11-01. */
-object TownCrierLines : Lines("town_crier", "Transcript:Town Crier") {
-    val GREETING = line("greeting", "his first line: player moderators or the rules?")
-    val PMODS = line("pmods", "option 1, which the player then says")
-    val EXPLAIN = line("explain", "option 1: he'll explain player moderators")
-    val WHAT_IS = line("what_is", "the moderator menu's option 1, which the player then says")
-    val TRUSTED = line("trusted", "what is: trusted players with a silver crown")
-    val WHAT_CAN = line("what_can", "the moderator menu's option 2, which the player then says")
-    val POWERS = line("powers", "what can: muting, priority reports, the centre")
-    val BECOME = line("become", "the moderator menu's option 3, which the player then says")
-    val TIPS = line("tips", "become: how to be picked")
-    val CANNOT = line("cannot", "the moderator menu's option 4, which the player then says")
-    val LIMITS = line("limits", "cannot: no bans, no recoveries, not staff")
-    val RULES = line("rules", "option 2, which the player then says")
-    val BOOK = line("book", "option 2: the Rules of Conduct (his line; the book itself is left out)")
-    val TIP = line("tip", "option 3, which the player then says")
-    val TIP_LINES = (1..27).map { line("tip_$it", "option 3: tip $it of the Wiki's 27, one at random") }
-    val GOODBYE = line("goodbye", "option 4, which the player then says")
-    val FAREWELL = line("farewell", "goodbye: his farewell")
+/**
+ * The Varrock Town Crier's lines as he talks on live today (the Wiki's transcript is his older, historical talk; the
+ * live lines were checked by the words thread, 2026-11-01).
+ */
+object TownCrierLines : Lines("town_crier", "Town Crier") {
+    val GREETING = line("greeting", "his first line, as on live today")
+    val WHAT_DO = line("what_do", "option 1, which the player then says")
+    val EXPLAIN = line("explain", "option 1: he explains what he does")
+    val I_SEE = line("i_see", "option 1: the player's answer and goodbye")
+    val UNTIL = line("until", "his goodbye, after either option")
+    val LATER = line("later", "option 2, which the player then says")
 }
 
 /** The tramp's lines, from the Wiki's Transcript:Tramp, read 2026-11-01. */
@@ -155,7 +148,7 @@ object TrampLines : Lines("tramp", "Transcript:Tramp") {
     val SHRUG = line("shrug", "option 2: he shrugs it off")
     val NO_MONEY = line("no_money", "no coins: the player has none (no menu)")
     val DOUBT = line("doubt", "no coins: he doubts it")
-    val OVERHEAD = (1..3).map { line("overhead_$it", "refused: overhead line $it of the Wiki's three, one at random") }
+    val OVERHEAD = (1..3).map { line("overhead_$it", "refused: overhead line $it of the Wiki's three, one at random; {name} is the player's", "name") }
 }
 
 /**
@@ -166,13 +159,13 @@ object TrampLines : Lines("tramp", "Transcript:Tramp") {
  * and the tramp (3255), each begging a coin; Dr Harlow (16277) and Jonny the Beard (14139, the after-quest type) in the
  * Blue Moon Inn; Iffie (2899) knitting in Thessalia's shop; and the Town Crier (276) in the square.
  *
- * From the Wiki's transcripts. Guessed: every expression; Charlie's alley talk (the player is a Black Arm Gang member,
- * one of the two gangs Shield of Arrav ends in); the Town Crier's menu as one loop; that Gertrude's talk also refuses
+ * From the Wiki's transcripts; the Town Crier as he talks on live today. Guessed: every expression; Charlie's alley talk (the player is a Black Arm Gang member,
+ * one of the two gangs Shield of Arrav ends in); that Gertrude's talk also refuses
  * a kitten while one is owned, and which pets count as owned ([OWNED_CATS]); that her kitten comes shown in an item
  * box. Left out: Gertrude's "pick my own" option and the Ring of Charos(a) colour screen; Shilop's and Wilough's talk
  * after being paid (quest); Charlie's treasure trail requests; Jonny the Beard's Attack (the fighters' step); the
- * tramp's "again" opening after a refusal; Iffie's talk after the Halloween 2021 event; the Town Crier's moderator
- * branch, Rules of Conduct book and overheads; Toby (the Achievement Diary).
+ * tramp's "again" opening after a refusal; Iffie's talk after the Halloween 2021 event; the Town Crier's overheads;
+ * Toby (the Achievement Diary).
  */
 object VarrockTownsfolk {
     const val ROMEO = 5037
@@ -327,12 +320,14 @@ object VarrockTownsfolk {
                     } else {
                         chatPlayer(ChatAnim.QUIZ, HINT)
                         chatNpc(ChatAnim.NEUTRAL, FOOD)
+                        chatNpc(ChatAnim.NEUTRAL, FOOD_2)
                     }
                     return@with
                 }
                 else -> {
                     chatPlayer(ChatAnim.QUIZ, ALLEY)
                     chatNpc(ChatAnim.SHIFTY, BLACK_ARM)
+                    chatNpc(ChatAnim.SHIFTY, BLACK_ARM_2)
                     if (choice(WARNING, JOIN) == 1) {
                         chatPlayer(ChatAnim.HAPPY, WARNING)
                         chatNpc(ChatAnim.HAPPY, WELCOME)
@@ -361,47 +356,25 @@ object VarrockTownsfolk {
             chatNpc(ChatAnim.NEUTRAL, SHRUG)
             // A tick after the talk closes (guessed; the Wiki gives no timing), queued on him so the player isn't held.
             val line = OVERHEAD[world.random.between(0, OVERHEAD.size - 1)]
-            npc?.let { tramp -> world.npcScripts.queue(tramp, 1) { it.effects.say(world.dialogueText[line]) } }
+            npc?.let { tramp -> world.npcScripts.queue(tramp, 1) { it.effects.say(world.dialogueText[line, "name" to player.username]) } }
         }
     }
 
     internal suspend fun Dialogue.iffie() = with(IffieLines) {
         chatPlayer(ChatAnim.HAPPY, HELLO)
         chatNpc(ChatAnim.NEUTRAL, COUNT)
-        chatNpc(ChatAnim.HAPPY, SISTER)
     }
 
-    internal suspend fun Dialogue.townCrier(world: World) = with(TownCrierLines) {
+    internal suspend fun Dialogue.townCrier() = with(TownCrierLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
-        while (true) {
-            when (choice(PMODS, RULES, TIP, GOODBYE)) {
-                1 -> {
-                    chatPlayer(ChatAnim.QUIZ, PMODS)
-                    chatNpc(ChatAnim.HAPPY, EXPLAIN)
-                    val (ask, answer) = when (choice(WHAT_IS, WHAT_CAN, BECOME, CANNOT)) {
-                        1 -> WHAT_IS to TRUSTED
-                        2 -> WHAT_CAN to POWERS
-                        3 -> BECOME to TIPS
-                        else -> CANNOT to LIMITS
-                    }
-                    chatPlayer(ChatAnim.QUIZ, ask)
-                    chatNpc(ChatAnim.NEUTRAL, answer)
-                }
-                2 -> {
-                    chatPlayer(ChatAnim.QUIZ, RULES)
-                    chatNpc(ChatAnim.NEUTRAL, BOOK)
-                }
-                3 -> {
-                    chatPlayer(ChatAnim.QUIZ, TIP)
-                    chatNpc(ChatAnim.HAPPY, TIP_LINES[world.random.between(0, TIP_LINES.size - 1)])
-                }
-                else -> {
-                    chatPlayer(ChatAnim.HAPPY, GOODBYE)
-                    chatNpc(ChatAnim.HAPPY, FAREWELL)
-                    return@with
-                }
-            }
+        if (choice(WHAT_DO, LATER) == 1) {
+            chatPlayer(ChatAnim.QUIZ, WHAT_DO)
+            chatNpc(ChatAnim.HAPPY, EXPLAIN)
+            chatPlayer(ChatAnim.HAPPY, I_SEE)
+        } else {
+            chatPlayer(ChatAnim.HAPPY, LATER)
         }
+        chatNpc(ChatAnim.HAPPY, UNTIL)
     }
 }
 
@@ -432,6 +405,6 @@ fun registerVarrockTownsfolk(world: World) {
         }
         line(JONNY_THE_BEARD, ChatAnim.ANGRY, JonnyTheBeardLines.NOT_INTERESTED)
         talk(IFFIE) { iffie() }
-        talk(TOWN_CRIER) { townCrier(world) }
+        talk(TOWN_CRIER) { townCrier() }
     }
 }

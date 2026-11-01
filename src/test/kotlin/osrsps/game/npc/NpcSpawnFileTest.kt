@@ -392,7 +392,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches', the inns' and the townsfolk`() {
+    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches', the inns', the townsfolk and the Fitzharmons`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -415,6 +415,7 @@ class NpcSpawnFileTest {
             7723 to "gertrude_post", 3501 to "shilop", 3502 to "philop", 3503 to "wilough", 3504 to "kanel", 11868 to "aris",
             5209 to "tramppg", 3255 to "tramp", 16277 to "dr_harlow_vis", 14139 to "jonny_the_beard_2op", 2899 to "varrock_granny_1",
             276 to "pmod_town_crier_varrock",
+            4984 to "dimintheis", 5445 to "johnathon_fitzharmon_2ops", 10425 to "daddyshome_daddy",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -468,6 +469,10 @@ class NpcSpawnFileTest {
         assertEquals(townsfolk, spawns.filter { it.type.id in townsfolk }.map { it.type.id }.sorted())
         val iffie = spawns.single { it.type.id == 2899 }
         assertEquals(0, iffie.wander)
+        // Step 8b: Dimintheis, Johnathon upstairs in the Jolly Boar (the type he shows after Family Crest) and Yarlo.
+        val fitzharmons = listOf(4984, 5445, 10425)
+        assertEquals(fitzharmons, spawns.filter { it.type.id in fitzharmons }.map { it.type.id }.sorted())
+        assertEquals(1, spawns.single { it.type.id == 5445 }.level)
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
         assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
         assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - elsie - iffie).all { it.wander > 0 })
