@@ -193,12 +193,16 @@ class MeleeCombat(
     }
 
     /**
-     * Whether another player hit [npc] within the last [IN_COMBAT_TICKS] ticks and is still here. Guessed: the Wiki
-     * says a single-way NPC stays someone's for a while after their last hit, but not how long. Never for an NPC standing
-     * in a multi-way area (guessed: by the NPC's tile, not the player's).
+     * Whether [npc] is someone else's: it is fighting another player, one who never hit it too (an aggressive monster's
+     * prey with auto retaliate off), or another player hit it within the last [IN_COMBAT_TICKS] ticks and is still here.
+     * Guessed: the Wiki says a single-way NPC stays someone's for a while after their last hit, but not how long, and
+     * that only one player or monster can attack one at a time. Never for an NPC standing in a multi-way area (guessed:
+     * by the NPC's tile, not the player's).
      */
     internal fun foughtByAnother(player: Player, npc: Npc): Boolean {
         if (multi.at(npc.level, npc.x, npc.z)) return false
+        val target = npc.target
+        if (target != null && target !== player && !target.loggedOut) return true
         val other = npc.attacker ?: return false
         return other !== player && currentTick() - npc.attackedTick <= IN_COMBAT_TICKS && !other.loggedOut
     }
@@ -389,6 +393,9 @@ class MeleeCombat(
         npc.nextAttackTick = maxOf(npc.nextAttackTick, tick + 1)
         npcs.follow(npc, player)
     }
+
+    /** [npc] goes for [player] unprovoked ([Aggression]), as if they had hit it. */
+    internal fun aggress(npc: Npc, player: Player, tick: Long) = retaliate(npc, player, tick)
 
     private fun die(npc: Npc, def: NpcCombatDef, killer: Player?, tick: Long) {
         npc.dead = true
