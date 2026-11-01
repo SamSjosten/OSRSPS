@@ -33,15 +33,15 @@
       "source": "OSRS Wiki, Drop table#General seed drop table: its first subtable, which every roll of a monster below level 49 lands on (the subtable is picked by a roll of the monster's level times 10, and below 485 that is the first); the Guard page's 1/19 potato seed is 18/128 of the guard table times 368/1008 of this. Higher levels' subtables wait for a monster that needs them"
     },
     "gems": {
-      "slots": 131,
+      "slots": 128,
       "lines": [
         {"nothing": true, "weight": 63},
         {"item": 1623, "name": "Uncut sapphire", "weight": 32}, {"item": 1621, "name": "Uncut emerald", "weight": 16}, {"item": 1619, "name": "Uncut ruby", "weight": 8},
-        {"item": 1452, "name": "Chaos talisman", "weight": 3}, {"item": 1462, "name": "Nature talisman", "weight": 3}, {"item": 1617, "name": "Uncut diamond", "weight": 2},
+        {"item": 1452, "name": "Chaos talisman", "weight": 3}, {"item": 1617, "name": "Uncut diamond", "weight": 2},
         {"item": 830, "name": "Rune javelin", "count": 5, "weight": 1}, {"item": 987, "name": "Loop half of key", "weight": 1}, {"item": 985, "name": "Tooth half of key", "weight": 1},
         {"nothing": true, "weight": 1}
       ],
-      "source": "OSRS Wiki, Gem drop table, read 2026-11-01: each row's x/128, for monsters whose drops say naturetalisman and chaostalisman. The rows add up to 131, not 128, so the table has 131 slots (the Wiki's rows as written). The last 1 is the mega-rare drop table, which isn't built: it gives nothing for now"
+      "source": "OSRS Wiki, Gem drop table, read 2026-11-01: each row's x/128. The chaos and nature talismans share one 3/128 row, picked by where the player is (the Wiki: typically nature above ground, chaos underground); every monster on this table so far is in the Draynor Sewers, so the row is the chaos talisman. A surface monster needs the row to pick by place. The last 1 is the mega-rare drop table, which isn't built: it gives nothing for now"
     }
   },
   "npcs": [

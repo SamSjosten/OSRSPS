@@ -411,8 +411,10 @@ class NpcDropsTest {
         zombie.expect("Coins x18", 21)
         zombie.expect("Coins x10", 10)
         zombie.expect("Iron mace x1", 3)
-        // The gem table, 1/128, gives an uncut sapphire 32 of its 131 slots.
-        zombie.expect("Uncut sapphire x1", 32, 128 * 131)
+        // The gem table, 1/128, gives an uncut sapphire 32 of its 128 slots.
+        zombie.expect("Uncut sapphire x1", 32, 128 * 128)
+        // Underground, the shared talisman row is the chaos talisman.
+        assertNull(zombie["Nature talisman x1"])
         val skeleton = kills("skeleton_armed", 32)
         skeleton.expect("Coins x5", 25)
         skeleton.expect("Coins x10", 24)

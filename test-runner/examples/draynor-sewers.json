@@ -64,9 +64,28 @@
    "timeoutMs": 20000
   },
   {
-   "step": "waitTicks",
-   "ticks": 5,
-   "comment": "a swing or two each way"
+   "step": "assertAnimation",
+   "id": 422,
+   "timeoutMs": 20000,
+   "comment": "human_unarmedpunch: the player swings"
+  },
+  {
+   "step": "assertHitsplat",
+   "npc": "Zombie",
+   "timeoutMs": 20000,
+   "comment": "the player's swing lands on a zombie (a hit or a miss, 0)"
+  },
+  {
+   "step": "assertHitsplat",
+   "self": true,
+   "timeoutMs": 20000,
+   "comment": "the zombie swings back: under ::god every hit shows as a 0 block"
+  },
+  {
+   "step": "command",
+   "text": "::fight",
+   "expectMessage": "You are fighting Zombie #",
+   "comment": "the fight is with a zombie"
   },
   {
    "step": "command",
