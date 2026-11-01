@@ -10,6 +10,7 @@
   {"step": "playerOption", "player": "test", "option": "Recruit", "comment": "as the invitation's Form clan does"},
   {"step": "assertMessage", "contains": "[clan.joined name=test2]"},
   {"step": "assertMessage", "contains": "[clan.formed name=Gate Testers]", "timeoutMs": 60000},
+  {"step": "runClientScript", "id": 915, "args": [7], "comment": "shows the Clans side tab (toplevel_sidebutton_switch), so its panels count as open"},
   {"step": "clickWidget", "interfaceId": 707, "component": 3, "comment": "the Clans tab's Your Clan tab"},
   {"step": "assertInterface", "interfaceId": 701},
   {"step": "command", "text": "::clan", "expectMessage": "Clan Gate Testers"},
