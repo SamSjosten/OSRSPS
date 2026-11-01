@@ -257,8 +257,12 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Edgeville has four bankers behind the booths, the grange's seven men, and its rats, giant spiders and imps`() {
-        val names = mapOf(1613 to "banker1", 1618 to "banker2", 3106 to "man", 3107 to "man2", 3108 to "man3", 2854 to "rat", 3017 to "giantspider1", 5007 to "imp")
+    fun `Edgeville has four bankers behind the booths, the grange's seven men, its rats, giant spiders and imps, its shopkeepers and its guards`() {
+        val names = mapOf(
+            1613 to "banker1", 1618 to "banker2", 3106 to "man", 3107 to "man2", 3108 to "man3", 2854 to "rat", 3017 to "giantspider1", 5007 to "imp",
+            2821 to "generalshopkeeper5", 2822 to "generalassistant5", 7457 to "lost_property_merchant_standard", 822 to "oziach", 2200 to "wilderness_capeseller_6",
+            3254 to "guard1",
+        )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("edgeville.json"), types, "edgeville.json")
         assertEquals(emptyList(), result.unknown)
@@ -274,8 +278,14 @@ class NpcSpawnFileTest {
         assertEquals(3, spawns.count { it.type.id == 2854 })
         assertEquals(3, spawns.count { it.type.id == 3017 })
         assertEquals(4, spawns.count { it.type.id == 5007 })
-        // South of the Wilderness Ditch (z 3521), within map square 48,54.
-        assertTrue(spawns.all { it.x in 3072..3135 && it.z in 3456..3520 && it.level == 0 && it.source.isNotBlank() })
+        // Six guards (the Wiki's count) along the ditch, north of the town.
+        val guards = spawns.filter { it.type.id == 3254 }
+        assertEquals(6, guards.size)
+        assertTrue(guards.all { it.z in 3512..3518 })
+        // One each of the General Store's keepers, Perdu (upstairs, level 1), Oziach and Richard.
+        assertEquals(listOf(2821, 2822, 7457, 822, 2200), spawns.map { it.type.id }.filter { it in setOf(2821, 2822, 7457, 822, 2200) })
+        // South of the Wilderness Ditch (z 3521), within map square 48,54 but for Oziach's hut just west of it (x 3069).
+        assertTrue(spawns.all { it.x in 3064..3135 && it.z in 3456..3520 && it.level == (if (it.type.id == 7457) 1 else 0) && it.source.isNotBlank() })
     }
 
     @Test

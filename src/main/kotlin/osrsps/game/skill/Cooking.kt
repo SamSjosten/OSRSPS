@@ -230,7 +230,10 @@ class Cooking(private val world: World) {
         /** Lumbridge Castle's kitchen range (cooksquestrange) and the plain range (range), by gameval name. */
         const val LUMBRIDGE_RANGE = 114
         const val RANGE = 26181
-        val RANGES = setOf(LUMBRIDGE_RANGE, RANGE)
+
+        /** 100_dave_stove: Evil Dave's stove in Edgeville, a range by its Cook option (the Wiki's Edgeville page lists it with the ranges). */
+        const val EVIL_DAVE_STOVE = 12269
+        val RANGES = setOf(LUMBRIDGE_RANGE, RANGE, EVIL_DAVE_STOVE)
 
         /** The Make-X box shows up to 18 kinds. */
         private const val MAX_KINDS = 18

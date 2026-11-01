@@ -170,6 +170,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   searched (any of the three outcomes), a coffin in the mausoleum opened and shut, the leather gloves taken, a wardrobe
   in the east house opened, searched and shut, Cross on the Wilderness Ditch refused, and the bank opened from a
   banker's talk and from a booth.
+- `edgeville-shops.json`: Edgeville step 2 (with `::keys on`): a knife bought and sold back at the General Store, its
+  assistant's talk into the shop, an anti-dragon shield bought and sold back at Oziach's, two of his talk's options,
+  Richard's talk into his shop for a cape bought and sold back, then a yew chopped, a bronze bar smelted at the furnace
+  and two shrimps cooked on Evil Dave's stove.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
