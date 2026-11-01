@@ -118,7 +118,7 @@ abstract class TownGuideLines(prefix: String, page: String, who: String) : Lines
     val DORIC_SAID = line("doric_said", "Doric: what the player says")
     val DORIC_1 = line("doric_1", "Doric: $who's line")
     val DORIC_DONE = line("doric_done", "Doric, after Doric's Quest: the player's line")
-    val DORIC_THANKS = line("doric_thanks", "Doric, after Doric's Quest: $who's line")
+    val DORIC_THANKS = line("doric_thanks", "Doric, after Doric's Quest: $who's line, with the player's name", "name")
 
     val ALL_KINDS = line("all_kinds", "I want to do all kinds of things, do you know of anything like that?, which the player then says")
     val ALL_1 = line("all_1", "all kinds: $who's first line")
@@ -294,7 +294,7 @@ object DonieAndGee {
                         chatPlayer(ChatAnim.HAPPY, DORIC_SAID)
                         chatNpc(ChatAnim.HAPPY, DORIC_1)
                         chatPlayer(ChatAnim.HAPPY, DORIC_DONE)
-                        chatNpc(ChatAnim.HAPPY, DORIC_THANKS)
+                        chatNpc(ChatAnim.HAPPY, DORIC_THANKS, "name" to player.username)
                     }
                     else -> chatPlayer(ChatAnim.HAPPY, ANOTHER_TIME)
                 }
