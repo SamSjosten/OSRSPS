@@ -1,0 +1,127 @@
+{
+ "name": "Draynor piece step 8: pickpocketing the Master Farmer (the level message at 37, an attempt at 99) and the man in the north-east house (the 28-pouch limit, Open-all, an attempt) (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel thieving 37",
+   "expectMessage": "37"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3081 3250 0",
+   "expectMessage": "Teleported to 3081, 3250, 0",
+   "comment": "in the market, by the Master Farmer"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Master Farmer",
+   "option": "Pickpocket",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[pickpocket.level level=38 who=Master Farmer]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::setlevel thieving 99",
+   "expectMessage": "99"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Master Farmer",
+   "option": "Pickpocket",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[pickpocket.attempt who=Master Farmer]",
+   "timeoutMs": 10000,
+   "comment": "94% at 99: a seed, or a stun if it fails"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12,
+   "comment": "past a stun and the 10-tick wait after a failure, if there was one"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3099 3278 0",
+   "expectMessage": "Teleported to 3099, 3278, 0",
+   "comment": "the man's house, north-east of the village"
+  },
+  {
+   "step": "command",
+   "text": "::item pickpocket_coin_pouch_citizen 28",
+   "expectMessage": "Added 28 x Coin pouch"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Man",
+   "option": "Pickpocket",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[pickpocket.pouches_full]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "itemOption",
+   "item": "Coin pouch",
+   "option": "Open-all"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[pickpocket.pouch_open_all coins=84]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coin pouch",
+   "count": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Man",
+   "option": "Pickpocket",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[pickpocket.attempt who=man]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12,
+   "comment": "a pouch, or a stun if it failed; ::reset takes it"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
