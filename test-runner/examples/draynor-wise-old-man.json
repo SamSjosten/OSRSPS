@@ -39,6 +39,9 @@
    "contains": "[wise_old_man.greetings"
   },
   {
+   "step": "continueDialogue"
+  },
+  {
    "step": "chooseOption",
    "text": "[wise_old_man.hood]"
   },
@@ -101,6 +104,9 @@
    "contains": "[wise_old_man.greetings"
   },
   {
+   "step": "continueDialogue"
+  },
+  {
    "step": "chooseOption",
    "text": "[wise_old_man.cape]"
   },
@@ -114,6 +120,9 @@
   {
    "step": "assertDialogue",
    "contains": "[wise_old_man.cape_price"
+  },
+  {
+   "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
@@ -166,6 +175,9 @@
   {
    "step": "assertDialogue",
    "contains": "[wise_old_man.please_do"
+  },
+  {
+   "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
@@ -227,6 +239,9 @@
   {
    "step": "assertDialogue",
    "contains": "[wise_old_man.close"
+  },
+  {
+   "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
@@ -293,6 +308,9 @@
    "contains": "[wom_bankguard.first_4"
   },
   {
+   "step": "continueDialogue"
+  },
+  {
    "step": "chooseOption",
    "text": "[wom_bankguard.see]"
   },
@@ -306,6 +324,9 @@
   {
    "step": "assertDialogue",
    "contains": "[wom_bankguard.see_long"
+  },
+  {
+   "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
@@ -371,6 +392,9 @@
    "contains": "[miss_schism.news_opener"
   },
   {
+   "step": "continueDialogue"
+  },
+  {
    "step": "chooseOption",
    "text": "[miss_schism.news]"
   },
@@ -419,6 +443,9 @@
   {
    "step": "assertDialogue",
    "contains": "[miss_schism.seen_7"
+  },
+  {
+   "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
@@ -507,6 +534,9 @@
    "contains": "[wise_old_man.greetings"
   },
   {
+   "step": "continueDialogue"
+  },
+  {
    "step": "chooseOption",
    "text": "[wise_old_man.more]"
   },
@@ -524,6 +554,9 @@
   {
    "step": "assertDialogue",
    "contains": "[wise_old_man.please_do"
+  },
+  {
+   "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
@@ -676,6 +709,9 @@
   {
    "step": "assertDialogue",
    "contains": "[wise_old_man.hat_seen_19"
+  },
+  {
+   "step": "continueDialogue"
   },
   {
    "step": "chooseOption",

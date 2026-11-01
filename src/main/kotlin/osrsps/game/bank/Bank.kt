@@ -132,6 +132,26 @@ class Bank(
     }
 
     /**
+     * Takes [count] of item [id] out of the bank, as a fee paid from it: from its first slots holding it on, closing up
+     * behind any slot it empties as a withdrawal does. Returns how many it took.
+     */
+    fun take(bank: Inventory, tabs: BankTabs, id: Int, count: Int): Int {
+        var left = count
+        while (left > 0) {
+            val slot = (0 until bank.capacity).firstOrNull { bank[it]?.id == id } ?: break
+            val held = bank[slot]!!
+            if (held.count > left) {
+                bank[slot] = held.copy(count = held.count - left)
+                left = 0
+            } else {
+                left -= held.count
+                removeSlot(bank, tabs, slot)
+            }
+        }
+        return count - left
+    }
+
+    /**
      * Takes away what is in [slot] when it is a placeholder or a filler (their Release and Clear), or anything at all
      * when [any] (the incinerator), closing the gap. Returns false when nothing went.
      */

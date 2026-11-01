@@ -424,9 +424,10 @@ object WiseOldMan {
         }
     }
 
-    internal suspend fun Dialogue.bankGuard(): Unit = with(BankGuardLines) {
+    /** The bank guard's talk; [payFromBank] takes coins from the player's bank, keeping its tabs as they should be. */
+    internal suspend fun Dialogue.bankGuard(payFromBank: (Player, Int) -> Unit): Unit = with(BankGuardLines) {
         chatNpc(ChatAnim.NEUTRAL, YES_Q)
-        if (bankjob(player) < SEEN) firstTalk() else laterTalk()
+        if (bankjob(player) < SEEN) firstTalk() else laterTalk(payFromBank)
     }
 
     private suspend fun Dialogue.firstTalk(): Unit = with(BankGuardLines) {
@@ -451,7 +452,7 @@ object WiseOldMan {
         }
     }
 
-    private suspend fun Dialogue.laterTalk(): Unit = with(BankGuardLines) {
+    private suspend fun Dialogue.laterTalk(payFromBank: (Player, Int) -> Unit): Unit = with(BankGuardLines) {
         when (choice(FAMILIAR, REPLAY, SORRY)) {
             1 -> {
                 chatPlayer(ChatAnim.NEUTRAL, FAMILIAR)
@@ -478,7 +479,7 @@ object WiseOldMan {
                 }
                 chatNpc(ChatAnim.NEUTRAL, FROM_BANK)
                 if (choice(PAY_BANK, ANOTHER_DAY) == 1) {
-                    Ned.take(player.bank, COINS, RECORDING_PRICE)
+                    payFromBank(player, RECORDING_PRICE)
                     recording()
                 } else {
                     anotherDay()
@@ -513,7 +514,10 @@ fun registerWiseOldMan(world: World) {
     with(WiseOldMan) {
         world.handlers.onNpc(ID, TALK_TO) { op -> world.dialogues.start(this, op.npc) { wom(give) } }
         world.handlers.onNpc(MISS_SCHISM, TALK_TO) { op -> world.dialogues.start(this, op.npc) { missSchism() } }
-        world.handlers.onNpc(BANK_GUARD, TALK_TO) { op -> world.dialogues.start(this, op.npc) { bankGuard() } }
+        val payFromBank: (Player, Int) -> Unit = { player, coins ->
+            world.bank.take(player.bank, world.bankScreen.tabs(player), COINS, coins)
+        }
+        world.handlers.onNpc(BANK_GUARD, TALK_TO) { op -> world.dialogues.start(this, op.npc) { bankGuard(payFromBank) } }
         world.handlers.onLoc(TELESCOPE, OBSERVE) {
             val wom = world.npcTypes[ID] ?: return@onLoc
             world.dialogues.start(this) {

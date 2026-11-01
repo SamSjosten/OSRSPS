@@ -253,11 +253,13 @@ class WiseOldManTest {
         h.ends()
     }
 
+    private val payFromBank: (osrsps.game.Player, Int) -> Unit = { player, coins -> Ned.take(player.bank, WiseOldMan.COINS, coins) }
+
     private val recording = arrayOf("wom_bankguard.eyes", "wom_bankguard.plays", "wom_bankguard.end")
 
     @Test
     fun `the bank guard shows the recording free the first time, and the player has seen it`() {
-        h.talk { with(WiseOldMan) { bankGuard() } }
+        h.talk { with(WiseOldMan) { bankGuard(payFromBank) } }
         h.expect("wom_bankguard.yes_q", *keys(BankGuardLines.FIRST_TALK))
         h.menu("wom_bankguard.see", "wom_bankguard.robber")
         h.pick(2)
@@ -267,7 +269,7 @@ class WiseOldManTest {
         h.expect("wom_bankguard.stop", "wom_bankguard.goodbye")
         h.ends()
 
-        h.talk { with(WiseOldMan) { bankGuard() } }
+        h.talk { with(WiseOldMan) { bankGuard(payFromBank) } }
         h.expect("wom_bankguard.yes_q", *keys(BankGuardLines.FIRST_TALK))
         h.menu("wom_bankguard.see", "wom_bankguard.robber")
         h.pick(1)
@@ -278,7 +280,7 @@ class WiseOldManTest {
         h.ends()
         assertEquals(0, WiseOldMan.bankjob(h.player))
 
-        h.talk { with(WiseOldMan) { bankGuard() } }
+        h.talk { with(WiseOldMan) { bankGuard(payFromBank) } }
         h.expect("wom_bankguard.yes_q", *keys(BankGuardLines.FIRST_TALK))
         h.menu("wom_bankguard.see", "wom_bankguard.robber")
         h.pick(1)
@@ -295,7 +297,7 @@ class WiseOldManTest {
         h.player.vars.setVarbit(WiseOldMan.BANKJOB_VARBIT, WiseOldMan.SEEN)
         val menu = arrayOf("wom_bankguard.familiar", "wom_bankguard.replay", "wom_bankguard.sorry")
         fun replay(vararg then: String) {
-            h.talk { with(WiseOldMan) { bankGuard() } }
+            h.talk { with(WiseOldMan) { bankGuard(payFromBank) } }
             h.expect("wom_bankguard.yes_q")
             h.menu(*menu)
             h.pick(2)
@@ -321,7 +323,7 @@ class WiseOldManTest {
         h.ends()
         assertEquals(5, count(WiseOldMan.COINS))
 
-        h.talk { with(WiseOldMan) { bankGuard() } }
+        h.talk { with(WiseOldMan) { bankGuard(payFromBank) } }
         h.expect("wom_bankguard.yes_q")
         h.menu(*menu)
         h.pick(3)
@@ -333,7 +335,7 @@ class WiseOldManTest {
     fun `the robber looked familiar, and the guard knows once the player has confronted him`() {
         for ((value, talk) in listOf(WiseOldMan.SEEN to BankGuardLines.NOT_CONFRONTED_TALK, WiseOldMan.CONFRONTED to BankGuardLines.CONFRONTED_TALK)) {
             h.player.vars.setVarbit(WiseOldMan.BANKJOB_VARBIT, value)
-            h.talk { with(WiseOldMan) { bankGuard() } }
+            h.talk { with(WiseOldMan) { bankGuard(payFromBank) } }
             h.expect("wom_bankguard.yes_q")
             h.menu("wom_bankguard.familiar", "wom_bankguard.replay", "wom_bankguard.sorry")
             h.pick(1)
