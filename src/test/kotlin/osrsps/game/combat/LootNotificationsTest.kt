@@ -7,6 +7,7 @@ import osrsps.game.ObjType
 import osrsps.game.Player
 import osrsps.game.VarTypes
 import osrsps.game.dialogue.DialogueText
+import osrsps.game.ge.GrandExchange
 
 class LootNotificationsTest {
     private val said = mutableListOf<String>()
@@ -45,5 +46,17 @@ class LootNotificationsTest {
         notes.dropped(player(untradeable = 1), bound, 1)
         notes.dropped(player(on = 0, untradeable = 1), bound, 1)
         assertEquals(listOf(DialogueText.NONE[LootLines.UNTRADEABLE, "item" to "Bound thing"]), said)
+    }
+
+    @Test
+    fun `coins and platinum tokens are tradeable, at 1 and 1,000 coins each`() {
+        // Not on the Grand Exchange, so the cache marks them untradeable.
+        val coins = ObjType(GrandExchange.COINS, "Coins", cost = 1)
+        val tokens = ObjType(GrandExchange.PLATINUM_TOKEN, "Platinum token", cost = 1_000)
+        val player = player(untradeable = 1)
+        notes.dropped(player, coins, 9_999)
+        notes.dropped(player, coins, 10_000)
+        notes.dropped(player, tokens, 10)
+        assertEquals(listOf(valuable("10000 x Coins", "10,000"), valuable("10 x Platinum token", "10,000")), said)
     }
 }
