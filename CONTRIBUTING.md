@@ -102,7 +102,7 @@ and `linux`, internet only), as a private repository's 2,000 hosted minutes a mo
   only with the repository variable `RUNNER` set to `self-hosted` (Settings, Secrets and variables, Actions,
   Variables).
 - **Private repository**: all of them run on the VM. Keep `RUNNER` set then too: a scheduled run's event may not say
-  the repository is private.
+  the repository is private (the queue's 15-minute run in `automerge.yml` goes by `RUNNER` alone).
 
 The launcher's jobs stay on GitHub's runners and leave with the launcher. The jobs on the VM get only the workflow's
 own token, with each workflow reading by default and writing only in the jobs that need it; no other secrets. The VM
