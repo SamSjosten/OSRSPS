@@ -297,6 +297,8 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::los npcIndex` / `::los dx dz` | **everyone.** Distance, line of sight and hit delays from you to an NPC or a tile (see Line of sight) |
 | `::instance [radius]` / `::instance leave` | Makes a private copy of the map around you, `radius` zones each way (default 6, 13 x 13 zones), and puts you on the same spot in it; `leave` takes you back to where you made it (see Instances) |
+| `::raidparty` / `::raidparty invite\|accept\|kick name` / `::raidparty leave` | Shows your raid party, or invites a player to it (starting one you lead), joins the party of a leader who invited you, puts a member out, or leaves (see Raid parties) |
+| `::raidnpc id\|name [party size]` | Puts in a raid NPC on your tile with its hitpoints for a party of that size, or of your raid party's size, or of one alone (see Raid parties); `::delnpc mine` takes it out |
 | `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
 | `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
 | `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
@@ -314,7 +316,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, the party size and hitpoints of a raid NPC, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
@@ -1372,6 +1374,32 @@ puts them at its exit. Blocks are kept a map square apart, so nobody in one sees
 --tests 'osrsps.testclient.HeadlessInstanceTest'` (two players in copies of the same spot can't see each other, and
 leaving puts them back), and in RuneLite `test-runner/examples/instance-castle.json` (the castle's large doors in a copy:
 shut, they block line of sight; opened, they don't; then back out).
+
+## Raid parties
+
+The Fractured Archive is fought by a party of 1 to 8 (raid step 11). `game/raid/Parties.kt` keeps who is in which party:
+the first member leads, and a party lasts until its last member leaves, so a wipe doesn't break it up. Every boss's
+hitpoints scale to the players in the raid, with a player alone counted as two (OSRS Wiki, The Fractured Archive).
+`game/raid/PartyScaling.kt` reads each raid NPC's hitpoints for parties of 1 to 8 from
+`src/main/resources/party-scaling.json`, copied from the NPC's Wiki page, as the Wiki gives no formula. Only the Archive
+Guardian is in it so far; each boss's step adds its own.
+
+| Party behaviour | Source |
+|-----------------|--------|
+| 1 to 8 players a party | Wiki, The Fractured Archive (participants) |
+| Hitpoints scaled to the party, a player alone counted as two | Wiki, The Fractured Archive |
+| The Archive Guardian's hitpoints: flying 550, 550, 800, 1,030, 1,260, 1,490, 1,720, 1,950 and grounded 1,100, 1,100, 1,600, 2,060, 2,520, 2,980, 3,440, 3,910 for 1 to 8 players | Wiki, Archive Guardian |
+| A party not disbanding after a wipe | Wiki, The Fractured Archive (28 October 2026 update) |
+| `::raidparty` instead of the lobby's Grouping Board, whose workings the Wiki doesn't give; its messages are this server's own | stand-in, until a recording shows the board |
+| Only the leader inviting and kicking; an invite lasting until it is taken up or the party ends; one party at a time | guessed |
+| A member who logs out leaving the party; a leader who leaves handing it to the member who joined next | guessed |
+| The party's hitpoints orbs | not in yet: waits for a recording of the raid's interface |
+
+`::raidnpc tfa_guardian 3` puts in the Archive Guardian scaled for 3, and `::npcs` shows the party size and hitpoints.
+Check: `./gradlew test --tests 'osrsps.game.raid.*' --tests 'osrsps.game.command.PartyCommandsTest'
+--tests 'osrsps.testclient.HeadlessPartyTest'` (the Guardian's hitpoints at 1, 2, 3 and 8 players are the Wiki's; three
+players form a party, the Guardian's hitpoints follow its size, it lasts through a death, and a member who logs out
+leaves), and in RuneLite `test-runner/examples/party-scaling.json` (the Guardian's hitpoints alone, for 3 and for 8).
 
 ## Line of sight
 

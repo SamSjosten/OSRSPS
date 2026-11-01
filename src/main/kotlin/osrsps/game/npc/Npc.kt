@@ -153,8 +153,21 @@ class Npc(
     var facing: Player? = null
         private set
 
-    /** Current hitpoints; [osrsps.game.NpcStats.hitpoints] at its spawn. */
+    /** Current hitpoints; [maxHitpoints] at its spawn. */
     var hitpoints: Int = spawn.type.stats.hitpoints
+
+    /**
+     * The party size its hitpoints are scaled for, as a raid boss's are ([osrsps.game.raid.PartyScaling]); 0 for an
+     * NPC that isn't scaled.
+     */
+    var scaledFor: Int = 0
+        internal set
+
+    /** Its hitpoints for [scaledFor]; null when it isn't scaled. */
+    internal var scaledHitpoints: Int? = null
+
+    /** The most hitpoints it has: its party size's when it is scaled, otherwise its type's. */
+    val maxHitpoints: Int get() = scaledHitpoints ?: type.stats.hitpoints
 
     /**
      * Ticks to its next hitpoint back, -1 until the NPC phase of the tick it appeared on starts it; see
