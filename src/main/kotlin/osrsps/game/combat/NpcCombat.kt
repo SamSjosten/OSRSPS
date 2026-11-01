@@ -5,6 +5,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -95,6 +97,8 @@ data class NpcCombatDef(
     val venomImmune: Boolean = false,
     /** The most of each stat's level drains can take, in percent ([NpcDrains]); a stat not listed can be drained to 0. */
     val drainCaps: Map<NpcStat, Int> = emptyMap(),
+    /** How it attacks players unprovoked ([Aggression]); null for a monster that only fights back. */
+    val aggression: NpcAggression? = null,
 )
 
 /** NPC combat definitions by NPC type id. An NPC with none can't be attacked. */
@@ -131,7 +135,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          *
          * An animation may be `null` for none. An entry may add `"magicAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
          * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom"]` and
-         * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent).
+         * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent) and `"aggressive"`: `true`, or
+         * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]).
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
          * [seqs] turns into ids; a name it doesn't know fails the file, unless it knows no names at all (a cache with
@@ -203,6 +208,19 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 drainCaps = entry["drainCap"]?.jsonObject?.entries?.associate { (stat, percent) ->
                     NpcStat.parse(stat) to percent.jsonPrimitive.int.also { require(it in 0..100) { "a drain cap of $it%" } }
                 }.orEmpty(),
+                aggression = entry["aggressive"]?.let(::aggression),
+            )
+        }
+
+        private fun aggression(value: JsonElement): NpcAggression? {
+            if (value is JsonPrimitive) return if (value.boolean) NpcAggression() else null
+            val entry = value.jsonObject
+            val known = setOf("huntRange", "ignoresLevels", "tolerant")
+            require(entry.keys.all { it in known }) { "aggressive takes ${known.joinToString()}, not ${(entry.keys - known).joinToString()}" }
+            return NpcAggression(
+                huntRange = entry["huntRange"]?.jsonPrimitive?.int ?: NpcAggression.DEFAULT_HUNT_RANGE,
+                ignoresLevels = entry["ignoresLevels"]?.jsonPrimitive?.boolean ?: false,
+                tolerant = entry["tolerant"]?.jsonPrimitive?.boolean ?: true,
             )
         }
 

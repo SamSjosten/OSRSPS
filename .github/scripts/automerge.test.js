@@ -45,6 +45,7 @@ test('only Codex counts, and no review is null', () => {
 function fakeGit(trees, pushed = [], heads = {}) {
   let made = 0;
   const madeTrees = {};
+  const madeSeconds = {};
   return (args, input) => {
     if (args[0] === 'fetch') return '';
     if (args[0] === 'rev-parse' && args[1] === 'origin/main') return `${H('m')}\n`;
@@ -54,6 +55,7 @@ function fakeGit(trees, pushed = [], heads = {}) {
     }
     if (args[0] === 'rev-parse' && args[1].endsWith('^2')) {
       const sha = args[1].slice(0, -2);
+      if (madeSeconds[sha]) return `${madeSeconds[sha]}\n`;
       if (!heads[sha]) throw new Error('no such commit');
       return `${heads[sha].second}\n`;
     }
@@ -61,8 +63,15 @@ function fakeGit(trees, pushed = [], heads = {}) {
       made++;
       const sha = String(made).padStart(40, 'c');
       madeTrees[sha] = args[args.indexOf('commit-tree') + 1];
+      const parents = args.flatMap((arg, i) => (arg === '-p' ? [args[i + 1]] : []));
+      if (parents[1]) madeSeconds[sha] = parents[1];
       pushed.commits = { ...(pushed.commits || {}), [sha]: input };
       return `${sha}\n`;
+    }
+    if (args[0] === 'cat-file') {
+      const head = heads[args[2]];
+      if (!head) throw new Error('no such commit');
+      return `tree ${head.tree}\nparent ${H('m')}\nparent ${head.second}\n\n${head.message || 'a batch'}\n`;
     }
     if (args[0] === 'push') {
       pushed.push(args[args.length - 1]);
@@ -94,7 +103,7 @@ test('a review covers the head when it is the head or makes the same tree with m
 // A repository whose pull requests are { number: { head, ref, behind, checks: [{ name, status, conclusion }],
 // comments, autoMerge, mergeable } }.
 // `batch`: the batch branch, { sha, message, checks, committed }; `commits`: commit messages by sha.
-function fakeGitHub(prs, { batch = null, commits = {} } = {}) {
+function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'required_status_checks' }], mainMoved = false, suites = {} } = {}) {
   const calls = [];
   let nextId = 1000;
   const prData = n => {
@@ -104,7 +113,9 @@ function fakeGitHub(prs, { batch = null, commits = {} } = {}) {
       state: 'open',
       draft: false,
       auto_merge: pr.autoMerge === false ? null : { merge_method: 'merge' },
+      labels: (pr.labels || []).map(name => ({ name })),
       mergeable: pr.mergeable !== false,
+      title: `Pull request ${n}`,
       head: { sha: pr.head, ref: pr.ref || `branch-${n}` },
       base: { ref: 'main' },
     };
@@ -113,7 +124,9 @@ function fakeGitHub(prs, { batch = null, commits = {} } = {}) {
     pulls: {
       list: 'pulls.list',
       listReviews: 'pulls.listReviews',
+      listFiles: 'pulls.listFiles',
       get: async ({ pull_number }) => ({ data: prData(pull_number) }),
+      merge: async ({ pull_number, sha, merge_method }) => { calls.push(['merge', pull_number, sha, merge_method]); },
       updateBranch: async ({ pull_number }) => {
         calls.push(['updateBranch', pull_number]);
         const pr = prs[pull_number];
@@ -128,15 +141,31 @@ function fakeGitHub(prs, { batch = null, commits = {} } = {}) {
       createComment: async args => { calls.push(['comment', args.issue_number, args.body]); },
     },
     git: {
-      getCommit: async ({ commit_sha }) => ({ data: { message: (batch && batch.sha === commit_sha ? batch.message : commits[commit_sha]) || 'a commit' } }),
+      getCommit: async ({ commit_sha }) => ({
+        data: { message: (batch && batch.sha === commit_sha ? batch.message : commits[commit_sha]) || 'a commit', tree: { sha: `tree-${commit_sha.slice(0, 1)}` } },
+      }),
+      createCommit: async ({ message, tree, parents }) => {
+        calls.push(['commit', message, tree, parents]);
+        return { data: { sha: H('c') } };
+      },
       updateRef: async ({ ref, sha, force }) => {
         calls.push(['updateRef', ref, sha, force]);
+        if (ref === 'heads/main') {
+          if (mainMoved) throw Object.assign(new Error('Update is not a fast forward'), { status: 422 });
+          return;
+        }
         const pr = Object.values(prs).find(p => `heads/${p.ref}` === ref);
         pr.head = sha;
         pr.checks = batch.checks;
+        pr.behind = 0;
       },
     },
     repos: {
+      // `rules` null: the call is refused, as on a private repository without GitHub Pro.
+      getBranchRules: async () => {
+        if (!rules) throw Object.assign(new Error('Upgrade to GitHub Pro'), { status: 403 });
+        return { data: rules };
+      },
       getBranch: async ({ branch }) => {
         if (branch === 'main') return { data: { commit: { sha: H('m') } } };
         if (branch === BATCH && batch) {
@@ -150,11 +179,12 @@ function fakeGitHub(prs, { batch = null, commits = {} } = {}) {
       },
       compareCommits: async ({ head }) => {
         const pr = Object.values(prs).find(p => p.head === head);
-        return { data: { behind_by: pr.behind || 0, ahead_by: pr.ahead === undefined ? 1 : pr.ahead } };
+        return { data: { behind_by: pr.behind || 0, ahead_by: pr.ahead === undefined ? 1 : pr.ahead, base_commit: { sha: H('m') } } };
       },
     },
     checks: {
       listForRef: 'checks.listForRef',
+      getSuite: async ({ check_suite_id }) => ({ data: { head_branch: suites[check_suite_id] || null } }),
       create: async args => {
         calls.push(['check', args.head_sha, args.conclusion || args.status]);
         const pr = Object.values(prs).find(p => p.head === args.head_sha);
@@ -178,8 +208,12 @@ function fakeGitHub(prs, { batch = null, commits = {} } = {}) {
     },
   };
   const paginate = async (what, args) => {
+    if (what === rest.actions.listWorkflowRunsForRepo) {
+      return Object.values(prs).flatMap(p => (p.held || []).map(id => ({ id, head_sha: p.head })));
+    }
     if (what === 'pulls.list') return Object.keys(prs).map(Number).map(prData);
     if (what === 'pulls.listReviews') return [];
+    if (what === 'pulls.listFiles') return (prs[args.pull_number].files || ['src/a.kt']).map(filename => ({ filename }));
     if (what === 'issues.listComments') return prs[args.issue_number].comments || [];
     if (what === 'checks.listForRef') {
       if (batch && args.ref === batch.sha && !Object.values(prs).some(p => p.head === batch.sha)) return batch.checks;
@@ -253,6 +287,32 @@ test('a pull request without the check gets one first', async () => {
   });
   await queue(github, fakeGit({}));
   assert.deepStrictEqual(calls, [['check', H('5'), 'success']]);
+});
+
+test('a queue run lists the waiting runs once and gates with the pull requests it listed', async () => {
+  const { github, calls } = fakeGitHub({
+    1: { head: H('1'), behind: 0, checks: [...green], comments: [summary(H('1'), false)] },
+    2: { head: H('2'), behind: 0, checks: [...green], comments: [] },
+    3: { head: H('3'), behind: 0, checks: [...green, codexPass], comments: [summary(H('3'), false)] },
+  });
+  let perHead = 0;
+  let gets = 0;
+  const list = github.rest.actions.listWorkflowRunsForRepo;
+  github.rest.actions.listWorkflowRunsForRepo = async args => { if (args.head_sha) perHead++; return list(args); };
+  const get = github.rest.pulls.get;
+  github.rest.pulls.get = async args => { gets++; return get(args); };
+  await queue(github, fakeGit({}));
+  assert.strictEqual(perHead, 0, 'no listing per pull request');
+  assert.strictEqual(gets, 0, 'no pull request fetched again');
+  assert.deepStrictEqual(calls, [['check', H('1'), 'success'], ['check', H('2'), 'in_progress']]);
+});
+
+test('a Codex summary marked running does not start a queue run', async () => {
+  let listed = 0;
+  const github = { paginate: async () => { listed++; return []; }, rest: {} };
+  const comment = summary(H('1'), false, 'running');
+  await automerge.queue({ github, context: { repo, payload: { comment } }, core, git: fakeGit({}), sleep: async () => {}, now: () => NOW });
+  assert.strictEqual(listed, 0);
 });
 
 test('when merging main changes the diff, the thread is asked for a new Codex review', async () => {
@@ -359,6 +419,19 @@ test('the queue puts right a stale failing check once Codex is clean', async () 
   assert.deepStrictEqual(calls, [['check', H('1'), 'success']]);
 });
 
+test('a check that fails while the queue gates a pull request counts', async () => {
+  const pr = { head: H('1'), mergedHead: H('2'), behind: 1, checks: [...green], comments: [summary(H('1'), false)] };
+  const { github, calls } = fakeGitHub({ 1: pr });
+  const paginate = github.paginate;
+  github.paginate = async (what, args) => {
+    // The build is re-run and fails while Codex's comments are read.
+    if (what === 'issues.listComments') pr.checks = [{ id: 50, name: 'build', status: 'completed', conclusion: 'failure' }];
+    return paginate(what, args);
+  };
+  await queue(github, fakeGit({ [H('1')]: 'p', [H('2')]: 'p' }));
+  assert.deepStrictEqual(calls, [['check', H('1'), 'success']], 'main is not merged into a failing pull request');
+});
+
 test('a gate run leaves a check written after its evaluation started', async () => {
   const newer = { name: CHECK, status: 'completed', conclusion: 'success', started_at: '2026-10-30T01:00:05Z' };
   const { github, calls } = fakeGitHub({
@@ -445,17 +518,42 @@ test('a green batch becomes the last member\'s head, with a codex-review that co
   const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2) }, {
     batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] },
   });
-  const git = () => fakeGit(batchTrees, [], { [B]: { tree: 't2', second: H('2') } });
-  await queue(github, git());
-  assert.deepStrictEqual(calls, [['updateRef', 'heads/branch-2', B, false], ['check', B, 'success']]);
+  const pushed = [];
+  const git = fakeGit(batchTrees, pushed, { [B]: { tree: 't2', second: H('2'), message: batchMessage(H('m'), [1, 2]) } });
+  await queue(github, git);
+  // A copy of the batch commit, first pushed to the carrier's branch, so its checks are filed under that branch.
+  const copy = pushed[0].split(':')[0];
+  assert.notStrictEqual(copy, B);
+  assert.deepStrictEqual([...pushed], [`${copy}:refs/heads/branch-2`, `${copy}:refs/heads/${BATCH}`]);
+  assert.strictEqual(pushed.commits[copy], batchMessage(H('m'), [1, 2]) + '\n', 'same message, so the same batch');
+  assert.deepStrictEqual(calls, [['check', copy, 'success'], ['dispatch', 'build.yml', 'branch-2']]);
 
   // Then it waits for auto-merge, and the gate leaves the batch's check passing.
-  const before = calls.length;
-  await queue(github, git());
-  assert.deepStrictEqual(calls.slice(before), []);
-  const gated = fakeGitHub({ 1: ready(1), 2: ready(2, { head: B, checks: [] }) }, { commits: { [B]: batchMessage(H('m'), [1, 2]) } });
-  await gate(gated.github, git(), 2);
-  assert.deepStrictEqual(gated.calls, [['check', B, 'success']]);
+  const moved = fakeGitHub({ 1: ready(1), 2: ready(2, { head: copy, checks: [...green, codexPass] }) }, {
+    batch: { sha: copy, message: batchMessage(H('m'), [1, 2]), checks: [...green] },
+  });
+  await queue(moved.github, git);
+  assert.deepStrictEqual(moved.calls, []);
+  assert.strictEqual(pushed.length, 2);
+  const gated = fakeGitHub({ 1: ready(1), 2: ready(2, { head: copy, checks: [] }) }, { commits: { [copy]: batchMessage(H('m'), [1, 2]) } });
+  await gate(gated.github, git, 2);
+  assert.deepStrictEqual(gated.calls, [['check', copy, 'success']]);
+});
+
+test('a batch promoted with its codex-review filed under the batch branch is put right', async () => {
+  const filed = { ...codexPass, check_suite: { id: 7 } };
+  const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2, { head: B, checks: [...green, filed] }) }, {
+    batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] },
+    commits: { [B]: batchMessage(H('m'), [1, 2]) },
+    suites: { 7: BATCH },
+  });
+  const pushed = [];
+  await queue(github, fakeGit(batchTrees, pushed, { [B]: { tree: 't2', second: H('2'), message: batchMessage(H('m'), [1, 2]) } }));
+  const copy = pushed[0].split(':')[0];
+  assert.notStrictEqual(copy, B);
+  assert.deepStrictEqual([...pushed], [`${copy}:refs/heads/branch-2`, `${copy}:refs/heads/${BATCH}`]);
+  assert.strictEqual(pushed.commits[copy], batchMessage(H('m'), [1, 2]) + '\n', 'same message, so the same batch');
+  assert.deepStrictEqual(calls, [['check', copy, 'success'], ['dispatch', 'build.yml', 'branch-2']]);
 });
 
 test('a head that gets a build dispatched does not hold back promoting a green batch', async () => {
@@ -464,8 +562,9 @@ test('a head that gets a build dispatched does not hold back promoting a green b
     2: ready(2),
     3: { head: H('3'), ref: 'b3', behind: 0, committed: '2026-10-30T00:30:00Z', checks: [codexPass] },
   }, { batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] } });
-  await queue(github, fakeGit(batchTrees, [], { [B]: { tree: 't2', second: H('2') } }));
-  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', 'b3'], ['updateRef', 'heads/branch-2', B, false], ['check', B, 'success']]);
+  const pushed = [];
+  await queue(github, fakeGit(batchTrees, pushed, { [B]: { tree: 't2', second: H('2') } }));
+  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', 'b3'], ['check', pushed[0].split(':')[0], 'success'], ['dispatch', 'build.yml', 'branch-2']]);
 });
 
 test('batch trailers on a commit the queue would not build count for nothing', async () => {
@@ -604,6 +703,74 @@ test('a finished review whose flags are both null, with no receipt, is no verdic
   const { github, calls } = fakeGitHub({ 1: { head: H('1'), checks: [], comments: [unsaid] } });
   await gate(github, fakeGit({}), 1);
   assert.deepStrictEqual(calls, [['check', H('1'), 'in_progress']]);
+});
+
+// Merging itself, when GitHub enforces no merge rules on main.
+const afterMerge = [['dispatch', 'build.yml', 'main'], ['dispatch', 'mergeable.yml', 'main'], ['dispatch', 'automerge.yml', 'main']];
+const merged = n => [
+  ['commit', `Merge pull request #${n} from SamSjosten/branch-${n}\n\nPull request ${n}\n`, `tree-${n}`, [H('m'), H(String(n))]],
+  ['updateRef', 'heads/main', H('c'), false],
+];
+
+test('with no rules on main, the queue merges an up-to-date green pull request itself and starts main\'s workflows', async () => {
+  for (const rules of [null, []]) {
+    const { github, calls } = fakeGitHub({
+      1: { head: H('1'), behind: 0, autoMerge: false, labels: [automerge.LABEL], checks: [...green, codexPass] },
+      2: ready(2),
+    }, { rules });
+    await queue(github, fakeGit({}));
+    assert.deepStrictEqual(calls, [...merged(1), ...afterMerge]);
+  }
+});
+
+test('merging itself, main moves only as a fast-forward from the main the pull request was up to date with', async () => {
+  const { github, calls } = fakeGitHub({
+    1: { head: H('1'), behind: 0, labels: [automerge.LABEL], checks: [...green, codexPass] },
+  }, { rules: [], mainMoved: true });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls, merged(1), 'refused: no workflows started');
+});
+
+test('the queue merges nothing itself while GitHub enforces the rules, and counts the label only without them', async () => {
+  const pr = () => ({ 1: { head: H('1'), behind: 0, labels: [automerge.LABEL], checks: [...green, codexPass] } });
+  const enforced = fakeGitHub(pr());
+  await queue(enforced.github, fakeGit({}));
+  assert.deepStrictEqual(enforced.calls, []);
+  const labelOnly = fakeGitHub({ 1: { ...pr()[1], autoMerge: false, behind: 1 }, 2: { head: H('2'), behind: 1, autoMerge: false, checks: [...green, codexPass] } });
+  await queue(labelOnly.github, fakeGit({}));
+  assert.deepStrictEqual(labelOnly.calls, [], 'with the rules on, a label is no auto-merge');
+});
+
+test('merging itself, the queue holds back a head that is failing, running, unreviewed, never built or conflicting', async () => {
+  const base = { behind: 0, labels: [automerge.LABEL], autoMerge: false };
+  const { github, calls } = fakeGitHub({
+    1: { head: H('1'), ...base, checks: [...green, codexPass, { name: 'deploy-script', status: 'completed', conclusion: 'failure' }] },
+    2: { head: H('2'), ...base, checks: [...green, { name: CHECK, status: 'completed', conclusion: 'failure', output: { title: 'x' } }], comments: [summary(H('2'), true)] },
+    3: { head: H('3'), ...base, checks: [{ name: 'build', status: 'completed', conclusion: 'skipped' }, codexPass], committed: '2026-10-30T00:59:00Z' },
+  }, { rules: [] });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls.filter(call => call[0] === 'commit' || call[0] === 'updateRef'), []);
+  const running = fakeGitHub({ 5: { head: H('5'), ...base, checks: [...green, codexPass, { name: 'launcher', status: 'in_progress' }] } }, { rules: [] });
+  await queue(running.github, fakeGit({}));
+  assert.deepStrictEqual(running.calls, [], 'waits for its other checks');
+});
+
+test('merging itself, a green batch becomes main', async () => {
+  const { github, calls } = fakeGitHub({ 1: ready(1, { autoMerge: false, labels: [automerge.LABEL] }), 2: ready(2, { autoMerge: false, labels: [automerge.LABEL] }) }, {
+    batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] },
+    rules: [],
+  });
+  await queue(github, fakeGit(batchTrees, [], { [B]: { tree: 't2', second: H('2') } }));
+  assert.deepStrictEqual(calls, [['updateRef', 'heads/main', B, false], ...afterMerge]);
+});
+
+test('merging itself, the queue leaves a pull request that changes the workflows to Sam', async () => {
+  const { github, calls } = fakeGitHub({
+    1: { head: H('1'), behind: 0, labels: [automerge.LABEL], files: ['.github/workflows/build.yml'], checks: [...green, codexPass] },
+    2: { head: H('2'), behind: 0, labels: [automerge.LABEL], files: ['.github/scripts/automerge.js'], checks: [...green, codexPass] },
+  }, { rules: [] });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls, [...merged(2), ...afterMerge]);
 });
 
 test("a green batch whose member Codex no longer covers writes that member's check and builds the rest without it", async () => {

@@ -20,8 +20,9 @@ class HeadlessGrandExchangeTest {
     private val objs = ObjTypes.of(
         ObjType(COINS, "Coins", stackable = true, tradeable = true),
         ObjType(FEATHER, "Feather", stackable = true, tradeable = true, internalName = "feather"),
+        ObjType(LOGS, "Logs", tradeable = true, internalName = "logs"),
     )
-    private val prices = ItemPrices(mapOf(FEATHER to ItemPrices.Entry("Feather", 3, 30_000)))
+    private val prices = ItemPrices(mapOf(FEATHER to ItemPrices.Entry("Feather", 3, 30_000), LOGS to ItemPrices.Entry("Logs", 40, 10)))
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = objs, itemPrices = prices, cycleMillis = millis)
@@ -69,6 +70,41 @@ class HeadlessGrandExchangeTest {
         }
     }
 
+    @Test
+    fun `the market buys a sell only up to the item's limit, and still not after a logout`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $LOGS 15")
+                client.awaitHeld(LOGS, 15)
+                client.commandReply("geoffer sell logs 15 1") { it.startsWith("Placed") }
+                // Ten, the logs' limit, sell at the guide price, 40 (under 50, so no tax); the other five wait for the four hours to pass.
+                client.await("the sale to fill to the limit") {
+                    client.commandReply("geoffer list") { it.startsWith("Slot 0") }.takeIf { "10/15 done for 400" in it }
+                }
+                client.awaitTicks(5)
+                assertEquals(
+                    "Slot 0: sell 15 x Logs ($LOGS) at 1, 10/15 done for 400, to collect 0 items and 400 coins",
+                    client.commandReply("geoffer list") { it.startsWith("Slot 0") },
+                )
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.loginAgain("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.awaitTicks(5)
+                assertEquals(
+                    "Slot 0: sell 15 x Logs ($LOGS) at 1, 10/15 done for 400, to collect 0 items and 400 coins",
+                    client.commandReply("geoffer list") { it.startsWith("Slot 0") },
+                )
+                client.commandReply("geoffer abort 0") { it.startsWith("Aborted") }
+                client.commandReply("geoffer collect 0") { it.startsWith("Collected") }
+                client.awaitHeld(LOGS, 5)
+                client.awaitHeld(COINS, 400)
+            }
+        }
+    }
+
     /** Logs in once the server has let the last login of [name] go: until then a login is refused as still on. */
     private fun TestServer.loginAgain(name: String): HeadlessClient {
         repeat(50) {
@@ -81,5 +117,6 @@ class HeadlessGrandExchangeTest {
     private companion object {
         const val COINS = 995
         const val FEATHER = 314
+        const val LOGS = 1511
     }
 }

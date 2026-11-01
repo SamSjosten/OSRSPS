@@ -255,7 +255,7 @@ class MeleeCombatTest {
     }
 
     @Test
-    fun `an NPC someone else is fighting can't be attacked until they stop`() {
+    fun `an NPC someone else is fighting can't be attacked until they stop and it stops fighting them`() {
         // Bob doesn't hit back when the man turns on him, or his fight would never end.
         bob.vars[EquipmentTab.VARP_AUTO_RETALIATE_OFF] = 1
         val npc = spawn()
@@ -273,8 +273,13 @@ class MeleeCombatTest {
         assertNull(alice.interaction)
         attack(alice, npc)
         tick(alice)
+        // His hit has worn off, but the man is still hitting him, so it is still his.
+        assertNull(alice.interaction)
+        assertEquals(bob, npc.target)
+        melee.endFights(bob)
+        attack(alice, npc)
+        tick(alice)
         assertIs<MeleeInteraction>(alice.interaction)
-        // The man was still hitting Bob; now it turns on her.
         tick(alice)
         assertEquals(alice, npc.target)
     }
