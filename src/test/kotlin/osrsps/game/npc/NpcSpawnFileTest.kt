@@ -307,6 +307,22 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `Barbarian Village has Peksa, Tassie Slipcast, Hunding up the tower, Atlas, Checkal, Litara and Sigurd`() {
+        val names = mapOf(
+            2872 to "peksa", 1352 to "favour_tassie_slipcast", 3063 to "fai_barbarian_9", 10658 to "bim_atlas", 10645 to "bim_checkal_barb",
+            3363 to "sos_barb", 1324 to "canoeing_sigurd",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("barbarian-village.json"), types, "barbarian-village.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(listOf(2872, 1352, 3063, 10658, 10645, 3363, 1324), spawns.map { it.type.id })
+        assertEquals(2, spawns.single { it.type.id == 3063 }.level, "Hunding at the top of the lookout tower")
+        assertTrue(spawns.filter { it.type.id != 3063 }.all { it.level == 0 })
+        assertTrue(spawns.all { it.x in 3072..3115 && it.z in 3400..3445 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `Draynor has three bankers, its townsfolk, seven pigs, the farmer, two fishing spots, Ned, Aggie, the jail guards, Leela and Morgan`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3111 to "woman", 2854 to "rat", 5007 to "imp", 2796 to "pig_1",
