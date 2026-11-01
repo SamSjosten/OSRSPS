@@ -42,7 +42,7 @@ object OsmanLines : Lines("osman", "Transcript:Osman") {
 
     val HAVE_JUICE = line("have_juice", "the player holds sq'irk juice: the player's line")
     val THIEVING_TIPS = line("thieving_tips", "the box when he takes the juice; {xp} is the Thieving experience", "xp")
-    val THANK_YOU = line("thank_you", "his line after taking the juice")
+    val THANK_YOU = line("thank_you", "his line after taking the juice, with the player's name", "name")
     val WILL_DO = line("will_do", "the player's last line")
     val SQIRKS_MENU = line("sqirks_menu", "no juice: the player's line before the sq'irks menu")
     val WHERE = line("where", "the sq'irks menu, option 1, which the player then says")
@@ -208,7 +208,7 @@ object AlKharidPalace {
         if (xp > 0) {
             chatPlayer(ChatAnim.HAPPY, HAVE_JUICE)
             mesbox(THIEVING_TIPS, "xp" to xp / 10)
-            chatNpc(ChatAnim.HAPPY, THANK_YOU)
+            chatNpc(ChatAnim.HAPPY, THANK_YOU, "name" to player.username)
             chatPlayer(ChatAnim.HAPPY, WILL_DO)
             return@with
         }
