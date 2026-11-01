@@ -1,5 +1,5 @@
 {
- "name": "Client settings: Player Trade options and Player Report options off take Trade with and Report off other players' menus, read after a relog (needs 0.21.0)",
+ "name": "Client settings: Player Trade options and Player Report options off take Trade with and Report off other players' menus, read after a relog (needs 0.22.0)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
