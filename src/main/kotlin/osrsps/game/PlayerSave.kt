@@ -88,6 +88,8 @@ class PlayerSave(
     val friendsChatOwner: String? = null,
     /** Run went off because energy ran out, so the energy threshold setting may still turn it back on; see [Movement]. */
     val runRanOut: Boolean = false,
+    /** What the Grand Exchange's bot market has bought from the player against the buy limits, by item. */
+    val geSellLimits: List<BuyLimitUse> = emptyList(),
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -171,6 +173,7 @@ class PlayerSave(
         for ((name, count) in charges) player.charges[name] = count
         for ((slot, offer) in geOffers) player.ge[slot] = offer
         for (use in geLimits) player.ge.limits[use.item] = use
+        for (use in geSellLimits) player.ge.sellLimits[use.item] = use
         player.ge.history.addAll(geHistory)
     }
 
@@ -282,6 +285,17 @@ class PlayerSave(
                 }
             }
         }
+        if (geSellLimits.isNotEmpty()) {
+            putJsonArray("geSellLimits") {
+                for (use in geSellLimits) {
+                    addJsonObject {
+                        put("item", use.item)
+                        put("windowStart", use.windowStart)
+                        put("bought", use.bought)
+                    }
+                }
+            }
+        }
         if (geHistory.isNotEmpty()) {
             putJsonArray("geHistory") {
                 for (trade in geHistory) {
@@ -333,6 +347,7 @@ class PlayerSave(
                 player.friendsChat,
                 player.friendsChatOwner,
                 runRanOut = player.runRanOut,
+                geSellLimits = player.ge.sellLimits.values.toList(),
             )
         }
 
@@ -412,6 +427,7 @@ class PlayerSave(
                     root["lastTrade"]?.jsonPrimitive?.contentOrNull,
                     readFriendsChat(root), root["friendsChatOwner"]?.jsonPrimitive?.contentOrNull,
                     runRanOut = state.runRanOut,
+                    geSellLimits = state.geSellLimits,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -419,6 +435,11 @@ class PlayerSave(
                 // A missing key or a value of the wrong type.
                 throw IllegalArgumentException(e.message, e)
             }
+        }
+
+        private fun readLimits(root: JsonObject, key: String): List<BuyLimitUse> = root[key]?.jsonArray.orEmpty().map {
+            val entry = it.jsonObject
+            BuyLimitUse(entry.int("item"), entry.long("windowStart"), entry.int("bought"))
         }
 
         private fun readState(root: JsonObject, scenario: String?, beforeScenario: PlayerSave?): PlayerSave {
@@ -476,13 +497,12 @@ class PlayerSave(
                 val entry = it.jsonObject
                 GeTrade(offerType(entry), entry.int("item"), entry.int("count"), entry.long("coins"), entry["tax"]?.jsonPrimitive?.long ?: 0)
             }
-            val geLimits = root["geLimits"]?.jsonArray.orEmpty().map {
-                val entry = it.jsonObject
-                BuyLimitUse(entry.int("item"), entry.long("windowStart"), entry.int("bought"))
-            }
+            val geLimits = readLimits(root, "geLimits")
+            // Optional: saves from before the sell limits have none.
+            val geSellLimits = readLimits(root, "geSellLimits")
             return PlayerSave(
                 x, z, level, runEnergy, varps, skills, inventory, equipment, scenario, beforeScenario, charges = charges, bank = bank,
-                geOffers = geOffers, geLimits = geLimits, geHistory = geHistory,
+                geOffers = geOffers, geLimits = geLimits, geHistory = geHistory, geSellLimits = geSellLimits,
                 // Optional: saves from before the energy threshold setting, and saves with run not waiting on it, have none.
                 runRanOut = root["runRanOut"]?.jsonPrimitive?.boolean ?: false,
             )
