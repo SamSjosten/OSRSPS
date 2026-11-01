@@ -1037,6 +1037,26 @@ Kharid scorpion and the ghost (quests). The words are in the dialogue file (keys
 each of the people and picks a cabbage; `EdgevilleMonasteryTest` does each talk's branches and
 `HeadlessEdgevilleMonasteryTest` the ladders, joining and the altar through the headless client.
 
+Step 5 is Barbarian Village's buildings and people, `game/content/BarbarianVillage.kt`, `npc-spawns/barbarian-village.json`
+and `obj-spawns/barbarian-village.tsv`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Peksa's Helmet Shop (Peksa 2872, inv `helmetshop` 10): bronze to adamant med and full helms at 100%, bought at 60%; his yes opens it, his no says goodbye | OSRS Wiki, Peksa's Helmet Shop (ShopTest checks every sold-at price) and Transcript:Peksa |
+| The talk of Tassie Slipcast (1352, her studio), Hunding (3063, the top of the lookout tower; both his menus), Litara (`sos_barb` 3363, before the Stronghold is finished), Checkal (`bim_checkal_barb` 10645) and Sigurd (1324, by the canoe station; his story and his teaching by Woodcutting level) | OSRS Wiki, each one's transcript; Checkal as after Below Ice Mountain; the yes after Sigurd's story going into the teaching is inferred from the Wiki's "Same as below" |
+| Atlas (10658) in the longhall, as after Below Ice Mountain: his offer of a workout for 25,000 coins; with the coins, a message of ours (the workout is a cutscene that isn't built) and no coins taken | OSRS Wiki, Transcript:Atlas |
+| The longhall's double doors (`fai_barbarian_large_doubledoor_l`/`r` 11621/11620, open 11625/11624) open together; the huts' doors by name; the lookout tower's ladders (`ladder_directional` 17026, `laddertop_directional` 16685) over three levels; Peksa's small crates (11600) searched empty | 241 cache types and places |
+| Three beers and two cooked meats on the longhall's tables, a bronze pickaxe in the spinning hut and a pot in Peksa's shop, back 100 ticks after taking | the Wiki's Barbarian Village spawn list; tiles from 2004Scape's map m48_53; respawn guessed |
+| The spinning hut's wheel, Tassie's potter's wheels and pottery oven, and the fires in Peksa's shop and the longhall, work as everywhere | `Crafting` and `Cooking` by name |
+| Tiles, wander ranges (1 to 2) and expressions | mejrs's NPC list for the tiles; the rest guessed |
+
+Left out: Sigurd's Store-axe, Hunding's beginner clue, the barbarian anvil (members' Barbarian Smithing), Litara's talk
+after the Stronghold (step 14), and the barbarians, Gunthor and the unicorns (step 7). The words are in the dialogue
+file (keys `peksa.*`, `tassie_slipcast.*`, `hunding.*`, `atlas.*`, `checkal.*`, `litara.*`, `sigurd.*`). Check:
+`test-runner/examples/barbarian-village.json` buys a helmet, spins wool, throws and fires a pot, climbs the tower to
+Hunding and talks to each of the others; `BarbarianVillageTest` does each talk's branches and
+`HeadlessBarbarianVillageTest` the shop, the longhall's doors and the tower through the headless client.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
