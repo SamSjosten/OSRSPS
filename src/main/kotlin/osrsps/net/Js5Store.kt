@@ -5,6 +5,9 @@ import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import net.rsprot.protocol.api.js5.Js5GroupProvider
 import net.rsprot.protocol.api.js5.Js5Service
+import osrsps.cache.overlay.CacheOverlay
+import osrsps.cache.overlay.Js5Container
+import osrsps.cache.overlay.ReferenceTable
 
 /**
  * Every JS5 response the client can ask for, framed and held in memory.
@@ -24,7 +27,12 @@ class Js5Store private constructor(
     companion object {
         const val MASTER = 255
 
-        fun load(library: CacheLibrary): Js5Store {
+        /**
+         * Everything in [library], plus [overlay]'s groups: each is added to its index's reference table with the CRC
+         * of the container it is sent in, and the table's new CRC goes in the master index, so a client sees the
+         * index changed, fetches the table again and asks for the new group when something points at it.
+         */
+        fun load(library: CacheLibrary, overlay: CacheOverlay = CacheOverlay.NONE): Js5Store {
             val indices = library.indices.filterNotNull().sortedBy { it.id }
             val archiveCount = (indices.maxOfOrNull { it.id } ?: -1) + 1
             val crcs = IntArray(archiveCount)
@@ -41,9 +49,29 @@ class Js5Store private constructor(
                     responses[key(index.id, group)] = frame(index.id, group, stripVersionTrailer(data))
                 }
             }
+            for ((indexId, groups) in overlay.byIndex()) {
+                require(indexId in indices.map { it.id }) { "The overlay names index $indexId, which the cache doesn't have" }
+                val stored = library.index255?.readArchiveSector(indexId)?.data ?: error("The cache has no reference table for index $indexId")
+                val table = ReferenceTable.decode(Js5Container.unpack(stored))
+                val liveMax = table.maxGroupId
+                for (group in groups) {
+                    require(group.group > liveMax) { "Custom group ${group.group} of index $indexId has to be above the cache's own groups, which go up to $liveMax" }
+                    require(group.group <= CacheOverlay.MAX_GROUP) { "Custom group ${group.group} of index $indexId doesn't fit a JS5 request" }
+                    val container = Js5Container.pack(group.data)
+                    // Guessed: the sizes are the container's and the data's; no index we overlay is sized.
+                    table.put(ReferenceTable.Group(group.group, 0, Js5Container.crc(container), container.size, group.data.size, OVERLAY_VERSION, listOf(ReferenceTable.File(0, 0))))
+                    responses[key(indexId, group.group)] = frame(indexId, group.group, container)
+                }
+                val rewritten = Js5Container.pack(table.encode(), Js5Container.type(stored))
+                crcs[indexId] = Js5Container.crc(rewritten)
+                responses[key(MASTER, indexId)] = frame(MASTER, indexId, rewritten)
+            }
             responses[key(MASTER, MASTER)] = frame(MASTER, MASTER, masterIndex(crcs, versions))
             return Js5Store(crcs, responses)
         }
+
+        /** The version an overlay group carries; a changed model has a new CRC, which is what makes the client fetch it again. */
+        const val OVERLAY_VERSION = 1
 
         /** Builds the uncompressed 255/255 container: per archive, a 4-byte CRC then a 4-byte version. */
         fun masterIndex(crcs: IntArray, versions: IntArray): ByteArray {
