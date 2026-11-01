@@ -484,7 +484,7 @@ test('a green batch becomes the last member\'s head, with a codex-review that co
   assert.notStrictEqual(copy, B);
   assert.deepStrictEqual([...pushed], [`${copy}:refs/heads/branch-2`, `${copy}:refs/heads/${BATCH}`]);
   assert.strictEqual(pushed.commits[copy], batchMessage(H('m'), [1, 2]) + '\n', 'same message, so the same batch');
-  assert.deepStrictEqual(calls, [['check', copy, 'success']]);
+  assert.deepStrictEqual(calls, [['check', copy, 'success'], ['dispatch', 'build.yml', 'branch-2']]);
 
   // Then it waits for auto-merge, and the gate leaves the batch's check passing.
   const moved = fakeGitHub({ 1: ready(1), 2: ready(2, { head: copy, checks: [...green, codexPass] }) }, {
@@ -511,7 +511,7 @@ test('a batch promoted with its codex-review filed under the batch branch is put
   assert.notStrictEqual(copy, B);
   assert.deepStrictEqual([...pushed], [`${copy}:refs/heads/branch-2`, `${copy}:refs/heads/${BATCH}`]);
   assert.strictEqual(pushed.commits[copy], batchMessage(H('m'), [1, 2]) + '\n', 'same message, so the same batch');
-  assert.deepStrictEqual(calls, [['check', copy, 'success']]);
+  assert.deepStrictEqual(calls, [['check', copy, 'success'], ['dispatch', 'build.yml', 'branch-2']]);
 });
 
 test('a head that gets a build dispatched does not hold back promoting a green batch', async () => {
@@ -522,7 +522,7 @@ test('a head that gets a build dispatched does not hold back promoting a green b
   }, { batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] } });
   const pushed = [];
   await queue(github, fakeGit(batchTrees, pushed, { [B]: { tree: 't2', second: H('2') } }));
-  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', 'b3'], ['check', pushed[0].split(':')[0], 'success']]);
+  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', 'b3'], ['check', pushed[0].split(':')[0], 'success'], ['dispatch', 'build.yml', 'branch-2']]);
 });
 
 test('batch trailers on a commit the queue would not build count for nothing', async () => {

@@ -438,6 +438,8 @@ async function promote(github, git, repo, core, batch, carrier, pr, result) {
   }
   core.info(`batch ${batch.sha.slice(0, 7)} is green: it becomes #${carrier.number}'s head as ${sha.slice(0, 7)}`);
   await writeCheck(github, repo, sha, result);
+  // A push with the workflow token starts no workflows, and the new sha has none of the batch's checks.
+  await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
   git(['push', '--force', '--quiet', 'origin', `${sha}:refs/heads/${BATCH}`]);
   return true;
 }
