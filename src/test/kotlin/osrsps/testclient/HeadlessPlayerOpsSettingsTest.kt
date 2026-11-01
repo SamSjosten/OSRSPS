@@ -69,6 +69,22 @@ class HeadlessPlayerOpsSettingsTest {
         }
     }
 
+    @Test
+    fun `a reconnect sends the options again, as the settings have them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val alice = server.login("alice")
+            alice.await("the login's options") { alice.playerOps().takeIf { it[PlayerOps.TRADE] == "Trade with" } }
+            // Hidden with no SET_PLAYER_OP sent, as if the toggle's had gone with the old connection.
+            alice.commandReply("varbit ${PlayerOps.VARBIT_TRADE_HIDDEN} 1") { it.startsWith("Varbit") }
+            server.reconnect("alice", alice).use { back ->
+                back.await("the options sent again") {
+                    back.playerOps().takeIf { PlayerOps.TRADE in it && it[PlayerOps.TRADE] == null && it[PlayerOps.REPORT] == "Report" }
+                }
+            }
+            alice.close()
+        }
+    }
+
     private fun TestServer.awaitNobodyOn() {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
         while (world.playerCount != 0) {

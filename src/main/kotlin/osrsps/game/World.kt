@@ -1543,6 +1543,8 @@ class World(
         ignoreLists.sendAll(player)
         friendLists.sendAll(player)
         friendChats.resend(player)
+        // A toggle's SET_PLAYER_OP may have been lost with the old connection.
+        PlayerOps.send(player.vars, player.session::queue)
         player.buildAreaZoneX = player.x shr 3
         player.buildAreaZoneZ = player.z shr 3
         player.infos.updateRootBuildAreaCenteredOnPlayer(player.x, player.z)
