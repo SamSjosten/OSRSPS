@@ -132,21 +132,10 @@ class HeadlessVarrockTownsfolkTest {
                 client.walk(VarrockTownsfolk.ARIS, "aris", *aris, "3:$menu", "not_young", "grand_scheme", "2:how_old,fair", "fair", "wise")
                 client.walk(VarrockTownsfolk.DR_HARLOW, "dr_harlow", "drink", "enough")
                 client.walk(VarrockTownsfolk.JONNY_THE_BEARD, "jonny_the_beard", "not_interested")
-                client.walk(VarrockTownsfolk.IFFIE, "iffie", "hello", "count", "sister")
+                client.walk(VarrockTownsfolk.IFFIE, "iffie", "hello", "count")
 
-                val crier = "pmods,rules,tip,goodbye"
-                val pmods = "what_is,what_can,become,cannot"
-                client.op(VarrockTownsfolk.TOWN_CRIER)
-                client.steps(
-                    "town_crier", "greeting", "1:$crier", "pmods", "explain", "1:$pmods", "what_is", "trusted",
-                    "1:$crier", "pmods", "explain", "2:$pmods", "what_can", "powers", "1:$crier", "pmods", "explain", "3:$pmods", "become", "tips",
-                    "1:$crier", "pmods", "explain", "4:$pmods", "cannot", "limits", "2:$crier", "rules", "book", "3:$crier", "tip",
-                )
-                val tips = (1..27).map { "[town_crier.tip_$it]" }
-                client.awaitDialogue("a tip") { it is DialogueView.Chat && it.text in tips }
-                client.continueDialogue()
-                client.steps("town_crier", "4:$crier", "goodbye", "farewell")
-                client.over()
+                client.walk(VarrockTownsfolk.TOWN_CRIER, "town_crier", "greeting", "1:what_do,later", "what_do", "explain", "i_see", "until")
+                client.walk(VarrockTownsfolk.TOWN_CRIER, "town_crier", "greeting", "2:what_do,later", "later", "until")
             }
         }
     }
@@ -221,13 +210,13 @@ class HeadlessVarrockTownsfolkTest {
                 client.walk(VarrockTownsfolk.CHARLIE, "charlie", "spare", "1:$menu", "who", "name", "2:$menu", "none", "thanks_anyway")
                 client.walk(VarrockTownsfolk.CHARLIE, "charlie", "spare", "3:$menu", "job", "curse")
                 client.walk(VarrockTownsfolk.CHARLIE, "charlie", "spare", "4:$menu", "here", "no_money", "thanks_anyway")
-                client.walk(VarrockTownsfolk.CHARLIE, "charlie", "spare", "5:$menu", "alley", "black_arm", "1:warning,join", "warning", "welcome")
-                client.walk(VarrockTownsfolk.CHARLIE, "charlie", "spare", "5:$menu", "alley", "black_arm", "2:warning,join", "join", "member")
+                client.walk(VarrockTownsfolk.CHARLIE, "charlie", "spare", "5:$menu", "alley", "black_arm", "black_arm_2", "1:warning,join", "warning", "welcome")
+                client.walk(VarrockTownsfolk.CHARLIE, "charlie", "spare", "5:$menu", "alley", "black_arm", "black_arm_2", "2:warning,join", "join", "member")
                 client.walk(VarrockTownsfolk.TRAMP, "tramp", "spare", "no_money", "doubt")
 
                 client.coinsNow(3)
                 client.walk(VarrockTownsfolk.CHARLIE, "charlie", "spare", "4:$menu", "here", "thanks", "1:no_problem,hint", "no_problem")
-                client.walk(VarrockTownsfolk.CHARLIE, "charlie", "spare", "4:$menu", "here", "thanks", "2:no_problem,hint", "hint", "food")
+                client.walk(VarrockTownsfolk.CHARLIE, "charlie", "spare", "4:$menu", "here", "thanks", "2:no_problem,hint", "hint", "food", "food_2")
                 client.walk(VarrockTownsfolk.TRAMP, "tramp", "spare", "1:give,earn", "give", "thanks")
                 assertEquals(0, client.held(COINS))
 
@@ -235,7 +224,7 @@ class HeadlessVarrockTownsfolkTest {
                 client.walk(VarrockTownsfolk.TRAMP, "tramp", "spare", "2:give,earn", "earn", "shrug")
                 assertEquals(1, client.held(COINS))
                 val tramp = client.await("the tramp in view") { client.npcs().firstOrNull { it.id == VarrockTownsfolk.TRAMP } }
-                val grumbles = (1..3).map { "[tramp.overhead_$it]" }
+                val grumbles = (1..3).map { "[tramp.overhead_$it name=carol]" }
                 client.await("the tramp grumbling") { client.npcSaid().firstOrNull { it.index == tramp.index && it.text in grumbles } }
             }
         }
