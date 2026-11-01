@@ -28,7 +28,6 @@ object RichardLines : Lines("richard", "Transcript:Richard (merchant)") {
     val WHAT_FOR = line("what_for", "option 1: what the capes are for, which the player then says")
     val EXPLAIN_1 = line("explain_1", "option 1: his answer, first line")
     val EXPLAIN_2 = line("explain_2", "option 1: second line")
-    val EXPLAIN_3 = line("explain_3", "option 1: third line")
     val WANT_ONE = line("want_one", "option 1: his question, before the menu again")
     val YES = line("yes", "option 2: yes, and the shop opens with no line from the player")
     val NO = line("no", "option 3: no, which the player then says")
@@ -79,7 +78,6 @@ object EdgevilleShops {
             chatPlayer(ChatAnim.QUIZ, WHAT_FOR)
             chatNpc(ChatAnim.NEUTRAL, EXPLAIN_1)
             chatNpc(ChatAnim.NEUTRAL, EXPLAIN_2)
-            chatNpc(ChatAnim.NEUTRAL, EXPLAIN_3)
             chatNpc(ChatAnim.QUIZ, WANT_ONE)
             option = choice(WHAT_FOR, YES, NO)
         }
