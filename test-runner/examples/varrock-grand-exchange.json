@@ -1,0 +1,179 @@
+{
+ "name": "Varrock step 3: the Grand Exchange building: a clerk's Exchange, History and Talk-to (::keys on), a booth's Collect, a banker's Collect and a bank booth's Bank",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3164 3486 0",
+   "expectMessage": "Teleported to 3164, 3486, 0",
+   "comment": "south of the Grand Exchange's south booths (z 3487), with ge_clerk_1 and _2 behind them"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2148,
+   "option": "Exchange",
+   "timeoutMs": 20000,
+   "comment": "a clerk's Exchange, across the booth"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 465,
+   "timeoutMs": 10000,
+   "comment": "ge_offers"
+  },
+  {
+   "step": "logout",
+   "comment": "closes the screen"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "keys don't last past a logout"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2148,
+   "option": "History",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 383,
+   "timeoutMs": 10000,
+   "comment": "ge_history"
+  },
+  {
+   "step": "logout",
+   "comment": "closes the screen"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "keys don't last past a logout"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2148,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ge_clerk.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ge_clerk.trade]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 465,
+   "timeoutMs": 10000,
+   "comment": "setting up offers opens the offers screen"
+  },
+  {
+   "step": "logout",
+   "comment": "closes the screen"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "keys don't last past a logout"
+  },
+  {
+   "step": "locOption",
+   "loc": "Grand Exchange booth",
+   "option": "Collect",
+   "x": 3164,
+   "y": 3487,
+   "comment": "exchange_bank_wall_exchange's Collect"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 402,
+   "timeoutMs": 10000,
+   "comment": "ge_collect, the collection box"
+  },
+  {
+   "step": "logout",
+   "comment": "closes the screen"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "keys don't last past a logout"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3161 3489 0",
+   "expectMessage": "Teleported to 3161, 3489, 0",
+   "comment": "west of the west bank booth (3162 3489), with banker1_west behind it"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1633,
+   "option": "Collect",
+   "timeoutMs": 20000,
+   "comment": "a Grand Exchange banker's Collect"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 402,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "logout",
+   "comment": "closes the screen"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "keys don't last past a logout"
+  },
+  {
+   "step": "locOption",
+   "loc": "Grand Exchange booth",
+   "option": "Bank",
+   "x": 3162,
+   "y": 3489,
+   "comment": "the west bank booth"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "timeoutMs": 10000,
+   "comment": "bankmain"
+  }
+ ]
+}

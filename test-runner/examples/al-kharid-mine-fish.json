@@ -1,0 +1,132 @@
+{
+ "name": "Al Kharid step 7: gold and silver ore mined in the Al Kharid mine, shrimps netted at a Small Net spot, and the boxes at Ali Morrisane's stall searched (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::item rune_pickaxe",
+   "expectMessage": "Added 1 x Rune pickaxe"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel mining 99",
+   "expectMessage": "Mining set to level 99",
+   "comment": "gold needs 40; at 99 a roll is 76/256"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3295 3288 0",
+   "expectMessage": "Teleported to 3295, 3288, 0",
+   "comment": "the Al Kharid mine, beside its gold rocks (3294 3288 and 3294 3287)"
+  },
+  {
+   "step": "locOption",
+   "locId": 11370,
+   "option": "Mine",
+   "x": 3294,
+   "y": 3288
+  },
+  {
+   "step": "assertMessage",
+   "contains": "mining.swing"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Gold ore",
+   "count": 1,
+   "timeoutMs": 90000,
+   "comment": "goldrock1, 7/75: 29.7% a roll at 99"
+  },
+  {
+   "step": "assertLoc",
+   "locId": 11390,
+   "x": 3294,
+   "y": 3288,
+   "comment": "rocks1, the empty rock, for a minute"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3294 3299 0",
+   "expectMessage": "Teleported to 3294, 3299, 0",
+   "comment": "beside the silver rocks (3293 3300, 3294 3301)"
+  },
+  {
+   "step": "locOption",
+   "locId": 11368,
+   "option": "Mine",
+   "x": 3293,
+   "y": 3300
+  },
+  {
+   "step": "assertInventory",
+   "item": "Silver ore",
+   "count": 1,
+   "timeoutMs": 60000,
+   "comment": "silverrock1, 25/200: 78.5% a roll at 99"
+  },
+  {
+   "step": "command",
+   "text": "::item net",
+   "expectMessage": "Added 1 x Small fishing net"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3268 3149 0",
+   "expectMessage": "Teleported to 3268, 3149, 0",
+   "comment": "the sea shore south-west of the town, by the north fishing spot's tiles"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1528,
+   "option": "Small Net",
+   "timeoutMs": 20000,
+   "comment": "0_51_49_saltfish: Small Net on op1, Bait on op3"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "fishing.cast_net"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Raw shrimps",
+   "count": 1,
+   "timeoutMs": 90000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3308 3205 0",
+   "expectMessage": "Teleported to 3308, 3205, 0",
+   "comment": "by the boxes at Ali Morrisane's stall (3308 3206)"
+  },
+  {
+   "step": "locOption",
+   "locId": 361,
+   "option": "Search",
+   "x": 3308,
+   "y": 3206
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[search.boxes_empty]"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

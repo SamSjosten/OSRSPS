@@ -41,6 +41,61 @@ class MovementTest {
         assertEquals(MoveResult.WALKED, movement.process(player))
     }
 
+    private fun settingsPlayer(mode: Int) = Player(1, "test", 3210, 3210, 0, VarTypes(6_000, AllSettings.VARBITS)).apply {
+        vars.setVarbit(Movement.VARBIT_RUN_INVERT_MODE, mode)
+    }
+
+    /** What one ctrl-click route does to a player walking ([run] false) or running, under [mode]. */
+    private fun ctrlClick(mode: Int, run: Boolean): MoveResult {
+        val player = settingsPlayer(mode).apply { runEnabled = run }
+        movement.request(player, 3214, 3210, invertRun = true)
+        return movement.process(player)
+    }
+
+    @Test
+    fun `the ctrl-click setting decides which way ctrl flips the run mode`() {
+        assertEquals(MoveResult.WALKED, ctrlClick(Movement.RUN_INVERT_NEVER, run = false))
+        assertEquals(MoveResult.RAN, ctrlClick(Movement.RUN_INVERT_NEVER, run = true))
+        assertEquals(MoveResult.RAN, ctrlClick(Movement.RUN_INVERT_WALK_TO_RUN, run = false))
+        assertEquals(MoveResult.RAN, ctrlClick(Movement.RUN_INVERT_WALK_TO_RUN, run = true))
+        assertEquals(MoveResult.WALKED, ctrlClick(Movement.RUN_INVERT_RUN_TO_WALK, run = false))
+        assertEquals(MoveResult.WALKED, ctrlClick(Movement.RUN_INVERT_RUN_TO_WALK, run = true))
+        assertEquals(MoveResult.RAN, ctrlClick(Movement.RUN_INVERT_ALWAYS, run = false))
+        assertEquals(MoveResult.WALKED, ctrlClick(Movement.RUN_INVERT_ALWAYS, run = true))
+    }
+
+    @Test
+    fun `run that ran out comes back on at the energy threshold, and only then`() {
+        val player = settingsPlayer(Movement.RUN_INVERT_ALWAYS).apply { runEnabled = true; runEnergy = 50 }
+        player.vars.setVarbit(Movement.VARBIT_RUN_AUTOENABLE, 1)
+        movement.request(player, 3220, 3210, invertRun = false)
+        movement.process(player)
+        assertEquals(0, player.runEnergy)
+        assertFalse(player.runEnabled)
+        player.waypoints.clear()
+        // 1% is 100 units; standing restores 15 a tick, so 7 ticks reach 105.
+        repeat(6) { movement.process(player) }
+        assertFalse(player.runEnabled, "on before the threshold")
+        movement.process(player)
+        assertTrue(player.runEnabled)
+    }
+
+    @Test
+    fun `run turned off by hand stays off, and 0 never turns it back on`() {
+        val byHand = settingsPlayer(Movement.RUN_INVERT_ALWAYS).apply { runEnergy = 0 }
+        byHand.vars.setVarbit(Movement.VARBIT_RUN_AUTOENABLE, 1)
+        repeat(20) { movement.process(byHand) }
+        assertFalse(byHand.runEnabled)
+
+        val off = settingsPlayer(Movement.RUN_INVERT_ALWAYS).apply { runEnabled = true; runEnergy = 50 }
+        movement.request(off, 3220, 3210, invertRun = false)
+        movement.process(off)
+        off.waypoints.clear()
+        repeat(700) { movement.process(off) }
+        assertEquals(Movement.MAX_ENERGY, off.runEnergy)
+        assertFalse(off.runEnabled)
+    }
+
     @Test
     fun `running drains energy at the wiki rate and standing restores it`() {
         val player = player().apply { runEnabled = true; runEnergy = 5000 }
@@ -79,6 +134,15 @@ class MovementTest {
         assertEquals(0, player.runEnergy)
         assertFalse(player.runEnabled)
         assertEquals(MoveResult.WALKED, movement.process(player))
+    }
+
+    @Test
+    fun `run turned on with no energy goes off, and that standing tick still restores energy`() {
+        val player = player().apply { runEnabled = true; runEnergy = 0 }
+        assertEquals(MoveResult.NONE, movement.process(player))
+        assertFalse(player.runEnabled)
+        assertTrue(player.runRanOut)
+        assertEquals(15, player.runEnergy)
     }
 
     @Test

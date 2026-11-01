@@ -15,6 +15,7 @@ object SearchLines : Lines("search", "Crate") {
     val SACKS_EMPTY = line("sacks_empty", "Search on sacks")
     val CHEST_EMPTY = line("chest_empty", "Search on an open chest")
     val DRAWERS_EMPTY = line("drawers_empty", "Search on open drawers")
+    val BOXES_EMPTY = line("boxes_empty", "Search on boxes (2004Scape's crates.rs2)")
 }
 
 /**
@@ -46,11 +47,14 @@ fun registerSearch(world: World, id: Int, option: Int, message: Line) {
     world.handlers.onLoc(id, option) { world.message(player, message) }
 }
 
-/** Furniture whose [closed] type opens into [open], which has Search, saying [searchMessage], and Shut. */
-fun registerOpenable(world: World, closed: Int, open: Int, searchMessage: Line) {
+/**
+ * Furniture whose [closed] type opens into [open], which has Search (option [search]), saying [searchMessage], and Shut
+ * or Close (option [shut]). Most open types have them second and third; Varrock's have them first and second.
+ */
+fun registerOpenable(world: World, closed: Int, open: Int, searchMessage: Line, search: Int = Searching.SEARCH, shut: Int = Searching.SHUT) {
     world.handlers.onLoc(closed, Searching.OPEN) { op -> swapFurniture(world, op.loc!!, open, Searching.ANIM_OPEN) }
-    registerSearch(world, open, Searching.SEARCH, searchMessage)
-    world.handlers.onLoc(open, Searching.SHUT) { op -> swapFurniture(world, op.loc!!, closed, Searching.ANIM_SHUT) }
+    registerSearch(world, open, search, searchMessage)
+    world.handlers.onLoc(open, shut) { op -> swapFurniture(world, op.loc!!, closed, Searching.ANIM_SHUT) }
 }
 
 /** Opens or shuts furniture [loc] into [to] with [anim], for [Searching.CHANGE_TICKS] unless that is the map's own. */

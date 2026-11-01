@@ -21,6 +21,25 @@
 # The whole script is one function so that a fast-forward that changes this file can't change it mid-run.
 set -euo pipefail
 
+
+# Moves the checkout on to main. A checkout with local changes can't, and nothing else will clear them: the log says
+# which files, rather than leaving the last build's log to look like the cause. Nothing edits this checkout by hand.
+fast_forward() {
+	local dirty
+	dirty=$(git status --porcelain --untracked-files=no)
+	if [[ -n $dirty ]] || ! git merge --ff-only --quiet origin/main; then
+		echo "$1" >.deploy/failed
+		if [[ -n $dirty ]]; then
+			echo "Deploy of $1 FAILED: the checkout has local changes, which block the fast-forward:"
+			echo "$dirty" | head -n 20
+			echo "Nothing should edit $(pwd) by hand. Clear them (git reset --hard HEAD) and run with --force."
+		else
+			echo "Deploy of $1 FAILED: the checkout can't fast-forward; it is retried when main moves on or with --force"
+		fi
+		return 1
+	fi
+}
+
 main() {
 	local force=0
 	[[ ${1:-} == --force ]] && force=1
@@ -55,9 +74,7 @@ main() {
 	if ((code && !force)) && [[ -n $built ]] && ! server_changed "$built" "$target"; then
 		# A restart would kick every player for nothing: the checkout moves on, and the server's /version reads the new
 		# commit from .deploy/deployed, as `built` still names its own.
-		if ! git merge --ff-only --quiet origin/main; then
-			echo "$target" >.deploy/failed
-			echo "Deploy of $target FAILED: the checkout can't fast-forward; it is retried when main moves on or with --force"
+		if ! fast_forward "$target"; then
 			return 1
 		fi
 		put built "$built"
@@ -67,9 +84,11 @@ main() {
 		code=0
 	elif ((code)); then
 		echo "Deploying $target (up now: ${deployed:-unknown})"
+		if ! fast_forward "$target"; then
+			return 1
+		fi
 		# The build's whole output goes to .deploy/build.log; on a failure its end is logged, where Gradle's error is.
-		if ! git merge --ff-only --quiet origin/main ||
-			! OSRSPS_COMMIT=$target BUILDKIT_PROGRESS=plain docker compose build >.deploy/build.log 2>&1; then
+		if ! OSRSPS_COMMIT=$target BUILDKIT_PROGRESS=plain docker compose build >.deploy/build.log 2>&1; then
 			[[ -s .deploy/build.log ]] && tail -n 60 .deploy/build.log
 			echo "$target" >.deploy/failed
 			echo "Deploy of $target FAILED; it is retried when main moves on or with --force"

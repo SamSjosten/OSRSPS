@@ -86,8 +86,8 @@ class GroundObjs(
      * if it can be traded, and it disappears [DROP_DESPAWN_TICKS] after the drop. An untradeable item never turns
      * public, and its timer stands still while its owner is logged out (wiki, Drop).
      *
-     * Not built: the warning before dropping an item worth 30,000 coins or more (needs dialogue, task 18), the
-     * Wilderness rules, and items placed on tables.
+     * The warning before dropping a valuable item is [DropWarnings]'s. Not built: the Wilderness rules, and items placed
+     * on tables.
      */
     fun drop(player: Player, slot: Int): ZoneObj? {
         val held = player.inventory[slot] ?: return null

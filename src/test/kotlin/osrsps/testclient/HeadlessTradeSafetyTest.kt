@@ -101,6 +101,30 @@ class HeadlessTradeSafetyTest {
     }
 
     @Test
+    fun `a reconnect before the drop is noticed ends the trade, everything back where it was`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { bob ->
+                val alice = server.login("alice")
+                alice.give("::item $AXE 3", 3)
+                open(alice, bob)
+                alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 4, sub = 0, obj = AXE) // Offer-All
+                alice.await("her offer") { alice.inventory(Trades.TRADEOFFER).filterNotNull().takeIf { it.size == 3 } }
+                // A new connection comes back with the old one's seed while the old one is still open.
+                server.reconnect("alice", alice).use { back ->
+                    bob.sawMessage("[trade.declined]")
+                    bob.await("his screen shut") { bob.openInterfaces().takeIf { Trades.MAIN !in it } }
+                    back.await("her axes back") { back.inventory(Inventory.INV).filterNotNull().takeIf { it.size == 3 } }
+                    val p = server.world.playerNamed("alice")!!
+                    assertNull(p.trade)
+                    assertNull(server.world.playerNamed("bob")!!.trade)
+                    assertEquals(3L, p.inventory.count(AXE))
+                }
+                alice.close()
+            }
+        }
+    }
+
+    @Test
     fun `a trade that would take a stack past the most a slot holds is refused for room, and nothing moves`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

@@ -1,0 +1,26 @@
+{
+ "name": "Client settings: Level-up pop-up notifications set to Disabled leaves the level-up box out but keeps the message and fireworks; Enabled shows it again (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats at the spawn, 3222, 3218"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::varbit 20157 1", "expectMessage": "Varbit 20157", "comment": "option_level_up_message_disabled: what the All Settings dropdown's Disabled sets (script1105)"},
+
+  {"step": "command", "text": "::addxp woodcutting 83", "expectMessage": "Woodcutting: 83 xp, level 1 -> 2."},
+  {"step": "assertMessage", "contains": "levelup.message skill=Woodcutting level=2"},
+  {"step": "assertSpotanim", "id": 199, "comment": "the fireworks still go off"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "assertInterface", "interfaceId": 233, "absent": true, "comment": "no levelup_display"},
+
+  {"step": "command", "text": "::varbit 20157 0", "expectMessage": "Varbit 20157", "comment": "Enabled"},
+  {"step": "command", "text": "::addxp woodcutting 91", "expectMessage": "level 2 -> 3", "comment": "174 XP is level 3"},
+  {"step": "assertInterface", "interfaceId": 233, "comment": "the box is back"},
+  {"step": "assertWidgetText", "interfaceId": 233, "component": 2, "contains": "levelup.body skill=Woodcutting level=3"},
+  {"step": "walk", "x": 3223, "y": 3218},
+  {"step": "assertInterface", "interfaceId": 233, "absent": true},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

@@ -89,6 +89,10 @@ class HeadlessClient private constructor(
     private val decoder: IsaacRandom,
     /** The player's index, from the login response. */
     val index: Int,
+    /** The ISAAC seed this connection logged in with, which a [reconnect] sends back. */
+    val seed: IntArray,
+    /** A reconnect's player info init block, which comes in the login response rather than a REBUILD_LOGIN. */
+    gpiInit: ByteArray? = null,
 ) : AutoCloseable {
     private val input = DataInputStream(socket.getInputStream().buffered())
     private val output = DataOutputStream(socket.getOutputStream())
@@ -132,6 +136,13 @@ class HeadlessClient private constructor(
     private var dialogueGeneration = 0
     private var dialogueMark = 0
     private var rebuilt = false
+
+    init {
+        if (gpiInit != null) {
+            playerInfo.init(gpiInit)
+            rebuilt = true
+        }
+    }
 
     private val packets = ArrayList<ServerPacket>()
     private val messages = ArrayList<GameMessage>()
@@ -895,6 +906,8 @@ class HeadlessClient private constructor(
 
         private const val INIT_GAME_CONNECTION = 14
         private const val GAMELOGIN = 16
+        private const val GAMERECONNECT = 18
+        private const val RECONNECT_OK = 15
         private const val LOGIN_SUCCESSFUL = 0
         private const val LOGIN_OK = 2
 
@@ -957,7 +970,52 @@ class HeadlessClient private constructor(
                 repeat(3) { input.readLong() } // account hash, user id, user hash
                 // Game packets come in at the server's pace; the reader waits as long as it has to.
                 socket.soTimeout = 0
-                return HeadlessClient(socket, encoder, decoder, index)
+                return HeadlessClient(socket, encoder, decoder, index, seed)
+            } catch (e: Throwable) {
+                socket.close()
+                throw e
+            }
+        }
+
+        /**
+         * Reconnects as [username] the way the client does after a dropped connection: GAMERECONNECT, with [previous]'s
+         * ISAAC seed where a login has the password. [previous] isn't closed first, as when the server hasn't noticed
+         * the drop yet.
+         */
+        fun reconnect(
+            host: String,
+            port: Int,
+            rsaModulus: BigInteger,
+            rsaExponent: BigInteger,
+            username: String,
+            previous: HeadlessClient,
+            timeoutMillis: Int = DEFAULT_TIMEOUT_MILLIS.toInt(),
+        ): HeadlessClient {
+            val crcs = Js5Crcs.fetch(host, port, timeoutMillis, ByteArray(0))
+            val socket = Socket()
+            try {
+                socket.connect(InetSocketAddress(host, port), timeoutMillis)
+                socket.soTimeout = timeoutMillis
+                val out = DataOutputStream(socket.getOutputStream())
+                val input = DataInputStream(socket.getInputStream())
+                out.writeByte(INIT_GAME_CONNECTION)
+                out.flush()
+                val status = input.readUnsignedByte()
+                if (status != LOGIN_SUCCESSFUL) throw LoginFailedException(status)
+                val sessionId = input.readLong()
+
+                val seed = IntArray(4) { SecureRandom().nextInt() }
+                val block = LoginBlockWriter.write(username, "", sessionId, crcs, rsaModulus, rsaExponent, seed, previousSeed = previous.seed)
+                out.writeByte(GAMERECONNECT)
+                out.writeShort(block.size)
+                out.write(block)
+                out.flush()
+
+                val response = input.readUnsignedByte()
+                if (response != RECONNECT_OK) throw LoginFailedException(response)
+                val gpiInit = ByteArray(input.readUnsignedShort()).also(input::readFully)
+                socket.soTimeout = 0
+                return HeadlessClient(socket, IsaacRandom(seed), IsaacRandom(IntArray(4) { seed[it] + 50 }), previous.index, seed, gpiInit)
             } catch (e: Throwable) {
                 socket.close()
                 throw e

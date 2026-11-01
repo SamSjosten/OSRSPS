@@ -3,6 +3,7 @@ package osrsps.game.skill
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetHide
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
+import osrsps.game.AllSettings
 import osrsps.game.Experience
 import osrsps.game.Interfaces
 import osrsps.game.Player
@@ -49,6 +50,10 @@ class SkillUnlocks(private val levels: Map<Skill, Set<Int>>) {
  * are read from the cache's gamevals and osrs-dumps; the jingle ids from the OSRS Wiki's jingle pages. The order of
  * message, fireworks, jingle and box is the 2004Scape project's levelup script, the queue type and the fireworks'
  * height are guessed, and the "Level N Skill: unlock" chat lines live shows after some level-ups are not sent yet.
+ *
+ * The All Settings dropdown "Level-up pop-up notifications" set to Disabled (varbit option_level_up_message_disabled,
+ * script1105) leaves the box out; the message, fireworks and jingle still come (OSRS Wiki, Settings: "you will continue
+ * to get level-up fireworks, jingles, messages, and broadcasts"). Its third option's list of unlocks isn't built.
  */
 class LevelUps(
     private val interfaces: Interfaces,
@@ -83,6 +88,7 @@ class LevelUps(
         player.message(text[LevelUpLines.MESSAGE, "skill" to name, "level" to level])
         fireworks(level)
         jingle(skill, level)?.let(player::jingle)
+        if (popupDisabled(player)) return
         show(text[LevelUpLines.TITLE, "article" to article(skill), "skill" to name], text[LevelUpLines.BODY, "skill" to name, "level" to level], layer(skill))
     }
 
@@ -91,11 +97,18 @@ class LevelUps(
         val text = words(player)
         player.message(text[LevelUpLines.COMBAT_MESSAGE, "level" to level])
         player.jingle(JINGLE_COMBAT)
+        if (popupDisabled(player)) return
         show(text[LevelUpLines.COMBAT_TITLE], text[LevelUpLines.COMBAT_BODY, "level" to level], LAYER_COMBAT)
     }
 
     private fun ScriptContext.fireworks(level: Int) {
         player.spotanim(if (level == Experience.MAX_LEVEL) SPOTANIM_99 else SPOTANIM, FIREWORKS_HEIGHT)
+    }
+
+    /** Read when the level-up runs, so a level-up queued behind a bank follows the setting as it is then. */
+    private fun popupDisabled(player: Player): Boolean {
+        val varbit = AllSettings.VARBIT_LEVEL_UP_MESSAGE_DISABLED
+        return player.vars.types.varbit(varbit) != null && player.vars.getVarbit(varbit) == 1
     }
 
     private suspend fun ScriptContext.show(title: String, body: String, layer: Int) {

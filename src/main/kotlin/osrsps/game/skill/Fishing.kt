@@ -251,24 +251,30 @@ class Fishing(private val world: World) {
 
         /** Net/Bait spots on Draynor Village's shore by the willows (`0_48_50_saltfish`). */
         const val DRAYNOR_SPOT = 1525
+        /** Al Kharid's Small Net/Bait spots (`0_51_49_saltfish`), south-west of the town by the sea. */
+        const val AL_KHARID_SPOT = 1528
 
         val SPOTS = listOf(
             SpotType(SWAMP_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(RIVER_SPOT, listOf(LURE, RIVER_BAIT)),
             SpotType(DRAYNOR_SPOT, listOf(SMALL_NET, SEA_BAIT)),
+            SpotType(AL_KHARID_SPOT, listOf(SMALL_NET, SEA_BAIT)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 
         /**
          * The tiles each group of spots moves between. The river's are 2004Scape's (`fishing_movement_lumbridge_river`),
          * which hold RSMod's two spawn tiles; the swamp's are its five spawn tiles (guessed); Draynor's are 2004Scape's
-         * (`fishing_movement_draynor_village_enum`), which hold the two tiles mejrs's live NPC list has the spots on.
+         * (`fishing_movement_draynor_village_enum`), which hold the two tiles mejrs's live NPC list has the spots on; Al
+         * Kharid's are below.
          */
         val AREAS: List<List<Tile>> = listOf(
             listOf(Tile(3239, 3241), Tile(3239, 3242), Tile(3239, 3243), Tile(3239, 3244), Tile(3238, 3251), Tile(3238, 3252),
                 Tile(3238, 3254), Tile(3238, 3255)),
             listOf(Tile(3240, 3146), Tile(3240, 3147), Tile(3244, 3150), Tile(3245, 3152), Tile(3246, 3155)),
             listOf(Tile(3086, 3227), Tile(3086, 3228), Tile(3085, 3230), Tile(3085, 3231)),
+            // Al Kharid's: the six tiles 2004Scape's fishing_movement_al_kharid_enum notes as live's since March 2021.
+            listOf(Tile(3266, 3148), Tile(3267, 3148), Tile(3268, 3147), Tile(3275, 3140), Tile(3276, 3140), Tile(3277, 3139)),
         )
     }
 }

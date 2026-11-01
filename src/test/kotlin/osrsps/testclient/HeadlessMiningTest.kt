@@ -28,6 +28,8 @@ class HeadlessMiningTest {
         objs[BRONZE_PICKAXE] = ObjType(BRONZE_PICKAXE, "Bronze pickaxe")
         objs[RUNE_PICKAXE] = ObjType(RUNE_PICKAXE, "Rune pickaxe")
         objs[POT] = ObjType(POT, "Pot")
+        objs[SILVER_ORE] = ObjType(SILVER_ORE, "Silver ore")
+        objs[GOLD_ORE] = ObjType(GOLD_ORE, "Gold ore")
         for (gem in Mining.GEMS.map { it.obj }.filter { it >= 0 }) objs[gem] = ObjType(gem, "Gem $gem")
         val mine = listOf("Mine", null, null, null, null)
         fun rock(id: Int, name: String) = LocType(id, name, mine, LocCollisionType(width = 1, length = 1))
@@ -35,13 +37,16 @@ class HeadlessMiningTest {
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
             random = GameRandom(3),
             locTypes = LocTypes(
-                listOf(rock(COPPER, "Copper rocks"), rock(MITHRIL, "Mithril rocks"), rock(Mining.ROCKS1, "Rocks"), rock(Mining.ROCKS2, "Rocks"))
+                listOf(rock(COPPER, "Copper rocks"), rock(MITHRIL, "Mithril rocks"), rock(Mining.ROCKS1, "Rocks"), rock(Mining.ROCKS2, "Rocks"),
+                    rock(SILVER, "Silver rocks"), rock(GOLD, "Gold rocks"))
                     .associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(COPPER, LocShape.CENTREPIECE_STRAIGHT, 0, 3223, 3218, 0))
                 add(ZoneLoc(MITHRIL, LocShape.CENTREPIECE_STRAIGHT, 0, 3221, 3218, 0))
                 add(ZoneLoc(Mining.ROCKS2, LocShape.CENTREPIECE_STRAIGHT, 0, 3222, 3219, 0))
+                add(ZoneLoc(SILVER, LocShape.CENTREPIECE_STRAIGHT, 0, 3220, 3220, 0))
+                add(ZoneLoc(GOLD, LocShape.CENTREPIECE_STRAIGHT, 0, 3224, 3220, 0))
             },
             cycleMillis = millis,
         )
@@ -111,7 +116,33 @@ class HeadlessMiningTest {
         }
     }
 
+    @Test
+    fun `Al Kharid's silver and gold rocks give their ores and experience`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $RUNE_PICKAXE")
+                client.command("setlevel mining 99")
+                val start = client.await("level 99") { client.stat(MINING)?.takeIf { it.level == 99 } }.xp
+                client.locOp(SILVER, 3220, 3220, 1)
+                client.await("silver ore", timeoutMillis = 30_000) { if (client.count(SILVER_ORE) == 1) Unit else null }
+                client.seen("[mining.get_ore ore=silver]")
+                client.await("the empty silver rock") { if (client.locAt(3220, 3220) == Mining.ROCKS1) Unit else null }
+                client.locOp(GOLD, 3224, 3220, 1)
+                client.await("gold ore", timeoutMillis = 30_000) { if (client.count(GOLD_ORE) == 1) Unit else null }
+                client.seen("[mining.get_ore ore=gold]")
+                // 40 for the silver, then 65 for the gold.
+                assertEquals(start + 105, client.await("both ores' XP") { client.stat(MINING)?.takeIf { it.xp >= start + 105 } }.xp)
+            }
+        }
+    }
+
     private companion object {
+        /** Al Kharid's silverrock1 and goldrock1. */
+        const val SILVER = 11368
+        const val GOLD = 11370
+        const val SILVER_ORE = 442
+        const val GOLD_ORE = 444
         const val COPPER = 10943
         const val MITHRIL = 11372
         const val COPPER_ORE = 436
