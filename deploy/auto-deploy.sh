@@ -52,14 +52,19 @@ fast_forward() {
 # Whether the checkout's tracked files are exactly a commit between HEAD and main: what a fast-forward leaves when it
 # wrote the files and then couldn't move HEAD (2026-11-01 13:49Z: refs/heads/main.lock was in use, and every deploy
 # after it stopped on "local changes"). Those changes are all in main already, so undoing them loses nothing.
+# Both the files and the index must match it: a staged edit under a working copy that matches main is still an edit.
 half_merged() {
-	local tree
-	tree=$(git stash create 2>/dev/null) || return 1
-	[[ -n $tree ]] || return 1
-	tree=$(git rev-parse "$tree^{tree}")
-	git rev-list --ancestry-path HEAD..origin/main | while read -r commit; do
-		[[ $(git rev-parse "$commit^{tree}") == "$tree" ]] && echo yes && break
-	done | grep -q yes
+	local stash work index commit
+	stash=$(git stash create 2>/dev/null) || return 1
+	[[ -n $stash ]] || return 1
+	work=$(git rev-parse "$stash^{tree}")
+	index=$(git write-tree 2>/dev/null) || return 1
+	[[ $work == "$index" ]] || return 1
+	# Read from a process substitution, not a pipe: returning early must not count as a failure of git rev-list.
+	while read -r commit; do
+		[[ $(git rev-parse "$commit^{tree}") == "$work" ]] && return 0
+	done < <(git rev-list --ancestry-path HEAD..origin/main)
+	return 1
 }
 
 # Lock files a git that crashed left behind (.git/HEAD.lock and .git/gc.pid.lock stalled every deploy from 06:40 to

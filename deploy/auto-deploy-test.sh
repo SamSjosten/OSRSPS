@@ -298,6 +298,32 @@ grep -q "stopped half way" "$tmp/out" || fail "the log doesn't say the half-done
 expect_calls "compose build OSRSPS_COMMIT=$head" 1
 expect_checkout "$head"
 
+step="a staged edit under a working copy that matches main still blocks the deploy"
+merge src/main/Staged.kt=14
+git -C "$tmp/vm" fetch -q origin main
+echo "edited on the VM" >"$tmp/vm/src/main/Staged.kt"
+git -C "$tmp/vm" add src/main/Staged.kt
+git -C "$tmp/vm" show origin/main:src/main/Staged.kt >"$tmp/vm/src/main/Staged.kt"
+deploy
+expect_status 1
+expect_no_calls
+grep -q "the checkout has local changes" "$tmp/out" || fail "a staged edit was taken for a half-done fast-forward"
+[[ $(git -C "$tmp/vm" show :src/main/Staged.kt) == "edited on the VM" ]] || fail "the staged edit was discarded"
+git -C "$tmp/vm" reset -q --hard HEAD
+deploy --force
+expect_status 0
+expect_checkout "$head"
+
+step="a half-done fast-forward far behind main is still found"
+for i in $(seq 1 300); do git -C "$tmp/dev" commit -q --allow-empty -m "empty $i"; done
+merge src/main/Far.kt=15
+git -C "$tmp/vm" fetch -q origin main
+git -C "$tmp/vm" read-tree -u -m HEAD origin/main
+deploy
+expect_status 0
+grep -q "stopped half way" "$tmp/out" || fail "the half-done fast-forward wasn't found"
+expect_checkout "$head"
+
 step="a stale lock under .git/logs is cleared too"
 merge src/main/Logs.kt=13
 mkdir -p "$tmp/vm/.git/logs"
