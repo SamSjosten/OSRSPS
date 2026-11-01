@@ -1415,8 +1415,9 @@ back.
 Not in yet: monsters that attack from afar (the Draynor dark wizards' step).
 
 Check: `./gradlew test --tests 'osrsps.game.combat.AggressionTest' --tests 'osrsps.testclient.HeadlessAggressionTest'`
-(two players: the spider goes for the nearer, then for the other once the nearer is tolerated), `RetreatTest` and
-`HeadlessRetreatTest`, and in RuneLite `test-runner/examples/aggro.json` and `retreat.json`.
+(two players: the spider goes for the nearer, then for the other once the nearer is tolerated; and a player behind a
+wall left alone until it goes), `RetreatTest` and `HeadlessRetreatTest`, and in RuneLite
+`test-runner/examples/aggro.json`, `aggro-sight.json` (the castle's shut large doors, then opened) and `retreat.json`.
 
 ## Animations, spotanims and sounds
 
