@@ -524,6 +524,28 @@
       ]
     },
     {
+      "key": "neds_rope_shop",
+      "title": "Ned's Handmade Rope (100% Wool - not yak, honest!)",
+      "inv": 1021,
+      "size": 40,
+      "general": false,
+      "sellAt": 900,
+      "buyAt": 200,
+      "changePer": 20,
+      "npcs": [
+        "ned"
+      ],
+      "source": "OSRS Wiki, Ned's Handmade Rope (100% Wool), read 2026-10-30: the stock table after The Fremennik Isles, which every account counts as done (Sells at 90.0%, Buys at 20.0%, Change per 2.0%; the rope at 16 coins) and the shop's name after it. GUESSED inv: no inv in the 241 cache's names is plainly Ned's, so this borrows dmm_all_star_friends_shop (1021, 40 slots), a Deadman event shop we won't build; the client draws any shop inv the same way",
+      "stock": [
+        {
+          "item": 954,
+          "name": "Rope",
+          "count": 30,
+          "restock": 3
+        }
+      ]
+    },
+    {
       "key": "al_kharid_general_store",
       "title": "Al Kharid General Store",
       "inv": 13,
