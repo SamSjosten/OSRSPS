@@ -22,8 +22,11 @@ private val logger = KotlinLogging.logger {}
  * The HTTP port is reachable from the internet through the relay, so a report is anyone's to send: [submit] caps how
  * big one is ([MAX_BYTES], which the HTTP side enforces before the body is read), how many one address may send in an
  * hour ([PER_ADDRESS_PER_HOUR]), how many everyone together may send in an hour ([PER_HOUR]), and how many may wait
- * here unforwarded ([MAX_WAITING]). Only accepted reports are remembered for the limits, so the memory they take is
- * bounded by [PER_HOUR]. A sender's address is used for the limit and never written down.
+ * here unforwarded ([MAX_WAITING]). Every report sent counts towards its address's limit, taken or not, so an address
+ * the server keeps refusing is still held to it; at most [TRACKED] addresses are remembered, so the memory they take
+ * is bounded, and past that a new address is refused rather than an old one's count forgotten early.
+ * The HTTP side asks [admits] before it reads a body. A sender's address is used for the limits and never written
+ * down. The waiting reports are counted at most every [RECOUNT], not for every report.
  *
  * Called from the HTTP server's one Netty thread, and synchronized all the same so a second caller can't share a
  * number.
@@ -33,10 +36,19 @@ class ProblemReports(
     /** The time now; tests pass their own so the hourly limits never depend on the wall clock. */
     private val clock: () -> Instant = Instant::now,
 ) {
-    /** When each accepted report came in, oldest first, with the address it came from. */
-    private val accepted = ArrayDeque<Pair<Instant, String>>()
+    /** When each accepted report came in, oldest first. */
+    private val accepted = ArrayDeque<Instant>()
+    /**
+     * For each address that sent a report in the last hour, taken or not, when its latest few came in, oldest first:
+     * the per-address limit counts these, so an address the server refuses for any reason is still held to it. Each
+     * keeps at most [PER_ADDRESS_PER_HOUR], and at most [TRACKED] addresses are kept; past that a new address is
+     * refused rather than any address's count let go before its hour is up.
+     */
+    private val attempts = HashMap<String, ArrayDeque<Instant>>()
     private var lastNumber = 0
     private var waiting = 0
+    private var scanned = false
+    private var countedAt: Instant? = null
 
     sealed interface Result {
         data class Accepted(val id: String) : Result
@@ -48,22 +60,43 @@ class ProblemReports(
         data object Unavailable : Result
     }
 
+    /**
+     * Whether a report from [address] would be let past the hourly limits now, asked before its body is read so a
+     * sender over them is turned away without the server holding the body. Records nothing.
+     */
+    @Synchronized
+    fun admits(address: String): Boolean {
+        forget(clock())
+        return accepted.size < PER_HOUR && underLimit(address)
+    }
+
+    private fun underLimit(address: String): Boolean {
+        val sent = attempts[address] ?: return attempts.size < TRACKED
+        return sent.size < PER_ADDRESS_PER_HOUR
+    }
+
     /** Takes the body of a POST /report from [address] (the sender's real address, a PROXY header's when relayed). */
     @Synchronized
     fun submit(body: ByteArray, address: String): Result {
         if (body.size > MAX_BYTES) return Result.TooLarge
+        val now = clock()
+        forget(now)
+        if (!underLimit(address)) {
+            // Still refused while it keeps sending: its newest stands in for its oldest, so its hour starts again.
+            attempts[address]?.let { it.removeFirst(); it.addLast(now) }
+            return Result.TooMany
+        }
+        attempts.getOrPut(address, ::ArrayDeque).addLast(now)
+        if (accepted.size >= PER_HOUR) return Result.TooMany
+
         val text = String(body, Charsets.UTF_8)
         val lines = text.lines()
         if (lines.firstOrNull()?.startsWith(TITLE) != true) return Result.NotAReport
         val launcher = lines.firstNotNullOfOrNull { LAUNCHER_LINE.matchEntire(it)?.groupValues?.get(1) }
             ?: return Result.NotAReport
 
-        val now = clock()
-        while (accepted.isNotEmpty() && Duration.between(accepted.first().first, now) >= HOUR) accepted.removeFirst()
-        if (accepted.size >= PER_HOUR || accepted.count { it.second == address } >= PER_ADDRESS_PER_HOUR) return Result.TooMany
-
         try {
-            scan()
+            count(now)
             if (waiting >= MAX_WAITING) return Result.Unavailable
             val id = "R-%04d".format(lastNumber + 1)
             val json = buildJsonObject {
@@ -75,8 +108,9 @@ class ProblemReports(
             Files.createDirectories(dir)
             writeAtomically(dir.resolve("$id.json"), "$json\n")
             lastNumber++
+            waiting++
             writeAtomically(dir.resolve(LAST_NUMBER), "$lastNumber\n")
-            accepted.addLast(now to address)
+            accepted.addLast(now)
             logger.info { "Problem report $id from launcher $launcher saved in ${dir.toAbsolutePath()}" }
             return Result.Accepted(id)
         } catch (e: Exception) {
@@ -85,12 +119,40 @@ class ProblemReports(
         }
     }
 
+    /** Lets go of what is more than an hour old. */
+    private fun forget(now: Instant) {
+        while (accepted.isNotEmpty() && Duration.between(accepted.first(), now) >= HOUR) accepted.removeFirst()
+        val each = attempts.values.iterator()
+        while (each.hasNext()) {
+            val sent = each.next()
+            while (sent.isNotEmpty() && Duration.between(sent.first(), now) >= HOUR) sent.removeFirst()
+            if (sent.isEmpty()) each.remove()
+        }
+    }
+
+    /**
+     * Makes sure the count of reports waiting is fresh enough: the whole folder is read once ([scan]), then only the
+     * reports waiting at its top are counted again, at most every [RECOUNT] (a forwarder or Sam moves them away
+     * meanwhile), and the count goes up by one with each report taken in between.
+     */
+    private fun count(now: Instant) {
+        if (!scanned) {
+            scan()
+            scanned = true
+            countedAt = now
+            return
+        }
+        val last = countedAt
+        if (last != null && Duration.between(last, now) < RECOUNT) return
+        waiting = if (Files.isDirectory(dir)) dir.listDirectoryEntries().count { FILE_NAME.matches(it.name) } else 0
+        countedAt = now
+    }
+
     /**
      * Counts the reports still waiting here, and finds the highest number given so far: the most of the one in
      * memory, the one last written to [LAST_NUMBER], and the highest report file here or in any folder under [dir]
      * (where [ReportForwarder] moves reports it has filed). So a number is never given twice, even after a report is
-     * deleted or the server restarts. Read again for each report, as a forwarder or Sam moves them away meanwhile;
-     * at most [PER_HOUR] times an hour.
+     * deleted or the server restarts. After that the number is kept in memory and in [LAST_NUMBER].
      */
     private fun scan() {
         val written = runCatching { Files.readString(dir.resolve(LAST_NUMBER)).trim().toInt() }.getOrDefault(0)
@@ -138,6 +200,12 @@ class ProblemReports(
         const val PER_ADDRESS_PER_HOUR = 5
         const val PER_HOUR = 50
         const val MAX_WAITING = 500
+
+        /** How many addresses the per-address limit remembers at most, so a flood from many can't fill memory. */
+        const val TRACKED = 2_000
+
+        /** How long a count of the waiting reports is trusted before the folder is counted again. */
+        val RECOUNT: Duration = Duration.ofMinutes(1)
 
         private val HOUR: Duration = Duration.ofHours(1)
         private val LAUNCHER_LINE = Regex("launcher (\\d{1,4}\\.\\d{1,4}\\.\\d{1,4})")

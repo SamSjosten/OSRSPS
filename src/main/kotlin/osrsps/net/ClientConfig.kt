@@ -20,6 +20,7 @@ import io.netty.handler.codec.http.HttpHeaderNames
 import io.netty.handler.codec.http.HttpMethod
 import io.netty.handler.codec.http.HttpObjectAggregator
 import io.netty.handler.codec.http.HttpRequest
+import io.netty.handler.codec.http.LastHttpContent
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.HttpServerCodec
 import io.netty.handler.codec.http.HttpUtil
@@ -38,7 +39,11 @@ import java.io.DataOutputStream
 import java.net.InetSocketAddress
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Duration
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 private val logger = KotlinLogging.logger {}
 
@@ -82,6 +87,8 @@ class ClientConfig(
     private val runelitePins: RuneLitePins = RuneLitePins.NONE,
     /** Where POST /report keeps the launcher's problem reports; null (tests) answers 503. */
     private val reports: ProblemReports? = null,
+    /** The time now, for the read timeout and the report deadline ([sweep]); tests pass their own. */
+    private val clock: () -> Instant = Instant::now,
 ) {
     private var group: EventLoopGroup? = null
     private var server: Channel? = null
@@ -276,6 +283,7 @@ class ClientConfig(
             throw e
         }
         this.group = group
+        group.next().scheduleWithFixedDelay(::sweep, SWEEP_SECONDS, SWEEP_SECONDS, TimeUnit.SECONDS)
         logger.info { "Client config at http://$publicHost:$httpPort/jav_config.ws (world $worldId on $publicHost)" }
         val pin = runelitePins[Revision.MAJOR]
         if (pin == null) logger.warn { "No RuneLite build pinned for revision ${Revision.MAJOR} in ${RuneLitePins.RESOURCE}; RSProx picks its own" }
@@ -285,28 +293,147 @@ class ClientConfig(
     @ChannelHandler.Sharable
     private inner class HttpInitializer : ChannelInitializer<Channel>() {
         override fun initChannel(ch: Channel) {
-            ch.pipeline().addLast(HttpServerCodec(), BodyLimit(), HttpObjectAggregator(ProblemReports.MAX_BYTES), RequestHandler())
+            ch.pipeline().addLast(
+                ConnectionLimit(), HttpServerCodec(), BodyLimit(), HttpObjectAggregator(ProblemReports.MAX_BYTES), RequestHandler(),
+            )
+        }
+    }
+
+    /** HTTP connections open now, against [MAX_CONNECTIONS]. */
+    private val openConnections = AtomicInteger()
+    /** Report bodies being read now, in all and by address, against [MAX_REPORTS_READING] and [MAX_REPORTS_READING_PER_ADDRESS]. */
+    private val reportsReading = AtomicInteger()
+    private val reportsReadingBy = ConcurrentHashMap<String, Int>()
+
+    /** Each open connection, with when it last sent anything and since when it has been sending a report's body. */
+    private val connections = ConcurrentHashMap<Channel, Activity>()
+
+    /** How many report bodies are being read now, so a test can tell a report was taken in before it moves the clock. */
+    internal val reportsBeingRead: Int get() = connections.values.count { it.readingSince != null }
+
+    /** How many reads the connections have had, so a test can tell the server has seen what it sent. */
+    internal val reads = java.util.concurrent.atomic.AtomicLong()
+
+    private class Activity(@Volatile var lastRead: Instant) {
+        @Volatile var readingSince: Instant? = null
+    }
+
+    /**
+     * Closes every connection that has sent nothing for [READ_TIMEOUT_SECONDS], or has been sending one report's body
+     * for [REPORT_DEADLINE_SECONDS], however slowly it trickles. Runs every [SWEEP_SECONDS] once started; tests call it
+     * with their own clock.
+     */
+    internal fun sweep() {
+        val now = clock()
+        for ((channel, activity) in connections) {
+            val idle = Duration.between(activity.lastRead, now) >= READ_TIMEOUT
+            val late = activity.readingSince?.let { Duration.between(it, now) >= REPORT_DEADLINE } == true
+            if (idle || late) channel.close()
         }
     }
 
     /**
-     * Refuses a body on anything but a POST of a report before the aggregator buffers it: the aggregator's own limit is
-     * a report's, which a GET has no use for. A request it refuses gets a 413 and the connection is closed, and anything
-     * still arriving for it is dropped.
+     * Closes a connection past [MAX_CONNECTIONS] the moment it opens. The port is reachable from the internet, and a
+     * connection costs a little memory however idle; [sweep] ends the idle ones.
      */
-    private class BodyLimit : ChannelInboundHandlerAdapter() {
+    private inner class ConnectionLimit : ChannelInboundHandlerAdapter() {
+        private var counted = false
+
+        override fun channelActive(ctx: ChannelHandlerContext) {
+            if (openConnections.incrementAndGet() > MAX_CONNECTIONS) {
+                openConnections.decrementAndGet()
+                ctx.close()
+                return
+            }
+            counted = true
+            connections[ctx.channel()] = Activity(clock())
+            ctx.fireChannelActive()
+        }
+
+        override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
+            connections[ctx.channel()]?.lastRead = clock()
+            reads.incrementAndGet()
+            ctx.fireChannelRead(msg)
+        }
+
+        override fun channelInactive(ctx: ChannelHandlerContext) {
+            if (counted) openConnections.decrementAndGet()
+            counted = false
+            connections.remove(ctx.channel())
+            ctx.fireChannelInactive()
+        }
+    }
+
+    /**
+     * Decides, before the aggregator buffers anything, whether a request's body is worth reading. A body on anything
+     * but a POST of a report is refused (413): the aggregator's own limit is a report's, which a GET has no use for.
+     * A report is refused before its body is read when its sender is over the hourly limits ([ProblemReports.admits],
+     * 429), already has [MAX_REPORTS_READING_PER_ADDRESS] bodies being read (429), or [MAX_REPORTS_READING] are being
+     * read in all (503); one being read must arrive whole within [REPORT_DEADLINE_SECONDS] ([sweep]), however slowly it trickles.
+     * So at most [MAX_REPORTS_READING] report bodies are ever held at once. A refused request is answered, the
+     * connection is closed, and anything still arriving for it is dropped.
+     */
+    private inner class BodyLimit : ChannelInboundHandlerAdapter() {
         private var dropping = false
+        /** The address whose report body this connection is reading, while it reads one. */
+        private var reading: String? = null
 
         override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
             if (msg is HttpRequest) {
-                dropping = !isReport(msg) && (HttpUtil.isTransferEncodingChunked(msg) || HttpUtil.getContentLength(msg, 0L) > MAX_REQUEST_BYTES)
-                if (dropping) {
-                    val reply = DefaultFullHttpResponse(msg.protocolVersion(), HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE)
+                done(ctx)
+                val refusal = when {
+                    !isReport(msg) ->
+                        if (HttpUtil.isTransferEncodingChunked(msg) || HttpUtil.getContentLength(msg, 0L) > MAX_REQUEST_BYTES) HttpResponseStatus.REQUEST_ENTITY_TOO_LARGE else null
+                    else -> startReading(ctx, addressOf(ctx.channel()))
+                }
+                dropping = refusal != null
+                if (refusal != null) {
+                    val reply = DefaultFullHttpResponse(msg.protocolVersion(), refusal)
+                    if (refusal == HttpResponseStatus.TOO_MANY_REQUESTS) reply.headers().set(HttpHeaderNames.RETRY_AFTER, 3600)
                     HttpUtil.setContentLength(reply, 0)
                     ctx.writeAndFlush(reply).addListener(ChannelFutureListener.CLOSE)
                 }
             }
-            if (dropping && (msg is HttpRequest || msg is HttpContent)) ReferenceCountUtil.release(msg) else ctx.fireChannelRead(msg)
+            if (dropping && (msg is HttpRequest || msg is HttpContent)) {
+                ReferenceCountUtil.release(msg)
+                return
+            }
+            val last = msg is LastHttpContent
+            ctx.fireChannelRead(msg)
+            if (last) done(ctx)
+        }
+
+        /** Why a report from [address] can't be read now, or null when it can, counting it as being read. */
+        private fun startReading(ctx: ChannelHandlerContext, address: String): HttpResponseStatus? {
+            if (reports?.admits(address) == false) return HttpResponseStatus.TOO_MANY_REQUESTS
+            if (reportsReading.incrementAndGet() > MAX_REPORTS_READING) {
+                reportsReading.decrementAndGet()
+                return HttpResponseStatus.SERVICE_UNAVAILABLE
+            }
+            if (reportsReadingBy.merge(address, 1, Int::plus)!! > MAX_REPORTS_READING_PER_ADDRESS) {
+                release(address)
+                return HttpResponseStatus.TOO_MANY_REQUESTS
+            }
+            reading = address
+            connections[ctx.channel()]?.readingSince = clock()
+            return null
+        }
+
+        private fun release(address: String) {
+            reportsReading.decrementAndGet()
+            reportsReadingBy.computeIfPresent(address) { _, n -> (n - 1).takeIf { it > 0 } }
+        }
+
+        /** The report body this connection was reading, if any, is no longer being read. */
+        private fun done(ctx: ChannelHandlerContext) {
+            connections[ctx.channel()]?.readingSince = null
+            reading?.let(::release)
+            reading = null
+        }
+
+        override fun channelInactive(ctx: ChannelHandlerContext) {
+            done(ctx)
+            ctx.fireChannelInactive()
         }
 
         private fun isReport(request: HttpRequest) =
@@ -414,6 +541,21 @@ class ClientConfig(
         private const val MAX_REQUEST_BYTES = 8192
 
         const val REPORT_PATH = "/report"
+
+        // Guessed: far above what a page load or a friend's launcher needs, low enough that a flood can't hold much.
+        /** HTTP connections open at once, from everyone. */
+        const val MAX_CONNECTIONS = 256
+        /** A connection that sends nothing for this long is closed. */
+        const val READ_TIMEOUT_SECONDS = 15
+        /** Report bodies read at once, from everyone and from one address: at most 8 x 256 KB held. */
+        const val MAX_REPORTS_READING = 8
+        const val MAX_REPORTS_READING_PER_ADDRESS = 2
+        /** A report's body must arrive whole within this long, however slowly it comes. */
+        const val REPORT_DEADLINE_SECONDS = 30
+        private val READ_TIMEOUT: Duration = Duration.ofSeconds(READ_TIMEOUT_SECONDS.toLong())
+        private val REPORT_DEADLINE: Duration = Duration.ofSeconds(REPORT_DEADLINE_SECONDS.toLong())
+        /** How often [sweep] looks for connections to close. */
+        private const val SWEEP_SECONDS = 1L
 
         /** Who sent a request: the PROXY header's source for one through the relay, else the connection's own address. */
         private fun addressOf(channel: Channel): String =
