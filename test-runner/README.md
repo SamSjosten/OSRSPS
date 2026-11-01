@@ -165,6 +165,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `al-kharid-arena-glider.json`: Al Kharid step 9 (with `::keys on`): Captain Dalbur's Glider and his talk's glider
   answer end at the stub message, Arena Guard Fronk, the Duel Guide and the 1v1 Tournament Guide talk, and the
   recruitment board and the staging area steps say the Arena isn't open yet.
+- `edgeville-town.json`: Edgeville step 1 (with `::keys on`): the grange's large doors opened and shut, its haystack
+  searched (any of the three outcomes), a coffin in the mausoleum opened and shut, the leather gloves taken, a wardrobe
+  in the east house opened, searched and shut, Cross on the Wilderness Ditch refused, and the bank opened from a
+  banker's talk and from a booth.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
