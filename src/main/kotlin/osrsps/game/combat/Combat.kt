@@ -140,7 +140,7 @@ class Combat(
         val strength = PrayerBoosts.boost(skills.currentLevel(Skill.STRENGTH), boosts.strength)
         val attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type))
         val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(against ?: type))
-        val npcAttackRoll = CombatMath.npcAttackRoll(npc.level(NpcStat.ATTACK), def.attackBonus)
+        val npcAttackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, def), def.attackBonus)
         val playerDefenceRoll = playerDefenceRoll(player, style, bonuses, def.attackType, boosts)
         return MeleeMatchup(
             style = style,
@@ -268,15 +268,26 @@ class Combat(
         return CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(AttackType.RANGED, style.weight))
     }
 
-    /** [npc]'s melee numbers against [player], or null when it has no combat definition. */
+    /**
+     * [npc]'s numbers against [player], or null when it has no combat definition: it rolls its Attack level for melee,
+     * its Magic or Ranged level for those (OSRS Wiki, Combat: an NPC's attack roll is its level for the style plus 9,
+     * times its bonus plus 64), against the player's defence for its attack type.
+     */
     fun npcAttack(npc: Npc, player: Player): NpcAttack? {
         val def = npcCombat[npc.type] ?: return null
         val style = style(player)
         return NpcAttack(
-            attackRoll = CombatMath.npcAttackRoll(npc.level(NpcStat.ATTACK), def.attackBonus),
+            attackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, def), def.attackBonus),
             defenceRoll = playerDefenceRoll(player, style, bonuses(player), def.attackType, prayerBoosts(player)),
             maxHit = npcMaxHit(npc, def),
         )
+    }
+
+    /** The level [npc] attacks with: its Magic or Ranged for a magic or ranged NPC, else its Attack. */
+    private fun npcAttackLevel(npc: Npc, def: NpcCombatDef): Int = when (def.attackType) {
+        AttackType.MAGIC -> npc.level(NpcStat.MAGIC)
+        AttackType.RANGED -> npc.level(NpcStat.RANGED)
+        else -> npc.level(NpcStat.ATTACK)
     }
 
     /**

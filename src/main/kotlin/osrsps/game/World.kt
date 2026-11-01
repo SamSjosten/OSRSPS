@@ -451,6 +451,7 @@ class World(
         poisonPlayer = { player, severity -> poison.poison(player, severity) },
         special = { specialAttacks.use(it, combat.weapon(it)) },
         specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
+        projectile = zones::projectile,
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */

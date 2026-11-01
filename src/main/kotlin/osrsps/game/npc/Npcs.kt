@@ -231,6 +231,12 @@ class Npcs(
                 // Guessed: an NPC busy with a player doesn't move, even if it follows someone.
                 npc.engagedWith != null -> continue
                 following != null -> chase(npc, following)
+                // Fighting someone it isn't walking after (a caster or archer with them in range and sight): it stands
+                // where it is rather than wandering off, and forgets any walk it had planned. Guessed.
+                npc.target != null -> {
+                    npc.destination = null
+                    continue
+                }
                 npc.leader != null -> trail(npc, npc.leader!!)
                 npc.spawn.patrol.isNotEmpty() -> patrol(npc)
                 else -> wander(npc)
