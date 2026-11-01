@@ -151,18 +151,21 @@ class Doors(private val locs: Locs) {
         }
     }
 
-    /** Swings [door], a door [toggle] doesn't pair by name, open as [openType], as a single door opens. */
-    fun openAs(door: ZoneLoc, openType: Int): ZoneLoc = open(door, openType)
+    /**
+     * Swings [door], a door [toggle] doesn't pair by name, open as [openType], as a single door opens. With [shutAfter]
+     * ticks, both tiles go back as they were then, by the world's own timer ([Locs.process]), whoever opened it.
+     */
+    fun openAs(door: ZoneLoc, openType: Int, shutAfter: Int = 0): ZoneLoc = open(door, openType, revertAfter = shutAfter)
 
     /** Swings [door], opened by [openAs], shut again as [closedType]. */
     fun closeAs(door: ZoneLoc, closedType: Int): ZoneLoc = close(door, closedType)
 
     /** Swings [door] open as [openType], turned [turn] quarters clockwise. */
-    private fun open(door: ZoneLoc, openType: Int, turn: Int = RIGHT_TURN): ZoneLoc {
+    private fun open(door: ZoneLoc, openType: Int, turn: Int = RIGHT_TURN, revertAfter: Int = 0): ZoneLoc {
         val (dx, dz) = SWING[door.angle]
         val opened = ZoneLoc(openType, door.shape, (door.angle + turn) and 3, door.x + dx, door.z + dz, door.level)
-        locs.remove(door)
-        locs.add(opened)
+        locs.remove(door, revertAfter)
+        locs.add(opened, revertAfter)
         return opened
     }
 

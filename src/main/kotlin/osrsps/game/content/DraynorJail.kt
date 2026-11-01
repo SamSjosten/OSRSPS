@@ -4,7 +4,6 @@ import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
-import osrsps.game.script.QueueType
 import osrsps.game.script.ScriptContext
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.Tile
@@ -72,12 +71,9 @@ private suspend fun ScriptContext.cellDoor(world: World, door: ZoneLoc) {
         world.message(player, JailLines.LOCKED)
         return
     }
-    val opened = world.doors.openAs(door, DraynorJail.CELL_DOOR_OPEN)
+    // The world's loc timer shuts it, not the player's queue, so logging out in the doorway can't leave it open.
+    world.doors.openAs(door, DraynorJail.CELL_DOOR_OPEN, shutAfter = DraynorJail.OPEN_TICKS)
     player.waypoints.clear()
     if (player.z < door.z) player.waypoints.add(Tile(door.x, door.z))
     player.waypoints.add(Tile(door.x, door.z + 1))
-    // Shut by a soft queue, not after a delay: a delayed player doesn't walk.
-    queue("draynor_cell_door", QueueType.SOFT, DraynorJail.OPEN_TICKS) {
-        if (world.locs.exists(opened)) world.doors.closeAs(opened, DraynorJail.CELL_DOOR)
-    }
 }

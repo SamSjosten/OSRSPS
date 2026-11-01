@@ -185,6 +185,26 @@ class HeadlessDraynorTest {
     }
 
     @Test
+    fun `the cell door shuts even when the player who opened it logs out in the doorway`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val world = server.world
+            server.login("frank").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3123, 3242, 0)
+                client.locOp(DraynorJail.CELL_DOOR, 3123, 3243, 1)
+                client.await("the door open") { if (world.locs.find(DraynorJail.CELL_DOOR, 3123, 3243, 0) == null) Unit else null }
+            }
+            // The client is gone, so nothing of the player's runs any more: the world's timer has to shut it.
+            val deadline = System.nanoTime() + 10_000_000_000L
+            while (world.locs.find(DraynorJail.CELL_DOOR, 3123, 3243, 0) == null) {
+                check(System.nanoTime() < deadline) { "The cell door stayed open after the logout" }
+                Thread.sleep(20)
+            }
+            assertEquals(0, world.locs.changed)
+        }
+    }
+
+    @Test
     fun `Draynor's bankers talk and open the bank as the castle's does`(@TempDir dir: Path) {
         server(dir).use { server ->
             for (banker in Bankers.DRAYNOR) {
