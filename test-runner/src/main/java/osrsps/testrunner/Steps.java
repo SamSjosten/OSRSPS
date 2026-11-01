@@ -678,6 +678,49 @@ final class Steps
 		}
 	}
 
+	/**
+	 * Passes when the right-click options on other players ({@link Game#playerOptions}) include one equal to the text,
+	 * ignoring case, or with absent, when none does. One client is enough: the options are the same for every player.
+	 */
+	static final class AssertPlayerOption extends Step
+	{
+		final String option;
+		final boolean absent;
+
+		AssertPlayerOption(long timeoutMs, String option, boolean absent)
+		{
+			super("assertPlayerOption", timeoutMs, false);
+			this.option = option;
+			this.absent = absent;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			String[] options = run.game.playerOptions();
+			List<String> shown = new java.util.ArrayList<>();
+			boolean found = false;
+			for (int i = 0; options != null && i < options.length; i++)
+			{
+				String o = options[i];
+				if (o == null || o.isEmpty() || o.equals("null"))
+				{
+					continue;
+				}
+				shown.add((i + 1) + ":" + o);
+				found |= o.equalsIgnoreCase(option);
+			}
+			String seen = "player options " + shown;
+			return found != absent ? Poll.pass(seen) : Poll.waiting(seen);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert player option " + option + (absent ? " absent" : "");
+		}
+	}
+
 	static final class AssertWeight extends Step
 	{
 		final int kg;

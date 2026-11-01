@@ -610,6 +610,23 @@ public class RunnerTest
 	}
 
 	@Test
+	public void playerOptionsPassOnTheShownOrMissingText() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertPlayerOption\",\"option\":\"trade with\",\"absent\":true},"
+			+ "{\"step\":\"assertPlayerOption\",\"option\":\"Trade with\"}"), "file");
+		game.playerOptions = new String[] {null, "null", "Follow", "Trade with", null, null, null, "Report"};
+		assertNull(cycle());
+		game.playerOptions = new String[] {null, "null", "Follow", "", null, null, null, "Report"};
+		assertNull(cycle());
+		game.playerOptions = new String[] {null, "null", "Follow", "Trade with", null, null, null, "Report"};
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("assert player option trade with absent", r.steps.get(0).description);
+		assertEquals("player options [3:Follow, 8:Report]", r.steps.get(0).detail);
+		assertEquals("player options [3:Follow, 4:Trade with, 8:Report]", r.steps.get(1).detail);
+	}
+
+	@Test
 	public void npcHealthWaitsForTheBarThenChecksTheBounds() throws Exception
 	{
 		runner.start(script("{\"step\":\"assertNpcHealth\",\"npc\":\"Man\",\"max\":99,\"timeoutMs\":100}"), "file");
