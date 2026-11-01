@@ -1,13 +1,17 @@
 package osrsps.cache.model
 
 import java.awt.image.BufferedImage
+import java.nio.file.Files
+import java.nio.file.Path
+import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNotNull
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.io.TempDir
 
 class ObjModelImporterTest {
     /** A 2 by 2 texture: red top-left, green top-right, blue bottom-left, white bottom-right. */
@@ -47,8 +51,10 @@ class ObjModelImporterTest {
 
     @Test
     fun `scales, turns y over, shares vertices and colours faces from material and texture`() {
-        val result = ObjModelImporter.import(obj, mtl, ObjModelImporter.Options(scale = 0.25)) { name -> if (name == "tex.png") texture() else null }
+        val asked = ArrayList<String>()
+        val result = ObjModelImporter.import(obj, mtl, ObjModelImporter.Options(scale = 0.25)) { name -> asked += name; if (name == "tex.png") texture() else null }
         val model = result.model
+        assertEquals(listOf("tex.png"), asked, "the painted material's texture is read once")
         assertEquals(4, model.vertexCount)
         assertEquals(2, model.faceCount)
         assertContentEquals(intArrayOf(0, 128, 128, 0), model.vertexX)
@@ -57,11 +63,13 @@ class ObjModelImporterTest {
         // y turned over reverses the winding, so b and c swap.
         assertEquals(listOf(0, 2, 1), listOf(model.faceA[0], model.faceB[0], model.faceC[0]))
         assertEquals(listOf(0, 3, 2), listOf(model.faceA[1], model.faceB[1], model.faceC[1]))
-        // Grey from Kd; the painted face samples all four texels plus the centre, a light mix.
+        // Grey from Kd.
         assertEquals(HslPalette.nearest(0x808080), model.faceColors[0])
-        val painted = HslPalette.rgb[model.faceColors[1]]
         assertEquals(0, HslPalette.saturation(model.faceColors[0]))
-        assertNotNull(painted)
+        // The painted face's corners are at uv (0,0), (1,1) and (0,1): the blue, green and red texels; its centre
+        // (1/3, 2/3) is in the red texel again. The mean of blue, green, red and red is (127, 63, 63).
+        assertEquals(HslPalette.nearest(0x7F3F3F), model.faceColors[1])
+        assertNotEquals(HslPalette.nearest(0xFFFFFF), model.faceColors[1], "not the material's white")
         assertEquals(listOf("stone", "painted"), result.materials)
         assertEquals(0, result.droppedFaces)
         assertNull(model.faceAlphas)
@@ -104,6 +112,17 @@ class ObjModelImporterTest {
         assertEquals(1, model.faceCount)
         assertFailsWith<IllegalArgumentException> { ObjModelImporter.import("v 0 0 0\nf 1 2 3") }
         assertFailsWith<IllegalArgumentException> { ObjModelImporter.import("v 0 0 0\n") }
+    }
+
+    @Test
+    fun `importFile finds a material library next to the OBJ and its textures next to the library`(@TempDir dir: Path) {
+        val materials = Files.createDirectories(dir.resolve("materials"))
+        ImageIO.write(texture(), "png", materials.resolve("tex.png").toFile())
+        Files.writeString(materials.resolve("stone.mtl"), mtl)
+        Files.writeString(dir.resolve("quad.obj"), obj.replace("mtllib x.mtl", "mtllib materials/stone.mtl"))
+        val model = ObjModelImporter.importFile(dir.resolve("quad.obj"), ObjModelImporter.Options(scale = 0.25)).model
+        assertEquals(HslPalette.nearest(0x808080), model.faceColors[0])
+        assertEquals(HslPalette.nearest(0x7F3F3F), model.faceColors[1], "the texture was found and sampled")
     }
 
     @Test

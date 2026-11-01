@@ -302,11 +302,14 @@ object ModelCodec {
                 out.u16(textures[i] + 1)
             }
         }
-        model.textureCoords?.let { coords ->
+        // The client reads a coordinate for every textured face once there are texture triangles, so a model
+        // without coordinates gets the "none" value (-1, stored as 0) for each.
+        if (textureCount > 0) model.faceTextures?.let { textures ->
             for (i in 0 until faceCount) {
-                if (model.faceTextures!![i] == -1) continue
-                require(coords[i] in -1..254) { "Face $i's texture coordinate ${coords[i]} doesn't fit" }
-                out.write(coords[i] + 1)
+                if (textures[i] == -1) continue
+                val coord = model.textureCoords?.get(i) ?: -1
+                require(coord in -1..254) { "Face $i's texture coordinate $coord doesn't fit" }
+                out.write(coord + 1)
                 textureCoordLength++
             }
         }

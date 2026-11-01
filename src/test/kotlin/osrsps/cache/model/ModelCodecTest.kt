@@ -130,6 +130,23 @@ class ModelCodecTest {
     }
 
     @Test
+    fun `a textured model without coordinates still writes one for each textured face`() {
+        // The client reads a coordinate per textured face once there are texture triangles; none is stored as 0.
+        val model = OsrsModel(
+            vertexX = intArrayOf(0, 100, 0, 50), vertexY = intArrayOf(0, 0, -50, -80), vertexZ = intArrayOf(0, 0, 100, 20),
+            faceA = intArrayOf(0, 1), faceB = intArrayOf(1, 2), faceC = intArrayOf(2, 3), faceColors = intArrayOf(1, 2),
+            faceTextures = intArrayOf(-1, 40), textureA = intArrayOf(0), textureB = intArrayOf(1), textureC = intArrayOf(2),
+        )
+        val bytes = ModelCodec.encode(model)
+        val footer = bytes.copyOfRange(bytes.size - 26, bytes.size)
+        assertEquals(1, ((footer[20].toInt() and 0xFF) shl 8) or (footer[21].toInt() and 0xFF), "one coordinate byte")
+        val again = ModelCodec.decode(bytes)
+        assertContentEquals(intArrayOf(-1, -1), again.textureCoords)
+        assertContentEquals(model.faceTextures, again.faceTextures)
+        assertContentEquals(bytes, ModelCodec.encode(again))
+    }
+
+    @Test
     fun `the older format and other texture types are refused, not misread`() {
         assertFailsWith<ModelCodec.UnsupportedModelException> { ModelCodec.decode(ByteArray(40)) }
         val bytes = ModelCodec.encode(fullModel())

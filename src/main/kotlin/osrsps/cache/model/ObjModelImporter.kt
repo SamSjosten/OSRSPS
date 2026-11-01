@@ -36,16 +36,26 @@ object ObjModelImporter {
 
     class Result(val model: OsrsModel, val materials: List<String>, val droppedFaces: Int)
 
+    /** Material libraries are found next to the OBJ, and each library's textures next to that library. */
     fun importFile(obj: Path, options: Options = Options()): Result {
         val text = Files.readString(obj)
         val dir = obj.toAbsolutePath().parent
-        val mtlNames = Regex("""^mtllib\s+(.+)$""", RegexOption.MULTILINE).findAll(text).map { it.groupValues[1].trim() }.toList()
-        val materials = mtlNames.mapNotNull { name -> dir.resolve(name).takeIf(Files::exists)?.let(Files::readString) }.joinToString("\n")
-        return import(text, materials, options) { name -> dir.resolve(name).takeIf(Files::exists)?.let { ImageIO.read(it.toFile()) } }
+        val materials = LinkedHashMap<String, Material>()
+        for (match in Regex("""^mtllib\s+(.+)$""", RegexOption.MULTILINE).findAll(text)) {
+            val library = dir.resolve(match.groupValues[1].trim()).takeIf(Files::exists) ?: continue
+            for (material in parseMtl(Files.readString(library)).values) {
+                material.texture = material.texture?.let { library.toAbsolutePath().parent.resolve(it).toString() }
+                materials[material.name] = material
+            }
+        }
+        return import(text, materials, options) { name -> Path.of(name).takeIf(Files::exists)?.let { ImageIO.read(it.toFile()) } }
     }
 
-    fun import(obj: String, mtl: String = "", options: Options = Options(), textures: (String) -> BufferedImage? = { null }): Result {
-        val materials = parseMtl(mtl)
+    fun import(obj: String, mtl: String = "", options: Options = Options(), textures: (String) -> BufferedImage? = { null }): Result =
+        import(obj, parseMtl(mtl), options, textures)
+
+    /** [textures] is asked for each material's texture name, as its `map_Kd` says it or as [importFile] resolved it. */
+    fun import(obj: String, materials: Map<String, Material>, options: Options, textures: (String) -> BufferedImage?): Result {
         val images = HashMap<String, BufferedImage?>()
         fun image(name: String) = images.getOrPut(name) { textures(name) }
 
@@ -194,10 +204,10 @@ object ObjModelImporter {
 
     private fun multiply(a: IntArray, b: IntArray): IntArray = IntArray(3) { a[it] * b[it] / 255 }
 
-    /** The texture's pixel at ([u], [v]), v upwards as in an OBJ, wrapping outside 0 to 1. */
+    /** The texture's pixel at ([u], [v]), v upwards as in an OBJ; 1 is the far edge, and past 0 to 1 the texture repeats. */
     private fun sample(image: BufferedImage, u: Double, v: Double): IntArray {
-        val fu = u - floor(u)
-        val fv = v - floor(v)
+        val fu = if (u in 0.0..1.0) u else u - floor(u)
+        val fv = if (v in 0.0..1.0) v else v - floor(v)
         val x = (fu * image.width).toInt().coerceIn(0, image.width - 1)
         val y = ((1 - fv) * image.height).toInt().coerceIn(0, image.height - 1)
         val rgb = image.getRGB(x, y)
