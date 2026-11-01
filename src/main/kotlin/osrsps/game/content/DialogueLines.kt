@@ -89,6 +89,7 @@ object DialogueLines {
         DalburLines,
         DancingDonkeyBartenderLines,
         DiangoLines,
+        DimintheisLines,
         DommikLines,
         DonieLines,
         DoomsayerLines,
@@ -139,6 +140,7 @@ object DialogueLines {
         IrenaLines,
         IronmanTutorLines,
         JailLines,
+        JohnathonLines,
         JollyBoarBartenderLines,
         JollyBoarCookLines,
         JonnyTheBeardLines,
@@ -216,6 +218,7 @@ object DialogueLines {
         WomanLines,
         WoodcuttingLines,
         WoodsmanTutorLines,
+        YarloLines,
         ZaffLines,
         ZekeLines,
     )

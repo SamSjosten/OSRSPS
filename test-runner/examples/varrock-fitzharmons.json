@@ -1,0 +1,234 @@
+{
+ "name": "Varrock step 8b (with ::keys on): Dimintheis handing back family gauntlets, Johnathon turning them into chaos gauntlets for 25,000 coins and his talk, and Old Man Yarlo",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3280 3403 0",
+   "expectMessage": "Teleported to 3280, 3403, 0",
+   "comment": "Dimintheis's house, east of the palace"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 4984,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Dimintheis"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[dimintheis.other]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dimintheis.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dimintheis.gauntlets"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dimintheis.returned"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[dimintheis.yes_please]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dimintheis.yes_please"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[dimintheis.hands_over]",
+   "comment": "the item box"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Steel gauntlets",
+   "count": 1,
+   "timeoutMs": 10000,
+   "comment": "the plain family gauntlets"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 25000",
+   "expectMessage": "Added 25,000 x Coins (995)."
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 25000,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3280 3504 1",
+   "expectMessage": "Teleported to 3280, 3504, 1",
+   "comment": "upstairs in the Jolly Boar Inn"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5445,
+   "option": "Gauntlets",
+   "timeoutMs": 20000,
+   "comment": "Johnathon's Gauntlets"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[johnathon.price"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[johnathon.accept]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[johnathon.accept"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[johnathon.chants]",
+   "comment": "the item box"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Chaos gauntlets",
+   "count": 1,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 0,
+   "timeoutMs": 10000,
+   "comment": "25,000 coins for the change"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5445,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Johnathon's talk"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[johnathon.hero"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[johnathon.agree"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[johnathon.anything"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[johnathon.no_thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[johnathon.no_thanks"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3239 3397 0",
+   "expectMessage": "Teleported to 3239, 3397, 0",
+   "comment": "by Old Man Yarlo, south of the square"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 10425,
+   "option": "Talk-to",
+   "timeoutMs": 30000,
+   "comment": "Old Man Yarlo"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[yarlo.happier"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[yarlo.good_news]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[yarlo.good_news"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

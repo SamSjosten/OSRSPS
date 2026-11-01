@@ -204,6 +204,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
 - `varrock-townsfolk.json`: Varrock step 8a (with `::keys on`): Romeo, Shilop, Aris, Iffie, the Town Crier, Dr Harlow,
   Jonny the Beard, Charlie the Tramp given a coin, Draul Leptoc, and a kitten bought from Gertrude for 100 coins.
+- `varrock-fitzharmons.json`: Varrock step 8b (with `::keys on`): Dimintheis handing back family gauntlets, Johnathon
+  turning them into chaos gauntlets for 25,000 coins through his Gauntlets option, his talk, and Old Man Yarlo.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
