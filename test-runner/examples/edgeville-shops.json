@@ -270,13 +270,6 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[richard.explain_3]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
    "contains": "[richard.want_one]"
   },
   {
