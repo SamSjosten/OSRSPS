@@ -24,6 +24,8 @@ import osrsps.map.CollisionMap
 class HeadlessVarrockTownsfolkTest {
     private val coins = ObjType(COINS, "Coins", stackable = true)
     private val kittens = VarrockTownsfolk.KITTENS.map { ObjType(it, "Pet kitten", cost = 0, tradeable = false) }
+    private val cat = ObjType(PET_CAT, "Pet cat", cost = 0, tradeable = false)
+    private val overgrown = ObjType(OVERGROWN_CAT, "Overgrown cat", cost = 0, tradeable = false)
 
     private val talk = listOf("Talk-to", null, null, null, null)
     private fun npc(id: Int, name: String, internal: String, ops: List<String?> = talk) = NpcType(id, name, ops = ops, internalName = internal)
@@ -49,7 +51,7 @@ class HeadlessVarrockTownsfolkTest {
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(coins, *kittens.toTypedArray()),
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(coins, cat, overgrown, *kittens.toTypedArray()),
             npcTypes = NpcTypes.of(*all.toTypedArray()),
             npcSpawns = all.mapIndexed { i, type -> NpcSpawn(type, 3214 + (i % 8) * 2, 3215 + (i / 8) * 6, wander = 0, source = "test") },
             cycleMillis = millis,
@@ -185,6 +187,23 @@ class HeadlessVarrockTownsfolkTest {
                 client.over()
                 assertEquals(1, client.await("a kitten") { client.kittens().takeIf { it == 1 } })
                 assertEquals(0, client.held(COINS))
+
+                // A grown cat stops her too; an overgrown one doesn't, as she sells another once a cat is overgrown.
+                client.coinsNow(100)
+                client.command("item $PET_CAT 1")
+                client.await("the cat") { if (client.held(PET_CAT) == 1) Unit else null }
+                client.op(VarrockTownsfolk.GERTRUDE, VarrockTownsfolk.KITTEN_OP)
+                client.chat("gertrude.wait")
+                client.over()
+                assertEquals(100, client.held(COINS))
+                client.coinsNow(100)
+                client.command("item $OVERGROWN_CAT 1")
+                client.await("the overgrown cat") { if (client.held(OVERGROWN_CAT) == 1) Unit else null }
+                client.op(VarrockTownsfolk.GERTRUDE, VarrockTownsfolk.KITTEN_OP)
+                client.objbox("gertrude.given")
+                client.over()
+                assertEquals(1, client.await("a kitten") { client.kittens().takeIf { it == 1 } })
+                assertEquals(0, client.held(COINS))
             }
         }
     }
@@ -220,5 +239,7 @@ class HeadlessVarrockTownsfolkTest {
 
     private companion object {
         const val COINS = 995
+        const val PET_CAT = 1561
+        const val OVERGROWN_CAT = 1567
     }
 }

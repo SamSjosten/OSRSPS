@@ -199,8 +199,11 @@ object VarrockTownsfolk {
     /** Pet kittens, one of each colour; Gertrude's is one at random. */
     val KITTENS = (1555..1560).toList()
 
-    /** A cat these held or banked stops Gertrude selling another: kittens, cats, overgrown, lazy and wily cats. */
-    val OWNED_CATS = KITTENS + (1561..1572) + (6549..6560)
+    /**
+     * A cat these held or banked stops Gertrude selling another: kittens, pet cats (1561 to 1566), lazy and wily cats. Not
+     * overgrown cats (1567 to 1572): once a cat is overgrown she sells another (Wiki, Gertrude).
+     */
+    val OWNED_CATS = KITTENS + (1561..1566) + (6549..6560)
 
     private fun Dialogue.coins() = player.inventory.count(ShopScreen.COINS)
 
@@ -355,9 +358,9 @@ object VarrockTownsfolk {
         } else {
             chatPlayer(ChatAnim.ANGRY, EARN)
             chatNpc(ChatAnim.NEUTRAL, SHRUG)
-            // A tick after the talk closes, once he has turned back (guessed; the Wiki gives no timing).
-            delay(1)
-            npc?.effects?.say(world.dialogueText[OVERHEAD[world.random.between(0, OVERHEAD.size - 1)]])
+            // A tick after the talk closes (guessed; the Wiki gives no timing), queued on him so the player isn't held.
+            val line = OVERHEAD[world.random.between(0, OVERHEAD.size - 1)]
+            npc?.let { tramp -> world.npcScripts.queue(tramp, 1) { it.effects.say(world.dialogueText[line]) } }
         }
     }
 
