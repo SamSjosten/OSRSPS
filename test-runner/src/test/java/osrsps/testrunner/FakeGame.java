@@ -436,6 +436,17 @@ class FakeGame implements Game
 	}
 
 	@Override
+	public String clickWidgetNamed(int interfaceId, int component, String name, int op)
+	{
+		if (clickError != null)
+		{
+			return clickError;
+		}
+		actions.add("click " + interfaceId + ":" + component + " " + name + " op " + op);
+		return null;
+	}
+
+	@Override
 	public String widgetText(int interfaceId, int component)
 	{
 		return widgetTexts.get(component < 0 ? String.valueOf(interfaceId) : interfaceId + ":" + component);
@@ -497,6 +508,15 @@ class FakeGame implements Game
 	public java.util.List<String> friendsChatMembers()
 	{
 		return new java.util.ArrayList<>(friendsChatMembers);
+	}
+
+	/** Ranks by member name, for the members that have one set here. */
+	java.util.Map<String, Integer> friendsChatRanks = new java.util.HashMap<>();
+
+	@Override
+	public Integer friendsChatRank(String name)
+	{
+		return friendsChatMembers.contains(name) ? friendsChatRanks.get(name) : null;
 	}
 
 	@Override

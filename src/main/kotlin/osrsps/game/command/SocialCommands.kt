@@ -24,6 +24,8 @@ fun CommandRegistry.registerSocialCommands(world: World) {
     register("clearfriends", "::clearfriends") {
         if (args.isNotEmpty()) fail("Usage: ::clearfriends")
         friends.clear(player)
+        // As each delete does: the ranks given to them go too.
+        world.friendChats.ownerFriendsChanged(player)
         reply("Friends list emptied. Log out and in to see it in the Friends tab")
     }
 

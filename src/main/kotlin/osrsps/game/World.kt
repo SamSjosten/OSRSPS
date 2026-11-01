@@ -479,7 +479,7 @@ class World(
 
     /** Private messages; see [PrivateMessages]. */
     val friendChats = FriendChats(
-        { onlinePlayers }, ::channelOwner, ignoreLists, ::textFor, { privateMessages.nextCounter() },
+        { onlinePlayers }, { tick }, ::channelOwner, ignoreLists, ::textFor, { privateMessages.nextCounter() },
     )
 
     val privateMessages = PrivateMessages(
@@ -1827,6 +1827,14 @@ class World(
         if (message.type == PublicChat.TYPE_FRIENDS_CHAT) friendChats.talk(player, message.message) else sayPublicChat(player, message)
     }
 
+    /** A rank picked for a friend in the friends chat setup list. */
+    fun onFriendsChatSetRank(player: Player, name: String, rank: Int) = actWhileDead(player) {
+        if (friendChats.setRank(player, name, rank)) friendLists.resend(player, name)
+    }
+
+    /** Kick user on a friends chat member. */
+    fun onFriendsChatKick(player: Player, name: String) = act(player) { friendChats.kick(player, name) }
+
     /** Join Chat's typed name, or Leave Chat (no name). Works while dead, as the client changes its panel at once. */
     fun onFriendsChatJoinLeave(player: Player, name: String?) = actWhileDead(player) {
         if (name == null) friendChats.leave(player) else friendChats.join(player, name)
@@ -1913,6 +1921,10 @@ class World(
                     friendChats.showSetup(player)
                 }
             }
+            return@act
+        }
+        if (interfaceId == FriendChats.SETUP && componentId in FriendChats.SETUP_OPTIONS) {
+            if (friendChats.setOption(player, componentId, op)) friendChats.showSetup(player)
             return@act
         }
         if (interfaceId == JournalTab.SIDE_JOURNAL) {
@@ -2393,6 +2405,10 @@ class World(
         interfaces.openModal(player, FrameSlot.MAINMODAL, FriendChats.SETUP)
         friendChats.showSetup(player)
         interfaces.setEvents(player, FriendChats.SETUP, FriendChats.SETUP_PREFIX, -1, -1, Interfaces.IF_EVENT_OP1 or Interfaces.IF_EVENT_OP2)
+        // Ops 1 to 9 on who may enter and talk, 4 to 9 on who may kick (chatchannel_setup's transmitop lists).
+        interfaces.setEvents(player, FriendChats.SETUP, FriendChats.SETUP_ENTER, -1, -1, OPS_1_TO_9)
+        interfaces.setEvents(player, FriendChats.SETUP, FriendChats.SETUP_TALK, -1, -1, OPS_1_TO_9)
+        interfaces.setEvents(player, FriendChats.SETUP, FriendChats.SETUP_KICK, -1, -1, OPS_1_TO_9 and 0b1_1111_1000)
     }
 
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
@@ -2447,6 +2463,9 @@ class World(
 
         /** 3 minutes of cycles. */
         const val AUTOSAVE_CYCLES = 300L
+
+        /** IF_SETEVENTS ops 1 to 9: bits 0 to 8. */
+        const val OPS_1_TO_9 = 0b1_1111_1111
 
         /** How long the game may go without ending a cycle before [isUp] calls it down: 10 s. Our own figure. */
         const val STALL_MILLIS = 10_000L

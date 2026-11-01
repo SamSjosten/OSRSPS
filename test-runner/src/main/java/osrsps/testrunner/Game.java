@@ -227,6 +227,12 @@ interface Game
 	String clickWidget(int interfaceId, int component, int sub, int op);
 
 	/**
+	 * Clicks op {@code op} on the first slot of an interface component that a client script built for {@code name} (its
+	 * menu entries name it, as the friends chat lists do) and that offers that op. Null when clicked, else why not.
+	 */
+	String clickWidgetNamed(int interfaceId, int component, String name, int op);
+
+	/**
 	 * Runs client script {@code id} from the cache with {@code args} (Integers and Strings, in the script's order), as
 	 * the client's own interfaces would: what the script sends the server goes out as it would from a click.
 	 */
@@ -271,6 +277,12 @@ interface Game
 
 	/** The names (no tags) listed in the client's friends chat channel; empty when in none. */
 	java.util.List<String> friendsChatMembers();
+
+	/**
+	 * The rank the client shows for {@code name} in its friends chat channel, as the server numbers them (-1 unranked, 0
+	 * friend, 1 Recruit to 6 General, 7 owner); null when the name isn't listed.
+	 */
+	Integer friendsChatRank(String name);
 
 	/** Puts {@code text} in the open prompt's input (varc meslayerinput) and presses Enter, as typing it would. */
 	String enterText(String text);

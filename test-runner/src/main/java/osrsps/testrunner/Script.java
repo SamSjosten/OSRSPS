@@ -692,6 +692,7 @@ final class Script
 				int interfaceId = f.requiredInt("interfaceId");
 				int component = f.requiredInt("component");
 				int sub = f.integer("slot", -1);
+				String name = f.string("name", null);
 				int op = f.integer("op", 1);
 				if (interfaceId < 0 || interfaceId > 0xffff || component < 0 || component > 0xffff)
 				{
@@ -705,8 +706,12 @@ final class Script
 				{
 					throw new Invalid(f.where + ": \"op\" must be 1 to 10");
 				}
-				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "slot", "op", "comment");
-				return new Steps.ClickWidget(timeout, interfaceId, component, sub, op);
+				if (name != null && (f.o.has("slot") || name.isBlank()))
+				{
+					throw new Invalid(f.where + ": \"name\" picks the slot, so it can't be blank or come with \"slot\"");
+				}
+				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "slot", "name", "op", "comment");
+				return new Steps.ClickWidget(timeout, interfaceId, component, sub, name, op);
 			}
 			case "assertWidgetText":
 			{
@@ -782,12 +787,17 @@ final class Script
 				String owner = f.string("owner", null);
 				String member = f.string("member", null);
 				boolean absent = f.bool("absent", false);
+				Integer rank = f.o.has("rank") ? f.integer("rank", 0) : null;
 				if (owner == null && (member != null || !absent))
 				{
 					throw new Invalid(f.where + " needs \"owner\", or \"absent\": true alone for no channel");
 				}
-				f.rejectUnknown("step", "timeoutMs", "owner", "member", "absent", "comment");
-				return new Steps.AssertFriendsChat(timeout, owner, member, absent);
+				if (rank != null && (member == null || absent || rank < -1 || rank > 7))
+				{
+					throw new Invalid(f.where + ": \"rank\" (-1 to 7) needs a \"member\" that is there");
+				}
+				f.rejectUnknown("step", "timeoutMs", "owner", "member", "absent", "rank", "comment");
+				return new Steps.AssertFriendsChat(timeout, owner, member, absent, rank);
 			}
 			case "privateMessage":
 			{
