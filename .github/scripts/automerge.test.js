@@ -409,6 +409,19 @@ test('the queue puts right a stale failing check once Codex is clean', async () 
   assert.deepStrictEqual(calls, [['check', H('1'), 'success']]);
 });
 
+test('a check that fails while the queue gates a pull request counts', async () => {
+  const pr = { head: H('1'), mergedHead: H('2'), behind: 1, checks: [...green], comments: [summary(H('1'), false)] };
+  const { github, calls } = fakeGitHub({ 1: pr });
+  const paginate = github.paginate;
+  github.paginate = async (what, args) => {
+    // The build is re-run and fails while Codex's comments are read.
+    if (what === 'issues.listComments') pr.checks = [{ id: 50, name: 'build', status: 'completed', conclusion: 'failure' }];
+    return paginate(what, args);
+  };
+  await queue(github, fakeGit({ [H('1')]: 'p', [H('2')]: 'p' }));
+  assert.deepStrictEqual(calls, [['check', H('1'), 'success']], 'main is not merged into a failing pull request');
+});
+
 test('a gate run leaves a check written after its evaluation started', async () => {
   const newer = { name: CHECK, status: 'completed', conclusion: 'success', started_at: '2026-10-30T01:00:05Z' };
   const { github, calls } = fakeGitHub({

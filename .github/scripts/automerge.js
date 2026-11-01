@@ -221,15 +221,16 @@ async function latestChecks(github, repo, sha) {
 // wake the thread with the same failing check each time. Gate runs aren't serialized (see automerge.yml), so a run
 // whose evaluation started before the newest check on the head was written leaves that check alone; the queue looks
 // again at any check that isn't passing, so a run that lost such a race to a stale one is put right there.
-// The queue passes the pull request it just listed, saving a call. Returns the check now on the head, or null when it
-// left a newer one alone.
+// The queue passes the pull request it just listed, saving a call. Returns the head's checks as they are now (fetched
+// here, after the evaluation, with this result in place of the old one), or null when it left a newer one alone.
 async function gate(github, git, repo, core, number, current, now = Date.now, listed = null) {
   const started = now();
   const pr = listed || (await github.rest.pulls.get({ ...repo, pull_number: number })).data;
   if (pr.state !== 'open') return null;
   const result = await evaluate(github, git, repo, pr);
   core.info(`#${number}: ${CHECK} ${result.conclusion || result.status}: ${result.title}`);
-  const latest = (await latestChecks(github, repo, pr.head.sha)).find(run => run.name === CHECK);
+  const all = await latestChecks(github, repo, pr.head.sha);
+  const latest = all.find(run => run.name === CHECK);
   if (latest && latest.started_at && Date.parse(latest.started_at) > started) {
     core.info(`#${number}: a newer ${CHECK} was written meanwhile; leaving it`);
     return null;
@@ -237,9 +238,10 @@ async function gate(github, git, repo, core, number, current, now = Date.now, li
   const seen = current || latest;
   const same = seen && seen.status === result.status && (seen.conclusion || null) === (result.conclusion || null)
     && seen.output && seen.output.title === result.title;
-  if (same) return seen;
+  const others = all.filter(run => run.name !== CHECK);
+  if (same) return [...others, seen];
   await writeCheck(github, repo, pr.head.sha, result);
-  return { name: CHECK, status: result.status, conclusion: result.conclusion || null, output: { title: result.title } };
+  return [...others, { name: CHECK, status: result.status, conclusion: result.conclusion || null, output: { title: result.title } }];
 }
 
 // The pull_request runs GitHub holds for "approval from a maintainer" on a head: a merge of main the queue pushed with
@@ -552,8 +554,7 @@ async function advance(github, git, repo, core, sleep, now) {
     // Missing (opened before this workflow, or an event was missed), waiting or failing: Codex may have answered
     // since, or a slower gate run may have written a stale result. Written again only when it changes.
     if (!current || current.conclusion !== 'success') {
-      const written = await gate(github, git, repo, core, pr.number, current, now, pr);
-      checks = written ? [...checks.filter(run => run.name !== CHECK), written] : await latestChecks(github, repo, pr.head.sha);
+      checks = await gate(github, git, repo, core, pr.number, current, now, pr) || await latestChecks(github, repo, pr.head.sha);
     }
     if (!behind && !checks.some(run => run.name === BUILD)) {
       // An up-to-date head that no build ever ran on: a merge of main whose dispatch was lost (the update showed up
