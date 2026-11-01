@@ -171,6 +171,10 @@ import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
+import osrsps.game.social.ClanFoundingRule
+import osrsps.game.social.ClanLines
+import osrsps.game.social.ClanStore
+import osrsps.game.social.Clans
 import osrsps.game.social.FriendChats
 import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.FriendLists
@@ -230,6 +234,10 @@ class World(
     private val reportsFile: Path? = null,
     /** The time reports are stamped and rate-limited by; tests move it. */
     private val reportsClock: () -> java.time.Instant = java.time.Instant::now,
+    /** Where clans and the clan founding rule are kept (data/); null keeps them in memory (tests). */
+    clansDir: Path? = null,
+    /** The time clans are founded by (one a day per founder); tests move it. */
+    clansClock: () -> java.time.Instant = java.time.Instant::now,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
     /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
@@ -528,6 +536,22 @@ class World(
         interfaces::closeChatModal,
         { player, line -> player.message(textFor(player)[line]) },
         reportsClock,
+    )
+
+    /** Clans; see [Clans]. */
+    val clans = Clans(
+        ClanStore(clansDir?.resolve(ClanStore.FILE_NAME)),
+        ClanFoundingRule(clansDir?.resolve(ClanFoundingRule.FILE_NAME)),
+        { player, message -> player.session.queue(message) },
+        { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
+        interfaces::openClansTab,
+        interfaces::setEvents,
+        interfaces::runClientScript,
+        ::textFor,
+        ignoreLists,
+        { player -> players.getOrNull(player.index) === player },
+        { privateMessages.nextCounter() },
+        clansClock,
     )
 
     /** Private messages; see [PrivateMessages]. */
@@ -1024,6 +1048,7 @@ class World(
             scripts.process(player)
             // Outside a player's own scripts, so a failure here would otherwise skip the rest of the tick for everyone.
             perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
+            perPlayer(player, "Clans") { clans.process(player) }
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
@@ -1541,6 +1566,7 @@ class World(
             if (findPlayer(key) == null && write(key, text)) count++
         }
         if (count > 0) logger.info { "Saved $count player${if (count == 1) "" else "s"}" }
+        clans.flush()
         if (unwritten.isNotEmpty()) logger.error { "${unwritten.size} save${if (unwritten.size == 1) " is" else "s are"} still only in memory: ${unwritten.keys.sorted()}" }
     }
 
@@ -1636,6 +1662,7 @@ class World(
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
         PlayerOps.send(player.vars, player.session::queue)
+        clans.resync(player)
         rebuild(player)
         interfaces.resendClosesWhileAway(player)
         interfaces.closeEmptyModalSlots(player)
@@ -1672,6 +1699,7 @@ class World(
         interfaces.openGameFrame(player)
         inventoryTab.open(player)
         friendChats.rejoin(player)
+        clans.login(player)
         if (player.newAccount) {
             // Tutorial Island's end on live: resizable mode and the default zoom, and the frame to match. Nobody here
             // does the tutorial, so a new account gets them at its first login.
@@ -1748,6 +1776,13 @@ class World(
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (held(player)) return
         trades.interrupt(player)
+        if (option == Clans.PLAYER_OP_RECRUIT) {
+            // The clan creation invitation's "Form clan" sends option 1 on its sender (client script chat_op_core);
+            // nothing else here uses option 1 (Attack, in PvP areas, isn't built).
+            val target = clicked?.takeIf { players[it.index] === it && it !== player } ?: return
+            clans.inviteOrAccept(player, target)
+            return
+        }
         if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT || !PlayerOps.shown(player.vars, option)) {
             logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
@@ -1789,6 +1824,10 @@ class World(
             if (held(player)) return@act
             trades.interrupt(player)
             val target = clicked?.takeIf { players[it.index] === it && it !== player }
+            if (interfaceId == Clans.CREATION && componentId == Clans.CREATION_INVITE && target != null) {
+                clans.inviteOrAccept(player, target)
+                return@act
+            }
             if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS || target == null) {
                 logger.info { "${player.username} used $interfaceId:$componentId sub $sub on player ${clicked?.username} (not handled)" }
                 return@act
@@ -1931,8 +1970,20 @@ class World(
     fun onPublicChat(player: Player, message: MessagePublic) = act(player) {
         if (message.type == PublicChat.TYPE_FRIENDS_CHAT) {
             friendChats.talk(player, message.message)
+        } else if (message.type == Clans.CHAT_TYPE_CLAN && message.clanType == Clans.CLAN_TYPE_CLAN) {
+            clans.talk(player, message.message)
+        } else if (message.type == Clans.CHAT_TYPE_CLAN || message.type == Clans.CHAT_TYPE_GUEST) {
+            // Group ironman and guest clan chat aren't built.
+            logger.info { "${player.username} sent clan chat type ${message.type} clan type ${message.clanType} (not built)" }
         } else {
             sayPublicChat(player, message)?.let { reports.heard(player, it) }
+        }
+    }
+
+    /** The clan creation panel's name prompt; see [Clans.setName]. Then Confirm again, if it came from Confirm. */
+    private fun askClanName(player: Player, thenConfirm: Boolean) {
+        scripts.start(player) {
+            if (clans.setName(player, stringDialog(textFor(player)[ClanLines.NAME_PROMPT])) && thenConfirm) clans.confirm(player, ::askClanName)
         }
     }
 
@@ -2021,6 +2072,15 @@ class World(
         }
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.click(player, componentId, sub, op)) return@act
         if (interfaceId == AllSettings.INTERFACE && allSettings.click(player, componentId, sub, op, tick)) return@act
+        if (interfaceId == Clans.SIDE_CHANNELS && componentId in Clans.SIDE_CHANNELS_TABS) {
+            clans.selectTab(player, componentId - Clans.SIDE_CHANNELS_TABS.first, interfaces::openChatChannel)
+            return@act
+        }
+        if (interfaceId == Clans.CREATION && clans.clickCreation(player, componentId, sub, ::askClanName)) return@act
+        if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_CHAT) {
+            clans.toggleChannel(player)
+            return@act
+        }
         if (interfaceId == FriendChats.CURRENT && componentId == FriendChats.CURRENT_SETUP) {
             openFriendsChatSetup(player)
             return@act
@@ -2598,6 +2658,7 @@ class World(
             trades.leave(player)
             thieving.forgive(player)
             friendChats.logout(player)
+            clans.logout(player)
             parties.logout(player)
             npcs.forget(player, scripts::busy)
             save(player)
