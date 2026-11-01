@@ -46,6 +46,8 @@ class HeadlessEdgevillePeopleTest {
 
     private val talk = listOf("Talk-to", null, null, null, null)
     private val doris = NpcType(EdgevillePeople.DORIS, "Doris", ops = talk, internalName = "hundred_dave_mum")
+    private val evilDave = NpcType(EdgevillePeople.EVIL_DAVE, "Evil Dave", ops = talk, internalName = "hundred_evil_dave")
+    private val hari = NpcType(EdgevillePeople.HARI, "Hari", ops = listOf("Talk-to", null, "Store-axe", null, null), internalName = "canoeing_hari")
     private val lucienShown = NpcType(EdgevillePeople.LUCIEN_SHOWN, "Lucien", ops = talk, internalName = "ikov_lucien2_vis_noattack")
     private val lucien = NpcType(
         EdgevillePeople.LUCIEN, multiVarbit = EdgevillePeople.VARBIT_LUCIEN, multiNpcs = intArrayOf(-1, EdgevillePeople.LUCIEN_SHOWN, 13607),
@@ -64,8 +66,11 @@ class HeadlessEdgevillePeopleTest {
             },
             objTypes = ObjTypes(objs),
             locTypes = locTypes,
-            npcTypes = NpcTypes.of(doris, lucien, lucienShown),
-            npcSpawns = listOf(NpcSpawn(doris, 3080, 3491, source = "test"), NpcSpawn(lucien, 3082, 3491, source = "test")),
+            npcTypes = NpcTypes.of(doris, lucien, lucienShown, evilDave, hari),
+            npcSpawns = listOf(
+                NpcSpawn(doris, 3080, 3491, source = "test"), NpcSpawn(lucien, 3082, 3491, source = "test"),
+                NpcSpawn(evilDave, 3080, 9890, source = "test"), NpcSpawn(hari, 3133, 3509, source = "test"),
+            ),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(EdgevillePeople.TRAPDOOR, LocShape.GROUND_DECOR, 3, 3077, 3493, 0))
                 add(ZoneLoc(EdgevillePeople.CELLAR_STAIRS, LocShape.CENTREPIECE_STRAIGHT, 0, 3076, 9893, 0))
@@ -166,6 +171,34 @@ class HeadlessEdgevillePeopleTest {
                 client.chat("lucien.lost_pendant")
                 client.chat("lucien.new_pendant")
                 client.await("the pendant") { if (client.inventory(BACKPACK).any { it?.id == EdgevillePeople.PENDANT_OF_LUCIEN }) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `Evil Dave and Hari talk through the client`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3079, 9890, 0)
+                client.npcOp(client.await("Evil Dave in view") { client.npcs().firstOrNull { it.id == evilDave.id } }.index, EdgevillePeople.TALK_TO)
+                client.chat("evil_dave.greeting")
+                client.awaitDialogue("his menu") { it is DialogueView.Menu }
+                client.chooseOption(3)
+                client.chat("evil_dave.time_travel")
+                client.awaitDialogue("the time travel menu") { it is DialogueView.Menu }
+                client.chooseOption(5)
+                client.chat("evil_dave.never_mind")
+
+                client.tele(3132, 3509, 0)
+                client.npcOp(client.await("Hari in view") { client.npcs().firstOrNull { it.id == hari.id } }.index, EdgevillePeople.TALK_TO)
+                client.chat("hari.hello")
+                client.chat("hari.hello_reply")
+                client.awaitDialogue("his menu") { it is DialogueView.Menu }
+                client.chooseOption(2)
+                client.chat("hari.teach_me")
+                // A new account's Woodcutting is 1: below the log canoe's level.
+                client.chat("hari.no_skill")
             }
         }
     }
