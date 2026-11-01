@@ -126,6 +126,18 @@ class ObjModelImporterTest {
     }
 
     @Test
+    fun `an indented or commented mtllib line and a texture name with spaces and options still find their files`(@TempDir dir: Path) {
+        ImageIO.write(texture(), "png", dir.resolve("stone diffuse.png").toFile())
+        Files.writeString(dir.resolve("my stone.mtl"), mtl.replace("map_Kd tex.png", "map_Kd -clamp on -o 0 0 0 stone diffuse.png"))
+        Files.writeString(dir.resolve("quad.obj"), obj.replace("mtllib x.mtl", "  mtllib my stone.mtl # the materials"))
+        val model = ObjModelImporter.importFile(dir.resolve("quad.obj"), ObjModelImporter.Options(scale = 0.25)).model
+        assertEquals(HslPalette.nearest(0x808080), model.faceColors[0], "the library was read")
+        assertEquals(HslPalette.nearest(0x7F3F3F), model.faceColors[1], "the texture was read")
+        assertEquals("stone diffuse.png", ObjModelImporter.parseMtl("newmtl a\nmap_Kd -s 1 1 1 stone diffuse.png").getValue("a").texture)
+        assertNull(ObjModelImporter.parseMtl("newmtl a\nmap_Kd -clamp on").getValue("a").texture)
+    }
+
+    @Test
     fun `the imported model encodes`() {
         val model = ObjModelImporter.import(obj, mtl, ObjModelImporter.Options(scale = 0.25)).model
         val again = ModelCodec.decode(ModelCodec.encode(model))

@@ -41,8 +41,10 @@ object ObjModelImporter {
         val text = Files.readString(obj)
         val dir = obj.toAbsolutePath().parent
         val materials = LinkedHashMap<String, Material>()
-        for (match in Regex("""^mtllib\s+(.+)$""", RegexOption.MULTILINE).findAll(text)) {
-            val library = dir.resolve(match.groupValues[1].trim()).takeIf(Files::exists) ?: continue
+        for (raw in text.lineSequence()) {
+            val parts = raw.substringBefore('#').trim().split(Regex("\\s+"))
+            if (parts[0] != "mtllib" || parts.size < 2) continue
+            val library = dir.resolve(parts.drop(1).joinToString(" ")).takeIf(Files::exists) ?: continue
             for (material in parseMtl(Files.readString(library)).values) {
                 material.texture = material.texture?.let { library.toAbsolutePath().parent.resolve(it).toString() }
                 materials[material.name] = material
@@ -159,10 +161,23 @@ object ObjModelImporter {
             when (parts[0]) {
                 "newmtl" -> current = Material(parts.drop(1).joinToString(" ")).also { materials[it.name] = it }
                 "Kd" -> current?.color = (channel(parts[1]) shl 16) or (channel(parts[2]) shl 8) or channel(parts[3])
-                "map_Kd" -> current?.texture = parts.last()
+                "map_Kd" -> current?.texture = mapFile(parts.drop(1))
             }
         }
         return materials
+    }
+
+    /**
+     * The file a `map_Kd` names: everything after its options (`-o 0 0 0`, `-clamp on`, each a flag with its numbers
+     * or on/off), with the spaces a name can have kept. The options themselves say nothing a flat colour needs.
+     */
+    private fun mapFile(args: List<String>): String? {
+        var i = 0
+        while (i < args.size && args[i].startsWith("-")) {
+            i++
+            while (i < args.size && (args[i].toDoubleOrNull() != null || args[i] == "on" || args[i] == "off")) i++
+        }
+        return args.drop(i).joinToString(" ").takeIf { it.isNotEmpty() }
     }
 
     private fun channel(value: String): Int = (value.toDouble().coerceIn(0.0, 1.0) * 255.0).roundToInt()
