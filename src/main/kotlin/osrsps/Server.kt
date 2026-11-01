@@ -57,6 +57,7 @@ import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.SkillUnlocks
 import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
+import osrsps.net.ProblemReports
 import osrsps.net.RelayAwareValidator
 import osrsps.net.NetworkFactory
 import osrsps.net.ProxyProtocol
@@ -94,7 +95,7 @@ class GameServer(
     private lateinit var world: World
     private val clientConfig = ClientConfig(
         publicHost, httpPort, gamePort = port, version = version, deployState = deployState, proxy = proxy,
-        runelitePins = RuneLitePins.load(),
+        runelitePins = RuneLitePins.load(), reports = ProblemReports(dataDir.resolve(ProblemReports.FOLDER)),
     )
     private val js5Connections = AtomicLong()
     private lateinit var factory: NetworkFactory
