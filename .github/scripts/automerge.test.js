@@ -103,7 +103,8 @@ test('a review covers the head when it is the head or makes the same tree with m
 // A repository whose pull requests are { number: { head, ref, behind, checks: [{ name, status, conclusion }],
 // comments, autoMerge, mergeable } }.
 // `batch`: the batch branch, { sha, message, checks, committed }; `commits`: commit messages by sha.
-function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'required_status_checks' }], mainMoved = false, suites = {} } = {}) {
+// `builds`: build.yml runs not finished, { id, status, event, head_branch, head_sha, triggering_actor }.
+function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'required_status_checks' }], mainMoved = false, suites = {}, builds = [] } = {}) {
   const calls = [];
   let nextId = 1000;
   const prData = n => {
@@ -194,6 +195,7 @@ function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'require
     },
     actions: {
       createWorkflowDispatch: async args => { calls.push(['dispatch', args.workflow_id, args.ref]); },
+      listWorkflowRuns: 'actions.listWorkflowRuns',
       // `held` maps a head to the ids of its runs waiting for approval; `heldAfterUpdate` is what a merge of main gets.
       listWorkflowRunsForRepo: async ({ head_sha }) => {
         const pr = Object.values(prs).find(p => p.head === head_sha);
@@ -208,6 +210,7 @@ function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'require
     },
   };
   const paginate = async (what, args) => {
+    if (what === 'actions.listWorkflowRuns') return builds.filter(run => run.status === args.status);
     if (what === rest.actions.listWorkflowRunsForRepo) {
       return Object.values(prs).flatMap(p => (p.held || []).map(id => ({ id, head_sha: p.head })));
     }
@@ -222,7 +225,11 @@ function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'require
     }
     throw new Error(`paginate ${what}`);
   };
-  return { github: { rest, paginate }, calls };
+  const request = async (route, args) => {
+    if (!/force-cancel/.test(route)) throw new Error(`request ${route}`);
+    calls.push(['cancel', args.run_id]);
+  };
+  return { github: { rest, paginate, request }, calls };
 }
 
 const core = { info: () => {}, warning: () => {} };
@@ -801,4 +808,47 @@ test("a green batch whose member Codex no longer covers writes that member's che
   assert.deepStrictEqual(calls.filter(call => call[0] === 'dispatch'), [['dispatch', 'build.yml', BATCH]]);
   const [sha] = pushed[0].split(':');
   assert.deepStrictEqual(parseBatch(pushed.commits[sha]).members.map(m => m.number), [2, 3], 'the batch again, without #1');
+});
+
+const dispatched = (id, branch, sha, status = 'queued') =>
+  ({ id, status, event: 'workflow_dispatch', head_branch: branch, head_sha: sha, triggering_actor: { login: 'github-actions[bot]' } });
+
+test('a head whose dispatched build waits for a runner gets no other, and its older duplicates are cancelled', async () => {
+  const { github, calls } = fakeGitHub({
+    5: { head: H('5'), behind: 0, checks: [codexPass], comments: [summary(H('5'), false)] },
+  }, {
+    builds: [
+      dispatched(11, 'branch-5', H('5'), 'in_progress'),
+      dispatched(12, 'branch-5', H('5')),
+      dispatched(13, 'branch-5', H('5')),
+      dispatched(9, 'branch-5', H('4')), // an older head of the same branch
+      dispatched(8, 'gone', H('6')), // a branch no open pull request has
+      { ...dispatched(7, 'main', H('m')) }, // main's own runs are left alone
+      { ...dispatched(14, 'branch-5', H('5')), event: 'pull_request', triggering_actor: { login: 'a-thread' } },
+    ],
+  });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls.filter(c => c[0] === 'cancel').map(c => c[1]).sort(), [11, 12, 8, 9].sort());
+  assert.ok(!calls.some(c => c[0] === 'dispatch'), 'no build dispatched while one is queued');
+});
+
+test('a head with no build at all still gets one after ten minutes', async () => {
+  const { github, calls } = fakeGitHub({
+    5: { head: H('5'), behind: 0, checks: [codexPass], comments: [summary(H('5'), false)] },
+  });
+  await queue(github, fakeGit({}));
+  assert.deepStrictEqual(calls, [['dispatch', 'build.yml', 'branch-5']]);
+});
+
+test('a batch whose build waits for a runner gets no other, and older batches\' builds are cancelled', async () => {
+  const run = (checks, builds) => fakeGitHub({ 1: ready(1), 2: ready(2) }, {
+    batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks, committed: '2026-10-30T00:30:00Z' },
+    builds,
+  });
+  const waiting = run([], [dispatched(20, BATCH, B), dispatched(19, BATCH, H('e'))]);
+  await queue(waiting.github, fakeGit({}));
+  assert.deepStrictEqual(waiting.calls, [['cancel', 19]]);
+  const lost = run([], []);
+  await queue(lost.github, fakeGit({}));
+  assert.deepStrictEqual(lost.calls, [['dispatch', 'build.yml', BATCH]], 'no build at all after ten minutes: one is started');
 });
