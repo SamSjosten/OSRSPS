@@ -645,10 +645,9 @@ class MeleeCombatTest {
         repeat(7) { tick() }
         assertEquals(3220 to 3210, npc.x to npc.z)
         assertEquals(alice, npc.target)
-        repeat(3) { tick() }
-        assertEquals(3220 to 3210, npc.x to npc.z)
         assertTrue(alice.effects.pendingHits.isEmpty())
-        // Back in reach, it hits her; beyond its chase range, it lets her go.
+        // Back in reach, it hits her; beyond its chase range, it lets her go. (Standing off outside its aggression range
+        // for long, it would let her go too: RetreatTest.)
         alice.x = 3221
         tick()
         assertEquals(1, alice.effects.pendingHits.size)

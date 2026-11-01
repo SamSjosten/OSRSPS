@@ -45,7 +45,8 @@ class MeleeInteraction internal constructor(val npc: Npc, private val owner: Mel
  *
  * An NPC that is hit fights back ([process], in the NPC phase): it chases its attacker, keeping within its max range
  * of its spawn ([Npcs.MAX_RANGE]), and swings every attack-speed ticks once beside them; it gives up when they are
- * gone, dead, on another level, further than [CHASE_RANGE] from its spawn, or fought by another NPC. A player hit
+ * gone, dead, on another level, further than [CHASE_RANGE] from its spawn, or fought by another NPC, and walks home
+ * when they have stood outside its aggression range for a while ([leftBehind]). A player hit
  * with auto retaliate on fights back too (OSRS Wiki, Auto Retaliate: one tick after the hit, with their attack delay
  * set to half their weapon's speed, rounded up). Lumbridge is single-way: an NPC another player hit recently says
  * "Someone else is fighting that.", and a player another NPC is hitting can't attack a second one ("I'm already under
@@ -429,22 +430,29 @@ class MeleeCombat(
      * fight back, keeping within its max range of its spawn ([Npcs.MAX_RANGE]), until the player leaves its interaction
      * range ([CHASE_RANGE], the max range plus 11) or dies or leaves. Guessed (the Wiki gives none of these): that a
      * hit from within the aggression range ends a retreat its hitpoints don't call for, and it fights back; the
-     * hitpoints threshold of each NPC; walking straight away from the player, diagonals first.
+     * hitpoints threshold of each NPC; walking straight away from the player, diagonals first; and that a retreat also
+     * ends [IN_COMBAT_TICKS] after the last hit, so a player standing within range without hitting it doesn't keep an
+     * aggressive NPC from hunting anyone else.
      */
     private fun hitBy(npc: Npc, def: NpcCombatDef, player: Player, from: Tile, tick: Long) {
         val inRange = Aggression.inAggressionRange(npc, from.x, from.z)
         if (lowOnHitpoints(npc, def) || (!inRange && npc.retreatingFrom == null)) return retreat(npc, player)
         if (npc.retreatingFrom != null) {
-            if (!inRange) return
+            if (!inRange) {
+                // Another hit from out of range keeps it going.
+                npc.retreatTick = tick
+                return
+            }
             npc.retreatingFrom = null
         }
         retaliate(npc, player, tick)
     }
 
-    /** [npc] stops fighting and walks away from [player]; see [hitBy]. */
+    /** [npc] stops fighting and walks away from [player], from this tick; see [hitBy]. */
     private fun retreat(npc: Npc, player: Player) {
         giveUp(npc)
         npc.retreatingFrom = player
+        npc.retreatTick = currentTick()
         npc.destination = null
     }
 
@@ -452,9 +460,14 @@ class MeleeCombat(
     private fun lowOnHitpoints(npc: Npc, def: NpcCombatDef): Boolean =
         def.retreatsAt > 0 && npc.hitpoints <= (npc.type.stats.hitpoints * def.retreatsAt + 99) / 100
 
-    /** Ends [npc]'s retreat once [player] has left its interaction range, died or gone; see [hitBy]. */
-    private fun keepRetreating(npc: Npc, player: Player) {
-        if (player.loggedOut || player.dead || player.level != npc.level || outOfRange(npc, player)) npc.retreatingFrom = null
+    /**
+     * Ends [npc]'s retreat once [player] has left its interaction range, died or gone, or not hit it for
+     * [IN_COMBAT_TICKS] (guessed); see [hitBy].
+     */
+    private fun keepRetreating(npc: Npc, player: Player, tick: Long) {
+        if (player.loggedOut || player.dead || player.level != npc.level || outOfRange(npc, player) || tick - npc.retreatTick > IN_COMBAT_TICKS) {
+            npc.retreatingFrom = null
+        }
     }
 
     /**
@@ -538,7 +551,7 @@ class MeleeCombat(
             }
         }
         for (npc in npcs.all) {
-            npc.retreatingFrom?.let { keepRetreating(npc, it) }
+            npc.retreatingFrom?.let { keepRetreating(npc, it, tick) }
             val target = npc.target ?: continue
             fightBack(npc, target, tick)
         }
@@ -554,6 +567,12 @@ class MeleeCombat(
             (underAttackByAnother(player, npc) && !hitBy(npc, player))
         ) {
             giveUp(npc)
+            return
+        }
+        if (leftBehind(npc, player, tick)) {
+            giveUp(npc)
+            // Home, so it hunts from its spawn again rather than from the edge of its range. Guessed.
+            npc.destination = Tile(npc.spawn.x, npc.spawn.z)
             return
         }
         // Poison or another player can take it down to where it gives up the fight.
@@ -576,6 +595,16 @@ class MeleeCombat(
         // attack in four, as for a player's poisoned melee weapon; the Wiki gives no chance for monsters.
         if (def.poison > 0 && !player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(player, def.poison)
     }
+
+    /**
+     * Whether [npc] has lost [player]: they stand outside its aggression range ([Aggression.inAggressionRange]), where
+     * it can't follow them (it keeps within its max range of its spawn, [Npcs.MAX_RANGE]), it hasn't swung at them or
+     * taken them on for [IN_COMBAT_TICKS], and they haven't hit it in that time. The Wiki (Aggressiveness) says the
+     * aggression range "defines the outer limit of where the player can stand and still be attacked"; how long it
+     * waits there first is guessed.
+     */
+    private fun leftBehind(npc: Npc, player: Player, tick: Long): Boolean =
+        !Aggression.inAggressionRange(npc, player.x, player.z) && tick - npc.fightTick > IN_COMBAT_TICKS && !hitBy(npc, player)
 
     /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis. */
     private fun outOfRange(npc: Npc, player: Player): Boolean =
