@@ -2004,6 +2004,187 @@
           "restock": 100
         }
       ]
+    },
+    {
+      "key": "edgeville_general_store",
+      "title": "Edgeville General Store",
+      "inv": 24,
+      "size": 40,
+      "general": true,
+      "sellAt": 1300,
+      "buyAt": 400,
+      "changePer": 30,
+      "npcs": [
+        "generalshopkeeper5",
+        "generalassistant5"
+      ],
+      "source": "OSRS Wiki, Edgeville General Store, read 2026-10-30: Sells at 130.0%, Buys at 40.0%, Change per 3.0%, and the stock table (Al Kharid's with a knife). inv generalshop5 is inferred from its keepers' names (generalshopkeeper5), as Lumbridge's generalshop1 has generalshopkeeper1",
+      "stock": [
+        {
+          "item": 1931,
+          "name": "Pot",
+          "count": 5,
+          "restock": 10
+        },
+        {
+          "item": 1935,
+          "name": "Jug",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 20742,
+          "name": "Empty jug pack",
+          "count": 5,
+          "restock": 20
+        },
+        {
+          "item": 1735,
+          "name": "Shears",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1925,
+          "name": "Bucket",
+          "count": 3,
+          "restock": 10
+        },
+        {
+          "item": 22660,
+          "name": "Empty bucket pack",
+          "count": 15,
+          "restock": 10
+        },
+        {
+          "item": 1923,
+          "name": "Bowl",
+          "count": 2,
+          "restock": 50
+        },
+        {
+          "item": 1887,
+          "name": "Cake tin",
+          "count": 2,
+          "restock": 50
+        },
+        {
+          "item": 590,
+          "name": "Tinderbox",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1755,
+          "name": "Chisel",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 2347,
+          "name": "Hammer",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 946,
+          "name": "Knife",
+          "count": 1,
+          "restock": 2
+        },
+        {
+          "item": 550,
+          "name": "Newcomer map",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 9003,
+          "name": "Security book",
+          "count": 5,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "oziachs_armour",
+      "title": "Oziach's Armour",
+      "inv": 35,
+      "size": 3,
+      "general": false,
+      "sellAt": 1300,
+      "buyAt": 400,
+      "changePer": 30,
+      "npcs": [
+        "oziach"
+      ],
+      "source": "OSRS Wiki, Oziach's Armour, read 2026-10-30: Sells at 130.0%, Buys at 40.0%, Change per 3.0%, and the stock table; open after Dragon Slayer I, which every account has done. inv runeplateshop is inferred: named for its stock, and the 241 cache sizes it 3, the shop's three items",
+      "stock": [
+        {
+          "item": 1127,
+          "name": "Rune platebody",
+          "count": 2,
+          "restock": 500
+        },
+        {
+          "item": 1135,
+          "name": "Green d'hide body",
+          "count": 2,
+          "restock": 500
+        },
+        {
+          "item": 1540,
+          "name": "Anti-dragon shield",
+          "count": 35,
+          "restock": 1
+        }
+      ]
+    },
+    {
+      "key": "richards_wilderness_cape_shop",
+      "title": "Richard's Wilderness Cape Shop",
+      "inv": 241,
+      "size": 40,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 10,
+      "npcs": [
+        "wilderness_capeseller_6"
+      ],
+      "source": "OSRS Wiki, Richard (merchant), read 2026-10-30: Sells at 100.0%, Buys at 60.0%, Change per 1.0%, 100 of each cape back every 100 ticks. inv wildernesscapeshop6 is inferred from his name (wilderness_capeseller_6)",
+      "stock": [
+        {
+          "item": 4325,
+          "name": "Team-6 cape",
+          "count": 100,
+          "restock": 100
+        },
+        {
+          "item": 4345,
+          "name": "Team-16 cape",
+          "count": 100,
+          "restock": 100
+        },
+        {
+          "item": 4365,
+          "name": "Team-26 cape",
+          "count": 100,
+          "restock": 100
+        },
+        {
+          "item": 4385,
+          "name": "Team-36 cape",
+          "count": 100,
+          "restock": 100
+        },
+        {
+          "item": 4405,
+          "name": "Team-46 cape",
+          "count": 100,
+          "restock": 100
+        }
+      ]
     }
   ]
 }
