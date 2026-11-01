@@ -208,6 +208,9 @@ function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'require
     },
   };
   const paginate = async (what, args) => {
+    if (what === rest.actions.listWorkflowRunsForRepo) {
+      return Object.values(prs).flatMap(p => (p.held || []).map(id => ({ id, head_sha: p.head })));
+    }
     if (what === 'pulls.list') return Object.keys(prs).map(Number).map(prData);
     if (what === 'pulls.listReviews') return [];
     if (what === 'pulls.listFiles') return (prs[args.pull_number].files || ['src/a.kt']).map(filename => ({ filename }));
@@ -284,6 +287,32 @@ test('a pull request without the check gets one first', async () => {
   });
   await queue(github, fakeGit({}));
   assert.deepStrictEqual(calls, [['check', H('5'), 'success']]);
+});
+
+test('a queue run lists the waiting runs once and gates with the pull requests it listed', async () => {
+  const { github, calls } = fakeGitHub({
+    1: { head: H('1'), behind: 0, checks: [...green], comments: [summary(H('1'), false)] },
+    2: { head: H('2'), behind: 0, checks: [...green], comments: [] },
+    3: { head: H('3'), behind: 0, checks: [...green, codexPass], comments: [summary(H('3'), false)] },
+  });
+  let perHead = 0;
+  let gets = 0;
+  const list = github.rest.actions.listWorkflowRunsForRepo;
+  github.rest.actions.listWorkflowRunsForRepo = async args => { if (args.head_sha) perHead++; return list(args); };
+  const get = github.rest.pulls.get;
+  github.rest.pulls.get = async args => { gets++; return get(args); };
+  await queue(github, fakeGit({}));
+  assert.strictEqual(perHead, 0, 'no listing per pull request');
+  assert.strictEqual(gets, 0, 'no pull request fetched again');
+  assert.deepStrictEqual(calls, [['check', H('1'), 'success'], ['check', H('2'), 'in_progress']]);
+});
+
+test('a Codex summary marked running does not start a queue run', async () => {
+  let listed = 0;
+  const github = { paginate: async () => { listed++; return []; }, rest: {} };
+  const comment = summary(H('1'), false, 'running');
+  await automerge.queue({ github, context: { repo, payload: { comment } }, core, git: fakeGit({}), sleep: async () => {}, now: () => NOW });
+  assert.strictEqual(listed, 0);
 });
 
 test('when merging main changes the diff, the thread is asked for a new Codex review', async () => {
@@ -388,6 +417,19 @@ test('the queue puts right a stale failing check once Codex is clean', async () 
   });
   await queue(github, fakeGit({}));
   assert.deepStrictEqual(calls, [['check', H('1'), 'success']]);
+});
+
+test('a check that fails while the queue gates a pull request counts', async () => {
+  const pr = { head: H('1'), mergedHead: H('2'), behind: 1, checks: [...green], comments: [summary(H('1'), false)] };
+  const { github, calls } = fakeGitHub({ 1: pr });
+  const paginate = github.paginate;
+  github.paginate = async (what, args) => {
+    // The build is re-run and fails while Codex's comments are read.
+    if (what === 'issues.listComments') pr.checks = [{ id: 50, name: 'build', status: 'completed', conclusion: 'failure' }];
+    return paginate(what, args);
+  };
+  await queue(github, fakeGit({ [H('1')]: 'p', [H('2')]: 'p' }));
+  assert.deepStrictEqual(calls, [['check', H('1'), 'success']], 'main is not merged into a failing pull request');
 });
 
 test('a gate run leaves a check written after its evaluation started', async () => {
