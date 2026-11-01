@@ -186,6 +186,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `edgeville-monastery.json`: Edgeville step 4 (with `::keys on`): the ladder's refusal and the Abbot's join menu at
   30 and 31 Prayer (`assertVarbit` 4907), the climb, a monk's robe top taken, the altar, Brother Jered, the climb down,
   the Abbot's and a monk's heal, Brother Althric and a cabbage picked. Needs 0.8.0 for `assertVarbit`.
+- `barbarian-village.json`: Edgeville step 5 (with `::keys on`): a bronze med helm bought from Peksa, wool spun,
+  a pot thrown on Tassie's wheel and fired in her oven, Tassie's talk, the lookout tower's ladders up to Hunding and
+  down, and the talk of Atlas, Litara, Checkal and Sigurd.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.

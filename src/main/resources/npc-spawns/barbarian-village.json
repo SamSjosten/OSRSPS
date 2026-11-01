@@ -1,0 +1,12 @@
+{
+  "about": "Barbarian Village (Edgeville piece step 5): Peksa, Tassie Slipcast, Hunding, Atlas, Checkal, Litara and Sigurd. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Barbarian Village page. Checkal and Litara are multi-NPCs, spawned as the type the map holds. Every wander range is guessed until recorded. The barbarians, Gunthor the brave and the unicorns are step 7's.",
+  "spawns": [
+    {"npc": 2872, "x": 3076, "z": 3429, "wander": 2, "restrict": "indoors", "source": "Peksa (peksa), Peksa's Helmet Shop (Edgeville piece step 5). mejrs NPCList_OSRS; the Wiki's Barbarian Village page"},
+    {"npc": 1352, "x": 3084, "z": 3408, "wander": 2, "restrict": "indoors", "source": "Tassie Slipcast (favour_tassie_slipcast), her studio (Edgeville piece step 5). mejrs NPCList_OSRS; the Wiki's Barbarian Village page"},
+    {"npc": 3063, "x": 3096, "z": 3428, "level": 2, "wander": 1, "restrict": "indoors", "source": "Hunding (fai_barbarian_9), the top of the lookout tower (Edgeville piece step 5). mejrs NPCList_OSRS; the Wiki's Barbarian Village page"},
+    {"npc": 10658, "x": 3075, "z": 3439, "wander": 2, "restrict": "indoors", "source": "Atlas (bim_atlas), the longhall (Edgeville piece step 5). mejrs NPCList_OSRS; the Wiki's Barbarian Village page"},
+    {"npc": 10645, "x": 3087, "z": 3415, "wander": 2, "source": "Checkal (bim_checkal_barb, showing bim_checkal), by the mine (Edgeville piece step 5). mejrs NPCList_OSRS; the Wiki's Barbarian Village page"},
+    {"npc": 3363, "x": 3081, "z": 3421, "wander": 2, "source": "Litara (sos_barb, showing sos_barb_visible), by the Stronghold's entrance (Edgeville piece step 5). mejrs NPCList_OSRS; the Wiki's Barbarian Village page"},
+    {"npc": 1324, "x": 3113, "z": 3413, "wander": 2, "source": "Sigurd (canoeing_sigurd), the canoe station (Edgeville piece step 5). mejrs NPCList_OSRS; the Wiki's Barbarian Village page"}
+  ]
+}
