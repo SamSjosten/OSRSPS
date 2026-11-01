@@ -1097,11 +1097,6 @@ final class Steps
 		/** Hitmark ids, any of which passes; null for any. */
 		final int[] types;
 
-		AssertHitsplat(long timeoutMs, String npc, int amount)
-		{
-			this(timeoutMs, npc, amount, null);
-		}
-
 		AssertHitsplat(long timeoutMs, String npc, int amount, int[] types)
 		{
 			super("assertHitsplat", timeoutMs, false);

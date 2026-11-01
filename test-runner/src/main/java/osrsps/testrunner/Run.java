@@ -130,14 +130,8 @@ final class Run
 
 	/**
 	 * The first hitsplat since the last action on the actor with that index ({@link #SELF} for the player), showing
-	 * {@code amount} when that is 0 or more; else null.
+	 * {@code amount} when that is 0 or more and of one of {@code types} when that isn't null; else null.
 	 */
-	Hitsplat hitsplatSinceAction(int index, int amount)
-	{
-		return hitsplatSinceAction(index, amount, null);
-	}
-
-	/** As {@link #hitsplatSinceAction(int, int)}, and of one of {@code types} when that isn't null. */
 	Hitsplat hitsplatSinceAction(int index, int amount, int[] types)
 	{
 		for (int i = hitsplatMark; i < hitsplats.size(); i++)
