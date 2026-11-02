@@ -135,6 +135,30 @@ object SigurdLines : Lines("sigurd", "Transcript:Sigurd") {
     val HARI_3 = line("hari_3", "57 or more: a nice bloke")
 }
 
+/** A village barbarian's lines, from the Wiki's Transcript:Barbarian: one of six, picked at random, before he attacks. */
+object BarbarianLines : Lines("barbarian", "Transcript:Barbarian") {
+    val RANDOM = listOf(
+        line("random_1", "random line 1: wanna fight?"),
+        line("random_2", "random line 2: you come for fight?"),
+        line("random_3", "random line 3: you look funny"),
+        line("random_4", "random line 4: a growl"),
+        line("random_5", "random line 5: what you want?"),
+        line("random_6", "random line 6: go away"),
+    )
+}
+
+/** Gunthor the Brave's lines, from the Wiki's Transcript:Gunthor the brave: one of six talks, picked at random, before he attacks. */
+object GunthorLines : Lines("gunthor", "Transcript:Gunthor the brave") {
+    val COME_FOR_FIGHT = line("come_for_fight", "talk 1: you've come for a fight")
+    val WHAT_WANT = line("what_want", "talk 2: his first box, what does the player want?")
+    val OFFERING = line("offering", "talk 2: the player asks what he's offering")
+    val A_FIGHT = line("a_fight", "talk 2: his answer, a fight")
+    val LOOK_ODD = line("look_odd", "talk 3: the player looks odd")
+    val WANNA_FIGHT = line("wanna_fight", "talk 4: does the player want to fight?")
+    val GROWL = line("growl", "talk 5: a growl")
+    val GO_AWAY = line("go_away", "talk 6: go away")
+}
+
 /**
  * Barbarian Village's buildings and people (Edgeville piece step 5): the longhall's double doors and its item spawns,
  * Peksa's Helmet Shop, the spinning hut, Tassie Slipcast's studio and the lookout tower, and the talk of Peksa (2872),
@@ -323,6 +347,35 @@ object BarbarianVillage {
             }
         }
     }
+
+    /** fai_barbarian_1 to _14 and fai_barbarian_female_1 to _4, less Hunding (fai_barbarian_9): the village's fighters. */
+    val BARBARIANS = (3055..3072).filter { it != HUNDING }
+
+    const val GUNTHOR = 299
+
+    /**
+     * A village barbarian's talk: one of his six lines, [roll] giving a number below its argument. He attacks once it
+     * is over ([registerBarbarianVillage]). Guessed: the expression, and the lines as even chances (the Wiki gives none).
+     */
+    internal suspend fun Dialogue.barbarian(roll: (Int) -> Int) {
+        chatNpc(ChatAnim.ANGRY, BarbarianLines.RANDOM[roll(BarbarianLines.RANDOM.size)])
+    }
+
+    /** Gunthor's talk: one of his six, [roll] as for [barbarian]. He attacks once it is over. */
+    internal suspend fun Dialogue.gunthor(roll: (Int) -> Int) = with(GunthorLines) {
+        when (roll(6)) {
+            0 -> chatNpc(ChatAnim.ANGRY, COME_FOR_FIGHT)
+            1 -> {
+                chatNpc(ChatAnim.ANGRY, WHAT_WANT)
+                chatPlayer(ChatAnim.QUIZ, OFFERING)
+                chatNpc(ChatAnim.ANGRY, A_FIGHT)
+            }
+            2 -> chatNpc(ChatAnim.ANGRY, LOOK_ODD)
+            3 -> chatNpc(ChatAnim.ANGRY, WANNA_FIGHT)
+            4 -> chatNpc(ChatAnim.ANGRY, GROWL)
+            else -> chatNpc(ChatAnim.ANGRY, GO_AWAY)
+        }
+    }
 }
 
 fun registerBarbarianVillage(world: World) {
@@ -344,5 +397,17 @@ fun registerBarbarianVillage(world: World) {
         world.handlers.onNpc(CHECKAL, TALK_TO) { op -> world.dialogues.start(this, op.npc) { checkal() } }
         world.handlers.onNpc(LITARA, TALK_TO) { op -> world.dialogues.start(this, op.npc) { litara() } }
         world.handlers.onNpc(SIGURD, TALK_TO) { op -> world.dialogues.start(this, op.npc) { sigurd() } }
+        // The barbarians and Gunthor attack whoever finishes talking to them (Wiki, Transcript:Barbarian and Gunthor the
+        // Brave); walking off mid-talk ends the script before the attack, as the Wiki says it does.
+        for (id in BARBARIANS) {
+            world.handlers.onNpc(id, TALK_TO) { op ->
+                world.dialogues.start(this, op.npc) { barbarian { world.random.nextInt(it) } }
+                op.npc?.let { world.meleeCombat.provoke(it, player, world.tick) }
+            }
+        }
+        world.handlers.onNpc(GUNTHOR, TALK_TO) { op ->
+            world.dialogues.start(this, op.npc) { gunthor { world.random.nextInt(it) } }
+            op.npc?.let { world.meleeCombat.provoke(it, player, world.tick) }
+        }
     }
 }

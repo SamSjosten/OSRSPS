@@ -21,13 +21,13 @@ class NpcCombatTest {
         "giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3",
         "little_frog_nodrops", "medium_frog_nodrops", "giant_frog_nodrops", "goblin_armed", "unicorn",
         "al_kharid_man", "al_kharid_warrior", "scorpion", "shantay_guard", "spider", "guard1", "monk",
-    ) + VARROCK_GUARDS + OUTLAWS
+    ) + VARROCK_GUARDS + OUTLAWS + BARBARIANS.keys + "gunthor_the_brave" + (1..4).map { "fai_barbarian_goblin_armed_$it" }
     // The cache's Strength levels where they aren't 1, for the max hit check.
     private val strength = mapOf(
         "giantrat" to 3, "giantrat_grey" to 3, "giantrat_grey2" to 3, "giantrat_grey3" to 3, "giantrat1_2" to 5, "giantrat1_3" to 5,
         "little_frog_nodrops" to 4, "medium_frog_nodrops" to 6, "giant_frog_nodrops" to 8, "unicorn" to 13,
         "al_kharid_warrior" to 5, "scorpion" to 12, "shantay_guard" to 16, "guard1" to 18, "monk" to 2,
-    ) + VARROCK_GUARDS.associateWith { 18 } + OUTLAWS.associateWith { 30 }
+    ) + VARROCK_GUARDS.associateWith { 18 } + OUTLAWS.associateWith { 30 } + BARBARIANS + ("gunthor_the_brave" to 22)
     private val types = NpcTypes.of(
         *names.mapIndexed { i, name -> NpcType(1000 + i, name, internalName = name, stats = NpcStats(strength = strength[name] ?: 1)) }.toTypedArray(),
     )
@@ -54,6 +54,8 @@ class NpcCombatTest {
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
             "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
+            "human_dhsword_chop" to 406, "human_dhsword_block" to 410, "barrow_dharok_crush" to 2067,
+            "human_staff_pound" to 413, "human_staff_block" to 415, "human_bow" to 426,
             "skeleton_update_attack_weapon" to 5485, "skeleton_update_attack_sword" to 5487, "skeleton_update_defend" to 5489, "skeleton_update_death" to 5491,
         ),
     )
@@ -276,5 +278,13 @@ class NpcCombatTest {
 
         /** The camp south-east of Edgeville's ten outlaws, one type each (4167 to 4176). */
         val OUTLAWS = (1..10).map { "surok_outlaw$it" }
+
+        /**
+         * Barbarian Village's melee barbarians (Edgeville step 7) and their cache Strength levels: 7 at levels 9 and 10,
+         * 14 at 17. Aitan (fai_barbarian_14) shoots, so the melee formula doesn't give his max hit.
+         */
+        val BARBARIANS = listOf(2, 5, 6, 7, 10, 11, 12, 13).associate { "fai_barbarian_$it" to 7 } +
+            listOf(1, 3, 4, 8).associate { "fai_barbarian_$it" to 14 } +
+            listOf(2, 3, 4).associate { "fai_barbarian_female_$it" to 7 } + ("fai_barbarian_female_1" to 14)
     }
 }

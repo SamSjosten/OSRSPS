@@ -189,6 +189,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `barbarian-village.json`: Edgeville step 5 (with `::keys on`): a bronze med helm bought from Peksa, wool spun,
   a pot thrown on Tassie's wheel and fired in her oven, Tassie's talk, the lookout tower's ladders up to Hunding and
   down, and the talk of Atlas, Litara, Checkal and Sigurd.
+- `barbarian-fighters.json`: Edgeville step 7 (with `::keys on` and `::god on`): a barbarian's line and his attack
+  after it, Gunthor the brave fighting back, read off `::npcs`, and the goblins and unicorns in their places.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
