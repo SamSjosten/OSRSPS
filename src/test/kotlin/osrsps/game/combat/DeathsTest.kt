@@ -488,4 +488,36 @@ class DeathsTest {
         assertEquals(1L, placed.graveOf(alice)!!.items.count(shield.id))
         assertEquals(10L, placed.graveOf(alice)!!.items.count(coins.id))
     }
+
+    @Test
+    fun `a player respawned on their feet keeps the price checker's items for the sorting, not given back to the floor`() {
+        val floor = mutableListOf<InvObj>()
+        // Stands in for the price checker's close hook: given back, overflow to the floor, unless the player is dead.
+        val placed = placed(closeModals = { player ->
+            if (!player.dead) for ((slot, obj) in player.priceChecker.contents()) { player.priceChecker[slot] = null; floor += obj }
+            player.modals.clear()
+        }) { DeathPlace(keepItems = false, 3200, 3201, 0, 3205, 3206, 0) }
+        alice.priceChecker[0] = InvObj(lobster.id, 1)
+        alice.inventory.add(coins, 10)
+        alice.modals[FrameSlot.MAINMODAL] = 464
+        placed.respawn(alice)
+        assertTrue(floor.isEmpty(), "nothing given back to the floor")
+        // The lobster, worth most, is kept with two coins; eight coins go in the grave.
+        assertEquals(1L, alice.inventory.count(lobster.id))
+        assertEquals(8L, placed.graveOf(alice)!!.items.count(coins.id))
+    }
+
+    @Test
+    fun `a death that keeps everything leaves what doesn't fit in the price checker, with no grave`() {
+        val placed = placed { DeathPlace(keepItems = true, 3200, 3201, 0, 3205, 3206, 0) }
+        alice.inventory.add(bones, 28)
+        alice.priceChecker[0] = InvObj(lobster.id, 1)
+        alice.hitpoints = 0
+        placed.die(alice)
+        repeat(Deaths.DEATH_TICKS) { tick++; placed.process() }
+        assertFalse(alice.dead)
+        assertTrue(npcs.all.none(), "no grave")
+        assertEquals(InvObj(lobster.id, 1), alice.priceChecker[0])
+        assertEquals(28L, alice.inventory.count(bones.id))
+    }
 }

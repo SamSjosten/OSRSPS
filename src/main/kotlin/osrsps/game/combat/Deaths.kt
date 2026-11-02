@@ -161,14 +161,17 @@ class Deaths(
      * player who logs out, so nobody saves dead, and by a raid's wipe for the party members it had downed.
      */
     fun respawn(player: Player, place: DeathPlace? = placeOf(player)) {
-        // A raid's wipe respawns members still on their feet, who never went through [die]: their trade is closed
-        // first, which hands its offers back, so nothing offered slips past what the death loses.
+        // A raid's wipe respawns members still on their feet, who never went through [die]: their screens are closed
+        // first, as a death closes them, so a trade hands its offers back and the price checker keeps its items for
+        // the sorting below, and nothing slips past what the death loses.
         if (!player.dead) {
+            player.deathTick = currentTick()
             closeModals(player)
             cancelScripts(player)
         }
         player.deathTick = -1
-        val lost = (if (place?.keepItems == true) emptyList() else dropItems(player)) + unchecked(player)
+        val keep = place?.keepItems == true
+        val lost = (if (keep) emptyList() else dropItems(player)) + unchecked(player, keep)
         player.deathKeptItems = KEPT_ITEMS
         val charges = lostCharges(player, lost)
         if (lost.isNotEmpty() || charges.isNotEmpty()) bury(player, lost + charges, place)
@@ -213,15 +216,17 @@ class Deaths(
     /**
      * Puts the items [dropItems] kept out of the price checker back in [player]'s backpack, which the death has all but
      * emptied; returns any that still don't fit, for the grave. Before this, closing the screen on a death put them in
-     * the bank, out of the grave (fourth exploit review, 30 Oct 2026).
+     * the bank, out of the grave (fourth exploit review, 30 Oct 2026). A death that [keeps][DeathPlace.keepItems]
+     * everything loses none of them: what doesn't fit stays in the price checker, as if still being checked.
      */
-    private fun unchecked(player: Player): List<InvObj> {
+    private fun unchecked(player: Player, keep: Boolean = false): List<InvObj> {
         val left = ArrayList<InvObj>()
         for ((slot, obj) in player.priceChecker.contents()) {
             player.priceChecker[slot] = null
             val type = objTypes[obj.id] ?: ObjType(obj.id)
             val over = obj.count - player.inventory.add(type, obj.count)
-            if (over > 0) left += InvObj(obj.id, over)
+            if (over == 0) continue
+            if (keep) player.priceChecker[slot] = InvObj(obj.id, over) else left += InvObj(obj.id, over)
         }
         return left
     }

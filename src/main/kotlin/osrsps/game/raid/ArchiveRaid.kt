@@ -169,9 +169,6 @@ class ArchiveRaids(private val world: World) {
     private val runs = LinkedHashMap<Party, ArchiveRun>()
     private var nextId = 1
 
-    /** Every run, oldest first. */
-    val all: Collection<ArchiveRun> get() = runs.values
-
     fun of(party: Party): ArchiveRun? = runs[party]
 
     /** The run whose instance holds tile [x], [z]. */
