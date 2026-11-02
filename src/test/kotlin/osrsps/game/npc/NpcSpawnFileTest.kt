@@ -385,32 +385,13 @@ class NpcSpawnFileTest {
 
     @Test
     fun `Draynor Manor's grounds have the Wiki's 14 undead trees, standing still, and Veronica by the fence`() {
-        val result = NpcSpawnFile.parse(file("draynor-manor.json"), manorTypes, "draynor-manor.json")
+        val types = NpcTypes.of(NpcType(4418, "null", internalName = "nasty_tree"), NpcType(3561, "Veronica", internalName = "veronica"))
+        val result = NpcSpawnFile.parse(file("draynor-manor.json"), types, "draynor-manor.json")
         assertEquals(emptyList(), result.unknown)
         val trees = result.spawns.filter { it.type.id == 4418 }
         assertEquals(14, trees.size)
         assertTrue(trees.all { it.wander == 0 && it.x in 3100..3145 && it.z in 3333..3366 })
         assertEquals(Tile(3110, 3330), result.spawns.single { it.type.id == 3561 }.let { Tile(it.x, it.z) })
-    }
-
-    private val manorTypes = NpcTypes.of(
-        NpcType(4418, "null", internalName = "nasty_tree"), NpcType(3561, "Veronica", internalName = "veronica"),
-        *listOf(473 to "house_ghost", 474 to "house_ghost2", 505 to "house_ghost3", 506 to "house_ghost4", 507 to "house_ghost5")
-            .map { (id, name) -> NpcType(id, "Ghost", internalName = name) }.toTypedArray(),
-        NpcType(3565, "Skeleton", internalName = "draynor_skeleton"), NpcType(2854, "Rat", internalName = "rat"),
-    )
-
-    @Test
-    fun `Draynor Manor's inside has five ghosts upstairs, the closet's skeleton and two rats, all kept indoors`() {
-        val result = NpcSpawnFile.parse(file("draynor-manor.json"), manorTypes, "draynor-manor.json")
-        assertEquals(emptyList(), result.unknown)
-        val inside = result.spawns.filter { it.x in 3093..3127 && it.z in 3353..3375 }
-        assertEquals(setOf(473, 474, 505, 506, 507), inside.filter { it.type.name == "Ghost" }.map { it.type.id }.toSet())
-        assertTrue(inside.filter { it.type.name == "Ghost" }.all { it.level == 1 })
-        assertEquals(Tile(3110, 3367), inside.single { it.type.id == 3565 }.let { Tile(it.x, it.z) })
-        assertEquals(2, inside.count { it.type.id == 2854 && it.level == 0 })
-        assertEquals(8, inside.size)
-        assertTrue(inside.all { it.restrict == MoveRestrict.INDOORS && it.source.isNotBlank() })
     }
 
     @Test

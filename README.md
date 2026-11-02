@@ -864,9 +864,6 @@ goes down and up both sewer entrances, fights a zombie and talks to Ruantun; `He
 entrances and the talk through the headless client. `test-runner/examples/draynor-manor-grounds.json` talks to Veronica,
 chops at and is swiped by an undead tree, is whipped by a vine, searches the compost heap and the fountain and goes in
 by the front doors; `HeadlessDraynorManorGroundsTest` does all of them through the headless client.
-`test-runner/examples/draynor-manor-inside.json` climbs both staircases, takes the top floor's tinderbox, goes through
-the bookcase passage and out by its lever, finds the closet locked and leaves by the back door; `HeadlessDraynorManorTest`
-does the doors, the stairs, the passage and the closet's key and rubber tube through the headless client.
 
 ## Lumbridge church
 

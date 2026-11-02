@@ -303,26 +303,6 @@
       "weakness": { "element": "earth", "percent": 35 },
       "aggressive": true,
       "source": "OSRS Wiki, Skeleton (Level 25, the Armed drops; ids 77 and 79 in the Draynor Sewers), read 2026-11-01: speed 4, max hit 4, slash, the bonuses, respawn 60, weak to earth 35%, aggressive. They walk with skeleton_update_walk_shield, so the sword attack is taken (guessed), as is the default hunt range"
-    },
-    {
-      "npcs": ["draynor_skeleton"],
-      "attackSpeed": 4, "maxHit": 3, "attackType": "slash", "attackBonus": 15, "strengthBonus": 14,
-      "defence": { "stab": 9, "slash": 11, "crush": -2, "magic": 1, "light": 4, "standard": 4, "heavy": 4 },
-      "anims": { "attack": "skeleton_update_attack_sword", "defend": "skeleton_update_defend", "death": "skeleton_update_death" },
-      "respawnTicks": 60,
-      "weakness": { "element": "earth", "percent": 35 },
-      "aggressive": true,
-      "source": "OSRS Wiki, Skeleton (Draynor Manor) (level 22, id 3565, the closet), read 2026-11-01: speed 4, max hit 3, slash, the bonuses, respawn 60, weak to earth 35%, aggressive (its text adds that it attacks whoever takes the rubber tube; DraynorManor). It walks with skeleton_update_walk_shield, so the sword attack is taken (guessed), as is the default hunt range"
-    },
-    {
-      "npcs": ["house_ghost", "house_ghost2", "house_ghost3", "house_ghost4", "house_ghost5"],
-      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
-      "defence": { "stab": 5, "slash": 5, "crush": 5, "magic": -5, "light": 5, "standard": 5, "heavy": 5 },
-      "anims": { "attack": "ghost_update_normal_attack", "defend": "ghost_update_normal_defend", "death": "ghost_update_normal_death" },
-      "respawnTicks": 40,
-      "weakness": { "element": "air", "percent": 50 },
-      "aggressive": true,
-      "source": "OSRS Wiki, Ghost (Level 19, ids 473, 474 and 505 to 507 in Draynor Manor), read 2026-11-01: speed 4, max hit 2, crush, the bonuses, respawn 40, weak to air 50%, aggressive. They stand and walk with ghost_update_normal_ready and _walk, so the normal fight animations are taken; the default hunt range is guessed"
     }
   ]
 }

@@ -376,21 +376,6 @@ class NpcDropsTest {
     }
 
     @Test
-    fun `Draynor Manor's ghosts drop only a beginner clue now and then, and its skeleton nothing`() {
-        val names = listOf("house_ghost", "house_ghost5", "draynor_skeleton")
-        val manorTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2100 + i, name, internalName = name) }.toTypedArray())
-        val manor = NpcDrops.load(manorTypes, objTypes)
-        assertTrue(manor.warnings.all { it.startsWith("no NPC called") }, manor.warnings.toString())
-        for (name in listOf("house_ghost", "house_ghost5")) {
-            val def = manor[manorTypes.find(name)!!]!!
-            assertEquals(emptyList(), def.always, name)
-            assertEquals(null, def.table, name)
-            assertEquals(listOf("Clue scroll (beginner)" to 90), def.tertiary.map { it.item.type.name to it.denominator }, name)
-        }
-        assertEquals(null, manor[manorTypes.find("draynor_skeleton")!!])
-    }
-
-    @Test
     fun `the Draynor Sewers' zombies and skeletons drop bones every time and the rest as the Wiki's tables say`() {
         val names = listOf("zombie_unarmed_sewer1", "zombie_armed_sewer4", "skeleton_unarmed3", "skeleton_armed")
         val sewerTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2000 + i, name, internalName = name) }.toTypedArray())

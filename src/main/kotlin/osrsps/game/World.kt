@@ -123,7 +123,6 @@ import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
 import osrsps.game.content.registerDraynorSewers
-import osrsps.game.content.registerDraynorManor
 import osrsps.game.content.registerDraynorManorGrounds
 import osrsps.game.content.ManorHazards
 import osrsps.game.content.registerWiseOldMan
@@ -691,7 +690,6 @@ class World(
         registerDraynorJail(this)
         registerDraynorSewers(this)
         registerDraynorManorGrounds(this)
-        registerDraynorManor(this)
         registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
