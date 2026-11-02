@@ -70,7 +70,12 @@ Loc types of our own that use such models are code: `game/content/CustomLocs.kt`
 `LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
 the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
 server decodes back for itself, so the client and the server see the same loc. The lodestones (`Lodestones.kt`) are
-the first: the server places the Lumbridge stone at start.
+the first: the server places a stone at each site at start. A loc that looks different per player is a multiloc: its
+definition's `transform` names a varbit and the child locs the client draws for each value, and the server answers
+the one loc's options by the player's varbit. Varps and varbits of our own are code too: `game/content/CustomVars.kt`
+lists them (ids right after the cache's), the overlay adds their types to config archives 16 and 14 so the client reads
+them like the cache's, and the world's var types include them, so content sets them like any other and they save with
+the player.
 
 ## Run the server
 

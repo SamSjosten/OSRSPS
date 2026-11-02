@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import osrsps.game.Player
+import osrsps.game.Wilderness
 import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
 import osrsps.game.dialogue.Line
@@ -13,6 +14,7 @@ import osrsps.game.script.ScriptContext
 object HomeTeleportLines : Lines("home_teleport", "Lumbridge_Home_Teleport") {
     val COOLDOWN = line("cooldown", "Cast within 30 minutes of the last home teleport: the minutes left (the page's Cooldown note)", "minutes")
     val IN_COMBAT = line("in_combat", "Cast while in combat (the page says it can't be)")
+    val WILDERNESS = line("wilderness", "Cast above level 20 Wilderness: the line every teleport shows there (OSRS Wiki, Wilderness level: teleports don't work above level 20)")
 }
 
 /**
@@ -26,14 +28,15 @@ object HomeTeleportLines : Lines("home_teleport", "Lumbridge_Home_Teleport") {
  *
  * Guessed: the tick each stage starts on (the Wiki gives only the 24 ticks in all), landing on the castle courtyard's
  * spawn tile, the cooldown starting when the player lands (so a cast that is cut short costs nothing), the remaining
- * minutes rounded down from the varp's whole minutes, and a second click while casting doing nothing. The Wilderness
- * (no cast above level 20) isn't built, so has no check yet.
+ * minutes rounded down from the varp's whole minutes, and a second click while casting doing nothing. Above level 20
+ * Wilderness the cast is refused, as every teleport's is (OSRS Wiki, Wilderness level; see [Wilderness]).
  *
  * Any click that interrupts the player (walking, an NPC, a loc, closing an interface) removes the weak queue, which
  * stops the cast; being attacked stops it at the next tick.
  *
  * Two seams for other teleports to swap in from [osrsps.game.World]'s init, without touching this file: [destination]
- * (null cancels the cast; a lodestone menu could open here) and [cooldownApplies].
+ * (null cancels the cast; a lodestone menu could open here) and [cooldownApplies]. Teleports of the same family
+ * (the lodestones', [Lodestones]) start their own cast with [castTo], with their own timing and no cooldown.
  */
 class HomeTeleport(
     private val currentTick: () -> Long,
@@ -43,6 +46,8 @@ class HomeTeleport(
     private val inCombat: (Player) -> Boolean,
     private val teleport: (Player, Destination) -> Unit,
     private val message: (Player, Line, Array<out Pair<String, Any>>) -> Unit,
+    /** The Wilderness level the player stands at; 0 outside it. */
+    private val wildernessLevel: (Player) -> Int = { Wilderness.level(it.x, it.z) },
 ) {
     /** Where the cast will land, chosen when the player clicks Cast, before the animation starts. Null cancels it. */
     var destination: suspend ScriptContext.() -> Destination? = { LUMBRIDGE }
@@ -69,40 +74,64 @@ class HomeTeleport(
         // Only the standard book's home teleport is built; the button is the standard book's own.
         if (Spellbook.of(player) != Spellbook.STANDARD) return
         if (casting(player)) return
+        if (!canCast(player, cooldownApplies(player))) return
+        val to = destination() ?: return
+        castTo(to)
+    }
+
+    /** Whether [player] can start a cast now, saying why not when they can't; [cooldown] is whether theirs applies. */
+    private fun canCast(player: Player, cooldown: Boolean): Boolean {
         if (inCombat(player)) {
             message(player, HomeTeleportLines.IN_COMBAT, emptyArray())
-            return
+            return false
         }
-        if (cooldownApplies(player)) {
+        if (wildernessLevel(player) > Wilderness.TELEPORT_LIMIT) {
+            message(player, HomeTeleportLines.WILDERNESS, emptyArray())
+            return false
+        }
+        if (cooldown) {
             val left = minutesLeft(player)
             if (left > 0) {
                 message(player, HomeTeleportLines.COOLDOWN, arrayOf("minutes" to left))
-                return
+                return false
             }
         }
-        val to = destination() ?: return
+        return true
+    }
+
+    /**
+     * Starts a cast that lands on [to] after [ticks] ticks, playing [stages] on the way, and records the cooldown at
+     * the landing when [cooldown]. Refused, with the reason said, part way through another cast, in combat, above
+     * level 20 Wilderness, or within the cooldown when it applies. Returns whether the cast started.
+     */
+    fun ScriptContext.castTo(to: Destination, ticks: Int = CAST_TICKS, stages: List<Stage> = STAGES, cooldown: Boolean = cooldownApplies(player)): Boolean {
+        if (casting(player)) return false
+        if (!canCast(player, cooldown)) return false
         // Casting stops whatever the player was doing and keeps them where they stand (inferred: the stages are
         // animations on the spot); a queued activity (milking, making) would otherwise carry on beside the cast.
         player.scripts.weakQueue.clear()
         player.waypoints.clear()
         player.interaction = null
-        step(to, currentTick(), 0)
+        step(Cast(to, ticks, stages, cooldown), currentTick(), 0)
+        return true
     }
 
-    /** Stage [elapsed] ticks into a cast started on tick [started]; queues the next tick's. */
-    private fun ScriptContext.step(to: Destination, started: Long, elapsed: Int) {
+    private class Cast(val to: Destination, val ticks: Int, val stages: List<Stage>, val cooldown: Boolean)
+
+    /** Stage [elapsed] ticks into [cast], started on tick [started]; queues the next tick's. */
+    private fun ScriptContext.step(cast: Cast, started: Long, elapsed: Int) {
         if (player.attackedTick >= started) return
-        if (elapsed >= CAST_TICKS) {
-            teleport(player, to)
+        if (elapsed >= cast.ticks) {
+            teleport(player, cast.to)
             player.anim(-1)
-            if (cooldownApplies(player)) player.vars[VARP_LAST_CAST] = nowMinutes().toInt()
+            if (cast.cooldown) player.vars[VARP_LAST_CAST] = nowMinutes().toInt()
             return
         }
-        STAGES.firstOrNull { it.tick == elapsed }?.let { stage ->
+        cast.stages.firstOrNull { it.tick == elapsed }?.let { stage ->
             player.anim(stage.anim)
             player.spotanim(stage.spotanim)
         }
-        queue(QUEUE, QueueType.WEAK, delay = 1) { step(to, started, elapsed + 1) }
+        queue(QUEUE, QueueType.WEAK, delay = 1) { step(cast, started, elapsed + 1) }
     }
 
     /** One stage of the cast: from [tick] ticks in, animation [anim] with graphic [spotanim] on the player. */
