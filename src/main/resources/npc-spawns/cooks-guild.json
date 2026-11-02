@@ -1,0 +1,22 @@
+{
+  "about": "The Cooks' Guild and the land between Barbarian Village and Varrock (Edgeville piece step 9): the Head chef, Romily Weaklax and the guild's two bankers, and the squirrels and raccoons in the woods west of the village, which have no options but Examine. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types. Every wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": 2658, "x": 3143, "z": 3444, "wander": 2, "restrict": "indoors", "source": "Head chef (cooks_guild_head_chef), inside the front door (Edgeville piece step 9). mejrs NPCList_OSRS; the Wiki's Cooks' Guild page"},
+    {"npc": 6533, "x": 3139, "z": 3448, "wander": 2, "restrict": "indoors", "source": "Romily Weaklax (merchant_pies), the Pie Shop (Edgeville piece step 9). mejrs NPCList_OSRS; the Wiki's Romily Weaklax page"},
+    {"npc": 2897, "x": 3147, "z": 3448, "wander": 0, "source": "Banker, the Cooks' Guild's bank (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 2898, "x": 3148, "z": 3448, "wander": 0, "source": "Banker, the Cooks' Guild's bank (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1418, "x": 3033, "z": 3436, "wander": 4, "source": "Squirrel, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1416, "x": 3038, "z": 3428, "wander": 4, "source": "Squirrel, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1420, "x": 3039, "z": 3449, "wander": 4, "source": "Raccoon, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1421, "x": 3040, "z": 3440, "wander": 4, "source": "Raccoon, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1417, "x": 3044, "z": 3423, "wander": 4, "source": "Squirrel, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1419, "x": 3044, "z": 3447, "wander": 4, "source": "Raccoon, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1418, "x": 3048, "z": 3418, "wander": 4, "source": "Squirrel, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1416, "x": 3049, "z": 3427, "wander": 4, "source": "Squirrel, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1417, "x": 3054, "z": 3418, "wander": 4, "source": "Squirrel, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1420, "x": 3062, "z": 3439, "wander": 4, "source": "Raccoon, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1416, "x": 3063, "z": 3422, "wander": 4, "source": "Squirrel, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1419, "x": 3064, "z": 3444, "wander": 4, "source": "Raccoon, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"},
+    {"npc": 1421, "x": 3065, "z": 3435, "wander": 4, "source": "Raccoon, the woods west of Barbarian Village; scenery, Examine only (Edgeville piece step 9). mejrs NPCList_OSRS"}
+  ]
+}

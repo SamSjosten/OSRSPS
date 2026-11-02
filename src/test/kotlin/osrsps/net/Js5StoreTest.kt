@@ -146,4 +146,17 @@ class Js5StoreTest {
         assertContains(assertFailsWith<IllegalArgumentException> { load(9, 65000) }.message!!, "index 9")
         load(7, 4)
     }
+
+    @Test
+    fun `serves an overlay group of several files, listing them in the table`(@TempDir dir: Path) = tinyCache(dir) { library ->
+        val files = mapOf(0 to byteArrayOf(1), 1 to byteArrayOf(2, 2), 5 to byteArrayOf(3, 3, 3))
+        val store = Js5Store.load(library, CacheOverlay(listOf(CacheOverlay.Group(7, 65001, Js5Group.pack(files), files.keys.sorted()))))
+        val table = ReferenceTable.decode(Js5Container.unpack(container(store.provide(255, 7)!!, 255, 7)))
+        val entry = table.group(65001)!!
+        assertEquals(listOf(0, 1, 5), entry.files.map { it.id })
+        val served = container(store.provide(7, 65001)!!, 7, 65001)
+        assertEquals(entry.crc, Js5Container.crc(served))
+        val unpacked = Js5Group.unpack(Js5Container.unpack(served), entry.files.map { it.id })
+        for ((id, data) in files) assertContentEquals(data, unpacked[id], "file $id")
+    }
 }

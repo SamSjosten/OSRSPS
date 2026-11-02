@@ -74,6 +74,21 @@ class AllSettings(
     }
 
     /**
+     * Closes the window if it is open, with whatever it was asking: a number prompt or the picker goes with the
+     * window it was for, so a late answer changes nothing. Nothing when the floater holds something else or nothing.
+     * Whatever takes the floater over (the world map's globe) closes the window this way first.
+     */
+    fun close(player: Player) {
+        if (player.floater != INTERFACE) return
+        player.settingsDropdown = -1
+        if (player.settingsInputOpen) interfaces.dropCount(player)
+        player.settingsInputOpen = false
+        player.colourPickerOpen = false
+        restoreChatInput(player)
+        interfaces.closeFloater(player)
+    }
+
+    /**
      * Handles a click on [component] of the window on [tick]; false when the window isn't open or the click isn't one
      * of these.
      */
@@ -81,14 +96,7 @@ class AllSettings(
         if (player.floater != INTERFACE) return false
         when (component) {
             // The close button's op only plays a sound in the client (settings_window_setup); Esc is its op 2.
-            CLOSE -> {
-                player.settingsDropdown = -1
-                // A number prompt or the picker goes with the window it was for, so a late answer changes nothing.
-                if (player.settingsInputOpen) interfaces.dropCount(player)
-                player.colourPickerOpen = false
-                restoreChatInput(player)
-                interfaces.closeFloater(player)
-            }
+            CLOSE -> close(player)
             // script3829 and settings_declutter_op: the "Less info" and "Hide locked" buttons.
             TOOLTIP_TOGGLE -> flipVarbit(player, VARBIT_TOOLTIPS_HIDDEN)
             DECLUTTER_TOGGLE -> flipVarbit(player, VARBIT_DECLUTTER)

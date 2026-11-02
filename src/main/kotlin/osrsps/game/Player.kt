@@ -134,6 +134,12 @@ class Player(
     val waypoints = ArrayDeque<Tile>()
 
     /**
+     * Tiles an obstacle walks the player along, one a tick and next one first, whatever is in the way and even while
+     * they are delayed; see [osrsps.game.skill.Agility]. Taken before [waypoints]. Not saved.
+     */
+    val forcedSteps = ArrayDeque<Tile>()
+
+    /**
      * The tile the player was on before their last step, null since login or a teleport. Someone following them heads
      * here; see [Follows].
      */
@@ -366,6 +372,12 @@ class Player(
 
     /** The stance last put in the player's appearance; null until the first is sent. */
     var sentStance: Stance? = null
+
+    /**
+     * A stance that stands in for the weapon's while an obstacle walks the player with its own animation (a log balance,
+     * a tightrope); null for the weapon's. See [osrsps.game.skill.Agility]. Not saved.
+     */
+    var stanceOverride: Stance? = null
 
     /**
      * Whether the combat tab shows the autocast menu in its place, picked from the defensive (true) or normal (false)

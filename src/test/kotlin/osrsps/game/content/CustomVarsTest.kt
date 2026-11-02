@@ -26,7 +26,8 @@ class CustomVarsTest {
         assertEquals(20411, vars.firstVarbit)
         assertEquals(20411, vars.lodestoneVarbit(Lodestones.LUMBRIDGE))
         assertEquals(20413, vars.lodestoneVarbit(Lodestones.VARROCK))
-        assertEquals("varp 5996, varbits 20411 to 20415", vars.toString())
+        assertEquals(20416, vars.lodestonePreviousVarbit, "after the sites'")
+        assertEquals("varp 5996, varbits 20411 to 20416", vars.toString())
 
         val older = CustomVars.after(olderBuild)
         assertEquals(5891, older.lodestonesVarp)
@@ -49,7 +50,7 @@ class CustomVarsTest {
             assertEquals(listOf(vars.lodestonesVarp), varps.map { it.file })
             assertTrue(varps.all { it.file >= cache.varpCount }, "a varp id the cache has would be refused at startup")
             assertContentEquals(byteArrayOf(0), varps.single().data)
-            assertEquals(Lodestones.SITES.map { vars.lodestoneVarbit(it) }, varbits.map { it.file })
+            assertEquals(Lodestones.SITES.map { vars.lodestoneVarbit(it) } + vars.lodestonePreviousVarbit, varbits.map { it.file })
             for (file in varbits) {
                 assertEquals(vars.varbits[file.file], VarTypeLoader.decodeVarbit(file.data))
                 assertTrue(file.file >= cache.varbitCount, "a varbit id the cache has would be refused at startup")
@@ -57,6 +58,7 @@ class CustomVarsTest {
         }
         val vars = CustomVars.after(build2746)
         assertEquals(VarbitType(5996, 2, 2), vars.varbits[20413], "Varrock's: bit 2 of the varp")
+        assertEquals(VarbitType(5996, 8, 11), vars.varbits[20416], "the previous destination's: bits 8 to 11, above the sites'")
     }
 
     @Test
@@ -66,7 +68,10 @@ class CustomVarsTest {
         assertEquals(5996, vars.varp("Lodestones"))
         assertNull(vars.varp("5996"))
         assertEquals(
-            mapOf("lodestone.lumbridge" to 20411, "lodestone.draynor" to 20412, "lodestone.varrock" to 20413, "lodestone.al_kharid" to 20414, "lodestone.edgeville" to 20415),
+            mapOf(
+                "lodestone.lumbridge" to 20411, "lodestone.draynor" to 20412, "lodestone.varrock" to 20413, "lodestone.al_kharid" to 20414,
+                "lodestone.edgeville" to 20415, "lodestone.previous" to 20416,
+            ),
             vars.varbitNames,
         )
         assertEquals(20414, vars.varbit("lodestone.AL_KHARID"))
@@ -84,7 +89,7 @@ class CustomVarsTest {
         val vars = CustomVars.after(build2746)
         val merged = build2746.with(vars.varbits)
         assertEquals(5997, merged.varpCount)
-        assertEquals(20416, merged.varbitCount)
+        assertEquals(20417, merged.varbitCount)
         assertEquals(VarbitType(5995, 0, 3), merged.varbit(20410))
         assertEquals(vars.varbits[vars.lodestoneVarbit(Lodestones.EDGEVILLE)], merged.varbit(20415))
         assertEquals(6_001, VarTypes.NONE.with(CustomVars.after(VarTypes.NONE).varbits).varpCount)

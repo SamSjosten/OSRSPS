@@ -17,7 +17,11 @@ enum class MoveResult { NONE, WALKED, RAN }
  * Run energy follows the OSRS Wiki "Energy" article: running drains ⌊(60 + 67 × weight / 64) × (1 − agility / 300)⌋
  * units a tick, and any tick spent not running restores ⌊agility / 10⌋ + 15. Weight is [Player.weightGrams] in
  * kilograms, counted from 0 to 64 (lighter or heavier has no more effect). Inferred: the weight's fractions count, as
- * the article tells 64.1 kg from 64; the client is only shown whole kilograms. Agility is 1 until the skill is built.
+ * the article tells 64.1 kg from 64; the client is only shown whole kilograms. Inferred: the agility is the current
+ * (boosted) level, as the article says "Agility level" and a boost counts for Agility's other checks.
+ *
+ * An obstacle's [Player.forcedSteps] come first: one tile a tick, through anything in the way and while the player is
+ * delayed, which the obstacle is for ([osrsps.game.skill.Agility]). They count as walking for energy.
  */
 class Movement(private val collision: CollisionMap) {
     private val routeFinder = RouteFinder(collision)
@@ -41,6 +45,22 @@ class Movement(private val collision: CollisionMap) {
     }
 
     fun process(player: Player): MoveResult {
+        // A dead player goes nowhere, even partway along an obstacle.
+        if (player.dead) player.forcedSteps.clear()
+        if (player.forcedSteps.isNotEmpty()) {
+            // A teleport this tick (a climb onto a roof) lands first; the walk starts on the next tick.
+            if (player.teleported) {
+                updateEnergy(player, MoveResult.NONE)
+                return MoveResult.NONE
+            }
+            val to = player.forcedSteps.removeFirst()
+            player.lastStepFrom = Tile(player.x, player.z)
+            // One tile at most, so a step can't carry the player off along a gap in the list.
+            player.x += (to.x - player.x).sign
+            player.z += (to.z - player.z).sign
+            updateEnergy(player, MoveResult.WALKED)
+            return MoveResult.WALKED
+        }
         val wantsRun = player.runEnabled != (player.invertRun && ctrlInverts(player))
         // Inferred: a delayed player keeps their route but doesn't walk it until the delay ends. Energy still changes.
         val steps = if (player.scripts.delayed) 0 else if (wantsRun && player.runEnergy > 0) 2 else 1
@@ -105,9 +125,10 @@ class Movement(private val collision: CollisionMap) {
         // Run turned back on by any other way (the orb, the side panel) isn't waiting on the threshold any more.
         if (player.runEnabled) player.runRanOut = false
         // Guessed: only a two-tile tick counts as running, and a single tile at the end of a run drains nothing.
+        val agility = player.skills.currentLevel(Skill.AGILITY)
         if (result == MoveResult.RAN) {
             val grams = player.weightGrams.coerceIn(0, MAX_WEIGHT_GRAMS).toLong()
-            val drain = ((60L * MAX_WEIGHT_GRAMS + 67 * grams) * (300 - AGILITY) / (MAX_WEIGHT_GRAMS * 300L)).toInt()
+            val drain = ((60L * MAX_WEIGHT_GRAMS + 67 * grams) * (300 - agility) / (MAX_WEIGHT_GRAMS * 300L)).toInt()
             player.runEnergy = (player.runEnergy - drain).coerceAtLeast(0)
         }
         // Guessed: run switches itself off when energy runs out, as the orb does on live; also when it is turned on
@@ -118,7 +139,7 @@ class Movement(private val collision: CollisionMap) {
         }
         // Every tick that isn't a run restores energy, the one that turned run off too.
         if (result != MoveResult.RAN) {
-            player.runEnergy = (player.runEnergy + AGILITY / 10 + 15).coerceAtMost(MAX_ENERGY)
+            player.runEnergy = (player.runEnergy + agility / 10 + 15).coerceAtMost(MAX_ENERGY)
             val threshold = autoEnableAt(player)
             if (player.runRanOut && threshold > 0 && player.runEnergy >= threshold) {
                 player.runEnabled = true
@@ -138,7 +159,6 @@ class Movement(private val collision: CollisionMap) {
 
         /** runenergy_autoenable, the percentage of energy that turns run back on after it ran out. */
         const val VARBIT_RUN_AUTOENABLE = 11031
-        private const val AGILITY = 1
 
         /** 64 kg, past which weight drains no faster. */
         private const val MAX_WEIGHT_GRAMS = 64_000

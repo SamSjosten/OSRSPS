@@ -18,6 +18,7 @@ import osrsps.game.dialogue.Lines
 import osrsps.game.ge.GrandExchangeLines
 import osrsps.game.ge.PriceCheckerLines
 import osrsps.game.shop.ShopLines
+import osrsps.game.skill.AgilityLines
 import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.CookingLines
 import osrsps.game.skill.CraftingLines
@@ -49,6 +50,7 @@ object DialogueLines {
         AeonisigLines,
         AereckLines,
         AggieLines,
+        AgilityLines,
         AlKharidShopAssistantLines,
         AlKharidShopKeeperLines,
         AliMorrisaneLines,
@@ -96,6 +98,7 @@ object DialogueLines {
         CookLines,
         CookingLines,
         CookingTutorLines,
+        CooksGuildLines,
         CountCheckLines,
         CraftingLines,
         CraftingTutorLines,
@@ -155,6 +158,7 @@ object DialogueLines {
         HassanLines,
         HatiusLines,
         HaystackLines,
+        HeadChefLines,
         HerbloreLines,
         HistorianMinasLines,
         HomeTeleportLines,

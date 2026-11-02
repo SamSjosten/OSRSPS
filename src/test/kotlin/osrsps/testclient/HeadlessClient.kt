@@ -112,6 +112,7 @@ class HeadlessClient private constructor(
     private val subs = HashMap<Int, Int>()
     private var topLevel = -1
     private val texts = HashMap<Int, String>()
+    private val hidden = HashMap<Int, Boolean>()
 
     /** IF_SETEVENTS masks by (component shl 32) + slot, kept and dropped as the real client keeps them; see [opEnabled]. */
     private val events = HashMap<Long, Long>()
@@ -157,6 +158,7 @@ class HeadlessClient private constructor(
     private val packets = ArrayList<ServerPacket>()
     private val messages = ArrayList<GameMessage>()
     private val animTicks = ArrayList<Int>()
+    private val exactMoveTicks = ArrayList<Int>()
     private val npcSaid = ArrayList<NpcSaid>()
     private val npcHits = ArrayList<NpcHit>()
     private val playerOps = HashMap<Int, String?>()
@@ -189,6 +191,9 @@ class HeadlessClient private constructor(
      * seen with no other player in view; see [PlayerInfoReader.localAnimated].
      */
     fun animationTicks(): List<Int> = lock.withLock { animTicks.toList() }
+
+    /** The ticks whose PLAYER_INFO gave the local player an exact move (a forced movement); seen as [animationTicks] are. */
+    fun exactMoveTicks(): List<Int> = lock.withLock { exactMoveTicks.toList() }
 
     /** The friends list: each friend's world by name, 0 for offline. */
     fun friends(): Map<String, Int> = lock.withLock { LinkedHashMap(friendList) }
@@ -264,6 +269,9 @@ class HeadlessClient private constructor(
     /** The top-level interface and every interface open in another's component. */
     fun openInterfaces(): Set<Int> = lock.withLock { subs.values.toSet() + topLevel }
 
+    /** The interface open in [component] of [interfaceId], or null: where the server put a sub, not only that it is open. */
+    fun subAt(interfaceId: Int, component: Int): Int? = lock.withLock { subs[(interfaceId shl 16) or component] }
+
     /**
      * The zones the client was last told to draw as copies of others (an instance), by zone x, z and level, or null
      * when its last map rebuild was the world's own.
@@ -304,6 +312,9 @@ class HeadlessClient private constructor(
 
     /** The text last set on a component (IF_SETTEXT), or null if none has been. */
     fun text(interfaceId: Int, componentId: Int): String? = lock.withLock { texts[(interfaceId shl 16) or componentId] }
+
+    /** Whether the server last hid (true) or showed (false) a component (IF_SETHIDE), or null if it never has. */
+    fun hidden(interfaceId: Int, componentId: Int): Boolean? = lock.withLock { hidden[(interfaceId shl 16) or componentId] }
 
     fun clientScripts(): List<ClientScript> = lock.withLock { scripts.toList() }
 
@@ -814,6 +825,7 @@ class HeadlessClient private constructor(
                     if (move.index == index) moves += TickMove(ticks, move)
                 }
                 if (playerInfo.localAnimated) animTicks += ticks
+                if (playerInfo.localExactMoved) exactMoveTicks += ticks
             }
             GameServerProt.MESSAGE_GAME -> {
                 val type = buf.gSmart1or2()
@@ -858,6 +870,11 @@ class HeadlessClient private constructor(
             GameServerProt.IF_SETTEXT -> {
                 val component = buf.g4()
                 texts[component] = buf.gjstr()
+            }
+            GameServerProt.IF_SETHIDE -> {
+                // RSProt's IfSetHideEncoder: the component, then the flag.
+                val component = buf.g4Alt1()
+                hidden[component] = buf.g1() == 1
             }
             GameServerProt.RUNCLIENTSCRIPT -> scripts += readClientScript(buf)
             GameServerProt.UPDATE_INV_FULL -> {
