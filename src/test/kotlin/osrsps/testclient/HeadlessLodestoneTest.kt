@@ -4,6 +4,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.content.CustomLocs
 import osrsps.game.content.CustomVars
@@ -22,6 +23,9 @@ class HeadlessLodestoneTest {
     private val lumbridge = Lodestones.LUMBRIDGE
     private val draynor = Lodestones.DRAYNOR
 
+    /** Our vars after the test world's (none): the stones' loc types name the varbits, so the world gets the same. */
+    private val vars = CustomVars.after(VarTypes.NONE)
+
     /** The stones' map squares and a Wilderness one, open ground, with our loc types so the world places the stones. */
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
@@ -30,7 +34,7 @@ class HeadlessLodestoneTest {
                 for (site in Lodestones.SITES) markLoaded(site.x shr 6, site.z shr 6)
                 markLoaded(WILDERNESS.x shr 6, WILDERNESS.z shr 6)
             },
-            locTypes = LocTypes.NONE.with(CustomLocs.types), cycleMillis = millis,
+            customVars = vars, locTypes = LocTypes.NONE.with(CustomLocs(vars).types), cycleMillis = millis,
         )
     }
 
@@ -47,14 +51,14 @@ class HeadlessLodestoneTest {
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.commandReply("keys on") { it == "Dialogue shows keys" }
-                client.await("Lumbridge's bit at login") { client.varp(CustomVars.LODESTONES_VARP).takeIf { it == 1 } }
+                client.await("Lumbridge's bit at login") { client.varp(vars.lodestonesVarp).takeIf { it == 1 } }
 
                 client.tele(Coord(draynor.x + 4, draynor.z + 1))
                 val stone = LocChange(draynor.id, draynor.loc.shape, draynor.loc.angle, Coord(draynor.x, draynor.z))
                 client.await("the Draynor stone to reach the client") { client.locChanges().takeIf { stone in it } }
                 client.locOp(draynor.id, draynor.x, draynor.z, Lodestones.ACTIVATE)
                 client.awaitMessage("the activation") { it == "[lodestone.activated name=[lodestone.draynor]]" }
-                client.await("Draynor's bit") { client.varp(CustomVars.LODESTONES_VARP).takeIf { it == 3 } }
+                client.await("Draynor's bit") { client.varp(vars.lodestonesVarp).takeIf { it == 3 } }
 
                 client.command("lodestone")
                 val menu = client.awaitDialogue("the lodestone menu") { it is DialogueView.Menu }

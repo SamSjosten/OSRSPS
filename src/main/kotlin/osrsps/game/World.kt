@@ -217,6 +217,8 @@ class World(
     private val js5Crcs: IntArray,
     private val collision: CollisionMap,
     varTypes: VarTypes = VarTypes.NONE,
+    /** Our own varps and varbits, with ids right after [varTypes]' (the cache's); see [CustomVars]. */
+    val customVars: CustomVars = CustomVars.after(varTypes),
     /** Interface ids in the cache, or null when unknown (tests). */
     private val interfaceIds: Set<Int>? = null,
     /** Every random roll in the game comes from here; see [GameRandom]. */
@@ -295,8 +297,8 @@ class World(
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
-    /** The cache's varps and varbits plus our own ([CustomVars]), which the client gets through the cache overlay. */
-    val varTypes: VarTypes = varTypes.with(CustomVars.varbits)
+    /** The cache's varps and varbits plus our own ([customVars]), which the client gets through the cache overlay. */
+    val varTypes: VarTypes = varTypes.with(customVars.varbits)
 
     lateinit var network: NetworkService<Player>
 
@@ -651,6 +653,7 @@ class World(
 
     /** The lodestone network; see [LodestoneNetwork]. Its menu is a chat menu of the activated stones' names. */
     val lodestones = LodestoneNetwork(
+        customVars,
         homeTeleport,
         message = { player, line, values -> message(player, line, *values) },
         words = { player, line -> textFor(player)[line] },
@@ -664,7 +667,7 @@ class World(
     val commands = CommandRegistry(admins::isAdmin).apply {
         registerDevCommands(this@World)
         registerTickCommands(this@World)
-        registerVarCommands()
+        registerVarCommands(customVars)
         registerSkillCommands { phase != null }
         registerXpRateCommands(this@World)
         registerLodestoneCommands(this@World)
