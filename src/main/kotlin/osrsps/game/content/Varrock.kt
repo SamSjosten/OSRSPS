@@ -123,6 +123,7 @@ fun registerVarrock(world: World) {
     registerVarrockFitzharmons(world)
     registerVarrockInns(world)
     registerVarrockMuseum(world)
+    VarrockMuseumPeople.register(world)
     registerVarrockPalace(world)
     registerVarrockShopkeepers(world)
     registerVarrockStores(world)

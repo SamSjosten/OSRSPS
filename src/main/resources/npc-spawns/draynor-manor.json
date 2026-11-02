@@ -1,5 +1,5 @@
 {
-  "about": "Draynor Manor (Draynor piece step 11, its grounds): the Wiki's 14 undead trees, which never move, and Veronica by the fence. Step 12a adds the inside's five ghosts, the closet's skeleton and two rats; their wander ranges are guessed too. Ava, the witch and Professor Oddenstein come with step 12b. Veronica's wander range is guessed.",
+  "about": "Draynor Manor (Draynor piece step 11, its grounds): the Wiki's 14 undead trees, which never move, and Veronica by the fence. Step 12a adds the inside's five ghosts, the closet's skeleton and two rats; their wander ranges are guessed too. Step 12b adds Ava and the witch on the ground floor and Professor Oddenstein on the top floor. Veronica's wander range is guessed.",
   "spawns": [
     {"npc": 4418, "x": 3143, "z": 3365, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
     {"npc": 4418, "x": 3140, "z": 3360, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
@@ -23,6 +23,9 @@
     {"npc": "house_ghost5", "x": 3123, "z": 3356, "level": 1, "wander": 3, "restrict": "indoors", "source": "Ghost, the first floor's east room. mejrs NPCList_OSRS (NPCs seen on live); the Wiki, Draynor Manor"},
     {"npc": "draynor_skeleton", "x": 3110, "z": 3367, "wander": 1, "restrict": "indoors", "source": "Skeleton, the closet behind the stairs. The Wiki, Skeleton (Draynor Manor), has it on the same tile. mejrs NPCList_OSRS (NPCs seen on live); the Wiki, Draynor Manor"},
     {"npc": "rat", "x": 3099, "z": 3366, "wander": 3, "restrict": "indoors", "source": "Rat, the ground floor's west rooms. mejrs NPCList_OSRS (NPCs seen on live); the Wiki, Draynor Manor"},
-    {"npc": "rat", "x": 3101, "z": 3355, "wander": 3, "restrict": "indoors", "source": "Rat, the ground floor's south-west room. mejrs NPCList_OSRS (NPCs seen on live); the Wiki, Draynor Manor"}
+    {"npc": "rat", "x": 3101, "z": 3355, "wander": 3, "restrict": "indoors", "source": "Rat, the ground floor's south-west room. mejrs NPCList_OSRS (NPCs seen on live); the Wiki, Draynor Manor"},
+    {"npc": 3562, "x": 3110, "z": 3367, "level": 2, "wander": 2, "restrict": "indoors", "source": "Professor Oddenstein (professor_oddenstein), on the manor's top floor by his machine (step 12b). mejrs NPCList_OSRS; the wander range guessed"},
+    {"npc": 4409, "x": 3099, "z": 3370, "wander": 2, "restrict": "indoors", "source": "Witch (anma_witch), in the manor's north-west room (step 12b). mejrs NPCList_OSRS (seen there as the multi-NPC anma_witch_multi, 4410, spawned as the type it shows after Animal Magnetism); the wander range guessed"},
+    {"npc": 4407, "x": 3093, "z": 3357, "wander": 2, "restrict": "indoors", "source": "Ava (anma_assistant), in the manor's west room (step 12b). mejrs NPCList_OSRS (seen there as the multi-NPC anma_assistant_multi, 4408, spawned as the type it shows after Animal Magnetism); the wander range guessed"}
   ]
 }

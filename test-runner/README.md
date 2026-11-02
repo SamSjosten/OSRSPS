@@ -226,6 +226,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   information clerk (Kudos, then a museum map), the first and second floors by their straight stairs and back, the
   Natural History floor and back, the cleaning area's gate through its guard and out, and the back entrance's guard and
   its double doors.
+- `varrock-museum-people.json`: Varrock step 9b (with `::keys on`): Historian Minas's information topic, Torrcs,
+  Art Critic Jacques and the teacher and pupil on the second floor, then on the Natural History floor Orlando Smith, a
+  schoolboy and a natural historian (his first talk ended, then his later greeting and menu).
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
