@@ -35,9 +35,11 @@ class NpcDropsTest {
     private val shantayGuard = NpcType(4643, "Shantay Guard", combatLevel = 22, internalName = "shantay_guard")
     private val varrockGuard = NpcType(11911, "Guard", combatLevel = 21, internalName = "fai_varrock_guard02")
     private val edgevilleGuard = NpcType(3254, "Guard", combatLevel = 21, internalName = "guard1")
+    private val monk = NpcType(2579, "Monk", combatLevel = 5, internalName = "monk")
+    private val outlaws = (1..10).map { NpcType(4166 + it, "Outlaw", combatLevel = 32, internalName = "surok_outlaw$it") }
     private val types = NpcTypes.of(
         man, imp, cow, rat, chicken, ram, goblin, spider, giantRat, frog, bigFrog, giantFrog, armedGoblin, unicorn, warrior, kharidMan, scorpion, shantayGuard,
-        varrockGuard, edgevilleGuard,
+        varrockGuard, edgevilleGuard, monk, *outlaws.toTypedArray(),
     )
     private val objTypes = DropTestItems.objTypes()
     private val drops = NpcDrops.load(types, objTypes)
@@ -46,7 +48,7 @@ class NpcDropsTest {
     fun `the file reads, naming every item as the cache does, and the tables add up`() {
         // The test's cache knows one man, cow and so on; every other warning would be a wrong item name.
         assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
-        assertEquals(20, drops.size)
+        assertEquals(31, drops.size)
         val def = drops[man]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })
         assertEquals(128, def.table!!.slots)
@@ -91,6 +93,11 @@ class NpcDropsTest {
         // Varrock's and Edgeville's guards share one table, with a medium clue now and then.
         assertEquals(drops[varrockGuard]!!.table, drops[edgevilleGuard]!!.table)
         assertEquals(listOf("Clue scroll (medium)" to 128), drops[edgevilleGuard]!!.tertiary.map { it.item.type.name to it.denominator })
+        // The ten outlaws share one table, with no tertiaries.
+        assertTrue(outlaws.all { drops[it]!!.table == drops[outlaws[0]]!!.table && drops[it]!!.tertiary.isEmpty() })
+        // A monk leaves only bones.
+        assertEquals(listOf("Bones"), drops[monk]!!.always.map { it.type.name })
+        assertNull(drops[monk]!!.table)
         // A rat drops nothing at all.
         val nothing = drops[rat]!!
         assertTrue(nothing.isEmpty)
@@ -324,6 +331,98 @@ class NpcDropsTest {
         assertEquals(setOf(4, 3, 2), counts.filterKeys { "seed" in it && it != "any seed" }.keys.map { it.substringAfterLast("x").toInt() }.toSet())
         // No free-to-play 5 coins.
         assertNull(counts["Coins x5"])
+    }
+
+    @Test
+    fun `ten thousand outlaws drop bones every time, rope most of all, and herbs from the herb table`() {
+        val def = drops[outlaws[4]]!!
+        val random = GameRandom(32)
+        val counts = HashMap<String, Int>()
+        var nothing = 0
+        repeat(KILLS) {
+            val kill = def.roll(random)
+            assertEquals("Bones", kill.first().type.name)
+            val table = kill.drop(1)
+            assertTrue(table.size <= 1, kill.toString())
+            if (table.isEmpty()) nothing++
+            for (drop in table) {
+                val key = "${drop.type.name} x${drop.count}"
+                counts[key] = (counts[key] ?: 0) + 1
+            }
+        }
+        counts["nothing"] = nothing
+        counts["any herb"] = counts.filterKeys { it.startsWith("Grimy") }.values.sum()
+        fun expect(key: String, weight: Int, of: Int = 128) {
+            val p = weight.toDouble() / of
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        expect("Rope x1", 46)
+        expect("any herb", 32)
+        expect("Fishing bait x1", 15)
+        expect("Coins x5", 12)
+        expect("Cabbage x1", 6)
+        expect("Coins x15", 4)
+        expect("Mind rune x9", 2)
+        expect("Bronze med helm x1", 2)
+        expect("Knife x1", 1)
+        expect("nothing", 1)
+        // The herb roll gives a guam leaf a quarter of the time: the Wiki's 1/16.
+        expect("Grimy guam leaf x1", 32 * 32, 128 * 128)
+        // No free-to-play 10 coins.
+        assertNull(counts["Coins x10"])
+    }
+
+    @Test
+    fun `the Draynor Sewers' zombies and skeletons drop bones every time and the rest as the Wiki's tables say`() {
+        val names = listOf("zombie_unarmed_sewer1", "zombie_armed_sewer4", "skeleton_unarmed3", "skeleton_armed")
+        val sewerTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2000 + i, name, internalName = name) }.toTypedArray())
+        val sewer = NpcDrops.load(sewerTypes, objTypes)
+        assertTrue(sewer.warnings.all { it.startsWith("no NPC called") }, sewer.warnings.toString())
+        for (name in names) assertEquals(128, sewer[sewerTypes.find(name)!!]!!.table!!.slots, name)
+        // Skeletons leave a beginner clue now and then; zombies only their table.
+        assertEquals(listOf("Clue scroll (beginner)" to 100), sewer[sewerTypes.find("skeleton_armed")!!]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(emptyList(), sewer[sewerTypes.find("zombie_armed_sewer4")!!]!!.tertiary)
+        fun kills(name: String, seed: Long): Map<String, Int> {
+            val def = sewer[sewerTypes.find(name)!!]!!
+            val random = GameRandom(seed)
+            val counts = HashMap<String, Int>()
+            repeat(KILLS) {
+                val kill = def.roll(random)
+                assertEquals("Bones", kill.first().type.name)
+                for (drop in kill.drop(1).filter { !it.type.name.startsWith("Clue scroll") }) {
+                    val key = "${drop.type.name} x${drop.count}"
+                    counts[key] = (counts[key] ?: 0) + 1
+                }
+            }
+            return counts
+        }
+        fun Map<String, Int>.expect(key: String, weight: Int, of: Int = 128) {
+            val p = weight.toDouble() / of
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = this[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        val zombie = kills("zombie_armed_sewer4", 31)
+        zombie.expect("Fishing bait x7", 26)
+        zombie.expect("Coins x18", 21)
+        zombie.expect("Coins x10", 10)
+        zombie.expect("Iron mace x1", 3)
+        // The gem table, 1/128, gives an uncut sapphire 32 of its 128 slots.
+        zombie.expect("Uncut sapphire x1", 32, 128 * 128)
+        // Underground, the shared talisman row is the chaos talisman.
+        assertNull(zombie["Nature talisman x1"])
+        val skeleton = kills("skeleton_armed", 32)
+        skeleton.expect("Coins x5", 25)
+        skeleton.expect("Coins x10", 24)
+        skeleton.expect("Iron med helm x1", 6)
+        skeleton.expect("Bronze bar x1", 5)
+        // The unarmed skeleton's free-to-play 10 coins are left out.
+        assertNull(kills("skeleton_unarmed3", 33)["Coins x10"])
+        kills("zombie_unarmed_sewer1", 34).expect("Fishing bait x5", 37)
     }
 
     companion object {

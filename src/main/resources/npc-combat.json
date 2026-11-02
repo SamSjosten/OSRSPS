@@ -2,6 +2,20 @@
   "about": "What NPCs fight with beyond the levels in their cache types. Speeds, max hits, attack styles, bonuses and respawn times are the OSRS Wiki infoboxes' (read 2026-10-26), cross-checked with the Wiki's DPS calculator data (weirdgloop/osrs-dps-calc monsters.json). Animations are gameval names: attack and death are the NPC's own by name; which of an NPC's block or def animations it defends with is guessed.",
   "npcs": [
     {
+      "npcs": ["young_dark_wizard", "qip_ds_young_dark_wizard1", "qip_ds_young_dark_wizard2"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "magic", "attackBonus": 0, "strengthBonus": 0,
+      "range": 10,
+      "attacks": [
+        { "anim": "human_caststrike", "cast": 93, "projectile": 94, "impact": 95 },
+        { "anim": "human_castconfuse", "cast": 102, "projectile": 103, "impact": 104, "maxHit": 0, "drain": { "skill": "attack", "percent": 5 } }
+      ],
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 3, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_caststrike", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 50,
+      "aggressive": true,
+      "source": "OSRS Wiki, Dark wizard (level 7: ids 512, 5086, 5087): speed 4, max hit 2, magic, Water Strike and Confuse, the bonuses and respawn 50. Aggressive (the Wiki's infobox). Spotanims are the spells' own (waterstrike_* 93 to 95, confuse_* 102 to 104), Confuse lowering Attack 5% (Wiki, Confuse). Guessed: the two spells as likely as each other, the 10-tile range (a spell's), and the unarmed block"
+    },
+    {
       "npcs": ["man", "man2", "man3", "man4", "al_kharid_man", "varrock_man1"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
@@ -214,6 +228,81 @@
       "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
       "respawnTicks": 50,
       "source": "OSRS Wiki, Market Guard (Draynor), read 2026-10-30. The animations are guessed, as the jail guards' are"
+    },
+    {
+      "npcs": ["surok_outlaw1", "surok_outlaw2", "surok_outlaw3", "surok_outlaw4", "surok_outlaw5", "surok_outlaw6", "surok_outlaw7", "surok_outlaw8", "surok_outlaw9", "surok_outlaw10"],
+      "attackSpeed": 4,
+      "maxHit": 3,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": -21,
+      "defence": {"stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0},
+      "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
+      "respawnTicks": 2,
+      "xpBonus": -97.5,
+      "source": "OSRS Wiki, Outlaw (ids 4167 to 4176 share the infobox) and the DPS calculator's 4167, read 2026-11-01: not aggressive, XP bonus -97.5%, respawn 2 ticks as the infobox gives it, which the engine raises to the body's 4 ticks (MeleeCombat.DEATH_TICKS), as for rats. The animations are guessed (a crush with no weapon). Left out: the shout before an attack, whose accuracy boost the Wiki has not confirmed"
+    },
+    {
+      "npcs": ["monk"],
+      "attackSpeed": 4,
+      "maxHit": 1,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": {"stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0},
+      "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Monk (level 5, id 2579, Edgeville Monastery) and the DPS calculator's 2579, read 2026-11-01: not aggressive. The animations are guessed (a crush with no weapon). Left out: healing itself 2 hitpoints now and then in a fight, whose chance the Wiki doesn't give"
+    },
+    {
+      "npcs": ["zombie_unarmed_sewer1", "zombie_unarmed_sewer2", "zombie_unarmed_sewer3"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "zombie_update_attack_normal", "defend": "zombie_update_defend_normal", "death": "zombie_update_death_normal" },
+      "respawnTicks": 35,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Zombie (Level 13, ids 26 to 41 among them), read 2026-11-01: speed 4, max hit 2, crush, no bonuses, respawn 35, weak to fire 50%, aggressive. The Draynor Sewers' three (38 to 40) stand with zombie_update_ready_normal, so the zombie_update normal fight animations are taken; the default hunt range is guessed"
+    },
+    {
+      "npcs": ["zombie_armed_sewer1", "zombie_armed_sewer2", "zombie_armed_sewer3"],
+      "attackSpeed": 5, "maxHit": 3, "attackType": "slash", "attackBonus": 5, "strengthBonus": 7,
+      "defence": { "stab": 9, "slash": 8, "crush": 12, "magic": 10, "light": 11, "standard": 11, "heavy": 11 },
+      "anims": { "attack": "zombie_update_attack_weapon", "defend": "zombie_update_defend_weapon", "death": "zombie_update_death_weapon" },
+      "respawnTicks": 35,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Zombie (Level 24, ids 55 to 58), read 2026-11-01: speed 5, max hit 3, slash, the bonuses, respawn 35, weak to fire 50%, aggressive. 55 to 57 stand or walk with zombie_update_ready_weapon or _walk_weapon, so the weapon fight animations are taken; the default hunt range is guessed"
+    },
+    {
+      "npcs": ["zombie_armed_sewer4"],
+      "attackSpeed": 5, "maxHit": 3, "attackType": "slash", "attackBonus": 5, "strengthBonus": 7,
+      "defence": { "stab": 9, "slash": 8, "crush": 12, "magic": 10, "light": 11, "standard": 11, "heavy": 11 },
+      "anims": { "attack": "zombie_update_attack_dragging", "defend": "zombie_update_defend_dragging", "death": "zombie_update_death_dragging" },
+      "respawnTicks": 35,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Zombie (Level 24, ids 55 to 58), read 2026-11-01, as the other level 24 zombies; 58 stands and walks with zombie_update_ready_dragging and _walk_dragging, so the dragging fight animations are taken; the default hunt range is guessed"
+    },
+    {
+      "npcs": ["skeleton_unarmed", "skeleton_unarmed3"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 5, "slash": 5, "crush": -5, "magic": 0, "light": 5, "standard": 5, "heavy": 5 },
+      "anims": { "attack": "skeleton_update_attack_weapon", "defend": "skeleton_update_defend", "death": "skeleton_update_death" },
+      "respawnTicks": 70,
+      "weakness": { "element": "earth", "percent": 35 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Skeleton (Level 22, the Unarmed drops; ids 70 and 72 in the Draynor Sewers), read 2026-11-01: speed 4, max hit 3, crush, the bonuses, respawn 70, weak to earth 35%, aggressive. They stand with skeleton_update_ready; which of skeleton_update_attack_weapon and _attack_sword an unarmed one swings is guessed, as is the default hunt range"
+    },
+    {
+      "npcs": ["skeleton_armed", "skeleton_armed3"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "slash", "attackBonus": 15, "strengthBonus": 14,
+      "defence": { "stab": 9, "slash": 11, "crush": -2, "magic": 1, "light": 4, "standard": 4, "heavy": 4 },
+      "anims": { "attack": "skeleton_update_attack_sword", "defend": "skeleton_update_defend", "death": "skeleton_update_death" },
+      "respawnTicks": 60,
+      "weakness": { "element": "earth", "percent": 35 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Skeleton (Level 25, the Armed drops; ids 77 and 79 in the Draynor Sewers), read 2026-11-01: speed 4, max hit 4, slash, the bonuses, respawn 60, weak to earth 35%, aggressive. They walk with skeleton_update_walk_shield, so the sword attack is taken (guessed), as is the default hunt range"
     }
   ]
 }

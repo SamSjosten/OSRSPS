@@ -32,9 +32,9 @@ class HeadlessShantayPassTest {
     private val types = LocTypes(
         listOf(
             LocType(ShantayPass.GATE, "Shantay pass", ops = listOf("Go-through", "Look-at", null, null, null), collision = LocCollisionType(width = 3)),
-            LocType(ShantayPass.BANK_CHEST, "Bank chest", ops = listOf("Use", "Collect", null, null, null), collision = LocCollisionType()),
+            LocType(BANK_CHEST, "Bank chest", ops = listOf("Use", null, "Collect", null, null), collision = LocCollisionType()),
             LocType(ShantayPass.CELL_DOOR, "Prison door", ops = listOf("Open", null, null, null, null), collision = LocCollisionType()),
-            LocType(ShantayPass.PRISON_DOOR, "Door", ops = listOf("Open", "Pick-lock", null, null, null), collision = LocCollisionType()),
+            LocType(ShantayPass.PRISON_DOOR, "Door", ops = listOf("Open", null, null, null, "Pick-lock"), collision = LocCollisionType()),
         ).associateBy { it.id },
     )
 
@@ -49,7 +49,7 @@ class HeadlessShantayPassTest {
             }, locTypes = types,
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(ShantayPass.GATE, LocShape.CENTREPIECE_STRAIGHT, 0, 3302, 3116, 0))
-                add(ZoneLoc(ShantayPass.BANK_CHEST, LocShape.CENTREPIECE_STRAIGHT, 3, 3309, 3120, 0))
+                add(ZoneLoc(BANK_CHEST, LocShape.CENTREPIECE_STRAIGHT, 3, 3309, 3120, 0))
                 // The cell door on the cell's east edge, and the Port Sarim cell door on its arrival tile's south edge.
                 add(ZoneLoc(ShantayPass.CELL_DOOR, LocShape.WALL_STRAIGHT, 2, 3297, 3124, 0))
                 add(ZoneLoc(ShantayPass.PRISON_DOOR, LocShape.WALL_STRAIGHT, 3, DOOR_X, ShantayPass.PRISON_Z, 0))
@@ -109,7 +109,7 @@ class HeadlessShantayPassTest {
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.tele(3308, 3120)
-                client.locOp(ShantayPass.BANK_CHEST, 3309, 3120, ShantayPass.USE)
+                client.locOp(BANK_CHEST, 3309, 3120, BANK_CHEST_USE)
                 client.await("the bank") { client.openInterfaces().takeIf { BankScreen.MAIN in it } }
             }
         }
@@ -182,5 +182,9 @@ class HeadlessShantayPassTest {
         const val COINS = 995
         /** The cell door the drop tile is beside: 9565 on the south edge of 3018,3182 in the 241 cache. */
         const val DOOR_X = ShantayPass.PRISON_X + 1
+
+        /** thbankchest: the bank chest by Shantay's hut, Use op1, which [osrsps.game.content.registerBanking] opens. */
+        const val BANK_CHEST = 2693
+        const val BANK_CHEST_USE = 1
     }
 }

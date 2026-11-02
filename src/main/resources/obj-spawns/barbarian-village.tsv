@@ -1,0 +1,12 @@
+# Barbarian Village's item spawns (Edgeville piece step 5). Items and counts are the OSRS Wiki's Barbarian Village spawn
+# list (read 2026-11-01): three beers and two cooked meats on the longhall's tables, a bronze pickaxe in the spinning hut
+# and a pot in Peksa's shop. The tiles are the 2004Scape project's map square 48,53 (m48_53.jm2), which the Wiki's rooms
+# agree with. Every respawn is the 100 ticks the other files use; the Wiki gives none.
+obj	count	x	z	level	respawn
+beer	1	3077	3439	0	100	# the longhall; 2004Scape
+cooked_meat	1	3077	3441	0	100	# the longhall; 2004Scape
+beer	1	3077	3443	0	100	# the longhall; 2004Scape
+beer	1	3080	3441	0	100	# the longhall; 2004Scape
+cooked_meat	1	3080	3443	0	100	# the longhall; 2004Scape
+bronze_pickaxe	1	3081	3429	0	100	# the spinning hut; 2004Scape
+pot_empty	1	3074	3431	0	100	# Peksa's shop; 2004Scape

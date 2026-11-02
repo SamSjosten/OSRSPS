@@ -4,6 +4,7 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account, combat level 3, at most twice the spider's 2; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::xprate 1", "expectMessage": "XP rate set to 1x", "comment": "live's rate, so the punches give no level-up box (VM 215, 2026-11-01: at 214's 100x an Attack level-up box stopped the script); ::xprate restore at the end goes back"},
   {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle, single-way, away from the courtyard's men"},
   {"step": "command", "text": "::aggro 0", "expectMessage": "0 ticks in the areas around", "comment": "the ten minutes start again, so the spider isn't tolerant of us"},
   {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now", "comment": "the man's punches don't count as hitting us, so only our own attacks on him can keep the spider off"},
@@ -19,6 +20,7 @@
   {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed 2 NPCs you put in."},
   {"step": "command", "text": "::sure off", "expectMessage": "Your attacks can miss again"},
   {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::xprate restore", "expectMessage": "XP rate back to "},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

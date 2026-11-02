@@ -47,8 +47,8 @@ the server on VM 214 (the deploy filter in `deploy/auto-deploy.sh`).
 ## Auto-merge
 
 A pull request merges by itself, with a merge commit, once auto-merge is on and branch protection on `main` is
-satisfied: every `build` job passes (jobs for parts a change doesn't touch, such as the launcher's installers, are
-skipped, which counts as passing), the `codex-review` check passes, and the branch is up to date with `main`. The
+satisfied: every `build` job passes (jobs for parts a change doesn't touch, such as `tick-recorder`, are skipped,
+which counts as passing), the `codex-review` check passes, and the branch is up to date with `main`. The
 thread that opens a pull request turns auto-merge on straight away; Sam stays its author and can still merge by hand
 or turn it off.
 
@@ -94,9 +94,9 @@ Actions, **automerge**, **Run workflow**.
 
 ## Where CI runs
 
-The server's Linux jobs (`build.yml` but the launcher's jobs, `probe.yml`, and once private `automerge.yml` and
-`mergeable.yml`) can run on the self-hosted runner VM on pve (`ci-runner`, VM 218, Ubuntu 24.04, labels `self-hosted`
-and `linux`, internet only), as a private repository's 2,000 hosted minutes a month last a few days here:
+The server's Linux jobs (`build.yml`, `probe.yml`, and once private `automerge.yml` and `mergeable.yml`) can run on the
+self-hosted runner VM on pve (`ci-runner`, VM 218, Ubuntu 24.04, labels `self-hosted` and `linux`, internet only), as a
+private repository's 2,000 hosted minutes a month last a few days here:
 
 - **Public repository**: pull requests, and every `pull_request_target` workflow, run on GitHub's `ubuntu-latest`,
   so no fork's code reaches the VM. Main's own code (a push to `main`, a dispatch or schedule on `main`) runs on the VM
@@ -105,10 +105,10 @@ and `linux`, internet only), as a private repository's 2,000 hosted minutes a mo
 - **Private repository**: all of them run on the VM. Keep `RUNNER` set then too: a scheduled run's event may not say
   the repository is private (the queue's 15-minute run in `automerge.yml` goes by `RUNNER` alone).
 
-The launcher's jobs stay on GitHub's runners and leave with the launcher. The jobs on the VM get only the workflow's
-own token, with each workflow reading by default and writing only in the jobs that need it; no other secrets. The VM
-is persistent, so a job checks out cleanly (`actions/checkout`'s default) and relies on nothing an earlier job left,
-Gradle's caches aside.
+The launcher, its installers and their jobs live in the public repository OdinsGate (`github.com/SamSjosten/OdinsGate`)
+since launcher 1.0.2, on GitHub's runners. The jobs on the VM get only the workflow's own token, with each workflow
+reading by default and writing only in the jobs that need it; no other secrets. The VM is persistent, so a job checks
+out cleanly (`actions/checkout`'s default) and relies on nothing an earlier job left, Gradle's caches aside.
 
 A pull request that changes `.github/workflows/` needs Sam's review (CODEOWNERS): without merge rules the queue
 leaves such a pull request for Sam to merge by hand.
@@ -133,7 +133,7 @@ themselves (Sam, 2026-10-30), one at a time:
 
 ## Scheduled checks
 
-Two workflows run on a schedule and, when they fail, open an issue assigned to the repository's owner, so the failure
+A workflow runs on a schedule and, when it fails, opens an issue assigned to the repository's owner, so the failure
 arrives as an issue email (`.github/scripts/alert.js`; GitHub mails a failed scheduled run only to whoever last edited
 its cron line, and a line Claude wrote reaches no one). The issue's body is brought up to date while the check keeps
 failing, with no new notification however long that lasts, and it is closed with a comment when the check passes
@@ -143,12 +143,24 @@ again. Each run stays red while the check fails.
   odinsgate.net (`.github/scripts/probe.js`). `/status.json` on port 43595 must answer with `"up": true` and port
   43594 must accept a connection, tried eight times half a minute apart before it counts as down, so the restart
   after a deploy raises no alarm. A full server is up. The issue is **odinsgate.net is down**.
-- `.github/workflows/pin-health.yml`, Mondays, and on a pull request that touches the pin table or the check: every
-  pin in `src/main/resources/runelite-pins.json` still holds on RuneLite's servers (`./gradlew -p launcher pinHealth`,
-  `launcher/src/main/java/net/odinsgate/launcher/PinHealth.java`). The bootstrap carries the pinned SHA-256 and
-  RuneLite's signature, every jar it names for any system answers a HEAD request with its size, and RuneLite's runtime
-  config doesn't list the pinned client version as outdated. HEAD only: no RuneLite jar is downloaded or cached in
-  Actions. The issue is **A RuneLite pin is no longer healthy**; on a pull request a failure is just a failing check.
+The RuneLite pin check (`pin-health.yml`) moved to OdinsGate with the launcher; it checks OdinsGate's copy of the pin
+table (below, "The launcher's copies").
 
-To run either now: Actions, the workflow, **Run workflow**. The scripts' own tests run in `build`
+To run it now: Actions, **probe**, **Run workflow**. The scripts' own tests run in `build`
 (`node --test .github/scripts/*.test.js`).
+
+## The launcher's copies
+
+The launcher, Odin's Gate, lives in the public repository OdinsGate (`github.com/SamSjosten/OdinsGate`) since launcher
+1.0.2, with its download page and releases; launcher 1.0.2 was this repository's last release, and the old download
+page here (`docs/`) only forwards to OdinsGate's until this repository goes private. Two files are the server's and
+the launcher's both, so each lives here (the server reads it) and as a copy in OdinsGate's `launcher/` (the signed
+manifest carries it):
+
+- `src/main/resources/runelite-pins.json`, the RuneLite build per revision. A revision bump adds the new revision's
+  build here and in OdinsGate's copy first, released as a launcher version there: the playbook is OdinsGate's
+  `launcher/README.md`, "Revision bump".
+- `src/main/resources/rsa-modulus.txt`, the live server's modulus. A key change is a reviewed commit here and the same
+  change, with a launcher release, in OdinsGate.
+
+A change to either here waits for its OdinsGate pull request, so the two never disagree for longer than a merge.

@@ -45,6 +45,33 @@ into `data/cache/` (set `OSRSPS_DATA` to use another folder). Run this on the sa
 cache that is running. The server won't start when that line names another revision than the one it plays
 (`Revision.MAJOR`), as clients of one revision can't use the other's files. A cache with no source line isn't checked.
 
+### Custom models
+
+`import-model` writes a Wavefront OBJ (from Blender, or the RS3 rip in the project files) as a model in the client's
+own format (`osrsps.cache.model`: the newest model format, which 35,124 of the 62,051 live models use, read and
+written as RuneLite's loader reads it). Every face gets one flat colour, from the material's colour or its texture
+times the vertex colours, snapped to the client's palette; y is turned over, as the client's y grows downwards.
+
+```bash
+./gradlew run --args="import-model lodestone.obj data/models/lodestone.dat --scale 0.25"   # RS3's 512 units a tile to 128
+```
+
+Options: `--scale f`, `--mirror-x`, `--flip-faces` (for a model that shows mirrored or inside out), `--priority n`
+(0 to 10) and `--alpha material=n` (0 opaque to 254) per material. The output is a plain model file.
+
+The server serves every `data/models/<id>.dat` as model `<id>` on top of the cache (`osrsps.cache.overlay`): at start
+it adds each to index 7's reference table, in memory, with the CRC of the container it sends, and puts the table's new
+CRC in the master index, so a client fetches the table again and then the model when a loc or NPC points at it. The
+cache files on disk stay the live cache. An id has to be above every live model (65,000 and up is safe for revision
+241) and below 65,536, which is all a JS5 request carries. A changed file is served at the next start; a client that
+had the old one sees the new CRC and fetches it again. Converted Jagex art stays in `data/`, outside git, like the cache.
+
+Loc types of our own that use such models are code: `game/content/CustomLocs.kt` lists them (ids from 65,000), each a
+`LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
+the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
+server decodes back for itself, so the client and the server see the same loc. The lodestones (`Lodestones.kt`) are
+the first: the server places the Lumbridge stone at start.
+
 ## Run the server
 
 ```bash
@@ -120,14 +147,14 @@ that it needs the same password (see Accounts).
 ### Letting friends test
 
 Friends reach the server at `odinsgate.net`, a VPS that relays TCP 43594 and 43595 (and nothing else) to it; the Home
-Lab project runs the relay. They install Odin's Gate, our launcher, from the download page,
-https://samsjosten.github.io/OSRSPS/ (`docs/` in this repo, served by GitHub Pages once it is switched on in the
-repo's settings: Pages, deploy from a branch, `main`, `/docs`): one button per system, a guide for each, and the
-first-start steps for an app no paid certificate signs. The launcher downloads RuneLite from RuneLite's own servers,
-patches it in memory to our server and key, and updates itself from this repo's releases (`launcher/README.md`).
-Each friend logs in with a name and password of their own, never any other game's login; the first login as a name
-claims it (see Accounts). CI's `friend-page` job holds the page to its links (https, known hosts, every installer the
-release publishes exactly once) and to the names rule (`.github/scripts/friend-page.js`).
+Lab project runs the relay. They install Odin's Gate, our launcher, from its download page,
+https://samsjosten.github.io/OdinsGate/. The launcher, the page and every release live in the public repository
+OdinsGate (`github.com/SamSjosten/OdinsGate`, its `launcher/README.md`) since launcher 1.0.2, this repository's last
+launcher release: 1.0.2 raised the minimum shell version above every launcher installed from here (1.0.0, 1.0.1), so
+each shows "Please download the new installer." with the old page, `docs/` here, which now only forwards to
+OdinsGate's (CI's `friend-page` job holds it to that, `.github/scripts/friend-page.js`). The launcher downloads RuneLite
+from RuneLite's own servers and patches it in memory to our server and key. Each friend logs in with a name and
+password of their own, never any other game's login; the first login as a name claims it (see Accounts).
 
 - A friend who used RSProx before: the launcher keeps its own game settings, so RuneLite settings made under RSProx
   don't carry over; the name and password do. RSProx stays the developer route (above) and still works for friends on
@@ -136,25 +163,14 @@ release publishes exactly once) and to the names rule (`.github/scripts/friend-p
 - Nothing of the game's is handed out: the launcher and RSProx both download RuneLite and the game client themselves.
 - The launcher pins the RuneLite build per revision in `src/main/resources/runelite-pins.json` (a commit of RuneLite's
   [static.runelite.net history](https://github.com/runelite/static.runelite.net/commits/gh-pages/bootstrap.json); the
-  signed manifest carries the table, and RSProx's target names the same build). RuneLite moves to each new revision
-  within hours of live, and our server turns a client of another revision away, so a revision bump adds the new
-  revision's build to that file first: the playbook is in `launcher/README.md`, "Revision bump".
-- The first release is the 1.0.0 version bump of 2026-10-30; a launcher version is published by the merge that bumps
-  `launcher/version.txt`, after Sam's approval of the release Environment (`launcher/README.md`, "Releases"). 1.0.1
-  the same day: the Windows runtime lacked the certificate store module (`jdk.crypto.mscapi`), so the game exited at
-  once; a 1.0.0 launcher sends its user to the download page for the new installer. 1.0.2 is this repository's last
-  launcher release and the bridge to the launcher's own public repository OdinsGate (`github.com/SamSjosten/OdinsGate`),
-  where the launcher, the download page (`https://samsjosten.github.io/OdinsGate/`) and every later release live: it
-  raises the minimum shell version above every launcher installed from here, so each shows "Please download the new
-  installer." and this page's buttons lead to OdinsGate's installer (the installed shell checks the repository built
-  into it, so no self-update could move it over). The pull request after it removes `launcher/`, `docs/` and the
-  launcher workflows from here.
+  signed manifest carries OdinsGate's copy of the table, and RSProx's target names the same build). RuneLite moves to
+  each new revision within hours of live, and our server turns a client of another revision away, so a revision bump
+  adds the new revision's build to both copies first (CONTRIBUTING.md, "The launcher's copies").
 
 ### Files for our own launcher
 
-Odin's Gate, our launcher (being built to replace RSProx for friends; its code is `launcher/`, its own Gradle build
-like the plugins'), reads its own files from the same HTTP port, each written for the host it was asked by like the
-others:
+Odin's Gate, our launcher (in the OdinsGate repository, above), reads its own files from the same HTTP port, each
+written for the host it was asked by like the others:
 
 - `/status.json`: whether the game is up (its game loop ended a cycle in the last 10 s) and taking logins, the revision
   it plays, the commit it runs (the one `/version` gives), how many players are in, and the JS5 count `/status` gives,
@@ -185,7 +201,7 @@ others:
   others. A matching issue that was deleted, moved or locked gets a new issue instead. At most 20 issues and comments
   are posted a day (kept in `reports/posted.json`, so a restart keeps the count; if that file is damaged the day counts
   as full, and while it can't be read or saved nothing is posted); past that the rest wait, and
-  one `report-cap` issue a day says so.
+  one `report-cap` issue a day says so. A scheduled task works through new issues by [`TRIAGE.md`](TRIAGE.md).
 
   The HTTP port holds at most 256 connections, 16 from one address; a connection silent for 15 s, sending one
   request's headers for 10 s (on a kept-alive connection, counted from the last answer) or one report's body for
@@ -282,6 +298,9 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::proj id [dx dz]` | Fires spotanim `id` as a projectile from your tile to the tile dx, dz away (default 5 tiles north) |
 | `::los npcIndex` / `::los dx dz` | **everyone.** Distance, line of sight and hit delays from you to an NPC or a tile (see Line of sight) |
 | `::instance [radius]` / `::instance leave` | Makes a private copy of the map around you, `radius` zones each way (default 6, 13 x 13 zones), and puts you on the same spot in it; `leave` takes you back to where you made it (see Instances) |
+| `::raidparty` / `::raidparty invite\|accept\|kick name` / `::raidparty leave` | Shows your raid party, or invites a player to it (starting one you lead), joins the party of a leader who invited you, puts a member out, or leaves (see Raid parties) |
+| `::raid boss [phase=name\|n] [party=n] [seed=n]` / `::raid` / `::raid log [lines]` / `::raid digest [ticks]` / `::raid stop` | Starts a boss fight on your tile at a phase, scaled for a party size, on a seed; shows the fight you're in (or lists the bosses), its last log lines, a digest of its log to a tick, or stops it (see Encounters) |
+| `::raidnpc id\|name [party size]` | Puts in a raid NPC on your tile with its hitpoints for a party of that size, or of your raid party's size, or of one alone (see Raid parties); `::delnpc mine` takes it out |
 | `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
 | `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
 | `::grounditems` | Lists the objs on your tile: whose they are, ticks until public and until gone, and whether it's a spawn |
@@ -299,7 +318,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, the party size and hitpoints of a raid NPC, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
 | `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
@@ -820,9 +839,16 @@ village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/co
 | The cell door (`alidoor` 2881, `game/content/DraynorJail.kt`) lets the player out from inside, swinging as `poshdooropen` and shutting behind them, and is locked from outside | 2004Scape's quest_prince script; the swing and two ticks open guessed |
 | Leela's talk after Prince Ali Rescue; Morgan's first talk after Vampyre Slayer, then his later one (multi-NPC on varbit 15611, `morgan_postquest_dialogue`) | the Wiki's transcripts; the varbit's use inferred from its name |
 
+| Step 10: the Draynor Sewers' two trapdoors (`6434`, west of the jail and north of the market) open for everyone into `6435` with Climb-down, for 300 ticks, and the ladders below climb back up (`game/content/DraynorSewers.kt`); the east ladder is a tile south of the dungeon's 6400, so each climb keeps the player's side of the trapdoor or ladder | the 241 map; how long a trapdoor stays open, the open animation and where a climb lands guessed |
+| The sewers' seven zombies (13 and 24), four skeletons (22 and 25) and ten rats (`npc-spawns/draynor-sewers.json`) fight and drop as the Wiki has them, aggressive and with their elemental weaknesses; the gem drop table is in `npc-drops.json` (its rows add up to 131, with the mega-rare table giving nothing) | the Wiki's Zombie, Skeleton, Gem drop table and Draynor Sewers pages (read 2026-11-01); tiles from mejrs's list; animations from the NPCs' own stand animations, the unarmed skeleton's attack guessed |
+| Ruantun's talk after Desert Treasure I; the house's anvil and fire smith and cook as any other | the Wiki's Transcript:Ruantun; the 241 types |
+| Step 11: Draynor Manor's grounds (`game/content/DraynorManorGrounds.kt`). The fence has no gate on the 241 map, only the gap where Veronica stands; she gives her talk after Ernest the Chicken. The front doors let the player in from the south, slam shut behind them and won't open from inside. The compost heap won't be searched by hand and gives a spade nothing; the fountain is full of dead fish | the 241 map; the Wiki's Transcript:Veronica; 2004Scape's quest_haunted script for the doors, the heap and the fountain (the doors' swing guessed) |
+| The 14 undead trees (`nasty_tree` 4418, `npc-spawns/draynor-manor.json`) show as Undead tree with Chop after Animal Magnetism; they never move, can't be attacked, and swipe a player beside them for 0 to 3 unless tolerated; Chop gives the Wiki's no-axe and bounce messages | the Wiki's Undead tree page and map; how often and how far they swipe, and the even damage, guessed; the blessed axe's undead twigs left out (an Animal Magnetism item) |
+| The vines south-east of the manor whip a player for 1 every 5 ticks, with `whippingplant_attack` on their tile, from entering the 8 by 8 tiles at 3112, 3336 until they are more than 9 tiles from that corner | 2004Scape's manor_vines script |
+
 Left out until their steps: the market's stalls and guards, the Wise Old Man's talk,
-the bank guard, Miss Schism, the town crier, the dark wizards, the sewers' trapdoors and
-the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
+the bank guard, Miss Schism, the town crier, the dark wizards,
+and the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
 holiday items to reclaim), and Olivia's refusal after a theft comes with thieving. The wheat field picks as Lumbridge's does (`Crops`).
 Spria isn't spawned: after A Porcine of Interest she is a Slayer master (`slayer_master_9_active`), and Slayer isn't built.
 
@@ -833,7 +859,11 @@ client, and `GatesTest` turns a gate every way round. `test-runner/examples/dray
 the logs, chops a willow, nets a shrimp and cooks it on the permanent fire; `HeadlessFishingTest` and `HeadlessCookingTest`
 do the Small Net spots and the fire. `test-runner/examples/draynor-ned-aggie.json` buys Ned's rope both ways and gets
 Aggie's red dye and fine; `NedAndAggieTest` walks every branch of both talks. `test-runner/examples/draynor-jail.json`
-does Leela, the cell door, a jail guard and Morgan; `DraynorTalkTest` and `HeadlessDraynorTest` cover them too.
+does Leela, the cell door, a jail guard and Morgan; `DraynorTalkTest` and `HeadlessDraynorTest` cover them too. `test-runner/examples/draynor-sewers.json`
+goes down and up both sewer entrances, fights a zombie and talks to Ruantun; `HeadlessDraynorSewersTest` does the
+entrances and the talk through the headless client. `test-runner/examples/draynor-manor-grounds.json` talks to Veronica,
+chops at and is swiped by an undead tree, is whipped by a vine, searches the compost heap and the fountain and goes in
+by the front doors; `HeadlessDraynorManorGroundsTest` does all of them through the headless client.
 
 ## Lumbridge church
 
@@ -894,7 +924,7 @@ quest, so Al Kharid is as after Prince Ali Rescue.
 | The Shantay Pass, north side: Shantay's talk (first talk and later), the outlaw arrested into the cell west of his hut and fined 5 coins (from the backpack, else the bank, else the Port Sarim prison), Trade (the Shantay Pass Shop: its 20 items, 100%/70%/1%) and Buy-pass (5 coins); the cell door locked while jailed | OSRS Wiki, Transcript:Shantay and Shantay Pass Shop; 2004Scape's shantay.rs2 for the flow; the cell's inside tile and the narrated lines as boxes guessed |
 | The Port Sarim prison: the player lands in a cell; Pick-lock on its door (`port_sarim_jaildoor` 9565) gets them out, 4 Thieving XP (0.5 on a fail), the chance rising from 0% to 82% over four tries at level 1 and from 39% to 127% at 99 | OSRS Wiki, Door (Port Sarim jail); the arrival tile is 2004Scape's; how the chance rises between tries and levels guessed; the messages' words to come from a recording |
 | The gate (4031) and its guard (`shantay_guard_still` 4648, Talk-to and Pass): no pass, the guard sends the player to Shantay; with one, the desert isn't built yet, so the gate says so (our words) and the pass is kept; from the desert side the gate always lets the player north; Look-at shows the poster | OSRS Wiki, Transcript:Shantay Guard; 2004Scape's shantay_pass.rs2 (Look-at's boxes guessed for live) |
-| Three Shantay Guards (4643, level 22: stab, max hit 3, back in 50 ticks, bones), one line each; the bank chest's Use opens the bank; Irena (as after Tourist Trap) one line | OSRS Wiki, Shantay Guard, Transcript:Shantay Guard and Transcript:Irena; tiles from 2004Scape map m51_48 |
+| Three Shantay Guards (4643, level 22: stab, max hit 3, back in 50 ticks, bones), one line each; the bank chest's Use opens the bank and its Collect the collection box; Irena (as after Tourist Trap) one line | OSRS Wiki, Shantay Guard, Transcript:Shantay Guard and Transcript:Irena; tiles from 2004Scape map m51_48 |
 | The Emir's Arena and the glider as stubs: Captain Dalbur (`pilot_al_kharid` 6089, shown as after The Grand Tree) talks, and his Glider, Glider-to and the glider answer in his talk say the gliders don't fly anywhere built yet (our words) in place of the map; Arena Guard Fronk (11664), the Duel Guide (11673) and the 1v1 Tournament Guide (11672) talk; the recruitment boards, staging area steps and scoreboard say the Arena isn't open yet (our words); the fire altar's ruins are scenery | OSRS Wiki, Transcript:Captain Dalbur, Transcript:Duel Guide, Transcript:1v1 Tournament Guide, Transcript:Arena Guard Fronk; Dalbur's tile from mejrs's live NPC list; the Arena people's tiles guessed by the 241 cache's boards and gate |
 | The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
 
@@ -905,7 +935,7 @@ the guards' talk and the examines of the guards and the gate are in the dialogue
 `examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`), as are the shop keepers' (`al_kharid_shop_keeper.*`,
 `al_kharid_shop_assistant.*`, `zeke.*`, `dommik.*`, `louie_legs.*`, `ranael.*`, `gem_trader.*` and each keeper's examine), Karim's and the Silk trader's (`karim.*`, `silk_trader.*`) and the kebab's
 messages (`kebab.*`), and Ellis's talk and the tanning screen's words (`ellis.*`, `tanning.*`), the palace's (`hassan.*`, `osman.*`, `prince_ali.*`), the camels' (`camel.*`), the boxes' (`search.boxes_empty`), and the Shantay Pass's (`shantay.*`, `shantay_guard.*`, `shantay_gate.*`, `irena.*`, `port_sarim_jail.*`), and the Arena's (`dalbur.*`, `duel_guide.*`, `tournament_guide.*`, `fronk.*`; `arena_stub.*` are ours).
-Also left out from the palace: filling vessels at the fountain (no water sources are built yet), the big-window shortcut itself, Osman's Crack the Clue step, and the Emir, who is never seen. From the fighters and camels: Pickpocket on men and warriors (Thieving comes with the Draynor piece), the warriors joining in when one is attacked (NPC aggression, the Varrock piece), the camulet's talk and camel dung (members, Enakhra's Lament and My Arm's Big Adventure), and Cam's treasure trail step. From the mine: its agility shortcut (`alkharid_mine_sc_*`). From the Shantay Pass: the desert beyond the gate (the poster, the disclaimer and the pass handed over come with the Desert piece), the Tourist Trap lines, treasure trail steps, the Kalphite cave, the cacti, the guards' aggression, and the bank chest's Collect. From the Arena: its fights (PvP Arena worlds only), the five other guards' talks, Joby and Beni, Chris and his Lost Property shop, and the glider map itself (none of its destinations is built).
+Also left out from the palace: filling vessels at the fountain (no water sources are built yet), the big-window shortcut itself, Osman's Crack the Clue step, and the Emir, who is never seen. From the fighters and camels: Pickpocket on men and warriors (Thieving comes with the Draynor piece), the warriors joining in when one is attacked (NPC aggression, the Varrock piece), the camulet's talk and camel dung (members, Enakhra's Lament and My Arm's Big Adventure), and Cam's treasure trail step. From the mine: its agility shortcut (`alkharid_mine_sc_*`). From the Shantay Pass: the desert beyond the gate (the poster, the disclaimer and the pass handed over come with the Desert piece), the Tourist Trap lines, treasure trail steps, the Kalphite cave, the cacti, and the guards' aggression. From the Arena: its fights (PvP Arena worlds only), the five other guards' talks, Joby and Beni, Chris and his Lost Property shop, and the glider map itself (none of its destinations is built).
 
 Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
 Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
@@ -982,6 +1012,62 @@ The words are in the dialogue file (keys `doris.*`, `evil_dave.*`, `hari.*`, `lu
 `test-runner/examples/edgeville-people.json` talks to Doris, opens, shuts and goes down the trapdoor, talks to Evil
 Dave, climbs the stairs, talks to Lucien and Hari, and tries each refused place; `EdgevillePeopleTest` does each talk's
 branches and `HeadlessEdgevillePeopleTest` the trapdoor, stairs, refusals, Doris and Lucien through the headless client.
+
+Step 3b is the outlaws' camp south-east of the town: spawns in `npc-spawns/edgeville.json`, combat and drops in
+`npc-combat.json` and `npc-drops.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Ten level 32 outlaws (`surok_outlaw1` to `10`, 4167 to 4176), one of each, in the camp at about 3116 to 3124, 3470 to 3477; not aggressive | mejrs's NPC list for the tiles; 241 cache (Attack only); the Wiki's Outlaw page; wander range guessed |
+| They crush for up to 3 (Strength 30, strength bonus -21), attack speed 4, no defence bonuses, back 4 ticks after the killing blow (the Wiki's 2, raised to the time the body stays, as for rats) | OSRS Wiki, Outlaw and the DPS calculator's 4167 (read 2026-11-01); the punch and block animations guessed |
+| The Wiki's XP bonus of -97.5%: a fortieth of the combat XP for their damage, Hitpoints' too, rounded down in tenths each hit (`xpBonus` in `npc-combat.json`, for any NPC) | OSRS Wiki, Outlaw; that it covers Hitpoints and not a spell's base XP is inferred |
+| Bones always and one roll: rope 46/128, the herb table 32/128, fishing bait, coins (5, 15, 25), cabbage, runes, a bronze med helm, copper ore, a knife | OSRS Wiki, Outlaw (members: herbs for the free-to-play 10 coins); its lines come to 127/128, so 1/128 of nothing is inferred |
+
+Left out: the shout before an attack, whose accuracy boost the Wiki has not confirmed. Check:
+`test-runner/examples/edgeville-outlaws.json` attacks an outlaw and kills it for its bones; `NpcCombatTest` and
+`NpcDropsTest` check the numbers, `CombatMathTest` the XP bonus, and `HeadlessEdgevilleOutlawsTest` kills one through
+the headless client for its 2 Attack XP.
+
+Step 4 is Edgeville Monastery, west of the town, `game/content/EdgevilleMonastery.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Six monks (`monk` 2579: four in the courtyard, two upstairs), Abbot Langley (2577), Brother Althric (1397) in the rose garden and Brother Jered (2578) upstairs | mejrs's NPC list for the tiles (it saw six monks; the Wiki says five); wander ranges guessed |
+| A monk's talk: three options; the heal gives 2 and a fifth of the Hitpoints level, to the level at most | OSRS Wiki, Monk and Transcript:Monk; rounding down guessed |
+| Monks fight back: level 5, 15 hitpoints, crush for up to 1, back in 25 ticks, bones | OSRS Wiki, Monk and the DPS calculator's 2579; the punch animations guessed; their heal of 2 now and then in a fight is left out (the Wiki gives no chance) |
+| Abbot Langley: the heal (as a monk's, guessed), where the player is, going upstairs (until joined) and the spirit shields (each spectral, arcane or elysian spirit shield in the backpack broken for its sigil) | OSRS Wiki, Transcript:Abbot Langley; with no shield, the yes does nothing (guessed) |
+| Joining the order at 31 Prayer, kept on varbit 4907 (`monastery_enter`); until then the south-eastern ladder (2641) brings the Abbot's line and join menu and the south-western one a monk's line; once joined both climb | OSRS Wiki, Transcript:Abbot Langley and Transcript:Monk; that varbit 4907 is the joined flag is inferred from its name |
+| Brother Jered: blesses an unblessed symbol (1716) into a holy symbol (1718), and at 99 Prayer sells the Skillcape of Prayer and hood for 99,000 coins (trimmed when another skill is 99) | OSRS Wiki, Transcript:Brother Jered |
+| Brother Althric's talk about his roses | OSRS Wiki, Transcript:Brother Althric (its standard talk) |
+| The upstairs altar (2640): prayer back to 2 above the level | OSRS Wiki, Edgeville Monastery |
+| A monk's robe top and bottom upstairs, back 100 ticks after taking; the garden's cabbages (1161) picked, back in 60 ticks, as every cabbage field's now | the Wiki's item pages; tiles from 2004Scape's map m47_54; the Cabbage page's 40 to 80 ticks, 60 guessed |
+
+Left out: the roses' Take-seed (Garden of Tranquillity), the Abbot's clue, letter and Corrupted Helm talk, the
+Kharid scorpion and the ghost (quests). The words are in the dialogue file (keys `edgeville_monk.*`,
+`abbot_langley.*`, `brother_jered.*`, `brother_althric.*`, `crop.cabbage_*`). Check:
+`test-runner/examples/edgeville-monastery.json` is refused at the ladder, joins, climbs, takes a robe, prays, talks to
+each of the people and picks a cabbage; `EdgevilleMonasteryTest` does each talk's branches and
+`HeadlessEdgevilleMonasteryTest` the ladders, joining and the altar through the headless client.
+
+Step 5 is Barbarian Village's buildings and people, `game/content/BarbarianVillage.kt`, `npc-spawns/barbarian-village.json`
+and `obj-spawns/barbarian-village.tsv`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Peksa's Helmet Shop (Peksa 2872, inv `helmetshop` 10): bronze to adamant med and full helms at 100%, bought at 60%; his yes opens it, his no says goodbye | OSRS Wiki, Peksa's Helmet Shop (ShopTest checks every sold-at price) and Transcript:Peksa |
+| The talk of Tassie Slipcast (1352, her studio), Hunding (3063, the top of the lookout tower; both his menus), Litara (`sos_barb` 3363, before the Stronghold is finished), Checkal (`bim_checkal_barb` 10645) and Sigurd (1324, by the canoe station; his story and his teaching by Woodcutting level) | OSRS Wiki, each one's transcript; Checkal as after Below Ice Mountain; the yes after Sigurd's story going into the teaching is inferred from the Wiki's "Same as below" |
+| Atlas (10658) in the longhall, as after Below Ice Mountain: his offer of a workout for 25,000 coins; with the coins, a message of ours (the workout is a cutscene that isn't built) and no coins taken | OSRS Wiki, Transcript:Atlas |
+| The longhall's double doors (`fai_barbarian_large_doubledoor_l`/`r` 11621/11620, open 11625/11624) open together; the huts' doors by name; the lookout tower's ladders (`ladder_directional` 17026, `laddertop_directional` 16685) over three levels; Peksa's small crates (11600) searched empty | 241 cache types and places |
+| Three beers and two cooked meats on the longhall's tables, a bronze pickaxe in the spinning hut and a pot in Peksa's shop, back 100 ticks after taking | the Wiki's Barbarian Village spawn list; tiles from 2004Scape's map m48_53; respawn guessed |
+| The spinning hut's wheel, Tassie's potter's wheels and pottery oven, and the fires in Peksa's shop and the longhall, work as everywhere | `Crafting` and `Cooking` by name |
+| Tiles, wander ranges (1 to 2) and expressions | mejrs's NPC list for the tiles; the rest guessed |
+
+Left out: Sigurd's Store-axe, Hunding's beginner clue, the barbarian anvil (members' Barbarian Smithing), Litara's talk
+after the Stronghold (step 14), and the barbarians, Gunthor and the unicorns (step 7). The words are in the dialogue
+file (keys `peksa.*`, `tassie_slipcast.*`, `hunding.*`, `atlas.*`, `checkal.*`, `litara.*`, `sigurd.*`). Check:
+`test-runner/examples/barbarian-village.json` buys a helmet, spins wool, throws and fires a pot, climbs the tower to
+Hunding and talks to each of the others; `BarbarianVillageTest` does each talk's branches and
+`HeadlessBarbarianVillageTest` the shop, the longhall's doors and the tower through the headless client.
 
 ## Varrock
 
@@ -1357,6 +1443,84 @@ puts them at its exit. Blocks are kept a map square apart, so nobody in one sees
 --tests 'osrsps.testclient.HeadlessInstanceTest'` (two players in copies of the same spot can't see each other, and
 leaving puts them back), and in RuneLite `test-runner/examples/instance-castle.json` (the castle's large doors in a copy:
 shut, they block line of sight; opened, they don't; then back out).
+
+## Raid parties
+
+The Fractured Archive is fought by a party of 1 to 8 (raid step 11). `game/raid/Parties.kt` keeps who is in which party:
+the first member leads, and a party lasts until its last member leaves, so a wipe doesn't break it up. Every boss's
+hitpoints scale to the players in the raid, with a player alone counted as two (OSRS Wiki, The Fractured Archive).
+`game/raid/PartyScaling.kt` reads each raid NPC's hitpoints for parties of 1 to 8 from
+`src/main/resources/party-scaling.json`, copied from the NPC's Wiki page, as the Wiki gives no formula. Only the Archive
+Guardian is in it so far; each boss's step adds its own.
+
+| Party behaviour | Source |
+|-----------------|--------|
+| 1 to 8 players a party | Wiki, The Fractured Archive (participants) |
+| Hitpoints scaled to the party, a player alone counted as two | Wiki, The Fractured Archive |
+| The Archive Guardian's hitpoints: flying 550, 550, 800, 1,030, 1,260, 1,490, 1,720, 1,950 and grounded 1,100, 1,100, 1,600, 2,060, 2,520, 2,980, 3,440, 3,910 for 1 to 8 players | Wiki, Archive Guardian |
+| A party not disbanding after a wipe | Wiki, The Fractured Archive (28 October 2026 update) |
+| `::raidparty` instead of the lobby's Grouping Board, whose workings the Wiki doesn't give; its messages are this server's own | stand-in, until a recording shows the board |
+| Only the leader inviting and kicking; an invite lasting until it is taken up or the party ends; one party at a time | guessed |
+| A member who logs out leaving the party; a leader who leaves handing it to the member who joined next | guessed |
+| The party's hitpoints orbs | not in yet: waits for a recording of the raid's interface |
+
+`::raidnpc tfa_guardian 3` puts in the Archive Guardian scaled for 3, and `::npcs` shows the party size and hitpoints.
+Check: `./gradlew test --tests 'osrsps.game.raid.*' --tests 'osrsps.game.command.PartyCommandsTest'
+--tests 'osrsps.testclient.HeadlessPartyTest'` (the Guardian's hitpoints at 1, 2, 3 and 8 players are the Wiki's; three
+players form a party, the Guardian's hitpoints follow its size, it lasts through a death, and a member who logs out
+leaves), and in RuneLite `test-runner/examples/party-scaling.json` (the Guardian's hitpoints alone, for 3 and for 8).
+
+## Encounters
+
+A boss fight is written as an encounter (raid step 12): `game/encounter/Encounter.kt` has the boss, its phases, and each
+phase's attack cycle, steps a set number of ticks apart that repeat. A phase ends when the boss's hitpoints fall to a
+share of its maximum, or after so many ticks, and the next begins. A step can hit a player, put down tile hazards (a
+warning graphic now, then damage each tick to whoever stands on the tiles), or put in adds.
+`game/encounter/Encounters.kt` runs every fight once a tick. A fight ends when its boss dies or leaves the world, and its
+adds and hazards go with it. Each fight keeps a log of what it did, by tick. Every roll comes from the world's random, so
+a fight started on a seed plays the same way each time.
+
+| Encounter behaviour | Source |
+|---------------------|--------|
+| Fights running in the NPC phase, after NPC scripts | guessed, until a recording shows a boss |
+| A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
+| A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |
+| Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
+| Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
+| A fight outside an instance covering 32 tiles round the boss's spawn | testing only: the raid's rooms are instances |
+| No bosses yet: each one comes with its own step, from 16 on, with its room and gear sets for `::raid` | not in yet |
+
+`::raid boss phase=2 party=3 seed=42` starts a fight where you stand, and `::raid digest 100` sums up its first 100
+ticks. Check: `./gradlew test --tests 'osrsps.game.encounter.*' --tests 'osrsps.game.command.RaidCommandsTest'
+--tests 'osrsps.testclient.HeadlessEncounterTest'` (a test boss plays the same 100 ticks on two runs with the same seed
+and differently on another; its phases change at half hitpoints and on time, with an add and a hazard, and the fight
+ends when the boss leaves).
+
+## The Fractured Archive lobby
+
+The raid's lobby (raid step 14) is map square 64,86 of the 241.4 cache, entered from the Chasm of Tears through the
+cavity at 4050,4567. `game/content/ArchiveLobby.kt` has the way in and out, the banker and three NPCs who talk, and the
+lobby's bank chest goes through `game/content/Banking.kt` as every bank chest does. Their spawns are in
+`npc-spawns/fractured-archive-lobby.json`. What they say is in the dialogue file (keys `general_montoya.*`,
+`record_keeper.*`, `tfa_wizard_apprentice.*` and `tfa_banker.*`; her first four options are `banker.*`). Players can't
+reach the chasm yet: `::tele 4054 4567` stands by the cavity.
+
+| Lobby behaviour | Source |
+|-----------------|--------|
+| The cavity (`luc2_raid_entry_multi`, 62542) a multiloc on varbit 16354 (`wgs_tfa_shortcut_unlocked`), 1 showing the Opening's Crawl-through; the varbit set at login as after While Guthix Sleeps | 241.4 cache; the varbit's meaning inferred from its name |
+| The miniquest that starts at the first entry, and the quest needed, left out | no quests on this server |
+| Crawl-through landing north of the lobby's Opening (4127,5508), and the Opening's Enter landing east of the cavity (4054,4567), with no animation either way | guessed, until a recording shows them |
+| The bank chest's Use opening the bank and Collect the collection box; the banker's Talk-to, Bank and Collect | 241.4 cache (options); Wiki, Transcript:Banker (The Fractured Archive) |
+| General Montoya's, the Record Keeper's and the Wizard apprentice's talks | Wiki transcripts (Montoya's before the raid is done; the Record Keeper's first talk) |
+| The apprentice's first talk then his later one, on varbit 16427 (`tfa_wizard_apprentice_met`) | Wiki transcript; the varbit inferred from its name |
+| The Record Keeper's introduction each time, and Yes to his statistics closing the talk | guessed: the var live keeps for it isn't known, and his statistics screen isn't built |
+| Montoya's and the Record Keeper's menus coming back after each topic; every chathead expression | guessed |
+| Where the four NPCs stand | guessed from the lobby's map, beside the locs they tend |
+| The Archive Door, Grouping Board, Alliance records, Strategy board, Ascension rocks, Loot Wheelbarrow, and the guards, druids and Alliance builders | not in yet: the door is step 15, the rest wait for a recording or are left out of the first version |
+
+Check: `./gradlew test --tests 'osrsps.game.content.ArchiveLobbyTest' --tests 'osrsps.testclient.HeadlessArchiveLobbyTest'`
+(each talk line by line; the cavity open from login and crawled through, the Opening back, the bank chest and banker
+banking, the apprentice remembering his first talk), and in RuneLite `test-runner/examples/archive-lobby.json`.
 
 ## Line of sight
 

@@ -39,6 +39,8 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerInstanceCommands
+import osrsps.game.command.registerPartyCommands
+import osrsps.game.command.registerRaidCommands
 import osrsps.game.command.registerIpCommands
 import osrsps.game.command.registerGrandExchangeCommands
 import osrsps.game.command.registerItemCommands
@@ -97,6 +99,7 @@ import osrsps.game.content.registerChurch
 import osrsps.game.content.registerFatherUrhney
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
+import osrsps.game.content.registerArchiveLobby
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
 import osrsps.game.content.Ducks
@@ -109,14 +112,20 @@ import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
+import osrsps.game.content.registerBarbarianVillage
+import osrsps.game.content.registerEdgevilleMonastery
 import osrsps.game.content.registerEdgevillePeople
 import osrsps.game.content.registerEdgevilleShops
 import osrsps.game.content.registerHaystacks
+import osrsps.game.content.registerLodestones
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
+import osrsps.game.content.registerDraynorSewers
+import osrsps.game.content.registerDraynorManorGrounds
+import osrsps.game.content.ManorHazards
 import osrsps.game.content.registerWiseOldMan
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRottenPotato
@@ -144,6 +153,10 @@ import osrsps.game.npc.NpcInteractions
 import osrsps.game.npc.NpcScripts
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
+import osrsps.game.encounter.EncounterDef
+import osrsps.game.encounter.Encounters
+import osrsps.game.raid.Parties
+import osrsps.game.raid.PartyScaling
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -167,6 +180,10 @@ import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
 import osrsps.game.script.ScriptRunner
+import osrsps.game.social.ClanFoundingRule
+import osrsps.game.social.ClanLines
+import osrsps.game.social.ClanStore
+import osrsps.game.social.Clans
 import osrsps.game.social.FriendChats
 import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.FriendLists
@@ -226,6 +243,10 @@ class World(
     private val reportsFile: Path? = null,
     /** The time reports are stamped and rate-limited by; tests move it. */
     private val reportsClock: () -> java.time.Instant = java.time.Instant::now,
+    /** Where clans and the clan founding rule are kept (data/); null keeps them in memory (tests). */
+    clansDir: Path? = null,
+    /** The time clans are founded by (one a day per founder); tests move it. */
+    clansClock: () -> java.time.Instant = java.time.Instant::now,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
     /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
@@ -234,6 +255,10 @@ class World(
     npcCombat: NpcCombat = NpcCombat.NONE,
     /** What each NPC drops when it dies; see [NpcDrops]. */
     val npcDrops: NpcDrops = NpcDrops.NONE,
+    /** Raid NPCs' hitpoints by party size; see [PartyScaling]. */
+    val partyScaling: PartyScaling = PartyScaling.NONE,
+    /** The boss fights content has written, for [Encounters] and `::raid`. */
+    encounterDefs: List<EncounterDef> = emptyList(),
     /** The bows, crossbows and ammunition [RangedCombat] fires; tests that shoot pass their own. */
     val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
     /** The combat spells [MagicCombat] casts; tests that cast pass their own. */
@@ -288,6 +313,12 @@ class World(
 
     /** Private copies of parts of the map; see [Instances]. */
     val instances = Instances(collision, staticLocs, locTypes)
+
+    /** Raid parties; see [Parties]. */
+    val parties = Parties()
+
+    /** Boss fights in progress; see [Encounters]. */
+    val encounters = Encounters(this, encounterDefs)
 
     /** Fence gates, both leaves at once; see [Gates]. */
     val gates = Gates(locs)
@@ -433,6 +464,7 @@ class World(
         poisonPlayer = { player, severity -> poison.poison(player, severity) },
         special = { specialAttacks.use(it, combat.weapon(it)) },
         specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
+        projectile = zones::projectile,
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
@@ -521,6 +553,22 @@ class World(
         reportsClock,
     )
 
+    /** Clans; see [Clans]. */
+    val clans = Clans(
+        ClanStore(clansDir?.resolve(ClanStore.FILE_NAME)),
+        ClanFoundingRule(clansDir?.resolve(ClanFoundingRule.FILE_NAME)),
+        { player, message -> player.session.queue(message) },
+        { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
+        interfaces::openClansTab,
+        interfaces::setEvents,
+        interfaces::runClientScript,
+        ::textFor,
+        ignoreLists,
+        { player -> players.getOrNull(player.index) === player },
+        { privateMessages.nextCounter() },
+        clansClock,
+    )
+
     /** Private messages; see [PrivateMessages]. */
     val friendChats = FriendChats(
         { onlinePlayers }, { tick }, ::channelOwner, ignoreLists, ::textFor, { privateMessages.nextCounter() },
@@ -545,6 +593,7 @@ class World(
 
     val mining = Mining(this)
     val thieving = Thieving(this, collision)
+    val manorHazards = ManorHazards(this)
     val pickpocketing = Pickpocketing(this)
 
     val fishing = Fishing(this)
@@ -604,6 +653,8 @@ class World(
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
         registerInstanceCommands(this@World)
+        registerPartyCommands(this@World)
+        registerRaidCommands(this@World)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
         registerGrandExchangeCommands(this@World)
@@ -638,6 +689,8 @@ class World(
         registerNed(this)
         registerAggie(this)
         registerDraynorJail(this)
+        registerDraynorSewers(this)
+        registerDraynorManorGrounds(this)
         registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
@@ -652,8 +705,12 @@ class World(
         registerEdgeville(this)
         registerEdgevilleShops(this)
         registerEdgevillePeople(this)
+        registerEdgevilleMonastery(this)
+        registerBarbarianVillage(this)
         registerHaystacks(this)
+        registerLodestones(this)
         registerVarrock(this)
+        registerArchiveLobby(this)
         registerCrops(this)
         ducks.register()
         homeTeleport.register(handlers)
@@ -997,6 +1054,7 @@ class World(
         }
         deaths.process()
         npcScripts.process()
+        encounters.process()
         thieving.process()
         npcs.process()
         fishing.process()
@@ -1013,6 +1071,7 @@ class World(
             scripts.process(player)
             // Outside a player's own scripts, so a failure here would otherwise skip the rest of the tick for everyone.
             perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
+            perPlayer(player, "Clans") { clans.process(player) }
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
@@ -1022,6 +1081,8 @@ class World(
         for (player in players) {
             if (player == null || player.loggedOut) continue
             perPlayer(player, "movement") { movePhase(player) }
+            // After the step, so the vines see the tile the player walked onto this tick.
+            perPlayer(player, "manor hazards") { manorHazards.process(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
@@ -1530,6 +1591,7 @@ class World(
             if (findPlayer(key) == null && write(key, text)) count++
         }
         if (count > 0) logger.info { "Saved $count player${if (count == 1) "" else "s"}" }
+        clans.flush()
         if (unwritten.isNotEmpty()) logger.error { "${unwritten.size} save${if (unwritten.size == 1) " is" else "s are"} still only in memory: ${unwritten.keys.sorted()}" }
     }
 
@@ -1622,9 +1684,11 @@ class World(
         sendWeight(player)
         ignoreLists.sendAll(player)
         friendLists.sendAll(player)
+        player.listsAfterMapBuild = true
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
         PlayerOps.send(player.vars, player.session::queue)
+        clans.resync(player)
         rebuild(player)
         interfaces.resendClosesWhileAway(player)
         interfaces.closeEmptyModalSlots(player)
@@ -1650,6 +1714,7 @@ class World(
         sendChatFilters(player)
         ignoreLists.sendAll(player)
         friendLists.login(player)
+        player.listsAfterMapBuild = true
         quests.completeAll(player.vars)
         prayers.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -1661,6 +1726,7 @@ class World(
         interfaces.openGameFrame(player)
         inventoryTab.open(player)
         friendChats.rejoin(player)
+        clans.login(player)
         if (player.newAccount) {
             // Tutorial Island's end on live: resizable mode and the default zoom, and the frame to match. Nobody here
             // does the tutorial, so a new account gets them at its first login.
@@ -1737,6 +1803,13 @@ class World(
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (held(player)) return
         trades.interrupt(player)
+        if (option == Clans.PLAYER_OP_RECRUIT) {
+            // The clan creation invitation's "Form clan" sends option 1 on its sender (client script chat_op_core);
+            // nothing else here uses option 1 (Attack, in PvP areas, isn't built).
+            val target = clicked?.takeIf { players[it.index] === it && it !== player } ?: return
+            clans.inviteOrAccept(player, target)
+            return
+        }
         if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT || !PlayerOps.shown(player.vars, option)) {
             logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
@@ -1778,6 +1851,10 @@ class World(
             if (held(player)) return@act
             trades.interrupt(player)
             val target = clicked?.takeIf { players[it.index] === it && it !== player }
+            if (interfaceId == Clans.CREATION && componentId == Clans.CREATION_INVITE && target != null) {
+                clans.inviteOrAccept(player, target)
+                return@act
+            }
             if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS || target == null) {
                 logger.info { "${player.username} used $interfaceId:$componentId sub $sub on player ${clicked?.username} (not handled)" }
                 return@act
@@ -1920,12 +1997,32 @@ class World(
     fun onPublicChat(player: Player, message: MessagePublic) = act(player) {
         if (message.type == PublicChat.TYPE_FRIENDS_CHAT) {
             friendChats.talk(player, message.message)
+        } else if (message.type == Clans.CHAT_TYPE_CLAN && message.clanType == Clans.CLAN_TYPE_CLAN) {
+            clans.talk(player, message.message)
+        } else if (message.type == Clans.CHAT_TYPE_CLAN || message.type == Clans.CHAT_TYPE_GUEST) {
+            // Group ironman and guest clan chat aren't built.
+            logger.info { "${player.username} sent clan chat type ${message.type} clan type ${message.clanType} (not built)" }
         } else {
             sayPublicChat(player, message)?.let { reports.heard(player, it) }
         }
     }
 
+    /** The clan creation panel's name prompt; see [Clans.setName]. Then Confirm again, if it came from Confirm. */
+    private fun askClanName(player: Player, thenConfirm: Boolean) {
+        scripts.start(player) {
+            if (clans.setName(player, stringDialog(textFor(player)[ClanLines.NAME_PROMPT])) && thenConfirm) clans.confirm(player, ::askClanName)
+        }
+    }
+
     /** SEND_SNAPSHOT: a rule picked on the report screen. */
+    /** MAP_BUILD_COMPLETE: the first one after a login or reconnect sends the friends and ignore lists again. */
+    fun onMapBuildComplete(player: Player) = actWhileDead(player) {
+        if (!player.listsAfterMapBuild) return@actWhileDead
+        player.listsAfterMapBuild = false
+        ignoreLists.sendAll(player)
+        friendLists.sendAll(player)
+    }
+
     fun onReport(player: Player, name: String, rule: Int, mute: Boolean) = actWhileDead(player) { reports.submit(player, name, rule, mute) }
 
     /** A rank picked for a friend in the friends chat setup list. */
@@ -1955,7 +2052,7 @@ class World(
             return@act
         }
         if (interfaceId == Reports.INTERFACE && componentId == Reports.CLOSE) {
-            if (player.chatModal == Reports.INTERFACE) interfaces.closeChatModal(player)
+            if (player.chatModal == Reports.INTERFACE) reports.close(player)
             return@act
         }
         if (bankScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
@@ -2010,6 +2107,15 @@ class World(
         }
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.click(player, componentId, sub, op)) return@act
         if (interfaceId == AllSettings.INTERFACE && allSettings.click(player, componentId, sub, op, tick)) return@act
+        if (interfaceId == Clans.SIDE_CHANNELS && componentId in Clans.SIDE_CHANNELS_TABS) {
+            clans.selectTab(player, componentId - Clans.SIDE_CHANNELS_TABS.first, interfaces::openChatChannel)
+            return@act
+        }
+        if (interfaceId == Clans.CREATION && clans.clickCreation(player, componentId, sub, ::askClanName)) return@act
+        if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_CHAT) {
+            clans.toggleChannel(player)
+            return@act
+        }
         if (interfaceId == FriendChats.CURRENT && componentId == FriendChats.CURRENT_SETUP) {
             openFriendsChatSetup(player)
             return@act
@@ -2587,6 +2693,9 @@ class World(
             trades.leave(player)
             thieving.forgive(player)
             friendChats.logout(player)
+            clans.logout(player)
+            parties.logout(player)
+            reports.forget(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

@@ -91,12 +91,30 @@ class ObjSpawnFilesTest {
     }
 
     @Test
-    fun `Edgeville's spawns are the Wiki's leather gloves south of the bank and iron mace in the jail`() {
-        val town = ObjTypes.of(ObjType(1059, "Leather gloves", internalName = "leather_gloves"), ObjType(1420, "Iron mace", internalName = "iron_mace"))
+    fun `Edgeville's spawns are the Wiki's leather gloves, iron mace and the monastery's robes upstairs`() {
+        val town = ObjTypes.of(
+            ObjType(1059, "Leather gloves", internalName = "leather_gloves"), ObjType(1420, "Iron mace", internalName = "iron_mace"),
+            ObjType(544, "Monk's robe top", internalName = "monkrobetop"), ObjType(542, "Monk's robe", internalName = "monkrobebottom"),
+        )
         val text = ObjSpawnFiles.resources().toMap().getValue("edgeville.tsv")
         val spawns = ObjSpawnFiles.parse(text, town, "edgeville.tsv")
-        assertEquals(listOf(1059, 1420), spawns.map { it.id })
-        assertEquals(listOf(3097 to 3486, 3111 to 3517), spawns.map { it.x to it.z })
+        assertEquals(listOf(1059, 1420, 544, 542), spawns.map { it.id })
+        assertEquals(listOf(3097 to 3486, 3111 to 3517, 3059 to 3487, 3059 to 3488), spawns.map { it.x to it.z })
+        assertEquals(listOf(0, 0, 1, 1), spawns.map { it.level })
+    }
+
+    @Test
+    fun `Barbarian Village's spawns are the Wiki's beers and meat in the longhall, the spinning hut's pickaxe and Peksa's pot`() {
+        val village = ObjTypes.of(
+            ObjType(1917, "Beer", internalName = "beer"), ObjType(2142, "Cooked meat", internalName = "cooked_meat"),
+            ObjType(1265, "Bronze pickaxe", internalName = "bronze_pickaxe"), ObjType(1931, "Pot", internalName = "pot_empty"),
+        )
+        val text = ObjSpawnFiles.resources().toMap().getValue("barbarian-village.tsv")
+        val spawns = ObjSpawnFiles.parse(text, village, "barbarian-village.tsv")
+        assertEquals(listOf(3, 2, 1, 1), listOf(1917, 2142, 1265, 1931).map { id -> spawns.count { it.id == id } })
+        // The longhall is x 3073 to 3086, z 3436 to 3448.
+        assertTrue(spawns.filter { it.id == 1917 || it.id == 2142 }.all { it.x in 3073..3086 && it.z in 3436..3448 })
+        assertTrue(spawns.all { it.level == 0 })
     }
 
     @Test

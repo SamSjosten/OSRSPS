@@ -1,0 +1,20 @@
+{
+  "about": "Draynor Manor (Draynor piece step 11, its grounds): the Wiki's 14 undead trees, which never move, and Veronica by the fence. The manor's own NPCs come with its steps. Veronica's wander range is guessed.",
+  "spawns": [
+    {"npc": 4418, "x": 3143, "z": 3365, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3140, "z": 3360, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3143, "z": 3357, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3138, "z": 3352, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3111, "z": 3348, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3103, "z": 3347, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3108, "z": 3346, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3107, "z": 3344, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3115, "z": 3344, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3120, "z": 3344, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3107, "z": 3342, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3111, "z": 3339, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3107, "z": 3337, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 4418, "x": 3122, "z": 3335, "source": "Undead tree (nasty_tree), Draynor Manor's grounds. OSRS Wiki, Undead tree (its After Quest map); mejrs NPCList_OSRS has the ten west of x 3136 on the same tiles"},
+    {"npc": 3561, "x": 3110, "z": 3330, "wander": 2, "source": "Veronica (veronica), by the gap in the manor's fence. mejrs NPCList_OSRS"}
+  ]
+}

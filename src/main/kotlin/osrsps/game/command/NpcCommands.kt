@@ -39,7 +39,8 @@ fun CommandRegistry.registerNpcCommands(world: World) {
                 npc.freezeImmunityTicks > 0 -> "; immune to freezes ${npc.freezeImmunityTicks} more tick${if (npc.freezeImmunityTicks == 1) "" else "s"}"
                 else -> ""
             }
-            val max = npc.type.stats.hitpoints
+            val max = npc.maxHitpoints
+            val scaled = if (npc.scaledFor > 0) "; scaled for ${npc.scaledFor} players, $max hp" else ""
             val hurt = if (npc.hitpoints < max) "; ${npc.hitpoints}/$max hp" else ""
             val poison = world.poison.describe(npc)?.let { "; $it" }.orEmpty()
             val drained = world.npcDrains.describe(npc)?.let { "; $it" }.orEmpty()
@@ -47,7 +48,7 @@ fun CommandRegistry.registerNpcCommands(world: World) {
             val fighting = npc.target?.let { "; fighting ${it.username}" }
                 ?: npc.retreatingFrom?.let { "; retreating from ${it.username}" }
                 ?: if (world.combat.npcCombat[npc.type] != null) "; fighting no one" else ""
-            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$freeze$hurt$poison$drained$fighting")
+            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$scaled$freeze$hurt$poison$drained$fighting")
         }
         if (near.size > MAX_LISTED) reply("...and ${near.size - MAX_LISTED} more.")
     }
@@ -121,7 +122,7 @@ fun CommandRegistry.registerNpcCommands(world: World) {
     }
 }
 
-private fun spawnSource(username: String) = "::npc by $username"
+internal fun spawnSource(username: String) = "::npc by $username"
 
 private const val MAX_WANDER = 64
 private const val DEFAULT_LIST_RADIUS = 15

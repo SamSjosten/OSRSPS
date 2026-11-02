@@ -54,13 +54,13 @@ class HeadlessReportTest {
                     alice.await("bob's report option") { alice.playerOps()[PlayerOps.REPORT] }
                     alice.playerOp(bob.index, PlayerOps.REPORT)
                     alice.awaitReportScreen("bob")
-                    alice.sendReport("bob", 15)
+                    alice.sendReport("bob", 14)
                     alice.saw("[report.received]")
                     alice.await("the screen closed") { if (Reports.INTERFACE in alice.openInterfaces()) null else Unit }
                     val report = server.world.reports.recent().single()
                     assertEquals("alice", report.reporter)
                     assertEquals("bob", report.name)
-                    assertEquals(15, report.rule)
+                    assertEquals(14, report.rule)
                     // The last ten lines he said, oldest first.
                     assertEquals((3..12).map { "line $it" }, report.chat)
                     // One line in the file, with the same.
@@ -68,7 +68,7 @@ class HeadlessReportTest {
                     assertEquals(1, lines.size)
                     assertTrue(lines[0].contains("\"reporter\":\"alice\"") && lines[0].contains("\"name\":\"bob\"") && lines[0].contains("\"line 12\""), lines[0])
                     // A second snapshot, with the screen gone, isn't taken.
-                    alice.sendReport("bob", 15)
+                    alice.sendReport("bob", 14)
                     alice.awaitTicks(2)
                     assertEquals(1, server.world.reports.recent().size)
                     assertEquals("alice reported bob: scamming (10 chat lines)", alice.commandReply("reports") { it.contains("reported") })
@@ -84,8 +84,8 @@ class HeadlessReportTest {
                 assertEquals("No reports since the server started", alice.commandReply("reports") { it.startsWith("No reports") })
                 alice.ifButton(Chatbox.CHATBOX, Reports.CHATBOX_BUTTON, Reports.OP_REPORT_ABUSE)
                 alice.awaitReportScreen(null)
-                // 3 isn't one of the screen's rules.
-                alice.sendReport("nobody", 3)
+                // 2 isn't one of the screen's rules.
+                alice.sendReport("nobody", 2)
                 alice.awaitTicks(2)
                 assertTrue(server.world.reports.recent().isEmpty())
                 assertTrue(Reports.INTERFACE in alice.openInterfaces())
@@ -94,7 +94,7 @@ class HeadlessReportTest {
                 // A name never seen: no chat lines, still kept.
                 alice.ifButton(Chatbox.CHATBOX, Reports.CHATBOX_BUTTON, Reports.OP_REPORT_ABUSE)
                 alice.awaitReportScreen(null)
-                alice.sendReport("Some One", 7, mute = true)
+                alice.sendReport("Some One", 6, mute = true)
                 alice.saw("[report.received]")
                 val report = server.world.reports.recent().single()
                 assertEquals("Some One", report.name)
@@ -111,28 +111,28 @@ class HeadlessReportTest {
         server(dir, time::get).use { server ->
             server.login("alice").use { alice ->
                 val kept = { server.world.reports.recent().size }
-                alice.report("bob", 15)
+                alice.report("bob", 14)
                 assertEquals(1, kept())
                 // Within the cooldown: the screen still closes, nothing is kept.
-                alice.report("carol", 7)
+                alice.report("carol", 6)
                 assertEquals(1, kept())
                 pass(Reports.COOLDOWN)
                 // The same name and rule again inside the repeat window isn't kept; another rule is.
-                alice.report("bob", 15)
+                alice.report("bob", 14)
                 assertEquals(1, kept())
-                alice.report("bob", 7)
+                alice.report("bob", 6)
                 assertEquals(2, kept())
                 // Up to the hourly cap, then nothing until an hour after the first.
                 for (i in 3..Reports.HOURLY) {
                     pass(Reports.COOLDOWN)
-                    alice.report("name$i", 15)
+                    alice.report("name$i", 14)
                 }
                 assertEquals(Reports.HOURLY, kept())
                 pass(Reports.COOLDOWN)
-                alice.report("one more", 15)
+                alice.report("one more", 14)
                 assertEquals(Reports.HOURLY, kept())
                 pass(Duration.ofHours(1))
-                alice.report("one more", 15)
+                alice.report("one more", 14)
                 assertEquals(Reports.HOURLY + 1, kept())
                 val file = dir.resolve(Reports.FILE_NAME)
                 assertEquals(Reports.HOURLY + 1, Files.readAllLines(file).size)
@@ -144,9 +144,57 @@ class HeadlessReportTest {
                 assertEquals(Reports.FILE_CAP, Files.size(file))
                 // Another player isn't held up by alice's limits.
                 server.login("bob").use { bob ->
-                    bob.report("alice", 15)
+                    bob.report("alice", 14)
                     assertEquals(Reports.HOURLY + 3, kept())
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `the real client's report, by its wire rule id and followed by the close click in the same tick, is kept`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                // Captured on VM 215: Scamming (15 in the screen's scripts) arrives as 14, then the script's close click.
+                alice.ifButton(Chatbox.CHATBOX, Reports.CHATBOX_BUTTON, Reports.OP_REPORT_ABUSE)
+                alice.awaitReportScreen(null)
+                alice.sendReport("test2", 14)
+                alice.ifButton(Reports.INTERFACE, Reports.CLOSE, 1)
+                alice.saw("[report.received]")
+                alice.await("the screen closed") { if (Reports.INTERFACE in alice.openInterfaces()) null else Unit }
+                assertEquals("alice reported test2: scamming (0 chat lines)", alice.commandReply("reports") { it.contains("reported") })
+            }
+        }
+    }
+
+    @Test
+    fun `a report that reaches the server just after the screen's close button is still taken, once, and not long after`(@TempDir dir: Path) {
+        val time = AtomicReference(Instant.parse("2026-11-01T12:00:00Z"))
+        fun pass(d: Duration) = time.updateAndGet { it + d }
+        server(dir, time::get).use { server ->
+            server.login("alice").use { alice ->
+                // A close click just before the report is still followed by it (the real client sends the report first, then the close).
+                alice.ifButton(Chatbox.CHATBOX, Reports.CHATBOX_BUTTON, Reports.OP_REPORT_ABUSE)
+                alice.awaitReportScreen(null)
+                alice.ifButton(Reports.INTERFACE, Reports.CLOSE, 1)
+                alice.sendReport("bob", 14)
+                alice.saw("[report.received]")
+                assertEquals(listOf("bob"), server.world.reports.recent().map { it.name })
+                assertTrue(Reports.INTERFACE !in alice.openInterfaces())
+                // A second report on the same close isn't taken.
+                pass(Reports.COOLDOWN)
+                alice.sendReport("carol", 6)
+                alice.awaitTicks(2)
+                assertEquals(1, server.world.reports.recent().size)
+                // Nor one that comes long after the close.
+                alice.ifButton(Chatbox.CHATBOX, Reports.CHATBOX_BUTTON, Reports.OP_REPORT_ABUSE)
+                alice.awaitReportScreen(null)
+                alice.ifButton(Reports.INTERFACE, Reports.CLOSE, 1)
+                alice.await("the screen closed") { if (Reports.INTERFACE in alice.openInterfaces()) null else Unit }
+                pass(Reports.CLOSE_GRACE + Duration.ofSeconds(1))
+                alice.sendReport("dave", 6)
+                alice.awaitTicks(2)
+                assertEquals(1, server.world.reports.recent().size)
             }
         }
     }

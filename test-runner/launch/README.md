@@ -34,6 +34,36 @@ The `RSProx` scheduled task already runs `C:\RSPS\RSProx.cmd`, so `schtasks /run
 client. The scheduled task matters: a client started from it runs on the signed-in desktop and keeps running when the
 session that started it ends.
 
+## Fetching from the repository
+
+The VMs have no git: a run gets this repository's files (scripts, examples) and CI's jars by download. While the
+repository is public that was raw.githubusercontent.com and nightly.link, which need no login; once it is private,
+both refuse. `repo-fetch.ps1` does the same through GitHub's API with the VM's read token, and works before the switch
+too:
+
+```powershell
+# A file at a commit (or -Ref main); no token is needed while the repository is public.
+powershell -ExecutionPolicy Bypass -File C:\RSPS\bin\repo-fetch.ps1 -File test-runner/examples/x.json -Ref <sha> -OutFile C:\RSPS\x.json
+# The newest unexpired build of a CI artifact on main (-Branch, or -Commit <sha> for one build): always needs the token.
+powershell -ExecutionPolicy Bypass -File C:\RSPS\bin\repo-fetch.ps1 -Artifact test-runner-jar -OutFile C:\RSPS\downloads\test-runner-jar.zip
+```
+
+The token is the first line of `C:\RSPS\github-token.txt` (`-TokenFile` for another): a fine-grained token of Sam's
+for this repository only, with Contents and Actions read and nothing else. Sam puts it there on each VM himself; it is
+never in git, a chat, a script's output or memory. The script sends it only to api.github.com: an artifact's download
+redirects to signed storage, which gets the request without it. It writes `<OutFile>.part` and renames it, so a cut
+download leaves no half file, and exits with 1 and the reason (never the token, nor a signed address's signature)
+when it can't.
+
+Installing it (once, and again when it changes):
+
+```powershell
+Copy-Item .\test-runner\launch\repo-fetch.ps1, .\test-runner\launch\repo-fetch-functions.ps1 C:\RSPS\bin\
+```
+
+`repo-fetch-functions.ps1` holds the parts that need no network (the token file, the API's addresses, which build to
+take, which headers follow a redirect); `repo-fetch-functions.tests.ps1` checks them in CI's `launch-scripts` job.
+
 ## Running
 
 ```powershell
@@ -46,8 +76,9 @@ It prints each stage with the time and exits with 1 and the reason when a stage 
 
 ## The Odin's Gate launcher instead of RSProx
 
-The launcher (`launcher/README.md`) is what friends will get instead of RSProx, and the VM runs it the same way:
-through a scheduled task, so the client runs on the signed-in desktop and outlives the session that started it.
+The launcher (the OdinsGate repository's `launcher/README.md`) is what friends get instead of RSProx, and the VM runs it
+the same way: through a scheduled task, so the client runs on the signed-in desktop and outlives the session that
+started it.
 
 - `OdinsGate.cmd` is that task's command. It runs the installed launcher at `C:\RSPS\launcher\app\bin` with
   `--auto --dev --home C:\RSPS\launcher --status-file C:\RSPS\launcher\status.json --manifest
@@ -79,8 +110,8 @@ through a scheduled task, so the client runs on the signed-in desktop and outliv
   and waiting on the status file); `start-client-functions.tests.ps1` checks them, in CI's `launch-scripts` job with
   PowerShell 7 on Linux or by hand with `pwsh -NoProfile -File .\test-runner\launch\start-client-functions.tests.ps1`.
 
-Installing it, once per launcher build (the `odinsgate-launcher` artifact of CI's `launcher` job is the installed
-layout, `bin\` and `lib\`; nightly.link serves it without a login):
+Installing it, once per launcher build (the `odinsgate-launcher` artifact of the OdinsGate repository's CI `launcher`
+job is the installed layout, `bin\` and `lib\`; nightly.link serves it without a login):
 
 ```powershell
 Expand-Archive .\odinsgate-launcher.zip C:\RSPS\launcher\app -Force

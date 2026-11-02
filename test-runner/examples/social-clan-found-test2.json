@@ -1,0 +1,19 @@
+{
+ "name": "Clan founding, two players (run with social-clan-found-test.json on the other VM at the same time): test2 gets test's clan creation invitation in the Clan Hub, accepts with Recruit, and is in the clan test names",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3181 3472 0", "expectMessage": "Teleported", "comment": "off the meeting tile first: test waits for us there before it recruits"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::tele 3183 3474 0", "expectMessage": "Teleported", "comment": "the meeting tile, test's sign that we're ready"},
+  {"step": "assertMessage", "contains": "[clan.invitation]", "timeoutMs": 180000},
+  {"step": "playerOption", "player": "test", "option": "Recruit", "comment": "as the invitation's Form clan does"},
+  {"step": "assertMessage", "contains": "[clan.joined name=test2]"},
+  {"step": "assertMessage", "contains": "[clan.formed name=Gate Testers]", "timeoutMs": 60000},
+  {"step": "runClientScript", "id": 915, "args": [7], "comment": "shows the Clans side tab (toplevel_sidebutton_switch), so its panels count as open"},
+  {"step": "clickWidget", "interfaceId": 707, "component": 3, "comment": "the Clans tab's Your Clan tab"},
+  {"step": "assertInterface", "interfaceId": 701},
+  {"step": "command", "text": "::clan", "expectMessage": "Clan Gate Testers"},
+  {"step": "command", "text": "::tele 3181 3472 0", "expectMessage": "Teleported", "comment": "off the meeting tile, so the next run starts away from it"}
+ ]
+}

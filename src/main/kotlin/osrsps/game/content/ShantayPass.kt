@@ -117,7 +117,8 @@ object PortSarimJailLines : Lines("port_sarim_jail", "Door (Port Sarim jail)") {
  *   with one, the desert isn't built yet, so the gate says so (ours) and keeps the pass. From the south side the
  *   gate always lets the player north, as 2004Scape has it.
  * - The guard you can fight (4643): one line; combat in npc-combat.json.
- * - The bank chest (`thbankchest` 2693): Use opens the bank; Collect does nothing yet, as booths.
+ * - The bank chest (`thbankchest` 2693): Use opens the bank and Collect the collection box, as every bank chest's do
+ *   ([registerBanking]).
  * - Irena (4641, as after Tourist Trap): one line.
  *
  * Left out: the Tourist Trap lines, the treasure trail steps, the jail's "you should be in jail" line (no way out of
@@ -144,9 +145,6 @@ object ShantayPass {
     const val CELL_INSIDE_X = 3296
     const val CELL_INSIDE_Z = 3124
 
-    const val BANK_CHEST = 2693
-    const val USE = 1
-
     const val PASS = 1854
     const val PRICE = 5
     const val FINE = 5
@@ -155,7 +153,8 @@ object ShantayPass {
     const val PRISON_X = 3017
     const val PRISON_Z = 3182
     const val PRISON_DOOR = 9565
-    const val PICK_LOCK = 2
+    /** Pick-lock is the door's op5 in the rev 241 cache (op1 Open, ops 2 to 4 empty), checked 2026-11-01. */
+    const val PICK_LOCK = 5
 
     /** [Player.charges] names: talked to Shantay before, jailed in his cell, Pick-lock attempts in a row. */
     const val TALKED = "shantay_talked"
@@ -426,7 +425,6 @@ fun registerShantayPass(world: World) {
             world.dialogues.start(this) { gateSouth(guard) }
         }
         world.handlers.onLoc(GATE, LOOK_AT) { world.dialogues.start(this) { lookAt() } }
-        world.handlers.onLoc(BANK_CHEST, USE) { world.bankScreen.open(player) }
         world.handlers.onLoc(CELL_DOOR, 1) { op ->
             if (player.charges[JAILED] != 0 && inCell(player)) {
                 val shantay = world.npcTypes[SHANTAY] ?: return@onLoc

@@ -269,6 +269,12 @@
    "comment": "the man may have wandered off; the player chases him"
   },
   {
+   "step": "walk",
+   "x": 3235,
+   "y": 3402,
+   "comment": "a step away: walking closes the man's talk, so ::reset can be typed"
+  },
+  {
    "step": "command",
    "text": "::reset",
    "expectMessage": "Back to how you were"

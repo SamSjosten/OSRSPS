@@ -52,6 +52,8 @@ class ShopTest {
         10088 to 10, 10090 to 13, 10091 to 15, 10089 to 16, 10087 to 20, 1978 to 10,
         // Edgeville's shops.
         1127 to 65000, 1135 to 7800, 1540 to 20, 4325 to 50, 4345 to 50, 4365 to 50, 4385 to 50, 4405 to 50,
+        // Peksa's Helmet Shop.
+        1139 to 24, 1137 to 84, 1141 to 300, 1143 to 780, 1145 to 1920, 1155 to 44, 1153 to 154, 1157 to 550, 1159 to 1430, 1161 to 3520,
     )
 
     /**
@@ -102,6 +104,7 @@ class ShopTest {
             NpcType(2822, "Shop assistant", internalName = "generalassistant5"),
             NpcType(822, "Oziach", internalName = "oziach"),
             NpcType(2200, "Richard", internalName = "wilderness_capeseller_6"),
+            NpcType(2872, "Peksa", internalName = "peksa"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -152,6 +155,8 @@ class ShopTest {
         "edgeville_general_store" to listOf(1, 1, 182, 1, 2, 650, 5, 13, 1, 1, 1, 7, 1, 2),
         "oziachs_armour" to listOf(84500, 10140, 26),
         "richards_wilderness_cape_shop" to listOf(50, 50, 50, 50, 50),
+        // Barbarian Village's, read 2026-11-01.
+        "peksas_helmet_shop" to listOf(24, 84, 300, 780, 1920, 44, 154, 550, 1430, 3520),
     )
 
     @Test
@@ -169,6 +174,7 @@ class ShopTest {
         assertEquals(shops["edgeville_general_store"], shops.ofNpc(2822))
         assertEquals(shops["oziachs_armour"], shops.ofNpc(822))
         assertEquals(shops["richards_wilderness_cape_shop"], shops.ofNpc(2200))
+        assertEquals(shops["peksas_helmet_shop"], shops.ofNpc(2872))
         // The Al Kharid General Store won't buy silk (the Wiki's page); no other shop refuses anything.
         assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
@@ -194,7 +200,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(26, shops.warnings.size)
+        assertEquals(27, shops.warnings.size)
     }
 
     @Test

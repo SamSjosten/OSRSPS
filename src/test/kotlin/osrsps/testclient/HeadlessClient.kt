@@ -33,6 +33,9 @@ data class FriendsChat(val owner: String, val name: String, val kickRank: Int, v
 /** A line of friends chat. */
 data class ChannelMessage(val sender: String, val channel: String, val text: String, val counter: Int)
 
+/** A line in a clan's channel (MESSAGE_CLANCHANNEL): clan type 0 is the player's own clan. */
+data class ClanMessage(val clanType: Int, val sender: String, val text: String)
+
 data class PrivateMessage(val from: String?, val to: String?, val text: String, val world: Int = 0, val counter: Int = 0)
 
 data class GameMessage(
@@ -130,6 +133,7 @@ class HeadlessClient private constructor(
     private val privateMessages = ArrayList<PrivateMessage>()
     private var friendsChat: FriendsChat? = null
     private val channelMessages = ArrayList<ChannelMessage>()
+    private val clanMessages = ArrayList<ClanMessage>()
 
     /** The ignore list as the client holds it, in the order sent. */
     private val ignoreList = ArrayList<String>()
@@ -198,11 +202,36 @@ class HeadlessClient private constructor(
     /** Friends chat lines received, in order. */
     fun channelMessages(): List<ChannelMessage> = lock.withLock { channelMessages.toList() }
 
+    /** Clan channel lines, oldest first. */
+    fun clanMessages(): List<ClanMessage> = lock.withLock { clanMessages.toList() }
+
+    /** The text strings (`gjstr`) in the last packet of [prot], or null if none came: enough to see a clan's name or members. */
+    fun lastStrings(prot: GameServerProt): List<String>? = lock.withLock {
+        packets.lastOrNull { it.prot == prot }?.payload?.let { payload ->
+            val out = ArrayList<String>()
+            val run = StringBuilder()
+            for (byte in payload) {
+                val c = byte.toInt() and 0xFF
+                if (c == 0) {
+                    if (run.length >= 2) out += run.toString()
+                    run.clear()
+                } else if (c in 0x20..0x7E) run.append(c.toChar()) else run.clear()
+            }
+            out
+        }
+    }
+
     /** The ignore list's names. */
     fun ignores(): List<String> = lock.withLock { ignoreList.toList() }
 
     /** Whether the server has sent the friends list (FRIENDLIST_LOADED or UPDATE_FRIENDLIST). */
     val friendsLoaded: Boolean get() = lock.withLock { friendListLoaded }
+
+    /** Forgets that the friends list came, as the real client did with the one sent at login (VM 215). */
+    fun forgetFriendsLoaded() = lock.withLock { friendListLoaded = false }
+
+    /** The client's map is built (MAP_BUILD_COMPLETE), as after the login's rebuild. */
+    fun mapBuildComplete() = send(GameClientProt.MAP_BUILD_COMPLETE) {}
 
     /** The local player's moves, in order, each with the tick it arrived in. */
     fun moves(): List<TickMove> = lock.withLock { moves.toList() }
@@ -448,6 +477,7 @@ class HeadlessClient private constructor(
     fun playerOp(index: Int, op: Int, ctrl: Boolean = false) {
         val key = if (ctrl) 1 else 0
         when (op) {
+            1 -> send(GameClientProt.OPPLAYER1) { p2Alt3(index); p1Alt2(key) }
             3 -> send(GameClientProt.OPPLAYER3) { p1Alt1(key); p2Alt2(index) }
             4 -> send(GameClientProt.OPPLAYER4) { p2Alt3(index); p1Alt3(key) }
             8 -> send(GameClientProt.OPPLAYER8) { p1Alt3(key); p2Alt2(index) }
@@ -495,6 +525,15 @@ class HeadlessClient private constructor(
         p1(0)
         p1(0)
         HUFFMAN.encode(this, text)
+    }
+
+    /** A line typed with `//` in front, for the player's clan (MESSAGE_PUBLIC type 3, then clan type 0 after the text). */
+    fun clanSay(text: String) = send(GameClientProt.MESSAGE_PUBLIC) {
+        p1(3)
+        p1(0)
+        p1(0)
+        HUFFMAN.encode(this, text)
+        p1(0)
     }
 
     /** A line typed in public chat (MESSAGE_PUBLIC type 0, plain yellow). */
@@ -912,6 +951,15 @@ class HeadlessClient private constructor(
                 val counter = buf.g3()
                 buf.g1() // chat crown
                 channelMessages += ChannelMessage(sender, channel, HUFFMAN.decode(buf), counter)
+            }
+            GameServerProt.MESSAGE_CLANCHANNEL -> {
+                // RSProt's MessageClanChannelEncoder: clan type, name, world, counter, crown, then the Huffman text.
+                val clanType = buf.g1()
+                val sender = buf.gjstr()
+                buf.g2()
+                buf.g3()
+                buf.g1()
+                clanMessages += ClanMessage(clanType, sender, HUFFMAN.decode(buf))
             }
             GameServerProt.MESSAGE_PRIVATE_ECHO -> {
                 val to = buf.gjstr()
