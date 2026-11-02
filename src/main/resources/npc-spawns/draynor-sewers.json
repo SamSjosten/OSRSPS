@@ -1,0 +1,27 @@
+{
+  "about": "The Draynor Sewers under Draynor Village (Draynor piece step 10): the Wiki's seven zombies (13 and 24), four skeletons (22 and 25) and ten rats, and Ruantun in the north room's fallen-down house. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Draynor Sewers page. Every wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": "zombie_unarmed_sewer1", "x": 3119, "z": 9647, "wander": 5, "source": "Zombie (zombie_unarmed_sewer1), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "zombie_armed_sewer3", "x": 3122, "z": 9658, "wander": 5, "source": "Zombie (zombie_armed_sewer3), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "zombie_unarmed_sewer3", "x": 3124, "z": 9651, "wander": 5, "source": "Zombie (zombie_unarmed_sewer3), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "zombie_armed_sewer1", "x": 3124, "z": 9662, "wander": 5, "source": "Zombie (zombie_armed_sewer1), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "zombie_unarmed_sewer2", "x": 3086, "z": 9674, "wander": 5, "source": "Zombie (zombie_unarmed_sewer2), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "zombie_armed_sewer2", "x": 3088, "z": 9672, "wander": 5, "source": "Zombie (zombie_armed_sewer2), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "zombie_armed_sewer4", "x": 3096, "z": 9672, "wander": 5, "source": "Zombie (zombie_armed_sewer4), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "skeleton_armed3", "x": 3101, "z": 9671, "wander": 5, "source": "Skeleton (skeleton_armed3), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "skeleton_armed", "x": 3109, "z": 9675, "wander": 5, "source": "Skeleton (skeleton_armed), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "skeleton_unarmed", "x": 3115, "z": 9674, "wander": 5, "source": "Skeleton (skeleton_unarmed), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "skeleton_unarmed3", "x": 3123, "z": 9669, "wander": 5, "source": "Skeleton (skeleton_unarmed3), Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3083, "z": 9673, "wander": 5, "source": "Rat, Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3091, "z": 9670, "wander": 5, "source": "Rat, Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3099, "z": 9674, "wander": 5, "source": "Rat, Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3106, "z": 9689, "wander": 5, "source": "Rat, Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3108, "z": 9672, "wander": 5, "source": "Rat, Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3113, "z": 9683, "wander": 5, "source": "Rat, Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3117, "z": 9694, "wander": 5, "source": "Rat, Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3118, "z": 9670, "wander": 5, "source": "Rat, Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3122, "z": 9673, "wander": 5, "source": "Rat, Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3123, "z": 9666, "wander": 5, "source": "Rat, Draynor Sewers. mejrs NPCList_OSRS"},
+    {"npc": "malak", "x": 3112, "z": 9690, "wander": 2, "source": "Ruantun (malak), in the fallen-down house in the sewers' north room. mejrs NPCList_OSRS"}
+  ]
+}

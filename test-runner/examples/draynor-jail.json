@@ -97,10 +97,16 @@
    "contains": "[draynor_jail.locked]"
   },
   {
+   "step": "command",
+   "text": "::tele 3125 3248 0",
+   "expectMessage": "Teleported to 3125, 3248, 0",
+   "comment": "in the compound by its guard: from the cell door the nearest guard can be one outside the walls, out of reach"
+  },
+  {
    "step": "npcOption",
    "npc": "Jail guard",
    "option": "Attack",
-   "comment": "any of the four"
+   "comment": "the compound's guard, or any in reach"
   },
   {
    "step": "assertHitsplat",

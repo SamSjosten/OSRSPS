@@ -40,6 +40,7 @@ import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerInstanceCommands
 import osrsps.game.command.registerPartyCommands
+import osrsps.game.command.registerRaidCommands
 import osrsps.game.command.registerIpCommands
 import osrsps.game.command.registerGrandExchangeCommands
 import osrsps.game.command.registerItemCommands
@@ -110,6 +111,7 @@ import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
+import osrsps.game.content.registerBarbarianVillage
 import osrsps.game.content.registerEdgevilleMonastery
 import osrsps.game.content.registerEdgevillePeople
 import osrsps.game.content.registerEdgevilleShops
@@ -120,6 +122,7 @@ import osrsps.game.content.registerDraynorMarket
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
+import osrsps.game.content.registerDraynorSewers
 import osrsps.game.content.registerWiseOldMan
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRottenPotato
@@ -147,6 +150,8 @@ import osrsps.game.npc.NpcInteractions
 import osrsps.game.npc.NpcScripts
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
+import osrsps.game.encounter.EncounterDef
+import osrsps.game.encounter.Encounters
 import osrsps.game.raid.Parties
 import osrsps.game.raid.PartyScaling
 import osrsps.game.script.Handlers
@@ -249,6 +254,8 @@ class World(
     val npcDrops: NpcDrops = NpcDrops.NONE,
     /** Raid NPCs' hitpoints by party size; see [PartyScaling]. */
     val partyScaling: PartyScaling = PartyScaling.NONE,
+    /** The boss fights content has written, for [Encounters] and `::raid`. */
+    encounterDefs: List<EncounterDef> = emptyList(),
     /** The bows, crossbows and ammunition [RangedCombat] fires; tests that shoot pass their own. */
     val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
     /** The combat spells [MagicCombat] casts; tests that cast pass their own. */
@@ -306,6 +313,9 @@ class World(
 
     /** Raid parties; see [Parties]. */
     val parties = Parties()
+
+    /** Boss fights in progress; see [Encounters]. */
+    val encounters = Encounters(this, encounterDefs)
 
     /** Fence gates, both leaves at once; see [Gates]. */
     val gates = Gates(locs)
@@ -640,6 +650,7 @@ class World(
         registerZoneCommands(this@World, collision)
         registerInstanceCommands(this@World)
         registerPartyCommands(this@World)
+        registerRaidCommands(this@World)
         registerEffectCommands(this@World)
         registerItemCommands(this@World)
         registerGrandExchangeCommands(this@World)
@@ -674,6 +685,7 @@ class World(
         registerNed(this)
         registerAggie(this)
         registerDraynorJail(this)
+        registerDraynorSewers(this)
         registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
@@ -689,6 +701,7 @@ class World(
         registerEdgevilleShops(this)
         registerEdgevillePeople(this)
         registerEdgevilleMonastery(this)
+        registerBarbarianVillage(this)
         registerHaystacks(this)
         registerLodestones(this)
         registerVarrock(this)
@@ -1035,6 +1048,7 @@ class World(
         }
         deaths.process()
         npcScripts.process()
+        encounters.process()
         thieving.process()
         npcs.process()
         fishing.process()

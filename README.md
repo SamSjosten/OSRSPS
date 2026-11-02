@@ -299,6 +299,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::los npcIndex` / `::los dx dz` | **everyone.** Distance, line of sight and hit delays from you to an NPC or a tile (see Line of sight) |
 | `::instance [radius]` / `::instance leave` | Makes a private copy of the map around you, `radius` zones each way (default 6, 13 x 13 zones), and puts you on the same spot in it; `leave` takes you back to where you made it (see Instances) |
 | `::raidparty` / `::raidparty invite\|accept\|kick name` / `::raidparty leave` | Shows your raid party, or invites a player to it (starting one you lead), joins the party of a leader who invited you, puts a member out, or leaves (see Raid parties) |
+| `::raid boss [phase=name\|n] [party=n] [seed=n]` / `::raid` / `::raid log [lines]` / `::raid digest [ticks]` / `::raid stop` | Starts a boss fight on your tile at a phase, scaled for a party size, on a seed; shows the fight you're in (or lists the bosses), its last log lines, a digest of its log to a tick, or stops it (see Encounters) |
 | `::raidnpc id\|name [party size]` | Puts in a raid NPC on your tile with its hitpoints for a party of that size, or of your raid party's size, or of one alone (see Raid parties); `::delnpc mine` takes it out |
 | `::groundobj id\|name [count]` | Puts an item on your tile for everyone at once, with no timers, until taken, `::cleartile` or a restart |
 | `::objspawn id\|name [count [respawn]]` | Makes an item spawn on your tile that comes back `respawn` ticks (default 100) after it's taken, until a restart |
@@ -838,9 +839,13 @@ village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/co
 | The cell door (`alidoor` 2881, `game/content/DraynorJail.kt`) lets the player out from inside, swinging as `poshdooropen` and shutting behind them, and is locked from outside | 2004Scape's quest_prince script; the swing and two ticks open guessed |
 | Leela's talk after Prince Ali Rescue; Morgan's first talk after Vampyre Slayer, then his later one (multi-NPC on varbit 15611, `morgan_postquest_dialogue`) | the Wiki's transcripts; the varbit's use inferred from its name |
 
+| Step 10: the Draynor Sewers' two trapdoors (`6434`, west of the jail and north of the market) open for everyone into `6435` with Climb-down, for 300 ticks, and the ladders below climb back up (`game/content/DraynorSewers.kt`); the east ladder is a tile south of the dungeon's 6400, so each climb keeps the player's side of the trapdoor or ladder | the 241 map; how long a trapdoor stays open, the open animation and where a climb lands guessed |
+| The sewers' seven zombies (13 and 24), four skeletons (22 and 25) and ten rats (`npc-spawns/draynor-sewers.json`) fight and drop as the Wiki has them, aggressive and with their elemental weaknesses; the gem drop table is in `npc-drops.json` (its rows add up to 131, with the mega-rare table giving nothing) | the Wiki's Zombie, Skeleton, Gem drop table and Draynor Sewers pages (read 2026-11-01); tiles from mejrs's list; animations from the NPCs' own stand animations, the unarmed skeleton's attack guessed |
+| Ruantun's talk after Desert Treasure I; the house's anvil and fire smith and cook as any other | the Wiki's Transcript:Ruantun; the 241 types |
+
 Left out until their steps: the market's stalls and guards, the Wise Old Man's talk,
-the bank guard, Miss Schism, the town crier, the dark wizards, the sewers' trapdoors and
-the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
+the bank guard, Miss Schism, the town crier, the dark wizards,
+and the rooftop course (Agility isn't built). Diango's Holiday Item Retrieval and Redeem-code are left out (no account has
 holiday items to reclaim), and Olivia's refusal after a theft comes with thieving. The wheat field picks as Lumbridge's does (`Crops`).
 Spria isn't spawned: after A Porcine of Interest she is a Slayer master (`slayer_master_9_active`), and Slayer isn't built.
 
@@ -851,7 +856,9 @@ client, and `GatesTest` turns a gate every way round. `test-runner/examples/dray
 the logs, chops a willow, nets a shrimp and cooks it on the permanent fire; `HeadlessFishingTest` and `HeadlessCookingTest`
 do the Small Net spots and the fire. `test-runner/examples/draynor-ned-aggie.json` buys Ned's rope both ways and gets
 Aggie's red dye and fine; `NedAndAggieTest` walks every branch of both talks. `test-runner/examples/draynor-jail.json`
-does Leela, the cell door, a jail guard and Morgan; `DraynorTalkTest` and `HeadlessDraynorTest` cover them too.
+does Leela, the cell door, a jail guard and Morgan; `DraynorTalkTest` and `HeadlessDraynorTest` cover them too. `test-runner/examples/draynor-sewers.json`
+goes down and up both sewer entrances, fights a zombie and talks to Ruantun; `HeadlessDraynorSewersTest` does the
+entrances and the talk through the headless client.
 
 ## Lumbridge church
 
@@ -1036,6 +1043,26 @@ Kharid scorpion and the ghost (quests). The words are in the dialogue file (keys
 `test-runner/examples/edgeville-monastery.json` is refused at the ladder, joins, climbs, takes a robe, prays, talks to
 each of the people and picks a cabbage; `EdgevilleMonasteryTest` does each talk's branches and
 `HeadlessEdgevilleMonasteryTest` the ladders, joining and the altar through the headless client.
+
+Step 5 is Barbarian Village's buildings and people, `game/content/BarbarianVillage.kt`, `npc-spawns/barbarian-village.json`
+and `obj-spawns/barbarian-village.tsv`.
+
+| Behaviour | Source |
+|-----------|--------|
+| Peksa's Helmet Shop (Peksa 2872, inv `helmetshop` 10): bronze to adamant med and full helms at 100%, bought at 60%; his yes opens it, his no says goodbye | OSRS Wiki, Peksa's Helmet Shop (ShopTest checks every sold-at price) and Transcript:Peksa |
+| The talk of Tassie Slipcast (1352, her studio), Hunding (3063, the top of the lookout tower; both his menus), Litara (`sos_barb` 3363, before the Stronghold is finished), Checkal (`bim_checkal_barb` 10645) and Sigurd (1324, by the canoe station; his story and his teaching by Woodcutting level) | OSRS Wiki, each one's transcript; Checkal as after Below Ice Mountain; the yes after Sigurd's story going into the teaching is inferred from the Wiki's "Same as below" |
+| Atlas (10658) in the longhall, as after Below Ice Mountain: his offer of a workout for 25,000 coins; with the coins, a message of ours (the workout is a cutscene that isn't built) and no coins taken | OSRS Wiki, Transcript:Atlas |
+| The longhall's double doors (`fai_barbarian_large_doubledoor_l`/`r` 11621/11620, open 11625/11624) open together; the huts' doors by name; the lookout tower's ladders (`ladder_directional` 17026, `laddertop_directional` 16685) over three levels; Peksa's small crates (11600) searched empty | 241 cache types and places |
+| Three beers and two cooked meats on the longhall's tables, a bronze pickaxe in the spinning hut and a pot in Peksa's shop, back 100 ticks after taking | the Wiki's Barbarian Village spawn list; tiles from 2004Scape's map m48_53; respawn guessed |
+| The spinning hut's wheel, Tassie's potter's wheels and pottery oven, and the fires in Peksa's shop and the longhall, work as everywhere | `Crafting` and `Cooking` by name |
+| Tiles, wander ranges (1 to 2) and expressions | mejrs's NPC list for the tiles; the rest guessed |
+
+Left out: Sigurd's Store-axe, Hunding's beginner clue, the barbarian anvil (members' Barbarian Smithing), Litara's talk
+after the Stronghold (step 14), and the barbarians, Gunthor and the unicorns (step 7). The words are in the dialogue
+file (keys `peksa.*`, `tassie_slipcast.*`, `hunding.*`, `atlas.*`, `checkal.*`, `litara.*`, `sigurd.*`). Check:
+`test-runner/examples/barbarian-village.json` buys a helmet, spins wool, throws and fires a pot, climbs the tower to
+Hunding and talks to each of the others; `BarbarianVillageTest` does each talk's branches and
+`HeadlessBarbarianVillageTest` the shop, the longhall's doors and the tower through the headless client.
 
 ## Varrock
 
@@ -1437,6 +1464,32 @@ Check: `./gradlew test --tests 'osrsps.game.raid.*' --tests 'osrsps.game.command
 --tests 'osrsps.testclient.HeadlessPartyTest'` (the Guardian's hitpoints at 1, 2, 3 and 8 players are the Wiki's; three
 players form a party, the Guardian's hitpoints follow its size, it lasts through a death, and a member who logs out
 leaves), and in RuneLite `test-runner/examples/party-scaling.json` (the Guardian's hitpoints alone, for 3 and for 8).
+
+## Encounters
+
+A boss fight is written as an encounter (raid step 12): `game/encounter/Encounter.kt` has the boss, its phases, and each
+phase's attack cycle, steps a set number of ticks apart that repeat. A phase ends when the boss's hitpoints fall to a
+share of its maximum, or after so many ticks, and the next begins. A step can hit a player, put down tile hazards (a
+warning graphic now, then damage each tick to whoever stands on the tiles), or put in adds.
+`game/encounter/Encounters.kt` runs every fight once a tick. A fight ends when its boss dies or leaves the world, and its
+adds and hazards go with it. Each fight keeps a log of what it did, by tick. Every roll comes from the world's random, so
+a fight started on a seed plays the same way each time.
+
+| Encounter behaviour | Source |
+|---------------------|--------|
+| Fights running in the NPC phase, after NPC scripts | guessed, until a recording shows a boss |
+| A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
+| A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |
+| Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
+| Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
+| A fight outside an instance covering 32 tiles round the boss's spawn | testing only: the raid's rooms are instances |
+| No bosses yet: each one comes with its own step, from 16 on, with its room and gear sets for `::raid` | not in yet |
+
+`::raid boss phase=2 party=3 seed=42` starts a fight where you stand, and `::raid digest 100` sums up its first 100
+ticks. Check: `./gradlew test --tests 'osrsps.game.encounter.*' --tests 'osrsps.game.command.RaidCommandsTest'
+--tests 'osrsps.testclient.HeadlessEncounterTest'` (a test boss plays the same 100 ticks on two runs with the same seed
+and differently on another; its phases change at half hitpoints and on time, with an add and a hazard, and the fight
+ends when the boss leaves).
 
 ## Line of sight
 

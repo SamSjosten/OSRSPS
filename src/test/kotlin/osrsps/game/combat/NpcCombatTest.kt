@@ -51,6 +51,10 @@ class NpcCombatTest {
             "human_sword_slash" to 390, "human_sword_block" to 387, "human_sword_stab" to 386,
             "human_blunt_pound" to 401, "human_shield_defence" to 1156,
             "scorpion_update_attack_tail" to 6254, "scorpion_update_defend" to 6255, "scorpion_update_death" to 6256,
+            "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
+            "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
+            "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
+            "skeleton_update_attack_weapon" to 5485, "skeleton_update_attack_sword" to 5487, "skeleton_update_defend" to 5489, "skeleton_update_death" to 5491,
         ),
     )
 
@@ -187,6 +191,38 @@ class NpcCombatTest {
             ),
             def.attacks,
         )
+    }
+
+    @Test
+    fun `the Draynor Sewers' zombies and skeletons fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's Strength levels and the Wiki's: zombies 9 and 21, skeletons 18 and 24.
+        val sewer = mapOf(
+            "zombie_unarmed_sewer1" to 9, "zombie_unarmed_sewer2" to 9, "zombie_unarmed_sewer3" to 9,
+            "zombie_armed_sewer1" to 21, "zombie_armed_sewer2" to 21, "zombie_armed_sewer3" to 21, "zombie_armed_sewer4" to 21,
+            "skeleton_unarmed" to 18, "skeleton_unarmed3" to 18, "skeleton_armed" to 24, "skeleton_armed3" to 24,
+        )
+        val sewerTypes = NpcTypes.of(*sewer.entries.mapIndexed { i, (name, str) -> NpcType(2000 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(sewerTypes, seqs)
+        assertEquals(sewer.size, combat.size)
+        fun def(name: String) = combat[sewerTypes.find(name)!!]!!
+        for (name in sewer.keys) {
+            val type = sewerTypes.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+            assertTrue(def(name).aggression != null, "$name is aggressive")
+        }
+        assertEquals(listOf(2, 3, 3, 4), listOf("zombie_unarmed_sewer1", "zombie_armed_sewer1", "skeleton_unarmed", "skeleton_armed").map { def(it).maxHit })
+        assertEquals(AttackType.CRUSH, def("zombie_unarmed_sewer2").attackType)
+        assertEquals(AttackType.SLASH, def("zombie_armed_sewer3").attackType)
+        assertEquals(5, def("zombie_armed_sewer1").attackSpeed)
+        assertEquals(NpcCombatAnims(5568, 5567, 5569), def("zombie_unarmed_sewer3").anims)
+        assertEquals(NpcCombatAnims(5571, 5574, 5575), def("zombie_armed_sewer2").anims)
+        assertEquals(NpcCombatAnims(5578, 5579, 5580), def("zombie_armed_sewer4").anims)
+        assertEquals(NpcCombatAnims(5487, 5489, 5491), def("skeleton_armed3").anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 50), def("zombie_armed_sewer4").weakness)
+        assertEquals(ElementalWeakness(Element.EARTH, 35), def("skeleton_unarmed3").weakness)
+        assertEquals(listOf(35, 70, 60), listOf("zombie_unarmed_sewer1", "skeleton_unarmed", "skeleton_armed").map { def(it).respawnTicks })
+        assertEquals(-5, def("skeleton_unarmed").defence.against(AttackType.CRUSH))
+        assertEquals(15, def("skeleton_armed").attackBonus)
     }
 
     @Test
