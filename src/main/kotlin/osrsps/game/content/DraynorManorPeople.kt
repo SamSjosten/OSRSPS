@@ -26,7 +26,7 @@ object ManorWitchLines : Lines("manor_witch", "Transcript:Witch (Draynor Manor)"
 /** Ava's lines once Animal Magnetism is done, on a members' world (the Wiki's Transcript:Ava, read 2026-11-02). */
 object AvaLines : Lines("ava", "Transcript:Ava") {
     val HELLO = line("hello", "her greeting")
-    val DEVICES = line("devices", "option 1, which the player then says; Ava's Devices would open")
+    val DEVICES = line("devices", "option 1, which the player then says; Ava's Devices opens")
     val INFORMATION = line("information", "option 2, which the player then says")
     val INFO_1 = line("info_1", "option 2: Ava's first line")
     val INFO_2 = line("info_2", "option 2: her second")
@@ -51,10 +51,10 @@ object AvaLines : Lines("ava", "Transcript:Ava") {
  * and on the ground floor the witch (`anma_witch` 4409) and Ava (`anma_assistant` 4407). The witch and Ava are spawned as
  * the types their multi-NPCs (`anma_witch_multi` 4410, `anma_assistant_multi` 4408, varbit 32) show once Animal Magnetism
  * is done, which every account counts as; Oddenstein talks as he does once Ernest the Chicken is done. Ava's Odds and
- * Ends is in shops.json and opens on Trade ([registerShops]) and from her talk.
+ * Ends is in shops.json and opens on Trade ([registerShops]) and from her talk; Ava's Devices ([AvaDevicesShop], step 12c)
+ * opens on her Devices option and from her option 1 (as for a player with no Dizana's quiver).
  *
- * Left out: Ava's Devices (her option 1 and her Devices op) come with step 12c, with the devices' arrow saving; her
- * locator orbs (option 3 ends after the player's line), Dizana's quiver and the Pandemonium cannonball option (Sailing)
+ * Left out: her locator orbs (option 3 ends after the player's line), Dizana's quiver and the Pandemonium cannonball option (Sailing)
  * aren't built; Oddenstein's portal to the Killerwatt plane isn't spawned. Guessed: every chathead expression, that
  * Oddenstein still greets the player after the quest, and that "Previous options" goes back to Ava's menu without her
  * greeting again.
@@ -64,6 +64,7 @@ object DraynorManorPeople {
     const val WITCH = 4409
     const val AVA = 4407
     const val TALK_TO = 1
+    const val DEVICES = 4
 
     internal suspend fun Dialogue.oddenstein() = with(OddensteinLines) {
         chatNpc(ChatAnim.NEUTRAL, CAREFUL)
@@ -84,41 +85,44 @@ object DraynorManorPeople {
         chatNpc(ChatAnim.NEUTRAL, CLEARLY_NOT)
     }
 
-    /** Ava's talk; true when it ends in her shop. */
-    internal suspend fun Dialogue.ava(): Boolean = with(AvaLines) {
+    /** Where Ava's talk ends: nowhere, in her shop, or in Ava's Devices. */
+    enum class AvaEnd { NONE, SHOP, DEVICES }
+
+    /** Ava's talk, and where it ends. */
+    internal suspend fun Dialogue.ava(): AvaEnd = with(AvaLines) {
         chatNpc(ChatAnim.NEUTRAL, HELLO)
-        var shop: Boolean? = null
-        while (shop == null) {
-            shop = when (choice(DEVICES, INFORMATION, ORBS, MORE)) {
+        var end: AvaEnd? = null
+        while (end == null) {
+            end = when (choice(DEVICES, INFORMATION, ORBS, MORE)) {
                 1 -> {
                     chatPlayer(ChatAnim.NEUTRAL, DEVICES)
-                    false
+                    AvaEnd.DEVICES
                 }
                 2 -> {
                     chatPlayer(ChatAnim.NEUTRAL, INFORMATION)
                     for (info in listOf(INFO_1, INFO_2, INFO_3, INFO_4, INFO_5, INFO_6, INFO_7, INFO_8, INFO_9)) chatNpc(ChatAnim.NEUTRAL, info)
-                    false
+                    AvaEnd.NONE
                 }
                 3 -> {
                     chatPlayer(ChatAnim.QUIZ, ORBS)
-                    false
+                    AvaEnd.NONE
                 }
                 else -> when (choice(STUFF, HEAD_OFF, PREVIOUS)) {
                     1 -> {
                         chatPlayer(ChatAnim.NEUTRAL, STUFF)
                         chatNpc(ChatAnim.HAPPY, SHOP)
-                        true
+                        AvaEnd.SHOP
                     }
                     2 -> {
                         chatPlayer(ChatAnim.NEUTRAL, HEAD_OFF)
                         chatNpc(ChatAnim.HAPPY, BED)
-                        false
+                        AvaEnd.NONE
                     }
                     else -> null
                 }
             }
         }
-        shop == true
+        end ?: AvaEnd.NONE
     }
 }
 
@@ -131,8 +135,14 @@ fun registerDraynorManorPeople(world: World) {
         world.dialogues.start(this, op.npc) { with(DraynorManorPeople) { witch() } }
     }
     world.handlers.onNpc(DraynorManorPeople.AVA, DraynorManorPeople.TALK_TO) { op ->
-        var trade = false
-        world.dialogues.start(this, op.npc) { trade = with(DraynorManorPeople) { ava() } }
-        if (trade) world.shopTypes.ofNpc(DraynorManorPeople.AVA)?.let { world.shopScreen.open(player, it) }
+        var end = DraynorManorPeople.AvaEnd.NONE
+        world.dialogues.start(this, op.npc) { end = with(DraynorManorPeople) { ava() } }
+        when (end) {
+            DraynorManorPeople.AvaEnd.SHOP -> world.shopTypes.ofNpc(DraynorManorPeople.AVA)?.let { world.shopScreen.open(player, it) }
+            DraynorManorPeople.AvaEnd.DEVICES -> AvaDevicesShop.open(world, player)
+            DraynorManorPeople.AvaEnd.NONE -> Unit
+        }
     }
+    world.handlers.onNpc(DraynorManorPeople.AVA, DraynorManorPeople.DEVICES) { AvaDevicesShop.open(world, player) }
+    AvaDevicesShop.register(world)
 }

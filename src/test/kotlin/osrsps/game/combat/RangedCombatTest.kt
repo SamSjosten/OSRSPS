@@ -161,6 +161,9 @@ class RangedCombatTest {
     )
     private val shared = Interactions { player, text -> messages += player to text }
     private val alice = Player(1, "alice", 3210, 3210, 0)
+
+    /** Out of 100, what alice's Ava's device sends back ([AvaDevices.recovery]); 0 for none. */
+    private var recover = 0
     private val bob = Player(2, "bob", 3210, 3212, 0)
 
     init {
@@ -179,6 +182,7 @@ class RangedCombatTest {
             message = { player, text -> messages += player to text },
             stopFacing = { stopped += it },
             multi = multi,
+            recovery = { if (it === alice) recover else 0 },
         )
         wield(alice, shortbow, bronzeArrow, 100)
     }
@@ -365,6 +369,42 @@ class RangedCombatTest {
         assertTrue(dropped.all { (type, _, owner) -> type == bronzeArrow && owner === alice })
         val share = dropped.size.toDouble() / landed
         assertTrue(share in 0.65..0.95, "${dropped.size} of $landed dropped")
+    }
+
+    @Test
+    fun `with an accumulator 72 shots in 100 come back to the quiver, 8 fall and 20 break`() {
+        recover = AvaDevices.RECOVERED.getValue(AvaDevices.ACCUMULATOR)
+        wield(alice, shortbow, bronzeArrow, 1000)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        alice.god = true
+        repeat(1200) { tick() }
+        val fired = projectiles.size
+        val landed = fired - ranged.shotsInFlight
+        assertTrue(landed >= 300, "$landed landed")
+        // What the quiver lost is what was fired and didn't come back.
+        val back = fired - (1000 - ammoLeft(alice))
+        val backShare = back.toDouble() / landed
+        val dropShare = dropped.size.toDouble() / landed
+        assertTrue(backShare in 0.64..0.80, "$back of $landed came back")
+        assertTrue(dropShare in 0.04..0.13, "${dropped.size} of $landed dropped")
+        assertTrue(dropped.all { (type, _, owner) -> type == bronzeArrow && owner === alice })
+    }
+
+    @Test
+    fun `an arrow coming back to a quiver that now holds other ammunition falls instead`() {
+        recover = 100 - AvaDevices.BROKEN
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        alice.god = true
+        tick()
+        assertEquals(1, ranged.shotsInFlight)
+        alice.equipment[WearPos.AMMO] = InvObj(steelArrow.id, 10)
+        repeat(4) { tick() }
+        assertEquals(0, ranged.shotsInFlight)
+        // Broken a fifth of the time, else on the floor: never on top of the steel arrows.
+        assertTrue(alice.equipment[WearPos.AMMO]?.let { it.id == steelArrow.id } ?: true)
+        assertTrue(dropped.all { (type, _, _) -> type == bronzeArrow })
     }
 
     @Test
@@ -652,6 +692,20 @@ class RangedCombatTest {
         assertEquals(90, alice.equipment[WearPos.WEAPON]?.count)
         assertTrue(dropped.isEmpty(), dropped.toString())
         assertEquals(50, ammoLeft(alice))
+    }
+
+    @Test
+    fun `an Ava's device brings no chinchompa back`() {
+        recover = AvaDevices.RECOVERED.getValue(AvaDevices.ASSEMBLER)
+        alice.god = true
+        wield(alice, chinchompa, bronzeArrow, 50)
+        alice.equipment[WearPos.WEAPON] = InvObj(chinchompa.id, 100)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        repeat(40) { tick() }
+        assertEquals(10, projectiles.size)
+        assertEquals(90, alice.equipment[WearPos.WEAPON]?.count)
+        assertTrue(dropped.isEmpty(), dropped.toString())
     }
 
     @Test

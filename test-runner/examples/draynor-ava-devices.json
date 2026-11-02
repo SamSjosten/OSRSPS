@@ -1,0 +1,176 @@
+{
+ "name": "Draynor piece step 12c: Ava's Devices (::keys on): her Devices option and her devices talk open the screen, which sells an attractor, makes it an accumulator and refuses the rest",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "the manor's ghosts and rats"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel ranged 50",
+   "expectMessage": "50",
+   "comment": "the accumulator needs 50 Ranged"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 1000",
+   "expectMessage": "Added 1,000 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::item steel arrow 75",
+   "expectMessage": "Added 75 x Steel arrow"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3093 3357 0",
+   "expectMessage": "Teleported to 3093, 3357, 0",
+   "comment": "Ava's spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ava",
+   "option": "Devices",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 67,
+   "comment": "Ava's Devices (anma_reward)"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 67,
+   "component": 6,
+   "contains": "[ava_devices.attractor]"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 67,
+   "component": 2,
+   "op": 1,
+   "comment": "Buy-1 on the attractor"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Ava's attractor",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coins",
+   "count": 1
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 67,
+   "component": 2,
+   "op": 1,
+   "comment": "a second attractor: 1 coin isn't enough"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[ava_devices.coins coins=999 device=Ava's attractor]"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 67,
+   "component": 7,
+   "op": 1,
+   "comment": "Buy-1 on the accumulator, made from the attractor"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Ava's accumulator",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Ava's attractor",
+   "count": 0
+  },
+  {
+   "step": "assertInventory",
+   "item": "Steel arrow",
+   "count": 0
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 67,
+   "component": 12,
+   "op": 1,
+   "comment": "the assembler needs 70 Ranged"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[ava_devices.level level=70 device=Ava's assembler]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3093 3358 0",
+   "expectMessage": "Teleported to 3093, 3358, 0",
+   "comment": "closes the screen"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ava",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ava.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ava.devices]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ava.devices]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 67,
+   "comment": "her devices talk opens the same screen"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

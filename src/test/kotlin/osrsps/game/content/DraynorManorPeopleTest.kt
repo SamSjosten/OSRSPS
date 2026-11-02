@@ -35,8 +35,8 @@ class DraynorManorPeopleTest {
     private val moreMenu = arrayOf("ava.stuff", "ava.head_off", "ava.previous")
 
     @Test
-    fun `Ava's devices, information and orbs options end the talk`() {
-        val shops = mutableListOf<Boolean>()
+    fun `Ava's devices option ends in her Devices screen, information and orbs end the talk`() {
+        val shops = mutableListOf<DraynorManorPeople.AvaEnd>()
         h.talk { shops += with(DraynorManorPeople) { ava() } }
         h.expect("ava.hello")
         h.menu(*avaMenu)
@@ -57,12 +57,12 @@ class DraynorManorPeopleTest {
         h.pick(3)
         h.expect("ava.orbs")
         h.ends()
-        assertEquals(listOf(false, false, false), shops)
+        assertEquals(listOf(DraynorManorPeople.AvaEnd.DEVICES, DraynorManorPeople.AvaEnd.NONE, DraynorManorPeople.AvaEnd.NONE), shops)
     }
 
     @Test
     fun `Ava's more options go back, end in her shop, or see the player off`() {
-        val shops = mutableListOf<Boolean>()
+        val shops = mutableListOf<DraynorManorPeople.AvaEnd>()
         h.talk { shops += with(DraynorManorPeople) { ava() } }
         h.expect("ava.hello")
         h.menu(*avaMenu)
@@ -84,6 +84,6 @@ class DraynorManorPeopleTest {
         h.pick(2)
         h.expect("ava.head_off", "ava.bed")
         h.ends()
-        assertEquals(listOf(true, false), shops)
+        assertEquals(listOf(DraynorManorPeople.AvaEnd.SHOP, DraynorManorPeople.AvaEnd.NONE), shops)
     }
 }

@@ -63,6 +63,7 @@ object DialogueLines {
         AsyffLines,
         AtlasLines,
         AuburyLines,
+        AvaDevicesLines,
         AvaLines,
         AxeLogsLines,
         BankGuardLines,
