@@ -334,6 +334,11 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   again: attack priority, the combat and prayer tab keys (a key taken from the tab that had it), login/logout
   notifications and quest list sort; and the master and music sliders (a mouse click in the middle of each one's
   clickzone, a settings_content child, 53%); then close, relog and check every one.
+- `npc-talk-fight-test.json` and `npc-talk-fight-test2.json` (need 0.18.0, for `chat`): two players at once; once
+  `test2` stands on its tile, `test` spawns a monk beside it, `test2` talks to the monk and leaves the chat open, and
+  `test` shoots the monk from 4 tiles. The monk walks over and hits `test` back; only then does `test` say so in public
+  chat, and `test2`'s chat is still on the monk's first line (exploit review round 10, NPC-1). `test` starts from `lumbridge-bare`, removes the monk and
+  ends with `::reset`.
 - `social-friends-test.json` and `social-friends-test2.json` (need 0.13.0): two players at once, `test` on one VM
   and `test2` on the other, started together. Each empties its friends list (`::clearfriends`), logs out and in, and
   adds the other; `test` sees `test2` come online on world 301, go offline at `test2`'s logout and come back. Run alone,
