@@ -588,7 +588,15 @@ class World(
         ignoreLists,
         { player -> players.getOrNull(player.index) === player },
         { privateMessages.nextCounter() },
-        clansClock,
+        openModal = { player, id -> interfaces.openModal(player, FrameSlot.MAINMODAL, id) },
+        closeModals = interfaces::closeModals,
+        confirm = { player, title, yes ->
+            scripts.start(player) {
+                dialogues.start(this) { if (choice(ClanLines.CONFIRM_YES, ClanLines.CONFIRM_NO, title = title) == 1) yes() }
+            }
+        },
+        playerByKey = { key -> findPlayer(key) },
+        now = clansClock,
     )
 
     /** Private messages; see [PrivateMessages]. */
@@ -2187,6 +2195,11 @@ class World(
         }
         if (interfaceId == Clans.CREATION && clans.clickCreation(player, componentId, sub, ::askClanName)) return@act
         if (interfaceId == Clans.GUEST_SIDEPANEL && clans.clickGuest(player, componentId, ::askGuestClanName)) return@act
+        if (interfaceId == Clans.INFO && clans.clickInfo(player, componentId)) return@act
+        if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_SETTINGS) {
+            clans.openYourInfo(player)
+            return@act
+        }
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_CHAT) {
             clans.toggleChannel(player)
             return@act

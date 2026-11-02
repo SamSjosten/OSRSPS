@@ -1,0 +1,30 @@
+{
+ "name": "Leaving a clan, one player: test joins a clan made by ::clanmake with ::clanjoin, opens its settings page from Your Clan, says No to Leave Clan, then Yes, and is in no clan",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "test's own clan from another run, if any: 'Clan ... deleted' or 'You aren't in a clan'"},
+  {"step": "command", "text": "::clandisband Leave Gate", "expectMessage": "lan", "comment": "the last run's clan, if any"},
+  {"step": "command", "text": "::clanmake Leave Gate", "expectMessage": "Clan Leave Gate made"},
+  {"step": "command", "text": "::clanjoin Leave Gate", "expectMessage": "Joined clan Leave Gate"},
+  {"step": "runClientScript", "id": 915, "args": [7], "comment": "shows the Clans side tab (toplevel_sidebutton_switch), so its panels count as open"},
+  {"step": "clickWidget", "interfaceId": 707, "component": 3, "comment": "the Clans tab's Your Clan tab"},
+  {"step": "assertInterface", "interfaceId": 701, "comment": "clans_sidepanel, with the clan"},
+  {"step": "clickWidget", "interfaceId": 701, "component": 9, "comment": "Settings: the clan's settings page (clans_info) as a member"},
+  {"step": "assertInterface", "interfaceId": 690},
+  {"step": "assertVarbit", "id": 12165, "value": 0, "comment": "clan_transmit_loadasguest: as a member"},
+  {"step": "clickWidget", "interfaceId": 690, "component": 26, "comment": "Leave Clan: asks first"},
+  {"step": "assertDialogue", "contains": "[clan.leave_confirm name=Leave Gate]"},
+  {"step": "chooseOption", "text": "[clan.confirm_no]"},
+  {"step": "command", "text": "::clan", "expectMessage": "Clan Leave Gate"},
+  {"step": "clickWidget", "interfaceId": 690, "component": 26, "comment": "Leave Clan again"},
+  {"step": "assertDialogue", "contains": "[clan.leave_confirm name=Leave Gate]"},
+  {"step": "chooseOption", "text": "[clan.confirm_yes]"},
+  {"step": "assertMessage", "contains": "[clan.left_clan name=Leave Gate]"},
+  {"step": "command", "text": "::clan", "expectMessage": "You aren't in a clan"},
+  {"step": "assertVarbit", "id": 12164, "value": 1, "comment": "no guest clan either"},
+  {"step": "command", "text": "::clandisband Leave Gate", "expectMessage": "Clan Leave Gate deleted"},
+  {"step": "runClientScript", "id": 915, "args": [3], "comment": "back to the inventory tab"}
+ ]
+}
