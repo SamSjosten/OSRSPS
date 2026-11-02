@@ -128,6 +128,7 @@ class GameServer(
         val map: WorldMap
         val interfaceIds: Set<Int>
         val varTypes: VarTypes
+        val customVars: CustomVars
         val objTypes: ObjTypes
         val npcTypes: NpcTypes
         val quests: Quests
@@ -140,11 +141,17 @@ class GameServer(
         val skillUnlocks: SkillUnlocks
         val settings: SettingsCatalog
         try {
-            val overlay = CacheOverlay.load(dataDir) + CustomLocs.overlayFiles + CustomVars.overlayFiles
+            // Our own vars and locs take ids right after this cache's, so they are built from its var types first:
+            // OpenRS2's builds of one revision differ in how far their varps and varbits go, and the overlay refuses an
+            // id the cache has.
+            varTypes = VarTypeLoader.load(library)
+            customVars = CustomVars.after(varTypes)
+            logger.info { "Custom vars after the cache's (varps to ${varTypes.varpCount - 1}, varbits to ${varTypes.varbitCount - 1}): $customVars" }
+            val customLocs = CustomLocs(customVars)
+            val overlay = CacheOverlay.load(dataDir) + customLocs.overlayFiles + customVars.overlayFiles
             logger.info { "Cache overlay: ${overlay.size} custom group(s) and file(s): $overlay" }
             js5 = Js5Store.load(library, overlay)
-            map = MapCollisionLoader.loadWorld(library, CustomLocs.types)
-            varTypes = VarTypeLoader.load(library)
+            map = MapCollisionLoader.loadWorld(library, customLocs.types)
             objTypes = ObjTypeLoader.load(library)
             npcTypes = NpcTypeLoader.load(library)
             quests = QuestLoader.load(library)
@@ -228,7 +235,7 @@ class GameServer(
         }
         logger.info { "Loaded ${scenarios.names.size} scenarios: ${scenarios.names.joinToString()}" }
         world = World(
-            js5.crcs, map.collision, varTypes, interfaceIds, random, quests, FileSaveStore(saveDir),
+            js5.crcs, map.collision, varTypes, customVars, interfaceIds, random, quests, FileSaveStore(saveDir),
             Accounts(FileSaveStore(accountDir), lock = FileAccountLock(accountDir)), objTypes, npcTypes, npcSpawns, effectIds, locTypes = map.locTypes, staticLocs = map.locs,
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
             reportsFile = dataDir.resolve(Reports.FILE_NAME), clansDir = dataDir, admins = admins,

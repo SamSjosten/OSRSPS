@@ -32,9 +32,10 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
  *
  * Each site is one loc of our own, a multiloc whose varbit picks what the client draws, so every player sees their own
  * stone: [DORMANT] (model 65000, option Activate) until they activate it, [ACTIVE] (model 65001, option Teleport)
- * after. The varbit is a bit of [CustomVars.LODESTONES_VARP], saved with the player. The server sees the one loc
- * ([Site.id]) and the one option on it, and answers by the player's varbit. The cast is Home Teleport's machinery
- * ([HomeTeleport.castTo]) with the stones' own timing and no cooldown.
+ * after. The varbit is a bit of the lodestones' varp ([CustomVars.lodestonesVarp]), saved with the player; its id
+ * follows the loaded cache's, so the site's loc type is built for a world's [CustomVars] ([Site.type]). The server
+ * sees the one loc ([Site.id]) and the one option on it, and answers by the player's varbit. The cast is Home
+ * Teleport's machinery ([HomeTeleport.castTo]) with the stones' own timing and no cooldown.
  *
  * Guessed: the stones' tiles (RS3's spots, by the Wiki's descriptions and the OSRS map, placed where the ground is
  * flat and clear; `::pos` and a change to [SITES] move one), landing on the stone's centre tile, the stages' ticks
@@ -66,13 +67,13 @@ object Lodestones {
         HomeTeleport.Stage(22, 4857, 804),
     )
 
-    /** One site: its stone's south-west tile ([x], [z]; the stone is 3 by 3), its loc, its varbit and its name. */
+    /**
+     * One site: its stone's south-west tile ([x], [z]; the stone is 3 by 3), its loc and its name. Its varbit, 1 once
+     * the player has activated the stone, is bit [index] of the lodestones' varp: [CustomVars.lodestoneVarbit].
+     */
     class Site(val index: Int, val name: Line, val x: Int, val z: Int) {
         /** The loc the server places and the client's clicks name. */
         val id: Int = FIRST_STONE + index
-
-        /** 1 once the player has activated this stone: bit [index] of the lodestones' varp. */
-        val varbit: Int = CustomVars.FIRST_VARBIT + index
 
         /** `::lodestone <slug>`: the name's key without its prefix (`lumbridge`, `al_kharid`). */
         val slug: String = name.key.substringAfter('.')
@@ -82,8 +83,8 @@ object Lodestones {
 
         val loc = ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, x, z, 0)
 
-        /** The loc type: a flat 3 by 3 "Lodestone" whose look the varbit picks, dormant then active. */
-        val type = CustomLocs.Custom(
+        /** The loc type: a flat 3 by 3 "Lodestone" whose look [varbit] (the site's in a world's [CustomVars]) picks: dormant, then active. */
+        fun type(varbit: Int) = CustomLocs.Custom(
             id,
             LocTypeEncoder.Definition(
                 "Lodestone", listOf(DORMANT_MODEL), ops = listOf("Activate", null, null, null, null), width = 3, length = 3, solid = false,
@@ -124,10 +125,12 @@ object Lodestones {
 
 /**
  * The network's rules for one world: what a click on a stone does, the menu, the teleport and what a new login has.
+ * [vars] holds the world's ids for the sites' varbits.
  * [menu] shows [LodestoneLines.TITLE] over the sites' names and returns the pick from 1, or 0 for none (the world's
  * is a chat menu); [words] gives a line's words for the player, for the names in messages.
  */
 class LodestoneNetwork(
+    private val vars: CustomVars,
     private val homeTeleport: HomeTeleport,
     private val message: (Player, Line, Array<out Pair<String, Any>>) -> Unit,
     private val words: (Player, Line) -> String,
@@ -140,9 +143,12 @@ class LodestoneNetwork(
     /** Lumbridge's stone is active from the start (RS3 Wiki): set at every login, so an old save gets it too. */
     fun login(player: Player) = unlock(player, Lodestones.LUMBRIDGE)
 
-    fun unlocked(player: Player, site: Lodestones.Site): Boolean = player.vars.getVarbit(site.varbit) == 1
+    /** The site's varbit in this world: see [CustomVars.lodestoneVarbit]. */
+    fun varbit(site: Lodestones.Site): Int = vars.lodestoneVarbit(site)
 
-    fun unlock(player: Player, site: Lodestones.Site) = player.vars.setVarbit(site.varbit, 1)
+    fun unlocked(player: Player, site: Lodestones.Site): Boolean = player.vars.getVarbit(varbit(site)) == 1
+
+    fun unlock(player: Player, site: Lodestones.Site) = player.vars.setVarbit(varbit(site), 1)
 
     /** The sites [player] can teleport to, in the menu's order. */
     fun unlockedSites(player: Player): List<Lodestones.Site> = Lodestones.SITES.filter { unlocked(player, it) }

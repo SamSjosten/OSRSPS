@@ -23,6 +23,8 @@ object VarTypeLoader {
             logger.warn { "No varp types in the cache; allowing varps 0 to ${VarTypes.NONE.varpCount - 1}" }
         }
         val varbits = HashMap<Int, VarbitType>()
+        // Varbits are numbered the same way; one that doesn't decode still takes its id.
+        val varbitCount = config?.archive(VARBIT_GROUP)?.fileIds()?.maxOrNull()?.plus(1) ?: 0
         var failed = 0
         for (file in config?.archive(VARBIT_GROUP)?.files().orEmpty()) {
             val data = file.data ?: continue
@@ -33,11 +35,11 @@ object VarTypeLoader {
             }
         }
         if (failed > 0) logger.warn { "$failed varbit types did not decode; setting them will fail" }
-        val types = VarTypes(varpCount ?: VarTypes.NONE.varpCount, varbits)
+        val types = VarTypes(varpCount ?: VarTypes.NONE.varpCount, varbits, varbitCount)
         for ((id, varbit) in varbits) {
             if (varbit.baseVar >= types.varpCount) logger.warn { "Varbit $id uses varp ${varbit.baseVar}, past the last varp" }
         }
-        logger.info { "Loaded ${types.varpCount} varps and ${varbits.size} varbit types" }
+        logger.info { "Loaded ${types.varpCount} varps and ${varbits.size} varbit types (ids to ${types.varbitCount - 1})" }
         return types
     }
 

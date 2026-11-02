@@ -28,11 +28,16 @@ import osrsps.cache.overlay.Js5Group
 import osrsps.cache.overlay.ReferenceTable
 import osrsps.game.content.CustomLocs
 import osrsps.game.content.CustomVars
+import osrsps.game.VarbitType
 import osrsps.game.content.Lodestones
 import osrsps.testclient.Js5Crcs
 
 /** Boots the real server on a tiny generated cache and talks JS5 to it over a socket. */
 class GameServerTest {
+    /** The highest varp and varbit file ids in the tiny cache: OpenRS2 build 2746's (VM 214's cache). */
+    private val LAST_VARP = 5995
+    private val LAST_VARBIT = 20410
+
     private fun writeTinyCache(dataDir: Path) {
         val cacheDir = Files.createDirectories(dataDir.resolve("cache"))
         cacheDir.resolve("main_file_cache.dat2").createFile()
@@ -43,10 +48,12 @@ class GameServerTest {
         library.put(10, "huffman", ByteArray(256) { 8 })
         library.put(0, 1, byteArrayOf(1, 2, 3))
         library.put(7, 3, byteArrayOf(4, 5, 6))
-        // One loc type, one varbit and one varp, so the server has the config groups to add its own to.
+        // One loc type, one varbit and one varp, so the server has the config groups to add its own to. The var ids
+        // are the highest in OpenRS2's build 2746 of revision 241 (VM 214's cache), past the ids another 241 build
+        // ends at: ours have to follow whichever cache is loaded.
         library.put(2, 6, 0, byteArrayOf(0))
-        library.put(2, 14, 0, byteArrayOf(1, 0, 0, 0, 0, 0))
-        library.put(2, 16, 0, byteArrayOf(0))
+        library.put(2, 14, LAST_VARBIT, byteArrayOf(1, 0, 0, 0, 0, 0))
+        library.put(2, 16, LAST_VARP, byteArrayOf(0))
         library.update()
         library.close()
     }
@@ -153,20 +160,29 @@ class GameServerTest {
             // Our own loc types ride in the cache's loc types group the same way.
             val configs = ReferenceTable.decode(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, 255, 2)))
             assertEquals(crcs[2], Js5Container.crc(Js5Crcs.fetchGroup("127.0.0.1", port, 255, 2)))
+            // The ids the server derives from this cache: its varps run to LAST_VARP, its varbits to LAST_VARBIT.
+            val customVars = CustomVars(LAST_VARP + 1, LAST_VARBIT + 1)
             val locTypes = configs.group(6)!!
-            assertEquals(listOf(0) + CustomLocs.ALL.map { it.id }, locTypes.files.map { it.id })
+            assertEquals(listOf(0) + CustomLocs(customVars).all.map { it.id }, locTypes.files.map { it.id })
             val locGroup = Js5Crcs.fetchGroup("127.0.0.1", port, 2, 6)
             assertEquals(locTypes.crc, Js5Container.crc(locGroup))
             val files = Js5Group.unpack(Js5Container.unpack(locGroup), locTypes.files.map { it.id })
             val lodestone = LocTypeDecoder.decode(Lodestones.DORMANT, files.getValue(Lodestones.DORMANT))
             assertEquals("Lodestone", lodestone.name)
             assertEquals("Activate", lodestone.ops[0])
-            // And our var types in the varbit and varp groups, so the client sizes its varps and reads our varbits.
-            assertEquals(listOf(0) + CustomVars.varps, configs.group(16)!!.files.map { it.id })
+            val lumbridgeVarbit = customVars.lodestoneVarbit(Lodestones.LUMBRIDGE)
+            val lumbridgeStone = LocTypeDecoder.decode(Lodestones.LUMBRIDGE.id, files.getValue(Lodestones.LUMBRIDGE.id))
+            assertTrue(lumbridgeStone.multiloc, "its look follows the varbit after this cache's")
+            assertEquals(lumbridgeVarbit, Lodestones.LUMBRIDGE.type(lumbridgeVarbit).definition.transform?.varbit)
+            assertContentEquals(Lodestones.LUMBRIDGE.type(lumbridgeVarbit).encoded, files.getValue(Lodestones.LUMBRIDGE.id))
+            // And our var types in the varbit and varp groups, right after the cache's own, so the client sizes its
+            // varps to hold ours and reads our varbits.
+            assertEquals(listOf(LAST_VARP) + customVars.varps, configs.group(16)!!.files.map { it.id })
             val varbits = configs.group(14)!!
-            assertEquals(listOf(0) + CustomVars.varbits.keys.sorted(), varbits.files.map { it.id })
+            assertEquals(listOf(LAST_VARBIT) + customVars.varbits.keys.sorted(), varbits.files.map { it.id })
             val varbitFiles = Js5Group.unpack(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, 2, 14)), varbits.files.map { it.id })
-            assertEquals(CustomVars.varbits[Lodestones.LUMBRIDGE.varbit], VarTypeLoader.decodeVarbit(varbitFiles.getValue(Lodestones.LUMBRIDGE.varbit)))
+            assertEquals(LAST_VARBIT + 1, lumbridgeVarbit)
+            assertEquals(VarbitType(LAST_VARP + 1, 0, 0), VarTypeLoader.decodeVarbit(varbitFiles.getValue(lumbridgeVarbit)))
         } finally {
             server.stop()
         }

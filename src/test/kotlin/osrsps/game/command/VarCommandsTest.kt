@@ -37,6 +37,33 @@ class VarCommandsTest {
     }
 
     @Test
+    fun `a var of our own goes by its name, whatever id the cache left it`() {
+        // A player made with the world's types, which hold our vars after the cache's (5,000 varps, 29 varbits here).
+        val player = Player(2, "named", 3222, 3218, 0, world.varTypes)
+        val vars = world.customVars
+        assertEquals(5000, vars.lodestonesVarp)
+        assertEquals(29, vars.lodestoneVarbit(osrsps.game.content.Lodestones.LUMBRIDGE))
+        world.commands.execute(player, "varp lodestones 5", replies::add)
+        world.commands.execute(player, "varp Lodestones", replies::add)
+        world.commands.execute(player, "varbit lodestone.varrock", replies::add)
+        world.commands.execute(player, "varbit lodestone.varrock 1", replies::add)
+        world.commands.execute(player, "varbit lodestone.varrock 2", replies::add)
+        world.commands.execute(player, "varbit lodestone.nowhere", replies::add)
+        assertEquals(
+            listOf(
+                "Varp lodestones: 0 -> 5 (id 5000)",
+                "Varp lodestones = 5 (id 5000)",
+                "Varbit lodestone.varrock (id 31, varp 5000 bits 2-2) = 1",
+                "Varbit lodestone.varrock (id 31, varp 5000 bits 2-2): 1 -> 1, varp 5000 is now 5",
+                "Varbit lodestone.varrock holds 0 to 1",
+                "Usage: ::varbit id|name [value] ('lodestone.nowhere' is not a number or one of lodestone.al_kharid, lodestone.draynor, lodestone.edgeville, lodestone.lumbridge, lodestone.varrock)",
+            ),
+            replies,
+        )
+        assertEquals(5, player.vars[5000])
+    }
+
+    @Test
     fun `refuses bad input and changes nothing`() {
         run("varp")
         run("varp abc")
@@ -46,10 +73,10 @@ class VarCommandsTest {
         run("varbit 9 8")
         assertEquals(
             listOf(
-                "Usage: ::varp id [value]",
-                "Usage: ::varp id [value] ('abc' is not a number)",
+                "Usage: ::varp id|name [value]",
+                "Usage: ::varp id|name [value] ('abc' is not a number or one of lodestones)",
                 "Varps are 0 to 4999",
-                "Usage: ::varp id [value] ('x' is not a number)",
+                "Usage: ::varp id|name [value] ('x' is not a number)",
                 "No varbit 1 in the cache",
                 "Varbit 9 holds 0 to 7",
             ),
