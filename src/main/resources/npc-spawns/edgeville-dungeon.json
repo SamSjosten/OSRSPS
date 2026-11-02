@@ -1,5 +1,5 @@
 {
-  "about": "The Edgeville Dungeon's north and middle (Edgeville piece step 10), south of the gate into the Wilderness's part at z 9917: zombies (18 and 24), skeletons (21, 22 and 25), hobgoblins (28 and 42), rats, giant rats, giant spiders and Vannaka. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Edgeville Dungeon page; the chaos druids, the thug and everything north of the gate are left out with the Wilderness, the hill giants are step 11's. Every wander range is guessed until recorded.",
+  "about": "The Edgeville Dungeon's north and middle (Edgeville piece step 10), south of the gate into the Wilderness's part at z 9917: zombies (18 and 24), hill giants, skeletons (21, 22 and 25), hobgoblins (28 and 42), rats, giant rats, giant spiders and Vannaka. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, 2026), checked against the 241 cache's types and the OSRS Wiki's Edgeville Dungeon page; the chaos druids, the thug and everything north of the gate are left out with the Wilderness, and the twelve hill giants in their room (step 11). Every wander range is guessed until recorded.",
   "spawns": [
     {"npc": "zombie2", "x": 3139, "z": 9885, "wander": 5, "source": "Zombie (zombie2), Edgeville Dungeon. mejrs NPCList_OSRS"},
     {"npc": "zombie2", "x": 3146, "z": 9892, "wander": 5, "source": "Zombie (zombie2), Edgeville Dungeon. mejrs NPCList_OSRS"},
@@ -48,6 +48,18 @@
     {"npc": "giantrat1_3", "x": 3117, "z": 9889, "wander": 5, "source": "Giant rat (giantrat1_3), Edgeville Dungeon. mejrs NPCList_OSRS"},
     {"npc": "giantspider1", "x": 3096, "z": 9878, "wander": 5, "source": "Giant spider (giantspider1), Edgeville Dungeon. mejrs NPCList_OSRS"},
     {"npc": "giantspider1", "x": 3097, "z": 9878, "wander": 5, "source": "Giant spider (giantspider1), Edgeville Dungeon. mejrs NPCList_OSRS"},
-    {"npc": "slayer_master_3", "x": 3147, "z": 9914, "wander": 2, "source": "Vannaka (slayer_master_3), by the gate north of the middle; stands without talk until Slayer is built. mejrs NPCList_OSRS"}
+    {"npc": "slayer_master_3", "x": 3147, "z": 9914, "wander": 2, "source": "Vannaka (slayer_master_3), by the gate north of the middle; stands without talk until Slayer is built. mejrs NPCList_OSRS"},
+    {"npc": "giant", "x": 3111, "z": 9841, "wander": 5, "source": "Hill Giant (giant), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant", "x": 3117, "z": 9850, "wander": 5, "source": "Hill Giant (giant), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant2", "x": 3099, "z": 9832, "wander": 5, "source": "Hill Giant (giant2), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant2", "x": 3117, "z": 9843, "wander": 5, "source": "Hill Giant (giant2), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant3", "x": 3100, "z": 9836, "wander": 5, "source": "Hill Giant (giant3), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant3", "x": 3122, "z": 9844, "wander": 5, "source": "Hill Giant (giant3), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant4", "x": 3107, "z": 9835, "wander": 5, "source": "Hill Giant (giant4), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant4", "x": 3110, "z": 9845, "wander": 5, "source": "Hill Giant (giant4), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant5", "x": 3113, "z": 9831, "wander": 5, "source": "Hill Giant (giant5), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant5", "x": 3117, "z": 9835, "wander": 5, "source": "Hill Giant (giant5), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant6", "x": 3106, "z": 9827, "wander": 5, "source": "Hill Giant (giant6), the hill giants' room (step 11). mejrs NPCList_OSRS"},
+    {"npc": "giant6", "x": 3116, "z": 9832, "wander": 5, "source": "Hill Giant (giant6), the hill giants' room (step 11). mejrs NPCList_OSRS"}
   ]
 }

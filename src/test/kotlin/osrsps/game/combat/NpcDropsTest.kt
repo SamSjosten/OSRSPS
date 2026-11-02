@@ -444,7 +444,7 @@ class NpcDropsTest {
     fun `the Edgeville Dungeon's zombies, skeletons and hobgoblins drop as the Wiki's tables say`() {
         val names = listOf(
             "zombie2", "zombie2_b", "zombie2_c", "skeleton_unarmed2", "skeleton_unarmed4", "skeleton_unagressive", "skeleton_unagressive3",
-            "skeleton_armed2", "skeleton_armed4", "skeleton_armed5", "hobgoblin_unarmed", "hobgoblin_armed",
+            "skeleton_armed2", "skeleton_armed4", "skeleton_armed5", "hobgoblin_unarmed", "hobgoblin_armed", "giant", "giant6",
         )
         val dungeonTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2200 + i, name, internalName = name) }.toTypedArray())
         val dungeon = NpcDrops.load(dungeonTypes, objTypes)
@@ -488,6 +488,21 @@ class NpcDropsTest {
         hobgoblin.expect("Law rune x2", 3)
         hobgoblin.expect("Goblin mail x1", 2)
         kills("skeleton_armed4", 43).expect("Iron med helm x1", 6)
+        // Step 11's hill giants: big bones every time, the giant key and a beginner clue on their own rolls.
+        assertEquals(listOf("Big bones"), def("giant6").always.map { it.type.name })
+        assertEquals(listOf("Giant key" to 128, "Clue scroll (beginner)" to 50), def("giant").tertiary.map { it.item.type.name to it.denominator })
+        val giant = HashMap<String, Int>()
+        val random = GameRandom(44)
+        repeat(KILLS) {
+            val kill = def("giant").roll(random)
+            assertEquals("Big bones", kill.first().type.name)
+            for (drop in kill.drop(1)) giant["${drop.type.name} x${drop.count}"] = (giant["${drop.type.name} x${drop.count}"] ?: 0) + 1
+        }
+        giant.expect("Coins x38", 14)
+        giant.expect("Limpwurt root x1", 11)
+        giant.expect("Iron full helm x1", 5)
+        giant.expect("Giant key x1", 1)
+        assertNull(giant["Coins x5"])
     }
 
     companion object {

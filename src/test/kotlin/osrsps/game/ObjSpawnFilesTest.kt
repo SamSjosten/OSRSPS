@@ -118,6 +118,23 @@ class ObjSpawnFilesTest {
     }
 
     @Test
+    fun `the Edgeville Dungeon's spawns are 2004Scape's coins, bones, arrows, necklace, eggs and the brass key`() {
+        val dungeon = ObjTypes.of(
+            ObjType(995, "Coins", stackable = true, internalName = "coins"), ObjType(526, "Bones", internalName = "bones"),
+            ObjType(882, "Bronze arrow", stackable = true, internalName = "bronze_arrow"), ObjType(1009, "Brass necklace", internalName = "brass_necklace"),
+            ObjType(223, "Red spiders' eggs", internalName = "red_spiders_eggs"), ObjType(983, "Brass key", internalName = "edgevilledungeonkey"),
+        )
+        val text = ObjSpawnFiles.resources().toMap().getValue("edgeville-dungeon.tsv")
+        val spawns = ObjSpawnFiles.parse(text, dungeon, "edgeville-dungeon.tsv")
+        val key = spawns.single { it.id == 983 }
+        assertEquals(3131 to 9862, key.x to key.z)
+        assertEquals(100, key.respawnTicks)
+        // All underground, south of the north gate.
+        assertTrue(spawns.all { it.level == 0 && it.z in 9792 until 9917 })
+        assertEquals(1, spawns.count { it.id == 1009 })
+    }
+
+    @Test
     fun `Draynor's spawns are the Wiki's cheese and tomato in Aggie's house and two logs in Spria's`() {
         val village = ObjTypes.of(
             ObjType(1511, "Logs", internalName = "logs"),

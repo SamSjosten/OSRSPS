@@ -580,6 +580,23 @@
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/70"}],
       "source": "OSRS Wiki, Hobgoblin, Drops (Level 28), read 2026-11-02, with the members world's lines. The level 42 (3050) is taken to drop the same (inferred: osrsreboxed merges both levels' rows, with a few more weapons and an iron javelin). The looting bag, the ecumenical key (both Wilderness-only) and the champion scroll are left out"
     },
+    {"npcs": ["giant", "giant2", "giant3", "giant4", "giant5", "giant6"], "always": [{"item": 532, "name": "Big bones"}], "table": {"slots": 128, "lines": [
+      {"item": 1203, "name": "Iron dagger", "weight": 4}, {"item": 1153, "name": "Iron full helm", "weight": 5}, {"item": 1191, "name": "Iron kiteshield", "weight": 3},
+      {"item": 1295, "name": "Steel longsword", "weight": 2},
+      {"item": 884, "name": "Iron arrow", "count": 3, "weight": 6}, {"item": 554, "name": "Fire rune", "count": 15, "weight": 3}, {"item": 555, "name": "Water rune", "count": 7, "weight": 3},
+      {"item": 563, "name": "Law rune", "count": 2, "weight": 3}, {"item": 886, "name": "Steel arrow", "count": 10, "weight": 2}, {"item": 558, "name": "Mind rune", "count": 3, "weight": 2},
+      {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 2}, {"item": 561, "name": "Nature rune", "count": 6, "weight": 2}, {"item": 562, "name": "Chaos rune", "count": 2, "weight": 1},
+      {"item": 560, "name": "Death rune", "count": 2, "weight": 1},
+      {"table": "herbs", "weight": 7}, {"table": "general_seeds", "weight": 18},
+      {"item": 995, "name": "Coins", "count": 38, "weight": 14}, {"item": 995, "name": "Coins", "count": 52, "weight": 10}, {"item": 995, "name": "Coins", "count": 15, "weight": 8},
+      {"item": 995, "name": "Coins", "count": 8, "weight": 6}, {"item": 995, "name": "Coins", "count": 88, "weight": 2},
+      {"item": 225, "name": "Limpwurt root", "weight": 11}, {"item": 1917, "name": "Beer", "weight": 6}, {"item": 1446, "name": "Body talisman", "weight": 2},
+      {"nothing": true, "weight": 2},
+      {"table": "gems", "weight": 3}
+    ]},
+      "tertiary": [{"item": 20754, "name": "Giant key", "chance": "1/128"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/50"}],
+      "source": "OSRS Wiki, Hill Giant, Drops, read 2026-11-02: the members world's lines, off Giants' Plateau (the iron full helm and steel longsword). The giant key is the page's pre-roll, taken as a tertiary at 1/128 (the Wilderness's 2/128 is left out). The listed rows add up to 127/128; the nothing weight is taken as 2 to fill it (inferred). The beginner clue's 1/50 is osrsreboxed's 2098 (read 2026-11-02). The looting bag and the champion scroll are left out"
+    },
     {
       "npcs": ["house_ghost", "house_ghost2", "house_ghost3", "house_ghost4", "house_ghost5"],
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}],
