@@ -1,0 +1,263 @@
+package osrsps.testclient
+
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+import org.junit.jupiter.api.io.TempDir
+import osrsps.game.NpcType
+import osrsps.game.NpcTypes
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
+import osrsps.game.World
+import osrsps.game.combat.Deaths
+import osrsps.game.loc.LocType
+import osrsps.game.loc.LocTypes
+import osrsps.game.loc.StaticLocs
+import osrsps.game.raid.ArchiveRaids
+import osrsps.game.raid.ArchiveRoom
+import osrsps.game.raid.ArchiveRun
+import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionMap
+import osrsps.map.LocCollisionType
+import osrsps.map.LocShape
+import osrsps.map.Tile
+
+/**
+ * Raid step 15 through the headless client, on the raid's map squares with its doors, Passageways and transporters
+ * where the 241.4 cache has them (and open floor round them): a run through the empty rooms by the west doors and one
+ * by the east doors, rows that open in order and a row's other door shut once one is chosen, a death that leaves the
+ * party standing, and the wipe back to the lobby with gravestones. The rl-client script
+ * test-runner/examples/archive-raid-flow.json does the runs in the real client.
+ */
+class HeadlessArchiveRaidTest {
+    private fun type(id: Int, name: String, width: Int, length: Int, vararg ops: String?) =
+        LocType(id, name, ops = ops.toList() + List(5 - ops.size) { null }, collision = LocCollisionType(width = width, length = length))
+
+    private val locTypes = LocTypes(
+        (
+            listOf(
+                type(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", 9, 1, "Enter"),
+                type(ArchiveRaids.PASSAGEWAY, "Passageway", 5, 2, "Exit"),
+                type(ArchiveRaids.NEXUS_PASSAGEWAY, "Passageway", 7, 2, "Exit"),
+            ) + ArchiveRaids.DOORS.map { type(it, "Door", 5, 1, "Enter", "Quick-enter") } +
+                ArchiveRaids.TRANSPORTERS.map { type(it, "Archive transporter", 1, 1, "Use", "Quick-use") }
+            ).associateBy { it.id },
+    )
+
+    /** Each room's Passageway and transporter, as the cache places them. */
+    private val roomLocs = mapOf(
+        ArchiveRoom.EZEKIEL to (Triple(4085, 5533, 3) to Tile(4073, 5535)),
+        ArchiveRoom.BORK to (Triple(4164, 5597, 1) to Tile(4180, 5599)),
+        ArchiveRoom.MOIA to (Triple(4086, 5661, 1) to Tile(4074, 5663)),
+        ArchiveRoom.DREADNOTH to (Triple(4169, 5661, 1) to Tile(4177, 5663)),
+        ArchiveRoom.DAGONHAI to (Triple(4088, 5597, 1) to Tile(4079, 5599)),
+        ArchiveRoom.XARTH to (Triple(4169, 5533, 1) to Tile(4178, 5535)),
+    )
+
+    private fun doorX(room: ArchiveRoom) = if (room.side == osrsps.game.raid.DoorSide.WEST) 4113 else 4141
+
+    private val staticLocs = StaticLocs().apply {
+        add(ZoneLoc(ArchiveRaids.ARCHIVE_DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 4123, 5562, 0))
+        for (level in listOf(0, 2, 3)) {
+            for (room in ArchiveRoom.entries.filter { it.door >= 0 }) {
+                add(ZoneLoc(room.door, LocShape.CENTREPIECE_STRAIGHT, if (room.side == osrsps.game.raid.DoorSide.WEST) 3 else 1, doorX(room), ArchiveRaids.doorZ(room.stage), level))
+            }
+        }
+        add(ZoneLoc(ArchiveRaids.NEXUS_PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, 4124, 5625, 3))
+        for ((room, locs) in roomLocs) {
+            val (passage, transporter) = locs
+            add(ZoneLoc(ArchiveRaids.PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, passage.third, passage.first, passage.second, 0))
+            add(ZoneLoc(room.transporter, LocShape.CENTREPIECE_STRAIGHT, 1, transporter.x, transporter.z, 0))
+        }
+    }
+
+    private val axe = ObjType(1351, "Bronze axe", cost = 16, internalName = "bronze_axe")
+
+    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+        World(
+            crcs,
+            CollisionMap().apply { for (x in 63..65) for (z in 86..88) markLoaded(x, z) },
+            locTypes = locTypes,
+            staticLocs = staticLocs,
+            objTypes = ObjTypes.of(axe),
+            npcTypes = NpcTypes.of(NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))),
+            cycleMillis = millis,
+        )
+    }
+
+    private fun HeadlessClient.tele(x: Int, z: Int, level: Int = 0) {
+        command("tele $x $z $level")
+        await("the teleport to $x, $z, $level") { position?.takeIf { it == Coord(x, z, level) } }
+    }
+
+    private fun HeadlessClient.awaitAt(tile: Tile, what: String) =
+        assertEquals(Coord(tile.x, tile.z, 0), await(what) { position?.takeIf { it == Coord(tile.x, tile.z, 0) } }, what)
+
+    private fun HeadlessClient.runSays(): String = commandReply("raid run") { it.startsWith("Archive run") || it.startsWith("You're not") }
+
+    private fun HeadlessClient.awaitRun(what: String, predicate: (String) -> Boolean) {
+        await(what) { runSays().takeIf(predicate) }
+    }
+
+    private fun TestServer.run(username: String): ArchiveRun =
+        assertNotNull(world.parties.of(world.playerNamed(username)!!)?.let(world.archiveRaids::of), "$username's run")
+
+    /** Through the Archive Door from the lobby, into the nexus's entrance. Returns the run. */
+    private fun HeadlessClient.enter(server: TestServer, username: String): ArchiveRun {
+        tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+        locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+        await("into the instance") { position?.takeIf { server.world.instances.inDynamicArea(it.x, it.z) } }
+        val run = server.run(username)
+        awaitAt(server.world.archiveRaids.tile(run, ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z), "the nexus's entrance")
+        return run
+    }
+
+    /** Through [room]'s nexus door, and back out by its transporter, or its Passageway when [passageway]. */
+    private fun HeadlessClient.through(server: TestServer, run: ArchiveRun, room: ArchiveRoom, passageway: Boolean = false) {
+        val raids = server.world.archiveRaids
+        val door = raids.tile(run, doorX(room), ArchiveRaids.doorZ(room.stage))
+        locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
+        awaitAt(raids.tile(run, room.entryX, room.entryZ), "${room.boss}'s room")
+        awaitRun("${room.boss}'s room done") { "${room.boss}'s".isNotEmpty() && it.contains(room.boss) && room in run.cleared }
+        val (passage, transporter) = roomLocs.getValue(room)
+        if (passageway) {
+            val at = raids.tile(run, passage.first, passage.second)
+            locOp(ArchiveRaids.PASSAGEWAY, at.x, at.z, ArchiveRaids.EXIT)
+        } else {
+            val at = raids.tile(run, transporter.x, transporter.z)
+            locOp(room.transporter, at.x, at.z, ArchiveRaids.USE)
+        }
+        awaitAt(raids.tile(run, room.doorFront.x, room.doorFront.z), "out in front of ${room.boss}'s door")
+    }
+
+    /** The level of the cache's nexus the client draws the instance's nexus from. */
+    private fun HeadlessClient.nexusLevel(server: TestServer, run: ArchiveRun): Int? {
+        val hall = server.world.archiveRaids.tile(run, 4127, 5590)
+        return regionZones()?.get(Triple(hall.x shr 3, hall.z shr 3, 0))?.level
+    }
+
+    private fun HeadlessClient.goThrough(server: TestServer, username: String, rooms: List<ArchiveRoom>, passagewayIn: ArchiveRoom? = null) {
+        val run = enter(server, username)
+        assertTrue(runSays().contains("next Archive Guardian"))
+        assertEquals(ArchiveRaids.NEXUS_START, nexusLevel(server, run))
+        // Into the hall: the Guardian's fight, done at once with no Guardian yet.
+        command("raid tp guardian")
+        awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
+        await("the nexus with the Guardian's corpse") { nexusLevel(server, run)?.takeIf { it == ArchiveRaids.NEXUS_CAMP } }
+        for (room in rooms) through(server, run, room, passageway = room == passagewayIn)
+        await("the nexus with its Passageway north") { nexusLevel(server, run)?.takeIf { it == ArchiveRaids.NEXUS_OCELLUS } }
+        val passage = server.world.archiveRaids.tile(run, 4124, 5625)
+        locOp(ArchiveRaids.NEXUS_PASSAGEWAY, passage.x, passage.z, ArchiveRaids.EXIT)
+        awaitAt(server.world.archiveRaids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ), "Ocellus's room")
+        awaitRun("the run complete") { it.contains("; complete;") }
+        // Solo, every room's points are the one player's.
+        assertTrue(runSays().contains("points $username ${ArchiveRaids.ROOM_POINTS * 5}"), runSays())
+        // Out by teleport: the instance ends behind them.
+        tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+        await("the instance ended") { if (server.world.instances.all.none { it === run.instance }) Unit else null }
+    }
+
+    @Test
+    fun `a run goes through the empty rooms by the west doors, and another by the east doors`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.goThrough(server, "alice", listOf(ArchiveRoom.EZEKIEL, ArchiveRoom.MOIA, ArchiveRoom.DAGONHAI))
+                client.goThrough(server, "alice", listOf(ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH), passagewayIn = ArchiveRoom.DREADNOTH)
+            }
+        }
+    }
+
+    @Test
+    fun `a row opens once the room before is done, and its other door stays shut once one is chosen`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                val run = client.enter(server, "bob")
+                val raids = server.world.archiveRaids
+                // The first row before the Guardian is done: the door walked to, and nothing.
+                val front = raids.tile(run, ArchiveRoom.EZEKIEL.doorFront.x, ArchiveRoom.EZEKIEL.doorFront.z)
+                client.tele(front.x, front.z)
+                assertEquals(ArchiveRaids.NEXUS_START, client.nexusLevel(server, run))
+                // In the hall, so the Guardian's fight begins (and ends) first; then the row opens.
+                client.awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
+                client.through(server, run, ArchiveRoom.EZEKIEL)
+                // Bork's door, east across the row: walked to, then shut for the run.
+                val bork = raids.tile(run, 4141, ArchiveRaids.doorZ(2))
+                client.locOp(ArchiveRoom.BORK.door, bork.x, bork.z, ArchiveRaids.ENTER)
+                client.await("at Bork's door") { client.position?.takeIf { it.x >= bork.x - 2 && it.z in bork.z..bork.z + 4 } }
+                client.awaitTicks(3)
+                assertEquals(null, raids.roomAt(run, client.position!!.x, client.position!!.z).takeIf { it != ArchiveRoom.GUARDIAN })
+                // The third row isn't open yet either.
+                val dagonhai = raids.tile(run, 4113, ArchiveRaids.doorZ(4))
+                client.locOp(ArchiveRoom.DAGONHAI.door, dagonhai.x, dagonhai.z, ArchiveRaids.QUICK_ENTER)
+                client.await("at the Dagon'hai door") { client.position?.takeIf { it.x <= dagonhai.x + 2 && it.z in dagonhai.z..dagonhai.z + 4 } }
+                client.awaitTicks(3)
+                assertEquals(ArchiveRoom.GUARDIAN, raids.roomAt(run, client.position!!.x, client.position!!.z), "still in the nexus's hall")
+                // The second row is: Quick-enter goes straight in too.
+                val moia = raids.tile(run, 4113, ArchiveRaids.doorZ(3))
+                client.locOp(ArchiveRoom.MOIA.door, moia.x, moia.z, ArchiveRaids.QUICK_ENTER)
+                client.awaitAt(raids.tile(run, ArchiveRoom.MOIA.entryX, ArchiveRoom.MOIA.entryZ), "Moia's room")
+            }
+        }
+    }
+
+    @Test
+    fun `a death leaves the party standing, nobody comes in once the Guardian's fight began, and the last death wipes it to the lobby with graves`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("dave").use { dave ->
+                    server.login("erin").use { erin ->
+                        for (client in listOf(carol, dave, erin)) client.await("the login rebuild") { client.position }
+                        carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                        dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                        carol.commandReply("raidparty invite erin") { it.startsWith("Invited") }
+                        erin.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                        val run = carol.enter(server, "carol")
+                        assertEquals(run, dave.enter(server, "dave"))
+                        val raids = server.world.archiveRaids
+                        carol.command("raid tp guardian")
+                        carol.awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
+                        // Erin is too late: the Archive Door leaves her in the lobby.
+                        erin.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                        erin.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+                        erin.awaitTicks(4)
+                        assertEquals(Coord(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z, 0), erin.position)
+                        // Five axes each: three are kept on a death that loses them.
+                        for (client in listOf(carol, dave)) client.commandReply("item bronze axe 5") { it.contains("Bronze axe") }
+                        // Carol dies with Dave standing: down, in the entrance, everything kept.
+                        carol.command("hit 99 me")
+                        carol.awaitAt(raids.tile(run, ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z), "Carol down in the entrance")
+                        carol.await("Carol's axes kept") { carol.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 5 } }
+                        assertTrue(carol.runSays().contains("down: carol"), carol.runSays())
+                        // Dave dies: nobody stands, so both go to the lobby, each with a grave of two axes there.
+                        dave.command("hit 99 me")
+                        val lobby = Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                        carol.awaitAt(lobby, "Carol wiped to the lobby")
+                        dave.awaitAt(lobby, "Dave wiped to the lobby")
+                        for ((client, name) in listOf(carol to "carol", dave to "dave")) {
+                            client.await("$name's three axes") { client.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 3 } }
+                            val grave = assertNotNull(server.world.deaths.graveOf(server.world.playerNamed(name)!!))
+                            assertEquals(Triple(lobby.x, lobby.z, 0), Triple(grave.npc.x, grave.npc.z, grave.npc.level), "$name's grave")
+                            assertEquals(2, grave.items.contents().sumOf { it.second.count })
+                        }
+                        // The party lasts through the wipe, and its next run starts afresh.
+                        assertEquals(3, server.world.parties.of(server.world.playerNamed("carol")!!)?.size)
+                        carol.await("the wiped instance ended") { if (server.world.instances.all.none { it === run.instance }) Unit else null }
+                        val next = carol.enter(server, "carol")
+                        assertTrue(next !== run && !next.wiped)
+                        // A member who leaves the party is sent out of its run.
+                        carol.commandReply("raidparty leave") { it.contains("left") || it.contains("Left") }
+                        carol.await("Carol out of the run") { carol.position?.takeIf { it == Coord(lobby.x, lobby.z, 0) } }
+                    }
+                }
+            }
+        }
+    }
+
+    private companion object {
+        const val INVENTORY = 93
+    }
+}

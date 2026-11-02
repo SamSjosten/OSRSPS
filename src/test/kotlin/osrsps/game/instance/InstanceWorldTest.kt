@@ -14,6 +14,7 @@ import osrsps.game.Player
 import osrsps.game.PlayerSave
 import osrsps.game.SeqNames
 import osrsps.game.World
+import osrsps.game.combat.Deaths
 import osrsps.game.combat.NpcCombat
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.Firemaking
@@ -24,7 +25,8 @@ import osrsps.map.LocShape
 /** What the world does with instances: ending one with everything in it, and never saving anyone in one. */
 class InstanceWorldTest {
     private val man = NpcType(3106, "Man", internalName = "man", stats = NpcStats(hitpoints = 7))
-    private val types = NpcTypes.of(man)
+    private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
+    private val types = NpcTypes.of(man, grave)
     private val npcCombat = NpcCombat.parse(
         """{ "npcs": [ { "npcs": ["man"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
             "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
@@ -94,5 +96,16 @@ class InstanceWorldTest {
         val loaded = world.loadPlayer(1, "alice")
         assertEquals(Triple(World.SPAWN_X, World.SPAWN_Z, World.SPAWN_LEVEL), Triple(loaded.x, loaded.z, loaded.level))
         assertTrue(!world.instances.inDynamicArea(loaded.x, loaded.z))
+    }
+
+    @Test
+    fun `a death in an instance raises the grave at its exit, where its owner can get to it, and comes back at the spawn`() {
+        val player = Player(1, "alice", inside.first, inside.second, 0)
+        repeat(4) { player.inventory.add(ObjType(1351, "Bronze axe", cost = 16), 1) }
+        world.deaths.respawn(player)
+        val grave = assertNotNull(world.deaths.graveOf(player))
+        assertEquals(Triple(3222, 3218, 0), Triple(grave.npc.x, grave.npc.z, grave.npc.level), "exploit review round 9, INST-1")
+        assertEquals(1, grave.items.contents().size)
+        assertEquals(Triple(World.SPAWN_X, World.SPAWN_Z, World.SPAWN_LEVEL), Triple(player.x, player.z, player.level))
     }
 }

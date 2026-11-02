@@ -424,4 +424,50 @@ class DeathsTest {
         assertEquals(listOf(0 to InvObj(coins.id, 3)), alice.inventory.contents())
         assertTrue(npcs.all.none())
     }
+
+    /** A [Deaths] whose deaths go as [place] says, landing players where it puts them. */
+    private fun placed(place: (Player) -> DeathPlace?) = Deaths(
+        objTypes, graveType, { tick }, { online.asSequence() }, { key -> online.firstOrNull { it.saveKey == key } },
+        spawnNpc = { npcs.add(it) }, removeNpc = { npcs.remove(it) },
+        teleportToSpawn = { player -> teleported += player; player.x = 3222; player.z = 3218 },
+        openModal = { _, _ -> }, closeModals = { it.modals.clear() }, setVarbitNow = { _, _, _ -> },
+        placeOf = place,
+        teleport = { player, x, z, level -> player.x = x; player.z = z; player.level = level },
+    )
+
+    @Test
+    fun `a death with a place for it comes back there, and its grave goes where the place says`() {
+        val placed = placed { DeathPlace(keepItems = false, 3200, 3201, 0, 3205, 3206, 0) }
+        alice.inventory.add(lobster, 1)
+        alice.inventory.add(coins, 10)
+        alice.inventory.add(bones, 1)
+        alice.inventory.add(shield, 1)
+        alice.hitpoints = 0
+        placed.die(alice)
+        repeat(Deaths.DEATH_TICKS) { tick++; placed.process() }
+        assertFalse(alice.dead)
+        assertEquals(Triple(3205, 3206, 0), Triple(alice.x, alice.z, alice.level))
+        assertTrue(teleported.isEmpty(), "not to the spawn")
+        val npc = grave()
+        assertEquals(Triple(3200, 3201, 0), Triple(npc.x, npc.z, npc.level))
+        assertEquals(listOf(0 to InvObj(bones.id, 1)), placed.graveOf(alice)!!.items.contents())
+    }
+
+    @Test
+    fun `a death that keeps everything loses nothing and raises no grave, but still restores the player`() {
+        val placed = placed { DeathPlace(keepItems = true, 3200, 3201, 0, 3205, 3206, 0) }
+        alice.inventory.add(lobster, 1)
+        alice.inventory.add(coins, 10)
+        alice.inventory.add(bones, 1)
+        alice.inventory.add(shield, 1)
+        alice.skills.setCurrentLevel(Skill.ATTACK, 5)
+        alice.hitpoints = 0
+        placed.die(alice)
+        repeat(Deaths.DEATH_TICKS) { tick++; placed.process() }
+        assertEquals(4, alice.inventory.contents().size)
+        assertTrue(npcs.all.none())
+        assertEquals(10, alice.hitpoints)
+        assertEquals(1, alice.skills.currentLevel(Skill.ATTACK))
+        assertEquals(Triple(3205, 3206, 0), Triple(alice.x, alice.z, alice.level))
+    }
 }

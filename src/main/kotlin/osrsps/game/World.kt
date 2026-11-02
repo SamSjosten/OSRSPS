@@ -67,6 +67,7 @@ import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.Aggression
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
+import osrsps.game.combat.DeathPlace
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.MagicCombat
@@ -158,6 +159,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.Encounters
+import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.Parties
 import osrsps.game.raid.PartyScaling
 import osrsps.game.script.Handlers
@@ -323,6 +325,9 @@ class World(
     /** Raid parties; see [Parties]. */
     val parties = Parties()
 
+    /** The Fractured Archive's runs; see [ArchiveRaids]. */
+    val archiveRaids = ArchiveRaids(this)
+
     /** Boss fights in progress; see [Encounters]. */
     val encounters = Encounters(this, encounterDefs)
 
@@ -471,6 +476,7 @@ class World(
         special = { specialAttacks.use(it, combat.weapon(it)) },
         specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
         projectile = zones::projectile,
+        npcDamaged = { npc, player, dealt -> archiveRaids.damaged(npc, player, dealt) },
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
@@ -517,7 +523,20 @@ class World(
             statusEffects.clear(it)
             specialAttacks.refill(it)
         },
+        placeOf = ::deathPlace,
+        teleport = { player, x, z, level -> teleport(player, x, z, level) },
     )
+
+    /**
+     * Where a player dying here comes back and their grave goes: a raid's say ([ArchiveRaids.deathPlace]); in any other
+     * instance the grave goes to its exit, since nobody could get back in to it (exploit review round 9, INST-1), and
+     * they come back at the spawn; elsewhere, null: the spawn, and the grave where they fell.
+     */
+    private fun deathPlace(player: Player): DeathPlace? {
+        archiveRaids.deathPlace(player)?.let { return it }
+        val instance = instances.at(player.x, player.z) ?: return null
+        return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
+    }
 
     /** The words of every dialogue line now; see [loadDialogue]. */
     var dialogueText: DialogueText = DialogueText.NONE
@@ -730,6 +749,7 @@ class World(
         registerLodestones(this)
         registerVarrock(this)
         registerArchiveLobby(this)
+        archiveRaids.register()
         registerCrops(this)
         ducks.register()
         homeTeleport.register(handlers)
@@ -1074,6 +1094,7 @@ class World(
         deaths.process()
         npcScripts.process()
         encounters.process()
+        archiveRaids.process()
         thieving.process()
         npcs.process()
         fishing.process()
@@ -2613,6 +2634,11 @@ class World(
         // Guessed safe rather than checked: the client may carry zones that stay in view across a rebuild, but sending
         // them all again in full is right either way. The ground items and loc changes a reconnect missed go again too.
         player.zoneView.reset()
+    }
+
+    /** Sends everyone in [instance] its zones again: for a part of it laid anew ([Instances.replace]). */
+    fun redrawInstance(instance: Instance) {
+        for (player in players) if (player != null && instance.contains(player.x, player.z)) rebuild(player)
     }
 
     /**
