@@ -21,7 +21,10 @@ import osrsps.GameServer
 import osrsps.Revision
 import osrsps.cache.model.ModelCodec
 import osrsps.cache.model.OsrsModel
+import osrsps.cache.InterfaceCodec
 import osrsps.cache.LocTypeDecoder
+import osrsps.cache.Sprite
+import osrsps.cache.SpriteCodec
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.overlay.Js5Container
 import osrsps.cache.overlay.Js5Group
@@ -29,6 +32,7 @@ import osrsps.cache.overlay.ReferenceTable
 import osrsps.game.content.CustomLocs
 import osrsps.game.content.CustomVars
 import osrsps.game.VarbitType
+import osrsps.game.content.LodestoneMap
 import osrsps.game.content.Lodestones
 import osrsps.testclient.Js5Crcs
 
@@ -54,6 +58,9 @@ class GameServerTest {
         library.put(2, 6, 0, byteArrayOf(0))
         library.put(2, 14, LAST_VARBIT, byteArrayOf(1, 0, 0, 0, 0, 0))
         library.put(2, 16, LAST_VARP, byteArrayOf(0))
+        // One interface and one sprite, so the server has the indices to add its own interface and sprites to.
+        library.put(3, 0, byteArrayOf(0))
+        library.put(8, 0, byteArrayOf(0))
         library.update()
         library.close()
     }
@@ -141,6 +148,9 @@ class GameServerTest {
             ),
         )
         Files.write(Files.createDirectories(dataDir.resolve("models")).resolve("65000.dat"), model)
+        // A sprite file under the lodestone map's image's id takes the place of the one drawn in code.
+        val mapImage = SpriteCodec.encode(Sprite(2, 2, IntArray(4) { 0xFF123456.toInt() }))
+        Files.write(Files.createDirectories(dataDir.resolve("sprites")).resolve("${LodestoneMap.MAP_SPRITE}.dat"), mapImage)
 
         val port = ServerSocket(0).use { it.localPort }
         val server = GameServer(dataDir, port, ServerSocket(0).use { it.localPort }, "127.0.0.1")
@@ -183,6 +193,23 @@ class GameServerTest {
             val varbitFiles = Js5Group.unpack(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, 2, 14)), varbits.files.map { it.id })
             assertEquals(LAST_VARBIT + 1, lumbridgeVarbit)
             assertEquals(VarbitType(LAST_VARP + 1, 0, 0), VarTypeLoader.decodeVarbit(varbitFiles.getValue(lumbridgeVarbit)))
+
+            // The lodestone map: our interface as a group of the interface index past the cache's own, its components
+            // the files, and our sprites as groups of the sprite index, the map's image from the file in data/sprites.
+            val interfaces = ReferenceTable.decode(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, 255, InterfaceCodec.INDEX)))
+            assertEquals(listOf(0, LodestoneMap.INTERFACE), interfaces.groups.map { it.id })
+            val mapEntry = interfaces.group(LodestoneMap.INTERFACE)!!
+            assertEquals(LodestoneMap.components.indices.toList(), mapEntry.files.map { it.id })
+            val mapGroup = Js5Crcs.fetchGroup("127.0.0.1", port, InterfaceCodec.INDEX, LodestoneMap.INTERFACE)
+            assertEquals(mapEntry.crc, Js5Container.crc(mapGroup))
+            assertEquals(LodestoneMap.components, InterfaceCodec.decodeGroup(Js5Container.unpack(mapGroup), mapEntry.files.size))
+            val sprites = ReferenceTable.decode(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, 255, SpriteCodec.INDEX)))
+            assertEquals(listOf(0) + LodestoneMap.sprites.keys.sorted(), sprites.groups.map { it.id })
+            val icon = SpriteCodec.decode(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, SpriteCodec.INDEX, LodestoneMap.ACTIVE_SPRITE))).single()
+            assertContentEquals(LodestoneMap.sprites.getValue(LodestoneMap.ACTIVE_SPRITE).pixels, icon.pixels)
+            val served = Js5Crcs.fetchGroup("127.0.0.1", port, SpriteCodec.INDEX, LodestoneMap.MAP_SPRITE)
+            assertEquals(sprites.group(LodestoneMap.MAP_SPRITE)!!.crc, Js5Container.crc(served))
+            assertContentEquals(mapImage, Js5Container.unpack(served), "the file's image, not the code's")
         } finally {
             server.stop()
         }

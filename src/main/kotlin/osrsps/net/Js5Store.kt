@@ -67,7 +67,7 @@ class Js5Store private constructor(
                     require(group.group <= CacheOverlay.MAX_GROUP) { "Custom group ${group.group} of index $indexId doesn't fit a JS5 request" }
                     val container = Js5Container.pack(group.data)
                     // Guessed: the sizes are the container's and the data's; no index we overlay is sized.
-                    table.put(ReferenceTable.Group(group.group, 0, Js5Container.crc(container), container.size, group.data.size, OVERLAY_VERSION, listOf(ReferenceTable.File(0, 0))))
+                    table.put(ReferenceTable.Group(group.group, 0, Js5Container.crc(container), container.size, group.data.size, OVERLAY_VERSION, group.files.map { ReferenceTable.File(it, 0) }))
                     responses[key(indexId, group.group)] = frame(indexId, group.group, container)
                 }
             }

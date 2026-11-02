@@ -5,6 +5,8 @@ import net.rsprot.protocol.game.outgoing.interfaces.IfMoveSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenTop
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
+import net.rsprot.protocol.game.outgoing.interfaces.IfSetHide
+import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
 import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.game.outgoing.misc.player.TriggerOnDialogAbort
 import net.rsprot.protocol.game.outgoing.varp.VarpLarge
@@ -215,6 +217,16 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         val frame = player.frame
         for (slot in MODAL_SLOTS) if (slot !in player.modals) send(player, IfCloseSub(frame.interfaceId, frame.component(slot)))
         if (player.chatModal < 0) send(player, IfCloseSub(Chatbox.CHATBOX, Chatbox.CHATMODAL))
+    }
+
+    /** Sets a component's text (IF_SETTEXT); the client keeps it between opens of the interface. */
+    fun setText(player: Player, interfaceId: Int, component: Int, text: String) {
+        send(player, IfSetText(interfaceId, component, text))
+    }
+
+    /** Hides or shows a component (IF_SETHIDE); the client keeps it so between opens of the interface. */
+    fun setHidden(player: Player, interfaceId: Int, component: Int, hidden: Boolean) {
+        send(player, IfSetHide(interfaceId, component, hidden))
     }
 
     /** Runs client script [id] with [args] (ints, and strings in the script's order). */
