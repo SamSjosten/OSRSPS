@@ -501,7 +501,7 @@ class World(
         multi = multiCombat, poweredStaves = poweredStaves, words = ::textFor,
     )
 
-    /** Lumbridge Home Teleport; see [HomeTeleport]. Its destination and cooldown are seams other teleports can swap. */
+    /** Home Teleport; see [HomeTeleport]. Its target is a seam the lodestone network takes ([registerLodestones]). */
     val homeTeleport = HomeTeleport(
         currentTick = { tick }, nowMinutes = { System.currentTimeMillis() / 60_000 }, inCombat = { inCombat(it) },
         teleport = { player, to -> teleport(player, to.x, to.z, to.level) },
