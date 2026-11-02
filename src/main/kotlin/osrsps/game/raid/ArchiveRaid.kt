@@ -455,6 +455,9 @@ class ArchiveRaids(private val world: World) {
 
         const val STAGES = 5
 
+        /** The locs in a run's instance whose options are handled here, on their copies. */
+        val INSTANCE_LOCS: Set<Int> get() = (DOORS + TRANSPORTERS + PASSAGEWAY + NEXUS_PASSAGEWAY).toSet()
+
         /** The z of the nexus's row of doors for [stage] 2 to 4 (each door covers it and the 4 tiles north). */
         fun doorZ(stage: Int): Int = 5584 + (stage - 2) * 13
 

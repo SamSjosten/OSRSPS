@@ -1440,12 +1440,16 @@ tiles away and back, or log it out and in, and the axe is still there.
 An instance is a private copy of part of the map, as raids and bosses give each party (raid step 10).
 `game/instance/Instances.kt` gives each one a block of map squares in the dynamic area, from x 6400 east where the cache
 has no maps. It copies each zone of the original into the block, on every level: the terrain's collision, and the cache
-locs with their collision. Walking, doors and line of sight then work as in the original. A player in an instance gets a
+locs with their collision. An instance can also be laid out from parts, each taking zones of one level to a place and a
+level of its own, and a part can be laid again over zones it has, for a room that changes as a raid goes on (raid
+step 15). Walking, doors and line of sight then work as in the original. A player in an instance gets a
 REBUILD_REGION, which tells the client to draw each zone of the block from the original's map data. Outside one, they get
 the usual REBUILD_NORMAL, also after a step into or out of one.
 
 An instance ends once nobody is in it, with its NPCs, ground items and loc changes (a door on its edge opened onto the
-tile beyond included), and the respawns, shots and fires due there later; a grave in it moves to its exit. A trade in
+tile beyond included), and the respawns, shots and fires due there later; a grave in it moves to its exit. A player who
+dies in one has their grave raised at its exit, where they can get to it, and comes back at the spawn (exploit review
+round 9, INST-1); the raid has its own rules. A trade in
 one saves both players at its exit, as any save does. A player who loses their connection
 still counts until they are removed, so a reconnect finds it. Nobody is saved in an instance: a save, a logout included,
 puts them at its exit. Blocks are kept a map square apart, so nobody in one sees anyone in another.
@@ -1458,8 +1462,10 @@ puts them at its exit. Blocks are kept a map square apart, so nobody in one sees
 | The client told to reload the region on each REBUILD_REGION | guessed |
 | An instance ending as soon as nobody is in it; saves at its exit | guessed; raids that keep a place for a disconnected player come with parties |
 | A grave left in an ended instance moving to its exit, with its items and time left | guessed |
-| Only doors and gates working on copied locs; content's handlers, written for the original's tiles (the Al Kharid toll gate), not run there, so the player is told "Nothing interesting happens." | guessed, until the raid's rooms bring handlers of their own |
-| Unrotated copies only | not in yet: the raid's rooms bring rotation if they need it |
+| Only doors and gates working on copied locs, and the raid's own locs; content's handlers, written for the original's tiles (the Al Kharid toll gate), not run there, so the player is told "Nothing interesting happens." | guessed |
+| A death in an instance raising its grave at the instance's exit | guessed; a grave inside was out of its owner's reach |
+| A part laid again over an instance's zones losing the flags a neighbouring zone's loc put in them | guessed safe: the raid's nexus has walls all round |
+| Unrotated copies only | no room built so far needs rotating |
 
 `::instance` makes one around you for testing. Check: `./gradlew test --tests 'osrsps.game.instance.*'
 --tests 'osrsps.testclient.HeadlessInstanceTest'` (two players in copies of the same spot can't see each other, and
@@ -1491,6 +1497,51 @@ Check: `./gradlew test --tests 'osrsps.game.raid.*' --tests 'osrsps.game.command
 --tests 'osrsps.testclient.HeadlessPartyTest'` (the Guardian's hitpoints at 1, 2, 3 and 8 players are the Wiki's; three
 players form a party, the Guardian's hitpoints follow its size, it lasts through a death, and a member who logs out
 leaves), and in RuneLite `test-runner/examples/party-scaling.json` (the Guardian's hitpoints alone, for 3 and for 8).
+
+## The Fractured Archive's raid flow
+
+A run of The Fractured Archive (raid step 15) is `game/raid/ArchiveRaid.kt`. The lobby's Archive Door takes the
+player's party into its own instance: the cache's map squares 63 to 65 by 86 to 88, level 0, with the nexus (64,87) on
+one of its four levels and the lobby's square left out. The party gathers in the nexus's entrance. The Archive Guardian
+is fought in the nexus's hall, where the cache lays its corpse on the nexus's later levels. Then come three rows of
+doors, each with a room behind its west and east door: Ezekiel or Bork and the Smorks, then Moia or Dreadnoth the
+Jellied, then the Dagon'hai Elder or Xarth. Last, the nexus's Passageway north opens to Ocellus's arena. Each room's
+Passageway goes back out to the nexus, and so does its Archive transporter once the room is done. No boss is built
+yet, so each room is done as soon as the first party member walks in: that is the run through empty rooms. Each
+boss's step, from 16 on, adds its fight and ends its room when the boss dies.
+
+A room's contribution points are shared by damage among those who did any, or evenly among who was there if nobody
+did. A party member who dies while someone still stands keeps everything and is down until the room is done. The
+last of the party to fall wipes it: everyone goes back to the lobby, in front of the Archive Door, and what each
+loses goes in a grave there. The party lasts through the wipe.
+
+| Raid flow behaviour | Source |
+|---------------------|--------|
+| The Guardian first, one room of each of three rows by its left or right door, Ocellus last; the pairs Ezekiel or Bork, Moia or Dreadnoth, Xarth or the Dagon'hai Elder | Wiki, The Fractured Archive, and "Everything You Need To Know" |
+| Each room's map square (Ezekiel 63,86, Bork 65,87, Moia 63,88, Dreadnoth 65,88, the Dagon'hai Elder 63,87, Xarth 65,86), told by its locs' names; each west door to the west room of its pair | 241.4 cache; which room is whose inferred from the names, the doors from the map's columns |
+| The nexus's doors (63088 to 63105, Enter and Quick-enter), the rooms' Passageways (62765, Exit) and Archive transporters (63087, 62610, 63134, Use and Quick-use), the nexus's Passageway north (62766) | 241.4 cache |
+| The Guardian fought in the nexus's hall; Ocellus in the arena north of it (64,88), past the nexus's Passageway | inferred: the Guardian's corpse lies in the hall on the nexus's later levels, and the Passageway is there on the last |
+| The nexus on level 0 of the cache at the start, 2 (the Guardian's corpse, a camp of crates and barricades) once the Guardian is done, 3 (and the Passageway north) once the fourth room is done | inferred from what each level holds; level 1 isn't used |
+| Contribution: each room a fixed amount, shared by damage, minions included; the two rooms of a pair the same | Wiki, "Everything You Need To Know" |
+| Each room's points 1,000, or shared evenly when nobody did damage | guessed: the Wiki gives no number |
+| A wipe sending the party to the lobby with an ordinary gravestone; the party not breaking up | Wiki, The Fractured Archive (Theatre of Blood's system; 28 October 2026 update) |
+| The wipe's tile and graves in front of the Archive Door (4127,5560); each member's grave on it | guessed |
+| A member dying with the party standing keeping everything, down in front of the room's door until it is done, and sent back out if they walk in | guessed (Theatre of Blood's system); spectating isn't built |
+| Any member opening the run, a player in no party as a party of one; others following until the Guardian's fight begins, nobody after | guessed; the Wiki says supplies can't be banked mid-raid |
+| A row's other door shut once one is gone through; a row opening once the room before is done; Enter and Quick-enter, Use and Quick-use, the same | guessed, until a recording shows a run |
+| Passageway out at any time; the transporter once the room is done; both to the nexus in front of the room's door | guessed |
+| A room's fight beginning as the first party member stands in it, and the Guardian's in the hall north of the entrance | guessed |
+| A member who leaves the party sent to the lobby; a logout saving them there, as any instance's exit | guessed |
+| Every room done as it begins, until its boss's step | stand-in |
+| The bosses, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 16 to 31 |
+
+`::raid run` shows the run you're in, `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, and
+`::raid clear` marks the room you're in done. Check: `./gradlew test --tests 'osrsps.game.instance.*'
+--tests 'osrsps.game.combat.DeathsTest' --tests 'osrsps.testclient.HeadlessArchiveRaidTest'` (a run through the empty
+rooms by the west doors and one by the east; rows opening in order and a row's other door shut; a death that leaves the
+party standing, a player too late to come in, and the wipe to the lobby with graves), and in RuneLite
+`test-runner/examples/archive-raid-flow.json` (both runs, solo) and `archive-raid-wipe.json` (a death in the raid back to
+the lobby, with a grave).
 
 ## Encounters
 
@@ -1538,7 +1589,7 @@ reach the chasm yet: `::tele 4054 4567` stands by the cavity.
 | The Record Keeper's introduction each time, and Yes to his statistics closing the talk | guessed: the var live keeps for it isn't known, and his statistics screen isn't built |
 | Montoya's and the Record Keeper's menus coming back after each topic; every chathead expression | guessed |
 | Where the four NPCs stand | guessed from the lobby's map, beside the locs they tend |
-| The Archive Door, Grouping Board, Alliance records, Strategy board, Ascension rocks, Loot Wheelbarrow, and the guards, druids and Alliance builders | not in yet: the door is step 15, the rest wait for a recording or are left out of the first version |
+| The Grouping Board, Alliance records, Strategy board, Ascension rocks, Loot Wheelbarrow, and the guards, druids and Alliance builders | not in yet: they wait for a recording or are left out of the first version (the Archive Door is the raid flow's) |
 
 Check: `./gradlew test --tests 'osrsps.game.content.ArchiveLobbyTest' --tests 'osrsps.testclient.HeadlessArchiveLobbyTest'`
 (each talk line by line; the cavity open from login and crawled through, the Opening back, the bank chest and banker

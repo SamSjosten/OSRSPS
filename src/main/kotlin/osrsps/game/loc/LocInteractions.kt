@@ -64,9 +64,11 @@ class LocInteractions(
     /**
      * Whether a tile is in an instance ([osrsps.game.instance.Instances]), whose locs are copies: there only doors and
      * gates work, as content's handlers are written for their locs where the map has them (the Al Kharid toll gate
-     * moves the player to its own tiles). Guessed until the raid's rooms bring handlers of their own.
+     * moves the player to its own tiles); but for the locs of [forInstances].
      */
     private val inInstance: (Int, Int) -> Boolean = { _, _ -> false },
+    /** Loc types whose handlers are written for their copies in an instance: the raid's doors and transporters. */
+    private val forInstances: (Int) -> Boolean = { false },
 ) {
     /** The player clicked option [option] (1 to 5) on loc [id] at [x], [z]. [invertRun] is the ctrl key. */
     fun click(player: Player, id: Int, x: Int, z: Int, option: Int, invertRun: Boolean) {
@@ -141,7 +143,7 @@ class LocInteractions(
             // Guessed: an item that left its slot on the way (dropped, or moved) is used on nothing, with no message.
             if (!holds(player, interaction.slot, interaction.obj)) return true
             val op = Op.objOnLoc(loc.id, interaction.obj, interaction.slot, loc)
-            if (!inInstance(loc.x, loc.z) && handlers.find(op) != null) {
+            if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op) != null) {
                 scripts.trigger(player, op)
             } else {
                 logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }
@@ -150,7 +152,7 @@ class LocInteractions(
             return true
         }
         val op = Op(OpTarget.LOC, loc.id, interaction.option, loc = loc, repeat = interaction.repeat)
-        if (!inInstance(loc.x, loc.z) && handlers.find(op) != null) {
+        if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op) != null) {
             scripts.trigger(player, op)
         } else if (doors.toggle(loc, interaction.option) == null && gates?.toggle(loc, interaction.option) == null) {
             logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }

@@ -55,7 +55,13 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                 if (args.size != 1) fail(usage)
                 val run = world.archiveRaids.at(player.x, player.z) ?: world.parties.of(player)?.let(world.archiveRaids::of)
                     ?: fail("You're not in an Archive run.")
-                reply(world.archiveRaids.describe(run))
+                val raids = world.archiveRaids
+                val where = when {
+                    !run.instance.contains(player.x, player.z) -> "outside it"
+                    else -> raids.roomAt(run, player.x, player.z)?.let { if (it == ArchiveRoom.GUARDIAN) "in the nexus's hall" else "in ${it.boss}'s room" }
+                        ?: "in the nexus's entrance"
+                }
+                reply("${raids.describe(run)}. You're $where.")
             }
             "tp" -> {
                 // Testing only: to a room of the run you're in, or the nexus, as its door or passage would take you.

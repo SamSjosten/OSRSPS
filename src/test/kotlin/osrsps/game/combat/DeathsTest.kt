@@ -450,7 +450,7 @@ class DeathsTest {
         assertTrue(teleported.isEmpty(), "not to the spawn")
         val npc = grave()
         assertEquals(Triple(3200, 3201, 0), Triple(npc.x, npc.z, npc.level))
-        assertEquals(listOf(0 to InvObj(bones.id, 1)), placed.graveOf(alice)!!.items.contents())
+        assertEquals(listOf(0 to InvObj(coins.id, 9), 1 to InvObj(bones.id, 1)), placed.graveOf(alice)!!.items.contents())
     }
 
     @Test

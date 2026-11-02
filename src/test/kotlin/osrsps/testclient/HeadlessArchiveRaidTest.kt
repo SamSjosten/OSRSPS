@@ -178,9 +178,9 @@ class HeadlessArchiveRaidTest {
                 val run = client.enter(server, "bob")
                 val raids = server.world.archiveRaids
                 // The first row before the Guardian is done: the door walked to, and nothing.
+                assertEquals(ArchiveRaids.NEXUS_START, client.nexusLevel(server, run))
                 val front = raids.tile(run, ArchiveRoom.EZEKIEL.doorFront.x, ArchiveRoom.EZEKIEL.doorFront.z)
                 client.tele(front.x, front.z)
-                assertEquals(ArchiveRaids.NEXUS_START, client.nexusLevel(server, run))
                 // In the hall, so the Guardian's fight begins (and ends) first; then the row opens.
                 client.awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
                 client.through(server, run, ArchiveRoom.EZEKIEL)
@@ -223,8 +223,9 @@ class HeadlessArchiveRaidTest {
                         // Erin is too late: the Archive Door leaves her in the lobby.
                         erin.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
                         erin.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
-                        erin.awaitTicks(4)
-                        assertEquals(Coord(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z, 0), erin.position)
+                        erin.await("Erin at the door") { erin.position?.takeIf { it.z == 5561 } }
+                        erin.awaitTicks(3)
+                        assertTrue(!server.world.instances.inDynamicArea(erin.position!!.x, erin.position!!.z), "Erin in the lobby")
                         // Five axes each: three are kept on a death that loses them.
                         for (client in listOf(carol, dave)) client.commandReply("item bronze axe 5") { it.contains("Bronze axe") }
                         // Carol dies with Dave standing: down, in the entrance, everything kept.

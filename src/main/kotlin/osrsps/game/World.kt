@@ -448,6 +448,7 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
+        forInstances = { it in ArchiveRaids.INSTANCE_LOCS },
     )
 
     val npcInteractions: NpcInteractions = NpcInteractions(
