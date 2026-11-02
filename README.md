@@ -1210,6 +1210,24 @@ Left out: the dairy churn, Marley and the recruiters. Check: `test-runner/exampl
 the stairs, the flour, the north-east door, the range and the Pie Shop; `CooksGuildTest` every line of the Head chef
 and the door check, and `HeadlessCooksGuildTest` the doors, the stairs (and their type elsewhere) and the Pie Shop.
 
+Step 10 is the Edgeville Dungeon's north and middle, south of the gate into the Wilderness's part (z 9917). Content is
+in `game/content/EdgevilleDungeon.kt`, spawns in `npc-spawns/edgeville-dungeon.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The trapdoor south of the bank (`trapdoor` 1579, 3097, 3468) opens into `trapdoor_open` 1581 and closes; Climb-down lands north of the ladder below (3097, 9868), whose type climbs back up as the Lumbridge cellar's; the trapdoor type elsewhere climbs nowhere | 241 map (the ladder stands against the passage's south wall); the landing tile guessed |
+| The metal gates (`metalgateclosedl`/`_r` 1568/1569 into `metalgateopenl`/`_r` 1571/1572) at 3103, 9909 and 3145, 9870 open and close both leaves | 241 cache names; the swing is the double doors' |
+| The odd looking wall (`oddwall_l`/`_r` 1736/1734, 3094, 9895 and 9896): Push opens both halves for two ticks and puts the player on the other side | 241 cache (the open types have no options); timing and the pass guessed |
+| The north gate (`membergatel`/`_r` 1727/1728, 3131 and 3132, 9917) refuses in our own words (key `edgeville_dungeon.gate_closed`) until the Wilderness is built | ours |
+| Zombies (18: `zombie2`, `_b`, `_c`; 24), skeletons (21: `skeleton_unagressive*`; 22; 25), hobgoblins (28 and 42), rats, giant rats and giant spiders fight and drop as their Wiki infoboxes and drop tables; the level 21 skeletons' and the level 42 hobgoblin's tables are partly inferred (see the files' sources) | OSRS Wiki, the DPS calculator, osrsreboxed; mejrs's live NPC list for the tiles |
+| The mine's copper, tin, iron, coal, silver, mithril and adamantite rocks mine by type; Vannaka stands without talk | 241 map; `Mining.ROCKS` |
+
+Left out: the Wilderness half (chaos druids, the thug and everything past the north gate), Slayer (Vannaka's talk),
+the Agility pipes and monkey bars, Obor and the hill giants (step 11). Check:
+`test-runner/examples/edgeville-dungeon.json` climbs down, kills a zombie, mines iron, opens a gate, is refused at the
+north gate, pushes through the wall and climbs back; `HeadlessEdgevilleDungeonTest` does the same through the headless
+client, `NpcCombatTest` and `NpcDropsTest` the new NPCs' numbers and tables.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).

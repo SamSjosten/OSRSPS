@@ -519,7 +519,7 @@
     ]},
       "source": "OSRS Wiki, Zombie, Drops (level 24), read 2026-11-01: the members world's coins (10 coins at 10/128). The champion scroll and Rag and Bone Man II's zombie bones are left out, as for level 13"
     },
-    {"npcs": ["skeleton_unarmed", "skeleton_unarmed3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+    {"npcs": ["skeleton_unarmed", "skeleton_unarmed2", "skeleton_unarmed3", "skeleton_unarmed4"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
       {"item": 882, "name": "Bronze arrow", "count": 2, "weight": 7}, {"item": 882, "name": "Bronze arrow", "count": 5, "weight": 4}, {"item": 884, "name": "Iron arrow", "weight": 4},
       {"item": 556, "name": "Air rune", "count": 15, "weight": 2}, {"item": 557, "name": "Earth rune", "count": 3, "weight": 2}, {"item": 554, "name": "Fire rune", "count": 2, "weight": 2},
       {"item": 562, "name": "Chaos rune", "count": 3, "weight": 2}, {"item": 561, "name": "Nature rune", "count": 3, "weight": 1}, {"item": 886, "name": "Steel arrow", "weight": 1},
@@ -534,7 +534,7 @@
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/100"}],
       "source": "OSRS Wiki, Skeleton, Drops (Unarmed), read 2026-11-01. Its rows add up to 149/128; the 10 coins at 21/128 are taken as the free-to-play line the herbs replace on a members world (inferred: the page gives no members rate for it, and without it the rest add up to 128). The Wilderness-only looting bag and the champion scroll are left out"
     },
-    {"npcs": ["skeleton_armed", "skeleton_armed3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+    {"npcs": ["skeleton_armed", "skeleton_armed2", "skeleton_armed3", "skeleton_armed4", "skeleton_armed5"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
       {"item": 1137, "name": "Iron med helm", "weight": 6}, {"item": 1279, "name": "Iron sword", "weight": 4}, {"item": 1349, "name": "Iron axe", "weight": 2}, {"item": 1323, "name": "Iron scimitar", "weight": 1},
       {"item": 556, "name": "Air rune", "min": 12, "max": 15, "weight": 3}, {"item": 555, "name": "Water rune", "count": 9, "weight": 3}, {"item": 562, "name": "Chaos rune", "count": 5, "weight": 3},
       {"item": 884, "name": "Iron arrow", "count": 12, "weight": 2}, {"item": 563, "name": "Law rune", "count": 2, "weight": 2}, {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 1},
@@ -545,7 +545,40 @@
       {"table": "gems", "weight": 2}
     ]},
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/100"}],
-      "source": "OSRS Wiki, Skeleton, Drops (Armed), read 2026-11-01: the members world's coins (10 coins at 24/128). The Wilderness-only looting bag and the champion scroll are left out"
+      "source": "OSRS Wiki, Skeleton, Drops (Armed), read 2026-11-01: the members world's coins (10 coins at 24/128). The Edgeville Dungeon's 78, 80 and 81 drop the same (osrsreboxed's 78, read 2026-11-02; the Wiki names their table Plain, inferred to be this one). The Wilderness-only looting bag and the champion scroll are left out"
+    },
+    {"npcs": ["zombie2", "zombie2_b", "zombie2_c"], "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Zombie, Drops (level 18), read 2026-11-02: bones only. The champion scroll and Rag and Bone Man II's zombie bones are left out, as for level 13"
+    },
+    {"npcs": ["skeleton_unagressive", "skeleton_unagressive2", "skeleton_unagressive3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+      {"item": 882, "name": "Bronze arrow", "count": 2, "weight": 7}, {"item": 882, "name": "Bronze arrow", "count": 5, "weight": 4}, {"item": 884, "name": "Iron arrow", "weight": 4},
+      {"item": 556, "name": "Air rune", "count": 12, "weight": 2}, {"item": 557, "name": "Earth rune", "count": 3, "weight": 2}, {"item": 554, "name": "Fire rune", "count": 2, "weight": 2},
+      {"item": 562, "name": "Chaos rune", "count": 3, "weight": 2}, {"item": 561, "name": "Nature rune", "count": 3, "weight": 1}, {"item": 886, "name": "Steel arrow", "weight": 1},
+      {"table": "herbs", "weight": 21},
+      {"item": 995, "name": "Coins", "count": 2, "weight": 18}, {"item": 995, "name": "Coins", "count": 12, "weight": 15}, {"item": 995, "name": "Coins", "count": 4, "weight": 7},
+      {"item": 995, "name": "Coins", "count": 16, "weight": 4}, {"item": 995, "name": "Coins", "count": 25, "weight": 4}, {"item": 995, "name": "Coins", "count": 33, "weight": 4},
+      {"item": 995, "name": "Coins", "count": 48, "weight": 1},
+      {"nothing": true, "weight": 18}, {"item": 1203, "name": "Iron dagger", "weight": 6}, {"item": 1442, "name": "Fire talisman", "weight": 2},
+      {"item": 440, "name": "Iron ore", "weight": 1}, {"item": 1947, "name": "Grain", "weight": 1},
+      {"table": "gems", "weight": 1}
+    ]},
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/100"}],
+      "source": "osrsreboxed's 74 (the Wiki's Skeleton, Drops, scraped), read 2026-11-02: the unarmed table with 12 air runes. As for the unarmed level 22s, the 10 coins at 21/128 are taken as the free-to-play line the herbs replace (inferred), and the nothing weight fills the table to 128 (inferred). The looting bag and the champion scroll are left out"
+    },
+    {"npcs": ["hobgoblin_unarmed", "hobgoblin_armed"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+      {"item": 1237, "name": "Bronze spear", "weight": 3}, {"item": 1279, "name": "Iron sword", "weight": 3}, {"item": 1207, "name": "Steel dagger", "weight": 3},
+      {"item": 1239, "name": "Iron spear", "weight": 2}, {"item": 1241, "name": "Steel spear", "weight": 2}, {"item": 1295, "name": "Steel longsword", "weight": 1},
+      {"item": 563, "name": "Law rune", "count": 2, "weight": 3}, {"item": 555, "name": "Water rune", "count": 2, "weight": 2}, {"item": 554, "name": "Fire rune", "count": 7, "weight": 2},
+      {"item": 559, "name": "Body rune", "count": 6, "weight": 2}, {"item": 562, "name": "Chaos rune", "count": 3, "weight": 2}, {"item": 561, "name": "Nature rune", "count": 4, "weight": 2},
+      {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 1},
+      {"table": "herbs", "weight": 7}, {"table": "general_seeds", "weight": 18},
+      {"item": 995, "name": "Coins", "count": 15, "weight": 16}, {"item": 995, "name": "Coins", "count": 28, "weight": 12}, {"item": 995, "name": "Coins", "count": 5, "weight": 12},
+      {"item": 995, "name": "Coins", "count": 62, "weight": 4}, {"item": 995, "name": "Coins", "count": 42, "weight": 3}, {"item": 995, "name": "Coins", "count": 1, "weight": 1},
+      {"item": 225, "name": "Limpwurt root", "weight": 22}, {"item": 288, "name": "Goblin mail", "weight": 2}, {"nothing": true, "weight": 1},
+      {"table": "gems", "weight": 2}
+    ]},
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/70"}],
+      "source": "OSRS Wiki, Hobgoblin, Drops (Level 28), read 2026-11-02, with the members world's lines. The level 42 (3050) is taken to drop the same (inferred: osrsreboxed merges both levels' rows, with a few more weapons and an iron javelin). The looting bag, the ecumenical key (both Wilderness-only) and the champion scroll are left out"
     },
     {
       "npcs": ["house_ghost", "house_ghost2", "house_ghost3", "house_ghost4", "house_ghost5"],

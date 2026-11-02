@@ -197,6 +197,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   and letting in 32 in a chef's hat, the spiral stairs up and down, grain through the hopper into a pot of flour, the
   north-east room's door refusing below 99 and letting 99 through, its range, the Head chef's cape and hood bought for
   99,000 coins, and Romily Weaklax's Pie Shop.
+- `edgeville-dungeon.json`: Edgeville step 10 (with `::keys on` and `::god on`): down the trapdoor south of the bank,
+  a level 18 zombie killed for its bones, iron mined, a metal gate opened, the north gate refusing, the odd looking
+  wall pushed through, and back up the ladder.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
