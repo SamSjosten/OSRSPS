@@ -104,6 +104,20 @@ class ObjSpawnFilesTest {
     }
 
     @Test
+    fun `Barbarian Village's spawns are the Wiki's beers and meat in the longhall, the spinning hut's pickaxe and Peksa's pot`() {
+        val village = ObjTypes.of(
+            ObjType(1917, "Beer", internalName = "beer"), ObjType(2142, "Cooked meat", internalName = "cooked_meat"),
+            ObjType(1265, "Bronze pickaxe", internalName = "bronze_pickaxe"), ObjType(1931, "Pot", internalName = "pot_empty"),
+        )
+        val text = ObjSpawnFiles.resources().toMap().getValue("barbarian-village.tsv")
+        val spawns = ObjSpawnFiles.parse(text, village, "barbarian-village.tsv")
+        assertEquals(listOf(3, 2, 1, 1), listOf(1917, 2142, 1265, 1931).map { id -> spawns.count { it.id == id } })
+        // The longhall is x 3073 to 3086, z 3436 to 3448.
+        assertTrue(spawns.filter { it.id == 1917 || it.id == 2142 }.all { it.x in 3073..3086 && it.z in 3436..3448 })
+        assertTrue(spawns.all { it.level == 0 })
+    }
+
+    @Test
     fun `Draynor's spawns are the Wiki's cheese and tomato in Aggie's house and two logs in Spria's`() {
         val village = ObjTypes.of(
             ObjType(1511, "Logs", internalName = "logs"),

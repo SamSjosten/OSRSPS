@@ -2185,6 +2185,82 @@
           "restock": 100
         }
       ]
+    },
+    {
+      "key": "peksas_helmet_shop",
+      "title": "Peksa's Helmet Shop",
+      "inv": 10,
+      "size": 40,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 10,
+      "npcs": [
+        "peksa"
+      ],
+      "source": "OSRS Wiki, Peksa's Helmet Shop, read 2026-11-01: Sells at 100.0%, Buys at 60.0%, Change per 1.0%, and the stock table. inv helmetshop (10) and its size 40 are the 241 cache's",
+      "stock": [
+        {
+          "item": 1139,
+          "name": "Bronze med helm",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1137,
+          "name": "Iron med helm",
+          "count": 3,
+          "restock": 200
+        },
+        {
+          "item": 1141,
+          "name": "Steel med helm",
+          "count": 3,
+          "restock": 400
+        },
+        {
+          "item": 1143,
+          "name": "Mithril med helm",
+          "count": 1,
+          "restock": 3000
+        },
+        {
+          "item": 1145,
+          "name": "Adamant med helm",
+          "count": 1,
+          "restock": 12000
+        },
+        {
+          "item": 1155,
+          "name": "Bronze full helm",
+          "count": 4,
+          "restock": 100
+        },
+        {
+          "item": 1153,
+          "name": "Iron full helm",
+          "count": 3,
+          "restock": 200
+        },
+        {
+          "item": 1157,
+          "name": "Steel full helm",
+          "count": 2,
+          "restock": 400
+        },
+        {
+          "item": 1159,
+          "name": "Mithril full helm",
+          "count": 1,
+          "restock": 3000
+        },
+        {
+          "item": 1161,
+          "name": "Adamant full helm",
+          "count": 1,
+          "restock": 12000
+        }
+      ]
     }
   ]
 }
