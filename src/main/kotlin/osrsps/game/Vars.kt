@@ -17,28 +17,54 @@ class VarTypes(
     /** Varps are numbered 0 until this; the client sizes its varp array by the same count. */
     val varpCount: Int,
     private val varbits: Map<Int, VarbitType>,
+    /**
+     * Varbits are numbered 0 until this: the cache's highest varbit file id plus one, which counts one that didn't
+     * decode. Our own vars ([osrsps.game.content.CustomVars]) take the ids from here and [varpCount] on.
+     */
+    val varbitCount: Int = (varbits.keys.maxOrNull() ?: -1) + 1,
+    /**
+     * Varps of our own by name ([osrsps.game.content.CustomVars]), all at or past [cacheVarpCount]. A save keeps them
+     * by name ([PlayerSave]), as their ids follow the cache the server loaded and another cache gives them others.
+     */
+    val namedVarps: Map<String, Int> = emptyMap(),
+    /** The cache's own varp count: a saved varp numbered from here on is one of ours under an old id, not the cache's. */
+    val cacheVarpCount: Int = varpCount,
 ) {
-    val varbitCount: Int get() = varbits.size
+    init {
+        require(varbits.keys.all { it < varbitCount }) { "A varbit id is past the varbit count $varbitCount" }
+        require(cacheVarpCount in 0..varpCount) { "The cache's varp count $cacheVarpCount is past the varp count $varpCount" }
+        require(namedVarps.values.all { it in cacheVarpCount until varpCount }) { "A named varp isn't after the cache's ($cacheVarpCount)" }
+        require(namedVarps.values.toSet().size == namedVarps.size) { "Two names share a varp" }
+    }
+
+    private val varpNames: Map<Int, String> = namedVarps.entries.associate { (name, id) -> id to name }
 
     fun varbit(id: Int): VarbitType? = varbits[id]
 
+    /** The name [varp] goes by in a save, or null for one of the cache's. */
+    fun varpName(varp: Int): String? = varpNames[varp]
+
     /**
-     * These plus [extra] varbits, whose ids must be new, with the varp count grown to cover their base varps: for
-     * varbits of our own ([osrsps.game.content.CustomVars]), which the client gets through the cache overlay.
+     * These plus [extra] varbits, whose ids must be new, and [named] varps of our own, whose names must be new, with
+     * the varp and varbit counts grown to cover them: for the vars of our own ([osrsps.game.content.CustomVars]),
+     * which the client gets through the cache overlay. The cache's own varp count stays what it was.
      */
-    fun with(extra: Map<Int, VarbitType>): VarTypes {
-        if (extra.isEmpty()) return this
+    fun with(extra: Map<Int, VarbitType>, named: Map<String, Int> = emptyMap()): VarTypes {
+        if (extra.isEmpty() && named.isEmpty()) return this
         val merged = HashMap(varbits)
         for ((id, type) in extra) require(merged.put(id, type) == null) { "Varbit $id is already in the cache" }
-        return VarTypes(maxOf(varpCount, extra.values.maxOf { it.baseVar } + 1), merged)
+        for (name in named.keys) require(name !in namedVarps) { "Varp '$name' is already named" }
+        val varps = maxOf(varpCount, (extra.values.maxOfOrNull { it.baseVar } ?: -1) + 1, (named.values.maxOrNull() ?: -1) + 1)
+        return VarTypes(varps, merged, maxOf(varbitCount, (extra.keys.maxOrNull() ?: -1) + 1), namedVarps + named, cacheVarpCount)
     }
 
     companion object {
         /**
-         * For tests and caches with no var configs. 6,000 varps covers every id RuneLite's VarPlayerID names for
-         * revision 241 (the highest is 5,890).
+         * For tests and caches with no var configs. 6,000 varps and 21,000 varbits cover every id RuneLite's
+         * VarPlayerID and VarbitID name for revision 241 (the highest are 5,890 and 20,410), so vars of our own
+         * ([osrsps.game.content.CustomVars]) land past the real ones here too.
          */
-        val NONE = VarTypes(6_000, emptyMap())
+        val NONE = VarTypes(6_000, emptyMap(), 21_000)
     }
 }
 

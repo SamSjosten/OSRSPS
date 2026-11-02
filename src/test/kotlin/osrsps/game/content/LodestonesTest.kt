@@ -7,6 +7,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import osrsps.cache.LocTypeDecoder
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.loc.LocTypes
 import osrsps.game.script.Op
@@ -16,19 +18,23 @@ import osrsps.map.CollisionMap
 class LodestonesTest {
     private val map = CollisionMap().apply { for (site in Lodestones.SITES) markLoaded(site.x shr 6, site.z shr 6) }
 
-    private fun world() = World(IntArray(0), map, locTypes = LocTypes.NONE.with(CustomLocs.types))
+    /** Our vars after the test world's (none), and the loc types built for them. */
+    private val vars = CustomVars.after(VarTypes.NONE)
+    private val locs = CustomLocs(vars)
+
+    private fun world() = World(IntArray(0), map, customVars = vars, locTypes = LocTypes.NONE.with(locs.types))
 
     @Test
     fun `the custom loc types are what the client gets, decoded`() {
-        for (custom in CustomLocs.ALL) {
+        for (custom in locs.all) {
             val type = LocTypeDecoder.decode(custom.id, custom.encoded)
             assertEquals(type, custom.type)
             assertTrue(custom.id >= CustomLocs.FIRST_ID)
         }
-        assertEquals(CustomLocs.ALL.map { it.id }, CustomLocs.overlayFiles.map { it.file })
-        assertEquals(listOf(65000, 65001, 65002, 65003, 65004, 65005, 65006), CustomLocs.ALL.map { it.id })
-        assertTrue(CustomLocs.overlayFiles.all { it.index == 2 && it.group == 6 })
-        assertContentEquals(Lodestones.DORMANT_TYPE.encoded, CustomLocs.overlayFiles.first { it.file == Lodestones.DORMANT }.data)
+        assertEquals(locs.all.map { it.id }, locs.overlayFiles.map { it.file })
+        assertEquals(listOf(65000, 65001, 65002, 65003, 65004, 65005, 65006), locs.all.map { it.id })
+        assertTrue(locs.overlayFiles.all { it.index == 2 && it.group == 6 })
+        assertContentEquals(Lodestones.DORMANT_TYPE.encoded, locs.overlayFiles.first { it.file == Lodestones.DORMANT }.data)
     }
 
     @Test
@@ -51,19 +57,25 @@ class LodestonesTest {
     }
 
     @Test
-    fun `each site's stone is a multiloc that its varbit turns from the dormant look to the active one`() {
+    fun `each site's stone is a multiloc that its varbit, after the cache's, turns from the dormant look to the active one`() {
         for (site in Lodestones.SITES) {
-            val transform = site.type.definition.transform
+            val varbit = vars.lodestoneVarbit(site)
+            val type = locs.all.first { it.id == site.id }
+            assertContentEquals(site.type(varbit).encoded, type.encoded, "${site.slug}'s type is built for the world's vars")
+            val transform = type.definition.transform
             assertNotNull(transform, site.slug)
-            assertEquals(site.varbit, transform.varbit)
+            assertEquals(varbit, transform.varbit)
             assertEquals(listOf(Lodestones.DORMANT, Lodestones.ACTIVE), transform.children, "0 dormant, 1 active")
-            assertTrue(site.type.type.multiloc)
-            assertEquals("Lodestone", site.type.type.name)
-            assertEquals(3, site.type.type.width)
-            assertEquals(0, site.type.type.collision.interactType)
+            assertTrue(type.type.multiloc)
+            assertEquals("Lodestone", type.type.name)
+            assertEquals(3, type.type.width)
+            assertEquals(0, type.type.collision.interactType)
             assertEquals(site.id, site.loc.id)
             assertEquals(Destination(site.x + 1, site.z + 1, 0), site.arrival, "lands on the centre tile")
-            assertEquals(CustomVars.FIRST_VARBIT + site.index, site.varbit)
+            assertEquals(vars.firstVarbit + site.index, varbit)
+            assertEquals(VarbitType(vars.lodestonesVarp, site.index, site.index), vars.varbits[varbit], "bit ${site.index} of the lodestones' varp")
+            // Another cache's ids give another type, so a stone can't be built before the cache is read.
+            assertEquals(varbit + 100, site.type(varbit + 100).definition.transform?.varbit)
         }
         assertEquals(listOf("lumbridge", "draynor", "varrock", "al_kharid", "edgeville"), Lodestones.SITES.map { it.slug })
         assertEquals(listOf(65002, 65003, 65004, 65005, 65006), Lodestones.SITES.map { it.id })
@@ -92,9 +104,23 @@ class LodestonesTest {
     }
 
     @Test
-    fun `the world's var types hold our varbits, so a player's lodestone bits can be set`() {
+    fun `the world's var types hold our varbits, after its cache's, so a player's lodestone bits can be set`() {
         val world = World(IntArray(0), CollisionMap())
-        for (site in Lodestones.SITES) assertEquals(CustomVars.varbits[site.varbit], world.varTypes.varbit(site.varbit))
-        assertTrue(world.varTypes.varpCount > CustomVars.LODESTONES_VARP)
+        assertEquals(vars.toString(), world.customVars.toString(), "a world without a cache's vars gets the same ids as ours")
+        for (site in Lodestones.SITES) {
+            val varbit = world.customVars.lodestoneVarbit(site)
+            assertEquals(world.customVars.varbits[varbit], world.varTypes.varbit(varbit))
+            assertEquals(varbit, world.lodestones.varbit(site))
+        }
+        assertTrue(world.varTypes.varpCount > world.customVars.lodestonesVarp)
+        assertEquals("lodestones", world.varTypes.varpName(world.customVars.lodestonesVarp), "saved by name")
+
+        val cache = VarTypes(5996, mapOf(20410 to VarbitType(5995, 0, 3)), 20411)
+        val other = World(IntArray(0), CollisionMap(), cache)
+        assertEquals(5996, other.customVars.lodestonesVarp, "right after this cache's varps")
+        assertEquals(20411, other.lodestones.varbit(Lodestones.LUMBRIDGE))
+        assertEquals(5997, other.varTypes.varpCount)
+        assertEquals(VarbitType(5996, 4, 4), other.varTypes.varbit(20415))
+        assertEquals(mapOf("lodestones" to 5996), other.varTypes.namedVarps)
     }
 }

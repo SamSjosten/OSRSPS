@@ -400,6 +400,35 @@ class ProblemReportsTest {
     }
 
     @Test
+    fun `a report sent with the PROXY header of a connection one too many is never taken in`(@TempDir dir: Path) {
+        // Round 11 exploit review (R11C-3): the refusal came at the header, but the bytes read along with it still
+        // went on to the report handler, which saved the report although no answer could go out.
+        val proxy = ProxyProtocol(setOf("127.0.0.1"), ProxyProtocol.Mode.OPTIONAL)
+        serve(ProblemReports(dir) { now }, proxy = proxy) { http, port ->
+            val held = (1..ClientConfig.MAX_CONNECTIONS_PER_ADDRESS).map { Socket("127.0.0.1", port).apply { soTimeout = 5000 } }
+            try {
+                for (socket in held) sent(http) { socket.getOutputStream().apply { write(ProxyHeaders.v1("203.0.113.70", 40000)); flush() } }
+                Socket("127.0.0.1", port).use { one ->
+                    one.soTimeout = 5000
+                    runCatching {
+                        one.getOutputStream().apply {
+                            val body = report("FAILED")
+                            write(ProxyHeaders.v1("203.0.113.70", 40001) + header(port, body.size) + body)
+                            flush()
+                        }
+                    }
+                    assertClosed(one, "one too many was answered")
+                }
+            } finally {
+                held.forEach { runCatching { it.close() } }
+            }
+            // The server has one thread, so a report from someone else is handled after anything the refused one sent.
+            assertEquals("R-0001\n", request(port, "POST", "/report", report()).body)
+            assertEquals(listOf("R-0001.json"), dir.listDirectoryEntries("R-*.json").map { it.name })
+        }
+    }
+
+    @Test
     fun `headers that trickle in are cut off at their deadline`(@TempDir dir: Path) {
         serve(ProblemReports(dir) { now }) { http, port ->
             Socket("127.0.0.1", port).use { socket ->

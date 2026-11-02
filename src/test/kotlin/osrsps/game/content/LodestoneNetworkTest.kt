@@ -27,6 +27,7 @@ class LodestoneNetworkTest {
     private val menus = mutableListOf<Pair<String, List<String>>>()
     private var pick = 0
     private val keys = DialogueText.NONE
+    private val vars = CustomVars.after(VarTypes.NONE)
     private val home = HomeTeleport(
         currentTick = { tick },
         nowMinutes = { 29_000_000L },
@@ -41,6 +42,7 @@ class LodestoneNetworkTest {
         wildernessLevel = { wilderness },
     )
     private val network = LodestoneNetwork(
+        vars,
         home,
         message = { _, line, values -> said += keys.get(line, *values) },
         words = { _, line -> keys[line] },
@@ -49,7 +51,7 @@ class LodestoneNetworkTest {
             pick
         },
     ).also { it.register(handlers) }
-    private val player = Player(1, "Zezima", 3100, 3500, 0, VarTypes.NONE.with(CustomVars.varbits))
+    private val player = Player(1, "Zezima", 3100, 3500, 0, VarTypes.NONE.with(vars.varbits))
     private val anims = mutableMapOf<Long, Int>()
 
     /** A click on a stone's one option in this tick's input phase, then the rest of the tick's script phase. */
@@ -79,9 +81,9 @@ class LodestoneNetworkTest {
         assertTrue(Lodestones.SITES.none { network.unlocked(player, it) })
         network.login(player)
         assertEquals(listOf(Lodestones.LUMBRIDGE), network.unlockedSites(player))
-        assertEquals(1, player.vars[CustomVars.LODESTONES_VARP], "bit 0 of the lodestones' varp")
+        assertEquals(1, player.vars[vars.lodestonesVarp], "bit 0 of the lodestones' varp")
         network.login(player)
-        assertEquals(1, player.vars[CustomVars.LODESTONES_VARP], "a second login changes nothing")
+        assertEquals(1, player.vars[vars.lodestonesVarp], "a second login changes nothing")
     }
 
     @Test
@@ -93,8 +95,8 @@ class LodestoneNetworkTest {
         assertEquals(listOf("[lodestone.activated name=[lodestone.draynor]]"), said)
         assertTrue(menus.isEmpty(), "activating opens no menu")
         assertFalse(home.casting(player))
-        assertEquals(1 or 2, player.vars[CustomVars.LODESTONES_VARP])
-        assertEquals(1, player.vars.getVarbit(Lodestones.DRAYNOR.varbit))
+        assertEquals(1 or 2, player.vars[vars.lodestonesVarp])
+        assertEquals(1, player.vars.getVarbit(vars.lodestoneVarbit(Lodestones.DRAYNOR)))
     }
 
     @Test
@@ -127,7 +129,7 @@ class LodestoneNetworkTest {
         assertFalse(home.casting(player))
         run(30)
         assertTrue(landed.isEmpty())
-        player.vars[CustomVars.LODESTONES_VARP] = 0
+        player.vars[vars.lodestonesVarp] = 0
         command()
         assertEquals(1, menus.size, "a chat menu needs an option")
         assertTrue(said.isEmpty())
