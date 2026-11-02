@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.GameRandom
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.World
@@ -49,6 +50,8 @@ class HeadlessVarrockMuseumPeopleTest {
             crcs, CollisionMap().apply { markLoaded(3254 shr 6, 3450 shr 6); markLoaded(1758 shr 6, 4958 shr 6) },
             npcTypes = NpcTypes.of(minas, jacques, teacher, girl, boy, torrcs, marfet, orlando, *historians.toTypedArray()),
             npcSpawns = upstairs + teachers + basement,
+            // A fixed seed, so the random talks come round the same way on every run.
+            random = GameRandom(7),
             cycleMillis = millis,
         )
     }

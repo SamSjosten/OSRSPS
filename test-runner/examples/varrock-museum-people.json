@@ -343,6 +343,11 @@
    "comment": "the northern natural historian: his first talk the first time (a lecture follows); ended either way"
   },
   {
+   "step": "assertDialogue",
+   "contains": "[natural_historian.",
+   "comment": "waits for the talk to open before finishing it"
+  },
+  {
    "step": "finishDialogue"
   },
   {
