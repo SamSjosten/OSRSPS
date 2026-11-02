@@ -406,6 +406,7 @@ class World(
 
     private val settingsSide = SettingsSide()
     private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
+    private val worldMap = WorldMapScreen(interfaces)
 
     /** Grand Exchange offers; see [GrandExchange]. */
     val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
@@ -2123,6 +2124,15 @@ class World(
         }
         if (interfaceId == EquipmentTab.AUTOCAST && equipmentTab.clickAutocastMenu(player, componentId, sub)) return@act
         if (interfaceId == Prayers.PRAYERBOOK && prayers.click(player, componentId, op)) return@act
+        if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_WORLDMAP) {
+            worldMap.toggle(player)
+            return@act
+        }
+        // Op 1 is the X; Esc sends the same button (keypress_permit triggers its op). Any op closes.
+        if (interfaceId == WorldMapScreen.INTERFACE && componentId == WorldMapScreen.CLOSE) {
+            worldMap.close(player)
+            return@act
+        }
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act
