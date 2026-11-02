@@ -298,8 +298,11 @@ class World(
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
-    /** The cache's varps and varbits plus our own ([customVars]), which the client gets through the cache overlay. */
-    val varTypes: VarTypes = varTypes.with(customVars.varbits)
+    /**
+     * The cache's varps and varbits plus our own ([customVars]), which the client gets through the cache overlay and
+     * a save keeps by name.
+     */
+    val varTypes: VarTypes = varTypes.with(customVars.varbits, customVars.varpNames)
 
     lateinit var network: NetworkService<Player>
 

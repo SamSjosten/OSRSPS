@@ -348,6 +348,8 @@ class ClientConfig(
     private inner class ConnectionLimit : ChannelInboundHandlerAdapter() {
         private var counted = false
         private var address: String? = null
+        /** Whether [countAddress] refused this connection: nothing it sent after that goes any further. */
+        private var refused = false
 
         override fun channelActive(ctx: ChannelHandlerContext) {
             if (openConnections.incrementAndGet() > MAX_CONNECTIONS) {
@@ -362,7 +364,7 @@ class ClientConfig(
         }
 
         override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
-            if (address == null && !countAddress(ctx)) {
+            if (refused || (address == null && !countAddress(ctx))) {
                 ReferenceCountUtil.release(msg)
                 return
             }
@@ -376,6 +378,7 @@ class ClientConfig(
         }
 
         override fun userEventTriggered(ctx: ChannelHandlerContext, event: Any) {
+            if (refused) return
             if (event === ProxyProtocol.HeaderRead) {
                 connections[ctx.channel()]?.lastRead = clock()
                 reads.incrementAndGet()
@@ -389,8 +392,10 @@ class ClientConfig(
             val from = addressOf(ctx.channel())
             address = from
             // [address] is kept even when refused, so [channelInactive] gives back the count this took. Anything that
-            // came in the same read still reaches the codec, but the channel is already closed, so no answer goes out.
+            // came in the same read (a whole report after a relay's PROXY header) is dropped by [refused], not handled
+            // on a channel that can no longer answer (round 11 exploit review, R11C-3).
             if (openBy.merge(from, 1, Int::plus)!! > MAX_CONNECTIONS_PER_ADDRESS) {
+                refused = true
                 ctx.close()
                 return false
             }

@@ -74,7 +74,9 @@ the first: the server places a stone at each site at start. A loc that looks dif
 definition's `transform` names a varbit and the child locs the client draws for each value, and the server answers
 the one loc's options by the player's varbit. Varps and varbits of our own are code too: `game/content/CustomVars.kt`
 lists them, the overlay adds their types to config archives 16 and 14 so the client reads them like the cache's, and
-the world's var types include them, so content sets them like any other and they save with the player. Their ids are
+the world's var types include them, so content sets them like any other. A save keeps them by name (`"customVars":
+{"lodestones": 3}`), not by id, and drops a numeric varp past the cache's own, so a cache swap gives them new ids
+without a player's saved value landing on another var. Their ids are
 given at startup, right after the loaded cache's (its varp count and varbit count), because OpenRS2's builds of one
 revision end at different ids (241's varps end at 5,890 in one build and 5,995 in another) and the overlay refuses an
 id the cache has; so nothing names them by number: content and tests go through `CustomVars`, and `::varp lodestones`
@@ -1094,6 +1096,24 @@ Step 6 is the real multi-way areas and the client's multi-way icon, `game/combat
 `test-runner/examples/edgeville-multi.json` reads the icon's varbit in Barbarian Village, at Edgeville bank and back
 again after a walk in; `MultiCombatTest` checks the boxes' edges and `HeadlessMultiIndicatorTest` the varbit through
 the headless client.
+
+Step 7 is Barbarian Village's fighters: `npc-combat.json`, `npc-drops.json`, `npc-spawns/barbarian-village.json` and
+the barbarians' and Gunthor's talk in `game/content/BarbarianVillage.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| 17 barbarians (`fai_barbarian_1` to `_14` and `_female_1` to `_4`, 3055 to 3072 less Hunding): levels 9, 10, 15 and 17, crush at speed 4 (Aitan, level 15, shoots), max hits 2 and 3, respawn 50 | OSRS Wiki, Barbarian, and the DPS calculator's entries; tiles from mejrs's live NPC list |
+| Their attack animations by what they stand with: a greataxe's crush (`barrow_dharok_ready`), a two-handed weapon's (`human_dh_weapon_ready`), a staff's pound (`human_staffready`), Aitan's bow with bronze arrows | inferred from their stand animations; the blocks, Aitan's arrows and his 7-tile range guessed |
+| Talk-to: one of six lines, picked at random, then he attacks; walking away mid-line stops the attack | OSRS Wiki, Transcript:Barbarian; even chances guessed |
+| Gunthor the brave (299) in the longhall: level 29, slash at speed 6, max hit 4, aggressive, respawn 50; one of six talks at random, then he attacks | OSRS Wiki, Gunthor the Brave and Transcript:Gunthor the brave; his sword's animations guessed |
+| Drops: levels 9 and 10 the Wiki's Level 8, 9 and 10 table (beginner clue 1/75); Gunthor his own (beginner clue 1/30); levels 15 and 17 Gunthor's table with a 1/55 beginner clue. The gem table's talisman is the nature talisman above ground (`gems_surface`) | OSRS Wiki, Barbarian and Gunthor the Brave. The Wiki's Level 15 and 17 section couldn't be read in full: their table is inferred from Gunthor's and osrsreboxed-db's 2021 lists, which match it row for row bar the tin ore |
+| Four level 5 goblins east of the village (`fai_barbarian_goblin_armed_1` to `_4`, five spawns) fight as the level 5 goblin and drop goblin table 1; two unicorns north of the village fight and drop as Lumbridge's | the Wiki's Goblin and Unicorn pages; the goblins' stats and table inferred (the DPS calculator has no entry for them; osrsreboxed-db's 2021 list matches table 1) |
+
+Left out: the medium clue's key (that clue step isn't built), and the mega-rare drop table's rune spear, shield left half
+and dragon spear (it isn't built; its roll gives nothing). The words are in the dialogue file (keys `barbarian.*`,
+`gunthor.*`). Check: `test-runner/examples/barbarian-fighters.json` talks to a barbarian and is attacked, attacks
+Gunthor and is fought back, and sees the goblins and unicorns; `BarbarianVillageTest` does every line and talk,
+`NpcCombatTest` the max hits and `HeadlessBarbarianVillageTest` a barbarian's attack once his line is over.
 
 ## Varrock
 
