@@ -26,6 +26,8 @@ class ShopTest {
         13203 to 1, 12600 to 1, 981 to 120, 22364 to 40,
         // Ned's rope.
         954 to 18,
+        // Ava's Odds and Ends (the rest are with the Shantay Pass Shop's and Lowe's).
+        40 to 2, 41 to 6,
         // Al Kharid's shops.
         1321 to 32, 1323 to 112, 1325 to 400, 1329 to 1040,
         1592 to 5, 1597 to 5, 1595 to 5, 1733 to 1, 1734 to 1, 1599 to 5, 2976 to 10, 5523 to 100, 9434 to 25, 11065 to 5,
@@ -81,6 +83,7 @@ class ShopTest {
             NpcType(500, "Olivia", internalName = "seed_merchant"),
             NpcType(8693, "Diango", internalName = "aprilfoolshorsesalesman"),
             NpcType(4280, "Ned", internalName = "ned"),
+            NpcType(4407, "Ava", internalName = "anma_assistant"),
             NpcType(2817, "Shop keeper", internalName = "generalshopkeeper3"),
             NpcType(2818, "Shop assistant", internalName = "generalassistant3"),
             NpcType(2875, "Zeke", internalName = "zeke"),
@@ -133,6 +136,8 @@ class ShopTest {
         ),
         // After The Fremennik Isles.
         "neds_rope_shop" to listOf(16 to 3),
+        // Read 2026-11-02.
+        "avas_odds_and_ends" to listOf(2 to 0, 260 to 80, 3 to 1, 15 to 4, 2 to 0, 7 to 2),
     )
 
     /** The Wiki's "Price sold at" for each item of Al Kharid's shops at its starting stock, read 2026-10-30. */
@@ -172,7 +177,7 @@ class ShopTest {
         val shops = realShops()
         assertEquals(emptyList(), shops.warnings)
         assertEquals(
-            listOf("lumbridge_general_store", "bobs_brilliant_axes", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store", "neds_rope_shop") +
+            listOf("lumbridge_general_store", "bobs_brilliant_axes", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store", "neds_rope_shop", "avas_odds_and_ends") +
                 wikiSoldAt.keys,
             shops.all.map { it.key },
         )
@@ -190,6 +195,7 @@ class ShopTest {
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
         assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
         assertEquals(shops["neds_rope_shop"], shops.ofNpc(4280))
+        assertEquals(shops["avas_odds_and_ends"], shops.ofNpc(4407))
         for (type in shops.all) {
             val shop = Shop(type)
             val sold = wikiSoldAt[type.key]
@@ -210,7 +216,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(29, shops.warnings.size)
+        assertEquals(30, shops.warnings.size)
     }
 
     @Test
