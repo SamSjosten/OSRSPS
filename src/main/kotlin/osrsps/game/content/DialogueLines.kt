@@ -169,6 +169,7 @@ object DialogueLines {
         LeelaLines,
         LevelUpLines,
         LitaraLines,
+        LodestoneLines,
         LootLines,
         LouieLegsLines,
         LoweLines,

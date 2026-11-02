@@ -28,7 +28,7 @@ object CustomLocs {
     const val CONFIG_INDEX = 2
     const val LOC_TYPE_GROUP = 6
 
-    val ALL: List<Custom> = listOf(Lodestones.DORMANT_TYPE, Lodestones.ACTIVE_TYPE)
+    val ALL: List<Custom> = listOf(Lodestones.DORMANT_TYPE, Lodestones.ACTIVE_TYPE) + Lodestones.SITES.map { it.type }
 
     init {
         require(ALL.map { it.id }.toSet().size == ALL.size) { "A custom loc id is used twice" }
