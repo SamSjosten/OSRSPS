@@ -242,7 +242,9 @@ class Cooking(private val world: World) {
 
         /** 100_dave_stove: Evil Dave's stove in Edgeville, a range by its Cook option (the Wiki's Edgeville page lists it with the ranges). */
         const val EVIL_DAVE_STOVE = 12269
-        val RANGES = setOf(LUMBRIDGE_RANGE, RANGE, EVIL_DAVE_STOVE)
+        /** fai_varrock_range: the Cooks' Guild's ranges. */
+        const val COOKS_GUILD_RANGE = 7183
+        val RANGES = setOf(LUMBRIDGE_RANGE, RANGE, EVIL_DAVE_STOVE, COOKS_GUILD_RANGE)
 
         /** The Make-X box shows up to 18 kinds. */
         private const val MAX_KINDS = 18

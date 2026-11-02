@@ -461,6 +461,13 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `every spawn file in the resources is loaded`() {
+        val dir = java.nio.file.Path.of(NpcSpawnFile::class.java.getResource("/npc-spawns")!!.toURI())
+        val onDisk = java.nio.file.Files.list(dir).use { files -> files.map { it.fileName.toString() }.filter { it.endsWith(".json") }.toList() }
+        assertEquals(onDisk.toSet(), NpcSpawnFile.FILES.toSet())
+    }
+
+    @Test
     fun `every file names only NPCs it can find in a full cache`() {
         // With no types at all every spawn is skipped by name, not dropped silently.
         for (file in NpcSpawnFile.FILES) {
