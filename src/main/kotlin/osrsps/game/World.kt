@@ -51,6 +51,7 @@ import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
+import osrsps.game.command.registerLodestoneCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -90,7 +91,9 @@ import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
+import osrsps.game.content.CustomVars
 import osrsps.game.content.HomeTeleport
+import osrsps.game.content.LodestoneNetwork
 import osrsps.game.content.message
 import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
@@ -213,7 +216,7 @@ private val logger = KotlinLogging.logger {}
 class World(
     private val js5Crcs: IntArray,
     private val collision: CollisionMap,
-    val varTypes: VarTypes = VarTypes.NONE,
+    varTypes: VarTypes = VarTypes.NONE,
     /** Interface ids in the cache, or null when unknown (tests). */
     private val interfaceIds: Set<Int>? = null,
     /** Every random roll in the game comes from here; see [GameRandom]. */
@@ -292,6 +295,9 @@ class World(
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
+    /** The cache's varps and varbits plus our own ([CustomVars]), which the client gets through the cache overlay. */
+    val varTypes: VarTypes = varTypes.with(CustomVars.varbits)
+
     lateinit var network: NetworkService<Player>
 
     private val movement = Movement(collision)
@@ -447,7 +453,7 @@ class World(
     )
 
     /** Where combat is multi-way; see [MultiCombat]. */
-    val multiCombat = MultiCombat()
+    val multiCombat = MultiCombat.load()
 
     /** Players fighting NPCs; see [MeleeCombat]. */
     val meleeCombat: MeleeCombat = MeleeCombat(
@@ -643,12 +649,25 @@ class World(
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
+    /** The lodestone network; see [LodestoneNetwork]. Its menu is a chat menu of the activated stones' names. */
+    val lodestones = LodestoneNetwork(
+        homeTeleport,
+        message = { player, line, values -> message(player, line, *values) },
+        words = { player, line -> textFor(player)[line] },
+        menu = { title, options ->
+            var picked = 0
+            dialogues.start(this) { picked = choice(*options.toTypedArray(), title = text(title)) }
+            picked
+        },
+    )
+
     val commands = CommandRegistry(admins::isAdmin).apply {
         registerDevCommands(this@World)
         registerTickCommands(this@World)
         registerVarCommands()
         registerSkillCommands { phase != null }
         registerXpRateCommands(this@World)
+        registerLodestoneCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
@@ -1111,6 +1130,17 @@ class World(
             rebuildIfNeeded(player)
         }
         player.infos.updateRootCoord(player.level, player.x, player.z)
+        sendMultiIndicator(player)
+    }
+
+    /**
+     * Shows or hides the client's multi-way icon for where [player] now stands. Every tick, so a step, a teleport or an
+     * admin's `::multi` all show at once; the varbit is only sent when it changes. Inferred: live sets it as the player
+     * enters or leaves the area.
+     */
+    private fun sendMultiIndicator(player: Player) {
+        val multi = if (multiCombat.at(player.level, player.x, player.z)) 1 else 0
+        player.vars.setVarbitIfKnown(MultiCombat.VARBIT_INDICATOR, multi)
     }
 
     /**
@@ -1716,6 +1746,7 @@ class World(
         friendLists.login(player)
         player.listsAfterMapBuild = true
         quests.completeAll(player.vars)
+        lodestones.login(player)
         prayers.login(player)
         if (player.newAccount) allSettings.newAccount(player)
         player.message(textFor(player)[GameLines.WELCOME])

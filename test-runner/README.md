@@ -189,6 +189,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `barbarian-village.json`: Edgeville step 5 (with `::keys on`): a bronze med helm bought from Peksa, wool spun,
   a pot thrown on Tassie's wheel and fired in her oven, Tassie's talk, the lookout tower's ladders up to Hunding and
   down, and the talk of Atlas, Litara, Checkal and Sigurd.
+- `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
+  Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
+  `assertVarbit`.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
@@ -362,6 +365,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   the last run's clan.
 - `social-ignore.json` (needs 0.14.0): `test` ignores `test2` through the ignore tab's prompt and deletes the name again; the ignore tab's friends button goes back to the Friends tab.
 - `social-ignore-2.json` (needs 0.14.0): the same with the names swapped, for a client logged in as `test2` (the nightly run's account).
+- `quest-list-footer.json` (needs 0.6.0): the quest tab opened on its quest list, whose footer reads 183/183 quests
+  completed and 342/342 quest points on the 241 cache, as every account counts as having finished every quest.
 - `settings-inputs.json` (needs 0.11.0): the loot notification and Alchemy warning values typed into the server's
   number prompt with `enterAmount`, public chat's colour picked in the colour picker and saved, then a cancelled pick,
   and the public chat filter set to friends; then close, relog and check every one, the filter by its label.

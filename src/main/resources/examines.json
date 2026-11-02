@@ -650,6 +650,6 @@
     {"loc": 60763, "name": "Gate"},
     {"loc": 60769, "name": "Warning Sign"},
     {"loc": 60785, "name": "Shelves"},
-    {"loc": 65000, "name": "Lodestone", "also": [65001], "wiki": "custom content after RS3's lodestones; the RS3 Wiki's Lumbridge lodestone page has RS3's text"}
+    {"loc": 65000, "name": "Lodestone", "also": [65001, 65002, 65003, 65004, 65005, 65006], "wiki": "custom content after RS3's lodestones; the RS3 Wiki's Lumbridge lodestone page has RS3's text"}
   ]
 }

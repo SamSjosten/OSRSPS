@@ -22,10 +22,12 @@ import osrsps.Revision
 import osrsps.cache.model.ModelCodec
 import osrsps.cache.model.OsrsModel
 import osrsps.cache.LocTypeDecoder
+import osrsps.cache.VarTypeLoader
 import osrsps.cache.overlay.Js5Container
 import osrsps.cache.overlay.Js5Group
 import osrsps.cache.overlay.ReferenceTable
 import osrsps.game.content.CustomLocs
+import osrsps.game.content.CustomVars
 import osrsps.game.content.Lodestones
 import osrsps.testclient.Js5Crcs
 
@@ -41,8 +43,10 @@ class GameServerTest {
         library.put(10, "huffman", ByteArray(256) { 8 })
         library.put(0, 1, byteArrayOf(1, 2, 3))
         library.put(7, 3, byteArrayOf(4, 5, 6))
-        // One loc type, so the server has a loc types group to add its own to.
+        // One loc type, one varbit and one varp, so the server has the config groups to add its own to.
         library.put(2, 6, 0, byteArrayOf(0))
+        library.put(2, 14, 0, byteArrayOf(1, 0, 0, 0, 0, 0))
+        library.put(2, 16, 0, byteArrayOf(0))
         library.update()
         library.close()
     }
@@ -157,6 +161,12 @@ class GameServerTest {
             val lodestone = LocTypeDecoder.decode(Lodestones.DORMANT, files.getValue(Lodestones.DORMANT))
             assertEquals("Lodestone", lodestone.name)
             assertEquals("Activate", lodestone.ops[0])
+            // And our var types in the varbit and varp groups, so the client sizes its varps and reads our varbits.
+            assertEquals(listOf(0) + CustomVars.varps, configs.group(16)!!.files.map { it.id })
+            val varbits = configs.group(14)!!
+            assertEquals(listOf(0) + CustomVars.varbits.keys.sorted(), varbits.files.map { it.id })
+            val varbitFiles = Js5Group.unpack(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, 2, 14)), varbits.files.map { it.id })
+            assertEquals(CustomVars.varbits[Lodestones.LUMBRIDGE.varbit], VarTypeLoader.decodeVarbit(varbitFiles.getValue(Lodestones.LUMBRIDGE.varbit)))
         } finally {
             server.stop()
         }

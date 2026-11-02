@@ -70,7 +70,12 @@ Loc types of our own that use such models are code: `game/content/CustomLocs.kt`
 `LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
 the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
 server decodes back for itself, so the client and the server see the same loc. The lodestones (`Lodestones.kt`) are
-the first: the server places the Lumbridge stone at start.
+the first: the server places a stone at each site at start. A loc that looks different per player is a multiloc: its
+definition's `transform` names a varbit and the child locs the client draws for each value, and the server answers
+the one loc's options by the player's varbit. Varps and varbits of our own are code too: `game/content/CustomVars.kt`
+lists them (ids right after the cache's), the overlay adds their types to config archives 16 and 14 so the client reads
+them like the cache's, and the world's var types include them, so content sets them like any other and they save with
+the player.
 
 ## Run the server
 
@@ -1068,6 +1073,21 @@ file (keys `peksa.*`, `tassie_slipcast.*`, `hunding.*`, `atlas.*`, `checkal.*`, 
 `test-runner/examples/barbarian-village.json` buys a helmet, spins wool, throws and fires a pot, climbs the tower to
 Hunding and talks to each of the others; `BarbarianVillageTest` does each talk's branches and
 `HeadlessBarbarianVillageTest` the shop, the longhall's doors and the tower through the headless client.
+
+Step 6 is the real multi-way areas and the client's multi-way icon, `game/combat/MultiCombat.kt` and
+`multi-combat.tsv` (one box a line, with where it came from; other pieces add theirs as their content comes).
+
+| Behaviour | Source |
+|-----------|--------|
+| The whole of Barbarian Village is multi-way: map square 48_53 (3072, 3392 to 3135, 3455), ground level | OSRS Wiki, Barbarian Village ("The entire village is a multicombat area"); the box from 2004Scape's `data/src/maps/multiway.csv`; that live's box is the same is inferred |
+| The Stronghold of Security's first floor is multi-way: map square 29_81 (1856, 5184 to 1919, 5247), which holds no other floor | OSRS Wiki, Multicombat area ("The first level of the Stronghold of Security"); the whole square is inferred. The Stronghold itself comes in step 12 |
+| Edgeville, the Monastery and the land between stay single-way | OSRS Wiki, Multicombat area (none of them listed) |
+| The client's crossed swords show while the player stands in a multi-way area (`multiway_indicator` 4605, bit 5 of varp 1021), set every tick and sent when it changes, so a step, a teleport or `::multi` all show at once | 241 cache varbit; when live sends it is inferred |
+
+`::multi` still marks a zone multi-way until the server restarts, on top of the file's areas. Check:
+`test-runner/examples/edgeville-multi.json` reads the icon's varbit in Barbarian Village, at Edgeville bank and back
+again after a walk in; `MultiCombatTest` checks the boxes' edges and `HeadlessMultiIndicatorTest` the varbit through
+the headless client.
 
 ## Varrock
 

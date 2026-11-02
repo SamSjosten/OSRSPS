@@ -6,8 +6,10 @@ import java.nio.charset.Charset
 /**
  * Writes a loc type of our own as config archive 6 holds one, with the opcodes [LocTypeDecoder] reads back: the
  * name (2), the models (7, the 241 cache's list of 4-byte model ids without shape types, which a tree uses), the
- * footprint (14, 15), walking and projectiles (17, 18) and the options (30 to 34). Everything else is left at the
- * client's defaults. The decoder reads the result, so the server's view of the loc is the client's.
+ * footprint (14, 15), walking and projectiles (17, 18), the options (30 to 34) and a varbit transform (77: the
+ * client draws one of the [Transform]'s children, picked by the player's varbit, so each player sees their own).
+ * Everything else is left at the client's defaults. The decoder reads the result, so the server's view of the loc is
+ * the client's.
  */
 object LocTypeEncoder {
     /** Models are ids in index 7 (the cache's, or the overlay's); [ops] are op1 to op5, null for none. */
@@ -21,6 +23,8 @@ object LocTypeEncoder {
         val solid: Boolean = true,
         /** False for a solid loc arrows and spells pass (opcode 18). */
         val blocksProjectiles: Boolean = true,
+        /** The children this loc stands in for, by the player's varbit; null for a loc that is always itself. */
+        val transform: Transform? = null,
     ) {
         init {
             require(name.isNotEmpty() && name.none { it == '\u0000' }) { "Bad loc name '$name'" }
@@ -30,6 +34,21 @@ object LocTypeEncoder {
             require(width in 1..255 && length in 1..255) { "A loc is 1 to 255 tiles each way, not $width by $length" }
         }
     }
+
+    /**
+     * Opcode 77: the client shows `children[value of varbit]` in this loc's place, and nothing when the value is past
+     * the list (as RuneLite's ObjectComposition.getImpostor reads it). [NONE] for a child draws nothing.
+     */
+    class Transform(val varbit: Int, val children: List<Int>) {
+        init {
+            require(varbit in 0 until NONE) { "Bad varbit $varbit" }
+            require(children.size in 1..256) { "A transform has 1 to 256 children, not ${children.size}" }
+            require(children.all { it == NONE || it in 0 until NONE }) { "Bad child in $children" }
+        }
+    }
+
+    /** An id the client reads as "none" in a transform: no varp, or no child to draw. */
+    const val NONE = 0xFFFF
 
     private val CP1252: Charset = Charset.forName("windows-1252")
 
@@ -59,8 +78,20 @@ object LocTypeEncoder {
             out.write(30 + i)
             out.string(op)
         }
+        definition.transform?.let { transform ->
+            out.write(77)
+            out.short(transform.varbit)
+            out.short(NONE)
+            out.write(transform.children.size - 1)
+            for (child in transform.children) out.short(child)
+        }
         out.write(0)
         return out.toByteArray()
+    }
+
+    private fun ByteArrayOutputStream.short(value: Int) {
+        write(value ushr 8 and 0xFF)
+        write(value and 0xFF)
     }
 
     private fun ByteArrayOutputStream.string(text: String) {
