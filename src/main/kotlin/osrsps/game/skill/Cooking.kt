@@ -244,7 +244,14 @@ class Cooking(private val world: World) {
         const val EVIL_DAVE_STOVE = 12269
         /** fai_varrock_range: the Cooks' Guild's ranges. */
         const val COOKS_GUILD_RANGE = 7183
-        val RANGES = setOf(LUMBRIDGE_RANGE, RANGE, EVIL_DAVE_STOVE, COOKS_GUILD_RANGE)
+
+        /**
+         * fai_varrock_range_with_pipe (Range) and fai_varrock_posh_stove (Oven): Varrock's ranges in its houses and
+         * kitchens, both with Cook. That the oven cooks as a range does is guessed from its Cook option.
+         */
+        const val VARROCK_RANGE = 7184
+        const val VARROCK_OVEN = 7421
+        val RANGES = setOf(LUMBRIDGE_RANGE, RANGE, EVIL_DAVE_STOVE, COOKS_GUILD_RANGE, VARROCK_RANGE, VARROCK_OVEN)
 
         /** The Make-X box shows up to 18 kinds. */
         private const val MAX_KINDS = 18
