@@ -122,6 +122,7 @@ fun registerVarrock(world: World) {
     registerVarrockChurches(world)
     registerVarrockFitzharmons(world)
     registerVarrockInns(world)
+    registerVarrockMuseum(world)
     registerVarrockPalace(world)
     registerVarrockShopkeepers(world)
     registerVarrockStores(world)

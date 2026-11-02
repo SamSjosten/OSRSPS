@@ -217,6 +217,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Jonny the Beard, Charlie the Tramp given a coin, Draul Leptoc, and a kitten bought from Gertrude for 100 coins.
 - `varrock-fitzharmons.json`: Varrock step 8b (with `::keys on`): Dimintheis handing back family gauntlets, Johnathon
   turning them into chaos gauntlets for 25,000 coins through his Gauntlets option, his talk, and Old Man Yarlo.
+- `varrock-museum.json`: Varrock step 9a (with `::keys on`): the museum's curator (treasure and medallion topics) and
+  information clerk (Kudos, then a museum map), the first and second floors by their straight stairs and back, the
+  Natural History floor and back, the cleaning area's gate through its guard and out, and the back entrance's guard and
+  its double doors.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
