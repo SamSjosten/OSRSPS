@@ -167,7 +167,7 @@ fun registerMillLaneMill(world: World) {
     world.handlers.onObjOnLoc(MillLaneMill.FLOUR_BIN, MillLaneMill.POT) { emptyBin(world) }
 }
 
-private suspend fun ScriptContext.fillHopper(world: World) {
+internal suspend fun ScriptContext.fillHopper(world: World) {
     arriveDelay()
     if (MillLaneMill.hopperFull(player)) {
         world.message(player, MillLines.ALREADY_GRAIN)
@@ -184,7 +184,7 @@ private suspend fun ScriptContext.fillHopper(world: World) {
     world.message(player, MillLines.PUT_GRAIN)
 }
 
-private suspend fun ScriptContext.operate(world: World) {
+internal suspend fun ScriptContext.operate(world: World) {
     // 2004Scape: this message comes before the arrive delay, the animation after it.
     if (!MillLaneMill.hopperFull(player)) world.message(player, MillLines.EMPTY_HOPPER)
     arriveDelay()
@@ -201,7 +201,7 @@ private suspend fun ScriptContext.operate(world: World) {
     if (flour + 1 == MillLaneMill.BIN_CAPACITY) world.message(player, MillLines.BIN_NOW_FULL)
 }
 
-private fun ScriptContext.emptyBin(world: World) {
+internal fun ScriptContext.emptyBin(world: World) {
     val flour = MillLaneMill.flour(player)
     if (flour == 0) {
         world.message(player, MillLines.BIN_EMPTY)

@@ -112,12 +112,14 @@ class ScriptRunner(
 
     /**
      * Drops everything [player] had going: modals, every queue, timers, a delay (whose script never carries on) and
-     * clicks held while the clock is paused. For `::scenario` and `::reset`, which start from a clean slate; not
-     * something live does.
+     * clicks held while the clock is paused. For `::scenario` and `::reset`, which start from a clean slate, and for a
+     * death. A dropped script never runs its `finally` blocks, so an Agility obstacle's forced steps and stance go here too.
      */
     fun clearAll(player: Player) {
         closeModals(player)
         player.heldActions.clear()
+        player.forcedSteps.clear()
+        player.stanceOverride = null
         val state = player.scripts
         state.queue.clear()
         state.weakQueue.clear()

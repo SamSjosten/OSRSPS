@@ -310,7 +310,7 @@ class NpcSpawnFileTest {
     fun `Barbarian Village has Peksa, Tassie Slipcast, Hunding up the tower, Atlas, Checkal, Litara and Sigurd`() {
         val names = mapOf(
             2872 to "peksa", 1352 to "favour_tassie_slipcast", 3063 to "fai_barbarian_9", 10658 to "bim_atlas", 10645 to "bim_checkal_barb",
-            3363 to "sos_barb", 1324 to "canoeing_sigurd", 299 to "gunthor_the_brave", 2837 to "unicorn",
+            3363 to "sos_barb", 1324 to "canoeing_sigurd", 299 to "gunthor_the_brave", 2837 to "unicorn", 1526 to "0_48_53_freshfish",
         ) + (3055..3072).filter { it != 3063 }.associateWith { "fai_barbarian_$it" } + (3073..3076).associateWith { "fai_barbarian_goblin_armed_${it - 3072}" }
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("barbarian-village.json"), types, "barbarian-village.json")
@@ -325,6 +325,10 @@ class NpcSpawnFileTest {
         assertEquals(1, spawns.count { it.type.id == 299 })
         assertEquals(listOf(3073, 3073, 3074, 3075, 3076), spawns.map { it.type.id }.filter { it in 3073..3076 })
         assertEquals(2, spawns.count { it.type.id == 2837 })
+        // Step 8: two Lure/Bait spots on the river, each on a tile of its area.
+        val spots = spawns.filter { it.type.id == Fishing.BARBARIAN_SPOT }
+        assertEquals(2, spots.size)
+        assertTrue(spots.all { spot -> Fishing.AREAS.any { Tile(spot.x, spot.z) in it } && spot.wander == 0 })
     }
 
     @Test
@@ -454,6 +458,13 @@ class NpcSpawnFileTest {
         assertEquals(Tile(3243, 3201), spawns.getValue(6093).let { Tile(it.x, it.z) })
         assertEquals(Tile(3238, 3199), spawns.getValue(7414).let { Tile(it.x, it.z) })
         assertTrue(result.spawns.all { it.source.isNotBlank() && it.level == 0 && it.wander == if (it.type.id == 2812) 5 else 2 })
+    }
+
+    @Test
+    fun `every spawn file in the resources is loaded`() {
+        val dir = java.nio.file.Path.of(NpcSpawnFile::class.java.getResource("/npc-spawns")!!.toURI())
+        val onDisk = java.nio.file.Files.list(dir).use { files -> files.map { it.fileName.toString() }.filter { it.endsWith(".json") }.toList() }
+        assertEquals(onDisk.toSet(), NpcSpawnFile.FILES.toSet())
     }
 
     @Test

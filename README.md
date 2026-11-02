@@ -224,6 +224,15 @@ ctrl+shift-click teleports an admin to the clicked tile (a testing tool; anyone 
 isn't sent where the cache has no map). Collision is built from the cache's map files at
 startup; the log line `Loaded collision for N map squares` confirms it.
 
+## World map
+
+The globe orb (orbs:worldmap, 160:55) sends its op to the server, and the server opens the world map, interface 595, as
+an overlay in the frame's floater, where the All Settings window also goes (the 241 scripts test that slot; read from
+Joshua-F's osrs-dumps, not seen on live). The orb again, the map's close button or Esc closes it, and walking leaves it
+open. The map itself is the client's: it draws it from the cache's worldmap index, which JS5 serves like the rest, and
+sizes, zooms, searches and floats or docks the window in its own scripts. `test-runner/examples/world-map.json` clicks
+it in the real client.
+
 To see what the server thinks is walkable around a tile (north up, `###` blocked, `[ ] ^ _` walls):
 
 ```bash
@@ -238,6 +247,7 @@ Movement rules and where they come from:
 | Unreachable target: closest reached tile within 10, by distance then path length | client behaviour |
 | Walk 1 tile a tick, run 2; an odd last tile is walked | OSRS Wiki |
 | Run drain ⌊60 + 67 × weight / 64⌋ × (1 − agility / 300), restore ⌊agility / 10⌋ + 15 a tick | OSRS Wiki, Energy |
+| Agility in those sums is the current level, a boost counting | inferred |
 | Run switches off at 0 energy; one-tile ticks don't drain | guessed |
 | Map rebuild within 16 tiles of the 104x104 build area's edge | inferred, not measured |
 | Routes cut to 25 turns | guessed |
@@ -564,6 +574,23 @@ the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose ea
 | Finished potions' levels, XP, secondaries, 2 ticks, a (3) dose | OSRS Wiki, Herblore (potions table) and each potion's page |
 | Which locs count as water; filling with no box; the filling animation (832); no animation for cleaning; the first potion 2 ticks after the choice | guessed |
 | Out: potions of three or more ingredients (super combat, stamina, sanfew, divine), coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
+
+### Agility
+
+Obstacles live in `skills/agility.json` (`game/skill/Agility.kt`, words under `agility.*`); the courses come with
+Agility steps 2 to 7, so the file starts empty. The option on an obstacle walks the player to its start, checks the
+level, then plays its moves in order while clicks do nothing: an animation and a wait, a teleport (a climb's end,
+another level too), a walk along a path one tile a tick through anything with the obstacle's animation as the whole
+stance (a log or a tightrope), and a slide (the client's exact move, a jump across a gap). The XP comes once across.
+An obstacle that can fail rolls its success pair against the current Agility level; a failure plays its own moves (a
+fall) and deals its damage, with no XP.
+
+| Agility behaviour | Source |
+|-------------------|--------|
+| XP on completing an obstacle, none on a failure; some obstacles fail and hurt | OSRS Wiki, Agility and each course's page |
+| No clicks while on an obstacle; walking to its start can't be cut short | inferred from live |
+| Each move starting on the tick after the last ends; a teleport landing before a walk's first step | inferred |
+| The level message as a game message; fail chances (the Wiki gives none); the hit after the fall; the real tile moving when a slide's ticks are up | guessed |
 
 ## Items and inventory
 
@@ -1114,6 +1141,37 @@ and dragon spear (it isn't built; its roll gives nothing). The words are in the 
 `gunthor.*`). Check: `test-runner/examples/barbarian-fighters.json` talks to a barbarian and is attacked, attacks
 Gunthor and is fought back, and sees the goblins and unicorns; `BarbarianVillageTest` does every line and talk,
 `NpcCombatTest` the max hits and `HeadlessBarbarianVillageTest` a barbarian's attack once his line is over.
+
+Step 8 is Barbarian Village's mine, rod fishing and permanent fire.
+
+| Behaviour | Source |
+|-----------|--------|
+| The mine's four tin and four coal rocks (`tinrock1`/`2`, `coalrock1`/`2`) mine as every rock of their types | 241 map; `Mining.ROCKS` |
+| Two Lure/Bait spots (`0_48_53_freshfish` 1526) on the River Barbarian, trout and salmon by Lure and pike by Bait as the River Lum's, moving between five tiles | mejrs's live NPC list for the spawn tiles; 2004Scape's `fishing_movement_barbarian_village_enum` for the five |
+| The permanent fire by the fishing spots (`fire_cook` 43475, 3106, 3432) cooks from its Cook option, as Draynor's; the longhall's two fires (`fire` 26185) take food used on them | OSRS Wiki, Permanent fire (two in the main table, one with Cook); the 241 map |
+| The lookout tower's ladders climb only on the tower's tiles: the same directional ladder types elsewhere give "nothing interesting" until their own areas come | the exploit review's round 11 (R11C-1); 44 instances in the 241 map |
+
+Check: `test-runner/examples/barbarian-mine-fish.json` mines tin and coal, lures a fish and cooks it on the fire, and
+climbs the tower; `NpcSpawnFileTest` puts the spots on their area's tiles and `HeadlessBarbarianVillageTest` refuses
+the ladder type away from the tower.
+
+Step 9 is the Cooks' Guild and the land between Barbarian Village and Varrock. Content is in
+`game/content/CooksGuild.kt`, spawns in `npc-spawns/cooks-guild.json` and `obj-spawns/cooks-guild.tsv`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The front door (`chefdoor` 24958) lets in 32 Cooking wearing a chef's hat or golden chef's hat, a Cooking cape or hood, Varrock armour 3 or 4, or a max cape or hood; the Head chef says one of three refusals otherwise; the way out has no check | OSRS Wiki, Cooks' Guild and Transcript:Head chef; the max capes are inferred (every `skillcape_max` kind in the cache) |
+| The Head chef's talk: his cape below 99; at 99 the Skillcape of Cooking and hood for 99,000 coins (trimmed with another 99), and a free hood for an owner | Transcript:Head chef; expressions guessed |
+| The north-east room's door (`fai_varrock_cook_guild_door` 10045) lets 99 Cooking through either way, with a message for the rest; the hard Varrock Diary way in isn't built | the Wiki; the message's words not yet found (key `cooks_guild.bank_door`), its walk-through guessed |
+| The spiral stairs over three floors, only on the guild's tile; the ranges (`fai_varrock_range` 7183) cook as every range | 241 map; the exploit review's rule on types that stand elsewhere |
+| The hopper, its controls and the flour bin make flour as Mill Lane Mill's, the bin's flour shared | the Wiki, Windmill |
+| Romily Weaklax's Trade opens the Pie Shop; his Talk-to and pie tasks aren't built | OSRS Wiki, Pie Shop (read 2026-11-02); inv `shop_pies` 352 |
+| The Head chef, Romily, the two bankers, and the squirrels and raccoons in the woods west of the village (scenery, Examine only) | mejrs's live NPC list |
+| The tables' item spawns: a chocolate bar, cooking apples, a bowl, a cake tin, a pie dish, a jug, a pot and grapes | 2004Scape's map m49_53; respawns guessed |
+
+Left out: the dairy churn, Marley and the recruiters. Check: `test-runner/examples/cooks-guild.json` does the door,
+the stairs, the flour, the north-east door, the range and the Pie Shop; `CooksGuildTest` every line of the Head chef
+and the door check, and `HeadlessCooksGuildTest` the doors, the stairs (and their type elsewhere) and the Pie Shop.
 
 ## Varrock
 

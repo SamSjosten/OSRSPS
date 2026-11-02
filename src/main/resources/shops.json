@@ -2315,6 +2315,82 @@
       ]
     },
     {
+      "key": "pie_shop",
+      "title": "Pie Shop",
+      "inv": 352,
+      "size": 40,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 550,
+      "changePer": 10,
+      "npcs": [
+        "merchant_pies"
+      ],
+      "source": "OSRS Wiki, Pie Shop, read 2026-11-02: Sells at 100.0%, Buys at 55.0%, Change per 1.0%, and the stock table. inv shop_pies (352) and its size 40 are the 241 cache's",
+      "stock": [
+        {
+          "item": 7162,
+          "name": "Pie recipe book",
+          "count": 50,
+          "restock": 50
+        },
+        {
+          "item": 2325,
+          "name": "Redberry pie",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 2327,
+          "name": "Meat pie",
+          "count": 4,
+          "restock": 100
+        },
+        {
+          "item": 7170,
+          "name": "Mud pie",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 2323,
+          "name": "Apple pie",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 7178,
+          "name": "Garden pie",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 7188,
+          "name": "Fish pie",
+          "count": 1,
+          "restock": 100
+        },
+        {
+          "item": 7198,
+          "name": "Admiral pie",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 7208,
+          "name": "Wild pie",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 7218,
+          "name": "Summer pie",
+          "count": 0,
+          "restock": 100
+        }
+      ]
+    },
+    {
       "key": "scavvos_rune_store",
       "title": "Scavvo's Rune Store",
       "inv": 33,
