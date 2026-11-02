@@ -107,17 +107,17 @@ class HeadlessVarrockMuseumPeopleTest {
                 client.walk(
                     minas.id, "historian_minas", "hello", "welcome", "1:$first", "museum", "museum_answer",
                     "1:$second", "new_dig", "new_dig_1", "new_dig_2", "new_dig_3", "new_dig_thanks",
-                    "2:$second", "information", "information_1", "information_2", "no_new_quests", "no_matter", "go_on",
+                    "2:$second", "information_said", "information_1", "no_new_quests", "no_matter", "go_on",
                 )
                 // The sections menu loops until the player walks away.
                 val sections = "natural_history,dig_site,cleaning,timeline"
                 client.talkTo(minas.id)
                 client.steps(
                     "historian_minas", "hello", "welcome", "3:$first", "other_sections", "other_sections_answer",
-                    "1:$sections", "natural_history", "natural_history_1", "natural_history_2", "natural_history_where", "natural_history_see", "natural_history_guess",
-                    "2:$sections", "dig_site", "dig_site_answer",
-                    "3:$sections", "cleaning", "cleaning_answer", "qualifications", "earth_science", "passed", "passed_answer",
-                    "4:$sections", "timeline", "timeline_1", "timeline_2", "timeline_3", "timeline_wow",
+                    "1:$sections", "natural_history_said", "natural_history_1", "natural_history_2", "natural_history_where", "natural_history_see", "natural_history_guess",
+                    "2:$sections", "dig_site_said", "dig_site_answer",
+                    "3:$sections", "cleaning_said", "cleaning_answer", "qualifications", "earth_science", "passed", "passed_answer",
+                    "4:$sections", "timeline_said", "timeline_1", "timeline_2", "timeline_3", "timeline_wow",
                 )
                 client.awaitDialogue("the sections menu again") { it is DialogueView.Menu && it.options.first() == "[historian_minas.natural_history]" }
             }
@@ -132,7 +132,7 @@ class HeadlessVarrockMuseumPeopleTest {
                 client.tele(3256, 3448)
                 val who = (1..7).map { "who_$it" }.toTypedArray()
                 client.walk(jacques.id, "art_critic_jacques", "hello", "greetings", "1:who,what", "who", *who)
-                client.walk(jacques.id, "art_critic_jacques", "hello", "greetings", "2:who,what", "what", "critique", "1:just_a_painting,yes_i_see", "just_a_painting", "just")
+                client.walk(jacques.id, "art_critic_jacques", "hello", "greetings", "2:who,what", "what", "critique", "1:just_a_painting,yes_i_see", "just_a_painting_said", "just")
                 client.walk(jacques.id, "art_critic_jacques", "hello", "greetings", "2:who,what", "what", "critique", "2:just_a_painting,yes_i_see", "yes_i_see", "look_at", "so_it_is", "no_words")
 
                 client.tele(3260, 3450)
@@ -152,9 +152,9 @@ class HeadlessVarrockMuseumPeopleTest {
                 }
 
                 client.tele(1762, 4956)
-                val opening = (1..11).map { "opening_$it" }.toTypedArray()
+                val opening = (1..10).map { "opening_$it" }.toTypedArray()
                 client.walk(orlando.id, "orlando_smith", *opening, "1:sure,no_thanks", "sure", "sure_1", "sure_2", "will_do")
-                client.walk(orlando.id, "orlando_smith", *opening, "2:sure,no_thanks", "no_thanks", "fair_dinkum")
+                client.walk(orlando.id, "orlando_smith", *opening, "2:sure,no_thanks", "no_thanks_said", "fair_dinkum")
             }
         }
     }
@@ -194,8 +194,8 @@ class HeadlessVarrockMuseumPeopleTest {
                 val north = "lizards,tortoises,dragons,wyverns,enough"
                 val first = (1..6).map { "first_$it" }.toTypedArray()
                 client.walk(
-                    VarrockMuseumPeople.HISTORIAN_NORTH, "natural_historian", *first, "4:$north", "wyverns", "wyverns_intro", "follow",
-                    *(1..10).map { "wyverns_$it" }.toTypedArray(), "concludes",
+                    VarrockMuseumPeople.HISTORIAN_NORTH, "natural_historian", *first, "4:$north", "wyverns_said", "wyverns_intro", "follow",
+                    *(1..10).map { "wyverns_$it" }.toTypedArray(), "wyverns_end",
                 )
                 client.walk(VarrockMuseumPeople.HISTORIAN_NORTH, "natural_historian", "hello_again", "hoping", "5:$north", "enough", "nonsense", "science")
                 client.walk(
@@ -204,11 +204,11 @@ class HeadlessVarrockMuseumPeopleTest {
                 )
                 client.walk(
                     VarrockMuseumPeople.HISTORIAN_EAST, "natural_historian", "hello_again", "hoping", "2:snails,monkeys,sea_slugs,snakes,enough",
-                    "monkeys", "monkeys_intro", "follow", *(1..8).map { "monkeys_$it" }.toTypedArray(), "concludes",
+                    "monkeys", "monkeys_intro", "follow", *(1..8).map { "monkeys_$it" }.toTypedArray(), "monkeys_end",
                 )
                 client.walk(
                     VarrockMuseumPeople.HISTORIAN_WEST, "natural_historian", "hello_again", "hoping", "3:camels,leeches,moles,penguins,enough",
-                    "moles", "moles_intro", "follow", *(1..7).map { "moles_$it" }.toTypedArray(), "concludes",
+                    "moles", "moles_intro", "follow", *(1..7).map { "moles_$it" }.toTypedArray(), "moles_end",
                 )
                 assertEquals(1, server.world.playerNamed("dave")!!.charges[VarrockMuseumPeople.MET])
             }

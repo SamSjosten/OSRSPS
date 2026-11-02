@@ -19,28 +19,32 @@ object HistorianMinasLines : Lines("historian_minas", "Transcript:Historian Mina
     val NEW_DIG_3 = line("new_dig_3", "the new dig: the third box")
     val NEW_DIG_THANKS = line("new_dig_thanks", "the new dig: the player's answer")
     val INFORMATION = line("information", "option 2 (some information), which the player then says")
-    val INFORMATION_1 = line("information_1", "option 2: his answer, the first of two boxes")
-    val INFORMATION_2 = line("information_2", "option 2: the second box (tell me)")
+    val INFORMATION_SAID = line("information_said", "option 2: what the player says (not the option's words)")
+    val INFORMATION_1 = line("information_1", "option 2: his answer, one box")
     val NO_NEW_QUESTS = line("no_new_quests", "option 2 with no new quests to tell: the player's second thoughts")
     val NO_MATTER = line("no_matter", "no new quests: his answer")
     val GO_ON = line("go_on", "no new quests: the player's last line")
     val OTHER_SECTIONS = line("other_sections", "option 3 (other sections), which the player then says")
     val OTHER_SECTIONS_ANSWER = line("other_sections_answer", "option 3: his answer, before its menu")
     val NATURAL_HISTORY = line("natural_history", "the sections menu's option 1, which the player then says")
+    val NATURAL_HISTORY_SAID = line("natural_history_said", "Natural history: what the player says (not the option's words)")
     val NATURAL_HISTORY_1 = line("natural_history_1", "Natural History: his answer, the first of two boxes")
     val NATURAL_HISTORY_2 = line("natural_history_2", "Natural History: the second box")
     val NATURAL_HISTORY_WHERE = line("natural_history_where", "Natural History: the player's question")
     val NATURAL_HISTORY_SEE = line("natural_history_see", "Natural History: his answer")
     val NATURAL_HISTORY_GUESS = line("natural_history_guess", "Natural History: the player's last line")
     val DIG_SITE = line("dig_site", "the sections menu's option 2, which the player then says")
+    val DIG_SITE_SAID = line("dig_site_said", "Dig site: what the player says (not the option's words)")
     val DIG_SITE_ANSWER = line("dig_site_answer", "the Dig Site exhibit: his answer")
     val CLEANING = line("cleaning", "the sections menu's option 3, which the player then says")
+    val CLEANING_SAID = line("cleaning_said", "Cleaning: what the player says (not the option's words)")
     val CLEANING_ANSWER = line("cleaning_answer", "the cleaning area: his answer")
     val QUALIFICATIONS = line("qualifications", "the cleaning area: the player asks what qualifications")
     val EARTH_SCIENCE = line("earth_science", "the cleaning area: his answer (Level 3 Earth Science)")
     val PASSED = line("passed", "the cleaning area, exams passed: the player's line")
     val PASSED_ANSWER = line("passed_answer", "the cleaning area, exams passed: his answer")
     val TIMELINE = line("timeline", "the sections menu's option 4, which the player then says")
+    val TIMELINE_SAID = line("timeline_said", "Timeline: what the player says (not the option's words)")
     val TIMELINE_1 = line("timeline_1", "the Timeline: his answer, the first of three boxes")
     val TIMELINE_2 = line("timeline_2", "the Timeline: the second box")
     val TIMELINE_3 = line("timeline_3", "the Timeline: the third box")
@@ -56,6 +60,7 @@ object ArtCriticLines : Lines("art_critic_jacques", "Transcript:Art Critic Jacqu
     val WHAT = line("what", "option 2, which the player then says")
     val CRITIQUE = line("critique", "option 2: his answer, before its menu")
     val JUST_A_PAINTING = line("just_a_painting", "option 2's option 1, which the player then says")
+    val JUST_A_PAINTING_SAID = line("just_a_painting_said", "option 2's option 1: what the player says (not the option's words)")
     val JUST = line("just", "option 2's option 1: his answer")
     val YES_I_SEE = line("yes_i_see", "option 2's option 2, which the player then says")
     val LOOK_AT = line("look_at", "option 2's option 2: the player's second line")
@@ -96,26 +101,35 @@ object MuseumAdventurerLines : Lines("museum_adventurer", "Transcript:Torrcs") {
 /** Orlando Smith's lines, from the Wiki's Transcript:Orlando Smith (before the natural history quiz), read 2026-11-02. */
 object OrlandoSmithLines : Lines("orlando_smith", "Transcript:Orlando Smith") {
     /** The talk before the menu: O for his boxes, P for the player's. */
-    const val OPENING = "OPOPOOPOOPO"
-    val OPENING_LINES = OPENING.indices.map { line("opening_${it + 1}", "before the quiz: box ${it + 1} of eleven, before the menu") }
+    const val OPENING = "OPOPOOPOPO"
+    val OPENING_LINES = OPENING.indices.map { line("opening_${it + 1}", "before the quiz: box ${it + 1} of ten, before the menu") }
     val SURE = line("sure", "option 1, which the player then says")
     val SURE_1 = line("sure_1", "option 1: his answer, the first of two boxes")
     val SURE_2 = line("sure_2", "option 1: the second box")
     val WILL_DO = line("will_do", "option 1: the player's last line")
-    val NO_THANKS = line("no_thanks", "option 2, which the player then says")
+    val NO_THANKS = line("no_thanks", "option 2")
+    val NO_THANKS_SAID = line("no_thanks_said", "option 2: what the player says (not the option's words)")
     val FAIR_DINKUM = line("fair_dinkum", "option 2: his answer")
 }
 
 /** The natural historians' lines, from the Wiki's Transcript:Natural historian, read 2026-11-02. */
 object NaturalHistorianLines : Lines("natural_historian", "Transcript:Natural historian") {
-    /** A lecture: the player's [topic] (the menu's option too), his [intro], then [lines] and the shared ending. */
-    class Lecture(val topic: Line, val intro: Line, val lines: List<Line>)
+    /**
+     * A lecture: the menu's [topic], what the player then [said] (the option's words but where live differs), his
+     * [intro], then [lines] and its [end], which names the animal.
+     */
+    class Lecture(val topic: Line, val said: Line, val intro: Line, val lines: List<Line>, val end: Line)
 
-    private fun lecture(name: String, count: Int) = Lecture(
-        line(name, "the menu's option, which the player then says"),
-        line("${name}_intro", "his first line of the lecture"),
-        (1..count).map { line("${name}_$it", "the lecture, box $it of $count after the follow-me line") },
-    )
+    private fun lecture(name: String, count: Int, saysOther: Boolean = false): Lecture {
+        val topic = line(name, if (saysOther) "the menu's option" else "the menu's option, which the player then says")
+        return Lecture(
+            topic,
+            if (saysOther) line("${name}_said", "what the player says on picking it (not the option's words)") else topic,
+            line("${name}_intro", "his first line of the lecture"),
+            (1..count).map { line("${name}_$it", "the lecture, box $it of $count after the follow-me line") },
+            line("${name}_end", "the lecture's last line: it concludes the lecture on this animal"),
+        )
+    }
 
     val FIRST_1 = line("first_1", "the first talk ever: his greeting")
     val FIRST_2 = line("first_2", "the first talk ever: the player's question")
@@ -126,7 +140,6 @@ object NaturalHistorianLines : Lines("natural_historian", "Transcript:Natural hi
     val HELLO_AGAIN = line("hello_again", "later talks: his greeting")
     val HOPING = line("hoping", "later talks: the player's line, before the menu")
     val FOLLOW = line("follow", "each lecture's second line: follow me to the display")
-    val CONCLUDES = line("concludes", "each lecture's last line")
     val ENOUGH = line("enough", "every menu's last option, which the player then says")
     val NONSENSE = line("nonsense", "enough: his answer, the first of two boxes")
     val SCIENCE = line("science", "enough: the second box")
@@ -134,14 +147,14 @@ object NaturalHistorianLines : Lines("natural_historian", "Transcript:Natural hi
     val NATURAL_HISTORY_LINES = (1..4).map { line("natural_history_$it", "natural history: his answer, box $it of four") }
 
     val LIZARDS = lecture("lizards", 8)
-    val TORTOISES = lecture("tortoises", 8)
+    val TORTOISES = lecture("tortoises", 8, saysOther = true)
     val DRAGONS = lecture("dragons", 12)
-    val WYVERNS = lecture("wyverns", 10)
+    val WYVERNS = lecture("wyverns", 10, saysOther = true)
     val SNAILS = lecture("snails", 10)
     val MONKEYS = lecture("monkeys", 8)
-    val SEA_SLUGS = lecture("sea_slugs", 10)
+    val SEA_SLUGS = lecture("sea_slugs", 10, saysOther = true)
     val SNAKES = lecture("snakes", 9)
-    val TERRORBIRDS = lecture("terrorbirds", 11)
+    val TERRORBIRDS = lecture("terrorbirds", 11, saysOther = true)
     val KALPHITES = lecture("kalphites", 12)
     val CAMELS = lecture("camels", 9)
     val LEECHES = lecture("leeches", 11)
@@ -212,9 +225,8 @@ object VarrockMuseumPeople {
             }
         }
         if (pick == 2) {
-            chatPlayer(ChatAnim.HAPPY, INFORMATION)
+            chatPlayer(ChatAnim.HAPPY, INFORMATION_SAID)
             chatNpc(ChatAnim.HAPPY, INFORMATION_1)
-            chatNpc(ChatAnim.HAPPY, INFORMATION_2)
             chatPlayer(ChatAnim.NEUTRAL, NO_NEW_QUESTS)
             chatNpc(ChatAnim.NEUTRAL, NO_MATTER)
             chatPlayer(ChatAnim.NEUTRAL, GO_ON)
@@ -226,7 +238,7 @@ object VarrockMuseumPeople {
         while (true) {
             when (choice(NATURAL_HISTORY, DIG_SITE, CLEANING, TIMELINE)) {
                 1 -> {
-                    chatPlayer(ChatAnim.QUIZ, NATURAL_HISTORY)
+                    chatPlayer(ChatAnim.QUIZ, NATURAL_HISTORY_SAID)
                     chatNpc(ChatAnim.HAPPY, NATURAL_HISTORY_1)
                     chatNpc(ChatAnim.HAPPY, NATURAL_HISTORY_2)
                     chatPlayer(ChatAnim.QUIZ, NATURAL_HISTORY_WHERE)
@@ -234,11 +246,11 @@ object VarrockMuseumPeople {
                     chatPlayer(ChatAnim.NEUTRAL, NATURAL_HISTORY_GUESS)
                 }
                 2 -> {
-                    chatPlayer(ChatAnim.QUIZ, DIG_SITE)
+                    chatPlayer(ChatAnim.QUIZ, DIG_SITE_SAID)
                     chatNpc(ChatAnim.NEUTRAL, DIG_SITE_ANSWER)
                 }
                 3 -> {
-                    chatPlayer(ChatAnim.QUIZ, CLEANING)
+                    chatPlayer(ChatAnim.QUIZ, CLEANING_SAID)
                     chatNpc(ChatAnim.NEUTRAL, CLEANING_ANSWER)
                     chatPlayer(ChatAnim.QUIZ, QUALIFICATIONS)
                     chatNpc(ChatAnim.NEUTRAL, EARTH_SCIENCE)
@@ -246,7 +258,7 @@ object VarrockMuseumPeople {
                     chatNpc(ChatAnim.HAPPY, PASSED_ANSWER)
                 }
                 else -> {
-                    chatPlayer(ChatAnim.QUIZ, TIMELINE)
+                    chatPlayer(ChatAnim.QUIZ, TIMELINE_SAID)
                     chatNpc(ChatAnim.HAPPY, TIMELINE_1)
                     chatNpc(ChatAnim.HAPPY, TIMELINE_2)
                     chatNpc(ChatAnim.HAPPY, TIMELINE_3)
@@ -269,7 +281,7 @@ object VarrockMuseumPeople {
         chatPlayer(ChatAnim.QUIZ, WHAT)
         chatNpc(ChatAnim.HAPPY, CRITIQUE)
         if (choice(JUST_A_PAINTING, YES_I_SEE) == 1) {
-            chatPlayer(ChatAnim.CONFUSED, JUST_A_PAINTING)
+            chatPlayer(ChatAnim.CONFUSED, JUST_A_PAINTING_SAID)
             chatNpc(ChatAnim.ANGRY, JUST)
         } else {
             chatPlayer(ChatAnim.HAPPY, YES_I_SEE)
@@ -307,7 +319,7 @@ object VarrockMuseumPeople {
             chatNpc(ChatAnim.HAPPY, SURE_2)
             chatPlayer(ChatAnim.HAPPY, WILL_DO)
         } else {
-            chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
+            chatPlayer(ChatAnim.NEUTRAL, NO_THANKS_SAID)
             chatNpc(ChatAnim.NEUTRAL, FAIR_DINKUM)
         }
     }
@@ -333,7 +345,8 @@ object VarrockMuseumPeople {
         val options = (if (south) listOf(NATURAL_HISTORY) else emptyList()) + lectures.map { it.topic } + ENOUGH
         val pick = choice(*options.toTypedArray())
         val chosen = options[pick - 1]
-        chatPlayer(ChatAnim.QUIZ, chosen)
+        val lecture = LECTURES.getValue(section).firstOrNull { it.topic == chosen }
+        chatPlayer(ChatAnim.QUIZ, lecture?.said ?: chosen)
         when {
             chosen == ENOUGH -> {
                 chatNpc(ChatAnim.HAPPY, NONSENSE)
@@ -341,11 +354,11 @@ object VarrockMuseumPeople {
             }
             chosen == NATURAL_HISTORY -> for (line in NATURAL_HISTORY_LINES) chatNpc(ChatAnim.HAPPY, line)
             else -> {
-                val lecture = lectures.single { it.topic == chosen }
+                lecture!!
                 chatNpc(ChatAnim.HAPPY, lecture.intro)
                 chatNpc(ChatAnim.HAPPY, FOLLOW)
                 for (line in lecture.lines) chatNpc(ChatAnim.NEUTRAL, line)
-                chatNpc(ChatAnim.HAPPY, CONCLUDES)
+                chatNpc(ChatAnim.HAPPY, lecture.end)
             }
         }
     }

@@ -43,7 +43,7 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[historian_minas.information"
+   "contains": "[historian_minas.information_said"
   },
   {
    "step": "continueDialogue"
@@ -51,13 +51,6 @@
   {
    "step": "assertDialogue",
    "contains": "[historian_minas.information_1"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[historian_minas.information_2"
   },
   {
    "step": "continueDialogue"
@@ -288,19 +281,12 @@
    "step": "continueDialogue"
   },
   {
-   "step": "assertDialogue",
-   "contains": "[orlando_smith.opening_11"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
    "step": "chooseOption",
    "text": "[orlando_smith.no_thanks]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[orlando_smith.no_thanks"
+   "contains": "[orlando_smith.no_thanks_said"
   },
   {
    "step": "continueDialogue"
