@@ -1,0 +1,164 @@
+{
+ "name": "Agility step 2: one lap of the Draynor Village Rooftop Course, every obstacle crossed to its landing tile, 120 XP and the lap count (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::xprate 1",
+   "expectMessage": "XP rate set to 1x",
+   "comment": "live's rate; ::xprate restore at the end goes back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel agility 30",
+   "expectMessage": "30",
+   "comment": "13,363 XP: a lap's 120 opens no level-up box"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3104 3279 0",
+   "expectMessage": "Teleported to 3104, 3279, 0",
+   "comment": "east of the rough wall, beside the wheat field north of Draynor's bank"
+  },
+  {
+   "step": "locOption",
+   "loc": "Rough wall",
+   "option": "Climb",
+   "x": 3103,
+   "y": 3279
+  },
+  {
+   "step": "assertLocation",
+   "x": 3102,
+   "y": 3279,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "obstacle 1 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "locOption",
+   "loc": "Tightrope",
+   "option": "Cross",
+   "x": 3098,
+   "y": 3277
+  },
+  {
+   "step": "assertLocation",
+   "x": 3090,
+   "y": 3276,
+   "plane": 3,
+   "timeoutMs": 20000,
+   "comment": "obstacle 2 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "locOption",
+   "loc": "Tightrope",
+   "option": "Cross",
+   "x": 3092,
+   "y": 3276
+  },
+  {
+   "step": "assertLocation",
+   "x": 3092,
+   "y": 3266,
+   "plane": 3,
+   "timeoutMs": 20000,
+   "comment": "obstacle 3 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "locOption",
+   "loc": "Narrow wall",
+   "option": "Balance",
+   "x": 3089,
+   "y": 3264
+  },
+  {
+   "step": "assertLocation",
+   "x": 3088,
+   "y": 3261,
+   "plane": 3,
+   "timeoutMs": 20000,
+   "comment": "obstacle 4 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wall",
+   "option": "Jump-up",
+   "x": 3088,
+   "y": 3256
+  },
+  {
+   "step": "assertLocation",
+   "x": 3088,
+   "y": 3255,
+   "plane": 3,
+   "timeoutMs": 20000,
+   "comment": "obstacle 5 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "locOption",
+   "loc": "Gap",
+   "option": "Jump",
+   "x": 3095,
+   "y": 3255
+  },
+  {
+   "step": "assertLocation",
+   "x": 3096,
+   "y": 3256,
+   "plane": 3,
+   "timeoutMs": 20000,
+   "comment": "obstacle 6 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "locOption",
+   "loc": "Crate",
+   "option": "Climb-down",
+   "x": 3102,
+   "y": 3261
+  },
+  {
+   "step": "assertLocation",
+   "x": 3103,
+   "y": 3261,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "obstacle 7 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[agility.draynor_laps count=1]"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13483,
+   "comment": "13,363 at level 30, then the lap's 120"
+  },
+  {
+   "step": "command",
+   "text": "::xprate restore",
+   "expectMessage": "XP rate back to "
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
