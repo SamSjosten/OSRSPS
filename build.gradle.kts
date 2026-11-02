@@ -17,6 +17,7 @@ kotlin {
 dependencies {
     // RSProt for revision 241; wired into login in the next step.
     implementation(libs.rsprot.api)
+    implementation(platform(libs.netty.bom))
     implementation(libs.netty.codec.http)
     implementation(libs.netty.codec.haproxy)
     implementation(libs.displee.cache)
