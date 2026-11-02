@@ -1,0 +1,9 @@
+# Where combat is multi-way (see osrsps.game.combat.MultiCombat). Tab-separated; tiles inclusive.
+# Add a thread's areas as its content comes, with where each box came from.
+name	level	min_x	min_z	max_x	max_z
+# Barbarian Village: the OSRS Wiki says the entire village is multi-way. The box is the whole map square 48_53
+# (region 12341), as 2004Scape's data/src/maps/multiway.csv has it; that live's box is the same is inferred.
+barbarian_village	0	3072	3392	3135	3455
+# Stronghold of Security, floor 1 (the Vault of War): the OSRS Wiki says the first level is multi-way. The box is
+# its whole map square 29_81 (region 7505), which holds no other floor; that the whole floor is multi-way is inferred.
+stronghold_of_security_1	0	1856	5184	1919	5247

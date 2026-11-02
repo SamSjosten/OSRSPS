@@ -4,6 +4,7 @@ import com.displee.cache.CacheLibrary
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.netty.buffer.Unpooled
 import osrsps.game.Quest
+import osrsps.game.QuestKind
 import osrsps.game.QuestVar
 import osrsps.game.Quests
 
@@ -23,8 +24,13 @@ object QuestLoader {
     const val QUEST_TABLE = 0
     private const val COL_DISPLAYNAME = 2
     private const val COL_RELEASE_TYPE = 3
+    private const val COL_TYPE = 4
     private const val COL_QUESTPOINTS = 17
     private const val COL_ENDSTATE = 19
+    private const val COL_PARENT_QUEST = 21
+
+    /** Type column value for a miniquest (client proc quest_is_miniquest). */
+    private const val TYPE_MINIQUEST = 1
 
     /**
      * Release types whose quests are left alone. Script 4029 reports type 2 as not started, so it is not out yet
@@ -55,9 +61,14 @@ object QuestLoader {
                 continue
             }
             val points = row.columns[COL_QUESTPOINTS]?.firstOrNull() as? Int ?: 0
-            quests += Quest(rowId, name, progress, end, points)
+            val kind = when {
+                row.columns[COL_TYPE]?.firstOrNull() == TYPE_MINIQUEST -> QuestKind.MINIQUEST
+                row.columns[COL_PARENT_QUEST] != null -> QuestKind.SUBQUEST
+                else -> QuestKind.QUEST
+            }
+            quests += Quest(rowId, name, progress, end, points, kind)
         }
-        logger.info { "Loaded ${quests.size} quests worth ${quests.sumOf { it.questPoints }} quest points" }
+        logger.info { "Loaded ${quests.size} quests (${quests.count { it.kind == QuestKind.QUEST }} not counting miniquests and parts) worth ${quests.sumOf { it.questPoints }} quest points" }
         return quests
     }
 

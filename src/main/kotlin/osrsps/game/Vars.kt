@@ -22,6 +22,17 @@ class VarTypes(
 
     fun varbit(id: Int): VarbitType? = varbits[id]
 
+    /**
+     * These plus [extra] varbits, whose ids must be new, with the varp count grown to cover their base varps: for
+     * varbits of our own ([osrsps.game.content.CustomVars]), which the client gets through the cache overlay.
+     */
+    fun with(extra: Map<Int, VarbitType>): VarTypes {
+        if (extra.isEmpty()) return this
+        val merged = HashMap(varbits)
+        for ((id, type) in extra) require(merged.put(id, type) == null) { "Varbit $id is already in the cache" }
+        return VarTypes(maxOf(varpCount, extra.values.maxOf { it.baseVar } + 1), merged)
+    }
+
     companion object {
         /**
          * For tests and caches with no var configs. 6,000 varps covers every id RuneLite's VarPlayerID names for
