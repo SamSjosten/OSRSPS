@@ -25,7 +25,7 @@ class ArchiveLobbyTest {
             h.menu(*menu)
         }
         h.pick(4)
-        h.expect("general_montoya.thanks", "general_montoya.thanks_1")
+        h.expect("general_montoya.thanks", "general_montoya.thanks_1 name=Zezima")
         h.ends()
     }
 

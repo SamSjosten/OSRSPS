@@ -437,7 +437,7 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[general_montoya.thanks_1]"
+   "contains": "[general_montoya.thanks_1 name="
   },
   {
    "step": "continueDialogue"

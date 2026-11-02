@@ -23,7 +23,7 @@ object GeneralMontoyaLines : Lines("general_montoya", "Transcript:General_Montoy
     val ARCHIVE_TALK = said("archive", "WWPWPWWPWWPWP")
     val ENEMIES_TALK = said("enemies", "WPWPWWPWPWPWPWPWPW")
     val EVERYBODY_TALK = said("everybody", "WPW")
-    val THANKS_TALK = said("thanks", "W")
+    val THANKS_ANSWER = line("thanks_1", "thanks, line 1: hers, with the player's name", "name")
 
     private fun said(topic: String, speakers: String) = turns(speakers) { i, npc ->
         line("${topic}_$i", "$topic, line $i: ${if (npc) "hers" else "the player's"}")
@@ -141,7 +141,7 @@ object ArchiveLobby {
                 3 -> EVERYBODY to EVERYBODY_TALK
                 else -> {
                     chatPlayer(ChatAnim.HAPPY, THANKS)
-                    say(THANKS_TALK, ChatAnim.HAPPY)
+                    chatNpc(ChatAnim.HAPPY, THANKS_ANSWER, "name" to player.username)
                     return@with
                 }
             }
