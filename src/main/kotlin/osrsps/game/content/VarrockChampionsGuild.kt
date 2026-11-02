@@ -121,7 +121,9 @@ object VarrockChampionsGuild {
 
     /**
      * Through the door from whichever side the player stands: the door swings open for [DOOR_TICKS] and the player walks
-     * onto the tile beyond it. Coming in, the Guildmaster (when he's by the door) greets them first.
+     * onto the tile beyond it. Coming in, the Guildmaster (when he's by the door) greets them first. A player beside the
+     * doorway (the door is reached from the tiles either side of it too) steps into it first, as the museum's gate has it:
+     * the open leaf stands on the inside doorway tile and blocks a diagonal step past it.
      */
     suspend fun ScriptContext.throughDoor(world: World, door: ZoneLoc) {
         arriveDelay()
@@ -133,6 +135,12 @@ object VarrockChampionsGuild {
             if (guildmaster != null) world.dialogues.start(this, guildmaster) { chatNpc(ChatAnim.HAPPY, GuildmasterLines.WELCOME) }
         }
         if (!world.locs.exists(door)) return
+        val front = if (comingIn) DOOR_Z else DOOR_Z - 1
+        if (player.x != DOOR_X || player.z != front) {
+            world.teleport(player, DOOR_X, front, 0)
+            delay(1)
+            if (!world.locs.exists(door)) return
+        }
         world.doors.openAs(door, DOOR_OPEN, shutAfter = DOOR_TICKS)
         player.waypoints.clear()
         player.waypoints.add(Tile(DOOR_X, if (comingIn) DOOR_Z - 1 else DOOR_Z))
@@ -157,6 +165,8 @@ fun registerVarrockChampionsGuild(world: World) {
             arriveDelay()
             player.anim(Climbing.ANIM_PICKUP_FLOOR)
             delay(1)
+            // Someone may have shut it meanwhile (or its timer did): then there's no way down.
+            if (!world.locs.exists(op.loc!!)) return@onLoc
             world.teleport(player, BASEMENT.x, BASEMENT.z, BASEMENT.level)
         }
         world.handlers.onLoc(LADDER, CLIMB_UP) { op ->

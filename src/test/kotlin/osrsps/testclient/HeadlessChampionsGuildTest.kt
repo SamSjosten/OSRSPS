@@ -127,6 +127,12 @@ class HeadlessChampionsGuildTest {
                 client.locOp(door.id, door.x, door.z, VarrockChampionsGuild.OPEN)
                 client.awaitAt(3191, 3363)
                 assertEquals(null, client.dialogueView)
+                // From beside the doorway, outside: into the doorway first, then through past the open leaf.
+                client.await("the door shut") { world.locs[3191, 3363, 0, 0]?.takeIf { it.id == VarrockChampionsGuild.DOOR } }
+                client.tele(3190, 3363)
+                client.locOp(door.id, door.x, door.z, VarrockChampionsGuild.OPEN)
+                client.chat("guildmaster.welcome")
+                client.awaitAt(3191, 3362)
             }
         }
     }
