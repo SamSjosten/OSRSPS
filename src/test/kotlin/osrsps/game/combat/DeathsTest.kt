@@ -520,4 +520,17 @@ class DeathsTest {
         assertEquals(InvObj(lobster.id, 1), alice.priceChecker[0])
         assertEquals(28L, alice.inventory.count(bones.id))
     }
+
+    @Test
+    fun `a player respawned on their feet falls first, so Protect Item counts and the prayers go off`() {
+        alice.inventory.add(lobster, 4)
+        alice.inventory.add(coins, 10)
+        protectItem = true
+        assertFalse(alice.dead)
+        deaths.respawn(alice, DeathPlace(keepItems = false, 3200, 3201, 0, 3205, 3206, 0))
+        assertFalse(protectItem, "prayers off")
+        assertEquals(4L, alice.inventory.count(lobster.id))
+        assertEquals(10L, deaths.graveOf(alice)!!.items.count(coins.id))
+        assertEquals(0L, deaths.graveOf(alice)!!.items.count(lobster.id))
+    }
 }
