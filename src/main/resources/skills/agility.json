@@ -6,7 +6,8 @@
     "Courses: key, obstacles (their keys in order), lapXpTenths (on top of the last obstacle's; 0 for the rooftops, whose last obstacle holds the lap's) and lapLine (the lap count message's key); for marks of grace also level (the course's Agility level), marks (the [x, z, level] tiles a mark lands on) and markChance ([numerator, denominator] a lap). An obstacle may name its own levelLine.",
     "Marks of grace: the chance a lap (2/6 on every course here) and the spots from the OSRS Wiki's Mark of Grace page and its Mark of grace spawns table (read 2026-11-02); Draynor's: the roofs of the start, Diango's Workshop, the Slayer shop and Ned's rope shop.",
     "Draynor Village Rooftop Course: locs, tiles and options from the 241 cache's map (the roofs are the level 3 tiles with floor); levels and XP from the OSRS Wiki (read 2026-11-02, after the 8 May 2024 rework: level 1, nothing fails). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations (by their cache names), every tick count and exact move timing.",
-    "Al Kharid Rooftop Course: locs, tiles and options from the 241 cache's map (roofs at levels 1 to 3: the zip line lands on level 1 and the tree swings to level 2); level 20, the XP of each obstacle (216 a lap) and Tightrope 1 and the zip line failing for 1 to 5 damage from the OSRS Wiki (read 2026-11-02); its mark spots from the Wiki's spawns table (the plateskirt shop's roof on level 1, the others on level 3). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names (human_ropeswing_long for the cable and the tree, zipline_bite and zipline_slide, human_walk_logbalance_stumble for a fall), every tick count and exact move timing, the fail chances and where a fall lands."
+    "Al Kharid Rooftop Course: locs, tiles and options from the 241 cache's map (roofs at levels 1 to 3: the zip line lands on level 1 and the tree swings to level 2); level 20, the XP of each obstacle (216 a lap) and Tightrope 1 and the zip line failing for 1 to 5 damage from the OSRS Wiki (read 2026-11-02); its mark spots from the Wiki's spawns table (the plateskirt shop's roof on level 1, the others on level 3). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names (human_ropeswing_long for the cable and the tree, zipline_bite and zipline_slide, human_walk_logbalance_stumble for a fall), every tick count and exact move timing, the fail chances and where a fall lands.",
+    "Varrock Rooftop Course: locs, tiles and options from the 241 cache's map (roofs on levels 1 and 3: the first gap lands on level 1 and the wall climbs back to 3); level 30, each obstacle's XP (269.7 a lap, the edge's 143.7 holding the lap's) and the clothes line failing for 3 to 8, the wall for 2 to 5 from the OSRS Wiki (read 2026-11-02); its mark spots from the Wiki's spawns table, two moved onto the nearest floor tile (the clothes shop ledge to 3196,3416 on level 1, the tavern roof to 3220,3402). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names, the wall's route along its top, every tick count and exact move timing, the fail chances and where a fall lands."
   ],
   "obstacles": [
     {
@@ -571,6 +572,395 @@
           ]
         }
       ]
+    },
+    {
+      "key": "varrock_rough_wall",
+      "loc": 14412,
+      "option": "Climb",
+      "level": 30,
+      "levelLine": "agility.varrock_level",
+      "xpTenths": 135,
+      "routes": [
+        {
+          "from": [
+            3221,
+            3414,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 828,
+              "ticks": 2
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3219,
+                3414,
+                3
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "varrock_clothes_line",
+      "loc": 14413,
+      "option": "Cross",
+      "level": 30,
+      "levelLine": "agility.varrock_level",
+      "xpTenths": 230,
+      "success": [
+        225,
+        255
+      ],
+      "damage": [
+        3,
+        8
+      ],
+      "routes": [
+        {
+          "from": [
+            3214,
+            3414,
+            3
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3208,
+                  3414
+                ]
+              ],
+              "anim": 762
+            }
+          ],
+          "fail": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3211,
+                  3414
+                ]
+              ],
+              "anim": 762
+            },
+            {
+              "type": "anim",
+              "anim": 764,
+              "ticks": 1
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3211,
+                3415,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "varrock_gap_1",
+      "loc": 14414,
+      "option": "Leap",
+      "level": 30,
+      "levelLine": "agility.varrock_level",
+      "xpTenths": 190,
+      "routes": [
+        {
+          "from": [
+            3201,
+            3416,
+            3
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3197,
+                3416,
+                1
+              ],
+              "anim": 2586,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "anim",
+              "anim": 2588,
+              "ticks": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "varrock_wall",
+      "loc": 14832,
+      "option": "Balance",
+      "level": 30,
+      "levelLine": "agility.varrock_level",
+      "xpTenths": 280,
+      "success": [
+        225,
+        255
+      ],
+      "damage": [
+        2,
+        5
+      ],
+      "routes": [
+        {
+          "from": [
+            3194,
+            3416,
+            1
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3190,
+                  3416
+                ],
+                [
+                  3190,
+                  3412
+                ]
+              ],
+              "anim": 756
+            },
+            {
+              "type": "anim",
+              "anim": 828,
+              "ticks": 2
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3192,
+                3406,
+                3
+              ]
+            }
+          ],
+          "fail": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3190,
+                  3416
+                ],
+                [
+                  3190,
+                  3414
+                ]
+              ],
+              "anim": 756
+            },
+            {
+              "type": "anim",
+              "anim": 764,
+              "ticks": 1
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3190,
+                3417,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "varrock_gap_2",
+      "loc": 14833,
+      "option": "Leap",
+      "level": 30,
+      "levelLine": "agility.varrock_level",
+      "xpTenths": 100,
+      "routes": [
+        {
+          "from": [
+            3193,
+            3402,
+            3
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3193,
+                3398,
+                3
+              ],
+              "anim": 2586,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "anim",
+              "anim": 2588,
+              "ticks": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "varrock_gap_3",
+      "loc": 14834,
+      "option": "Leap",
+      "level": 30,
+      "levelLine": "agility.varrock_level",
+      "xpTenths": 245,
+      "routes": [
+        {
+          "from": [
+            3208,
+            3397,
+            3
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3218,
+                3397,
+                3
+              ],
+              "anim": 2586,
+              "startCycles": 15,
+              "endCycles": 75,
+              "ticks": 3
+            },
+            {
+              "type": "anim",
+              "anim": 2588,
+              "ticks": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "varrock_gap_4",
+      "loc": 14835,
+      "option": "Leap",
+      "level": 30,
+      "levelLine": "agility.varrock_level",
+      "xpTenths": 45,
+      "routes": [
+        {
+          "from": [
+            3232,
+            3402,
+            3
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3236,
+                3403,
+                3
+              ],
+              "anim": 2586,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "anim",
+              "anim": 2588,
+              "ticks": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "varrock_ledge",
+      "loc": 14836,
+      "option": "Hurdle",
+      "level": 30,
+      "levelLine": "agility.varrock_level",
+      "xpTenths": 35,
+      "routes": [
+        {
+          "from": [
+            3236,
+            3408,
+            3
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3236,
+                3410,
+                3
+              ],
+              "anim": 2586,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "anim",
+              "anim": 2588,
+              "ticks": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "varrock_edge",
+      "loc": 14841,
+      "option": "Jump-off",
+      "level": 30,
+      "levelLine": "agility.varrock_level",
+      "xpTenths": 1437,
+      "routes": [
+        {
+          "from": [
+            3236,
+            3415,
+            3
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2586,
+              "ticks": 2
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3236,
+                3417,
+                0
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "courses": [
@@ -654,6 +1044,54 @@
         [
           3302,
           3187,
+          3
+        ]
+      ],
+      "markChance": [
+        2,
+        6
+      ]
+    },
+    {
+      "key": "varrock",
+      "obstacles": [
+        "varrock_rough_wall",
+        "varrock_clothes_line",
+        "varrock_gap_1",
+        "varrock_wall",
+        "varrock_gap_2",
+        "varrock_gap_3",
+        "varrock_gap_4",
+        "varrock_ledge",
+        "varrock_edge"
+      ],
+      "lapXpTenths": 0,
+      "lapLine": "agility.varrock_laps",
+      "level": 30,
+      "marks": [
+        [
+          3185,
+          3394,
+          3
+        ],
+        [
+          3191,
+          3394,
+          3
+        ],
+        [
+          3196,
+          3416,
+          1
+        ],
+        [
+          3220,
+          3402,
+          3
+        ],
+        [
+          3238,
+          3406,
           3
         ]
       ],

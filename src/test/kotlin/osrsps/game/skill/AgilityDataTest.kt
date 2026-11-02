@@ -38,6 +38,17 @@ class AgilityDataTest {
     }
 
     @Test
+    fun `Varrock is level 30 throughout, 269,7 XP a lap, and only the clothes line and the wall hurt`() {
+        val varrock = AgilityData.load().courses.single { it.key == "varrock" }
+        assertEquals(30, varrock.level)
+        assertEquals(9, varrock.obstacles.size)
+        assertTrue(varrock.obstacles.all { it.level == 30 && it.levelLine == AgilityLines.VARROCK_LEVEL })
+        assertEquals(2_697, varrock.obstacles.sumOf { it.xpTenths } + varrock.lapXpTenths)
+        assertEquals(mapOf("varrock_clothes_line" to 3..8, "varrock_wall" to 2..5), varrock.obstacles.filter { it.success != null }.associate { it.key to it.damage })
+        assertEquals(5, varrock.markSpots.size)
+    }
+
+    @Test
     fun `20 levels over a course cut the mark chance to a fifth`() {
         val course = AgilityData.load().courses.single { it.key == "draynor" }
         assertEquals(2 to 6, Agility.markOdds(course, 1))
