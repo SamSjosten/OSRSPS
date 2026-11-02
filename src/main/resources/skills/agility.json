@@ -3,8 +3,10 @@
     "Agility obstacles, by course. Each obstacle: key, loc (type id), option (the start of the loc's option text), level, xpTenths, at ([x, z, level], only when several locs of one type are different obstacles), routes, and for one that can fail success ([low, high] out of 256, guessed: the Wiki gives no fail rates) and damage ([min, max]).",
     "A route: from ([x, z, level], where the player starts; the nearest route is taken), moves, and fail (the moves of a failure, for an obstacle that can fail).",
     "Moves, in order: anim (anim, ticks: plays it and waits), teleport (to: straight there, another level too), walk (path of [x, z] turning points, anim: one tile a tick through anything, with anim as the whole stance), slide (to, anim, startCycles, endCycles, ticks: the client's exact move; client cycles are 20 ms, 30 a tick).",
-    "Courses: key, obstacles (their keys in order), lapXpTenths (on top of the last obstacle's; 0 for the rooftops, whose last obstacle holds the lap's) and lapLine (the lap count message's key); for marks of grace also level (the course's Agility level), marks (the [x, z, level] tiles a mark lands on) and markChance ([numerator, denominator] a lap). An obstacle may name its own levelLine.", "Marks of grace: the chance a lap (2/6 on every course here) and the spots from the OSRS Wiki's Mark of Grace page and its Mark of grace spawns table (read 2026-11-02); Draynor's: the roofs of the start, Diango's Workshop, the Slayer shop and Ned's rope shop.",
-    "Draynor Village Rooftop Course: locs, tiles and options from the 241 cache's map (the roofs are the level 3 tiles with floor); levels and XP from the OSRS Wiki (read 2026-11-02, after the 8 May 2024 rework: level 1, nothing fails). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations (by their cache names), every tick count and exact move timing."
+    "Courses: key, obstacles (their keys in order), lapXpTenths (on top of the last obstacle's; 0 for the rooftops, whose last obstacle holds the lap's) and lapLine (the lap count message's key); for marks of grace also level (the course's Agility level), marks (the [x, z, level] tiles a mark lands on) and markChance ([numerator, denominator] a lap). An obstacle may name its own levelLine.",
+    "Marks of grace: the chance a lap (2/6 on every course here) and the spots from the OSRS Wiki's Mark of Grace page and its Mark of grace spawns table (read 2026-11-02); Draynor's: the roofs of the start, Diango's Workshop, the Slayer shop and Ned's rope shop.",
+    "Draynor Village Rooftop Course: locs, tiles and options from the 241 cache's map (the roofs are the level 3 tiles with floor); levels and XP from the OSRS Wiki (read 2026-11-02, after the 8 May 2024 rework: level 1, nothing fails). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations (by their cache names), every tick count and exact move timing.",
+    "Al Kharid Rooftop Course: locs, tiles and options from the 241 cache's map (roofs at levels 1 to 3: the zip line lands on level 1 and the tree swings to level 2); level 20, the XP of each obstacle (216 a lap) and Tightrope 1 and the zip line failing for 1 to 5 damage from the OSRS Wiki (read 2026-11-02); its mark spots from the Wiki's spawns table (the plateskirt shop's roof on level 1, the others on level 3). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names (human_ropeswing_long for the cable and the tree, zipline_bite and zipline_slide, human_walk_logbalance_stumble for a fall), every tick count and exact move timing, the fail chances and where a fall lands."
   ],
   "obstacles": [
     {
@@ -234,6 +236,341 @@
           ]
         }
       ]
+    },
+    {
+      "key": "alkharid_rough_wall",
+      "loc": 11633,
+      "option": "Climb",
+      "level": 20,
+      "levelLine": "agility.alkharid_level",
+      "xpTenths": 120,
+      "routes": [
+        {
+          "from": [
+            3273,
+            3195,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 828,
+              "ticks": 2
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3273,
+                3192,
+                3
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "alkharid_tightrope_1",
+      "loc": 14398,
+      "option": "Cross",
+      "level": 20,
+      "levelLine": "agility.alkharid_level",
+      "xpTenths": 360,
+      "success": [
+        225,
+        255
+      ],
+      "damage": [
+        1,
+        5
+      ],
+      "routes": [
+        {
+          "from": [
+            3272,
+            3182,
+            3
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3272,
+                  3172
+                ]
+              ],
+              "anim": 762
+            }
+          ],
+          "fail": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3272,
+                  3178
+                ]
+              ],
+              "anim": 762
+            },
+            {
+              "type": "anim",
+              "anim": 764,
+              "ticks": 1
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3273,
+                3178,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "alkharid_cable",
+      "loc": 14402,
+      "option": "Swing-across",
+      "level": 20,
+      "levelLine": "agility.alkharid_level",
+      "xpTenths": 480,
+      "routes": [
+        {
+          "from": [
+            3271,
+            3166,
+            3
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 751,
+              "ticks": 1
+            },
+            {
+              "type": "slide",
+              "to": [
+                3284,
+                3166,
+                3
+              ],
+              "anim": 751,
+              "startCycles": 0,
+              "endCycles": 90,
+              "ticks": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "alkharid_zip_line",
+      "loc": 14403,
+      "option": "Teeth-grip",
+      "level": 20,
+      "levelLine": "agility.alkharid_level",
+      "xpTenths": 480,
+      "success": [
+        225,
+        255
+      ],
+      "damage": [
+        1,
+        5
+      ],
+      "routes": [
+        {
+          "from": [
+            3301,
+            3163,
+            3
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 1601,
+              "ticks": 1
+            },
+            {
+              "type": "slide",
+              "to": [
+                3315,
+                3163,
+                1
+              ],
+              "anim": 1602,
+              "startCycles": 0,
+              "endCycles": 120,
+              "ticks": 4
+            }
+          ],
+          "fail": [
+            {
+              "type": "anim",
+              "anim": 1601,
+              "ticks": 1
+            },
+            {
+              "type": "slide",
+              "to": [
+                3308,
+                3163,
+                3
+              ],
+              "anim": 1602,
+              "startCycles": 0,
+              "endCycles": 60,
+              "ticks": 2
+            },
+            {
+              "type": "anim",
+              "anim": 764,
+              "ticks": 1
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3308,
+                3162,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "alkharid_tropical_tree",
+      "loc": 14404,
+      "option": "Swing-across",
+      "level": 20,
+      "levelLine": "agility.alkharid_level",
+      "xpTenths": 120,
+      "routes": [
+        {
+          "from": [
+            3318,
+            3165,
+            1
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 751,
+              "ticks": 1
+            },
+            {
+              "type": "slide",
+              "to": [
+                3317,
+                3174,
+                2
+              ],
+              "anim": 751,
+              "startCycles": 0,
+              "endCycles": 60,
+              "ticks": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "alkharid_roof_top_beams",
+      "loc": 11634,
+      "option": "Climb",
+      "level": 20,
+      "levelLine": "agility.alkharid_level",
+      "xpTenths": 60,
+      "routes": [
+        {
+          "from": [
+            3316,
+            3179,
+            2
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 828,
+              "ticks": 2
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3316,
+                3180,
+                3
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "alkharid_tightrope_2",
+      "loc": 14409,
+      "option": "Cross",
+      "level": 20,
+      "levelLine": "agility.alkharid_level",
+      "xpTenths": 180,
+      "routes": [
+        {
+          "from": [
+            3314,
+            3186,
+            3
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3305,
+                  3186
+                ]
+              ],
+              "anim": 762
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "alkharid_gap",
+      "loc": 14399,
+      "option": "Jump",
+      "level": 20,
+      "levelLine": "agility.alkharid_level",
+      "xpTenths": 360,
+      "routes": [
+        {
+          "from": [
+            3300,
+            3192,
+            3
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2586,
+              "ticks": 2
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3299,
+                3194,
+                0
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "courses": [
@@ -251,8 +588,79 @@
       "lapXpTenths": 0,
       "lapLine": "agility.draynor_laps",
       "level": 1,
-      "marks": [[3099, 3279, 3], [3088, 3274, 3], [3092, 3266, 3], [3099, 3259, 3]],
-      "markChance": [2, 6]
+      "marks": [
+        [
+          3099,
+          3279,
+          3
+        ],
+        [
+          3088,
+          3274,
+          3
+        ],
+        [
+          3092,
+          3266,
+          3
+        ],
+        [
+          3099,
+          3259,
+          3
+        ]
+      ],
+      "markChance": [
+        2,
+        6
+      ]
+    },
+    {
+      "key": "alkharid",
+      "obstacles": [
+        "alkharid_rough_wall",
+        "alkharid_tightrope_1",
+        "alkharid_cable",
+        "alkharid_zip_line",
+        "alkharid_tropical_tree",
+        "alkharid_roof_top_beams",
+        "alkharid_tightrope_2",
+        "alkharid_gap"
+      ],
+      "lapXpTenths": 0,
+      "lapLine": "agility.alkharid_laps",
+      "level": 20,
+      "marks": [
+        [
+          3315,
+          3161,
+          1
+        ],
+        [
+          3266,
+          3166,
+          3
+        ],
+        [
+          3284,
+          3172,
+          3
+        ],
+        [
+          3276,
+          3185,
+          3
+        ],
+        [
+          3302,
+          3187,
+          3
+        ]
+      ],
+      "markChance": [
+        2,
+        6
+      ]
     }
   ]
 }

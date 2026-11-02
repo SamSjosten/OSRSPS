@@ -601,7 +601,9 @@ fall) and deals its damage, with no XP. A course's first obstacle starts a lap a
 obstacle crossed in between, the lap counts (saved with the account) and its count is shown.
 
 Courses built: the Draynor Village Rooftop Course (from the rough wall north of the bank to the crate off Ned's
-house; level 1, 120 XP a lap, nothing fails since the May 2024 rework).
+house; level 1, 120 XP a lap, nothing fails since the May 2024 rework) and the Al Kharid Rooftop Course (from the
+rough wall on Ellis the tanner's building to the gap east of Zeke's; level 20, 216 XP a lap spread over its eight
+obstacles, Tightrope 1 and the zip line failing for 1 to 5 damage).
 
 Marks of grace: once three whole minutes of the clock have gone since a player's last mark, each lap they finish has
 the course's chance of one (2/6 on Draynor), a fifth of that when their unboosted Agility is 20 or more over the
@@ -619,6 +621,10 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Draynor rooftop: levels, XP, no failing | OSRS Wiki, Draynor Village Rooftop Course |
 | Draynor rooftop: each start, path and landing tile | inferred from the map |
 | Draynor rooftop: the animations (by their cache names), each obstacle's ticks | guessed until recorded |
+| Al Kharid rooftop: its locs and where they stand; the roofs on levels 1 to 3 (the zip line ends on level 1, the tree swings to level 2) | cache 241 map |
+| Al Kharid rooftop: level 20, each obstacle's XP, which two fail and for how much, the five mark spots | OSRS Wiki, Al Kharid Rooftop Course and the Mark of grace spawns table (read 2026-11-02) |
+| Al Kharid rooftop: each start, path and landing tile | inferred from the map |
+| Al Kharid rooftop: the animations (human_ropeswing_long, zipline_bite and zipline_slide, by their cache names), tick counts, the fail chance (225 to 255 out of 256) and where a fall lands | guessed until recorded |
 | A lap needing every obstacle; the lap progress kept across a logout | inferred, guessed |
 | The level message as a game message; fail chances (the Wiki gives none); the hit after the fall; the real tile moving when a slide's ticks are up | guessed |
 | Marks: the three-minute timer in whole minutes from the last mark, kept across a logout; 2/6 a lap, a fifth at 20 over; private, ten minutes, stacking resets the time | OSRS Wiki, Mark of Grace (read 2026-11-02) |
