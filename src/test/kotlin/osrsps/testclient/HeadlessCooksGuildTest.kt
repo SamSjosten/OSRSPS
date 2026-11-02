@@ -109,6 +109,8 @@ class HeadlessCooksGuildTest {
                 client.commandReply("resume") { it.startsWith("Resumed") }
                 client.locOp(CooksGuild.FRONT_DOOR, 3143, 3443, 1)
                 client.await("inside the guild") { client.position?.takeIf { it == Coord(3143, 3444, 0) } }
+                // The door stays shut behind the player, so no one can follow without the check.
+                kotlin.test.assertTrue(client.locChanges().none { it.id == CooksGuild.FRONT_DOOR_OPEN })
                 // And back out, with no check on the way out.
                 client.awaitTicks(3)
                 client.locOp(CooksGuild.FRONT_DOOR, 3143, 3443, 1)

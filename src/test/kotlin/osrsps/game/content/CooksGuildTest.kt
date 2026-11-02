@@ -131,6 +131,12 @@ class CooksGuildTest {
     }
 
     @Test
+    fun `a cape in the bank counts as owned`() {
+        h.player.bank[0] = InvObj(CooksGuild.COOKING_CAPE_TRIMMED, 1)
+        assertTrue(CooksGuild.ownsCape(h.player))
+    }
+
+    @Test
     fun `an owner of the cape can have another hood for free`() {
         val p = h.player
         p.skills.setLevel(Skill.COOKING, 99)

@@ -139,7 +139,7 @@ object CooksGuild {
     }
 
     fun ownsCape(player: Player): Boolean = listOf(COOKING_CAPE, COOKING_CAPE_TRIMMED).any {
-        player.inventory.count(it) > 0 || player.equipment.count(it) > 0
+        player.inventory.count(it) > 0 || player.equipment.count(it) > 0 || player.bank.count(it) > 0
     }
 
     /** The Head chef's Talk-to. Expressions are guessed. */
@@ -199,7 +199,11 @@ object CooksGuild {
     }
 }
 
-/** Opens the front door for a tick or two and walks the player through, out or (when let in) in. */
+/**
+ * The front door: the player is let through, in (when the Head chef allows it) or out, onto the tile on the other side.
+ * Guessed: the door isn't swung open, so no one else can slip through behind them while it stands open, as the guild's
+ * check would then be skipped (the same walk-through as the north-east room's door).
+ */
 private suspend fun ScriptContext.frontDoor(world: World, door: ZoneLoc) = with(CooksGuild) {
     arriveDelay()
     if (!inside(player, door)) {
@@ -211,13 +215,9 @@ private suspend fun ScriptContext.frontDoor(world: World, door: ZoneLoc) = with(
             return@with
         }
     }
-    world.doors.openAs(door, FRONT_DOOR_OPEN, shutAfter = DOOR_TICKS)
     val to = DraynorManor.otherSide(door, player.x, player.z)
-    player.waypoints.clear()
-    player.waypoints.add(to)
+    world.teleport(player, to.x, to.z, door.level)
 }
-
-private const val DOOR_TICKS = 2
 
 /**
  * The north room's door, on the west edge of its tile: through for 99 Cooking, either way; a message for the rest. The
