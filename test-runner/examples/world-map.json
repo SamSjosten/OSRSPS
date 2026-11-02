@@ -1,0 +1,20 @@
+{
+ "name": "World map: the globe orb opening the world map in the frame's floater, the orb again closing it, and its close button",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::buttons on", "expectMessage": "Interface clicks are echoed"},
+  {"step": "assertInterface", "interfaceId": 595, "absent": true, "comment": "worldmap: closed at login"},
+  {"step": "clickWidget", "interfaceId": 160, "component": 55, "op": 1, "comment": "orbs:worldmap, the globe: View World Map"},
+  {"step": "assertMessage", "contains": "Button 160:55 slot -1 op 1", "timeoutMs": 10000},
+  {"step": "assertInterface", "interfaceId": 595, "comment": "the map, drawn by the client in toplevel:floater"},
+  {"step": "clickWidget", "interfaceId": 160, "component": 55, "op": 1, "comment": "the globe again: Close World Map"},
+  {"step": "assertInterface", "interfaceId": 595, "absent": true},
+  {"step": "clickWidget", "interfaceId": 160, "component": 55, "op": 1},
+  {"step": "assertInterface", "interfaceId": 595},
+  {"step": "clickWidget", "interfaceId": 595, "component": 38, "op": 1, "comment": "worldmap:close, the X"},
+  {"step": "assertMessage", "contains": "Button 595:38 slot -1 op 1", "timeoutMs": 10000},
+  {"step": "assertInterface", "interfaceId": 595, "absent": true},
+  {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"}
+ ]
+}

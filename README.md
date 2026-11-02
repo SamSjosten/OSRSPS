@@ -224,6 +224,15 @@ ctrl+shift-click teleports an admin to the clicked tile (a testing tool; anyone 
 isn't sent where the cache has no map). Collision is built from the cache's map files at
 startup; the log line `Loaded collision for N map squares` confirms it.
 
+## World map
+
+The globe orb (orbs:worldmap, 160:55) sends its op to the server, and the server opens the world map, interface 595, as
+an overlay in the frame's floater, where the All Settings window also goes (the 241 scripts test that slot; read from
+Joshua-F's osrs-dumps, not seen on live). The orb again, the map's close button or Esc closes it, and walking leaves it
+open. The map itself is the client's: it draws it from the cache's worldmap index, which JS5 serves like the rest, and
+sizes, zooms, searches and floats or docks the window in its own scripts. `test-runner/examples/world-map.json` clicks
+it in the real client.
+
 To see what the server thinks is walkable around a tile (north up, `###` blocked, `[ ] ^ _` walls):
 
 ```bash

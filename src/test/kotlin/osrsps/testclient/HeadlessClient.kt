@@ -268,6 +268,9 @@ class HeadlessClient private constructor(
     /** The top-level interface and every interface open in another's component. */
     fun openInterfaces(): Set<Int> = lock.withLock { subs.values.toSet() + topLevel }
 
+    /** The interface open in [component] of [interfaceId], or null: where the server put a sub, not only that it is open. */
+    fun subAt(interfaceId: Int, component: Int): Int? = lock.withLock { subs[(interfaceId shl 16) or component] }
+
     /**
      * The zones the client was last told to draw as copies of others (an instance), by zone x, z and level, or null
      * when its last map rebuild was the world's own.
