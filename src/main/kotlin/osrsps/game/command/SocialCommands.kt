@@ -68,11 +68,31 @@ fun CommandRegistry.registerSocialCommands(world: World) {
         reply("Clan ${clan.name}: " + clan.members.joinToString { "${it.name} (rank ${it.rank})" } + if (world.clans.inChannel(player)) ", in its channel" else ", not in its channel")
     }
 
-    register("clandisband", "::clandisband") {
-        if (args.isNotEmpty()) fail("Usage: ::clandisband")
-        val clan = world.clans.clanOf(player) ?: fail("You aren't in a clan")
+    register("clandisband", "::clandisband [name]") {
+        val clan = if (args.isEmpty()) {
+            world.clans.clanOf(player) ?: fail("You aren't in a clan")
+        } else {
+            val name = args.joinToString(" ")
+            world.clans.clanNamed(name) ?: fail("No clan called $name")
+        }
         world.clans.disband(clan) { key -> world.playerNamed(key) }
         reply("Clan ${clan.name} deleted")
+    }
+
+    register("clanmake", "::clanmake <name>") {
+        if (args.isEmpty()) fail("Usage: ::clanmake <name>")
+        val name = args.joinToString(" ")
+        val clan = world.clans.makeTestClan(name) ?: fail("Can't make a clan called $name: taken or not allowed")
+        reply("Clan ${clan.name} made, for guests to find")
+    }
+
+    register("guestclan", "::guestclan", admin = false) {
+        if (args.isNotEmpty()) fail("Usage: ::guestclan")
+        val clan = world.clans.guestClanOf(player) ?: run {
+            reply("You have no guest clan")
+            return@register
+        }
+        reply("Guest of ${clan.name}, " + if (world.clans.inGuestChannel(player)) "in its channel" else "not in its channel")
     }
 
     register("ignores", "::ignores", admin = false) {
