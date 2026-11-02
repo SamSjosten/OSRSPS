@@ -37,12 +37,21 @@ class CacheOverlay(val groups: List<Group>, val files: List<File> = emptyList())
         const val MODELS_FOLDER = "models"
         const val MAX_GROUP = 0xFFFF
 
-        /** Reads [dataDir]/models/<id>.dat; other files there are left alone. A file that isn't a model stops the server. */
+        /**
+         * Reads [dataDir]/models/<id>.dat; other files there are left alone. A file that isn't a model, or whose id is
+         * past [MAX_GROUP], stops the server with what is wrong.
+         */
         fun load(dataDir: Path): CacheOverlay {
             val dir = dataDir.resolve(MODELS_FOLDER)
             if (!Files.isDirectory(dir)) return NONE
             val files = Files.list(dir).use { it.toList() }
-                .mapNotNull { file -> Regex("""(\d+)\.dat""").matchEntire(file.name)?.let { it.groupValues[1].toInt() to file } }
+                .mapNotNull { file ->
+                    Regex("""(\d+)\.dat""").matchEntire(file.name)?.let {
+                        // Too many digits for an Int is past MAX_GROUP too: say so rather than fail on the number.
+                        val id = it.groupValues[1].toIntOrNull() ?: throw IllegalArgumentException("$file: a model id has to be below 65536")
+                        id to file
+                    }
+                }
                 .sortedBy { it.first }
             val groups = files.map { (id, file) ->
                 require(id <= MAX_GROUP) { "$file: a model id has to be below 65536" }

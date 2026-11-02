@@ -111,7 +111,7 @@ class NetworkFactory(
 
     override fun getGameMessageConsumerRepositoryProvider(): GameMessageConsumerRepositoryProvider<Player> {
         val builder = GameMessageConsumerRepositoryBuilder<Player>()
-        builder.addListener(MapBuildComplete::class.java, MessageConsumer { _, _ -> })
+        builder.addListener(MapBuildComplete::class.java, MessageConsumer { player, _ -> world.onMapBuildComplete(player) })
         builder.addListener(NoTimeout::class.java, MessageConsumer { _, _ -> })
         builder.addListener(Idle::class.java, MessageConsumer { _, _ -> })
         // The client says a jingle finished. Nothing waits on one yet.

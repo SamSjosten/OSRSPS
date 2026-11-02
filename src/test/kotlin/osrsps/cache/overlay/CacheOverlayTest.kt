@@ -57,4 +57,12 @@ class CacheOverlayTest {
         val refused = assertFailsWith<IllegalArgumentException> { CacheOverlay.load(dataDir) }
         assertContains(refused.message!!, "below 65536")
     }
+
+    @Test
+    fun `refuses an id too long for a number, saying why`(@TempDir dataDir: Path) {
+        val models = Files.createDirectories(dataDir.resolve("models"))
+        Files.write(models.resolve("12345678901.dat"), model(1))
+        val refused = assertFailsWith<IllegalArgumentException> { CacheOverlay.load(dataDir) }
+        assertContains(refused.message!!, "below 65536")
+    }
 }

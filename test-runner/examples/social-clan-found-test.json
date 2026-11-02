@@ -7,6 +7,7 @@
   {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "the last run's clan, if any: 'Clan ... deleted' or 'You aren't in a clan'"},
   {"step": "command", "text": "::clanfounding 2 0", "expectMessage": "Founding a clan now takes 2 founders"},
   {"step": "command", "text": "::tele 3181 3474 0", "expectMessage": "Teleported", "comment": "the Clan Hub, beside its clerk"},
+  {"step": "runClientScript", "id": 915, "args": [7], "comment": "shows the Clans side tab (toplevel_sidebutton_switch), so its panels count as open"},
   {"step": "clickWidget", "interfaceId": 707, "component": 3, "comment": "the Clans tab's Your Clan tab"},
   {"step": "assertInterface", "interfaceId": 705, "comment": "the clan creation panel"},
   {"step": "playerOption", "player": "test2", "option": "Recruit", "x": 3183, "y": 3474, "timeoutMs": 180000, "comment": "once test2 stands on the meeting tile, after its ::keys on"},

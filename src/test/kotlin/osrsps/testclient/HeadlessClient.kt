@@ -227,6 +227,12 @@ class HeadlessClient private constructor(
     /** Whether the server has sent the friends list (FRIENDLIST_LOADED or UPDATE_FRIENDLIST). */
     val friendsLoaded: Boolean get() = lock.withLock { friendListLoaded }
 
+    /** Forgets that the friends list came, as the real client did with the one sent at login (VM 215). */
+    fun forgetFriendsLoaded() = lock.withLock { friendListLoaded = false }
+
+    /** The client's map is built (MAP_BUILD_COMPLETE), as after the login's rebuild. */
+    fun mapBuildComplete() = send(GameClientProt.MAP_BUILD_COMPLETE) {}
+
     /** The local player's moves, in order, each with the tick it arrived in. */
     fun moves(): List<TickMove> = lock.withLock { moves.toList() }
 
