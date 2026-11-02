@@ -120,6 +120,7 @@ object DialogueLines {
         DuelGuideLines,
         DukeLines,
         EdgevilleClosedLines,
+        EdgevilleDungeonLines,
         EdgevilleLines,
         EdgevilleMonkLines,
         EdgevilleShopAssistantLines,

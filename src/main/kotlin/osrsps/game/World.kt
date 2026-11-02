@@ -115,6 +115,7 @@ import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
+import osrsps.game.content.registerEdgevilleDungeon
 import osrsps.game.content.registerBarbarianVillage
 import osrsps.game.content.registerCooksGuild
 import osrsps.game.content.registerEdgevilleMonastery
@@ -746,6 +747,7 @@ class World(
         registerEdgevilleMonastery(this)
         registerBarbarianVillage(this)
         registerCooksGuild(this)
+        registerEdgevilleDungeon(this)
         registerHaystacks(this)
         registerLodestones(this)
         registerVarrock(this)
