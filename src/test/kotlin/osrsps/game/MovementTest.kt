@@ -6,6 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
+import osrsps.map.Tile
 
 class MovementTest {
     private val map = CollisionMap().apply { markLoaded(3200 shr 6, 3200 shr 6) }
@@ -107,6 +108,41 @@ class MovementTest {
         movement.process(player)
         // ⌊1 / 10⌋ + 15
         assertEquals(5000 - 59 + 15, player.runEnergy)
+    }
+
+    @Test
+    fun `agility slows the drain and quickens the restore, the boosted level counting`() {
+        val player = player().apply { runEnabled = true; runEnergy = 5000 }
+        player.skills.setLevel(Skill.AGILITY, 99)
+        movement.request(player, 3220, 3210, invertRun = false)
+        movement.process(player)
+        // ⌊60 × (1 − 99/300)⌋ = ⌊40.2⌋
+        assertEquals(5000 - 40, player.runEnergy)
+        player.waypoints.clear()
+        movement.process(player)
+        // ⌊99 / 10⌋ + 15
+        assertEquals(5000 - 40 + 24, player.runEnergy)
+        player.skills.setCurrentLevel(Skill.AGILITY, 104)
+        movement.process(player)
+        assertEquals(5000 - 40 + 24 + 25, player.runEnergy)
+    }
+
+    @Test
+    fun `forced steps go a tile a tick through walls and before the route, and count as walking`() {
+        val blocked = CollisionMap().apply {
+            markLoaded(3200 shr 6, 3200 shr 6)
+            add(3211, 3210, 0, CollisionFlag.LOC)
+        }
+        val player = player().apply { runEnabled = true; runEnergy = 5000 }
+        val moving = Movement(blocked)
+        moving.request(player, 3210, 3215, invertRun = false)
+        player.forcedSteps.addAll(listOf(Tile(3211, 3210), Tile(3212, 3210)))
+        assertEquals(MoveResult.WALKED, moving.process(player))
+        assertEquals(3211, player.x)
+        assertEquals(5000 + 15, player.runEnergy)
+        assertEquals(MoveResult.WALKED, moving.process(player))
+        assertEquals(3212, player.x)
+        assertTrue(player.forcedSteps.isEmpty())
     }
 
     @Test

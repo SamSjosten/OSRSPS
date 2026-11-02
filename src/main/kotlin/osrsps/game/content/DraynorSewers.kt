@@ -1,5 +1,6 @@
 package osrsps.game.content
 
+import osrsps.game.GameLines
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
@@ -29,7 +30,8 @@ object RuantunLines : Lines("ruantun", "Transcript:Ruantun") {
  * - The east entrance, west of the jail: the trapdoor (`6434` at 3118,3244) opens into the open trapdoor (`6435`,
  *   Climb-down) for everyone, and the ladder below (`6436` at 3118,9643) climbs back up. The ladder is a tile further
  *   south of its trapdoor than a dungeon's 6400, so a climb keeps the player where they stood beside the one, beside the
- *   other ([EAST]), and climbing up never lands on the trapdoor itself. The west entrance, north of the market: the same
+ *   other ([EAST]) when that tile is free, else on a free tile beside it ([landing]), and climbing up never lands on the
+ *   trapdoor itself. Both types climb only at these tiles; the 241 map has them nowhere else. The west entrance, north of the market: the same
  *   trapdoor at 3084,3272, whose ladder below (`ladder_from_cellar` 17385 at 3084,9672, the 6400 below) is the Lumbridge
  *   cellar's type and already climbs up ([LumbridgeCastle]). Opening uses the furniture's open animation and stays open
  *   for [Searching.CHANGE_TICKS] before it shuts again, as 2004Scape's furniture does: both guessed (the open type has
@@ -58,6 +60,18 @@ object DraynorSewers {
 
     /** The entrance whose trapdoor is at [x], [z] on the ground. */
     fun entranceAt(x: Int, z: Int): Entrance? = listOf(EAST, WEST).firstOrNull { it.trapdoor.x == x && it.trapdoor.z == z }
+
+    /**
+     * Where a climb from [from] to [to] puts a player standing at [x], [z]: as far from [to] as they stood from [from]
+     * when [canStand] there, else the first tile south, north, west or east of [to] they can stand on, else [to]'s
+     * south tile (guessed: no entrance has all four blocked).
+     */
+    fun landing(from: Tile, to: Tile, x: Int, z: Int, canStand: (Int, Int) -> Boolean): Tile {
+        val kept = Tile(to.x + (x - from.x).coerceIn(-1, 1), to.z + (z - from.z).coerceIn(-1, 1))
+        if (kept != to && canStand(kept.x, kept.z)) return kept
+        val around = listOf(Tile(to.x, to.z - 1), Tile(to.x, to.z + 1), Tile(to.x - 1, to.z), Tile(to.x + 1, to.z))
+        return around.firstOrNull { canStand(it.x, it.z) } ?: around.first()
+    }
 
     const val RUANTUN = 3461
     const val TALK_TO = 1
@@ -88,17 +102,21 @@ object DraynorSewers {
 fun registerDraynorSewers(world: World) {
     with(DraynorSewers) {
         world.handlers.onLoc(TRAPDOOR, OPEN) { op -> swapFurniture(world, op.loc!!, TRAPDOOR_OPEN, Searching.ANIM_OPEN) }
+        // Keyed on tile as well as type: the open trapdoor and the ladder climb only between the entrances' tiles. The
+        // 241 map has the trapdoor and the ladder nowhere else, so anywhere else is nothing interesting.
         world.handlers.onLoc(TRAPDOOR_OPEN, CLIMB) { op ->
             val loc = op.loc!!
             val entrance = entranceAt(loc.x, loc.z)
-            if (entrance == null) climbDungeonLadder(world, loc, down = true, anim = Climbing.ANIM_PICKUP_FLOOR)
+            if (entrance == null || loc.level != 0) world.message(player, GameLines.NOTHING_INTERESTING)
             else climbBetween(world, loc, entrance.trapdoor, entrance.ladder, Climbing.ANIM_PICKUP_FLOOR)
         }
         world.handlers.onLoc(EAST_LADDER, CLIMB) { op ->
             val loc = op.loc!!
-            // The type may stand under other trapdoors too: those are a dungeon's 6400 below theirs.
-            if (loc.x == EAST.ladder.x && loc.z == EAST.ladder.z) climbBetween(world, loc, EAST.ladder, EAST.trapdoor, Climbing.ANIM_REACH_FOR_LADDER)
-            else climbDungeonLadder(world, loc, down = false, anim = Climbing.ANIM_REACH_FOR_LADDER)
+            if (loc.x == EAST.ladder.x && loc.z == EAST.ladder.z && loc.level == 0) {
+                climbBetween(world, loc, EAST.ladder, EAST.trapdoor, Climbing.ANIM_REACH_FOR_LADDER)
+            } else {
+                world.message(player, GameLines.NOTHING_INTERESTING)
+            }
         }
         world.handlers.onNpc(RUANTUN, TALK_TO) { op -> world.dialogues.start(this, op.npc) { ruantun() } }
     }
@@ -106,13 +124,13 @@ fun registerDraynorSewers(world: World) {
 
 /**
  * Climbs from [from] (the loc [loc] the player uses) to [to], keeping where the player stands beside it: they come out
- * as far from [to] as they stood from [from]. As for [climbDungeonLadder], the tile is taken before the wait.
+ * as far from [to] as they stood from [from], when that tile can be stood on, and otherwise on the first of the tiles
+ * south, north, west and east of [to] that can ([landing]). As for [climbDungeonLadder], the tile is taken before the wait.
  */
 private suspend fun ScriptContext.climbBetween(world: World, loc: ZoneLoc, from: Tile, to: Tile, anim: Int) {
-    val x = to.x + player.x - from.x
-    val z = to.z + player.z - from.z
+    val land = DraynorSewers.landing(from, to, player.x, player.z) { x, z -> world.canStand(x, z, loc.level) }
     arriveDelay()
     player.anim(anim)
     delay(1)
-    world.teleport(player, x, z, loc.level)
+    world.teleport(player, land.x, land.z, loc.level)
 }

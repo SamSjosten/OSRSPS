@@ -24,6 +24,13 @@ class PlayerEffects {
 
     class Sound(val id: Int, val loops: Int, val delay: Int)
 
+    /**
+     * A forced movement (the client's exact move): the player is shown at [fromX], [fromZ] from [startCycles] after the
+     * update and slides to [toX], [toZ] by [endCycles], facing [angle] (0 south, 512 west, 1024 north, 1536 east).
+     * Absolute tiles here; [World] sends them as deltas from where the player stands when it goes out.
+     */
+    class ExactMove(val fromX: Int, val fromZ: Int, val toX: Int, val toZ: Int, val startCycles: Int, val endCycles: Int, val angle: Int)
+
     /** The animation to send, or null if none was set. Id -1 stops the current one. */
     var anim: Anim? = null
         private set
@@ -72,6 +79,19 @@ class PlayerEffects {
         spotanims[slot] = SpotAnim(id, height, delay)
     }
 
+    /** The forced movement to send, or null if none was set. */
+    var exactMove: ExactMove? = null
+        private set
+
+    /** Only one forced movement goes out a cycle; a later one in the same cycle replaces it. */
+    fun exactMove(move: ExactMove) {
+        require(move.startCycles in 0..move.endCycles && move.endCycles <= MAX_SHORT) {
+            "Exact move cycles ${move.startCycles} to ${move.endCycles} must be 0 to $MAX_SHORT, start first"
+        }
+        require(move.angle in 0 until MAX_ANGLE) { "Exact move angle ${move.angle} must be 0 to ${MAX_ANGLE - 1}" }
+        exactMove = move
+    }
+
     /** Every sound effect is sent, in the order played. */
     fun sound(id: Int, loops: Int, delay: Int) {
         require(id in 0..MAX_SHORT) { "Sound id $id must be 0 to $MAX_SHORT" }
@@ -100,6 +120,7 @@ class PlayerEffects {
         jingle: (Int) -> Unit,
         hit: (Hit) -> Unit = {},
         headBar: (HeadBar) -> Unit = {},
+        exactMove: (ExactMove) -> Unit = {},
     ) {
         // Forgotten before sending, so a failed send can't repeat them next cycle.
         val sendAnim = this.anim
@@ -108,6 +129,8 @@ class PlayerEffects {
         val sendJingle = this.jingle
         val sendHits = hits.toList()
         val sendBars = headBars.toList()
+        val sendExactMove = this.exactMove
+        this.exactMove = null
         this.anim = null
         spotanims.clear()
         sounds.clear()
@@ -120,6 +143,7 @@ class PlayerEffects {
         sendJingle?.let(jingle)
         sendHits.forEach(hit)
         sendBars.forEach(headBar)
+        sendExactMove?.let(exactMove)
     }
 
     // Checked here rather than when sent, so a bad value fails the script that set it, not the whole cycle's updates.
@@ -134,5 +158,8 @@ class PlayerEffects {
 
         /** The client's spotanim slots on one player, as RSProt sizes them. */
         const val SPOTANIM_SLOTS = 256
+
+        /** Angles run 0 to 2047, a full turn. */
+        const val MAX_ANGLE = 2048
     }
 }
