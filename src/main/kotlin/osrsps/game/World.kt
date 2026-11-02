@@ -2125,6 +2125,9 @@ class World(
         if (interfaceId == EquipmentTab.AUTOCAST && equipmentTab.clickAutocastMenu(player, componentId, sub)) return@act
         if (interfaceId == Prayers.PRAYERBOOK && prayers.click(player, componentId, op)) return@act
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_WORLDMAP) {
+            // The floater holds one window: All Settings closes by its own path first, so a prompt or picker it was
+            // asking goes with it rather than answering into a window that is gone.
+            allSettings.close(player)
             worldMap.toggle(player)
             return@act
         }
