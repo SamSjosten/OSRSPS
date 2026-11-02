@@ -86,6 +86,14 @@ fun CommandRegistry.registerSocialCommands(world: World) {
         reply("Clan ${clan.name} made, for guests to find")
     }
 
+    register("clanjoin", "::clanjoin <name>") {
+        if (args.isEmpty()) fail("Usage: ::clanjoin <name>")
+        val name = args.joinToString(" ")
+        val clan = world.clans.clanNamed(name) ?: fail("No clan called $name")
+        if (!world.clans.joinTestClan(player, clan)) fail("You're in a clan already")
+        reply("Joined clan ${clan.name}")
+    }
+
     register("guestclan", "::guestclan", admin = false) {
         if (args.isNotEmpty()) fail("Usage: ::guestclan")
         val clan = world.clans.guestClanOf(player) ?: run {

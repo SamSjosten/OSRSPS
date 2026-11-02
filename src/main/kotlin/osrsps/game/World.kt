@@ -586,6 +586,7 @@ class World(
                 dialogues.start(this) { if (choice(ClanLines.CONFIRM_YES, ClanLines.CONFIRM_NO, title = title) == 1) yes() }
             }
         },
+        playerByKey = { key -> findPlayer(key) },
         now = clansClock,
     )
 

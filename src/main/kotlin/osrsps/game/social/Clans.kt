@@ -77,6 +77,8 @@ class Clans(
     private val closeModals: (Player) -> Unit,
     /** Asks the player a yes/no question titled with the given words; runs the action on yes. */
     private val confirm: (Player, String, () -> Unit) -> Unit,
+    /** The online player with a save key, or null. */
+    private val playerByKey: (String) -> Player?,
     private val now: () -> Instant = Instant::now,
 ) {
     /** A clan being formed: its leader, the founders who joined, the invited and the name picked. */
@@ -308,6 +310,8 @@ class Clans(
      */
     fun clickInfo(player: Player, component: Int): Boolean {
         if (component !in INFO_BUTTONS) return false
+        // Only while the page is open: a click sent after it closed, or forged, does nothing.
+        if (INFO !in player.modals.values) return true
         val asGuest = infoAsGuest[player.saveKey] ?: return true
         when {
             component == INFO_APPLICATIONS && asGuest -> {
@@ -362,13 +366,34 @@ class Clans(
         setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
         send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
         send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
-        // The members still online have the clan's settings without them.
-        for (member in channels[clan.id].orEmpty()) if (typeFor(member, clan) == CLAN_TYPE_CLAN) send(member, settingsFull(clan))
+        sendSettings(clan)
         infoAsGuest.remove(player.saveKey)
         closeModals(player)
         showRecruit(player)
         if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
         tell(player, ClanLines.LEFT_CLAN, clan.name)
+    }
+
+    /** [clan]'s settings again, to every online member and everyone with it loaded as a guest, in its channel or not. */
+    private fun sendSettings(clan: ClanStore.Clan) {
+        for (member in clan.members) playerByKey(member.key)?.let { send(it, settingsFull(clan)) }
+        for ((key, id) in listening) if (id == clan.id) playerByKey(key)?.let { send(it, settingsFull(clan, CLAN_TYPE_LISTENED)) }
+    }
+
+    /**
+     * `::clanjoin`: [player] joins [clan] as its lowest member rank, for test scripts that leave a clan without founding
+     * one. False if they are in a clan already.
+     */
+    fun joinTestClan(player: Player, clan: ClanStore.Clan): Boolean {
+        if (clanOf(player) != null) return false
+        store.addMember(clan, ClanStore.Member(player.saveKey, player.username, RANK_FOUNDER, runeDay()))
+        if (listening[player.saveKey] == clan.id) discard(player)
+        setVarbit(player, VARBIT_AFFINITY, AFFINITY_CONNECTED)
+        sendSettings(clan)
+        joinChannel(player, clan)
+        showRecruit(player)
+        if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
+        return true
     }
 
     /** Find's typed name: loads that clan as [player]'s guest clan. */

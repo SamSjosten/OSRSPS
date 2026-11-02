@@ -445,8 +445,12 @@ class HeadlessClanTest {
                 val channel = alice.await("the guest channel") { alice.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.hasAll("alice") } }
                 assertTrue(channel.hasAll("Guest Gate"), channel.toString())
                 assertEquals("No clan called Nobody", alice.commandReply("clandisband Nobody") { it.startsWith("No clan") })
+                // ::clanjoin makes her a member, the guest clan dropped.
+                assertEquals("Joined clan Guest Gate", alice.commandReply("clanjoin guest gate") { it.startsWith("Joined") || it.startsWith("You're") })
+                assertEquals("You have no guest clan", alice.commandReply("guestclan") { it.startsWith("You have") || it.startsWith("Guest") })
+                assertTrue(alice.commandReply("clan") { it.startsWith("Clan") }.startsWith("Clan Guest Gate: ~test owner (rank 126), alice (rank 0), in its channel"))
+                assertEquals("You're in a clan already", alice.commandReply("clanjoin guest gate") { it.startsWith("Joined") || it.startsWith("You're") })
                 assertEquals("Clan Guest Gate deleted", alice.commandReply("clandisband guest gate") { it.startsWith("Clan") })
-                assertEquals("You have no guest clan", alice.commandReply("guestclan") { it.startsWith("You have") })
             }
         }
     }
@@ -474,7 +478,7 @@ class HeadlessClanTest {
                         carol.findClan("Odins Gate")
                         carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_INFO, 1)
                         carol.await("the clan's settings page") { carol.openInterfaces().takeIf { Clans.INFO in it } }
-                        assertTrue(carol.opEnabled(Clans.INFO, Clans.INFO_APPLICATIONS, -1, 1))
+                        carol.await("Apply enabled") { Unit.takeIf { carol.opEnabled(Clans.INFO, Clans.INFO_APPLICATIONS, -1, 1) } }
 
                         // Apply asks first; No leaves it.
                         carol.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
@@ -491,6 +495,15 @@ class HeadlessClanTest {
                         bob.awaitTicks(2)
                         assertFalse(bob.messages().any { it.text.startsWith("[clan.new_applicant") })
 
+                        // With the page closed, its buttons do nothing.
+                        carol.closeModal()
+                        carol.await("the page closed") { if (Clans.INFO in carol.openInterfaces()) null else Unit }
+                        carol.awaitTicks(1)
+                        carol.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                        carol.awaitTicks(2)
+                        assertEquals(listOf("carol"), clan.applicants.map { it.name })
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_INFO, 1)
+                        carol.await("the page again") { carol.openInterfaces().takeIf { Clans.INFO in it } }
                         // Withdraw (the same button now) takes it back, without asking.
                         carol.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
                         carol.saw("[clan.withdrawn name=Odins Gate]")
@@ -523,6 +536,11 @@ class HeadlessClanTest {
                 server.login("bob").use { bob ->
                     found(server, alice, bob, "Odins Gate")
                     val bobP = server.world.playerNamed("bob")!!
+                    // alice is out of the channel: she still gets the clan's settings without bob.
+                    alice.yourClanTab()
+                    alice.await("alice's clan page") { alice.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                    alice.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_CHAT, 1)
+                    alice.await("alice out of the channel") { if (server.world.clans.inChannel(server.world.playerNamed("alice")!!)) null else Unit }
                     bob.yourClanTab()
                     bob.await("bob's clan page") { bob.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
                     bob.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
@@ -541,12 +559,10 @@ class HeadlessClanTest {
                     // His client drops the clan; alice's settings and channel lose him.
                     bob.await("bob's leave update") { bob.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.isEmpty() } }
                     alice.await("alice's settings without bob") { alice.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.hasAll("alice") && !it.hasAll("bob") } }
-                    alice.await("alice's channel without bob") { alice.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { !it.hasAll("bob") } }
                     bob.await("the settings page closed") { if (Clans.INFO in bob.openInterfaces()) null else Unit }
                     assertEquals("You aren't in a clan", bob.commandReply("clan") { it.contains("clan") })
 
                     // The owner can't leave.
-                    alice.yourClanTab()
                     alice.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
                     alice.await("alice's settings page") { alice.openInterfaces().takeIf { Clans.INFO in it } }
                     alice.ifButton(Clans.INFO, Clans.INFO_QUIT, 1)

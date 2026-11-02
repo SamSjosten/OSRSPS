@@ -100,6 +100,13 @@ class ClanStore(private val file: Path? = null) {
         return true
     }
 
+    /** Adds [member] to [clan] and saves (`::clanjoin`, for test scripts). */
+    fun addMember(clan: Clan, member: Member) {
+        clan.members += member
+        save()
+        logger.info { "${member.key} joined clan '${clan.name}'" }
+    }
+
     /** Takes [key] out of [clan]'s members and saves; false if they weren't one. */
     fun removeMember(clan: Clan, key: String): Boolean {
         if (!clan.members.removeIf { it.key == key }) return false
