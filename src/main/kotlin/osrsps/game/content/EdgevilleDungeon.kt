@@ -91,15 +91,16 @@ object EdgevilleDungeon {
     fun isNorthGate(loc: ZoneLoc) = loc.level == 0 && NORTH_GATE_TILES.any { it.x == loc.x && it.z == loc.z }
 
     /**
-     * Where a push on wall half [wall] puts a player at [x], [z]: the tile across the wall from them, when they stand on
-     * either side of it (null otherwise, so nobody is carried through from anywhere else).
+     * Where a push on wall half [wall] (on the west edge of its tile) puts a player at [x], [z]: across the wall from the
+     * side they stand on, beside the half they pushed. A player beside it, or beside its other half, north or south of it
+     * as well, counts as on that side, since the route reaches a wall from those tiles too; anyone further off is
+     * carried nowhere (null).
      */
     fun acrossWall(wall: ZoneLoc, x: Int, z: Int): Tile? {
-        val inside = Tile(wall.x, wall.z)
-        val outside = DraynorManor.otherSide(wall, wall.x, wall.z)
-        return when {
-            x == inside.x && z == inside.z -> outside
-            x == outside.x && z == outside.z -> inside
+        if (z !in wall.z - 1..wall.z + 1) return null
+        return when (x) {
+            wall.x -> Tile(wall.x - 1, wall.z)
+            wall.x - 1 -> Tile(wall.x, wall.z)
             else -> null
         }
     }

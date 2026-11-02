@@ -14,11 +14,15 @@ class EdgevilleDungeonTest {
     private val wall = ZoneLoc(EdgevilleDungeon.WALL_LEFT, LocShape.WALL_STRAIGHT, 0, 3094, 9895, 0)
 
     @Test
-    fun `the wall carries a player across from either side and nobody from anywhere else`() {
+    fun `the wall carries a player across from either side, wherever the route reaches it, and nobody from further off`() {
         assertEquals(Tile(3093, 9895), EdgevilleDungeon.acrossWall(wall, 3094, 9895))
         assertEquals(Tile(3094, 9895), EdgevilleDungeon.acrossWall(wall, 3093, 9895))
+        // Beside the other half or just north or south of this one, the route has reached the wall too.
+        assertEquals(Tile(3093, 9895), EdgevilleDungeon.acrossWall(wall, 3094, 9896))
+        assertEquals(Tile(3093, 9895), EdgevilleDungeon.acrossWall(wall, 3094, 9894))
+        assertEquals(Tile(3094, 9895), EdgevilleDungeon.acrossWall(wall, 3093, 9896))
         assertNull(EdgevilleDungeon.acrossWall(wall, 3095, 9895))
-        assertNull(EdgevilleDungeon.acrossWall(wall, 3093, 9896))
+        assertNull(EdgevilleDungeon.acrossWall(wall, 3094, 9897))
     }
 
     @Test

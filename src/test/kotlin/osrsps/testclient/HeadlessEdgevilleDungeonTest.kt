@@ -184,6 +184,10 @@ class HeadlessEdgevilleDungeonTest {
                 client.tele(3093, 9896, 0)
                 client.locOp(EdgevilleDungeon.WALL_RIGHT, 3094, 9896, EdgevilleDungeon.PUSH)
                 client.awaitAt(3094, 9896, 0)
+                // Standing beside the north half and pushing the south one crosses too, once the wall has shut again.
+                client.await("the wall shut again") { server.world.locs.find(EdgevilleDungeon.WALL_LEFT, 3094, 9895, 0) }
+                client.locOp(EdgevilleDungeon.WALL_LEFT, 3094, 9895, EdgevilleDungeon.PUSH)
+                client.awaitAt(3093, 9895, 0)
 
                 client.tele(3131, 9916, 0)
                 client.locOp(EdgevilleDungeon.NORTH_GATE_LEFT, 3131, 9917, EdgevilleDungeon.OPEN)
