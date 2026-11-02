@@ -2034,6 +2034,9 @@ class World(
     /** Whether the cache has terrain for the map square holding [x], [z]. */
     fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
 
+    /** Whether a player can stand on [x], [z] on [level]: loaded and not blocked by the floor or a loc. */
+    fun canStand(x: Int, z: Int, level: Int): Boolean = collision[x, z, level] and CollisionFlag.BLOCK_WALK == 0
+
     /** Public chat is game input like a click, so while paused it is held for the next tick. */
     fun onPublicChat(player: Player, message: MessagePublic) = act(player) {
         if (message.type == PublicChat.TYPE_FRIENDS_CHAT) {
