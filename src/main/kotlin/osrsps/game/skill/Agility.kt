@@ -13,6 +13,7 @@ import osrsps.game.Stance
 import osrsps.game.World
 import osrsps.game.combat.HitsplatType
 import osrsps.game.content.arriveDelay
+import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.Op
 import osrsps.game.script.ScriptContext
@@ -23,7 +24,11 @@ import kotlin.math.sign
 
 /** Agility's words, in the dialogue file. */
 object AgilityLines : Lines("agility", "Agility") {
-    val LEVEL = line("level", "the message when an obstacle needs a higher Agility level", "level")
+    val LEVEL = line("level", "the message when an obstacle with no level line of its own needs a higher Agility level", "level")
+    val DRAYNOR_LAPS = line("draynor_laps", "Draynor Village Rooftop Course: the lap count message after each lap", "count")
+
+    /** A line by its key, for agility.json to name one. */
+    fun byKey(key: String): Line = lines.firstOrNull { it.key == key } ?: error("No agility line $key")
 }
 
 /** A tile on a level, as obstacles name them. */
@@ -72,6 +77,8 @@ class Obstacle(
     val routes: List<AgilityRoute>,
     val success: Pair<Int, Int>?,
     val damage: IntRange,
+    /** What the player is told below [level]; [AgilityLines.LEVEL] for an obstacle with no line of its own. */
+    val levelLine: Line = AgilityLines.LEVEL,
 ) {
     init {
         require(routes.isNotEmpty()) { "Obstacle $key has no route" }
@@ -79,16 +86,41 @@ class Obstacle(
     }
 }
 
-/** agility.json: every obstacle. */
-class AgilityData(val obstacles: List<Obstacle>) {
+/**
+ * A course: its [obstacles] in order, the XP for a whole lap on top of theirs ([lapXpTenths], 0 where the last obstacle's
+ * XP already holds it, as on the rooftops) and the message with the lap count ([lapLine]).
+ */
+class AgilityCourse(val key: String, val obstacles: List<Obstacle>, val lapXpTenths: Int, val lapLine: Line) {
+    init {
+        require(obstacles.size in 1..MAX_OBSTACLES) { "Course $key has ${obstacles.size} obstacles, 1 to $MAX_OBSTACLES" }
+    }
+
+    /** The [Charges] counters: laps done, and which obstacles of this lap are crossed (a bit each). */
+    val lapsCounter: String get() = "agility_laps_$key"
+    val progressCounter: String get() = "agility_lap_$key"
+
+    companion object {
+        /** The progress bits fit in a count. */
+        const val MAX_OBSTACLES = 30
+    }
+}
+
+/** agility.json: every obstacle and course. */
+class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse> = emptyList()) {
     /** By loc type: those that share one are told apart by [Obstacle.at]. */
     val byLoc: Map<Int, List<Obstacle>> = obstacles.groupBy { it.loc }
+
+    /** The course each course obstacle is on, and where in it. */
+    val courseOf: Map<Obstacle, Pair<AgilityCourse, Int>> =
+        courses.flatMap { course -> course.obstacles.mapIndexed { index, obstacle -> obstacle to (course to index) } }.toMap()
 
     init {
         require(obstacles.map { it.key }.toSet().size == obstacles.size) { "An obstacle key is listed twice" }
         for ((loc, list) in byLoc) {
             require(list.size == 1 || list.all { it.at != null }) { "Loc $loc is several obstacles, so each needs \"at\"" }
         }
+        require(courses.map { it.key }.toSet().size == courses.size) { "A course key is listed twice" }
+        require(courseOf.size == courses.sumOf { it.obstacles.size }) { "An obstacle is on two courses, or twice on one" }
     }
 
     companion object {
@@ -101,7 +133,21 @@ class AgilityData(val obstacles: List<Obstacle>) {
 
         fun parse(text: String): AgilityData {
             val root = Json.parseToJsonElement(text).jsonObject
-            return AgilityData(root.getValue("obstacles").jsonArray.map { obstacle(it.jsonObject) })
+            val obstacles = root.getValue("obstacles").jsonArray.map { obstacle(it.jsonObject) }
+            val byKey = obstacles.associateBy { it.key }
+            val courses = root["courses"]?.jsonArray.orEmpty().map { it.jsonObject }.map { course ->
+                val key = course.getValue("key").jsonPrimitive.content
+                AgilityCourse(
+                    key,
+                    course.getValue("obstacles").jsonArray.map {
+                        val name = it.jsonPrimitive.content
+                        byKey[name] ?: error("Course $key names obstacle $name, which isn't listed")
+                    },
+                    course.int("lapXpTenths"),
+                    AgilityLines.byKey(course.getValue("lapLine").jsonPrimitive.content),
+                )
+            }
+            return AgilityData(obstacles, courses)
         }
 
         private fun obstacle(json: JsonObject): Obstacle {
@@ -118,6 +164,7 @@ class AgilityData(val obstacles: List<Obstacle>) {
             return Obstacle(
                 key, json.int("loc"), json.getValue("option").jsonPrimitive.content, json.int("level"), json.int("xpTenths"),
                 json["at"]?.jsonArray?.let(::tile), routes, success, damage,
+                json["levelLine"]?.jsonPrimitive?.content?.let(AgilityLines::byKey) ?: AgilityLines.LEVEL,
             )
         }
 
@@ -172,7 +219,7 @@ class Agility(private val world: World, val data: AgilityData) {
         val obstacle = obstacleAt(obstacles, loc) ?: return
         arriveDelay()
         if (player.skills.currentLevel(Skill.AGILITY) < obstacle.level) {
-            player.message(world.textFor(player)[AgilityLines.LEVEL, "level" to obstacle.level])
+            player.message(world.textFor(player)[obstacle.levelLine, "level" to obstacle.level])
             return
         }
         val route = obstacle.routes.filter { it.from.level == player.level }.minByOrNull { distance(it.from) } ?: return
@@ -183,10 +230,32 @@ class Agility(private val world: World, val data: AgilityData) {
         for (move in if (success) route.moves else route.fail) play(move)
         if (success) {
             player.skills.addTenths(Skill.AGILITY, obstacle.xpTenths)
+            crossed(obstacle)
         } else if (!obstacle.damage.isEmpty()) {
             val damage = world.random.between(obstacle.damage.first, obstacle.damage.last)
             world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
         }
+    }
+
+    /**
+     * Marks [obstacle] crossed on its course's lap. The first obstacle starts a new lap; the last one ends it, and with
+     * every obstacle crossed since the start the lap counts: the lap count goes up and is shown, and the lap XP comes.
+     * Inferred: a lap needs every obstacle in it, as the Gnome Stronghold's lap bonus does (OSRS Wiki); on a rooftop
+     * there is no other way round. Guessed: the progress is kept across a logout.
+     */
+    private fun ScriptContext.crossed(obstacle: Obstacle) {
+        val (course, index) = data.courseOf[obstacle] ?: return
+        val progress = if (index == 0) 1 else player.charges[course.progressCounter] or (1 shl index)
+        if (index < course.obstacles.lastIndex) {
+            player.charges[course.progressCounter] = progress
+            return
+        }
+        player.charges[course.progressCounter] = 0
+        if (progress != (1 shl course.obstacles.size) - 1) return
+        val laps = (player.charges[course.lapsCounter].toLong() + 1).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        player.charges[course.lapsCounter] = laps
+        if (course.lapXpTenths > 0) player.skills.addTenths(Skill.AGILITY, course.lapXpTenths)
+        player.message(world.textFor(player)[course.lapLine, "count" to laps])
     }
 
     /** The obstacle [loc] is: the only one of its type, or the one standing on its tile. */
