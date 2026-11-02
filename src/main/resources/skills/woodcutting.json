@@ -43,6 +43,7 @@
         {"tree": 1279, "stump": 1342, "name": "tree3"},
         {"tree": 1280, "stump": 1343, "name": "lighttree2"},
         {"tree": 52823, "stump": 1342, "name": "tree4"},
+        {"tree": 3648, "stump": 3649, "name": "fai_varrock_dead_tree"},
         {"tree": 1330, "stump": 1355, "name": "snowtree1"},
         {"tree": 1331, "stump": 1355, "name": "snowtree2"},
         {"tree": 1332, "stump": 1355, "name": "snowtree3"},

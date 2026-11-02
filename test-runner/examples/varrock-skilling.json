@@ -1,0 +1,64 @@
+{
+ "name": "Varrock step 11 (with ::keys on): mine copper at the south-east mine, hammer a bronze dagger on the west anvils, cook a shrimp on a house range, chop a dying tree, fill buckets at a sink and a well, and hit a training dummy north of the East Bank",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts it back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+
+  {"step": "command", "text": "::item bronze_pickaxe", "expectMessage": "Added 1 x Bronze pickaxe"},
+  {"step": "command", "text": "::tele 3287 3365 0", "comment": "in the south-east mine, by a copper rock"},
+  {"step": "locOption", "locId": 10943, "option": "Mine", "x": 3286, "y": 3364},
+  {"step": "assertMessage", "contains": "mining.swing"},
+  {"step": "assertInventory", "item": "Copper ore", "count": 1, "timeoutMs": 90000, "comment": "39.5% a roll at level 1, a roll every 8 ticks"},
+  {"step": "assertStat", "skill": "Mining", "level": 1, "xp": 17},
+
+  {"step": "command", "text": "::item 2349", "expectMessage": "Added 1 x Bronze bar"},
+  {"step": "command", "text": "::item hammer", "expectMessage": "Added 1 x Hammer"},
+  {"step": "command", "text": "::tele 3189 3421 0", "comment": "by the anvils south of the West Bank"},
+  {"step": "locOption", "locId": 2097, "option": "Smith", "x": 3188, "y": 3421},
+  {"step": "assertInterface", "interfaceId": 312, "comment": "the anvil, laid out for bronze"},
+  {"step": "clickWidget", "interfaceId": 312, "component": 9, "comment": "the dagger"},
+  {"step": "assertAnimation", "id": 898, "comment": "human_smithing"},
+  {"step": "assertInventory", "item": "Bronze dagger", "count": 1, "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "smithing.smithed bar=bronze"},
+
+  {"step": "command", "text": "::setlevel cooking 99", "expectMessage": "Cooking set to level 99", "comment": "so none burn"},
+  {"step": "command", "text": "::item 317", "expectMessage": "Added 1 x Raw shrimps"},
+  {"step": "command", "text": "::tele 3230 3402 0", "comment": "in the house with a range, south of the square"},
+  {"step": "locOption", "locId": 7184, "option": "Cook", "x": 3229, "y": 3402},
+  {"step": "assertInventory", "item": "Shrimps", "count": 1, "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "cooking.cooked_shrimps"},
+
+  {"step": "command", "text": "::item bronze_axe", "expectMessage": "Added 1 x Bronze axe"},
+  {"step": "command", "text": "::tele 3224 3410 0", "comment": "by the dying tree east of the square"},
+  {"step": "locOption", "locId": 3648, "option": "Chop down", "x": 3223, "y": 3411},
+  {"step": "assertMessage", "contains": "woodcutting.swing"},
+  {"step": "assertInventory", "item": "Logs", "count": 1, "timeoutMs": 90000},
+  {"step": "assertLoc", "locId": 3649, "x": 3223, "y": 3411, "comment": "fai_varrock_dead_tree_stump"},
+  {"step": "assertStat", "skill": "Woodcutting", "level": 1, "xp": 25},
+
+  {"step": "command", "text": "::item bucket_empty 2", "expectMessage": "Added 2 x Bucket"},
+  {"step": "command", "text": "::tele 3247 3393 0", "comment": "by the sink in the house south of the East Bank"},
+  {"step": "useItemOnLoc", "item": "Bucket", "locId": 3014, "x": 3247, "y": 3392},
+  {"step": "assertInventory", "item": "Bucket of water", "count": 2, "timeoutMs": 10000, "comment": "one a tick"},
+  {"step": "assertMessage", "contains": "water.fill_bucket source=sink"},
+  {"step": "command", "text": "::item bucket_empty", "expectMessage": "Added 1 x Bucket"},
+  {"step": "command", "text": "::tele 3270 3408 0", "comment": "by the well south-east of the East Bank"},
+  {"step": "useItemOnLoc", "item": "Bucket", "locId": 3646, "x": 3270, "y": 3406},
+  {"step": "assertInventory", "item": "Bucket of water", "count": 3, "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "water.fill_bucket source=well"},
+
+  {"step": "command", "text": "::tele 3256 3436 0", "comment": "among the dummies north of the East Bank"},
+  {"step": "locOption", "locId": 1764, "option": "Attack", "x": 3257, "y": 3437},
+  {"step": "assertStat", "skill": "Attack", "level": 1, "xp": 5, "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "dummy.hit"},
+  {"step": "command", "text": "::setlevel attack 8", "expectMessage": "Attack set to level 8"},
+  {"step": "waitTicks", "ticks": 5},
+  {"step": "locOption", "locId": 1764, "option": "Attack", "x": 3257, "y": 3437},
+  {"step": "assertMessage", "contains": "dummy.nothing_more"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

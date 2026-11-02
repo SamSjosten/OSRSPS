@@ -31,7 +31,7 @@ class HeadlessBonesTest {
         val objs = arrayOfNulls<ObjType>(BUCKET + 1)
         objs[BONES] = bones
         objs[BUCKET] = bucket
-        val well = LocType(WELL, "Well", collision = LocCollisionType(width = 1, length = 1))
+        val well = LocType(WELL, "Test well", collision = LocCollisionType(width = 1, length = 1))
         val pump = LocType(PUMP, "Pump", collision = LocCollisionType(width = 1, length = 1))
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
