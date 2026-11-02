@@ -24,11 +24,13 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
 
 /**
  * Lodestones, custom content after RS3's lodestone network: a stone at each major town that a player activates once
- * and can then teleport to, free, from any stone or with `::lodestone`. Verified on the RS3 Wiki (Lodestone Network,
- * Home Teleport; read 2026-11-02): Lumbridge's is active from the start and every other stone is activated by
- * clicking it once; the teleport takes 17 seconds, so [CAST_TICKS]; it can't start in combat, and being attacked
- * stops it; it's refused above level 20 Wilderness; there is no cooldown. Sam's picks (2 Nov 2026): RS3's timing, the
- * Wilderness block like other teleports.
+ * and can then teleport to, free, from any stone, with Home Teleport or with `::lodestone`. Verified on the RS3 Wiki
+ * (Lodestone Network, Home Teleport; read 2026-11-02): Lumbridge's is active from the start and every other stone is
+ * activated by clicking it once; Home Teleport opens the network and lands on the stone picked; the teleport takes 17
+ * seconds, so [CAST_TICKS]; it can't start in combat, and being attacked stops it; it's refused above level 20
+ * Wilderness; there is no cooldown. Sam's picks (2 Nov 2026): RS3's timing, the Wilderness block like other teleports.
+ * Not yet: RS3's "Previous destination" on the spell (the spell's right-click has no room for it in OSRS's spellbook,
+ * and the chat menu's five options are the five sites), which waits for the map interface (plan step 6).
  *
  * Each site is one loc of our own, a multiloc whose varbit picks what the client draws, so every player sees their own
  * stone: [DORMANT] (model 65000, option Activate) until they activate it, [ACTIVE] (model 65001, option Teleport)
@@ -124,8 +126,9 @@ object Lodestones {
 }
 
 /**
- * The network's rules for one world: what a click on a stone does, the menu, the teleport and what a new login has.
- * [vars] holds the world's ids for the sites' varbits.
+ * The network's rules for one world: what a click on a stone does, the menu, the teleport, what a new login has, and
+ * Home Teleport, whose Cast opens the same menu ([HomeTeleport.target]) and casts with the stones' timing and no
+ * cooldown. [vars] holds the world's ids for the sites' varbits.
  * [menu] shows [LodestoneLines.TITLE] over the sites' names and returns the pick from 1, or 0 for none (the world's
  * is a chat menu); [words] gives a line's words for the player, for the names in messages.
  */
@@ -138,6 +141,7 @@ class LodestoneNetwork(
 ) {
     fun register(handlers: Handlers) {
         for (site in Lodestones.SITES) handlers.onLoc(site.id, Lodestones.ACTIVATE) { touch(site) }
+        homeTeleport.target = { pick()?.let { HomeTeleport.Target(it.arrival, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false) } }
     }
 
     /** Lumbridge's stone is active from the start (RS3 Wiki): set at every login, so an old save gets it too. */
@@ -163,13 +167,18 @@ class LodestoneNetwork(
         }
     }
 
-    /** Shows the activated stones and starts the teleport to the one picked. */
-    suspend fun ScriptContext.open() {
+    /** Shows the activated stones and returns the one picked, or null for none. */
+    suspend fun ScriptContext.pick(): Lodestones.Site? {
         val sites = unlockedSites(player)
         // Every login has Lumbridge's; only an admin's ::varp empties the list, and a chat menu needs an option.
-        if (sites.isEmpty()) return
+        if (sites.isEmpty()) return null
         val picked = menu(LodestoneLines.TITLE, sites.map { it.name })
-        if (picked in 1..sites.size) teleportTo(sites[picked - 1])
+        return sites.getOrNull(picked - 1)
+    }
+
+    /** Shows the activated stones and starts the teleport to the one picked. */
+    suspend fun ScriptContext.open() {
+        pick()?.let { teleportTo(it) }
     }
 
     /** Starts the teleport to [site], or says why not. Returns whether it started. */

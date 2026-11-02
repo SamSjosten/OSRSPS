@@ -504,7 +504,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches', the inns', the townsfolk, the Fitzharmons and the museum's staff`() {
+    fun `Varrock has its 37 guards, five stray dogs, townsfolk, bankers, the Grand Exchange's, shop keepers, the palace's, churches', inns', the Fitzharmons and the museum's people`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -529,6 +529,17 @@ class NpcSpawnFileTest {
             276 to "pmod_town_crier_varrock",
             4984 to "dimintheis", 5445 to "johnathon_fitzharmon_2ops", 10425 to "daddyshome_daddy",
             5214 to "curator", 1909 to "vm_info_booth_lady", 1910 to "vm_museum_guard", 1912 to "vm_museum_guard3",
+            1901 to "vm_art_critic", 1902 to "vm_timeline_historian", 1913 to "vm_school_teacher_male_and_boy",
+            1914 to "vm_school_girl_brunette", 1919 to "vm_school_boy_brunnete", 1920 to "vm_school_boy_blonde",
+            1921 to "vm_school_girl_blonde", 1922 to "vm_teacher_girl_multi", 6001 to "vm_nathis_apprentice",
+            6002 to "vm_natural_historian_north", 6003 to "vm_natural_historian_south", 6004 to "vm_natural_historian_east",
+            6005 to "vm_natural_historian_west", 6019 to "vm_advent_01", 6020 to "vm_advent_02",
+            6007 to "vm_natural_history_display_case_leech", 6008 to "vm_natural_history_display_case_seaslugs",
+            6009 to "vm_natural_history_display_case_snail", 6010 to "vm_natural_history_display_case_monkey",
+            6011 to "vm_natural_history_display_case_lizard", 6012 to "vm_natural_history_display_case_penguin",
+            6013 to "vm_natural_history_display_case_camel", 6014 to "vm_natural_history_display_case_terror_bird",
+            6015 to "vm_natural_history_display_dragon", 6016 to "vm_natural_history_display_case_wyvern",
+            6017 to "vm_natural_history_display_case_battle_tortoise", 6018 to "vm_natural_history_display_case_mole",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -592,8 +603,18 @@ class NpcSpawnFileTest {
         assertTrue(museum.all { it.x in 3252..3267 && it.z in 3441..3456 })
         val museumStill = museum.filter { it.type.id != 5214 }
         assertTrue(museumStill.all { it.wander == 0 })
-        // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
-        assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - elsie - iffie).all { it.wander > 0 })
+        // Step 9b: the museum's other people; the Natural History floor (map square 27,77) has its four historians, two
+        // of each, Orlando Smith and the twelve animal displays, which stand still.
+        val basement = spawns.filter { it.x in 1728..1791 && it.z in 4928..4991 }
+        assertEquals(listOf(6002, 6002, 6003, 6003, 6004, 6004, 6005, 6005), basement.map { it.type.id }.filter { it in 6002..6005 }.sorted())
+        assertEquals(1, basement.count { it.type.id == 6001 })
+        val displays = basement.filter { it.type.id in 6007..6018 }
+        assertEquals((6007..6018).toList(), displays.map { it.type.id }.sorted())
+        assertTrue(displays.all { it.wander == 0 })
+        val upstairs = spawns.filter { it.type.id in listOf(1901, 1902, 6019) }
+        assertEquals(listOf(2, 1, 1), upstairs.sortedBy { it.type.id }.map { it.level })
+        // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch, but the museum's Natural History floor.
+        assertTrue((spawns - basement.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie).all { it.wander > 0 })
     }
 }
