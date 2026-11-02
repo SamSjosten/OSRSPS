@@ -54,6 +54,7 @@ object NpcSpawnFile {
         "edgeville.json",
         "barbarian-village.json",
         "cooks-guild.json",
+        "edgeville-dungeon.json",
         "fractured-archive-lobby.json",
     )
 

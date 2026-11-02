@@ -440,6 +440,56 @@ class NpcDropsTest {
         kills("zombie_unarmed_sewer1", 34).expect("Fishing bait x5", 37)
     }
 
+    @Test
+    fun `the Edgeville Dungeon's zombies, skeletons and hobgoblins drop as the Wiki's tables say`() {
+        val names = listOf(
+            "zombie2", "zombie2_b", "zombie2_c", "skeleton_unarmed2", "skeleton_unarmed4", "skeleton_unagressive", "skeleton_unagressive3",
+            "skeleton_armed2", "skeleton_armed4", "skeleton_armed5", "hobgoblin_unarmed", "hobgoblin_armed",
+        )
+        val dungeonTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2200 + i, name, internalName = name) }.toTypedArray())
+        val dungeon = NpcDrops.load(dungeonTypes, objTypes)
+        assertTrue(dungeon.warnings.all { it.startsWith("no NPC called") }, dungeon.warnings.toString())
+        fun def(name: String) = dungeon[dungeonTypes.find(name)!!]!!
+        // The level 18 zombies drop their bones and nothing else.
+        for (name in listOf("zombie2", "zombie2_b", "zombie2_c")) {
+            assertEquals(listOf("Bones"), def(name).always.map { it.type.name }, name)
+            assertNull(def(name).table, name)
+        }
+        for (name in names.drop(3)) assertEquals(128, def(name).table!!.slots, name)
+        assertEquals(listOf("Clue scroll (beginner)" to 70), def("hobgoblin_armed").tertiary.map { it.item.type.name to it.denominator })
+        fun kills(name: String, seed: Long): Map<String, Int> {
+            val random = GameRandom(seed)
+            val counts = HashMap<String, Int>()
+            repeat(KILLS) {
+                val kill = def(name).roll(random)
+                assertEquals("Bones", kill.first().type.name)
+                for (drop in kill.drop(1).filter { !it.type.name.startsWith("Clue scroll") }) {
+                    val key = "${drop.type.name} x${drop.count}"
+                    counts[key] = (counts[key] ?: 0) + 1
+                }
+            }
+            return counts
+        }
+        fun Map<String, Int>.expect(key: String, weight: Int, of: Int = 128) {
+            val p = weight.toDouble() / of
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = this[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        val skeleton = kills("skeleton_unagressive", 41)
+        skeleton.expect("Air rune x12", 2)
+        skeleton.expect("Coins x2", 18)
+        skeleton.expect("Iron dagger x1", 6)
+        assertNull(skeleton["Coins x10"])
+        val hobgoblin = kills("hobgoblin_armed", 42)
+        hobgoblin.expect("Limpwurt root x1", 22)
+        hobgoblin.expect("Coins x15", 16)
+        hobgoblin.expect("Law rune x2", 3)
+        hobgoblin.expect("Goblin mail x1", 2)
+        kills("skeleton_armed4", 43).expect("Iron med helm x1", 6)
+    }
+
     companion object {
         private const val KILLS = 10_000
     }
