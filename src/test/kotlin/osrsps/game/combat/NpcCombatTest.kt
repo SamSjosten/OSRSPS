@@ -55,6 +55,7 @@ class NpcCombatTest {
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
             "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
             "skeleton_update_attack_weapon" to 5485, "skeleton_update_attack_sword" to 5487, "skeleton_update_defend" to 5489, "skeleton_update_death" to 5491,
+            "ghost_update_normal_attack" to 5532, "ghost_update_normal_defend" to 5533, "ghost_update_normal_death" to 5534,
         ),
     )
 
@@ -223,6 +224,33 @@ class NpcCombatTest {
         assertEquals(listOf(35, 70, 60), listOf("zombie_unarmed_sewer1", "skeleton_unarmed", "skeleton_armed").map { def(it).respawnTicks })
         assertEquals(-5, def("skeleton_unarmed").defence.against(AttackType.CRUSH))
         assertEquals(15, def("skeleton_armed").attackBonus)
+    }
+
+    @Test
+    fun `Draynor Manor's ghosts and closet skeleton fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's Strength levels and the Wiki's: the ghosts 13, the skeleton 18.
+        val manor = mapOf(
+            "house_ghost" to 13, "house_ghost2" to 13, "house_ghost3" to 13, "house_ghost4" to 13, "house_ghost5" to 13,
+            "draynor_skeleton" to 18,
+        )
+        val manorTypes = NpcTypes.of(*manor.entries.mapIndexed { i, (name, str) -> NpcType(2100 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(manorTypes, seqs)
+        assertEquals(manor.size, combat.size)
+        fun def(name: String) = combat[manorTypes.find(name)!!]!!
+        for (name in manor.keys) {
+            val type = manorTypes.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+            assertTrue(def(name).aggression != null, "$name is aggressive")
+        }
+        assertEquals(2, def("house_ghost4").maxHit)
+        assertEquals(3, def("draynor_skeleton").maxHit)
+        assertEquals(AttackType.CRUSH, def("house_ghost").attackType)
+        assertEquals(AttackType.SLASH, def("draynor_skeleton").attackType)
+        assertEquals(NpcCombatAnims(5532, 5533, 5534), def("house_ghost5").anims)
+        assertEquals(NpcCombatAnims(5487, 5489, 5491), def("draynor_skeleton").anims)
+        assertEquals(ElementalWeakness(Element.AIR, 50), def("house_ghost2").weakness)
+        assertEquals(listOf(40, 60), listOf("house_ghost3", "draynor_skeleton").map { def(it).respawnTicks })
+        assertEquals(-5, def("house_ghost").defence.against(AttackType.MAGIC))
     }
 
     @Test

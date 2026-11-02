@@ -261,6 +261,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `draynor-manor-grounds.json`: Draynor step 11: Veronica's talk (`::keys on`), Chop on an undead tree without and with
   an axe and its swipe (`::god on`), a vine's whip, the compost heap, the fountain, and in by the front doors that
   won't open from inside.
+- `draynor-manor-inside.json`: Draynor step 12a: Draynor Manor's main staircase and spiral stairs up and down, the top
+  floor's tinderbox, the bookcase passage and its lever, the locked closet, and out by the back door, which won't open
+  from outside (`::keys on`, `::god on`).
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
