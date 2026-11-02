@@ -591,19 +591,27 @@ the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose ea
 
 ### Agility
 
-Obstacles live in `skills/agility.json` (`game/skill/Agility.kt`, words under `agility.*`); the courses come with
-Agility steps 2 to 7, so the file starts empty. The option on an obstacle walks the player to its start, checks the
+Obstacles and courses live in `skills/agility.json` (`game/skill/Agility.kt`, words under `agility.*`). The option on an obstacle walks the player to its start, checks the
 level, then plays its moves in order while clicks do nothing: an animation and a wait, a teleport (a climb's end,
 another level too), a walk along a path one tile a tick through anything with the obstacle's animation as the whole
 stance (a log or a tightrope), and a slide (the client's exact move, a jump across a gap). The XP comes once across.
 An obstacle that can fail rolls its success pair against the current Agility level; a failure plays its own moves (a
-fall) and deals its damage, with no XP.
+fall) and deals its damage, with no XP. A course's first obstacle starts a lap and its last ends one: with every
+obstacle crossed in between, the lap counts (saved with the account) and its count is shown.
+
+Courses built: the Draynor Village Rooftop Course (from the rough wall north of the bank to the crate off Ned's
+house; level 1, 120 XP a lap, nothing fails since the May 2024 rework).
 
 | Agility behaviour | Source |
 |-------------------|--------|
 | XP on completing an obstacle, none on a failure; some obstacles fail and hurt | OSRS Wiki, Agility and each course's page |
 | No clicks while on an obstacle; walking to its start can't be cut short | inferred from live |
 | Each move starting on the tick after the last ends; a teleport landing before a walk's first step | inferred |
+| Draynor rooftop: its locs and where they stand; the roofs, from the level 3 tiles with a floor | cache 241 map |
+| Draynor rooftop: levels, XP, no failing | OSRS Wiki, Draynor Village Rooftop Course |
+| Draynor rooftop: each start, path and landing tile | inferred from the map |
+| Draynor rooftop: the animations (by their cache names), each obstacle's ticks | guessed until recorded |
+| A lap needing every obstacle; the lap progress kept across a logout | inferred, guessed |
 | The level message as a game message; fail chances (the Wiki gives none); the hit after the fall; the real tile moving when a slide's ticks are up | guessed |
 
 ## Items and inventory
