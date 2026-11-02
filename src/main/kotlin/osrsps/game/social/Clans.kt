@@ -248,6 +248,19 @@ class Clans(
         return true
     }
 
+    /**
+     * `::clanmake`: a clan for test scripts to find as guests, whose only member is an owner no account can be (a name
+     * with a `~`), so the account testing isn't in it. Null if the name is taken or not allowed.
+     */
+    fun makeTestClan(name: String): ClanStore.Clan? {
+        if (!validName(name) || store.nameTaken(name)) return null
+        val owner = ClanStore.Member(TEST_OWNER_KEY, TEST_OWNER_KEY, RANK_OWNER, runeDay())
+        return store.create(name, now().toEpochMilli(), now().atOffset(ZoneOffset.UTC).toLocalDate().toEpochDay(), listOf(owner))
+    }
+
+    /** The clan called [name], any spelling, or null. */
+    fun clanNamed(name: String): ClanStore.Clan? = store.byName(name)
+
     /** Find's typed name: loads that clan as [player]'s guest clan. */
     fun find(player: Player, typed: String) {
         val name = typed.trim()
@@ -577,10 +590,17 @@ class Clans(
         broadcastChannel(clan)
     }
 
-    /** Everyone in [clan]'s channel gets it whole: simpler than deltas, and channels are small here. */
+    /**
+     * Everyone in [clan]'s channel gets it whole: simpler than deltas. One message per clan type, members' and guests',
+     * shared by everyone with that type, as the friends chat's full update is.
+     */
     private fun broadcastChannel(clan: ClanStore.Clan) {
         val members = channels[clan.id] ?: return
-        for (member in members) send(member, channelFull(clan, members, typeFor(member, clan)))
+        val byType = HashMap<Int, ClanChannelFull>(2)
+        for (member in members) {
+            val type = typeFor(member, clan)
+            send(member, byType.getOrPut(type) { channelFull(clan, members, type) })
+        }
     }
 
     private fun channelFull(clan: ClanStore.Clan, online: List<Player>, clanType: Int = CLAN_TYPE_CLAN): ClanChannelFull {
@@ -697,6 +717,9 @@ class Clans(
 
         /** The clan type of the clan a player listens to as a guest (the client's "listened" clan). */
         const val CLAN_TYPE_LISTENED = -1
+
+        /** [makeTestClan]'s owner: `~` is in no account's name. */
+        const val TEST_OWNER_KEY = "~test owner"
 
         /** MESSAGE_PUBLIC's type for a clan line; its clan type 0 is the player's own clan, 1 a group ironman's. */
         const val CHAT_TYPE_CLAN = 3
