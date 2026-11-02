@@ -842,6 +842,9 @@ village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/co
 | Step 10: the Draynor Sewers' two trapdoors (`6434`, west of the jail and north of the market) open for everyone into `6435` with Climb-down, for 300 ticks, and the ladders below climb back up (`game/content/DraynorSewers.kt`); the east ladder is a tile south of the dungeon's 6400, so each climb keeps the player's side of the trapdoor or ladder | the 241 map; how long a trapdoor stays open, the open animation and where a climb lands guessed |
 | The sewers' seven zombies (13 and 24), four skeletons (22 and 25) and ten rats (`npc-spawns/draynor-sewers.json`) fight and drop as the Wiki has them, aggressive and with their elemental weaknesses; the gem drop table is in `npc-drops.json` (its rows add up to 131, with the mega-rare table giving nothing) | the Wiki's Zombie, Skeleton, Gem drop table and Draynor Sewers pages (read 2026-11-01); tiles from mejrs's list; animations from the NPCs' own stand animations, the unarmed skeleton's attack guessed |
 | Ruantun's talk after Desert Treasure I; the house's anvil and fire smith and cook as any other | the Wiki's Transcript:Ruantun; the 241 types |
+| Step 11: Draynor Manor's grounds (`game/content/DraynorManorGrounds.kt`). The fence has no gate on the 241 map, only the gap where Veronica stands; she gives her talk after Ernest the Chicken. The front doors let the player in from the south, slam shut behind them and won't open from inside. The compost heap won't be searched by hand and gives a spade nothing; the fountain is full of dead fish | the 241 map; the Wiki's Transcript:Veronica; 2004Scape's quest_haunted script for the doors, the heap and the fountain (the doors' swing guessed) |
+| The 14 undead trees (`nasty_tree` 4418, `npc-spawns/draynor-manor.json`) show as Undead tree with Chop after Animal Magnetism; they never move, can't be attacked, and swipe a player beside them for 0 to 3 unless tolerated; Chop gives the Wiki's no-axe and bounce messages | the Wiki's Undead tree page and map; how often and how far they swipe, and the even damage, guessed; the blessed axe's undead twigs left out (an Animal Magnetism item) |
+| The vines south-east of the manor whip a player for 1 every 5 ticks, with `whippingplant_attack` on their tile, from entering the 8 by 8 tiles at 3112, 3336 until they are more than 9 tiles from that corner | 2004Scape's manor_vines script |
 
 Left out until their steps: the market's stalls and guards, the Wise Old Man's talk,
 the bank guard, Miss Schism, the town crier, the dark wizards,
@@ -858,7 +861,9 @@ do the Small Net spots and the fire. `test-runner/examples/draynor-ned-aggie.jso
 Aggie's red dye and fine; `NedAndAggieTest` walks every branch of both talks. `test-runner/examples/draynor-jail.json`
 does Leela, the cell door, a jail guard and Morgan; `DraynorTalkTest` and `HeadlessDraynorTest` cover them too. `test-runner/examples/draynor-sewers.json`
 goes down and up both sewer entrances, fights a zombie and talks to Ruantun; `HeadlessDraynorSewersTest` does the
-entrances and the talk through the headless client.
+entrances and the talk through the headless client. `test-runner/examples/draynor-manor-grounds.json` talks to Veronica,
+chops at and is swiped by an undead tree, is whipped by a vine, searches the compost heap and the fountain and goes in
+by the front doors; `HeadlessDraynorManorGroundsTest` does all of them through the headless client.
 
 ## Lumbridge church
 

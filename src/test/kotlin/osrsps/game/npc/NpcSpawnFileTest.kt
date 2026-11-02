@@ -384,6 +384,17 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `Draynor Manor's grounds have the Wiki's 14 undead trees, standing still, and Veronica by the fence`() {
+        val types = NpcTypes.of(NpcType(4418, "null", internalName = "nasty_tree"), NpcType(3561, "Veronica", internalName = "veronica"))
+        val result = NpcSpawnFile.parse(file("draynor-manor.json"), types, "draynor-manor.json")
+        assertEquals(emptyList(), result.unknown)
+        val trees = result.spawns.filter { it.type.id == 4418 }
+        assertEquals(14, trees.size)
+        assertTrue(trees.all { it.wander == 0 && it.x in 3100..3145 && it.z in 3333..3366 })
+        assertEquals(Tile(3110, 3330), result.spawns.single { it.type.id == 3561 }.let { Tile(it.x, it.z) })
+    }
+
+    @Test
     fun `the church has Father Aereck and the Prayer tutor inside, Nigel in the graveyard and Count Check by it`() {
         val names = mapOf(2812 to "father_aereck", 3223 to "aide_tutor_prayer", 6093 to "deadman_nigel", 7414 to "count_check")
         val churchTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
