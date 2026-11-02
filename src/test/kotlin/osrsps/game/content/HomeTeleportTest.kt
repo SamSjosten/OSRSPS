@@ -200,20 +200,48 @@ class HomeTeleportTest {
     }
 
     @Test
-    fun `the seams can choose another tile, cancel the cast, or skip the cooldown`() {
+    fun `the target seam can choose another tile, length and stages, skip the cooldown, or cancel the cast`() {
         val elsewhere = Destination(3093, 3493, 0)
-        home.destination = { elsewhere }
-        home.cooldownApplies = { false }
+        home.target = { HomeTeleport.Target(elsewhere, cooldown = false) }
         click()
         run(24)
         assertEquals(listOf(0L + 24 to elsewhere), landed)
         assertEquals(0, player.vars[HomeTeleport.VARP_LAST_CAST])
+        // No cooldown recorded, so the next cast starts at once; a stale timer doesn't stop a target without one.
+        player.vars[HomeTeleport.VARP_LAST_CAST] = minutes.toInt()
         click()
         assertTrue(home.casting(player))
-        home.destination = { null }
+        assertTrue(said.isEmpty())
         scripts.interrupt(player)
+        home.target = { HomeTeleport.Target(elsewhere, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false) }
+        tick = 100
+        click()
+        run(27)
+        assertEquals(1, landed.size)
+        run(1)
+        assertEquals(128L to elsewhere, landed.last(), "the target's own length")
+        assertEquals(4857, anims[122L], "the target's own stages")
+        home.target = { null }
         click()
         assertFalse(home.casting(player))
+    }
+
+    @Test
+    fun `combat and the Wilderness are refused before the target is asked`() {
+        var asked = 0
+        home.target = { asked++; HomeTeleport.Target(HomeTeleport.LUMBRIDGE) }
+        attackedRecently = true
+        click()
+        assertEquals(0, asked)
+        assertEquals(listOf("home_teleport.in_combat"), said)
+        attackedRecently = false
+        wilderness = 21
+        click()
+        assertEquals(0, asked)
+        wilderness = 0
+        click()
+        assertEquals(1, asked)
+        assertTrue(home.casting(player))
     }
 
     @Test
