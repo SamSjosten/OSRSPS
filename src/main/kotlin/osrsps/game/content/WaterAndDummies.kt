@@ -88,12 +88,18 @@ fun registerWaterAndDummies(world: World) {
 }
 
 private suspend fun ScriptContext.fill(world: World, source: ZoneLoc, vessel: WaterSources.Vessel) {
+    // A player already beside it fills in this tick's movement phase, after the script phase that first counts a queued
+    // delay down; one who stepped there waits a tick and fills in the script phase (as Making.start's fromMovement).
+    val fromMovement = player.lastMoveTick != tick
     arriveDelay()
-    fillOnce(world, source, vessel)
+    fillOnce(world, source, vessel, fromMovement)
 }
 
-/** One vessel filled, and the next queued: walking off or clicking anything else stops it. */
-private fun ScriptContext.fillOnce(world: World, source: ZoneLoc, vessel: WaterSources.Vessel) {
+/**
+ * One vessel filled, and the next queued a tick later ([fromMovement] when this runs in the movement phase): walking off
+ * or clicking anything else stops it.
+ */
+private fun ScriptContext.fillOnce(world: World, source: ZoneLoc, vessel: WaterSources.Vessel, fromMovement: Boolean = false) {
     if (!world.locs.exists(source)) return
     val slot = player.inventory.contents().firstOrNull { it.second.id == vessel.empty }?.first ?: return
     player.inventory[slot] = InvObj(vessel.full, 1)
@@ -101,7 +107,8 @@ private fun ScriptContext.fillOnce(world: World, source: ZoneLoc, vessel: WaterS
     val name = world.locs.types[source.id]?.name?.lowercase() ?: "water"
     world.message(player, vessel.line, "source" to name)
     if (player.inventory.count(vessel.empty) == 0L) return
-    queue(WaterSources.FILL_QUEUE, QueueType.WEAK, WaterSources.FILL_TICKS) { fillOnce(world, source, vessel) }
+    val delay = if (fromMovement) WaterSources.FILL_TICKS - 1 else WaterSources.FILL_TICKS
+    queue(WaterSources.FILL_QUEUE, QueueType.WEAK, delay) { fillOnce(world, source, vessel) }
 }
 
 private suspend fun ScriptContext.hitDummy(world: World) {

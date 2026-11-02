@@ -168,6 +168,34 @@ class HeadlessVarrockSkillingTest {
     }
 
     @Test
+    fun `a sink fills one a tick, whether the player walked there or stood beside it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                val bucket = WaterSources.BUCKET
+                val fills = "[water.fill_bucket source=sink]"
+                fun fillTicks() = client.messages().filter { it.text == fills }.map { it.tick }
+                // From two tiles off: a step there, then a fill each tick.
+                client.command("tele 3218 3224 0")
+                client.await("the teleport") { client.position?.takeIf { it == Coord(3218, 3224, 0) } }
+                client.give(bucket.empty, 3)
+                client.use(bucket.empty, SINK, 3218, 3222)
+                client.await("three filled", timeoutMillis = 15_000) { if (client.count(bucket.full) == 3) Unit else null }
+                client.await("three messages") { fillTicks().takeIf { it.size == 3 } }
+                val walked = fillTicks()
+                assertEquals(listOf(1, 1), walked.zipWithNext { a, b -> b - a }, "fill ticks $walked")
+                // Already beside it: the first at once, the rest a tick apart all the same.
+                client.give(bucket.empty, 3)
+                client.use(bucket.empty, SINK, 3218, 3222)
+                client.await("six filled", timeoutMillis = 15_000) { if (client.count(bucket.full) == 6) Unit else null }
+                client.await("six messages") { fillTicks().takeIf { it.size == 6 } }
+                val beside = fillTicks().drop(3)
+                assertEquals(listOf(1, 1), beside.zipWithNext { a, b -> b - a }, "fill ticks $beside")
+            }
+        }
+    }
+
+    @Test
     fun `a dummy gives Attack XP below level 8, then nothing more`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
