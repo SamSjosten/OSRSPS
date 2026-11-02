@@ -2,6 +2,7 @@ package osrsps.testrunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntSupplier;
 
 /**
  * What the steps of one running script share: the game, the chat messages, hitsplats, animations and spotanims seen,
@@ -89,10 +90,18 @@ final class Run
 	private int animationMark;
 	private int spotanimMark;
 	private int gameTicks;
+	private final IntSupplier ticksSinceLogin;
 
-	Run(Game game)
+	Run(Game game, IntSupplier ticksSinceLogin)
 	{
 		this.game = game;
+		this.ticksSinceLogin = ticksSinceLogin;
+	}
+
+	/** (0.25.0) Game ticks since the client last logged in. */
+	int ticksSinceLogin()
+	{
+		return ticksSinceLogin.getAsInt();
 	}
 
 	/** Called by a step just before it acts, so message asserts only look at what came after. */

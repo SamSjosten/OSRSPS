@@ -98,6 +98,30 @@ public class RunnerTest
 	}
 
 	@Test
+	public void waitForLoginLetsAFreshLoginSettleBeforeTheNextStep() throws Exception
+	{
+		runner.start(script("{\"step\":\"waitForLogin\"},{\"step\":\"command\",\"text\":\"::varbit 4675\"}"), "file");
+		// A relog: the first command typed straight after one got no reply on 2 Nov 2026.
+		runner.loggedIn();
+		for (int i = 0; i < Steps.WaitForLogin.SETTLE_TICKS; i++)
+		{
+			assertNull(cycle());
+			assertTrue(game.actions.isEmpty());
+			runner.gameTick();
+		}
+		assertEquals(Result.PASS, cycle().result);
+		assertEquals(List.of("chat ::varbit 4675"), game.actions);
+	}
+
+	@Test
+	public void waitForLoginPassesAtOnceWhenTheLoginIsOld() throws Exception
+	{
+		runner.start(script("{\"step\":\"waitForLogin\"},{\"step\":\"command\",\"text\":\"::varbit 4675\"}"), "file");
+		assertEquals(Result.PASS, cycle().result);
+		assertEquals(List.of("chat ::varbit 4675"), game.actions);
+	}
+
+	@Test
 	public void walkClicksAgainWhenThePlayerStopsShortOfTheTile() throws Exception
 	{
 		runner.start(script("{\"step\":\"walk\",\"x\":3200,\"y\":3202}"), "file");

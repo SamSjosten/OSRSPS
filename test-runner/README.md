@@ -431,7 +431,7 @@ server's answer instead of failing on what was there before.
 
 | `step` | Fields | Does |
 | --- | --- | --- |
-| `waitForLogin` | | Waits until a player is logged in. Default timeout 120 s. |
+| `waitForLogin` | | Waits until a player is logged in. Default timeout 120 s. (0.25.0) After a fresh login (a `logout` in the script, or a restart) it also waits 5 game ticks, because the first command typed straight after a relog got no reply. |
 | `command` | `text`, `expectMessage` | Puts `text` in the chat input and presses Enter. `::` is added if missing. With `expectMessage`, waits for a chat message containing it. |
 | `chat` | `text`, `expectMessage` | Same, without adding `::`. |
 | `assertLocation` | `x`, `y`, `plane` | Waits until the player stands on the tile, as the server has it and as the client draws it. Without `plane`, any plane. If the client draws the player on another tile, the step says where. |
