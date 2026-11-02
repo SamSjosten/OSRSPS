@@ -1,5 +1,5 @@
 {
- "name": "Varrock step 9a (with ::keys on): the museum's curator and information clerk (and her map), every floor by its stairs, the Natural History floor and back, the cleaning area's gate through its guard, and the back entrance's guard and doors",
+ "name": "Varrock step 9a (with ::keys on): the museum's curator and information clerk (and her map), every floor by its stairs, the Natural History floor and back, the cleaning area's gate through its guard (who asks once a login), and the back entrance's guard and doors",
  "account": "test",
  "steps": [
   {
@@ -367,6 +367,18 @@
    "comment": "back on the ground floor, in front of the stairs down"
   },
   {
+   "step": "logout",
+   "comment": "the gate guard asks only on the first Open or talk after login"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
    "step": "command",
    "text": "::tele 3261 3448 0",
    "expectMessage": "Teleported to 3261, 3448, 0",
@@ -408,6 +420,40 @@
    "y": 3446,
    "timeoutMs": 20000,
    "comment": "out again, no talk"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3261,
+   "y": 3447,
+   "plane": 0,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "locOption",
+   "locId": 24536,
+   "option": "Open",
+   "x": 3261,
+   "y": 3446,
+   "timeoutMs": 20000,
+   "comment": "asked once since login: in again with no talk"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3261,
+   "y": 3446,
+   "plane": 0,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "locId": 24536,
+   "option": "Open",
+   "x": 3261,
+   "y": 3446,
+   "timeoutMs": 20000
   },
   {
    "step": "assertLocation",

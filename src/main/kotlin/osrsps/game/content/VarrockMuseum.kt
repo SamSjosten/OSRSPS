@@ -1,5 +1,8 @@
 package osrsps.game.content
 
+import java.util.Collections
+import java.util.WeakHashMap
+import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
@@ -86,8 +89,8 @@ object MuseumGuardLines : Lines("museum_guard", "Transcript:Museum guard") {
  * Every quest counts complete (Bone Voyage and The Dig Site included) and nobody has Kudos, so the curator, the clerk
  * and the guards say what they say to such a player. From the Wiki's transcripts; the stairs' landing tiles and every
  * expression are guessed (each stair puts the player on the tile in front of the other one, from the 241 map's walls).
- * Also guessed: the gate guard asks every time (the Wiki has him ask on the first talk after login); the player walks
- * out of the cleaning area through the gate freely. Left out: the displays' Study (their interfaces), the cleaning
+ * The gate guard asks on the first talk or Open after login, as the Wiki has it; guessed: after that he lets the
+ * player through without a word, and the player walks out of the cleaning area through the gate freely. Left out: the displays' Study (their interfaces), the cleaning
  * activity, Kudos and the clerk's rewards, the curator's relics, certificates and medallion trade, and his Pickpocket.
  */
 object VarrockMuseum {
@@ -253,23 +256,34 @@ fun registerVarrockMuseum(world: World) {
             arriveDelay()
             world.teleport(player, GROUND_LANDING.x, GROUND_LANDING.z, GROUND_LANDING.level)
         }
+        // Who the gate guard has asked since they logged in: after that he lets them through without asking (the Wiki has
+        // him ask on the first talk after login only).
+        val asked = Collections.newSetFromMap(WeakHashMap<Player, Boolean>())
         world.handlers.onLoc(GATE, OPEN) {
-            if (player.z <= GATE_Z) {
+            if (player.z <= GATE_Z || player in asked) {
                 throughGate(world)
                 return@onLoc
             }
             val guard = world.npcs.all.firstOrNull { it.type.id == GATE_GUARD && it.level == 0 && it.x in GATE_X - 4..GATE_X + 4 && it.z in GATE_Z - 4..GATE_Z + 4 }
             var goIn = guard == null
-            if (guard != null) world.dialogues.start(this, guard) { goIn = gateGuard() }
+            if (guard != null) {
+                asked += player
+                world.dialogues.start(this, guard) { goIn = gateGuard() }
+            }
             if (goIn) throughGate(world)
         }
         world.handlers.onNpc(GATE_GUARD, TALK_TO) { op ->
-            var goIn = false
-            world.dialogues.start(this, op.npc) { goIn = gateGuard() }
+            var goIn = player in asked
+            if (!goIn) {
+                asked += player
+                world.dialogues.start(this, op.npc) { goIn = gateGuard() }
+            }
             if (goIn) throughGate(world)
         }
         world.handlers.onNpc(DOOR_GUARD, TALK_TO) { op -> world.dialogues.start(this, op.npc) { doorGuard() } }
         world.handlers.onNpc(CURATOR, TALK_TO) { op -> world.dialogues.start(this, op.npc) { curator() } }
+        // She stands behind her information booth; the player talks to her across it, as to a banker.
+        world.npcInteractions.reachOverCounter(CLERK)
         world.handlers.onNpc(CLERK, TALK_TO) { op ->
             world.dialogues.start(this, op.npc) {
                 clerk { world.objTypes[MUSEUM_MAP]?.let { world.groundObjs.give(player, it, 1) } }

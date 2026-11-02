@@ -148,23 +148,31 @@ class HeadlessVarrockMuseumTest {
     }
 
     @Test
-    fun `the gate guard lets the player into the cleaning area, and out again`(@TempDir dir: Path) {
+    fun `the gate guard asks once a login, then lets the player into the cleaning area and out again`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.tele(3261, 3448)
-                // Looking around outside: the player stays put.
-                client.walk(gateGuard.id, "museum_guard", "gate_ask", "2:gate_in,gate_outside", "gate_outside")
-                assertTrue(client.position!!.z > VarrockMuseum.GATE_Z)
-                // Open on the gate asks the same, and going in takes the player through.
+                // The first Open after login: he asks; looking around outside, the player stays put.
                 client.locOp(gate.id, gate.x, gate.z, VarrockMuseum.OPEN)
-                client.steps("museum_guard", "gate_ask", "1:gate_in,gate_outside")
-                client.awaitAt(VarrockMuseum.GATE_X, VarrockMuseum.GATE_Z)
+                client.steps("museum_guard", "gate_ask", "2:gate_in,gate_outside", "gate_outside")
                 client.over()
-                // From inside, Open lets the player out with no talk.
+                assertTrue(client.position!!.z > VarrockMuseum.GATE_Z)
+                // Asked once: Open now takes the player straight through, with no talk.
+                client.locOp(gate.id, gate.x, gate.z, VarrockMuseum.OPEN)
+                client.awaitAt(VarrockMuseum.GATE_X, VarrockMuseum.GATE_Z)
+                assertEquals(null, client.dialogueView)
+                // From inside, Open lets the player out.
                 client.locOp(gate.id, gate.x, gate.z, VarrockMuseum.OPEN)
                 client.awaitAt(VarrockMuseum.GATE_X, VarrockMuseum.GATE_Z + 1)
-                // Talk-to the guard and go in.
+                // Talk-to the guard: no question either, through the gate.
+                client.talkTo(gateGuard.id)
+                client.awaitAt(VarrockMuseum.GATE_X, VarrockMuseum.GATE_Z)
+            }
+            // A new login: Talk-to asks again, and going in takes the player through.
+            server.login("dan").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3261, 3448)
                 client.walk(gateGuard.id, "museum_guard", "gate_ask", "1:gate_in,gate_outside")
                 client.awaitAt(VarrockMuseum.GATE_X, VarrockMuseum.GATE_Z)
             }
