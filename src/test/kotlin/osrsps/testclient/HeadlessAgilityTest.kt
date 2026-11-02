@@ -39,7 +39,9 @@ class HeadlessAgilityTest {
            "routes": [{"from": [3219, 3216, 0], "moves": [{"type": "walk", "path": [[3219, 3212]], "anim": 762}],
              "fail": [{"type": "anim", "anim": 846, "ticks": 1}, {"type": "teleport", "to": [3218, 3214, 0]}]}]},
           {"key": "test_ledge", "loc": $LEDGE, "option": "Jump", "level": 20, "xpTenths": 10,
-           "routes": [{"from": [3226, 3218, 0], "moves": [{"type": "teleport", "to": [3227, 3218, 0]}]}]}
+           "routes": [{"from": [3226, 3218, 0], "moves": [{"type": "teleport", "to": [3227, 3218, 0]}]}]},
+          {"key": "test_beam", "loc": $BEAM, "option": "Walk-on", "level": 1, "xpTenths": 10,
+           "routes": [{"from": [3221, 3221, 0], "moves": [{"type": "walk", "path": [[3221, 3233]], "anim": 762}]}]}
         ]}
         """,
     )
@@ -49,11 +51,12 @@ class HeadlessAgilityTest {
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(3),
-            locTypes = LocTypes(listOf(loc(WALL, "Rough wall", "Climb"), loc(ROPE, "Tightrope", "Walk-across"), loc(LEDGE, "Ledge", "Jump")).associateBy { it.id }),
+            locTypes = LocTypes(listOf(loc(WALL, "Rough wall", "Climb"), loc(ROPE, "Tightrope", "Walk-across"), loc(LEDGE, "Ledge", "Jump"), loc(BEAM, "Beam", "Walk-on")).associateBy { it.id }),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(WALL, LocShape.CENTREPIECE_STRAIGHT, 0, 3224, 3216, 0))
                 add(ZoneLoc(ROPE, LocShape.CENTREPIECE_STRAIGHT, 0, 3219, 3215, 0))
                 add(ZoneLoc(LEDGE, LocShape.CENTREPIECE_STRAIGHT, 0, 3227, 3219, 0))
+                add(ZoneLoc(BEAM, LocShape.CENTREPIECE_STRAIGHT, 0, 3221, 3220, 0))
             },
             agilityData = obstacles, cycleMillis = millis,
         )
@@ -132,10 +135,32 @@ class HeadlessAgilityTest {
         }
     }
 
+    @Test
+    fun `a player who dies partway along stops there and keeps no obstacle stance`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.locOp(BEAM, 3221, 3220, 1)
+                val player = server.world.onlinePlayers.single()
+                client.await("on the beam") { client.position?.takeIf { it.x == 3221 && it.z in 3222..3226 } }
+                client.command("hit 99 me")
+                client.await("[combat.dead]") { client.messages().firstOrNull { it.text == "[combat.dead]" } }
+                // Dropping the script skips its finally, so the death itself clears the steps and the stance.
+                client.await("no steps or stance left") { Unit.takeIf { player.forcedSteps.isEmpty() && player.stanceOverride == null } }
+                val fell = client.position!!
+                assertTrue(fell.z < 3233, "stopped partway, at $fell")
+                client.awaitTicks(3)
+                assertTrue(client.position!!.z <= fell.z + 1, "no further along after the death, at ${client.position}")
+                assertEquals(0, client.stat(AGILITY)?.xp ?: 0)
+            }
+        }
+    }
+
     private companion object {
         const val WALL = 11_404
         const val ROPE = 11_405
         const val LEDGE = 11_406
+        const val BEAM = 11_407
         const val HITPOINTS = 3
         const val AGILITY = 16
     }

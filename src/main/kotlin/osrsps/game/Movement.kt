@@ -45,6 +45,8 @@ class Movement(private val collision: CollisionMap) {
     }
 
     fun process(player: Player): MoveResult {
+        // A dead player goes nowhere, even partway along an obstacle.
+        if (player.dead) player.forcedSteps.clear()
         if (player.forcedSteps.isNotEmpty()) {
             // A teleport this tick (a climb onto a roof) lands first; the walk starts on the next tick.
             if (player.teleported) {
