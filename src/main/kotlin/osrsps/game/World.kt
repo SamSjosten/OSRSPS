@@ -128,6 +128,7 @@ import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
 import osrsps.game.content.registerDraynorSewers
 import osrsps.game.content.registerDraynorManor
+import osrsps.game.content.registerDraynorManorPeople
 import osrsps.game.content.registerDraynorManorGrounds
 import osrsps.game.content.ManorHazards
 import osrsps.game.content.registerWiseOldMan
@@ -298,8 +299,11 @@ class World(
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
-    /** The cache's varps and varbits plus our own ([customVars]), which the client gets through the cache overlay. */
-    val varTypes: VarTypes = varTypes.with(customVars.varbits)
+    /**
+     * The cache's varps and varbits plus our own ([customVars]), which the client gets through the cache overlay and
+     * a save keeps by name.
+     */
+    val varTypes: VarTypes = varTypes.with(customVars.varbits, customVars.varpNames)
 
     lateinit var network: NetworkService<Player>
 
@@ -498,7 +502,7 @@ class World(
         multi = multiCombat, poweredStaves = poweredStaves, words = ::textFor,
     )
 
-    /** Lumbridge Home Teleport; see [HomeTeleport]. Its destination and cooldown are seams other teleports can swap. */
+    /** Home Teleport; see [HomeTeleport]. Its target is a seam the lodestone network takes ([registerLodestones]). */
     val homeTeleport = HomeTeleport(
         currentTick = { tick }, nowMinutes = { System.currentTimeMillis() / 60_000 }, inCombat = { inCombat(it) },
         teleport = { player, to -> teleport(player, to.x, to.z, to.level) },
@@ -715,6 +719,7 @@ class World(
         registerDraynorSewers(this)
         registerDraynorManorGrounds(this)
         registerDraynorManor(this)
+        registerDraynorManorPeople(this)
         registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)

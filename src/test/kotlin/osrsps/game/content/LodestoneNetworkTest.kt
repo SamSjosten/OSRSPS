@@ -8,6 +8,7 @@ import kotlin.test.assertTrue
 import osrsps.game.Player
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.combat.Spells
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
@@ -40,7 +41,7 @@ class LodestoneNetworkTest {
         },
         message = { _, line, values -> said += keys.get(line, *values) },
         wildernessLevel = { wilderness },
-    )
+    ).also { it.register(handlers) }
     private val network = LodestoneNetwork(
         vars,
         home,
@@ -57,6 +58,13 @@ class LodestoneNetworkTest {
     /** A click on a stone's one option in this tick's input phase, then the rest of the tick's script phase. */
     private fun click(site: Lodestones.Site) {
         assertTrue(scripts.trigger(player, Op(OpTarget.LOC, site.id, Lodestones.ACTIVATE)))
+        scripts.process(player)
+        record()
+    }
+
+    /** Cast on the spellbook's Home Teleport in this tick's input phase, then the rest of the tick's script phase. */
+    private fun castHomeTeleport() {
+        assertTrue(scripts.trigger(player, Op.button(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)))
         scripts.process(player)
         record()
     }
@@ -118,6 +126,43 @@ class LodestoneNetworkTest {
         assertEquals(0, player.vars[HomeTeleport.VARP_LAST_CAST], "no cooldown")
         assertFalse(home.casting(player))
         assertTrue(said.isEmpty())
+    }
+
+    @Test
+    fun `Home Teleport opens the same menu, and a pick casts there in 28 ticks with no cooldown, whatever the timer says`() {
+        network.login(player)
+        network.unlock(player, Lodestones.EDGEVILLE)
+        // OSRS's cooldown would refuse a cast for 30 minutes from here; the lodestones' doesn't count it.
+        player.vars[HomeTeleport.VARP_LAST_CAST] = 29_000_000
+        tick = 100
+        pick = 2
+        castHomeTeleport()
+        assertEquals(listOf("[lodestone.title]" to listOf("[lodestone.lumbridge]", "[lodestone.edgeville]")), menus)
+        assertTrue(home.casting(player))
+        run(27)
+        assertTrue(landed.isEmpty())
+        assertEquals(mapOf(100L to 4847, 108L to 4850, 115L to 4853, 119L to 4855, 122L to 4857), anims)
+        run(1)
+        assertEquals(listOf(128L to Lodestones.EDGEVILLE.arrival), landed)
+        assertEquals(Triple(3067, 3505, 0), Triple(player.x, player.z, player.level), "the stone's centre tile")
+        assertEquals(29_000_000, player.vars[HomeTeleport.VARP_LAST_CAST], "the timer is left as it was")
+        assertFalse(home.casting(player))
+        assertTrue(said.isEmpty())
+    }
+
+    @Test
+    fun `Home Teleport's menu closed without a pick casts nothing, and the Wilderness refuses it before the menu`() {
+        network.login(player)
+        pick = 0
+        castHomeTeleport()
+        assertEquals(1, menus.size)
+        assertFalse(home.casting(player))
+        run(30)
+        assertTrue(landed.isEmpty())
+        wilderness = 21
+        castHomeTeleport()
+        assertEquals(1, menus.size, "no menu in the deep Wilderness")
+        assertEquals(listOf("[home_teleport.wilderness]", "[home_teleport.wilderness_2]"), said)
     }
 
     @Test

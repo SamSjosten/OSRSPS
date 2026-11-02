@@ -35,9 +35,11 @@ object HomeTeleportLines : Lines("home_teleport", "Lumbridge_Home_Teleport") {
  * Any click that interrupts the player (walking, an NPC, a loc, closing an interface) removes the weak queue, which
  * stops the cast; being attacked stops it at the next tick.
  *
- * Two seams for other teleports to swap in from [osrsps.game.World]'s init, without touching this file: [destination]
- * (null cancels the cast; a lodestone menu could open here) and [cooldownApplies]. Teleports of the same family
- * (the lodestones', [Lodestones]) start their own cast with [castTo], with their own timing and no cooldown.
+ * One seam for another teleport to swap in without touching this file: [target], chosen when the player clicks Cast.
+ * The default is OSRS's own cast to Lumbridge with the cooldown; the lodestone network ([LodestoneNetwork.register])
+ * puts its menu there, as RS3's Home Teleport opens the network and lands on the stone picked, free and with no
+ * cooldown, so a world with the lodestones has no cast to the courtyard. Teleports of the same family start their own
+ * cast with [castTo], with their own timing.
  */
 class HomeTeleport(
     private val currentTick: () -> Long,
@@ -50,11 +52,14 @@ class HomeTeleport(
     /** The Wilderness level the player stands at; 0 outside it. */
     private val wildernessLevel: (Player) -> Int = { Wilderness.level(it.x, it.z) },
 ) {
-    /** Where the cast will land, chosen when the player clicks Cast, before the animation starts. Null cancels it. */
-    var destination: suspend ScriptContext.() -> Destination? = { LUMBRIDGE }
+    /** A cast's landing tile, length, stages and whether the cooldown counts; the default is OSRS's own. */
+    class Target(val to: Destination, val ticks: Int = CAST_TICKS, val stages: List<Stage> = STAGES, val cooldown: Boolean = true)
 
-    /** Whether the 30-minute cooldown applies to this cast. */
-    var cooldownApplies: (Player) -> Boolean = { true }
+    /**
+     * What a click on Cast starts, chosen before the animation (a menu can open here); null casts nothing. Combat and
+     * the Wilderness are refused before it is asked, the cooldown, when the target has one, after.
+     */
+    var target: suspend ScriptContext.() -> Target? = { Target(LUMBRIDGE) }
 
     fun register(handlers: Handlers) {
         handlers.onButton(Spells.SPELLBOOK, COMPONENT, CAST) { cast() }
@@ -75,9 +80,9 @@ class HomeTeleport(
         // Only the standard book's home teleport is built; the button is the standard book's own.
         if (Spellbook.of(player) != Spellbook.STANDARD) return
         if (casting(player)) return
-        if (!canCast(player, cooldownApplies(player))) return
-        val to = destination() ?: return
-        castTo(to)
+        if (!canCast(player, cooldown = false)) return
+        val target = target() ?: return
+        castTo(target.to, target.ticks, target.stages, target.cooldown)
     }
 
     /** Whether [player] can start a cast now, saying why not when they can't; [cooldown] is whether theirs applies. */
@@ -106,7 +111,7 @@ class HomeTeleport(
      * the landing when [cooldown]. Refused, with the reason said, part way through another cast, in combat, above
      * level 20 Wilderness, or within the cooldown when it applies. Returns whether the cast started.
      */
-    fun ScriptContext.castTo(to: Destination, ticks: Int = CAST_TICKS, stages: List<Stage> = STAGES, cooldown: Boolean = cooldownApplies(player)): Boolean {
+    fun ScriptContext.castTo(to: Destination, ticks: Int = CAST_TICKS, stages: List<Stage> = STAGES, cooldown: Boolean = true): Boolean {
         if (casting(player)) return false
         if (!canCast(player, cooldown)) return false
         // Casting stops whatever the player was doing and keeps them where they stand (inferred: the stages are

@@ -291,6 +291,72 @@ class PlayerSaveTest {
         assertEquals(1, player.vars[173])
     }
 
+    /** A world whose cache has [varps] varps, so the lodestones' varp (saved by name) gets the id right after them. */
+    private fun worldWithCacheOf(varps: Int) = World(IntArray(0), CollisionMap(), VarTypes(varps, emptyMap(), 20_411), saves = saves)
+
+    @Test
+    fun `a var of our own is saved by name and loads back under the id this server's cache leaves it`() {
+        val build2746 = worldWithCacheOf(5996)
+        val player = build2746.loadPlayer(1, "Test")
+        assertEquals(5996, build2746.customVars.lodestonesVarp)
+        player.vars[5996] = 5
+        assertTrue(build2746.save(player))
+        val text = saves.saves.getValue("test")
+        assertTrue("\"lodestones\": 5" in text, text)
+        assertFalse("\"5996\"" in text, "not by id")
+        assertEquals(mapOf("lodestones" to 5), PlayerSave.fromJson(text).customVars)
+        assertEquals(mapOf(SpecialAttacks.VARP_ENERGY to SpecialAttacks.FULL), PlayerSave.fromJson(text).varps)
+        assertEquals(5, build2746.loadPlayer(2, "Test").vars[5996])
+
+        val olderBuild = worldWithCacheOf(5891)
+        assertEquals(5891, olderBuild.customVars.lodestonesVarp)
+        assertEquals(5, olderBuild.loadPlayer(3, "Test").vars[5891], "the same stones under the other cache's id")
+    }
+
+    @Test
+    fun `a var of our own at 0 isn't saved, and a save without it leaves it at 0`() {
+        val world = worldWithCacheOf(5996)
+        world.save(world.loadPlayer(1, "Test"))
+        val text = saves.saves.getValue("test")
+        assertFalse("customVars" in text)
+        assertEquals(emptyMap(), PlayerSave.fromJson(text).customVars)
+        assertEquals(0, world.loadPlayer(2, "Test").vars[5996])
+    }
+
+    @Test
+    fun `a saved varp numbered past the cache's own is dropped, so an old id of ours never lands on another var`() {
+        val world = worldWithCacheOf(5996)
+        // 5,996 is the lodestones' varp here, but by number it is a save from a server that gave it that id: ours go by name.
+        saves.write("test", PlayerSave(3222, 3218, 0, 10_000, mapOf(173 to 1, 5996 to 7, 9_999 to 7), emptyMap()).toJson("test"))
+        val player = world.loadPlayer(1, "test")
+        assertEquals(1, player.vars[173])
+        assertEquals(0, player.vars[5996])
+    }
+
+    @Test
+    fun `a saved var name this server doesn't have is dropped instead of failing the login`() {
+        val world = worldWithCacheOf(5996)
+        saves.write("test", PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), customVars = mapOf("lodestones" to 2, "portals" to 9)).toJson("test"))
+        assertEquals(2, world.loadPlayer(1, "test").vars[5996])
+    }
+
+    @Test
+    fun `restoring an earlier save puts a var of ours back, or to 0 when the save has none, like the cache's`() {
+        val world = worldWithCacheOf(5996)
+        val player = world.loadPlayer(1, "Test")
+        player.vars[5996] = 1
+        player.vars[173] = 1
+        val before = PlayerSave.of(player)
+        player.vars[5996] = 3
+        player.vars[173] = 0
+        before.restoreTo(player)
+        assertEquals(1, player.vars[5996])
+        assertEquals(1, player.vars[173])
+        PlayerSave.of(world.loadPlayer(2, "Fresh")).restoreTo(player)
+        assertEquals(0, player.vars[5996])
+        assertEquals(0, player.vars[173])
+    }
+
     @Test
     fun `saves that can't be used are refused`() {
         val good = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
@@ -304,6 +370,8 @@ class PlayerSaveTest {
             good.replace("\"skills\": {}", "\"skills\": {\"attack\": {\"xpTenths\": -1, \"currentLevel\": 1}}"),
             good.replace("\"skills\": {}", "\"skills\": {\"dancing\": {\"xpTenths\": 0, \"currentLevel\": 1}}"),
             good.replace("\"varps\": {}", "\"varps\": {\"abc\": 1}"),
+            good.replace("\"varps\": {}", "\"varps\": {}, \"customVars\": {\"\": 1}"),
+            good.replace("\"varps\": {}", "\"varps\": {}, \"customVars\": {\"lodestones\": \"on\"}"),
             good.replace("\"position\"", "\"place\""),
             good.replace("\"inventory\": []", "\"inventory\": [{\"slot\": 28, \"id\": 1351, \"count\": 1}]"),
             good.replace("\"inventory\": []", "\"inventory\": [{\"slot\": 0, \"id\": 1351, \"count\": 0}]"),

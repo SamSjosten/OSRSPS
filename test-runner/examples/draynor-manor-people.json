@@ -1,0 +1,246 @@
+{
+ "name": "Draynor piece step 12b: Draynor Manor's people (::keys on): Ava's talk, her shop (one feather bought), the witch and Professor Oddenstein",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "the manor's ghosts and rats"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 1000",
+   "expectMessage": "Added 1,000 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3093 3357 0",
+   "expectMessage": "Teleported to 3093, 3357, 0",
+   "comment": "Ava's spawn tile, in the room behind the bookcases"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ava",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ava.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ava.more]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ava.previous]",
+   "comment": "back to her first menu"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ava.more]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ava.head_off]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ava.head_off]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ava.bed]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ava",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ava.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ava.more]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ava.stuff]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ava.stuff]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ava.shop]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "Ava's Odds and Ends"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 on the feathers, the first item"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Feather",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3099 3370 0",
+   "expectMessage": "Teleported to 3099, 3370, 0",
+   "comment": "the witch's spawn tile, in the north-west room; the teleport closes the shop"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Witch",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[manor_witch.ickle]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[manor_witch.wondered]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[manor_witch.clearly_not]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3110 3367 2",
+   "expectMessage": "Teleported to 3110, 3367, 2",
+   "comment": "Professor Oddenstein's spawn tile, on the top floor"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Professor Oddenstein",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[oddenstein.careful]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[oddenstein.portal]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[oddenstein.portal]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[oddenstein.rift]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[oddenstein.huh]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[oddenstein.teleport]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
