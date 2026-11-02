@@ -1115,6 +1115,19 @@ and dragon spear (it isn't built; its roll gives nothing). The words are in the 
 Gunthor and is fought back, and sees the goblins and unicorns; `BarbarianVillageTest` does every line and talk,
 `NpcCombatTest` the max hits and `HeadlessBarbarianVillageTest` a barbarian's attack once his line is over.
 
+Step 8 is Barbarian Village's mine, rod fishing and permanent fire.
+
+| Behaviour | Source |
+|-----------|--------|
+| The mine's four tin and four coal rocks (`tinrock1`/`2`, `coalrock1`/`2`) mine as every rock of their types | 241 map; `Mining.ROCKS` |
+| Two Lure/Bait spots (`0_48_53_freshfish` 1526) on the River Barbarian, trout and salmon by Lure and pike by Bait as the River Lum's, moving between five tiles | mejrs's live NPC list for the spawn tiles; 2004Scape's `fishing_movement_barbarian_village_enum` for the five |
+| The permanent fire by the fishing spots (`fire_cook` 43475, 3106, 3432) cooks from its Cook option, as Draynor's; the longhall's two fires (`fire` 26185) take food used on them | OSRS Wiki, Permanent fire (two in the main table, one with Cook); the 241 map |
+| The lookout tower's ladders climb only on the tower's tiles: the same directional ladder types elsewhere give "nothing interesting" until their own areas come | the exploit review's round 11 (R11C-1); 44 instances in the 241 map |
+
+Check: `test-runner/examples/barbarian-mine-fish.json` mines tin and coal, lures a fish and cooks it on the fire, and
+climbs the tower; `NpcSpawnFileTest` puts the spots on their area's tiles and `HeadlessBarbarianVillageTest` refuses
+the ladder type away from the tower.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).

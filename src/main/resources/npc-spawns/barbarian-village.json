@@ -32,6 +32,8 @@
     {"npc": 3075, "x": 3118, "z": 3432, "wander": 5, "source": "Goblin (fai_barbarian_goblin_armed_3), east of the village (Edgeville piece step 7). mejrs NPCList_OSRS"},
     {"npc": 3076, "x": 3119, "z": 3444, "wander": 5, "source": "Goblin (fai_barbarian_goblin_armed_4), east of the village (Edgeville piece step 7). mejrs NPCList_OSRS"},
     {"npc": "unicorn", "x": 3084, "z": 3454, "wander": 5, "source": "Unicorn, north of the village (Edgeville piece step 7). mejrs NPCList_OSRS"},
-    {"npc": "unicorn", "x": 3090, "z": 3450, "wander": 5, "source": "Unicorn, north of the village (Edgeville piece step 7). mejrs NPCList_OSRS"}
+    {"npc": "unicorn", "x": 3090, "z": 3450, "wander": 5, "source": "Unicorn, north of the village (Edgeville piece step 7). mejrs NPCList_OSRS"},
+    {"npc": 1526, "x": 3104, "z": 3424, "source": "Lure/Bait fishing spot (0_48_53_freshfish), the River Barbarian east of the village (Edgeville piece step 8). mejrs NPCList_OSRS; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": 1526, "x": 3110, "z": 3434, "source": "Lure/Bait fishing spot (0_48_53_freshfish), the River Barbarian east of the village (Edgeville piece step 8). mejrs NPCList_OSRS; moves between its area's tiles, see Fishing.AREAS"}
   ]
 }

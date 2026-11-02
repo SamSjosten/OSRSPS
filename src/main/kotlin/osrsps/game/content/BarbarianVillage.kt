@@ -1,10 +1,12 @@
 package osrsps.game.content
 
+import osrsps.game.GameLines
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
+import osrsps.game.zone.ZoneLoc
 
 /** Peksa's lines; the words are in the dialogue file, from the Wiki's Transcript:Peksa. */
 object PeksaLines : Lines("peksa", "Transcript:Peksa") {
@@ -348,6 +350,21 @@ object BarbarianVillage {
         }
     }
 
+    /**
+     * The lookout tower's ladders, by tile: up from 3096, 3433 on the ground and 3097, 3433 on the first floor, down from
+     * the same tiles a level above (241 map). The same types stand in 40-odd other places, so the handlers check the tile
+     * (the exploit review's round 11, R11C-1).
+     */
+    private val TOWER_LADDERS_UP = setOf(Triple(3096, 3433, 0), Triple(3097, 3433, 1))
+    private val TOWER_LADDERS_DOWN = setOf(Triple(3096, 3433, 1), Triple(3097, 3433, 2))
+
+    /** Whether [loc] is one of the lookout tower's ladders, of the type that stands on its tile. */
+    fun isTowerLadder(loc: ZoneLoc): Boolean = Triple(loc.x, loc.z, loc.level) in when (loc.id) {
+        TOWER_LADDER -> TOWER_LADDERS_UP
+        TOWER_LADDER_TOP -> TOWER_LADDERS_DOWN
+        else -> emptySet()
+    }
+
     /** fai_barbarian_1 to _14 and fai_barbarian_female_1 to _4, less Hunding (fai_barbarian_9): the village's fighters. */
     val BARBARIANS = (3055..3072).filter { it != HUNDING }
 
@@ -381,8 +398,17 @@ object BarbarianVillage {
 fun registerBarbarianVillage(world: World) {
     with(BarbarianVillage) {
         world.doors.registerDouble(LONGHALL_DOOR_LEFT, LONGHALL_DOOR_LEFT_OPEN, LONGHALL_DOOR_RIGHT, LONGHALL_DOOR_RIGHT_OPEN)
-        world.handlers.onLoc(TOWER_LADDER, 1) { op -> climbLadder(world, op.loc!!, 1, Climbing.ANIM_REACH_FOR_LADDER) }
-        world.handlers.onLoc(TOWER_LADDER_TOP, 1) { op -> climbLadder(world, op.loc!!, -1, Climbing.ANIM_PICKUP_FLOOR) }
+        // Only the tower's: the same directional ladder types stand in 40-odd other places, which their own areas handle.
+        world.handlers.onLoc(TOWER_LADDER, 1) { op ->
+            val loc = op.loc!!
+            if (!isTowerLadder(loc)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbLadder(world, loc, 1, Climbing.ANIM_REACH_FOR_LADDER)
+        }
+        world.handlers.onLoc(TOWER_LADDER_TOP, 1) { op ->
+            val loc = op.loc!!
+            if (!isTowerLadder(loc)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbLadder(world, loc, -1, Climbing.ANIM_PICKUP_FLOOR)
+        }
         registerSearch(world, SMALL_CRATES, 1, SearchLines.CRATE_EMPTY)
 
         world.handlers.onNpc(PEKSA, TALK_TO) { op ->

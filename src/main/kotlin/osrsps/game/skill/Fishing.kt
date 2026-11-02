@@ -254,11 +254,15 @@ class Fishing(private val world: World) {
         /** Al Kharid's Small Net/Bait spots (`0_51_49_saltfish`), south-west of the town by the sea. */
         const val AL_KHARID_SPOT = 1528
 
+        /** Lure/Bait spots on the River Barbarian by Barbarian Village (`0_48_53_freshfish`), as the River Lum's. */
+        const val BARBARIAN_SPOT = 1526
+
         val SPOTS = listOf(
             SpotType(SWAMP_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(RIVER_SPOT, listOf(LURE, RIVER_BAIT)),
             SpotType(DRAYNOR_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(AL_KHARID_SPOT, listOf(SMALL_NET, SEA_BAIT)),
+            SpotType(BARBARIAN_SPOT, listOf(LURE, RIVER_BAIT)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 
@@ -275,6 +279,9 @@ class Fishing(private val world: World) {
             listOf(Tile(3086, 3227), Tile(3086, 3228), Tile(3085, 3230), Tile(3085, 3231)),
             // Al Kharid's: the six tiles 2004Scape's fishing_movement_al_kharid_enum notes as live's since March 2021.
             listOf(Tile(3266, 3148), Tile(3267, 3148), Tile(3268, 3147), Tile(3275, 3140), Tile(3276, 3140), Tile(3277, 3139)),
+            // Barbarian Village's: 2004Scape's fishing_movement_barbarian_village_enum, which holds the two tiles mejrs's
+            // live NPC list has the spots on (3104, 3424 and 3110, 3434).
+            listOf(Tile(3110, 3434), Tile(3110, 3433), Tile(3110, 3432), Tile(3104, 3425), Tile(3104, 3424)),
         )
     }
 }
