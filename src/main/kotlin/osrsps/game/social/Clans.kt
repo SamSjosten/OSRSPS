@@ -42,11 +42,18 @@ private val logger = KotlinLogging.logger {}
  * where guests read the channel and, when the clan lets their rank talk, write to it with `///` or `/g` (MESSAGE_PUBLIC
  * type 4). Members see guests in their channel's list.
  *
+ * The clan's settings page (clans_info, 690) opens from either page's Settings button and draws itself from the clan
+ * settings the client has. As a guest its Apply button asks first and then applies (kept with the clan; the owner, in
+ * the channel, hears of it), and then reads Withdraw (clan_transmit_guestisapplying). As a member its Leave Clan
+ * button asks first and then leaves; the owner can't leave (live: they must hand the clan over first).
+ *
  * Guessed: the Hub's edges, the founders' rank after founding (the lowest member rank, 0; the founder is owner, 126),
  * the creation time and join day encodings, that finding a clan doesn't join its channel (the panel's text says "You
  * are not currently chatting in this clan's channel" with a Chat button), guests not talking under the default talk
- * rank, and every game message (keys in [ClanLines], words from the Wiki where it has them). Not built yet: applying
- * and accepting applicants, inviting after founding, leaving the clan, ranks and permissions, settings, kicks and bans.
+ * rank, the Apply and Leave Clan questions, that only the owner hears of applicants (until ranks and permissions),
+ * that someone in a clan can't apply to another, and every game message (keys in [ClanLines], words from the Wiki where
+ * it has them). Not built yet: the applicants list for recruiters, inviting after founding, handing the clan over,
+ * ranks and permissions, settings, kicks and bans.
  */
 class Clans(
     private val store: ClanStore,
@@ -64,6 +71,14 @@ class Clans(
     private val online: (Player) -> Boolean,
     /** The next message counter, shared with private and friends chat messages. */
     private val nextCounter: () -> Int,
+    /** Opens an interface as the main modal. */
+    private val openModal: (Player, Int) -> Unit,
+    /** Closes the player's modals. */
+    private val closeModals: (Player) -> Unit,
+    /** Asks the player a yes/no question titled with the given words; runs the action on yes. */
+    private val confirm: (Player, String, () -> Unit) -> Unit,
+    /** The online player with a save key, or null. */
+    private val playerByKey: (String) -> Player?,
     private val now: () -> Instant = Instant::now,
 ) {
     /** A clan being formed: its leader, the founders who joined, the invited and the name picked. */
@@ -93,6 +108,9 @@ class Clans(
 
     /** The clan each online player has loaded as a guest (Find on the Another Clan page), by save key: its id. */
     private val listening = HashMap<String, Long>()
+
+    /** How each player last opened the clan's settings page (clans_info): true as a guest. */
+    private val infoAsGuest = HashMap<String, Boolean>()
 
     private var updateNum = 0L
 
@@ -167,6 +185,7 @@ class Clans(
         clanOf(player)?.let { leaveChannel(player, it, tell = false) }
         guestClanOf(player)?.let { leaveChannel(player, it, tell = false) }
         listening.remove(player.saveKey)
+        infoAsGuest.remove(player.saveKey)
         tabs.remove(player.saveKey)
         inHub.remove(player.saveKey)
         shownName.remove(player.saveKey)
@@ -235,14 +254,14 @@ class Clans(
 
     /**
      * A click on the Another Clan page. Returns whether it was one. [askName] runs Find's name prompt, then [find].
-     * Settings (the clan's info as a guest, where Apply is) isn't built.
+     * Settings opens the clan's settings page as a guest, where Apply is.
      */
     fun clickGuest(player: Player, component: Int, askName: (Player) -> Unit): Boolean {
         when (component) {
             GUEST_SEARCH -> if (guestClanOf(player) != null) discard(player) else askName(player)
             GUEST_CHAT -> toggleGuestChannel(player)
             GUEST_REFRESH -> guestClanOf(player)?.let { refreshGuest(player, it) }
-            GUEST_INFO -> {}
+            GUEST_INFO -> if (guestClanOf(player) != null) openInfo(player, asGuest = true)
             else -> return false
         }
         return true
@@ -260,6 +279,122 @@ class Clans(
 
     /** The clan called [name], any spelling, or null. */
     fun clanNamed(name: String): ClanStore.Clan? = store.byName(name)
+
+    /** The "Your Clan" page's Settings button: the clan's settings page as a member. */
+    fun openYourInfo(player: Player) {
+        if (clanOf(player) != null) openInfo(player, asGuest = false)
+    }
+
+    /**
+     * Opens clans_info, which draws itself from the clan settings the client has: the listened clan's with
+     * clan_transmit_loadasguest 1, else the player's own. As a guest its Applications button reads Apply or Withdraw by
+     * clan_transmit_guestisapplying.
+     */
+    private fun openInfo(player: Player, asGuest: Boolean) {
+        infoAsGuest[player.saveKey] = asGuest
+        setVarbit(player, VARBIT_INFO_AS_GUEST, if (asGuest) 1 else 0)
+        if (asGuest) showApplying(player)
+        openModal(player, INFO)
+        for (component in INFO_BUTTONS) setEvents(player, INFO, component, -1, -1, OP1, 0)
+    }
+
+    private fun showApplying(player: Player) {
+        val applying = guestClanOf(player)?.applicant(player.saveKey) != null
+        setVarbit(player, VARBIT_GUEST_APPLYING, if (applying) 1 else 0)
+    }
+
+    /**
+     * A click on the clan's settings page. Returns whether it was one. As a guest, Apply asks first and then applies;
+     * Withdraw takes the application back. As a member, Leave Clan asks first and then leaves. The other buttons
+     * (events, members, applicants, hall, permissions, titles, bans) aren't built.
+     */
+    fun clickInfo(player: Player, component: Int): Boolean {
+        if (component !in INFO_BUTTONS) return false
+        // Only while the page is open: a click sent after it closed, or forged, does nothing.
+        if (INFO !in player.modals.values) return true
+        val asGuest = infoAsGuest[player.saveKey] ?: return true
+        when {
+            component == INFO_APPLICATIONS && asGuest -> {
+                val clan = guestClanOf(player) ?: return true
+                if (clan.applicant(player.saveKey) != null) {
+                    withdraw(player, clan)
+                } else {
+                    confirm(player, words(player)[ClanLines.APPLY_CONFIRM, "name" to clan.name]) { apply(player, clan.id) }
+                }
+            }
+            component == INFO_QUIT && !asGuest -> {
+                val clan = clanOf(player) ?: return true
+                if (clan.member(player.saveKey)?.rank == RANK_OWNER) {
+                    tell(player, ClanLines.OWNER_CANT_LEAVE)
+                } else {
+                    confirm(player, words(player)[ClanLines.LEAVE_CONFIRM, "name" to clan.name]) { leaveClan(player, clan.id) }
+                }
+            }
+        }
+        return true
+    }
+
+    /** Apply, confirmed: [player] becomes an applicant of the clan with [clanId], if still its guest and in no clan. */
+    fun apply(player: Player, clanId: Long) {
+        val clan = guestClanOf(player)?.takeIf { it.id == clanId } ?: return
+        if (clanOf(player) != null) {
+            tell(player, ClanLines.APPLY_IN_A_CLAN)
+            return
+        }
+        if (clan.applicant(player.saveKey) != null) return
+        store.addApplicant(clan, player.saveKey, player.username)
+        showApplying(player)
+        tell(player, ClanLines.APPLIED, clan.name)
+        // Recruiters in the channel hear of it (inferred: the Wiki says recruiters are notified, not how).
+        for (member in channels[clan.id].orEmpty()) {
+            if ((clan.member(member.saveKey)?.rank ?: RANK_GUEST) >= RECRUIT_RANK) tell(member, ClanLines.NEW_APPLICANT, player.username)
+        }
+    }
+
+    private fun withdraw(player: Player, clan: ClanStore.Clan) {
+        if (!store.removeApplicant(clan, player.saveKey)) return
+        showApplying(player)
+        tell(player, ClanLines.WITHDRAWN, clan.name)
+    }
+
+    /** Leave Clan, confirmed: [player] is no longer a member of the clan with [clanId]. Its owner can't leave. */
+    fun leaveClan(player: Player, clanId: Long) {
+        val clan = clanOf(player)?.takeIf { it.id == clanId } ?: return
+        if (clan.member(player.saveKey)?.rank == RANK_OWNER) return
+        leaveChannel(player, clan, tell = false)
+        store.removeMember(clan, player.saveKey)
+        setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
+        send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
+        send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
+        sendSettings(clan)
+        infoAsGuest.remove(player.saveKey)
+        closeModals(player)
+        showRecruit(player)
+        if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
+        tell(player, ClanLines.LEFT_CLAN, clan.name)
+    }
+
+    /** [clan]'s settings again, to every online member and everyone with it loaded as a guest, in its channel or not. */
+    private fun sendSettings(clan: ClanStore.Clan) {
+        for (member in clan.members) playerByKey(member.key)?.let { send(it, settingsFull(clan)) }
+        for ((key, id) in listening) if (id == clan.id) playerByKey(key)?.let { send(it, settingsFull(clan, CLAN_TYPE_LISTENED)) }
+    }
+
+    /**
+     * `::clanjoin`: [player] joins [clan] as its lowest member rank, for test scripts that leave a clan without founding
+     * one. False if they are in a clan already.
+     */
+    fun joinTestClan(player: Player, clan: ClanStore.Clan): Boolean {
+        if (clanOf(player) != null) return false
+        store.addMember(clan, ClanStore.Member(player.saveKey, player.username, RANK_FOUNDER, runeDay()))
+        if (listening[player.saveKey] == clan.id) discard(player)
+        setVarbit(player, VARBIT_AFFINITY, AFFINITY_CONNECTED)
+        sendSettings(clan)
+        joinChannel(player, clan)
+        showRecruit(player)
+        if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
+        return true
+    }
 
     /** Find's typed name: loads that clan as [player]'s guest clan. */
     fun find(player: Player, typed: String) {
@@ -718,6 +853,17 @@ class Clans(
         /** The clan type of the clan a player listens to as a guest (the client's "listened" clan). */
         const val CLAN_TYPE_LISTENED = -1
 
+        /** clans_info: the clan's settings page, and its buttons. */
+        const val INFO = 690
+        const val INFO_APPLICATIONS = 21
+        const val INFO_QUIT = 26
+        val INFO_BUTTONS = 19..26
+        const val VARBIT_INFO_AS_GUEST = 12165
+        const val VARBIT_GUEST_APPLYING = 12166
+
+        /** The lowest rank told of applicants; inferred until ranks and permissions (step 11): the owner (126). */
+        const val RECRUIT_RANK = 126
+
         /** [makeTestClan]'s owner: `~` is in no account's name. */
         const val TEST_OWNER_KEY = "~test owner"
 
@@ -796,5 +942,15 @@ object ClanLines : Lines("clan", "Clans") {
     val GUEST_NOT_FOUND = line("guest_not_found", "Find with a name no clan has", "name")
     val GUEST_OWN_CLAN = line("guest_own_clan", "Find with the name of your own clan")
     val NOT_IN_GUEST_CHANNEL = line("not_in_guest_channel", "guest clan chat typed while out of a guest clan's channel")
+    val APPLY_CONFIRM = line("apply_confirm", "the question before applying to a clan", "name")
+    val CONFIRM_YES = line("confirm_yes", "the yes option of a clan question")
+    val CONFIRM_NO = line("confirm_no", "the no option of a clan question")
+    val APPLIED = line("applied", "you applied to join a clan", "name")
+    val WITHDRAWN = line("withdrawn", "you withdrew your application to a clan", "name")
+    val APPLY_IN_A_CLAN = line("apply_in_a_clan", "applying while already in a clan")
+    val NEW_APPLICANT = line("new_applicant", "a recruiter hears someone applied to their clan", "name")
+    val LEAVE_CONFIRM = line("leave_confirm", "the question before leaving your clan", "name")
+    val OWNER_CANT_LEAVE = line("owner_cant_leave", "the owner pressing Leave Clan")
+    val LEFT_CLAN = line("left_clan", "you left your clan", "name")
     val GUEST_CANT_TALK = line("guest_cant_talk", "guest clan chat in a clan whose talk rank is above guests")
 }
