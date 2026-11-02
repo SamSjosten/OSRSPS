@@ -99,6 +99,7 @@ import osrsps.game.content.registerChurch
 import osrsps.game.content.registerFatherUrhney
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
+import osrsps.game.content.registerArchiveLobby
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
 import osrsps.game.content.Ducks
@@ -709,6 +710,7 @@ class World(
         registerHaystacks(this)
         registerLodestones(this)
         registerVarrock(this)
+        registerArchiveLobby(this)
         registerCrops(this)
         ducks.register()
         homeTeleport.register(handlers)

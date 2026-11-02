@@ -12,6 +12,7 @@
   {"step": "command", "text": "::npcs 3", "expectMessage": "; fighting test"},
   {"step": "command", "text": "::tele 3236 3232 0", "expectMessage": "Teleported to 3236, 3232, 0", "comment": "12 north of its spawn: past the 7 it follows to and its aggression range of 8, within the 18 it used to hold on to us for"},
   {"step": "waitTicks", "ticks": 20, "comment": "8 ticks without a swing (guessed), then 7 steps home"},
+  {"step": "command", "text": "::npchp 5 mine", "expectMessage": "1 NPC now on 5 hitpoints", "comment": "full again: we hit back while it bit us, and a hurt NPC's ::npcs line has its hitpoints before who it fights (VM 215, 2026-11-01)"},
   {"step": "command", "text": "::npcs 15", "expectMessage": "at 3236, 3220; spawn 3236, 3220, wander 0; fighting no one", "comment": "let go of us and home"},
   {"step": "command", "text": "::tele 3236 3222 0", "expectMessage": "Teleported to 3236, 3222, 0", "comment": "back within its hunt range"},
   {"step": "waitTicks", "ticks": 3},

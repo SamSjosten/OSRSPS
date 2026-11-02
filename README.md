@@ -924,7 +924,7 @@ quest, so Al Kharid is as after Prince Ali Rescue.
 | The Shantay Pass, north side: Shantay's talk (first talk and later), the outlaw arrested into the cell west of his hut and fined 5 coins (from the backpack, else the bank, else the Port Sarim prison), Trade (the Shantay Pass Shop: its 20 items, 100%/70%/1%) and Buy-pass (5 coins); the cell door locked while jailed | OSRS Wiki, Transcript:Shantay and Shantay Pass Shop; 2004Scape's shantay.rs2 for the flow; the cell's inside tile and the narrated lines as boxes guessed |
 | The Port Sarim prison: the player lands in a cell; Pick-lock on its door (`port_sarim_jaildoor` 9565) gets them out, 4 Thieving XP (0.5 on a fail), the chance rising from 0% to 82% over four tries at level 1 and from 39% to 127% at 99 | OSRS Wiki, Door (Port Sarim jail); the arrival tile is 2004Scape's; how the chance rises between tries and levels guessed; the messages' words to come from a recording |
 | The gate (4031) and its guard (`shantay_guard_still` 4648, Talk-to and Pass): no pass, the guard sends the player to Shantay; with one, the desert isn't built yet, so the gate says so (our words) and the pass is kept; from the desert side the gate always lets the player north; Look-at shows the poster | OSRS Wiki, Transcript:Shantay Guard; 2004Scape's shantay_pass.rs2 (Look-at's boxes guessed for live) |
-| Three Shantay Guards (4643, level 22: stab, max hit 3, back in 50 ticks, bones), one line each; the bank chest's Use opens the bank; Irena (as after Tourist Trap) one line | OSRS Wiki, Shantay Guard, Transcript:Shantay Guard and Transcript:Irena; tiles from 2004Scape map m51_48 |
+| Three Shantay Guards (4643, level 22: stab, max hit 3, back in 50 ticks, bones), one line each; the bank chest's Use opens the bank and its Collect the collection box; Irena (as after Tourist Trap) one line | OSRS Wiki, Shantay Guard, Transcript:Shantay Guard and Transcript:Irena; tiles from 2004Scape map m51_48 |
 | The Emir's Arena and the glider as stubs: Captain Dalbur (`pilot_al_kharid` 6089, shown as after The Grand Tree) talks, and his Glider, Glider-to and the glider answer in his talk say the gliders don't fly anywhere built yet (our words) in place of the map; Arena Guard Fronk (11664), the Duel Guide (11673) and the 1v1 Tournament Guide (11672) talk; the recruitment boards, staging area steps and scoreboard say the Arena isn't open yet (our words); the fire altar's ruins are scenery | OSRS Wiki, Transcript:Captain Dalbur, Transcript:Duel Guide, Transcript:1v1 Tournament Guide, Transcript:Arena Guard Fronk; Dalbur's tile from mejrs's live NPC list; the Arena people's tiles guessed by the 241 cache's boards and gate |
 | The palace's large double doors (`bankdoor_l`/`_r` 1513/1511, open `openbankdoor_l`/`_r` 1516/1512) open together; the town's curtains (`desertdoorclosed` 1533 / `desertdooropen` 1534) open and close | 241 cache names; the double-door swing is the engine's (see Doors) |
 
@@ -935,7 +935,7 @@ the guards' talk and the examines of the guards and the gate are in the dialogue
 `examine.npc_4287`, `examine.loc_44050`, `examine.npc_3090`), as are the shop keepers' (`al_kharid_shop_keeper.*`,
 `al_kharid_shop_assistant.*`, `zeke.*`, `dommik.*`, `louie_legs.*`, `ranael.*`, `gem_trader.*` and each keeper's examine), Karim's and the Silk trader's (`karim.*`, `silk_trader.*`) and the kebab's
 messages (`kebab.*`), and Ellis's talk and the tanning screen's words (`ellis.*`, `tanning.*`), the palace's (`hassan.*`, `osman.*`, `prince_ali.*`), the camels' (`camel.*`), the boxes' (`search.boxes_empty`), and the Shantay Pass's (`shantay.*`, `shantay_guard.*`, `shantay_gate.*`, `irena.*`, `port_sarim_jail.*`), and the Arena's (`dalbur.*`, `duel_guide.*`, `tournament_guide.*`, `fronk.*`; `arena_stub.*` are ours).
-Also left out from the palace: filling vessels at the fountain (no water sources are built yet), the big-window shortcut itself, Osman's Crack the Clue step, and the Emir, who is never seen. From the fighters and camels: Pickpocket on men and warriors (Thieving comes with the Draynor piece), the warriors joining in when one is attacked (NPC aggression, the Varrock piece), the camulet's talk and camel dung (members, Enakhra's Lament and My Arm's Big Adventure), and Cam's treasure trail step. From the mine: its agility shortcut (`alkharid_mine_sc_*`). From the Shantay Pass: the desert beyond the gate (the poster, the disclaimer and the pass handed over come with the Desert piece), the Tourist Trap lines, treasure trail steps, the Kalphite cave, the cacti, the guards' aggression, and the bank chest's Collect. From the Arena: its fights (PvP Arena worlds only), the five other guards' talks, Joby and Beni, Chris and his Lost Property shop, and the glider map itself (none of its destinations is built).
+Also left out from the palace: filling vessels at the fountain (no water sources are built yet), the big-window shortcut itself, Osman's Crack the Clue step, and the Emir, who is never seen. From the fighters and camels: Pickpocket on men and warriors (Thieving comes with the Draynor piece), the warriors joining in when one is attacked (NPC aggression, the Varrock piece), the camulet's talk and camel dung (members, Enakhra's Lament and My Arm's Big Adventure), and Cam's treasure trail step. From the mine: its agility shortcut (`alkharid_mine_sc_*`). From the Shantay Pass: the desert beyond the gate (the poster, the disclaimer and the pass handed over come with the Desert piece), the Tourist Trap lines, treasure trail steps, the Kalphite cave, the cacti, and the guards' aggression. From the Arena: its fights (PvP Arena worlds only), the five other guards' talks, Joby and Beni, Chris and his Lost Property shop, and the glider map itself (none of its destinations is built).
 
 Check: `test-runner/examples/al-kharid-toll-gate.json` goes through the gate both ways with no coins, through a Border
 Guard's talk, and opens and shuts the palace's west doors and a curtain; `al-kharid-bank.json` banks at a booth, through a banker's
@@ -1495,6 +1495,32 @@ ticks. Check: `./gradlew test --tests 'osrsps.game.encounter.*' --tests 'osrsps.
 --tests 'osrsps.testclient.HeadlessEncounterTest'` (a test boss plays the same 100 ticks on two runs with the same seed
 and differently on another; its phases change at half hitpoints and on time, with an add and a hazard, and the fight
 ends when the boss leaves).
+
+## The Fractured Archive lobby
+
+The raid's lobby (raid step 14) is map square 64,86 of the 241.4 cache, entered from the Chasm of Tears through the
+cavity at 4050,4567. `game/content/ArchiveLobby.kt` has the way in and out, the banker and three NPCs who talk, and the
+lobby's bank chest goes through `game/content/Banking.kt` as every bank chest does. Their spawns are in
+`npc-spawns/fractured-archive-lobby.json`. What they say is in the dialogue file (keys `general_montoya.*`,
+`record_keeper.*`, `tfa_wizard_apprentice.*` and `tfa_banker.*`; her first four options are `banker.*`). Players can't
+reach the chasm yet: `::tele 4054 4567` stands by the cavity.
+
+| Lobby behaviour | Source |
+|-----------------|--------|
+| The cavity (`luc2_raid_entry_multi`, 62542) a multiloc on varbit 16354 (`wgs_tfa_shortcut_unlocked`), 1 showing the Opening's Crawl-through; the varbit set at login as after While Guthix Sleeps | 241.4 cache; the varbit's meaning inferred from its name |
+| The miniquest that starts at the first entry, and the quest needed, left out | no quests on this server |
+| Crawl-through landing north of the lobby's Opening (4127,5508), and the Opening's Enter landing east of the cavity (4054,4567), with no animation either way | guessed, until a recording shows them |
+| The bank chest's Use opening the bank and Collect the collection box; the banker's Talk-to, Bank and Collect | 241.4 cache (options); Wiki, Transcript:Banker (The Fractured Archive) |
+| General Montoya's, the Record Keeper's and the Wizard apprentice's talks | Wiki transcripts (Montoya's before the raid is done; the Record Keeper's first talk) |
+| The apprentice's first talk then his later one, on varbit 16427 (`tfa_wizard_apprentice_met`) | Wiki transcript; the varbit inferred from its name |
+| The Record Keeper's introduction each time, and Yes to his statistics closing the talk | guessed: the var live keeps for it isn't known, and his statistics screen isn't built |
+| Montoya's and the Record Keeper's menus coming back after each topic; every chathead expression | guessed |
+| Where the four NPCs stand | guessed from the lobby's map, beside the locs they tend |
+| The Archive Door, Grouping Board, Alliance records, Strategy board, Ascension rocks, Loot Wheelbarrow, and the guards, druids and Alliance builders | not in yet: the door is step 15, the rest wait for a recording or are left out of the first version |
+
+Check: `./gradlew test --tests 'osrsps.game.content.ArchiveLobbyTest' --tests 'osrsps.testclient.HeadlessArchiveLobbyTest'`
+(each talk line by line; the cavity open from login and crawled through, the Opening back, the bank chest and banker
+banking, the apprentice remembering his first talk), and in RuneLite `test-runner/examples/archive-lobby.json`.
 
 ## Line of sight
 
