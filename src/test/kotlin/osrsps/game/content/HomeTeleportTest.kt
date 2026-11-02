@@ -143,7 +143,7 @@ class HomeTeleportTest {
     fun `it can't be cast above level 20 Wilderness`() {
         wilderness = 21
         click()
-        assertEquals(listOf("home_teleport.wilderness"), said)
+        assertEquals(listOf("home_teleport.wilderness", "home_teleport.wilderness_2"), said, "live sends two lines")
         assertFalse(home.casting(player))
         wilderness = 20
         click()
@@ -162,7 +162,7 @@ class HomeTeleportTest {
         player.z = 3700
         assertTrue(scripts.trigger(player, Op.button(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)))
         scripts.process(player)
-        assertEquals(listOf("home_teleport.wilderness"), said)
+        assertEquals(listOf("home_teleport.wilderness", "home_teleport.wilderness_2"), said)
         assertFalse(home.casting(player))
         player.z = 3679
         assertTrue(scripts.trigger(player, Op.button(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)))

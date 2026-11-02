@@ -11,6 +11,8 @@ import osrsps.game.content.Lodestones
 fun CommandRegistry.registerLodestoneCommands(world: World) {
     val slugs = Lodestones.SITES.joinToString("|") { it.slug }
     register("lodestone", "::lodestone [$slugs]", admin = false) {
+        // A non-admin command runs for a dead player; this one would move the body.
+        if (player.dead) fail("You can't use ::lodestone while you are dead.")
         if (args.size > 1) fail("Usage: ::lodestone [$slugs]")
         val site = args.firstOrNull()?.let { Lodestones.site(it) ?: fail("No lodestone called '$it': ::lodestone [$slugs]") }
         world.scripts.start(player) {

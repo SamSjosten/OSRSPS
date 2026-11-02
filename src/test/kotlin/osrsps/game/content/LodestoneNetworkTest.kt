@@ -119,7 +119,7 @@ class LodestoneNetworkTest {
     }
 
     @Test
-    fun `closing the menu without a pick casts nothing`() {
+    fun `closing the menu without a pick casts nothing, and no activated stone shows no menu`() {
         network.login(player)
         pick = 0
         click(Lodestones.LUMBRIDGE)
@@ -127,6 +127,10 @@ class LodestoneNetworkTest {
         assertFalse(home.casting(player))
         run(30)
         assertTrue(landed.isEmpty())
+        player.vars[CustomVars.LODESTONES_VARP] = 0
+        command()
+        assertEquals(1, menus.size, "a chat menu needs an option")
+        assertTrue(said.isEmpty())
     }
 
     @Test
@@ -163,7 +167,7 @@ class LodestoneNetworkTest {
 
         wilderness = 21
         command(Lodestones.LUMBRIDGE)
-        assertEquals(listOf("[home_teleport.wilderness]"), said)
+        assertEquals(listOf("[home_teleport.wilderness]", "[home_teleport.wilderness_2]"), said)
         assertFalse(home.casting(player))
         said.clear()
 
@@ -200,5 +204,26 @@ class LodestoneNetworkTest {
         assertEquals("::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville]", command.usage)
         assertEquals(Lodestones.AL_KHARID, Lodestones.site("Al_Kharid"))
         assertEquals(null, Lodestones.site("falador"))
+
+        val replies = mutableListOf<String>()
+        val dead = Player(2, "Ghost", 3222, 3218, 0, world.varTypes).apply { deathTick = 0 }
+        world.commands.execute(dead, "::lodestone", replies::add)
+        world.commands.execute(dead, "::lodestone lumbridge extra", replies::add)
+        world.commands.execute(dead, "::lodestone falador", replies::add)
+        assertEquals(
+            listOf(
+                "You can't use ::lodestone while you are dead.",
+                "You can't use ::lodestone while you are dead.",
+                "You can't use ::lodestone while you are dead.",
+            ),
+            replies,
+        )
+        dead.deathTick = -1
+        world.commands.execute(dead, "::lodestone lumbridge extra", replies::add)
+        world.commands.execute(dead, "::lodestone falador", replies::add)
+        assertEquals(
+            listOf("Usage: ::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville]", "No lodestone called 'falador': ::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville]"),
+            replies.drop(3),
+        )
     }
 }

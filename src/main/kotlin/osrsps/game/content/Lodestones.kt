@@ -120,8 +120,6 @@ object Lodestones {
 
     /** The site called [slug] (`::lodestone varrock`), in any case, or null. */
     fun site(slug: String): Site? = SITES.firstOrNull { it.slug.equals(slug, ignoreCase = true) }
-
-    const val QUEUE = HomeTeleport.QUEUE
 }
 
 /**
@@ -162,6 +160,8 @@ class LodestoneNetwork(
     /** Shows the activated stones and starts the teleport to the one picked. */
     suspend fun ScriptContext.open() {
         val sites = unlockedSites(player)
+        // Every login has Lumbridge's; only an admin's ::varp empties the list, and a chat menu needs an option.
+        if (sites.isEmpty()) return
         val picked = menu(LodestoneLines.TITLE, sites.map { it.name })
         if (picked in 1..sites.size) teleportTo(sites[picked - 1])
     }

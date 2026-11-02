@@ -60,7 +60,8 @@
 
   {"step": "command", "text": "::tele 3100 3700 0", "expectMessage": "Teleported to 3100, 3700, 0", "comment": "level 23 Wilderness"},
   {"step": "command", "text": "::lodestone lumbridge"},
-  {"step": "assertMessage", "contains": "[home_teleport.wilderness]", "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "[home_teleport.wilderness]", "timeoutMs": 10000, "comment": "the first of live's two lines"},
+  {"step": "assertMessage", "contains": "[home_teleport.wilderness_2]", "timeoutMs": 10000},
   {"step": "waitTicks", "ticks": 30},
   {"step": "assertLocation", "x": 3100, "y": 3700, "plane": 0, "comment": "no cast above level 20"},
 

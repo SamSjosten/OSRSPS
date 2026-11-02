@@ -14,7 +14,8 @@ import osrsps.game.script.ScriptContext
 object HomeTeleportLines : Lines("home_teleport", "Lumbridge_Home_Teleport") {
     val COOLDOWN = line("cooldown", "Cast within 30 minutes of the last home teleport: the minutes left (the page's Cooldown note)", "minutes")
     val IN_COMBAT = line("in_combat", "Cast while in combat (the page says it can't be)")
-    val WILDERNESS = line("wilderness", "Cast above level 20 Wilderness: the line every teleport shows there (OSRS Wiki, Wilderness level: teleports don't work above level 20)")
+    val WILDERNESS = line("wilderness", "Cast above level 20 Wilderness: the first of the two lines every teleport shows there (OSRS Wiki, Wilderness level: teleports don't work above level 20; the lines from 2004Scape's teleport script, inferred)")
+    val WILDERNESS_2 = line("wilderness_2", "The second line, sent right after the first")
 }
 
 /**
@@ -87,6 +88,7 @@ class HomeTeleport(
         }
         if (wildernessLevel(player) > Wilderness.TELEPORT_LIMIT) {
             message(player, HomeTeleportLines.WILDERNESS, emptyArray())
+            message(player, HomeTeleportLines.WILDERNESS_2, emptyArray())
             return false
         }
         if (cooldown) {

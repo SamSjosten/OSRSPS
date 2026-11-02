@@ -69,15 +69,22 @@ class HeadlessLodestoneTest {
                 val stages = client.animationTicks().drop(animsBefore).take(5)
                 assertEquals(listOf(8, 7, 4, 3), stages.zipWithNext { a, b -> b - a }, "the gaps between the stages, from $stages")
 
+                // Standing on the stone, Teleport (op1 of the active look) opens the same menu.
+                client.locOp(lumbridge.id, lumbridge.x, lumbridge.z, Lodestones.TELEPORT)
+                assertEquals(menu, client.awaitDialogue("the menu from the active stone") { it is DialogueView.Menu })
+                client.chooseOption(2)
+                client.await("the landing at Draynor", timeoutMillis = 20_000) { client.position?.takeIf { it == Coord(draynor.x + 1, draynor.z + 1) } }
+
                 client.command("lodestone varrock")
                 client.awaitMessage("the locked stone") { it == "[lodestone.locked name=[lodestone.varrock]]" }
                 client.awaitCycles(2)
-                assertEquals(Coord(lumbridge.x + 1, lumbridge.z + 1), client.position)
+                assertEquals(Coord(draynor.x + 1, draynor.z + 1), client.position)
 
                 client.tele(WILDERNESS)
                 val animsBeforeWilderness = client.animationTicks().size
                 client.command("lodestone lumbridge")
                 client.awaitMessage("the Wilderness refusal") { it == "[home_teleport.wilderness]" }
+                client.awaitMessage("its second line") { it == "[home_teleport.wilderness_2]" }
                 client.awaitCycles(Lodestones.CAST_TICKS + 2)
                 assertEquals(WILDERNESS, client.position)
                 assertEquals(animsBeforeWilderness, client.animationTicks().size, "no cast started in the Wilderness")
