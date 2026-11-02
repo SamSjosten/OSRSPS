@@ -1,15 +1,14 @@
 {
- "name": "An NPC talked to by one player still fights another (run with npc-talk-fight-test.json on the other VM at the same time): test2 talks to the monk test spawns beside it and keeps the chat open while test shoots the monk, which walks off to fight test. Exploit review round 10, NPC-1",
+ "name": "An NPC talked to by one player still fights another (run with npc-talk-fight-test.json on the other VM at the same time): test2 talks to the monk test spawns beside it and keeps the chat open until test says the monk has walked over and hit it. Exploit review round 10, NPC-1",
  "account": "test2",
  "steps": [
   {"step": "waitForLogin"},
   {"step": "finishDialogue"},
   {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
-  {"step": "command", "text": "::tele 3227 3218 0", "expectMessage": "Teleported to 3227, 3218, 0", "comment": "east of the tile test spawns the monk on"},
-  {"step": "chat", "text": "monk fight ready", "comment": "public chat, test's sign to spawn the monk"},
+  {"step": "command", "text": "::tele 3227 3218 0", "expectMessage": "Teleported to 3227, 3218, 0", "comment": "east of the tile test spawns the monk on; test waits for us here (its trade request goes unanswered)"},
   {"step": "npcOption", "npc": "Monk", "option": "Talk-to", "timeoutMs": 180000, "comment": "as soon as the monk is in view; it stands beside us"},
   {"step": "assertDialogue", "contains": "[edgeville_monk.greeting]", "timeoutMs": 20000},
-  {"step": "waitTicks", "ticks": 40, "comment": "the chat stays open (no click) while test shoots the monk and the monk goes for test"},
+  {"step": "assertMessage", "contains": "monk fight done", "timeoutMs": 120000, "comment": "the chat stays open (no click) until test says the monk has hit it; with the old bug the monk never reaches test, so this times out"},
   {"step": "assertDialogue", "contains": "[edgeville_monk.greeting]", "comment": "still the monk's first line: the fight didn't close our chat"},
   {"step": "continueDialogue"},
   {"step": "chooseOption", "text": "[edgeville_monk.out_of_way]", "comment": "the shortest of his three answers"},
