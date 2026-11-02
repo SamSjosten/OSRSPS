@@ -157,6 +157,7 @@ class HeadlessClient private constructor(
     private val packets = ArrayList<ServerPacket>()
     private val messages = ArrayList<GameMessage>()
     private val animTicks = ArrayList<Int>()
+    private val exactMoveTicks = ArrayList<Int>()
     private val npcSaid = ArrayList<NpcSaid>()
     private val npcHits = ArrayList<NpcHit>()
     private val playerOps = HashMap<Int, String?>()
@@ -189,6 +190,9 @@ class HeadlessClient private constructor(
      * seen with no other player in view; see [PlayerInfoReader.localAnimated].
      */
     fun animationTicks(): List<Int> = lock.withLock { animTicks.toList() }
+
+    /** The ticks whose PLAYER_INFO gave the local player an exact move (a forced movement); seen as [animationTicks] are. */
+    fun exactMoveTicks(): List<Int> = lock.withLock { exactMoveTicks.toList() }
 
     /** The friends list: each friend's world by name, 0 for offline. */
     fun friends(): Map<String, Int> = lock.withLock { LinkedHashMap(friendList) }
@@ -263,6 +267,9 @@ class HeadlessClient private constructor(
 
     /** The top-level interface and every interface open in another's component. */
     fun openInterfaces(): Set<Int> = lock.withLock { subs.values.toSet() + topLevel }
+
+    /** The interface open in [component] of [interfaceId], or null: where the server put a sub, not only that it is open. */
+    fun subAt(interfaceId: Int, component: Int): Int? = lock.withLock { subs[(interfaceId shl 16) or component] }
 
     /**
      * The zones the client was last told to draw as copies of others (an instance), by zone x, z and level, or null
@@ -814,6 +821,7 @@ class HeadlessClient private constructor(
                     if (move.index == index) moves += TickMove(ticks, move)
                 }
                 if (playerInfo.localAnimated) animTicks += ticks
+                if (playerInfo.localExactMoved) exactMoveTicks += ticks
             }
             GameServerProt.MESSAGE_GAME -> {
                 val type = buf.gSmart1or2()

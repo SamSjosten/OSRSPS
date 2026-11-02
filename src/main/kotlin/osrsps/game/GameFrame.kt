@@ -74,6 +74,14 @@ enum class GameFrame(
         /** orbs:specbutton, the special attack orb's button. */
         const val ORBS_SPEC_BUTTON = 36
 
+        /** orbs:worldmap, the globe: op 1 View World Map, Close while the map is open ([WorldMapScreen]). */
+        const val ORBS_WORLDMAP = 55
+
+        /** The orbs' buttons the server answers, for the startup check against the cache's names. */
+        val ORBS_CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>> = mapOf(
+            ORBS to ("orbs" to mapOf(ORBS_RUN_BUTTON to "runbutton", ORBS_PRAYER_BUTTON to "prayerbutton", ORBS_SPEC_BUTTON to "specbutton", ORBS_WORLDMAP to "worldmap")),
+        )
+
         /** The settings side panel and its "Game client layout" dropdown, settings_side:display_dynamic_setting_1_buttons. */
         const val SETTINGS_SIDE = 116
         const val SETTINGS_CLIENT_LAYOUT_BUTTONS = 40

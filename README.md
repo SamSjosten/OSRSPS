@@ -224,6 +224,15 @@ ctrl+shift-click teleports an admin to the clicked tile (a testing tool; anyone 
 isn't sent where the cache has no map). Collision is built from the cache's map files at
 startup; the log line `Loaded collision for N map squares` confirms it.
 
+## World map
+
+The globe orb (orbs:worldmap, 160:55) sends its op to the server, and the server opens the world map, interface 595, as
+an overlay in the frame's floater, where the All Settings window also goes (the 241 scripts test that slot; read from
+Joshua-F's osrs-dumps, not seen on live). The orb again, the map's close button or Esc closes it, and walking leaves it
+open. The map itself is the client's: it draws it from the cache's worldmap index, which JS5 serves like the rest, and
+sizes, zooms, searches and floats or docks the window in its own scripts. `test-runner/examples/world-map.json` clicks
+it in the real client.
+
 To see what the server thinks is walkable around a tile (north up, `###` blocked, `[ ] ^ _` walls):
 
 ```bash
@@ -238,6 +247,7 @@ Movement rules and where they come from:
 | Unreachable target: closest reached tile within 10, by distance then path length | client behaviour |
 | Walk 1 tile a tick, run 2; an odd last tile is walked | OSRS Wiki |
 | Run drain ⌊60 + 67 × weight / 64⌋ × (1 − agility / 300), restore ⌊agility / 10⌋ + 15 a tick | OSRS Wiki, Energy |
+| Agility in those sums is the current level, a boost counting | inferred |
 | Run switches off at 0 energy; one-tile ticks don't drain | guessed |
 | Map rebuild within 16 tiles of the 104x104 build area's edge | inferred, not measured |
 | Routes cut to 25 turns | guessed |
@@ -564,6 +574,23 @@ the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose ea
 | Finished potions' levels, XP, secondaries, 2 ticks, a (3) dose | OSRS Wiki, Herblore (potions table) and each potion's page |
 | Which locs count as water; filling with no box; the filling animation (832); no animation for cleaning; the first potion 2 ticks after the choice | guessed |
 | Out: potions of three or more ingredients (super combat, stamina, sanfew, divine), coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
+
+### Agility
+
+Obstacles live in `skills/agility.json` (`game/skill/Agility.kt`, words under `agility.*`); the courses come with
+Agility steps 2 to 7, so the file starts empty. The option on an obstacle walks the player to its start, checks the
+level, then plays its moves in order while clicks do nothing: an animation and a wait, a teleport (a climb's end,
+another level too), a walk along a path one tile a tick through anything with the obstacle's animation as the whole
+stance (a log or a tightrope), and a slide (the client's exact move, a jump across a gap). The XP comes once across.
+An obstacle that can fail rolls its success pair against the current Agility level; a failure plays its own moves (a
+fall) and deals its damage, with no XP.
+
+| Agility behaviour | Source |
+|-------------------|--------|
+| XP on completing an obstacle, none on a failure; some obstacles fail and hurt | OSRS Wiki, Agility and each course's page |
+| No clicks while on an obstacle; walking to its start can't be cut short | inferred from live |
+| Each move starting on the tick after the last ends; a teleport landing before a walk's first step | inferred |
+| The level message as a game message; fail chances (the Wiki gives none); the hit after the fall; the real tile moving when a slide's ticks are up | guessed |
 
 ## Items and inventory
 
