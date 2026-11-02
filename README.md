@@ -1169,6 +1169,24 @@ Check: `test-runner/examples/barbarian-mine-fish.json` mines tin and coal, lures
 climbs the tower; `NpcSpawnFileTest` puts the spots on their area's tiles and `HeadlessBarbarianVillageTest` refuses
 the ladder type away from the tower.
 
+Step 9 is the Cooks' Guild and the land between Barbarian Village and Varrock. Content is in
+`game/content/CooksGuild.kt`, spawns in `npc-spawns/cooks-guild.json` and `obj-spawns/cooks-guild.tsv`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The front door (`chefdoor` 24958) lets in 32 Cooking wearing a chef's hat or golden chef's hat, a Cooking cape or hood, Varrock armour 3 or 4, or a max cape or hood; the Head chef says one of three refusals otherwise; the way out has no check | OSRS Wiki, Cooks' Guild and Transcript:Head chef; the max capes are inferred (every `skillcape_max` kind in the cache) |
+| The Head chef's talk: his cape below 99; at 99 the Skillcape of Cooking and hood for 99,000 coins (trimmed with another 99), and a free hood for an owner | Transcript:Head chef; expressions guessed |
+| The north-east room's door (`fai_varrock_cook_guild_door` 10045) lets 99 Cooking through either way, with a message for the rest; the hard Varrock Diary way in isn't built | the Wiki; the message's words not yet found (key `cooks_guild.bank_door`), its walk-through guessed |
+| The spiral stairs over three floors, only on the guild's tile; the ranges (`fai_varrock_range` 7183) cook as every range | 241 map; the exploit review's rule on types that stand elsewhere |
+| The hopper, its controls and the flour bin make flour as Mill Lane Mill's, the bin's flour shared | the Wiki, Windmill |
+| Romily Weaklax's Trade opens the Pie Shop; his Talk-to and pie tasks aren't built | OSRS Wiki, Pie Shop (read 2026-11-02); inv `shop_pies` 352 |
+| The Head chef, Romily, the two bankers, and the squirrels and raccoons in the woods west of the village (scenery, Examine only) | mejrs's live NPC list |
+| The tables' item spawns: a chocolate bar, cooking apples, a bowl, a cake tin, a pie dish, a jug, a pot and grapes | 2004Scape's map m49_53; respawns guessed |
+
+Left out: the dairy churn, Marley and the recruiters. Check: `test-runner/examples/cooks-guild.json` does the door,
+the stairs, the flour, the north-east door, the range and the Pie Shop; `CooksGuildTest` every line of the Head chef
+and the door check, and `HeadlessCooksGuildTest` the doors, the stairs (and their type elsewhere) and the Pie Shop.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
