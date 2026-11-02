@@ -13,7 +13,8 @@ import kotlin.math.sign
 
 /**
  * Every NPC in the world, and how they move: wandering near their spawn, walking a patrol, or following a player or
- * another NPC, one tile a tick. An NPC busy with a player ([Npc.engagedWith]) stands still.
+ * another NPC, one tile a tick. An NPC busy with a player ([Npc.engagedWith]) stands still, unless it
+ * is fighting someone ([Npc.target]).
  *
  * From the OSRS Wiki ("Wander radius", "Pathfinding"): an NPC picks a tile inside the square of its wander radius
  * around its spawn, then walks to it, and it does so even if something has taken it outside that square. NPCs walk
@@ -228,8 +229,9 @@ class Npcs(
             when {
                 // Frozen, it stands; it can still hit whoever is beside it (OSRS Wiki, Freeze: movement only).
                 frozen -> continue
-                // Guessed: an NPC busy with a player doesn't move, even if it follows someone.
-                npc.engagedWith != null -> continue
+                // Guessed: an NPC busy with a player doesn't move, even if it follows someone, unless it is fighting:
+                // then it goes after its target, so one player's open dialogue can't pin it while another attacks it.
+                npc.engagedWith != null && npc.target == null -> continue
                 following != null -> chase(npc, following)
                 // Fighting someone it isn't walking after (a caster or archer with them in range and sight): it stands
                 // where it is rather than wandering off, and forgets any walk it had planned. Guessed.

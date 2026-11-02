@@ -1289,7 +1289,8 @@ Its handler runs once you are there, from `World.handlers.onNpc(typeId, option) 
 `World.handlers.onObjOnNpc(typeId, objId) { op -> ... }`, with `op.npc` the NPC (and `op.obj`, `op.sub` the item and its
 slot). An NPC beside you is used on the tick the click is read; if it walks off you chase it, re-routing whenever it
 moves. When the option runs, the NPC turns to you and stands still while you are busy with it (the handler waits on a
-`delay`, or a dialogue is open), then goes back to wandering. A multi-NPC uses the type your vars show.
+`delay`, or a dialogue is open), then goes back to wandering. If someone attacks it meanwhile, it fights them: it walks
+to them and hits back, and your dialogue stays open. A multi-NPC uses the type your vars show.
 
 Walking, clicking something else or a teleport drops the interaction; the NPC going away ends it quietly. With no
 handler you get the "nothing interesting" message, and an NPC you can't get to says the can't-reach one once you stop.
@@ -1304,6 +1305,7 @@ while it follows (`::follow` tries it). Pets trail a tile behind instead, which 
 | The player turns to the NPC on the click; the NPC turns to the player when the option runs | live, from memory; that every option turns the NPC is guessed |
 | Face-entity walk mode 0 (look where you walk, turn back on stopping) | RSProt's mapping of the old face-entity block; inferred |
 | The NPC stands still while you are busy with it, then is let go a tick later | guessed |
+| An NPC you are busy with still walks to and fights a player attacking it, and your dialogue stays open | guessed; live NPCs aren't held by one player's dialogue, but it isn't checked |
 | A following NPC steps out from under its target west, east, south, north; gives up beyond 32 tiles | guessed |
 | An NPC can be clicked within 15 tiles | RSProt's NPC info range |
 | The two messages | live, from memory |
