@@ -455,7 +455,7 @@ class NpcDropsTest {
             assertEquals(listOf("Bones"), def(name).always.map { it.type.name }, name)
             assertNull(def(name).table, name)
         }
-        for (name in names.drop(3)) assertEquals(128, def(name).table!!.slots, name)
+        for (name in names.drop(3).filter { !it.startsWith("giant") }) assertEquals(128, def(name).table!!.slots, name)
         assertEquals(listOf("Clue scroll (beginner)" to 70), def("hobgoblin_armed").tertiary.map { it.item.type.name to it.denominator })
         fun kills(name: String, seed: Long): Map<String, Int> {
             val random = GameRandom(seed)
@@ -488,15 +488,20 @@ class NpcDropsTest {
         hobgoblin.expect("Law rune x2", 3)
         hobgoblin.expect("Goblin mail x1", 2)
         kills("skeleton_armed4", 43).expect("Iron med helm x1", 6)
-        // Step 11's hill giants: big bones every time, the giant key and a beginner clue on their own rolls.
+        // Step 11's hill giants: big bones every time; the giant key is a pre-roll that takes the main table's place
+        // (the Wiki's Hill Giant, Pre-roll), and a beginner clue rolls on its own.
         assertEquals(listOf("Big bones"), def("giant6").always.map { it.type.name })
-        assertEquals(listOf("Giant key" to 128, "Clue scroll (beginner)" to 50), def("giant").tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Giant key" to 128), def("giant").preroll.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Clue scroll (beginner)" to 50), def("giant").tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(127, def("giant").table!!.slots)
         val giant = HashMap<String, Int>()
         val random = GameRandom(44)
         repeat(KILLS) {
             val kill = def("giant").roll(random)
             assertEquals("Big bones", kill.first().type.name)
-            for (drop in kill.drop(1)) giant["${drop.type.name} x${drop.count}"] = (giant["${drop.type.name} x${drop.count}"] ?: 0) + 1
+            val rest = kill.drop(1).filter { !it.type.name.startsWith("Clue scroll") }
+            if (rest.any { it.type.name == "Giant key" }) assertEquals(listOf("Giant key"), rest.map { it.type.name }, "a key takes the main drop's place")
+            for (drop in rest) giant["${drop.type.name} x${drop.count}"] = (giant["${drop.type.name} x${drop.count}"] ?: 0) + 1
         }
         giant.expect("Coins x38", 14)
         giant.expect("Limpwurt root x1", 11)

@@ -219,7 +219,7 @@ fun registerEdgevilleDungeon(world: World) {
         }
         world.handlers.onLoc(SHED_LADDER, CLIMB) { op ->
             val loc = op.loc!!
-            if (isShedLadder(loc)) climbDungeonLadder(world, loc, down = true, anim = Climbing.ANIM_REACH_FOR_LADDER)
+            if (isShedLadder(loc)) climbDungeonLadder(world, loc, down = true, anim = Climbing.ANIM_PICKUP_FLOOR)
             else world.message(player, GameLines.NOTHING_INTERESTING)
         }
         for (leaf in listOf(OBOR_GATE_LEFT, OBOR_GATE_RIGHT)) {
