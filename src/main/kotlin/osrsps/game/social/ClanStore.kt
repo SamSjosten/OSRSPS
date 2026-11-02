@@ -28,8 +28,16 @@ private val logger = KotlinLogging.logger {}
 class ClanStore(private val file: Path? = null) {
     class Member(val key: String, var name: String, var rank: Int, val joinedDay: Int)
 
+    /** A player who applied to join (Apply on the clan's settings page as a guest), by save key and name. */
+    class Applicant(val key: String, var name: String)
+
     class Clan(val id: Long, var name: String, val createdMillis: Long, val members: MutableList<Member>) {
+        /** Applicants, oldest first. */
+        val applicants = ArrayList<Applicant>()
+
         fun member(key: String): Member? = members.firstOrNull { it.key == key }
+
+        fun applicant(key: String): Applicant? = applicants.firstOrNull { it.key == key }
     }
 
     private val clans = LinkedHashMap<Long, Clan>()
@@ -78,6 +86,28 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "Clan '${clan.name}' deleted" }
     }
 
+    /** Adds [key] to [clan]'s applicants, unless already there, and saves. */
+    fun addApplicant(clan: Clan, key: String, name: String) {
+        if (clan.applicant(key) != null) return
+        clan.applicants += Applicant(key, name)
+        save()
+    }
+
+    /** Takes [key] off [clan]'s applicants and saves; false if they weren't one. */
+    fun removeApplicant(clan: Clan, key: String): Boolean {
+        if (!clan.applicants.removeIf { it.key == key }) return false
+        save()
+        return true
+    }
+
+    /** Takes [key] out of [clan]'s members and saves; false if they weren't one. */
+    fun removeMember(clan: Clan, key: String): Boolean {
+        if (!clan.members.removeIf { it.key == key }) return false
+        save()
+        logger.info { "$key left clan '${clan.name}'" }
+        return true
+    }
+
     /** Writes again after a failed write: the world's autosave and shutdown call it. */
     fun flush() {
         if (unwritten) save()
@@ -119,6 +149,14 @@ class ClanStore(private val file: Path? = null) {
                             }
                         }
                     }
+                    putJsonArray("applicants") {
+                        for (applicant in clan.applicants) {
+                            addJsonObject {
+                                put("key", applicant.key)
+                                put("name", applicant.name)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -135,6 +173,11 @@ class ClanStore(private val file: Path? = null) {
                 Member(m["key"]!!.jsonPrimitive.content, m["name"]!!.jsonPrimitive.content, m["rank"]!!.jsonPrimitive.int, m["joined"]!!.jsonPrimitive.int)
             }
             val clan = Clan(obj["id"]!!.jsonPrimitive.long, obj["name"]!!.jsonPrimitive.content, obj["created"]!!.jsonPrimitive.long, members.toMutableList())
+            // Files from before applications have none.
+            for (a in obj["applicants"]?.jsonArray.orEmpty()) {
+                val o = a.jsonObject
+                clan.applicants += Applicant(o["key"]!!.jsonPrimitive.content, o["name"]!!.jsonPrimitive.content)
+            }
             clans[clan.id] = clan
             if (clan.id >= nextId) nextId = clan.id + 1
         }

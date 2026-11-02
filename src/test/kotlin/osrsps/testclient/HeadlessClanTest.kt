@@ -301,8 +301,10 @@ class HeadlessClanTest {
 
     /** Find on the Another Clan page, then [name] typed in its prompt. */
     private fun HeadlessClient.findClan(name: String) {
+        val prompts = clientScripts().count { it.args.firstOrNull() == "[clan.guest_prompt]" }
         ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_SEARCH, 1)
-        await("Find's prompt") { clientScripts().lastOrNull()?.args?.firstOrNull()?.takeIf { it == "[clan.guest_prompt]" } }
+        // A new prompt, whatever other scripts came after it.
+        await("Find's prompt") { Unit.takeIf { clientScripts().count { it.args.firstOrNull() == "[clan.guest_prompt]" } > prompts } }
         resumeString(name)
     }
 
@@ -445,6 +447,112 @@ class HeadlessClanTest {
                 assertEquals("No clan called Nobody", alice.commandReply("clandisband Nobody") { it.startsWith("No clan") })
                 assertEquals("Clan Guest Gate deleted", alice.commandReply("clandisband guest gate") { it.startsWith("Clan") })
                 assertEquals("You have no guest clan", alice.commandReply("guestclan") { it.startsWith("You have") })
+            }
+        }
+    }
+
+    /** The question menu clans ask with ([Clans.clickInfo]), and the pick. */
+    private fun HeadlessClient.answer(title: String, option: Int) {
+        val menu = awaitDialogue("the clan question") { it is DialogueView.Menu }
+        assertEquals(DialogueView.Menu(title, listOf("[clan.confirm_yes]", "[clan.confirm_no]")), menu)
+        chooseOption(option)
+    }
+
+    @Test
+    fun `a guest applies from the clan's settings page, recruiters hear of it, and can withdraw`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    found(server, alice, bob, "Odins Gate")
+                    server.login("carol").use { carol ->
+                        val clan = server.world.clans.clanNamed("Odins Gate")!!
+                        carol.guestTab()
+                        // Settings with no clan loaded does nothing.
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_INFO, 1)
+                        carol.awaitTicks(2)
+                        assertFalse(Clans.INFO in carol.openInterfaces())
+                        carol.findClan("Odins Gate")
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_INFO, 1)
+                        carol.await("the clan's settings page") { carol.openInterfaces().takeIf { Clans.INFO in it } }
+                        assertTrue(carol.opEnabled(Clans.INFO, Clans.INFO_APPLICATIONS, -1, 1))
+
+                        // Apply asks first; No leaves it.
+                        carol.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                        carol.answer("[clan.apply_confirm name=Odins Gate]", 2)
+                        carol.awaitTicks(2)
+                        assertTrue(clan.applicants.isEmpty())
+                        // Yes applies: the owner, in the channel, hears of it; bob (a founder) doesn't.
+                        carol.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                        carol.answer("[clan.apply_confirm name=Odins Gate]", 1)
+                        carol.saw("[clan.applied name=Odins Gate]")
+                        alice.saw("[clan.new_applicant name=carol]")
+                        assertEquals(listOf("carol"), clan.applicants.map { it.name })
+                        assertEquals("Guest of Odins Gate, not in its channel, applied", carol.commandReply("guestclan") { it.startsWith("Guest") })
+                        bob.awaitTicks(2)
+                        assertFalse(bob.messages().any { it.text.startsWith("[clan.new_applicant") })
+
+                        // Withdraw (the same button now) takes it back, without asking.
+                        carol.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                        carol.saw("[clan.withdrawn name=Odins Gate]")
+                        assertTrue(clan.applicants.isEmpty())
+                        // Leave Clan does nothing as a guest.
+                        carol.ifButton(Clans.INFO, Clans.INFO_QUIT, 1)
+                        carol.awaitTicks(2)
+                        assertNull(carol.dialogueView)
+
+                        // Someone in a clan can't apply to another.
+                        bob.commandReply("clanmake Rivals") { it.startsWith("Clan") }
+                        bob.guestTab()
+                        bob.findClan("Rivals")
+                        bob.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_INFO, 1)
+                        bob.await("bob's settings page") { bob.openInterfaces().takeIf { Clans.INFO in it } }
+                        bob.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                        bob.answer("[clan.apply_confirm name=Rivals]", 1)
+                        bob.saw("[clan.apply_in_a_clan]")
+                        assertTrue(server.world.clans.clanNamed("Rivals")!!.applicants.isEmpty())
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a member leaves the clan from its settings page, and its owner can't`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    found(server, alice, bob, "Odins Gate")
+                    val bobP = server.world.playerNamed("bob")!!
+                    bob.yourClanTab()
+                    bob.await("bob's clan page") { bob.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                    bob.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                    bob.await("the clan's settings page") { bob.openInterfaces().takeIf { Clans.INFO in it } }
+                    // Applications does nothing for a member yet (the applicants list is the next step).
+                    bob.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                    bob.ifButton(Clans.INFO, Clans.INFO_QUIT, 1)
+                    bob.answer("[clan.leave_confirm name=Odins Gate]", 2)
+                    bob.awaitTicks(2)
+                    assertNotNull(server.world.clans.clanOf(bobP))
+                    bob.ifButton(Clans.INFO, Clans.INFO_QUIT, 1)
+                    bob.answer("[clan.leave_confirm name=Odins Gate]", 1)
+                    bob.saw("[clan.left_clan name=Odins Gate]")
+                    assertNull(server.world.clans.clanOf(bobP))
+                    assertFalse(server.world.clans.inChannel(bobP))
+                    // His client drops the clan; alice's settings and channel lose him.
+                    bob.await("bob's leave update") { bob.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.isEmpty() } }
+                    alice.await("alice's settings without bob") { alice.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.hasAll("alice") && !it.hasAll("bob") } }
+                    alice.await("alice's channel without bob") { alice.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { !it.hasAll("bob") } }
+                    bob.await("the settings page closed") { if (Clans.INFO in bob.openInterfaces()) null else Unit }
+                    assertEquals("You aren't in a clan", bob.commandReply("clan") { it.contains("clan") })
+
+                    // The owner can't leave.
+                    alice.yourClanTab()
+                    alice.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                    alice.await("alice's settings page") { alice.openInterfaces().takeIf { Clans.INFO in it } }
+                    alice.ifButton(Clans.INFO, Clans.INFO_QUIT, 1)
+                    alice.saw("[clan.owner_cant_leave]")
+                    assertNotNull(server.world.clans.clanOf(server.world.playerNamed("alice")!!))
+                }
             }
         }
     }

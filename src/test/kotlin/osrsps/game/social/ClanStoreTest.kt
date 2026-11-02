@@ -49,4 +49,19 @@ class ClanStoreTest {
         assertFalse(Clans.validName("Ódins Gate"))
         assertTrue(Clans.validName("Odins Gate 2"))
     }
+
+    @Test
+    fun `applicants and leaving members are kept in the file`(@TempDir dir: Path) {
+        val store = ClanStore(dir.resolve(ClanStore.FILE_NAME))
+        val clan = store.create("Odins Gate", 0, 20_000, founders())
+        store.addApplicant(clan, "carol", "Carol")
+        store.addApplicant(clan, "carol", "Carol")
+        store.addApplicant(clan, "dave", "dave")
+        assertTrue(store.removeApplicant(clan, "dave"))
+        assertFalse(store.removeApplicant(clan, "dave"))
+        assertTrue(store.removeMember(clan, "bob"))
+        val reloaded = ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!
+        assertEquals(listOf("carol" to "Carol"), reloaded.applicants.map { it.key to it.name })
+        assertEquals(listOf("alice"), reloaded.members.map { it.key })
+    }
 }

@@ -92,7 +92,8 @@ fun CommandRegistry.registerSocialCommands(world: World) {
             reply("You have no guest clan")
             return@register
         }
-        reply("Guest of ${clan.name}, " + if (world.clans.inGuestChannel(player)) "in its channel" else "not in its channel")
+        val applied = if (clan.applicant(player.saveKey) != null) ", applied" else ""
+        reply("Guest of ${clan.name}, " + (if (world.clans.inGuestChannel(player)) "in its channel" else "not in its channel") + applied)
     }
 
     register("ignores", "::ignores", admin = false) {
