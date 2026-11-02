@@ -84,6 +84,7 @@ import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.LootNotifications
 import osrsps.game.combat.NpcDrops
+import osrsps.game.combat.AvaDevices
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
 import osrsps.game.combat.SpecialAttacks
@@ -496,7 +497,7 @@ class World(
         npcs, collision, movement, combat, objTypes, rangedWeapons, meleeCombat, random, { tick },
         projectile = zones::projectile, dropAmmo = ::dropAmmo,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        multi = multiCombat, words = ::textFor,
+        multi = multiCombat, words = ::textFor, recovery = AvaDevices::recovery,
     )
 
     /** Tumeken's shadow and the powered staves to come; see [PoweredStaves]. */

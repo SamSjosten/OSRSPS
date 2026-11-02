@@ -8,6 +8,9 @@ import osrsps.game.NpcType
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.Inventory
+import osrsps.game.combat.AvaDevices
+import osrsps.game.content.AvaDevicesShop
 import osrsps.game.content.DraynorManorPeople
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.shop.ShopScreen
@@ -23,7 +26,10 @@ import osrsps.map.CollisionMap
  */
 class HeadlessDraynorManorPeopleTest {
     private val feather = ObjType(FEATHER, "Feather", tradeable = true, stackable = true)
-    private val objs = ObjTypes.of(feather)
+    private val objs = ObjTypes.of(
+        feather, ObjType(COINS, "Coins", stackable = true), ObjType(AvaDevices.ATTRACTOR, "Ava's attractor"),
+        ObjType(AvaDevicesShop.STEEL_ARROW, "Steel arrow", stackable = true), ObjType(AvaDevices.ACCUMULATOR, "Ava's accumulator"),
+    )
 
     private val shop = ShopType(
         "avas_odds_and_ends", "Ava's Odds and Ends", invId = AVA_INV, size = 6, general = false, sellAt = 1300, buyAt = 400,
@@ -118,8 +124,40 @@ class HeadlessDraynorManorPeopleTest {
         }
     }
 
+    private fun HeadlessClient.held(id: Int) = inventory(Inventory.INV).filterNotNull().filter { it.id == id }.sumOf { it.count }
+
+    private fun HeadlessClient.awaitDevices() = await("Ava's Devices") { if (AvaDevicesShop.INTERFACE in openInterfaces()) Unit else null }
+
+    @Test
+    fun `Ava's Devices option and her devices talk open the screen, which sells an attractor and makes it an accumulator`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dan").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel ranged 50")
+                client.command("item $COINS 1000")
+                client.command("item ${AvaDevicesShop.STEEL_ARROW} 75")
+                client.await("the coins and arrows") { if (client.held(COINS) == 1000 && client.held(AvaDevicesShop.STEEL_ARROW) == 75) Unit else null }
+                client.op(DraynorManorPeople.AVA, DraynorManorPeople.DEVICES)
+                client.awaitDevices()
+                client.ifButton(AvaDevicesShop.INTERFACE, AvaDevicesShop.ATTRACTOR_BUTTON, 1)
+                client.await("an attractor for 999 coins") { if (client.held(AvaDevices.ATTRACTOR) == 1 && client.held(COINS) == 1) Unit else null }
+                client.closeModal()
+                client.op(DraynorManorPeople.AVA, DraynorManorPeople.TALK_TO)
+                client.page("ava.hello")
+                client.pick(1)
+                client.page("ava.devices")
+                client.awaitDevices()
+                client.ifButton(AvaDevicesShop.INTERFACE, AvaDevicesShop.ACCUMULATOR_BUTTON, 1)
+                client.await("the attractor made an accumulator") {
+                    if (client.held(AvaDevices.ACCUMULATOR) == 1 && client.held(AvaDevices.ATTRACTOR) == 0 && client.held(AvaDevicesShop.STEEL_ARROW) == 0 && client.held(COINS) == 1) Unit else null
+                }
+            }
+        }
+    }
+
     private companion object {
         const val FEATHER = 314
+        const val COINS = 995
         const val AVA_INV = 489
         const val TRADE = 3
     }
