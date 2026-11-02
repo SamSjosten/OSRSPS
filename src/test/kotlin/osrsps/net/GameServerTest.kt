@@ -23,6 +23,7 @@ import osrsps.cache.model.ModelCodec
 import osrsps.cache.model.OsrsModel
 import osrsps.cache.InterfaceCodec
 import osrsps.cache.LocTypeDecoder
+import osrsps.cache.MapElementCodec
 import osrsps.cache.Sprite
 import osrsps.cache.SpriteCodec
 import osrsps.cache.VarTypeLoader
@@ -56,6 +57,7 @@ class GameServerTest {
         // are the highest in OpenRS2's build 2746 of revision 241 (VM 214's cache), past the ids another 241 build
         // ends at: ours have to follow whichever cache is loaded.
         library.put(2, 6, 0, byteArrayOf(0))
+        library.put(2, 35, 0, byteArrayOf(0))
         library.put(2, 14, LAST_VARBIT, byteArrayOf(1, 0, 0, 0, 0, 0))
         library.put(2, 16, LAST_VARP, byteArrayOf(0))
         // One interface and one sprite, so the server has the indices to add its own interface and sprites to.
@@ -185,6 +187,11 @@ class GameServerTest {
             assertTrue(lumbridgeStone.multiloc, "its look follows the varbit after this cache's")
             assertEquals(lumbridgeVarbit, Lodestones.LUMBRIDGE.type(lumbridgeVarbit).definition.transform?.varbit)
             assertContentEquals(Lodestones.LUMBRIDGE.type(lumbridgeVarbit).encoded, files.getValue(Lodestones.LUMBRIDGE.id))
+            // The map element both looks name for the minimap's icon, in the cache's map elements group the same way.
+            val elements = configs.group(MapElementCodec.GROUP)!!
+            assertEquals(listOf(0, Lodestones.MAP_ELEMENT), elements.files.map { it.id })
+            val elementFiles = Js5Group.unpack(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, 2, MapElementCodec.GROUP)), elements.files.map { it.id })
+            assertEquals(Lodestones.MAP_ELEMENT_TYPE, MapElementCodec.decode(elementFiles.getValue(Lodestones.MAP_ELEMENT)))
             // And our var types in the varbit and varp groups, right after the cache's own, so the client sizes its
             // varps to hold ours and reads our varbits.
             assertEquals(listOf(LAST_VARP) + customVars.varps, configs.group(16)!!.files.map { it.id })

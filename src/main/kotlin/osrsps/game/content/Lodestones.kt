@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import osrsps.cache.LocTypeEncoder
+import osrsps.cache.MapElementCodec
 import osrsps.game.FrameSlot
 import osrsps.game.Interfaces
 import osrsps.game.Player
@@ -57,6 +58,14 @@ object Lodestones {
     /** The first site's loc id; sites count up from it. */
     const val FIRST_STONE = 65002
 
+    /**
+     * The map element (config archive 35, above the cache's own, which end at 1,267 in the 241 cache) both looks
+     * name, so the minimap draws a stone's icon ([LodestoneMap.MINIMAP_SPRITE]) where it stands. The world map's
+     * icons are the world map index's, built with the map, so none there (step 7's second half, if wanted).
+     */
+    const val MAP_ELEMENT = 65000
+    val MAP_ELEMENT_TYPE = MapElementCodec.Definition(sprite = LodestoneMap.MINIMAP_SPRITE)
+
     /** Op1 of both looks: Activate on the dormant stone, Teleport on the active one. */
     const val ACTIVATE = 1
     const val TELEPORT = 1
@@ -106,9 +115,13 @@ object Lodestones {
         )
     }
 
-    /** The child types: flat 3 by 3 stones with our models, each with the one option its look offers. */
+    /**
+     * The child types: flat 3 by 3 stones with our models, each with the one option its look offers and the minimap's
+     * icon (the icon rides on the look the client draws, as the cache's own multilocs carry it, not on the site's loc).
+     */
     private fun child(model: Int, op: String) = LocTypeEncoder.Definition(
         "Lodestone", listOf(model), ops = listOf(op, null, null, null, null), width = 3, length = 3, solid = false,
+        mapElement = MAP_ELEMENT,
     )
 
     val DORMANT_TYPE = CustomLocs.Custom(DORMANT, child(DORMANT_MODEL, "Activate"))

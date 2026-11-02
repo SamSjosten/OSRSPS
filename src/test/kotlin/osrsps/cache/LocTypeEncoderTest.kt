@@ -39,6 +39,19 @@ class LocTypeEncoderTest {
     }
 
     @Test
+    fun `a map element writes opcode 82, which the decoder skips`() {
+        val definition = LocTypeEncoder.Definition("Lodestone", listOf(65000), mapElement = 65000)
+        val bytes = LocTypeEncoder.encode(definition)
+        assertContentEquals(
+            byteArrayOf(7, 1, 0, 0, 0xFD.toByte(), 0xE8.toByte()) + byteArrayOf(2) + "Lodestone".toByteArray() + 0 + byteArrayOf(82, 0xFD.toByte(), 0xE8.toByte()) + 0,
+            bytes,
+        )
+        assertEquals("Lodestone", LocTypeDecoder.decode(65000, bytes).name)
+        assertEquals(LocTypeEncoder.NO_MAP_ELEMENT, LocTypeEncoder.Definition("Rock", listOf(1)).mapElement)
+        assertFailsWith<IllegalArgumentException> { LocTypeEncoder.Definition("Lodestone", listOf(65000), mapElement = 65536) }
+    }
+
+    @Test
     fun `a solid loc projectiles pass gets opcode 18`() {
         val bytes = LocTypeEncoder.encode(LocTypeEncoder.Definition("Fence", listOf(1), blocksProjectiles = false))
         assertTrue(18.toByte() in bytes)

@@ -67,6 +67,10 @@ object LodestoneMap {
     const val CLOSE_SPRITE = 65002
     const val MAP_SPRITE = 65003
 
+    /** The minimap's icon for a stone, the sprite of the map element the stones name ([Lodestones.MAP_ELEMENT]): the cache's icons' 15 pixels. */
+    const val MINIMAP_SPRITE = 65004
+    const val MINIMAP_ICON = 15
+
     /** The map's place in the window and its size; icons are [ICON] square. */
     const val MAP_X = 12
     const val MAP_Y = 30
@@ -150,6 +154,7 @@ object LodestoneMap {
         DORMANT_SPRITE to icon(fill = 0x8A8A8A, rim = 0x4A4A4A, centre = 0xB0B0B0),
         CLOSE_SPRITE to closeButton(),
         MAP_SPRITE to map(),
+        MINIMAP_SPRITE to minimapIcon(),
     )
 
     /** What the overlay serves: the interface as one group of the interface index, and each sprite as a group of the sprite index. */
@@ -176,6 +181,24 @@ object LodestoneMap {
     }
 
     /** A brown square with a light cross. */
+    /**
+     * The minimap's icon, in the frame the cache's icons share (read off the bank's and the altar's, 2026-11-02): a
+     * dark outline round a light ring, 15 pixels across; inside, a dark stone with a lit centre and four rays.
+     */
+    private fun minimapIcon(): Sprite = draw(MINIMAP_ICON, MINIMAP_ICON) { x, y ->
+        val dx = 2 * x - (MINIMAP_ICON - 1)
+        val dy = 2 * y - (MINIMAP_ICON - 1)
+        val d = dx * dx + dy * dy
+        when {
+            d > 15 * 15 -> 0
+            d > 13 * 13 -> OPAQUE or 0x010101 // the sprite format keeps no pure black
+            d > 11 * 11 -> OPAQUE or 0xBFBFBF
+            d <= 2 * 2 -> OPAQUE or 0xFFF6B0
+            (dx == 0 || dy == 0) && d <= 8 * 8 -> OPAQUE or 0xF2D33A
+            else -> OPAQUE or 0x3A3A4A
+        }
+    }
+
     private fun closeButton(): Sprite = draw(ICON, ICON) { x, y ->
         val edge = x == 0 || y == 0 || x == ICON - 1 || y == ICON - 1
         val onCross = x in 4 until ICON - 4 && y in 4 until ICON - 4 && (kotlin.math.abs(x - y) <= 1 || kotlin.math.abs(x + y - (ICON - 1)) <= 1)
