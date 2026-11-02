@@ -43,6 +43,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             reply("${style.name} (${style.stance.name.lowercase()}, ranged $weight), speed $speed: attack roll ${ranged.attackRoll}, max hit ${ranged.maxHit}")
             reply("vs ${type.name} #${target.index} (level ${type.combatLevel}, ${target.maxHitpoints} hp): defence roll ${ranged.defenceRoll}, you hit ${percent(ranged.hitChance)}")
             reply("It: attack roll ${it.attackRoll} vs your ${it.defenceRoll}, hits ${percent(CombatMath.hitChance(it.attackRoll, it.defenceRoll))}, max hit ${it.maxHit}")
+            world.rangedCombat.recovered(player).takeIf { it > 0 }?.let { reply("Ava's device: $it of 100 shots come back") }
             return@register
         }
         if (style.type == AttackType.MAGIC) {

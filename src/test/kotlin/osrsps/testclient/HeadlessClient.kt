@@ -112,6 +112,7 @@ class HeadlessClient private constructor(
     private val subs = HashMap<Int, Int>()
     private var topLevel = -1
     private val texts = HashMap<Int, String>()
+    private val hidden = HashMap<Int, Boolean>()
 
     /** IF_SETEVENTS masks by (component shl 32) + slot, kept and dropped as the real client keeps them; see [opEnabled]. */
     private val events = HashMap<Long, Long>()
@@ -311,6 +312,9 @@ class HeadlessClient private constructor(
 
     /** The text last set on a component (IF_SETTEXT), or null if none has been. */
     fun text(interfaceId: Int, componentId: Int): String? = lock.withLock { texts[(interfaceId shl 16) or componentId] }
+
+    /** Whether the server last hid (true) or showed (false) a component (IF_SETHIDE), or null if it never has. */
+    fun hidden(interfaceId: Int, componentId: Int): Boolean? = lock.withLock { hidden[(interfaceId shl 16) or componentId] }
 
     fun clientScripts(): List<ClientScript> = lock.withLock { scripts.toList() }
 
@@ -866,6 +870,11 @@ class HeadlessClient private constructor(
             GameServerProt.IF_SETTEXT -> {
                 val component = buf.g4()
                 texts[component] = buf.gjstr()
+            }
+            GameServerProt.IF_SETHIDE -> {
+                // RSProt's IfSetHideEncoder: the component, then the flag.
+                val component = buf.g4Alt1()
+                hidden[component] = buf.g1() == 1
             }
             GameServerProt.RUNCLIENTSCRIPT -> scripts += readClientScript(buf)
             GameServerProt.UPDATE_INV_FULL -> {

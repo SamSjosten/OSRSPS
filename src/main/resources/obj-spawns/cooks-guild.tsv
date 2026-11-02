@@ -1,0 +1,15 @@
+# The Cooks' Guild's item spawns (Edgeville piece step 9). Items and tiles are the 2004Scape project's map square 49,53
+# (m49_53.jm2): a chocolate bar on the ground floor; two cooking apples, a bowl, a cake tin and a pie dish on the first
+# floor; a cooking apple, a jug, a pot and grapes on the top floor. Inferred: that live still has them where 2004Scape
+# does. Every respawn is the 100 ticks the other files use; guessed.
+obj	count	x	z	level	respawn
+chocolate_bar	1	3143	3452	0	100	# ground floor; 2004Scape
+cooking_apple	1	3140	3447	1	100	# first floor; 2004Scape
+cooking_apple	1	3141	3447	1	100	# first floor; 2004Scape
+bowl_empty	1	3140	3452	1	100	# first floor; 2004Scape
+cake_tin	1	3141	3452	1	100	# first floor; 2004Scape
+piedish	1	3142	3447	1	100	# first floor; 2004Scape
+cooking_apple	1	3140	3447	2	100	# top floor; 2004Scape
+jug_empty	1	3141	3447	2	100	# top floor; 2004Scape
+pot_empty	1	3144	3449	2	100	# top floor; 2004Scape
+grapes	1	3144	3450	2	100	# top floor; 2004Scape

@@ -3,6 +3,8 @@ package osrsps.game.combat
 import kotlin.math.abs
 import osrsps.game.GameRandom
 import osrsps.game.Interaction
+import osrsps.game.InvObj
+import osrsps.game.Inventory
 import osrsps.game.Movement
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
@@ -49,8 +51,8 @@ class RangedInteraction internal constructor(val npc: Npc, private val owner: Ra
  *   against the NPC's defence for the style's weight ([Combat.rangedMatchup]).
  * - XP is 4 a point of damage to Ranged, or 2 to Ranged and 2 to Defence on longrange, and 1.33 to Hitpoints (Combat).
  * - The hit lands [HitDelay.BOW] ticks after firing, a tick later on an NPC ([HitDelay.ON_NPC]).
- * - Each shot uses one piece of ammunition; without an Ava's device a fifth of it breaks and the rest falls to the
- *   floor (Ava's accumulator: 72% back, 8% on the floor, 20% broken). The dark bow fires two at once.
+ * - Each shot uses one piece of ammunition; a fifth of it breaks and the rest falls to the floor, or with an Ava's
+ *   device worn its share comes back ([AvaDevices]). The dark bow fires two at once.
  * - "There is no ammo left in your quiver." with nothing in the ammo slot (Ammunition).
  *
  * Inferred, not from the Wiki: that the XP is given as the shot is fired, for the damage rolled (capped at what the NPC
@@ -84,7 +86,12 @@ class RangedCombat(
     private val multi: MultiCombat = MultiCombat(),
     /** Each player's words for the game messages ([CombatLines]). */
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
+    /** Out of 100, how much of a player's fired ammunition their Ava's device sends back now ([AvaDevices.recovery]). */
+    private val recovery: (Player) -> Int = { 0 },
 ) {
+    /** Out of 100, how much of [player]'s fired ammunition comes back now, for `::combat`. */
+    fun recovered(player: Player): Int = recovery(player)
+
     /**
      * A shot on its way to [npc]. [ammo] falls when it lands (null for a bounce, which fires nothing); [bounces] is how
      * many more NPCs it can go on to, each rolled with [attackRoll] and [style], the first shot's, for up to two thirds
@@ -112,6 +119,11 @@ class RangedCombat(
         val rolledMax: Int = maxHit,
         /** Where the player stood when it was fired, for the NPC's retreat ([MeleeCombat.hit]). */
         val from: Tile? = null,
+        /** Out of 100, how much of [ammo] comes back to the player's [slot] ([AvaDevices]); 0 without a device. */
+        val recover: Int = 0,
+        val slot: Int = WearPos.AMMO,
+        /** Whether [ammo] that doesn't come back or break falls to the floor (a throw's never does, yet). */
+        val floor: Boolean = true,
     )
 
     private val inFlight = ArrayList<Shot>()
@@ -204,13 +216,13 @@ class RangedCombat(
         // The dark bow fires one arrow when only one is left (OSRS Wiki, Dark bow).
         val shots = minOf(weapon.shots, worn.count)
         player.equipment.remove(WearPos.AMMO, shots)
-        release(player, npc, weapon, ammo, ammoType, matchup, shots, tick, poison = PoisonedWeapons.ranged(ammoType))
+        release(player, npc, weapon, ammo, ammoType, matchup, shots, tick, poison = PoisonedWeapons.ranged(ammoType), recover = recovery(player))
         return true
     }
 
     /**
-     * A blowpipe's shot: its dart, a scale two times in three ([Blowpipe.use]), and nothing to the floor, since no Ava's
-     * device is in yet.
+     * A blowpipe's shot: its dart, a scale two times in three ([Blowpipe.use]), and nothing to the floor, as no Ava's
+     * device brings the blowpipe's darts back yet.
      */
     private fun fireLoaded(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
         val ammo = weapons.ammo(blowpipe.dart(player))
@@ -222,13 +234,18 @@ class RangedCombat(
 
     /**
      * A throw: one from the stack in the weapon slot, the numbers taken while it was still there, and nothing to the
-     * floor. Chinchompas can't be picked up again, even when they do no damage (OSRS Wiki, Chinchompa (weapon)).
+     * floor. Chinchompas can't be picked up again, even when they do no damage (OSRS Wiki, Chinchompa (weapon)), and no
+     * Ava's device brings them back (Ava's device); darts, knives, thrownaxes and the rest come back to the weapon slot
+     * as arrows do to the quiver.
      */
     private fun fireThrown(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
         val matchup = combat.rangedMatchup(player, npc) ?: return false
-        val poison = PoisonedWeapons.ranged(combat.weapon(player))
+        val thrown = combat.weapon(player)
+        val poison = PoisonedWeapons.ranged(thrown)
         player.equipment.remove(WearPos.WEAPON, 1)
-        release(player, npc, weapon, null, null, matchup, 1, tick, poison = poison)
+        val recover = if (weapon.targets > 1) 0 else recovery(player)
+        val back = if (recover > 0) thrown else null
+        release(player, npc, weapon, null, back, matchup, 1, tick, poison = poison, recover = recover, slot = WearPos.WEAPON, floor = false)
         return true
     }
 
@@ -244,6 +261,9 @@ class RangedCombat(
         tick: Long,
         poison: Int = 0,
         venom: Boolean = false,
+        recover: Int = 0,
+        slot: Int = WearPos.AMMO,
+        floor: Boolean = true,
     ) {
         val style = matchup.style
         player.nextAttackTick = tick + speed(player, style)
@@ -267,7 +287,7 @@ class RangedCombat(
             val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
             val damage = reserve(player, npc, style, rolled)
             melee.attackMade(player, npc, tick)
-            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom, from = Tile(player.x, player.z))
+            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom, from = Tile(player.x, player.z), recover = recover, slot = slot, floor = floor)
         }
     }
 
@@ -359,14 +379,38 @@ class RangedCombat(
             // A shot whose NPC is still there hits it, and bounces on even if that hit kills it.
             val landed = npcs[npc.index] === npc && !npc.dead
             if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax, shot.from), shot.poison, shot.venom, ranged = true)
-            // Guessed: under the NPC's south-west tile, where its drops go too.
-            if (shot.ammo != null && !random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) {
-                dropAmmo(shot.ammo, npc.x, npc.z, npc.level, shot.player)
-            }
+            land(shot, npc)
             if (landed && shot.bounces > 0) bounce(shot, tick)?.let { bounced += it }
             if (landed && shot.targets > 1) splash(shot, tick)
         }
         inFlight += bounced
+    }
+
+    /**
+     * What becomes of a landed shot's ammunition: a fifth breaks; without an Ava's device the rest falls, under the NPC's
+     * south-west tile where its drops go too (guessed); with one, its share goes back to the slot it came from and the
+     * rest falls. Guessed: that it comes back as the shot lands rather than as it is fired, and that one with no room
+     * there (the player has put on other ammunition, or logged out) falls instead.
+     */
+    private fun land(shot: Shot, npc: Npc) {
+        val ammo = shot.ammo ?: return
+        if (shot.recover <= 0) {
+            if (shot.floor && !random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) dropAmmo(ammo, npc.x, npc.z, npc.level, shot.player)
+            return
+        }
+        val roll = random.nextInt(100)
+        if (roll < AvaDevices.BROKEN) return
+        if (roll < AvaDevices.BROKEN + shot.recover && giveBack(shot.player, shot.slot, ammo)) return
+        if (shot.floor) dropAmmo(ammo, npc.x, npc.z, npc.level, shot.player)
+    }
+
+    /** Puts one [type] back in [player]'s worn [slot]; false when it holds something else or a full stack, or they've gone. */
+    private fun giveBack(player: Player, slot: Int, type: ObjType): Boolean {
+        if (player.loggedOut) return false
+        val worn = player.equipment[slot]
+        if (worn != null && (worn.id != type.id || worn.count >= Inventory.MAX_STACK)) return false
+        player.equipment[slot] = InvObj(type.id, (worn?.count ?: 0) + 1)
+        return true
     }
 
     /** Forgets the shots at NPCs on the tiles where [inside] holds (an instance ending), so none drops its ammunition there. */

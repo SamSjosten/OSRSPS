@@ -66,6 +66,20 @@ cache files on disk stay the live cache. An id has to be above every live model 
 241) and below 65,536, which is all a JS5 request carries. A changed file is served at the next start; a client that
 had the old one sees the new CRC and fetches it again. Converted Jagex art stays in `data/`, outside git, like the cache.
 
+Sprites and interfaces of our own go the same way. `import-sprite` writes an image (PNG, or anything ImageIO reads) as
+a sprite in the client's format (`osrsps.cache.SpriteCodec`; 255 colours, reduced when the image has more, alpha kept),
+and the server serves every `data/sprites/<id>.dat` as sprite `<id>` on top of the cache's sprite index (8). The
+lodestone map (`game/content/LodestoneMap.kt`) is the first interface of ours: its components are code
+(`osrsps.cache.InterfaceCodec` writes the if3 form every OSRS interface uses: layers, rectangles, text, graphics and
+lines, with no client scripts; what each does is the server's, through IF_SETEVENTS, IF_SETTEXT and IF_SETHIDE) and
+the overlay serves them as interface 30,000 (above the cache's own, below 32,768, as a packed component id is a signed
+int), with its sprites (65,000 to 65,003) drawn in code too. A file in `data/sprites` under one of those ids takes the
+drawn sprite's place, which is how a real map image goes in:
+
+```bash
+./gradlew run --args="import-sprite misthalin.png data/sprites/65003.dat"   # 300 by 262 for the lodestone map
+```
+
 Loc types of our own that use such models are code: `game/content/CustomLocs.kt` lists them (ids from 65,000), each a
 `LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
 the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
@@ -1155,6 +1169,24 @@ Check: `test-runner/examples/barbarian-mine-fish.json` mines tin and coal, lures
 climbs the tower; `NpcSpawnFileTest` puts the spots on their area's tiles and `HeadlessBarbarianVillageTest` refuses
 the ladder type away from the tower.
 
+Step 9 is the Cooks' Guild and the land between Barbarian Village and Varrock. Content is in
+`game/content/CooksGuild.kt`, spawns in `npc-spawns/cooks-guild.json` and `obj-spawns/cooks-guild.tsv`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The front door (`chefdoor` 24958) lets in 32 Cooking wearing a chef's hat or golden chef's hat, a Cooking cape or hood, Varrock armour 3 or 4, or a max cape or hood; the Head chef says one of three refusals otherwise; the way out has no check | OSRS Wiki, Cooks' Guild and Transcript:Head chef; the max capes are inferred (every `skillcape_max` kind in the cache) |
+| The Head chef's talk: his cape below 99; at 99 the Skillcape of Cooking and hood for 99,000 coins (trimmed with another 99), and a free hood for an owner | Transcript:Head chef; expressions guessed |
+| The north-east room's door (`fai_varrock_cook_guild_door` 10045) lets 99 Cooking through either way, with a message for the rest; the hard Varrock Diary way in isn't built | the Wiki; the message's words not yet found (key `cooks_guild.bank_door`), its walk-through guessed |
+| The spiral stairs over three floors, only on the guild's tile; the ranges (`fai_varrock_range` 7183) cook as every range | 241 map; the exploit review's rule on types that stand elsewhere |
+| The hopper, its controls and the flour bin make flour as Mill Lane Mill's, the bin's flour shared | the Wiki, Windmill |
+| Romily Weaklax's Trade opens the Pie Shop; his Talk-to and pie tasks aren't built | OSRS Wiki, Pie Shop (read 2026-11-02); inv `shop_pies` 352 |
+| The Head chef, Romily, the two bankers, and the squirrels and raccoons in the woods west of the village (scenery, Examine only) | mejrs's live NPC list |
+| The tables' item spawns: a chocolate bar, cooking apples, a bowl, a cake tin, a pie dish, a jug, a pot and grapes | 2004Scape's map m49_53; respawns guessed |
+
+Left out: the dairy churn, Marley and the recruiters. Check: `test-runner/examples/cooks-guild.json` does the door,
+the stairs, the flour, the north-east door, the range and the Pie Shop; `CooksGuildTest` every line of the Head chef
+and the door check, and `HeadlessCooksGuildTest` the doors, the stairs (and their type elsewhere) and the Pie Shop.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
@@ -1711,12 +1743,13 @@ RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
 ## Home teleport
 
 Home Teleport, the standard spellbook's first spell (`game/content/HomeTeleport.kt`): on this server Cast opens the
-lodestone network's menu (`Lodestones.kt`, as RS3's does) and a pick plays the five stages on the spot and lands the
-player on that stone 28 ticks later, free and with no cooldown. OSRS's own cast, to the castle courtyard 24 ticks
-after the click with the 30-minute cooldown in varp 892 (which RuneLite's home teleport timer reads), is the class's
-default and stays tested, but no world uses it: `HomeTeleport.target` is the seam the lodestone network takes when
-it registers. Not in yet: the other books' home teleports, teleport animation overrides, and RS3's "Previous
-destination" on the spell (plan step 6, the map interface).
+lodestone map (`Lodestones.kt` and `LodestoneMap.kt`, as RS3's does: each stone's icon where it stands, lit once the
+player has activated it, the stones' names beside, Teleport on the activated ones, and Previous destination for the
+stone last teleported to) and a pick plays the five stages on the spot and lands the player on that stone 28 ticks
+later, free and with no cooldown. OSRS's own cast, to the castle courtyard 24 ticks after the click with the
+30-minute cooldown in varp 892 (which RuneLite's home teleport timer reads), is the class's default and stays tested,
+but no world uses it: `HomeTeleport.target` is the seam the lodestone network takes when it registers. Not in yet:
+the other books' home teleports and teleport animation overrides.
 
 | Home teleport behaviour | Source |
 |-------------------------|--------|
