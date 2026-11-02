@@ -84,6 +84,7 @@ import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.LootNotifications
 import osrsps.game.combat.NpcDrops
+import osrsps.game.combat.AvaDevices
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
 import osrsps.game.combat.SpecialAttacks
@@ -116,6 +117,7 @@ import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerBarbarianVillage
+import osrsps.game.content.registerCooksGuild
 import osrsps.game.content.registerEdgevilleMonastery
 import osrsps.game.content.registerEdgevillePeople
 import osrsps.game.content.registerEdgevilleShops
@@ -179,6 +181,8 @@ import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
 import osrsps.game.skill.Pickpocketing
+import osrsps.game.skill.Agility
+import osrsps.game.skill.AgilityData
 import osrsps.game.skill.Thieving
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
@@ -201,6 +205,8 @@ import osrsps.game.zone.ZoneKey
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
+import osrsps.map.Route
+import osrsps.map.RouteTarget
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -296,6 +302,8 @@ class World(
     settings: SettingsCatalog = SettingsCatalog.NONE,
     /** Each weapon's special attack cost, by obj id, from the cache's enum 906 ([SpecialAttacks]); tests that spec pass their own. */
     specialAttackCosts: Map<Int, Int> = emptyMap(),
+    /** The Agility obstacles ([Agility]); tests that cross their own pass them. */
+    agilityData: AgilityData = AgilityData.load(),
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -407,6 +415,7 @@ class World(
 
     private val settingsSide = SettingsSide()
     private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
+    private val worldMap = WorldMapScreen(interfaces)
 
     /** Grand Exchange offers; see [GrandExchange]. */
     val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
@@ -488,7 +497,7 @@ class World(
         npcs, collision, movement, combat, objTypes, rangedWeapons, meleeCombat, random, { tick },
         projectile = zones::projectile, dropAmmo = ::dropAmmo,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        multi = multiCombat, words = ::textFor,
+        multi = multiCombat, words = ::textFor, recovery = AvaDevices::recovery,
     )
 
     /** Tumeken's shadow and the powered staves to come; see [PoweredStaves]. */
@@ -616,6 +625,7 @@ class World(
     val thieving = Thieving(this, collision)
     val manorHazards = ManorHazards(this)
     val pickpocketing = Pickpocketing(this)
+    val agility = Agility(this, agilityData)
 
     val fishing = Fishing(this)
 
@@ -664,17 +674,13 @@ class World(
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
-    /** The lodestone network; see [LodestoneNetwork]. Its menu is a chat menu of the activated stones' names. */
+    /** The lodestone network; see [LodestoneNetwork]. Its map is a modal of our own, [LodestoneMap]. */
     val lodestones = LodestoneNetwork(
         customVars,
         homeTeleport,
+        interfaces,
         message = { player, line, values -> message(player, line, *values) },
-        words = { player, line -> textFor(player)[line] },
-        menu = { title, options ->
-            var picked = 0
-            dialogues.start(this) { picked = choice(*options.toTypedArray(), title = text(title)) }
-            picked
-        },
+        words = { player, line, values -> textFor(player).get(line, *values) },
     )
 
     val commands = CommandRegistry(admins::isAdmin).apply {
@@ -744,6 +750,7 @@ class World(
         registerEdgevillePeople(this)
         registerEdgevilleMonastery(this)
         registerBarbarianVillage(this)
+        registerCooksGuild(this)
         registerHaystacks(this)
         registerLodestones(this)
         registerVarrock(this)
@@ -762,6 +769,7 @@ class World(
         mining.register()
         thieving.register()
         pickpocketing.register()
+        agility.register()
         fishing.register()
         cooking.register()
         smithing.register()
@@ -2028,6 +2036,7 @@ class World(
             return false
         }
         player.waypoints.clear()
+        player.forcedSteps.clear()
         player.interaction = null
         npcInteractions.leave(player)
         player.x = x
@@ -2038,6 +2047,9 @@ class World(
         player.teleported = true
         return true
     }
+
+    /** A route from where [player] stands to the tile [x], [z], without walking it (an obstacle's start). */
+    fun findRoute(player: Player, x: Int, z: Int): Route = movement.find(player, RouteTarget.tile(x, z))
 
     /** Whether the cache has terrain for the map square holding [x], [z]. */
     fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
@@ -2142,6 +2154,18 @@ class World(
         }
         if (interfaceId == EquipmentTab.AUTOCAST && equipmentTab.clickAutocastMenu(player, componentId, sub)) return@act
         if (interfaceId == Prayers.PRAYERBOOK && prayers.click(player, componentId, op)) return@act
+        if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_WORLDMAP) {
+            // The floater holds one window: All Settings closes by its own path first, so a prompt or picker it was
+            // asking goes with it rather than answering into a window that is gone.
+            allSettings.close(player)
+            worldMap.toggle(player)
+            return@act
+        }
+        // Op 1 is the X; Esc sends the same button (keypress_permit triggers its op). Any op closes.
+        if (interfaceId == WorldMapScreen.INTERFACE && componentId == WorldMapScreen.CLOSE) {
+            worldMap.close(player)
+            return@act
+        }
         if (interfaceId == GameFrame.ORBS && componentId == GameFrame.ORBS_RUN_BUTTON) {
             player.runEnabled = !player.runEnabled
             return@act
@@ -2595,6 +2619,12 @@ class World(
             jingle = { player.session.queue(MidiJingle(it)) },
             hit = { extendedInfo.addHitMark(it.source, it.selfType, it.sourceType, it.otherType, it.value, it.delay) },
             headBar = { extendedInfo.addHeadBar(it.source, it.type, it.type, it.fill) },
+            // The client takes the tiles as deltas from the player's tile in this same update (RSProt's setExactMove).
+            exactMove = {
+                extendedInfo.setExactMove(
+                    it.fromX - player.x, it.fromZ - player.z, it.startCycles, it.toX - player.x, it.toZ - player.z, it.endCycles, it.angle,
+                )
+            },
         )
     }
 

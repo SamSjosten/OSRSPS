@@ -37,7 +37,7 @@ class HeadlessCookingTest {
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(7),
             locTypes = LocTypes(
-                listOf(loc(Cooking.RANGE, "Range", cook), loc(Cooking.LUMBRIDGE_RANGE, "Cooking range", cook), loc(Firemaking.FIRE, "Fire", none), loc(Cooking.DRAYNOR_FIRE, "Fire", cook), loc(Cooking.EVIL_DAVE_STOVE, "Stove", cook))
+                listOf(loc(Cooking.RANGE, "Range", cook), loc(Cooking.LUMBRIDGE_RANGE, "Cooking range", cook), loc(Firemaking.FIRE, "Fire", none), loc(Cooking.DRAYNOR_FIRE, "Fire", cook), loc(Cooking.EVIL_DAVE_STOVE, "Stove", cook), loc(Cooking.COOKS_GUILD_RANGE, "Range", cook))
                     .associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply {
@@ -45,6 +45,7 @@ class HeadlessCookingTest {
                 add(ZoneLoc(Firemaking.FIRE, LocShape.CENTREPIECE_STRAIGHT, 0, FIRE_X, FIRE_Z, 0))
                 add(ZoneLoc(Cooking.DRAYNOR_FIRE, LocShape.CENTREPIECE_STRAIGHT, 0, DRAYNOR_X, DRAYNOR_Z, 0))
                 add(ZoneLoc(Cooking.EVIL_DAVE_STOVE, LocShape.CENTREPIECE_STRAIGHT, 0, STOVE_X, STOVE_Z, 0))
+                add(ZoneLoc(Cooking.COOKS_GUILD_RANGE, LocShape.CENTREPIECE_STRAIGHT, 0, GUILD_RANGE_X, GUILD_RANGE_Z, 0))
             },
             cycleMillis = millis,
         )
@@ -211,7 +212,23 @@ class HeadlessCookingTest {
         }
     }
 
+    @Test
+    fun `the Cooks' Guild's ranges cook as any range`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel cooking 99")
+                client.give(Cooking.SHRIMPS.raw)
+                client.locOp(Cooking.COOKS_GUILD_RANGE, GUILD_RANGE_X, GUILD_RANGE_Z, 1)
+                client.await("a cooked shrimp", timeoutMillis = 30_000) { if (client.count(Cooking.SHRIMPS.cooked) == 1) Unit else null }
+                assertEquals(0, client.count(Cooking.SHRIMPS.raw))
+            }
+        }
+    }
+
     private companion object {
+        const val GUILD_RANGE_X = 3230
+        const val GUILD_RANGE_Z = 3218
         const val STOVE_X = 3228
         const val STOVE_Z = 3218
         const val DRAYNOR_X = 3216

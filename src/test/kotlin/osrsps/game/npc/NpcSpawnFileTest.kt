@@ -461,6 +461,13 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `every spawn file in the resources is loaded`() {
+        val dir = java.nio.file.Path.of(NpcSpawnFile::class.java.getResource("/npc-spawns")!!.toURI())
+        val onDisk = java.nio.file.Files.list(dir).use { files -> files.map { it.fileName.toString() }.filter { it.endsWith(".json") }.toList() }
+        assertEquals(onDisk.toSet(), NpcSpawnFile.FILES.toSet())
+    }
+
+    @Test
     fun `every file names only NPCs it can find in a full cache`() {
         // With no types at all every spawn is skipped by name, not dropped silently.
         for (file in NpcSpawnFile.FILES) {
@@ -508,7 +515,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, five stray dogs, townsfolk, bankers, the Grand Exchange's, shop keepers, the palace's, churches', inns', the Fitzharmons and the museum's people`() {
+    fun `Varrock has its 37 guards, five stray dogs, townsfolk, bankers, the Grand Exchange's, shop keepers, the palace's, churches', inns', the Fitzharmons, the museum's people and the Champions' Guild's`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -544,6 +551,7 @@ class NpcSpawnFileTest {
             6013 to "vm_natural_history_display_case_camel", 6014 to "vm_natural_history_display_case_terror_bird",
             6015 to "vm_natural_history_display_dragon", 6016 to "vm_natural_history_display_case_wyvern",
             6017 to "vm_natural_history_display_case_battle_tortoise", 6018 to "vm_natural_history_display_case_mole",
+            814 to "guildmaster", 2871 to "scavvo", 2870 to "valaine",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -617,8 +625,13 @@ class NpcSpawnFileTest {
         assertTrue(displays.all { it.wander == 0 })
         val upstairs = spawns.filter { it.type.id in listOf(1901, 1902, 6019) }
         assertEquals(listOf(2, 1, 1), upstairs.sortedBy { it.type.id }.map { it.level })
-        // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch, but the museum's Natural History floor.
-        assertTrue((spawns - basement.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
+        // Step 10: the Champions' Guild's Guildmaster inside its door, and Scavvo and Valaine upstairs.
+        val guild = spawns.filter { it.type.id in listOf(814, 2870, 2871) }
+        assertEquals(listOf(0, 1, 1), guild.sortedBy { it.type.id }.map { it.level })
+        assertTrue(guild.all { it.x in 3188..3194 && it.z in 3350..3362 })
+        // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch, but the museum's Natural History
+        // floor and the Champions' Guild, south of the city.
+        assertTrue((spawns - basement.toSet() - guild.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
         assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie).all { it.wander > 0 })
     }
 }
