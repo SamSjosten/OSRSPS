@@ -115,4 +115,21 @@ class HeadlessFriendsTest {
             }
         }
     }
+
+    @Test
+    fun `the lists go again with the first map build after login, once`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the empty list") { alice.friendsLoaded.takeIf { it } }
+                alice.forgetFriendsLoaded()
+                alice.mapBuildComplete()
+                alice.await("the empty list again") { alice.friendsLoaded.takeIf { it } }
+                // A later rebuild doesn't send them again.
+                alice.forgetFriendsLoaded()
+                alice.mapBuildComplete()
+                alice.awaitTicks(3)
+                assertFalse(alice.friendsLoaded)
+            }
+        }
+    }
 }
