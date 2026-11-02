@@ -20,6 +20,7 @@ class HomeTeleportTest {
     private var tick = 0L
     private var minutes = 29_000_000L
     private var attackedRecently = false
+    private var wilderness = 0
     private val handlers = Handlers()
     private val scripts = ScriptRunner(handlers, {}) { tick }
     private val landed = mutableListOf<Pair<Long, Destination>>()
@@ -35,6 +36,7 @@ class HomeTeleportTest {
             landed += tick to to
         },
         message = { _, line, values -> said += (listOf(line.key) + values.map { "${it.first}=${it.second}" }).joinToString(" ") },
+        wildernessLevel = { wilderness },
     ).also { it.register(handlers) }
     private val player = Player(1, "Zezima", 3100, 3500, 0)
 
@@ -135,6 +137,37 @@ class HomeTeleportTest {
         assertEquals(listOf("home_teleport.in_combat"), said)
         assertFalse(home.casting(player))
         assertTrue(anims.isEmpty())
+    }
+
+    @Test
+    fun `it can't be cast above level 20 Wilderness`() {
+        wilderness = 21
+        click()
+        assertEquals(listOf("home_teleport.wilderness", "home_teleport.wilderness_2"), said, "live sends two lines")
+        assertFalse(home.casting(player))
+        wilderness = 20
+        click()
+        assertTrue(home.casting(player))
+    }
+
+    @Test
+    fun `by default the Wilderness level is read from where the player stands`() {
+        val handlers = Handlers()
+        val scripts = ScriptRunner(handlers, {}) { tick }
+        val home = HomeTeleport(
+            currentTick = { tick }, nowMinutes = { minutes }, inCombat = { false }, teleport = { _, _ -> },
+            message = { _, line, _ -> said += line.key },
+        ).also { it.register(handlers) }
+        player.x = 3100
+        player.z = 3700
+        assertTrue(scripts.trigger(player, Op.button(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)))
+        scripts.process(player)
+        assertEquals(listOf("home_teleport.wilderness", "home_teleport.wilderness_2"), said)
+        assertFalse(home.casting(player))
+        player.z = 3679
+        assertTrue(scripts.trigger(player, Op.button(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)))
+        scripts.process(player)
+        assertTrue(home.casting(player), "level 20")
     }
 
     @Test
