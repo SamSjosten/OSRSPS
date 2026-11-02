@@ -154,9 +154,13 @@ class HeadlessDraynorManorTest {
                 assertNotNull(server.world.locs.find(DraynorManor.BOOKCASE_OPEN, 3097, 3360, 0))
                 // From inside, the bookcases do nothing.
                 client.await("the bookcases shut") { server.world.locs.find(DraynorManor.BOOKCASE_R, 3097, 3359, 0) }
+                // Paused and stepped, so the search is handled and four ticks pass before the check.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 client.locOp(DraynorManor.BOOKCASE_R, 3097, 3359, DraynorManor.SEARCH)
-                Thread.sleep(400) // four ticks at the test server's 100 ms
+                client.stepTicks(4)
                 assertEquals(3096, client.position!!.x)
+                assertNotNull(server.world.locs.find(DraynorManor.BOOKCASE_R, 3097, 3359, 0), "the bookcase stays shut")
+                client.commandReply("resume") { it.startsWith("Resumed") }
 
                 client.tele(3096, 3357, 0)
                 client.locOp(DraynorManor.LEVER, 3096, 3357, DraynorManor.PULL)
@@ -203,6 +207,12 @@ class HeadlessDraynorManorTest {
                 client.locOp(DraynorManor.WHISTLE_DOOR, 3106, 3361, DraynorManor.OPEN)
                 client.awaitAt(3106, 3362, 2)
                 assertTrue(client.position!!.level == 2)
+                // Closed by hand while open, each of the manor's doors goes back to itself, not to the door its open
+                // form belongs to.
+                val doors = server.world.doors
+                assertEquals(DraynorManor.WHISTLE_DOOR_OPEN, doors.openType(DraynorManor.WHISTLE_DOOR))
+                assertEquals(DraynorManor.CLOSET_DOOR_OPEN, doors.openType(DraynorManor.CLOSET_DOOR))
+                assertEquals(DraynorManor.BACK_DOOR_OPEN, doors.openType(DraynorManor.BACK_DOOR))
             }
         }
     }

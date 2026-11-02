@@ -121,6 +121,10 @@ object DraynorManor {
 
 fun registerDraynorManor(world: World) {
     with(DraynorManor) {
+        // Their open forms are other doors' too: closing one by hand turns it back into this door, not that one.
+        world.doors.addClosedType(BACK_DOOR, BACK_DOOR_OPEN)
+        world.doors.addClosedType(CLOSET_DOOR, CLOSET_DOOR_OPEN)
+        world.doors.addClosedType(WHISTLE_DOOR, WHISTLE_DOOR_OPEN)
         world.handlers.onLoc(BACK_DOOR, OPEN) { op ->
             val door = op.loc!!
             if (!insideBackDoor(door, player.x, player.z)) return@onLoc world.message(player, ManorGroundsLines.BACK_DOOR_LOCKED)
