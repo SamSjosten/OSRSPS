@@ -179,6 +179,8 @@ import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
 import osrsps.game.skill.Pickpocketing
+import osrsps.game.skill.Agility
+import osrsps.game.skill.AgilityData
 import osrsps.game.skill.Thieving
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
@@ -201,6 +203,8 @@ import osrsps.game.zone.ZoneKey
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
+import osrsps.map.Route
+import osrsps.map.RouteTarget
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -296,6 +300,8 @@ class World(
     settings: SettingsCatalog = SettingsCatalog.NONE,
     /** Each weapon's special attack cost, by obj id, from the cache's enum 906 ([SpecialAttacks]); tests that spec pass their own. */
     specialAttackCosts: Map<Int, Int> = emptyMap(),
+    /** The Agility obstacles ([Agility]); tests that cross their own pass them. */
+    agilityData: AgilityData = AgilityData.load(),
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -608,6 +614,7 @@ class World(
     val thieving = Thieving(this, collision)
     val manorHazards = ManorHazards(this)
     val pickpocketing = Pickpocketing(this)
+    val agility = Agility(this, agilityData)
 
     val fishing = Fishing(this)
 
@@ -754,6 +761,7 @@ class World(
         mining.register()
         thieving.register()
         pickpocketing.register()
+        agility.register()
         fishing.register()
         cooking.register()
         smithing.register()
@@ -2020,6 +2028,7 @@ class World(
             return false
         }
         player.waypoints.clear()
+        player.forcedSteps.clear()
         player.interaction = null
         npcInteractions.leave(player)
         player.x = x
@@ -2030,6 +2039,9 @@ class World(
         player.teleported = true
         return true
     }
+
+    /** A route from where [player] stands to the tile [x], [z], without walking it (an obstacle's start). */
+    fun findRoute(player: Player, x: Int, z: Int): Route = movement.find(player, RouteTarget.tile(x, z))
 
     /** Whether the cache has terrain for the map square holding [x], [z]. */
     fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
@@ -2582,6 +2594,12 @@ class World(
             jingle = { player.session.queue(MidiJingle(it)) },
             hit = { extendedInfo.addHitMark(it.source, it.selfType, it.sourceType, it.otherType, it.value, it.delay) },
             headBar = { extendedInfo.addHeadBar(it.source, it.type, it.type, it.fill) },
+            // The client takes the tiles as deltas from the player's tile in this same update (RSProt's setExactMove).
+            exactMove = {
+                extendedInfo.setExactMove(
+                    it.fromX - player.x, it.fromZ - player.z, it.startCycles, it.toX - player.x, it.toZ - player.z, it.endCycles, it.angle,
+                )
+            },
         )
     }
 
