@@ -159,8 +159,8 @@ class ProblemReportsTest {
             // A body on anything but a report is refused before it is buffered.
             assertEquals(413, request(port, "POST", "/version", ByteArray(9000)).code)
             assertEquals(413, request(port, "GET", "/version", ByteArray(9000)).code)
-            // A small body on a GET is still just ignored, as before.
-            assertEquals(200, request(port, "GET", "/version", ByteArray(10)).code)
+            // Any body at all: only a report's body has a deadline, so one elsewhere could trickle in for ever.
+            assertEquals(413, request(port, "GET", "/version", ByteArray(10)).code)
 
             // The refused "hello" counts toward this address's hour too: every report sent does, taken or not.
             repeat(ProblemReports.PER_ADDRESS_PER_HOUR - 2) { assertEquals(201, request(port, "POST", "/report", report()).code) }
@@ -353,6 +353,45 @@ class ProblemReportsTest {
                         flush()
                     }
                     assertEquals("HTTP/1.1 200", String(other.getInputStream().readNBytes(12), Charsets.US_ASCII))
+                }
+            } finally {
+                held.forEach { runCatching { it.close() } }
+            }
+        }
+    }
+
+    @Test
+    fun `a GET declaring a body is refused at once, so it can't trickle one in for ever`(@TempDir dir: Path) {
+        serve(ProblemReports(dir) { now }) { _, port ->
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 5000
+                socket.getOutputStream().apply {
+                    write("GET /version HTTP/1.1\r\nHost: x\r\nContent-Length: 8000\r\n\r\n".toByteArray())
+                    flush()
+                }
+                // The whole answer, then the end: a read that times out instead means it stayed open.
+                val answer = String(socket.getInputStream().readAllBytes(), Charsets.US_ASCII)
+                assertTrue(answer.startsWith("HTTP/1.1 413"), answer)
+            }
+        }
+    }
+
+    @Test
+    fun `a connection one too many from its sender gets no answer, even to a request sent with its PROXY header`(@TempDir dir: Path) {
+        val proxy = ProxyProtocol(setOf("127.0.0.1"), ProxyProtocol.Mode.OPTIONAL)
+        serve(ProblemReports(dir) { now }, proxy = proxy) { http, port ->
+            val held = (1..ClientConfig.MAX_CONNECTIONS_PER_ADDRESS).map { Socket("127.0.0.1", port).apply { soTimeout = 5000 } }
+            try {
+                for (socket in held) sent(http) { socket.getOutputStream().apply { write(ProxyHeaders.v1("203.0.113.60", 40000)); flush() } }
+                Socket("127.0.0.1", port).use { one ->
+                    one.soTimeout = 5000
+                    runCatching {
+                        one.getOutputStream().apply {
+                            write(ProxyHeaders.v1("203.0.113.60", 40001) + "GET /version HTTP/1.1\r\nHost: x\r\n\r\n".toByteArray())
+                            flush()
+                        }
+                    }
+                    assertClosed(one, "one too many was answered")
                 }
             } finally {
                 held.forEach { runCatching { it.close() } }
