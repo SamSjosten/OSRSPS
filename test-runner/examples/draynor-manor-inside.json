@@ -1,0 +1,237 @@
+{
+ "name": "Draynor piece step 12a: Draynor Manor's inside: both staircases, the top floor's tinderbox, the bookcase passage and its lever, the locked closet and out by the back door (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "the ghosts and the skeleton are aggressive"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3108 3361 0",
+   "expectMessage": "Teleported to 3108, 3361, 0",
+   "comment": "the hall, at the foot of the main staircase"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3108,
+   "y": 3362
+  },
+  {
+   "step": "assertLocation",
+   "x": 3108,
+   "y": 3366,
+   "plane": 1,
+   "comment": "off the top of the stairs (inferred)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3108,
+   "y": 3364
+  },
+  {
+   "step": "assertLocation",
+   "x": 3108,
+   "y": 3361,
+   "plane": 0,
+   "comment": "back at the foot"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3104 3361 1",
+   "expectMessage": "Teleported to 3104, 3361, 1",
+   "comment": "beside the spiral stairs to the top floor"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3104,
+   "y": 3362
+  },
+  {
+   "step": "assertLocation",
+   "x": 3105,
+   "y": 3364,
+   "plane": 2
+  },
+  {
+   "step": "command",
+   "text": "::tele 3112 3368 2",
+   "expectMessage": "Teleported to 3112, 3368, 2",
+   "comment": "beside the tinderbox, past the top floor's doors"
+  },
+  {
+   "step": "takeItem",
+   "itemId": 590,
+   "x": 3112,
+   "y": 3369,
+   "timeoutMs": 70000,
+   "comment": "the top floor's tinderbox; one taken by the last run comes back after 100 ticks"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 590,
+   "count": 1,
+   "timeoutMs": 15000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3105 3364 2",
+   "expectMessage": "Teleported to 3105, 3364, 2"
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3105,
+   "y": 3363
+  },
+  {
+   "step": "assertLocation",
+   "x": 3106,
+   "y": 3363,
+   "plane": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3098 3358 0",
+   "expectMessage": "Teleported to 3098, 3358, 0",
+   "comment": "east of the bookcases"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bookcase",
+   "option": "Search",
+   "x": 3097,
+   "y": 3358
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_manor.secret_door]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3096,
+   "y": 3358,
+   "plane": 0,
+   "comment": "in the room behind"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3096 3357 0",
+   "expectMessage": "Teleported to 3096, 3357, 0",
+   "comment": "by the lever"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever",
+   "option": "Pull",
+   "x": 3096,
+   "y": 3357
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_manor.lever_opens]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3098,
+   "y": 3358,
+   "plane": 0,
+   "comment": "back out east of the bookcases"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3107 3367 0",
+   "expectMessage": "Teleported to 3107, 3367, 0",
+   "comment": "by the closet door behind the stairs"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3107,
+   "y": 3367
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_manor.closet_locked]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3123 3360 0",
+   "expectMessage": "Teleported to 3123, 3360, 0",
+   "comment": "the east room, by the back door"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3123,
+   "y": 3361
+  },
+  {
+   "step": "assertLocation",
+   "x": 3123,
+   "y": 3361,
+   "plane": 0,
+   "comment": "out through the back door"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 5,
+   "comment": "the door shuts again"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3123,
+   "y": 3361
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_manor.back_door_locked]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again."
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

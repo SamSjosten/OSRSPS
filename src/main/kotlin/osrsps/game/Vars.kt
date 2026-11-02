@@ -17,28 +17,36 @@ class VarTypes(
     /** Varps are numbered 0 until this; the client sizes its varp array by the same count. */
     val varpCount: Int,
     private val varbits: Map<Int, VarbitType>,
+    /**
+     * Varbits are numbered 0 until this: the cache's highest varbit file id plus one, which counts one that didn't
+     * decode. Our own vars ([osrsps.game.content.CustomVars]) take the ids from here and [varpCount] on.
+     */
+    val varbitCount: Int = (varbits.keys.maxOrNull() ?: -1) + 1,
 ) {
-    val varbitCount: Int get() = varbits.size
+    init {
+        require(varbits.keys.all { it < varbitCount }) { "A varbit id is past the varbit count $varbitCount" }
+    }
 
     fun varbit(id: Int): VarbitType? = varbits[id]
 
     /**
-     * These plus [extra] varbits, whose ids must be new, with the varp count grown to cover their base varps: for
+     * These plus [extra] varbits, whose ids must be new, with the varp and varbit counts grown to cover them: for
      * varbits of our own ([osrsps.game.content.CustomVars]), which the client gets through the cache overlay.
      */
     fun with(extra: Map<Int, VarbitType>): VarTypes {
         if (extra.isEmpty()) return this
         val merged = HashMap(varbits)
         for ((id, type) in extra) require(merged.put(id, type) == null) { "Varbit $id is already in the cache" }
-        return VarTypes(maxOf(varpCount, extra.values.maxOf { it.baseVar } + 1), merged)
+        return VarTypes(maxOf(varpCount, extra.values.maxOf { it.baseVar } + 1), merged, maxOf(varbitCount, extra.keys.max() + 1))
     }
 
     companion object {
         /**
-         * For tests and caches with no var configs. 6,000 varps covers every id RuneLite's VarPlayerID names for
-         * revision 241 (the highest is 5,890).
+         * For tests and caches with no var configs. 6,000 varps and 21,000 varbits cover every id RuneLite's
+         * VarPlayerID and VarbitID name for revision 241 (the highest are 5,890 and 20,410), so vars of our own
+         * ([osrsps.game.content.CustomVars]) land past the real ones here too.
          */
-        val NONE = VarTypes(6_000, emptyMap())
+        val NONE = VarTypes(6_000, emptyMap(), 21_000)
     }
 }
 

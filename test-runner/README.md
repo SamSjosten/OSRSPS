@@ -222,6 +222,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Jonny the Beard, Charlie the Tramp given a coin, Draul Leptoc, and a kitten bought from Gertrude for 100 coins.
 - `varrock-fitzharmons.json`: Varrock step 8b (with `::keys on`): Dimintheis handing back family gauntlets, Johnathon
   turning them into chaos gauntlets for 25,000 coins through his Gauntlets option, his talk, and Old Man Yarlo.
+- `varrock-museum.json`: Varrock step 9a (with `::keys on`): the museum's curator (treasure and medallion topics) and
+  information clerk (Kudos, then a museum map), the first and second floors by their straight stairs and back, the
+  Natural History floor and back, the cleaning area's gate through its guard and out, and the back entrance's guard and
+  its double doors.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
@@ -259,6 +263,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `draynor-manor-grounds.json`: Draynor step 11: Veronica's talk (`::keys on`), Chop on an undead tree without and with
   an axe and its swipe (`::god on`), a vine's whip, the compost heap, the fountain, and in by the front doors that
   won't open from inside.
+- `draynor-manor-inside.json`: Draynor step 12a: Draynor Manor's main staircase and spiral stairs up and down, the top
+  floor's tinderbox, the bookcase passage and its lever, the locked closet, and out by the back door, which won't open
+  from outside (`::keys on`, `::god on`).
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
@@ -332,6 +339,11 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   again: attack priority, the combat and prayer tab keys (a key taken from the tab that had it), login/logout
   notifications and quest list sort; and the master and music sliders (a mouse click in the middle of each one's
   clickzone, a settings_content child, 53%); then close, relog and check every one.
+- `npc-talk-fight-test.json` and `npc-talk-fight-test2.json` (need 0.18.0, for `chat`): two players at once; once
+  `test2` stands on its tile, `test` spawns a monk beside it, `test2` talks to the monk and leaves the chat open, and
+  `test` shoots the monk from 4 tiles. The monk walks over and hits `test` back; only then does `test` say so in public
+  chat, and `test2`'s chat is still on the monk's first line (exploit review round 10, NPC-1). `test` starts from `lumbridge-bare`, removes the monk and
+  ends with `::reset`.
 - `social-friends-test.json` and `social-friends-test2.json` (need 0.13.0): two players at once, `test` on one VM
   and `test2` on the other, started together. Each empties its friends list (`::clearfriends`), logs out and in, and
   adds the other; `test` sees `test2` come online on world 301, go offline at `test2`'s logout and come back. Run alone,
