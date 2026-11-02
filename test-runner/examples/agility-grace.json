@@ -165,6 +165,97 @@
   },
   {
    "step": "command",
+   "text": "::item 11850 1",
+   "expectMessage": "Added 1 x Graceful hood",
+   "comment": "the whole set worn from the backpack; its 30% faster energy restore is HeadlessGracefulEnergyTest's, as the runner can't read run energy"
+  },
+  {
+   "step": "itemOption",
+   "item": "Graceful hood",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "head",
+   "item": "Graceful hood"
+  },
+  {
+   "step": "command",
+   "text": "::item 11854 1",
+   "expectMessage": "Added 1 x Graceful top"
+  },
+  {
+   "step": "itemOption",
+   "item": "Graceful top",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "body",
+   "item": "Graceful top"
+  },
+  {
+   "step": "command",
+   "text": "::item 11856 1",
+   "expectMessage": "Added 1 x Graceful legs"
+  },
+  {
+   "step": "itemOption",
+   "item": "Graceful legs",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "legs",
+   "item": "Graceful legs"
+  },
+  {
+   "step": "command",
+   "text": "::item 11858 1",
+   "expectMessage": "Added 1 x Graceful gloves"
+  },
+  {
+   "step": "itemOption",
+   "item": "Graceful gloves",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "hands",
+   "item": "Graceful gloves"
+  },
+  {
+   "step": "command",
+   "text": "::item 11860 1",
+   "expectMessage": "Added 1 x Graceful boots"
+  },
+  {
+   "step": "itemOption",
+   "item": "Graceful boots",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "feet",
+   "item": "Graceful boots"
+  },
+  {
+   "step": "command",
+   "text": "::item 11852 1",
+   "expectMessage": "Added 1 x Graceful cape"
+  },
+  {
+   "step": "itemOption",
+   "item": "Graceful cape",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "cape",
+   "item": "Graceful cape"
+  },
+  {
+   "step": "command",
    "text": "::reset",
    "expectMessage": "Back to how you were"
   }
