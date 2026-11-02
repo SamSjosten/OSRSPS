@@ -1074,6 +1074,21 @@ file (keys `peksa.*`, `tassie_slipcast.*`, `hunding.*`, `atlas.*`, `checkal.*`, 
 Hunding and talks to each of the others; `BarbarianVillageTest` does each talk's branches and
 `HeadlessBarbarianVillageTest` the shop, the longhall's doors and the tower through the headless client.
 
+Step 6 is the real multi-way areas and the client's multi-way icon, `game/combat/MultiCombat.kt` and
+`multi-combat.tsv` (one box a line, with where it came from; other pieces add theirs as their content comes).
+
+| Behaviour | Source |
+|-----------|--------|
+| The whole of Barbarian Village is multi-way: map square 48_53 (3072, 3392 to 3135, 3455), ground level | OSRS Wiki, Barbarian Village ("The entire village is a multicombat area"); the box from 2004Scape's `data/src/maps/multiway.csv`; that live's box is the same is inferred |
+| The Stronghold of Security's first floor is multi-way: map square 29_81 (1856, 5184 to 1919, 5247), which holds no other floor | OSRS Wiki, Multicombat area ("The first level of the Stronghold of Security"); the whole square is inferred. The Stronghold itself comes in step 12 |
+| Edgeville, the Monastery and the land between stay single-way | OSRS Wiki, Multicombat area (none of them listed) |
+| The client's crossed swords show while the player stands in a multi-way area (`multiway_indicator` 4605, bit 5 of varp 1021), set every tick and sent when it changes, so a step, a teleport or `::multi` all show at once | 241 cache varbit; when live sends it is inferred |
+
+`::multi` still marks a zone multi-way until the server restarts, on top of the file's areas. Check:
+`test-runner/examples/edgeville-multi.json` reads the icon's varbit in Barbarian Village, at Edgeville bank and back
+again after a walk in; `MultiCombatTest` checks the boxes' edges and `HeadlessMultiIndicatorTest` the varbit through
+the headless client.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).

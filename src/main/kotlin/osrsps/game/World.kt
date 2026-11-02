@@ -453,7 +453,7 @@ class World(
     )
 
     /** Where combat is multi-way; see [MultiCombat]. */
-    val multiCombat = MultiCombat()
+    val multiCombat = MultiCombat.load()
 
     /** Players fighting NPCs; see [MeleeCombat]. */
     val meleeCombat: MeleeCombat = MeleeCombat(
@@ -1130,6 +1130,17 @@ class World(
             rebuildIfNeeded(player)
         }
         player.infos.updateRootCoord(player.level, player.x, player.z)
+        sendMultiIndicator(player)
+    }
+
+    /**
+     * Shows or hides the client's multi-way icon for where [player] now stands. Every tick, so a step, a teleport or an
+     * admin's `::multi` all show at once; the varbit is only sent when it changes. Inferred: live sets it as the player
+     * enters or leaves the area.
+     */
+    private fun sendMultiIndicator(player: Player) {
+        val multi = if (multiCombat.at(player.level, player.x, player.z)) 1 else 0
+        player.vars.setVarbitIfKnown(MultiCombat.VARBIT_INDICATOR, multi)
     }
 
     /**

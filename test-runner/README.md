@@ -189,6 +189,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `barbarian-village.json`: Edgeville step 5 (with `::keys on`): a bronze med helm bought from Peksa, wool spun,
   a pot thrown on Tassie's wheel and fired in her oven, Tassie's talk, the lookout tower's ladders up to Hunding and
   down, and the talk of Atlas, Litara, Checkal and Sigurd.
+- `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
+  Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
+  `assertVarbit`.
 - `draynor-village.json`: Draynor step 1: the pig pen's gate opened (both leaves) and shut, Morgan's stairs up and
   down with garlic from his cupboard, the Wise Old Man's stairs, Aggie's wardrobe and her cheese and tomato on the
   ground, and the bank opened from a banker's talk (`::keys on`) and from a booth. Needs 0.6.1 for `assertInterface`.
