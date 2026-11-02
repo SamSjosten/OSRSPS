@@ -162,9 +162,12 @@ class HeadlessDraynorManorGroundsTest {
                 assertTrue(swipes.all { it in 0..DraynorManorGrounds.TREE_MAX_HIT }, swipes.toString())
                 // Two tiles off, it can't reach.
                 client.tele(3109, 3339, 0)
+                // Paused and stepped, so the window is counted in game ticks, past the tree's next swipe.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 val before = swipes.size
-                Thread.sleep(800) // eight ticks at the test server's 100 ms
-                assertTrue(swipes.size <= before + 1, "a swipe or none in flight, then none: $swipes")
+                client.stepTicks(DraynorManorGrounds.TREE_SPEED * 2)
+                assertEquals(before, swipes.size, "no swipe from two tiles off: $swipes")
+                client.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }
@@ -181,9 +184,34 @@ class HeadlessDraynorManorGroundsTest {
                 client.await("two whips") { if (whips.size >= 2) Unit else null }
                 assertEquals(listOf(1, 1), whips.take(2))
                 client.tele(3125, 3340, 0)
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 val after = whips.size
-                Thread.sleep(800) // eight ticks at the test server's 100 ms
-                assertTrue(whips.size <= after + 1, "a whip or none in flight, then none: $whips")
+                client.stepTicks(DraynorManorGrounds.VINE_TICKS * 2)
+                assertEquals(after, whips.size, "no whip once out of reach: $whips")
+                client.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
+    fun `the vines' timer starts on the tick a player walks into their zone`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val whips = CopyOnWriteArrayList<Int>()
+            server.world.manorHazards.whip = { _, damage -> whips += damage }
+            server.login("finn").use { client ->
+                client.await("the login rebuild") { client.position }
+                // A tile west of the zone, then a step east onto its edge on the next tick run.
+                client.tele(DraynorManorGrounds.VINES_X - 1, 3340, 0)
+                client.await("west of the vines") { client.position?.takeIf { it.x == DraynorManorGrounds.VINES_X - 1 } }
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                client.walk(DraynorManorGrounds.VINES_X, 3340)
+                client.stepTicks(1)
+                assertEquals(DraynorManorGrounds.VINES_X, client.position?.x, "the step onto the zone's edge")
+                client.stepTicks(DraynorManorGrounds.VINE_TICKS - 1)
+                assertEquals(emptyList(), whips, "nothing before the fifth tick")
+                client.stepTicks(1)
+                assertEquals(listOf(1), whips, "a whip five ticks after the step in")
+                client.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }

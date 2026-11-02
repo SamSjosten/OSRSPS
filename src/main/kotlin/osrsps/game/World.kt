@@ -1069,7 +1069,6 @@ class World(
             prayers.drain(player)
             levelUps.process(player)
             scripts.process(player)
-            manorHazards.process(player)
             // Outside a player's own scripts, so a failure here would otherwise skip the rest of the tick for everyone.
             perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
             perPlayer(player, "Clans") { clans.process(player) }
@@ -1082,6 +1081,8 @@ class World(
         for (player in players) {
             if (player == null || player.loggedOut) continue
             perPlayer(player, "movement") { movePhase(player) }
+            // After the step, so the vines see the tile the player walked onto this tick.
+            perPlayer(player, "manor hazards") { manorHazards.process(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
