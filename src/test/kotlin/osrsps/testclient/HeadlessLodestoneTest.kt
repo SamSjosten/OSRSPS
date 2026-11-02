@@ -3,61 +3,109 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.fail
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.World
 import osrsps.game.content.CustomLocs
+import osrsps.game.content.CustomVars
 import osrsps.game.content.Lodestones
 import osrsps.game.loc.LocTypes
 import osrsps.map.CollisionMap
 
 /**
- * The Lumbridge lodestone over the game protocol: the world places it and the client is told, Activate shows the
- * active stone, and the dormant one is back exactly [Lodestones.PREVIEW_TICKS] ticks later. The world is paused and
- * stepped so the test counts game ticks, not test-thread time.
+ * The lodestone network over the game protocol: a login has Lumbridge's bit set, Activate on another stone sets its
+ * bit (which is what turns the client's drawing of that stone active) and says so, `::lodestone` opens the menu of the
+ * activated stones and a pick lands on the stone [Lodestones.CAST_TICKS] ticks later, a stone not yet activated is
+ * refused by name, and nothing casts above level 20 Wilderness. The rl-client script
+ * test-runner/examples/lodestone-network.json makes the same clicks in the real client.
  */
 class HeadlessLodestoneTest {
-    private val stone = Lodestones.LUMBRIDGE
-    private val dormant = LocChange(Lodestones.DORMANT, stone.shape, stone.angle, Coord(stone.x, stone.z))
-    private val active = LocChange(Lodestones.ACTIVE, stone.shape, stone.angle, Coord(stone.x, stone.z))
+    private val lumbridge = Lodestones.LUMBRIDGE
+    private val draynor = Lodestones.DRAYNOR
 
-    /** The stone's map square, open ground, with the lodestone's own loc types so the world places the stone. */
+    /** The stones' map squares and a Wilderness one, open ground, with our loc types so the world places the stones. */
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
-            crcs, CollisionMap().apply { markLoaded(stone.x shr 6, stone.z shr 6) },
+            crcs,
+            CollisionMap().apply {
+                for (site in Lodestones.SITES) markLoaded(site.x shr 6, site.z shr 6)
+                markLoaded(WILDERNESS.x shr 6, WILDERNESS.z shr 6)
+            },
             locTypes = LocTypes.NONE.with(CustomLocs.types), cycleMillis = millis,
         )
     }
 
-    private fun World.stoneId() = locs[stone.x, stone.z, stone.level, stone.layer]?.id
+    private fun HeadlessClient.tele(to: Coord) {
+        commandReply("tele ${to.x} ${to.z}") { it.startsWith("Teleported") }
+        await("the teleport") { position?.takeIf { it == to } }
+    }
 
     @Test
-    fun `Activate shows the active stone, and the dormant one is back after the preview`(@TempDir dir: Path) {
+    fun `activate, the menu, the cast, a locked stone and the Wilderness`(@TempDir dir: Path) {
         server(dir).use { server ->
             val world = server.world
-            assertEquals(Lodestones.DORMANT, world.stoneId(), "the stone placed at start")
+            for (site in Lodestones.SITES) assertEquals(site.id, world.locs[site.x, site.z, 0, site.loc.layer]?.id, site.slug)
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
-                client.command("tele ${stone.x + 4} ${stone.z + 1} 0")
-                client.await("the placed stone to reach the client") { client.locChanges().takeIf { dormant in it } }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.await("Lumbridge's bit at login") { client.varp(CustomVars.LODESTONES_VARP).takeIf { it == 1 } }
+
+                client.tele(Coord(draynor.x + 4, draynor.z + 1))
+                val stone = LocChange(draynor.id, draynor.loc.shape, draynor.loc.angle, Coord(draynor.x, draynor.z))
+                client.await("the Draynor stone to reach the client") { client.locChanges().takeIf { stone in it } }
+                client.locOp(draynor.id, draynor.x, draynor.z, Lodestones.ACTIVATE)
+                client.awaitMessage("the activation") { it == "[lodestone.activated name=[lodestone.draynor]]" }
+                client.await("Draynor's bit") { client.varp(CustomVars.LODESTONES_VARP).takeIf { it == 3 } }
+
+                client.command("lodestone")
+                val menu = client.awaitDialogue("the lodestone menu") { it is DialogueView.Menu }
+                assertEquals(DialogueView.Menu("[lodestone.title]", listOf("[lodestone.lumbridge]", "[lodestone.draynor]")), menu)
+                // The world is paused and stepped from here, so the cast is counted in game ticks, not test-thread time.
                 client.commandReply("pause") { it.startsWith("Paused after tick") }
-                client.locOp(Lodestones.DORMANT, stone.x, stone.z, Lodestones.ACTIVATE)
-                // Walking up to the stone takes a tick or two; the handler runs on the tick the player arrives.
-                repeat(10) { if (world.stoneId() != Lodestones.ACTIVE) client.stepTicks(1) }
-                if (world.stoneId() != Lodestones.ACTIVE) fail("Activate didn't swap the stone within 10 ticks")
-                val activated = world.tick
-                client.await("the active stone to reach the client") { client.locChanges().takeIf { active in it && dormant !in it } }
-
-                client.stepTicks(Lodestones.PREVIEW_TICKS - 1)
-                assertEquals(activated + Lodestones.PREVIEW_TICKS - 1, world.tick)
-                assertEquals(Lodestones.ACTIVE, world.stoneId(), "still active a tick before the preview ends")
-                client.await("the active stone to still show") { client.locChanges().takeIf { active in it } }
-
+                val animsBefore = client.animationTicks().size
+                val lumbridgeCentre = Coord(lumbridge.x + 1, lumbridge.z + 1)
+                val standing = client.position
+                client.chooseOption(1)
+                // The pick is the next tick's input, and the cast's first stage plays on that tick.
+                repeat(3) { if (client.animationTicks().size == animsBefore) client.stepTicks(1) }
+                assertEquals(1, client.animationTicks().size - animsBefore, "the first stage on the tick the pick is processed")
+                val started = client.ticksSeen
+                client.stepTicks(Lodestones.CAST_TICKS - 1)
+                assertEquals(standing, client.position, "still beside the Draynor stone a tick before the landing")
                 client.stepTicks(1)
-                assertEquals(Lodestones.DORMANT, world.stoneId(), "dormant again ${Lodestones.PREVIEW_TICKS} ticks after Activate")
-                client.await("the dormant stone to reach the client") { client.locChanges().takeIf { dormant in it && active !in it } }
-                assertEquals(1, world.locs.changed, "the placed stone is the only change left")
+                client.await("the landing") { client.position?.takeIf { it == lumbridgeCentre } }
+                assertEquals(started + Lodestones.CAST_TICKS, client.ticksSeen, "lands ${Lodestones.CAST_TICKS} ticks after the first stage")
+                val allStages = client.animationTicks().drop(animsBefore).take(5)
+                assertEquals(listOf(8, 7, 4, 3), allStages.zipWithNext { a, b -> b - a }, "the gaps between the stages, from $allStages")
+                client.commandReply("resume") { it.startsWith("Resumed after tick") }
+
+                // Standing on the stone, Teleport (op1 of the active look) opens the same menu.
+                client.locOp(lumbridge.id, lumbridge.x, lumbridge.z, Lodestones.TELEPORT)
+                assertEquals(menu, client.awaitDialogue("the menu from the active stone") { it is DialogueView.Menu })
+                client.chooseOption(2)
+                client.await("the landing at Draynor", timeoutMillis = 30_000) { client.position?.takeIf { it == Coord(draynor.x + 1, draynor.z + 1) } }
+
+                client.command("lodestone varrock")
+                client.awaitMessage("the locked stone") { it == "[lodestone.locked name=[lodestone.varrock]]" }
+                client.awaitCycles(2)
+                assertEquals(Coord(draynor.x + 1, draynor.z + 1), client.position)
+
+                client.tele(WILDERNESS)
+                val animsBeforeWilderness = client.animationTicks().size
+                val messagesBefore = client.messages().size
+                client.command("lodestone lumbridge")
+                // Both lines come in the same tick, so one wait looks for both.
+                client.await("the Wilderness refusal's two lines") {
+                    client.messages().drop(messagesBefore).map { it.text }.takeIf { "[home_teleport.wilderness]" in it && "[home_teleport.wilderness_2]" in it }
+                }
+                client.awaitCycles(Lodestones.CAST_TICKS + 2)
+                assertEquals(WILDERNESS, client.position)
+                assertEquals(animsBeforeWilderness, client.animationTicks().size, "no cast started in the Wilderness")
             }
         }
+    }
+
+    private companion object {
+        /** Level 23 Wilderness. */
+        val WILDERNESS = Coord(3100, 3700)
     }
 }
