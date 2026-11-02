@@ -191,6 +191,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   down, and the talk of Atlas, Litara, Checkal and Sigurd.
 - `barbarian-fighters.json`: Edgeville step 7 (with `::keys on` and `::god on`): a barbarian's line and his attack
   after it, Gunthor the brave fighting back, read off `::npcs`, and the goblins and unicorns in their places.
+- `barbarian-mine-fish.json`: Edgeville step 8 (with `::keys on`): tin and coal mined, a fish lured from the River
+  Barbarian's spot (1526) and cooked on the permanent fire, and the tower's ladder still climbing.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
@@ -226,6 +228,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   information clerk (Kudos, then a museum map), the first and second floors by their straight stairs and back, the
   Natural History floor and back, the cleaning area's gate through its guard and out, and the back entrance's guard and
   its double doors.
+- `varrock-museum-people.json`: Varrock step 9b (with `::keys on`): Historian Minas's information topic, Torrcs,
+  Art Critic Jacques and the teacher and pupil on the second floor, then on the Natural History floor Orlando Smith, a
+  schoolboy and a natural historian (his first talk ended, then his later greeting and menu).
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,

@@ -15,7 +15,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** Clans, step 10a: founding at the Clan Hub, the Clans tab's "Your Clan" page, and clan chat. */
+/** Clans, steps 10a and 10b: founding at the Clan Hub, the Clans tab's "Your Clan" page, clan chat, and guest clans. */
 class HeadlessClanTest {
     private fun server(dir: Path, data: Path = dir.resolve("data")) = TestServer(dir) { crcs, millis ->
         World(
@@ -274,6 +274,177 @@ class HeadlessClanTest {
                     alice.awaitTicks(3)
                     assertEquals(1, bob.messages().count { it.type == Clans.CHATTYPE_CLAN_CREATION_INVITATION })
                 }
+            }
+        }
+    }
+
+    /** alice and bob found [name] at the Hub (two founders, no hours), both in its channel afterwards. */
+    private fun found(server: TestServer, alice: HeadlessClient, bob: HeadlessClient, name: String) {
+        alice.commandReply("clanfounding 2 0") { it.startsWith("Founding") }
+        alice.toHub()
+        bob.toHub()
+        alice.yourClanTab()
+        alice.await("bob in view") { alice.otherPlayers().takeIf { it.isNotEmpty() } }
+        alice.playerOp(bob.index, 1)
+        bob.await("bob's invitation") { bob.messages().firstOrNull { it.type == Clans.CHATTYPE_CLAN_CREATION_INVITATION } }
+        bob.playerOp(alice.index, 1)
+        alice.saw("[clan.joined name=bob]")
+        alice.ifButton(Clans.CREATION, Clans.CREATION_CONFIRM, 1)
+        alice.awaitTicks(2)
+        alice.resumeString(name)
+        bob.saw("[clan.formed name=$name]")
+        bob.await("bob in the channel") { if (server.world.clans.inChannel(server.world.playerNamed("bob")!!)) Unit else null }
+    }
+
+    /** The Clans tab's "Another Clan" tab (707:4). */
+    private fun HeadlessClient.guestTab() = ifButton(Clans.SIDE_CHANNELS, 4, 1)
+
+    /** Find on the Another Clan page, then [name] typed in its prompt. */
+    private fun HeadlessClient.findClan(name: String) {
+        ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_SEARCH, 1)
+        await("Find's prompt") { clientScripts().lastOrNull()?.args?.firstOrNull()?.takeIf { it == "[clan.guest_prompt]" } }
+        resumeString(name)
+    }
+
+    @Test
+    fun `a guest finds another clan, joins its channel, hears its members but can't talk, and leaves it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        found(server, alice, bob, "Odins Gate")
+                        val carolP = server.world.playerNamed("carol")!!
+                        carol.guestTab()
+                        carol.await("the guest page") { carol.openInterfaces().takeIf { Clans.GUEST_SIDEPANEL in it } }
+
+                        // A name no clan has, and nothing loaded.
+                        carol.findClan("Nobody Here")
+                        carol.saw("[clan.guest_not_found name=Nobody Here]")
+                        assertNull(server.world.clans.guestClanOf(carolP))
+                        // Your own clan can't be your guest clan.
+                        bob.guestTab()
+                        bob.findClan("Odins Gate")
+                        bob.saw("[clan.guest_own_clan]")
+                        assertNull(server.world.clans.guestClanOf(server.world.playerNamed("bob")!!))
+
+                        // Any spelling of the name finds it: its settings come as the guest clan (-1), not carol's own.
+                        carol.findClan("odins  gate")
+                        val settings = carol.await("the guest clan's settings") { carol.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_LISTENED) }
+                        assertTrue(settings.hasAll("Odins Gate", "alice", "bob"), settings.toString())
+                        assertNull(carol.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.isNotEmpty() })
+                        assertEquals("Odins Gate", server.world.clans.guestClanOf(carolP)?.name)
+                        assertFalse(server.world.clans.inGuestChannel(carolP))
+                        // Out of its channel, guest chat is refused.
+                        carol.guestSay("knock knock")
+                        carol.saw("[clan.not_in_guest_channel]")
+
+                        // Chat joins its channel: carol is listed for the members, and the members for her, as the guest clan.
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                        val channel = carol.await("the guest channel") { carol.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.hasAll("alice", "bob", "carol") } }
+                        assertTrue(channel.hasAll("Odins Gate"), channel.toString())
+                        alice.await("carol in alice's channel") { alice.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.hasAll("carol") } }
+                        assertTrue(server.world.clans.inGuestChannel(carolP))
+
+                        // A member's line reaches her as the guest clan, and the members as their own clan.
+                        bob.clanSay("welcome")
+                        val heard = carol.await("bob's line") { carol.clanMessages().firstOrNull { it.text == "welcome" } }
+                        assertEquals("bob" to 255, heard.sender to heard.clanType)
+                        val own = alice.await("bob's line for alice") { alice.clanMessages().firstOrNull { it.text == "welcome" } }
+                        assertEquals(0, own.clanType)
+                        // Guests can't talk under the default talk rank; her own // goes nowhere as she has no clan.
+                        carol.guestSay("thanks")
+                        carol.saw("[clan.guest_cant_talk]")
+                        carol.clanSay("thanks")
+                        carol.saw("[clan.not_in_clan]")
+                        alice.awaitTicks(2)
+                        assertFalse(alice.clanMessages().any { it.text == "thanks" })
+
+                        // Leave: out of the channel, the clan still loaded; the members' list drops her.
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                        carol.await("carol out") { if (server.world.clans.inGuestChannel(carolP)) null else Unit }
+                        carol.await("the channel's leave update") { carol.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.isEmpty() } }
+                        alice.await("carol off alice's list") { alice.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { !it.hasAll("carol") } }
+                        assertEquals("Odins Gate", server.world.clans.guestClanOf(carolP)?.name)
+                        bob.clanSay("gone")
+                        alice.await("bob's second line") { alice.clanMessages().firstOrNull { it.text == "gone" } }
+                        carol.awaitTicks(2)
+                        assertFalse(carol.clanMessages().any { it.text == "gone" })
+
+                        // Back in, then Discard (Find's button while a clan is loaded): out of the channel and unloaded.
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                        carol.await("carol back in") { if (server.world.clans.inGuestChannel(carolP)) Unit else null }
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_SEARCH, 1)
+                        carol.await("carol discarded") { if (server.world.clans.guestClanOf(carolP) == null) Unit else null }
+                        carol.await("the guest clan's leave update") { carol.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.isEmpty() } }
+                        alice.await("carol off alice's list again") { alice.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { !it.hasAll("carol") } }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `logging out leaves the guest channel and forgets the guest clan`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    found(server, alice, bob, "Short Lived")
+                    server.login("carol").use { carol ->
+                        val carolP = server.world.playerNamed("carol")!!
+                        carol.guestTab()
+                        carol.findClan("Short Lived")
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                        alice.await("carol in alice's channel") { alice.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.hasAll("carol") } }
+                        carol.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                        carol.await("the logout") { carol.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+                        alice.await("carol gone from alice's list") { alice.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { !it.hasAll("carol") } }
+                        assertNull(server.world.clans.guestClanOf(carolP))
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `deleting a clan drops a guest who has it loaded, even out of its channel`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    found(server, alice, bob, "Short Lived")
+                    server.login("carol").use { carol ->
+                        val carolP = server.world.playerNamed("carol")!!
+                        carol.guestTab()
+                        carol.findClan("Short Lived")
+                        carol.await("the guest clan's settings") { carol.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.isNotEmpty() } }
+                        assertFalse(server.world.clans.inGuestChannel(carolP))
+                        assertEquals("Clan Short Lived deleted", bob.commandReply("clandisband") { it.startsWith("Clan ") })
+                        carol.await("the guest clan dropped") { carol.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.isEmpty() } }
+                        assertNull(server.world.clans.guestClanOf(carolP))
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the runner commands clanmake, guestclan and clandisband with a name`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                assertEquals("Clan Guest Gate made, for guests to find", alice.commandReply("clanmake Guest Gate") { it.startsWith("Clan") || it.startsWith("Can't") })
+                assertTrue(alice.commandReply("clanmake guest gate") { it.startsWith("Clan") || it.startsWith("Can't") }.startsWith("Can't"))
+                assertNull(server.world.clans.clanOf(server.world.playerNamed("alice")!!))
+                assertEquals("You have no guest clan", alice.commandReply("guestclan") { it.contains("guest") || it.startsWith("Guest") })
+                alice.guestTab()
+                alice.findClan("Guest Gate")
+                assertEquals("Guest of Guest Gate, not in its channel", alice.commandReply("guestclan") { it.startsWith("Guest") })
+                alice.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                assertEquals("Guest of Guest Gate, in its channel", alice.commandReply("guestclan") { it.startsWith("Guest") && it.endsWith(", in its channel") })
+                // Only a guest in the channel: they get the guest clan's list, with the guest rank.
+                val channel = alice.await("the guest channel") { alice.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.hasAll("alice") } }
+                assertTrue(channel.hasAll("Guest Gate"), channel.toString())
+                assertEquals("No clan called Nobody", alice.commandReply("clandisband Nobody") { it.startsWith("No clan") })
+                assertEquals("Clan Guest Gate deleted", alice.commandReply("clandisband guest gate") { it.startsWith("Clan") })
+                assertEquals("You have no guest clan", alice.commandReply("guestclan") { it.startsWith("You have") })
             }
         }
     }

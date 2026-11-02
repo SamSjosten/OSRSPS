@@ -82,6 +82,8 @@ class HeadlessBarbarianVillageTest {
                 add(ZoneLoc(BarbarianVillage.TOWER_LADDER_TOP, LocShape.CENTREPIECE_STRAIGHT, 2, 3096, 3433, 1))
                 add(ZoneLoc(BarbarianVillage.TOWER_LADDER, LocShape.CENTREPIECE_STRAIGHT, 2, 3097, 3433, 1))
                 add(ZoneLoc(BarbarianVillage.TOWER_LADDER_TOP, LocShape.CENTREPIECE_STRAIGHT, 2, 3097, 3433, 2))
+                // The same type away from the tower, as stands in 40-odd other places.
+                add(ZoneLoc(BarbarianVillage.TOWER_LADDER, LocShape.CENTREPIECE_STRAIGHT, 2, 3090, 3433, 0))
             },
             cycleMillis = millis,
         )
@@ -153,6 +155,19 @@ class HeadlessBarbarianVillageTest {
                 client.chat("hunding.kill_reply")
                 client.locOp(BarbarianVillage.TOWER_LADDER_TOP, 3097, 3433, 1)
                 client.await("back on the first floor") { client.position?.takeIf { it.level == 1 } }
+            }
+        }
+    }
+
+    @Test
+    fun `the tower's ladder type elsewhere does nothing`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3090, 3432, 0)
+                client.locOp(BarbarianVillage.TOWER_LADDER, 3090, 3433, 1)
+                client.await("nothing interesting") { client.messages().firstOrNull { it.text == "[game.nothing_interesting]" } }
+                kotlin.test.assertEquals(Coord(3090, 3432, 0), client.position)
             }
         }
     }

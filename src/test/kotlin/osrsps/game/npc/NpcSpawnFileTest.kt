@@ -310,7 +310,7 @@ class NpcSpawnFileTest {
     fun `Barbarian Village has Peksa, Tassie Slipcast, Hunding up the tower, Atlas, Checkal, Litara and Sigurd`() {
         val names = mapOf(
             2872 to "peksa", 1352 to "favour_tassie_slipcast", 3063 to "fai_barbarian_9", 10658 to "bim_atlas", 10645 to "bim_checkal_barb",
-            3363 to "sos_barb", 1324 to "canoeing_sigurd", 299 to "gunthor_the_brave", 2837 to "unicorn",
+            3363 to "sos_barb", 1324 to "canoeing_sigurd", 299 to "gunthor_the_brave", 2837 to "unicorn", 1526 to "0_48_53_freshfish",
         ) + (3055..3072).filter { it != 3063 }.associateWith { "fai_barbarian_$it" } + (3073..3076).associateWith { "fai_barbarian_goblin_armed_${it - 3072}" }
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("barbarian-village.json"), types, "barbarian-village.json")
@@ -325,6 +325,10 @@ class NpcSpawnFileTest {
         assertEquals(1, spawns.count { it.type.id == 299 })
         assertEquals(listOf(3073, 3073, 3074, 3075, 3076), spawns.map { it.type.id }.filter { it in 3073..3076 })
         assertEquals(2, spawns.count { it.type.id == 2837 })
+        // Step 8: two Lure/Bait spots on the river, each on a tile of its area.
+        val spots = spawns.filter { it.type.id == Fishing.BARBARIAN_SPOT }
+        assertEquals(2, spots.size)
+        assertTrue(spots.all { spot -> Fishing.AREAS.any { Tile(spot.x, spot.z) in it } && spot.wander == 0 })
     }
 
     @Test
@@ -415,10 +419,12 @@ class NpcSpawnFileTest {
         *listOf(473 to "house_ghost", 474 to "house_ghost2", 505 to "house_ghost3", 506 to "house_ghost4", 507 to "house_ghost5")
             .map { (id, name) -> NpcType(id, "Ghost", internalName = name) }.toTypedArray(),
         NpcType(3565, "Skeleton", internalName = "draynor_skeleton"), NpcType(2854, "Rat", internalName = "rat"),
+        NpcType(3562, "Professor Oddenstein", internalName = "professor_oddenstein"), NpcType(4409, "Witch", internalName = "anma_witch"),
+        NpcType(4407, "Ava", internalName = "anma_assistant"),
     )
 
     @Test
-    fun `Draynor Manor's inside has five ghosts upstairs, the closet's skeleton and two rats, all kept indoors`() {
+    fun `Draynor Manor's inside has five ghosts upstairs, the closet's skeleton, two rats and its three people, all kept indoors`() {
         val result = NpcSpawnFile.parse(file("draynor-manor.json"), manorTypes, "draynor-manor.json")
         assertEquals(emptyList(), result.unknown)
         val inside = result.spawns.filter { it.x in 3093..3127 && it.z in 3353..3375 }
@@ -426,7 +432,12 @@ class NpcSpawnFileTest {
         assertTrue(inside.filter { it.type.name == "Ghost" }.all { it.level == 1 })
         assertEquals(Tile(3110, 3367), inside.single { it.type.id == 3565 }.let { Tile(it.x, it.z) })
         assertEquals(2, inside.count { it.type.id == 2854 && it.level == 0 })
-        assertEquals(8, inside.size)
+        // Step 12b: Oddenstein on the top floor, the witch and Ava on the ground floor.
+        assertEquals(
+            mapOf(3562 to Triple(3110, 3367, 2), 4409 to Triple(3099, 3370, 0), 4407 to Triple(3093, 3357, 0)),
+            inside.filter { it.type.id in setOf(3562, 4409, 4407) }.associate { it.type.id to Triple(it.x, it.z, it.level) },
+        )
+        assertEquals(11, inside.size)
         assertTrue(inside.all { it.restrict == MoveRestrict.INDOORS && it.source.isNotBlank() })
     }
 
@@ -497,7 +508,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches', the inns', the townsfolk, the Fitzharmons and the museum's staff`() {
+    fun `Varrock has its 37 guards, five stray dogs, townsfolk, bankers, the Grand Exchange's, shop keepers, the palace's, churches', inns', the Fitzharmons and the museum's people`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -522,6 +533,17 @@ class NpcSpawnFileTest {
             276 to "pmod_town_crier_varrock",
             4984 to "dimintheis", 5445 to "johnathon_fitzharmon_2ops", 10425 to "daddyshome_daddy",
             5214 to "curator", 1909 to "vm_info_booth_lady", 1910 to "vm_museum_guard", 1912 to "vm_museum_guard3",
+            1901 to "vm_art_critic", 1902 to "vm_timeline_historian", 1913 to "vm_school_teacher_male_and_boy",
+            1914 to "vm_school_girl_brunette", 1919 to "vm_school_boy_brunnete", 1920 to "vm_school_boy_blonde",
+            1921 to "vm_school_girl_blonde", 1922 to "vm_teacher_girl_multi", 6001 to "vm_nathis_apprentice",
+            6002 to "vm_natural_historian_north", 6003 to "vm_natural_historian_south", 6004 to "vm_natural_historian_east",
+            6005 to "vm_natural_historian_west", 6019 to "vm_advent_01", 6020 to "vm_advent_02",
+            6007 to "vm_natural_history_display_case_leech", 6008 to "vm_natural_history_display_case_seaslugs",
+            6009 to "vm_natural_history_display_case_snail", 6010 to "vm_natural_history_display_case_monkey",
+            6011 to "vm_natural_history_display_case_lizard", 6012 to "vm_natural_history_display_case_penguin",
+            6013 to "vm_natural_history_display_case_camel", 6014 to "vm_natural_history_display_case_terror_bird",
+            6015 to "vm_natural_history_display_dragon", 6016 to "vm_natural_history_display_case_wyvern",
+            6017 to "vm_natural_history_display_case_battle_tortoise", 6018 to "vm_natural_history_display_case_mole",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -585,8 +607,18 @@ class NpcSpawnFileTest {
         assertTrue(museum.all { it.x in 3252..3267 && it.z in 3441..3456 })
         val museumStill = museum.filter { it.type.id != 5214 }
         assertTrue(museumStill.all { it.wander == 0 })
-        // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
-        assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - elsie - iffie).all { it.wander > 0 })
+        // Step 9b: the museum's other people; the Natural History floor (map square 27,77) has its four historians, two
+        // of each, Orlando Smith and the twelve animal displays, which stand still.
+        val basement = spawns.filter { it.x in 1728..1791 && it.z in 4928..4991 }
+        assertEquals(listOf(6002, 6002, 6003, 6003, 6004, 6004, 6005, 6005), basement.map { it.type.id }.filter { it in 6002..6005 }.sorted())
+        assertEquals(1, basement.count { it.type.id == 6001 })
+        val displays = basement.filter { it.type.id in 6007..6018 }
+        assertEquals((6007..6018).toList(), displays.map { it.type.id }.sorted())
+        assertTrue(displays.all { it.wander == 0 })
+        val upstairs = spawns.filter { it.type.id in listOf(1901, 1902, 6019) }
+        assertEquals(listOf(2, 1, 1), upstairs.sortedBy { it.type.id }.map { it.level })
+        // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch, but the museum's Natural History floor.
+        assertTrue((spawns - basement.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie).all { it.wander > 0 })
     }
 }

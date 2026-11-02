@@ -1,0 +1,389 @@
+{
+ "name": "Varrock step 9b (with ::keys on): Historian Minas, Torrcs, Art Critic Jacques and the teacher upstairs, then on the Natural History floor Orlando Smith, a schoolboy and a natural historian",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3262 3455 1",
+   "expectMessage": "Teleported to 3262, 3455, 1",
+   "comment": "the museum's first floor, by Historian Minas"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1902,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Historian Minas"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.hello"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[historian_minas.information]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.information_said"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.information_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.no_new_quests"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.no_matter"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.go_on"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 6019,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Torrcs: one of five talks at random"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_adventurer.talk_"
+  },
+  {
+   "step": "finishDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3257 3452 2",
+   "expectMessage": "Teleported to 3257, 3452, 2",
+   "comment": "the second floor, by Art Critic Jacques"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1901,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Art Critic Jacques"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[art_critic_jacques.hello"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[art_critic_jacques.greetings"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[art_critic_jacques.what]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[art_critic_jacques.what"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[art_critic_jacques.critique"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[art_critic_jacques.yes_i_see]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[art_critic_jacques.yes_i_see"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[art_critic_jacques.look_at"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[art_critic_jacques.so_it_is"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[art_critic_jacques.no_words"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1922,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the teacher and pupil on the second floor"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_teacher.upstairs_pupil"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_teacher.upstairs_teacher"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 1759 4956 0",
+   "expectMessage": "Teleported to 1759, 4956, 0",
+   "comment": "the Natural History floor, by Orlando Smith"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 6001,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Orlando Smith"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_7"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_8"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_9"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_10"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[orlando_smith.no_thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.no_thanks_said"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.fair_dinkum"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1920,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "a schoolboy: one line at random"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_schoolboy.random_"
+  },
+  {
+   "step": "finishDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 1760 4972 0",
+   "expectMessage": "Teleported to 1760, 4972, 0",
+   "comment": "the northern section, by a natural historian"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 6002,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the northern natural historian: his first talk the first time (a lecture follows); ended either way"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[natural_historian.",
+   "comment": "waits for the talk to open before finishing it"
+  },
+  {
+   "step": "finishDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 6002,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "now met: his later greeting and menu"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[natural_historian.hello_again"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[natural_historian.hoping"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[natural_historian.enough]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[natural_historian.enough"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[natural_historian.nonsense"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[natural_historian.science"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}

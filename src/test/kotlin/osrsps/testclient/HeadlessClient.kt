@@ -157,6 +157,7 @@ class HeadlessClient private constructor(
     private val packets = ArrayList<ServerPacket>()
     private val messages = ArrayList<GameMessage>()
     private val animTicks = ArrayList<Int>()
+    private val exactMoveTicks = ArrayList<Int>()
     private val npcSaid = ArrayList<NpcSaid>()
     private val npcHits = ArrayList<NpcHit>()
     private val playerOps = HashMap<Int, String?>()
@@ -190,6 +191,9 @@ class HeadlessClient private constructor(
      */
     fun animationTicks(): List<Int> = lock.withLock { animTicks.toList() }
 
+    /** The ticks whose PLAYER_INFO gave the local player an exact move (a forced movement); seen as [animationTicks] are. */
+    fun exactMoveTicks(): List<Int> = lock.withLock { exactMoveTicks.toList() }
+
     /** The friends list: each friend's world by name, 0 for offline. */
     fun friends(): Map<String, Int> = lock.withLock { LinkedHashMap(friendList) }
 
@@ -207,18 +211,28 @@ class HeadlessClient private constructor(
 
     /** The text strings (`gjstr`) in the last packet of [prot], or null if none came: enough to see a clan's name or members. */
     fun lastStrings(prot: GameServerProt): List<String>? = lock.withLock {
-        packets.lastOrNull { it.prot == prot }?.payload?.let { payload ->
-            val out = ArrayList<String>()
-            val run = StringBuilder()
-            for (byte in payload) {
-                val c = byte.toInt() and 0xFF
-                if (c == 0) {
-                    if (run.length >= 2) out += run.toString()
-                    run.clear()
-                } else if (c in 0x20..0x7E) run.append(c.toChar()) else run.clear()
-            }
-            out
+        packets.lastOrNull { it.prot == prot }?.payload?.let(::strings)
+    }
+
+    /**
+     * Like [lastStrings], for the last CLANSETTINGS_FULL or CLANCHANNEL_FULL of one clan type (its first byte: 0 the
+     * player's clan, -1 the guest clan). A leave update has no strings, so it reads as an empty list.
+     */
+    fun lastClanStrings(prot: GameServerProt, clanType: Int): List<String>? = lock.withLock {
+        packets.lastOrNull { it.prot == prot && it.payload.isNotEmpty() && it.payload[0].toInt() == clanType }?.payload?.let(::strings)
+    }
+
+    private fun strings(payload: ByteArray): List<String> {
+        val out = ArrayList<String>()
+        val run = StringBuilder()
+        for (byte in payload) {
+            val c = byte.toInt() and 0xFF
+            if (c == 0) {
+                if (run.length >= 2) out += run.toString()
+                run.clear()
+            } else if (c in 0x20..0x7E) run.append(c.toChar()) else run.clear()
         }
+        return out
     }
 
     /** The ignore list's names. */
@@ -539,6 +553,14 @@ class HeadlessClient private constructor(
         p1(0)
     }
 
+    /** A line typed with `///` in front, for the guest clan (MESSAGE_PUBLIC type 4, with no clan type after the text). */
+    fun guestSay(text: String) = send(GameClientProt.MESSAGE_PUBLIC) {
+        p1(4)
+        p1(0)
+        p1(0)
+        HUFFMAN.encode(this, text)
+    }
+
     /** A line typed in public chat (MESSAGE_PUBLIC type 0, plain yellow). */
     fun say(text: String) = send(GameClientProt.MESSAGE_PUBLIC) {
         p1(0)
@@ -799,6 +821,7 @@ class HeadlessClient private constructor(
                     if (move.index == index) moves += TickMove(ticks, move)
                 }
                 if (playerInfo.localAnimated) animTicks += ticks
+                if (playerInfo.localExactMoved) exactMoveTicks += ticks
             }
             GameServerProt.MESSAGE_GAME -> {
                 val type = buf.gSmart1or2()

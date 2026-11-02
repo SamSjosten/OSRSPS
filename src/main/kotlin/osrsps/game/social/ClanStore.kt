@@ -50,6 +50,12 @@ class ClanStore(private val file: Path? = null) {
     /** Whether a clan already has [name], compared as player names are (case, and spaces against underscores). */
     fun nameTaken(name: String): Boolean = clans.values.any { sameName(it.name, name) }
 
+    /** The clan named [name], compared as [nameTaken] does, or null. */
+    fun byName(name: String): Clan? = clans.values.firstOrNull { sameName(it.name, name) }
+
+    /** The clan with [id], or null once it is deleted. */
+    fun byId(id: Long): Clan? = clans[id]
+
     /** The day (days since 1970) [key] last founded a clan, or null. */
     fun foundedDay(key: String): Long? = founded[key]
 

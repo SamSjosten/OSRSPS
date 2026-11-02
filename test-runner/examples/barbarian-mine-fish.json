@@ -1,0 +1,33 @@
+{
+ "name": "Edgeville piece step 8: Barbarian Village's mine, rod fishing and permanent fire. Tin and coal mined, a trout or salmon lured from the River Barbarian's spot and cooked on the fire by the river, and the tower ladder still climbing (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel mining 99", "expectMessage": "Mining set to level 99"},
+  {"step": "command", "text": "::setlevel fishing 99", "expectMessage": "Fishing set to level 99"},
+  {"step": "command", "text": "::setlevel cooking 99", "expectMessage": "Cooking set to level 99", "comment": "so the trout doesn't burn"},
+  {"step": "command", "text": "::item rune_pickaxe", "expectMessage": "Added 1 x Rune pickaxe"},
+  {"step": "command", "text": "::tele 3080 3419 0", "expectMessage": "Teleported to 3080, 3419, 0", "comment": "in the mine, beside its tin and coal"},
+  {"step": "locOption", "locId": 11360, "option": "Mine", "x": 3081, "y": 3419, "comment": "tinrock1"},
+  {"step": "assertInventory", "item": "Tin ore", "count": 1, "timeoutMs": 30000},
+  {"step": "command", "text": "::tele 3082 3422 0", "expectMessage": "Teleported to 3082, 3422, 0", "comment": "north of the coal"},
+  {"step": "locOption", "locId": 11366, "option": "Mine", "x": 3082, "y": 3421, "comment": "coalrock1"},
+  {"step": "assertInventory", "item": "Coal", "count": 1, "timeoutMs": 30000},
+  {"step": "command", "text": "::item fly_fishing_rod", "expectMessage": "Added 1 x Fly fishing rod"},
+  {"step": "command", "text": "::item feather 20", "expectMessage": "Added 20 x Feather"},
+  {"step": "command", "text": "::tele 3108 3433 0", "expectMessage": "Teleported to 3108, 3433, 0", "comment": "the riverbank, between the two spots' areas"},
+  {"step": "npcOption", "npcId": 1526, "option": "Lure", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "fishing.cast_line"},
+  {"step": "assertMessage", "contains": "fishing.catch_", "timeoutMs": 90000, "comment": "a trout or a salmon"},
+  {"step": "command", "text": "::tele 3106 3431 0", "expectMessage": "Teleported to 3106, 3431, 0", "comment": "beside the permanent fire by the river"},
+  {"step": "locOption", "locId": 43475, "option": "Cook", "x": 3106, "y": 3432},
+  {"step": "assertMessage", "contains": "cooking.cooked_", "timeoutMs": 20000},
+  {"step": "command", "text": "::tele 3096 3432 0", "expectMessage": "Teleported to 3096, 3432, 0", "comment": "the lookout tower's ladder still climbs"},
+  {"step": "locOption", "locId": 17026, "option": "Climb-up", "x": 3096, "y": 3433},
+  {"step": "assertLocation", "x": 3096, "y": 3432, "plane": 1, "timeoutMs": 10000},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

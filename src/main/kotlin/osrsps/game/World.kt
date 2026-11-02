@@ -128,6 +128,7 @@ import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
 import osrsps.game.content.registerDraynorSewers
 import osrsps.game.content.registerDraynorManor
+import osrsps.game.content.registerDraynorManorPeople
 import osrsps.game.content.registerDraynorManorGrounds
 import osrsps.game.content.ManorHazards
 import osrsps.game.content.registerWiseOldMan
@@ -178,6 +179,8 @@ import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
 import osrsps.game.skill.Pickpocketing
+import osrsps.game.skill.Agility
+import osrsps.game.skill.AgilityData
 import osrsps.game.skill.Thieving
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
@@ -200,6 +203,8 @@ import osrsps.game.zone.ZoneKey
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
+import osrsps.map.Route
+import osrsps.map.RouteTarget
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -295,6 +300,8 @@ class World(
     settings: SettingsCatalog = SettingsCatalog.NONE,
     /** Each weapon's special attack cost, by obj id, from the cache's enum 906 ([SpecialAttacks]); tests that spec pass their own. */
     specialAttackCosts: Map<Int, Int> = emptyMap(),
+    /** The Agility obstacles ([Agility]); tests that cross their own pass them. */
+    agilityData: AgilityData = AgilityData.load(),
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -608,6 +615,7 @@ class World(
     val thieving = Thieving(this, collision)
     val manorHazards = ManorHazards(this)
     val pickpocketing = Pickpocketing(this)
+    val agility = Agility(this, agilityData)
 
     val fishing = Fishing(this)
 
@@ -719,6 +727,7 @@ class World(
         registerDraynorSewers(this)
         registerDraynorManorGrounds(this)
         registerDraynorManor(this)
+        registerDraynorManorPeople(this)
         registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
@@ -753,6 +762,7 @@ class World(
         mining.register()
         thieving.register()
         pickpocketing.register()
+        agility.register()
         fishing.register()
         cooking.register()
         smithing.register()
@@ -2019,6 +2029,7 @@ class World(
             return false
         }
         player.waypoints.clear()
+        player.forcedSteps.clear()
         player.interaction = null
         npcInteractions.leave(player)
         player.x = x
@@ -2030,8 +2041,14 @@ class World(
         return true
     }
 
+    /** A route from where [player] stands to the tile [x], [z], without walking it (an obstacle's start). */
+    fun findRoute(player: Player, x: Int, z: Int): Route = movement.find(player, RouteTarget.tile(x, z))
+
     /** Whether the cache has terrain for the map square holding [x], [z]. */
     fun hasMap(x: Int, z: Int): Boolean = collision[x, z, 0] != CollisionFlag.UNLOADED
+
+    /** Whether a player can stand on [x], [z] on [level]: loaded and not blocked by the floor or a loc. */
+    fun canStand(x: Int, z: Int, level: Int): Boolean = collision[x, z, level] and CollisionFlag.BLOCK_WALK == 0
 
     /** Public chat is game input like a click, so while paused it is held for the next tick. */
     fun onPublicChat(player: Player, message: MessagePublic) = act(player) {
@@ -2039,8 +2056,10 @@ class World(
             friendChats.talk(player, message.message)
         } else if (message.type == Clans.CHAT_TYPE_CLAN && message.clanType == Clans.CLAN_TYPE_CLAN) {
             clans.talk(player, message.message)
-        } else if (message.type == Clans.CHAT_TYPE_CLAN || message.type == Clans.CHAT_TYPE_GUEST) {
-            // Group ironman and guest clan chat aren't built.
+        } else if (message.type == Clans.CHAT_TYPE_GUEST) {
+            clans.talkGuest(player, message.message)
+        } else if (message.type == Clans.CHAT_TYPE_CLAN) {
+            // Group ironman clan chat isn't built.
             logger.info { "${player.username} sent clan chat type ${message.type} clan type ${message.clanType} (not built)" }
         } else {
             sayPublicChat(player, message)?.let { reports.heard(player, it) }
@@ -2054,7 +2073,11 @@ class World(
         }
     }
 
-    /** SEND_SNAPSHOT: a rule picked on the report screen. */
+    /** The Another Clan page's Find prompt; see [Clans.find]. */
+    private fun askGuestClanName(player: Player) {
+        scripts.start(player) { clans.find(player, stringDialog(textFor(player)[ClanLines.GUEST_PROMPT])) }
+    }
+
     /** MAP_BUILD_COMPLETE: the first one after a login or reconnect sends the friends and ignore lists again. */
     fun onMapBuildComplete(player: Player) = actWhileDead(player) {
         if (!player.listsAfterMapBuild) return@actWhileDead
@@ -2164,6 +2187,7 @@ class World(
             return@act
         }
         if (interfaceId == Clans.CREATION && clans.clickCreation(player, componentId, sub, ::askClanName)) return@act
+        if (interfaceId == Clans.GUEST_SIDEPANEL && clans.clickGuest(player, componentId, ::askGuestClanName)) return@act
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_CHAT) {
             clans.toggleChannel(player)
             return@act
@@ -2583,6 +2607,12 @@ class World(
             jingle = { player.session.queue(MidiJingle(it)) },
             hit = { extendedInfo.addHitMark(it.source, it.selfType, it.sourceType, it.otherType, it.value, it.delay) },
             headBar = { extendedInfo.addHeadBar(it.source, it.type, it.type, it.fill) },
+            // The client takes the tiles as deltas from the player's tile in this same update (RSProt's setExactMove).
+            exactMove = {
+                extendedInfo.setExactMove(
+                    it.fromX - player.x, it.fromZ - player.z, it.startCycles, it.toX - player.x, it.toZ - player.z, it.endCycles, it.angle,
+                )
+            },
         )
     }
 
