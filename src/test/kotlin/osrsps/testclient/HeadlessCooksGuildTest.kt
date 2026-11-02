@@ -10,7 +10,12 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.content.CooksGuild
+import osrsps.game.content.MillLaneMill
+import osrsps.game.content.MillLines
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -42,11 +47,17 @@ class HeadlessCooksGuildTest {
             type(CooksGuild.STAIRS_BOTTOM, "Staircase", "Climb-up"),
             type(CooksGuild.STAIRS_MIDDLE, "Staircase", "Climb", "Climb-up", "Climb-down"),
             type(CooksGuild.STAIRS_TOP, "Staircase", "Climb-down"),
+            type(CooksGuild.HOPPER, "Hopper", "Fill"),
+            type(CooksGuild.CONTROLS, "Hopper controls", "Operate"),
+            LocType(CooksGuild.FLOUR_BIN, collision = LocCollisionType(width = 1, length = 1), multiloc = true),
         ).associateBy { it.id },
     )
 
     private val hat = ObjType(CHEFS_HAT, "Chef's hat", wearpos1 = WearPos.HEAD)
     private val pie = ObjType(REDBERRY_PIE, "Redberry pie", cost = 60, tradeable = true)
+    private val grain = ObjType(MillLaneMill.GRAIN, "Grain")
+    private val pot = ObjType(MillLaneMill.POT, "Pot")
+    private val flour = ObjType(MillLaneMill.POT_OF_FLOUR, "Pot of flour")
     private val coins = ObjType(CooksGuild.COINS, "Coins", stackable = true)
     private val cape = ObjType(CooksGuild.COOKING_CAPE, "Cooking cape", wearpos1 = WearPos.CAPE)
     private val hood = ObjType(CooksGuild.COOKING_HOOD, "Cooking hood", wearpos1 = WearPos.HEAD)
@@ -67,7 +78,7 @@ class HeadlessCooksGuildTest {
             crcs,
             CollisionMap().apply { markLoaded(3143 shr 6, 3447 shr 6) },
             locTypes = locTypes,
-            objTypes = ObjTypes.of(hat, pie, coins, cape, hood),
+            objTypes = ObjTypes.of(hat, pie, coins, cape, hood, grain, pot, flour),
             npcTypes = NpcTypes.of(chef, romily),
             npcSpawns = listOf(
                 NpcSpawn(chef, 3141, 3445, wander = 0, source = "test"),
@@ -82,7 +93,14 @@ class HeadlessCooksGuildTest {
                 add(ZoneLoc(CooksGuild.STAIRS_TOP, LocShape.CENTREPIECE_STRAIGHT, 1, 3144, 3447, 2))
                 // The bottom stairs' type away from the guild.
                 add(ZoneLoc(CooksGuild.STAIRS_BOTTOM, LocShape.CENTREPIECE_STRAIGHT, 1, 3150, 3440, 0))
+                add(ZoneLoc(CooksGuild.HOPPER, LocShape.CENTREPIECE_STRAIGHT, 0, 3142, 3452, 2))
+                add(ZoneLoc(CooksGuild.CONTROLS, LocShape.CENTREPIECE_STRAIGHT, 0, 3141, 3453, 2))
+                add(ZoneLoc(CooksGuild.FLOUR_BIN, LocShape.CENTREPIECE_STRAIGHT, 1, 3140, 3449, 0))
             },
+            varTypes = VarTypes(
+                6_000,
+                mapOf(MillLaneMill.VARBIT_FLOUR to VarbitType(VARP_FLOUR, 0, 4), MillLaneMill.VARBIT_SHOW_FLOUR to VarbitType(VARP_SHOW_FLOUR, 0, 0)),
+            ),
             cycleMillis = millis,
         )
     }
@@ -101,6 +119,8 @@ class HeadlessCooksGuildTest {
         awaitDialogue("the menu") { it is DialogueView.Menu }
         chooseOption(option)
     }
+
+    private fun HeadlessClient.count(id: Int) = inventory(BACKPACK).count { it?.id == id }
 
     private fun HeadlessClient.seen(text: String) = await(text) { messages().firstOrNull { it.text == text } }
 
@@ -213,6 +233,32 @@ class HeadlessCooksGuildTest {
     }
 
     @Test
+    fun `grain through the top floor's hopper and controls into the ground floor's bin and a pot`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${MillLaneMill.GRAIN}")
+                client.command("item ${MillLaneMill.POT}")
+                client.await("the grain and pot") { if (client.count(MillLaneMill.GRAIN) == 1 && client.count(MillLaneMill.POT) == 1) Unit else null }
+                client.tele(3142, 3451, 2)
+                client.locOp(CooksGuild.HOPPER, 3142, 3452, MillLaneMill.FILL)
+                client.seen(DialogueText.NONE[MillLines.PUT_GRAIN])
+                client.await("the grain gone") { if (client.count(MillLaneMill.GRAIN) == 0) Unit else null }
+                client.tele(3141, 3452, 2)
+                client.locOp(CooksGuild.CONTROLS, 3141, 3453, MillLaneMill.OPERATE)
+                client.seen(DialogueText.NONE[MillLines.OPERATED])
+                client.await("a pot's worth in the bin") { if (client.varp(VARP_FLOUR) == 1) Unit else null }
+                client.tele(3141, 3448, 0)
+                client.locOp(CooksGuild.FLOUR_BIN, 3140, 3449, MillLaneMill.EMPTY)
+                client.seen(DialogueText.NONE[MillLines.LAST_POT])
+                client.await("a pot of flour") {
+                    if (client.count(MillLaneMill.POT_OF_FLOUR) == 1 && client.count(MillLaneMill.POT) == 0) Unit else null
+                }
+            }
+        }
+    }
+
+    @Test
     fun `Romily Weaklax's Trade opens the Pie Shop`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
@@ -231,5 +277,7 @@ class HeadlessCooksGuildTest {
         const val REDBERRY_PIE = 2325
         const val SHOP_INV = 352
         const val BACKPACK = 93
+        const val VARP_FLOUR = 203
+        const val VARP_SHOW_FLOUR = 695
     }
 }
