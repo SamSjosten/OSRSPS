@@ -8,6 +8,9 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.combat.NpcCombat
+import osrsps.game.SeqNames
+import osrsps.game.NpcStats
 import osrsps.game.content.BarbarianVillage
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -45,6 +48,10 @@ class HeadlessBarbarianVillageTest {
     private val helm = ObjType(HELM, "Bronze med helm", cost = 24, tradeable = true)
     private val peksa = NpcType(BarbarianVillage.PEKSA, "Peksa", ops = listOf("Talk-to", null, "Trade", null, null), internalName = "peksa")
     private val hunding = NpcType(BarbarianVillage.HUNDING, "Hunding", ops = listOf("Talk-to", null, null, null, null), internalName = "fai_barbarian_9")
+    private val fafner = NpcType(
+        FAFNER, "Barbarian", ops = listOf("Talk-to", "Attack", null, null, null), internalName = "fai_barbarian_2",
+        stats = NpcStats(hitpoints = 18, attack = 8, strength = 7, defence = 3),
+    )
 
     private val shops = ShopTypes(
         listOf(
@@ -61,8 +68,12 @@ class HeadlessBarbarianVillageTest {
             CollisionMap().apply { markLoaded(3078 shr 6, 3430 shr 6) },
             locTypes = locTypes,
             objTypes = ObjTypes.of(helm),
-            npcTypes = NpcTypes.of(peksa, hunding),
-            npcSpawns = listOf(NpcSpawn(peksa, 3076, 3429, wander = 0, source = "test"), NpcSpawn(hunding, 3096, 3428, 2, wander = 0, source = "test")),
+            npcTypes = NpcTypes.of(peksa, hunding, fafner),
+            npcSpawns = listOf(
+                NpcSpawn(peksa, 3076, 3429, wander = 0, source = "test"), NpcSpawn(hunding, 3096, 3428, 2, wander = 0, source = "test"),
+                NpcSpawn(fafner, 3082, 3420, wander = 0, source = "test"),
+            ),
+            npcCombat = NpcCombat.load(NpcTypes.of(peksa, hunding, fafner), SeqNames.NONE),
             shopTypes = shops,
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(BarbarianVillage.LONGHALL_DOOR_LEFT, LocShape.WALL_STRAIGHT, 1, 3078, 3435, 0))
@@ -146,7 +157,26 @@ class HeadlessBarbarianVillageTest {
         }
     }
 
+    @Test
+    fun `a barbarian attacks once his line is over`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3082, 3418, 0)
+                client.talkTo(FAFNER)
+                client.awaitDialogue("his line") { it is DialogueView.Chat && it.text.startsWith("[barbarian.random_") }
+                val npc = server.world.npcs.all.single { it.spawn.type.id == FAFNER }
+                val player = server.world.onlinePlayers.single()
+                // Not while he is talking.
+                kotlin.test.assertNotSame(player, npc.target)
+                client.continueDialogue()
+                client.await("Fafner attacking") { if (npc.target === player) Unit else null }
+            }
+        }
+    }
+
     private companion object {
+        const val FAFNER = 3056
         const val HELM = 1139
         const val SHOP_INV = 10
     }

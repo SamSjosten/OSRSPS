@@ -1,0 +1,25 @@
+{
+  "name": "Edgeville piece step 7: Barbarian Village's fighters. A barbarian's random line, then his attack, read off ::npcs; Gunthor the brave fighting back in the longhall; and the goblins and unicorns in their places (::keys on, ::god on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now", "comment": "their hits do nothing; ::god off at the end"},
+    {"step": "command", "text": "::tele 3080 3411 0", "expectMessage": "Teleported to 3080, 3411, 0", "comment": "by Fafner's spawn, south of the mine"},
+    {"step": "npcOption", "npc": "Barbarian", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "contains": "[barbarian.random_", "timeoutMs": 15000},
+    {"step": "continueDialogue"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "command", "text": "::npcs 4", "expectMessage": "fighting test", "comment": "the barbarian who talked now fights us"},
+    {"step": "command", "text": "::tele 3080 3443 0", "expectMessage": "Teleported to 3080, 3443, 0", "comment": "the longhall, beside Gunthor"},
+    {"step": "npcOption", "npc": "Gunthor the brave", "option": "Attack", "timeoutMs": 20000, "comment": "his talk is one of six of one or three boxes, so the script attacks instead; BarbarianVillageTest does every talk"},
+    {"step": "waitTicks", "ticks": 8},
+    {"step": "command", "text": "::npcs 3", "expectMessage": "fighting test", "comment": "Gunthor fights us"},
+    {"step": "command", "text": "::tele 3122 3428 0", "expectMessage": "Teleported to 3122, 3428, 0", "comment": "the goblins east of the village"},
+    {"step": "command", "text": "::npcs 8", "expectMessage": "Goblin"},
+    {"step": "command", "text": "::tele 3087 3452 0", "expectMessage": "Teleported to 3087, 3452, 0", "comment": "the unicorns north of the village"},
+    {"step": "command", "text": "::npcs 8", "expectMessage": "Unicorn"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+    {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+  ]
+}
