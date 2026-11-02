@@ -36,10 +36,17 @@ private val logger = KotlinLogging.logger {}
  * (MESSAGE_PUBLIC type 3, clan type 0) go to everyone in the channel as MESSAGE_CLANCHANNEL. The panel's Chat/Leave
  * button joins and leaves the channel.
  *
+ * Another clan, as a guest (step 10b): the Clans tab's "Another Clan" page (clans_guest_sidepanel, 702) has Find,
+ * which asks for a clan's name and loads that clan's settings as the listened clan (clan type -1, clan_guest_affinitystatus
+ * 3), and then Discard, which drops it. Its Chat/Leave button joins and leaves that clan's channel as a guest (rank -1),
+ * where guests read the channel and, when the clan lets their rank talk, write to it with `///` or `/g` (MESSAGE_PUBLIC
+ * type 4). Members see guests in their channel's list.
+ *
  * Guessed: the Hub's edges, the founders' rank after founding (the lowest member rank, 0; the founder is owner, 126),
- * the creation time and join day encodings, and every game message (keys in [ClanLines], words from the Wiki where it
- * has them). Not built yet: inviting after founding, leaving the clan, ranks and permissions, settings, kicks and
- * bans, guest chat (steps 10b and 11).
+ * the creation time and join day encodings, that finding a clan doesn't join its channel (the panel's text says "You
+ * are not currently chatting in this clan's channel" with a Chat button), guests not talking under the default talk
+ * rank, and every game message (keys in [ClanLines], words from the Wiki where it has them). Not built yet: applying
+ * and accepting applicants, inviting after founding, leaving the clan, ranks and permissions, settings, kicks and bans.
  */
 class Clans(
     private val store: ClanStore,
@@ -84,11 +91,20 @@ class Clans(
      */
     private val shownName = HashMap<String, String>()
 
+    /** The clan each online player has loaded as a guest (Find on the Another Clan page), by save key: its id. */
+    private val listening = HashMap<String, Long>()
+
     private var updateNum = 0L
 
     fun clanOf(player: Player): ClanStore.Clan? = store.clanOf(player.saveKey)
 
     fun inChannel(player: Player): Boolean = clanOf(player)?.let { channels[it.id]?.contains(player) } == true
+
+    /** The clan [player] has loaded as a guest, or null. */
+    fun guestClanOf(player: Player): ClanStore.Clan? = listening[player.saveKey]?.let { store.byId(it) }
+
+    /** Whether [player] is in the channel of the clan they have loaded as a guest. */
+    fun inGuestChannel(player: Player): Boolean = guestClanOf(player)?.let { channels[it.id]?.contains(player) } == true
 
     /** The group [player] leads or joined, or null. */
     fun formingOf(player: Player): Forming? = forming[player.saveKey] ?: forming.values.firstOrNull { player in it.founders }
@@ -125,6 +141,17 @@ class Clans(
             val members = channels[clan.id]
             send(player, if (members != null && player in members) channelFull(clan, members) else ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
         }
+        val guest = guestClanOf(player)
+        if (guest == null) {
+            listening.remove(player.saveKey)
+            send(player, ClanSettingsFull(CLAN_TYPE_LISTENED, ClanSettingsFull.LeaveUpdate))
+            send(player, ClanChannelFull(CLAN_TYPE_LISTENED, ClanChannelFull.LeaveUpdate))
+        } else {
+            setVarbit(player, VARBIT_GUEST_AFFINITY, AFFINITY_CONNECTED)
+            send(player, settingsFull(guest, CLAN_TYPE_LISTENED))
+            val members = channels[guest.id]
+            send(player, if (members != null && player in members) channelFull(guest, members, CLAN_TYPE_LISTENED) else ClanChannelFull(CLAN_TYPE_LISTENED, ClanChannelFull.LeaveUpdate))
+        }
         // The old connection may have missed page changes and name updates: the name the client keeps is unknown now,
         // so the creation panel's next showForming sends the group's name, or clears it; and the page opens again.
         shownName[player.saveKey] = UNKNOWN_NAME
@@ -138,6 +165,8 @@ class Clans(
         leaveForming(player)
         dropInvitations(player)
         clanOf(player)?.let { leaveChannel(player, it, tell = false) }
+        guestClanOf(player)?.let { leaveChannel(player, it, tell = false) }
+        listening.remove(player.saveKey)
         tabs.remove(player.saveKey)
         inHub.remove(player.saveKey)
         shownName.remove(player.saveKey)
@@ -169,6 +198,11 @@ class Clans(
     fun disband(clan: ClanStore.Clan, online: (String) -> Player?) {
         store.delete(clan)
         channels.remove(clan.id)
+        // Its guests lose it too, as a Discard would, whether or not they were in its channel.
+        for (key in listening.filterValues { it == clan.id }.keys.toList()) {
+            listening.remove(key)
+            online(key)?.let(::dropGuest)
+        }
         for (member in clan.members) {
             val player = online(member.key) ?: continue
             setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
@@ -188,7 +222,91 @@ class Clans(
         when (tab) {
             TAB_CHAT_CHANNEL -> openChatChannel(player)
             TAB_YOUR_CLAN -> openYourClan(player)
-            TAB_OTHER_CLAN -> openContents(player, GUEST_SIDEPANEL)
+            TAB_OTHER_CLAN -> openGuestPanel(player)
+        }
+    }
+
+    private fun openGuestPanel(player: Player) {
+        openContents(player, GUEST_SIDEPANEL)
+        for (component in intArrayOf(GUEST_REFRESH, GUEST_CHAT, GUEST_INFO, GUEST_SEARCH)) {
+            setEvents(player, GUEST_SIDEPANEL, component, -1, -1, OP1, 0)
+        }
+    }
+
+    /**
+     * A click on the Another Clan page. Returns whether it was one. [askName] runs Find's name prompt, then [find].
+     * Settings (the clan's info as a guest, where Apply is) isn't built.
+     */
+    fun clickGuest(player: Player, component: Int, askName: (Player) -> Unit): Boolean {
+        when (component) {
+            GUEST_SEARCH -> if (guestClanOf(player) != null) discard(player) else askName(player)
+            GUEST_CHAT -> toggleGuestChannel(player)
+            GUEST_REFRESH -> guestClanOf(player)?.let { refreshGuest(player, it) }
+            GUEST_INFO -> {}
+            else -> return false
+        }
+        return true
+    }
+
+    /**
+     * `::clanmake`: a clan for test scripts to find as guests, whose only member is an owner no account can be (a name
+     * with a `~`), so the account testing isn't in it. Null if the name is taken or not allowed.
+     */
+    fun makeTestClan(name: String): ClanStore.Clan? {
+        if (!validName(name) || store.nameTaken(name)) return null
+        val owner = ClanStore.Member(TEST_OWNER_KEY, TEST_OWNER_KEY, RANK_OWNER, runeDay())
+        return store.create(name, now().toEpochMilli(), now().atOffset(ZoneOffset.UTC).toLocalDate().toEpochDay(), listOf(owner))
+    }
+
+    /** The clan called [name], any spelling, or null. */
+    fun clanNamed(name: String): ClanStore.Clan? = store.byName(name)
+
+    /** Find's typed name: loads that clan as [player]'s guest clan. */
+    fun find(player: Player, typed: String) {
+        val name = typed.trim()
+        if (name.isEmpty()) return
+        val clan = store.byName(name)
+        if (clan == null) {
+            tell(player, ClanLines.GUEST_NOT_FOUND, name)
+            return
+        }
+        if (clan.member(player.saveKey) != null) {
+            tell(player, ClanLines.GUEST_OWN_CLAN)
+            return
+        }
+        guestClanOf(player)?.let { leaveChannel(player, it, tell = true, clanType = CLAN_TYPE_LISTENED) }
+        listening[player.saveKey] = clan.id
+        setVarbit(player, VARBIT_GUEST_AFFINITY, AFFINITY_CONNECTED)
+        send(player, settingsFull(clan, CLAN_TYPE_LISTENED))
+    }
+
+    /** Discard: drops the guest clan, and leaves its channel. */
+    private fun discard(player: Player) {
+        val clan = guestClanOf(player)
+        if (clan != null) leaveChannel(player, clan, tell = false)
+        listening.remove(player.saveKey)
+        dropGuest(player)
+    }
+
+    private fun dropGuest(player: Player) {
+        setVarbit(player, VARBIT_GUEST_AFFINITY, AFFINITY_NONE)
+        send(player, ClanChannelFull(CLAN_TYPE_LISTENED, ClanChannelFull.LeaveUpdate))
+        send(player, ClanSettingsFull(CLAN_TYPE_LISTENED, ClanSettingsFull.LeaveUpdate))
+    }
+
+    private fun refreshGuest(player: Player, clan: ClanStore.Clan) {
+        send(player, settingsFull(clan, CLAN_TYPE_LISTENED))
+        val members = channels[clan.id]
+        if (members != null && player in members) send(player, channelFull(clan, members, CLAN_TYPE_LISTENED))
+    }
+
+    /** The Another Clan page's Chat/Leave button: joins or leaves the guest clan's channel. */
+    private fun toggleGuestChannel(player: Player) {
+        val clan = guestClanOf(player) ?: return
+        if (channels[clan.id]?.contains(player) == true) {
+            leaveChannel(player, clan, tell = true, clanType = CLAN_TYPE_LISTENED)
+        } else {
+            joinChannel(player, clan)
         }
     }
 
@@ -420,12 +538,37 @@ class Clans(
         if (line.isBlank()) return
         val rank = clan.member(player.saveKey)?.rank ?: return
         if (rank < TALK_RANK) return
-        val message = MessageClanChannel(CLAN_TYPE_CLAN, player.username, FriendLists.WORLD, nextCounter(), FriendLists.RANK, line)
+        sayInChannel(player, clan, members, line)
+    }
+
+    /** A line typed with `///` or `/g`: to the channel of the clan [player] is a guest of, if guests may talk. */
+    fun talkGuest(player: Player, text: String) {
+        val clan = guestClanOf(player)
+        val members = clan?.let { channels[it.id] }
+        if (clan == null || members == null || player !in members) {
+            tell(player, ClanLines.NOT_IN_GUEST_CHANNEL)
+            return
+        }
+        val line = text.take(MAX_LENGTH)
+        if (line.isBlank()) return
+        if (RANK_GUEST < TALK_RANK) {
+            tell(player, ClanLines.GUEST_CANT_TALK)
+            return
+        }
+        sayInChannel(player, clan, members, line)
+    }
+
+    /** Sends [line] from [player] to everyone in [clan]'s channel: members as their clan, guests as their guest clan. */
+    private fun sayInChannel(player: Player, clan: ClanStore.Clan, members: List<Player>, line: String) {
+        val counter = nextCounter()
         for (member in members) {
             if (ignores.ignores(member, player)) continue
-            send(member, message)
+            send(member, MessageClanChannel(typeFor(member, clan), player.username, FriendLists.WORLD, counter, FriendLists.RANK, line))
         }
     }
+
+    /** The clan type [player] has [clan] as: their own clan, or their guest clan. */
+    private fun typeFor(player: Player, clan: ClanStore.Clan): Int = if (clan.member(player.saveKey) != null) CLAN_TYPE_CLAN else CLAN_TYPE_LISTENED
 
     /** The "Your Clan" page's Chat/Leave button: joins or leaves the clan's channel. */
     fun toggleChannel(player: Player) {
@@ -439,34 +582,40 @@ class Clans(
         broadcastChannel(clan)
     }
 
-    private fun leaveChannel(player: Player, clan: ClanStore.Clan, tell: Boolean) {
+    private fun leaveChannel(player: Player, clan: ClanStore.Clan, tell: Boolean, clanType: Int = CLAN_TYPE_CLAN) {
         val members = channels[clan.id] ?: return
         if (!members.remove(player)) return
         if (members.isEmpty()) channels.remove(clan.id)
-        if (tell) send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
+        if (tell) send(player, ClanChannelFull(clanType, ClanChannelFull.LeaveUpdate))
         broadcastChannel(clan)
     }
 
-    /** Everyone in [clan]'s channel gets it whole: simpler than deltas, and channels are small here. */
+    /**
+     * Everyone in [clan]'s channel gets it whole: simpler than deltas. One message per clan type, members' and guests',
+     * shared by everyone with that type, as the friends chat's full update is.
+     */
     private fun broadcastChannel(clan: ClanStore.Clan) {
         val members = channels[clan.id] ?: return
-        val full = channelFull(clan, members)
-        for (member in members) send(member, full)
+        val byType = HashMap<Int, ClanChannelFull>(2)
+        for (member in members) {
+            val type = typeFor(member, clan)
+            send(member, byType.getOrPut(type) { channelFull(clan, members, type) })
+        }
     }
 
-    private fun channelFull(clan: ClanStore.Clan, online: List<Player>): ClanChannelFull {
+    private fun channelFull(clan: ClanStore.Clan, online: List<Player>, clanType: Int = CLAN_TYPE_CLAN): ClanChannelFull {
         val members = online.map { ClanChannelFull.ClanMember(it.username, clan.member(it.saveKey)?.rank ?: RANK_GUEST, FriendLists.WORLD) }
         return ClanChannelFull(
-            CLAN_TYPE_CLAN,
+            clanType,
             ClanChannelFull.JoinUpdate(clan.id, ++updateNum, clan.name, false, KICK_RANK, TALK_RANK, members, ClanChannelFull.DEFAULT_OLDSCHOOL_VERSION, false),
         )
     }
 
-    private fun settingsFull(clan: ClanStore.Clan): ClanSettingsFull {
+    private fun settingsFull(clan: ClanStore.Clan, clanType: Int = CLAN_TYPE_CLAN): ClanSettingsFull {
         val members = clan.members.map { ClanSettingsFull.AffinedClanMember(it.name, it.rank, 0, it.joinedDay, false) }
         val created = ChronoUnit.MINUTES.between(RUNE_EPOCH.atStartOfDay().toInstant(ZoneOffset.UTC), Instant.ofEpochMilli(clan.createdMillis)).toInt()
         return ClanSettingsFull(
-            CLAN_TYPE_CLAN,
+            clanType,
             ClanSettingsFull.JoinUpdate(
                 (++updateNum).toInt(), created, clan.name, true, TALK_RANK, KICK_RANK, RANK_OWNER, RANK_OWNER,
                 members, emptyList(), emptyList(), false, true,
@@ -529,6 +678,10 @@ class Clans(
 
         /** clans_guest_sidepanel: another clan, as a guest. */
         const val GUEST_SIDEPANEL = 702
+        const val GUEST_REFRESH = 2
+        const val GUEST_CHAT = 8
+        const val GUEST_INFO = 9
+        const val GUEST_SEARCH = 10
 
         /** clans_creation_sidepanel. */
         const val CREATION = 705
@@ -561,6 +714,12 @@ class Clans(
 
         const val CHATTYPE_CLAN_CREATION_INVITATION = 109
         const val CLAN_TYPE_CLAN = 0
+
+        /** The clan type of the clan a player listens to as a guest (the client's "listened" clan). */
+        const val CLAN_TYPE_LISTENED = -1
+
+        /** [makeTestClan]'s owner: `~` is in no account's name. */
+        const val TEST_OWNER_KEY = "~test owner"
 
         /** MESSAGE_PUBLIC's type for a clan line; its clan type 0 is the player's own clan, 1 a group ironman's. */
         const val CHAT_TYPE_CLAN = 3
@@ -633,4 +792,9 @@ object ClanLines : Lines("clan", "Clans") {
     val FORMED = line("formed", "the clan was founded (every founder)", "name")
     val NOT_IN_CLAN = line("not_in_clan", "clan chat typed by someone in no clan")
     val NOT_IN_CHANNEL = line("not_in_channel", "clan chat typed while out of the clan's channel")
+    val GUEST_PROMPT = line("guest_prompt", "Find's prompt on the Another Clan page")
+    val GUEST_NOT_FOUND = line("guest_not_found", "Find with a name no clan has", "name")
+    val GUEST_OWN_CLAN = line("guest_own_clan", "Find with the name of your own clan")
+    val NOT_IN_GUEST_CHANNEL = line("not_in_guest_channel", "guest clan chat typed while out of a guest clan's channel")
+    val GUEST_CANT_TALK = line("guest_cant_talk", "guest clan chat in a clan whose talk rank is above guests")
 }
