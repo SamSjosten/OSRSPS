@@ -343,6 +343,9 @@ class Player(
     /** What they carry in grams ([ItemWeights.total]), worked out at the start of their movement each tick. */
     var weightGrams: Int = 0
 
+    /** How much faster their energy comes back for the graceful pieces they wear ([Graceful]), worked out with [weightGrams]. */
+    var restoreBonusPercent: Int = 0
+
     /** The prayers on at the start of this tick, which are the ones that count this tick; see [osrsps.game.combat.Prayers]. */
     var prayersInEffect: Int = 0
 

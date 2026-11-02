@@ -5,7 +5,7 @@ package osrsps.game
  * item: two of the same item share them. Guessed: live keeps some charges on the item and some on the player, and the
  * Wiki doesn't say which for each. Saved with the account ([PlayerSave]). A little other state the client has no var
  * for is kept here the same way, by its own name: the grain in a windmill's hopper ([osrsps.game.content.MillLaneMill]),
- * and Agility's lap counts and laps in progress ([osrsps.game.skill.Agility]).
+ * and Agility's lap counts, laps in progress and the minute of the last mark of grace ([osrsps.game.skill.Agility]).
  */
 class Charges {
     private val counts = LinkedHashMap<String, Int>()

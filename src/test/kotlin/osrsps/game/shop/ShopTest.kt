@@ -61,6 +61,8 @@ class ShopTest {
         // The Champions' Guild's shops.
         1093 to 64000, 1079 to 64000, 1432 to 14400, 1113 to 50000, 1303 to 32000, 1289 to 20800, 1099 to 3900, 1065 to 2500, 1169 to 200,
         1021 to 32, 1165 to 1056, 1123 to 16640,
+        // Grace's Graceful Clothing: the values are the prices in marks of grace.
+        11850 to 35, 11854 to 55, 11856 to 60, 11858 to 30, 11860 to 40, 11852 to 40, 12641 to 10,
     )
 
     /**
@@ -69,6 +71,8 @@ class ShopTest {
      */
     private val untradeable = setOf(
         4613, 11705, 11706, 11707, 11708, 11709, 12727, 13188, 13328, 13660, 13679, 13681, 13215, 13216, 13217, 13218, 21314, 22364,
+        // Grace's graceful pieces and amylase pack.
+        11850, 11854, 11856, 11858, 11860, 11852, 12641,
     )
 
     private val shopFile = ShopTest::class.java.getResource(ShopTypes.RESOURCE)!!.readText()
@@ -116,6 +120,7 @@ class ShopTest {
             NpcType(2200, "Richard", internalName = "wilderness_capeseller_6"),
             NpcType(2872, "Peksa", internalName = "peksa"),
             NpcType(6533, "Romily Weaklax", internalName = "merchant_pies"),
+            NpcType(5919, "Grace", internalName = "rooftops_grace"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -175,6 +180,8 @@ class ShopTest {
         // The Champions' Guild's, read 2026-11-02.
         "scavvos_rune_store" to listOf(64000, 64000, 14400, 50000, 32000, 20800, 3900, 2500, 200),
         "valaines_shop_of_champions" to listOf(41, 1372, 2496, 21632),
+        // Grace's Graceful Clothing, read 2026-11-02: in marks of grace.
+        "graces_graceful_clothing" to listOf(35, 55, 60, 30, 40, 40, 10),
     )
 
     @Test
@@ -196,6 +203,12 @@ class ShopTest {
         assertEquals(shops["pie_shop"], shops.ofNpc(6533))
         assertEquals(shops["scavvos_rune_store"], shops.ofNpc(2871))
         assertEquals(shops["valaines_shop_of_champions"], shops.ofNpc(2870))
+        // Grace is paid in marks of grace and buys back at 80% (the Wiki's 28 for the hood, 8 for the amylase pack).
+        val grace = shops["graces_graceful_clothing"]!!
+        assertEquals(shops.ofNpc(5919), grace)
+        assertEquals(11849, grace.currency)
+        assertEquals(listOf(28, 44, 48, 24, 32, 32, 8), grace.stock.map { Shop(grace).sellPrice(it.type.id, it.type.cost, it.count) })
+        assertTrue(shops.all.filter { it.key != grace.key }.all { it.currency == ShopScreen.COINS })
         // The Al Kharid General Store won't buy silk (the Wiki's page); no other shop refuses anything.
         assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
@@ -222,7 +235,8 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(31, shops.warnings.size)
+        // One warning per shop in the file, so a new shop never needs this number changed.
+        assertEquals(Regex("\"key\": ").findAll(shopFile).count(), shops.warnings.size)
     }
 
     @Test

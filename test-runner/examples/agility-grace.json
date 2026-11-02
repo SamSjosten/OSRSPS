@@ -1,0 +1,172 @@
+{
+ "name": "Agility step 3: down the Toad and Chicken's trapdoor to the Rogues' Den, Grace's shop paid in marks of grace (Value, Buy and Sell back at 80%), and back up the passageway (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item 11849 100",
+   "expectMessage": "Added 100 x Mark of grace"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2907 3537 0",
+   "expectMessage": "Teleported to 2907, 3537, 0",
+   "comment": "behind the bar of the Toad and Chicken in Burthorpe, east of the trapdoor"
+  },
+  {
+   "step": "locOption",
+   "loc": "Trapdoor",
+   "option": "Enter",
+   "x": 2905,
+   "y": 3537
+  },
+  {
+   "step": "assertLocation",
+   "x": 3061,
+   "y": 4985,
+   "plane": 1,
+   "timeoutMs": 15000,
+   "comment": "the den's north-east alcove; guessed, so a miss here may be the tile, not the trapdoor"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3061,
+   "y": 4984
+  },
+  {
+   "step": "assertLocation",
+   "x": 3061,
+   "y": 4983,
+   "plane": 1,
+   "timeoutMs": 15000,
+   "comment": "through the door into the den's main room"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3050 4963 1",
+   "expectMessage": "Teleported to 3050, 4963, 1",
+   "comment": "beside Grace, by the fire in the south room"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Grace",
+   "option": "Trade"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 1,
+   "comment": "Value on the graceful hood, the first item"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[shop.costs_in item=Graceful hood price=35 currency=Mark of grace]"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 for 35 marks"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Graceful hood",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Mark of grace",
+   "count": 65
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 1,
+   "comment": "Value on the hood in the backpack (slot 1, after the marks)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[shop.buys_for_in item=Graceful hood price=28 currency=Mark of grace]"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1: 80% of 35"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Graceful hood",
+   "count": 0
+  },
+  {
+   "step": "assertInventory",
+   "item": "Mark of grace",
+   "count": 93
+  },
+  {
+   "step": "command",
+   "text": "::tele 3061 4985 1",
+   "expectMessage": "Teleported to 3061, 4985, 1",
+   "comment": "back in the alcove, below the passageway"
+  },
+  {
+   "step": "locOption",
+   "loc": "Passageway",
+   "option": "Enter",
+   "x": 3061,
+   "y": 4986
+  },
+  {
+   "step": "assertLocation",
+   "x": 2906,
+   "y": 3537,
+   "plane": 0,
+   "timeoutMs": 15000,
+   "comment": "back up in the inn, beside the trapdoor (guessed tile)"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

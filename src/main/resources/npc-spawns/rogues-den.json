@@ -1,0 +1,6 @@
+{
+  "about": "The Rogues' Den under the Toad and Chicken in Burthorpe (Agility step 3): Grace, who sells the graceful outfit for marks of grace. Her tile is mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live), checked against the 241 cache's type (rooftops_grace) and the OSRS Wiki's Grace page. The maze and its people (Brian O'Richard, Martin Thwait) and the banker Emerald Benedict aren't built: Sam left the maze out.",
+  "spawns": [
+    {"npc": 5919, "x": 3050, "z": 4962, "level": 1, "wander": 0, "source": "Grace (rooftops_grace), by the fire in the den's south room. mejrs NPCList_OSRS; Wiki, Grace"}
+  ]
+}
