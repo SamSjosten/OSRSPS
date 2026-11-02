@@ -2040,8 +2040,10 @@ class World(
             friendChats.talk(player, message.message)
         } else if (message.type == Clans.CHAT_TYPE_CLAN && message.clanType == Clans.CLAN_TYPE_CLAN) {
             clans.talk(player, message.message)
-        } else if (message.type == Clans.CHAT_TYPE_CLAN || message.type == Clans.CHAT_TYPE_GUEST) {
-            // Group ironman and guest clan chat aren't built.
+        } else if (message.type == Clans.CHAT_TYPE_GUEST) {
+            clans.talkGuest(player, message.message)
+        } else if (message.type == Clans.CHAT_TYPE_CLAN) {
+            // Group ironman clan chat isn't built.
             logger.info { "${player.username} sent clan chat type ${message.type} clan type ${message.clanType} (not built)" }
         } else {
             sayPublicChat(player, message)?.let { reports.heard(player, it) }
@@ -2055,7 +2057,11 @@ class World(
         }
     }
 
-    /** SEND_SNAPSHOT: a rule picked on the report screen. */
+    /** The Another Clan page's Find prompt; see [Clans.find]. */
+    private fun askGuestClanName(player: Player) {
+        scripts.start(player) { clans.find(player, stringDialog(textFor(player)[ClanLines.GUEST_PROMPT])) }
+    }
+
     /** MAP_BUILD_COMPLETE: the first one after a login or reconnect sends the friends and ignore lists again. */
     fun onMapBuildComplete(player: Player) = actWhileDead(player) {
         if (!player.listsAfterMapBuild) return@actWhileDead
@@ -2153,6 +2159,7 @@ class World(
             return@act
         }
         if (interfaceId == Clans.CREATION && clans.clickCreation(player, componentId, sub, ::askClanName)) return@act
+        if (interfaceId == Clans.GUEST_SIDEPANEL && clans.clickGuest(player, componentId, ::askGuestClanName)) return@act
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_CHAT) {
             clans.toggleChannel(player)
             return@act

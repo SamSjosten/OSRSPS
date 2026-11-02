@@ -1,0 +1,32 @@
+{
+ "name": "Guest clans, one player: test finds a clan made by ::clanmake on the Clans tab's Another Clan page, joins and leaves its channel, and discards it",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::clandisband Guest Gate", "expectMessage": "lan", "comment": "the last run's clan, if any: 'Clan Guest Gate deleted' or 'No clan called Guest Gate'"},
+  {"step": "command", "text": "::clanmake Guest Gate", "expectMessage": "Clan Guest Gate made"},
+  {"step": "runClientScript", "id": 915, "args": [7], "comment": "shows the Clans side tab (toplevel_sidebutton_switch), so its panels count as open"},
+  {"step": "clickWidget", "interfaceId": 707, "component": 4, "comment": "the Clans tab's Another Clan tab"},
+  {"step": "assertInterface", "interfaceId": 702, "comment": "clans_guest_sidepanel"},
+  {"step": "assertVarbit", "id": 12164, "value": 1, "comment": "clan_guest_affinitystatus: no guest clan"},
+  {"step": "clickWidget", "interfaceId": 702, "component": 10, "comment": "Find: asks for a clan's name"},
+  {"step": "enterText", "text": "No Such Clan Here"},
+  {"step": "assertMessage", "contains": "[clan.guest_not_found name=No Such Clan Here]"},
+  {"step": "clickWidget", "interfaceId": 702, "component": 10, "comment": "Find again"},
+  {"step": "enterText", "text": "guest gate", "comment": "any spelling of the name finds it"},
+  {"step": "assertVarbit", "id": 12164, "value": 3, "comment": "connected: the clan's settings came as the guest clan"},
+  {"step": "command", "text": "::guestclan", "expectMessage": "Guest of Guest Gate, not in its channel"},
+  {"step": "clickWidget", "interfaceId": 702, "component": 8, "comment": "Chat: joins its channel as a guest"},
+  {"step": "command", "text": "::guestclan", "expectMessage": "Guest of Guest Gate, in its channel"},
+  {"step": "clickWidget", "interfaceId": 702, "component": 2, "comment": "Refresh: sends it again, still in the channel"},
+  {"step": "command", "text": "::guestclan", "expectMessage": "Guest of Guest Gate, in its channel"},
+  {"step": "clickWidget", "interfaceId": 702, "component": 8, "comment": "Leave: out of its channel, the clan still loaded"},
+  {"step": "command", "text": "::guestclan", "expectMessage": "Guest of Guest Gate, not in its channel"},
+  {"step": "clickWidget", "interfaceId": 702, "component": 10, "comment": "Discard, as the button is while a clan is loaded"},
+  {"step": "assertVarbit", "id": 12164, "value": 1},
+  {"step": "command", "text": "::guestclan", "expectMessage": "You have no guest clan"},
+  {"step": "command", "text": "::clandisband Guest Gate", "expectMessage": "Clan Guest Gate deleted"},
+  {"step": "runClientScript", "id": 915, "args": [3], "comment": "back to the inventory tab"}
+ ]
+}
