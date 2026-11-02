@@ -7,6 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import osrsps.game.PlayerVars
 import osrsps.game.Quest
+import osrsps.game.QuestKind
 import osrsps.game.QuestVar
 import osrsps.game.Quests
 import osrsps.game.VarTypes
@@ -79,6 +80,51 @@ class QuestLoaderTest {
         assertEquals(9, vars[63])
         assertEquals(5, vars.getVarbit(1850))
         assertEquals(3, vars[Quests.VARP_QUEST_POINTS])
+    }
+
+    @Test
+    fun `tells quests, miniquests and Recipe for Disaster's parts apart`() {
+        val rows = mapOf(
+            17 to DbRow(QuestLoader.QUEST_TABLE, mapOf(2 to listOf("A quest"), 4 to listOf(0), 17 to listOf(1), 19 to listOf(2))),
+            30 to DbRow(QuestLoader.QUEST_TABLE, mapOf(2 to listOf("A miniquest"), 4 to listOf(1), 17 to listOf(0), 19 to listOf(5))),
+            40 to DbRow(QuestLoader.QUEST_TABLE, mapOf(2 to listOf("A part"), 4 to listOf(0), 17 to listOf(1), 19 to listOf(3), 21 to listOf(117))),
+        )
+        val quests = QuestLoader.buildQuests(rows, mapOf(17 to QuestVar.Varp(29), 30 to QuestVar.Varp(30), 40 to QuestVar.Varbit(1850)))
+        assertEquals(listOf(QuestKind.QUEST, QuestKind.MINIQUEST, QuestKind.SUBQUEST), quests.map { it.kind })
+    }
+
+    @Test
+    fun `the quest list footer counts every quest finished and every quest point earned`() {
+        val counters = listOf(
+            Quests.VARBIT_QP_MAX, Quests.VARBIT_QUESTS_COMPLETED, Quests.VARBIT_QUESTS_TOTAL,
+            Quests.VARBIT_SUBQUESTS_COMPLETED, Quests.VARBIT_MINIQUESTS_COMPLETED,
+        )
+        // Bit ranges as the 241 cache has them: qp_max 0-9 and quests_completed_count 20-28 of varp 904,
+        // quests_total_count 0-8 and subquests_completed_count 17-25 of varp 2920, miniquests_completed_count 0-8 of 2921.
+        val vars = PlayerVars(
+            VarTypes(
+                3_000,
+                mapOf(
+                    Quests.VARBIT_QP_MAX to VarbitType(904, 0, 9),
+                    Quests.VARBIT_QUESTS_COMPLETED to VarbitType(904, 20, 28),
+                    Quests.VARBIT_QUESTS_TOTAL to VarbitType(2920, 0, 8),
+                    Quests.VARBIT_SUBQUESTS_COMPLETED to VarbitType(2920, 17, 25),
+                    Quests.VARBIT_MINIQUESTS_COMPLETED to VarbitType(2921, 0, 8),
+                ),
+            ),
+        )
+        Quests(
+            listOf(
+                Quest(17, "A", QuestVar.Varp(29), 2, 1),
+                Quest(18, "B", QuestVar.Varp(30), 2, 3),
+                Quest(19, "C", QuestVar.Varp(31), 2, 2, QuestKind.SUBQUEST),
+                Quest(20, "D", QuestVar.Varp(32), 2, 0, QuestKind.MINIQUEST),
+            ),
+        ).completeAll(vars)
+        assertEquals(listOf(6, 2, 2, 1, 1), counters.map { vars.getVarbit(it) })
+        assertEquals(6, vars[Quests.VARP_QUEST_POINTS])
+        // Points earned never exceed points there are, so the tab never shows more than the maximum again.
+        assertEquals(vars[Quests.VARP_QUEST_POINTS], vars.getVarbit(Quests.VARBIT_QP_MAX))
     }
 
     /** `iload 0; switch; jump; get_varp 29; return; <op> 1850; return`, cases 17 -> get_varp and 117 -> the other. */
