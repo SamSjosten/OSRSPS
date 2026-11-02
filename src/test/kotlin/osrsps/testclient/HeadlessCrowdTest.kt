@@ -15,8 +15,10 @@ class HeadlessCrowdTest {
     @Test
     fun `six players beside each other all stay connected and all see one another`(@TempDir dir: Path) {
         TestServer(dir).use { server ->
-            val clients = (1..PLAYERS).map { server.login("crowd$it") }
+            val clients = mutableListOf<HeadlessClient>()
+            var failure: Throwable? = null
             try {
+                repeat(PLAYERS) { clients += server.login("crowd${it + 1}") }
                 for (client in clients) {
                     client.await("all ${PLAYERS - 1} others") { client.otherPlayers().takeIf { it.size == PLAYERS - 1 } }
                 }
@@ -24,9 +26,18 @@ class HeadlessCrowdTest {
                 clients.forEach { it.awaitTicks(5) }
                 for (client in clients) assertEquals(PLAYERS - 1, client.otherPlayers().size)
                 assertEquals(PLAYERS, server.world.onlinePlayers.size)
-            } finally {
-                clients.forEach { runCatching { it.close() } }
+            } catch (e: Throwable) {
+                failure = e
             }
+            // Closing rethrows anything a client's reader failed on, so close every one and keep the first failure.
+            for (client in clients) {
+                try {
+                    client.close()
+                } catch (e: Throwable) {
+                    failure?.addSuppressed(e) ?: run { failure = e }
+                }
+            }
+            failure?.let { throw it }
         }
     }
 
