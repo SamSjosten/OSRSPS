@@ -310,16 +310,21 @@ class NpcSpawnFileTest {
     fun `Barbarian Village has Peksa, Tassie Slipcast, Hunding up the tower, Atlas, Checkal, Litara and Sigurd`() {
         val names = mapOf(
             2872 to "peksa", 1352 to "favour_tassie_slipcast", 3063 to "fai_barbarian_9", 10658 to "bim_atlas", 10645 to "bim_checkal_barb",
-            3363 to "sos_barb", 1324 to "canoeing_sigurd",
-        )
+            3363 to "sos_barb", 1324 to "canoeing_sigurd", 299 to "gunthor_the_brave", 2837 to "unicorn",
+        ) + (3055..3072).filter { it != 3063 }.associateWith { "fai_barbarian_$it" } + (3073..3076).associateWith { "fai_barbarian_goblin_armed_${it - 3072}" }
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("barbarian-village.json"), types, "barbarian-village.json")
         assertEquals(emptyList(), result.unknown)
         val spawns = result.spawns
-        assertEquals(listOf(2872, 1352, 3063, 10658, 10645, 3363, 1324), spawns.map { it.type.id })
+        assertEquals(listOf(2872, 1352, 3063, 10658, 10645, 3363, 1324), spawns.take(7).map { it.type.id })
         assertEquals(2, spawns.single { it.type.id == 3063 }.level, "Hunding at the top of the lookout tower")
         assertTrue(spawns.filter { it.type.id != 3063 }.all { it.level == 0 })
-        assertTrue(spawns.all { it.x in 3072..3115 && it.z in 3400..3445 && it.source.isNotBlank() })
+        assertTrue(spawns.all { it.x in 3072..3135 && it.z in 3392..3455 && it.source.isNotBlank() }, "all in the village's map square")
+        // Step 7: the 17 barbarians who fight, Gunthor, five goblins (two of one type) and two unicorns.
+        assertEquals((3055..3072).filter { it != 3063 }, spawns.map { it.type.id }.filter { it in 3055..3072 && it != 3063 })
+        assertEquals(1, spawns.count { it.type.id == 299 })
+        assertEquals(listOf(3073, 3073, 3074, 3075, 3076), spawns.map { it.type.id }.filter { it in 3073..3076 })
+        assertEquals(2, spawns.count { it.type.id == 2837 })
     }
 
     @Test

@@ -5,7 +5,9 @@ import kotlin.test.assertEquals
 import osrsps.game.ObjType
 import osrsps.game.Skill
 import osrsps.game.content.BarbarianVillage.atlas
+import osrsps.game.content.BarbarianVillage.barbarian
 import osrsps.game.content.BarbarianVillage.checkal
+import osrsps.game.content.BarbarianVillage.gunthor
 import osrsps.game.content.BarbarianVillage.hunding
 import osrsps.game.content.BarbarianVillage.litara
 import osrsps.game.content.BarbarianVillage.peksa
@@ -162,5 +164,33 @@ class BarbarianVillageTest {
         h.pick(1)
         h.expect("sigurd.teach_said", *levels.last().second.toTypedArray())
         h.ends()
+    }
+
+    @Test
+    fun `a barbarian says one of his six lines and Gunthor one of his six talks`() {
+        for (i in 0 until 6) {
+            h.talk { barbarian { i } }
+            h.expect("barbarian.random_${i + 1}")
+            h.ends()
+        }
+        val talks = listOf(
+            listOf("gunthor.come_for_fight"),
+            listOf("gunthor.what_want", "gunthor.offering", "gunthor.a_fight"),
+            listOf("gunthor.look_odd"),
+            listOf("gunthor.wanna_fight"),
+            listOf("gunthor.growl"),
+            listOf("gunthor.go_away"),
+        )
+        for ((i, pages) in talks.withIndex()) {
+            h.talk { gunthor { i } }
+            h.expect(*pages.toTypedArray())
+            h.ends()
+        }
+    }
+
+    @Test
+    fun `the fighters are the village's seventeen barbarians, less Hunding`() {
+        assertEquals(17, BarbarianVillage.BARBARIANS.size)
+        assertEquals(false, BarbarianVillage.HUNDING in BarbarianVillage.BARBARIANS)
     }
 }

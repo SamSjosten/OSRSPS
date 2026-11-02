@@ -188,12 +188,12 @@
       "source": "OSRS Wiki, Big frog (Level 10, id 8701) and Giant frog (Level 13, id 8700), and the DPS calculator, read 2026-10-30"
     },
     {
-      "npcs": ["goblin_armed"],
+      "npcs": ["goblin_armed", "fai_barbarian_goblin_armed_1", "fai_barbarian_goblin_armed_2", "fai_barbarian_goblin_armed_3", "fai_barbarian_goblin_armed_4"],
       "attackSpeed": 6, "maxHit": 1, "attackType": "stab", "attackBonus": 12, "strengthBonus": 12,
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
       "anims": { "attack": "slice_surface_goblin_squat_attack_spear", "defend": "slice_surface_goblin_defend_spear", "death": "slice_surface_goblin_death_spear" },
       "respawnTicks": 35,
-      "source": "OSRS Wiki, Goblin (the Level 5 infobox, id 3045 among them) and the DPS calculator's 3045, read 2026-10-30; it stands and walks with slice_surface_goblin_squat_ready_spear and _walk_spear, so the spear animations are taken"
+      "source": "OSRS Wiki, Goblin (the Level 5 infobox, id 3045 among them) and the DPS calculator's 3045, read 2026-10-30; it stands and walks with slice_surface_goblin_squat_ready_spear and _walk_spear, so the spear animations are taken. Barbarian Village's level 5 goblins (fai_barbarian_goblin_armed_1 to _4, 3073 to 3076, Edgeville piece step 7) stand and walk the same and are taken to fight the same; inferred, as the DPS calculator has no entry for them"
     },
     {
       "npcs": ["unicorn"],
@@ -203,6 +203,81 @@
       "respawnTicks": 90,
       "retreatsAt": 25,
       "source": "OSRS Wiki, Unicorn (id 2837) and the DPS calculator, read 2026-10-30; it stands and walks with unicorn_rework_ready and _walk"
+    },
+    {
+      "npcs": ["fai_barbarian_2", "fai_barbarian_6", "fai_barbarian_10", "fai_barbarian_11", "fai_barbarian_13"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 9, "strengthBonus": 15,
+      "defence": { "stab": 0, "slash": 3, "crush": 2, "magic": -3, "light": 2, "standard": 2, "heavy": 2 },
+      "anims": { "attack": "human_dhsword_chop", "defend": "human_dhsword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Barbarian (Level 10: Fafner 3056, Lydspor 3060, Wotan 3064, Acelin 3065, Adolpho 3067) and the DPS calculator, read 2026-11-02. They stand with human_dh_weapon_ready, so a two-handed attack and block are taken: guessed"
+    },
+    {
+      "npcs": ["fai_barbarian_5", "fai_barbarian_7", "fai_barbarian_12"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 9, "strengthBonus": 15,
+      "defence": { "stab": 0, "slash": 3, "crush": 2, "magic": -3, "light": 2, "standard": 2, "heavy": 2 },
+      "anims": { "attack": "barrow_dharok_crush", "defend": "human_dhsword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Barbarian (Level 10: Siegfried 3059, Hagen 3061, Adelino 3066) and the DPS calculator, read 2026-11-02. They stand with barrow_dharok_ready (a greataxe), so its crush is taken; the block is guessed"
+    },
+    {
+      "npcs": ["fai_barbarian_female_2", "fai_barbarian_female_3"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 9, "strengthBonus": 15,
+      "defence": { "stab": 0, "slash": 3, "crush": 2, "magic": -3, "light": 2, "standard": 2, "heavy": 2 },
+      "anims": { "attack": "human_staff_pound", "defend": "human_staff_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Barbarian (Level 10: Gutrune 3070, Edelschwarz 3071) and the DPS calculator, read 2026-11-02. They stand with human_staffready, so the staff's crush and block are taken: guessed"
+    },
+    {
+      "npcs": ["fai_barbarian_female_4"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 9, "strengthBonus": 16,
+      "defence": { "stab": 9, "slash": 10, "crush": 10, "magic": -3, "light": 5, "standard": 5, "heavy": 5 },
+      "anims": { "attack": "human_staff_pound", "defend": "human_staff_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Barbarian (Level 9: Sieglinde 3072) and the DPS calculator, read 2026-11-02. She stands with human_staffready, so the staff's crush and block are taken: guessed"
+    },
+    {
+      "npcs": ["fai_barbarian_14"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "ranged", "attackBonus": 0, "strengthBonus": 0,
+      "range": 7,
+      "attacks": [{ "anim": "human_bow", "cast": 19, "projectile": 10 }],
+      "defence": { "stab": 0, "slash": 3, "crush": 2, "magic": -3, "light": 2, "standard": 2, "heavy": 2 },
+      "anims": { "attack": "human_bow", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Barbarian (Level 15: Aitan 3068) and the DPS calculator, read 2026-11-02 (ranged, max hit 2). Guessed: a shortbow's bronze arrows (bronze_arrow_launch 19, _travel 10), the 7-tile range and the unarmed block"
+    },
+    {
+      "npcs": ["fai_barbarian_1", "fai_barbarian_3"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 9, "strengthBonus": 15,
+      "defence": { "stab": 0, "slash": 3, "crush": 2, "magic": -3, "light": 2, "standard": 2, "heavy": 2 },
+      "anims": { "attack": "barrow_dharok_crush", "defend": "human_dhsword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Barbarian (Level 17: Alberich 3055, Fasolt 3057) and the DPS calculator, read 2026-11-02. They stand with barrow_dharok_ready (a greataxe), so its crush is taken; the block is guessed"
+    },
+    {
+      "npcs": ["fai_barbarian_4", "fai_barbarian_8"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 9, "strengthBonus": 15,
+      "defence": { "stab": 0, "slash": 3, "crush": 2, "magic": -3, "light": 2, "standard": 2, "heavy": 2 },
+      "anims": { "attack": "human_dhsword_chop", "defend": "human_dhsword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Barbarian (Level 17: Siegmund 3058, Minarch 3062) and the DPS calculator, read 2026-11-02. They stand with human_dh_weapon_ready, so a two-handed attack and block are taken: guessed"
+    },
+    {
+      "npcs": ["fai_barbarian_female_1"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 9, "strengthBonus": 15,
+      "defence": { "stab": 0, "slash": 3, "crush": 2, "magic": -3, "light": 2, "standard": 2, "heavy": 2 },
+      "anims": { "attack": "human_staff_pound", "defend": "human_staff_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Barbarian (Level 17: Brunnhilde 3069) and the DPS calculator, read 2026-11-02. She stands with human_staffready, so the staff's crush and block are taken: guessed"
+    },
+    {
+      "npcs": ["gunthor_the_brave"],
+      "attackSpeed": 6, "maxHit": 4, "attackType": "slash", "attackBonus": 8, "strengthBonus": 13,
+      "defence": { "stab": 12, "slash": 14, "crush": 10, "magic": -1, "light": 11, "standard": 11, "heavy": 11 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "aggressive": true,
+      "source": "OSRS Wiki, Gunthor the Brave (299) and the DPS calculator, read 2026-11-02: slash, speed 6, max hit 4, aggressive, respawn 50. He stands with human_ready, so a sword's slash and block are guessed"
     },
     {
       "npcs": ["jailguard", "jailguard_two_patrol", "jailguard_three_patrol", "jailguard_four_patrol"],
