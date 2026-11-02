@@ -18,6 +18,7 @@ import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.AttackStyles
+import osrsps.game.combat.AvaDevices
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
@@ -37,6 +38,7 @@ class HeadlessRangedTest {
 
     // Shaped like the 241 cache's: param 4 ranged attack, 12 ranged strength, 14 attack speed; obj category 64 is bows.
     private val shortbow = ObjType(SHORTBOW, "Shortbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 8, 14 to 4), internalName = "shortbow", category = 64)
+    private val accumulator = ObjType(AvaDevices.ACCUMULATOR, "Ava's accumulator", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.CAPE, internalName = "anma_50_reward")
     private val arrows = ObjType(BRONZE_ARROW, "Bronze arrow", stackable = true, tradeable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.AMMO, params = mapOf(12 to 7), internalName = "bronze_arrow")
 
     // The unarmed and bow rows of dbtable 78 as the 241 cache has them.
@@ -65,8 +67,8 @@ class HeadlessRangedTest {
             if (pond) for (x in 3228..3235) for (z in 3214..3222) add(x, z, 0, CollisionFlag.FLOOR)
         }
         val ducks = if (pond) listOf(NpcSpawn(duck, 3230, 3218, restrict = MoveRestrict.BLOCKED, source = "test")) else emptyList()
-        val objs = arrayOfNulls<ObjType>(BRONZE_ARROW + 1)
-        for (type in listOf(shortbow, arrows)) objs[type.id] = type
+        val objs = arrayOfNulls<ObjType>(AvaDevices.ACCUMULATOR + 1)
+        for (type in listOf(shortbow, arrows, accumulator)) objs[type.id] = type
         val objTypes = ObjTypes(objs)
         World(
             crcs, map, random = GameRandom(5), objTypes = objTypes, npcTypes = types,
@@ -120,6 +122,34 @@ class HeadlessRangedTest {
                     client.groundObjs().filter { it.id == BRONZE_ARROW }.sumOf { it.count }.takeIf { it > 0 }
                 }
                 assertTrue(onFloor <= used, "$onFloor of $used")
+            }
+        }
+    }
+
+    @Test
+    fun `a worn Ava's accumulator sends fired arrows back to the quiver, and the combat command says how many`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                val npc = client.await("the man in view") { client.npcs().firstOrNull { it.id == man.id } }
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel ranged 50")
+                client.command("item ${AvaDevices.ACCUMULATOR}")
+                client.itemOp(AvaDevices.ACCUMULATOR, WIELD)
+                client.await("the accumulator worn") { client.worn(WearPos.CAPE)?.takeIf { it.id == AvaDevices.ACCUMULATOR } }
+                client.command("item $SHORTBOW")
+                client.itemOp(SHORTBOW, WIELD)
+                client.command("item $BRONZE_ARROW $ARROWS")
+                client.itemOp(BRONZE_ARROW, WIELD)
+                client.await("the arrows worn") { client.worn(WearPos.AMMO)?.takeIf { it.id == BRONZE_ARROW && it.count == ARROWS } }
+                assertEquals("Ava's device: 72 of 100 shots come back", client.commandReply("combat") { it.startsWith("Ava's device") })
+                client.commandReply("god") { it.startsWith("You can") }
+                client.npcOp(npc.index, 2)
+                // The quiver drops by one a shot; an arrow coming back puts it up again, which nothing else does.
+                var lowest = ARROWS
+                client.await("an arrow back in the quiver", timeoutMillis = 60_000) {
+                    val count = client.worn(WearPos.AMMO)?.count ?: 0
+                    if (count > lowest) Unit else { lowest = minOf(lowest, count); null }
+                }
             }
         }
     }

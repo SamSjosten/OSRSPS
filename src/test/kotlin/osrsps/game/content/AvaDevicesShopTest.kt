@@ -7,6 +7,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.WearPos
 import osrsps.game.combat.AvaDevices
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.shop.ShopScreen
@@ -88,6 +89,34 @@ class AvaDevicesShopTest {
         assertEquals(listOf("[ava_devices.space]"), messages)
         assertEquals(1, buy(alice, AvaDevicesShop.ACCUMULATOR, 1))
         assertEquals(25, alice.count(AvaDevices.ATTRACTOR))
+    }
+
+    @Test
+    fun `a worn attractor pays for an accumulator and becomes it where it is`() {
+        val alice = player(50, AvaDevicesShop.STEEL_ARROW to 75)
+        alice.equipment[WearPos.CAPE] = InvObj(AvaDevices.ATTRACTOR, 1)
+        assertEquals(1, buy(alice, AvaDevicesShop.ACCUMULATOR, 1))
+        assertEquals(InvObj(AvaDevices.ACCUMULATOR, 1), alice.equipment[WearPos.CAPE])
+        assertEquals(0, alice.count(AvaDevices.ACCUMULATOR))
+        assertEquals(0, alice.count(AvaDevicesShop.STEEL_ARROW))
+        assertEquals(emptyList(), messages)
+    }
+
+    @Test
+    fun `a full backpack takes a device when paying for it empties a slot`() {
+        // All 999 coins spent empties the coins' slot.
+        val alice = player(30, ShopScreen.COINS to 999)
+        repeat(27) { alice.inventory.add(objTypes[AvaDevicesShop.VORKATHS_HEAD]!!, 1) }
+        assertEquals(0, alice.inventory.freeSlots)
+        assertEquals(1, buy(alice, AvaDevicesShop.ATTRACTOR, 1))
+        assertEquals(1, alice.count(AvaDevices.ATTRACTOR))
+        // Vorkath's head always takes a slot of its own.
+        val bob = player(70, ShopScreen.COINS to 10_000, AvaDevicesShop.MITHRIL_ARROW to 150)
+        repeat(26) { bob.inventory.add(objTypes[AvaDevicesShop.VORKATHS_HEAD]!!, 1) }
+        assertEquals(0, bob.inventory.freeSlots)
+        assertEquals(1, buy(bob, AvaDevicesShop.ASSEMBLER, 1))
+        assertEquals(25, bob.count(AvaDevicesShop.VORKATHS_HEAD))
+        assertEquals(1, bob.count(AvaDevices.ASSEMBLER))
     }
 
     @Test

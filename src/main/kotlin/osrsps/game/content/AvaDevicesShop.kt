@@ -1,9 +1,11 @@
 package osrsps.game.content
 
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
+import osrsps.game.InvObj
 import osrsps.game.ObjTypes
 import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.AvaDevices
 import osrsps.game.dialogue.DialogueText
@@ -38,7 +40,7 @@ object AvaDevicesLines : Lines("ava_devices", "Ava's device; Ava's attractor; Av
  *   the player brings both).
  * - The assembler: 70 Ranged, Vorkath's head, 75 mithril arrows, and an accumulator, or 4,999 coins without one.
  *
- * Guessed: every message ([AvaDevicesLines]), that the cost text sits in each device's contents component, that a buy
+ * A worn device pays too and is made into the new one where it is; the backpack's is used first (guessed). Guessed: every message ([AvaDevicesLines]), that the cost text sits in each device's contents component, that a buy
  * stops at the first one the player can't pay for, and that the screen stays open after a buy.
  */
 object AvaDevicesShop {
@@ -94,35 +96,62 @@ object AvaDevicesShop {
         val type = objTypes[device.id] ?: return 0
         var bought = 0
         while (bought < wanted) {
-            val refusal = refusal(player, device, text)
+            val refusal = refusal(player, device, text, objTypes)
             if (refusal != null) {
                 // The first refusal is told; a run of buys that stops partway says nothing more.
                 if (bought == 0) message(refusal)
                 break
             }
-            if (device.from != null && player.inventory.count(device.from) > 0) Making.removeObj(player.inventory, device.from, 1)
-            else AlKharidTraders.pay(player, device.coins)
+            val payWith = source(player, device)
+            if (payWith == Source.BACKPACK) Making.removeObj(player.inventory, device.from!!, 1)
+            else if (payWith == Source.COINS) AlKharidTraders.pay(player, device.coins)
             device.arrows?.let { Making.removeObj(player.inventory, it, ARROWS) }
             if (device.head) Making.removeObj(player.inventory, VORKATHS_HEAD, 1)
-            player.inventory.add(type, 1)
+            // A worn device is made into the new one where it is (the Wiki's Ava's device, changes of 11 January 2018).
+            if (payWith == Source.WORN) player.equipment[WearPos.CAPE] = InvObj(device.id, 1)
+            else player.inventory.add(type, 1)
             bought++
         }
         return bought
     }
 
+    /** What pays for a device: the older one in the backpack, the older one worn, or coins. */
+    private enum class Source { BACKPACK, WORN, COINS }
+
+    /** The backpack's older device first, then the worn one, then coins. */
+    private fun source(player: Player, device: Device): Source = when {
+        device.from != null && player.inventory.count(device.from) > 0 -> Source.BACKPACK
+        device.from != null && player.equipment[WearPos.CAPE]?.id == device.from -> Source.WORN
+        else -> Source.COINS
+    }
+
     /** Why [player] can't buy one [device] now, or null when they can. */
-    private fun refusal(player: Player, device: Device, text: DialogueText): String? {
+    private fun refusal(player: Player, device: Device, text: DialogueText, objTypes: ObjTypes): String? {
         val inv = player.inventory
-        val hasFrom = device.from != null && inv.count(device.from) > 0
+        val payWith = source(player, device)
         return when {
             player.skills.baseLevel(Skill.RANGED) < device.ranged -> text[AvaDevicesLines.LEVEL, "level" to device.ranged, "device" to device.name]
             device.head && inv.count(VORKATHS_HEAD) < 1 -> text[AvaDevicesLines.HEAD]
             device.arrows != null && inv.count(device.arrows) < ARROWS -> text[AvaDevicesLines.ARROWS, "arrows" to device.arrowsName, "device" to device.name]
-            !hasFrom && inv.count(ShopScreen.COINS) < device.coins -> text[AvaDevicesLines.COINS, "coins" to "%,d".format(device.coins), "device" to device.name]
-            // A device paid for with another frees that one's slot.
-            !hasFrom && inv.freeSlots < 1 -> text[AvaDevicesLines.SPACE]
+            payWith == Source.COINS && inv.count(ShopScreen.COINS) < device.coins -> text[AvaDevicesLines.COINS, "coins" to "%,d".format(device.coins), "device" to device.name]
+            payWith == Source.COINS && inv.freeSlots + freed(player, device, objTypes) < 1 -> text[AvaDevicesLines.SPACE]
             else -> null
         }
+    }
+
+    /**
+     * How many backpack slots paying for [device] with coins empties: the coins' stack when it is all spent, the arrows'
+     * when exactly 75 are left, and Vorkath's head's. (Paid with another device, the new one takes that one's place.)
+     */
+    private fun freed(player: Player, device: Device, objTypes: ObjTypes): Int {
+        val inv = player.inventory
+        fun empties(id: Int, count: Int): Int {
+            val stackable = objTypes[id]?.stackable ?: true
+            return if (if (stackable) inv.count(id) == count.toLong() else inv.count(id) > 0) 1 else 0
+        }
+        return empties(ShopScreen.COINS, device.coins) +
+            (device.arrows?.let { empties(it, ARROWS) } ?: 0) +
+            (if (device.head) empties(VORKATHS_HEAD, 1) else 0)
     }
 
     private suspend fun ScriptContext.button(world: World, device: Device, op: Int) {

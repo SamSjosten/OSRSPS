@@ -1,5 +1,5 @@
 {
- "name": "Draynor piece step 12c: Ava's Devices (::keys on): her Devices option and her devices talk open the screen, which sells an attractor, makes it an accumulator and refuses the rest",
+ "name": "Draynor piece step 12c: Ava's Devices (::keys on): her Devices option and her devices talk open the screen, which sells an attractor, makes it an accumulator refuses the rest, and the worn accumulator sends back 72 of 100 shots",
  "account": "test",
  "steps": [
   {
@@ -156,6 +156,65 @@
    "step": "assertInterface",
    "interfaceId": 67,
    "comment": "her devices talk opens the same screen"
+  },
+  {
+   "step": "itemOption",
+   "item": "Ava's accumulator",
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "cape",
+   "item": "Ava's accumulator"
+  },
+  {
+   "step": "command",
+   "text": "::item shortbow",
+   "expectMessage": "Added 1 x Shortbow"
+  },
+  {
+   "step": "itemOption",
+   "item": "Shortbow",
+   "option": "Wield"
+  },
+  {
+   "step": "command",
+   "text": "::item bronze arrow 100",
+   "expectMessage": "Added 100 x Bronze arrow"
+  },
+  {
+   "step": "itemOption",
+   "item": "Bronze arrow",
+   "option": "Wield"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3216 3219 0",
+   "expectMessage": "Teleported to 3216, 3219, 0",
+   "comment": "Lumbridge Castle's courtyard, beside its men"
+  },
+  {
+   "step": "command",
+   "text": "::combat man",
+   "expectMessage": "Ava's device: 72 of 100 shots come back",
+   "comment": "the worn accumulator, through the server's real ranged combat"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Man",
+   "option": "Attack",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertAnimation",
+   "id": 426,
+   "timeoutMs": 20000,
+   "comment": "human_bow: arrows fly with the accumulator worn"
+  },
+  {
+   "step": "command",
+   "text": "::kill man",
+   "expectMessage": "Killed Man #"
   },
   {
    "step": "command",

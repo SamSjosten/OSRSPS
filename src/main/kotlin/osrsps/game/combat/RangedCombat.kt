@@ -4,6 +4,7 @@ import kotlin.math.abs
 import osrsps.game.GameRandom
 import osrsps.game.Interaction
 import osrsps.game.InvObj
+import osrsps.game.Inventory
 import osrsps.game.Movement
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
@@ -88,6 +89,9 @@ class RangedCombat(
     /** Out of 100, how much of a player's fired ammunition their Ava's device sends back now ([AvaDevices.recovery]). */
     private val recovery: (Player) -> Int = { 0 },
 ) {
+    /** Out of 100, how much of [player]'s fired ammunition comes back now, for `::combat`. */
+    fun recovered(player: Player): Int = recovery(player)
+
     /**
      * A shot on its way to [npc]. [ammo] falls when it lands (null for a bounce, which fires nothing); [bounces] is how
      * many more NPCs it can go on to, each rolled with [attackRoll] and [style], the first shot's, for up to two thirds
@@ -400,11 +404,11 @@ class RangedCombat(
         if (shot.floor) dropAmmo(ammo, npc.x, npc.z, npc.level, shot.player)
     }
 
-    /** Puts one [type] back in [player]'s worn [slot]; false when it holds something else or they've gone. */
+    /** Puts one [type] back in [player]'s worn [slot]; false when it holds something else or a full stack, or they've gone. */
     private fun giveBack(player: Player, slot: Int, type: ObjType): Boolean {
         if (player.loggedOut) return false
         val worn = player.equipment[slot]
-        if (worn != null && worn.id != type.id) return false
+        if (worn != null && (worn.id != type.id || worn.count >= Inventory.MAX_STACK)) return false
         player.equipment[slot] = InvObj(type.id, (worn?.count ?: 0) + 1)
         return true
     }

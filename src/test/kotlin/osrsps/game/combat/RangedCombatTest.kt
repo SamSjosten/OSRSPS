@@ -10,6 +10,7 @@ import osrsps.game.EquipmentTab
 import osrsps.game.GameRandom
 import osrsps.game.Interactions
 import osrsps.game.InvObj
+import osrsps.game.Inventory
 import osrsps.game.Movement
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -405,6 +406,21 @@ class RangedCombatTest {
         // Broken a fifth of the time, else on the floor: never on top of the steel arrows.
         assertTrue(alice.equipment[WearPos.AMMO]?.let { it.id == steelArrow.id } ?: true)
         assertTrue(dropped.all { (type, _, _) -> type == bronzeArrow })
+    }
+
+    @Test
+    fun `an arrow coming back to a full stack falls instead of overflowing it`() {
+        recover = 100 - AvaDevices.BROKEN
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        alice.god = true
+        tick()
+        assertEquals(1, ranged.shotsInFlight)
+        alice.equipment[WearPos.AMMO] = InvObj(bronzeArrow.id, Inventory.MAX_STACK)
+        repeat(4) { tick() }
+        // No overflow: the shot that came back to the full stack fell or broke (a next shot may have left since).
+        val count = alice.equipment[WearPos.AMMO]!!.count
+        assertTrue(count in Inventory.MAX_STACK - 1..Inventory.MAX_STACK, "$count")
     }
 
     @Test
