@@ -126,6 +126,12 @@
    "step": "assertNoDialogue"
   },
   {
+   "step": "command",
+   "text": "::tele 3204 3418 0",
+   "expectMessage": "Teleported to 3204, 3418, 0",
+   "comment": "inside Thessalia's shop, beside Iffie (3204 3419); Aris's tent is walled off from it"
+  },
+  {
    "step": "npcOption",
    "npcId": 2899,
    "option": "Talk-to",
