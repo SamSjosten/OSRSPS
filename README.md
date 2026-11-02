@@ -1669,11 +1669,13 @@ RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
 
 ## Home teleport
 
-Lumbridge Home Teleport, the standard spellbook's first spell (`game/content/HomeTeleport.kt`): Cast plays five stages
-on the spot and lands the player in the castle courtyard 24 ticks after the click. The cooldown is varp 892, which
-RuneLite's home teleport timer reads; `::varp 892 0` clears it for testing. Not in yet: the other books' home teleports,
-the Wilderness limit (no Wilderness yet) and teleport animation overrides. `HomeTeleport.destination` and
-`cooldownApplies` are seams another teleport (lodestones) can set from `World`'s init.
+Home Teleport, the standard spellbook's first spell (`game/content/HomeTeleport.kt`): on this server Cast opens the
+lodestone network's menu (`Lodestones.kt`, as RS3's does) and a pick plays the five stages on the spot and lands the
+player on that stone 28 ticks later, free and with no cooldown. OSRS's own cast, to the castle courtyard 24 ticks
+after the click with the 30-minute cooldown in varp 892 (which RuneLite's home teleport timer reads), is the class's
+default and stays tested, but no world uses it: `HomeTeleport.target` is the seam the lodestone network takes when
+it registers. Not in yet: the other books' home teleports, teleport animation overrides, and RS3's "Previous
+destination" on the spell (plan step 6, the map interface).
 
 | Home teleport behaviour | Source |
 |-------------------------|--------|
