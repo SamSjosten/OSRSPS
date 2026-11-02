@@ -545,7 +545,7 @@ class HeadlessClanTest {
                     bob.await("bob's clan page") { bob.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
                     bob.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
                     bob.await("the clan's settings page") { bob.openInterfaces().takeIf { Clans.INFO in it } }
-                    // Applications does nothing for a member yet (the applicants list is the next step).
+                    // Applications does nothing for a founder: only recruiters see the applicants page.
                     bob.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
                     bob.ifButton(Clans.INFO, Clans.INFO_QUIT, 1)
                     bob.answer("[clan.leave_confirm name=Odins Gate]", 2)
@@ -569,6 +569,144 @@ class HeadlessClanTest {
                     alice.saw("[clan.owner_cant_leave]")
                     assertNotNull(server.world.clans.clanOf(server.world.playerNamed("alice")!!))
                 }
+            }
+        }
+    }
+
+    /** Finds [clan] as a guest unless [found] already, opens its settings page and applies (Yes to the question). */
+    private fun HeadlessClient.applyTo(clan: String, found: Boolean = false) {
+        guestTab()
+        if (!found) findClan(clan)
+        ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_INFO, 1)
+        await("the clan's settings page") { openInterfaces().takeIf { Clans.INFO in it } }
+        await("Apply enabled") { Unit.takeIf { opEnabled(Clans.INFO, Clans.INFO_APPLICATIONS, -1, 1) } }
+        ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+        answer("[clan.apply_confirm name=$clan]", 1)
+        saw("[clan.applied name=$clan]")
+    }
+
+    /** The names the applicants page last listed, once all its 20 slots came (client script 4376), after [since] scripts. */
+    private fun HeadlessClient.applicantsListed(since: Int): List<String>? {
+        val slots = clientScripts().drop(since).filter { it.id == Clans.SCRIPT_ADD_APPLICANT }
+        if (slots.size < Clans.APPLICANTS_SLOTS) return null
+        return slots.takeLast(Clans.APPLICANTS_SLOTS).map { it.args[1] as String }.filter { it.isNotEmpty() }
+    }
+
+    /** What client script 4375 last showed of the chosen applicant, after [since] scripts. */
+    private fun HeadlessClient.reviewed(since: Int): String? =
+        clientScripts().drop(since).lastOrNull { it.id == Clans.SCRIPT_SHOW_APPLICANT }?.args?.first() as String?
+
+    @Test
+    fun `a recruiter reviews the applicants, declines one and accepts another, who joins the clan`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    found(server, alice, bob, "Odins Gate")
+                    val clan = server.world.clans.clanNamed("Odins Gate")!!
+                    server.login("carol").use { carol ->
+                        server.login("dave").use { dave ->
+                            carol.applyTo("Odins Gate")
+                            dave.applyTo("Odins Gate")
+                            assertEquals(listOf("carol", "dave"), clan.applicants.map { it.name })
+
+                            // A founder isn't a recruiter: Applications opens nothing.
+                            bob.yourClanTab()
+                            bob.await("bob's clan page") { bob.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                            bob.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                            bob.await("bob's settings page") { bob.openInterfaces().takeIf { Clans.INFO in it } }
+                            bob.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                            bob.awaitTicks(2)
+                            assertFalse(Clans.APPLICANTS in bob.openInterfaces())
+
+                            // The owner opens the applicants page from the settings page: both, none chosen.
+                            alice.yourClanTab()
+                            alice.await("alice's clan page") { alice.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                            alice.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                            alice.await("alice's settings page") { alice.openInterfaces().takeIf { Clans.INFO in it } }
+                            var since = alice.clientScripts().size
+                            alice.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                            alice.await("the applicants page") { alice.openInterfaces().takeIf { Clans.APPLICANTS in it } }
+                            assertEquals(listOf("carol", "dave"), alice.await("the list") { alice.applicantsListed(since) })
+                            assertEquals("", alice.reviewed(since))
+                            alice.await("Accept enabled") { Unit.takeIf { alice.opEnabled(Clans.APPLICANTS, Clans.APPLICANTS_ACCEPT, -1, 1) } }
+
+                            // Accept with nobody chosen does nothing.
+                            alice.ifButton(Clans.APPLICANTS, Clans.APPLICANTS_ACCEPT, 1)
+                            alice.awaitTicks(2)
+                            assertEquals(2, clan.applicants.size)
+
+                            // Review on dave (slot 1) shows his levels; Decline drops him, and he hears of it.
+                            since = alice.clientScripts().size
+                            alice.resumePause(Clans.APPLICANTS, Clans.APPLICANTS_LIST, 1)
+                            val shown = alice.await("dave's levels") { alice.reviewed(since)?.takeIf { it.isNotEmpty() } }
+                            val fields = shown.split("|")
+                            assertEquals("dave", fields[0])
+                            assertEquals(2 + 1 + Clans.APPLICANT_SKILLS.size, fields.size)
+                            assertEquals("3", fields[1])
+                            since = alice.clientScripts().size
+                            alice.ifButton(Clans.APPLICANTS, Clans.APPLICANTS_REJECT, 1)
+                            alice.saw("[clan.applicant_declined name=dave]")
+                            dave.saw("[clan.declined name=Odins Gate]")
+                            assertEquals(listOf("carol"), clan.applicants.map { it.name })
+                            assertEquals(listOf("carol"), alice.await("the list without dave") { alice.applicantsListed(since) })
+                            assertEquals("Guest of Odins Gate, not in its channel", dave.commandReply("guestclan") { it.startsWith("Guest") })
+
+                            // Review on carol, then Accept: she is a member at the lowest rank, in the channel, no longer a guest.
+                            alice.resumePause(Clans.APPLICANTS, Clans.APPLICANTS_LIST, 0)
+                            alice.await("carol's levels") { alice.reviewed(since)?.takeIf { it.startsWith("carol|") } }
+                            since = alice.clientScripts().size
+                            alice.ifButton(Clans.APPLICANTS, Clans.APPLICANTS_ACCEPT, 1)
+                            alice.saw("[clan.applicant_accepted name=carol]")
+                            carol.saw("[clan.accepted name=Odins Gate]")
+                            val carolP = server.world.playerNamed("carol")!!
+                            assertEquals(Clans.RANK_FOUNDER, server.world.clans.clanOf(carolP)?.member(carolP.saveKey)?.rank)
+                            assertTrue(clan.applicants.isEmpty())
+                            assertEquals(emptyList<String>(), alice.await("an empty list") { alice.applicantsListed(since) })
+                            carol.await("carol in the channel") { if (server.world.clans.inChannel(carolP)) Unit else null }
+                            carol.await("carol's clan settings") { carol.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.hasAll("alice", "bob", "carol") } }
+                            assertEquals("You have no guest clan", carol.commandReply("guestclan") { it.contains("guest clan") || it.startsWith("Guest") })
+                            alice.await("alice's settings with carol") { alice.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.hasAll("carol") } }
+
+                            // Back goes to the settings page; Review with the page closed does nothing.
+                            alice.ifButton(Clans.APPLICANTS, Clans.APPLICANTS_EXIT, 1)
+                            alice.await("the settings page again") { alice.openInterfaces().takeIf { Clans.INFO in it && Clans.APPLICANTS !in it } }
+                            dave.applyTo("Odins Gate", found = true)
+                            since = alice.clientScripts().size
+                            alice.resumePause(Clans.APPLICANTS, Clans.APPLICANTS_LIST, 0)
+                            alice.awaitTicks(2)
+                            assertNull(alice.reviewed(since))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the runner commands clanjoin as a recruiter and clanapplicant`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                assertEquals("Clan Test Gate made, for guests to find", alice.commandReply("clanmake Test Gate") { it.startsWith("Clan") })
+                assertEquals("You aren't in a clan", alice.commandReply("clanapplicant") { it.startsWith("You") || it.startsWith("Applicant") })
+                assertEquals("Joined clan Test Gate as a recruiter", alice.commandReply("clanjoin test gate recruiter") { it.startsWith("Joined") })
+                assertEquals("Applicant applied to Test Gate", alice.commandReply("clanapplicant") { it.startsWith("Applicant") || it.contains("already") })
+                assertEquals("Test Gate has the test applicant already", alice.commandReply("clanapplicant") { it.startsWith("Applicant") || it.contains("already") })
+                val clan = server.world.clans.clanNamed("Test Gate")!!
+                assertEquals(Clans.RECRUIT_RANK, clan.member(server.world.playerNamed("alice")!!.saveKey)?.rank)
+
+                // The test applicant can be accepted though no account is it.
+                alice.yourClanTab()
+                alice.await("alice's clan page") { alice.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                alice.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                alice.await("alice's settings page") { alice.openInterfaces().takeIf { Clans.INFO in it } }
+                val since = alice.clientScripts().size
+                alice.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                assertEquals(listOf("Applicant"), alice.await("the list") { alice.applicantsListed(since) })
+                alice.resumePause(Clans.APPLICANTS, Clans.APPLICANTS_LIST, 0)
+                assertEquals("Applicant|" + Clans.TEST_APPLICANT_STATS, alice.await("its levels") { alice.reviewed(since)?.takeIf { it.isNotEmpty() } })
+                alice.ifButton(Clans.APPLICANTS, Clans.APPLICANTS_ACCEPT, 1)
+                alice.saw("[clan.applicant_accepted name=Applicant]")
+                assertNotNull(clan.member(Clans.TEST_APPLICANT_KEY))
             }
         }
     }

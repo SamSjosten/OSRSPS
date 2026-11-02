@@ -2198,6 +2198,7 @@ class World(
         if (interfaceId == Clans.CREATION && clans.clickCreation(player, componentId, sub, ::askClanName)) return@act
         if (interfaceId == Clans.GUEST_SIDEPANEL && clans.clickGuest(player, componentId, ::askGuestClanName)) return@act
         if (interfaceId == Clans.INFO && clans.clickInfo(player, componentId)) return@act
+        if (interfaceId == Clans.APPLICANTS && clans.clickApplicants(player, componentId)) return@act
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_SETTINGS) {
             clans.openYourInfo(player)
             return@act
@@ -2401,7 +2402,9 @@ class World(
     fun onResumePauseButton(player: Player, interfaceId: Int, componentId: Int, sub: Int) = act(player) {
         trades.interrupt(player)
         if (player.scripts.delayed) return@act
-        if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId)) {
+        if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId) &&
+            !clans.reviewApplicant(player, interfaceId, componentId, sub)
+        ) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
         }
     }
