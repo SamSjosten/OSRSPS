@@ -82,9 +82,12 @@ class HeadlessLodestoneTest {
 
                 client.tele(WILDERNESS)
                 val animsBeforeWilderness = client.animationTicks().size
+                val messagesBefore = client.messages().size
                 client.command("lodestone lumbridge")
-                client.awaitMessage("the Wilderness refusal") { it == "[home_teleport.wilderness]" }
-                client.awaitMessage("its second line") { it == "[home_teleport.wilderness_2]" }
+                // Both lines come in the same tick, so one wait looks for both.
+                client.await("the Wilderness refusal's two lines") {
+                    client.messages().drop(messagesBefore).map { it.text }.takeIf { "[home_teleport.wilderness]" in it && "[home_teleport.wilderness_2]" in it }
+                }
                 client.awaitCycles(Lodestones.CAST_TICKS + 2)
                 assertEquals(WILDERNESS, client.position)
                 assertEquals(animsBeforeWilderness, client.animationTicks().size, "no cast started in the Wilderness")
