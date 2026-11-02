@@ -56,6 +56,8 @@ class ShopTest {
         1127 to 65000, 1135 to 7800, 1540 to 20, 4325 to 50, 4345 to 50, 4365 to 50, 4385 to 50, 4405 to 50,
         // Peksa's Helmet Shop.
         1139 to 24, 1137 to 84, 1141 to 300, 1143 to 780, 1145 to 1920, 1155 to 44, 1153 to 154, 1157 to 550, 1159 to 1430, 1161 to 3520,
+        // The Cooks' Guild's Pie Shop.
+        7162 to 5, 2325 to 12, 2327 to 15, 7170 to 54, 2323 to 30, 7178 to 24, 7188 to 100, 7198 to 310, 7208 to 182, 7218 to 140,
     )
 
     /**
@@ -108,6 +110,7 @@ class ShopTest {
             NpcType(822, "Oziach", internalName = "oziach"),
             NpcType(2200, "Richard", internalName = "wilderness_capeseller_6"),
             NpcType(2872, "Peksa", internalName = "peksa"),
+            NpcType(6533, "Romily Weaklax", internalName = "merchant_pies"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -162,6 +165,8 @@ class ShopTest {
         "richards_wilderness_cape_shop" to listOf(50, 50, 50, 50, 50),
         // Barbarian Village's, read 2026-11-01.
         "peksas_helmet_shop" to listOf(24, 84, 300, 780, 1920, 44, 154, 550, 1430, 3520),
+        // The Cooks' Guild's, read 2026-11-02.
+        "pie_shop" to listOf(5, 12, 15, 54, 30, 24, 100, 310, 182, 140),
     )
 
     @Test
@@ -180,6 +185,7 @@ class ShopTest {
         assertEquals(shops["oziachs_armour"], shops.ofNpc(822))
         assertEquals(shops["richards_wilderness_cape_shop"], shops.ofNpc(2200))
         assertEquals(shops["peksas_helmet_shop"], shops.ofNpc(2872))
+        assertEquals(shops["pie_shop"], shops.ofNpc(6533))
         // The Al Kharid General Store won't buy silk (the Wiki's page); no other shop refuses anything.
         assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
@@ -206,7 +212,7 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(28, shops.warnings.size)
+        assertEquals(29, shops.warnings.size)
     }
 
     @Test
