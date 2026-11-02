@@ -8,6 +8,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.Player
+import osrsps.game.Skill
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
@@ -45,15 +46,18 @@ private val logger = KotlinLogging.logger {}
  * The clan's settings page (clans_info, 690) opens from either page's Settings button and draws itself from the clan
  * settings the client has. As a guest its Apply button asks first and then applies (kept with the clan; the owner, in
  * the channel, hears of it), and then reads Withdraw (clan_transmit_guestisapplying). As a member its Leave Clan
- * button asks first and then leaves; the owner can't leave (live: they must hand the clan over first).
+ * button asks first and then leaves; the owner can't leave (live: they must hand the clan over first). Its Applications
+ * button opens the applicants page (clans_applicants, 699) for recruiters: the applicants by name (client script 4376),
+ * Review on one shows their levels (4375), and Accept makes them a member while Decline drops the application.
  *
  * Guessed: the Hub's edges, the founders' rank after founding (the lowest member rank, 0; the founder is owner, 126),
  * the creation time and join day encodings, that finding a clan doesn't join its channel (the panel's text says "You
  * are not currently chatting in this clan's channel" with a Chat button), guests not talking under the default talk
  * rank, the Apply and Leave Clan questions, that only the owner hears of applicants (until ranks and permissions),
  * that someone in a clan can't apply to another, and every game message (keys in [ClanLines], words from the Wiki where
- * it has them). Not built yet: the applicants list for recruiters, inviting after founding, handing the clan over,
- * ranks and permissions, settings, kicks and bans.
+ * it has them), the applicants page's Back going to the settings page, an accepted member's rank (the lowest, 0), the
+ * applicant hearing of either answer, and accepting dropping their applications elsewhere. Not built yet: inviting
+ * after founding, handing the clan over, ranks and permissions, settings, kicks and bans.
  */
 class Clans(
     private val store: ClanStore,
@@ -111,6 +115,12 @@ class Clans(
 
     /** How each player last opened the clan's settings page (clans_info): true as a guest. */
     private val infoAsGuest = HashMap<String, Boolean>()
+
+    /** The applicants each recruiter's applicants page lists, by slot: their save keys. */
+    private val shownApplicants = HashMap<String, List<String>>()
+
+    /** The applicant each recruiter chose (Review) on the applicants page, by save key: theirs. */
+    private val reviewing = HashMap<String, String>()
 
     private var updateNum = 0L
 
@@ -186,6 +196,8 @@ class Clans(
         guestClanOf(player)?.let { leaveChannel(player, it, tell = false) }
         listening.remove(player.saveKey)
         infoAsGuest.remove(player.saveKey)
+        shownApplicants.remove(player.saveKey)
+        reviewing.remove(player.saveKey)
         tabs.remove(player.saveKey)
         inHub.remove(player.saveKey)
         shownName.remove(player.saveKey)
@@ -305,8 +317,9 @@ class Clans(
 
     /**
      * A click on the clan's settings page. Returns whether it was one. As a guest, Apply asks first and then applies;
-     * Withdraw takes the application back. As a member, Leave Clan asks first and then leaves. The other buttons
-     * (events, members, applicants, hall, permissions, titles, bans) aren't built.
+     * Withdraw takes the application back. As a member, Leave Clan asks first and then leaves, and Applications opens
+     * the applicants page for recruiters. The other buttons (events, members, hall, permissions, titles, bans) aren't
+     * built.
      */
     fun clickInfo(player: Player, component: Int): Boolean {
         if (component !in INFO_BUTTONS) return false
@@ -322,6 +335,7 @@ class Clans(
                     confirm(player, words(player)[ClanLines.APPLY_CONFIRM, "name" to clan.name]) { apply(player, clan.id) }
                 }
             }
+            component == INFO_APPLICATIONS && !asGuest -> openApplicants(player)
             component == INFO_QUIT && !asGuest -> {
                 val clan = clanOf(player) ?: return true
                 if (clan.member(player.saveKey)?.rank == RANK_OWNER) {
@@ -342,7 +356,7 @@ class Clans(
             return
         }
         if (clan.applicant(player.saveKey) != null) return
-        store.addApplicant(clan, player.saveKey, player.username)
+        store.addApplicant(clan, player.saveKey, player.username, statsOf(player))
         showApplying(player)
         tell(player, ClanLines.APPLIED, clan.name)
         // Recruiters in the channel hear of it (inferred: the Wiki says recruiters are notified, not how).
@@ -384,16 +398,136 @@ class Clans(
      * `::clanjoin`: [player] joins [clan] as its lowest member rank, for test scripts that leave a clan without founding
      * one. False if they are in a clan already.
      */
-    fun joinTestClan(player: Player, clan: ClanStore.Clan): Boolean {
+    fun joinTestClan(player: Player, clan: ClanStore.Clan, rank: Int = RANK_FOUNDER): Boolean {
         if (clanOf(player) != null) return false
-        store.addMember(clan, ClanStore.Member(player.saveKey, player.username, RANK_FOUNDER, runeDay()))
+        store.addMember(clan, ClanStore.Member(player.saveKey, player.username, rank, runeDay()))
+        admitted(clan, player)
+        return true
+    }
+
+    /** [player] was just made a member of [clan]: their client gets it, and they join its channel. */
+    private fun admitted(clan: ClanStore.Clan, player: Player) {
         if (listening[player.saveKey] == clan.id) discard(player)
         setVarbit(player, VARBIT_AFFINITY, AFFINITY_CONNECTED)
         sendSettings(clan)
         joinChannel(player, clan)
         showRecruit(player)
         if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
+    }
+
+    /**
+     * `::clanapplicant`: an applicant no account can be (a name with a `~`) for [clan], for test scripts to accept or
+     * decline. False if there is one already.
+     */
+    fun addTestApplicant(clan: ClanStore.Clan): Boolean {
+        if (clan.applicant(TEST_APPLICANT_KEY) != null || clan.member(TEST_APPLICANT_KEY) != null) return false
+        store.addApplicant(clan, TEST_APPLICANT_KEY, TEST_APPLICANT_NAME, TEST_APPLICANT_STATS)
         return true
+    }
+
+    private fun isRecruiter(player: Player, clan: ClanStore.Clan): Boolean = (clan.member(player.saveKey)?.rank ?: RANK_GUEST) >= RECRUIT_RANK
+
+    /**
+     * The settings page's Applications button as a member: the applicants page, for recruiters (inferred: others get
+     * nothing). It opens with no applicant chosen.
+     */
+    private fun openApplicants(player: Player) {
+        val clan = clanOf(player) ?: return
+        if (!isRecruiter(player, clan)) return
+        openModal(player, APPLICANTS)
+        for (component in APPLICANTS_BUTTONS) setEvents(player, APPLICANTS, component, -1, -1, OP1, 0)
+        setEvents(player, APPLICANTS, APPLICANTS_LIST, 0, APPLICANTS_SLOTS - 1, 0, EVENT_PAUSE_BUTTON)
+        showApplicants(player, clan)
+    }
+
+    /** The applicants page's list again, oldest first, and no applicant chosen. */
+    private fun showApplicants(player: Player, clan: ClanStore.Clan) {
+        reviewing.remove(player.saveKey)
+        runClientScript(player, SCRIPT_SHOW_APPLICANT, listOf(""))
+        val shown = clan.applicants.take(APPLICANTS_SLOTS)
+        shownApplicants[player.saveKey] = shown.map { it.key }
+        // Every slot, empty ones with no name: the script draws the list once it has the last.
+        for (slot in 0 until APPLICANTS_SLOTS) runClientScript(player, SCRIPT_ADD_APPLICANT, listOf(slot, shown.getOrNull(slot)?.name ?: ""))
+    }
+
+    /**
+     * Review on an applicant: the list's entry sends resume_pausebutton on 699:11 with its slot. Shows their levels,
+     * taken again if they are online. Returns whether it was the applicants list.
+     */
+    fun reviewApplicant(player: Player, interfaceId: Int, component: Int, slot: Int): Boolean {
+        if (interfaceId != APPLICANTS || component != APPLICANTS_LIST) return false
+        if (APPLICANTS !in player.modals.values) return true
+        val clan = clanOf(player)?.takeIf { isRecruiter(player, it) } ?: return true
+        val key = shownApplicants[player.saveKey]?.getOrNull(slot) ?: return true
+        val applicant = clan.applicant(key)
+        if (applicant == null) {
+            // Withdrawn, or answered by another recruiter, since the list was drawn.
+            showApplicants(player, clan)
+            return true
+        }
+        playerByKey(key)?.let { store.setApplicantStats(applicant, statsOf(it)) }
+        reviewing[player.saveKey] = key
+        runClientScript(player, SCRIPT_SHOW_APPLICANT, listOf(applicant.name + "|" + applicant.stats))
+        return true
+    }
+
+    /**
+     * A click on the applicants page's Back, Refresh, Accept or Decline. Returns whether it was one. Back goes to the
+     * settings page; Accept and Decline answer the chosen applicant, then the list is drawn again.
+     */
+    fun clickApplicants(player: Player, component: Int): Boolean {
+        if (component !in APPLICANTS_BUTTONS) return false
+        if (APPLICANTS !in player.modals.values) return true
+        val clan = clanOf(player)?.takeIf { isRecruiter(player, it) } ?: return true
+        when (component) {
+            APPLICANTS_EXIT -> openInfo(player, asGuest = false)
+            APPLICANTS_REFRESH -> showApplicants(player, clan)
+            APPLICANTS_ACCEPT, APPLICANTS_REJECT -> {
+                val applicant = reviewing[player.saveKey]?.let { clan.applicant(it) }
+                if (applicant != null) {
+                    if (component == APPLICANTS_ACCEPT) accept(player, clan, applicant) else decline(player, clan, applicant)
+                }
+                showApplicants(player, clan)
+            }
+        }
+        return true
+    }
+
+    /**
+     * Accept: [applicant] becomes a member of [clan] at the lowest rank, and their other applications go. Refused while
+     * the clan is full, or once they are in another clan (which drops the application).
+     */
+    private fun accept(recruiter: Player, clan: ClanStore.Clan, applicant: ClanStore.Applicant) {
+        if (store.clanOf(applicant.key) != null) {
+            store.removeApplicant(clan, applicant.key)
+            tell(recruiter, ClanLines.APPLICANT_IN_A_CLAN, applicant.name)
+            return
+        }
+        if (clan.members.size >= MAX_MEMBERS) {
+            tell(recruiter, ClanLines.CLAN_FULL)
+            return
+        }
+        store.removeApplications(applicant.key)
+        store.addMember(clan, ClanStore.Member(applicant.key, applicant.name, RANK_FOUNDER, runeDay()))
+        tell(recruiter, ClanLines.APPLICANT_ACCEPTED, applicant.name)
+        val joiner = playerByKey(applicant.key)
+        if (joiner == null) {
+            sendSettings(clan)
+            return
+        }
+        // A guest of another clan they had applied to sees Apply again.
+        if (listening[joiner.saveKey] != clan.id) showApplying(joiner)
+        admitted(clan, joiner)
+        tell(joiner, ClanLines.ACCEPTED, clan.name)
+    }
+
+    /** Decline: [applicant]'s application to [clan] goes. */
+    private fun decline(recruiter: Player, clan: ClanStore.Clan, applicant: ClanStore.Applicant) {
+        store.removeApplicant(clan, applicant.key)
+        tell(recruiter, ClanLines.APPLICANT_DECLINED, applicant.name)
+        val applicantPlayer = playerByKey(applicant.key) ?: return
+        if (listening[applicantPlayer.saveKey] == clan.id) showApplying(applicantPlayer)
+        tell(applicantPlayer, ClanLines.DECLINED, clan.name)
     }
 
     /** Find's typed name: loads that clan as [player]'s guest clan. */
@@ -793,6 +927,13 @@ class Clans(
         send(player, MessageGame(0, words(player).get(line, *line.args.zip(values.map<String, Any> { it }).toTypedArray())))
     }
 
+    /** [player]'s levels as client script 4375 reads them: combat, total, then each skill in its order. */
+    private fun statsOf(player: Player): String {
+        val skills = player.skills
+        val total = Skill.entries.sumOf { skills.baseLevel(it) }
+        return (listOf(skills.combatLevel, total) + APPLICANT_SKILLS.map { skills.baseLevel(it) }).joinToString("|")
+    }
+
     private fun runeDay(): Int = ChronoUnit.DAYS.between(RUNE_EPOCH, now().atOffset(ZoneOffset.UTC).toLocalDate()).toInt()
 
     companion object {
@@ -863,6 +1004,41 @@ class Clans(
 
         /** The lowest rank told of applicants; inferred until ranks and permissions (step 11): the owner (126). */
         const val RECRUIT_RANK = 126
+
+        /** clans_applicants: the applicants page, its list of 20 and its buttons. */
+        const val APPLICANTS = 699
+        const val APPLICANTS_LIST = 11
+        const val APPLICANTS_SLOTS = 20
+        const val APPLICANTS_EXIT = 33
+        const val APPLICANTS_REFRESH = 34
+        const val APPLICANTS_REJECT = 39
+        const val APPLICANTS_ACCEPT = 40
+        val APPLICANTS_BUTTONS = setOf(APPLICANTS_EXIT, APPLICANTS_REFRESH, APPLICANTS_REJECT, APPLICANTS_ACCEPT)
+
+        /** clan_applicants_addapplicant(slot, name): one slot of the list; an empty name empties it. */
+        const val SCRIPT_ADD_APPLICANT = 4376
+
+        /** The chosen applicant's levels, `|` between ("" for none chosen); Accept and Decline show with a name. */
+        const val SCRIPT_SHOW_APPLICANT = 4375
+
+        /** The skills in client script 4375's order (enum_681). */
+        val APPLICANT_SKILLS = listOf(
+            Skill.ATTACK, Skill.STRENGTH, Skill.RANGED, Skill.MAGIC, Skill.DEFENCE, Skill.HITPOINTS, Skill.PRAYER,
+            Skill.AGILITY, Skill.HERBLORE, Skill.THIEVING, Skill.CRAFTING, Skill.RUNECRAFT, Skill.MINING, Skill.SMITHING,
+            Skill.FISHING, Skill.COOKING, Skill.FIREMAKING, Skill.WOODCUTTING, Skill.FLETCHING, Skill.SLAYER,
+            Skill.FARMING, Skill.CONSTRUCTION, Skill.HUNTER, Skill.SAILING,
+        )
+
+        /** The interface event bit that lets a component's slots send resume_pausebutton (the first word's bit 0). */
+        const val EVENT_PAUSE_BUTTON = 1
+
+        /** A clan's member limit (the Wiki: 500). */
+        const val MAX_MEMBERS = 500
+
+        /** [addTestApplicant]'s applicant: `~` is in no account's name. */
+        const val TEST_APPLICANT_KEY = "~test applicant"
+        const val TEST_APPLICANT_NAME = "Applicant"
+        val TEST_APPLICANT_STATS = (listOf(3, 32) + List(24) { if (it == 5) 10 else 1 }).joinToString("|")
 
         /** [makeTestClan]'s owner: `~` is in no account's name. */
         const val TEST_OWNER_KEY = "~test owner"
@@ -952,5 +1128,11 @@ object ClanLines : Lines("clan", "Clans") {
     val LEAVE_CONFIRM = line("leave_confirm", "the question before leaving your clan", "name")
     val OWNER_CANT_LEAVE = line("owner_cant_leave", "the owner pressing Leave Clan")
     val LEFT_CLAN = line("left_clan", "you left your clan", "name")
+    val APPLICANT_ACCEPTED = line("applicant_accepted", "a recruiter accepted an applicant", "name")
+    val APPLICANT_DECLINED = line("applicant_declined", "a recruiter declined an applicant", "name")
+    val APPLICANT_IN_A_CLAN = line("applicant_in_a_clan", "accepting an applicant who joined another clan since", "name")
+    val CLAN_FULL = line("clan_full", "accepting an applicant into a clan with the most members")
+    val ACCEPTED = line("accepted", "your application to a clan was accepted", "name")
+    val DECLINED = line("declined", "your application to a clan was declined", "name")
     val GUEST_CANT_TALK = line("guest_cant_talk", "guest clan chat in a clan whose talk rank is above guests")
 }
