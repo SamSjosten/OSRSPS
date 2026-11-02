@@ -74,7 +74,9 @@ the first: the server places a stone at each site at start. A loc that looks dif
 definition's `transform` names a varbit and the child locs the client draws for each value, and the server answers
 the one loc's options by the player's varbit. Varps and varbits of our own are code too: `game/content/CustomVars.kt`
 lists them, the overlay adds their types to config archives 16 and 14 so the client reads them like the cache's, and
-the world's var types include them, so content sets them like any other and they save with the player. Their ids are
+the world's var types include them, so content sets them like any other. A save keeps them by name (`"customVars":
+{"lodestones": 3}`), not by id, and drops a numeric varp past the cache's own, so a cache swap gives them new ids
+without a player's saved value landing on another var. Their ids are
 given at startup, right after the loaded cache's (its varp count and varbit count), because OpenRS2's builds of one
 revision end at different ids (241's varps end at 5,890 in one build and 5,995 in another) and the overlay refuses an
 id the cache has; so nothing names them by number: content and tests go through `CustomVars`, and `::varp lodestones`
