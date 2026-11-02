@@ -59,6 +59,11 @@ class ClanStoreTest {
         store.addApplicant(clan, "dave", "dave")
         assertTrue(store.removeApplicant(clan, "dave"))
         assertFalse(store.removeApplicant(clan, "dave"))
+        // Applicants wait for the autosave's flush; a member leaving is written at once, with them.
+        assertTrue(store.unwritten)
+        assertTrue(ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.applicants.isEmpty())
+        store.flush()
+        assertFalse(store.unwritten)
         assertTrue(store.removeMember(clan, "bob"))
         val reloaded = ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!
         assertEquals(listOf("carol" to "Carol"), reloaded.applicants.map { it.key to it.name })

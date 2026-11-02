@@ -44,7 +44,7 @@ class ClanStore(private val file: Path? = null) {
     private val founded = HashMap<String, Long>()
     private var nextId = 1L
 
-    /** Set while the clans in the game differ from the file: a write failed, and [flush] tries again. */
+    /** Set while the clans in the game differ from the file (a write failed, or applicants changed); [flush] writes them. */
     var unwritten = false
         private set
 
@@ -86,17 +86,20 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "Clan '${clan.name}' deleted" }
     }
 
-    /** Adds [key] to [clan]'s applicants, unless already there, and saves. */
+    /**
+     * Adds [key] to [clan]'s applicants, unless already there. Written at the next [flush] (the autosave), not now: a
+     * player can apply and withdraw as fast as they click, and each write is the whole file.
+     */
     fun addApplicant(clan: Clan, key: String, name: String) {
         if (clan.applicant(key) != null) return
         clan.applicants += Applicant(key, name)
-        save()
+        unwritten = true
     }
 
-    /** Takes [key] off [clan]'s applicants and saves; false if they weren't one. */
+    /** Takes [key] off [clan]'s applicants, written at the next [flush] as [addApplicant]'s; false if they weren't one. */
     fun removeApplicant(clan: Clan, key: String): Boolean {
         if (!clan.applicants.removeIf { it.key == key }) return false
-        save()
+        unwritten = true
         return true
     }
 
