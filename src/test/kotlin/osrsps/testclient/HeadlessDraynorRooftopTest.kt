@@ -51,10 +51,16 @@ class HeadlessDraynorRooftopTest {
         )
     }
 
+    /**
+     * Crosses each obstacle in turn. The landing tile can arrive a tick before the obstacle's script ends (a walk's last
+     * step), and a click while it runs is dropped, so each waits for the obstacle's XP too: the script's last act.
+     */
     private fun HeadlessClient.lap(skip: Int = 0) {
         for (obstacle in course.drop(skip)) {
+            val xp = stat(AGILITY)?.xp ?: 0
             locOp(obstacle.id, obstacle.x, obstacle.z, 1)
             await("across ${obstacle.name} ${obstacle.id}") { position?.takeIf { it.x == obstacle.endX && it.z == obstacle.endZ } }
+            await("the XP for ${obstacle.name} ${obstacle.id}") { stat(AGILITY)?.takeIf { it.xp > xp } }
         }
     }
 

@@ -45,7 +45,7 @@
    "step": "assertLocation",
    "x": 3102,
    "y": 3279,
-   "plane": 0,
+   "plane": 3,
    "timeoutMs": 20000,
    "comment": "obstacle 1 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
   },
