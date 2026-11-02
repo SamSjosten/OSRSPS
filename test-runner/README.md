@@ -235,6 +235,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-museum-people.json`: Varrock step 9b (with `::keys on`): Historian Minas's information topic, Torrcs,
   Art Critic Jacques and the teacher and pupil on the second floor, then on the Natural History floor Orlando Smith, a
   schoolboy and a natural historian (his first talk ended, then his later greeting and menu).
+- `varrock-champions-guild.json`: Varrock step 10 (with `::keys on`): in through the Champions' Guild's door past the
+  Guildmaster's greeting, his talk, upstairs to buy at Scavvo's and Valaine's (selling to Valaine, who buys anything),
+  their talk, down the trapdoor to the basement and back up its ladder, and out of the door again.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
@@ -262,6 +265,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   after it, the telescope upstairs and the hat talk that confronts him.
 - `draynor-stalls.json`: Draynor step 7: the seed stall's level box at level 1 (`::keys on`), a theft at 27 (one seed,
   10 XP, the stall empty and back 4 ticks later), and Olivia refusing to trade after it. `::reset` makes her forget.
+- `agility-draynor.json`: Agility step 2: one lap of the Draynor Village Rooftop Course at Agility 30 (`::xprate 1`),
+  each of the seven obstacles crossed to its landing tile, then the lap count (`::keys on`) and the lap's 120 XP.
 - `draynor-pickpocket.json`: Draynor step 8: the Master Farmer's level message at Thieving 37 (`::keys on`) and an
   attempt at 99; the man's 28-pouch limit, Open-all for 84 coins, and an attempt on him.
 - `draynor-dark-wizards.json`: Draynor step 9: a dark wizard south of the bank, attacked, casting back from where it
