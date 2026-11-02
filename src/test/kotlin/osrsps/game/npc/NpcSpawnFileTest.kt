@@ -410,10 +410,12 @@ class NpcSpawnFileTest {
         *listOf(473 to "house_ghost", 474 to "house_ghost2", 505 to "house_ghost3", 506 to "house_ghost4", 507 to "house_ghost5")
             .map { (id, name) -> NpcType(id, "Ghost", internalName = name) }.toTypedArray(),
         NpcType(3565, "Skeleton", internalName = "draynor_skeleton"), NpcType(2854, "Rat", internalName = "rat"),
+        NpcType(3562, "Professor Oddenstein", internalName = "professor_oddenstein"), NpcType(4409, "Witch", internalName = "anma_witch"),
+        NpcType(4407, "Ava", internalName = "anma_assistant"),
     )
 
     @Test
-    fun `Draynor Manor's inside has five ghosts upstairs, the closet's skeleton and two rats, all kept indoors`() {
+    fun `Draynor Manor's inside has five ghosts upstairs, the closet's skeleton, two rats and its three people, all kept indoors`() {
         val result = NpcSpawnFile.parse(file("draynor-manor.json"), manorTypes, "draynor-manor.json")
         assertEquals(emptyList(), result.unknown)
         val inside = result.spawns.filter { it.x in 3093..3127 && it.z in 3353..3375 }
@@ -421,7 +423,12 @@ class NpcSpawnFileTest {
         assertTrue(inside.filter { it.type.name == "Ghost" }.all { it.level == 1 })
         assertEquals(Tile(3110, 3367), inside.single { it.type.id == 3565 }.let { Tile(it.x, it.z) })
         assertEquals(2, inside.count { it.type.id == 2854 && it.level == 0 })
-        assertEquals(8, inside.size)
+        // Step 12b: Oddenstein on the top floor, the witch and Ava on the ground floor.
+        assertEquals(
+            mapOf(3562 to Triple(3110, 3367, 2), 4409 to Triple(3099, 3370, 0), 4407 to Triple(3093, 3357, 0)),
+            inside.filter { it.type.id in setOf(3562, 4409, 4407) }.associate { it.type.id to Triple(it.x, it.z, it.level) },
+        )
+        assertEquals(11, inside.size)
         assertTrue(inside.all { it.restrict == MoveRestrict.INDOORS && it.source.isNotBlank() })
     }
 
