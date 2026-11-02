@@ -113,6 +113,7 @@ class LodestonesTest {
             assertEquals(varbit, world.lodestones.varbit(site))
         }
         assertTrue(world.varTypes.varpCount > world.customVars.lodestonesVarp)
+        assertEquals("lodestones", world.varTypes.varpName(world.customVars.lodestonesVarp), "saved by name")
 
         val cache = VarTypes(5996, mapOf(20410 to VarbitType(5995, 0, 3)), 20411)
         val other = World(IntArray(0), CollisionMap(), cache)
@@ -120,5 +121,6 @@ class LodestonesTest {
         assertEquals(20411, other.lodestones.varbit(Lodestones.LUMBRIDGE))
         assertEquals(5997, other.varTypes.varpCount)
         assertEquals(VarbitType(5996, 4, 4), other.varTypes.varbit(20415))
+        assertEquals(mapOf("lodestones" to 5996), other.varTypes.namedVarps)
     }
 }

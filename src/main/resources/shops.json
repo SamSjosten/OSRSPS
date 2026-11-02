@@ -546,6 +546,58 @@
       ]
     },
     {
+      "key": "avas_odds_and_ends",
+      "title": "Ava's Odds and Ends",
+      "inv": 489,
+      "size": 6,
+      "general": false,
+      "sellAt": 1300,
+      "buyAt": 400,
+      "changePer": 30,
+      "npcs": [
+        "anma_assistant"
+      ],
+      "source": "OSRS Wiki, Ava's Odds and Ends, read 2026-11-02: Sells at 130.0%, Buys at 40.0%, Change per 3.0%, and the stock table. The 241 cache's anma_shop inv (6 slots); the UIM and GIM copies (705, 706) aren't used",
+      "stock": [
+        {
+          "item": 314,
+          "name": "Feather",
+          "count": 1000,
+          "restock": 100
+        },
+        {
+          "item": 11881,
+          "name": "Feather pack",
+          "count": 100,
+          "restock": 10
+        },
+        {
+          "item": 884,
+          "name": "Iron arrow",
+          "count": 40,
+          "restock": 100
+        },
+        {
+          "item": 886,
+          "name": "Steel arrow",
+          "count": 10,
+          "restock": 100
+        },
+        {
+          "item": 40,
+          "name": "Iron arrowtips",
+          "count": 30,
+          "restock": 100
+        },
+        {
+          "item": 41,
+          "name": "Steel arrowtips",
+          "count": 20,
+          "restock": 100
+        }
+      ]
+    },
+    {
       "key": "al_kharid_general_store",
       "title": "Al Kharid General Store",
       "inv": 13,

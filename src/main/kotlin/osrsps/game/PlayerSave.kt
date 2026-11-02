@@ -90,6 +90,11 @@ class PlayerSave(
     val runRanOut: Boolean = false,
     /** What the Grand Exchange's bot market has bought from the player against the buy limits, by item. */
     val geSellLimits: List<BuyLimitUse> = emptyList(),
+    /**
+     * Varps of our own that aren't 0, by name ([VarTypes.namedVarps]): their ids follow the cache the server loaded,
+     * so a save names them and the server loading it gives each the id it has now.
+     */
+    val customVars: Map<String, Int> = emptyMap(),
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -132,7 +137,7 @@ class PlayerSave(
      * nothing from before survives. The scenario fields are left to the caller too.
      */
     fun restoreTo(player: Player) {
-        player.vars.forEachNonZero { varp, _ -> if (varp !in varps) player.vars[varp] = 0 }
+        player.vars.forEachNonZero { varp, _ -> if (!holds(player.vars.types, varp)) player.vars[varp] = 0 }
         for (skill in Skill.entries) {
             if (skill !in skills) {
                 // A save names every skill; one written by a server with fewer skills leaves the new ones as new.
@@ -149,13 +154,29 @@ class PlayerSave(
         applyState(player)
     }
 
+    /** Whether this save has a value for [varp]: under its name for one of ours, by id for one of the cache's. */
+    private fun holds(types: VarTypes, varp: Int): Boolean {
+        val name = types.varpName(varp)
+        return if (name != null) name in customVars else varp in varps
+    }
+
     private fun applyState(player: Player) {
         player.runEnergy = runEnergy
         player.runRanOut = runRanOut
+        val types = player.vars.types
         for ((varp, value) in varps) {
-            if (varp >= player.vars.types.varpCount) {
-                // A revision can drop varps; losing one beats refusing the login.
-                logger.warn { "Dropping saved varp $varp of ${player.username}: the cache has ${player.vars.types.varpCount}" }
+            if (varp >= types.cacheVarpCount) {
+                // A revision can drop varps; losing one beats refusing the login. A varp past the cache's own is one of
+                // ours under the id an earlier cache gave it, which would land on another var now: ours go by name.
+                logger.warn { "Dropping saved varp $varp of ${player.username}: the cache has ${types.cacheVarpCount}" }
+                continue
+            }
+            player.vars[varp] = value
+        }
+        for ((name, value) in customVars) {
+            val varp = types.namedVarps[name]
+            if (varp == null) {
+                logger.warn { "Dropping saved var '$name' of ${player.username}: this server has no var of that name" }
                 continue
             }
             player.vars[varp] = value
@@ -252,6 +273,11 @@ class PlayerSave(
         putJsonObject("varps") {
             for ((varp, value) in varps.toSortedMap()) put(varp.toString(), value)
         }
+        if (customVars.isNotEmpty()) {
+            putJsonObject("customVars") {
+                for ((name, value) in customVars.toSortedMap()) put(name, value)
+            }
+        }
         putJsonArray("inventory") { putObjs(inventory) }
         putJsonArray("equipment") { putObjs(equipment) }
         if (bank.isNotEmpty()) putJsonArray("bank") { putObjs(bank) }
@@ -332,7 +358,11 @@ class PlayerSave(
             level: Int = player.level,
         ): PlayerSave {
             val varps = LinkedHashMap<Int, Int>()
-            player.vars.forEachNonZero { varp, value -> varps[varp] = value }
+            val customVars = LinkedHashMap<String, Int>()
+            player.vars.forEachNonZero { varp, value ->
+                val name = player.vars.types.varpName(varp)
+                if (name != null) customVars[name] = value else varps[varp] = value
+            }
             // Kept at 0 too, so a save without it is one from before special attacks, whose energy starts full.
             varps[SpecialAttacks.VARP_ENERGY] = player.vars[SpecialAttacks.VARP_ENERGY]
             val skills = Skill.entries.associateWith { SkillSave(player.skills.tenths(it), player.skills.currentLevel(it)) }
@@ -353,6 +383,7 @@ class PlayerSave(
                 player.friendsChatOwner,
                 runRanOut = player.runRanOut,
                 geSellLimits = player.ge.sellLimits.values.toList(),
+                customVars = customVars,
             )
         }
 
@@ -433,6 +464,7 @@ class PlayerSave(
                     readFriendsChat(root), root["friendsChatOwner"]?.jsonPrimitive?.contentOrNull,
                     runRanOut = state.runRanOut,
                     geSellLimits = state.geSellLimits,
+                    customVars = state.customVars,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -470,6 +502,12 @@ class PlayerSave(
                 val varp = id.toIntOrNull() ?: throw IllegalArgumentException("Varp id '$id' is not a number")
                 require(varp >= 0) { "Varp id $varp is negative" }
                 varps[varp] = value.jsonPrimitive.int
+            }
+            // Optional: saves from before vars of our own, and saves with every one of them at 0, have none.
+            val customVars = LinkedHashMap<String, Int>()
+            for ((name, value) in root["customVars"]?.jsonObject.orEmpty()) {
+                require(name.isNotBlank()) { "A custom var has no name" }
+                customVars[name] = value.jsonPrimitive.int
             }
             // Optional: saves written before the inventory or equipment existed have none.
             val inventory = root.objs("inventory", "Inventory", Inventory.INV_CAPACITY)
@@ -510,6 +548,7 @@ class PlayerSave(
                 geOffers = geOffers, geLimits = geLimits, geHistory = geHistory, geSellLimits = geSellLimits,
                 // Optional: saves from before the energy threshold setting, and saves with run not waiting on it, have none.
                 runRanOut = root["runRanOut"]?.jsonPrimitive?.boolean ?: false,
+                customVars = customVars,
             )
         }
 
