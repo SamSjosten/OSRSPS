@@ -26,6 +26,11 @@ final class Runner
 	private long stepStartMs;
 	private int stepStartTick;
 	private List<Result.StepResult> done;
+	/**
+	 * (0.25.0) Game ticks since the client last logged in. It starts settled, for a client already logged in when the
+	 * plugin starts.
+	 */
+	private int ticksSinceLogin = Steps.WaitForLogin.SETTLE_TICKS;
 
 	Runner(Game game, LongSupplier clock, Supplier<List<String>> allowedAccounts)
 	{
@@ -49,15 +54,25 @@ final class Runner
 	{
 		script = s;
 		this.trigger = trigger;
-		run = new Run(game);
+		run = new Run(game, () -> ticksSinceLogin);
 		stepIndex = 0;
 		done = new ArrayList<>();
 		scriptStartMs = clock.getAsLong();
 		startStep();
 	}
 
+	/** The client has just logged in (the plugin calls this once per login, not after each region load). */
+	void loggedIn()
+	{
+		ticksSinceLogin = 0;
+	}
+
 	void gameTick()
 	{
+		if (ticksSinceLogin < Integer.MAX_VALUE)
+		{
+			ticksSinceLogin++;
+		}
 		if (run != null)
 		{
 			run.gameTick();

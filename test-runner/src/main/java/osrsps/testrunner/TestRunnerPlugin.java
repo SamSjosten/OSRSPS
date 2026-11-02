@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
 public class TestRunnerPlugin extends Plugin
 {
 	/** Written into every result, bumped with every change to how scripts run. */
-	static final String RUNNER_VERSION = "0.24.0";
+	static final String RUNNER_VERSION = "0.25.0";
 	private static final Logger log = LoggerFactory.getLogger(TestRunnerPlugin.class);
 	/** How long a failure waits for a frame to screenshot before writing its result without one. */
 	private static final long SCREENSHOT_WAIT_MS = 3_000;
@@ -340,6 +340,7 @@ public class TestRunnerPlugin extends Plugin
 		if (state == GameState.LOGGED_IN && !loggedIn)
 		{
 			loggedIn = true;
+			runner.loggedIn();
 			autoLogin.loggedIn(client.getUsername(), config.autoLoginAccount());
 			if (config.runOnLogin())
 			{
