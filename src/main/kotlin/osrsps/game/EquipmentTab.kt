@@ -181,7 +181,8 @@ class EquipmentTab(
     fun flush(player: Player) {
         val changed = player.equipment.hasChanges
         sendInventory(player, player.equipment, send)
-        if (!changed && player.sentStance != null) return
+        // An obstacle's stance coming or going changes the appearance with nothing worn changing.
+        if (!changed && player.sentStance != null && player.sentStance == stance(player)) return
         updateAppearance(player)
         if (player.modals[FrameSlot.MAINMODAL] == STATS) sendStats(player)
     }
@@ -195,6 +196,9 @@ class EquipmentTab(
         if (player.equipment.hasChanges || player.sentStance == null) updateCombatTab(player)
     }
 
+    /** The stance the player shows: an obstacle's while it walks them ([Player.stanceOverride]), else the weapon's. */
+    private fun stance(player: Player): Stance = player.stanceOverride ?: Weapons.stance(equipment.weapon(player))
+
     private fun updateAppearance(player: Player) {
         val appearance = player.infos.playerInfo.avatar.extendedInfo
         // RSProt's appearance has wearpos 0 to 11; the ring and ammo don't show on the model.
@@ -207,7 +211,7 @@ class EquipmentTab(
                 appearance.setWornObj(wearpos, type.id, type.wearpos2, type.wearpos3)
             }
         }
-        val stance = Weapons.stance(equipment.weapon(player))
+        val stance = stance(player)
         if (stance != player.sentStance) {
             appearance.setBaseAnimationSet(stance.ready, stance.turn, stance.walk, stance.walkBack, stance.walkLeft, stance.walkRight, stance.run)
             player.sentStance = stance

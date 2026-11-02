@@ -41,6 +41,10 @@ class PlayerInfoReader(val localIndex: Int) {
     var localAnimated: Boolean = false
         private set
 
+    /** Whether the last packet's first extended info block was the local player's and held an exact move; as [localAnimated]. */
+    var localExactMoved: Boolean = false
+        private set
+
     /** Where a high resolution player is, or null if they are not in view. */
     fun coord(index: Int): Coord? = if (highRes[index]) coords[index] else null
 
@@ -106,7 +110,9 @@ class PlayerInfoReader(val localIndex: Int) {
         for (i in 1 until CAPACITY) flags[i] = (flags[i].toInt() shr 1).toByte()
         rebuildLists()
         extendedInfo = extended
-        localAnimated = extended.firstOrNull() == localIndex && (blockFlags(payload, bits.alignedBytes()) and SEQUENCE_FLAG) != 0
+        val localFlags = if (extended.firstOrNull() == localIndex) blockFlags(payload, bits.alignedBytes()) else 0
+        localAnimated = (localFlags and SEQUENCE_FLAG) != 0
+        localExactMoved = (localFlags and EXACT_MOVE_FLAG) != 0
         return moves
     }
 
@@ -212,6 +218,9 @@ class PlayerInfoReader(val localIndex: Int) {
 
         /** The sequence (animation) block's flag on the wire, as RSProt 241's desktop writer converts it. */
         const val SEQUENCE_FLAG = 0x40
+
+        /** The exact move block's flag, likewise. */
+        const val EXACT_MOVE_FLAG = 0x800
 
         /** Walk opcodes 0-7: SW, S, SE, W, E, NW, N, NE. */
         val WALK = arrayOf(-1 to -1, 0 to -1, 1 to -1, -1 to 0, 1 to 0, -1 to 1, 0 to 1, 1 to 1)
