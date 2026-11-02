@@ -97,6 +97,8 @@ class EllisTest {
             assertEquals("[tanning.no_more_coins leather=hard leather]", messages.last())
         }
         tanner(5, 10).let { p -> assertEquals(1, tan(p, 0, 1)) }
+        // One hide: live's line names it in the singular.
+        assertEquals("[tanning.tanned_one hide=cowhide]", messages.last())
         // None held, or no coins for one: nothing changes.
         messages.clear()
         tanner(0, 10).let { p -> assertEquals(0, tan(p, 0, 5)) }

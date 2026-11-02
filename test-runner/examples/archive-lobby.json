@@ -1,0 +1,932 @@
+{
+ "name": "Raid step 14: The Fractured Archive's lobby: the Chasm of Tears' cavity crawls in, the Wizard apprentice's first and later talks, General Montoya, the Record Keeper, the banker's talk and Bank, the bank chest's Collect and Use, and the Opening back to the chasm (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4054 4567 0",
+   "expectMessage": "Teleported to 4054, 4567, 0",
+   "comment": "the Chasm of Tears, east of the cavity (the crawl's landing tile, guessed)"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16354,
+   "value": 1,
+   "comment": "wgs_tfa_shortcut_unlocked: set at login, as after While Guthix Sleeps"
+  },
+  {
+   "step": "locOption",
+   "loc": "Opening",
+   "option": "Crawl-through",
+   "x": 4050,
+   "y": 4567
+  },
+  {
+   "step": "assertLocation",
+   "x": 4127,
+   "y": 5508,
+   "plane": 0,
+   "comment": "in the lobby, north of its Opening (landing tile guessed)"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 16427 0",
+   "expectMessage": "Varbit 16427",
+   "comment": "tfa_wizard_apprentice_met: his first talk again, whatever an earlier run left"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4113 5534 0",
+   "expectMessage": "Teleported to 4113, 5534, 0",
+   "comment": "among the Ascension rocks, by the Wizard apprentice"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Wizard apprentice",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_6]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_7]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_8]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_9]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_10]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_11]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_12]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_13]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_14]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_15]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_16]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_17]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_18]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_19]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_20]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_21]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_22]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_23]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_24]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_25]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_26]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16427,
+   "value": 1,
+   "comment": "his first talk is remembered"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Wizard apprentice",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.later_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.later_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.later_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_16]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_17]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_18]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_19]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_20]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_21]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_22]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_23]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_24]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_25]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_wizard_apprentice.first_26]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4120 5544 0",
+   "expectMessage": "Teleported to 4120, 5544, 0",
+   "comment": "by the planning table and General Montoya"
+  },
+  {
+   "step": "npcOption",
+   "npc": "General Montoya",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[general_montoya.greeting_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[general_montoya.greeting_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[general_montoya.greeting_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[general_montoya.greeting_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[general_montoya.everybody]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[general_montoya.everybody]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[general_montoya.everybody_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[general_montoya.everybody_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[general_montoya.everybody_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[general_montoya.thanks]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[general_montoya.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[general_montoya.thanks_1 name="
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4133 5541 0",
+   "expectMessage": "Teleported to 4133, 5541, 0",
+   "comment": "by the Alliance records and the Record Keeper"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Record Keeper",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_6]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_7]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_8]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_9]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_10]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_11]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_12]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_13]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_14]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_15]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_16]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_17]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_18]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_19]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_20]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_21]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_22]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.intro_23]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[record_keeper.no]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[record_keeper.things]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.things]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.things_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.things_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[record_keeper.no]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[record_keeper.goodbye]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.goodbye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[record_keeper.goodbye_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4123 5551 0",
+   "expectMessage": "Teleported to 4123, 5551, 0",
+   "comment": "by the bank chest and the banker"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[tfa_banker.function]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_6]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_7]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_8]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_9]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_10]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_11]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_12]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_13]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_14]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_15]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_16]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_17]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_18]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_19]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_banker.function_20]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Banker",
+   "option": "Bank",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "comment": "bankmain: the banker's own Bank"
+  },
+  {
+   "step": "logout",
+   "comment": "closes the bank: an open bank hides NPCs and locs from the mouse"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank Chest",
+   "option": "Collect",
+   "x": 4121,
+   "y": 5553
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 402,
+   "timeoutMs": 10000,
+   "comment": "ge_collect, the collection box"
+  },
+  {
+   "step": "logout",
+   "comment": "closes the screen"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "locOption",
+   "loc": "Bank Chest",
+   "option": "Use",
+   "x": 4121,
+   "y": 5553
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 12,
+   "comment": "bankmain: the chest's Use"
+  },
+  {
+   "step": "logout",
+   "comment": "closes the bank"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5508 0",
+   "expectMessage": "Teleported to 4127, 5508, 0",
+   "comment": "north of the lobby's Opening"
+  },
+  {
+   "step": "locOption",
+   "loc": "Opening",
+   "option": "Enter",
+   "x": 4126,
+   "y": 5505
+  },
+  {
+   "step": "assertLocation",
+   "x": 4054,
+   "y": 4567,
+   "plane": 0,
+   "comment": "back in the Chasm of Tears (landing tile guessed)"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "back to Lumbridge: the chasm has no way out yet"
+  }
+ ]
+}

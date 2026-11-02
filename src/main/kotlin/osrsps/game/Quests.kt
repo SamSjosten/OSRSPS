@@ -52,6 +52,9 @@ class Quests(val all: List<Quest>) {
             // ikov_lucien_vis: after Temple of Ikov on Lucien's side, he shows in his house, Talk-to only (inferred;
             // [osrsps.game.content.EdgevillePeople]).
             10753 to 1,
+            // wgs_tfa_shortcut_unlocked: While Guthix Sleeps opens the Chasm of Tears' cavity to The Fractured Archive's
+            // lobby (inferred from the name; [osrsps.game.content.ArchiveLobby]).
+            16354 to 1,
         )
 
         val NONE = Quests(emptyList())

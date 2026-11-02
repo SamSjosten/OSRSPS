@@ -99,6 +99,7 @@ import osrsps.game.content.registerChurch
 import osrsps.game.content.registerFatherUrhney
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
+import osrsps.game.content.registerArchiveLobby
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
 import osrsps.game.content.Ducks
@@ -123,6 +124,8 @@ import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
 import osrsps.game.content.registerDraynorSewers
+import osrsps.game.content.registerDraynorManorGrounds
+import osrsps.game.content.ManorHazards
 import osrsps.game.content.registerWiseOldMan
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRottenPotato
@@ -590,6 +593,7 @@ class World(
 
     val mining = Mining(this)
     val thieving = Thieving(this, collision)
+    val manorHazards = ManorHazards(this)
     val pickpocketing = Pickpocketing(this)
 
     val fishing = Fishing(this)
@@ -686,6 +690,7 @@ class World(
         registerAggie(this)
         registerDraynorJail(this)
         registerDraynorSewers(this)
+        registerDraynorManorGrounds(this)
         registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
@@ -705,6 +710,7 @@ class World(
         registerHaystacks(this)
         registerLodestones(this)
         registerVarrock(this)
+        registerArchiveLobby(this)
         registerCrops(this)
         ducks.register()
         homeTeleport.register(handlers)
@@ -1075,6 +1081,8 @@ class World(
         for (player in players) {
             if (player == null || player.loggedOut) continue
             perPlayer(player, "movement") { movePhase(player) }
+            // After the step, so the vines see the tile the player walked onto this tick.
+            perPlayer(player, "manor hazards") { manorHazards.process(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
