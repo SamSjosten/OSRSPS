@@ -66,6 +66,20 @@ cache files on disk stay the live cache. An id has to be above every live model 
 241) and below 65,536, which is all a JS5 request carries. A changed file is served at the next start; a client that
 had the old one sees the new CRC and fetches it again. Converted Jagex art stays in `data/`, outside git, like the cache.
 
+Sprites and interfaces of our own go the same way. `import-sprite` writes an image (PNG, or anything ImageIO reads) as
+a sprite in the client's format (`osrsps.cache.SpriteCodec`; 255 colours, reduced when the image has more, alpha kept),
+and the server serves every `data/sprites/<id>.dat` as sprite `<id>` on top of the cache's sprite index (8). The
+lodestone map (`game/content/LodestoneMap.kt`) is the first interface of ours: its components are code
+(`osrsps.cache.InterfaceCodec` writes the if3 form every OSRS interface uses: layers, rectangles, text, graphics and
+lines, with no client scripts; what each does is the server's, through IF_SETEVENTS, IF_SETTEXT and IF_SETHIDE) and
+the overlay serves them as interface 30,000 (above the cache's own, below 32,768, as a packed component id is a signed
+int), with its sprites (65,000 to 65,003) drawn in code too. A file in `data/sprites` under one of those ids takes the
+drawn sprite's place, which is how a real map image goes in:
+
+```bash
+./gradlew run --args="import-sprite misthalin.png data/sprites/65003.dat"   # 300 by 262 for the lodestone map
+```
+
 Loc types of our own that use such models are code: `game/content/CustomLocs.kt` lists them (ids from 65,000), each a
 `LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
 the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
@@ -1679,12 +1693,13 @@ RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
 ## Home teleport
 
 Home Teleport, the standard spellbook's first spell (`game/content/HomeTeleport.kt`): on this server Cast opens the
-lodestone network's menu (`Lodestones.kt`, as RS3's does) and a pick plays the five stages on the spot and lands the
-player on that stone 28 ticks later, free and with no cooldown. OSRS's own cast, to the castle courtyard 24 ticks
-after the click with the 30-minute cooldown in varp 892 (which RuneLite's home teleport timer reads), is the class's
-default and stays tested, but no world uses it: `HomeTeleport.target` is the seam the lodestone network takes when
-it registers. Not in yet: the other books' home teleports, teleport animation overrides, and RS3's "Previous
-destination" on the spell (plan step 6, the map interface).
+lodestone map (`Lodestones.kt` and `LodestoneMap.kt`, as RS3's does: each stone's icon where it stands, lit once the
+player has activated it, the stones' names beside, Teleport on the activated ones, and Previous destination for the
+stone last teleported to) and a pick plays the five stages on the spot and lands the player on that stone 28 ticks
+later, free and with no cooldown. OSRS's own cast, to the castle courtyard 24 ticks after the click with the
+30-minute cooldown in varp 892 (which RuneLite's home teleport timer reads), is the class's default and stays tested,
+but no world uses it: `HomeTeleport.target` is the seam the lodestone network takes when it registers. Not in yet:
+the other books' home teleports and teleport animation overrides.
 
 | Home teleport behaviour | Source |
 |-------------------------|--------|

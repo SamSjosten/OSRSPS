@@ -1,6 +1,8 @@
 package osrsps.game.content
 
 import osrsps.cache.LocTypeEncoder
+import osrsps.game.FrameSlot
+import osrsps.game.Interfaces
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.Line
@@ -12,7 +14,7 @@ import osrsps.map.LocShape
 
 /** The lodestone network's words: the teleport menu and what a stone says. RS3's, so the Words thread finds them on its Wiki. */
 object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
-    val TITLE = line("title", "The teleport menu's title (RS3 shows a map; ours is a chat menu of the activated stones)")
+    val TITLE = line("title", "The lodestone map's title (RS3's teleport interface)")
     val LUMBRIDGE = line("lumbridge", "The Lumbridge stone's name, in the menu and the messages")
     val DRAYNOR = line("draynor", "The Draynor Village stone's name")
     val VARROCK = line("varrock", "The Varrock stone's name")
@@ -20,6 +22,7 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
     val EDGEVILLE = line("edgeville", "The Edgeville stone's name")
     val ACTIVATED = line("activated", "Said when the player activates a stone, naming it (the words are RS3's; the Words thread has them)", "name")
     val LOCKED = line("locked", "::lodestone to a stone the player hasn't activated (RS3 greys it out; a message is ours)", "name")
+    val PREVIOUS = line("previous", "The map's Previous destination button, naming the stone last teleported to (RS3's option on the spell)", "name")
 }
 
 /**
@@ -29,8 +32,8 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
  * activated by clicking it once; Home Teleport opens the network and lands on the stone picked; the teleport takes 17
  * seconds, so [CAST_TICKS]; it can't start in combat, and being attacked stops it; it's refused above level 20
  * Wilderness; there is no cooldown. Sam's picks (2 Nov 2026): RS3's timing, the Wilderness block like other teleports.
- * Not yet: RS3's "Previous destination" on the spell (the spell's right-click has no room for it in OSRS's spellbook,
- * and the chat menu's five options are the five sites), which waits for the map interface (plan step 6).
+ * RS3's "Previous destination" (an option on the spell there; the spell's right-click has no room for it in OSRS's
+ * spellbook) is a button on the map ([LodestoneMap.PREVIOUS]), the stone last teleported to.
  *
  * Each site is one loc of our own, a multiloc whose varbit picks what the client draws, so every player sees their own
  * stone: [DORMANT] (model 65000, option Activate) until they activate it, [ACTIVE] (model 65001, option Teleport)
@@ -41,7 +44,7 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
  *
  * Guessed: the stones' tiles (RS3's spots, by the Wiki's descriptions and the OSRS map, placed where the ground is
  * flat and clear; `::pos` and a change to [SITES] move one), landing on the stone's centre tile, the stages' ticks
- * (Home Teleport's, stretched to 28), and the chat menu in place of RS3's map interface.
+ * (Home Teleport's, stretched to 28), and the map's look ([LodestoneMap]).
  */
 object Lodestones {
     /** The child types the client draws: the dormant stone and the active one. */
@@ -59,6 +62,13 @@ object Lodestones {
 
     /** From the click to landing: RS3's 17 seconds, at 0.6 s a tick (28.3, rounded down). */
     const val CAST_TICKS = 28
+
+    /**
+     * The lodestones' varp holds the stone last teleported to as well, for Previous destination: its site index plus
+     * one (0 for none) in these bits, above the sites' own bits ([CustomVars.lodestonePreviousVarbit]).
+     */
+    const val PREVIOUS_LOW_BIT = 8
+    const val PREVIOUS_HIGH_BIT = 11
 
     /** Home Teleport's five stages stretched over the 28 ticks (its own run 0, 7, 13, 16, 19 of 24). Guessed. */
     val STAGES = listOf(
@@ -119,6 +129,7 @@ object Lodestones {
     init {
         require(SITES.mapIndexed { i, site -> site.index == i }.all { it }) { "Sites are numbered in order" }
         require(SITES.map { it.slug }.toSet().size == SITES.size) { "Two sites share a slug" }
+        require(SITES.size <= PREVIOUS_LOW_BIT && SITES.size < 1 shl (PREVIOUS_HIGH_BIT - PREVIOUS_LOW_BIT + 1)) { "${SITES.size} sites don't fit the varp's bits" }
     }
 
     /** The site called [slug] (`::lodestone varrock`), in any case, or null. */
@@ -126,22 +137,31 @@ object Lodestones {
 }
 
 /**
- * The network's rules for one world: what a click on a stone does, the menu, the teleport, what a new login has, and
- * Home Teleport, whose Cast opens the same menu ([HomeTeleport.target]) and casts with the stones' timing and no
- * cooldown. [vars] holds the world's ids for the sites' varbits.
- * [menu] shows [LodestoneLines.TITLE] over the sites' names and returns the pick from 1, or 0 for none (the world's
- * is a chat menu); [words] gives a line's words for the player, for the names in messages.
+ * The network's rules for one world: what a click on a stone does, the map ([LodestoneMap]), the teleport, what a new
+ * login has, and Home Teleport, whose Cast opens the same map ([HomeTeleport.target]) and casts with the stones'
+ * timing and no cooldown. [vars] holds the world's ids for the sites' varbits; [interfaces] opens the map and sets what
+ * it shows; [words] gives a line's words for the player, for the names on the map and in messages.
  */
 class LodestoneNetwork(
     private val vars: CustomVars,
     private val homeTeleport: HomeTeleport,
+    private val interfaces: Interfaces,
     private val message: (Player, Line, Array<out Pair<String, Any>>) -> Unit,
-    private val words: (Player, Line) -> String,
-    private val menu: suspend ScriptContext.(title: Line, options: List<Line>) -> Int,
+    private val words: (Player, Line, Array<out Pair<String, Any>>) -> String,
 ) {
     fun register(handlers: Handlers) {
-        for (site in Lodestones.SITES) handlers.onLoc(site.id, Lodestones.ACTIVATE) { touch(site) }
-        homeTeleport.target = { pick()?.let { HomeTeleport.Target(it.arrival, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false) } }
+        for (site in Lodestones.SITES) {
+            handlers.onLoc(site.id, Lodestones.ACTIVATE) { touch(site) }
+            handlers.onButton(LodestoneMap.INTERFACE, LodestoneMap.iconButton(site), LodestoneMap.TELEPORT) { pick(site) }
+            handlers.onButton(LodestoneMap.INTERFACE, LodestoneMap.row(site), LodestoneMap.TELEPORT) { pick(site) }
+        }
+        handlers.onButton(LodestoneMap.INTERFACE, LodestoneMap.PREVIOUS, LodestoneMap.TELEPORT) { previous(player)?.let { pick(it) } }
+        handlers.onButton(LodestoneMap.INTERFACE, LodestoneMap.CLOSE) { if (isOpen(player)) interfaces.closeModals(player) }
+        // Combat and the Wilderness are refused before this is asked, so the map opens only where a cast could start.
+        homeTeleport.target = {
+            open(player)
+            null
+        }
     }
 
     /** Lumbridge's stone is active from the start (RS3 Wiki): set at every login, so an old save gets it too. */
@@ -154,40 +174,74 @@ class LodestoneNetwork(
 
     fun unlock(player: Player, site: Lodestones.Site) = player.vars.setVarbit(varbit(site), 1)
 
-    /** The sites [player] can teleport to, in the menu's order. */
+    /** The sites [player] can teleport to, in the list's order. */
     fun unlockedSites(player: Player): List<Lodestones.Site> = Lodestones.SITES.filter { unlocked(player, it) }
 
-    /** A click on a stone's one option: Activate while it's dormant for the player, the teleport menu once active. */
-    private suspend fun ScriptContext.touch(site: Lodestones.Site) {
+    /** The stone [player] last teleported to, or null: Previous destination. */
+    fun previous(player: Player): Lodestones.Site? = Lodestones.SITES.getOrNull(player.vars.getVarbit(vars.lodestonePreviousVarbit) - 1)
+
+    /** Whether the map is the player's open modal. */
+    fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL] == LodestoneMap.INTERFACE
+
+    /** A click on a stone's one option: Activate while it's dormant for the player, the map once active. */
+    private fun ScriptContext.touch(site: Lodestones.Site) {
         if (unlocked(player, site)) {
-            open()
+            open(player)
         } else {
             unlock(player, site)
-            message(player, LodestoneLines.ACTIVATED, arrayOf("name" to words(player, site.name)))
+            message(player, LodestoneLines.ACTIVATED, arrayOf("name" to words(player, site.name, emptyArray())))
         }
     }
 
-    /** Shows the activated stones and returns the one picked, or null for none. */
-    suspend fun ScriptContext.pick(): Lodestones.Site? {
-        val sites = unlockedSites(player)
-        // Every login has Lumbridge's; only an admin's ::varp empties the list, and a chat menu needs an option.
-        if (sites.isEmpty()) return null
-        val picked = menu(LodestoneLines.TITLE, sites.map { it.name })
-        return sites.getOrNull(picked - 1)
+    /**
+     * Opens the map and sets what it shows for [player]: the title, each stone's name (grey while locked) and lit or
+     * grey icon, Previous destination when there is one, and the events that let the client send a click on the
+     * activated stones' icons and rows, on Previous destination and on the close button (nothing else is clickable,
+     * so a locked stone offers no option, as RS3's greyed one). The client keeps a component's text and hiding
+     * between opens, so every open sets all of it.
+     */
+    fun open(player: Player) {
+        interfaces.openModal(player, FrameSlot.MAINMODAL, LodestoneMap.INTERFACE)
+        interfaces.setText(player, LodestoneMap.INTERFACE, LodestoneMap.TITLE, words(player, LodestoneLines.TITLE, emptyArray()))
+        for (site in Lodestones.SITES) {
+            val active = unlocked(player, site)
+            interfaces.setHidden(player, LodestoneMap.INTERFACE, LodestoneMap.activeIcon(site), !active)
+            interfaces.setHidden(player, LodestoneMap.INTERFACE, LodestoneMap.dormantIcon(site), active)
+            val name = words(player, site.name, emptyArray())
+            interfaces.setText(player, LodestoneMap.INTERFACE, LodestoneMap.rowText(site), if (active) name else "<col=${LodestoneMap.LOCKED_COLOUR}>$name</col>")
+            if (active) {
+                enable(player, LodestoneMap.iconButton(site))
+                enable(player, LodestoneMap.row(site))
+            }
+        }
+        val previous = previous(player)?.takeIf { unlocked(player, it) }
+        interfaces.setHidden(player, LodestoneMap.INTERFACE, LodestoneMap.PREVIOUS, previous == null)
+        if (previous != null) {
+            val name = words(player, previous.name, emptyArray())
+            interfaces.setText(player, LodestoneMap.INTERFACE, LodestoneMap.PREVIOUS_TEXT, words(player, LodestoneLines.PREVIOUS, arrayOf("name" to name)))
+            enable(player, LodestoneMap.PREVIOUS)
+        }
+        enable(player, LodestoneMap.CLOSE)
     }
 
-    /** Shows the activated stones and starts the teleport to the one picked. */
-    suspend fun ScriptContext.open() {
-        pick()?.let { teleportTo(it) }
+    private fun enable(player: Player, component: Int) = interfaces.setEvents(player, LodestoneMap.INTERFACE, component, -1, -1, Interfaces.IF_EVENT_OP1)
+
+    /** A click on the map's Teleport: closes it and starts the teleport. One without the map open (a stale click) does nothing. */
+    private fun ScriptContext.pick(site: Lodestones.Site) {
+        if (!isOpen(player)) return
+        interfaces.closeModals(player)
+        teleportTo(site)
     }
 
-    /** Starts the teleport to [site], or says why not. Returns whether it started. */
-    suspend fun ScriptContext.teleportTo(site: Lodestones.Site): Boolean {
+    /** Starts the teleport to [site], or says why not. Returns whether it started; a start makes [site] the previous destination. */
+    fun ScriptContext.teleportTo(site: Lodestones.Site): Boolean {
         if (!unlocked(player, site)) {
-            message(player, LodestoneLines.LOCKED, arrayOf("name" to words(player, site.name)))
+            message(player, LodestoneLines.LOCKED, arrayOf("name" to words(player, site.name, emptyArray())))
             return false
         }
-        return with(homeTeleport) { castTo(site.arrival, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false) }
+        val started = with(homeTeleport) { castTo(site.arrival, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false) }
+        if (started) player.vars.setVarbit(vars.lodestonePreviousVarbit, site.index + 1)
+        return started
     }
 }
 

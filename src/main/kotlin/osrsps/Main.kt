@@ -6,6 +6,8 @@ import osrsps.cache.CacheInfo
 import osrsps.cache.MapCollisionLoader
 import osrsps.map.CollisionPrinter
 import osrsps.cache.OpenRs2Archive
+import osrsps.cache.Sprite
+import osrsps.cache.SpriteCodec
 import osrsps.cache.model.ModelCodec
 import osrsps.cache.model.ObjModelImporter
 import osrsps.game.Accounts
@@ -46,8 +48,9 @@ fun main(args: Array<String>) {
         "dialogue-keys" -> writeDialogueKeys()
         "set-password" -> setPassword(args.getOrNull(1))
         "import-model" -> importModel(args.drop(1))
+        "import-sprite" -> importSprite(args.drop(1))
         else -> {
-            System.err.println("Usage: osrsps [fetch-cache [build] | cache-info | serve [port] | collision [x z [level]] | dialogue-keys | set-password name | import-model in.obj out.dat [options]]  (HTTP config on port+1)")
+            System.err.println("Usage: osrsps [fetch-cache [build] | cache-info | serve [port] | collision [x z [level]] | dialogue-keys | set-password name | import-model in.obj out.dat [options] | import-sprite in.png out.dat]  (HTTP config on port+1)")
             exitProcess(2)
         }
     }
@@ -94,6 +97,32 @@ private fun importModel(args: List<String>) {
         " (${result.droppedFaces} collapsed and dropped), ${model.faceColors.distinct().size} colours, materials ${result.materials}")
     println("Footprint x ${model.vertexX.min()}..${model.vertexX.max()}, z ${model.vertexZ.min()}..${model.vertexZ.max()}" +
         " (128 a tile); height ${-model.minY} above and ${model.maxY} below the ground")
+}
+
+/**
+ * Writes an image (PNG or anything ImageIO reads) as a sprite in the client's format, so it can be served from
+ * `data/sprites/<id>.dat` in place of a sprite built in code (the lodestone map's image is 65003). The image is
+ * reduced to the format's 255 colours when it has more; alpha below 255 is kept, 0 is the transparent entry.
+ */
+private fun importSprite(args: List<String>) {
+    if (args.size != 2) {
+        System.err.println("Usage: osrsps import-sprite <in.png> <out.dat>")
+        exitProcess(2)
+    }
+    val input = Path.of(args[0])
+    val output = Path.of(args[1])
+    val image = javax.imageio.ImageIO.read(input.toFile()) ?: run {
+        System.err.println("$input is not an image ImageIO reads")
+        exitProcess(2)
+    }
+    val pixels = IntArray(image.width * image.height)
+    image.getRGB(0, 0, image.width, image.height, pixels, 0, image.width)
+    val sprite = SpriteCodec.quantize(Sprite(image.width, image.height, pixels))
+    val bytes = SpriteCodec.encode(sprite)
+    output.toAbsolutePath().parent?.let(Files::createDirectories)
+    Files.write(output, bytes)
+    val colours = sprite.pixels.filter { it ushr 24 != 0 }.map { it and 0xFFFFFF }.toSet().size
+    println("Wrote ${output.toAbsolutePath()}: ${bytes.size} bytes, ${sprite.width} by ${sprite.height}, $colours colours")
 }
 
 /**
