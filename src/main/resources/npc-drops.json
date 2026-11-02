@@ -41,7 +41,18 @@
         {"item": 830, "name": "Rune javelin", "count": 5, "weight": 1}, {"item": 987, "name": "Loop half of key", "weight": 1}, {"item": 985, "name": "Tooth half of key", "weight": 1},
         {"nothing": true, "weight": 1}
       ],
-      "source": "OSRS Wiki, Gem drop table, read 2026-11-01: each row's x/128. The chaos and nature talismans share one 3/128 row, picked by where the player is (the Wiki: typically nature above ground, chaos underground); every monster on this table so far is in the Draynor Sewers, so the row is the chaos talisman. A surface monster needs the row to pick by place. The last 1 is the mega-rare drop table, which isn't built: it gives nothing for now"
+      "source": "OSRS Wiki, Gem drop table, read 2026-11-01: each row's x/128. The chaos and nature talismans share one 3/128 row, picked by where the player is (the Wiki: typically nature above ground, chaos underground); every monster on this table so far is in the Draynor Sewers, so the row is the chaos talisman. Monsters above ground take gems_surface, the same table with the nature talisman. The last 1 is the mega-rare drop table, which isn't built: it gives nothing for now"
+    },
+    "gems_surface": {
+      "slots": 128,
+      "lines": [
+        {"nothing": true, "weight": 63},
+        {"item": 1623, "name": "Uncut sapphire", "weight": 32}, {"item": 1621, "name": "Uncut emerald", "weight": 16}, {"item": 1619, "name": "Uncut ruby", "weight": 8},
+        {"item": 1462, "name": "Nature talisman", "weight": 3}, {"item": 1617, "name": "Uncut diamond", "weight": 2},
+        {"item": 830, "name": "Rune javelin", "count": 5, "weight": 1}, {"item": 987, "name": "Loop half of key", "weight": 1}, {"item": 985, "name": "Tooth half of key", "weight": 1},
+        {"nothing": true, "weight": 1}
+      ],
+      "source": "OSRS Wiki, Gem drop table, read 2026-11-01, as gems, with the shared talisman row as the nature talisman, the Wiki's pick above ground (Barbarian Village's barbarians and Gunthor list the nature talisman)"
     }
   },
   "npcs": [
@@ -225,7 +236,7 @@
       "source": "OSRS Wiki, Ram, read 2026-10-29 (its ram skull drops only during Rag and Bone Man I, which every account has done)"
     },
     {
-      "npcs": ["goblin_unarmed_melee_1", "goblin_unarmed_melee_2", "goblin_unarmed_melee_3", "goblin_unarmed_melee_4", "goblin_unarmed_melee_5", "goblin_unarmed_melee_6", "goblin_unarmed_melee_7", "goblin_unarmed_melee_8"],
+      "npcs": ["goblin_unarmed_melee_1", "goblin_unarmed_melee_2", "goblin_unarmed_melee_3", "goblin_unarmed_melee_4", "goblin_unarmed_melee_5", "goblin_unarmed_melee_6", "goblin_unarmed_melee_7", "goblin_unarmed_melee_8", "fai_barbarian_goblin_armed_1", "fai_barbarian_goblin_armed_2", "fai_barbarian_goblin_armed_3", "fai_barbarian_goblin_armed_4"],
       "always": [{"item": 526, "name": "Bones"}],
       "table": {
         "slots": 128,
@@ -257,7 +268,7 @@
         {"item": 13447, "name": "Ensouled goblin head", "chance": "1/35"},
         {"item": 6801, "name": "Goblin champion scroll", "chance": "1/5000"}
       ],
-      "source": "OSRS Wiki, Goblin, drop table 1 (most level 2 goblins), read 2026-10-30 (the goblin skull drops only during Rag and Bone Man I, which every account has done)"
+      "source": "OSRS Wiki, Goblin, drop table 1 (most level 2 goblins), read 2026-10-30 (the goblin skull drops only during Rag and Bone Man I, which every account has done). Barbarian Village's level 5 goblins (3073 to 3076) are taken to drop the same: osrsreboxed-db's 2021 lists for them are this table less the energy potions (added since), the Wilderness-only ecumenical key aside; inferred"
     },
     {
       "npcs": ["giantspider1"],
@@ -330,6 +341,113 @@
         {"item": 6801, "name": "Goblin champion scroll", "chance": "1/5000"}
       ],
       "source": "OSRS Wiki, Goblin, drop table 2 (some level 5 goblins), read 2026-10-30; the free-to-play lines (Coins x10, the larger nothing) are out"
+    },
+    {
+      "npcs": ["fai_barbarian_2", "fai_barbarian_5", "fai_barbarian_6", "fai_barbarian_7", "fai_barbarian_10", "fai_barbarian_11", "fai_barbarian_12", "fai_barbarian_13", "fai_barbarian_female_2", "fai_barbarian_female_3", "fai_barbarian_female_4"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 1351, "name": "Bronze axe", "weight": 6},
+          {"item": 1379, "name": "Staff", "weight": 4},
+          {"item": 1420, "name": "Iron mace", "weight": 1},
+          {"item": 562, "name": "Chaos rune", "count": 2, "weight": 4},
+          {"item": 882, "name": "Bronze arrow", "count": 15, "weight": 3},
+          {"item": 557, "name": "Earth rune", "count": 2, "weight": 3},
+          {"item": 554, "name": "Fire rune", "count": 5, "weight": 2},
+          {"item": 558, "name": "Mind rune", "count": 5, "weight": 2},
+          {"item": 563, "name": "Law rune", "count": 2, "weight": 1},
+          {"item": 995, "name": "Coins", "count": 5, "weight": 42},
+          {"item": 995, "name": "Coins", "count": 8, "weight": 9},
+          {"item": 995, "name": "Coins", "count": 17, "weight": 5},
+          {"item": 995, "name": "Coins", "count": 27, "weight": 3},
+          {"nothing": true, "weight": 36},
+          {"item": 438, "name": "Tin ore", "weight": 1},
+          {"item": 948, "name": "Bear fur", "weight": 1},
+          {"item": 1917, "name": "Beer", "weight": 1},
+          {"item": 2142, "name": "Cooked meat", "weight": 1},
+          {"item": 956, "name": "Flyer", "weight": 1},
+          {"item": 1592, "name": "Ring mould", "weight": 1},
+          {"table": "gems_surface", "weight": 1}
+        ]
+      },
+      "tertiary": [
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/75"},
+        {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}
+      ],
+      "source": "OSRS Wiki, Barbarian, Level 8, 9, and 10 drops, read 2026-11-02 (the medium clue's key drops only for that clue step, which isn't built)"
+    },
+    {
+      "npcs": ["fai_barbarian_1", "fai_barbarian_3", "fai_barbarian_4", "fai_barbarian_8", "fai_barbarian_14", "fai_barbarian_female_1"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 1349, "name": "Iron axe", "weight": 6},
+          {"item": 1375, "name": "Bronze battleaxe", "weight": 4},
+          {"item": 1420, "name": "Iron mace", "weight": 1},
+          {"item": 882, "name": "Bronze arrow", "count": 10, "weight": 4},
+          {"item": 562, "name": "Chaos rune", "count": 3, "weight": 4},
+          {"item": 884, "name": "Iron arrow", "count": 8, "weight": 3},
+          {"item": 557, "name": "Earth rune", "count": 5, "weight": 3},
+          {"item": 558, "name": "Mind rune", "count": 10, "weight": 2},
+          {"item": 554, "name": "Fire rune", "count": 8, "weight": 2},
+          {"item": 563, "name": "Law rune", "count": 2, "weight": 1},
+          {"item": 995, "name": "Coins", "count": 8, "weight": 42},
+          {"item": 995, "name": "Coins", "count": 12, "weight": 9},
+          {"item": 995, "name": "Coins", "count": 25, "weight": 5},
+          {"item": 995, "name": "Coins", "count": 32, "weight": 3},
+          {"nothing": true, "weight": 32},
+          {"item": 2142, "name": "Cooked meat", "weight": 1},
+          {"item": 438, "name": "Tin ore", "weight": 1},
+          {"item": 1595, "name": "Amulet mould", "weight": 1},
+          {"item": 1917, "name": "Beer", "weight": 1},
+          {"item": 948, "name": "Bear fur", "weight": 1},
+          {"item": 956, "name": "Flyer", "weight": 1},
+          {"table": "gems_surface", "weight": 1}
+        ]
+      },
+      "tertiary": [
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/55"},
+        {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}
+      ],
+      "source": "Barbarian levels 15 and 17. The Wiki's Level 15 and 17 drops section couldn't be read in full, so the table is Gunthor the Brave's (OSRS Wiki, read 2026-11-02), which osrsreboxed-db's 2021 lists for 3055 and 3068 match row for row bar the tin ore (which the Wiki's Gunthor and level 10 tables both have now); the beginner clue's 1/55 is osrsreboxed-db's. Inferred: check against the Wiki's section"
+    },
+    {
+      "npcs": ["gunthor_the_brave"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 1349, "name": "Iron axe", "weight": 6},
+          {"item": 1375, "name": "Bronze battleaxe", "weight": 4},
+          {"item": 1420, "name": "Iron mace", "weight": 1},
+          {"item": 882, "name": "Bronze arrow", "count": 10, "weight": 4},
+          {"item": 562, "name": "Chaos rune", "count": 3, "weight": 4},
+          {"item": 884, "name": "Iron arrow", "count": 8, "weight": 3},
+          {"item": 557, "name": "Earth rune", "count": 5, "weight": 3},
+          {"item": 558, "name": "Mind rune", "count": 10, "weight": 2},
+          {"item": 554, "name": "Fire rune", "count": 8, "weight": 2},
+          {"item": 563, "name": "Law rune", "count": 2, "weight": 1},
+          {"item": 995, "name": "Coins", "count": 8, "weight": 42},
+          {"item": 995, "name": "Coins", "count": 12, "weight": 9},
+          {"item": 995, "name": "Coins", "count": 25, "weight": 5},
+          {"item": 995, "name": "Coins", "count": 32, "weight": 3},
+          {"nothing": true, "weight": 32},
+          {"item": 2142, "name": "Cooked meat", "weight": 1},
+          {"item": 438, "name": "Tin ore", "weight": 1},
+          {"item": 1595, "name": "Amulet mould", "weight": 1},
+          {"item": 1917, "name": "Beer", "weight": 1},
+          {"item": 948, "name": "Bear fur", "weight": 1},
+          {"item": 956, "name": "Flyer", "weight": 1},
+          {"table": "gems_surface", "weight": 1}
+        ]
+      },
+      "tertiary": [
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/30"},
+        {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}
+      ],
+      "source": "OSRS Wiki, Gunthor the Brave, read 2026-11-02 (the medium clue's key drops only for that clue step, which isn't built)"
     },
     {
       "npcs": ["unicorn"],
@@ -428,6 +546,11 @@
     ]},
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/100"}],
       "source": "OSRS Wiki, Skeleton, Drops (Armed), read 2026-11-01: the members world's coins (10 coins at 24/128). The Wilderness-only looting bag and the champion scroll are left out"
+    },
+    {
+      "npcs": ["house_ghost", "house_ghost2", "house_ghost3", "house_ghost4", "house_ghost5"],
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}],
+      "source": "OSRS Wiki, Ghost, Drops (Level 19), read 2026-11-01: no bones and no main table, only the beginner clue; the Wilderness-only looting bag is left out. Skeleton (Draynor Manor) lists no drops, so it drops nothing"
     }
   ]
 }

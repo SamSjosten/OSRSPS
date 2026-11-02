@@ -189,6 +189,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `barbarian-village.json`: Edgeville step 5 (with `::keys on`): a bronze med helm bought from Peksa, wool spun,
   a pot thrown on Tassie's wheel and fired in her oven, Tassie's talk, the lookout tower's ladders up to Hunding and
   down, and the talk of Atlas, Litara, Checkal and Sigurd.
+- `barbarian-fighters.json`: Edgeville step 7 (with `::keys on` and `::god on`): a barbarian's line and his attack
+  after it, Gunthor the brave fighting back, read off `::npcs`, and the goblins and unicorns in their places.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
@@ -220,6 +222,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Jonny the Beard, Charlie the Tramp given a coin, Draul Leptoc, and a kitten bought from Gertrude for 100 coins.
 - `varrock-fitzharmons.json`: Varrock step 8b (with `::keys on`): Dimintheis handing back family gauntlets, Johnathon
   turning them into chaos gauntlets for 25,000 coins through his Gauntlets option, his talk, and Old Man Yarlo.
+- `varrock-museum.json`: Varrock step 9a (with `::keys on`): the museum's curator (treasure and medallion topics) and
+  information clerk (Kudos, then a museum map), the first and second floors by their straight stairs and back, the
+  Natural History floor and back, the cleaning area's gate through its guard and out, and the back entrance's guard and
+  its double doors.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
@@ -257,6 +263,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `draynor-manor-grounds.json`: Draynor step 11: Veronica's talk (`::keys on`), Chop on an undead tree without and with
   an axe and its swipe (`::god on`), a vine's whip, the compost heap, the fountain, and in by the front doors that
   won't open from inside.
+- `draynor-manor-inside.json`: Draynor step 12a: Draynor Manor's main staircase and spiral stairs up and down, the top
+  floor's tinderbox, the bookcase passage and its lever, the locked closet, and out by the back door, which won't open
+  from outside (`::keys on`, `::god on`).
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

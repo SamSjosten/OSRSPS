@@ -310,16 +310,21 @@ class NpcSpawnFileTest {
     fun `Barbarian Village has Peksa, Tassie Slipcast, Hunding up the tower, Atlas, Checkal, Litara and Sigurd`() {
         val names = mapOf(
             2872 to "peksa", 1352 to "favour_tassie_slipcast", 3063 to "fai_barbarian_9", 10658 to "bim_atlas", 10645 to "bim_checkal_barb",
-            3363 to "sos_barb", 1324 to "canoeing_sigurd",
-        )
+            3363 to "sos_barb", 1324 to "canoeing_sigurd", 299 to "gunthor_the_brave", 2837 to "unicorn",
+        ) + (3055..3072).filter { it != 3063 }.associateWith { "fai_barbarian_$it" } + (3073..3076).associateWith { "fai_barbarian_goblin_armed_${it - 3072}" }
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("barbarian-village.json"), types, "barbarian-village.json")
         assertEquals(emptyList(), result.unknown)
         val spawns = result.spawns
-        assertEquals(listOf(2872, 1352, 3063, 10658, 10645, 3363, 1324), spawns.map { it.type.id })
+        assertEquals(listOf(2872, 1352, 3063, 10658, 10645, 3363, 1324), spawns.take(7).map { it.type.id })
         assertEquals(2, spawns.single { it.type.id == 3063 }.level, "Hunding at the top of the lookout tower")
         assertTrue(spawns.filter { it.type.id != 3063 }.all { it.level == 0 })
-        assertTrue(spawns.all { it.x in 3072..3115 && it.z in 3400..3445 && it.source.isNotBlank() })
+        assertTrue(spawns.all { it.x in 3072..3135 && it.z in 3392..3455 && it.source.isNotBlank() }, "all in the village's map square")
+        // Step 7: the 17 barbarians who fight, Gunthor, five goblins (two of one type) and two unicorns.
+        assertEquals((3055..3072).filter { it != 3063 }, spawns.map { it.type.id }.filter { it in 3055..3072 && it != 3063 })
+        assertEquals(1, spawns.count { it.type.id == 299 })
+        assertEquals(listOf(3073, 3073, 3074, 3075, 3076), spawns.map { it.type.id }.filter { it in 3073..3076 })
+        assertEquals(2, spawns.count { it.type.id == 2837 })
     }
 
     @Test
@@ -397,13 +402,32 @@ class NpcSpawnFileTest {
 
     @Test
     fun `Draynor Manor's grounds have the Wiki's 14 undead trees, standing still, and Veronica by the fence`() {
-        val types = NpcTypes.of(NpcType(4418, "null", internalName = "nasty_tree"), NpcType(3561, "Veronica", internalName = "veronica"))
-        val result = NpcSpawnFile.parse(file("draynor-manor.json"), types, "draynor-manor.json")
+        val result = NpcSpawnFile.parse(file("draynor-manor.json"), manorTypes, "draynor-manor.json")
         assertEquals(emptyList(), result.unknown)
         val trees = result.spawns.filter { it.type.id == 4418 }
         assertEquals(14, trees.size)
         assertTrue(trees.all { it.wander == 0 && it.x in 3100..3145 && it.z in 3333..3366 })
         assertEquals(Tile(3110, 3330), result.spawns.single { it.type.id == 3561 }.let { Tile(it.x, it.z) })
+    }
+
+    private val manorTypes = NpcTypes.of(
+        NpcType(4418, "null", internalName = "nasty_tree"), NpcType(3561, "Veronica", internalName = "veronica"),
+        *listOf(473 to "house_ghost", 474 to "house_ghost2", 505 to "house_ghost3", 506 to "house_ghost4", 507 to "house_ghost5")
+            .map { (id, name) -> NpcType(id, "Ghost", internalName = name) }.toTypedArray(),
+        NpcType(3565, "Skeleton", internalName = "draynor_skeleton"), NpcType(2854, "Rat", internalName = "rat"),
+    )
+
+    @Test
+    fun `Draynor Manor's inside has five ghosts upstairs, the closet's skeleton and two rats, all kept indoors`() {
+        val result = NpcSpawnFile.parse(file("draynor-manor.json"), manorTypes, "draynor-manor.json")
+        assertEquals(emptyList(), result.unknown)
+        val inside = result.spawns.filter { it.x in 3093..3127 && it.z in 3353..3375 }
+        assertEquals(setOf(473, 474, 505, 506, 507), inside.filter { it.type.name == "Ghost" }.map { it.type.id }.toSet())
+        assertTrue(inside.filter { it.type.name == "Ghost" }.all { it.level == 1 })
+        assertEquals(Tile(3110, 3367), inside.single { it.type.id == 3565 }.let { Tile(it.x, it.z) })
+        assertEquals(2, inside.count { it.type.id == 2854 && it.level == 0 })
+        assertEquals(8, inside.size)
+        assertTrue(inside.all { it.restrict == MoveRestrict.INDOORS && it.source.isNotBlank() })
     }
 
     @Test
@@ -473,7 +497,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches', the inns', the townsfolk and the Fitzharmons`() {
+    fun `Varrock has its 37 guards, the five stray dogs, its men and women, both banks' bankers, the Grand Exchange's, the shop keepers, the palace's people, the churches', the inns', the townsfolk, the Fitzharmons and the museum's staff`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -497,6 +521,7 @@ class NpcSpawnFileTest {
             5209 to "tramppg", 3255 to "tramp", 16277 to "dr_harlow_vis", 14139 to "jonny_the_beard_2op", 2899 to "varrock_granny_1",
             276 to "pmod_town_crier_varrock",
             4984 to "dimintheis", 5445 to "johnathon_fitzharmon_2ops", 10425 to "daddyshome_daddy",
+            5214 to "curator", 1909 to "vm_info_booth_lady", 1910 to "vm_museum_guard", 1912 to "vm_museum_guard3",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -554,8 +579,14 @@ class NpcSpawnFileTest {
         val fitzharmons = listOf(4984, 5445, 10425)
         assertEquals(fitzharmons, spawns.filter { it.type.id in fitzharmons }.map { it.type.id }.sorted())
         assertEquals(1, spawns.single { it.type.id == 5445 }.level)
+        // Step 9a: the museum's curator, its clerk behind the booth and the two guards, who stand still.
+        val museum = spawns.filter { it.type.id in listOf(1909, 1910, 1912, 5214) }
+        assertEquals(listOf(1909, 1910, 1912, 5214), museum.map { it.type.id }.sorted())
+        assertTrue(museum.all { it.x in 3252..3267 && it.z in 3441..3456 })
+        val museumStill = museum.filter { it.type.id != 5214 }
+        assertTrue(museumStill.all { it.wander == 0 })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch.
         assertTrue(spawns.all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - elsie - iffie).all { it.wander > 0 })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - elsie - iffie).all { it.wander > 0 })
     }
 }

@@ -47,6 +47,6 @@ class VarTypeLoaderTest {
         assertEquals(174, types.varpCount)
         assertEquals(VarbitType(173, 0, 0), types.varbit(4))
         assertNull(types.varbit(7))
-        assertEquals(1, types.varbitCount)
+        assertEquals(8, types.varbitCount, "the varbit count runs to the highest id, decoded or not")
     }
 }

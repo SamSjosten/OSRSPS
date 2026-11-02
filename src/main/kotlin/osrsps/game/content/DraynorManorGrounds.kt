@@ -19,7 +19,7 @@ object VeronicaLines : Lines("veronica", "Transcript:Veronica") {
     val WARTY = line("warty", "Veronica's answer")
 }
 
-/** What the manor's grounds say. */
+/** What the manor and its grounds say; the last six are the inside's ([DraynorManor], step 12a). */
 object ManorGroundsLines : Lines("draynor_manor", "Draynor Manor") {
     val DOORS_WONT_OPEN = line("doors_wont_open", "the front doors' Open from inside (2004Scape's quest_haunted script)")
     val DOORS_SLAM = line("doors_slam", "two ticks after walking in through the front doors (2004Scape's quest_haunted script)")
@@ -30,6 +30,12 @@ object ManorGroundsLines : Lines("draynor_manor", "Draynor Manor") {
     val VINE = line("vine", "a vine in the south-east of the grounds whips the player (2004Scape's manor_vines script)")
     val TREE_NO_AXE = line("tree_no_axe", "Chop on an undead tree with no axe (the Wiki's Undead tree page)")
     val TREE_BOUNCE = line("tree_bounce", "Chop on an undead tree with an axe (the Wiki's Undead tree page)")
+    val SECRET_DOOR = line("secret_door", "Search on the bookcases from the east, as they open (2004Scape's quest_haunted script)")
+    val LEVER_OPENS = line("lever_opens", "Pull on the lever in the room behind the bookcases (2004Scape's quest_haunted script)")
+    val CLOSET_LOCKED = line("closet_locked", "Open on the closet door behind the stairs (2004Scape's quest_haunted script)")
+    val CLOSET_UNLOCK = line("closet_unlock", "the closet key used on that door (2004Scape's quest_haunted script)")
+    val CLOSET_THROUGH = line("closet_through", "straight after, as the player walks through (2004Scape's quest_haunted script)")
+    val BACK_DOOR_LOCKED = line("back_door_locked", "Open on the back door from outside (guessed: the Wiki only says it is the way out)")
 }
 
 /**

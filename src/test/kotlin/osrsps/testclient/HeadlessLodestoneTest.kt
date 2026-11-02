@@ -3,7 +3,12 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.MemorySaveStore
+import osrsps.game.PlayerSave
+import osrsps.game.SaveStore
+import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.content.CustomLocs
 import osrsps.game.content.CustomVars
@@ -22,6 +27,11 @@ class HeadlessLodestoneTest {
     private val lumbridge = Lodestones.LUMBRIDGE
     private val draynor = Lodestones.DRAYNOR
 
+    /** Our vars after the test world's (none): the stones' loc types name the varbits, so the world gets the same. */
+    private val vars = CustomVars.after(VarTypes.NONE)
+
+    private val saves = MemorySaveStore()
+
     /** The stones' map squares and a Wilderness one, open ground, with our loc types so the world places the stones. */
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
@@ -30,7 +40,7 @@ class HeadlessLodestoneTest {
                 for (site in Lodestones.SITES) markLoaded(site.x shr 6, site.z shr 6)
                 markLoaded(WILDERNESS.x shr 6, WILDERNESS.z shr 6)
             },
-            locTypes = LocTypes.NONE.with(CustomLocs.types), cycleMillis = millis,
+            customVars = vars, locTypes = LocTypes.NONE.with(CustomLocs(vars).types), saves = saves, cycleMillis = millis,
         )
     }
 
@@ -47,14 +57,14 @@ class HeadlessLodestoneTest {
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.commandReply("keys on") { it == "Dialogue shows keys" }
-                client.await("Lumbridge's bit at login") { client.varp(CustomVars.LODESTONES_VARP).takeIf { it == 1 } }
+                client.await("Lumbridge's bit at login") { client.varp(vars.lodestonesVarp).takeIf { it == 1 } }
 
                 client.tele(Coord(draynor.x + 4, draynor.z + 1))
                 val stone = LocChange(draynor.id, draynor.loc.shape, draynor.loc.angle, Coord(draynor.x, draynor.z))
                 client.await("the Draynor stone to reach the client") { client.locChanges().takeIf { stone in it } }
                 client.locOp(draynor.id, draynor.x, draynor.z, Lodestones.ACTIVATE)
                 client.awaitMessage("the activation") { it == "[lodestone.activated name=[lodestone.draynor]]" }
-                client.await("Draynor's bit") { client.varp(CustomVars.LODESTONES_VARP).takeIf { it == 3 } }
+                client.await("Draynor's bit") { client.varp(vars.lodestonesVarp).takeIf { it == 3 } }
 
                 client.command("lodestone")
                 val menu = client.awaitDialogue("the lodestone menu") { it is DialogueView.Menu }
@@ -100,8 +110,28 @@ class HeadlessLodestoneTest {
                 client.awaitCycles(Lodestones.CAST_TICKS + 2)
                 assertEquals(WILDERNESS, client.position)
                 assertEquals(animsBeforeWilderness, client.animationTicks().size, "no cast started in the Wilderness")
+
+                // The activated stones go in the save by name, so a logout and a login keep Draynor's.
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.loginAgain("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.await("both stones' bits from the save") { client.varp(vars.lodestonesVarp).takeIf { it == 3 } }
+                val save = PlayerSave.fromJson(saves.read(SaveStore.saveKey("alice")!!)!!)
+                assertEquals(mapOf("lodestones" to 3), save.customVars)
+                assertFalse(vars.lodestonesVarp in save.varps, "not by id")
             }
         }
+    }
+
+    /** Logs in once the server has let the last login of [name] go: until then a login is refused as still on. */
+    private fun TestServer.loginAgain(name: String): HeadlessClient {
+        repeat(50) {
+            runCatching { login(name) }.onSuccess { return it }
+            Thread.sleep(100)
+        }
+        return login(name)
     }
 
     private companion object {

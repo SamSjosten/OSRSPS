@@ -1,0 +1,560 @@
+{
+ "name": "Varrock step 9a (with ::keys on): the museum's curator and information clerk (and her map), every floor by its stairs, the Natural History floor and back, the cleaning area's gate through its guard (who asks once a login), and the back entrance's guard and doors",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3255 3449 0",
+   "expectMessage": "Teleported to 3255, 3449, 0",
+   "comment": "inside the museum's west entrance"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5214,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Curator Haig Halen"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[curator.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[curator.treasure]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[curator.treasure"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[curator.treasure_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[curator.treasure_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[curator.treasure_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5214,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[curator.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[curator.medallion]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[curator.no_pendant"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1909,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the information clerk, behind her booth"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[museum_clerk.kudos]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.kudos_said"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.kudos_about"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.kudos_for"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.kudos_for_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.kudos_for_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.qualify"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.not_qualified"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.kudos_thanks"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[museum_clerk.something_else]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[museum_clerk.map]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.map_taken"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Museum map",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3266 3451 0",
+   "expectMessage": "Teleported to 3266, 3451, 0",
+   "comment": "south of the straight stairs up (fai_varrock_woodenstairs_castle)"
+  },
+  {
+   "step": "locOption",
+   "locId": 11798,
+   "option": "Climb-up",
+   "x": 3266,
+   "y": 3452,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3266,
+   "y": 3455,
+   "plane": 1,
+   "timeoutMs": 20000,
+   "comment": "the first floor, past the stairs' far end"
+  },
+  {
+   "step": "walk",
+   "x": 3262,
+   "y": 3450,
+   "comment": "among the first floor's displays"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3262,
+   "y": 3450,
+   "plane": 1,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3253 3442 1",
+   "expectMessage": "Teleported to 3253, 3442, 1",
+   "comment": "south of the stairs up to the second floor"
+  },
+  {
+   "step": "locOption",
+   "locId": 11797,
+   "option": "Climb-up",
+   "x": 3253,
+   "y": 3443,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3253,
+   "y": 3446,
+   "plane": 2,
+   "timeoutMs": 20000,
+   "comment": "the second floor"
+  },
+  {
+   "step": "walk",
+   "x": 3256,
+   "y": 3450,
+   "comment": "among the second floor's displays"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3256,
+   "y": 3450,
+   "plane": 2,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "walk",
+   "x": 3253,
+   "y": 3446
+  },
+  {
+   "step": "locOption",
+   "locId": 11799,
+   "option": "Climb-down",
+   "x": 3253,
+   "y": 3444,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3253,
+   "y": 3442,
+   "plane": 1,
+   "timeoutMs": 20000,
+   "comment": "back on the first floor"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3266 3455 1",
+   "expectMessage": "Teleported to 3266, 3455, 1",
+   "comment": "north of the first floor's stairs down"
+  },
+  {
+   "step": "locOption",
+   "locId": 11799,
+   "option": "Climb-down",
+   "x": 3266,
+   "y": 3453,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3266,
+   "y": 3451,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back on the ground floor"
+  },
+  {
+   "step": "walk",
+   "x": 3254,
+   "y": 3452,
+   "comment": "in front of the stairs down to the Natural History floor"
+  },
+  {
+   "step": "locOption",
+   "locId": 24428,
+   "option": "Walk-down",
+   "x": 3255,
+   "y": 3451,
+   "timeoutMs": 20000,
+   "comment": "vm_basement_wall_stairs_down"
+  },
+  {
+   "step": "assertLocation",
+   "x": 1759,
+   "y": 4958,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "the Natural History floor, in front of its stairs up"
+  },
+  {
+   "step": "walk",
+   "x": 1759,
+   "y": 4955,
+   "comment": "down the hall"
+  },
+  {
+   "step": "assertLocation",
+   "x": 1759,
+   "y": 4955,
+   "plane": 0,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "walk",
+   "x": 1759,
+   "y": 4958
+  },
+  {
+   "step": "locOption",
+   "locId": 24427,
+   "option": "Walk-up",
+   "x": 1758,
+   "y": 4959,
+   "timeoutMs": 20000,
+   "comment": "vm_basement_wall_stairs_up"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3254,
+   "y": 3452,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back on the ground floor, in front of the stairs down"
+  },
+  {
+   "step": "logout",
+   "comment": "the gate guard asks only on the first Open or talk after login"
+  },
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3261 3448 0",
+   "expectMessage": "Teleported to 3261, 3448, 0",
+   "comment": "north of the cleaning area's gate"
+  },
+  {
+   "step": "locOption",
+   "locId": 24536,
+   "option": "Open",
+   "x": 3261,
+   "y": 3446,
+   "timeoutMs": 20000,
+   "comment": "vm_barrier_guard_gate: its guard asks first"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_guard.gate_ask"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[museum_guard.gate_in]"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3261,
+   "y": 3446,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "in the cleaning area"
+  },
+  {
+   "step": "locOption",
+   "locId": 24536,
+   "option": "Open",
+   "x": 3261,
+   "y": 3446,
+   "timeoutMs": 20000,
+   "comment": "out again, no talk"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3261,
+   "y": 3447,
+   "plane": 0,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "locOption",
+   "locId": 24536,
+   "option": "Open",
+   "x": 3261,
+   "y": 3446,
+   "timeoutMs": 20000,
+   "comment": "asked once since login: in again with no talk"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3261,
+   "y": 3446,
+   "plane": 0,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "locId": 24536,
+   "option": "Open",
+   "x": 3261,
+   "y": 3446,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3261,
+   "y": 3447,
+   "plane": 0,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3264 3440 0",
+   "expectMessage": "Teleported to 3264, 3440, 0",
+   "comment": "outside the museum's back entrance"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1912,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the back entrance's guard"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_guard.doors_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_guard.doors_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_guard.doors_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_guard.doors_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_guard.doors_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_guard.doors_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "locId": 24567,
+   "option": "Open",
+   "x": 3264,
+   "y": 3441,
+   "timeoutMs": 20000,
+   "comment": "fai_varrock_museum_door_closed_r: both leaves open"
+  },
+  {
+   "step": "assertLoc",
+   "locId": 24568,
+   "option": "Close",
+   "x": 3264,
+   "y": 3442,
+   "comment": "the _r leaf open"
+  },
+  {
+   "step": "assertLoc",
+   "locId": 24566,
+   "option": "Close",
+   "x": 3265,
+   "y": 3442,
+   "comment": "and the _l leaf with it"
+  },
+  {
+   "step": "command",
+   "text": "::resetlocs 2",
+   "expectMessage": "Put the locs within 2 of",
+   "comment": "the doors shut again"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
