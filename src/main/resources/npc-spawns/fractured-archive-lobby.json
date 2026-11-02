@@ -1,0 +1,9 @@
+{
+  "about": "The Fractured Archive's lobby (raid step 14), map square 64,86 of the 241.4 cache: the four NPCs with options, as the Wiki's lobby list names them. Neither mejrs's NPC list nor the Wiki has their tiles yet, so every tile is guessed from the lobby's map, beside the loc each one tends, until a recording of the lobby shows them. The guards, druids and Alliance builders wait for that recording.",
+  "spawns": [
+    {"npc": 16704, "x": 4122, "z": 5553, "direction": "W", "source": "Banker (tfa_lobby_banker), east of the open bank chest at 4121,5553. Tile guessed"},
+    {"npc": 16705, "x": 4119, "z": 5545, "direction": "W", "source": "General Montoya (general_montoya), by the planning table at 4117,5545. Tile guessed"},
+    {"npc": 16692, "x": 4134, "z": 5542, "direction": "N", "source": "Record Keeper (tfa_record_keeper), by the Alliance records at 4135,5544. Tile guessed"},
+    {"npc": 16693, "x": 4113, "z": 5536, "wander": 2, "source": "Wizard apprentice (tfa_wizard_apprentice), among the Ascension rocks (4110 to 4117, 5532 to 5539), as the Wiki places him. Tile and wander guessed"}
+  ]
+}

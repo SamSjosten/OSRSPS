@@ -323,6 +323,18 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `The Fractured Archive's lobby has its banker, General Montoya, the Record Keeper and the Wizard apprentice`() {
+        val names = mapOf(16704 to "tfa_lobby_banker", 16705 to "general_montoya", 16692 to "tfa_record_keeper", 16693 to "tfa_wizard_apprentice")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("fractured-archive-lobby.json"), types, "fractured-archive-lobby.json")
+        assertEquals(emptyList(), result.unknown)
+        assertEquals(listOf(16704, 16705, 16692, 16693), result.spawns.map { it.type.id })
+        // All on the lobby's map square, 64,86, and only the apprentice walking about.
+        assertTrue(result.spawns.all { it.x shr 6 == 64 && it.z shr 6 == 86 && it.level == 0 && it.source.isNotBlank() })
+        assertEquals(listOf(16693), result.spawns.filter { it.wander > 0 }.map { it.type.id })
+    }
+
+    @Test
     fun `Draynor has three bankers, its townsfolk, seven pigs, the farmer, two fishing spots, Ned, Aggie, the jail guards, Leela and Morgan`() {
         val names = mapOf(
             1613 to "banker1", 1618 to "banker2", 3106 to "man", 3111 to "woman", 2854 to "rat", 5007 to "imp", 2796 to "pig_1",
@@ -381,6 +393,17 @@ class NpcSpawnFileTest {
         assertEquals(Tile(3112, 9690), spawns.single { it.type.id == 3461 }.let { Tile(it.x, it.z) })
         // All under the village, a dungeon's 6400 tiles north of it.
         assertTrue(spawns.all { it.x in 3077..3127 && it.z in 9640..9700 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `Draynor Manor's grounds have the Wiki's 14 undead trees, standing still, and Veronica by the fence`() {
+        val types = NpcTypes.of(NpcType(4418, "null", internalName = "nasty_tree"), NpcType(3561, "Veronica", internalName = "veronica"))
+        val result = NpcSpawnFile.parse(file("draynor-manor.json"), types, "draynor-manor.json")
+        assertEquals(emptyList(), result.unknown)
+        val trees = result.spawns.filter { it.type.id == 4418 }
+        assertEquals(14, trees.size)
+        assertTrue(trees.all { it.wander == 0 && it.x in 3100..3145 && it.z in 3333..3366 })
+        assertEquals(Tile(3110, 3330), result.spawns.single { it.type.id == 3561 }.let { Tile(it.x, it.z) })
     }
 
     @Test

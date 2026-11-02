@@ -13,9 +13,15 @@ final class Steps
 	{
 	}
 
-	/** Passes once a player is logged in. The runner checks the name against the script's account on every step. */
+	/**
+	 * Passes once a player is logged in. The runner checks the name against the script's account on every step.
+	 * (0.25.0) After a fresh login it also waits until {@link #SETTLE_TICKS} game ticks have passed: the first command
+	 * typed straight after a relog got no reply, while one typed 5 ticks on did (VM 217 probe, 2 Nov 2026).
+	 */
 	static final class WaitForLogin extends Step
 	{
+		static final int SETTLE_TICKS = 5;
+
 		WaitForLogin(long timeoutMs)
 		{
 			super("waitForLogin", timeoutMs, true);
@@ -28,6 +34,11 @@ final class Steps
 			if (!g.loggedIn() || g.localName() == null)
 			{
 				return Poll.waiting("not logged in");
+			}
+			int ticks = run.ticksSinceLogin();
+			if (ticks < SETTLE_TICKS)
+			{
+				return Poll.waiting("logged in as " + g.localName() + " " + ticks + " ticks ago; waiting for " + SETTLE_TICKS);
 			}
 			return Poll.pass("logged in as " + g.localName());
 		}

@@ -1,0 +1,11 @@
+{
+ "name": "Quest list: the footer counts every quest finished and every quest point earned, 183/183 and 342/342 in the 241 cache (needs 0.6.0)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "clickWidget", "interfaceId": 548, "component": 66, "comment": "toplevel:stone2, the quest tab, in the fixed frame the VM's client uses"},
+  {"step": "clickWidget", "interfaceId": 629, "component": 10, "comment": "side_journal's quest list tab (JournalTab.QUESTS)"},
+  {"step": "assertWidgetText", "interfaceId": 399, "contains": "183/183", "comment": "quests_completed_count over quests_total_count: 183 released quests, not counting miniquests or Recipe for Disaster's parts"},
+  {"step": "assertWidgetText", "interfaceId": 399, "contains": "342/342", "comment": "varp qp over varbit qp_max"}
+ ]
+}

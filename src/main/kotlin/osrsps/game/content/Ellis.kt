@@ -56,7 +56,7 @@ object TanningLines : Lines("tanning", "Tanner") {
     val PRICE = line("price", "each slot's price; {price} is the coins a hide", "price")
     val NO_HIDES = line("no_hides", "tanning with none of that slot's hide; {hide} is the hide", "hide")
     val NO_COINS = line("no_coins", "tanning without the coins for one; {leather} is the slot's leather", "leather")
-    val TANNED_ONE = line("tanned_one", "after tanning one; {hide} is the hide", "hide")
+    val TANNED_ONE = line("tanned_one", "after tanning one; {hide} is the hide, singular", "hide")
     val TANNED_SOME = line("tanned_some", "after tanning several; {count} is how many, {hide} the hides", "count", "hide")
     val NO_MORE_COINS = line("no_more_coins", "after tanning, with hides left and too few coins for another; {leather} is the slot's leather", "leather")
 }
@@ -89,18 +89,29 @@ object Ellis {
     private const val ONE = 148
     private const val ZOOM = 100
 
-    /** One slot: the hide it takes, the leather it makes, the coins a hide and its name's line. */
-    data class Tanning(val hide: Int, val hideName: String, val leather: Int, val leatherName: String, val price: Int, val name: osrsps.game.dialogue.Line)
+    /**
+     * One slot: the hide it takes ([hideName] for several, [oneHideName] for one, as live's "tans your cowhide"), the
+     * leather it makes, the coins a hide and its name's line.
+     */
+    data class Tanning(
+        val hide: Int,
+        val hideName: String,
+        val oneHideName: String,
+        val leather: Int,
+        val leatherName: String,
+        val price: Int,
+        val name: osrsps.game.dialogue.Line,
+    )
 
     val TANNINGS = listOf(
-        Tanning(1739, "cowhides", 1741, "soft leather", 1, TanningLines.SOFT),
-        Tanning(1739, "cowhides", 1743, "hard leather", 3, TanningLines.HARD),
-        Tanning(6287, "snake hides", 6289, "snakeskin", 15, TanningLines.SNAKESKIN),
-        Tanning(7801, "snake hides", 6289, "snakeskin", 20, TanningLines.SWAMP_SNAKESKIN),
-        Tanning(1753, "green dragonhides", 1745, "green dragon leather", 20, TanningLines.GREEN),
-        Tanning(1751, "blue dragonhides", 2505, "blue dragon leather", 20, TanningLines.BLUE),
-        Tanning(1749, "red dragonhides", 2507, "red dragon leather", 20, TanningLines.RED),
-        Tanning(1747, "black dragonhides", 2509, "black dragon leather", 20, TanningLines.BLACK),
+        Tanning(1739, "cowhides", "cowhide", 1741, "soft leather", 1, TanningLines.SOFT),
+        Tanning(1739, "cowhides", "cowhide", 1743, "hard leather", 3, TanningLines.HARD),
+        Tanning(6287, "snake hides", "snake hide", 6289, "snakeskin", 15, TanningLines.SNAKESKIN),
+        Tanning(7801, "snake hides", "snake hide", 6289, "snakeskin", 20, TanningLines.SWAMP_SNAKESKIN),
+        Tanning(1753, "green dragonhides", "green dragonhide", 1745, "green dragon leather", 20, TanningLines.GREEN),
+        Tanning(1751, "blue dragonhides", "blue dragonhide", 2505, "blue dragon leather", 20, TanningLines.BLUE),
+        Tanning(1749, "red dragonhides", "red dragonhide", 2507, "red dragon leather", 20, TanningLines.RED),
+        Tanning(1747, "black dragonhides", "black dragonhide", 2509, "black dragon leather", 20, TanningLines.BLACK),
     )
 
     private val HIDES = TANNINGS.map { it.hide }.toSet()
@@ -190,7 +201,7 @@ object Ellis {
         }
         objTypes[tanning.leather]?.let { player.inventory.add(it, count) }
         message(
-            if (count == 1) text[TanningLines.TANNED_ONE, "hide" to tanning.hideName]
+            if (count == 1) text[TanningLines.TANNED_ONE, "hide" to tanning.oneHideName]
             else text[TanningLines.TANNED_SOME, "count" to count, "hide" to tanning.hideName],
         )
         if (held > count && player.inventory.count(ShopScreen.COINS) < tanning.price) {
