@@ -2261,6 +2261,116 @@
           "restock": 12000
         }
       ]
+    },
+    {
+      "key": "scavvos_rune_store",
+      "title": "Scavvo's Rune Store",
+      "inv": 33,
+      "size": 40,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 33,
+      "npcs": [
+        "scavvo"
+      ],
+      "source": "OSRS Wiki, Scavvo's Rune Store, read 2026-11-02: Sells at 100.0%, Buys at 60.0%, Change per 3.3%, and the stock table (restocks in ticks). inv runiteshop (33) and its size 40 are the 241 cache's; that it is Scavvo's is guessed from its name",
+      "stock": [
+        {
+          "item": 1093,
+          "name": "Rune plateskirt",
+          "count": 1,
+          "restock": 12000
+        },
+        {
+          "item": 1079,
+          "name": "Rune platelegs",
+          "count": 1,
+          "restock": 11500
+        },
+        {
+          "item": 1432,
+          "name": "Rune mace",
+          "count": 1,
+          "restock": 7000
+        },
+        {
+          "item": 1113,
+          "name": "Rune chainbody",
+          "count": 1,
+          "restock": 15000
+        },
+        {
+          "item": 1303,
+          "name": "Rune longsword",
+          "count": 1,
+          "restock": 14000
+        },
+        {
+          "item": 1289,
+          "name": "Rune sword",
+          "count": 1,
+          "restock": 10000
+        },
+        {
+          "item": 1099,
+          "name": "Green d'hide chaps",
+          "count": 1,
+          "restock": 500
+        },
+        {
+          "item": 1065,
+          "name": "Green d'hide vambraces",
+          "count": 1,
+          "restock": 500
+        },
+        {
+          "item": 1169,
+          "name": "Coif",
+          "count": 2,
+          "restock": 1000
+        }
+      ]
+    },
+    {
+      "key": "valaines_shop_of_champions",
+      "title": "Valaine's Shop of Champions",
+      "inv": 18,
+      "size": 40,
+      "general": true,
+      "sellAt": 1300,
+      "buyAt": 400,
+      "changePer": 30,
+      "npcs": [
+        "valaine"
+      ],
+      "source": "OSRS Wiki, Valaine's Shop of Champions, read 2026-11-02: Sells at 130.0%, Buys at 40.0%, Change per 3.0%, the stock table (restocks in ticks), and that any tradeable item can be sold to it, as to a general store. inv championshop (18) and its size 40 are the 241 cache's",
+      "stock": [
+        {
+          "item": 1021,
+          "name": "Blue cape",
+          "count": 2,
+          "restock": 1000
+        },
+        {
+          "item": 1165,
+          "name": "Black full helm",
+          "count": 1,
+          "restock": 1000
+        },
+        {
+          "item": 1077,
+          "name": "Black platelegs",
+          "count": 1,
+          "restock": 20000
+        },
+        {
+          "item": 1123,
+          "name": "Adamant platebody",
+          "count": 1,
+          "restock": 8000
+        }
+      ]
     }
   ]
 }

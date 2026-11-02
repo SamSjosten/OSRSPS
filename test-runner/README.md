@@ -229,6 +229,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-museum-people.json`: Varrock step 9b (with `::keys on`): Historian Minas's information topic, Torrcs,
   Art Critic Jacques and the teacher and pupil on the second floor, then on the Natural History floor Orlando Smith, a
   schoolboy and a natural historian (his first talk ended, then his later greeting and menu).
+- `varrock-champions-guild.json`: Varrock step 10 (with `::keys on`): in through the Champions' Guild's door past the
+  Guildmaster's greeting, his talk, upstairs to buy at Scavvo's and Valaine's (selling to Valaine, who buys anything),
+  their talk, down the trapdoor to the basement and back up its ladder, and out of the door again.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
