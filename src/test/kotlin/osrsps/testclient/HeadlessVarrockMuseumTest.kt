@@ -178,8 +178,8 @@ class HeadlessVarrockMuseumTest {
                 client.await("the login rebuild") { client.position }
                 client.tele(3257, 3450)
                 val menu = "fossil_island,news,treasure,medallion"
-                client.walk(curator.id, "curator", "greeting", "1:$menu", "fossil_island", "fossil_island_answer", "1:fossils_for,drop_topic", "fossils_for", "fossils_for_answer")
-                client.walk(curator.id, "curator", "greeting", "1:$menu", "fossil_island", "fossil_island_answer", "2:fossils_for,drop_topic", "drop_topic")
+                client.walk(curator.id, "curator", "greeting", "1:$menu", "fossil_island_said", "fossil_island_answer", "1:fossils_for,drop_topic", "fossils_for", "fossils_for_answer")
+                client.walk(curator.id, "curator", "greeting", "1:$menu", "fossil_island_said", "fossil_island_answer", "2:fossils_for,drop_topic", "drop_topic")
                 client.walk(curator.id, "curator", "greeting", "2:$menu", "news", "news_1", "news_2")
                 client.walk(curator.id, "curator", "greeting", "3:$menu", "treasure", "treasure_1", "treasure_2", "treasure_3")
                 client.walk(curator.id, "curator", "greeting", "4:$menu", "no_pendant")
@@ -197,16 +197,20 @@ class HeadlessVarrockMuseumTest {
                 val after = "something_else,bye"
                 client.walk(
                     clerk.id, "museum_clerk", "welcome",
-                    "2:$topics", "dig_site", "dig_site_about", "dig_site_clean_1", "dig_site_clean_2", "1:$after",
-                    "3:$topics", "timeline", "timeline_about", "timeline_help_1", "timeline_help_2", "numbers", "numbers_1", "numbers_2", "numbers_ok", "1:$after",
-                    "4:$topics", "natural_history", "natural_history_about", "orlando", "1:living,$after", "living", "living_answer", "1:$after",
-                    "4:$topics", "natural_history", "natural_history_about", "orlando", "2:living,$after",
-                    "5:$topics", "kudos", "kudos_about", "kudos_for", "kudos_for_1", "kudos_for_2", "qualify", "not_qualified", "kudos_thanks", "2:$after",
-                    "bye", "goodbye",
+                    "2:$topics", "dig_site_said", "dig_site_about", "dig_site_clean_1", "dig_site_clean_2", "1:$after",
+                    "3:$topics", "timeline_said", "timeline_about", "timeline_help_1", "timeline_help_2", "numbers", "numbers_1", "numbers_2", "numbers_ok", "1:$after",
+                    "4:$topics", "natural_history_said", "natural_history_about", "orlando", "1:living,$after", "living_said", "living_answer", "1:$after",
+                    "4:$topics", "natural_history_said", "natural_history_about", "orlando", "2:living,$after",
+                    "5:$topics", "kudos_said", "kudos_about", "kudos_for", "kudos_for_1", "kudos_for_2", "qualify", "not_qualified", "kudos_thanks", "2:$after",
+                    "bye_said", "goodbye",
                 )
-                client.walk(clerk.id, "museum_clerk", "welcome", "4:$topics", "natural_history", "natural_history_about", "orlando", "3:living,$after", "bye", "goodbye")
-                client.walk(clerk.id, "museum_clerk", "welcome", "4:$topics", "natural_history", "natural_history_about", "orlando", "1:living,$after", "living", "living_answer", "2:$after", "bye", "goodbye")
-                client.walk(clerk.id, "museum_clerk", "welcome", "1:$topics")
+                client.walk(clerk.id, "museum_clerk", "welcome", "4:$topics", "natural_history_said", "natural_history_about", "orlando", "3:living,$after", "bye_said", "goodbye")
+                client.walk(clerk.id, "museum_clerk", "welcome", "4:$topics", "natural_history_said", "natural_history_about", "orlando", "1:living,$after", "living_said", "living_answer", "2:$after", "bye_said", "goodbye")
+                client.talkTo(clerk.id)
+                client.steps("museum_clerk", "welcome", "1:$topics")
+                client.awaitDialogue("the map box") { it is DialogueView.Message && it.text == "[museum_clerk.map_taken]" }
+                client.continueDialogue()
+                client.over()
                 client.await("the museum map") { client.inventory(Inventory.INV).firstOrNull { it?.id == VarrockMuseum.MUSEUM_MAP } }
 
                 client.tele(3263, 3439)

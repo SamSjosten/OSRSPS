@@ -118,7 +118,7 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[museum_clerk.kudos"
+   "contains": "[museum_clerk.kudos_said"
   },
   {
    "step": "continueDialogue"
@@ -179,6 +179,13 @@
   {
    "step": "chooseOption",
    "text": "[museum_clerk.map]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.map_taken"
+  },
+  {
+   "step": "continueDialogue"
   },
   {
    "step": "assertNoDialogue"

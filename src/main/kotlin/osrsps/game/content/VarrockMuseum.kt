@@ -9,7 +9,8 @@ import osrsps.game.script.ScriptContext
 /** Curator Haig Halen's lines, from the Wiki's Transcript:Curator Haig Halen (standard dialogue, after Bone Voyage), read 2026-11-02. */
 object CuratorLines : Lines("curator", "Transcript:Curator Haig Halen") {
     val GREETING = line("greeting", "his first line, before the menu")
-    val FOSSIL_ISLAND = line("fossil_island", "option 1 (after Bone Voyage), which the player then says")
+    val FOSSIL_ISLAND = line("fossil_island", "option 1 (after Bone Voyage)")
+    val FOSSIL_ISLAND_SAID = line("fossil_island_said", "option 1: what the player says")
     val FOSSIL_ISLAND_ANSWER = line("fossil_island_answer", "option 1: his answer")
     val FOSSILS_FOR = line("fossils_for", "option 1's first option, which the player then says")
     val FOSSILS_FOR_ANSWER = line("fossils_for_answer", "option 1's first option: his answer")
@@ -28,12 +29,15 @@ object CuratorLines : Lines("curator", "Transcript:Curator Haig Halen") {
 /** The information clerk's lines, from the Wiki's Transcript:Information clerk (no rewards waiting), read 2026-11-02. */
 object MuseumClerkLines : Lines("museum_clerk", "Transcript:Information clerk") {
     val WELCOME = line("welcome", "her welcome, before the topic menu")
-    val MAP = line("map", "topic option 1: take a museum map (no speech; the map is given)")
-    val DIG_SITE = line("dig_site", "topic option 2, which the player then says")
+    val MAP = line("map", "topic option 1: take a museum map")
+    val MAP_TAKEN = line("map_taken", "option 1: the box as the player takes the map")
+    val DIG_SITE = line("dig_site", "topic option 2")
+    val DIG_SITE_SAID = line("dig_site_said", "option 2: what the player says")
     val DIG_SITE_ABOUT = line("dig_site_about", "option 2: her first line")
     val DIG_SITE_CLEAN_1 = line("dig_site_clean_1", "option 2, The Dig Site done but not helped the exhibit: the first of two boxes")
     val DIG_SITE_CLEAN_2 = line("dig_site_clean_2", "option 2, the same: the second box")
-    val TIMELINE = line("timeline", "topic option 3, which the player then says")
+    val TIMELINE = line("timeline", "topic option 3")
+    val TIMELINE_SAID = line("timeline_said", "option 3: what the player says")
     val TIMELINE_ABOUT = line("timeline_about", "option 3: her first line")
     val TIMELINE_HELP_1 = line("timeline_help_1", "option 3, not yet contributed: the first of two boxes")
     val TIMELINE_HELP_2 = line("timeline_help_2", "option 3, not yet contributed: the second box")
@@ -41,12 +45,15 @@ object MuseumClerkLines : Lines("museum_clerk", "Transcript:Information clerk") 
     val NUMBERS_1 = line("numbers_1", "option 3: her answer, the first of two boxes")
     val NUMBERS_2 = line("numbers_2", "option 3: the second box")
     val NUMBERS_OK = line("numbers_ok", "option 3: the player's answer")
-    val NATURAL_HISTORY = line("natural_history", "topic option 4, which the player then says")
+    val NATURAL_HISTORY = line("natural_history", "topic option 4")
+    val NATURAL_HISTORY_SAID = line("natural_history_said", "option 4: what the player says")
     val NATURAL_HISTORY_ABOUT = line("natural_history_about", "option 4: her first line")
     val ORLANDO = line("orlando", "option 4, no display corrected: her second line (Orlando's quizzes)")
-    val LIVING = line("living", "option 4's first option, which the player then says")
+    val LIVING = line("living", "option 4's first option")
+    val LIVING_SAID = line("living_said", "option 4's first option: what the player says")
     val LIVING_ANSWER = line("living_answer", "option 4's first option: her answer")
-    val KUDOS = line("kudos", "topic option 5, which the player then says")
+    val KUDOS = line("kudos", "topic option 5")
+    val KUDOS_SAID = line("kudos_said", "option 5: what the player says")
     val KUDOS_ABOUT = line("kudos_about", "option 5: her answer")
     val KUDOS_FOR = line("kudos_for", "option 5: the player asks what it's for")
     val KUDOS_FOR_1 = line("kudos_for_1", "option 5: her answer, the first of two boxes")
@@ -55,7 +62,8 @@ object MuseumClerkLines : Lines("museum_clerk", "Transcript:Information clerk") 
     val NOT_QUALIFIED = line("not_qualified", "option 5, not enough Kudos: her answer")
     val KUDOS_THANKS = line("kudos_thanks", "option 5, not enough Kudos: the player's answer")
     val SOMETHING_ELSE = line("something_else", "the follow-up menu's option 1, back to the topics (no speech)")
-    val BYE = line("bye", "the follow-up menu's option 2, which the player then says")
+    val BYE = line("bye", "the follow-up menu's option 2")
+    val BYE_SAID = line("bye_said", "option 2: what the player says")
     val GOODBYE = line("goodbye", "after bye: her farewell")
 }
 
@@ -118,7 +126,7 @@ object VarrockMuseum {
         chatNpc(ChatAnim.HAPPY, GREETING)
         when (choice(FOSSIL_ISLAND, NEWS, TREASURE, MEDALLION)) {
             1 -> {
-                chatPlayer(ChatAnim.QUIZ, FOSSIL_ISLAND)
+                chatPlayer(ChatAnim.QUIZ, FOSSIL_ISLAND_SAID)
                 chatNpc(ChatAnim.HAPPY, FOSSIL_ISLAND_ANSWER)
                 if (choice(FOSSILS_FOR, DROP_TOPIC) == 1) {
                     chatPlayer(ChatAnim.QUIZ, FOSSILS_FOR)
@@ -149,16 +157,17 @@ object VarrockMuseum {
             when (choice(MAP, DIG_SITE, TIMELINE, NATURAL_HISTORY, KUDOS)) {
                 1 -> {
                     giveMap()
+                    mesbox(MAP_TAKEN)
                     return@with
                 }
                 2 -> {
-                    chatPlayer(ChatAnim.QUIZ, DIG_SITE)
+                    chatPlayer(ChatAnim.QUIZ, DIG_SITE_SAID)
                     chatNpc(ChatAnim.HAPPY, DIG_SITE_ABOUT)
                     chatNpc(ChatAnim.HAPPY, DIG_SITE_CLEAN_1)
                     chatNpc(ChatAnim.HAPPY, DIG_SITE_CLEAN_2)
                 }
                 3 -> {
-                    chatPlayer(ChatAnim.QUIZ, TIMELINE)
+                    chatPlayer(ChatAnim.QUIZ, TIMELINE_SAID)
                     chatNpc(ChatAnim.HAPPY, TIMELINE_ABOUT)
                     chatNpc(ChatAnim.HAPPY, TIMELINE_HELP_1)
                     chatNpc(ChatAnim.HAPPY, TIMELINE_HELP_2)
@@ -168,12 +177,12 @@ object VarrockMuseum {
                     chatPlayer(ChatAnim.HAPPY, NUMBERS_OK)
                 }
                 4 -> {
-                    chatPlayer(ChatAnim.QUIZ, NATURAL_HISTORY)
+                    chatPlayer(ChatAnim.QUIZ, NATURAL_HISTORY_SAID)
                     chatNpc(ChatAnim.HAPPY, NATURAL_HISTORY_ABOUT)
                     chatNpc(ChatAnim.HAPPY, ORLANDO)
                     var pick = choice(LIVING, SOMETHING_ELSE, BYE)
                     if (pick == 1) {
-                        chatPlayer(ChatAnim.QUIZ, LIVING)
+                        chatPlayer(ChatAnim.QUIZ, LIVING_SAID)
                         chatNpc(ChatAnim.NEUTRAL, LIVING_ANSWER)
                         pick = choice(SOMETHING_ELSE, BYE) + 1
                     }
@@ -182,7 +191,7 @@ object VarrockMuseum {
                     return@with
                 }
                 else -> {
-                    chatPlayer(ChatAnim.QUIZ, KUDOS)
+                    chatPlayer(ChatAnim.QUIZ, KUDOS_SAID)
                     chatNpc(ChatAnim.NEUTRAL, KUDOS_ABOUT)
                     chatPlayer(ChatAnim.QUIZ, KUDOS_FOR)
                     chatNpc(ChatAnim.NEUTRAL, KUDOS_FOR_1)
@@ -199,7 +208,7 @@ object VarrockMuseum {
     }
 
     private suspend fun Dialogue.goodbye() = with(MuseumClerkLines) {
-        chatPlayer(ChatAnim.NEUTRAL, BYE)
+        chatPlayer(ChatAnim.NEUTRAL, BYE_SAID)
         chatNpc(ChatAnim.HAPPY, GOODBYE)
     }
 
