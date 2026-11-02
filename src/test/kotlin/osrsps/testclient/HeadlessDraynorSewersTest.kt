@@ -41,6 +41,9 @@ class HeadlessDraynorSewersTest {
         ZoneLoc(DraynorSewers.EAST_LADDER, LocShape.CENTREPIECE_STRAIGHT, 2, 3118, 9643, 0),
         ZoneLoc(DraynorSewers.TRAPDOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 3084, 3272, 0),
         ZoneLoc(LumbridgeCastle.CELLAR_LADDER, LocShape.CENTREPIECE_STRAIGHT, 1, 3084, 9672, 0),
+        // Made up: the trapdoor and ladder types anywhere but the entrances (the exploit review's round 11).
+        ZoneLoc(DraynorSewers.TRAPDOOR, LocShape.CENTREPIECE_STRAIGHT, 0, STRAY_X, 3244, 0),
+        ZoneLoc(DraynorSewers.EAST_LADDER, LocShape.CENTREPIECE_STRAIGHT, 2, STRAY_X, 9643, 0),
     )
 
     private val ruantun = NpcType(DraynorSewers.RUANTUN, "Ruantun", ops = listOf("Talk-to", null, null, null, null), internalName = "malak")
@@ -65,6 +68,8 @@ class HeadlessDraynorSewersTest {
         await("the teleport to $x, $z, $level") { position?.takeIf { it == Coord(x, z, level) } }
     }
 
+    private fun HeadlessClient.seen(text: String) = await(text) { messages().firstOrNull { it.text == text } }
+
     private fun HeadlessClient.awaitAt(x: Int, z: Int, level: Int) =
         assertEquals(Coord(x, z, level), await("$x, $z, $level") { position?.takeIf { it == Coord(x, z, level) } })
 
@@ -83,6 +88,27 @@ class HeadlessDraynorSewersTest {
                 client.locOp(DraynorSewers.EAST_LADDER, 3118, 9643, DraynorSewers.CLIMB)
                 // North of the ladder is north of the trapdoor, not on it.
                 client.awaitAt(3118, 3245, 0)
+            }
+        }
+    }
+
+    @Test
+    fun `the trapdoor and ladder types anywhere else climb nowhere`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dan").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(STRAY_X + 1, 3244, 0)
+                client.locOp(DraynorSewers.TRAPDOOR, STRAY_X, 3244, DraynorSewers.OPEN)
+                client.await("the trapdoor open") { server.world.locs.find(DraynorSewers.TRAPDOOR_OPEN, STRAY_X, 3244, 0) }
+                client.locOp(DraynorSewers.TRAPDOOR_OPEN, STRAY_X, 3244, DraynorSewers.CLIMB)
+                client.seen("[game.nothing_interesting]")
+                client.awaitTicks(3)
+                assertEquals(Coord(STRAY_X + 1, 3244, 0), client.position)
+                client.tele(STRAY_X + 1, 9643, 0)
+                client.locOp(DraynorSewers.EAST_LADDER, STRAY_X, 9643, DraynorSewers.CLIMB)
+                client.await("a second nothing interesting") { client.messages().count { it.text == "[game.nothing_interesting]" }.takeIf { it == 2 } }
+                client.awaitTicks(3)
+                assertEquals(Coord(STRAY_X + 1, 9643, 0), client.position)
             }
         }
     }
@@ -132,5 +158,9 @@ class HeadlessDraynorSewersTest {
                 }
             }
         }
+    }
+
+    private companion object {
+        const val STRAY_X = 3110
     }
 }
