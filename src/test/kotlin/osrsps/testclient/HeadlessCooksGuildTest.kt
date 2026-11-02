@@ -47,6 +47,9 @@ class HeadlessCooksGuildTest {
 
     private val hat = ObjType(CHEFS_HAT, "Chef's hat", wearpos1 = WearPos.HEAD)
     private val pie = ObjType(REDBERRY_PIE, "Redberry pie", cost = 60, tradeable = true)
+    private val coins = ObjType(CooksGuild.COINS, "Coins", stackable = true)
+    private val cape = ObjType(CooksGuild.COOKING_CAPE, "Cooking cape", wearpos1 = WearPos.CAPE)
+    private val hood = ObjType(CooksGuild.COOKING_HOOD, "Cooking hood", wearpos1 = WearPos.HEAD)
     private val chef = NpcType(CooksGuild.HEAD_CHEF, "Head chef", ops = listOf("Talk-to", null, null, null, null), internalName = "cooks_guild_head_chef")
     private val romily = NpcType(CooksGuild.ROMILY, "Romily Weaklax", ops = listOf("Talk-to", null, "Trade", null, null), internalName = "merchant_pies")
 
@@ -64,7 +67,7 @@ class HeadlessCooksGuildTest {
             crcs,
             CollisionMap().apply { markLoaded(3143 shr 6, 3447 shr 6) },
             locTypes = locTypes,
-            objTypes = ObjTypes.of(hat, pie),
+            objTypes = ObjTypes.of(hat, pie, coins, cape, hood),
             npcTypes = NpcTypes.of(chef, romily),
             npcSpawns = listOf(
                 NpcSpawn(chef, 3141, 3445, wander = 0, source = "test"),
@@ -87,6 +90,16 @@ class HeadlessCooksGuildTest {
     private fun HeadlessClient.tele(x: Int, z: Int, level: Int) {
         command("tele $x $z $level")
         await("the teleport to $x, $z, $level") { position?.takeIf { it == Coord(x, z, level) } }
+    }
+
+    private fun HeadlessClient.chat(key: String) {
+        awaitDialogue(key) { it is DialogueView.Chat && it.text == "[$key]" }
+        continueDialogue()
+    }
+
+    private fun HeadlessClient.menuPick(option: Int) {
+        awaitDialogue("the menu") { it is DialogueView.Menu }
+        chooseOption(option)
     }
 
     private fun HeadlessClient.seen(text: String) = await(text) { messages().firstOrNull { it.text == text } }
@@ -163,6 +176,43 @@ class HeadlessCooksGuildTest {
     }
 
     @Test
+    fun `at 99 the Head chef sells the cape and hood for 99,000 coins, then a free hood`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3142, 3445, 0)
+                client.command("setlevel cooking 99")
+                client.command("item ${CooksGuild.COINS} 99000")
+                client.await("the coins") { client.inventory(BACKPACK).firstOrNull { it?.id == CooksGuild.COINS }?.takeIf { it.count == 99_000 } }
+                val chef = client.await("the Head chef in view") { client.npcs().firstOrNull { it.id == CooksGuild.HEAD_CHEF } }
+                client.npcOp(chef.index, CooksGuild.TALK_TO)
+                client.chat("head_chef.master")
+                client.menuPick(2)
+                client.chat("head_chef.buy")
+                client.chat("head_chef.price")
+                client.menuPick(2)
+                client.chat("head_chef.sure")
+                client.chat("head_chef.sold")
+                client.await("the cape and hood, and no coins") {
+                    val ids = client.inventory(BACKPACK).filterNotNull().map { it.id }
+                    if (ids.sorted() == listOf(CooksGuild.COOKING_CAPE, CooksGuild.COOKING_HOOD)) Unit else null
+                }
+
+                // An owner asks for another hood, for free.
+                client.npcOp(chef.index, CooksGuild.TALK_TO)
+                client.chat("head_chef.master")
+                client.menuPick(2)
+                client.menuPick(2)
+                client.chat("head_chef.hood_ask")
+                client.chat("head_chef.hood_given")
+                client.await("a second hood") {
+                    if (client.inventory(BACKPACK).count { it?.id == CooksGuild.COOKING_HOOD } == 2) Unit else null
+                }
+            }
+        }
+    }
+
+    @Test
     fun `Romily Weaklax's Trade opens the Pie Shop`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
@@ -180,5 +230,6 @@ class HeadlessCooksGuildTest {
         const val CHEFS_HAT = 1949
         const val REDBERRY_PIE = 2325
         const val SHOP_INV = 352
+        const val BACKPACK = 93
     }
 }

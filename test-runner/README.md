@@ -195,7 +195,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Barbarian's spot (1526) and cooked on the permanent fire, and the tower's ladder still climbing.
 - `cooks-guild.json`: Edgeville step 9 (with `::keys on`): the Head chef turning away 1 Cooking at the front door
   and letting in 32 in a chef's hat, the spiral stairs up and down, grain through the hopper into a pot of flour, the
-  north-east room's door refusing below 99 and letting 99 through, its range, and Romily Weaklax's Pie Shop.
+  north-east room's door refusing below 99 and letting 99 through, its range, the Head chef's cape and hood bought for
+  99,000 coins, and Romily Weaklax's Pie Shop.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
