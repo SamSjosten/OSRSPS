@@ -161,6 +161,12 @@ class Deaths(
      * player who logs out, so nobody saves dead, and by a raid's wipe for the party members it had downed.
      */
     fun respawn(player: Player, place: DeathPlace? = placeOf(player)) {
+        // A raid's wipe respawns members still on their feet, who never went through [die]: their trade is closed
+        // first, which hands its offers back, so nothing offered slips past what the death loses.
+        if (!player.dead) {
+            closeModals(player)
+            cancelScripts(player)
+        }
         player.deathTick = -1
         val lost = (if (place?.keepItems == true) emptyList() else dropItems(player)) + unchecked(player)
         player.deathKeptItems = KEPT_ITEMS

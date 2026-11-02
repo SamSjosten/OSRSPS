@@ -258,6 +258,46 @@ class HeadlessArchiveRaidTest {
         }
     }
 
+    @Test
+    fun `a member who falls as a room is done gets up standing, and deaths at once in a wipe each count`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("dave").use { dave ->
+                    server.login("frank").use { frank ->
+                        // Frank, out of the party, holds the clock: a dead player's commands wait for them to get up.
+                        for (client in listOf(carol, dave, frank)) client.await("the login rebuild") { client.position }
+                        carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                        dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                        val run = carol.enter(server, "carol")
+                        assertEquals(run, dave.enter(server, "dave"))
+                        val carolPlayer = server.world.playerNamed("carol")!!
+                        // The clock held, Carol falls in the entrance and Dave goes into the hall: the Guardian's fight
+                        // begins and is done on the next tick, while she lies dead.
+                        frank.commandReply("pause") { it.contains("aused after tick") }
+                        carol.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                        dave.commandReply("raid tp guardian") { it.startsWith("To ") }
+                        frank.stepTicks(1)
+                        assertTrue(ArchiveRoom.GUARDIAN in run.cleared, "the Guardian's room done")
+                        assertTrue(carolPlayer.dead, "Carol still dead as it was done")
+                        frank.commandReply("resume") { it.startsWith("Resumed") }
+                        carol.await("Carol up") { if (carolPlayer.dead) null else Unit }
+                        assertTrue(run.downed.isEmpty(), carol.runSays())
+                        // Both fall before either gets up: the run wipes, and each death counts.
+                        frank.commandReply("pause") { it.contains("aused after tick") }
+                        carol.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                        dave.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                        frank.commandReply("resume") { it.startsWith("Resumed") }
+                        val lobby = Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                        carol.awaitAt(lobby, "Carol wiped to the lobby")
+                        dave.awaitAt(lobby, "Dave wiped to the lobby")
+                        assertTrue(run.wiped)
+                        assertEquals(mapOf("carol" to 2, "dave" to 1), run.deaths.mapKeys { (key, _) -> if (key == carolPlayer.saveKey) "carol" else "dave" })
+                    }
+                }
+            }
+        }
+    }
+
     private companion object {
         const val INVENTORY = 93
     }

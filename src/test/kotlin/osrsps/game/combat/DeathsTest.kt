@@ -426,11 +426,11 @@ class DeathsTest {
     }
 
     /** A [Deaths] whose deaths go as [place] says, landing players where it puts them. */
-    private fun placed(place: (Player) -> DeathPlace?) = Deaths(
+    private fun placed(closeModals: (Player) -> Unit = { it.modals.clear() }, place: (Player) -> DeathPlace?) = Deaths(
         objTypes, graveType, { tick }, { online.asSequence() }, { key -> online.firstOrNull { it.saveKey == key } },
         spawnNpc = { npcs.add(it) }, removeNpc = { npcs.remove(it) },
         teleportToSpawn = { player -> teleported += player; player.x = 3222; player.z = 3218 },
-        openModal = { _, _ -> }, closeModals = { it.modals.clear() }, setVarbitNow = { _, _, _ -> },
+        openModal = { _, _ -> }, closeModals = closeModals, setVarbitNow = { _, _, _ -> },
         placeOf = place,
         teleport = { player, x, z, level -> player.x = x; player.z = z; player.level = level },
     )
@@ -469,5 +469,23 @@ class DeathsTest {
         assertEquals(10, alice.hitpoints)
         assertEquals(1, alice.skills.currentLevel(Skill.ATTACK))
         assertEquals(Triple(3205, 3206, 0), Triple(alice.x, alice.z, alice.level))
+    }
+
+    @Test
+    fun `a player respawned on their feet, as a raid's wipe does, has their trade closed first, so its offers count towards the loss`() {
+        // Stands in for the trade's close hook, which hands the offer back: four shields, worth more than the coins.
+        val placed = placed(closeModals = { player ->
+            if (player.modals.isNotEmpty()) player.inventory.add(shield, 4)
+            player.modals.clear()
+        }) { DeathPlace(keepItems = false, 3200, 3201, 0, 3205, 3206, 0) }
+        alice.inventory.add(coins, 10)
+        alice.modals[FrameSlot.MAINMODAL] = 335
+        assertFalse(alice.dead)
+        placed.respawn(alice)
+        assertTrue(alice.modals.isEmpty())
+        // Three shields kept, the fourth and the coins in the grave.
+        assertEquals(listOf(shield.id, shield.id, shield.id), alice.inventory.contents().map { it.second.id })
+        assertEquals(1L, placed.graveOf(alice)!!.items.count(shield.id))
+        assertEquals(10L, placed.graveOf(alice)!!.items.count(coins.id))
     }
 }

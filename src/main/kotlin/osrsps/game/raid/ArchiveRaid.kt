@@ -110,6 +110,10 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     var nexusLevel: Int = ArchiveRaids.NEXUS_START
         internal set
 
+    /** The tick the last room was done on; a member who fell before it gets up standing. -1 before any. */
+    var clearedTick: Long = -1
+        internal set
+
     /** The whole party went down: it is out of the run, with graves in the lobby. */
     var wiped: Boolean = false
         internal set
@@ -339,6 +343,7 @@ class ArchiveRaids(private val world: World) {
         run.chosen[room.stage] = room
         share(run, room)
         run.downed.clear()
+        run.clearedTick = world.tick
         val level = nexusLevel(run.stage)
         if (level != run.nexusLevel) {
             run.nexusLevel = level
@@ -377,14 +382,16 @@ class ArchiveRaids(private val world: World) {
     fun deathPlace(player: Player): DeathPlace? {
         val run = at(player.x, player.z) ?: return null
         if (player.saveKey !in run.entered) return null
-        if (run.wiped) return wipePlace(run)
         run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
+        if (run.wiped) return wipePlace(run)
         val others = standing(run).filter { it !== player }
         if (others.isEmpty()) {
             wipe(run, player)
             return wipePlace(run)
         }
-        run.downed += player.saveKey
+        // A room done while they lay dying is a fight they're no longer out of: they get up standing.
+        val fell = player.deathTick
+        if (fell < 0 || run.clearedTick < fell) run.downed += player.saveKey
         val room = roomAt(run, player.x, player.z)
         // A death in the hall once the Guardian is done (a stray hit) has no fight to be out of.
         val front = room?.takeIf { it !in run.cleared }?.doorFront ?: Tile(NEXUS_X, NEXUS_Z)
