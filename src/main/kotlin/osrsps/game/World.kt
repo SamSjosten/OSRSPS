@@ -664,17 +664,13 @@ class World(
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
-    /** The lodestone network; see [LodestoneNetwork]. Its menu is a chat menu of the activated stones' names. */
+    /** The lodestone network; see [LodestoneNetwork]. Its map is a modal of our own, [LodestoneMap]. */
     val lodestones = LodestoneNetwork(
         customVars,
         homeTeleport,
+        interfaces,
         message = { player, line, values -> message(player, line, *values) },
-        words = { player, line -> textFor(player)[line] },
-        menu = { title, options ->
-            var picked = 0
-            dialogues.start(this) { picked = choice(*options.toTypedArray(), title = text(title)) }
-            picked
-        },
+        words = { player, line, values -> textFor(player).get(line, *values) },
     )
 
     val commands = CommandRegistry(admins::isAdmin).apply {

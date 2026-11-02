@@ -22,6 +22,7 @@ import osrsps.cache.WorldMap
 import osrsps.cache.overlay.CacheOverlay
 import osrsps.game.content.CustomLocs
 import osrsps.game.content.CustomVars
+import osrsps.game.content.LodestoneMap
 import osrsps.game.EffectIds
 import osrsps.game.AllSettings
 import osrsps.game.SettingsCatalog
@@ -148,7 +149,8 @@ class GameServer(
             customVars = CustomVars.after(varTypes)
             logger.info { "Custom vars after the cache's (varps to ${varTypes.varpCount - 1}, varbits to ${varTypes.varbitCount - 1}): $customVars" }
             val customLocs = CustomLocs(customVars)
-            val overlay = CacheOverlay.load(dataDir) + customLocs.overlayFiles + customVars.overlayFiles
+            // The lodestone map's interface and sprites are built in code; a sprite file in data/sprites takes its place.
+            val overlay = CacheOverlay.load(dataDir).withGroups(LodestoneMap.overlayGroups) + customLocs.overlayFiles + customVars.overlayFiles
             logger.info { "Cache overlay: ${overlay.size} custom group(s) and file(s): $overlay" }
             js5 = Js5Store.load(library, overlay)
             map = MapCollisionLoader.loadWorld(library, customLocs.types)
@@ -163,7 +165,9 @@ class GameServer(
             specialAttackCosts = CombatLoader.specialAttackCosts(library)
             skillUnlocks = SkillUnlockLoader.load(library)
             settings = SettingsLoader.load(library)
-            interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty()
+            interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty() + LodestoneMap.INTERFACE
+            val fonts = library.index(FONT_INDEX)?.archiveIds()?.toSet().orEmpty()
+            for (font in LodestoneMap.FONTS) if (font !in fonts) logger.warn { "The cache has no font $font, which the lodestone map's text uses" }
             val huffmanData = library.data(HUFFMAN_ARCHIVE, "huffman", 0) ?: error("No huffman group in the cache")
             huffman = HuffmanCodec.create(Unpooled.wrappedBuffer(huffmanData))
             val frameProblems = GameFrameCheck.check(library)
@@ -299,5 +303,6 @@ class GameServer(
     private companion object {
         const val HUFFMAN_ARCHIVE = 10
         const val INTERFACE_INDEX = 3
+        const val FONT_INDEX = 13
     }
 }

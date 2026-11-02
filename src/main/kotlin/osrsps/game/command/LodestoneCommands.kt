@@ -4,7 +4,7 @@ import osrsps.game.World
 import osrsps.game.content.Lodestones
 
 /**
- * `::lodestone` opens the lodestone teleport menu from anywhere, and `::lodestone <site>` starts the teleport to that
+ * `::lodestone` opens the lodestone map from anywhere, and `::lodestone <site>` starts the teleport to that
  * stone: the network's own rules apply (only activated stones, not in combat, not above level 20 Wilderness, the full
  * cast), so it's for every player, as RS3's Home Teleport opens the network from anywhere.
  */
@@ -17,8 +17,6 @@ fun CommandRegistry.registerLodestoneCommands(world: World) {
         if (world.scripts.busy(player)) fail("You can't use ::lodestone with an interface open or in the middle of something.")
         if (args.size > 1) fail("Usage: ::lodestone [$slugs]")
         val site = args.firstOrNull()?.let { Lodestones.site(it) ?: fail("No lodestone called '$it': ::lodestone [$slugs]") }
-        world.scripts.start(player) {
-            with(world.lodestones) { if (site == null) open() else teleportTo(site) }
-        }
+        if (site == null) world.lodestones.open(player) else world.scripts.start(player) { with(world.lodestones) { teleportTo(site) } }
     }
 }

@@ -56,7 +56,7 @@ class VarCommandsTest {
                 "Varbit lodestone.varrock (id 31, varp 5000 bits 2-2) = 1",
                 "Varbit lodestone.varrock (id 31, varp 5000 bits 2-2): 1 -> 1, varp 5000 is now 5",
                 "Varbit lodestone.varrock holds 0 to 1",
-                "Usage: ::varbit id|name [value] ('lodestone.nowhere' is not a number or one of lodestone.al_kharid, lodestone.draynor, lodestone.edgeville, lodestone.lumbridge, lodestone.varrock)",
+                "Usage: ::varbit id|name [value] ('lodestone.nowhere' is not a number or one of lodestone.al_kharid, lodestone.draynor, lodestone.edgeville, lodestone.lumbridge, lodestone.previous, lodestone.varrock)",
             ),
             replies,
         )
