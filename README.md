@@ -610,6 +610,12 @@ a lap with its 50 XP lap bonus, nothing fails; reached by `::tele 2474 3438`). A
 (the Gnome Stronghold's two pipes, its rope's pieces) and several locs (its three nets), each route naming the locs
 it is for; of the routes for the loc clicked, the one starting nearest the player is taken (a fence's two sides).
 
+Shortcuts (on no course, both ways): the Varrock south fence (13), the Grand Exchange underwall tunnel (21), the
+Champions' Guild stepping stone (31, 3 XP; a failure still reaches the far bank, for 1 to 3 damage and 1 XP), the
+Draynor underwall tunnel (42), Draynor Manor's broken fence (49, 1.5 XP) and the Champions' Guild south stepping stones
+(52, 5 XP a crossing). Left for later: the Lumbridge Swamp stepping stone, the River Lum raft, the Varrock Palace
+trellis (a quest), the Edgeville Dungeon pipes and the Paterdomus railing.
+
 Marks of grace: once three whole minutes of the clock have gone since a player's last mark, each lap they finish has
 the course's chance of one (2/6 on Draynor), a fifth of that when their unboosted Agility is 20 or more over the
 course's level. It lands on one of the course's spots, for them alone, and goes after ten minutes; another on the same
@@ -639,6 +645,11 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Gnome Stronghold: each start, path and landing tile; the mark spot moved onto the platform's nearest floor tile | inferred from the map |
 | Gnome Stronghold: the animations (human_walk_logbalance, human_reachforladder, human_doublepipesqueeze, by their cache names), tick counts | guessed until recorded |
 | Gnome Stronghold: the gnome trainers' shouts | not built |
+| Shortcuts: their locs and where they stand | cache 241 map |
+| Shortcuts: levels and XP; the stone's failure landing on the far bank with damage and 1 XP | OSRS Wiki, Shortcuts and each shortcut's page (read 2026-11-02) |
+| Shortcuts: each side's tile | inferred from the map |
+| Shortcuts: the south stones' 5 XP at the end (live gives 2.5 on the first and third stone) | simplified |
+| Shortcuts: the animations (human_jump_hurdle, human_longcrawl, human_steppingstonejump, human_walk_crumbledwall), tick counts, the stone's fail chance and 1 to 3 damage | guessed until recorded |
 | A lap needing every obstacle; the lap progress kept across a logout | inferred, guessed |
 | The level message as a game message; fail chances (the Wiki gives none); the hit after the fall; the real tile moving when a slide's ticks are up | guessed |
 | Marks: the three-minute timer in whole minutes from the last mark, kept across a logout; 2/6 a lap, a fifth at 20 over; private, ten minutes, stacking resets the time | OSRS Wiki, Mark of Grace (read 2026-11-02) |

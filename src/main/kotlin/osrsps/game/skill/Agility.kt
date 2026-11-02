@@ -32,6 +32,12 @@ object AgilityLines : Lines("agility", "Agility") {
     val VARROCK_LAPS = line("varrock_laps", "Varrock Rooftop Course: the lap count message after each lap", "count")
     val VARROCK_LEVEL = line("varrock_level", "Varrock Rooftop Course: an obstacle clicked below level 30", "level")
     val GNOME_LAPS = line("gnome_laps", "Gnome Stronghold Agility Course: the lap count message after each lap", "count")
+    val VARROCK_FENCE_LEVEL = line("varrock_fence_level", "Shortcut: the Varrock south fence clicked below level 13", "level")
+    val GRAND_EXCHANGE_TUNNEL_LEVEL = line("grand_exchange_tunnel_level", "Shortcut: the Grand Exchange underwall tunnel clicked below level 21", "level")
+    val CHAMPIONS_GUILD_STONE_LEVEL = line("champions_guild_stone_level", "Shortcut: the Champions' Guild stepping stone clicked below level 31", "level")
+    val DRAYNOR_TUNNEL_LEVEL = line("draynor_tunnel_level", "Shortcut: the Draynor underwall tunnel clicked below level 42", "level")
+    val DRAYNOR_MANOR_FENCE_LEVEL = line("draynor_manor_fence_level", "Shortcut: Draynor Manor's broken fence clicked below level 49", "level")
+    val CHAMPIONS_GUILD_SOUTH_STONES_LEVEL = line("champions_guild_south_stones_level", "Shortcut: the Champions' Guild south stepping stones clicked below level 52", "level")
 
     /** A line by its key, for agility.json to name one. */
     fun byKey(key: String): Line = lines.firstOrNull { it.key == key } ?: error("No agility line $key")
@@ -88,6 +94,8 @@ class Obstacle(
     /** What the player is told below [level]; [AgilityLines.LEVEL] for an obstacle with no line of its own. */
     val levelLine: Line = AgilityLines.LEVEL,
     val alsoLocs: List<Int> = emptyList(),
+    /** XP in tenths for a failure, as the Champions' Guild stepping stone's 1; 0 for most. */
+    val failXpTenths: Int = 0,
 ) {
     /** Every loc type that is this obstacle. */
     val locs: List<Int> get() = listOf(loc) + alsoLocs
@@ -194,6 +202,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                 json["at"]?.jsonArray?.let(::tile), routes, success, damage,
                 json["levelLine"]?.jsonPrimitive?.content?.let(AgilityLines::byKey) ?: AgilityLines.LEVEL,
                 json["alsoLocs"]?.jsonArray.orEmpty().map { it.jsonPrimitive.int },
+                json["failXpTenths"]?.jsonPrimitive?.int ?: 0,
             )
         }
 
@@ -261,9 +270,12 @@ class Agility(private val world: World, val data: AgilityData) {
         } ?: true
         for (move in if (success) route.moves else route.fail) play(move)
         if (success) {
-            player.skills.addTenths(Skill.AGILITY, obstacle.xpTenths)
+            // Most shortcuts give no XP, and no XP drop either.
+            if (obstacle.xpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.xpTenths)
             crossed(obstacle)
-        } else if (!obstacle.damage.isEmpty()) {
+        } else {
+            if (obstacle.failXpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.failXpTenths)
+            if (obstacle.damage.isEmpty()) return
             val damage = world.random.between(obstacle.damage.first, obstacle.damage.last)
             world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
         }

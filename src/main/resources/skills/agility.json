@@ -1,6 +1,6 @@
 {
   "about": [
-    "Agility obstacles, by course. Each obstacle: key, loc (type id), alsoLocs (other loc types that are the same obstacle, when there are), option (the start of the loc's option text), level, xpTenths, at ([x, z, level], only when several locs of one type are different obstacles), routes, and for one that can fail success ([low, high] out of 256, guessed: the Wiki gives no fail rates) and damage ([min, max]).",
+    "Agility obstacles, by course. Each obstacle: key, loc (type id), alsoLocs (other loc types that are the same obstacle, when there are), option (the start of the loc's option text), level, xpTenths, at ([x, z, level], only when several locs of one type are different obstacles), routes, and for one that can fail success ([low, high] out of 256, guessed: the Wiki gives no fail rates) and damage ([min, max]), and failXpTenths when a failure gives XP.",
     "A route: from ([x, z, level], where the player starts), at (the [x, z, level] tiles of the locs this route is for, when the obstacle is several locs; none for every loc), moves, and fail (the moves of a failure, for an obstacle that can fail). Of the routes for the loc clicked, the one starting nearest the player is taken.",
     "Moves, in order: anim (anim, ticks: plays it and waits), teleport (to: straight there, another level too), walk (path of [x, z] turning points, anim: one tile a tick through anything, with anim as the whole stance), slide (to, anim, startCycles, endCycles, ticks: the client's exact move; client cycles are 20 ms, 30 a tick).",
     "Courses: key, obstacles (their keys in order), lapXpTenths (on top of the last obstacle's; 0 for the rooftops, whose last obstacle holds the lap's) and lapLine (the lap count message's key); for marks of grace also level (the course's Agility level), marks (the [x, z, level] tiles a mark lands on) and markChance ([numerator, denominator] a lap). An obstacle may name its own levelLine.",
@@ -8,7 +8,8 @@
     "Draynor Village Rooftop Course: locs, tiles and options from the 241 cache's map (the roofs are the level 3 tiles with floor); levels and XP from the OSRS Wiki (read 2026-11-02, after the 8 May 2024 rework: level 1, nothing fails). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations (by their cache names), every tick count and exact move timing.",
     "Al Kharid Rooftop Course: locs, tiles and options from the 241 cache's map (roofs at levels 1 to 3: the zip line lands on level 1 and the tree swings to level 2); level 20, the XP of each obstacle (216 a lap) and Tightrope 1 and the zip line failing for 1 to 5 damage from the OSRS Wiki (read 2026-11-02); its mark spots from the Wiki's spawns table (the plateskirt shop's roof on level 1, the others on level 3). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names (human_ropeswing_long for the cable and the tree, zipline_bite and zipline_slide, human_walk_logbalance_stumble for a fall), every tick count and exact move timing, the fail chances and where a fall lands.",
     "Varrock Rooftop Course: locs, tiles and options from the 241 cache's map (roofs on levels 1 and 3: the first gap lands on level 1 and the wall climbs back to 3); level 30, each obstacle's XP (269.7 a lap, the edge's 143.7 holding the lap's) and the clothes line failing for 3 to 8, the wall for 2 to 5 from the OSRS Wiki (read 2026-11-02); its mark spots from the Wiki's spawns table, two moved onto the nearest floor tile (the clothes shop ledge to 3196,3416 on level 1, the tavern roof to 3220,3402). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names, the wall's route along its top, every tick count and exact move timing, the fail chances and where a fall lands.",
-    "Gnome Stronghold Agility Course: locs, tiles and options from the 241 cache's map (the nets climb to level 1, the first branch to the level 2 platform, the second branch back down to the ground); level 1, each obstacle's XP and the 50 XP lap bonus (110.5 a lap) from the OSRS Wiki (read 2026-11-02, after the 8 May 2024 rebalance; the pipe's own page says 10 XP but the course page's 7.5 is the one that adds up to 110.5); its one mark spot from the Wiki's spawns table (2486,3422, before the branch down) moved onto the platform's nearest floor tile (2486,3421 on level 2). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names (human_walk_logbalance for the log and the rope, human_reachforladder for the nets and branches, human_doublepipesqueeze for the pipe), every tick count and exact move timing. Not built: the gnome trainers' shouts."
+    "Gnome Stronghold Agility Course: locs, tiles and options from the 241 cache's map (the nets climb to level 1, the first branch to the level 2 platform, the second branch back down to the ground); level 1, each obstacle's XP and the 50 XP lap bonus (110.5 a lap) from the OSRS Wiki (read 2026-11-02, after the 8 May 2024 rebalance; the pipe's own page says 10 XP but the course page's 7.5 is the one that adds up to 110.5); its one mark spot from the Wiki's spawns table (2486,3422, before the branch down) moved onto the platform's nearest floor tile (2486,3421 on level 2). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names (human_walk_logbalance for the log and the rope, human_reachforladder for the nets and branches, human_doublepipesqueeze for the pipe), every tick count and exact move timing. Not built: the gnome trainers' shouts.",
+    "Misthalin shortcuts (on no course): locs, tiles and options from the 241 cache's map; levels and XP from the OSRS Wiki's Shortcuts page and each shortcut's page (read 2026-11-02): the Varrock south fence (13, no XP), the Grand Exchange underwall tunnel (21, no XP), the Champions' Guild stepping stone (31, 3 XP; a failure still reaches the far bank, with damage and 1 XP), the Draynor underwall tunnel (42, no XP), Draynor Manor's broken fence (49, 1.5 XP) and the Champions' Guild south stepping stones (52, 5 XP a crossing, given at the end, where live gives 2.5 on the first and third stone). Inferred from the map: each side's tile (the fences' two sides of their wall, the tunnels' ends either side of the city or manor wall, the river banks either side of the stones). Guessed until recorded: the animations by their cache names (human_jump_hurdle, human_longcrawl, human_steppingstonejump, human_walk_crumbledwall, human_walk_logbalance_stumble for a stone's fall), every tick count and exact move timing, the stone's fail chance and its 1 to 3 damage (the Wiki says a few). Left for later: the Lumbridge Swamp stepping stone (66; its river's edges aren't clear in the map), the River Lum broken raft (a grapple), the Varrock Palace trellis (a quest), the Edgeville Dungeon pipes (not built yet) and the Paterdomus railing (Morytania)."
   ],
   "obstacles": [
     {
@@ -1376,6 +1377,483 @@
               "startCycles": 15,
               "endCycles": 105,
               "ticks": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_varrock_fence",
+      "loc": 16518,
+      "option": "Jump-over",
+      "level": 13,
+      "levelLine": "agility.varrock_fence_level",
+      "xpTenths": 0,
+      "routes": [
+        {
+          "from": [
+            3240,
+            3335,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3240,
+                3334,
+                0
+              ],
+              "anim": 1603,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            }
+          ]
+        },
+        {
+          "from": [
+            3240,
+            3334,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3240,
+                3335,
+                0
+              ],
+              "anim": 1603,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_grand_exchange_tunnel",
+      "loc": 16529,
+      "alsoLocs": [
+        16530
+      ],
+      "option": "Climb-into",
+      "level": 21,
+      "levelLine": "agility.grand_exchange_tunnel_level",
+      "xpTenths": 0,
+      "routes": [
+        {
+          "from": [
+            3137,
+            3517,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2796,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3142,
+                3512,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3142,
+            3512,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2796,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3137,
+                3517,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_champions_guild_stone",
+      "loc": 16533,
+      "option": "Jump-onto",
+      "level": 31,
+      "levelLine": "agility.champions_guild_stone_level",
+      "xpTenths": 30,
+      "failXpTenths": 10,
+      "success": [
+        225,
+        255
+      ],
+      "damage": [
+        1,
+        3
+      ],
+      "routes": [
+        {
+          "from": [
+            3149,
+            3363,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3151,
+                3363,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3154,
+                3363,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            }
+          ],
+          "fail": [
+            {
+              "type": "slide",
+              "to": [
+                3151,
+                3363,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "anim",
+              "anim": 764,
+              "ticks": 1
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3154,
+                3363,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3154,
+            3363,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3151,
+                3363,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3149,
+                3363,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            }
+          ],
+          "fail": [
+            {
+              "type": "slide",
+              "to": [
+                3151,
+                3363,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "anim",
+              "anim": 764,
+              "ticks": 1
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3149,
+                3363,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_draynor_tunnel",
+      "loc": 19032,
+      "alsoLocs": [
+        19036
+      ],
+      "option": "Climb-into",
+      "level": 42,
+      "levelLine": "agility.draynor_tunnel_level",
+      "xpTenths": 0,
+      "routes": [
+        {
+          "from": [
+            3066,
+            3257,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2796,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3070,
+                3257,
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "from": [
+            3070,
+            3257,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2796,
+              "ticks": 3
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3066,
+                3257,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_draynor_manor_fence",
+      "loc": 62422,
+      "option": "Squeeze-through",
+      "level": 49,
+      "levelLine": "agility.draynor_manor_fence_level",
+      "xpTenths": 15,
+      "routes": [
+        {
+          "from": [
+            3085,
+            3352,
+            0
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3086,
+                  3352
+                ]
+              ],
+              "anim": 840
+            }
+          ]
+        },
+        {
+          "from": [
+            3086,
+            3352,
+            0
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3085,
+                  3352
+                ]
+              ],
+              "anim": 840
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_champions_guild_south_stones",
+      "loc": 62412,
+      "option": "Jump-to",
+      "level": 52,
+      "levelLine": "agility.champions_guild_south_stones_level",
+      "xpTenths": 50,
+      "routes": [
+        {
+          "from": [
+            3193,
+            3338,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3193,
+                3340,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3193,
+                3342,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3193,
+                3344,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3193,
+                3346,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            }
+          ]
+        },
+        {
+          "from": [
+            3193,
+            3346,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3193,
+                3344,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3193,
+                3342,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3193,
+                3340,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3193,
+                3338,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
             }
           ]
         }
