@@ -93,6 +93,18 @@ class CustomVarsTest {
             VarTypes(6_000, mapOf(20411 to VarbitType(5, 0, 0)), 20412).with(vars.varbits)
         }
         assertFailsWith<IllegalArgumentException>("a varbit past the count") { VarTypes(6_000, mapOf(5 to VarbitType(5, 0, 0)), 5) }
+
+        // Our varps by name too, for the saves, with the cache's own count kept for telling an old numeric id of ours apart.
+        val named = build2746.with(vars.varbits, vars.varpNames)
+        assertEquals(mapOf("lodestones" to 5996), named.namedVarps)
+        assertEquals("lodestones", named.varpName(5996))
+        assertNull(named.varpName(5995))
+        assertEquals(5996, named.cacheVarpCount)
+        assertEquals(5997, named.varpCount)
+        assertEquals(5996, build2746.cacheVarpCount, "a cache's own types: every varp is its")
+        assertFailsWith<IllegalArgumentException>("a name used twice") { named.with(emptyMap(), mapOf("lodestones" to 5997)) }
+        assertFailsWith<IllegalArgumentException>("a named varp among the cache's") { VarTypes(6_000, emptyMap(), 0, mapOf("x" to 5)) }
+        assertFailsWith<IllegalArgumentException>("two names, one varp") { VarTypes(6_002, emptyMap(), 0, mapOf("x" to 6_001, "y" to 6_001), 6_000) }
         assertEquals(6, VarTypes(6_000, mapOf(5 to VarbitType(5, 0, 0))).varbitCount, "the count defaults to the highest id plus one")
     }
 }
