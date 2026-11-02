@@ -3,7 +3,253 @@
     "Agility obstacles, by course. Each obstacle: key, loc (type id), option (the start of the loc's option text), level, xpTenths, at ([x, z, level], only when several locs of one type are different obstacles), routes, and for one that can fail success ([low, high] out of 256, guessed: the Wiki gives no fail rates) and damage ([min, max]).",
     "A route: from ([x, z, level], where the player starts; the nearest route is taken), moves, and fail (the moves of a failure, for an obstacle that can fail).",
     "Moves, in order: anim (anim, ticks: plays it and waits), teleport (to: straight there, another level too), walk (path of [x, z] turning points, anim: one tile a tick through anything, with anim as the whole stance), slide (to, anim, startCycles, endCycles, ticks: the client's exact move; client cycles are 20 ms, 30 a tick).",
-    "The courses come with Agility steps 2 to 7."
+    "Courses: key, obstacles (their keys in order), lapXpTenths (on top of the last obstacle's; 0 for the rooftops, whose last obstacle holds the lap's) and lapLine (the lap count message's key). An obstacle may name its own levelLine.",
+    "Draynor Village Rooftop Course: locs, tiles and options from the 241 cache's map (the roofs are the level 3 tiles with floor); levels and XP from the OSRS Wiki (read 2026-11-02, after the 8 May 2024 rework: level 1, nothing fails). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations (by their cache names), every tick count and exact move timing."
   ],
-  "obstacles": []
+  "obstacles": [
+    {
+      "key": "draynor_rough_wall",
+      "loc": 11404,
+      "option": "Climb",
+      "level": 1,
+      "xpTenths": 50,
+      "routes": [
+        {
+          "from": [
+            3103,
+            3279,
+            0
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 828,
+              "ticks": 2
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3102,
+                3279,
+                3
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "draynor_tightrope_1",
+      "loc": 11405,
+      "option": "Cross",
+      "level": 1,
+      "xpTenths": 80,
+      "routes": [
+        {
+          "from": [
+            3099,
+            3277,
+            3
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3091,
+                  3277
+                ],
+                [
+                  3090,
+                  3276
+                ]
+              ],
+              "anim": 762
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "draynor_tightrope_2",
+      "loc": 11406,
+      "option": "Cross",
+      "level": 1,
+      "xpTenths": 70,
+      "routes": [
+        {
+          "from": [
+            3091,
+            3276,
+            3
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3092,
+                  3275
+                ],
+                [
+                  3092,
+                  3266
+                ]
+              ],
+              "anim": 762
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "draynor_narrow_wall",
+      "loc": 11430,
+      "option": "Balance",
+      "level": 1,
+      "xpTenths": 70,
+      "routes": [
+        {
+          "from": [
+            3089,
+            3265,
+            3
+          ],
+          "moves": [
+            {
+              "type": "walk",
+              "path": [
+                [
+                  3088,
+                  3264
+                ],
+                [
+                  3088,
+                  3261
+                ]
+              ],
+              "anim": 756
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "draynor_wall",
+      "loc": 11630,
+      "option": "Jump-up",
+      "level": 1,
+      "xpTenths": 100,
+      "routes": [
+        {
+          "from": [
+            3088,
+            3257,
+            3
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2583,
+              "ticks": 1
+            },
+            {
+              "type": "slide",
+              "to": [
+                3088,
+                3255,
+                3
+              ],
+              "anim": 2585,
+              "startCycles": 0,
+              "endCycles": 30,
+              "ticks": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "draynor_gap",
+      "loc": 11631,
+      "option": "Jump",
+      "level": 1,
+      "xpTenths": 40,
+      "routes": [
+        {
+          "from": [
+            3094,
+            3255,
+            3
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3096,
+                3256,
+                3
+              ],
+              "anim": 2586,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "anim",
+              "anim": 2588,
+              "ticks": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "draynor_crate",
+      "loc": 11632,
+      "option": "Climb-down",
+      "level": 1,
+      "xpTenths": 790,
+      "routes": [
+        {
+          "from": [
+            3101,
+            3261,
+            3
+          ],
+          "moves": [
+            {
+              "type": "anim",
+              "anim": 2586,
+              "ticks": 2
+            },
+            {
+              "type": "teleport",
+              "to": [
+                3103,
+                3261,
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "courses": [
+    {
+      "key": "draynor",
+      "obstacles": [
+        "draynor_rough_wall",
+        "draynor_tightrope_1",
+        "draynor_tightrope_2",
+        "draynor_narrow_wall",
+        "draynor_wall",
+        "draynor_gap",
+        "draynor_crate"
+      ],
+      "lapXpTenths": 0,
+      "lapLine": "agility.draynor_laps"
+    }
+  ]
 }

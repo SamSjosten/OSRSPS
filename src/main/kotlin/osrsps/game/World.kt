@@ -84,6 +84,7 @@ import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.LootNotifications
 import osrsps.game.combat.NpcDrops
+import osrsps.game.combat.AvaDevices
 import osrsps.game.combat.RangedCombat
 import osrsps.game.combat.RangedWeapons
 import osrsps.game.combat.SpecialAttacks
@@ -497,7 +498,7 @@ class World(
         npcs, collision, movement, combat, objTypes, rangedWeapons, meleeCombat, random, { tick },
         projectile = zones::projectile, dropAmmo = ::dropAmmo,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
-        multi = multiCombat, words = ::textFor,
+        multi = multiCombat, words = ::textFor, recovery = AvaDevices::recovery,
     )
 
     /** Tumeken's shadow and the powered staves to come; see [PoweredStaves]. */
@@ -666,17 +667,13 @@ class World(
     /** Chat dialogues for content scripts. */
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
-    /** The lodestone network; see [LodestoneNetwork]. Its menu is a chat menu of the activated stones' names. */
+    /** The lodestone network; see [LodestoneNetwork]. Its map is a modal of our own, [LodestoneMap]. */
     val lodestones = LodestoneNetwork(
         customVars,
         homeTeleport,
+        interfaces,
         message = { player, line, values -> message(player, line, *values) },
-        words = { player, line -> textFor(player)[line] },
-        menu = { title, options ->
-            var picked = 0
-            dialogues.start(this) { picked = choice(*options.toTypedArray(), title = text(title)) }
-            picked
-        },
+        words = { player, line, values -> textFor(player).get(line, *values) },
     )
 
     val commands = CommandRegistry(admins::isAdmin).apply {

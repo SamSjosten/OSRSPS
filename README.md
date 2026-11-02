@@ -66,6 +66,20 @@ cache files on disk stay the live cache. An id has to be above every live model 
 241) and below 65,536, which is all a JS5 request carries. A changed file is served at the next start; a client that
 had the old one sees the new CRC and fetches it again. Converted Jagex art stays in `data/`, outside git, like the cache.
 
+Sprites and interfaces of our own go the same way. `import-sprite` writes an image (PNG, or anything ImageIO reads) as
+a sprite in the client's format (`osrsps.cache.SpriteCodec`; 255 colours, reduced when the image has more, alpha kept),
+and the server serves every `data/sprites/<id>.dat` as sprite `<id>` on top of the cache's sprite index (8). The
+lodestone map (`game/content/LodestoneMap.kt`) is the first interface of ours: its components are code
+(`osrsps.cache.InterfaceCodec` writes the if3 form every OSRS interface uses: layers, rectangles, text, graphics and
+lines, with no client scripts; what each does is the server's, through IF_SETEVENTS, IF_SETTEXT and IF_SETHIDE) and
+the overlay serves them as interface 30,000 (above the cache's own, below 32,768, as a packed component id is a signed
+int), with its sprites (65,000 to 65,003) drawn in code too. A file in `data/sprites` under one of those ids takes the
+drawn sprite's place, which is how a real map image goes in:
+
+```bash
+./gradlew run --args="import-sprite misthalin.png data/sprites/65003.dat"   # 300 by 262 for the lodestone map
+```
+
 Loc types of our own that use such models are code: `game/content/CustomLocs.kt` lists them (ids from 65,000), each a
 `LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
 the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
@@ -577,19 +591,27 @@ the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose ea
 
 ### Agility
 
-Obstacles live in `skills/agility.json` (`game/skill/Agility.kt`, words under `agility.*`); the courses come with
-Agility steps 2 to 7, so the file starts empty. The option on an obstacle walks the player to its start, checks the
+Obstacles and courses live in `skills/agility.json` (`game/skill/Agility.kt`, words under `agility.*`). The option on an obstacle walks the player to its start, checks the
 level, then plays its moves in order while clicks do nothing: an animation and a wait, a teleport (a climb's end,
 another level too), a walk along a path one tile a tick through anything with the obstacle's animation as the whole
 stance (a log or a tightrope), and a slide (the client's exact move, a jump across a gap). The XP comes once across.
 An obstacle that can fail rolls its success pair against the current Agility level; a failure plays its own moves (a
-fall) and deals its damage, with no XP.
+fall) and deals its damage, with no XP. A course's first obstacle starts a lap and its last ends one: with every
+obstacle crossed in between, the lap counts (saved with the account) and its count is shown.
+
+Courses built: the Draynor Village Rooftop Course (from the rough wall north of the bank to the crate off Ned's
+house; level 1, 120 XP a lap, nothing fails since the May 2024 rework).
 
 | Agility behaviour | Source |
 |-------------------|--------|
 | XP on completing an obstacle, none on a failure; some obstacles fail and hurt | OSRS Wiki, Agility and each course's page |
 | No clicks while on an obstacle; walking to its start can't be cut short | inferred from live |
 | Each move starting on the tick after the last ends; a teleport landing before a walk's first step | inferred |
+| Draynor rooftop: its locs and where they stand; the roofs, from the level 3 tiles with a floor | cache 241 map |
+| Draynor rooftop: levels, XP, no failing | OSRS Wiki, Draynor Village Rooftop Course |
+| Draynor rooftop: each start, path and landing tile | inferred from the map |
+| Draynor rooftop: the animations (by their cache names), each obstacle's ticks | guessed until recorded |
+| A lap needing every obstacle; the lap progress kept across a logout | inferred, guessed |
 | The level message as a game message; fail chances (the Wiki gives none); the hit after the fall; the real tile moving when a slide's ticks are up | guessed |
 
 ## Items and inventory
@@ -1222,12 +1244,13 @@ Village piece's.
 | Step 8b: Dimintheis (4984) in his house, who hands a lost pair of family gauntlets back for free (naming the pair, with a key for each), but not while any of the four pairs is held, worn or banked; his son Johnathon (5445, the type his multi-NPC 4988 shows after Family Crest) upstairs in the Jolly Boar Inn, who turns family gauntlets into chaos gauntlets for free and cooking or goldsmith gauntlets for 25,000 coins (the worn pair before one carried), through his talk or his Gauntlets option, after which Dimintheis hands back chaos gauntlets if they're lost; Old Man Yarlo (10425); their talk every way it goes (`dimintheis.*`, `johnathon.*`, `yarlo.*`) | OSRS Wiki, each NPC's transcript (after Family Crest and Daddy's Home); tiles from mejrs's live NPC list; where the last enchanted pair is kept (with charges), a plain pair going straight to his chant without a menu, which pairs count as owned, the worn pair first, Johnathon's lines without a pair or the coins, every expression and the wander ranges guessed |
 | Step 9a: the Varrock Museum: its stairs down to the Natural History floor (24428) and back up (24427), the back entrance's double doors (24565/24567, opening apart), the cleaning area's gate (24536) through its guard (1910), who asks on the first Open or talk after login (Wiki), and out again freely; Curator Haig Halen (5214), the information clerk (1909, behind her booth, who hands out a museum map) and the back entrance's guard (1912), their talk every way it goes as once every quest is done and with no Kudos (`curator.*`, `museum_clerk.*`, `museum_guard.*`); an examine key for every museum loc and the four NPCs | OSRS Wiki, each NPC's transcript (after Bone Voyage and The Dig Site, no Kudos); the 241 cache's museum locs and the basement's walls; tiles from mejrs's live NPC list; the stairs' landing tiles, the gate guard letting the player through without a word once he has asked, leaving the cleaning area freely, every expression and the curator's wander range guessed |
 | Step 9b: the museum's other people: Historian Minas (1902) and Torrcs (6019) on the first floor, Art Critic Jacques (1901) on the second, Marfet (6020) in the cleaning area, the teachers and pupils and school visitors on every floor, and on the Natural History floor its four natural historians (6002 to 6005, one a section, each with his section's lectures), Orlando Smith (6001) and the twelve animal displays (NPCs with no options); their talk every way it goes as once every quest is done (`historian_minas.*`, `art_critic_jacques.*`, `museum_adventurer.*`, `museum_teacher.*`, `museum_schoolgirl.*`, `museum_schoolboy.*`, `orlando_smith.*`, `natural_historian.*`), a natural historian's first talk once per account | OSRS Wiki, each NPC's transcript; tiles from mejrs's live NPC list; every expression, the wander ranges, the teachers below the second floor saying the ground floor's pair, and the natural historians' first talk going straight to the menu guessed |
+| Step 10: the Champions' Guild: its door (every account has the 32 quest points; the Guildmaster greets whoever comes in, `guildmaster.welcome`), the Guildmaster (814) and his talk (`guildmaster.*`), Scavvo (2871) and Valaine (2870) upstairs with their talk (`scavvo.*`, `valaine.*`) and shops (Scavvo's Rune Store; Valaine's Shop of Champions, which buys anything as a general store does), and the trapdoor by the stairs (Open, Close, Climb-down) to the basement and its ladder back up | OSRS Wiki, Transcript:Guildmaster, Transcript:Scavvo, Transcript:Valaine and the two shops' pages (prices, stock, restock times); the 241 cache for the door, trapdoor, ladder and the shops' invs; tiles from mejrs's live NPC list; every expression, that the Guildmaster greets only those coming in, Scavvo's inv (runiteshop), the wander ranges and where the trapdoor and ladder put the player guessed |
 
 Left out from step 1: the guards' Pickpocket (Thieving, step 13) and their joining in when another guard is attacked,
 the general seed table's higher subtables (no monster yet is level 49 or more), the player's own overhead lines when shooing or petting a dog, the dog
 following the player after Pet or after being fed and running off when shooed, the staircases down to basements and the sewers (`fai_varrock_bank_stairs`, `fai_varrock_ladder_deep`,
-the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. Left out from step 4: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, the keepers' treasure trail and diary talk, and Zaff's daily battlestaves, What Lies Below ring and Bryophyta's essence options. Left out from step 5: Aubury's Teleport and its talk option (no rune essence mine yet) and his Runecraft cape stock, Thessalia's Makeover and its change top and legwear options (no makeover screen yet) and her scythe, bunny ears and frog token options, Asyff's Fur Clothing, bird costume, hunting clothing and priest gown options, and the Tea Seller's shouts at a thief (Thieving, step 13). Left out from step 5b: the Apothecary's quest topics, Baraek's Ring of Charos(a) option and treasure trail clue, and Benny's overhead shouts. Left out from step 6: Reldo's Wise Old Man message, Darklight, the Monk of Zamorak's combat (he casts; the fighters' step), the Varrock Census, Surok Magis (gone once What Lies Below is done), and the White Tree's fruit and Treznor's tree patch (Farming). Left out from step 7: the chaos altar's Check, the church's sleeping church-goers, and the Mage of Zamorak's treasure trail talk. Left out from step 8a: Gertrude's pick-your-own kitten option and the Ring of Charos(a) colour screen, Shilop's and Wilough's talk once paid, Charlie's treasure trail requests, Jonny the Beard's Attack (the fighters' step), the tramp's second-time opening, Iffie's talk after the Halloween 2021 event, the Town Crier's overheads, the sleeping church-goers Martina Scorsby and Jeremy Clerksin, and Toby (the Achievement Diary). Left out from step 8b: Old Man Yarlo's Construction cutscene (the player only thanks him), and Avan's and Caleb's own gauntlet changes. Left out from step 9a: the displays' Study (their screens), the cleaning activity, Kudos and the clerk's rewards, the curator's relics, certificates and medallion trade and his Pickpocket (Thieving, step 13), and the Dig Site workman's gate guard. Left out from step 9b: Historian Minas's quest information (it gives Kudos and lamps; he hears no new quests), the lectures' walk to the display and the historian's pose, Orlando Smith's quiz (he asks every time), Marfet's talk about The Dig Site, the cleaning area's archaeologists (the cleaning activity) and The Collector. The furniture's and dogs' words are in the dialogue
-file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`, and steps 6's, 7's, 8a's, 8b's, 9a's and 9b's keys above).
+the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. Left out from step 4: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, the keepers' treasure trail and diary talk, and Zaff's daily battlestaves, What Lies Below ring and Bryophyta's essence options. Left out from step 5: Aubury's Teleport and its talk option (no rune essence mine yet) and his Runecraft cape stock, Thessalia's Makeover and its change top and legwear options (no makeover screen yet) and her scythe, bunny ears and frog token options, Asyff's Fur Clothing, bird costume, hunting clothing and priest gown options, and the Tea Seller's shouts at a thief (Thieving, step 13). Left out from step 5b: the Apothecary's quest topics, Baraek's Ring of Charos(a) option and treasure trail clue, and Benny's overhead shouts. Left out from step 6: Reldo's Wise Old Man message, Darklight, the Monk of Zamorak's combat (he casts; the fighters' step), the Varrock Census, Surok Magis (gone once What Lies Below is done), and the White Tree's fruit and Treznor's tree patch (Farming). Left out from step 7: the chaos altar's Check, the church's sleeping church-goers, and the Mage of Zamorak's treasure trail talk. Left out from step 8a: Gertrude's pick-your-own kitten option and the Ring of Charos(a) colour screen, Shilop's and Wilough's talk once paid, Charlie's treasure trail requests, Jonny the Beard's Attack (the fighters' step), the tramp's second-time opening, Iffie's talk after the Halloween 2021 event, the Town Crier's overheads, the sleeping church-goers Martina Scorsby and Jeremy Clerksin, and Toby (the Achievement Diary). Left out from step 8b: Old Man Yarlo's Construction cutscene (the player only thanks him), and Avan's and Caleb's own gauntlet changes. Left out from step 9a: the displays' Study (their screens), the cleaning activity, Kudos and the clerk's rewards, the curator's relics, certificates and medallion trade and his Pickpocket (Thieving, step 13), and the Dig Site workman's gate guard. Left out from step 9b: Historian Minas's quest information (it gives Kudos and lamps; he hears no new quests), the lectures' walk to the display and the historian's pose, Orlando Smith's quiz (he asks every time), Marfet's talk about The Dig Site, the cleaning area's archaeologists (the cleaning activity) and The Collector. Left out from step 10: the Guildmaster's Champion's scroll and maze key options, the basement's Champions' Challenge (its portcullis, ladder and Champion Statue), and the chickens and Evil Chicken in the garden. The furniture's and dogs' words are in the dialogue
+file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`, and steps 6's, 7's, 8a's, 8b's, 9a's, 9b's and 10's keys above).
 
 Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
 both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `varrock-guards.json` kills a Varrock and an Edgeville guard for their bones; `varrock-grand-exchange.json` uses the Grand Exchange's clerks, booths and a banker; `varrock-shops.json` and `varrock-stores.json` buy and sell back at each shop and talk into each; `varrock-traders.json` buys Benny's newspaper and a fur from Baraek, sells it back, talks to the Apothecary and buys a strength potion on his potions screen; `varrock-palace.json` climbs every palace floor (the roof by ladder), talks to each of its people, searches the library's bookcases and prays at the altar; `HeadlessVarrockTest`
@@ -1696,12 +1719,13 @@ RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
 ## Home teleport
 
 Home Teleport, the standard spellbook's first spell (`game/content/HomeTeleport.kt`): on this server Cast opens the
-lodestone network's menu (`Lodestones.kt`, as RS3's does) and a pick plays the five stages on the spot and lands the
-player on that stone 28 ticks later, free and with no cooldown. OSRS's own cast, to the castle courtyard 24 ticks
-after the click with the 30-minute cooldown in varp 892 (which RuneLite's home teleport timer reads), is the class's
-default and stays tested, but no world uses it: `HomeTeleport.target` is the seam the lodestone network takes when
-it registers. Not in yet: the other books' home teleports, teleport animation overrides, and RS3's "Previous
-destination" on the spell (plan step 6, the map interface).
+lodestone map (`Lodestones.kt` and `LodestoneMap.kt`, as RS3's does: each stone's icon where it stands, lit once the
+player has activated it, the stones' names beside, Teleport on the activated ones, and Previous destination for the
+stone last teleported to) and a pick plays the five stages on the spot and lands the player on that stone 28 ticks
+later, free and with no cooldown. OSRS's own cast, to the castle courtyard 24 ticks after the click with the
+30-minute cooldown in varp 892 (which RuneLite's home teleport timer reads), is the class's default and stays tested,
+but no world uses it: `HomeTeleport.target` is the seam the lodestone network takes when it registers. Not in yet:
+the other books' home teleports and teleport animation overrides.
 
 | Home teleport behaviour | Source |
 |-------------------------|--------|

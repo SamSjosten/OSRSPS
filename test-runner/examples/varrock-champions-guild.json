@@ -1,0 +1,332 @@
+{
+ "name": "Varrock step 10 (with ::keys on): the Champions' Guild: in through its door past the Guildmaster's greeting, his talk, upstairs to buy at Scavvo's and Valaine's (and sell to Valaine, who buys anything), their talk into the shop and out of it, down the trapdoor to the basement and back up its ladder, and out of the door again",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 10000",
+   "expectMessage": "Added 10,000 x Coins"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3191 3365 0",
+   "expectMessage": "Teleported to 3191, 3365, 0",
+   "comment": "outside the guild's door"
+  },
+  {
+   "step": "locOption",
+   "locId": 1805,
+   "option": "Open",
+   "x": 3191,
+   "y": 3363,
+   "timeoutMs": 20000,
+   "comment": "the guild's door: every account has the quest points"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[guildmaster.welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3191,
+   "y": 3362,
+   "plane": 0,
+   "comment": "through the door, inside"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 814,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the Guildmaster"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[guildmaster.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[guildmaster.what_place]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[guildmaster.what_place_answer"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "locId": 11797,
+   "option": "Climb-up",
+   "x": 3188,
+   "y": 3355,
+   "timeoutMs": 20000,
+   "comment": "the stairs up"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2871,
+   "option": "Trade",
+   "timeoutMs": 20000,
+   "comment": "Scavvo"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 9,
+   "op": 2,
+   "comment": "Buy 1 Coif (the ninth slot)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coif",
+   "count": 1
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2870,
+   "option": "Trade",
+   "timeoutMs": 20000,
+   "comment": "Valaine"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "lets the client draw the stock before clicking a slot"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 16,
+   "slot": 1,
+   "op": 2,
+   "comment": "Buy 1 Blue cape"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Blue cape",
+   "count": 1
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1,
+   "comment": "the runner reads the slot's item from the client's widgets, which redraw a tick after the inventory changes"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 301,
+   "component": 0,
+   "slot": 1,
+   "op": 2,
+   "comment": "Sell 1 Coif to her (slot 1, after the coins): she buys anything"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Coif",
+   "count": 0
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2871,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Scavvo's talk"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[scavvo.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[scavvo.goody]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[scavvo.goody_said"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2870,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Valaine's talk"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[valaine.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[valaine.no]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[valaine.no"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "locId": 11799,
+   "option": "Climb-down",
+   "x": 3188,
+   "y": 3355,
+   "timeoutMs": 20000,
+   "comment": "the stairs down"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 10558,
+   "option": "Open",
+   "x": 3190,
+   "y": 3355,
+   "timeoutMs": 20000,
+   "comment": "the trapdoor by the stairs"
+  },
+  {
+   "step": "assertLoc",
+   "locId": 10559,
+   "option": "Climb-down",
+   "x": 3190,
+   "y": 3355
+  },
+  {
+   "step": "locOption",
+   "locId": 10559,
+   "option": "Climb-down",
+   "x": 3190,
+   "y": 3355,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3189,
+   "y": 9758,
+   "plane": 0,
+   "comment": "the basement, beside its ladder"
+  },
+  {
+   "step": "locOption",
+   "locId": 10560,
+   "option": "Climb-up",
+   "x": 3190,
+   "y": 9758,
+   "timeoutMs": 20000,
+   "comment": "the ladder back up"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3190,
+   "y": 3356,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 10559,
+   "option": "Close",
+   "x": 3190,
+   "y": 3355,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLoc",
+   "locId": 10558,
+   "option": "Open",
+   "x": 3190,
+   "y": 3355,
+   "comment": "the trapdoor shut again"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3191 3362 0",
+   "expectMessage": "Teleported to 3191, 3362, 0",
+   "comment": "by the door, inside"
+  },
+  {
+   "step": "locOption",
+   "locId": 1805,
+   "option": "Open",
+   "x": 3191,
+   "y": 3363,
+   "timeoutMs": 20000,
+   "comment": "out again, with no word from the Guildmaster"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3191,
+   "y": 3363,
+   "plane": 0
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
