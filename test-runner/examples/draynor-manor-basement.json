@@ -1,0 +1,449 @@
+{
+ "name": "Draynor piece step 13: Draynor Manor basement (::keys on): the ladder down, the Wiki's lever order with each door's varbit, door 8to9 to the oil can, the ladder up resetting the levers, and the sealed coffin",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "an empty backpack; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3092 3361 0",
+   "expectMessage": "Teleported to 3092, 3361, 0",
+   "comment": "the room behind the bookcases, beside its ladder"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-down",
+   "x": 3092,
+   "y": 3362
+  },
+  {
+   "step": "assertLocation",
+   "x": 3116,
+   "y": 9754,
+   "plane": 0,
+   "timeoutMs": 10000,
+   "comment": "2004Scape's puzzle_ladder_top destination"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3118 9752 0",
+   "expectMessage": "Teleported to 3118, 9752, 0",
+   "comment": "lever B's tile; the maze between is walked by the doors below"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever B",
+   "option": "Pull",
+   "x": 3118,
+   "y": 9752
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.pull lever=B dir=[draynor_basement.down]]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1789,
+   "value": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3108 9745 0",
+   "expectMessage": "Teleported to 3108, 9745, 0",
+   "comment": "lever A's tile; the maze between is walked by the doors below"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever A",
+   "option": "Pull",
+   "x": 3108,
+   "y": 9745
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.pull lever=A dir=[draynor_basement.down]]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1788,
+   "value": 1
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1801,
+   "value": 1,
+   "comment": "ernestdoor_4to7"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1796,
+   "value": 0,
+   "comment": "ernestdoor_4to5"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3108 9767 0",
+   "expectMessage": "Teleported to 3108, 9767, 0",
+   "comment": "lever D's tile; the maze between is walked by the doors below"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever D",
+   "option": "Pull",
+   "x": 3108,
+   "y": 9767
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.pull lever=D dir=[draynor_basement.down]]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1791,
+   "value": 1
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1796,
+   "value": 1,
+   "comment": "ernestdoor_4to5"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1797,
+   "value": 1,
+   "comment": "ernestdoor_5to6"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1802,
+   "value": 1,
+   "comment": "ernestdoor_5to8"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1801,
+   "value": 0,
+   "comment": "ernestdoor_4to7"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3118 9752 0",
+   "expectMessage": "Teleported to 3118, 9752, 0",
+   "comment": "lever B's tile; the maze between is walked by the doors below"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever B",
+   "option": "Pull",
+   "x": 3118,
+   "y": 9752
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.pull lever=B dir=[draynor_basement.up]]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1789,
+   "value": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3108 9745 0",
+   "expectMessage": "Teleported to 3108, 9745, 0",
+   "comment": "lever A's tile; the maze between is walked by the doors below"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever A",
+   "option": "Pull",
+   "x": 3108,
+   "y": 9745
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.pull lever=A dir=[draynor_basement.up]]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1788,
+   "value": 0
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1800,
+   "value": 1,
+   "comment": "ernestdoor_3to6"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1796,
+   "value": 0,
+   "comment": "ernestdoor_4to5"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3097 9767 0",
+   "expectMessage": "Teleported to 3097, 9767, 0",
+   "comment": "lever E's tile; the maze between is walked by the doors below"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever E",
+   "option": "Pull",
+   "x": 3097,
+   "y": 9767
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.pull lever=E dir=[draynor_basement.down]]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1792,
+   "value": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3096 9765 0",
+   "expectMessage": "Teleported to 3096, 9765, 0",
+   "comment": "lever F's tile; the maze between is walked by the doors below"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever F",
+   "option": "Pull",
+   "x": 3096,
+   "y": 9765
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.pull lever=F dir=[draynor_basement.down]]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1793,
+   "value": 1
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1794,
+   "value": 1,
+   "comment": "ernestdoor_1to2"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1795,
+   "value": 1,
+   "comment": "ernestdoor_2to3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1800,
+   "value": 0,
+   "comment": "ernestdoor_3to6"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3112 9760 0",
+   "expectMessage": "Teleported to 3112, 9760, 0",
+   "comment": "lever C's tile; the maze between is walked by the doors below"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever C",
+   "option": "Pull",
+   "x": 3112,
+   "y": 9760
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.pull lever=C dir=[draynor_basement.down]]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1790,
+   "value": 1
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1794,
+   "value": 1,
+   "comment": "ernestdoor_1to2"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3097 9767 0",
+   "expectMessage": "Teleported to 3097, 9767, 0",
+   "comment": "lever E's tile; the maze between is walked by the doors below"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever E",
+   "option": "Pull",
+   "x": 3097,
+   "y": 9767
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.pull lever=E dir=[draynor_basement.up]]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1792,
+   "value": 0
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1798,
+   "value": 1,
+   "comment": "ernestdoor_8to9"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1799,
+   "value": 1,
+   "comment": "ernestdoor_2to5"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1802,
+   "value": 1,
+   "comment": "ernestdoor_5to8"
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever E",
+   "option": "Inspect",
+   "x": 3097,
+   "y": 9767
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.inspect dir=[draynor_basement.up]]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3101 9755 0",
+   "expectMessage": "Teleported to 3101, 9755, 0",
+   "comment": "room 8, east of door 8to9 (its tile, 3100, is the door's own)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Open",
+   "x": 3100,
+   "y": 9755,
+   "comment": "ernest_doorajar, shown for ernestdoor_8to9 = 1"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3099,
+   "y": 9755,
+   "plane": 0,
+   "timeoutMs": 10000,
+   "comment": "room 9"
+  },
+  {
+   "step": "takeItem",
+   "item": "Oil can",
+   "comment": "at 3092,9755 (2004Scape's map)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Oil can",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3116 9754 0",
+   "expectMessage": "Teleported to 3116, 9754, 0"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3117,
+   "y": 9754
+  },
+  {
+   "step": "assertLocation",
+   "x": 3092,
+   "y": 3361,
+   "plane": 0,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1790,
+   "value": 0,
+   "comment": "the ladder put lever C back up"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 1798,
+   "value": 0,
+   "comment": "and door 8to9 shut"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3077 9774 0",
+   "expectMessage": "Teleported to 3077, 9774, 0",
+   "comment": "Count Draynor's basement"
+  },
+  {
+   "step": "locOption",
+   "loc": "Coffin",
+   "option": "Open",
+   "x": 3077,
+   "y": 9775
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_basement.coffin]"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
