@@ -5,6 +5,7 @@
   {"step": "waitForLogin"},
   {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "messages and the menu show their keys, whatever data/dialogue.txt holds"},
   {"step": "command", "text": "::varp 5891 0", "expectMessage": "Varp 5891", "comment": "the lodestones' varp: every stone dormant again, so the script runs the same each time"},
+  {"step": "command", "text": "::varp 892 1234567", "expectMessage": "Varp 892", "comment": "aide_tele_timer, Home Teleport's last cast: a known value, to see the lodestone cast leave it alone"},
 
   {"step": "command", "text": "::tele 3236 3221 0", "expectMessage": "Teleported to 3236, 3221, 0", "comment": "Lumbridge: east of the stone, between it and the bridge"},
   {"step": "assertLoc", "loc": "Lodestone", "x": 3232, "y": 3220, "option": "Activate", "comment": "dormant for this player (the varbit is 0)"},
@@ -45,7 +46,7 @@
   {"step": "assertAnimation", "id": 4847, "timeoutMs": 10000, "comment": "the first stage, Home Teleport's chalk circle"},
   {"step": "assertAnimation", "id": 4857, "timeoutMs": 25000, "comment": "the last stage, 22 ticks in (guessed)"},
   {"step": "assertLocation", "x": 3233, "y": 3221, "plane": 0, "timeoutMs": 10000, "comment": "the stone's centre, 28 ticks after the pick"},
-  {"step": "command", "text": "::varp 892", "expectMessage": "Varp 892 = 0", "comment": "no cooldown: a lodestone cast leaves the home teleport timer alone"},
+  {"step": "command", "text": "::varp 892", "expectMessage": "Varp 892 = 1234567", "comment": "no cooldown: a lodestone cast leaves the home teleport timer as it was"},
 
   {"step": "locOption", "loc": "Lodestone", "option": "Teleport", "x": 3232, "y": 3220, "comment": "Teleport on an active stone opens the same menu"},
   {"step": "assertDialogue", "contains": "[lodestone.title]", "timeoutMs": 10000},
@@ -65,7 +66,8 @@
   {"step": "waitTicks", "ticks": 30},
   {"step": "assertLocation", "x": 3100, "y": 3700, "plane": 0, "comment": "no cast above level 20"},
 
-  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "back to the courtyard; the varp stays as the player's own"},
+  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "back to the courtyard; the lodestone varp stays as the player's own"},
+  {"step": "command", "text": "::varp 892 0", "expectMessage": "Varp 892", "comment": "the home teleport timer back to none"},
   {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
  ]
 }

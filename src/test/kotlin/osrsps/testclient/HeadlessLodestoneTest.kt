@@ -59,21 +59,30 @@ class HeadlessLodestoneTest {
                 client.command("lodestone")
                 val menu = client.awaitDialogue("the lodestone menu") { it is DialogueView.Menu }
                 assertEquals(DialogueView.Menu("[lodestone.title]", listOf("[lodestone.lumbridge]", "[lodestone.draynor]")), menu)
+                // The world is paused and stepped from here, so the cast is counted in game ticks, not test-thread time.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 val animsBefore = client.animationTicks().size
-                val ticksAtPick = client.ticksSeen
+                val lumbridgeCentre = Coord(lumbridge.x + 1, lumbridge.z + 1)
+                val standing = client.position
                 client.chooseOption(1)
-                client.await("the landing", timeoutMillis = 20_000) { client.position?.takeIf { it == Coord(lumbridge.x + 1, lumbridge.z + 1) } }
-                val landedAfter = client.ticksSeen - ticksAtPick
-                // The pick lands in the next tick's input; the landing shows 28 ticks after that.
-                check(landedAfter in 28..30) { "landed $landedAfter ticks after the pick" }
-                val stages = client.animationTicks().drop(animsBefore).take(5)
-                assertEquals(listOf(8, 7, 4, 3), stages.zipWithNext { a, b -> b - a }, "the gaps between the stages, from $stages")
+                // The pick is the next tick's input, and the cast's first stage plays on that tick.
+                repeat(3) { if (client.animationTicks().size == animsBefore) client.stepTicks(1) }
+                assertEquals(1, client.animationTicks().size - animsBefore, "the first stage on the tick the pick is processed")
+                val started = client.ticksSeen
+                client.stepTicks(Lodestones.CAST_TICKS - 1)
+                assertEquals(standing, client.position, "still beside the Draynor stone a tick before the landing")
+                client.stepTicks(1)
+                client.await("the landing") { client.position?.takeIf { it == lumbridgeCentre } }
+                assertEquals(started + Lodestones.CAST_TICKS, client.ticksSeen, "lands ${Lodestones.CAST_TICKS} ticks after the first stage")
+                val allStages = client.animationTicks().drop(animsBefore).take(5)
+                assertEquals(listOf(8, 7, 4, 3), allStages.zipWithNext { a, b -> b - a }, "the gaps between the stages, from $allStages")
+                client.commandReply("resume") { it.startsWith("Resumed after tick") }
 
                 // Standing on the stone, Teleport (op1 of the active look) opens the same menu.
                 client.locOp(lumbridge.id, lumbridge.x, lumbridge.z, Lodestones.TELEPORT)
                 assertEquals(menu, client.awaitDialogue("the menu from the active stone") { it is DialogueView.Menu })
                 client.chooseOption(2)
-                client.await("the landing at Draynor", timeoutMillis = 20_000) { client.position?.takeIf { it == Coord(draynor.x + 1, draynor.z + 1) } }
+                client.await("the landing at Draynor", timeoutMillis = 30_000) { client.position?.takeIf { it == Coord(draynor.x + 1, draynor.z + 1) } }
 
                 client.command("lodestone varrock")
                 client.awaitMessage("the locked stone") { it == "[lodestone.locked name=[lodestone.varrock]]" }

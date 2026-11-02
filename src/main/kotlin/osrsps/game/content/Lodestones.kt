@@ -18,7 +18,7 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
     val VARROCK = line("varrock", "The Varrock stone's name")
     val AL_KHARID = line("al_kharid", "The Al Kharid stone's name")
     val EDGEVILLE = line("edgeville", "The Edgeville stone's name")
-    val ACTIVATED = line("activated", "Said when a stone is activated (RS3: 'You have activated the {name} lodestone.')", "name")
+    val ACTIVATED = line("activated", "Said when the player activates a stone, naming it (the words are RS3's; the Words thread has them)", "name")
     val LOCKED = line("locked", "::lodestone to a stone the player hasn't activated (RS3 greys it out; a message is ours)", "name")
 }
 

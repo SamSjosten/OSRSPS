@@ -219,10 +219,17 @@ class LodestoneNetworkTest {
             replies,
         )
         dead.deathTick = -1
+        dead.chatModal = 1
+        world.commands.execute(dead, "::lodestone", replies::add)
+        dead.chatModal = -1
         world.commands.execute(dead, "::lodestone lumbridge extra", replies::add)
         world.commands.execute(dead, "::lodestone falador", replies::add)
         assertEquals(
-            listOf("Usage: ::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville]", "No lodestone called 'falador': ::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville]"),
+            listOf(
+                "You can't use ::lodestone with an interface open or in the middle of something.",
+                "Usage: ::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville]",
+                "No lodestone called 'falador': ::lodestone [lumbridge|draynor|varrock|al_kharid|edgeville]",
+            ),
             replies.drop(3),
         )
     }
