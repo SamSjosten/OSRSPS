@@ -88,8 +88,8 @@ object ArchiveBankerLines : Lines("tfa_banker", "Transcript:Banker_(The_Fracture
  *   The map also puts an Opening (`luc2_raid_entry2`, 54113) on the level above, which crawls the same.
  * - The lobby's Opening (`tfa_lobby_raid_exit`, 63009, at 4126,5505) goes back to the chasm.
  * - The bank chest's Use and Collect are [registerBanking]'s, the banker's Bank and Collect [registerBankers]' own.
- * - Not built yet: the Archive Door (the raid, step 15), the Grouping Board (`::raidparty` stands in), the Alliance
- *   records and the Record Keeper's statistics, the Strategy board, the Ascension rocks and the Loot Wheelbarrow.
+ * - The Archive Door is the raid's ([osrsps.game.raid.ArchiveRaids]).
+ * - Not built yet: the Grouping Board (`::raidparty` stands in), the Alliance records and the Record Keeper's statistics, the Strategy board, the Ascension rocks and the Loot Wheelbarrow.
  *   The guards, druids and Alliance builders wait for a recording of the lobby for their tiles.
  *
  * Guessed: where each NPC stands (npc-spawns/fractured-archive-lobby.json), the tiles each crawl lands on, no animation

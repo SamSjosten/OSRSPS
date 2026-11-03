@@ -109,6 +109,8 @@ class MeleeCombat(
     private val specialLanded: (Npc, Int, SpecialAttack) -> Unit = { _, _, _ -> },
     /** Fires a magic or ranged NPC's projectile for everyone near it. */
     private val projectile: (Projectile) -> Unit = {},
+    /** A player's hit, swing, shot, spell or command, took this much off an NPC (not poison or venom): a raid's contribution. */
+    private val npcDamaged: (Npc, Player, Int) -> Unit = { _, _, _ -> },
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -406,6 +408,7 @@ class MeleeCombat(
         if (npc.dead) return 0
         val dealt = damage.coerceIn(0, npc.hitpoints)
         npc.hitpoints -= dealt
+        if (source != null && dealt > 0) npcDamaged(npc, source, dealt)
         val from = if (source != null) NpcEffects.PLAYER_SOURCE + source.index else -1
         if (dealt > 0) npc.effects.hit(from, damageMe(source, dealt, maxHit), HitsplatType.DAMAGE_OTHER, dealt)
         else npc.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, 0)
