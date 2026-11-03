@@ -605,7 +605,10 @@ house; level 1, 120 XP a lap, nothing fails since the May 2024 rework) and the A
 rough wall on Ellis the tanner's building to the gap east of Zeke's; level 20, 216 XP a lap spread over its eight
 obstacles, Tightrope 1 and the zip line failing for 1 to 5 damage) and the Varrock Rooftop Course (from the rough wall
 east of the general store to the edge south of Lowe's; level 30, 269.7 XP a lap, the clothes line failing for 3 to 8
-and the wall for 2 to 5).
+and the wall for 2 to 5) and the Gnome Stronghold Agility Course (from the log balance to the pipes; level 1, 110.5 XP
+a lap with its 50 XP lap bonus, nothing fails; reached by `::tele 2474 3438`). An obstacle can be several loc types
+(the Gnome Stronghold's two pipes, its rope's pieces) and several locs (its three nets), each route naming the locs
+it is for; of the routes for the loc clicked, the one starting nearest the player is taken (a fence's two sides).
 
 Marks of grace: once three whole minutes of the clock have gone since a player's last mark, each lap they finish has
 the course's chance of one (2/6 on Draynor), a fifth of that when their unboosted Agility is 20 or more over the
@@ -631,6 +634,11 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Varrock rooftop: level 30, each obstacle's XP, which two fail and for how much, the five mark spots | OSRS Wiki, Varrock Rooftop Course and the Mark of grace spawns table (read 2026-11-02) |
 | Varrock rooftop: each start, path and landing tile; two mark spots moved to the nearest floor tile | inferred from the map |
 | Varrock rooftop: the animations, the wall's route along its top, tick counts, the fail chance (225 to 255 out of 256) and where a fall lands | guessed until recorded |
+| Gnome Stronghold: its locs and where they stand (the log balance one level down off its bridge; the nets to level 1, the platforms on level 2) | cache 241 map |
+| Gnome Stronghold: level 1, each obstacle's XP and the 50 XP lap bonus (the pipe at 7.5, as the course's 110.5 adds up; its own page says 10), the mark spot | OSRS Wiki, Gnome Stronghold Agility Course and the Mark of grace spawns table (read 2026-11-02) |
+| Gnome Stronghold: each start, path and landing tile; the mark spot moved onto the platform's nearest floor tile | inferred from the map |
+| Gnome Stronghold: the animations (human_walk_logbalance, human_reachforladder, human_doublepipesqueeze, by their cache names), tick counts | guessed until recorded |
+| Gnome Stronghold: the gnome trainers' shouts | not built |
 | A lap needing every obstacle; the lap progress kept across a logout | inferred, guessed |
 | The level message as a game message; fail chances (the Wiki gives none); the hit after the fall; the real tile moving when a slide's ticks are up | guessed |
 | Marks: the three-minute timer in whole minutes from the last mark, kept across a logout; 2/6 a lap, a fifth at 20 over; private, ten minutes, stacking resets the time | OSRS Wiki, Mark of Grace (read 2026-11-02) |
