@@ -11,6 +11,7 @@ object CombatLines : Lines("combat", "Combat") {
     val SOMEONE_ELSE = line("someone_else", "attacking an NPC that is fighting someone else, outside multi-way combat")
     val ALREADY_UNDER_ATTACK = line("already_under_attack", "attacking another NPC while one fights you, outside multi-way combat")
     val DEAD = line("dead", "on dying (the Death page)")
+    val FLYING = line("flying", "melee other than a halberd on a flying monster, as the Archive Guardian levitating is; words guessed")
 
     val NO_AMMO = line("no_ammo", "a bow or crossbow with no ammunition worn (the Ammunition page)")
     val WRONG_ARROWS = line("wrong_arrows", "a bow with ammunition it can't fire; words guessed, live's aren't on the Wiki")

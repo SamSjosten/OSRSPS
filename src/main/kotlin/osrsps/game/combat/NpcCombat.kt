@@ -114,6 +114,11 @@ data class NpcCombatDef(
     val xpBonusTenths: Int = 0,
     /** A melee NPC's spell, cast in its place now and then while it fights in reach (the Catablepon's Weaken). */
     val spell: NpcMeleeSpell? = null,
+    /**
+     * It flies out of melee's reach: only ranged, magic and halberds hit it (the Archive Guardian levitating, OSRS Wiki,
+     * The Fractured Archive/Strategies).
+     */
+    val flying: Boolean = false,
 )
 
 /**
@@ -284,6 +289,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                         stops?.get("flat")?.jsonPrimitive?.int ?: 0,
                     )
                 },
+                flying = entry["flying"]?.jsonPrimitive?.boolean ?: false,
             )
         }
 

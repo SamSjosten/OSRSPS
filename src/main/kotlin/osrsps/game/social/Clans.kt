@@ -51,7 +51,9 @@ private val logger = KotlinLogging.logger {}
  * Review on one shows their levels (4375), and Accept makes them a member while Decline drops the application. Its
  * Members button opens the members page (clans_members, 693), which draws itself from the clan settings; there Edit
  * rank on a member below an Administrator or higher shows the client's rank list (clan_rankpopup in popupoverlay), and
- * the rank picked is theirs.
+ * the rank picked is theirs. Its columns' dropdowns pick what each column shows (the server keeps track); with Expel
+ * picked, Expel on a member below a member who may expel asks first and then takes them out of the clan. Its
+ * Permissions button opens the permissions page (clans_permissions, 706).
  *
  * Guessed: the Hub's edges, the founders' rank after founding (the lowest member rank, 0; the founder is owner, 126),
  * the creation time and join day encodings, that finding a clan doesn't join its channel (the panel's text says "You
@@ -60,8 +62,8 @@ private val logger = KotlinLogging.logger {}
  * that someone in a clan can't apply to another, and every game message (keys in [ClanLines], words from the Wiki where
  * it has them), the applicants page's Back going to the settings page, an accepted member's rank (the lowest, 0), the
  * applicant hearing of either answer, accepting dropping their applications elsewhere, and Administrators and up
- * editing the ranks below their own. Not built yet: inviting after founding, handing the clan over, permissions, rank
- * titles, settings, kicks and bans.
+ * editing the ranks below their own, the Expel question and expelling only those below. Not built yet: inviting after
+ * founding, handing the clan over, rank titles, settings, clan chat kicks and bans.
  */
 class Clans(
     private val store: ClanStore,
@@ -137,6 +139,16 @@ class Clans(
 
     /** The permission var each editor has the rank list open for, by save key. Gone once answered or left. */
     private val pickingPermission = HashMap<String, Int>()
+
+    /**
+     * What each player's members page columns show, by save key: enum_3793 entries (0 Rank ... 6 Expel), picked from the
+     * columns' dropdowns. The client keeps them in varbits it sets itself (clan_members_column_1/2), which start at 0 at
+     * login, so the first column shows Rank and the second Joined until a pick.
+     */
+    private val columns = HashMap<String, IntArray>()
+
+    /** The clans whose recruiters heard of each player's application this session, by save key: their ids. */
+    private val told = HashMap<String, MutableSet<Long>>()
 
     private var updateNum = 0L
 
@@ -216,6 +228,8 @@ class Clans(
         reviewing.remove(player.saveKey)
         pickingRank.remove(player.saveKey)
         pickingPermission.remove(player.saveKey)
+        columns.remove(player.saveKey)
+        told.remove(player.saveKey)
         tabs.remove(player.saveKey)
         inHub.remove(player.saveKey)
         shownName.remove(player.saveKey)
@@ -381,9 +395,11 @@ class Clans(
         store.addApplicant(clan, player.saveKey, player.username, statsOf(player))
         showApplying(player)
         tell(player, ClanLines.APPLIED, clan.name)
-        // Recruiters in the channel hear of it (inferred: the Wiki says recruiters are notified, not how).
+        // Recruiters in the channel hear of it (inferred: the Wiki says recruiters are notified, not how): once per clan
+        // per session, so Apply / Withdraw in a loop can't flood them, and not those who ignore the applicant.
+        if (!told.getOrPut(player.saveKey) { HashSet() }.add(clan.id)) return
         for (member in channels[clan.id].orEmpty()) {
-            if (has(member, clan, VAR_RECRUITMENT)) tell(member, ClanLines.NEW_APPLICANT, player.username)
+            if (has(member, clan, VAR_RECRUITMENT) && !ignores.ignores(member, player)) tell(member, ClanLines.NEW_APPLICANT, player.username)
         }
     }
 
@@ -399,15 +415,22 @@ class Clans(
         if (clan.member(player.saveKey)?.rank == RANK_OWNER) return
         leaveChannel(player, clan, tell = false)
         store.removeMember(clan, player.saveKey)
+        removed(player)
+        sendSettings(clan)
+        tell(player, ClanLines.LEFT_CLAN, clan.name)
+    }
+
+    /** [player] was just taken out of their clan: their client drops it, and the Clans tab shows them out of a clan. */
+    private fun removed(player: Player) {
         setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
         send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
         send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
-        sendSettings(clan)
         infoAsGuest.remove(player.saveKey)
+        pickingRank.remove(player.saveKey)
+        pickingPermission.remove(player.saveKey)
         closeModals(player)
         showRecruit(player)
         if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
-        tell(player, ClanLines.LEFT_CLAN, clan.name)
     }
 
     /** [clan]'s settings again, to every online member and everyone with it loaded as a guest, in its channel or not. */
@@ -926,19 +949,21 @@ class Clans(
 
     /**
      * The settings page's Members button as a member: the members page (clans_members), which draws itself from the
-     * clan settings. For those who may edit ranks, each member's rank (op 1, "Edit rank") answers.
+     * clan settings. Each column's dropdown entries (op 1, "Select") answer, so the server knows what the columns show.
+     * For those who may edit ranks or expel, each member's entry in a column (op 1, "Edit rank" or "Expel") answers.
      */
     private fun openMembers(player: Player) {
         val clan = clanOf(player) ?: return
         pickingRank.remove(player.saveKey)
         openModal(player, MEMBERS)
         setEvents(player, MEMBERS, MEMBERS_EXIT, -1, -1, OP1, 0)
+        for (options in MEMBERS_OPTIONS) setEvents(player, MEMBERS, options, 1, MEMBERS_COLUMN_KINDS, OP1, 0)
         memberColumnEvents(player, clan)
     }
 
-    /** The members page columns' op for [player]: on when they may edit ranks in [clan], else off. */
+    /** The members page columns' op for [player]: on when they may edit ranks or expel in [clan], else off. */
     private fun memberColumnEvents(player: Player, clan: ClanStore.Clan) {
-        val ops = if (mayEditRanks(player, clan)) OP1 else 0
+        val ops = if (mayEditRanks(player, clan) || has(player, clan, VAR_EXPEL)) OP1 else 0
         for (column in MEMBERS_COLUMNS) setEvents(player, MEMBERS, column, 0, MAX_MEMBERS - 1, ops, 0)
     }
 
@@ -952,25 +977,85 @@ class Clans(
 
     private fun mayEditRanks(player: Player, clan: ClanStore.Clan): Boolean = has(player, clan, VAR_ASSIGN_RANKS)
 
+    /** What [player]'s members page column [column] (693:11 or 693:13) shows: an enum_3793 entry. */
+    private fun columnShows(player: Player, column: Int): Int =
+        columns[player.saveKey]?.get(MEMBERS_COLUMNS.indexOf(column)) ?: if (column == MEMBERS_COLUMNS.first()) COLUMN_RANK else COLUMN_JOINED
+
     /**
      * A click on the members page. Returns whether it was one. Back goes to the settings page; Edit rank on a member
      * (the column's slot is the member's place in the clan settings) shows the ranks below the editor's own, for a
      * member below them.
      */
     fun clickMembers(player: Player, component: Int, slot: Int): Boolean {
-        if (component != MEMBERS_EXIT && component !in MEMBERS_COLUMNS) return false
+        if (component != MEMBERS_EXIT && component !in MEMBERS_COLUMNS && component !in MEMBERS_OPTIONS) return false
         if (MEMBERS !in player.modals.values) return true
         val clan = clanOf(player) ?: return true
         if (component == MEMBERS_EXIT) {
             openInfo(player, asGuest = false)
             return true
         }
-        if (!mayEditRanks(player, clan)) return true
-        val target = clan.members.getOrNull(slot) ?: return true
+        if (component in MEMBERS_OPTIONS) {
+            // The dropdown's entries are its children 1..7, for enum_3793's entries 0..6 (clan_members_header_open, rev
+            // 241); clan_members_header_op keeps the pick in varbits only the client sets, so the server tracks it here.
+            if (slot in 1..MEMBERS_COLUMN_KINDS) {
+                columns.getOrPut(player.saveKey) { intArrayOf(COLUMN_RANK, COLUMN_JOINED) }[MEMBERS_OPTIONS.indexOf(component)] = slot - 1
+            }
+            return true
+        }
+        when (columnShows(player, component)) {
+            COLUMN_RANK -> editRank(player, clan, slot)
+            COLUMN_EXPEL -> askExpel(player, clan, slot)
+        }
+        return true
+    }
+
+    /**
+     * Expel on the member in [slot]: the question, for a member who may expel and a member below them. The Expel column
+     * and its op come from client proc script4262 (rev 241). Inferred (no source): the question, and that only members
+     * below the expeller's rank can be expelled (as Edit rank).
+     */
+    private fun askExpel(player: Player, clan: ClanStore.Clan, slot: Int) {
+        if (!has(player, clan, VAR_EXPEL)) {
+            tell(player, ClanLines.EXPEL_DENIED)
+            return
+        }
+        val target = clan.members.getOrNull(slot) ?: return
+        if (target.rank >= clan.member(player.saveKey)!!.rank) {
+            tell(player, ClanLines.EXPEL_TOO_HIGH, target.name)
+            return
+        }
+        val key = target.key
+        confirm(player, words(player)[ClanLines.EXPEL_CONFIRM, "name" to target.name]) { expel(player, clan.id, key) }
+    }
+
+    /**
+     * Expel, confirmed: the member with [key] is no longer in the clan with [clanId], if [editor] may still expel there
+     * and the member is still below them. An expelled member online hears of it.
+     */
+    fun expel(editor: Player, clanId: Long, key: String) {
+        val clan = clanOf(editor)?.takeIf { it.id == clanId && has(editor, it, VAR_EXPEL) } ?: return
+        val target = clan.member(key) ?: return
+        if (target.rank >= clan.member(editor.saveKey)!!.rank) return
+        val expelled = playerByKey(key)
+        expelled?.let { leaveChannel(it, clan, tell = false) }
+        store.removeMember(clan, key)
+        expelled?.let {
+            removed(it)
+            tell(it, ClanLines.EXPELLED, clan.name)
+        }
+        sendSettings(clan)
+        broadcastChannel(clan)
+        tell(editor, ClanLines.EXPELLED_MEMBER, target.name)
+    }
+
+    /** Edit rank on the member in [slot]: the ranks below the editor's own, for a member below them. */
+    private fun editRank(player: Player, clan: ClanStore.Clan, slot: Int) {
+        if (!mayEditRanks(player, clan)) return
+        val target = clan.members.getOrNull(slot) ?: return
         val own = clan.member(player.saveKey)!!.rank
         if (target.rank >= own) {
             tell(player, ClanLines.RANK_TOO_HIGH, target.name)
-            return true
+            return
         }
         val key = target.key
         pickingRank[player.saveKey] = key
@@ -982,7 +1067,6 @@ class Clans(
                 setRank(player, clan.id, key, rank)
             }
         }
-        return true
     }
 
     /**
@@ -1182,7 +1266,16 @@ class Clans(
         /** clans_members: the members page, its Back button and its two columns (the rank column has Edit rank). */
         const val MEMBERS = 693
         const val MEMBERS_EXIT = 25
-        val MEMBERS_COLUMNS = setOf(11, 13)
+        val MEMBERS_COLUMNS = listOf(11, 13)
+
+        /** The members page columns' dropdowns (options1, options2), in [MEMBERS_COLUMNS]' order. */
+        val MEMBERS_OPTIONS = listOf(19, 20)
+
+        /** What a members page column can show: enum_3793's entries, of which these answer a click on a member. */
+        const val MEMBERS_COLUMN_KINDS = 7
+        const val COLUMN_RANK = 0
+        const val COLUMN_JOINED = 1
+        const val COLUMN_EXPEL = 6
 
         /**
          * The member ranks the client lists (enum_3795, without guest, Jmod and Nobody): titled ranks 0 to 124, then
@@ -1367,6 +1460,11 @@ object ClanLines : Lines("clan", "Clans") {
     val RANK_TOO_HIGH = line("rank_too_high", "Edit rank on a member whose rank isn't below yours", "name")
     val PERMISSION_TITLE = line("permission_title", "the title over the rank list when changing a clan permission")
     val PERMISSION_DENIED = line("permission_denied", "changing a clan permission your rank can't change")
+    val EXPEL_DENIED = line("expel_denied", "Expel on a member when your rank can't expel")
+    val EXPEL_TOO_HIGH = line("expel_too_high", "Expel on a member whose rank isn't below yours", "name")
+    val EXPEL_CONFIRM = line("expel_confirm", "the question before expelling a clan member", "name")
+    val EXPELLED_MEMBER = line("expelled_member", "you expelled a member from your clan", "name")
+    val EXPELLED = line("expelled", "you were expelled from your clan", "name")
     val GUEST_CANT_TALK = line("guest_cant_talk", "guest clan chat in a clan whose talk rank is above guests")
 }
 
