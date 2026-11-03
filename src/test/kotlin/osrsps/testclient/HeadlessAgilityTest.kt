@@ -156,6 +156,25 @@ class HeadlessAgilityTest {
         }
     }
 
+    @Test
+    fun `the logout button does nothing part way along, so the player is never saved on the obstacle's path`(@TempDir dir: Path) {
+        // Round 12 exploit review (R12B-1): logging out on the beam saved the player on a tile it only passes through.
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.locOp(BEAM, 3221, 3220, 1)
+                client.await("on the beam") { client.position?.takeIf { it.x == 3221 && it.z in 3222..3226 } }
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.at(3221, 3233, "the end of the beam")
+                assertEquals(1, client.await("the Agility XP") { client.stat(AGILITY)?.takeIf { it.xp > 0 } }.xp)
+                assertTrue(client.packets().none { it.prot.name == "LOGOUT" }, "logged out part way along")
+                // Off the obstacle, the button works again.
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+        }
+    }
+
     private companion object {
         const val WALL = 11_404
         const val ROPE = 11_405

@@ -11,6 +11,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -508,6 +509,25 @@ class HeadlessClanTest {
                         carol.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
                         carol.saw("[clan.withdrawn name=Odins Gate]")
                         assertTrue(clan.applicants.isEmpty())
+                        // Applying again (CLAN-3: Apply / Withdraw in a loop) doesn't tell the recruiters again this session.
+                        carol.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                        carol.answer("[clan.apply_confirm name=Odins Gate]", 1)
+                        carol.await("applied again") { Unit.takeIf { carol.messages().count { it.text == "[clan.applied name=Odins Gate]" } == 2 } }
+                        alice.awaitTicks(2)
+                        assertEquals(1, alice.messages().count { it.text == "[clan.new_applicant name=carol]" })
+                        carol.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                        carol.await("withdrawn again") { Unit.takeIf { carol.messages().count { it.text == "[clan.withdrawn name=Odins Gate]" } == 2 } }
+                        // A recruiter who ignores an applicant doesn't hear of them.
+                        server.login("dave").use { dave ->
+                            alice.addIgnore("dave")
+                            alice.await("dave ignored") { alice.ignores().firstOrNull { it.equals("dave", ignoreCase = true) } }
+                            dave.applyTo("Odins Gate")
+                            alice.awaitTicks(2)
+                            assertFalse(alice.messages().any { it.text == "[clan.new_applicant name=dave]" })
+                            assertEquals(listOf("dave"), clan.applicants.map { it.name })
+                            dave.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                            dave.saw("[clan.withdrawn name=Odins Gate]")
+                        }
                         // Leave Clan does nothing as a guest.
                         carol.ifButton(Clans.INFO, Clans.INFO_QUIT, 1)
                         carol.awaitTicks(2)
@@ -762,6 +782,79 @@ class HeadlessClanTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun `the owner expels a member from the Expel column, after the question, and only those who may expel can`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        found(server, alice, bob, "Odins Gate")
+                        assertEquals("Joined clan Odins Gate", carol.commandReply("clanjoin odins gate") { it.startsWith("Joined") || it.startsWith("You're") })
+                        val clan = server.world.clans.clanNamed("Odins Gate")!!
+                        val bobKey = server.world.playerNamed("bob")!!.saveKey
+                        val carolKey = server.world.playerNamed("carol")!!.saveKey
+                        val aliceKey = server.world.playerNamed("alice")!!.saveKey
+
+                        // bob (rank 0) may pick what the columns show, but has nothing to click on a member.
+                        bob.openMembersPage()
+                        bob.await("bob's dropdown") { Unit.takeIf { bob.opEnabled(Clans.MEMBERS, Clans.MEMBERS_OPTIONS[1], Clans.COLUMN_EXPEL + 1, 1) } }
+                        assertFalse(bob.opEnabled(Clans.MEMBERS, 13, 0, 1))
+
+                        alice.openMembersPage()
+                        alice.await("alice's Expel") { Unit.takeIf { alice.opEnabled(Clans.MEMBERS, 13, 1, 1) } }
+                        // The second column shows Joined until a pick: a click on it does nothing.
+                        alice.ifButton(Clans.MEMBERS, 13, 1, sub = clan.members.indexOfFirst { it.key == bobKey })
+                        alice.awaitTicks(2)
+                        assertNotEquals("[clan.expel_confirm name=bob]", (alice.dialogueView as? DialogueView.Menu)?.title)
+                        // Expel picked in the second column's dropdown (child 7).
+                        alice.ifButton(Clans.MEMBERS, Clans.MEMBERS_OPTIONS[1], 1, sub = Clans.COLUMN_EXPEL + 1)
+                        // Her own entry isn't below her.
+                        alice.ifButton(Clans.MEMBERS, 13, 1, sub = clan.members.indexOfFirst { it.key == aliceKey })
+                        alice.saw("[clan.expel_too_high name=alice]")
+                        // No to the question keeps bob; yes expels him.
+                        alice.ifButton(Clans.MEMBERS, 13, 1, sub = clan.members.indexOfFirst { it.key == bobKey })
+                        alice.answer("[clan.expel_confirm name=bob]", 2)
+                        alice.awaitTicks(2)
+                        assertNotNull(clan.member(bobKey))
+                        alice.ifButton(Clans.MEMBERS, 13, 1, sub = clan.members.indexOfFirst { it.key == bobKey })
+                        alice.answer("[clan.expel_confirm name=bob]", 1)
+                        alice.saw("[clan.expelled_member name=bob]")
+                        bob.saw("[clan.expelled name=Odins Gate]")
+                        assertNull(clan.member(bobKey))
+                        assertNull(server.world.clans.clanOf(server.world.playerNamed("bob")!!))
+                        bob.await("bob's leave update") { bob.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.isEmpty() } }
+                        bob.await("bob's members page closed") { if (Clans.MEMBERS in bob.openInterfaces()) null else Unit }
+                        alice.await("alice's settings without bob") { alice.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.hasAll("alice", "carol") && !it.hasAll("bob") } }
+
+                        // The first column still shows Rank: a click there is Edit rank.
+                        val since = alice.clientScripts().size
+                        alice.ifButton(Clans.MEMBERS, 11, 1, sub = clan.members.indexOfFirst { it.key == carolKey })
+                        alice.await("the rank list") { alice.rankPopup(since) }
+
+                        // carol (rank 0) may edit ranks once Assign member ranks is hers, but not expel.
+                        clan.settings[Clans.VAR_ASSIGN_RANKS] = 0
+                        carol.openMembersPage()
+                        carol.await("carol's columns") { Unit.takeIf { carol.opEnabled(Clans.MEMBERS, 13, 0, 1) } }
+                        carol.ifButton(Clans.MEMBERS, Clans.MEMBERS_OPTIONS[1], 1, sub = Clans.COLUMN_EXPEL + 1)
+                        carol.ifButton(Clans.MEMBERS, 13, 1, sub = clan.members.indexOfFirst { it.key == aliceKey })
+                        carol.saw("[clan.expel_denied]")
+                        assertNotNull(clan.member(aliceKey))
+                    }
+                }
+            }
+        }
+    }
+
+    /** Opens the members page from the Your Clan page's settings. */
+    private fun HeadlessClient.openMembersPage() {
+        yourClanTab()
+        await("the clan page") { openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+        ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+        await("the settings page") { openInterfaces().takeIf { Clans.INFO in it } }
+        ifButton(Clans.INFO, Clans.INFO_MEMBERS, 1)
+        await("the members page") { openInterfaces().takeIf { Clans.MEMBERS in it } }
     }
 
     @Test

@@ -11,6 +11,7 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
+import osrsps.game.Skill
 import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.content.Church
@@ -51,6 +52,13 @@ class HeadlessStrongholdOfSecurityTest {
             type(StrongholdOfSecurity.RICKETY_DOOR_RIGHT, "Rickety door", "Open"),
             type(StrongholdOfSecurity.GRAIN_OF_PLENTY, "Grain of Plenty", "Search"),
             type(StrongholdOfSecurity.FAMINE_PORTAL, "Portal", "Use"),
+            type(StrongholdOfSecurity.FAMINE_LADDER_DOWN, "Ladder", "Climb-down"),
+            type(StrongholdOfSecurity.PESTILENCE_VINE_UP, "Dripping vine", "Climb-up"),
+            type(StrongholdOfSecurity.PESTILENCE_ROPE, "Goo covered vine", "Climb-up"),
+            type(StrongholdOfSecurity.OOZING_BARRIER_LEFT, "Oozing barrier", "Open"),
+            type(StrongholdOfSecurity.OOZING_BARRIER_RIGHT, "Oozing barrier", "Open"),
+            type(StrongholdOfSecurity.BOX_OF_HEALTH, "Box of Health", "Open"),
+            type(StrongholdOfSecurity.PESTILENCE_PORTAL, "Portal", "Use"),
         ).associateBy { it.id },
     )
 
@@ -77,26 +85,40 @@ class HeadlessStrongholdOfSecurityTest {
         ZoneLoc(StrongholdOfSecurity.RICKETY_DOOR_RIGHT, LocShape.WALL_STRAIGHT, 0, 1997, 5216, 0),
         ZoneLoc(StrongholdOfSecurity.RICKETY_DOOR_RIGHT, LocShape.WALL_STRAIGHT, 2, 1999, 5215, 0),
         ZoneLoc(StrongholdOfSecurity.RICKETY_DOOR_LEFT, LocShape.WALL_STRAIGHT, 2, 1999, 5216, 0),
+        // The third floor, the Pit of Pestilence.
+        ZoneLoc(StrongholdOfSecurity.FAMINE_LADDER_DOWN, LocShape.CENTREPIECE_STRAIGHT, 1, 2026, 5218, 0),
+        ZoneLoc(StrongholdOfSecurity.PESTILENCE_VINE_UP, LocShape.CENTREPIECE_STRAIGHT, 0, 2123, 5251, 0),
+        ZoneLoc(StrongholdOfSecurity.PESTILENCE_ROPE, LocShape.CENTREPIECE_STRAIGHT, 3, 2150, 5278, 0),
+        ZoneLoc(StrongholdOfSecurity.BOX_OF_HEALTH, LocShape.CENTREPIECE_STRAIGHT, 0, 2144, 5280, 0),
+        ZoneLoc(StrongholdOfSecurity.PESTILENCE_PORTAL, LocShape.CENTREPIECE_STRAIGHT, 1, 2120, 5258, 0),
+        // A pair on the west edges of x 2124 and 2127, rows 5287 and 5288.
+        ZoneLoc(StrongholdOfSecurity.OOZING_BARRIER_RIGHT, LocShape.WALL_STRAIGHT, 0, 2124, 5287, 0),
+        ZoneLoc(StrongholdOfSecurity.OOZING_BARRIER_LEFT, LocShape.WALL_STRAIGHT, 0, 2124, 5288, 0),
+        ZoneLoc(StrongholdOfSecurity.OOZING_BARRIER_RIGHT, LocShape.WALL_STRAIGHT, 0, 2127, 5287, 0),
+        ZoneLoc(StrongholdOfSecurity.OOZING_BARRIER_LEFT, LocShape.WALL_STRAIGHT, 0, 2127, 5288, 0),
     )
 
     private val gate = NpcType(StrongholdOfSecurity.GATE_OF_WAR_NPC, "Gate of War", ops = listOf("talk", null, null, null, null))
     private val famineDoor = NpcType(StrongholdOfSecurity.FAMINE_DOOR_NPC, "Rickety door", ops = listOf("talk", null, null, null, null))
+    private val pestDoor = NpcType(StrongholdOfSecurity.PESTILENCE_DOOR_NPC, "Oozing barrier", ops = listOf("talk", null, null, null, null))
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             markLoaded(3081 shr 6, 3420 shr 6)
             markLoaded(1859 shr 6, 5244 shr 6)
             markLoaded(2021 shr 6, 5215 shr 6)
+            markLoaded(2144 shr 6, 5280 shr 6)
         }
         World(
             crcs, map, random = GameRandom(12), locTypes = types, staticLocs = StaticLocs().apply { locs.forEach(::add) },
             objTypes = ObjTypes.of(ObjType(StrongholdOfSecurity.COINS, "Coins", stackable = true), ObjType(StrongholdOfSecurity.NOTES, "Stronghold notes")),
-            npcTypes = NpcTypes.of(gate, famineDoor),
+            npcTypes = NpcTypes.of(gate, famineDoor, pestDoor),
             varTypes = VarTypes(
                 VARP_COUNT,
                 mapOf(
                     StrongholdOfSecurity.VARBIT_FLAP to VarbitType(VARP_SOS_EMOTE, 0, 0),
                     StrongholdOfSecurity.VARBIT_SLAP_HEAD to VarbitType(VARP_SOS_EMOTE, 1, 1),
+                    StrongholdOfSecurity.VARBIT_IDEA to VarbitType(VARP_SOS_EMOTE, 2, 2),
                 ),
             ),
             cycleMillis = millis,
@@ -299,6 +321,98 @@ class HeadlessStrongholdOfSecurityTest {
                     client.tele(1999, 5216, 0)
                     client.locOp(StrongholdOfSecurity.RICKETY_DOOR_LEFT, 1999, 5216, StrongholdOfSecurity.OPEN)
                     client.awaitAt(2000, 5216, 0)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the second gate opened from beside it along its wall still asks (R12B-2)`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                // One tile north of the right leaf (1904,5204), on the passage side: the player crosses in the leaf's
+                // row, where the pair's other door is, so the door may ask as from the leaf's own row.
+                var asked = false
+                repeat(20) {
+                    if (asked) return@repeat
+                    client.tele(1904, 5205, 0)
+                    client.locOp(StrongholdOfSecurity.GATE_OF_WAR_RIGHT, 1904, 5204, StrongholdOfSecurity.OPEN)
+                    asked = client.await("through or asked") {
+                        if (client.position == Coord(1903, 5204, 0)) false
+                        else (client.dialogueView as? DialogueView.Chat)?.takeIf { it.name == "Gate of War" }?.let { true }
+                    }
+                }
+                assertTrue(asked, "the gate asked from beside it")
+            }
+        }
+    }
+
+    @Test
+    fun `the Catacomb's ladder down reaches the Pit of Pestilence, whose vine, rope, barriers, Box of Health and portal work`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(2026, 5217, 0)
+                client.locOp(StrongholdOfSecurity.FAMINE_LADDER_DOWN, 2026, 5218, StrongholdOfSecurity.CLIMB_DOWN)
+                client.awaitAt(StrongholdOfSecurity.PESTILENCE_LANDING.x, StrongholdOfSecurity.PESTILENCE_LANDING.z, 0)
+                client.locOp(StrongholdOfSecurity.PESTILENCE_VINE_UP, 2123, 5251, StrongholdOfSecurity.CLIMB_UP)
+                client.awaitAt(StrongholdOfSecurity.FAMINE_LADDER_DOWN_LANDING.x, StrongholdOfSecurity.FAMINE_LADDER_DOWN_LANDING.z, 0)
+                client.tele(2150, 5279, 0)
+                client.locOp(StrongholdOfSecurity.PESTILENCE_ROPE, 2150, 5278, StrongholdOfSecurity.CLIMB_UP)
+                client.awaitAt(StrongholdOfSecurity.PESTILENCE_LANDING.x, StrongholdOfSecurity.PESTILENCE_LANDING.z, 0)
+
+                // Combat level 3 and the box not opened: the portal refuses.
+                client.tele(2121, 5258, 0)
+                client.locOp(StrongholdOfSecurity.PESTILENCE_PORTAL, 2120, 5258, StrongholdOfSecurity.USE)
+                client.message(StrongholdLines.PORTAL_REFUSE.key)
+                client.continueDialogue()
+
+                // The pair's first barrier never asks; the second, from the passage, may.
+                client.tele(2123, 5288, 0)
+                client.locOp(StrongholdOfSecurity.OOZING_BARRIER_LEFT, 2124, 5288, StrongholdOfSecurity.OPEN)
+                client.awaitAt(2124, 5288, 0)
+                var asked = false
+                repeat(20) {
+                    if (asked) return@repeat
+                    client.tele(2126, 5288, 0)
+                    client.locOp(StrongholdOfSecurity.OOZING_BARRIER_LEFT, 2127, 5288, StrongholdOfSecurity.OPEN)
+                    asked = client.await("through or asked") {
+                        if (client.position == Coord(2127, 5288, 0)) false
+                        else (client.dialogueView as? DialogueView.Chat)?.takeIf { it.name == "Oozing barrier" }?.let { true }
+                    }
+                }
+                assertTrue(asked, "the oozing barrier asked")
+
+                // A lowered stat comes back with the box; a boosted one stays.
+                client.command("boost strength 0")
+                client.await("Strength lowered") { client.stat(Skill.STRENGTH.id)?.takeIf { it.level == 0 } }
+                client.command("boost attack 5")
+                client.await("Attack boosted") { client.stat(Skill.ATTACK.id)?.takeIf { it.level == 5 } }
+                client.tele(2145, 5280, 0)
+                client.locOp(StrongholdOfSecurity.BOX_OF_HEALTH, 2144, 5280, StrongholdOfSecurity.OPEN)
+                client.message(StrongholdLines.BOX_OPEN.key)
+                client.continueDialogue()
+                client.message(StrongholdLines.BOX_REWARD.key)
+                client.continueDialogue()
+                assertEquals(StrongholdOfSecurity.BOX_COINS, client.await("the coins") {
+                    client.inventory(BACKPACK).firstOrNull { it?.id == StrongholdOfSecurity.COINS }?.count
+                })
+                assertEquals(4, client.await("the Idea emote") { client.varp(VARP_SOS_EMOTE).takeIf { it != 0 } })
+                assertEquals(1, client.stat(Skill.STRENGTH.id)?.level)
+                assertEquals(5, client.stat(Skill.ATTACK.id)?.level)
+                client.locOp(StrongholdOfSecurity.BOX_OF_HEALTH, 2144, 5280, StrongholdOfSecurity.OPEN)
+                client.message(StrongholdLines.BOX_CLAIMED.key)
+                client.continueDialogue()
+
+                client.tele(2121, 5258, 0)
+                client.locOp(StrongholdOfSecurity.PESTILENCE_PORTAL, 2120, 5258, StrongholdOfSecurity.USE)
+                client.seen("[${StrongholdLines.PORTAL_ENTER.key}]")
+                client.awaitAt(StrongholdOfSecurity.PESTILENCE_PORTAL_LANDING.x, StrongholdOfSecurity.PESTILENCE_PORTAL_LANDING.z, 0)
+                repeat(6) {
+                    client.tele(2126, 5288, 0)
+                    client.locOp(StrongholdOfSecurity.OOZING_BARRIER_LEFT, 2127, 5288, StrongholdOfSecurity.OPEN)
+                    client.awaitAt(2127, 5288, 0)
                 }
             }
         }
