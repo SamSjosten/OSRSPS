@@ -1749,6 +1749,7 @@ a fight started on a seed plays the same way each time.
 | A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
 | A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |
 | Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
+| A hazard's hit still counting as combat: it cuts a Home Teleport or lodestone cast short and holds a logout, as the boss's own hit would (exploit review round 11, ENC-1) | guessed |
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
 | A fight outside an instance covering 32 tiles round the boss's spawn | testing only: the raid's rooms are instances |
 | No bosses yet: each one comes with its own step, from 16 on, with its room and gear sets for `::raid` | not in yet |
