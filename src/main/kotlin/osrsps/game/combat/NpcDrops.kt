@@ -68,20 +68,31 @@ class TertiaryDrop(val item: DropItem, val denominator: Int) {
 
 /**
  * What one kill of an NPC drops: every [always] item, one roll on [table] (OSRS Wiki, Drop rate: the main table is
- * rolled once), and each [tertiary] drop on its own.
+ * rolled once), and each [tertiary] drop on its own. A [preroll] drop (the Wiki's "Pre-roll", as the hill giants'
+ * giant key) is rolled before the main table and, when it hits, takes the main table's place: the table is rolled only
+ * if every pre-roll misses, so its slots are what is left of the Wiki's 128 (127 beside one 1/128 pre-roll).
  */
-class NpcDropsDef(val always: List<DropItem>, val table: DropTable?, val tertiary: List<TertiaryDrop>, val source: String) {
+class NpcDropsDef(
+    val always: List<DropItem>,
+    val table: DropTable?,
+    val tertiary: List<TertiaryDrop>,
+    val source: String,
+    val preroll: List<TertiaryDrop> = emptyList(),
+) {
     /** Whether a kill can give nothing at all, as a rat's does. */
-    val isEmpty: Boolean get() = always.isEmpty() && table == null && tertiary.isEmpty()
+    val isEmpty: Boolean get() = always.isEmpty() && table == null && tertiary.isEmpty() && preroll.isEmpty()
 
     /**
-     * The items one kill gives, in the order they are rolled, so a test can replay the draws: the main table's
-     * draw, then a ranged count's, then each tertiary's. Items of no count (a nothing line) are left out.
+     * The items one kill gives, in the order they are rolled, so a test can replay the draws: each pre-roll's draw
+     * until one hits, then (if none did) the main table's draw, then a ranged count's, then each tertiary's. Items of
+     * no count (a nothing line) are left out.
      */
     fun roll(random: GameRandom): List<Drop> {
         val drops = ArrayList<Drop>()
         for (item in always) drops += Drop(item.type, item.count(random))
-        table?.roll(random)?.let { drops += Drop(it.type, it.count(random)) }
+        val pre = preroll.firstOrNull { random.nextInt(it.denominator) == 0 }
+        if (pre != null) drops += Drop(pre.item.type, pre.item.count(random))
+        else table?.roll(random)?.let { drops += Drop(it.type, it.count(random)) }
         for (extra in tertiary) if (random.nextInt(extra.denominator) == 0) drops += Drop(extra.item.type, extra.item.count(random))
         return drops
     }
@@ -115,7 +126,8 @@ class NpcDrops(private val byType: Map<Int, NpcDropsDef>, /** What the loader wa
         /**
          * Reads the drop file: `tables` names shared tables (the herb table) that a line may refer to by `table`;
          * each `npcs` entry gives `always` items, a `table` of `slots` and `lines` (each an `item` with `count` or
-         * `min`/`max`, a `table` name, or `nothing`), and `tertiary` drops with a `chance` such as "1/128". `npcs`
+         * `min`/`max`, a `table` name, or `nothing`), `preroll` drops that take the table's place when they hit, and
+         * `tertiary` drops, each with a `chance` such as "1/128". `npcs`
          * takes type ids, gameval names or menu names, as spawn files do; an NPC the cache doesn't have is skipped
          * with a warning. An item is an id plus its `name`: a name the cache doesn't agree with is warned about, and
          * an item the cache doesn't have at all leaves its NPCs without drops, with a warning, rather than stopping
@@ -180,6 +192,7 @@ class NpcDrops(private val byType: Map<Int, NpcDropsDef>, /** What the loader wa
                             always = entry["always"]?.jsonArray?.map { item(it.jsonObject) } ?: emptyList(),
                             table = entry["table"]?.let { table(it.jsonObject) },
                             tertiary = entry["tertiary"]?.jsonArray?.map { tertiary(it.jsonObject, ::item) } ?: emptyList(),
+                            preroll = entry["preroll"]?.jsonArray?.map { tertiary(it.jsonObject, ::item) } ?: emptyList(),
                             source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
                         )
                     } catch (e: MissingItem) {

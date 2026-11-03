@@ -438,6 +438,16 @@
       "source": "OSRS Wiki, Hobgoblin (Level 42, id 3050, with a spear) and the DPS calculator's 3050, read 2026-11-02: speed 6, max hit 5, stab, the bonuses, aggressive. The respawn is taken as the level 28's (inferred). Which of hobgoblin_attack and hobgoblin_spear_attack it thrusts with is guessed, as is the default hunt range"
     },
     {
+      "npcs": ["giant", "giant2", "giant3", "giant4", "giant5", "giant6"],
+      "attackSpeed": 6, "maxHit": 4, "attackType": "crush", "attackBonus": 18, "strengthBonus": 16,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_update_basic_attack", "defend": "giant_update_basic_defend", "death": "giant_update_basic_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "earth", "percent": 25 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Hill Giant (Level 28, ids 2098 to 2103) and the DPS calculator's 2098 and 2103, read 2026-11-02: speed 6, max hit 4, crush, attack 18 and strength 16, no defence bonuses, respawn 30, weak to earth 25%, aggressive. They stand and walk with giant_update_basic_ready and _walk, so the giant_update_basic fight animations are taken; the default hunt range is guessed"
+    },
+    {
       "npcs": ["draynor_skeleton"],
       "attackSpeed": 4, "maxHit": 3, "attackType": "slash", "attackBonus": 15, "strengthBonus": 14,
       "defence": { "stab": 9, "slash": 11, "crush": -2, "magic": 1, "light": 4, "standard": 4, "heavy": 4 },

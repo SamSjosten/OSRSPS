@@ -26,6 +26,19 @@ class EdgevilleDungeonTest {
     }
 
     @Test
+    fun `the brass key takes a player through the shed's door from either side, and nobody from further off`() {
+        val door = ZoneLoc(EdgevilleDungeon.SHED_DOOR, LocShape.WALL_STRAIGHT, 3, 3115, 3450, 0)
+        assertTrue(EdgevilleDungeon.isShedDoor(door))
+        assertEquals(Tile(3115, 3450), EdgevilleDungeon.throughShedDoor(door, 3115, 3449))
+        assertEquals(Tile(3115, 3450), EdgevilleDungeon.throughShedDoor(door, 3114, 3449))
+        assertEquals(Tile(3115, 3449), EdgevilleDungeon.throughShedDoor(door, 3115, 3450))
+        assertEquals(Tile(3115, 3449), EdgevilleDungeon.throughShedDoor(door, 3116, 3450))
+        assertNull(EdgevilleDungeon.throughShedDoor(door, 3115, 3451))
+        assertNull(EdgevilleDungeon.throughShedDoor(door, 3117, 3449))
+        assertFalse(EdgevilleDungeon.isShedLadder(ZoneLoc(EdgevilleDungeon.SHED_LADDER, LocShape.CENTREPIECE_STRAIGHT, 3, 2566, 3227, 0)))
+    }
+
+    @Test
     fun `the trapdoor, the wall and the north gate work only where the map has them`() {
         assertTrue(EdgevilleDungeon.isTrapdoor(ZoneLoc(EdgevilleDungeon.TRAPDOOR_OPEN, LocShape.GROUND_DECOR, 2, 3097, 3468, 0)))
         assertFalse(EdgevilleDungeon.isTrapdoor(ZoneLoc(EdgevilleDungeon.TRAPDOOR_OPEN, LocShape.GROUND_DECOR, 2, 3097, 3468, 1)))
