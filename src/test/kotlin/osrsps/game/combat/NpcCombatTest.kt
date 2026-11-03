@@ -72,6 +72,7 @@ class NpcCombatTest {
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
             "npc_archive_guardian_range_attack01" to 14751, "npc_archive_guardian_melee_attack01" to 14752, "npc_archive_guardian_death01" to 14749,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
+            "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
         ),
     )
 
@@ -437,6 +438,39 @@ class NpcCombatTest {
         // "aggressive towards any level" (OSRS Wiki, Stronghold of Security); the others keep the level rule.
         assertTrue(def("sos_pest_giantspider1").aggression!!.ignoresLevels)
         assertFalse(def("sos_pest_scorpion").aggression!!.ignoresLevels)
+    }
+
+    @Test
+    fun `the Sepulchre of Death's ankou, ghosts, skeletons, shades and zombie fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's Strength levels (the DPS calculator's).
+        val sepulchre = mapOf(
+            "sos_death_ankou" to 70, "sos_death_ankou2" to 70, "sos_death_ankou3" to 75, "sos_death_ghost" to 63, "sos_death_ghost2" to 63,
+            "sos_death_skeleton_unarmed" to 50, "sos_death_skeleton_unarmed2" to 50, "sos_death_skeleton_armed" to 74, "macro_shade" to 130,
+            "macro_zombie" to 130,
+        )
+        val types = NpcTypes.of(*sepulchre.entries.mapIndexed { i, (name, str) -> NpcType(2500 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        assertEquals(sepulchre.size, combat.size)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        for (name in sepulchre.keys) {
+            val type = types.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+            // The shades and the zombie by the ladder are left alone until attacked; the rest come for the player.
+            assertEquals(!name.startsWith("macro_"), def(name).aggression != null, "$name aggressive")
+            assertEquals(4, def(name).attackSpeed, name)
+        }
+        assertEquals(listOf(8, 8, 8, 7, 7, 6, 6, 10, 14, 14), sepulchre.keys.map { def(it).maxHit })
+        assertEquals(listOf(50, 40, 70, 70, 50, 75), listOf("sos_death_ankou", "sos_death_ghost", "sos_death_skeleton_unarmed", "sos_death_skeleton_armed", "macro_shade", "macro_zombie").map { def(it).respawnTicks })
+        assertEquals(NpcCombatAnims(422, 424, 836), def("sos_death_ankou").anims)
+        assertEquals(NpcCombatAnims(5540, 5541, 5542), def("sos_death_ghost").anims)
+        assertEquals(NpcCombatAnims(5532, 5533, 5534), def("sos_death_ghost2").anims)
+        assertEquals(NpcCombatAnims(5487, 5489, 5491), def("sos_death_skeleton_armed").anims)
+        assertEquals(NpcCombatAnims(1283, 1286, 1287), def("macro_shade").anims)
+        assertEquals(ElementalWeakness(Element.AIR, 40), def("sos_death_ankou").weakness)
+        assertEquals(ElementalWeakness(Element.EARTH, 35), def("sos_death_skeleton_armed").weakness)
+        assertEquals(79, def("sos_death_skeleton_armed").defence.against(AttackType.STAB))
+        // The anti-macro shades and zombie: "1 experience for 10 damage dealt".
+        assertEquals(listOf(-975, -975), listOf("macro_shade", "macro_zombie").map { def(it).xpBonusTenths })
     }
 
     @Test

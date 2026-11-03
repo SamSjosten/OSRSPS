@@ -5,6 +5,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
+import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
@@ -30,6 +31,13 @@ object StrongholdLines : Lines("stronghold_of_security", "Stronghold of Security
     val BOX_OPEN = line("box_open", "Open on the Box of Health, the first time: the message as it opens (Box of Health page)")
     val BOX_REWARD = line("box_reward", "Open on the Box of Health, the first time: the 5,000 coins, the Idea emote and the stats restored")
     val BOX_CLAIMED = line("box_claimed", "Open on the Box of Health once its reward is claimed")
+    val CRADLE_OPEN = line("cradle_open", "Search on the Cradle of Life, the first time: the message as it opens (Cradle of Life page)")
+    val CRADLE_REWARD = line("cradle_reward", "Search on the Cradle of Life, the first time: the Stamp emote and the boots to choose from")
+    val CRADLE_AGAIN = line("cradle_again", "Search on the Cradle of Life once its reward is claimed, before the boots to choose from")
+    val CRADLE_FANCY = line("cradle_fancy", "The Cradle of Life's choice of boots: the fancy boots' option")
+    val CRADLE_FIGHTING = line("cradle_fighting", "The Cradle of Life's choice of boots: the fighting boots' option")
+    val CRADLE_GIVEN = line("cradle_given", "The Cradle of Life, the boots picked given: the box with the boots", "name")
+    val NOTICE_READ = line("notice_read", "Read on the notice in the Sepulchre of Death, by the Cradle of Life: the players thanked")
 
     /** The Doors table's questions, in its order: how many answers each has and which is right (from 1). */
     val QUESTIONS: List<Question> = listOf(
@@ -88,8 +96,23 @@ object StrongholdLines : Lines("stronghold_of_security", "Stronghold of Security
  * - The Grain of Plenty (19000 at 2021,5215), searched once: 3,000 coins, the Slap Head emote (`sos_emote_doh`),
  *   Hitpoints and Prayer back to full, its jingle (`sos_plenty`).
  * - The portal (19005 at 2039,5240) lets through at combat level 51 or with the grain searched.
- * - Flesh crawlers, zombies, giant rats and rats as their Wiki pages; the crawlers and zombies are aggressive. The
- *   ladder down to the third floor (19004) is the next step's.
+ * - Flesh crawlers, zombies, giant rats and rats as their Wiki pages; the crawlers and zombies are aggressive.
+ *
+ * The third floor, the Pit of Pestilence (step 13b, map square 33,82), is reached by the Catacomb's ladder down (19004)
+ * and works as the others, its Box of Health restoring every lowered stat.
+ *
+ * The fourth, the Sepulchre of Death (step 14a, map square 36,81):
+ *
+ * - The Pit's dripping vine down (23706 at 2148,5284) lands by the Boney ladder (23921 at 2358,5216), which climbs back
+ *   beside the vine (the Boney ladder page). Its two bone chains (23732) climb back to the floor's start (inferred, as
+ *   the Catacomb's ropes). The landings are guessed.
+ * - Its Portals of Death (23727 and 23728) ask as the door of death (`sos_door_death` 2497).
+ * - The Cradle of Life (23731 at 2344,5214), searched: the first time the Stamp emote (`sos_emote_stamp`), Hitpoints and
+ *   Prayer back to full and its jingle (`sos_life`), no coins (the Wiki's 10,000 for the whole stronghold is the
+ *   first three rewards', inferred); then, and on every search after, a pair of fancy or fighting boots ([chooseBoots]).
+ * - The portal (23922 at 2365,5212) has no combat level: it lets through once the Cradle is searched (the Portal page:
+ *   it "only works after the player has looted that level's treasure"; the Stronghold page gives no level for it).
+ * - The notice (7054) by the Cradle can be read.
  */
 object StrongholdOfSecurity {
     const val ENTRANCE = 20790
@@ -212,9 +235,51 @@ object StrongholdOfSecurity {
     /** The Pit of Pestilence: map square 33,82, the ground level. */
     fun inPitOfPestilence(level: Int, x: Int, z: Int) = level == 0 && x in 2112..2175 && z in 5248..5311
 
+    /** The Pit of Pestilence's dripping vine down, in its reward room, and where the Boney ladder puts the player back. Guessed. */
+    const val PESTILENCE_VINE_DOWN = 23706
+    val PESTILENCE_VINE_DOWN_TILE = Tile(2148, 5284)
+    val PESTILENCE_VINE_DOWN_LANDING = Tile(2148, 5283)
+
+    const val PORTAL_OF_DEATH_LEFT = 23727
+    const val PORTAL_OF_DEATH_RIGHT = 23728
+    const val DEATH_DOOR_NPC = 2497
+
+    /** The Sepulchre of Death's Boney ladder up, by its arrival; the vine from the Pit puts the player south of it. Guessed. */
+    const val DEATH_LADDER_UP = 23921
+    val DEATH_LADDER_UP_TILE = Tile(2358, 5216)
+    val DEATH_LANDING = Tile(2358, 5215)
+
+    /** The floor's two bone chains, back to its start as the Catacomb's ropes (inferred). */
+    const val BONE_CHAIN = 23732
+    val BONE_CHAIN_TILES = listOf(Tile(2309, 5240), Tile(2350, 5215))
+    const val CRADLE_OF_LIFE = 23731
+    val CRADLE_OF_LIFE_TILE = Tile(2344, 5214)
+
+    /** `sos_emote_stamp`: the Stamp emote, unlocked by the Cradle of Life. */
+    const val VARBIT_STAMP = 2312
+
+    /** `sos_life`, the Cradle of Life jingle. */
+    const val JINGLE_LIFE = 1055
+    const val FANCY_BOOTS = 9005
+    const val FIGHTING_BOOTS = 9006
+    const val DEATH_PORTAL = 23922
+    val DEATH_PORTAL_TILE = Tile(2365, 5212)
+
+    /** Where the Sepulchre of Death's portal puts the player: east of the Cradle of Life. Guessed. */
+    val DEATH_PORTAL_LANDING = Tile(2345, 5214)
+
+    /** `sos_thankplayers`, the notice by the Cradle of Life. */
+    const val NOTICE = 7054
+    val NOTICE_TILE = Tile(2349, 5211)
+    const val READ = 1
+
+    /** The Sepulchre of Death: map square 36,81, the ground level. */
+    fun inSepulchreOfDeath(level: Int, x: Int, z: Int) = level == 0 && x in 2304..2367 && z in 5184..5247
+
     /**
      * One floor: its doors and the head that asks at them, the varbit its reward sets (its emote's), the reward
-     * (loc, tile, option, coins, jingle and lines), and its portal (loc, tile, combat level and landing).
+     * (loc, tile, option, coins, jingle and lines), and its portal (loc, tile, combat level and landing). A portal of
+     * no combat level lets through only once the floor's reward is claimed.
      */
     class Floor(
         val name: String,
@@ -232,10 +297,12 @@ object StrongholdOfSecurity {
         val claimed: Line,
         val portal: Int,
         val portalTile: Tile,
-        val portalLevel: Int,
+        val portalLevel: Int?,
         val portalLanding: Tile,
         /** Whether the reward restores every lowered stat (the Box of Health), not hitpoints and prayer alone. */
         val restoresAll: Boolean = false,
+        /** Whether the reward gives a choice of boots, each time it is searched (the Cradle of Life). */
+        val boots: Boolean = false,
     )
 
     val FLOORS: List<Floor> = listOf(
@@ -258,12 +325,21 @@ object StrongholdOfSecurity {
             StrongholdLines.BOX_OPEN, StrongholdLines.BOX_REWARD, StrongholdLines.BOX_CLAIMED,
             PESTILENCE_PORTAL, PESTILENCE_PORTAL_TILE, 76, PESTILENCE_PORTAL_LANDING, restoresAll = true,
         ),
+        // The Cradle of Life: no coins (the stronghold's 10,000 is the first three rewards' 2,000 + 3,000 + 5,000,
+        // INFERRED), the Stamp emote, hitpoints and prayer, and boots each time; its portal has no combat level.
+        Floor(
+            "Sepulchre of Death", setOf(PORTAL_OF_DEATH_LEFT, PORTAL_OF_DEATH_RIGHT), DEATH_DOOR_NPC, VARBIT_STAMP,
+            ::inSepulchreOfDeath, CRADLE_OF_LIFE, CRADLE_OF_LIFE_TILE, SEARCH, 0, JINGLE_LIFE,
+            StrongholdLines.CRADLE_OPEN, StrongholdLines.CRADLE_REWARD, StrongholdLines.CRADLE_AGAIN,
+            DEATH_PORTAL, DEATH_PORTAL_TILE, null, DEATH_PORTAL_LANDING, boots = true,
+        ),
     )
 
     fun claimed(player: Player, floor: Floor): Boolean =
         player.vars.types.varbit(floor.varbit) != null && player.vars.getVarbit(floor.varbit) != 0
 
-    fun mayUsePortal(player: Player, floor: Floor): Boolean = claimed(player, floor) || player.skills.combatLevel >= floor.portalLevel
+    fun mayUsePortal(player: Player, floor: Floor): Boolean =
+        claimed(player, floor) || floor.portalLevel != null && player.skills.combatLevel >= floor.portalLevel
 
     fun isAt(loc: ZoneLoc, tile: Tile) = loc.level == 0 && loc.x == tile.x && loc.z == tile.z
 
@@ -374,6 +450,25 @@ fun registerStrongholdOfSecurity(world: World) {
             climbTo(world, Climbing.ANIM_REACH_FOR_LADDER, PESTILENCE_LANDING)
         }
 
+        world.handlers.onLoc(PESTILENCE_VINE_DOWN, CLIMB_DOWN) { op ->
+            if (!isAt(op.loc!!, PESTILENCE_VINE_DOWN_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbTo(world, Climbing.ANIM_PICKUP_FLOOR, DEATH_LANDING)
+        }
+        world.handlers.onLoc(DEATH_LADDER_UP, CLIMB_UP) { op ->
+            if (!isAt(op.loc!!, DEATH_LADDER_UP_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbTo(world, Climbing.ANIM_REACH_FOR_LADDER, PESTILENCE_VINE_DOWN_LANDING)
+        }
+        world.handlers.onLoc(BONE_CHAIN, CLIMB_UP) { op ->
+            val loc = op.loc!!
+            if (BONE_CHAIN_TILES.none { isAt(loc, it) }) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbTo(world, Climbing.ANIM_REACH_FOR_LADDER, DEATH_LANDING)
+        }
+        world.handlers.onLoc(NOTICE, READ) { op ->
+            if (!isAt(op.loc!!, NOTICE_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            arriveDelay()
+            world.dialogues.start(this) { mesbox(StrongholdLines.NOTICE_READ) }
+        }
+
         for (floor in FLOORS) {
             for (leaf in floor.doors) world.handlers.onLoc(leaf, OPEN) { op -> throughDoor(world, op.loc!!, floor) }
 
@@ -381,11 +476,14 @@ fun registerStrongholdOfSecurity(world: World) {
                 if (!isAt(op.loc!!, floor.rewardTile)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
                 arriveDelay()
                 if (claimed(player, floor) || player.vars.types.varbit(floor.varbit) == null) {
-                    return@onLoc world.dialogues.start(this) { mesbox(floor.claimed) }
+                    return@onLoc world.dialogues.start(this) {
+                        mesbox(floor.claimed)
+                        if (floor.boots) chooseBoots(world, player)
+                    }
                 }
                 // Claimed before the box shows, so nothing during it can open the reward twice.
                 player.vars.setVarbit(floor.varbit, 1)
-                world.objTypes[COINS]?.let { world.groundObjs.give(player, it, floor.coins) }
+                if (floor.coins > 0) world.objTypes[COINS]?.let { world.groundObjs.give(player, it, floor.coins) }
                 val hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
                 if (player.hitpoints < hitpoints) player.hitpoints = hitpoints
                 // Lowered stats only: a boost stays.
@@ -397,6 +495,7 @@ fun registerStrongholdOfSecurity(world: World) {
                 world.dialogues.start(this) {
                     mesbox(floor.opened)
                     mesbox(floor.rewarded)
+                    if (floor.boots) chooseBoots(world, player)
                 }
             }
 
@@ -409,6 +508,18 @@ fun registerStrongholdOfSecurity(world: World) {
             }
         }
     }
+}
+
+/**
+ * The Cradle of Life's boots: fancy or fighting, each the same, given at once (on the floor if the pack is full). Every
+ * account counts as having two-factor authentication and none is a Jagex Account ([Church]), so the fancier boots
+ * aren't offered.
+ */
+private suspend fun Dialogue.chooseBoots(world: World, player: Player) {
+    val picked = choice(StrongholdLines.CRADLE_FANCY, StrongholdLines.CRADLE_FIGHTING)
+    val type = world.objTypes[if (picked == 1) StrongholdOfSecurity.FANCY_BOOTS else StrongholdOfSecurity.FIGHTING_BOOTS] ?: return
+    world.groundObjs.give(player, type, 1)
+    objbox(type.id, text(StrongholdLines.CRADLE_GIVEN, "name" to type.name))
 }
 
 /** A ladder or rope between places: the climbing animation, a tick, then [to] on the ground level. */

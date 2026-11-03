@@ -814,6 +814,74 @@
       "weakness": { "element": "fire", "percent": 25 },
       "aggressive": true,
       "source": "OSRS Wiki, Scorpion (Level 37, id 2480) and the DPS calculator's, read 2026-11-03: speed 4, max hit 4, stab, no attack bonuses, the defences, respawn 25, aggressive, weak to fire 25%. It stands and walks with scorpion_update_ready and _walk"
+    },
+    {
+      "npcs": ["sos_death_ankou", "sos_death_ankou2", "sos_death_ankou3"],
+      "attackSpeed": 4, "maxHit": 8, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 50,
+      "weakness": { "element": "air", "percent": 40 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Ankou (levels 75, 82 and 86, ids 2514 to 2516) and the DPS calculator's, read 2026-11-03: speed 4, max hit 8, crush, no bonuses, respawn 50, aggressive, weak to air 40%. They stand and walk with human_ready and human_walk, so the unarmed human fight animations are taken (GUESSED)"
+    },
+    {
+      "npcs": ["sos_death_ghost", "sos_death_ghost_b", "sos_death_ghost_c", "sos_death_ghost_d"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 55, "slash": 55, "crush": 5, "magic": 55, "light": 55, "standard": 55, "heavy": 55 },
+      "anims": { "attack": "ghost_update_tendrill_attack", "defend": "ghost_update_tendrill_defend", "death": "ghost_update_tendrill_death" },
+      "respawnTicks": 40,
+      "weakness": { "element": "air", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Ghost (Stronghold of Security, level 77, ids 2527 to 2530) and the DPS calculator's, read 2026-11-03: speed 4, max hit 7, crush, the defences, weak to air 50%. The Ghost page's switch infobox is unclear for these, so respawn 40 is INFERRED and aggressive is GUESSED. They stand with ghost_update_tendrill_ready"
+    },
+    {
+      "npcs": ["sos_death_ghost2", "sos_death_ghost2_b", "sos_death_ghost2_c", "sos_death_ghost2_d"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 45, "slash": 45, "crush": 5, "magic": -5, "light": 45, "standard": 45, "heavy": 45 },
+      "anims": { "attack": "ghost_update_normal_attack", "defend": "ghost_update_normal_defend", "death": "ghost_update_normal_death" },
+      "respawnTicks": 40,
+      "weakness": { "element": "air", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Ghost (Stronghold of Security, level 76, id 2531; 2532 to 2534 as it) and the DPS calculator's, read 2026-11-03: speed 4, max hit 7, crush, the defences, weak to air 50%. Respawn 40 is INFERRED and aggressive is GUESSED, as for the level 77 ones. They stand with ghost_update_normal_ready"
+    },
+    {
+      "npcs": ["sos_death_skeleton_unarmed", "sos_death_skeleton_unarmed2", "sos_death_skeleton_unarmed3", "sos_death_skeleton_unarmed4"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 35, "slash": 35, "crush": -5, "magic": 0, "light": 35, "standard": 35, "heavy": 35 },
+      "anims": { "attack": "skeleton_update_attack_weapon", "defend": "skeleton_update_defend", "death": "skeleton_update_death" },
+      "respawnTicks": 70,
+      "weakness": { "element": "earth", "percent": 35 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Skeleton (Stronghold of Security) (levels 60 and 68, ids 2520 to 2523) and the DPS calculator's, read 2026-11-03: speed 4, no attack bonuses, the defences, respawn 70, aggressive, weak to earth 35%. The Wiki gives the max hit as \"10?\" and no style: max hit 6 is the formula's from Strength 50 and no bonus (INFERRED), crush GUESSED. They stand with skeleton_update_ready"
+    },
+    {
+      "npcs": ["sos_death_skeleton_armed", "sos_death_skeleton_armed2", "sos_death_skeleton_armed3"],
+      "attackSpeed": 4, "maxHit": 10, "attackType": "slash", "attackBonus": 15, "strengthBonus": 14,
+      "defence": { "stab": 79, "slash": 31, "crush": 20, "magic": 5, "light": 70, "standard": 70, "heavy": 70 },
+      "anims": { "attack": "skeleton_update_attack_sword", "defend": "skeleton_update_defend", "death": "skeleton_update_death" },
+      "respawnTicks": 70,
+      "weakness": { "element": "earth", "percent": 35 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Skeleton (Stronghold of Security) (level 85, ids 2524 to 2526) and the DPS calculator's, read 2026-11-03: speed 4, attack +15, strength +14, the defences, respawn 70, aggressive, weak to earth 35%. Max hit 10 is the Wiki's \"10?\" and the formula's from Strength 74 and +14 (INFERRED), slash GUESSED from their swords. They stand with skeleton_update_ready and walk with skeleton_update_walk_shield"
+    },
+    {
+      "npcs": ["macro_shade"],
+      "attackSpeed": 4, "maxHit": 14, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "shade_attack", "defend": "shade_block", "death": "shade_sink" },
+      "respawnTicks": 50,
+      "xpBonus": -97.5,
+      "source": "OSRS Wiki, Shade (Stronghold of Security, level 159, id 6740) and the DPS calculator's, read 2026-11-03: speed 4, max hit 14, crush, no bonuses, respawn 50, not aggressive, and \"any experience gained while fighting the shades in the Stronghold of Security is drastically reduced\" (taken as the Sepulchre zombie's -97.5%, INFERRED). They stand with ghosthuman_ready, which has no fight animations, so the shades' shade_attack, shade_block and shade_sink are GUESSED"
+    },
+    {
+      "npcs": ["macro_zombie"],
+      "attackSpeed": 4, "maxHit": 14, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "zombie_update_attack_weapon", "defend": "zombie_update_defend_weapon", "death": "zombie_update_death_weapon" },
+      "respawnTicks": 75,
+      "xpBonus": -97.5,
+      "source": "OSRS Wiki, Zombie (Sepulchre of Death, level 159, id 6741) and the DPS calculator's, read 2026-11-03: speed 4, max hit 14, crush, no bonuses, respawn 75, not aggressive, XP -97.5% (\"1 experience for 10 damage dealt\"). It stands with zombie_update_ready_weapon, so the weapon fight animations are taken"
     }
   ]
 }
