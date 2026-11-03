@@ -335,6 +335,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `wizards-tower-people.json`: Draynor step 15b: the Wizards' Tower's people (`::keys on`): Professor Onglewip's talk,
   Wizard Traiborn's wizard branch, Wizard Grayzag's lines, and Wizard Mizgog's Purchase Amulet turning away a player
   without the beads, then his talk trading one of each bead for an amulet of accuracy.
+- `jalarast.json`: Draynor step 15c: Wizard Jalarast (`::keys on`) turning away a player without the bark, fine cloth
+  or coins, then making a splitbark body from his talk's third option and splitbark gauntlets from Trade.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

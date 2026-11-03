@@ -177,6 +177,7 @@ object DialogueLines {
         IrenaLines,
         IronmanTutorLines,
         JailLines,
+        JalarastLines,
         JohnathonLines,
         JollyBoarBartenderLines,
         JollyBoarCookLines,
