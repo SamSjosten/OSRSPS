@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.EquipmentTab
 import osrsps.game.GameRandom
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -14,6 +15,7 @@ import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.bank.BankScreen
 import osrsps.game.content.Church
 import osrsps.game.content.SkullSceptre
 import osrsps.game.content.StrongholdOfSecurity
@@ -30,8 +32,13 @@ import osrsps.map.CollisionMap
 class HeadlessSkullSceptreTest {
     private val solztun = NpcType(SkullSceptre.SOLZTUN, "Solztun", ops = listOf("Talk-to", null, null, null, null), internalName = "sos_barb_spirit")
 
-    private fun item(id: Int, name: String, iops: List<String?> = listOf(null, null, null, null, "Drop"), stackable: Boolean = false) =
-        ObjType(id, name, iops = iops, stackable = stackable, wearpos1 = if (id == SkullSceptre.SCEPTRE || id == SkullSceptre.IMBUED) WearPos.WEAPON else -1)
+    private fun item(id: Int, name: String, iops: List<String?> = listOf(null, null, null, null, "Drop"), stackable: Boolean = false): ObjType {
+        val sceptre = id == SkullSceptre.SCEPTRE || id == SkullSceptre.IMBUED
+        return ObjType(
+            id, name, iops = iops, stackable = stackable, wearpos1 = if (sceptre) WearPos.WEAPON else -1,
+            params = if (sceptre) mapOf(EquipmentTab.PARAM_WORN_OP1 to "Invoke", EquipmentTab.PARAM_WORN_OP1 + 1 to "Divine") else emptyMap(),
+        )
+    }
 
     private val sceptreOps = listOf(null, "Wield", "Invoke", "Divine", "Drop")
 
@@ -201,7 +208,66 @@ class HeadlessSkullSceptreTest {
         }
     }
 
+    @Test
+    fun `a second plain sceptre starts full when one crumbles, the worn Invoke closes the bank, and the chisel takes joined pieces`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${SkullSceptre.STRANGE_SKULL}")
+                client.command("item ${SkullSceptre.RUNED_SCEPTRE}")
+                client.command("item ${SkullSceptre.SCEPTRE}")
+                client.await("the joined halves and a spare sceptre") { client.carried(SkullSceptre.SCEPTRE).takeIf { it == 1 } }
+                client.useOn(SkullSceptre.STRANGE_SKULL, SkullSceptre.RUNED_SCEPTRE)
+                client.awaitMessage("the skull sceptre") { it == "[skull_sceptre.join_whole]" }
+                client.await("two sceptres") { client.carried(SkullSceptre.SCEPTRE).takeIf { it == 2 } }
+
+                // Wield one; its worn Invoke with the bank open closes the bank.
+                client.ifButton(INVENTORY, INVENTORY_ITEMS, IOP_BUTTON_OPS[1], client.slot(SkullSceptre.SCEPTRE), SkullSceptre.SCEPTRE)
+                client.await("the sceptre wielded") { client.inventory(WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == SkullSceptre.SCEPTRE } }
+                client.command("openbank")
+                client.await("the bank open") { Unit.takeIf { BankScreen.MAIN in client.openInterfaces() } }
+                client.ifButton(EquipmentTab.WORNITEMS, WORNITEMS_WEAPON, 2)
+                client.await("at the Stronghold") { client.position?.takeIf { it == Coord(Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0) } }
+                assertTrue(BankScreen.MAIN !in client.openInterfaces(), "the bank closed by the Invoke")
+
+                // The other nine charges from the worn one; it crumbles, and the one in the pack starts full.
+                repeat(SkullSceptre.MAX_CHARGES - 1) { used ->
+                    client.tele(3222, 3218 + used % 2)
+                    client.ifButton(EquipmentTab.WORNITEMS, WORNITEMS_WEAPON, 2)
+                    val landed = client.await("at the Stronghold after ${used + 2}") { client.position?.takeIf { it == Coord(Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0) } }
+                    assertEquals(Coord(Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0), landed)
+                }
+                client.await("the worn sceptre crumbled") { Unit.takeIf { client.inventory(WORN).getOrNull(WearPos.WEAPON) == null } }
+                client.itemOp(SkullSceptre.SCEPTRE, SkullSceptre.DIVINE)
+                client.awaitMessage("the other full") { it == "[skull_sceptre.divine charges=10]" }
+
+                // The chisel: 14 from a whole sceptre, 8 from a strange skull, 6 from a runed sceptre.
+                client.command("item ${SkullSceptre.CHISEL}")
+                client.useOn(SkullSceptre.CHISEL, SkullSceptre.SCEPTRE)
+                client.awaitMessage("14 fragments") { it == "[skull_sceptre.chiselled fragments=14]" }
+                client.command("item ${SkullSceptre.STRANGE_SKULL}")
+                client.useOn(SkullSceptre.CHISEL, SkullSceptre.STRANGE_SKULL)
+                client.awaitMessage("8 fragments") { it == "[skull_sceptre.chiselled fragments=8]" }
+                client.command("item ${SkullSceptre.RUNED_SCEPTRE}")
+                client.useOn(SkullSceptre.CHISEL, SkullSceptre.RUNED_SCEPTRE)
+                client.awaitMessage("6 fragments") { it == "[skull_sceptre.chiselled fragments=6]" }
+                client.await("28 fragments") { client.carried(SkullSceptre.BONE_FRAGMENTS).takeIf { it == 28 } }
+
+                // Once Solztun has imbued one, a sceptre is made imbued.
+                server.world.playerNamed("alice")!!.vars.setVarbit(SkullSceptre.VARBIT_IMBUED, 1)
+                client.command("item ${SkullSceptre.STRANGE_SKULL}")
+                client.command("item ${SkullSceptre.RUNED_SCEPTRE}")
+                client.await("the joined halves") { client.carried(SkullSceptre.RUNED_SCEPTRE).takeIf { it == 1 } }
+                client.useOn(SkullSceptre.RUNED_SCEPTRE, SkullSceptre.STRANGE_SKULL)
+                client.await("the sceptre made imbued") { client.carried(SkullSceptre.IMBUED).takeIf { it == 1 } }
+                assertEquals(0, client.carried(SkullSceptre.SCEPTRE))
+            }
+        }
+    }
+
     private companion object {
+        const val WORN = 94
+        const val WORNITEMS_WEAPON = 18
         const val BACKPACK = 93
         val IOP_BUTTON_OPS = intArrayOf(2, 3, 4, 6, 7)
         const val INVENTORY = 149

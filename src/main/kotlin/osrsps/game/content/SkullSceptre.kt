@@ -88,16 +88,18 @@ object SolztunLines : Lines("solztun", "Transcript:Solztun") {
  * - The pieces join: the left skull half (9008, the ankou's) on the right (9007, the minotaurs') makes the strange
  *   skull (9009); the top of the sceptre (9010, the catablepons') on the bottom (9011, the flesh crawlers') the runed
  *   sceptre (9012); those two together the skull sceptre (9013), with [MAX_CHARGES] charges. Each join takes a tick
- *   and nothing else (the Wiki).
+ *   and nothing else (the Wiki); once Solztun has imbued one, the whole sceptre is made imbued.
  * - Invoke takes the player to the Stronghold's entrance in Barbarian Village ([Church.STRONGHOLD]) for a charge, up
  *   to level 20 Wilderness. A sceptre that isn't imbued crumbles with its last charge (the Wiki: it "will
  *   self-destruct"); an imbued one stays, empty. Divine says the charges left. Guessed: the standard spellbook's
  *   teleport animation and graphic, and its 3 ticks.
- * - The charges belong to the player ([osrsps.game.Charges]), as the blowpipe's do: two sceptres share them.
+ * - The charges belong to the player ([osrsps.game.Charges]), as the blowpipe's do: two sceptres share them, and when
+ *   one that isn't imbued crumbles the next starts with [MAX_CHARGES] (the Wiki).
  * - Solztun (7673), in the Sepulchre of Death's reward room, imbues every skull sceptre the player carries into the
  *   skull sceptre (i) (21276) once he has seen a pair of the Cradle of Life's boots. The imbued sceptre is charged with
  *   bone fragments (25139, one charge each) or a sceptre piece (3 charges, the left skull half 5); a chisel breaks a
- *   piece into that many fragments. The Varrock Diary's extra charges wait for the diary.
+ *   piece into that many fragments, a strange skull into 8, a runed sceptre 6 and a whole sceptre that isn't imbued
+ *   14 (the Wiki's Bone fragments). The Varrock Diary's extra charges wait for the diary.
  * - Solztun's "Who are you?" tells his story the first time and a shorter one after (varbit `sos_brother_found`,
  *   which Litara will read); `sos_sceptre_imbued` is set by his imbue.
  */
@@ -121,6 +123,9 @@ object SkullSceptre {
 
     /** Each piece's charges and bone fragments (the Wiki, without the diary). */
     val PIECE_CHARGES = mapOf(LEFT_SKULL_HALF to 5, RIGHT_SKULL_HALF to 3, TOP_OF_SCEPTRE to 3, BOTTOM_OF_SCEPTRE to 3)
+
+    /** What a chisel makes of each: the pieces, the joined halves and a whole sceptre that isn't imbued (the Wiki's Bone fragments page, without the diary). */
+    val CHISEL_FRAGMENTS = PIECE_CHARGES + mapOf(STRANGE_SKULL to 8, RUNED_SCEPTRE to 6, SCEPTRE to 14)
 
     /** Inventory ops 3 and 4 (the 241 cache's iops: Wield, Invoke, Divine). */
     const val INVOKE = 3
@@ -155,6 +160,9 @@ object SkullSceptre {
     fun hasBootsAnywhere(player: Player) = hasBoots(player) || BOOTS.any { player.bank.count(it) > 0 }
 
     fun carriesSceptre(player: Player) = player.inventory.count(SCEPTRE) > 0
+
+    /** Solztun has imbued a sceptre for [player]: every one they make after starts imbued (the Wiki's Skull sceptre (i)). */
+    fun imbueUnlocked(player: Player) = player.vars.types.varbit(VARBIT_IMBUED) != null && player.vars.getVarbit(VARBIT_IMBUED) == 1
 
     /**
      * Turns every skull sceptre in [player]'s pack into the imbued one; returns how many.
@@ -191,7 +199,7 @@ fun registerSkullSceptre(world: World) {
             world.handlers.onObjOnObj(piece, IMBUED) { op -> charge(world, op, piece, per) }
             world.handlers.onObjOnObj(piece, SCEPTRE) { world.message(player, SkullSceptreLines.NOT_IMBUED) }
         }
-        for ((piece, fragments) in PIECE_CHARGES) {
+        for ((piece, fragments) in CHISEL_FRAGMENTS) {
             world.handlers.onObjOnObj(CHISEL, piece) { op ->
                 val slot = if (op.obj == piece) op.objSlot else op.sub
                 if (player.inventory[slot]?.id != piece) return@onObjOnObj
@@ -209,14 +217,21 @@ fun registerSkullSceptre(world: World) {
 private fun wornOption(type: osrsps.game.ObjType, name: String): Int? =
     (1..osrsps.game.EquipmentTab.WORN_OPS).firstOrNull { type.stringParam(osrsps.game.EquipmentTab.PARAM_WORN_OP1 + it - 1).equals(name, ignoreCase = true) }
 
-/** Two pieces used together: both go, the piece they make takes the slot of the one used. */
-private fun ScriptContext.join(world: World, op: Op, a: Int, b: Int, made: Int) {
+/**
+ * Two pieces used together: both go, the piece they make takes the slot of the one used. The join takes a tick (the
+ * Wiki), a p_delay, so a second join sent in the same tick is dropped; the pieces are checked again after it. A whole
+ * sceptre starts imbued once Solztun has imbued one.
+ */
+private suspend fun ScriptContext.join(world: World, op: Op, a: Int, b: Int, made: Int) {
     val slots = listOf(op.sub, op.objSlot)
     if (slots.any { it < 0 }) return
-    val ids = slots.map { player.inventory[it]?.id }
-    if (ids.toSet() != setOf(a, b)) return
+    fun holds() = slots.map { player.inventory[it]?.id }.toSet() == setOf(a, b)
+    if (!holds()) return
+    delay(1)
+    if (!holds()) return
+    val result = if (made == SkullSceptre.SCEPTRE && SkullSceptre.imbueUnlocked(player)) SkullSceptre.IMBUED else made
     player.inventory.remove(op.objSlot, 1)
-    player.inventory[op.sub] = InvObj(made, 1)
+    player.inventory[op.sub] = InvObj(result, 1)
     when (made) {
         SkullSceptre.STRANGE_SKULL -> world.message(player, SkullSceptreLines.JOIN_SKULL)
         SkullSceptre.RUNED_SCEPTRE -> world.message(player, SkullSceptreLines.JOIN_SCEPTRE)
@@ -244,7 +259,13 @@ private suspend fun ScriptContext.invoke(world: World, sceptre: Int, worn: Boole
         if (worn) player.equipment.remove(WearPos.WEAPON, 1)
         else player.inventory.contents().firstOrNull { it.second.id == sceptre }?.let { player.inventory.remove(it.first, 1) }
         world.message(player, SkullSceptreLines.CRUMBLES)
+        // The next sceptre that isn't imbued starts full when one crumbles (the Wiki); an imbued one keeps its 0.
+        val another = player.inventory.count(SkullSceptre.SCEPTRE) > 0 || player.equipment.count(SkullSceptre.SCEPTRE) > 0
+        if (another) player.charges[SkullSceptre.CHARGES] = SkullSceptre.MAX_CHARGES
     }
+    // The worn Invoke comes without the inventory's closing of modals: close them, or a bank open here would stay
+    // usable at the Stronghold (Codex on #476).
+    world.interfaces.closeModals(player)
     player.scripts.weakQueue.clear()
     player.waypoints.clear()
     player.anim(SkullSceptre.TELEPORT_ANIM)
