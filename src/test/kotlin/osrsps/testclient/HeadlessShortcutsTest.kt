@@ -67,13 +67,16 @@ class HeadlessShortcutsTest {
     }
 
     /**
-     * Crosses by [id] to [to], then waits two ticks: the landing shows a tick before the crossing's script ends, and a
-     * click while it still runs is dropped (the player is delayed), as the runner script's waitTicks allows for.
+     * Crosses by [id] to [to], then waits two ticks and checks the player is still there: the landing shows a tick
+     * before the crossing's script ends, and a click while it still runs is dropped (the player is delayed), as the
+     * runner script's waitTicks allows for.
      */
     private fun HeadlessClient.crossTo(id: Int, x: Int, z: Int, to: Pair<Int, Int>) {
         locOp(id, x, z, 1)
         await("across to $to by $id") { position?.takeIf { it.x == to.first && it.z == to.second && it.level == 0 } }
         awaitTicks(2)
+        // Still there: a walk that only passed the tile on its way to the other side would have gone on.
+        assertEquals(to, position!!.let { it.x to it.z }, "where $id was crossed to")
     }
 
     @Test
@@ -92,6 +95,26 @@ class HeadlessShortcutsTest {
                 }
                 // 3 XP twice on the stone, 1.5 twice through the manor fence, 5 twice on the south stones: 19 XP.
                 assertEquals(before + 19, client.await("the shortcuts' XP") { client.stat(AGILITY)?.takeIf { it.xp >= before + 19 } }.xp)
+            }
+        }
+    }
+
+    @Test
+    fun `a stone clicked from along its bank is jumped from that bank, even when the far bank's start is as near`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel agility 52")
+                client.await("level 52") { client.stat(AGILITY)?.takeIf { it.level == 52 } }
+                // Eight tiles east along the north bank: both banks' starts are eight tiles away by the larger axis.
+                client.teleTo(3201, 3346)
+                client.crossTo(62412, 3193, 3344, 3193 to 3338)
+                // A walk round to the south bank also passes 3193, 3338, then jumps back north: wait out a crossing.
+                client.awaitTicks(12)
+                assertEquals(3193 to 3338, client.position!!.let { it.x to it.z }, "across from the north bank")
+                // Three tiles south of the Champions' Guild stone's west start, along its bank (a fall lands on the far bank too).
+                client.teleTo(3149, 3360)
+                client.crossTo(16533, 3151, 3363, 3154 to 3363)
             }
         }
     }

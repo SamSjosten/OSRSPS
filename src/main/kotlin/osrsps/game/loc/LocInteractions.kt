@@ -16,6 +16,7 @@ import osrsps.game.script.ScriptRunner
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.Reach
+import osrsps.map.Route
 import osrsps.map.RouteTarget
 import osrsps.map.Tile
 import kotlin.math.abs
@@ -129,11 +130,32 @@ class LocInteractions(
     private fun start(player: Player, interaction: LocInteraction, invertRun: Boolean) {
         scripts.interrupt(player)
         player.interaction = interaction
-        val from = fromTiles(player, interaction.loc).minByOrNull { maxOf(abs(it.x - player.x), abs(it.z - player.z)) }
-        val target = from?.let { RouteTarget.tile(it.x, it.z) } ?: target(interaction.loc)
-        val route = movement.request(player, target, invertRun)
+        val from = fromTiles(player, interaction.loc)
+        val route = if (from.isEmpty()) movement.find(player, target(interaction.loc)) else nearestFrom(player, from)
+        movement.follow(player, route, invertRun)
         // Guessed, as for a walk: with no route to walk the client's flag would stay up.
         if (route.waypoints.isEmpty()) clearFlag(player)
+    }
+
+    /**
+     * The walk to whichever of [tiles] is the fewest steps away by a route that gets there, so a stone's own bank wins
+     * over the far bank's start however near that looks across the river; a tile with no route there only when none
+     * has one.
+     */
+    private fun nearestFrom(player: Player, tiles: List<Tile>): Route =
+        tiles.map { movement.find(player, RouteTarget.tile(it.x, it.z)) }.minWith(compareBy({ it.alternative }, { steps(player, it) }))
+
+    /** How many steps [route] takes from where [player] stands, one a tile. */
+    private fun steps(player: Player, route: Route): Int {
+        var x = player.x
+        var z = player.z
+        var steps = 0
+        for (waypoint in route.waypoints) {
+            steps += maxOf(abs(waypoint.x - x), abs(waypoint.z - z))
+            x = waypoint.x
+            z = waypoint.z
+        }
+        return steps
     }
 
     /** Whether [player]'s inventory slot [slot] holds [obj]. A slot out of range (a forged packet) holds nothing. */
