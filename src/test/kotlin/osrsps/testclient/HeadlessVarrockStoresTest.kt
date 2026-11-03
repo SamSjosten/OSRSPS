@@ -98,9 +98,9 @@ class HeadlessVarrockStoresTest {
                 for (id in listOf(keeper.id, assistant.id)) {
                     client.walkThrough(id, "varrock_shop_keeper", true, line("help"), pick(1, "selling", "no_thanks"))
                 }
-                client.walkThrough(aubury.id, "aubury", true, line("greeting"), pick(2, "cape", "yes", "decline"))
+                client.walkThrough(aubury.id, "aubury", true, line("greeting"), pick(2, "cape", "yes", "decline", "teleport"))
                 client.walkThrough(
-                    aubury.id, "aubury", true, line("greeting"), pick(1, "cape", "yes", "decline"), line("cape_1"), line("cape_2"),
+                    aubury.id, "aubury", true, line("greeting"), pick(1, "cape", "yes", "decline", "teleport"), line("cape_1"), line("cape_2"),
                     pick(1, "view", "no_thanks"),
                 )
                 client.walkThrough(thessalia.id, "thessalia", true, line("greeting"), pick(2, "what_got", "buy", "no_thanks"))
@@ -131,10 +131,10 @@ class HeadlessVarrockStoresTest {
                 client.await("the login rebuild") { client.position }
                 client.walkThrough(keeper.id, "varrock_shop_keeper", false, line("help"), pick(2, "selling", "no_thanks"), line("no_thanks"))
                 client.walkThrough(
-                    aubury.id, "aubury", false, line("greeting"), pick(3, "cape", "yes", "decline"), line("decline"), line("bye"),
+                    aubury.id, "aubury", false, line("greeting"), pick(3, "cape", "yes", "decline", "teleport"), line("decline"), line("bye"),
                 )
                 client.walkThrough(
-                    aubury.id, "aubury", false, line("greeting"), pick(1, "cape", "yes", "decline"), line("cape_1"), line("cape_2"),
+                    aubury.id, "aubury", false, line("greeting"), pick(1, "cape", "yes", "decline", "teleport"), line("cape_1"), line("cape_2"),
                     pick(2, "view", "no_thanks"), line("no_thanks"), line("bye"),
                 )
                 client.walkThrough(
