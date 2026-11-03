@@ -462,6 +462,48 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `the Wizards' Tower's wizards drop robes, runes and coins, and the caged lesser demon its own table`() {
+        val wizard = NpcType(3257, "Wizard", combatLevel = 9, internalName = "wizard")
+        val demon = NpcType(2005, "Lesser demon", combatLevel = 82, internalName = "lesser_demon")
+        val tower = NpcDrops.load(NpcTypes.of(wizard, demon), objTypes)
+        val wizardDef = tower[wizard]!!
+        assertEquals(listOf("Bones"), wizardDef.always.map { it.type.name })
+        assertEquals(128, wizardDef.table!!.slots)
+        val demonDef = tower[demon]!!
+        assertEquals(listOf("Vile ashes"), demonDef.always.map { it.type.name })
+        assertEquals(listOf("Ensouled demon head" to 50), demonDef.tertiary.map { it.item.type.name to it.denominator })
+        val random = GameRandom(53)
+        val counts = HashMap<String, Int>()
+        val ashes = HashMap<Int, Int>()
+        repeat(KILLS) {
+            for (drop in wizardDef.roll(random).drop(1)) counts["wizard ${drop.type.name} x${drop.count}"] = (counts["wizard ${drop.type.name} x${drop.count}"] ?: 0) + 1
+            val rolled = demonDef.roll(random)
+            ashes[rolled.first().count] = (ashes[rolled.first().count] ?: 0) + 1
+            for (drop in rolled.drop(1)) counts["demon ${drop.type.name} x${drop.count}"] = (counts["demon ${drop.type.name} x${drop.count}"] ?: 0) + 1
+        }
+        fun expect(key: String, weight: Int) {
+            val p = weight.toDouble() / 128
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        expect("wizard Coins x1", 23)
+        expect("wizard Staff x1", 8)
+        expect("wizard Blue wizard robe x1", 7)
+        expect("wizard Chaos rune x2", 8)
+        expect("wizard Mind talisman x1", 3)
+        expect("demon Coins x120", 40)
+        expect("demon Coins x40", 29)
+        expect("demon Fire rune x60", 8)
+        expect("demon Steel full helm x1", 4)
+        expect("demon Rune med helm x1", 1)
+        // One or two vile ashes, about as often as each other.
+        assertEquals(setOf(1, 2), ashes.keys)
+        assertTrue(ashes.values.all { it > KILLS / 3 }, ashes.toString())
+    }
+
+    @Test
     fun `ten thousand outlaws drop bones every time, rope most of all, and herbs from the herb table`() {
         val def = drops[outlaws[4]]!!
         val random = GameRandom(32)

@@ -138,6 +138,7 @@ import osrsps.game.content.registerDraynorManorGrounds
 import osrsps.game.content.ManorHazards
 import osrsps.game.content.registerWaterAndDummies
 import osrsps.game.content.registerWiseOldMan
+import osrsps.game.content.registerWizardsTower
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
@@ -779,6 +780,7 @@ class World(
         registerDraynorManor(this)
         registerDraynorManorPeople(this)
         registerWiseOldMan(this)
+        registerWizardsTower(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerWaterAndDummies(this)
