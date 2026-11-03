@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.Inventory
 import osrsps.game.NpcType
@@ -64,6 +65,10 @@ class HeadlessGraceTest {
                 add(ZoneLoc(RoguesDen.TRAPDOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 2905, 3537, 0))
                 add(ZoneLoc(RoguesDen.DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 3061, 4984, 1))
                 add(ZoneLoc(RoguesDen.PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, 3061, 4986, 1))
+                // Copies elsewhere, as the den's maze has the door's type: they lead nowhere.
+                for ((id, x) in listOf(RoguesDen.TRAPDOOR to 3224, RoguesDen.PASSAGEWAY to 3226, RoguesDen.DOOR to 3228)) {
+                    add(ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, x, 3218, 0))
+                }
             },
             cycleMillis = millis,
         )
@@ -137,6 +142,25 @@ class HeadlessGraceTest {
                 client.at(RoguesDen.DOOR_ALCOVE.x, RoguesDen.DOOR_ALCOVE.z, 1, "back in the alcove")
                 client.locOp(RoguesDen.PASSAGEWAY, 3061, 4986, 1)
                 client.at(RoguesDen.INN.x, RoguesDen.INN.z, RoguesDen.INN.level, "back up in the inn")
+            }
+        }
+    }
+
+    @Test
+    fun `the den's trapdoor, passageway and door types anywhere else are nothing interesting`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.at(3222, 3218, 0, "on the spawn")
+                for ((id, x) in listOf(RoguesDen.TRAPDOOR to 3224, RoguesDen.PASSAGEWAY to 3226, RoguesDen.DOOR to 3228)) {
+                    val seen = client.messages().count { it.text == "[game.nothing_interesting]" }
+                    client.locOp(id, x, 3218, 1)
+                    client.await("nothing interesting from $id") { client.messages().count { it.text == "[game.nothing_interesting]" }.takeIf { it > seen } }
+                    client.awaitTicks(2)
+                    val at = client.position!!
+                    assertEquals(0, at.level, "still on the surface after $id")
+                    assertTrue(at.z in 3216..3220, "still by the copies after $id, at ${at.x}, ${at.z}")
+                }
             }
         }
     }
