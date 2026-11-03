@@ -552,7 +552,7 @@ class NpcSpawnFileTest {
             6015 to "vm_natural_history_display_dragon", 6016 to "vm_natural_history_display_case_wyvern",
             6017 to "vm_natural_history_display_case_battle_tortoise", 6018 to "vm_natural_history_display_case_mole",
             814 to "guildmaster", 2871 to "scavvo", 2870 to "valaine",
-            513 to "mugger", 3252 to "thief1", 5217 to "qip_soa_thief_male01", 5219 to "qip_soa_thief_female01",
+            513 to "mugger", 5086 to "qip_ds_young_dark_wizard1", 5087 to "qip_ds_young_dark_wizard2", 5088 to "qip_ds_young_dark_wizard3", 5089 to "qip_ds_young_dark_wizard4", 3252 to "thief1", 5217 to "qip_soa_thief_male01", 5219 to "qip_soa_thief_female01",
             5220 to "qip_soa_thief_female02", 2862 to "giantrat1", 2864 to "giantrat1_3", 3262 to "barbarianwoman_varrock",
             3260 to "warrior_woman", 2838 to "brownbear", 516 to "black_knight", 3019 to "spider",
         )
@@ -635,9 +635,13 @@ class NpcSpawnFileTest {
         // Step 12: the city's fighters, as many of each as mejrs's live list has.
         val fighters = mapOf(513 to 1, 3252 to 1, 5217 to 2, 5219 to 1, 5220 to 1, 2862 to 2, 2864 to 1, 3262 to 1, 3260 to 2, 2838 to 1, 516 to 1, 3019 to 1)
         assertEquals(fighters, fighters.keys.associateWith { id -> spawns.count { it.type.id == id } })
+        // Step 14: the stone circle's dark wizards, six of level 7 and five of level 20, as mejrs's live list has them.
+        val wizards = spawns.filter { it.type.id in 5086..5089 }
+        assertEquals(mapOf(5086 to 3, 5087 to 3, 5088 to 3, 5089 to 2), wizards.groupingBy { it.type.id }.eachCount())
+        assertTrue(wizards.all { it.x in 3220..3235 && it.z in 3360..3376 && it.level == 0 })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch, but the museum's Natural History
-        // floor and the Champions' Guild, south of the city.
-        assertTrue((spawns - basement.toSet() - guild.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
+        // floor, and the Champions' Guild and the stone circle, south of the city.
+        assertTrue((spawns - basement.toSet() - guild.toSet() - wizards.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
         assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie).all { it.wander > 0 })
     }
 }
