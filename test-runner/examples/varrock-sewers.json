@@ -1,5 +1,5 @@
 {
- "name": "Varrock step 15: down the manhole east of the palace and back up its ladder, down the bear pen's trapdoor and back up, the web east of the deadly red spiders (no blade, then a knife), and a moss giant killed for its big bones (::keys on)",
+ "name": "Varrock step 15: down the manhole east of the palace and back up its ladder, down the bear pen's trapdoor and back up, the web east of the deadly red spiders (no blade, then a godsword that always cuts), and a moss giant killed for its big bones (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -129,8 +129,9 @@
   },
   {
    "step": "command",
-   "text": "::item knife",
-   "expectMessage": "Added 1 x Knife"
+   "text": "::item 11802",
+   "expectMessage": "Added 1 x Armadyl godsword",
+   "comment": "slash +132, so it cuts every time (the knife's 50% is checked in HeadlessVarrockSewersTest)"
   },
   {
    "step": "locOption",
@@ -141,9 +142,9 @@
   },
   {
    "step": "assertMessage",
-   "contains": "[web.",
+   "contains": "[web.slashed]",
    "timeoutMs": 10000,
-   "comment": "a knife cuts half the time: [web.slashed] or [web.failed]"
+   "comment": "a slash bonus of +100 or more always cuts"
   },
   {
    "step": "command",
