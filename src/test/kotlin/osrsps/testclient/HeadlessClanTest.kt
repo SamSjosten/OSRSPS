@@ -8,6 +8,7 @@ import osrsps.game.social.Clans
 import osrsps.map.CollisionMap
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -18,7 +19,7 @@ import kotlin.test.assertTrue
 
 /** Clans, steps 10a and 10b: founding at the Clan Hub, the Clans tab's "Your Clan" page, clan chat, and guest clans. */
 class HeadlessClanTest {
-    private fun server(dir: Path, data: Path = dir.resolve("data")) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, data: Path = dir.resolve("data"), clock: () -> Instant = Instant::now) = TestServer(dir) { crcs, millis ->
         World(
             crcs,
             CollisionMap().apply {
@@ -27,6 +28,7 @@ class HeadlessClanTest {
             },
             cycleMillis = millis,
             clansDir = data,
+            clansClock = clock,
         )
     }
 
@@ -847,6 +849,98 @@ class HeadlessClanTest {
         }
     }
 
+    @Test
+    fun `the owner kicks a guest from the channel for an hour and bans another, who stays out until unbanned`(@TempDir dir: Path) {
+        var now = Instant.parse("2026-11-03T06:00:00Z")
+        server(dir, clock = { now }).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        server.login("dave").use { dave ->
+                            found(server, alice, bob, "Odins Gate")
+                            val clan = server.world.clans.clanNamed("Odins Gate")!!
+                            val carolP = server.world.playerNamed("carol")!!
+                            val daveP = server.world.playerNamed("dave")!!
+                            for (guest in listOf(carol, dave)) {
+                                guest.guestTab()
+                                guest.await("the guest page") { guest.openInterfaces().takeIf { Clans.GUEST_SIDEPANEL in it } }
+                                guest.findClan("Odins Gate")
+                                guest.await("the guest clan") { guest.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.isNotEmpty() } }
+                                guest.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                            }
+                            alice.await("both guests in") { Unit.takeIf { server.world.clans.inGuestChannel(carolP) && server.world.clans.inGuestChannel(daveP) } }
+
+                            // bob (rank 0) is below the kick rank (the owner's) and Ban from chat (Administrator).
+                            bob.kickFromClanChannel("carol", 2)
+                            bob.saw("[clan.kick_denied]")
+                            bob.banFromClanChannel("carol", 2)
+                            bob.saw("[clan.ban_denied]")
+                            // A member isn't a guest, and another clan type isn't the clan's channel: both do nothing.
+                            alice.kickFromClanChannel("bob", 1)
+                            alice.kickFromClanChannel("carol", 2, clanType = 1)
+                            alice.awaitTicks(2)
+                            assertTrue(server.world.clans.inGuestChannel(carolP))
+                            assertNotNull(server.world.clans.clanOf(server.world.playerNamed("bob")!!))
+
+                            // Kick: out of the channel, and kept out for the hour.
+                            alice.kickFromClanChannel("CAROL", 2)
+                            alice.saw("[clan.kicked_guest name=carol]")
+                            carol.saw("[clan.kicked name=Odins Gate]")
+                            assertFalse(server.world.clans.inGuestChannel(carolP))
+                            carol.await("carol's leave update") { carol.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.isEmpty() } }
+                            carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                            carol.saw("[clan.still_kicked name=Odins Gate]")
+                            assertFalse(server.world.clans.inGuestChannel(carolP))
+                            now = now.plusSeconds(Clans.KICK_MINUTES * 60 + 1)
+                            carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                            carol.await("carol back in after the hour") { Unit.takeIf { server.world.clans.inGuestChannel(carolP) } }
+
+                            // Ban: out of the channel and on the ban list, which the members' clan settings carry.
+                            alice.banFromClanChannel("dave", 3)
+                            alice.saw("[clan.banned_guest name=dave]")
+                            dave.saw("[clan.banned name=Odins Gate]")
+                            assertFalse(server.world.clans.inGuestChannel(daveP))
+                            assertEquals(listOf(daveP.saveKey), clan.banned.map { it.key })
+                            alice.await("the ban in alice's settings") { alice.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.hasAll("dave") } }
+                            now = now.plusSeconds(Clans.KICK_MINUTES * 60 + 1)
+                            dave.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                            dave.saw("[clan.still_banned name=Odins Gate]")
+                            assertFalse(server.world.clans.inGuestChannel(daveP))
+
+                            // The ban list: text typed with it closed is nothing to it; bob may look but not unban.
+                            alice.resumeString("dave")
+                            bob.openBannedPage()
+                            bob.resumeString("dave")
+                            bob.saw("[clan.unban_denied]")
+                            assertNotNull(clan.banned(daveP.saveKey))
+                            // Unban (the client sends the name as typed text): off the list. (The test cache has no varbits,
+                            // so the clearing of clan_editing_lookupinprogress is for the VM script to see.)
+                            alice.openBannedPage()
+                            alice.resumeString("Dave")
+                            alice.saw("[clan.unbanned name=dave]")
+                            assertNull(clan.banned(daveP.saveKey))
+                            alice.await("alice's settings without the ban") { alice.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { !it.hasAll("dave") } }
+                            alice.ifButton(Clans.BANNED, Clans.BANNED_EXIT, 1)
+                            alice.await("the settings page again") { alice.openInterfaces().takeIf { Clans.INFO in it } }
+                            dave.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                            dave.await("dave back in") { Unit.takeIf { server.world.clans.inGuestChannel(daveP) } }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /** Opens the ban list from the Your Clan page's settings. */
+    private fun HeadlessClient.openBannedPage() {
+        yourClanTab()
+        await("the clan page") { openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+        ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+        await("the settings page") { openInterfaces().takeIf { Clans.INFO in it } }
+        ifButton(Clans.INFO, Clans.INFO_BANNED, 1)
+        await("the ban list") { openInterfaces().takeIf { Clans.BANNED in it } }
+    }
+
     /** Opens the members page from the Your Clan page's settings. */
     private fun HeadlessClient.openMembersPage() {
         yourClanTab()
@@ -969,6 +1063,25 @@ class HeadlessClanTest {
                 alice.ifButton(Clans.APPLICANTS, Clans.APPLICANTS_ACCEPT, 1)
                 alice.saw("[clan.applicant_accepted name=Applicant]")
                 assertNotNull(clan.member(Clans.TEST_APPLICANT_KEY))
+            }
+        }
+    }
+
+    @Test
+    fun `the runner command clanbanned puts a ban on the list that Unban takes off`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                assertEquals("You aren't in a clan", alice.commandReply("clanbanned") { it.startsWith("You") || it.startsWith("Banned") })
+                alice.commandReply("clanmake Ban Gate") { it.startsWith("Clan") }
+                alice.commandReply("clanjoin ban gate recruiter") { it.startsWith("Joined") }
+                assertEquals("Banned banned from Ban Gate", alice.commandReply("clanbanned") { it.startsWith("Banned") || it.contains("already") })
+                assertEquals("Ban Gate has the test ban already", alice.commandReply("clanbanned") { it.startsWith("Banned") || it.contains("already") })
+                val clan = server.world.clans.clanNamed("Ban Gate")!!
+                alice.await("the ban in alice's settings") { alice.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { it.hasAll("Banned") } }
+                alice.openBannedPage()
+                alice.resumeString("Banned")
+                alice.saw("[clan.unbanned name=Banned]")
+                assertNull(clan.banned(Clans.TEST_BANNED_KEY))
             }
         }
     }

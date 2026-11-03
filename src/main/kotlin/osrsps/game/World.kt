@@ -2163,6 +2163,12 @@ class World(
     /** Kick user on a friends chat member. */
     fun onFriendsChatKick(player: Player, name: String) = act(player) { friendChats.kick(player, name) }
 
+    /** Kick guest in the clan channel's list; see [Clans.kickFromChannel]. */
+    fun onClanKick(player: Player, clanType: Int, name: String) = act(player) { clans.kickFromChannel(player, clanType, name) }
+
+    /** Ban guest in the clan channel's list; see [Clans.banFromChannel]. */
+    fun onClanBan(player: Player, clanType: Int, name: String) = act(player) { clans.banFromChannel(player, clanType, name) }
+
     /** Join Chat's typed name, or Leave Chat (no name). Works while dead, as the client changes its panel at once. */
     fun onFriendsChatJoinLeave(player: Player, name: String?) = actWhileDead(player) {
         if (name == null) friendChats.leave(player) else friendChats.join(player, name)
@@ -2258,6 +2264,7 @@ class World(
         if (interfaceId == Clans.INFO && clans.clickInfo(player, componentId)) return@act
         if (interfaceId == Clans.APPLICANTS && clans.clickApplicants(player, componentId)) return@act
         if (interfaceId == Clans.MEMBERS && clans.clickMembers(player, componentId, sub)) return@act
+        if (interfaceId == Clans.BANNED && clans.clickBanned(player, componentId)) return@act
         if (interfaceId == Clans.PERMISSIONS && clans.clickPermissions(player, componentId, sub)) return@act
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_SETTINGS) {
             clans.openYourInfo(player)
@@ -2485,7 +2492,8 @@ class World(
 
     fun onResumeString(player: Player, text: String) = act(player) {
         if (player.scripts.delayed) return@act
-        if (!scripts.resumeString(player, text)) logger.debug { "${player.username} typed text nothing waits for" }
+        if (scripts.resumeString(player, text) || clans.typedOnBanned(player, text)) return@act
+        logger.debug { "${player.username} typed text nothing waits for" }
     }
 
     /**

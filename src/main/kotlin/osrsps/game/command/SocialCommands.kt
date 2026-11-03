@@ -105,6 +105,13 @@ fun CommandRegistry.registerSocialCommands(world: World) {
         reply("${Clans.TEST_APPLICANT_NAME} applied to ${clan.name}")
     }
 
+    register("clanbanned", "::clanbanned") {
+        if (args.isNotEmpty()) fail("Usage: ::clanbanned")
+        val clan = world.clans.clanOf(player) ?: fail("You aren't in a clan")
+        if (!world.clans.addTestBan(clan)) fail("${clan.name} has the test ban already")
+        reply("${Clans.TEST_BANNED_NAME} banned from ${clan.name}")
+    }
+
     register("guestclan", "::guestclan", admin = false) {
         if (args.isNotEmpty()) fail("Usage: ::guestclan")
         val clan = world.clans.guestClanOf(player) ?: run {

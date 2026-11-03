@@ -35,12 +35,20 @@ class ClanStore(private val file: Path? = null) {
      */
     class Applicant(val key: String, var name: String, var stats: String = "")
 
+    /** A player banned from the clan's channel (Ban guest), by save key and the name they had. */
+    class Banned(val key: String, val name: String)
+
     class Clan(val id: Long, var name: String, val createdMillis: Long, val members: MutableList<Member>) {
         /** Applicants, oldest first. */
         val applicants = ArrayList<Applicant>()
 
         /** Clan setting vars set by its members (permissions), by var id; unset ones take their defaults. */
         val settings = HashMap<Int, Int>()
+
+        /** Players banned from its channel, oldest first. */
+        val banned = ArrayList<Banned>()
+
+        fun banned(key: String): Banned? = banned.firstOrNull { it.key == key }
 
         fun member(key: String): Member? = members.firstOrNull { it.key == key }
 
@@ -129,6 +137,22 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "${member.key} joined clan '${clan.name}'" }
     }
 
+    /** Bans [key] from [clan]'s channel and saves, unless they are banned already. */
+    fun addBanned(clan: Clan, key: String, name: String) {
+        if (clan.banned(key) != null) return
+        clan.banned += Banned(key, name)
+        save()
+        logger.info { "$key banned from the channel of clan '${clan.name}'" }
+    }
+
+    /** Lifts [key]'s ban from [clan]'s channel and saves; false if they weren't banned. */
+    fun removeBanned(clan: Clan, key: String): Boolean {
+        if (!clan.banned.removeIf { it.key == key }) return false
+        save()
+        logger.info { "$key unbanned from the channel of clan '${clan.name}'" }
+        return true
+    }
+
     /** Sets [clan]'s setting var [id] to [value], written at the next [flush]. */
     fun setSetting(clan: Clan, id: Int, value: Int) {
         clan.settings[id] = value
@@ -204,6 +228,14 @@ class ClanStore(private val file: Path? = null) {
                             }
                         }
                     }
+                    putJsonArray("banned") {
+                        for (banned in clan.banned) {
+                            addJsonObject {
+                                put("key", banned.key)
+                                put("name", banned.name)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -220,11 +252,15 @@ class ClanStore(private val file: Path? = null) {
                 Member(m["key"]!!.jsonPrimitive.content, m["name"]!!.jsonPrimitive.content, m["rank"]!!.jsonPrimitive.int, m["joined"]!!.jsonPrimitive.int)
             }
             val clan = Clan(obj["id"]!!.jsonPrimitive.long, obj["name"]!!.jsonPrimitive.content, obj["created"]!!.jsonPrimitive.long, members.toMutableList())
-            // Files from before settings or applications have none.
+            // Files from before settings, applications or bans have none.
             for ((id, value) in obj["settings"]?.jsonObject.orEmpty()) clan.settings[id.toInt()] = value.jsonPrimitive.int
             for (a in obj["applicants"]?.jsonArray.orEmpty()) {
                 val o = a.jsonObject
                 clan.applicants += Applicant(o["key"]!!.jsonPrimitive.content, o["name"]!!.jsonPrimitive.content, o["stats"]?.jsonPrimitive?.content.orEmpty())
+            }
+            for (b in obj["banned"]?.jsonArray.orEmpty()) {
+                val o = b.jsonObject
+                clan.banned += Banned(o["key"]!!.jsonPrimitive.content, o["name"]!!.jsonPrimitive.content)
             }
             clans[clan.id] = clan
             if (clan.id >= nextId) nextId = clan.id + 1
