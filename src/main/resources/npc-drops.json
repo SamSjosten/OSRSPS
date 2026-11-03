@@ -276,7 +276,7 @@
       "source": "OSRS Wiki, Giant spider, read 2026-10-30: no bones; the looting bag, Larran's key and slayer's enchantment drop only in the Wilderness or on Krystilia's tasks"
     },
     {
-      "npcs": ["giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3"],
+      "npcs": ["giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1", "giantrat1_2", "giantrat1_3"],
       "always": [{"item": 526, "name": "Bones"}, {"item": 2134, "name": "Raw rat meat"}],
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
       "source": "OSRS Wiki, Giant rat, the Level 3 and 6 table, read 2026-10-30 (the giant rat bone drops only during Rag and Bone Man I, which every account has done; the looting bag only in the Wilderness)"
@@ -343,7 +343,7 @@
       "source": "OSRS Wiki, Goblin, drop table 2 (some level 5 goblins), read 2026-10-30; the free-to-play lines (Coins x10, the larger nothing) are out"
     },
     {
-      "npcs": ["fai_barbarian_2", "fai_barbarian_5", "fai_barbarian_6", "fai_barbarian_7", "fai_barbarian_10", "fai_barbarian_11", "fai_barbarian_12", "fai_barbarian_13", "fai_barbarian_female_2", "fai_barbarian_female_3", "fai_barbarian_female_4"],
+      "npcs": ["fai_barbarian_2", "fai_barbarian_5", "fai_barbarian_6", "fai_barbarian_7", "fai_barbarian_10", "fai_barbarian_11", "fai_barbarian_12", "fai_barbarian_13", "fai_barbarian_female_2", "fai_barbarian_female_3", "fai_barbarian_female_4", "barbarianwoman_varrock"],
       "always": [{"item": 526, "name": "Bones"}],
       "table": {
         "slots": 128,
@@ -601,6 +601,37 @@
       "npcs": ["house_ghost", "house_ghost2", "house_ghost3", "house_ghost4", "house_ghost5"],
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}],
       "source": "OSRS Wiki, Ghost, Drops (Level 19), read 2026-11-01: no bones and no main table, only the beginner clue; the Wilderness-only looting bag is left out. Skeleton (Draynor Manor) lists no drops, so it drops nothing"
+    },
+    {
+      "npcs": ["mugger"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {"slots": 128, "lines": [{"item": 877, "name": "Bronze bolts", "min": 2, "max": 12, "weight": 27}, {"item": 558, "name": "Mind rune", "count": 9, "weight": 3}, {"item": 555, "name": "Water rune", "count": 6, "weight": 2}, {"item": 557, "name": "Earth rune", "count": 5, "weight": 2}, {"table": "herbs", "weight": 13}, {"item": 995, "name": "Coins", "count": 5, "weight": 12}, {"item": 995, "name": "Coins", "count": 15, "weight": 3}, {"item": 995, "name": "Coins", "count": 25, "weight": 1}, {"item": 954, "name": "Rope", "weight": 40}, {"nothing": true, "weight": 13}, {"item": 946, "name": "Knife", "weight": 1}, {"item": 313, "name": "Fishing bait", "weight": 6}, {"item": 436, "name": "Copper ore", "weight": 2}, {"item": 1139, "name": "Bronze med helm", "weight": 2}, {"item": 1965, "name": "Cabbage", "weight": 1}]},
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/80"}, {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Mugger, drops (Regular), read 2026-11-02: the members world leaves out the free-to-play-only Coins x10 (13/128)"
+    },
+    {
+      "npcs": ["thief1", "qip_soa_thief_male01", "qip_soa_thief_female01", "qip_soa_thief_female02"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {"slots": 128, "lines": [{"item": 1139, "name": "Bronze med helm", "weight": 2}, {"item": 1203, "name": "Iron dagger", "weight": 1}, {"item": 877, "name": "Bronze bolts", "min": 2, "max": 12, "weight": 22}, {"item": 882, "name": "Bronze arrow", "count": 7, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 4, "weight": 2}, {"item": 554, "name": "Fire rune", "count": 6, "weight": 2}, {"item": 558, "name": "Mind rune", "count": 9, "weight": 2}, {"item": 562, "name": "Chaos rune", "count": 2, "weight": 1}, {"table": "herbs", "weight": 23}, {"item": 995, "name": "Coins", "count": 3, "weight": 38}, {"item": 995, "name": "Coins", "count": 5, "weight": 9}, {"item": 995, "name": "Coins", "count": 15, "weight": 4}, {"item": 995, "name": "Coins", "count": 25, "weight": 1}, {"nothing": true, "weight": 8}, {"item": 313, "name": "Fishing bait", "weight": 5}, {"item": 436, "name": "Copper ore", "weight": 2}, {"item": 1440, "name": "Earth talisman", "weight": 2}, {"item": 1965, "name": "Cabbage", "weight": 1}]},
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}, {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Thief, drops (Standard), read 2026-11-02; the Varrock gang's thieves (5217 to 5220) are taken to drop the same (guessed: the Wiki lists only the standard table). Left out: the free-to-play-only Coins x10 (23/128) and the energy potion, whose rate the Wiki gives as unknown"
+    },
+    {
+      "npcs": ["black_knight"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {"slots": 128, "lines": [{"item": 1279, "name": "Iron sword", "weight": 4}, {"item": 1153, "name": "Iron full helm", "weight": 2}, {"item": 1424, "name": "Steel mace", "weight": 1}, {"item": 888, "name": "Mithril arrow", "count": 3, "weight": 4}, {"item": 559, "name": "Body rune", "count": 9, "weight": 3}, {"item": 562, "name": "Chaos rune", "count": 6, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 10, "weight": 3}, {"item": 560, "name": "Death rune", "count": 2, "weight": 2}, {"item": 563, "name": "Law rune", "count": 3, "weight": 2}, {"item": 564, "name": "Cosmic rune", "count": 7, "weight": 1}, {"item": 558, "name": "Mind rune", "count": 2, "weight": 1}, {"table": "herbs", "weight": 3}, {"table": "general_seeds", "weight": 18}, {"item": 2353, "name": "Steel bar", "weight": 6}, {"item": 438, "name": "Tin ore", "weight": 1}, {"item": 1933, "name": "Pot of flour", "weight": 1}, {"item": 995, "name": "Coins", "count": 35, "weight": 21}, {"item": 995, "name": "Coins", "count": 6, "weight": 11}, {"item": 995, "name": "Coins", "count": 58, "weight": 10}, {"item": 995, "name": "Coins", "count": 12, "weight": 9}, {"item": 995, "name": "Coins", "count": 80, "weight": 2}, {"item": 995, "name": "Coins", "count": 1, "weight": 14}, {"nothing": true, "weight": 2}, {"item": 2309, "name": "Bread", "weight": 1}, {"table": "gems_surface", "weight": 3}]},
+      "source": "OSRS Wiki, Black Knight, drops, read 2026-11-02: the free-to-play-only coin lines (x5 18/128, x10 3/128) are left out; the Coins x1 line drops always only during Wanted!, which isn't built, so it stays at 14/128; the gem table's talisman row is the nature talisman, as above ground; the looting bag and Wilderness slayer drops only in the Wilderness"
+    },
+    {
+      "npcs": ["brownbear"],
+      "always": [{"item": 526, "name": "Bones"}, {"item": 948, "name": "Bear fur"}, {"item": 2136, "name": "Raw bear meat"}],
+      "tertiary": [{"item": 13462, "name": "Ensouled bear head", "chance": "1/25"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}],
+      "source": "OSRS Wiki, Grizzly bear (Level 21), drops, read 2026-11-02: bear ribs drop only during Rag and Bone Man I, which every account has done; the looting bag and Wilderness slayer drops only in the Wilderness"
+    },
+    {
+      "npcs": ["warrior_woman"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Warrior woman, drops, read 2026-11-02: bones alone (the coins are her pickpocket loot; Rocky is a Thieving pet)"
     }
   ]
 }
