@@ -161,7 +161,7 @@
       "source": "OSRS Wiki, Giant spider (Level 2, id 3017) and the DPS calculator, read 2026-10-30; it stands and walks with spider_update_ready and _walk, so the spider_update fight animations are taken. It is aggressive (the infobox, read 2026-10-30), with the guessed default hunt range"
     },
     {
-      "npcs": ["giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3"],
+      "npcs": ["giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1", "giantrat1_2", "giantrat1_3"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
       "anims": { "attack": "giant_rat_update_attack", "defend": "giant_rat_update_defend", "death": "giant_rat_update_death" },
@@ -466,6 +466,57 @@
       "weakness": { "element": "air", "percent": 50 },
       "aggressive": true,
       "source": "OSRS Wiki, Ghost (Level 19, ids 473, 474 and 505 to 507 in Draynor Manor), read 2026-11-01: speed 4, max hit 2, crush, the bonuses, respawn 40, weak to air 50%, aggressive. They stand and walk with ghost_update_normal_ready and _walk, so the normal fight animations are taken; the default hunt range is guessed"
+    },
+    {
+      "npcs": ["mugger"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": -21,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "aggressive": true,
+      "source": "OSRS Wiki, Mugger (Regular, id 513) and the DPS calculator's 513, read 2026-11-02: speed 4, max hit 1, crush, strength bonus -21, no defence bonuses, aggressive (to players up to twice its level, the aggression engine's rule). It stands with human_ready, so it punches (guessed); the Wiki gives no respawn time, so the thieves' 25 is guessed, as is the default hunt range"
+    },
+    {
+      "npcs": ["black_knight"],
+      "attackSpeed": 5, "maxHit": 4, "attackType": "slash", "attackBonus": 18, "strengthBonus": 16,
+      "defence": { "stab": 73, "slash": 76, "crush": 70, "magic": -11, "light": 72, "standard": 72, "heavy": 72 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_shield_defence", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Black Knight (Passive, male, id 516) and the DPS calculator's 516, read 2026-11-02: speed 5, max hit 4, slash, the bonuses, respawn 25, not aggressive. The sword slash and shield block are guessed from the knight's sword and shield"
+    },
+    {
+      "npcs": ["thief1", "qip_soa_thief_male01", "qip_soa_thief_female01", "qip_soa_thief_female02"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Thief (Standard, id 3252; the Varrock gang's 5217 to 5220 share the DPS calculator's stats) and the DPS calculator, read 2026-11-02: speed 4, max hit 2, crush, no bonuses, respawn 25, not aggressive. They stand with human_ready, so they punch (guessed)"
+    },
+    {
+      "npcs": ["barbarianwoman_varrock"],
+      "attackSpeed": 6, "maxHit": 2, "attackType": "stab", "attackBonus": 8, "strengthBonus": 10,
+      "defence": { "stab": 1, "slash": 1, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Barbarian (Level 8, the Blue Moon Inn's, id 3262) and the DPS calculator's 3262, read 2026-11-02: speed 6, max hit 2, stab, attack 8, strength 10, stab and slash defence 1, respawn 25, not aggressive. She stands with human_ready, so she punches (guessed)"
+    },
+    {
+      "npcs": ["warrior_woman"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "stab", "attackBonus": 6, "strengthBonus": 7,
+      "defence": { "stab": 40, "slash": 41, "crush": 37, "magic": -10, "light": 38, "standard": 38, "heavy": 38 },
+      "anims": { "attack": "human_sword_stab", "defend": "human_shield_defence", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Warrior woman (id 3260, Varrock Palace) and the DPS calculator's 3260, read 2026-11-02: speed 4, max hit 3, stab, the bonuses, respawn 50, not aggressive. The sword stab and shield block are guessed"
+    },
+    {
+      "npcs": ["brownbear"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "bear_rework_attack", "defend": "bear_rework_defend", "death": "bear_rework_death" },
+      "respawnTicks": 50,
+      "weakness": {"element": "fire", "percent": 20},
+      "aggressive": true,
+      "source": "OSRS Wiki, Grizzly bear (Level 21, id 2838) and the DPS calculator's 2838, read 2026-11-02: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 20%, aggressive. It stands with bear_rework_ready, so the bear_rework fight animations are taken; the default hunt range is guessed"
     }
   ]
 }

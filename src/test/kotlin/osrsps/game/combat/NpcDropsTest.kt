@@ -36,10 +36,14 @@ class NpcDropsTest {
     private val varrockGuard = NpcType(11911, "Guard", combatLevel = 21, internalName = "fai_varrock_guard02")
     private val edgevilleGuard = NpcType(3254, "Guard", combatLevel = 21, internalName = "guard1")
     private val monk = NpcType(2579, "Monk", combatLevel = 5, internalName = "monk")
+    private val mugger = NpcType(513, "Mugger", combatLevel = 6, internalName = "mugger")
+    private val blackKnight = NpcType(516, "Black Knight", combatLevel = 33, internalName = "black_knight")
+    private val gangThief = NpcType(5219, "Thief", combatLevel = 16, internalName = "qip_soa_thief_female01")
+    private val grizzly = NpcType(2838, "Grizzly bear", combatLevel = 21, internalName = "brownbear")
     private val outlaws = (1..10).map { NpcType(4166 + it, "Outlaw", combatLevel = 32, internalName = "surok_outlaw$it") }
     private val types = NpcTypes.of(
         man, imp, cow, rat, chicken, ram, goblin, spider, giantRat, frog, bigFrog, giantFrog, armedGoblin, unicorn, warrior, kharidMan, scorpion, shantayGuard,
-        varrockGuard, edgevilleGuard, monk, *outlaws.toTypedArray(),
+        varrockGuard, edgevilleGuard, monk, mugger, blackKnight, gangThief, grizzly, *outlaws.toTypedArray(),
     )
     private val objTypes = DropTestItems.objTypes()
     private val drops = NpcDrops.load(types, objTypes)
@@ -48,7 +52,7 @@ class NpcDropsTest {
     fun `the file reads, naming every item as the cache does, and the tables add up`() {
         // The test's cache knows one man, cow and so on; every other warning would be a wrong item name.
         assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
-        assertEquals(31, drops.size)
+        assertEquals(35, drops.size)
         val def = drops[man]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })
         assertEquals(128, def.table!!.slots)
@@ -331,6 +335,52 @@ class NpcDropsTest {
         assertEquals(setOf(4, 3, 2), counts.filterKeys { "seed" in it && it != "any seed" }.keys.map { it.substringAfterLast("x").toInt() }.toSet())
         // No free-to-play 5 coins.
         assertNull(counts["Coins x5"])
+    }
+
+    @Test
+    fun `Varrock's muggers, thieves, Black Knight and grizzly bear drop as the Wiki's tables say`() {
+        fun counts(def: NpcDropsDef, seed: Long): Map<String, Int> {
+            val random = GameRandom(seed)
+            val counts = HashMap<String, Int>()
+            repeat(KILLS) {
+                val kill = def.roll(random)
+                assertEquals("Bones", kill.first().type.name)
+                for (drop in kill.drop(1)) {
+                    val key = "${drop.type.name} x${drop.count}"
+                    counts[key] = (counts[key] ?: 0) + 1
+                }
+            }
+            counts["any herb"] = counts.filterKeys { it.startsWith("Grimy") }.values.sum()
+            return counts
+        }
+        fun expect(counts: Map<String, Int>, key: String, weight: Int) {
+            val p = weight.toDouble() / 128
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        val mugger = counts(drops[mugger]!!, 41)
+        expect(mugger, "Rope x1", 40)
+        expect(mugger, "any herb", 13)
+        expect(mugger, "Coins x5", 12)
+        expect(mugger, "Fishing bait x1", 6)
+        assertNull(mugger["Coins x10"])
+        assertEquals(listOf("Clue scroll (beginner)" to 80, "Clue scroll (easy)" to 128), drops[this.mugger]!!.tertiary.map { it.item.type.name to it.denominator })
+        val thief = counts(drops[gangThief]!!, 42)
+        expect(thief, "Coins x3", 38)
+        expect(thief, "any herb", 23)
+        expect(thief, "Earth talisman x1", 2)
+        assertNull(thief["Coins x10"])
+        val knight = counts(drops[blackKnight]!!, 43)
+        expect(knight, "Coins x35", 21)
+        expect(knight, "Coins x1", 14)
+        expect(knight, "Steel bar x1", 6)
+        expect(knight, "Iron sword x1", 4)
+        assertNull(knight["Coins x5"])
+        assertEquals(listOf("Bones", "Bear fur", "Raw bear meat"), drops[grizzly]!!.always.map { it.type.name })
+        assertNull(drops[grizzly]!!.table)
+        assertEquals(listOf("Ensouled bear head" to 25, "Clue scroll (beginner)" to 90), drops[grizzly]!!.tertiary.map { it.item.type.name to it.denominator })
     }
 
     @Test

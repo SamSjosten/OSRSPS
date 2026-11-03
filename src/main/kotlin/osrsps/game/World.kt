@@ -620,6 +620,18 @@ class World(
             }
         },
         playerByKey = { key -> findPlayer(key) },
+        pickRank = { player, title, current, min, max, picked ->
+            interfaces.openInside(player, Clans.MEMBERS, Clans.MEMBERS_POPUP, Clans.POPUPOVERLAY)
+            interfaces.runClientScript(
+                player, Clans.SCRIPT_RANK_POPUP, listOf(title, current, min, max, 0, Clans.component(Clans.MEMBERS, Clans.MEMBERS_POPUP)),
+            )
+            scripts.start(player) {
+                // clan_rankpopup sends the rank clicked plus one.
+                val answer = waitForCount()
+                if (Clans.MEMBERS in player.modals.values) interfaces.closeInside(player, Clans.MEMBERS, Clans.MEMBERS_POPUP)
+                if (answer > 0) picked(answer - 1)
+            }
+        },
         now = clansClock,
     )
 
@@ -2226,6 +2238,7 @@ class World(
         if (interfaceId == Clans.GUEST_SIDEPANEL && clans.clickGuest(player, componentId, ::askGuestClanName)) return@act
         if (interfaceId == Clans.INFO && clans.clickInfo(player, componentId)) return@act
         if (interfaceId == Clans.APPLICANTS && clans.clickApplicants(player, componentId)) return@act
+        if (interfaceId == Clans.MEMBERS && clans.clickMembers(player, componentId, sub)) return@act
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_SETTINGS) {
             clans.openYourInfo(player)
             return@act
