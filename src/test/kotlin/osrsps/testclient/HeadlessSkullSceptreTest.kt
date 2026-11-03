@@ -108,7 +108,8 @@ class HeadlessSkullSceptreTest {
                 client.awaitMessage("the skull sceptre") { it == "[skull_sceptre.join_whole]" }
                 client.await("only the sceptre left") { Unit.takeIf { client.inventory(BACKPACK).filterNotNull().map { it.id } == listOf(SkullSceptre.SCEPTRE) } }
                 client.itemOp(SkullSceptre.SCEPTRE, SkullSceptre.DIVINE)
-                client.awaitMessage("ten charges") { it == "[skull_sceptre.divine charges=10]" }
+                client.awaitDialogue("ten charges") { it is DialogueView.Message && it.text == "[skull_sceptre.divine charges=10]" }
+                client.continueDialogue()
 
                 repeat(SkullSceptre.MAX_CHARGES) { used ->
                     client.tele(3222, 3218 + used % 2)
@@ -239,7 +240,8 @@ class HeadlessSkullSceptreTest {
                 }
                 client.await("the worn sceptre crumbled") { Unit.takeIf { client.inventory(WORN).getOrNull(WearPos.WEAPON) == null } }
                 client.itemOp(SkullSceptre.SCEPTRE, SkullSceptre.DIVINE)
-                client.awaitMessage("the other full") { it == "[skull_sceptre.divine charges=10]" }
+                client.awaitDialogue("the other full") { it is DialogueView.Message && it.text == "[skull_sceptre.divine charges=10]" }
+                client.continueDialogue()
 
                 // The chisel: 14 from a whole sceptre, 8 from a strange skull, 6 from a runed sceptre.
                 client.command("item ${SkullSceptre.CHISEL}")
@@ -260,6 +262,14 @@ class HeadlessSkullSceptreTest {
                 client.await("the joined halves") { client.carried(SkullSceptre.RUNED_SCEPTRE).takeIf { it == 1 } }
                 client.useOn(SkullSceptre.RUNED_SCEPTRE, SkullSceptre.STRANGE_SKULL)
                 client.await("the sceptre made imbued") { client.carried(SkullSceptre.IMBUED).takeIf { it == 1 } }
+                assertEquals(0, client.carried(SkullSceptre.SCEPTRE))
+
+                // A plain one that was banked during the imbue is made imbued when next used.
+                client.command("item ${SkullSceptre.SCEPTRE}")
+                client.itemOp(SkullSceptre.SCEPTRE, SkullSceptre.DIVINE)
+                client.awaitDialogue("its charges") { it is DialogueView.Message && it.text.startsWith("[skull_sceptre.divine") }
+                client.continueDialogue()
+                client.await("both imbued") { client.carried(SkullSceptre.IMBUED).takeIf { it == 2 } }
                 assertEquals(0, client.carried(SkullSceptre.SCEPTRE))
             }
         }

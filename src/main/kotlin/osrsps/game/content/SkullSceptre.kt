@@ -91,12 +91,13 @@ object SolztunLines : Lines("solztun", "Transcript:Solztun") {
  *   and nothing else (the Wiki); once Solztun has imbued one, the whole sceptre is made imbued.
  * - Invoke takes the player to the Stronghold's entrance in Barbarian Village ([Church.STRONGHOLD]) for a charge, up
  *   to level 20 Wilderness. A sceptre that isn't imbued crumbles with its last charge (the Wiki: it "will
- *   self-destruct"); an imbued one stays, empty. Divine says the charges left. Guessed: the standard spellbook's
+ *   self-destruct"); an imbued one stays, empty. Divine shows the charges left in a message box. Guessed: the standard spellbook's
  *   teleport animation and graphic, and its 3 ticks.
  * - The charges belong to the player ([osrsps.game.Charges]), as the blowpipe's do: two sceptres share them, and when
  *   one that isn't imbued crumbles the next starts with [MAX_CHARGES] (the Wiki).
- * - Solztun (7673), in the Sepulchre of Death's reward room, imbues every skull sceptre the player carries into the
- *   skull sceptre (i) (21276) once he has seen a pair of the Cradle of Life's boots. The imbued sceptre is charged with
+ * - Solztun (7673), in the Sepulchre of Death's reward room, imbues every skull sceptre the player carries or wields
+ *   into the skull sceptre (i) (21276) once he has seen a pair of the Cradle of Life's boots; a banked one is made
+ *   imbued when it is next used. The imbued sceptre is charged with
  *   bone fragments (25139, one charge each) or a sceptre piece (3 charges, the left skull half 5); a chisel breaks a
  *   piece into that many fragments, a strange skull into 8, a runed sceptre 6 and a whole sceptre that isn't imbued
  *   14 (the Wiki's Bone fragments). The Varrock Diary's extra charges wait for the diary.
@@ -163,7 +164,7 @@ object SkullSceptre {
     fun imbueUnlocked(player: Player) = player.vars.types.varbit(VARBIT_IMBUED) != null && player.vars.getVarbit(VARBIT_IMBUED) == 1
 
     /**
-     * Turns every skull sceptre in [player]'s pack into the imbued one; returns how many.
+     * Turns every skull sceptre [player] carries or wields into the imbued one; returns how many.
      */
     fun imbue(player: Player): Int {
         var imbued = 0
@@ -172,8 +173,18 @@ object SkullSceptre {
             player.inventory[slot] = InvObj(IMBUED, 1)
             imbued++
         }
+        if (player.equipment[WearPos.WEAPON]?.id == SCEPTRE) {
+            player.equipment[WearPos.WEAPON] = InvObj(IMBUED, 1)
+            imbued++
+        }
         return imbued
     }
+
+    /**
+     * Imbuing one imbues them all (the Wiki's Skull sceptre (i)): a plain sceptre that was banked during the imbue is
+     * made imbued when it is next used, carried or wielded. Returns whether the player has the unlock.
+     */
+    fun normalize(player: Player): Boolean = imbueUnlocked(player).also { if (it) imbue(player) }
 
     /** What a charge of [type] adds to an imbued sceptre holding [have]: the room left, at most [per] each of [count]. */
     fun chargesAdded(have: Int, per: Int, count: Int): Int = minOf(count.toLong() * per, (MAX_CHARGES - have).toLong()).toInt().coerceAtLeast(0)
@@ -186,16 +197,16 @@ fun registerSkullSceptre(world: World) {
         }
         for (sceptre in listOf(SCEPTRE, IMBUED)) {
             world.handlers.onObj(sceptre, INVOKE) { op -> invoke(world, sceptre, worn = false) }
-            world.handlers.onObj(sceptre, DIVINE) { world.message(player, SkullSceptreLines.DIVINE, "charges" to player.charges[CHARGES]) }
+            world.handlers.onObj(sceptre, DIVINE) { divine(world) }
             val type = world.objTypes[sceptre] ?: continue
             wornOption(type, "Invoke")?.let { world.handlers.onWorn(sceptre, it) { invoke(world, sceptre, worn = true) } }
-            wornOption(type, "Divine")?.let {
-                world.handlers.onWorn(sceptre, it) { world.message(player, SkullSceptreLines.DIVINE, "charges" to player.charges[CHARGES]) }
-            }
+            wornOption(type, "Divine")?.let { world.handlers.onWorn(sceptre, it) { divine(world) } }
         }
         for ((piece, per) in PIECE_CHARGES + (BONE_FRAGMENTS to 1)) {
             world.handlers.onObjOnObj(piece, IMBUED) { op -> charge(world, op, piece, per) }
-            world.handlers.onObjOnObj(piece, SCEPTRE) { world.message(player, SkullSceptreLines.NOT_IMBUED) }
+            world.handlers.onObjOnObj(piece, SCEPTRE) { op ->
+                if (normalize(player)) charge(world, op, piece, per) else world.message(player, SkullSceptreLines.NOT_IMBUED)
+            }
         }
         for ((piece, fragments) in CHISEL_FRAGMENTS) {
             world.handlers.onObjOnObj(CHISEL, piece) { op ->
@@ -240,8 +251,15 @@ private suspend fun ScriptContext.join(world: World, op: Op, a: Int, b: Int, mad
     }
 }
 
+/** Divine: the charges left, in a message box (the Wiki); a plain sceptre is made imbued first if it should be. */
+private suspend fun ScriptContext.divine(world: World) {
+    SkullSceptre.normalize(player)
+    world.dialogues.start(this) { mesbox(SkullSceptreLines.DIVINE, "charges" to player.charges[SkullSceptre.CHARGES]) }
+}
+
 /** Invoke: the teleport for a charge, the sceptre gone with the last one unless it is imbued. */
-private suspend fun ScriptContext.invoke(world: World, sceptre: Int, worn: Boolean) {
+private suspend fun ScriptContext.invoke(world: World, used: Int, worn: Boolean) {
+    val sceptre = if (used == SkullSceptre.SCEPTRE && SkullSceptre.normalize(player)) SkullSceptre.IMBUED else used
     val charges = player.charges[SkullSceptre.CHARGES]
     if (charges <= 0) {
         // Only an imbued sceptre can be empty; one that isn't would have crumbled.
