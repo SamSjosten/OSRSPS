@@ -157,8 +157,6 @@ object SkullSceptre {
 
     fun hasBoots(player: Player) = BOOTS.any { player.inventory.count(it) > 0 || player.equipment.count(it) > 0 }
 
-    fun hasBootsAnywhere(player: Player) = hasBoots(player) || BOOTS.any { player.bank.count(it) > 0 }
-
     fun carriesSceptre(player: Player) = player.inventory.count(SCEPTRE) > 0
 
     /** Solztun has imbued a sceptre for [player]: every one they make after starts imbued (the Wiki's Skull sceptre (i)). */
@@ -259,8 +257,9 @@ private suspend fun ScriptContext.invoke(world: World, sceptre: Int, worn: Boole
         if (worn) player.equipment.remove(WearPos.WEAPON, 1)
         else player.inventory.contents().firstOrNull { it.second.id == sceptre }?.let { player.inventory.remove(it.first, 1) }
         world.message(player, SkullSceptreLines.CRUMBLES)
-        // The next sceptre that isn't imbued starts full when one crumbles (the Wiki); an imbued one keeps its 0.
-        val another = player.inventory.count(SkullSceptre.SCEPTRE) > 0 || player.equipment.count(SkullSceptre.SCEPTRE) > 0
+        // The next sceptre that isn't imbued starts full when one crumbles (the Wiki), carried, worn or banked; an
+        // imbued one alone keeps its 0.
+        val another = listOf(player.inventory.count(SkullSceptre.SCEPTRE), player.equipment.count(SkullSceptre.SCEPTRE), player.bank.count(SkullSceptre.SCEPTRE)).any { it > 0 }
         if (another) player.charges[SkullSceptre.CHARGES] = SkullSceptre.MAX_CHARGES
     }
     // The worn Invoke comes without the inventory's closing of modals: close them, or a bank open here would stay
