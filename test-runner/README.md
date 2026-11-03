@@ -339,6 +339,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   or coins, then making a splitbark body from his talk's third option and splitbark gauntlets from Trade.
 - `rick.json`: Draynor step 15d: Rick's talk about himself (`::keys on`), turning away a player without 75,000
   coins, and Buy-crystals selling as many escape crystals as the coins pay for (`enterAmount`).
+- `draynor-examine.json`: Draynor step 16: Examine (`::keys on`) on the Wizards' Tower's people, a rune essence
+  mine portal and the Rune Essence rock.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

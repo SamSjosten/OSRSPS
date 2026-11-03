@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import osrsps.game.dialogue.DialogueText
+import osrsps.game.skill.Mining
 
 class ExaminesTest {
     @Test
@@ -33,6 +34,18 @@ class ExaminesTest {
         // The church's altar, organ and pews, the graveyard's gravestones, a water wheel and a plant west of the castle: the 241
         // cache's ids (dump.loc).
         for (id in listOf(Church.ALTAR, 3500, 5788, 404, 405, 5590, 1391)) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+    }
+
+    @Test
+    fun `the Wizards' Tower's people and the essence mine have examines, and multi-NPCs share theirs`() {
+        val ids = listOf(EssenceMine.SEDRIDOR, WizardsTowerPeople.TRAIBORN, WizardsTowerPeople.MIZGOG, WizardsTowerPeople.GRAYZAG, WizardsTowerPeople.ONGLEWIP, Jalarast.JALARAST, Rick.RICK)
+        for (id in ids) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
+        // Sedridor's, Mizgog's and Rick's other types show the same text.
+        assertSame(Examines.npc(EssenceMine.SEDRIDOR), Examines.npc(5034))
+        assertSame(Examines.npc(WizardsTowerPeople.MIZGOG), Examines.npc(5005))
+        assertSame(Examines.npc(Rick.RICK), Examines.npc(11409))
+        // The Rune Essence rock and a portal (the 241 cache's ids).
+        for (id in listOf(Mining.ESSENCE_ROCK, EssenceMine.PORTAL)) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
     }
 
     @Test
