@@ -3,6 +3,7 @@ package osrsps.game.skill
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -65,6 +66,12 @@ sealed interface AgilityMove {
      * (20 ms) after the update and arriving at [endCycles], with [anim]; [ticks] ticks later they stand on [to].
      */
     data class Slide(val to: AgilityTile, val anim: Int, val startCycles: Int, val endCycles: Int, val ticks: Int) : AgilityMove
+
+    /**
+     * Gives [tenths] Agility XP partway across, with no wait: the Champions' Guild south stepping stones give theirs on
+     * the first and third stone (OSRS Wiki). The obstacle's own XP still comes at the end.
+     */
+    data class Xp(val tenths: Int) : AgilityMove
 }
 
 /**
@@ -96,6 +103,11 @@ class Obstacle(
     val alsoLocs: List<Int> = emptyList(),
     /** XP in tenths for a failure, as the Champions' Guild stepping stone's 1; 0 for most. */
     val failXpTenths: Int = 0,
+    /**
+     * Whether a click walks the player to the nearest route's start rather than beside the loc, for a loc that can't be
+     * reached from beside it: a stepping stone in a river, jumped onto from the bank. See [osrsps.game.loc.LocInteractions.useFrom].
+     */
+    val fromStart: Boolean = false,
 ) {
     /** Every loc type that is this obstacle. */
     val locs: List<Int> get() = listOf(loc) + alsoLocs
@@ -203,6 +215,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                 json["levelLine"]?.jsonPrimitive?.content?.let(AgilityLines::byKey) ?: AgilityLines.LEVEL,
                 json["alsoLocs"]?.jsonArray.orEmpty().map { it.jsonPrimitive.int },
                 json["failXpTenths"]?.jsonPrimitive?.int ?: 0,
+                json["fromStart"]?.jsonPrimitive?.boolean ?: false,
             )
         }
 
@@ -216,6 +229,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
             "slide" -> AgilityMove.Slide(
                 tile(json.getValue("to").jsonArray), json.int("anim"), json.int("startCycles"), json.int("endCycles"), json.int("ticks"),
             )
+            "xp" -> AgilityMove.Xp(json.int("tenths"))
             else -> error("Obstacle $key has a move of unknown type ${json["type"]}")
         }
 
@@ -245,6 +259,11 @@ class Agility(private val world: World, val data: AgilityData) {
     fun register() {
         for ((locId, obstacles) in data.byLoc) {
             world.handlers.onLoc(locId, option(locId, obstacles.first().option)) { op -> cross(op, obstacles) }
+            if (obstacles.none { it.fromStart }) continue
+            world.useLocFrom(locId) { player, loc ->
+                val obstacle = obstacleAt(obstacles, loc)?.takeIf { it.fromStart } ?: return@useLocFrom emptyList()
+                routesFor(obstacle, loc, player.level).map { Tile(it.from.x, it.from.z) }
+            }
         }
     }
 
@@ -339,11 +358,15 @@ class Agility(private val world: World, val data: AgilityData) {
      * pipe of several), or if none does those that name no loc, then the one starting nearest the player (a fence's
      * side).
      */
-    private fun ScriptContext.routeFor(obstacle: Obstacle, loc: ZoneLoc): AgilityRoute? {
-        val here = obstacle.routes.filter { it.from.level == player.level }
+    private fun ScriptContext.routeFor(obstacle: Obstacle, loc: ZoneLoc): AgilityRoute? =
+        routesFor(obstacle, loc, player.level).minByOrNull { distance(it.from) }
+
+    /** The routes across [obstacle] from [level] for the [loc] clicked; see [routeFor]. */
+    private fun routesFor(obstacle: Obstacle, loc: ZoneLoc, level: Int): List<AgilityRoute> {
+        val here = obstacle.routes.filter { it.from.level == level }
         val clicked = AgilityTile(loc.x, loc.z, loc.level)
         val named = here.filter { clicked in it.at }
-        return (named.ifEmpty { here.filter { it.at.isEmpty() } }).minByOrNull { distance(it.from) }
+        return named.ifEmpty { here.filter { it.at.isEmpty() } }
     }
 
     private fun ScriptContext.distance(tile: AgilityTile) = maxOf(abs(tile.x - player.x), abs(tile.z - player.z))
@@ -381,6 +404,7 @@ class Agility(private val world: World, val data: AgilityData) {
             is AgilityMove.Teleport -> world.teleport(player, move.to.x, move.to.z, move.to.level)
             is AgilityMove.Walk -> walk(move)
             is AgilityMove.Slide -> slide(move)
+            is AgilityMove.Xp -> player.skills.addTenths(Skill.AGILITY, move.tenths)
         }
     }
 

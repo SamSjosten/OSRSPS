@@ -12,12 +12,14 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.skill.AgilityData
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 
 /**
  * Agility step 7 through the headless client: the Misthalin shortcuts with their real locs (as the 241 map places them)
- * and agility.json, on open ground (no cache collision in tests), each crossed there and back. The rl-client script
+ * and agility.json, on open ground (no cache collision in tests) but for the rivers around the stepping stones, which are
+ * blocked as the map has them, so the stones are used from the bank. Each is crossed there and back. The rl-client script
  * test-runner/examples/agility-shortcuts.json runs them in the real world.
  */
 class HeadlessShortcutsTest {
@@ -45,7 +47,10 @@ class HeadlessShortcutsTest {
     private fun server(dir: Path, agilityData: AgilityData = AgilityData.parse(text)) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         World(
             crcs,
-            CollisionMap().apply { for (s in shortcuts) markLoaded(s.x shr 6, s.z shr 6) },
+            CollisionMap().apply {
+                for (s in shortcuts) markLoaded(s.x shr 6, s.z shr 6)
+                for ((xs, zs) in RIVERS) for (x in xs) for (z in zs) add(x, z, 0, CollisionFlag.FLOOR)
+            },
             locTypes = LocTypes(
                 shortcuts.associate {
                     it.id to LocType(it.id, it.name, listOf(it.option, null, null, null, null), LocCollisionType(width = 1, length = 1, interactType = 0))
@@ -61,9 +66,14 @@ class HeadlessShortcutsTest {
         await("at $x, $z") { position?.takeIf { it.x == x && it.z == z && it.level == 0 } }
     }
 
+    /**
+     * Crosses by [id] to [to], then waits two ticks: the landing shows a tick before the crossing's script ends, and a
+     * click while it still runs is dropped (the player is delayed), as the runner script's waitTicks allows for.
+     */
     private fun HeadlessClient.crossTo(id: Int, x: Int, z: Int, to: Pair<Int, Int>) {
         locOp(id, x, z, 1)
         await("across to $to by $id") { position?.takeIf { it.x == to.first && it.z == to.second && it.level == 0 } }
+        awaitTicks(2)
     }
 
     @Test
@@ -113,6 +123,12 @@ class HeadlessShortcutsTest {
     private companion object {
         const val AGILITY = 16
         const val HITPOINTS = 3
+
+        /**
+         * The river tiles around each stepping stone (x range, z range), from the 241 map's blocked tiles: the banks the
+         * stones are jumped from stay open.
+         */
+        val RIVERS = listOf(3150..3153 to 3360..3366, 3190..3196 to 3339..3345)
 
         /** The stone's success pair, as agility.json writes it. */
         val SUCCESS = Regex("\"success\": \\[\\s*225,\\s*255\\s*]")

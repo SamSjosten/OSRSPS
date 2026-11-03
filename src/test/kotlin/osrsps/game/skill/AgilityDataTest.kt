@@ -80,7 +80,22 @@ class AgilityDataTest {
                 "shortcut_draynor_manor_fence" to (49 to 15),
                 "shortcut_champions_guild_south_stones" to (52 to 50),
             ),
-            shortcuts.associate { it.key to (it.level to it.xpTenths) },
+            // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
+            shortcuts.associate { shortcut ->
+                val partway = shortcut.routes.map { route -> route.moves.filterIsInstance<AgilityMove.Xp>().sumOf { it.tenths } }.toSet()
+                shortcut.key to (shortcut.level to shortcut.xpTenths + partway.single())
+            },
+        )
+        // The south stones' 2.5 XP comes on the first and third stone each way, after the jump onto it.
+        val southStones = shortcuts.single { it.key == "shortcut_champions_guild_south_stones" }
+        for (route in southStones.routes) {
+            assertEquals(listOf(1, 4), route.moves.withIndex().filter { it.value is AgilityMove.Xp }.map { it.index })
+            assertTrue(route.moves.filterIsInstance<AgilityMove.Xp>().all { it.tenths == 25 })
+        }
+        // Only the stones, whose sides are river, are used from the bank.
+        assertEquals(
+            setOf("shortcut_champions_guild_stone", "shortcut_champions_guild_south_stones"),
+            shortcuts.filter { it.fromStart }.map { it.key }.toSet(),
         )
         assertTrue(shortcuts.none { it in data.courseOf })
         assertTrue(shortcuts.all { it.routes.size == 2 })

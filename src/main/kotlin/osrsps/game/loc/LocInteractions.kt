@@ -17,6 +17,8 @@ import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.Reach
 import osrsps.map.RouteTarget
+import osrsps.map.Tile
+import kotlin.math.abs
 
 private val logger = KotlinLogging.logger {}
 
@@ -108,10 +110,28 @@ class LocInteractions(
         player.interaction = LocInteraction(loc, option, this, repeat = true)
     }
 
+    /** Loc types used from tiles of their own as well as from beside them; see [useFrom]. */
+    private val usedFrom = HashMap<Int, (Player, ZoneLoc) -> List<Tile>>()
+
+    /**
+     * Lets players use loc type [id] from the tiles [tiles] gives for the player and the loc clicked, as well as from
+     * beside it, and walks a click to the nearest of them: a stepping stone in a river, whose sides are water, is jumped
+     * onto from the bank. No tiles for a loc (another obstacle of the type) leaves it to the ordinary reach. Inferred: live
+     * jumps from the bank, as RS2's approach ops let a script start from range; the tiles are the content's.
+     */
+    fun useFrom(id: Int, tiles: (Player, ZoneLoc) -> List<Tile>) {
+        usedFrom[id] = tiles
+    }
+
+    /** The tiles [player] can use [loc] from besides its sides; see [useFrom]. */
+    private fun fromTiles(player: Player, loc: ZoneLoc): List<Tile> = usedFrom[loc.id]?.invoke(player, loc).orEmpty()
+
     private fun start(player: Player, interaction: LocInteraction, invertRun: Boolean) {
         scripts.interrupt(player)
         player.interaction = interaction
-        val route = movement.request(player, target(interaction.loc), invertRun)
+        val from = fromTiles(player, interaction.loc).minByOrNull { maxOf(abs(it.x - player.x), abs(it.z - player.z)) }
+        val target = from?.let { RouteTarget.tile(it.x, it.z) } ?: target(interaction.loc)
+        val route = movement.request(player, target, invertRun)
         // Guessed, as for a walk: with no route to walk the client's flag would stay up.
         if (route.waypoints.isEmpty()) clearFlag(player)
     }
@@ -131,7 +151,8 @@ class LocInteractions(
             if (interaction.repeat) player.anim(-1)
             return true
         }
-        if (!Reach.reached(collision, player.level, player.x, player.z, target(loc))) return false
+        val onFromTile = fromTiles(player, loc).any { it.x == player.x && it.z == player.z }
+        if (!onFromTile && !Reach.reached(collision, player.level, player.x, player.z, target(loc))) return false
         player.interaction = null
         player.waypoints.clear()
         // Guessed: the player turns to the loc as they use it, the way they do on live, and keeps that until they walk.
