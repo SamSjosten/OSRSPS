@@ -48,8 +48,8 @@ class Movement(private val collision: CollisionMap) {
     fun process(player: Player): MoveResult {
         // A dead player goes nowhere, even partway along an obstacle.
         if (player.dead) player.forcedSteps.clear()
+        // Counted down by the world before the movement phase, so the walk and the attack delay end on the same tick.
         val weary = player.wearyTicks > 0
-        if (weary) player.wearyTicks--
         if (player.forcedSteps.isNotEmpty()) {
             // A teleport this tick (a climb onto a roof) lands first; the walk starts on the next tick.
             if (player.teleported) {

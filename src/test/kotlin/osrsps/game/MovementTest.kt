@@ -39,7 +39,8 @@ class MovementTest {
         movement.request(player, 3220, 3210, invertRun = false)
         assertEquals(MoveResult.WALKED, movement.process(player))
         assertEquals(MoveResult.WALKED, movement.process(player))
-        assertEquals(0, player.wearyTicks)
+        assertEquals(2, player.wearyTicks, "the world counts it down, not the walk")
+        player.wearyTicks = 0
         assertEquals(MoveResult.RAN, movement.process(player))
         assertEquals(3214, player.x)
     }

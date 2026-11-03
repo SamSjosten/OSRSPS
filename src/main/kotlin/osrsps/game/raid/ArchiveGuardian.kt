@@ -376,8 +376,12 @@ object ArchiveGuardian {
             if (player.dead || player.hitpoints <= 0) continue
             // Run goes off either way; poison immunity keeps the poison and the weariness off, so it can go straight
             // back on (a guide's word on the Serpentine helm; immunity from a potion counted the same, guessed).
+            // Weary whether or not the poison took: a player poisoned as strongly already, or envenomed, is wearied
+            // again all the same.
             player.runEnabled = false
-            if (world.poison.poison(player, MUSHROOM_POISON)) player.wearyTicks = WEARY_TICKS
+            val immune = world.poison.value(player) < 0
+            world.poison.poison(player, MUSHROOM_POISON)
+            if (!immune) player.wearyTicks = WEARY_TICKS
         }
     }
 

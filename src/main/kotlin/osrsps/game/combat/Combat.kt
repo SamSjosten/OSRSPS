@@ -98,7 +98,10 @@ class Combat(
      * Ticks between the player's attacks: the weapon's speed, 4 unarmed, and a combat spell's [MagicCombat.SPEED] when
      * autocasting; a tick more while weary ([Player.wearyTicks]; guessed, the guides say only that it slows attacks).
      */
-    fun attackSpeed(player: Player): Int = baseAttackSpeed(player) + if (player.wearyTicks > 0) 1 else 0
+    fun attackSpeed(player: Player): Int = baseAttackSpeed(player) + wearyDelay(player)
+
+    /** The tick weariness adds to every attack, a manual cast's included. */
+    fun wearyDelay(player: Player): Int = if (player.wearyTicks > 0) 1 else 0
 
     private fun baseAttackSpeed(player: Player): Int {
         val style = style(player)

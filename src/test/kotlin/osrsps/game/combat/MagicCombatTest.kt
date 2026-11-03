@@ -191,6 +191,16 @@ class MagicCombatTest {
     private fun count(player: Player, rune: Int) = player.inventory.count(rune).toInt()
 
     @Test
+    fun `a weary player's manual cast waits a tick more`() {
+        val npc = spawn(dummy)
+        alice.wearyTicks = 5
+        cast(alice, npc)
+        tick()
+        assertEquals(711, alice.effects.anim?.id)
+        assertEquals(1L + MagicCombat.SPEED + 1, alice.nextAttackTick)
+    }
+
+    @Test
     fun `a spell is cast once from range with its runes, and lands a tick after the Wiki's magic delay`() {
         val npc = spawn(dummy)
         cast(alice, npc)

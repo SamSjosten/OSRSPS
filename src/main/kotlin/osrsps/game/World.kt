@@ -1170,6 +1170,8 @@ class World(
         for (player in players) {
             if (player == null) continue
             player.playedTicks++
+            // Before the movement phase, so walking and the slower attacks it brings end on the same tick.
+            if (player.wearyTicks > 0) player.wearyTicks--
             statRestore.process(player)
             poison.process(player)
             specialAttacks.process(player)

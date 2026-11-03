@@ -1,6 +1,7 @@
 package osrsps.testclient
 
 import java.nio.file.Path
+import kotlin.math.sign
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -311,6 +312,21 @@ class HeadlessArchiveGuardianTest {
                 assertTrue(player.wearyTicks > 0, "weary")
                 assertFalse(player.runEnabled, "run off")
                 alice.await("the mushroom gone") { if (server.world.locs.at(mx, mz, 0).none { it.id in MUSHROOMS }) Unit else null }
+
+                // The weariness wears off, counted down by the world, before the poison has hit or weakened; the next
+                // mushroom wearies her again though the poison is no stronger.
+                alice.await("the weariness gone") { if (player.wearyTicks == 0) Unit else null }
+                val second = alice.await("a second mushroom") {
+                    alice.fightLog().mapNotNull { MUSHROOM_AT.find(it) }.getOrNull(1)
+                }
+                val (sx, sz) = second.destructured.let { (x, z) -> x.toInt() to z.toInt() }
+                alice.await("the second mushroom ready") { server.world.locs.find(ArchiveGuardian.MUSHROOM_ACTIVE, sx, sz, 0) }
+                assertEquals(ArchiveGuardian.MUSHROOM_POISON, server.world.poison.value(player), "still poisoned as strongly")
+                val (px, pz) = player.x to player.z
+                // A tile from it, on her side.
+                alice.tele(sx - (sx - px).sign, sz - (sz - pz).sign)
+                alice.await("the second burst") { if (alice.fightLog().count { BURST.containsMatchIn(it) } >= 2) Unit else null }
+                assertTrue(player.wearyTicks > 0, "weary again")
 
                 // The next one, left alone, bursts by itself, splashing her two tiles off.
                 val splash = alice.await("a splash", timeoutMillis = 30_000) {
