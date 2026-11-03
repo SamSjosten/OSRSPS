@@ -749,8 +749,8 @@
       "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
       "respawnTicks": 25,
       "weakness": { "element": "fire", "percent": 50 },
-      "aggressive": true,
-      "source": "OSRS Wiki, Giant spider (Level 50, id 2477) and the DPS calculator's, read 2026-11-03: speed 4, max hit 7, stab, attack and strength +10, defences +10, respawn 25, weak to fire 50%. It stands and walks with spider_update_ready and _walk, so those fight animations are taken. Aggressive is GUESSED (the Wiki's table doesn't split it by level)"
+      "aggressive": { "ignoresLevels": true },
+      "source": "OSRS Wiki, Giant spider (Level 50, id 2477) and the DPS calculator's, read 2026-11-03: speed 4, max hit 7, stab, attack and strength +10, defences +10, respawn 25, weak to fire 50%. The Stronghold of Security page: \"the giant spiders are useful to train against as they are aggressive towards any level\". It stands and walks with spider_update_ready and _walk, so those fight animations are taken"
     },
     {
       "npcs": ["sos_pest_spider"],

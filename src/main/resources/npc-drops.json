@@ -815,16 +815,28 @@
       {"item": 562, "name": "Chaos rune", "count": 7, "weight": 1}, {"item": 563, "name": "Law rune", "count": 2, "weight": 4},
       {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 3}, {"item": 888, "name": "Mithril arrow", "min": 5, "max": 14, "weight": 4},
       {"table": "herbs", "weight": 3}, {"table": "allotment_seeds", "weight": 1},
-      {"item": 1437, "name": "Rune essence (noted)", "count": 15, "weight": 5}, {"item": 7937, "name": "Pure essence (noted)", "count": 15, "weight": 5},
+      {"item": 7937, "name": "Pure essence (noted)", "count": 15, "weight": 5},
       {"item": 221, "name": "Eye of newt", "weight": 7}, {"item": 454, "name": "Coal (noted)", "min": 3, "max": 7, "weight": 2},
       {"item": 995, "name": "Coins", "count": 15, "weight": 6}, {"item": 995, "name": "Coins", "count": 44, "weight": 12},
       {"item": 995, "name": "Coins", "min": 5, "max": 104, "weight": 10},
       {"item": 333, "name": "Trout", "weight": 2}, {"item": 596, "name": "Unlit torch", "weight": 9},
       {"item": 9010, "name": "Top of sceptre", "weight": 3},
       {"table": "gems_surface", "weight": 2},
-      {"nothing": true, "weight": 8}
+      {"nothing": true, "weight": 13}
     ]}, "tertiary": [{"item": 2801, "name": "Clue scroll (medium)", "chance": "1/101"}],
-      "source": "OSRS Wiki, Catablepon, Drops, read 2026-11-03: one table for every level, out of 101, the members world's lines (the free-to-play coins x10 4/101 is out); the herb table at 3/101, the allotment seeds at 1/101, the gem table (nature talisman, so the surface one) at 2/101. The 8/101 of nothing is what the lines leave (the 4/101 the Wiki doesn't list plus the free-to-play line), GUESSED. Spiders and scorpions on the floor drop nothing on the Wiki's pages, so they have no entry"
+      "source": "OSRS Wiki, Catablepon, Drops, read 2026-11-03: one table for every level, out of 101, the members world's lines (the free-to-play coins x10 4/101 and rune essence 5/101, marked (f), are out); the herb table at 3/101, the allotment seeds at 1/101, the gem table (nature talisman, so the surface one) at 2/101. The 13/101 of nothing is what the lines leave (the 4/101 the Wiki doesn't list plus the two free-to-play lines), GUESSED"
+    },
+    {"npcs": ["sos_pest_giantspider1"], "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Clue scroll (beginner), drop sources, read 2026-11-03: giant spiders of levels 2, 27 and 50 at 1/128; no main table"
+    },
+    {"npcs": ["sos_pest_spider"], "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Spider, read 2026-11-03: the page's beginner clue at 1/128, taken for the Stronghold version too (inferred: the clue page's sources table has no plain Spider row); no main table"
+    },
+    {"npcs": ["sos_pest_scorpion", "sos_pest_scorpion2"], "tertiary": [
+        {"item": 13459, "name": "Ensouled scorpion head", "chance": "1/25"},
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/100"}
+      ],
+      "source": "OSRS Wiki, Scorpion and Clue scroll (beginner), read 2026-11-03: the ensouled head at 1/25 and the beginner clue at 1/100 for scorpions of levels 1 to 59; the Wilderness lines left out; no main table"
     }
   ]
 }

@@ -774,12 +774,20 @@ class NpcDropsTest {
     }
 
     @Test
-    fun `the Pit of Pestilence's catablepons drop as the Wiki's table says, its spiders and scorpions nothing`() {
+    fun `the Pit of Pestilence's catablepons drop as the Wiki's table says, its spiders and scorpions only tertiaries`() {
         val names = listOf("sos_pest_catablepon", "sos_pest_catablepon3", "sos_pest_giantspider1", "sos_pest_spider", "sos_pest_scorpion")
         val pitTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2500 + i, name, internalName = name) }.toTypedArray())
         val pit = NpcDrops.load(pitTypes, objTypes)
         assertTrue(pit.warnings.all { it.startsWith("no NPC called") }, pit.warnings.toString())
-        for (name in listOf("sos_pest_giantspider1", "sos_pest_spider", "sos_pest_scorpion")) assertNull(pit[pitTypes.find(name)!!], name)
+        for (name in listOf("sos_pest_giantspider1", "sos_pest_spider", "sos_pest_scorpion")) {
+            val drops = pit[pitTypes.find(name)!!]!!
+            assertNull(drops.table, name)
+            assertTrue(drops.always.isEmpty(), name)
+        }
+        assertEquals(
+            listOf("Ensouled scorpion head" to "1/25", "Clue scroll (beginner)" to "1/100"),
+            pit[pitTypes.find("sos_pest_scorpion")!!]!!.tertiary.map { it.item.type.name to "1/${it.denominator}" },
+        )
         val def = pit[pitTypes.find("sos_pest_catablepon3")!!]!!
         assertEquals(101, def.table!!.slots)
         assertEquals(listOf("Bones"), def.always.map { it.type.name })
@@ -796,6 +804,8 @@ class NpcDropsTest {
             for (drop in def.roll(random).drop(1)) drops[drop.type.name] = (drops[drop.type.name] ?: 0) + 1
         }
         drops.expect("Top of sceptre", 3.0)
+        drops.expect("Pure essence (noted)", 5.0)
+        assertNull(drops["Rune essence (noted)"], "rune essence is the free-to-play line")
         drops.expect("Unlit torch", 9.0)
         drops.expect("Clue scroll (medium)", 1.0)
         // The allotment seeds at 1/101, potatoes 64/128 of those.

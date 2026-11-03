@@ -432,6 +432,9 @@ class NpcCombatTest {
             assertFalse(spell.casts(99, 89))
         }
         assertNull(def("sos_pest_giantspider1").spell)
+        // "aggressive towards any level" (OSRS Wiki, Stronghold of Security); the others keep the level rule.
+        assertTrue(def("sos_pest_giantspider1").aggression!!.ignoresLevels)
+        assertFalse(def("sos_pest_scorpion").aggression!!.ignoresLevels)
     }
 
     @Test
