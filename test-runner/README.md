@@ -329,6 +329,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   middle's Climb menu too), the ladder to the basement and back, a library bookcase's three boxes and the first floor's
   boxes (`::keys on`), a level 9 wizard casting Fire Strike back and its bones, and the caged lesser demon hit by Fire
   Strike through its railing while a punch can't reach it. Needs 0.7.0 for `castOnNpc` and `assertSpotanim`.
+- `essence-mine.json`: Draynor step 15a: Archmage Sedridor's talk (`::keys on`) and his Teleport sending the player to
+  the rune essence mine, the north-west portal back to the Wizards' Tower basement, and the Rune Essence rock giving
+  rune essence below Mining 30 and pure essence from 30, mining on by itself. Needs 0.7.0 for `assertSpotanim`.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
