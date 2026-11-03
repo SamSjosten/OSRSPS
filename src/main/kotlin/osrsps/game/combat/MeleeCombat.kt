@@ -962,6 +962,9 @@ class MeleeCombat(
     private fun regenerateNpcs() {
         for (npc in npcs.all) {
             if (npc.dead || combat.npcCombat[npc.type] == null) continue
+            // Held at 0 (a boss's shield broken, Npc.holdsAtZero): it stays at 0 till its fight moves it on, or a point
+            // back on this tick would mend the shield before the fight sees it broken.
+            if (npc.holdsAtZero && npc.hitpoints <= 0) continue
             // The tick it appears on starts the countdown without counting, whether it came before this phase (a
             // command, the server starting) or in it (a respawn), so the first hitpoint comes a full minute later.
             if (npc.hitpointsRegenTicks < 0) {

@@ -173,6 +173,9 @@ object ArchiveGuardian {
         val fighting = players
         boss.target?.let { held -> if (fighting.any { it === held }) return held }
         val pick = randomPlayer() ?: return null
+        // Its old tank has left the fight (out of the hall, say): let go of them, or the boss would keep them as its
+        // target ([MeleeCombat.aggress] keeps a scripted boss's living target) and pick afresh at every shot.
+        boss.target = null
         world.meleeCombat.aggress(boss, pick, world.tick)
         log("takes on ${pick.username}")
         return pick
@@ -184,6 +187,8 @@ object ArchiveGuardian {
         if (under.isNotEmpty()) {
             boss.effects.anim(ANIM_SLAM)
             for (player in under) {
+                // A hit can end the fight (Retribution killing the boss); nothing lands after that.
+                if (gone()) return
                 val damage = if (world.prayers.protects(player, AttackType.CRUSH)) 0 else roll(0, SLAM_MAX)
                 val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
                 log("slams ${player.username} for $dealt")
@@ -204,6 +209,9 @@ object ArchiveGuardian {
         world.meleeCombat.swingAt(boss, target, world.tick)
         log("strikes ${target.username}")
     }
+
+    /** Whether the boss is dead or out of the world, as a hit mid-attack can leave it. */
+    private fun EncounterContext.gone(): Boolean = boss.dead || world.npcs[boss.index] !== boss
 
     /** Under it, or beside it but not at a corner, as a melee monster's reach goes. Guessed: walls aren't asked. */
     private fun EncounterContext.inReach(player: Player): Boolean {
@@ -231,6 +239,8 @@ object ArchiveGuardian {
             val total = laserDamage(fighting.size)
             val share = (total + struck.size - 1) / struck.size
             for (player in struck) {
+                // A hit can end the fight (Retribution killing the boss); nothing lands after that.
+                if (gone()) return@after
                 val damage = if (world.prayers.protects(player, AttackType.MAGIC)) share * 9 / 10 else share
                 val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
                 log("laser hits ${player.username} for $dealt")

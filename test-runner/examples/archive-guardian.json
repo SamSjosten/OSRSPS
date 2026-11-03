@@ -169,6 +169,12 @@
    "comment": "in the air again for good, with no shield"
   },
   {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints.",
+   "comment": "back to full after the landing's blast (10 to 20, which no prayer blocks) and any swing after Protect from Melee went off, so the laser alone is counted below"
+  },
+  {
    "step": "waitTicks",
    "ticks": 16,
    "comment": "its first laser: aimed 10 ticks into the phase, landing 3 after"

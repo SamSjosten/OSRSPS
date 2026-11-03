@@ -18,6 +18,7 @@ import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.Prayers
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -53,6 +54,14 @@ class HeadlessArchiveGuardianTest {
         HALBERD, "Bronze halberd", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "bronze_halberd", category = 66,
     )
 
+    // Retribution's prayer obj, shaped like the 241 cache's (HeadlessPrayerTest): 630 the bit, 1751 the prayer book
+    // component, 1752 the name, 1753 the level, 1755 the sound.
+    private val retribution = ObjType(
+        RETRIBUTION_OBJ, "Null", internalName = "xmas16_marionette_green",
+        params = mapOf(630 to 15, 1751 to (Prayers.PRAYERBOOK shl 16 or RETRIBUTION), 1752 to "Retribution", 1753 to 46, 1755 to 2679),
+    )
+    private val objTypes = ObjTypes(arrayOfNulls<ObjType>(RETRIBUTION_OBJ + 1).also { it[HALBERD] = halberd; it[RETRIBUTION_OBJ] = retribution })
+
     private val locTypes = LocTypes(
         mapOf(ArchiveRaids.ARCHIVE_DOOR to LocType(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", ops = listOf("Enter", null, null, null, null), collision = LocCollisionType(width = 9, length = 1))),
     )
@@ -65,7 +74,7 @@ class HeadlessArchiveGuardianTest {
                 for (x in 63..65) for (z in 86..88) markLoaded(x, z)
                 markLoaded(3222 shr 6, 3218 shr 6)
             },
-            locTypes = locTypes, staticLocs = staticLocs, objTypes = ObjTypes(arrayOfNulls<ObjType>(HALBERD + 1).also { it[HALBERD] = halberd }),
+            locTypes = locTypes, staticLocs = staticLocs, objTypes = objTypes, prayerList = Prayers.load(objTypes),
             npcTypes = types, npcCombat = NpcCombat.load(types, SeqNames.NONE), partyScaling = PartyScaling.load(types),
             encounterDefs = listOfNotNull(ArchiveGuardian.def(types)), cycleMillis = millis,
         )
@@ -174,6 +183,77 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `a laser that kills a player whose Retribution kills the boss lands on nobody after them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (client in listOf(alice, bob)) client.await("the login rebuild") { client.position }
+                    // Alice on 10 hitpoints, with Retribution (prayer 16) at 99 Prayer: up to 24 back on her death.
+                    alice.commandReply("setlevel prayer 99") { it.contains("Prayer") }
+                    alice.commandReply("heal") { it.startsWith("Healed") }
+                    alice.await("99 prayer points") { alice.stat(PRAYER)?.takeIf { it.level == 99 } }
+                    alice.ifButton(Prayers.PRAYERBOOK, RETRIBUTION, 1)
+                    alice.await("Retribution on") { if (alice.varp(Prayers.VARP_PRAYERS) == 1 shl 15) Unit else null }
+                    bob.commandReply("setlevel hitpoints 99") { it.contains("99") || it.startsWith("Usage") }
+                    bob.commandReply("heal") { it.startsWith("Healed") }
+                    // Both on the boss's south-west tile, so both are on the line, Alice first.
+                    bob.tele(3222, 3218)
+                    alice.tele(3222, 3218)
+                    alice.commandReply("raid guardian phase=airborne seed=$SEED") { it.startsWith("Started") }
+                    val boss = server.world.npcs.all.single { it.type.id == ArchiveGuardian.FLYING }
+                    val fight = server.world.encounters.all.single { it.boss === boss }
+                    alice.commandReply("hit 329 ${boss.index}") { it.startsWith("Hit ") }
+                    alice.await("the Guardian dead") { if (boss.dead) Unit else null }
+                    // The fight ended with the boss's death, on the tick the laser landed, so its log is whole: read
+                    // from the server, as Alice, dead, is in no fight for ::raid log.
+                    val laser = fight.lines.toList().filter { it.contains("laser hits") }.map { it.substringAfter(' ') }
+                    assertEquals(listOf("airborne: laser hits alice for 10"), laser)
+                    assertEquals(99, server.world.playerNamed("bob")!!.hitpoints)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `when its tank leaves the hall it takes on someone still in the fight and keeps to them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (client in listOf(alice, bob)) {
+                        client.await("the login rebuild") { client.position }
+                        client.commandReply("god on") { it.startsWith("You can't be hurt") }
+                    }
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    for (client in listOf(alice, bob)) {
+                        client.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                        client.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+                        client.await("into the instance") { client.position?.takeIf { server.world.instances.inDynamicArea(it.x, it.z) } }
+                        client.commandReply("raid tp guardian") { it.startsWith("To ") }
+                    }
+                    val raids = server.world.archiveRaids
+                    val run: ArchiveRun = assertNotNull(server.world.parties.of(server.world.playerNamed("alice")!!)?.let(raids::of))
+                    val waiting = alice.await("the waiting Guardian in view") { alice.npcs().firstOrNull { it.id == ArchiveGuardian.DORMANT } }
+                    alice.npcOp(waiting.index, ArchiveGuardian.TOUCH)
+                    val boss = alice.await("the Guardian awake") { run.guardian?.takeIf { it.target != null } }
+                    val first = assertNotNull(boss.target)
+                    val (gone, stays) = if (first.username == "alice") alice to bob else bob to alice
+                    val other = if (stays === alice) "alice" else "bob"
+                    // Out of the hall into the nexus's entrance, still well within its reach.
+                    val entrance = raids.tile(run, ArchiveRaids.GUARDIAN_X + 2, ArchiveRaids.HALL_Z - 2)
+                    gone.tele(entrance.x, entrance.z)
+                    // The fight's log, from the one still in it.
+                    stays.await("two shots at $other") {
+                        stays.fightLog().filter { it.endsWith("shield: shoots $other") }.takeIf { it.size >= 2 }
+                    }
+                    assertEquals(other, boss.target?.username)
+                    assertEquals(1, stays.fightLog().count { it.endsWith("shield: takes on $other") }, "taken on once, then kept")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `levitating, it is out of melee's reach but for a halberd, and grounded anyone can hit it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
@@ -235,6 +315,14 @@ class HeadlessArchiveGuardianTest {
 
     private companion object {
         const val HALBERD = 3190
+
+        /** prayerbook:prayer1 is 541:9, so Retribution, prayer 16, is 24. */
+        const val RETRIBUTION = 24
+        const val RETRIBUTION_OBJ = 20818
+        const val PRAYER = 5
+
+        /** A seed whose Retribution roll on Alice's death is high enough to kill a Guardian on 1 hitpoint. */
+        const val SEED = 7L
         const val ATTACK = 2
         const val BACKPACK = 93
         const val WORN = 94
