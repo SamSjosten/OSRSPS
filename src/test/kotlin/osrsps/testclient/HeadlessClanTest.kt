@@ -835,8 +835,9 @@ class HeadlessClanTest {
                         alice.ifButton(Clans.MEMBERS, 11, 1, sub = clan.members.indexOfFirst { it.key == carolKey })
                         alice.await("the rank list") { alice.rankPopup(since) }
 
-                        // carol (rank 0) may edit ranks once Assign member ranks is hers, but not expel.
-                        clan.settings[Clans.VAR_ASSIGN_RANKS] = 0
+                        // carol, an Administrator, may edit ranks, but not expel once Expel needs 110.
+                        clan.member(carolKey)!!.rank = Clans.RANK_ADMINISTRATOR
+                        clan.settings[Clans.VAR_EXPEL] = 110
                         carol.openMembersPage()
                         carol.await("carol's columns") { Unit.takeIf { carol.opEnabled(Clans.MEMBERS, 13, 0, 1) } }
                         carol.ifButton(Clans.MEMBERS, Clans.MEMBERS_OPTIONS[1], 1, sub = Clans.COLUMN_EXPEL + 1)
@@ -939,6 +940,76 @@ class HeadlessClanTest {
         }
     }
 
+    @Test
+    fun `Talk in chat lets guests talk and Kick from chat lets members kick, set on the permissions page`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        found(server, alice, bob, "Odins Gate")
+                        val clans = server.world.clans
+                        val clan = clans.clanNamed("Odins Gate")!!
+                        val carolP = server.world.playerNamed("carol")!!
+                        carol.guestTab()
+                        carol.await("the guest page") { carol.openInterfaces().takeIf { Clans.GUEST_SIDEPANEL in it } }
+                        carol.findClan("Odins Gate")
+                        carol.await("the guest clan") { carol.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.isNotEmpty() } }
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                        carol.await("carol in") { Unit.takeIf { clans.inGuestChannel(carolP) } }
+                        carol.guestSay("hello?")
+                        carol.saw("[clan.guest_cant_talk]")
+
+                        alice.yourClanTab()
+                        alice.await("the clan page") { alice.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                        alice.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                        alice.await("the settings page") { alice.openInterfaces().takeIf { Clans.INFO in it } }
+                        alice.ifButton(Clans.INFO, Clans.INFO_PERMISSIONS, 1)
+                        alice.await("the permissions page") { alice.openInterfaces().takeIf { Clans.PERMISSIONS in it } }
+                        val popupAt = Clans.component(Clans.PERMISSIONS, Clans.PERMISSIONS_POPUP)
+
+                        // Talk in chat (slot 7) runs from Guest: picked, guests talk.
+                        var since = alice.clientScripts().size
+                        alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 7)
+                        assertEquals(listOf<Any>("[clan.permission_title]", Clans.RANK_FOUNDER, Clans.RANK_GUEST, Clans.RANK_OWNER, 0, popupAt), alice.await("the talk list") { alice.rankPopup(since) })
+                        alice.resumeCount(0)
+                        alice.await("Talk at Guest") { Unit.takeIf { clans.setting(clan, Clans.PERM_TALK) == Clans.RANK_GUEST } }
+                        carol.guestSay("hello!")
+                        val heard = alice.await("carol's line") { alice.clanMessages().firstOrNull { it.text == "hello!" } }
+                        assertEquals("carol", heard.sender)
+
+                        // Kick from chat (slot 8) rests on Talk but takes no Guest: it runs from rank 0, and Guest is refused.
+                        alice.await("the list closed") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
+                        since = alice.clientScripts().size
+                        alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 8)
+                        assertEquals(listOf<Any>("[clan.permission_title]", Clans.RANK_OWNER, Clans.RANK_FOUNDER, Clans.RANK_OWNER, 0, popupAt), alice.await("the kick list") { alice.rankPopup(since) })
+                        alice.resumeCount(0)
+                        alice.awaitTicks(2)
+                        assertEquals(Clans.RANK_OWNER, clans.setting(clan, Clans.PERM_KICK))
+                        alice.await("the list closed again") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
+                        alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 8)
+                        alice.awaitTicks(2)
+                        alice.resumeCount(0 + 1)
+                        alice.await("Kick at 0") { Unit.takeIf { clans.setting(clan, Clans.PERM_KICK) == 0 } }
+
+                        // bob (rank 0) may kick now.
+                        bob.kickFromClanChannel("carol", 2)
+                        bob.saw("[clan.kicked_guest name=carol]")
+                        assertFalse(clans.inGuestChannel(carolP))
+                        // Talk raised above Kick: Kick needs Talk's rank, so bob can't kick any more.
+                        clans.setPermission(server.world.playerNamed("alice")!!, clan.id, Clans.PERM_TALK, 10)
+                        assertEquals(10, clans.setting(clan, Clans.PERM_TALK))
+                        assertEquals(0, clans.setting(clan, Clans.PERM_KICK))
+                        assertEquals(10, clans.permission(clan, Clans.PERM_KICK))
+                        // Ban rests on Kick, and never needs less than Administrator.
+                        assertEquals(Clans.RANK_ADMINISTRATOR, clans.permission(clan, Clans.VAR_BAN_FROM_CHAT))
+                        clan.settings[Clans.PERM_KICK] = 110
+                        assertEquals(110, clans.permission(clan, Clans.VAR_BAN_FROM_CHAT))
+                    }
+                }
+            }
+        }
+    }
+
     /** Opens the ban list from the Your Clan page's settings. */
     private fun HeadlessClient.openBannedPage() {
         yourClanTab()
@@ -983,28 +1054,49 @@ class HeadlessClanTest {
                     bob.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 2)
                     bob.saw("[clan.permission_denied]")
 
-                    // alice sets Assign member ranks (slot 2) to rank 0: the list runs from Guest to Owner, with Nobody.
+                    // alice sets Assign member ranks (slot 2): the list runs from its floor, Administrator, to her rank.
+                    // A rank below the floor is refused; 110 is taken.
                     var since = alice.clientScripts().size
                     alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 2)
-                    assertEquals(listOf<Any>("[clan.permission_title]", Clans.RANK_ADMINISTRATOR, Clans.RANK_GUEST, Clans.RANK_OWNER, 1, popupAt), alice.await("the rank list") { alice.rankPopup(since) })
+                    assertEquals(listOf<Any>("[clan.permission_title]", Clans.RANK_ADMINISTRATOR, Clans.RANK_ADMINISTRATOR, Clans.RANK_OWNER, 0, popupAt), alice.await("the rank list") { alice.rankPopup(since) })
                     alice.resumeCount(0 + 1)
-                    alice.await("Assign member ranks at 0") { Unit.takeIf { clans.setting(clan, Clans.VAR_ASSIGN_RANKS) == 0 } }
-                    // Recruitment (slot 3) to Guest, sent as 0.
+                    alice.awaitTicks(2)
+                    assertEquals(Clans.RANK_ADMINISTRATOR, clans.setting(clan, Clans.VAR_ASSIGN_RANKS))
                     alice.await("the list closed") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
+                    alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 2)
+                    alice.awaitTicks(2)
+                    alice.resumeCount(110 + 1)
+                    alice.await("Assign member ranks at 110") { Unit.takeIf { clans.setting(clan, Clans.VAR_ASSIGN_RANKS) == 110 } }
+                    // Expel rests on it: it needs 110 now though it is set to Administrator.
+                    assertEquals(Clans.RANK_ADMINISTRATOR, clans.setting(clan, Clans.VAR_EXPEL))
+                    assertEquals(110, clans.permission(clan, Clans.VAR_EXPEL))
+                    // The clan settings carry each var as its rank plus 2, as client proc clan_permission_get reads it.
+                    val vars = clans.settingVars(clan).associate { it.id to it.value }
+                    assertEquals(110 + Clans.PERMISSION_VAR_OFFSET, vars[Clans.VAR_ASSIGN_RANKS])
+                    assertEquals(Clans.RANK_OWNER + Clans.PERMISSION_VAR_OFFSET, vars[Clans.VAR_RECRUITMENT])
+                    assertFalse(Clans.PERM_TALK in vars || Clans.PERM_KICK in vars)
+                    // Recruitment (slot 3) has no floor: rank 0 is taken, Guest (sent as 0) isn't.
+                    alice.await("the list closed again") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
                     alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 3)
                     alice.awaitTicks(2)
                     alice.resumeCount(0)
-                    alice.await("Recruitment at Guest") { Unit.takeIf { clans.setting(clan, Clans.VAR_RECRUITMENT) == Clans.RANK_GUEST } }
+                    alice.awaitTicks(2)
+                    assertEquals(Clans.RANK_OWNER, clans.setting(clan, Clans.VAR_RECRUITMENT))
+                    alice.await("the list closed a third time") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
+                    alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 3)
+                    alice.awaitTicks(2)
+                    alice.resumeCount(0 + 1)
+                    alice.await("Recruitment at 0") { Unit.takeIf { clans.setting(clan, Clans.VAR_RECRUITMENT) == 0 } }
                     // A list made stale by someone else's change since: closing it (the current rank it showed) keeps theirs.
-                    alice.await("the list closed again") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
+                    alice.await("the list closed a fourth time") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
                     alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 2)
                     alice.awaitTicks(2)
-                    clan.settings[Clans.VAR_ASSIGN_RANKS] = 10
-                    alice.resumeCount(0 + 1)
+                    clan.settings[Clans.VAR_ASSIGN_RANKS] = 120
+                    alice.resumeCount(110 + 1)
                     alice.awaitTicks(2)
-                    assertEquals(10, clans.setting(clan, Clans.VAR_ASSIGN_RANKS))
-                    clan.settings[Clans.VAR_ASSIGN_RANKS] = 0
-                    // bob, a recruiter now (rank 0 meets Guest), opens the applicants page; Back still works after
+                    assertEquals(120, clans.setting(clan, Clans.VAR_ASSIGN_RANKS))
+                    clan.settings[Clans.VAR_ASSIGN_RANKS] = 110
+                    // bob, a recruiter now (rank 0 meets 0), opens the applicants page; Back still works after
                     // Recruitment is raised above him meanwhile.
                     bob.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_EXIT, 1)
                     bob.await("bob's settings page first") { bob.openInterfaces().takeIf { Clans.INFO in it && Clans.PERMISSIONS !in it } }
@@ -1015,15 +1107,20 @@ class HeadlessClanTest {
                     bob.await("bob's settings page from the applicants page") { bob.openInterfaces().takeIf { Clans.INFO in it && Clans.APPLICANTS !in it } }
                     bob.ifButton(Clans.INFO, Clans.INFO_PERMISSIONS, 1)
                     bob.await("bob's permissions page again") { bob.openInterfaces().takeIf { Clans.PERMISSIONS in it } }
-                    clan.settings[Clans.VAR_RECRUITMENT] = Clans.RANK_GUEST
-                    // Nobody on Permission access (slot 0) would lock everyone out: refused. A button not built does nothing.
+                    clan.settings[Clans.VAR_RECRUITMENT] = 0
+                    // No permission takes Nobody; Nobody kept by an earlier build reads as the owner's. A button not
+                    // built (Guests may listen, slot 10) does nothing.
                     alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 0)
                     alice.awaitTicks(2)
                     alice.resumeCount(Clans.RANK_NOBODY + 1)
                     alice.awaitTicks(2)
                     assertEquals(Clans.RANK_ADMINISTRATOR, clans.setting(clan, Clans.VAR_PERMISSION_ACCESS))
+                    clan.settings[Clans.VAR_ICONS] = Clans.RANK_NOBODY
+                    assertEquals(Clans.RANK_OWNER, clans.setting(clan, Clans.VAR_ICONS))
+                    clan.settings.remove(Clans.VAR_ICONS)
+                    alice.await("the list closed a fifth time") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
                     since = alice.clientScripts().size
-                    alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 7)
+                    alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 10)
                     alice.awaitTicks(2)
                     assertNull(alice.rankPopup(since))
 
@@ -1031,10 +1128,11 @@ class HeadlessClanTest {
                     val file = dir.resolve("data").resolve(ClanStore.FILE_NAME)
                     clans.flush()
                     val saved = ClanStore(file).byName("Odins Gate")!!
-                    assertEquals(0, saved.settings[Clans.VAR_ASSIGN_RANKS])
-                    assertEquals(Clans.RANK_GUEST, saved.settings[Clans.VAR_RECRUITMENT])
+                    assertEquals(110, saved.settings[Clans.VAR_ASSIGN_RANKS])
+                    assertEquals(0, saved.settings[Clans.VAR_RECRUITMENT])
 
-                    // bob, rank 0, now assigns ranks: Edit rank on alice reaches the rank check.
+                    // bob at 110 now assigns ranks: Edit rank on alice reaches the rank check.
+                    clan.member(server.world.playerNamed("bob")!!.saveKey)!!.rank = 110
                     bob.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_EXIT, 1)
                     bob.await("bob's settings page again") { bob.openInterfaces().takeIf { Clans.INFO in it && Clans.PERMISSIONS !in it } }
                     bob.ifButton(Clans.INFO, Clans.INFO_MEMBERS, 1)
