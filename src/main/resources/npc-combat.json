@@ -517,6 +517,39 @@
       "weakness": {"element": "fire", "percent": 20},
       "aggressive": true,
       "source": "OSRS Wiki, Grizzly bear (Level 21, id 2838) and the DPS calculator's 2838, read 2026-11-02: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 20%, aggressive. It stands with bear_rework_ready, so the bear_rework fight animations are taken; the default hunt range is guessed"
+    },
+    {
+      "npcs": ["tfa_guardian"],
+      "attackSpeed": 5,
+      "maxHit": 25,
+      "attackType": "ranged",
+      "attackBonus": 350,
+      "strengthBonus": 55,
+      "range": 10,
+      "attacks": [ { "anim": "npc_archive_guardian_range_attack01", "cast": 4199, "projectile": 4201, "impact": 4200 } ],
+      "defence": { "stab": 120, "slash": 110, "crush": 20, "magic": 130, "light": 75, "standard": 120, "heavy": 50 },
+      "anims": { "attack": "npc_archive_guardian_range_attack01", "defend": null, "death": "npc_archive_guardian_death01" },
+      "respawnTicks": 50,
+      "weakness": {"element": "fire", "percent": 80},
+      "immune": ["poison", "venom"],
+      "drainCap": { "defence": 60 },
+      "flying": true,
+      "source": "OSRS Wiki, Archive Guardian (id 16659), read 2026-11-03: speed 5, max hit 25, the defence bonuses, weak to fire 80%, immune to poison and venom, Defence drained to 60% at most (21 October 2026 hotfix). Its aggressive bonuses are four unlabelled +350, +55, +350, +55 on the Wiki, taken as attack and strength for melee and ranged alike (the cache's params agree). Levitating, so only ranged, magic and halberds reach it (The Fractured Archive/Strategies). Its attacks come from its boss fight (ArchiveGuardian), which picks the shot or the slam; the shot is vfx_guardian_ranged_spotanim01, _projanim01 and _hitanim01 (4199, 4201, 4200) with npc_archive_guardian_range_attack01, by name. Guessed: the 10-tile range, no block animation (it has none by name), and the respawn, which never comes (the raid's boss doesn't come back)"
+    },
+    {
+      "npcs": ["tfa_guardian_unshielded"],
+      "attackSpeed": 5,
+      "maxHit": 25,
+      "attackType": "crush",
+      "attackBonus": 350,
+      "strengthBonus": 55,
+      "defence": { "stab": 120, "slash": 90, "crush": 20, "magic": 130, "light": 75, "standard": 120, "heavy": 50 },
+      "anims": { "attack": "npc_archive_guardian_melee_attack01", "defend": null, "death": "npc_archive_guardian_death01" },
+      "respawnTicks": 50,
+      "weakness": {"element": "fire", "percent": 40},
+      "immune": ["poison", "venom"],
+      "drainCap": { "defence": 60 },
+      "source": "OSRS Wiki, Archive Guardian (id 16659; the grounded form is 16660 in the 241.4 cache), read 2026-11-03: speed 5, max hit 25, crush (the infobox's style), the defence bonuses but slash 90, the cache's param for this form against 110 for the levitating one, immune to poison and venom, Defence drained to 60% at most. Grounded it swings with npc_archive_guardian_melee_attack01. Guessed: the 40% fire weakness (a guide's, osrsbestinslot; the Wiki lists 80% and 40% without saying which form has which), no block animation, the respawn, which never comes"
     }
   ]
 }
