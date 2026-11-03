@@ -766,6 +766,72 @@ class HeadlessClanTest {
     }
 
     @Test
+    fun `the owner changes permissions, which a member without Permission access can't, and they take effect`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    found(server, alice, bob, "Odins Gate")
+                    val clans = server.world.clans
+                    val clan = clans.clanNamed("Odins Gate")!!
+                    val popupAt = Clans.component(Clans.PERMISSIONS, Clans.PERMISSIONS_POPUP)
+                    // The cache's defaults until changed.
+                    assertEquals(Clans.RANK_ADMINISTRATOR, clans.setting(clan, Clans.VAR_ASSIGN_RANKS))
+
+                    for (c in listOf(alice, bob)) {
+                        c.yourClanTab()
+                        c.await("the clan page") { c.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                        c.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                        c.await("the settings page") { c.openInterfaces().takeIf { Clans.INFO in it } }
+                        c.ifButton(Clans.INFO, Clans.INFO_PERMISSIONS, 1)
+                        c.await("the permissions page") { c.openInterfaces().takeIf { Clans.PERMISSIONS in it } }
+                    }
+                    // bob (rank 0) lacks Permission access.
+                    bob.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 2)
+                    bob.saw("[clan.permission_denied]")
+
+                    // alice sets Assign member ranks (slot 2) to rank 0: the list runs from Guest to Owner, with Nobody.
+                    var since = alice.clientScripts().size
+                    alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 2)
+                    assertEquals(listOf<Any>("[clan.permission_title]", Clans.RANK_ADMINISTRATOR, Clans.RANK_GUEST, Clans.RANK_OWNER, 1, popupAt), alice.await("the rank list") { alice.rankPopup(since) })
+                    alice.resumeCount(0 + 1)
+                    alice.await("Assign member ranks at 0") { Unit.takeIf { clans.setting(clan, Clans.VAR_ASSIGN_RANKS) == 0 } }
+                    // Recruitment (slot 3) to Guest, sent as 0.
+                    alice.await("the list closed") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
+                    alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 3)
+                    alice.awaitTicks(2)
+                    alice.resumeCount(0)
+                    alice.await("Recruitment at Guest") { Unit.takeIf { clans.setting(clan, Clans.VAR_RECRUITMENT) == Clans.RANK_GUEST } }
+                    // Nobody on Permission access (slot 0) would lock everyone out: refused. A button not built does nothing.
+                    alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 0)
+                    alice.awaitTicks(2)
+                    alice.resumeCount(Clans.RANK_NOBODY + 1)
+                    alice.awaitTicks(2)
+                    assertEquals(Clans.RANK_ADMINISTRATOR, clans.setting(clan, Clans.VAR_PERMISSION_ACCESS))
+                    since = alice.clientScripts().size
+                    alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 7)
+                    alice.awaitTicks(2)
+                    assertNull(alice.rankPopup(since))
+
+                    // Kept at the autosave.
+                    val file = dir.resolve("data").resolve(ClanStore.FILE_NAME)
+                    clans.flush()
+                    val saved = ClanStore(file).byName("Odins Gate")!!
+                    assertEquals(0, saved.settings[Clans.VAR_ASSIGN_RANKS])
+                    assertEquals(Clans.RANK_GUEST, saved.settings[Clans.VAR_RECRUITMENT])
+
+                    // bob, rank 0, now assigns ranks: Edit rank on alice reaches the rank check.
+                    bob.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_EXIT, 1)
+                    bob.await("bob's settings page again") { bob.openInterfaces().takeIf { Clans.INFO in it && Clans.PERMISSIONS !in it } }
+                    bob.ifButton(Clans.INFO, Clans.INFO_MEMBERS, 1)
+                    bob.await("bob's Edit rank") { Unit.takeIf { bob.opEnabled(Clans.MEMBERS, 11, 0, 1) } }
+                    bob.ifButton(Clans.MEMBERS, 11, 1, sub = 0)
+                    bob.saw("[clan.rank_too_high name=alice]")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `the runner commands clanjoin as a recruiter and clanapplicant`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

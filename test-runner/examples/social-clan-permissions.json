@@ -1,0 +1,109 @@
+{
+ "name": "Clan permissions page, one player: test joins a clan made by ::clanmake as a recruiter (the owner's rank), opens the permissions page from the settings page, and goes Back",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "keys"
+  },
+  {
+   "step": "command",
+   "text": "::clandisband",
+   "expectMessage": "lan",
+   "comment": "test's own clan from another run, if any"
+  },
+  {
+   "step": "command",
+   "text": "::clandisband Perm Gate",
+   "expectMessage": "lan",
+   "comment": "the last run's clan, if any"
+  },
+  {
+   "step": "command",
+   "text": "::clanmake Perm Gate",
+   "expectMessage": "Clan Perm Gate made"
+  },
+  {
+   "step": "command",
+   "text": "::clanjoin Perm Gate recruiter",
+   "expectMessage": "Joined clan Perm Gate as a recruiter"
+  },
+  {
+   "step": "runClientScript",
+   "id": 915,
+   "args": [
+    7
+   ],
+   "comment": "shows the Clans side tab, so its panels count as open"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 707,
+   "component": 3,
+   "comment": "the Clans tab's Your Clan tab"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 701
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 701,
+   "component": 9,
+   "comment": "Settings: clans_info"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 690
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 690,
+   "component": 23,
+   "comment": "Permissions: clans_permissions, drawn by the client from the clan settings (the cache's default ranks)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 706
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 706,
+   "component": 12,
+   "slot": 2,
+   "op": 1,
+   "comment": "Assign member ranks: the rank list in popupoverlay"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 289
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 706,
+   "component": 5,
+   "comment": "Back: the settings page"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 690
+  },
+  {
+   "step": "command",
+   "text": "::clandisband Perm Gate",
+   "expectMessage": "Clan Perm Gate deleted"
+  },
+  {
+   "step": "runClientScript",
+   "id": 915,
+   "args": [
+    3
+   ],
+   "comment": "back to the inventory tab"
+  }
+ ]
+}
