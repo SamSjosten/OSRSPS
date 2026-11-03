@@ -44,6 +44,13 @@ class HeadlessStrongholdOfSecurityTest {
             type(StrongholdOfSecurity.DEAD_EXPLORER, "Dead Explorer", "Search"),
             type(StrongholdOfSecurity.GIFT_OF_PEACE, "Gift of Peace", "Open"),
             type(StrongholdOfSecurity.PORTAL, "Portal", "Use"),
+            type(StrongholdOfSecurity.WAR_LADDER_DOWN, "Ladder", "Climb-down"),
+            type(StrongholdOfSecurity.FAMINE_LADDER_UP, "Ladder", "Climb-up"),
+            type(StrongholdOfSecurity.FAMINE_ROPE, "Rope", "Climb-up"),
+            type(StrongholdOfSecurity.RICKETY_DOOR_LEFT, "Rickety door", "Open"),
+            type(StrongholdOfSecurity.RICKETY_DOOR_RIGHT, "Rickety door", "Open"),
+            type(StrongholdOfSecurity.GRAIN_OF_PLENTY, "Grain of Plenty", "Search"),
+            type(StrongholdOfSecurity.FAMINE_PORTAL, "Portal", "Use"),
         ).associateBy { it.id },
     )
 
@@ -59,20 +66,39 @@ class HeadlessStrongholdOfSecurityTest {
         ZoneLoc(StrongholdOfSecurity.GATE_OF_WAR_RIGHT, LocShape.WALL_STRAIGHT, 0, 1904, 5204, 0),
         ZoneLoc(StrongholdOfSecurity.GATE_OF_WAR_LEFT, LocShape.WALL_STRAIGHT, 0, 1907, 5203, 0),
         ZoneLoc(StrongholdOfSecurity.GATE_OF_WAR_RIGHT, LocShape.WALL_STRAIGHT, 0, 1907, 5204, 0),
+        // The second floor, the Catacomb of Famine.
+        ZoneLoc(StrongholdOfSecurity.WAR_LADDER_DOWN, LocShape.CENTREPIECE_STRAIGHT, 1, 1902, 5222, 0),
+        ZoneLoc(StrongholdOfSecurity.FAMINE_LADDER_UP, LocShape.CENTREPIECE_STRAIGHT, 1, 2042, 5246, 0),
+        ZoneLoc(StrongholdOfSecurity.FAMINE_ROPE, LocShape.CENTREPIECE_STRAIGHT, 0, 2017, 5210, 0),
+        ZoneLoc(StrongholdOfSecurity.GRAIN_OF_PLENTY, LocShape.CENTREPIECE_STRAIGHT, 0, 2021, 5215, 0),
+        ZoneLoc(StrongholdOfSecurity.FAMINE_PORTAL, LocShape.CENTREPIECE_STRAIGHT, 1, 2039, 5240, 0),
+        // A pair on the west edge of x 1997 and the east edge of x 1999, rows 5215 and 5216.
+        ZoneLoc(StrongholdOfSecurity.RICKETY_DOOR_LEFT, LocShape.WALL_STRAIGHT, 0, 1997, 5215, 0),
+        ZoneLoc(StrongholdOfSecurity.RICKETY_DOOR_RIGHT, LocShape.WALL_STRAIGHT, 0, 1997, 5216, 0),
+        ZoneLoc(StrongholdOfSecurity.RICKETY_DOOR_RIGHT, LocShape.WALL_STRAIGHT, 2, 1999, 5215, 0),
+        ZoneLoc(StrongholdOfSecurity.RICKETY_DOOR_LEFT, LocShape.WALL_STRAIGHT, 2, 1999, 5216, 0),
     )
 
     private val gate = NpcType(StrongholdOfSecurity.GATE_OF_WAR_NPC, "Gate of War", ops = listOf("talk", null, null, null, null))
+    private val famineDoor = NpcType(StrongholdOfSecurity.FAMINE_DOOR_NPC, "Rickety door", ops = listOf("talk", null, null, null, null))
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             markLoaded(3081 shr 6, 3420 shr 6)
             markLoaded(1859 shr 6, 5244 shr 6)
+            markLoaded(2021 shr 6, 5215 shr 6)
         }
         World(
             crcs, map, random = GameRandom(12), locTypes = types, staticLocs = StaticLocs().apply { locs.forEach(::add) },
             objTypes = ObjTypes.of(ObjType(StrongholdOfSecurity.COINS, "Coins", stackable = true), ObjType(StrongholdOfSecurity.NOTES, "Stronghold notes")),
-            npcTypes = NpcTypes.of(gate),
-            varTypes = VarTypes(VARP_COUNT, mapOf(StrongholdOfSecurity.VARBIT_FLAP to VarbitType(VARP_SOS_EMOTE, 0, 0))),
+            npcTypes = NpcTypes.of(gate, famineDoor),
+            varTypes = VarTypes(
+                VARP_COUNT,
+                mapOf(
+                    StrongholdOfSecurity.VARBIT_FLAP to VarbitType(VARP_SOS_EMOTE, 0, 0),
+                    StrongholdOfSecurity.VARBIT_SLAP_HEAD to VarbitType(VARP_SOS_EMOTE, 1, 1),
+                ),
+            ),
             cycleMillis = millis,
         )
     }
@@ -210,6 +236,69 @@ class HeadlessStrongholdOfSecurityTest {
                     client.tele(1906, 5203, 0)
                     client.locOp(StrongholdOfSecurity.GATE_OF_WAR_LEFT, 1907, 5203, StrongholdOfSecurity.OPEN)
                     client.awaitAt(1907, 5203, 0)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the ladder down reaches the Catacomb of Famine, whose ladder, rope, doors, Grain of Plenty and portal work`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(1903, 5222, 0)
+                client.locOp(StrongholdOfSecurity.WAR_LADDER_DOWN, 1902, 5222, StrongholdOfSecurity.CLIMB_DOWN)
+                client.awaitAt(StrongholdOfSecurity.FAMINE_LANDING.x, StrongholdOfSecurity.FAMINE_LANDING.z, 0)
+                client.locOp(StrongholdOfSecurity.FAMINE_LADDER_UP, 2042, 5246, StrongholdOfSecurity.CLIMB_UP)
+                client.awaitAt(StrongholdOfSecurity.WAR_LADDER_DOWN_LANDING.x, StrongholdOfSecurity.WAR_LADDER_DOWN_LANDING.z, 0)
+                client.tele(2017, 5211, 0)
+                client.locOp(StrongholdOfSecurity.FAMINE_ROPE, 2017, 5210, StrongholdOfSecurity.CLIMB_UP)
+                client.awaitAt(StrongholdOfSecurity.FAMINE_LANDING.x, StrongholdOfSecurity.FAMINE_LANDING.z, 0)
+
+                // Combat level 3 and the grain not searched: the portal refuses.
+                client.tele(2040, 5240, 0)
+                client.locOp(StrongholdOfSecurity.FAMINE_PORTAL, 2039, 5240, StrongholdOfSecurity.USE)
+                client.message(StrongholdLines.PORTAL_REFUSE.key)
+                client.continueDialogue()
+
+                // The first door of the pair never asks; the second (from the passage, an east edge) may.
+                client.tele(1996, 5215, 0)
+                client.locOp(StrongholdOfSecurity.RICKETY_DOOR_LEFT, 1997, 5215, StrongholdOfSecurity.OPEN)
+                client.awaitAt(1997, 5215, 0)
+                var asked = false
+                repeat(20) {
+                    if (asked) return@repeat
+                    client.tele(1999, 5215, 0)
+                    client.locOp(StrongholdOfSecurity.RICKETY_DOOR_RIGHT, 1999, 5215, StrongholdOfSecurity.OPEN)
+                    asked = client.await("through or asked") {
+                        if (client.position == Coord(2000, 5215, 0)) false
+                        else (client.dialogueView as? DialogueView.Chat)?.takeIf { it.name == "Rickety door" }?.let { true }
+                    }
+                }
+                assertTrue(asked, "the rickety door asked")
+                client.tele(2021, 5216, 0)
+                client.locOp(StrongholdOfSecurity.GRAIN_OF_PLENTY, 2021, 5215, StrongholdOfSecurity.SEARCH)
+                client.message(StrongholdLines.GRAIN_OPEN.key)
+                client.continueDialogue()
+                client.message(StrongholdLines.GRAIN_REWARD.key)
+                client.continueDialogue()
+                assertEquals(StrongholdOfSecurity.GRAIN_COINS, client.await("the coins") {
+                    client.inventory(BACKPACK).firstOrNull { it?.id == StrongholdOfSecurity.COINS }?.count
+                })
+                assertEquals(2, client.await("the Slap Head emote") { client.varp(VARP_SOS_EMOTE).takeIf { it != 0 } })
+                client.locOp(StrongholdOfSecurity.GRAIN_OF_PLENTY, 2021, 5215, StrongholdOfSecurity.SEARCH)
+                client.message(StrongholdLines.GRAIN_CLAIMED.key)
+                client.continueDialogue()
+
+                client.tele(2040, 5240, 0)
+                client.locOp(StrongholdOfSecurity.FAMINE_PORTAL, 2039, 5240, StrongholdOfSecurity.USE)
+                client.seen("[${StrongholdLines.PORTAL_ENTER.key}]")
+                client.awaitAt(StrongholdOfSecurity.FAMINE_PORTAL_LANDING.x, StrongholdOfSecurity.FAMINE_PORTAL_LANDING.z, 0)
+                // The grain searched, the floor's doors stop asking.
+                repeat(6) {
+                    client.tele(1999, 5216, 0)
+                    client.locOp(StrongholdOfSecurity.RICKETY_DOOR_LEFT, 1999, 5216, StrongholdOfSecurity.OPEN)
+                    client.awaitAt(2000, 5216, 0)
                 }
             }
         }

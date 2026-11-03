@@ -1292,6 +1292,20 @@ claims the Gift of Peace, passes a pair of gates without a question and climbs b
 does the same through the headless client and answers a question wrongly and then rightly, `StrongholdOfSecurityTest`
 checks every pair in the cache has one asking side, `NpcCombatTest` and `NpcDropsTest` the new NPCs.
 
+Step 13a is the second floor, the Catacomb of Famine, in the same files: the floors are data
+(`StrongholdOfSecurity.FLOORS`), each with its doors, door head, reward and portal.
+
+| Behaviour | Source |
+|-----------|--------|
+| The Vault of War's ladder down lands beside the Catacomb of Famine's ladder up, which climbs back beside it; the floor's four ropes climb back to the start of the floor | Boney ladder (a floor's first ladder leads to the floor above); the ropes from Jagex's 2011 Catacomb of Famine guide ("return you to the start of the level"), inferred for OSRS; the landings guessed |
+| The Rickety doors ask as the Gates of War (the door of famine's head), and stop once the Grain of Plenty is searched | as step 12 |
+| The Grain of Plenty, once: 3,000 coins, the Slap Head emote (`sos_emote_doh`), Hitpoints and Prayer to full, its jingle | OSRS Wiki, Grain of Plenty |
+| The portal lets through at combat level 51 or with the grain searched; every portal says `stronghold_of_security.portal_enter` | OSRS Wiki, Stronghold of Security |
+| Flesh crawlers (28, 35, 41; the bottom of the sceptre among their drops), zombies (30, 44, 53), giant rats and rats as their Wiki pages; the crawlers aggressive to any level, the zombies aggressive | OSRS Wiki, the DPS calculator; mejrs's live NPC list (148 spawns, the Wiki's counts) |
+
+Left out: the ladder down to the third floor (step 13b). Check: `test-runner/examples/catacomb-of-famine.json`;
+`HeadlessStrongholdOfSecurityTest`, `StrongholdOfSecurityTest`, `NpcCombatTest` and `NpcDropsTest` as for step 12.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).

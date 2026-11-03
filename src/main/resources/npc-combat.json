@@ -135,12 +135,12 @@
       "source": "OSRS Wiki, Woman (3112 and 3113 are taken to match 3111: the cache gives all three the same levels and bonuses)"
     },
     {
-      "npcs": ["rat", "rat_indoors", "sos_war_rat"],
+      "npcs": ["rat", "rat_indoors", "sos_war_rat", "sos_fam_rat"],
       "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": -47, "strengthBonus": -53,
       "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
       "anims": { "attack": "mouse_attack", "defend": "mouse_defend", "death": "mouse_death" },
       "respawnTicks": 2,
-      "source": "OSRS Wiki, Rat (ids 2854, 2855, and the Stronghold of Security's 2492, read 2026-11-03: the same speed, max hit, style, bonuses and 2-tick respawn); it stands and walks with mouse_ready and mouse_walk, so it fights with the mouse animations"
+      "source": "OSRS Wiki, Rat (ids 2854, 2855, and the Stronghold of Security's 2492 and 2513, read 2026-11-03: the same speed, max hit, style, bonuses and 2-tick respawn); it stands and walks with mouse_ready and mouse_walk, so it fights with the mouse animations"
     },
     {
       "npcs": ["imp"],
@@ -628,6 +628,64 @@
       "weakness": {"element": "fire", "percent": 20},
       "aggressive": true,
       "source": "OSRS Wiki, Grizzly bear (Level 21, id 2838) and the DPS calculator's 2838, read 2026-11-02: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 20%, aggressive. It stands with bear_rework_ready, so the bear_rework fight animations are taken; the default hunt range is guessed"
+    },
+    {
+      "npcs": ["sos_fam_fleshcrawler", "sos_fam_fleshcrawler2", "sos_fam_fleshcrawler3"],
+      "attackSpeed": 3, "maxHit": 1, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 15, "slash": 15, "crush": 15, "magic": 15, "light": 15, "standard": 15, "heavy": 15 },
+      "anims": { "attack": "kalphite_attack_mandibles", "defend": "kalphite_block", "death": "kalphite_death" },
+      "respawnTicks": 15,
+      "weakness": { "element": "fire", "percent": 20 },
+      "aggressive": { "ignoresLevels": true },
+      "source": "OSRS Wiki, Flesh Crawler (Levels 28, 35 and 41, ids 2498 to 2500) and the DPS calculator's three, read 2026-11-03: speed 3, max hit 1, slash, the bonuses, respawn 15, weak to fire 20%, \"aggressive to any level players\" (and they lose it: tolerance). They stand and walk with kalphite_ready and kalphite_walk, so the kalphite fight animations are taken (the mandibles attack guessed)"
+    },
+    {
+      "npcs": ["sos_fam_zombie_unarmed", "sos_fam_zombie_unarmed2", "sos_fam_zombie_unarmed3"],
+      "attackSpeed": 5, "maxHit": 4, "attackType": "slash", "attackBonus": 5, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "zombie_update_attack_normal", "defend": "zombie_update_defend_normal", "death": "zombie_update_death_normal" },
+      "respawnTicks": 35,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Zombie (Stronghold of Security) (Level 30, ids 2501 to 2503) and the DPS calculator's, read 2026-11-03: speed 5, max hit 4, slash, attack +5, respawn 35, weak to fire 50%, aggressive. They stand with zombie_update_ready_normal, so the normal fight animations are taken"
+    },
+    {
+      "npcs": ["sos_fam_zombie2", "sos_fam_zombie2_b", "sos_fam_zombie2_c"],
+      "attackSpeed": 5, "maxHit": 5, "attackType": "slash", "attackBonus": 5, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 22, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "zombie_update_attack_weapon", "defend": "zombie_update_defend_weapon", "death": "zombie_update_death_weapon" },
+      "respawnTicks": 35,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Zombie (Stronghold of Security) (Level 44, ids 2504 to 2506) and the DPS calculator's, read 2026-11-03: speed 5, max hit 5, slash, attack +5, crush defence +22, respawn 35, weak to fire 50%, aggressive. They stand with zombie_update_ready_weapon, so the weapon fight animations are taken"
+    },
+    {
+      "npcs": ["sos_fam_zombie_armed", "sos_fam_zombie_armed2"],
+      "attackSpeed": 5, "maxHit": 5, "attackType": "slash", "attackBonus": 5, "strengthBonus": 7,
+      "defence": { "stab": 19, "slash": 18, "crush": 0, "magic": 20, "light": 21, "standard": 21, "heavy": 21 },
+      "anims": { "attack": "zombie_update_attack_dragging", "defend": "zombie_update_defend_dragging", "death": "zombie_update_death_dragging" },
+      "respawnTicks": 35,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Zombie (Stronghold of Security) (Level 53, ids 2507 and 2508) and the DPS calculator's, read 2026-11-03: speed 5, max hit 5, slash, the bonuses, respawn 35, weak to fire 50%, aggressive. They stand with zombie_update_ready_dragging, so the dragging fight animations are taken"
+    },
+    {
+      "npcs": ["sos_fam_zombie_armed3"],
+      "attackSpeed": 5, "maxHit": 5, "attackType": "slash", "attackBonus": 5, "strengthBonus": 7,
+      "defence": { "stab": 19, "slash": 18, "crush": 0, "magic": 20, "light": 21, "standard": 21, "heavy": 21 },
+      "anims": { "attack": "zombie_update_attack_weapon", "defend": "zombie_update_defend_weapon", "death": "zombie_update_death_weapon" },
+      "respawnTicks": 35,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Zombie (Stronghold of Security) (Level 53, id 2509) and the DPS calculator's, read 2026-11-03: as 2507 and 2508, but it stands with zombie_update_ready_weapon, so the weapon fight animations are taken"
+    },
+    {
+      "npcs": ["sos_fam_giantrat", "sos_fam_giantrat2", "sos_fam_giantrat3"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_rat_update_attack", "defend": "giant_rat_update_defend", "death": "giant_rat_update_death" },
+      "respawnTicks": 30,
+      "source": "OSRS Wiki, Giant rat (Level 26, ids 2510 to 2512, Stronghold of Security) and the DPS calculator's 2510, read 2026-11-03: speed 4, stab, no bonuses, respawn 30, not aggressive; max hit 3 is the calculator's (the Wiki's infobox is unclear). The others are taken to match 2510"
     },
     {
       "npcs": ["wizard"],
