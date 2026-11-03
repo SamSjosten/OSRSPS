@@ -31,7 +31,7 @@ class HeadlessAlKharidRooftopTest {
         Obstacle(14403, "Zip line", "Teeth-grip", LocShape.CENTREPIECE_STRAIGHT, 3, 3302, 3163, 3, 3315, 3163, 1),
         Obstacle(14404, "Tropical tree", "Swing-across", LocShape.CENTREPIECE_STRAIGHT, 0, 3318, 3166, 1, 3317, 3174, 2),
         Obstacle(11634, "Roof top beams", "Climb", 4, 1, 3316, 3179, 2, 3316, 3180, 3),
-        Obstacle(14409, "Tightrope", "Cross", LocShape.GROUND_DECOR, 3, 3313, 3186, 3, 3305, 3186, 3),
+        Obstacle(14409, "Tightrope", "Cross", LocShape.GROUND_DECOR, 3, 3313, 3186, 3, 3304, 3186, 3),
         Obstacle(14399, "Gap", "Jump", LocShape.CENTREPIECE_DIAGONAL, 3, 3300, 3193, 3, 3299, 3194, 0),
     )
 
