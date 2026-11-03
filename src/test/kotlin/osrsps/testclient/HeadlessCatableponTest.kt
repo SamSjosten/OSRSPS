@@ -18,7 +18,8 @@ import osrsps.map.CollisionMap
 /**
  * Edgeville step 13b: the Pit of Pestilence's catablepon, with the real NPC combat file, through the headless client.
  * It comes for the player unprovoked and its Weaken glare lowers their Strength 4 a cast from 99 (5% of the level),
- * to 87: past 8% + 3 drained (10) it only swings. ::god keeps its swings from killing them.
+ * to 87: past 8% + 3 drained (10) it only swings, which 20 stepped game ticks check. ::god keeps its swings from
+ * killing them.
  */
 class HeadlessCatableponTest {
     private val catablepon = NpcType(
@@ -52,14 +53,15 @@ class HeadlessCatableponTest {
                 }
                 // Each glare takes 4 from where it is: 95, 91, 87.
                 assertTrue(seen.all { it in setOf(87, 91, 95, 99) }, "levels seen: $seen")
-                // Past 10 drained it only swings: 20 more ticks (100 ms each here) and Strength stays at 87, or 88 if the
-                // once-a-minute restore comes round.
-                val until = System.currentTimeMillis() + 20 * 100
-                while (System.currentTimeMillis() < until) {
-                    assertTrue((client.stat(Skill.STRENGTH.id)?.level ?: 87) >= 87, "Strength went below 87")
-                    Thread.sleep(50)
+                // Past 10 drained it only swings: paused and stepped a tick at a time, 20 game ticks (five of its attacks)
+                // leave Strength at 87, or 88 if the once-a-minute restore comes round.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                repeat(20) {
+                    client.stepTicks(1)
+                    val level = client.stat(Skill.STRENGTH.id)?.level
+                    assertTrue(level != null && level in 87..88, "Strength $level after ${it + 1} more ticks")
                 }
-                assertTrue(client.stat(Skill.STRENGTH.id)?.level in 87..88)
+                client.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }
