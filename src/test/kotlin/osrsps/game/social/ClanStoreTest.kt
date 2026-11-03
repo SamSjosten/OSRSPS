@@ -96,18 +96,23 @@ class ClanStoreTest {
     }
 
     @Test
-    fun `a ban is kept in the file at once, once per player, and an unban takes it out`(@TempDir dir: Path) {
+    fun `a ban is kept in the file at the next flush, once per player, and an unban takes it out`(@TempDir dir: Path) {
         val store = ClanStore(dir.resolve(ClanStore.FILE_NAME))
         val clan = store.create("Odins Gate", 0, 20_000, founders())
         store.addBanned(clan, "carol", "Carol")
         store.addBanned(clan, "carol", "Carol")
         store.addBanned(clan, "dave", "dave")
+        // Bans wait for the autosave's flush, as applicants do: a ban and unban in a loop writes nothing.
+        assertTrue(store.unwritten)
+        assertTrue(ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.banned.isEmpty())
+        store.flush()
         assertFalse(store.unwritten)
         val reloaded = ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!
         assertEquals(listOf("carol" to "Carol", "dave" to "dave"), reloaded.banned.map { it.key to it.name })
         assertTrue(store.removeBanned(clan, "carol"))
         assertFalse(store.removeBanned(clan, "carol"))
         assertNull(clan.banned("carol"))
+        store.flush()
         assertEquals(listOf("dave"), ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.banned.map { it.key })
     }
 }

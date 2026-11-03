@@ -137,18 +137,21 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "${member.key} joined clan '${clan.name}'" }
     }
 
-    /** Bans [key] from [clan]'s channel and saves, unless they are banned already. */
+    /**
+     * Bans [key] from [clan]'s channel, unless they are banned already, written at the next [flush] (the autosave), not
+     * now: a ban and unban can be repeated as fast as they click, and each write is the whole file.
+     */
     fun addBanned(clan: Clan, key: String, name: String) {
         if (clan.banned(key) != null) return
         clan.banned += Banned(key, name)
-        save()
+        unwritten = true
         logger.info { "$key banned from the channel of clan '${clan.name}'" }
     }
 
-    /** Lifts [key]'s ban from [clan]'s channel and saves; false if they weren't banned. */
+    /** Lifts [key]'s ban from [clan]'s channel, written at the next [flush] as [addBanned]'s; false if they weren't banned. */
     fun removeBanned(clan: Clan, key: String): Boolean {
         if (!clan.banned.removeIf { it.key == key }) return false
-        save()
+        unwritten = true
         logger.info { "$key unbanned from the channel of clan '${clan.name}'" }
         return true
     }

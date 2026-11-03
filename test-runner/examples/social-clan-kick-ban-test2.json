@@ -1,0 +1,29 @@
+{
+ "name": "Clan chat kick and ban, two players (run with social-clan-kick-ban-test.json on the other VM at the same time): test2 finds Kick Gate and joins its channel as a guest, is banned and refused, joins again once unbanned, is kicked and refused within the hour",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "waitTicks", "ticks": 40, "comment": "time for test to make Kick Gate"},
+  {"step": "runClientScript", "id": 915, "args": [7], "comment": "shows the Clans side tab (toplevel_sidebutton_switch), so its panels count as open"},
+  {"step": "clickWidget", "interfaceId": 707, "component": 4, "comment": "the Clans tab's Another Clan tab"},
+  {"step": "assertInterface", "interfaceId": 702, "comment": "clans_guest_sidepanel"},
+  {"step": "clickWidget", "interfaceId": 702, "component": 10, "comment": "Find: asks for a clan's name (test disbands Kick Gate at the end of each run, which drops it as test2's guest clan)"},
+  {"step": "enterText", "text": "Kick Gate"},
+  {"step": "assertVarbit", "id": 12164, "value": 3, "comment": "connected: Kick Gate's settings came as the guest clan"},
+  {"step": "clickWidget", "interfaceId": 702, "component": 8, "comment": "Chat: joins its channel as a guest"},
+  {"step": "command", "text": "::guestclan", "expectMessage": "Guest of Kick Gate, in its channel"},
+  {"step": "assertMessage", "contains": "[clan.banned name=Kick Gate]", "timeoutMs": 180000},
+  {"step": "command", "text": "::guestclan", "expectMessage": "Guest of Kick Gate, not in its channel"},
+  {"step": "clickWidget", "interfaceId": 702, "component": 8, "comment": "Chat again while banned"},
+  {"step": "assertMessage", "contains": "[clan.still_banned name=Kick Gate]"},
+  {"step": "waitTicks", "ticks": 60, "comment": "time for test to unban test2"},
+  {"step": "clickWidget", "interfaceId": 702, "component": 8, "comment": "Chat once unbanned"},
+  {"step": "command", "text": "::guestclan", "expectMessage": "Guest of Kick Gate, in its channel"},
+  {"step": "assertMessage", "contains": "[clan.kicked name=Kick Gate]", "timeoutMs": 180000},
+  {"step": "clickWidget", "interfaceId": 702, "component": 8, "comment": "Chat again within the hour"},
+  {"step": "assertMessage", "contains": "[clan.still_kicked name=Kick Gate]"},
+  {"step": "command", "text": "::guestclan", "expectMessage": "Guest of Kick Gate, not in its channel"},
+  {"step": "runClientScript", "id": 915, "args": [3], "comment": "back to the inventory tab"}
+ ]
+}

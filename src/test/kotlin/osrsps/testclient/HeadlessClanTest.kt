@@ -891,9 +891,17 @@ class HeadlessClanTest {
                             carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
                             carol.saw("[clan.still_kicked name=Odins Gate]")
                             assertFalse(server.world.clans.inGuestChannel(carolP))
+                            // A kick that ran out goes at the next kick, though carol never came back: only dave's is kept.
+                            now = now.plusSeconds(Clans.KICK_MINUTES * 60 + 1)
+                            alice.kickFromClanChannel("dave", 3)
+                            alice.saw("[clan.kicked_guest name=dave]")
+                            assertEquals(1, server.world.clans.kicksKept())
                             now = now.plusSeconds(Clans.KICK_MINUTES * 60 + 1)
                             carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
                             carol.await("carol back in after the hour") { Unit.takeIf { server.world.clans.inGuestChannel(carolP) } }
+                            dave.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                            dave.await("dave back in after the hour") { Unit.takeIf { server.world.clans.inGuestChannel(daveP) } }
+                            assertEquals(0, server.world.clans.kicksKept())
 
                             // Ban: out of the channel and on the ban list, which the members' clan settings carry.
                             alice.banFromClanChannel("dave", 3)

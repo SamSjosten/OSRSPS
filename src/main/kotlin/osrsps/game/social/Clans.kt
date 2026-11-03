@@ -158,7 +158,8 @@ class Clans(
 
     /**
      * Guests kicked from each clan's channel, by clan id: until when, by save key. Kept over a logout (a kick that a
-     * relog undid wouldn't keep anyone out); a kick that ran out goes at the guest's next try.
+     * relog undid wouldn't keep anyone out). Kicks that ran out go at each new kick and at the guest's next try, so it
+     * holds no more than the kicks of the last [KICK_MINUTES].
      */
     private val kicked = HashMap<Long, HashMap<String, Instant>>()
 
@@ -273,6 +274,7 @@ class Clans(
     fun disband(clan: ClanStore.Clan, online: (String) -> Player?) {
         store.delete(clan)
         channels.remove(clan.id)
+        kicked.remove(clan.id)
         // Its guests lose it too, as a Discard would, whether or not they were in its channel.
         for (key in listening.filterValues { it == clan.id }.keys.toList()) {
             listening.remove(key)
@@ -658,6 +660,9 @@ class Clans(
         }
     }
 
+    /** How many kicks are kept, every clan's (for tests). */
+    fun kicksKept(): Int = kicked.values.sumOf { it.size }
+
     /** Whether [player] may join [clan]'s channel as a guest: not banned from it, nor kicked from it in the last hour. */
     private fun mayJoinAsGuest(player: Player, clan: ClanStore.Clan): Boolean {
         if (clan.banned(player.saveKey) != null) {
@@ -687,7 +692,11 @@ class Clans(
             tell(player, ClanLines.KICK_DENIED)
             return
         }
-        kicked.getOrPut(clan.id) { HashMap() }[target.saveKey] = now().plus(KICK_MINUTES, ChronoUnit.MINUTES)
+        val time = now()
+        // Kicks that ran out go first, every clan's: else guests who never came back would be kept for good.
+        kicked.values.forEach { kicks -> kicks.values.removeIf { !time.isBefore(it) } }
+        kicked.values.removeIf { it.isEmpty() }
+        kicked.getOrPut(clan.id) { HashMap() }[target.saveKey] = time.plus(KICK_MINUTES, ChronoUnit.MINUTES)
         leaveChannel(target, clan, tell = true, clanType = CLAN_TYPE_LISTENED)
         tell(target, ClanLines.KICKED, clan.name)
         tell(player, ClanLines.KICKED_GUEST, target.username)
