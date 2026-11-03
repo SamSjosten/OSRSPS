@@ -106,6 +106,8 @@ class Deaths(
     private val placeOf: (Player) -> DeathPlace? = { null },
     /** Puts a respawning player on a tile, for a [DeathPlace]. */
     private val teleport: (Player, Int, Int, Int) -> Unit = { _, _, _, _ -> },
+    /** Drops a count of an item under the player, seen by them alone at first, as a drop from the backpack is. */
+    private val drop: (Player, ObjType, Int) -> Unit = { _, _, _ -> },
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -166,7 +168,11 @@ class Deaths(
         if (!player.dead) die(player)
         player.deathTick = -1
         val keep = place?.keepItems == true
-        val lost = (if (keep) emptyList() else dropItems(player)) + unchecked(player, keep)
+        val over = unchecked(player)
+        // Everything kept, what the price checker held and the backpack can't take goes under them where they come
+        // back, as closing the screen with a full backpack drops it; left in the closed checker, the next save put it
+        // in the bank, which banked from inside a raid (exploit review round 12, RAID-1).
+        val lost = if (keep) emptyList() else dropItems(player) + over
         player.deathKeptItems = KEPT_ITEMS
         val charges = lostCharges(player, lost)
         if (lost.isNotEmpty() || charges.isNotEmpty()) bury(player, lost + charges, place)
@@ -178,6 +184,7 @@ class Deaths(
         // inferred from that; live never shows the pose after the respawn.
         player.anim(-1)
         if (place == null) teleportToSpawn(player) else teleport(player, place.toX, place.toZ, place.toLevel)
+        if (keep) for (obj in over) drop(player, objTypes[obj.id] ?: ObjType(obj.id), obj.count)
     }
 
     /**
@@ -210,18 +217,17 @@ class Deaths(
 
     /**
      * Puts the items [dropItems] kept out of the price checker back in [player]'s backpack, which the death has all but
-     * emptied; returns any that still don't fit, for the grave. Before this, closing the screen on a death put them in
-     * the bank, out of the grave (fourth exploit review, 30 Oct 2026). A death that [keeps][DeathPlace.keepItems]
-     * everything loses none of them: what doesn't fit stays in the price checker, as if still being checked.
+     * emptied, and empties the checker; returns any that still don't fit, for the grave, or to drop under them when a
+     * death [keeps][DeathPlace.keepItems] everything. Before this, closing the screen on a death put them in the bank,
+     * out of the grave (fourth exploit review, 30 Oct 2026).
      */
-    private fun unchecked(player: Player, keep: Boolean = false): List<InvObj> {
+    private fun unchecked(player: Player): List<InvObj> {
         val left = ArrayList<InvObj>()
         for ((slot, obj) in player.priceChecker.contents()) {
             player.priceChecker[slot] = null
             val type = objTypes[obj.id] ?: ObjType(obj.id)
             val over = obj.count - player.inventory.add(type, obj.count)
-            if (over == 0) continue
-            if (keep) player.priceChecker[slot] = InvObj(obj.id, over) else left += InvObj(obj.id, over)
+            if (over > 0) left += InvObj(obj.id, over)
         }
         return left
     }

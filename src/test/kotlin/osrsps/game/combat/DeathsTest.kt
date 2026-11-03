@@ -426,6 +426,9 @@ class DeathsTest {
     }
 
     /** A [Deaths] whose deaths go as [place] says, landing players where it puts them. */
+    /** What [placed]'s deaths dropped under a player: who, the item, the count and the tile they stood on. */
+    private val dropped = ArrayList<Pair<Player, Triple<Int, Int, Triple<Int, Int, Int>>>>()
+
     private fun placed(closeModals: (Player) -> Unit = { it.modals.clear() }, place: (Player) -> DeathPlace?) = Deaths(
         objTypes, graveType, { tick }, { online.asSequence() }, { key -> online.firstOrNull { it.saveKey == key } },
         spawnNpc = { npcs.add(it) }, removeNpc = { npcs.remove(it) },
@@ -433,6 +436,7 @@ class DeathsTest {
         openModal = { _, _ -> }, closeModals = closeModals, setVarbitNow = { _, _, _ -> },
         placeOf = place,
         teleport = { player, x, z, level -> player.x = x; player.z = z; player.level = level },
+        drop = { player, type, count -> dropped += player to Triple(type.id, count, Triple(player.x, player.z, player.level)) },
     )
 
     @Test
@@ -508,7 +512,7 @@ class DeathsTest {
     }
 
     @Test
-    fun `a death that keeps everything leaves what doesn't fit in the price checker, with no grave`() {
+    fun `a death that keeps everything drops what the price checker held and doesn't fit where they come back, with no grave`() {
         val placed = placed { DeathPlace(keepItems = true, 3200, 3201, 0, 3205, 3206, 0) }
         alice.inventory.add(bones, 28)
         alice.priceChecker[0] = InvObj(lobster.id, 1)
@@ -517,7 +521,9 @@ class DeathsTest {
         repeat(Deaths.DEATH_TICKS) { tick++; placed.process() }
         assertFalse(alice.dead)
         assertTrue(npcs.all.none(), "no grave")
-        assertEquals(InvObj(lobster.id, 1), alice.priceChecker[0])
+        // Not left in the closed checker, where the next save would bank it (exploit review round 12, RAID-1).
+        assertTrue(alice.priceChecker.contents().isEmpty())
+        assertEquals(listOf(alice to Triple(lobster.id, 1, Triple(3205, 3206, 0))), dropped)
         assertEquals(28L, alice.inventory.count(bones.id))
     }
 
