@@ -1,0 +1,28 @@
+{
+ "name": "Clan ban list, one player: test joins a clan made by ::clanmake as a recruiter (the owner's rank, which Ban from chat allows), ::clanbanned puts the test ban on its ban list, and Unban on the ban list (clans_banned) takes it off",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "test's own clan from another run, if any: 'Clan ... deleted' or 'You aren't in a clan'"},
+  {"step": "command", "text": "::clandisband Ban Gate", "expectMessage": "lan", "comment": "the last run's clan, if any"},
+  {"step": "command", "text": "::clanmake Ban Gate", "expectMessage": "Clan Ban Gate made"},
+  {"step": "command", "text": "::clanjoin Ban Gate recruiter", "expectMessage": "Joined clan Ban Gate as a recruiter"},
+  {"step": "command", "text": "::clanbanned", "expectMessage": "Banned banned from Ban Gate"},
+  {"step": "runClientScript", "id": 915, "args": [7], "comment": "shows the Clans side tab (toplevel_sidebutton_switch), so its panels count as open"},
+  {"step": "clickWidget", "interfaceId": 707, "component": 3, "comment": "the Clans tab's Your Clan tab"},
+  {"step": "assertInterface", "interfaceId": 701},
+  {"step": "clickWidget", "interfaceId": 701, "component": 9, "comment": "Settings: the clan's settings page (clans_info)"},
+  {"step": "assertInterface", "interfaceId": 690},
+  {"step": "clickWidget", "interfaceId": 690, "component": 25, "comment": "Banned: the ban list (clans_banned), drawn from the clan settings"},
+  {"step": "assertInterface", "interfaceId": 689},
+  {"step": "clickWidget", "interfaceId": 689, "component": 6, "name": "Banned", "op": 1, "comment": "Unban on Banned: after 30 client ticks clan_banned_unban sends the name as resume_stringdialog"},
+  {"step": "assertMessage", "contains": "[clan.unbanned name=Banned]"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "assertVarbit", "id": 12199, "value": 0, "comment": "clan_editing_lookupinprogress: set by the client on Unban, cleared by the server so the list isn't greyed"},
+  {"step": "clickWidget", "interfaceId": 689, "component": 11, "comment": "Back: the settings page"},
+  {"step": "assertInterface", "interfaceId": 690},
+  {"step": "command", "text": "::clandisband Ban Gate", "expectMessage": "Clan Ban Gate deleted"},
+  {"step": "runClientScript", "id": 915, "args": [3], "comment": "back to the inventory tab"}
+ ]
+}

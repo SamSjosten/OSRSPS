@@ -18,6 +18,8 @@ import net.rsprot.protocol.game.incoming.misc.client.MapBuildComplete
 import net.rsprot.protocol.game.incoming.misc.client.NoTimeout
 import net.rsprot.protocol.game.incoming.misc.client.SoundJingleEnd
 import net.rsprot.protocol.game.incoming.misc.client.WindowStatus
+import net.rsprot.protocol.game.incoming.clan.AffinedClanSettingsAddBannedFromChannel
+import net.rsprot.protocol.game.incoming.clan.ClanChannelKickUser
 import net.rsprot.protocol.game.incoming.buttons.If1Button
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import net.rsprot.protocol.game.incoming.buttons.IfButtonD
@@ -204,6 +206,8 @@ class NetworkFactory(
             world.onResumeObj(player, message.obj)
         })
         builder.addListener(FriendChatSetRank::class.java, MessageConsumer { player, message -> world.onFriendsChatSetRank(player, message.name, message.rank) })
+        builder.addListener(ClanChannelKickUser::class.java, MessageConsumer { player, message -> world.onClanKick(player, message.clanId, message.name) })
+        builder.addListener(AffinedClanSettingsAddBannedFromChannel::class.java, MessageConsumer { player, message -> world.onClanBan(player, message.clanId, message.name) })
         builder.addListener(FriendChatKick::class.java, MessageConsumer { player, message -> world.onFriendsChatKick(player, message.name) })
         builder.addListener(SendSnapshot::class.java, MessageConsumer { player, message -> world.onReport(player, message.name, message.ruleId, message.mute) })
         builder.addListener(FriendChatJoinLeave::class.java, MessageConsumer { player, message -> world.onFriendsChatJoinLeave(player, message.name) })
