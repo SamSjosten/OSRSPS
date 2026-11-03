@@ -32,6 +32,20 @@
       ],
       "source": "OSRS Wiki, Drop table#General seed drop table: its first subtable, which every roll of a monster below level 49 lands on (the subtable is picked by a roll of the monster's level times 10, and below 485 that is the first); the Guard page's 1/19 potato seed is 18/128 of the guard table times 368/1008 of this. Higher levels' subtables wait for a monster that needs them"
     },
+    "allotment_seeds": {
+      "slots": 128,
+      "lines": [
+        {"item": 5318, "name": "Potato seed", "min": 1, "max": 4, "weight": 64},
+        {"item": 5319, "name": "Onion seed", "min": 1, "max": 3, "weight": 32},
+        {"item": 5324, "name": "Cabbage seed", "min": 1, "max": 3, "weight": 16},
+        {"item": 5322, "name": "Tomato seed", "min": 1, "max": 2, "weight": 8},
+        {"item": 5320, "name": "Sweetcorn seed", "min": 1, "max": 2, "weight": 4},
+        {"item": 5323, "name": "Strawberry seed", "weight": 2},
+        {"item": 5321, "name": "Watermelon seed", "weight": 1},
+        {"item": 22879, "name": "Snape grass seed", "weight": 1}
+      ],
+      "source": "OSRS Wiki, Catablepon, Drops, read 2026-11-03: its allotment seed roll at 1/101, potato 1/202 down to watermelon and snape grass 1/12,928 each, so 64/128 of the roll down to 1/128. Ranged counts are taken as evenly likely (guessed)"
+    },
     "gems": {
       "slots": 128,
       "lines": [
@@ -794,6 +808,23 @@
       "table": {"slots": 128, "lines": [{"item": 1157, "name": "Steel full helm", "weight": 4}, {"item": 1353, "name": "Steel axe", "weight": 4}, {"item": 1325, "name": "Steel scimitar", "weight": 3}, {"item": 1181, "name": "Mithril sq shield", "weight": 1}, {"item": 1109, "name": "Mithril chainbody", "weight": 1}, {"item": 1147, "name": "Rune med helm", "weight": 1}, {"item": 554, "name": "Fire rune", "count": 60, "weight": 8}, {"item": 562, "name": "Chaos rune", "count": 12, "weight": 5}, {"item": 560, "name": "Death rune", "count": 3, "weight": 3}, {"item": 554, "name": "Fire rune", "count": 30, "weight": 1}, {"table": "herbs", "weight": 1}, {"item": 995, "name": "Coins", "count": 120, "weight": 40}, {"item": 995, "name": "Coins", "count": 40, "weight": 29}, {"item": 995, "name": "Coins", "count": 200, "weight": 10}, {"item": 995, "name": "Coins", "count": 10, "weight": 7}, {"item": 995, "name": "Coins", "count": 450, "weight": 1}, {"item": 1993, "name": "Jug of wine", "weight": 3}, {"item": 444, "name": "Gold ore", "weight": 2}, {"table": "gems", "weight": 4}]},
       "tertiary": [{"item": 13501, "name": "Ensouled demon head", "chance": "1/50"}],
       "source": "OSRS Wiki, Lesser demon (level 82), read 2026-11-03: the members table (the free-to-play-only coins line out); the Wilderness looting bag, the champion scroll (no Champions' Challenge) and the Chasm of Fire contracts left out. The Wizards' Tower's caged one drops inside its cage, out of reach until Telekinetic Grab is built"
+    },
+    {"npcs": ["sos_pest_catablepon", "sos_pest_catablepon2", "sos_pest_catablepon3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 101, "lines": [
+      {"item": 1145, "name": "Adamant med helm", "weight": 1},
+      {"item": 554, "name": "Fire rune", "count": 15, "weight": 7}, {"item": 555, "name": "Water rune", "count": 7, "weight": 6},
+      {"item": 562, "name": "Chaos rune", "count": 7, "weight": 1}, {"item": 563, "name": "Law rune", "count": 2, "weight": 4},
+      {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 3}, {"item": 888, "name": "Mithril arrow", "min": 5, "max": 14, "weight": 4},
+      {"table": "herbs", "weight": 3}, {"table": "allotment_seeds", "weight": 1},
+      {"item": 1437, "name": "Rune essence (noted)", "count": 15, "weight": 5}, {"item": 7937, "name": "Pure essence (noted)", "count": 15, "weight": 5},
+      {"item": 221, "name": "Eye of newt", "weight": 7}, {"item": 454, "name": "Coal (noted)", "min": 3, "max": 7, "weight": 2},
+      {"item": 995, "name": "Coins", "count": 15, "weight": 6}, {"item": 995, "name": "Coins", "count": 44, "weight": 12},
+      {"item": 995, "name": "Coins", "min": 5, "max": 104, "weight": 10},
+      {"item": 333, "name": "Trout", "weight": 2}, {"item": 596, "name": "Unlit torch", "weight": 9},
+      {"item": 9010, "name": "Top of sceptre", "weight": 3},
+      {"table": "gems_surface", "weight": 2},
+      {"nothing": true, "weight": 8}
+    ]}, "tertiary": [{"item": 2801, "name": "Clue scroll (medium)", "chance": "1/101"}],
+      "source": "OSRS Wiki, Catablepon, Drops, read 2026-11-03: one table for every level, out of 101, the members world's lines (the free-to-play coins x10 4/101 is out); the herb table at 3/101, the allotment seeds at 1/101, the gem table (nature talisman, so the surface one) at 2/101. The 8/101 of nothing is what the lines leave (the 4/101 the Wiki doesn't list plus the free-to-play line), GUESSED. Spiders and scorpions on the floor drop nothing on the Wiki's pages, so they have no entry"
     }
   ]
 }
