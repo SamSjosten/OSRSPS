@@ -26,6 +26,18 @@ class AgilityDataTest {
     }
 
     @Test
+    fun `Al Kharid is level 20 throughout, 216 XP a lap, and only Tightrope 1 and the zip line hurt`() {
+        val alKharid = AgilityData.load().courses.single { it.key == "alkharid" }
+        assertEquals(20, alKharid.level)
+        assertEquals(8, alKharid.obstacles.size)
+        assertTrue(alKharid.obstacles.all { it.level == 20 && it.levelLine == AgilityLines.ALKHARID_LEVEL })
+        assertEquals(2_160, alKharid.obstacles.sumOf { it.xpTenths } + alKharid.lapXpTenths)
+        assertEquals(listOf("alkharid_tightrope_1", "alkharid_zip_line"), alKharid.obstacles.filter { it.success != null }.map { it.key })
+        assertTrue(alKharid.obstacles.filter { it.success != null }.all { it.damage == 1..5 })
+        assertEquals(5, alKharid.markSpots.size)
+    }
+
+    @Test
     fun `20 levels over a course cut the mark chance to a fifth`() {
         val course = AgilityData.load().courses.single { it.key == "draynor" }
         assertEquals(2 to 6, Agility.markOdds(course, 1))

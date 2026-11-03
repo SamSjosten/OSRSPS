@@ -50,6 +50,14 @@
    "comment": "obstacle 1 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
   },
   {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13368,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 1's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
    "step": "locOption",
    "loc": "Tightrope",
    "option": "Cross",
@@ -63,6 +71,14 @@
    "plane": 3,
    "timeoutMs": 20000,
    "comment": "obstacle 2 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13376,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 2's XP, so its script has ended before the next click (clicks while it runs are dropped)"
   },
   {
    "step": "locOption",
@@ -80,6 +96,14 @@
    "comment": "obstacle 3 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
   },
   {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13383,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 3's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
    "step": "locOption",
    "loc": "Narrow wall",
    "option": "Balance",
@@ -93,6 +117,14 @@
    "plane": 3,
    "timeoutMs": 20000,
    "comment": "obstacle 4 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13390,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 4's XP, so its script has ended before the next click (clicks while it runs are dropped)"
   },
   {
    "step": "locOption",
@@ -110,6 +142,14 @@
    "comment": "obstacle 5 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
   },
   {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13400,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 5's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
    "step": "locOption",
    "loc": "Gap",
    "option": "Jump",
@@ -125,6 +165,14 @@
    "comment": "obstacle 6 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
   },
   {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13404,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 6's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
    "step": "locOption",
    "loc": "Crate",
    "option": "Climb-down",
@@ -138,6 +186,14 @@
    "plane": 0,
    "timeoutMs": 20000,
    "comment": "obstacle 7 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13483,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 7's XP, so its script has ended before the next click (clicks while it runs are dropped)"
   },
   {
    "step": "assertMessage",
