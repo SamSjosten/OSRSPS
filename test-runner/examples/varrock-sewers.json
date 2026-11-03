@@ -1,5 +1,5 @@
 {
- "name": "Varrock step 15: down the manhole east of the palace and back up its ladder, the web east of the deadly red spiders (no blade, then a knife), and a moss giant killed for its big bones (::keys on)",
+ "name": "Varrock step 15: down the manhole east of the palace and back up its ladder, down the bear pen's trapdoor and back up, the web east of the deadly red spiders (no blade, then a knife), and a moss giant killed for its big bones (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -78,6 +78,35 @@
    "x": 3237,
    "y": 3458,
    "comment": "still open, or it has shut again: then this step fails and the manhole needs opening again"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3231 3503 0",
+   "expectMessage": "Teleported to 3231, 3503, 0",
+   "comment": "south-east of the bear pen's trapdoor (the Hole) on open soil"
+  },
+  {
+   "step": "locOption",
+   "loc": "Hole",
+   "option": "Climb-down",
+   "x": 3230,
+   "y": 3504
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3230,
+   "y": 9904,
+   "comment": "the cellar ladder below the trapdoor, 6400 down: reaching it proves the climb down"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Hole",
+   "x": 3230,
+   "y": 3504,
+   "option": "Climb-down",
+   "comment": "back up beside the trapdoor"
   },
   {
    "step": "command",

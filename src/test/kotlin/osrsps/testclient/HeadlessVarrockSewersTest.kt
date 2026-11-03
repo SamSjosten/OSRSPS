@@ -9,6 +9,7 @@ import osrsps.game.GameRandom
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.content.LumbridgeCastle
 import osrsps.game.content.VarrockSewers
 import osrsps.game.content.Webs
 import osrsps.game.loc.LocType
@@ -39,6 +40,8 @@ class HeadlessVarrockSewersTest {
                     loc(VarrockSewers.MANHOLE, "Manhole", "Open"),
                     loc(VarrockSewers.MANHOLE_OPEN, "Manhole", "Climb-down", "Close"),
                     loc(VarrockSewers.MANHOLE_LADDER, "Ladder", "Climb-up"),
+                    loc(VarrockSewers.BEAR_PIT_TRAPDOOR, "Hole", "Climb-down"),
+                    loc(LumbridgeCastle.CELLAR_LADDER, "Ladder", "Climb-up"),
                     loc(Webs.WEB, "Web", "Slash"),
                     loc(Webs.WEB_SLASHED, "Slashed web"),
                 ).associateBy { it.id },
@@ -47,6 +50,8 @@ class HeadlessVarrockSewersTest {
                 add(ZoneLoc(VarrockSewers.MANHOLE, LocShape.CENTREPIECE_STRAIGHT, 0, MANHOLE_X, Z, 0))
                 add(ZoneLoc(VarrockSewers.MANHOLE_LADDER, LocShape.CENTREPIECE_STRAIGHT, 0, MANHOLE_X, Z + 6400, 0))
                 add(ZoneLoc(Webs.WEB, LocShape.CENTREPIECE_STRAIGHT, 0, WEB_X, Z, 0))
+                add(ZoneLoc(VarrockSewers.BEAR_PIT_TRAPDOOR, LocShape.CENTREPIECE_STRAIGHT, 0, TRAPDOOR_X, Z, 0))
+                add(ZoneLoc(LumbridgeCastle.CELLAR_LADDER, LocShape.CENTREPIECE_STRAIGHT, 0, TRAPDOOR_X, Z + 6400, 0))
             },
             cycleMillis = millis,
         )
@@ -67,6 +72,21 @@ class HeadlessVarrockSewersTest {
                 client.locOp(VarrockSewers.MANHOLE_LADDER, MANHOLE_X, Z + 6400, VarrockSewers.CLIMB)
                 val up = client.await("back up") { client.position?.takeIf { it.z < 9000 } }
                 assertTrue(kotlin.math.abs(up.x - MANHOLE_X) <= 1 && kotlin.math.abs(up.z - Z) <= 1, "landed at $up")
+            }
+        }
+    }
+
+    @Test
+    fun `the bear pen's trapdoor climbs down, and the cellar ladder below climbs back up`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.locOp(VarrockSewers.BEAR_PIT_TRAPDOOR, TRAPDOOR_X, Z, VarrockSewers.CLIMB)
+                val below = client.await("the sewers") { client.position?.takeIf { it.z > 9000 } }
+                assertTrue(kotlin.math.abs(below.x - TRAPDOOR_X) <= 1 && kotlin.math.abs(below.z - (Z + 6400)) <= 1, "landed at $below")
+                client.locOp(LumbridgeCastle.CELLAR_LADDER, TRAPDOOR_X, Z + 6400, VarrockSewers.CLIMB)
+                val up = client.await("back up") { client.position?.takeIf { it.z < 9000 } }
+                assertTrue(kotlin.math.abs(up.x - TRAPDOOR_X) <= 1 && kotlin.math.abs(up.z - Z) <= 1, "landed at $up")
             }
         }
     }
@@ -110,6 +130,7 @@ class HeadlessVarrockSewersTest {
     private companion object {
         const val MANHOLE_X = 3226
         const val WEB_X = 3220
+        const val TRAPDOOR_X = 3216
         const val Z = 3218
     }
 }
