@@ -645,6 +645,12 @@ class World(
                 if (answer >= 0 && answer - 1 != list.current) picked(answer - 1)
             }
         },
+        pickOption = { player, title, options, picked ->
+            scripts.start(player) {
+                dialogues.start(this) { picked(choice(*options.toTypedArray(), title = title) - 1) }
+            }
+        },
+        askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
         now = clansClock,
     )
 

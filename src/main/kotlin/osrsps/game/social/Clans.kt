@@ -105,6 +105,10 @@ class Clans(
      * asked); runs the action with the rank clicked.
      */
     private val pickRank: (Player, RankList, (Int) -> Unit) -> Unit = { _, _, _ -> },
+    /** Shows the chatbox menu of the given options under the given title; runs the action with the one picked, from 0. */
+    private val pickOption: (Player, String, List<String>, (Int) -> Unit) -> Unit = { _, _, _, _ -> },
+    /** Asks for an amount with the given prompt over the chatbox's input line; runs the action with the amount typed. */
+    private val askAmount: (Player, String, (Int) -> Unit) -> Unit = { _, _, _ -> },
     private val now: () -> Instant = Instant::now,
 ) {
     /** A clan being formed: its leader, the founders who joined, the invited and the name picked. */
@@ -688,10 +692,21 @@ class Clans(
     /** How many kicks are kept, every clan's (for tests). */
     fun kicksKept(): Int = kicked.values.sumOf { it.size }
 
-    /** Whether [player] may join [clan]'s channel as a guest: not banned from it, nor kicked from it in the last hour. */
+    /**
+     * Whether [player] may join [clan]'s channel as a guest: not banned from it, the clan lets guests listen, they meet its
+     * guest requirements, and they weren't kicked from it in the last hour.
+     */
     private fun mayJoinAsGuest(player: Player, clan: ClanStore.Clan): Boolean {
         if (clan.banned(player.saveKey) != null) {
             tell(player, ClanLines.STILL_BANNED, clan.name)
+            return false
+        }
+        if (!guestsMayListen(clan)) {
+            tell(player, ClanLines.GUESTS_BLOCKED, clan.name)
+            return false
+        }
+        if (!meetsGuestRequirements(player, clan)) {
+            tell(player, ClanLines.GUEST_REQUIREMENTS, clan.name)
             return false
         }
         val kicks = kicked[clan.id]
@@ -1112,7 +1127,7 @@ class Clans(
         return ClanSettingsFull(
             clanType,
             ClanSettingsFull.JoinUpdate(
-                (++updateNum).toInt(), created, clan.name, true, setting(clan, PERM_TALK), setting(clan, PERM_KICK), RANK_OWNER, RANK_OWNER,
+                (++updateNum).toInt(), created, clan.name, guestsMayListen(clan), setting(clan, PERM_TALK), setting(clan, PERM_KICK), RANK_OWNER, RANK_OWNER,
                 members, clan.banned.map { ClanSettingsFull.BannedClanMember(it.name) }, settingVars(clan), false, true,
             ),
         )
@@ -1122,9 +1137,33 @@ class Clans(
      * [clan]'s permission vars as the clan settings carry them: each rank plus 2, as client proc clan_permission_get
      * takes 2 off what it reads (its "unset" is 126 + 2). Talk and Kick go in the settings' own fields instead.
      */
-    internal fun settingVars(clan: ClanStore.Clan): List<ClanSettingsFull.IntClanSetting> =
-        SETTING_DEFAULTS.keys.plus(clan.settings.keys).filter { it !in CHANNEL_PERMISSIONS }.sorted()
+    internal fun settingVars(clan: ClanStore.Clan): List<ClanSettingsFull.IntClanSetting> {
+        val ranks = SETTING_DEFAULTS.keys.plus(clan.settings.keys).filter { it !in CHANNEL_PERMISSIONS && it !in GUEST_SETTINGS }
             .map { ClanSettingsFull.IntClanSetting(it, setting(clan, it) + PERMISSION_VAR_OFFSET) }
+        // The guest requirements go as they are, packed (clan_permissions_buttonresynch reads their bits).
+        val guests = clan.settings[VAR_GUEST_REQUIREMENTS]?.let { listOf(ClanSettingsFull.IntClanSetting(VAR_GUEST_REQUIREMENTS, it)) }.orEmpty()
+        return (ranks + guests).sortedBy { it.id }
+    }
+
+    /** Whether guests may listen in [clan]'s channel (the clan settings' allow-unaffined). Inferred: permitted unless blocked. */
+    fun guestsMayListen(clan: ClanStore.Clan): Boolean = (clan.settings[GUEST_LISTEN] ?: 1) != 0
+
+    /** The guest requirement [requirement] in [clan]: 0 when there is none. */
+    fun guestRequirement(clan: ClanStore.Clan, requirement: GuestRequirement): Int {
+        val packed = clan.settings[VAR_GUEST_REQUIREMENTS] ?: return 0
+        return (packed ushr requirement.shift) and ((1 shl requirement.bits) - 1)
+    }
+
+    /** Whether [player] meets [clan]'s guest requirements. Iron status: nobody here is an Ironman, so any but None shuts all out. */
+    private fun meetsGuestRequirements(player: Player, clan: ClanStore.Clan): Boolean {
+        val skills = player.skills
+        val total = Skill.entries.sumOf { skills.baseLevel(it) }
+        return skills.combatLevel >= guestRequirement(clan, GuestRequirement.COMBAT) &&
+            total >= guestRequirement(clan, GuestRequirement.SKILL_TOTAL) &&
+            // No quests are built, so everyone has 0 quest points.
+            0 >= guestRequirement(clan, GuestRequirement.QUEST_POINTS) &&
+            guestRequirement(clan, GuestRequirement.IRON_STATUS) == 0
+    }
 
     /**
      * The settings page's Members button as a member: the members page (clans_members), which draws itself from the
@@ -1286,6 +1325,10 @@ class Clans(
             openInfo(player, asGuest = false)
             return true
         }
+        if (slot == GUEST_LISTEN_SLOT || GuestRequirement.entries.any { it.slot == slot }) {
+            clickGuestSetting(player, clan, slot)
+            return true
+        }
         val id = PERMISSION_VARS[slot] ?: return true
         if (!mayEditPermission(player, clan, id)) {
             tell(player, ClanLines.PERMISSION_DENIED)
@@ -1303,6 +1346,69 @@ class Clans(
             }
         }
         return true
+    }
+
+    /**
+     * A guest setting's button on the permissions page, for a member who meets Permission access (the buttons need no other
+     * rank, clan_permissions_buttonresynch). Guessed, as live's way is unknown: Guests may listen and Iron status ask with
+     * the chatbox menu, the others with an amount (0 for none).
+     */
+    private fun clickGuestSetting(player: Player, clan: ClanStore.Clan, slot: Int) {
+        if (!has(player, clan, VAR_PERMISSION_ACCESS)) {
+            tell(player, ClanLines.PERMISSION_DENIED)
+            return
+        }
+        val words = words(player)
+        val clanId = clan.id
+        when (slot) {
+            GUEST_LISTEN_SLOT -> pickOption(player, words[ClanLines.GUEST_LISTEN_TITLE], listOf(words[ClanLines.GUEST_PERMITTED], words[ClanLines.GUEST_BLOCKED])) {
+                setGuestsMayListen(player, clanId, it == 0)
+            }
+            else -> {
+                val requirement = GuestRequirement.entries.first { it.slot == slot }
+                if (requirement == GuestRequirement.IRON_STATUS) {
+                    pickOption(player, words[ClanLines.GUEST_IRON_TITLE], ClanLines.IRON_STATUSES.map { words[it] }) {
+                        setGuestRequirement(player, clanId, requirement, it)
+                    }
+                } else {
+                    askAmount(player, words[requirement.prompt!!]) { setGuestRequirement(player, clanId, requirement, it) }
+                }
+            }
+        }
+    }
+
+    /**
+     * Guests may listen, set by [editor] if they still meet Permission access. Guessed: blocking puts the guests in the
+     * channel out of it, since they may no longer listen.
+     */
+    fun setGuestsMayListen(editor: Player, clanId: Long, permitted: Boolean) {
+        val clan = clanOf(editor)?.takeIf { it.id == clanId } ?: return
+        if (!has(editor, clan, VAR_PERMISSION_ACCESS) || guestsMayListen(clan) == permitted) return
+        store.setSetting(clan, GUEST_LISTEN, if (permitted) 1 else 0)
+        sendSettings(clan)
+        if (!permitted) {
+            for (guest in channels[clan.id].orEmpty().filter { clan.member(it.saveKey) == null }) {
+                leaveChannel(guest, clan, tell = true, clanType = CLAN_TYPE_LISTENED)
+                tell(guest, ClanLines.GUESTS_BLOCKED, clan.name)
+            }
+        }
+    }
+
+    /**
+     * A guest requirement, set by [editor] if they still meet Permission access: cut to what its bits hold (an amount) or
+     * refused (an Iron status the list hasn't). Guests in the channel stay, as the setting's own words say.
+     */
+    fun setGuestRequirement(editor: Player, clanId: Long, requirement: GuestRequirement, value: Int) {
+        val clan = clanOf(editor)?.takeIf { it.id == clanId } ?: return
+        if (!has(editor, clan, VAR_PERMISSION_ACCESS)) return
+        val max = (1 shl requirement.bits) - 1
+        if (requirement == GuestRequirement.IRON_STATUS && value !in 0 until ClanLines.IRON_STATUSES.size) return
+        val mask = max shl requirement.shift
+        val packed = clan.settings[VAR_GUEST_REQUIREMENTS] ?: 0
+        val updated = (packed and mask.inv()) or (value.coerceIn(0, max) shl requirement.shift)
+        if (updated == packed && clan.settings.containsKey(VAR_GUEST_REQUIREMENTS)) return
+        store.setSetting(clan, VAR_GUEST_REQUIREMENTS, updated)
+        sendSettings(clan)
     }
 
     /**
@@ -1510,6 +1616,17 @@ class Clans(
         const val PERM_KICK = 1002
         val CHANNEL_PERMISSIONS = setOf(PERM_TALK, PERM_KICK)
 
+        /**
+         * The guest settings (structs 2957-2961, param_1255): Guests may listen, the clan settings' allow-unaffined, kept
+         * under this id, which no varclansetting has; the requirements, packed in varclansetting 26.
+         */
+        const val GUEST_LISTEN = 1003
+        const val VAR_GUEST_REQUIREMENTS = 26
+        val GUEST_SETTINGS = setOf(GUEST_LISTEN, VAR_GUEST_REQUIREMENTS)
+
+        /** The permissions page's Guests may listen button (after Ban from chat, enum_3827 order); the requirements follow. */
+        const val GUEST_LISTEN_SLOT = 10
+
         /** What client proc clan_permission_get takes off a permission var's value to get its rank. */
         const val PERMISSION_VAR_OFFSET = 2
 
@@ -1546,8 +1663,8 @@ class Clans(
 
         /**
          * The page's buttons the server answers, by slot (clan_permission_init: Permission access first, then enum_3825's
-         * permissions in order), to their vars or channel ranks. The others (guest settings, events, coffer, hall and later
-         * ones) aren't built.
+         * permissions in order), to their vars or channel ranks. The guest settings follow (slots 10-14, [GUEST_LISTEN_SLOT]
+         * and [GuestRequirement]); the others (events, coffer, hall and later ones) aren't built.
          */
         val PERMISSION_VARS = mapOf(
             0 to VAR_PERMISSION_ACCESS, 1 to VAR_RANK_TITLES, 2 to VAR_ASSIGN_RANKS, 3 to VAR_RECRUITMENT, 4 to VAR_EXPEL,
@@ -1710,6 +1827,32 @@ object ClanLines : Lines("clan", "Clans") {
     val STILL_BANNED = line("still_banned", "joining a clan's channel you are banned from", "name")
     val UNBAN_DENIED = line("unban_denied", "Unban on the ban list when your rank can't ban from chat")
     val UNBANNED = line("unbanned", "you took a player off your clan's ban list", "name")
+    val GUESTS_BLOCKED = line("guests_blocked", "joining, or being in, a clan's channel as a guest when it blocks guests", "name")
+    val GUEST_REQUIREMENTS = line("guest_requirements", "joining a clan's channel as a guest without meeting its guest requirements", "name")
+    val GUEST_LISTEN_TITLE = line("guest_listen_title", "the title over the Guests may listen choice")
+    val GUEST_PERMITTED = line("guest_permitted", "the Guests may listen option that lets them (the page shows the cache's Permitted)")
+    val GUEST_BLOCKED = line("guest_blocked", "the Guests may listen option that stops them (the page shows the cache's Blocked)")
+    val GUEST_COMBAT_PROMPT = line("guest_combat_prompt", "the prompt for a clan's guest minimum combat level")
+    val GUEST_TOTAL_PROMPT = line("guest_total_prompt", "the prompt for a clan's guest minimum skill total")
+    val GUEST_QP_PROMPT = line("guest_qp_prompt", "the prompt for a clan's guest minimum quest points")
+    val GUEST_IRON_TITLE = line("guest_iron_title", "the title over the guest Iron status choice")
+    val IRON_STATUSES = listOf(
+        line("iron_none", "guest Iron status None (enum_3828's default)"),
+        line("iron_any", "guest Iron status Any Ironman (enum_3828 1)"),
+        line("iron_uim", "guest Iron status UIM only (enum_3828 2)"),
+        line("iron_hcim", "guest Iron status HCIM only (enum_3828 3)"),
+    )
+}
+
+/**
+ * The guest requirements on the permissions page: each one's button slot and its bits in varclansetting 26 (clan proc
+ * clan_permissions_buttonresynch, rev 241), and the prompt for an amount (Iron status is picked from enum_3828's list).
+ */
+enum class GuestRequirement(val slot: Int, val shift: Int, val bits: Int, val prompt: Line?) {
+    COMBAT(11, 0, 7, ClanLines.GUEST_COMBAT_PROMPT),
+    SKILL_TOTAL(12, 7, 12, ClanLines.GUEST_TOTAL_PROMPT),
+    QUEST_POINTS(13, 19, 11, ClanLines.GUEST_QP_PROMPT),
+    IRON_STATUS(14, 30, 2, null),
 }
 
 /** What the client's rank list shows: where it opens, its title, the rank picked, the ranks from [min] to [max], and Nobody. */

@@ -3,8 +3,10 @@ package osrsps.testclient
 import net.rsprot.protocol.game.outgoing.prot.GameServerProt
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.World
+import osrsps.game.script.ScriptContext
 import osrsps.game.social.ClanStore
 import osrsps.game.social.Clans
+import osrsps.game.social.GuestRequirement
 import osrsps.map.CollisionMap
 import java.nio.file.Files
 import java.nio.file.Path
@@ -1009,6 +1011,107 @@ class HeadlessClanTest {
             }
         }
     }
+
+    @Test
+    fun `the guest settings block guests or set requirements, which guests must meet to join the channel`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        found(server, alice, bob, "Odins Gate")
+                        val clans = server.world.clans
+                        val clan = clans.clanNamed("Odins Gate")!!
+                        val carolP = server.world.playerNamed("carol")!!
+                        carol.guestTab()
+                        carol.await("the guest page") { carol.openInterfaces().takeIf { Clans.GUEST_SIDEPANEL in it } }
+                        carol.findClan("Odins Gate")
+                        carol.await("the guest clan") { carol.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.isNotEmpty() } }
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                        carol.await("carol in") { Unit.takeIf { clans.inGuestChannel(carolP) } }
+                        assertTrue(clans.guestsMayListen(clan))
+                        assertTrue(clans.settingVars(clan).none { it.id == Clans.VAR_GUEST_REQUIREMENTS })
+
+                        // bob (rank 0) is below Permission access.
+                        bob.yourClanTab()
+                        bob.await("bob's clan page") { bob.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                        bob.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                        bob.await("bob's settings page") { bob.openInterfaces().takeIf { Clans.INFO in it } }
+                        bob.ifButton(Clans.INFO, Clans.INFO_PERMISSIONS, 1)
+                        bob.await("bob's permissions page") { bob.openInterfaces().takeIf { Clans.PERMISSIONS in it } }
+                        bob.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = Clans.GUEST_LISTEN_SLOT)
+                        bob.saw("[clan.permission_denied]")
+
+                        alice.yourClanTab()
+                        alice.await("the clan page") { alice.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                        alice.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                        alice.await("the settings page") { alice.openInterfaces().takeIf { Clans.INFO in it } }
+                        alice.ifButton(Clans.INFO, Clans.INFO_PERMISSIONS, 1)
+                        alice.await("the permissions page") { alice.openInterfaces().takeIf { Clans.PERMISSIONS in it } }
+
+                        // Guests may listen: Blocked puts carol out, and keeps her out.
+                        alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = Clans.GUEST_LISTEN_SLOT)
+                        val menu = alice.awaitDialogue("the listen choice") { it is DialogueView.Menu }
+                        assertEquals(DialogueView.Menu("[clan.guest_listen_title]", listOf("[clan.guest_permitted]", "[clan.guest_blocked]")), menu)
+                        alice.chooseOption(2)
+                        alice.await("guests blocked") { Unit.takeIf { !clans.guestsMayListen(clan) } }
+                        carol.saw("[clan.guests_blocked name=Odins Gate]")
+                        assertFalse(clans.inGuestChannel(carolP))
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                        carol.await("refused while blocked") { carol.messages().count { it.text == "[clan.guests_blocked name=Odins Gate]" }.takeIf { it == 2 } }
+                        assertFalse(clans.inGuestChannel(carolP))
+                        assertTrue(alice.permissionsPageOpen())
+
+                        // Permitted again.
+                        alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = Clans.GUEST_LISTEN_SLOT)
+                        alice.awaitDialogue("the listen choice again") { it is DialogueView.Menu }
+                        alice.chooseOption(1)
+                        alice.await("guests permitted") { Unit.takeIf { clans.guestsMayListen(clan) } }
+
+                        // Guest minimum combat: typed, cut to what its 7 bits hold, then set to 50, which carol lacks.
+                        var since = alice.clientScripts().size
+                        alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = GuestRequirement.COMBAT.slot)
+                        alice.await("the combat prompt") { alice.clientScripts().drop(since).lastOrNull { it.id == ScriptContext.MESLAYER_MODE7 }?.takeIf { it.args == listOf("[clan.guest_combat_prompt]") } }
+                        alice.resumeCount(500)
+                        alice.await("combat at 127") { Unit.takeIf { clans.guestRequirement(clan, GuestRequirement.COMBAT) == 127 } }
+                        since = alice.clientScripts().size
+                        alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = GuestRequirement.COMBAT.slot)
+                        alice.await("the combat prompt again") { alice.clientScripts().drop(since).lastOrNull { it.id == ScriptContext.MESLAYER_MODE7 } }
+                        alice.resumeCount(50)
+                        alice.await("combat at 50") { Unit.takeIf { clans.guestRequirement(clan, GuestRequirement.COMBAT) == 50 } }
+                        assertEquals(50, clans.settingVars(clan).single { it.id == Clans.VAR_GUEST_REQUIREMENTS }.value)
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                        carol.saw("[clan.guest_requirements name=Odins Gate]")
+                        assertFalse(clans.inGuestChannel(carolP))
+
+                        // Skill total in its own bits, beside combat; back to none, carol gets in.
+                        since = alice.clientScripts().size
+                        alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = GuestRequirement.SKILL_TOTAL.slot)
+                        alice.await("the total prompt") { alice.clientScripts().drop(since).lastOrNull { it.id == ScriptContext.MESLAYER_MODE7 }?.takeIf { it.args == listOf("[clan.guest_total_prompt]") } }
+                        alice.resumeCount(1500)
+                        alice.await("total at 1500") { Unit.takeIf { clans.guestRequirement(clan, GuestRequirement.SKILL_TOTAL) == 1500 } }
+                        assertEquals(50 or (1500 shl 7), clans.settingVars(clan).single { it.id == Clans.VAR_GUEST_REQUIREMENTS }.value)
+                        val aliceP = server.world.playerNamed("alice")!!
+                        clans.setGuestRequirement(aliceP, clan.id, GuestRequirement.COMBAT, 0)
+                        clans.setGuestRequirement(aliceP, clan.id, GuestRequirement.SKILL_TOTAL, 0)
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                        carol.await("carol back in") { Unit.takeIf { clans.inGuestChannel(carolP) } }
+
+                        // Iron status: picked from the list; nobody here is an Ironman, but carol, already in, stays.
+                        alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = GuestRequirement.IRON_STATUS.slot)
+                        val iron = alice.awaitDialogue("the iron choice") { it is DialogueView.Menu }
+                        assertEquals(DialogueView.Menu("[clan.guest_iron_title]", listOf("[clan.iron_none]", "[clan.iron_any]", "[clan.iron_uim]", "[clan.iron_hcim]")), iron)
+                        alice.chooseOption(2)
+                        alice.await("any Ironman") { Unit.takeIf { clans.guestRequirement(clan, GuestRequirement.IRON_STATUS) == 1 } }
+                        assertTrue(clans.inGuestChannel(carolP))
+                        assertEquals(1 shl 30, clans.settingVars(clan).single { it.id == Clans.VAR_GUEST_REQUIREMENTS }.value)
+                        assertEquals("Guests permitted; combat 0, skill_total 0, quest_points 0, iron_status 1", alice.commandReply("clanguests") { it.startsWith("Guests") })
+                    }
+                }
+            }
+        }
+    }
+
+    private fun HeadlessClient.permissionsPageOpen() = Clans.PERMISSIONS in openInterfaces()
 
     /** Opens the ban list from the Your Clan page's settings. */
     private fun HeadlessClient.openBannedPage() {
