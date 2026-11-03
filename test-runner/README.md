@@ -222,6 +222,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `skull-sceptre.json`: Edgeville step 14b (with `::keys on` and `::god on`): the four pieces joined into the skull
   sceptre, Divine and Invoke (to the Stronghold's entrance), Solztun's imbue once he sees fancy boots (`assertVarbit`
   5638), and the imbued sceptre charged with the bone fragments a chisel breaks a piece into.
+- `edgeville-examine.json`: Edgeville step 15: Examine (`::keys on`) on Gunthor the brave, the Barbarian anvil,
+  Edgeville's furnace, Abbot Langley and the Cradle of Life on the Stronghold of Security's fourth floor.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
