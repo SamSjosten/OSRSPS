@@ -142,6 +142,7 @@ import osrsps.game.content.registerWiseOldMan
 import osrsps.game.content.registerWizardsTower
 import osrsps.game.content.registerWizardsTowerPeople
 import osrsps.game.content.registerJalarast
+import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
@@ -787,6 +788,7 @@ class World(
         registerEssenceMine(this)
         registerWizardsTowerPeople(this)
         registerJalarast(this)
+        registerRick(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerWaterAndDummies(this)
