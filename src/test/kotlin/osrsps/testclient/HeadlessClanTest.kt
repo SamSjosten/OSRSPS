@@ -729,7 +729,11 @@ class HeadlessClanTest {
                     alice.resumeCount(Clans.RANK_ADMINISTRATOR + 1)
                     alice.await("bob an Administrator") { Unit.takeIf { clan.member(bobKey)?.rank == Clans.RANK_ADMINISTRATOR } }
                     alice.await("the list closed") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
-                    assertEquals(Clans.RANK_ADMINISTRATOR, ClanStore(dir.resolve("data").resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.member(bobKey)?.rank)
+                    // Written at the autosave, not per pick.
+                    val file = dir.resolve("data").resolve(ClanStore.FILE_NAME)
+                    assertEquals(0, ClanStore(file).byName("Odins Gate")!!.member(bobKey)?.rank)
+                    server.world.clans.flush()
+                    assertEquals(Clans.RANK_ADMINISTRATOR, ClanStore(file).byName("Odins Gate")!!.member(bobKey)?.rank)
 
                     // A rank the client doesn't list, or the owner's, does nothing.
                     for (bad in listOf(55, Clans.RANK_OWNER)) {
@@ -739,6 +743,15 @@ class HeadlessClanTest {
                         alice.awaitTicks(2)
                         assertEquals(Clans.RANK_ADMINISTRATOR, clan.member(bobKey)?.rank)
                     }
+
+                    // An answer after Back, with the list gone, does nothing.
+                    alice.ifButton(Clans.MEMBERS, 11, 1, sub = 1)
+                    alice.awaitTicks(2)
+                    alice.ifButton(Clans.MEMBERS, Clans.MEMBERS_EXIT, 1)
+                    alice.await("alice's settings page again") { alice.openInterfaces().takeIf { Clans.INFO in it && Clans.MEMBERS !in it } }
+                    alice.resumeCount(10 + 1)
+                    alice.awaitTicks(2)
+                    assertEquals(Clans.RANK_ADMINISTRATOR, clan.member(bobKey)?.rank)
 
                     // bob, an Administrator now, edits ranks below his own: alice's isn't.
                     bob.ifButton(Clans.MEMBERS, Clans.MEMBERS_EXIT, 1)

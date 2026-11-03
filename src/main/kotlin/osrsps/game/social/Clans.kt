@@ -131,6 +131,9 @@ class Clans(
     /** The applicant each recruiter chose (Review) on the applicants page, by save key: theirs. */
     private val reviewing = HashMap<String, String>()
 
+    /** The member each editor has the rank list open for, by save key: theirs. Gone once answered or left. */
+    private val pickingRank = HashMap<String, String>()
+
     private var updateNum = 0L
 
     fun clanOf(player: Player): ClanStore.Clan? = store.clanOf(player.saveKey)
@@ -207,6 +210,7 @@ class Clans(
         infoAsGuest.remove(player.saveKey)
         shownApplicants.remove(player.saveKey)
         reviewing.remove(player.saveKey)
+        pickingRank.remove(player.saveKey)
         tabs.remove(player.saveKey)
         inHub.remove(player.saveKey)
         shownName.remove(player.saveKey)
@@ -312,6 +316,7 @@ class Clans(
      * clan_transmit_guestisapplying.
      */
     private fun openInfo(player: Player, asGuest: Boolean) {
+        pickingRank.remove(player.saveKey)
         infoAsGuest[player.saveKey] = asGuest
         setVarbit(player, VARBIT_INFO_AS_GUEST, if (asGuest) 1 else 0)
         if (asGuest) showApplying(player)
@@ -908,6 +913,7 @@ class Clans(
      */
     private fun openMembers(player: Player) {
         val clan = clanOf(player) ?: return
+        pickingRank.remove(player.saveKey)
         openModal(player, MEMBERS)
         setEvents(player, MEMBERS, MEMBERS_EXIT, -1, -1, OP1, 0)
         if (!mayEditRanks(player, clan)) return
@@ -937,8 +943,13 @@ class Clans(
             return true
         }
         val key = target.key
+        pickingRank[player.saveKey] = key
         pickRank(player, words(player)[ClanLines.EDIT_RANK_TITLE, "name" to target.name], target.rank, RANK_FOUNDER, own - 1) { rank ->
-            setRank(player, clan.id, key, rank)
+            // Only the list still open, for this member: not after Back, another page or a newer list.
+            if (pickingRank[player.saveKey] == key && MEMBERS in player.modals.values) {
+                pickingRank.remove(player.saveKey)
+                setRank(player, clan.id, key, rank)
+            }
         }
         return true
     }

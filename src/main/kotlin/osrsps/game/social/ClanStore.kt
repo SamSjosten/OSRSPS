@@ -126,10 +126,13 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "${member.key} joined clan '${clan.name}'" }
     }
 
-    /** Gives [member] of [clan] [rank] and saves. */
+    /**
+     * Gives [member] of [clan] [rank], written at the next [flush] (the autosave), not now: an editor can pick ranks as
+     * fast as they click, and each write is the whole file.
+     */
     fun setRank(clan: Clan, member: Member, rank: Int) {
         member.rank = rank
-        save()
+        unwritten = true
         logger.info { "${member.key} is now rank $rank in clan '${clan.name}'" }
     }
 
