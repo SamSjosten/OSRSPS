@@ -1011,6 +1011,7 @@ class Clans(
         }
         val own = clan.member(player.saveKey)!!.rank
         pickingPermission[player.saveKey] = id
+        // Inferred (no source): the list runs from Guest up to the editor's own rank, with Nobody; the server picks it.
         val list = RankList(PERMISSIONS, PERMISSIONS_POPUP, words(player)[ClanLines.PERMISSION_TITLE], setting(clan, id), RANK_GUEST, own, true)
         pickRank(player, list) { rank ->
             if (pickingPermission[player.saveKey] == id && PERMISSIONS in player.modals.values) {
@@ -1021,9 +1022,15 @@ class Clans(
         return true
     }
 
+    /**
+     * Whether [player] may change permission var [id]: as client proc clan_permissions_buttonresynch (rev 241) enables a
+     * permission's button, which needs the Permission access rank and, unless the permission is set to Nobody, the rank
+     * it is set to. The server checks the same, since a client can send any button.
+     */
     private fun mayEditPermission(player: Player, clan: ClanStore.Clan, id: Int): Boolean {
         val rank = clan.member(player.saveKey)?.rank ?: return false
-        return rank >= setting(clan, VAR_PERMISSION_ACCESS) && rank >= setting(clan, id).let { if (it == RANK_NOBODY) RANK_OWNER else it }
+        val set = setting(clan, id)
+        return rank >= setting(clan, VAR_PERMISSION_ACCESS) && (set == RANK_NOBODY || rank >= set)
     }
 
     /** A rank picked for permission var [id]: set if [editor] may still edit it and the rank is guest to theirs, or Nobody. */
@@ -1032,7 +1039,7 @@ class Clans(
         if (id !in PERMISSION_VARS.values || !mayEditPermission(editor, clan, id)) return
         val own = clan.member(editor.saveKey)!!.rank
         if (rank != RANK_NOBODY && (rank !in MEMBER_RANKS + RANK_GUEST || rank > own)) return
-        // Nobody can't keep the owner out of Permission access, or no one could ever change it back.
+        // Inferred (no source): Nobody isn't taken for Permission access, since no one could ever change it back.
         if (id == VAR_PERMISSION_ACCESS && rank == RANK_NOBODY) return
         store.setSetting(clan, id, rank)
         sendSettings(clan)
