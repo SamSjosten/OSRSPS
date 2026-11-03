@@ -126,6 +126,16 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "${member.key} joined clan '${clan.name}'" }
     }
 
+    /**
+     * Gives [member] of [clan] [rank], written at the next [flush] (the autosave), not now: an editor can pick ranks as
+     * fast as they click, and each write is the whole file.
+     */
+    fun setRank(clan: Clan, member: Member, rank: Int) {
+        member.rank = rank
+        unwritten = true
+        logger.info { "${member.key} is now rank $rank in clan '${clan.name}'" }
+    }
+
     /** Takes [key] out of [clan]'s members and saves; false if they weren't one. */
     fun removeMember(clan: Clan, key: String): Boolean {
         if (!clan.members.removeIf { it.key == key }) return false
