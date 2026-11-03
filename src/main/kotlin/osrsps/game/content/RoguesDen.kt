@@ -1,7 +1,9 @@
 package osrsps.game.content
 
+import osrsps.game.GameLines
 import osrsps.game.World
 import osrsps.game.script.ScriptContext
+import osrsps.game.zone.ZoneLoc
 
 /**
  * The Rogues' Den under the Toad and Chicken in Burthorpe (Agility step 3), for Grace's shop and nothing else: Sam left
@@ -12,6 +14,9 @@ import osrsps.game.script.ScriptContext
  *   way out of the den, so the passageway (Enter) is taken as the way back up to the inn.
  * - The door lets the player through, either way, between the alcove and the den's main room.
  * - Grace (`rooftops_grace` 5919, npc-spawns/rogues-den.json) trades her shop (shops.json) from the generic Trade.
+ *
+ * Each is keyed on its tile as well as its type ([TRAPDOOR_AT], [PASSAGEWAY_AT], [DOOR_AT]): the den's maze, which isn't
+ * built, has the same door type, so a copy anywhere else is nothing interesting rather than a way into the den.
  *
  * Inferred from the 241 map: the alcove and the door. Guessed: every tile a crossing lands on (the alcove's north tile,
  * the inn's floor east of the trapdoor), that the passageway is the exit, the trapdoor's animation (the one the other
@@ -24,6 +29,11 @@ object RoguesDen {
     const val ENTER = 1
     const val OPEN = 1
 
+    /** Where the trapdoor, the passageway and the door stand (the 241 map). */
+    val TRAPDOOR_AT = Destination(2905, 3537, 0)
+    val PASSAGEWAY_AT = Destination(3061, 4986, 1)
+    val DOOR_AT = Destination(3061, 4984, 1)
+
     /** Where the trapdoor puts the player, and the passageway. */
     val ARRIVAL = Destination(3061, 4985, 1)
     val INN = Destination(2906, 3537, 0)
@@ -34,12 +44,19 @@ object RoguesDen {
 }
 
 fun registerRoguesDen(world: World) = with(RoguesDen) {
-    world.handlers.onLoc(TRAPDOOR, ENTER) { cross(world, ARRIVAL, Climbing.ANIM_PICKUP_FLOOR) }
-    world.handlers.onLoc(PASSAGEWAY, ENTER) { cross(world, INN, anim = -1) }
-    world.handlers.onLoc(DOOR, OPEN) {
+    world.handlers.onLoc(TRAPDOOR, ENTER) { op ->
+        if (op.loc.isAt(TRAPDOOR_AT)) cross(world, ARRIVAL, Climbing.ANIM_PICKUP_FLOOR) else world.message(player, GameLines.NOTHING_INTERESTING)
+    }
+    world.handlers.onLoc(PASSAGEWAY, ENTER) { op ->
+        if (op.loc.isAt(PASSAGEWAY_AT)) cross(world, INN, anim = -1) else world.message(player, GameLines.NOTHING_INTERESTING)
+    }
+    world.handlers.onLoc(DOOR, OPEN) { op ->
+        if (!op.loc.isAt(DOOR_AT)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
         cross(world, if (player.z >= DOOR_ALCOVE.z) DOOR_ROOM else DOOR_ALCOVE, anim = -1)
     }
 }
+
+private fun ZoneLoc?.isAt(at: Destination) = this != null && x == at.x && z == at.z && level == at.level
 
 /** Takes the player to [to] a tick after they arrive, with [anim] first when there is one (-1 for none). */
 private suspend fun ScriptContext.cross(world: World, to: Destination, anim: Int) {
