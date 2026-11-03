@@ -5,6 +5,8 @@ import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.zone.ZoneLoc
+import osrsps.map.LocShape
 import osrsps.map.Tile
 
 /**
@@ -31,6 +33,9 @@ class Encounter internal constructor(
 
     private val hazards = ArrayList<Hazard>()
     private val addList = ArrayList<Npc>()
+
+    /** The tiles [placeLoc] changed, by tile and layer, that the fight puts back as the cache has them when it ends. */
+    private val locList = LinkedHashMap<Triple<Int, Int, Int>, ZoneLoc>()
 
     /** What [after] put off, by the tick it is due on, oldest first. */
     private class Later(val tick: Long, val action: EncounterContext.() -> Unit)
@@ -86,6 +91,18 @@ class Encounter internal constructor(
         if (warning >= 0) for (tile in set) world.zones.mapAnim(tile.x, tile.z, boss.level, warning)
         log("hazard on ${set.joinToString(" ") { "${it.x},${it.z}" }} from tick ${start - world.tick} for $ticks")
         return hazard
+    }
+
+    override fun placeLoc(id: Int, x: Int, z: Int): ZoneLoc {
+        val loc = ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, x, z, boss.level)
+        world.locs.add(loc)
+        locList[Triple(x, z, loc.layer)] = loc
+        return loc
+    }
+
+    override fun clearLoc(loc: ZoneLoc) {
+        if (locList.remove(Triple(loc.x, loc.z, loc.layer)) == null) return
+        if (world.locs.exists(loc)) world.locs.restore(loc.x, loc.z, loc.level, loc.layer)
     }
 
     override fun spawnAdd(type: NpcType, x: Int, z: Int): Npc? {
@@ -236,6 +253,7 @@ class Encounter internal constructor(
         later.clear()
         for (add in addList) if (world.npcs[add.index] === add) world.removeNpc(add)
         addList.clear()
+        for (loc in locList.values.toList()) clearLoc(loc)
     }
 
     override fun toString() = "${def.name} #$id"

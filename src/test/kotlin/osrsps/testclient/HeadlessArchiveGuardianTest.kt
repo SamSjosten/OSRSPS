@@ -1,6 +1,7 @@
 package osrsps.testclient
 
 import java.nio.file.Path
+import kotlin.math.sign
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -47,8 +48,9 @@ class HeadlessArchiveGuardianTest {
         stats = stats.copy(hitpoints = 1100),
     )
     private val dormant = NpcType(ArchiveGuardian.DORMANT, "Inert Guardian", size = 5, ops = listOf("Touch", null, null, null, null), internalName = "tfa_guardian_start")
+    private val vine = NpcType(ArchiveGuardian.VINE, "Vine", internalName = "archive_guardian_tentacle")
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(flying, grounded, dormant, grave)
+    private val types = NpcTypes.of(flying, grounded, dormant, vine, grave)
 
     private val halberd = ObjType(
         HALBERD, "Bronze halberd", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "bronze_halberd", category = 66,
@@ -60,7 +62,17 @@ class HeadlessArchiveGuardianTest {
         RETRIBUTION_OBJ, "Null", internalName = "xmas16_marionette_green",
         params = mapOf(630 to 15, 1751 to (Prayers.PRAYERBOOK shl 16 or RETRIBUTION), 1752 to "Retribution", 1753 to 46, 1755 to 2679),
     )
-    private val objTypes = ObjTypes(arrayOfNulls<ObjType>(RETRIBUTION_OBJ + 1).also { it[HALBERD] = halberd; it[RETRIBUTION_OBJ] = retribution })
+    private val protectFromMelee = ObjType(
+        PROTECT_FROM_MELEE_OBJ, "Null", internalName = "placeholder_xmas16_marionette_blue",
+        params = mapOf(630 to 14, 1751 to (Prayers.PRAYERBOOK shl 16 or PROTECT_FROM_MELEE), 1752 to "Protect from Melee", 1753 to 43, 1755 to 2676),
+    )
+    private val objTypes = ObjTypes(
+        arrayOfNulls<ObjType>(RETRIBUTION_OBJ + 1).also {
+            it[HALBERD] = halberd
+            it[RETRIBUTION_OBJ] = retribution
+            it[PROTECT_FROM_MELEE_OBJ] = protectFromMelee
+        },
+    )
 
     private val locTypes = LocTypes(
         mapOf(ArchiveRaids.ARCHIVE_DOOR to LocType(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", ops = listOf("Enter", null, null, null, null), collision = LocCollisionType(width = 9, length = 1))),
@@ -275,6 +287,97 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `a mushroom grows by each player and bursts when someone comes within a tile, poisoning and wearying them, and splashes those two off`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("setlevel hitpoints 99") { it.contains("99") || it.startsWith("Usage") }
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                val player = server.world.playerNamed("alice")!!
+                alice.tele(3222, 3218)
+                alice.commandReply("raid guardian") { it.startsWith("Started") }
+                // Out of its range, so it holds its fire, and still in the fight.
+                alice.tele(3241, 3220)
+                val grown = alice.await("a mushroom") { alice.fightLog().firstNotNullOfOrNull { MUSHROOM_AT.find(it) } }
+                val (mx, mz) = grown.destructured.let { (x, z) -> x.toInt() to z.toInt() }
+                assertEquals(2, maxOf(kotlin.math.abs(mx - 3241), kotlin.math.abs(mz - 3220)), "two tiles from her")
+                alice.await("the mushroom ready") { server.world.locs.find(ArchiveGuardian.MUSHROOM_ACTIVE, mx, mz, 0) }
+                player.runEnabled = true
+                // Paused and stepped, so the weariness is counted in game ticks. Beside it: it bursts a tick after.
+                alice.commandReply("pause") { it.startsWith("Paused after tick") }
+                val beside = if (mx > 3241) mx - 1 else mx + 1
+                alice.command("tele $beside $mz 0")
+                val fight = server.world.encounters.all.single()
+                var stepped = 0
+                while (fight.lines.none { BURST.containsMatchIn(it) }) {
+                    assertTrue(++stepped <= 4, "no burst after $stepped ticks: ${fight.lines.takeLast(5)}")
+                    alice.stepTicks(1)
+                }
+                val burst = fight.lines.firstNotNullOf { BURST.find(it)?.groupValues?.get(1)?.toInt() }
+                assertTrue(burst in ArchiveGuardian.MUSHROOM_MIN..ArchiveGuardian.MUSHROOM_MAX, "burst for $burst")
+                assertTrue(server.world.poison.value(player) > 0, "poisoned")
+                assertFalse(player.runEnabled, "run off")
+                // Weary for the burst's tick's movement and the nine after it: ten in all.
+                assertEquals(ArchiveGuardian.WEARY_TICKS, player.wearyTicks)
+                alice.stepTicks(ArchiveGuardian.WEARY_TICKS - 1)
+                assertEquals(1, player.wearyTicks, "still weary on the tenth tick")
+                alice.stepTicks(1)
+                assertEquals(0, player.wearyTicks)
+                alice.commandReply("resume") { it.startsWith("Resumed") }
+                alice.await("the mushroom gone") { if (server.world.locs.at(mx, mz, 0).none { it.id in MUSHROOMS }) Unit else null }
+
+                // The weariness wears off, counted down by the world, before the poison has hit or weakened; the next
+                // mushroom wearies her again though the poison is no stronger.
+                alice.await("the weariness gone") { if (player.wearyTicks == 0) Unit else null }
+                val second = alice.await("a second mushroom") {
+                    alice.fightLog().mapNotNull { MUSHROOM_AT.find(it) }.getOrNull(1)
+                }
+                val (sx, sz) = second.destructured.let { (x, z) -> x.toInt() to z.toInt() }
+                alice.await("the second mushroom ready") { server.world.locs.find(ArchiveGuardian.MUSHROOM_ACTIVE, sx, sz, 0) }
+                assertEquals(ArchiveGuardian.MUSHROOM_POISON, server.world.poison.value(player), "still poisoned as strongly")
+                val (px, pz) = player.x to player.z
+                // A tile from it, on her side.
+                alice.tele(sx - (sx - px).sign, sz - (sz - pz).sign)
+                alice.await("the second burst") { if (alice.fightLog().count { BURST.containsMatchIn(it) } >= 2) Unit else null }
+                assertTrue(player.wearyTicks > 0, "weary again")
+
+                // The next one, left alone, bursts by itself, splashing her two tiles off.
+                val splash = alice.await("a splash", timeoutMillis = 30_000) {
+                    alice.fightLog().firstNotNullOfOrNull { SPLASH.find(it)?.groupValues?.get(1)?.toInt() }
+                }
+                assertTrue(splash in ArchiveGuardian.SPLASH_MIN..ArchiveGuardian.SPLASH_MAX, "splash for $splash")
+            }
+        }
+    }
+
+    @Test
+    fun `grounded, it sends a vine up beside each player away from it, swiping round it three times, for 11 at most under Protect from Melee`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("setlevel hitpoints 99") { it.contains("99") || it.startsWith("Usage") }
+                alice.commandReply("setlevel prayer 99") { it.contains("Prayer") }
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.await("99 prayer points") { alice.stat(PRAYER)?.takeIf { it.level == 99 } }
+                alice.ifButton(Prayers.PRAYERBOOK, PROTECT_FROM_MELEE, 1)
+                alice.await("Protect from Melee on") { if (alice.varp(Prayers.VARP_PRAYERS) == 1 shl 14) Unit else null }
+                alice.tele(3222, 3218)
+                alice.commandReply("raid guardian phase=grounded") { it.startsWith("Started") }
+                // Three tiles east of its east edge (3226), level with its middle: the vine comes up a tile further east.
+                alice.tele(3229, 3220)
+                alice.await("a vine") { alice.fightLog().takeIf { lines -> lines.any { it.endsWith("grounded: add Vine at 3230,3220") } } }
+                val hits = alice.await("six swipes on her") {
+                    alice.fightLog().mapNotNull { VINE_HIT.find(it)?.groupValues?.get(1)?.toInt() }.takeIf { it.size >= 6 }
+                }
+                assertTrue(hits.all { it in 0..ArchiveGuardian.VINE_PROTECTED_MAX }, hits.toString())
+                // Each vine goes after its third swipe: never more than the three that overlap.
+                val fight = server.world.encounters.all.single()
+                assertTrue(fight.adds.size <= ArchiveGuardian.VINE_SWIPES + 2, "${fight.adds.size} vines up")
+            }
+        }
+    }
+
+    @Test
     fun `levitating, it is out of melee's reach but for a halberd, and grounded anyone can hit it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
@@ -335,11 +438,18 @@ class HeadlessArchiveGuardianTest {
     }
 
     private companion object {
+        val MUSHROOM_AT = Regex("mushroom at (\\d+),(\\d+) by alice")
+        val BURST = Regex("mushroom bursts on alice for (\\d+)")
+        val SPLASH = Regex("mushroom splashes alice for (\\d+)")
+        val VINE_HIT = Regex("vine hits alice for (\\d+)")
         const val HALBERD = 3190
 
         /** prayerbook:prayer1 is 541:9, so Retribution, prayer 16, is 24. */
         const val RETRIBUTION = 24
         const val RETRIBUTION_OBJ = 20818
+        const val PROTECT_FROM_MELEE = 23
+        const val PROTECT_FROM_MELEE_OBJ = 20817
+        val MUSHROOMS = setOf(ArchiveGuardian.MUSHROOM_SPAWN, ArchiveGuardian.MUSHROOM_ACTIVE, ArchiveGuardian.MUSHROOM_DESPAWN)
         const val PRAYER = 5
 
         /** A seed whose Retribution roll on Alice's death is high enough to kill a Guardian on 1 hitpoint. */
