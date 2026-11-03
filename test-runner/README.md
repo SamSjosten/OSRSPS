@@ -205,6 +205,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `hill-giants.json`: Edgeville step 11 (with `::keys on` and `::god on`): the brass key taken, the shed's door
   locked and then unlocked with it, the ladder down, a hill giant killed for its big bones, Obor's gate refusing, and
   back up.
+- `stronghold-of-security.json`: Edgeville step 12 (with `::keys on` and `::god on`): down the entrance in the
+  Barbarian Village mine, the Dead Explorer's notes, the portal to the reward room at combat level 34, the Gift of
+  Peace claimed once (2,000 coins, `assertVarbit` 2309), a pair of Gates of War passed without a question, and back up
+  the reward room's ladder.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
