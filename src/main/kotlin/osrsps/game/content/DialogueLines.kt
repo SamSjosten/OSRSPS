@@ -241,6 +241,7 @@ object DialogueLines {
         ReldoLines,
         ReportLines,
         RichardLines,
+        RickLines,
         RomeoLines,
         RottenPotatoLines,
         RovinLines,

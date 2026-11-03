@@ -1,0 +1,183 @@
+{
+  "name": "Draynor piece step 15d: Rick's talk about himself, turning away a player without 75,000 coins, and Buy-crystals selling as many escape crystals as the coins pay for",
+  "account": "test",
+  "steps": [
+    {
+      "step": "waitForLogin"
+    },
+    {
+      "step": "command",
+      "text": "::scenario lumbridge-bare",
+      "expectMessage": "Started scenario lumbridge-bare.",
+      "comment": "::reset at the end puts the account back"
+    },
+    {
+      "step": "command",
+      "text": "::keys on",
+      "expectMessage": "Dialogue shows keys",
+      "comment": "boxes show their keys, whatever data/dialogue.txt holds"
+    },
+    {
+      "step": "command",
+      "text": "::tele 3109 3164 1",
+      "expectMessage": "Teleported to 3109, 3164, 1",
+      "comment": "the Wizards' Tower's first floor, beside Rick"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Rick",
+      "option": "Talk-to",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.hey]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.hello]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[rick.who]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.who]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.name]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.why_not]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.pumpkin]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.luckily]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.lucky]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[rick.goodbye]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.goodbye]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.bye]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertNoDialogue"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Rick",
+      "option": "Buy-crystals",
+      "timeoutMs": 20000,
+      "comment": "no coins yet"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[rick.cant_afford]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "command",
+      "text": "::item 995 160000",
+      "expectMessage": "Added 160,000 x Coins"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Rick",
+      "option": "Buy-crystals",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "chooseOption",
+      "text": "[rick.yes]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "waitTicks",
+      "ticks": 2,
+      "comment": "the amount prompt opens"
+    },
+    {
+      "step": "enterAmount",
+      "amount": 5,
+      "comment": "more than the coins pay for: he sells two"
+    },
+    {
+      "step": "assertInventory",
+      "item": "Escape crystal",
+      "count": 2,
+      "timeoutMs": 5000
+    },
+    {
+      "step": "assertInventory",
+      "item": "Coins",
+      "count": 10000
+    },
+    {
+      "step": "command",
+      "text": "::reset",
+      "expectMessage": "Back to how you were"
+    }
+  ]
+}
