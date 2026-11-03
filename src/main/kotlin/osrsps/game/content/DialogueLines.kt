@@ -124,6 +124,7 @@ object DialogueLines {
         DummyLines,
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
+        StrongholdLines,
         EdgevilleLines,
         EdgevilleMonkLines,
         EdgevilleShopAssistantLines,

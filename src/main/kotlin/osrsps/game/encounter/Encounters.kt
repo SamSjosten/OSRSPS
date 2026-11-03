@@ -194,6 +194,10 @@ class Encounter internal constructor(
                 if (player.level != hazard.level || Tile(player.x, player.z) !in hazard.tiles) continue
                 // From no one, so standing in one neither starts a fight nor makes the player hit back. Guessed.
                 val dealt = world.meleeCombat.hitPlayer(player, null, roll(hazard.minDamage, hazard.maxDamage), now)
+                // Still the boss's attack: the player counts as in combat, which cuts a Home Teleport or lodestone cast
+                // short and holds a logout, as a hit from the boss itself would (exploit review round 11, ENC-1).
+                // Guessed: live's boss mechanics put the player in combat; nothing on the Wiki says otherwise.
+                if (!player.dead) player.attackedTick = now
                 log("hazard hit ${player.username} for $dealt")
             }
         }

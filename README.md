@@ -1274,6 +1274,24 @@ Check: `test-runner/examples/hill-giants.json` takes the key, is refused and the
 down, kills a hill giant, is refused at Obor's gate and climbs back; `HeadlessEdgevilleDungeonTest` does the same
 through the headless client, `ObjSpawnFilesTest` the spawns and `NpcDropsTest` the giants' table.
 
+Step 12 is the Stronghold of Security's entrance and first floor, the Vault of War, in
+`game/content/StrongholdOfSecurity.kt` and `npc-spawns/stronghold-of-security.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The entrance in the Barbarian Village mine (`Entrance` 20790) climbs down beside the floor's ladder; that ladder and the reward room's climb back up beside the entrance | 241 map; the landing tiles guessed |
+| The Gates of War (19206 and 19207) take the player through at once. The second door of a pair, opened from the passage between them, may ask one of the 33 security questions (the gate's head speaks, `stronghold_of_security.qN`, `.qN_optionM`, `.qN_replyM`): only the right answer lets them through. No questions once the floor's reward is claimed | OSRS Wiki, Stronghold of Security (Doors) and Gate of War; how often a door asks (1 in 2) and which question it picks guessed |
+| The Dead Explorer gives the Stronghold notes to a player not carrying them | OSRS Wiki, Stronghold notes; reading the book is left for later |
+| The Gift of Peace, once: 2,000 coins, the Flap emote (varbit `sos_emote_flap`), Hitpoints and Prayer to full, its jingle; opened again it says so | OSRS Wiki, Gift of Peace; every account counts as having two-factor authentication |
+| The portal by the entrance takes a player with the reward claimed, or of combat level 26 and up, to the reward room | OSRS Wiki, Stronghold of Security; the landing guessed |
+| Goblins (5 to 25), minotaurs (12 and 27), rats and wolves (11 and 14) fight and drop as their Wiki pages, not aggressive; the floor is multi-way. The minotaurs drop the right skull half | OSRS Wiki, the DPS calculator; mejrs's live NPC list for the tiles (39 of the Wiki's 45 minotaurs) |
+
+Left out: the ladder down to the second floor (step 13), reading the notes, and playing the Flap emote (emotes aren't
+built). Check: `test-runner/examples/stronghold-of-security.json` climbs down, takes the notes, uses the portal,
+claims the Gift of Peace, passes a pair of gates without a question and climbs back; `HeadlessStrongholdOfSecurityTest`
+does the same through the headless client and answers a question wrongly and then rightly, `StrongholdOfSecurityTest`
+checks every pair in the cache has one asking side, `NpcCombatTest` and `NpcDropsTest` the new NPCs.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
@@ -1749,6 +1767,7 @@ a fight started on a seed plays the same way each time.
 | A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
 | A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |
 | Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
+| A hazard's hit still counting as combat: it cuts a Home Teleport or lodestone cast short and holds a logout, as the boss's own hit would (exploit review round 11, ENC-1) | guessed |
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
 | A fight outside an instance covering 32 tiles round the boss's spawn | testing only: the raid's rooms are instances |
 | No bosses yet: each one comes with its own step, from 16 on, with its room and gear sets for `::raid` | not in yet |

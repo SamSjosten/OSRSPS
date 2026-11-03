@@ -197,6 +197,10 @@ class HeadlessEncounterTest {
                 alice.commandReply("pause") { it.isNotEmpty() }
                 alice.commandReply("raid zap") { it.startsWith("Started") }
                 assertEquals("You have 7/10 hitpoints.", alice.commandReply("hp") { it.startsWith("You have") })
+                // The hit counts as combat (a cast cut short, a logout held), though from no one to hit back at.
+                val player = server.world.playerNamed("alice")!!
+                assertEquals(server.world.tick, player.attackedTick)
+                assertEquals(null, player.attackedBy)
                 alice.commandReply("step 2") { it.isNotEmpty() }
                 alice.awaitTicks(2)
                 alice.commandReply("resume") { it.isNotEmpty() }
