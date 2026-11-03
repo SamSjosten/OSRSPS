@@ -68,6 +68,61 @@ class AgilityDataTest {
     }
 
     @Test
+    fun `the Misthalin shortcuts are on no course, go both ways, and have the Wiki's levels and XP`() {
+        val data = AgilityData.load()
+        val shortcuts = data.obstacles.filter { it.key.startsWith("shortcut_") }
+        assertEquals(
+            mapOf(
+                "shortcut_varrock_fence" to (13 to 0),
+                "shortcut_grand_exchange_tunnel" to (21 to 0),
+                "shortcut_champions_guild_stone" to (31 to 30),
+                "shortcut_draynor_tunnel" to (42 to 0),
+                "shortcut_draynor_manor_fence" to (49 to 15),
+                "shortcut_champions_guild_south_stones" to (52 to 50),
+            ),
+            // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
+            shortcuts.associate { shortcut ->
+                val partway = shortcut.routes.map { route -> route.moves.filterIsInstance<AgilityMove.Xp>().sumOf { it.tenths } }.toSet()
+                shortcut.key to (shortcut.level to shortcut.xpTenths + partway.single())
+            },
+        )
+        // The south stones' 2.5 XP comes on the first and third stone each way, after the jump onto it.
+        val southStones = shortcuts.single { it.key == "shortcut_champions_guild_south_stones" }
+        for (route in southStones.routes) {
+            assertEquals(listOf(1, 4), route.moves.withIndex().filter { it.value is AgilityMove.Xp }.map { it.index })
+            assertTrue(route.moves.filterIsInstance<AgilityMove.Xp>().all { it.tenths == 25 })
+        }
+        // Only the stones, whose sides are river, are used from the bank.
+        assertEquals(
+            setOf("shortcut_champions_guild_stone", "shortcut_champions_guild_south_stones"),
+            shortcuts.filter { it.fromStart }.map { it.key }.toSet(),
+        )
+        assertTrue(shortcuts.none { it in data.courseOf })
+        assertTrue(shortcuts.all { it.routes.size == 2 })
+        // Each has its own level line, as live words each refusal for its obstacle.
+        assertEquals(shortcuts.size, shortcuts.map { it.levelLine }.toSet().size)
+        assertTrue(shortcuts.none { it.levelLine == AgilityLines.LEVEL })
+        // Each way ends where the other starts.
+        for (shortcut in shortcuts) {
+            val (there, back) = shortcut.routes
+            assertEquals(back.from, landing(there.moves), shortcut.key)
+            assertEquals(there.from, landing(back.moves), shortcut.key)
+        }
+        val stone = shortcuts.single { it.key == "shortcut_champions_guild_stone" }
+        assertEquals(10, stone.failXpTenths)
+        assertEquals(1..3, stone.damage)
+        assertTrue(stone.routes.all { landing(it.fail) == landing(it.moves) })
+    }
+
+    /** Where a list of moves leaves the player, from its last move that names a tile. */
+    private fun landing(moves: List<AgilityMove>): AgilityTile = when (val last = moves.last { it !is AgilityMove.Anim }) {
+        is AgilityMove.Teleport -> last.to
+        is AgilityMove.Slide -> last.to
+        is AgilityMove.Walk -> AgilityTile(last.path.last().x, last.path.last().z, 0)
+        else -> error("No tile in $last")
+    }
+
+    @Test
     fun `an obstacle names each of its loc types once`() {
         assertFailsWith<IllegalArgumentException> {
             AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"alsoLocs\": [1]")}]}""")
