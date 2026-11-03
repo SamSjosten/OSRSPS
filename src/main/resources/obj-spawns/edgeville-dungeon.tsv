@@ -1,0 +1,37 @@
+# The Edgeville Dungeon's item spawns (Edgeville piece step 11). Items and tiles are the 2004Scape project's map
+# squares 48,154, 49,154 and 48,153 (m48_154.jm2, m49_154.jm2, m48_153.jm2): coins, bones, bronze arrows, the brass
+# necklace, red spiders' eggs and the brass key, the kinds the OSRS Wiki's Edgeville Dungeon page lists (read
+# 2026-11-02). 2004Scape's iron axe at 3162,9888 and six earth runes at 3185,9888 are left out, as the Wiki lists
+# neither. Inferred: that live still has them where 2004Scape does. The brass key respawns in 100 ticks (the Wiki's
+# Brass key page); the rest are the 100 ticks the other files use, guessed.
+obj	count	x	z	level	respawn
+coins	4	3088	9898	0	100	# 2004Scape
+coins	1	3088	9899	0	100	# 2004Scape
+coins	1	3091	9899	0	100	# 2004Scape
+bones	1	3093	9879	0	100	# 2004Scape
+bones	1	3093	9884	0	100	# 2004Scape
+bones	1	3094	9906	0	100	# 2004Scape
+bones	1	3097	9901	0	100	# 2004Scape
+bones	1	3098	9886	0	100	# 2004Scape
+bones	1	3116	9891	0	100	# 2004Scape
+bones	1	3119	9894	0	100	# 2004Scape
+bones	1	3120	9894	0	100	# 2004Scape
+brass_necklace	1	3122	9881	0	100	# 2004Scape
+bones	1	3122	9891	0	100	# 2004Scape
+bronze_arrow	3	3130	9903	0	100	# 2004Scape
+edgevilledungeonkey	1	3131	9862	0	100	# the brass key, north of the hill giants; 2004Scape, respawn the Wiki's
+bronze_arrow	1	3135	9916	0	100	# 2004Scape
+bones	1	3138	9880	0	100	# 2004Scape
+bones	1	3141	9879	0	100	# 2004Scape
+bones	1	3142	9880	0	100	# 2004Scape
+bones	1	3143	9878	0	100	# 2004Scape
+coins	8	3167	9897	0	100	# 2004Scape
+coins	5	3169	9880	0	100	# 2004Scape
+coins	7	3173	9881	0	100	# 2004Scape
+coins	1	3173	9897	0	100	# 2004Scape
+bones	1	3101	9825	0	100	# 2004Scape
+bones	1	3107	9823	0	100	# 2004Scape
+bones	1	3109	9823	0	100	# 2004Scape
+bones	1	3110	9825	0	100	# 2004Scape
+red_spiders_eggs	1	3177	9880	0	100	# 2004Scape
+red_spiders_eggs	1	3179	9881	0	100	# 2004Scape

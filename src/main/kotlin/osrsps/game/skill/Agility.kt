@@ -27,6 +27,10 @@ import kotlin.math.sign
 object AgilityLines : Lines("agility", "Agility") {
     val LEVEL = line("level", "the message when an obstacle with no level line of its own needs a higher Agility level", "level")
     val DRAYNOR_LAPS = line("draynor_laps", "Draynor Village Rooftop Course: the lap count message after each lap", "count")
+    val ALKHARID_LAPS = line("alkharid_laps", "Al Kharid Rooftop Course: the lap count message after each lap", "count")
+    val ALKHARID_LEVEL = line("alkharid_level", "Al Kharid Rooftop Course: an obstacle clicked below level 20", "level")
+    val VARROCK_LAPS = line("varrock_laps", "Varrock Rooftop Course: the lap count message after each lap", "count")
+    val VARROCK_LEVEL = line("varrock_level", "Varrock Rooftop Course: an obstacle clicked below level 30", "level")
 
     /** A line by its key, for agility.json to name one. */
     fun byKey(key: String): Line = lines.firstOrNull { it.key == key } ?: error("No agility line $key")

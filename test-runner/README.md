@@ -202,6 +202,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `edgeville-dungeon.json`: Edgeville step 10 (with `::keys on` and `::god on`): down the trapdoor south of the bank,
   a level 18 zombie killed for its bones, iron mined, a metal gate opened, the north gate refusing, the odd looking
   wall pushed through, and back up the ladder.
+- `hill-giants.json`: Edgeville step 11 (with `::keys on` and `::god on`): the brass key taken, the shed's door
+  locked and then unlocked with it, the ladder down, a hill giant killed for its big bones, Obor's gate refusing, and
+  back up.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
@@ -278,6 +281,12 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `agility-grace.json`: Agility step 3: down the Toad and Chicken's trapdoor into the Rogues' Den and through its door,
   Grace's shop paid in marks of grace (Value, Buy 1, Value and Sell 1 back at 80%, `::keys on`), up the passageway,
   then the whole graceful set worn from the backpack (`assertEquipment` needs 0.6.0).
+- `agility-alkharid.json`: Agility step 4: one lap of the Al Kharid Rooftop Course at Agility 30 (`::xprate 1`), each
+  of the eight obstacles crossed to its landing tile, then the lap count (`::keys on`) and the lap's 216 XP. A fall on
+  Tightrope 1 or the zip line fails the run at that obstacle's location check; run it again.
+- `agility-varrock.json`: Agility step 5: one lap of the Varrock Rooftop Course at Agility 40 (`::xprate 1`), each of
+  the nine obstacles crossed to its landing tile, then the lap count (`::keys on`) and the lap's 269.7 XP. A fall on the
+  clothes line or the wall fails the run at that obstacle's location check; run it again.
 - `draynor-pickpocket.json`: Draynor step 8: the Master Farmer's level message at Thieving 37 (`::keys on`) and an
   attempt at 99; the man's 28-pouch limit, Open-all for 84 coins, and an attempt on him.
 - `draynor-dark-wizards.json`: Draynor step 9: a dark wizard south of the bank, attacked, casting back from where it

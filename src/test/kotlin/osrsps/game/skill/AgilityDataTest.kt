@@ -26,6 +26,29 @@ class AgilityDataTest {
     }
 
     @Test
+    fun `Al Kharid is level 20 throughout, 216 XP a lap, and only Tightrope 1 and the zip line hurt`() {
+        val alKharid = AgilityData.load().courses.single { it.key == "alkharid" }
+        assertEquals(20, alKharid.level)
+        assertEquals(8, alKharid.obstacles.size)
+        assertTrue(alKharid.obstacles.all { it.level == 20 && it.levelLine == AgilityLines.ALKHARID_LEVEL })
+        assertEquals(2_160, alKharid.obstacles.sumOf { it.xpTenths } + alKharid.lapXpTenths)
+        assertEquals(listOf("alkharid_tightrope_1", "alkharid_zip_line"), alKharid.obstacles.filter { it.success != null }.map { it.key })
+        assertTrue(alKharid.obstacles.filter { it.success != null }.all { it.damage == 1..5 })
+        assertEquals(5, alKharid.markSpots.size)
+    }
+
+    @Test
+    fun `Varrock is level 30 throughout, 269,7 XP a lap, and only the clothes line and the wall hurt`() {
+        val varrock = AgilityData.load().courses.single { it.key == "varrock" }
+        assertEquals(30, varrock.level)
+        assertEquals(9, varrock.obstacles.size)
+        assertTrue(varrock.obstacles.all { it.level == 30 && it.levelLine == AgilityLines.VARROCK_LEVEL })
+        assertEquals(2_697, varrock.obstacles.sumOf { it.xpTenths } + varrock.lapXpTenths)
+        assertEquals(mapOf("varrock_clothes_line" to 3..8, "varrock_wall" to 2..5), varrock.obstacles.filter { it.success != null }.associate { it.key to it.damage })
+        assertEquals(5, varrock.markSpots.size)
+    }
+
+    @Test
     fun `20 levels over a course cut the mark chance to a fifth`() {
         val course = AgilityData.load().courses.single { it.key == "draynor" }
         assertEquals(2 to 6, Agility.markOdds(course, 1))

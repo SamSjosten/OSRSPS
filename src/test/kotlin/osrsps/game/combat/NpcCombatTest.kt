@@ -57,6 +57,7 @@ class NpcCombatTest {
             "human_dhsword_chop" to 406, "human_dhsword_block" to 410, "barrow_dharok_crush" to 2067,
             "human_staff_pound" to 413, "human_staff_block" to 415, "human_bow" to 426,
             "skeleton_update_attack_weapon" to 5485, "skeleton_update_attack_sword" to 5487, "skeleton_update_defend" to 5489, "skeleton_update_death" to 5491,
+            "giant_update_basic_attack" to 4652, "giant_update_basic_defend" to 4651, "giant_update_basic_death" to 4653,
             "hobgoblin_attack" to 163, "hobgoblin_attackunarmed" to 164, "hobgoblin_block" to 165, "hobgoblin_death" to 167,
             "ghost_update_normal_attack" to 5532, "ghost_update_normal_defend" to 5533, "ghost_update_normal_death" to 5534,
         ),
@@ -238,6 +239,7 @@ class NpcCombatTest {
             "skeleton_unagressive" to 17, "skeleton_unagressive2" to 17, "skeleton_unagressive3" to 17,
             "skeleton_armed2" to 24, "skeleton_armed4" to 24, "skeleton_armed5" to 24,
             "hobgoblin_unarmed" to 24, "hobgoblin_armed" to 31,
+            "giant" to 22, "giant4" to 22, "giant6" to 22,
         )
         val dungeonTypes = NpcTypes.of(*dungeon.entries.mapIndexed { i, (name, str) -> NpcType(2200 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
         val combat = NpcCombat.load(dungeonTypes, seqs)
@@ -265,6 +267,13 @@ class NpcCombatTest {
         assertEquals(listOf(35, 35, 70, 60, 35), listOf("zombie2", "skeleton_unagressive", "skeleton_unarmed2", "skeleton_armed4", "hobgoblin_armed").map { def(it).respawnTicks })
         assertEquals(1, def("hobgoblin_armed").defence.against(AttackType.STAB))
         assertEquals(8, def("hobgoblin_armed").attackBonus)
+        // Step 11's hill giants: 22 Strength and +16 make 4.
+        assertEquals(4, def("giant4").maxHit)
+        assertEquals(6, def("giant").attackSpeed)
+        assertEquals(AttackType.CRUSH, def("giant6").attackType)
+        assertEquals(NpcCombatAnims(4652, 4651, 4653), def("giant").anims)
+        assertEquals(ElementalWeakness(Element.EARTH, 25), def("giant4").weakness)
+        assertEquals(30, def("giant6").respawnTicks)
     }
 
     @Test
