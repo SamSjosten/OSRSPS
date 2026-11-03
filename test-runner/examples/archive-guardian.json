@@ -172,7 +172,7 @@
    "step": "command",
    "text": "::heal",
    "expectMessage": "Healed to 99 hitpoints.",
-   "comment": "back to full after the landing's blast (10 to 20, which no prayer blocks) and any swing after Protect from Melee went off, so the laser alone is counted below"
+   "comment": "back to full after the landing's blast (10 to 20, which no prayer blocks), any vine and any swing after Protect from Melee went off; the laser's damage is read from the log below, as a mushroom left from the shield can splash after"
   },
   {
    "step": "waitTicks",
@@ -184,11 +184,6 @@
    "text": "::raid log 20",
    "expectMessage": "airborne: laser hits test for 72",
    "comment": "80 for a player alone, a tenth off for Protect from Magic"
-  },
-  {
-   "step": "command",
-   "text": "::hp",
-   "expectMessage": "You have 27/99 hitpoints"
   },
   {
    "step": "command",

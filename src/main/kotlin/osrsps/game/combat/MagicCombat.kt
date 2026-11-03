@@ -229,7 +229,7 @@ class MagicCombat(
         // Defensive autocast and a powered staff's longrange split the damage XP with Defence (guessed for the staff:
         // the Wiki gives its styles' skills, not the split).
         val defensive = if (spell.staff != null) combat.style(player).stance == AttackStance.LONGRANGE else fighting && Autocast.defensive(player)
-        val speed = if (fighting) combat.attackSpeed(player) else SPEED
+        val speed = if (fighting) combat.attackSpeed(player) else SPEED + combat.wearyDelay(player)
         if (!release(player, npc, spell, tick, defensive, speed)) {
             stopFacing(player)
             return true

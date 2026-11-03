@@ -94,8 +94,16 @@ class Combat(
     /** The animations the player swings and blocks with: their weapon's category's. */
     fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
 
-    /** Ticks between the player's attacks: the weapon's speed, 4 unarmed, and a combat spell's [MagicCombat.SPEED] when autocasting. */
-    fun attackSpeed(player: Player): Int {
+    /**
+     * Ticks between the player's attacks: the weapon's speed, 4 unarmed, and a combat spell's [MagicCombat.SPEED] when
+     * autocasting; a tick more while weary ([Player.wearyTicks]; guessed, the guides say only that it slows attacks).
+     */
+    fun attackSpeed(player: Player): Int = baseAttackSpeed(player) + wearyDelay(player)
+
+    /** The tick weariness adds to every attack, a manual cast's included. */
+    fun wearyDelay(player: Player): Int = if (player.wearyTicks > 0) 1 else 0
+
+    private fun baseAttackSpeed(player: Player): Int {
         val style = style(player)
         if (style.type != AttackType.MAGIC) return bonuses(player).attackSpeed
         // A powered staff's own speed is its weapon's (5 for Tumeken's shadow).
