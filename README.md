@@ -1223,10 +1223,25 @@ in `game/content/EdgevilleDungeon.kt`, spawns in `npc-spawns/edgeville-dungeon.j
 | The mine's copper, tin, iron, coal, silver, mithril and adamantite rocks mine by type; Vannaka stands without talk | 241 map; `Mining.ROCKS` |
 
 Left out: the Wilderness half (chaos druids, the thug and everything past the north gate), Slayer (Vannaka's talk),
-the Agility pipes and monkey bars, Obor and the hill giants (step 11). Check:
+the Agility pipes and monkey bars, and Obor. Check:
 `test-runner/examples/edgeville-dungeon.json` climbs down, kills a zombie, mines iron, opens a gate, is refused at the
 north gate, pushes through the wall and climbs back; `HeadlessEdgevilleDungeonTest` does the same through the headless
 client, `NpcCombatTest` and `NpcDropsTest` the new NPCs' numbers and tables.
+
+Step 11 is the hill giants' room, in the same file and `npc-spawns/edgeville-dungeon.json`, with the dungeon's item
+spawns in `obj-spawns/edgeville-dungeon.tsv`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The shed west of the Cooks' Guild: its door (`brasskeydoor` 1804) is locked from both sides; the brass key used on it, kept, unlocks it and takes the player through (`edgeville_dungeon.door_locked` and `.door_unlock`) | 2004Scape's edgeville_dungeon script; the door not drawn open, guessed |
+| The shed's ladder (`ladder_cellar` 17384 at 3116, 3452) climbs down the dungeon's 6400 beside the ladder that climbs back up; elsewhere the type is nothing interesting | 241 map (the type is in a dozen other places) |
+| Twelve hill giants (28) fight as the Wiki's infobox and drop big bones, its members table, the giant key (a 1/128 pre-roll that takes the table's place) and a beginner clue (1/50) | OSRS Wiki, Hill Giant; osrsreboxed for the clue; mejrs's live NPC list for the tiles |
+| The brass key north of the hill giants (3131, 9862, 100 ticks), and the dungeon's coins, bones, bronze arrows, brass necklace and red spiders' eggs | 2004Scape's maps 48,154, 49,154 and 48,153, the kinds the Wiki lists |
+| The gate to Obor's lair (`hillgiant_boss_entrance_l`/`_r`) refuses (`edgeville_dungeon.obor_closed`) until Obor is built | ours |
+
+Check: `test-runner/examples/hill-giants.json` takes the key, is refused and then let through the shed's door, climbs
+down, kills a hill giant, is refused at Obor's gate and climbs back; `HeadlessEdgevilleDungeonTest` does the same
+through the headless client, `ObjSpawnFilesTest` the spawns and `NpcDropsTest` the giants' table.
 
 ## Varrock
 

@@ -10,6 +10,11 @@ import osrsps.map.Tile
 object EdgevilleDungeonLines : Lines("edgeville_dungeon", "Edgeville Dungeon") {
     /** Our own words, not live's: the Wilderness isn't built, so the gate into its part of the dungeon stays shut. */
     val GATE_CLOSED = line("gate_closed", "Open on the gate north of the dungeon's middle: ours, the Wilderness isn't built yet")
+    val DOOR_LOCKED = line("door_locked", "Open on the shed's door west of the Cooks' Guild, from either side (2004Scape's edgeville_dungeon script)")
+    val DOOR_UNLOCK = line("door_unlock", "the brass key used on the shed's door (2004Scape's edgeville_dungeon script)")
+
+    /** Our own words, not live's: Obor isn't built, so the gate to his lair stays shut. */
+    val OBOR_CLOSED = line("obor_closed", "Open on the gate west of the hill giants: ours, Obor isn't built yet")
 }
 
 /**
@@ -38,6 +43,20 @@ object EdgevilleDungeonLines : Lines("edgeville_dungeon", "Edgeville Dungeon") {
  *   have them (npc-spawns/edgeville-dungeon.json); the mine's rocks mine by type ([osrsps.game.skill.Mining]), the
  *   crates and sacks search by type. Vannaka stands by the gate without talk until Slayer is built, and the obstacle
  *   pipes are Agility shortcuts left out with the rest of Agility's shortcuts.
+ *
+ * The hill giants' room (Edgeville piece step 11, map square 48,153):
+ *
+ * - The shed west of the Cooks' Guild: its door (`brasskeydoor` 1804 at 3115,3450) is locked from both sides, and the
+ *   brass key used on it (kept) unlocks it and takes the player through, as 2004Scape's edgeville_dungeon script has
+ *   both. The door isn't drawn open meanwhile, so it stays shut for everyone else (guessed). The ladder inside
+ *   (`ladder_cellar` 17384 at 3116,3452) climbs down the dungeon's 6400 to beside `ladder_from_cellar`, which climbs
+ *   back up as the Lumbridge cellar's; the type is in a dozen other places on the map, where it is nothing interesting
+ *   until their piece builds them.
+ * - The brass key lies in the small room north of the hill giants (obj-spawns/edgeville-dungeon.tsv, with the
+ *   dungeon's coins, bones, bronze arrows and brass necklace).
+ * - The hill giants fight and drop as npc-combat.json and npc-drops.json have them, the giant key among their drops.
+ * - The gate to Obor's lair (`hillgiant_boss_entrance_l`/`_r` 29487 and 29486) refuses, in our own words, until Obor
+ *   is built.
  */
 object EdgevilleDungeon {
     const val TRAPDOOR = 1579
@@ -80,6 +99,39 @@ object EdgevilleDungeon {
     val NORTH_GATE_TILES = listOf(Tile(3131, 9917), Tile(3132, 9917))
 
     const val VANNAKA = 403
+
+    /** `brasskeydoor`, the shed west of the Cooks' Guild, on the south edge of its tile; and the brass key. */
+    const val SHED_DOOR = 1804
+    val SHED_DOOR_TILE = Tile(3115, 3450)
+    const val BRASS_KEY = 983
+
+    /** `ladder_cellar` in the shed, down to the hill giants (the dungeon's 6400 below, beside `ladder_from_cellar`). */
+    const val SHED_LADDER = 17384
+    val SHED_LADDER_TILE = Tile(3116, 3452)
+    const val CLIMB = 1
+
+    /** `hillgiant_boss_entrance_l`/`_r`, the gate to Obor's lair at 3095,9832 and 9833. */
+    const val OBOR_GATE_LEFT = 29487
+    const val OBOR_GATE_RIGHT = 29486
+
+    fun isShedDoor(loc: ZoneLoc) = loc.level == 0 && loc.x == SHED_DOOR_TILE.x && loc.z == SHED_DOOR_TILE.z
+
+    fun isShedLadder(loc: ZoneLoc) = loc.level == 0 && loc.x == SHED_LADDER_TILE.x && loc.z == SHED_LADDER_TILE.z
+
+    /**
+     * Where the brass key takes a player at [x], [z] through the shed's door [door] (on the south edge of its tile):
+     * from inside the shed (the door's row) out to the tile south of the door, from outside (the row south of it) in
+     * onto the door's tile. A player beside either tile along the wall counts as on that side, since the route reaches
+     * a wall from those too; anyone further off is carried nowhere (null).
+     */
+    fun throughShedDoor(door: ZoneLoc, x: Int, z: Int): Tile? {
+        if (x !in door.x - 1..door.x + 1) return null
+        return when (z) {
+            door.z -> Tile(door.x, door.z - 1)
+            door.z - 1 -> Tile(door.x, door.z)
+            else -> null
+        }
+    }
 
     /** Whether [loc] is in the dungeon's north and middle, south of the north gate (map squares 48,154 and 49,154). */
     fun inMiddle(loc: ZoneLoc) = loc.level == 0 && loc.x in 3072..3199 && loc.z in 9856..9919
@@ -150,6 +202,28 @@ fun registerEdgevilleDungeon(world: World) {
                 delay(1)
                 world.teleport(player, to.x, to.z, loc.level)
             }
+        }
+
+        // Step 11: the shed's door is locked both ways (Open says so); the brass key, kept, takes the player through.
+        world.handlers.onLoc(SHED_DOOR, OPEN) { op ->
+            world.message(player, if (isShedDoor(op.loc!!)) EdgevilleDungeonLines.DOOR_LOCKED else GameLines.NOTHING_INTERESTING)
+        }
+        world.handlers.onObjOnLoc(SHED_DOOR, BRASS_KEY) { op ->
+            val door = op.loc!!
+            val to = if (isShedDoor(door)) throughShedDoor(door, player.x, player.z) else null
+            if (to == null || player.inventory.count(BRASS_KEY) == 0L) return@onObjOnLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            world.message(player, EdgevilleDungeonLines.DOOR_UNLOCK)
+            arriveDelay()
+            delay(1)
+            world.teleport(player, to.x, to.z, door.level)
+        }
+        world.handlers.onLoc(SHED_LADDER, CLIMB) { op ->
+            val loc = op.loc!!
+            if (isShedLadder(loc)) climbDungeonLadder(world, loc, down = true, anim = Climbing.ANIM_PICKUP_FLOOR)
+            else world.message(player, GameLines.NOTHING_INTERESTING)
+        }
+        for (leaf in listOf(OBOR_GATE_LEFT, OBOR_GATE_RIGHT)) {
+            world.handlers.onLoc(leaf, OPEN) { world.message(player, EdgevilleDungeonLines.OBOR_CLOSED) }
         }
 
         for (leaf in listOf(NORTH_GATE_LEFT, NORTH_GATE_RIGHT)) {
