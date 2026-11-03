@@ -209,6 +209,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Barbarian Village mine, the Dead Explorer's notes, the portal to the reward room at combat level 34, the Gift of
   Peace claimed once (2,000 coins, `assertVarbit` 2309), a pair of Gates of War passed without a question, and back up
   the reward room's ladder.
+- `catacomb-of-famine.json`: Edgeville step 13a (with `::keys on` and `::god on`): down the Vault of War's ladder,
+  back up and down again, the Grain of Plenty claimed once (3,000 coins, `assertVarbit` 2310), its portal, a pair of
+  Rickety doors passed without a question, and up a rope back to the start of the floor.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
@@ -322,6 +325,22 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `draynor-manor-inside.json`: Draynor step 12a: Draynor Manor's main staircase and spiral stairs up and down, the top
   floor's tinderbox, the bookcase passage and its lever, the locked closet, and out by the back door, which won't open
   from outside (`::keys on`, `::god on`).
+- `wizards-tower.json`: Draynor step 14: the Wizards' Tower's spiral staircase up its three floors and back down (the
+  middle's Climb menu too), the ladder to the basement and back, a library bookcase's three boxes and the first floor's
+  boxes (`::keys on`), a level 9 wizard casting Fire Strike back and its bones, and the caged lesser demon hit by Fire
+  Strike through its railing while a punch can't reach it. Needs 0.7.0 for `castOnNpc` and `assertSpotanim`.
+- `essence-mine.json`: Draynor step 15a: Archmage Sedridor's talk (`::keys on`) and his Teleport sending the player to
+  the rune essence mine, the north-west portal back to the Wizards' Tower basement, and the Rune Essence rock giving
+  rune essence below Mining 30 and pure essence from 30, mining on by itself. Needs 0.7.0 for `assertSpotanim`.
+- `wizards-tower-people.json`: Draynor step 15b: the Wizards' Tower's people (`::keys on`): Professor Onglewip's talk,
+  Wizard Traiborn's wizard branch, Wizard Grayzag's lines, and Wizard Mizgog's Purchase Amulet turning away a player
+  without the beads, then his talk trading one of each bead for an amulet of accuracy.
+- `jalarast.json`: Draynor step 15c: Wizard Jalarast (`::keys on`) turning away a player without the bark, fine cloth
+  or coins, then making a splitbark body from his talk's third option and splitbark gauntlets from Trade.
+- `rick.json`: Draynor step 15d: Rick's talk about himself (`::keys on`), turning away a player without 75,000
+  coins, and Buy-crystals selling as many escape crystals as the coins pay for (`enterAmount`).
+- `draynor-examine.json`: Draynor step 16: Examine (`::keys on`) on the Wizards' Tower's people, a rune essence
+  mine portal, the Rune Essence rock, and the ladder, a puzzle door and lever B in Draynor Manor's basement.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

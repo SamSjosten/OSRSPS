@@ -1,0 +1,166 @@
+{
+  "name": "Draynor piece step 15c: Wizard Jalarast turning away a player without the materials, then making a splitbark body from his talk and splitbark gauntlets from Trade",
+  "account": "test",
+  "steps": [
+    {
+      "step": "waitForLogin"
+    },
+    {
+      "step": "command",
+      "text": "::scenario lumbridge-bare",
+      "expectMessage": "Started scenario lumbridge-bare.",
+      "comment": "::reset at the end puts the account back"
+    },
+    {
+      "step": "command",
+      "text": "::keys on",
+      "expectMessage": "Dialogue shows keys",
+      "comment": "boxes show their keys, whatever data/dialogue.txt holds"
+    },
+    {
+      "step": "command",
+      "text": "::tele 3109 3162 1",
+      "expectMessage": "Teleported to 3109, 3162, 1",
+      "comment": "the Wizards' Tower's first floor, beside Wizard Jalarast"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Wizard Jalarast",
+      "option": "Trade",
+      "timeoutMs": 20000,
+      "comment": "no bark, cloth or coins yet"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[jalarast.buy_gauntlets]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[jalarast.need_gauntlets]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "command",
+      "text": "::item 3239 5",
+      "expectMessage": "Added 5 x Bark"
+    },
+    {
+      "step": "command",
+      "text": "::item 3470 5",
+      "expectMessage": "Added 5 x Fine cloth"
+    },
+    {
+      "step": "command",
+      "text": "::item 995 40000",
+      "expectMessage": "Added 40,000 x Coins"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Wizard Jalarast",
+      "option": "Talk-to",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[jalarast.hello]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[jalarast.make_armour]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[jalarast.make_armour]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[jalarast.certainly]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[jalarast.buy_body]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[jalarast.there_you_go]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertInventory",
+      "item": "Splitbark body",
+      "count": 1,
+      "timeoutMs": 5000
+    },
+    {
+      "step": "assertInventory",
+      "item": "Bark",
+      "count": 1
+    },
+    {
+      "step": "assertInventory",
+      "item": "Fine cloth",
+      "count": 1
+    },
+    {
+      "step": "assertInventory",
+      "item": "Coins",
+      "count": 3000
+    },
+    {
+      "step": "npcOption",
+      "npc": "Wizard Jalarast",
+      "option": "Trade",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "chooseOption",
+      "text": "[jalarast.buy_gauntlets]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[jalarast.there_you_go]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertInventory",
+      "item": "Splitbark gauntlets",
+      "count": 1,
+      "timeoutMs": 5000
+    },
+    {
+      "step": "assertInventory",
+      "item": "Coins",
+      "count": 2000
+    },
+    {
+      "step": "command",
+      "text": "::reset",
+      "expectMessage": "Back to how you were"
+    }
+  ]
+}
