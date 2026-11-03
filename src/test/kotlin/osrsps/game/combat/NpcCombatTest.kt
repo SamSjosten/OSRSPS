@@ -60,6 +60,8 @@ class NpcCombatTest {
             "giant_update_basic_attack" to 4652, "giant_update_basic_defend" to 4651, "giant_update_basic_death" to 4653,
             "hobgoblin_attack" to 163, "hobgoblin_attackunarmed" to 164, "hobgoblin_block" to 165, "hobgoblin_death" to 167,
             "ghost_update_normal_attack" to 5532, "ghost_update_normal_defend" to 5533, "ghost_update_normal_death" to 5534,
+            "mino_attack" to 4266, "mino_parry" to 4267, "mino_death" to 4265,
+            "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
         ),
     )
@@ -275,6 +277,37 @@ class NpcCombatTest {
         assertEquals(NpcCombatAnims(4652, 4651, 4653), def("giant").anims)
         assertEquals(ElementalWeakness(Element.EARTH, 25), def("giant4").weakness)
         assertEquals(30, def("giant6").respawnTicks)
+    }
+
+    @Test
+    fun `the Vault of War's goblins, minotaurs, wolves and rats fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's Strength levels (the DPS calculator's); 2489 is taken as 2487's.
+        val vault = mapOf(
+            "sos_war_goblin_armed" to 2, "sos_war_goblin_green_soldier_1" to 3, "sos_war_goblin_armed2" to 11,
+            "sos_war_goblin_green_soldier_2" to 11, "sos_war_goblin_helmet" to 13, "sos_war_goblin_helmet2" to 23,
+            "sos_war_minotaur" to 10, "sos_war_minotaur3" to 25, "sos_war_wolf" to 15, "sos_war_wolf2" to 10, "sos_war_rat" to 1,
+        )
+        val vaultTypes = NpcTypes.of(*vault.entries.mapIndexed { i, (name, str) -> NpcType(2300 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(vaultTypes, seqs)
+        assertEquals(vault.size, combat.size)
+        fun def(name: String) = combat[vaultTypes.find(name)!!]!!
+        for (name in vault.keys) {
+            val type = vaultTypes.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+            assertNull(def(name).aggression, "$name is not aggressive")
+        }
+        assertEquals(listOf(1, 1, 3, 2, 3, 2, 3, 2, 2, 0), listOf(
+            "sos_war_goblin_armed", "sos_war_goblin_green_soldier_1", "sos_war_goblin_armed2", "sos_war_goblin_helmet",
+            "sos_war_goblin_helmet2", "sos_war_minotaur", "sos_war_minotaur3", "sos_war_wolf", "sos_war_wolf2", "sos_war_rat",
+        ).map { def(it).maxHit })
+        assertEquals(listOf(6, 4, 4, 4, 4), listOf("sos_war_goblin_armed", "sos_war_goblin_helmet", "sos_war_minotaur", "sos_war_wolf", "sos_war_rat").map { def(it).attackSpeed })
+        assertEquals(listOf(35, 35, 15, 90, 2), listOf("sos_war_goblin_armed", "sos_war_goblin_helmet2", "sos_war_minotaur3", "sos_war_wolf2", "sos_war_rat").map { def(it).respawnTicks })
+        assertEquals(NpcCombatAnims(4266, 4267, 4265), def("sos_war_minotaur").anims)
+        assertEquals(NpcCombatAnims(6559, 6557, 6558), def("sos_war_wolf").anims)
+        assertEquals(NpcCombatAnims(6188, 6189, 6190), def("sos_war_goblin_helmet").anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 25), def("sos_war_wolf2").weakness)
+        assertEquals(-21, def("sos_war_minotaur3").defence.against(AttackType.MAGIC))
+        assertEquals(18, def("sos_war_goblin_helmet2").defence.against(AttackType.CRUSH))
     }
 
     @Test
