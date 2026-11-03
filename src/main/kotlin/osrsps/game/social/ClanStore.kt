@@ -126,6 +126,13 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "${member.key} joined clan '${clan.name}'" }
     }
 
+    /** Gives [member] of [clan] [rank] and saves. */
+    fun setRank(clan: Clan, member: Member, rank: Int) {
+        member.rank = rank
+        save()
+        logger.info { "${member.key} is now rank $rank in clan '${clan.name}'" }
+    }
+
     /** Takes [key] out of [clan]'s members and saves; false if they weren't one. */
     fun removeMember(clan: Clan, key: String): Boolean {
         if (!clan.members.removeIf { it.key == key }) return false

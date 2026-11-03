@@ -48,7 +48,10 @@ private val logger = KotlinLogging.logger {}
  * the channel, hears of it), and then reads Withdraw (clan_transmit_guestisapplying). As a member its Leave Clan
  * button asks first and then leaves; the owner can't leave (live: they must hand the clan over first). Its Applications
  * button opens the applicants page (clans_applicants, 699) for recruiters: the applicants by name (client script 4376),
- * Review on one shows their levels (4375), and Accept makes them a member while Decline drops the application.
+ * Review on one shows their levels (4375), and Accept makes them a member while Decline drops the application. Its
+ * Members button opens the members page (clans_members, 693), which draws itself from the clan settings; there Edit
+ * rank on a member below an Administrator or higher shows the client's rank list (clan_rankpopup in popupoverlay), and
+ * the rank picked is theirs.
  *
  * Guessed: the Hub's edges, the founders' rank after founding (the lowest member rank, 0; the founder is owner, 126),
  * the creation time and join day encodings, that finding a clan doesn't join its channel (the panel's text says "You
@@ -56,8 +59,9 @@ private val logger = KotlinLogging.logger {}
  * rank, the Apply and Leave Clan questions, that only the owner hears of applicants (until ranks and permissions),
  * that someone in a clan can't apply to another, and every game message (keys in [ClanLines], words from the Wiki where
  * it has them), the applicants page's Back going to the settings page, an accepted member's rank (the lowest, 0), the
- * applicant hearing of either answer, and accepting dropping their applications elsewhere. Not built yet: inviting
- * after founding, handing the clan over, ranks and permissions, settings, kicks and bans.
+ * applicant hearing of either answer, accepting dropping their applications elsewhere, and Administrators and up
+ * editing the ranks below their own. Not built yet: inviting after founding, handing the clan over, permissions, rank
+ * titles, settings, kicks and bans.
  */
 class Clans(
     private val store: ClanStore,
@@ -83,6 +87,11 @@ class Clans(
     private val confirm: (Player, String, () -> Unit) -> Unit,
     /** The online player with a save key, or null. */
     private val playerByKey: (String) -> Player?,
+    /**
+     * Shows the client's rank list (clan_rankpopup) over the members page, titled with the given words, the current rank
+     * picked and the ranks from the first to the second number; runs the action with the rank clicked.
+     */
+    private val pickRank: (Player, String, Int, Int, Int, (Int) -> Unit) -> Unit = { _, _, _, _, _, _ -> },
     private val now: () -> Instant = Instant::now,
 ) {
     /** A clan being formed: its leader, the founders who joined, the invited and the name picked. */
@@ -336,6 +345,7 @@ class Clans(
                 }
             }
             component == INFO_APPLICATIONS && !asGuest -> openApplicants(player)
+            component == INFO_MEMBERS && !asGuest -> openMembers(player)
             component == INFO_QUIT && !asGuest -> {
                 val clan = clanOf(player) ?: return true
                 if (clan.member(player.saveKey)?.rank == RANK_OWNER) {
@@ -892,6 +902,61 @@ class Clans(
         )
     }
 
+    /**
+     * The settings page's Members button as a member: the members page (clans_members), which draws itself from the
+     * clan settings. For those who may edit ranks, each member's rank (op 1, "Edit rank") answers.
+     */
+    private fun openMembers(player: Player) {
+        val clan = clanOf(player) ?: return
+        openModal(player, MEMBERS)
+        setEvents(player, MEMBERS, MEMBERS_EXIT, -1, -1, OP1, 0)
+        if (!mayEditRanks(player, clan)) return
+        for (column in MEMBERS_COLUMNS) setEvents(player, MEMBERS, column, 0, MAX_MEMBERS - 1, OP1, 0)
+    }
+
+    private fun mayEditRanks(player: Player, clan: ClanStore.Clan): Boolean = (clan.member(player.saveKey)?.rank ?: RANK_GUEST) >= EDIT_RANKS_RANK
+
+    /**
+     * A click on the members page. Returns whether it was one. Back goes to the settings page; Edit rank on a member
+     * (the column's slot is the member's place in the clan settings) shows the ranks below the editor's own, for a
+     * member below them.
+     */
+    fun clickMembers(player: Player, component: Int, slot: Int): Boolean {
+        if (component != MEMBERS_EXIT && component !in MEMBERS_COLUMNS) return false
+        if (MEMBERS !in player.modals.values) return true
+        val clan = clanOf(player) ?: return true
+        if (component == MEMBERS_EXIT) {
+            openInfo(player, asGuest = false)
+            return true
+        }
+        if (!mayEditRanks(player, clan)) return true
+        val target = clan.members.getOrNull(slot) ?: return true
+        val own = clan.member(player.saveKey)!!.rank
+        if (target.rank >= own) {
+            tell(player, ClanLines.RANK_TOO_HIGH, target.name)
+            return true
+        }
+        val key = target.key
+        pickRank(player, words(player)[ClanLines.EDIT_RANK_TITLE, "name" to target.name], target.rank, RANK_FOUNDER, own - 1) { rank ->
+            setRank(player, clan.id, key, rank)
+        }
+        return true
+    }
+
+    /**
+     * A rank picked for the member with [key]: theirs if [editor] still edits ranks in the clan with [clanId], the member
+     * is still below them and the rank is one of the client's member ranks below theirs.
+     */
+    fun setRank(editor: Player, clanId: Long, key: String, rank: Int) {
+        val clan = clanOf(editor)?.takeIf { it.id == clanId && mayEditRanks(editor, it) } ?: return
+        val own = clan.member(editor.saveKey)!!.rank
+        val target = clan.member(key) ?: return
+        if (target.rank >= own || rank >= own || rank !in MEMBER_RANKS || rank == target.rank) return
+        store.setRank(clan, target, rank)
+        sendSettings(clan)
+        broadcastChannel(clan)
+    }
+
     /** Shows the creation panel's list and name to [player], if they have it open. */
     private fun showForming(player: Player) {
         if (tabs[player.saveKey] != TAB_YOUR_CLAN || clanOf(player) != null || !inHub(player)) return
@@ -1004,6 +1069,28 @@ class Clans(
 
         /** The lowest rank told of applicants; inferred until ranks and permissions (step 11): the owner (126). */
         const val RECRUIT_RANK = 126
+
+        const val INFO_MEMBERS = 20
+
+        /** clans_members: the members page, its Back button and its two columns (the rank column has Edit rank). */
+        const val MEMBERS = 693
+        const val MEMBERS_EXIT = 25
+        val MEMBERS_COLUMNS = setOf(11, 13)
+
+        /**
+         * The member ranks the client lists (enum_3795, without guest, Jmod and Nobody): titled ranks 0 to 124, then
+         * Administrator (100 among them), Deputy Owner (125) and Owner (126).
+         */
+        val MEMBER_RANKS = setOf(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 110, 115, 120, 124, 125, 126)
+        const val RANK_ADMINISTRATOR = 100
+
+        /** The lowest rank that edits ranks; inferred until permissions: Administrator. */
+        const val EDIT_RANKS_RANK = RANK_ADMINISTRATOR
+
+        /** popupoverlay, opened in clans_members:popup, and clan_rankpopup, which lists ranks in it. */
+        const val MEMBERS_POPUP = 27
+        const val POPUPOVERLAY = 289
+        const val SCRIPT_RANK_POPUP = 4316
 
         /** clans_applicants: the applicants page, its list of 20 and its buttons. */
         const val APPLICANTS = 699
@@ -1134,5 +1221,7 @@ object ClanLines : Lines("clan", "Clans") {
     val CLAN_FULL = line("clan_full", "accepting an applicant into a clan with the most members")
     val ACCEPTED = line("accepted", "your application to a clan was accepted", "name")
     val DECLINED = line("declined", "your application to a clan was declined", "name")
+    val EDIT_RANK_TITLE = line("edit_rank_title", "the title over the rank list when editing a member's rank", "name")
+    val RANK_TOO_HIGH = line("rank_too_high", "Edit rank on a member whose rank isn't below yours", "name")
     val GUEST_CANT_TALK = line("guest_cant_talk", "guest clan chat in a clan whose talk rank is above guests")
 }
