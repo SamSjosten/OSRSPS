@@ -211,7 +211,7 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   the reward room's ladder.
 - `catacomb-of-famine.json`: Edgeville step 13a (with `::keys on` and `::god on`): down the Vault of War's ladder,
   back up and down again, the Grain of Plenty claimed once (3,000 coins, `assertVarbit` 2310), its portal, a pair of
-  Rickety doors passed without a question, and up a rope to the entrance.
+  Rickety doors passed without a question, and up a rope back to the start of the floor.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.

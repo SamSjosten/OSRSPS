@@ -298,7 +298,8 @@ fun registerStrongholdOfSecurity(world: World) {
             world.message(player, StrongholdLines.EXPLORER_FIND)
         }
 
-        // Between the floors: the Vault of War's ladder down and the Catacomb of Famine's ladder back up, and its ropes.
+        // Between the floors: the Vault of War's ladder down and the Catacomb of Famine's ladder back up. Its ropes "return
+        // you to the start of the level" (Jagex's Catacomb of Famine guide, 2011.rs knowledge base; inferred for OSRS).
         world.handlers.onLoc(WAR_LADDER_DOWN, CLIMB_DOWN) { op ->
             if (!isAt(op.loc!!, WAR_LADDER_DOWN_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
             climbTo(world, Climbing.ANIM_PICKUP_FLOOR, FAMINE_LANDING)
@@ -310,7 +311,7 @@ fun registerStrongholdOfSecurity(world: World) {
         world.handlers.onLoc(FAMINE_ROPE, CLIMB_UP) { op ->
             val loc = op.loc!!
             if (FAMINE_ROPE_TILES.none { isAt(loc, it) }) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
-            climbTo(world, Climbing.ANIM_REACH_FOR_LADDER, Church.STRONGHOLD)
+            climbTo(world, Climbing.ANIM_REACH_FOR_LADDER, FAMINE_LANDING)
         }
 
         for (floor in FLOORS) {

@@ -2,6 +2,7 @@ package osrsps.game.combat
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -330,6 +331,10 @@ class NpcCombatTest {
             assertTrue(def(name).aggression != null, "$name is aggressive")
         }
         assertNull(def("sos_fam_giantrat2").aggression)
+        // "Flesh crawlers are aggressive to any level players" (OSRS Wiki, Flesh Crawler); the zombies keep the level rule.
+        assertTrue(def("sos_fam_fleshcrawler3").aggression!!.ignoresLevels)
+        assertTrue(def("sos_fam_fleshcrawler3").aggression!!.tolerant)
+        assertFalse(def("sos_fam_zombie_armed3").aggression!!.ignoresLevels)
         assertEquals(listOf(1, 4, 5, 5, 3), listOf("sos_fam_fleshcrawler", "sos_fam_zombie_unarmed", "sos_fam_zombie2_c", "sos_fam_zombie_armed", "sos_fam_giantrat2").map { def(it).maxHit })
         assertEquals(listOf(3, 5, 4), listOf("sos_fam_fleshcrawler3", "sos_fam_zombie_armed", "sos_fam_giantrat2").map { def(it).attackSpeed })
         assertEquals(listOf(15, 35, 30), listOf("sos_fam_fleshcrawler", "sos_fam_zombie2_c", "sos_fam_giantrat2").map { def(it).respawnTicks })

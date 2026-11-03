@@ -582,8 +582,8 @@
       "anims": { "attack": "kalphite_attack_mandibles", "defend": "kalphite_block", "death": "kalphite_death" },
       "respawnTicks": 15,
       "weakness": { "element": "fire", "percent": 20 },
-      "aggressive": true,
-      "source": "OSRS Wiki, Flesh Crawler (Levels 28, 35 and 41, ids 2498 to 2500) and the DPS calculator's three, read 2026-11-03: speed 3, max hit 1, slash, the bonuses, respawn 15, weak to fire 20%, aggressive. They stand and walk with kalphite_ready and kalphite_walk, so the kalphite fight animations are taken (the mandibles attack guessed)"
+      "aggressive": { "ignoresLevels": true },
+      "source": "OSRS Wiki, Flesh Crawler (Levels 28, 35 and 41, ids 2498 to 2500) and the DPS calculator's three, read 2026-11-03: speed 3, max hit 1, slash, the bonuses, respawn 15, weak to fire 20%, \"aggressive to any level players\" (and they lose it: tolerance). They stand and walk with kalphite_ready and kalphite_walk, so the kalphite fight animations are taken (the mandibles attack guessed)"
     },
     {
       "npcs": ["sos_fam_zombie_unarmed", "sos_fam_zombie_unarmed2", "sos_fam_zombie_unarmed3"],

@@ -253,7 +253,7 @@ class HeadlessStrongholdOfSecurityTest {
                 client.awaitAt(StrongholdOfSecurity.WAR_LADDER_DOWN_LANDING.x, StrongholdOfSecurity.WAR_LADDER_DOWN_LANDING.z, 0)
                 client.tele(2017, 5211, 0)
                 client.locOp(StrongholdOfSecurity.FAMINE_ROPE, 2017, 5210, StrongholdOfSecurity.CLIMB_UP)
-                client.awaitAt(Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0)
+                client.awaitAt(StrongholdOfSecurity.FAMINE_LANDING.x, StrongholdOfSecurity.FAMINE_LANDING.z, 0)
 
                 // Combat level 3 and the grain not searched: the portal refuses.
                 client.tele(2040, 5240, 0)

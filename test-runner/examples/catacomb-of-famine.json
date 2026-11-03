@@ -1,5 +1,5 @@
 {
- "name": "Edgeville piece step 13a: the Stronghold of Security's second floor. Down the Vault of War's ladder, back up and down again, the Grain of Plenty once (coins and the Slap Head emote), the portal to it, a pair of Rickety doors passed without a question once it is claimed, and up a rope to the entrance (::keys on)",
+ "name": "Edgeville piece step 13a: the Stronghold of Security's second floor. Down the Vault of War's ladder, back up and down again, the Grain of Plenty once (coins and the Slap Head emote), the portal to it, a pair of Rickety doors passed without a question once it is claimed, and up a rope to the start of the floor (::keys on)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -35,7 +35,7 @@
   {"step": "assertNoDialogue"},
   {"step": "command", "text": "::tele 2017 5211 0", "expectMessage": "Teleported to 2017, 5211, 0", "comment": "beside a rope"},
   {"step": "locOption", "locId": 19001, "option": "Climb-up", "x": 2017, "y": 5210},
-  {"step": "assertLocation", "x": 3081, "y": 3421, "plane": 0, "timeoutMs": 10000, "comment": "beside the entrance (inferred)"},
+  {"step": "assertLocation", "x": 2042, "y": 5245, "plane": 0, "timeoutMs": 10000, "comment": "back at the start of the floor, by its ladder up (inferred from Jagex's 2011 guide)"},
   {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
