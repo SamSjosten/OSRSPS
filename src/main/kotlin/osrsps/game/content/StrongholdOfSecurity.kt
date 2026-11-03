@@ -27,6 +27,9 @@ object StrongholdLines : Lines("stronghold_of_security", "Stronghold of Security
     val GRAIN_OPEN = line("grain_open", "Search on the Grain of Plenty, the first time: the message as it opens (Grain of Plenty page)")
     val GRAIN_REWARD = line("grain_reward", "Search on the Grain of Plenty, the first time: the 3,000 coins and the Slap Head emote")
     val GRAIN_CLAIMED = line("grain_claimed", "Search on the Grain of Plenty once its reward is claimed")
+    val BOX_OPEN = line("box_open", "Open on the Box of Health, the first time: the message as it opens (Box of Health page)")
+    val BOX_REWARD = line("box_reward", "Open on the Box of Health, the first time: the 5,000 coins, the Idea emote and the stats restored")
+    val BOX_CLAIMED = line("box_claimed", "Open on the Box of Health once its reward is claimed")
 
     /** The Doors table's questions, in its order: how many answers each has and which is right (from 1). */
     val QUESTIONS: List<Question> = listOf(
@@ -174,6 +177,41 @@ object StrongholdOfSecurity {
     /** The Catacomb of Famine: map square 31,81, the ground level. */
     fun inCatacombOfFamine(level: Int, x: Int, z: Int) = level == 0 && x in 1984..2047 && z in 5184..5247
 
+    /** The Catacomb of Famine's ladder down, and where climbing back up from the Pit of Pestilence puts the player. */
+    const val FAMINE_LADDER_DOWN = 19004
+    val FAMINE_LADDER_DOWN_TILE = Tile(2026, 5218)
+
+    /** South of the ladder down. Guessed. */
+    val FAMINE_LADDER_DOWN_LANDING = Tile(2026, 5217)
+
+    const val OOZING_BARRIER_LEFT = 23653
+    const val OOZING_BARRIER_RIGHT = 23654
+    const val PESTILENCE_DOOR_NPC = 2496
+
+    /** The Pit of Pestilence's dripping vine up, by its arrival; the ladder from the Catacomb puts the player north of it. Guessed. */
+    const val PESTILENCE_VINE_UP = 23705
+    val PESTILENCE_VINE_UP_TILE = Tile(2123, 5251)
+    val PESTILENCE_LANDING = Tile(2123, 5252)
+
+    /** The goo covered vine in the reward room, back to the start of the floor, as the Catacomb's ropes (inferred). */
+    const val PESTILENCE_ROPE = 23703
+    val PESTILENCE_ROPE_TILE = Tile(2150, 5278)
+    const val BOX_OF_HEALTH = 23709
+    val BOX_OF_HEALTH_TILE = Tile(2144, 5280)
+    const val BOX_COINS = 5000
+
+    /** `sos_emote_idea`: the Idea emote, unlocked by the Box of Health. */
+    const val VARBIT_IDEA = 2311
+    const val JINGLE_HEALTH = 1075
+    const val PESTILENCE_PORTAL = 23707
+    val PESTILENCE_PORTAL_TILE = Tile(2120, 5258)
+
+    /** Where the Pit of Pestilence's portal puts the player: east of the Box of Health. Guessed. */
+    val PESTILENCE_PORTAL_LANDING = Tile(2145, 5280)
+
+    /** The Pit of Pestilence: map square 33,82, the ground level. */
+    fun inPitOfPestilence(level: Int, x: Int, z: Int) = level == 0 && x in 2112..2175 && z in 5248..5311
+
     /**
      * One floor: its doors and the head that asks at them, the varbit its reward sets (its emote's), the reward
      * (loc, tile, option, coins, jingle and lines), and its portal (loc, tile, combat level and landing).
@@ -196,6 +234,8 @@ object StrongholdOfSecurity {
         val portalTile: Tile,
         val portalLevel: Int,
         val portalLanding: Tile,
+        /** Whether the reward restores every lowered stat (the Box of Health), not hitpoints and prayer alone. */
+        val restoresAll: Boolean = false,
     )
 
     val FLOORS: List<Floor> = listOf(
@@ -210,6 +250,13 @@ object StrongholdOfSecurity {
             ::inCatacombOfFamine, GRAIN_OF_PLENTY, GRAIN_OF_PLENTY_TILE, SEARCH, GRAIN_COINS, JINGLE_PLENTY,
             StrongholdLines.GRAIN_OPEN, StrongholdLines.GRAIN_REWARD, StrongholdLines.GRAIN_CLAIMED,
             FAMINE_PORTAL, FAMINE_PORTAL_TILE, 51, FAMINE_PORTAL_LANDING,
+        ),
+        // The Box of Health restores "all stats including hitpoints, prayer points and strength" (OSRS Wiki, Box of Health).
+        Floor(
+            "Pit of Pestilence", setOf(OOZING_BARRIER_LEFT, OOZING_BARRIER_RIGHT), PESTILENCE_DOOR_NPC, VARBIT_IDEA,
+            ::inPitOfPestilence, BOX_OF_HEALTH, BOX_OF_HEALTH_TILE, OPEN, BOX_COINS, JINGLE_HEALTH,
+            StrongholdLines.BOX_OPEN, StrongholdLines.BOX_REWARD, StrongholdLines.BOX_CLAIMED,
+            PESTILENCE_PORTAL, PESTILENCE_PORTAL_TILE, 76, PESTILENCE_PORTAL_LANDING, restoresAll = true,
         ),
     )
 
@@ -314,6 +361,19 @@ fun registerStrongholdOfSecurity(world: World) {
             climbTo(world, Climbing.ANIM_REACH_FOR_LADDER, FAMINE_LANDING)
         }
 
+        world.handlers.onLoc(FAMINE_LADDER_DOWN, CLIMB_DOWN) { op ->
+            if (!isAt(op.loc!!, FAMINE_LADDER_DOWN_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbTo(world, Climbing.ANIM_PICKUP_FLOOR, PESTILENCE_LANDING)
+        }
+        world.handlers.onLoc(PESTILENCE_VINE_UP, CLIMB_UP) { op ->
+            if (!isAt(op.loc!!, PESTILENCE_VINE_UP_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbTo(world, Climbing.ANIM_REACH_FOR_LADDER, FAMINE_LADDER_DOWN_LANDING)
+        }
+        world.handlers.onLoc(PESTILENCE_ROPE, CLIMB_UP) { op ->
+            if (!isAt(op.loc!!, PESTILENCE_ROPE_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbTo(world, Climbing.ANIM_REACH_FOR_LADDER, PESTILENCE_LANDING)
+        }
+
         for (floor in FLOORS) {
             for (leaf in floor.doors) world.handlers.onLoc(leaf, OPEN) { op -> throughDoor(world, op.loc!!, floor) }
 
@@ -328,8 +388,11 @@ fun registerStrongholdOfSecurity(world: World) {
                 world.objTypes[COINS]?.let { world.groundObjs.give(player, it, floor.coins) }
                 val hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
                 if (player.hitpoints < hitpoints) player.hitpoints = hitpoints
-                val prayer = player.skills.baseLevel(Skill.PRAYER)
-                if (player.skills.currentLevel(Skill.PRAYER) < prayer) player.skills.setCurrentLevel(Skill.PRAYER, prayer)
+                // Lowered stats only: a boost stays.
+                for (skill in if (floor.restoresAll) Skill.entries.filter { it != Skill.HITPOINTS } else listOf(Skill.PRAYER)) {
+                    val base = player.skills.baseLevel(skill)
+                    if (player.skills.currentLevel(skill) < base) player.skills.setCurrentLevel(skill, base)
+                }
                 player.jingle(floor.jingle)
                 world.dialogues.start(this) {
                     mesbox(floor.opened)
@@ -376,8 +439,11 @@ private suspend fun ScriptContext.throughDoor(world: World, door: ZoneLoc, floor
         val to = through(door, from.x, from.z) { along -> leafAt(doorAcross, along)?.angle == door.angle }
             ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         arriveDelay()
+        // The passage is checked in the row the player crosses in (the leaf's), not the one they stand in: from the tile
+        // beside a door along its wall they cross in the leaf's row, and the pair's other door is in that row.
+        val row = if (alongX) Tile(to.x, from.z) else Tile(from.x, to.z)
         val asks = !claimed(player, floor) &&
-            inPassage(door, from.x, from.z) { across, along -> leafAt(across, along)?.let(::crossing) } &&
+            inPassage(door, row.x, row.z) { across, along -> leafAt(across, along)?.let(::crossing) } &&
             world.random.nextInt(ASK_CHANCE) == 0
         if (asks) {
             val type = world.npcTypes[floor.doorNpc]
