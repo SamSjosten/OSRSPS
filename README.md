@@ -1339,6 +1339,18 @@ Left out: the skull sceptre and Solztun (step 14b), and the ghosts' and skeleton
 Check: `test-runner/examples/sepulchre-of-death.json`; `HeadlessStrongholdOfSecurityTest`, `StrongholdOfSecurityTest`,
 `NpcCombatTest` and `NpcDropsTest`.
 
+Step 14b is the skull sceptre and Solztun, in `game/content/SkullSceptre.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The left skull half on the right makes the strange skull, the top of the sceptre on the bottom the runed sceptre, and those two the skull sceptre, with 10 charges | OSRS Wiki, Skull sceptre (no level, a tick each) |
+| Invoke takes the player to the Stronghold's entrance in Barbarian Village for a charge, up to level 20 Wilderness; the last charge crumbles a sceptre that isn't imbued. Divine says the charges | OSRS Wiki, Skull sceptre; the standard teleport's animation, graphic and 3 ticks guessed |
+| The charges are the player's, as the blowpipe's: two sceptres share them | guessed |
+| Solztun, in the reward room, talks as the Wiki's transcript; once shown the Cradle's boots he imbues every skull sceptre carried. Every account counts as having the authenticator, so its refusals are left out | OSRS Wiki, Solztun and Transcript:Solztun |
+| The imbued sceptre stays when empty and takes bone fragments (a charge each) and pieces (3, the left skull half 5), never past 10; a chisel breaks a piece into that many fragments | OSRS Wiki, Skull sceptre (the Varrock Diary's extra charges wait for the diary) |
+
+Check: `test-runner/examples/skull-sceptre.json` and `HeadlessSkullSceptreTest`.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).

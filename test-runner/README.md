@@ -219,6 +219,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   dripping vine and back up the Boney ladder, the portal refused, the notice, the Cradle of Life searched twice (the
   Stamp emote, `assertVarbit` 2312, then fancy boots and fighting boots), its portal, a pair of portals of death passed
   without a question, and up a bone chain back to the start of the floor.
+- `skull-sceptre.json`: Edgeville step 14b (with `::keys on` and `::god on`): the four pieces joined into the skull
+  sceptre, Divine and Invoke (to the Stronghold's entrance), Solztun's imbue once he sees fancy boots (`assertVarbit`
+  5638), and the imbued sceptre charged with the bone fragments a chisel breaks a piece into.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
