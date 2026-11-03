@@ -1,0 +1,10 @@
+# The Wizards' Tower's item spawns (Draynor piece step 14). The OSRS Wiki's item pages (read 2026-11-03) give the
+# counts and floors: leather boots on the ground floor (the library table) and the first floor, three logs by the
+# ground floor's staircase. The tiles are 2004Scape's map (m48_49), which puts each where the Wiki's floor does.
+# Respawns are the 100 ticks the other files use, guessed.
+obj	count	x	z	level	respawn
+leather_boots	1	3111	3159	0	100
+leather_boots	1	3112	3155	1	100
+logs	1	3105	3159	0	100
+logs	1	3106	3159	0	100
+logs	1	3106	3160	0	100

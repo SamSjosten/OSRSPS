@@ -628,6 +628,28 @@
       "weakness": {"element": "fire", "percent": 20},
       "aggressive": true,
       "source": "OSRS Wiki, Grizzly bear (Level 21, id 2838) and the DPS calculator's 2838, read 2026-11-02: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 20%, aggressive. It stands with bear_rework_ready, so the bear_rework fight animations are taken; the default hunt range is guessed"
+    },
+    {
+      "npcs": ["wizard"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "magic", "attackBonus": 0, "strengthBonus": 0,
+      "range": 8,
+      "attacks": [
+        { "anim": "human_caststrike", "cast": 99, "projectile": 100, "impact": 101 }
+      ],
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 3, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_caststrike", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 30,
+      "source": "OSRS Wiki, Wizard (level 9, id 3257, Wizards' Tower), read 2026-11-03: speed 4, max hit 4, magic, the bonuses (all 0 but magic defence 3), respawn 30, not aggressive, no elemental weakness. The spell is Fire Strike held to max hit 4, as 2004Scape's wizard.rs2 casts it (the Wiki: like a weaker Fire Strike); its spotanims are Fire Strike's own (firestrike_casting 99, _travel 100, _impact 101). The 8-tile range is 2004Scape's attackrange. Guessed: the unarmed block"
+    },
+    {
+      "npcs": ["lesser_demon"],
+      "attackSpeed": 4, "maxHit": 8, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": -10, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "demon_attack", "defend": "demon_block", "death": "demon_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "water", "percent": 40 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Lesser demon (level 82, id 2005), read 2026-11-03: speed 4, max hit 8, slash, no attack or melee and ranged defence bonuses, magic defence -10, weak to water 40%, respawn 30, aggressive. The Wizards' Tower's caged one is this type: its cage keeps it from reaching anyone (Wiki, Wizards' Tower). The fight animations are the demon_ ones beside the demon_ready and demon_walk the type stands and walks with"
     }
   ]
 }

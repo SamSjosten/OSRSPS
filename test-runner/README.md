@@ -322,6 +322,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `draynor-manor-inside.json`: Draynor step 12a: Draynor Manor's main staircase and spiral stairs up and down, the top
   floor's tinderbox, the bookcase passage and its lever, the locked closet, and out by the back door, which won't open
   from outside (`::keys on`, `::god on`).
+- `wizards-tower.json`: Draynor step 14: the Wizards' Tower's spiral staircase up its three floors and back down (the
+  middle's Climb menu too), the ladder to the basement and back, a library bookcase's three boxes and the first floor's
+  boxes (`::keys on`), a level 9 wizard casting Fire Strike back and its bones, and the caged lesser demon hit by Fire
+  Strike through its railing while a punch can't reach it. Needs 0.7.0 for `castOnNpc` and `assertSpotanim`.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

@@ -278,6 +278,7 @@ object DialogueLines {
         WestBankDoorLines,
         WiloughLines,
         WizardApprenticeLines,
+        WizardsTowerLines,
         WomLines,
         WomanLines,
         WoodcuttingLines,

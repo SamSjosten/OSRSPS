@@ -65,6 +65,7 @@ class NpcCombatTest {
             "mino_attack" to 4266, "mino_parry" to 4267, "mino_death" to 4265,
             "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
+            "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
         ),
     )
 
@@ -416,6 +417,30 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.FIRE, 20), def("brownbear").weakness)
         assertEquals(listOf(25, 25, 25, 50, 50), listOf("mugger", "black_knight", "thief1", "warrior_woman", "brownbear").map { def(it).respawnTicks })
         assertEquals(76, def("black_knight").defence.against(AttackType.SLASH))
+    }
+
+    @Test
+    fun `the Wizards' Tower's wizards cast Fire Strike, and the caged lesser demon fights as the Wiki has it`() {
+        // The 241 cache's Strength levels: the wizard's 8, the lesser demon's 70.
+        val tower = mapOf("wizard" to 8, "lesser_demon" to 70)
+        val towerTypes = NpcTypes.of(*tower.entries.mapIndexed { i, (name, str) -> NpcType(2500 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(towerTypes, seqs)
+        assertEquals(tower.size, combat.size)
+        fun def(name: String) = combat[towerTypes.find(name)!!]!!
+        val wizard = def("wizard")
+        assertEquals(AttackType.MAGIC, wizard.attackType)
+        assertEquals(listOf(4, 8, 30), listOf(wizard.maxHit, wizard.range, wizard.respawnTicks))
+        assertEquals(null, wizard.aggression)
+        assertEquals(3, wizard.defence.against(AttackType.MAGIC))
+        assertEquals(listOf(NpcRangedAttack(711, 99, 100, 101)), wizard.attacks)
+        val demon = def("lesser_demon")
+        assertEquals(CombatMath.npcMaxHit(70, demon.strengthBonus), demon.maxHit)
+        assertEquals(listOf(8, 4, 30), listOf(demon.maxHit, demon.attackSpeed, demon.respawnTicks))
+        assertEquals(AttackType.SLASH, demon.attackType)
+        assertEquals(-10, demon.defence.against(AttackType.MAGIC))
+        assertEquals(ElementalWeakness(Element.WATER, 40), demon.weakness)
+        assertTrue(demon.aggression != null)
+        assertEquals(NpcCombatAnims(64, 65, 67), demon.anims)
     }
 
     @Test
