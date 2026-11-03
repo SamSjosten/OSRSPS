@@ -208,11 +208,13 @@ import osrsps.game.social.Reports
 import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.Trades
 import osrsps.game.zone.ZoneKey
+import osrsps.game.zone.ZoneLoc
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.Route
 import osrsps.map.RouteTarget
+import osrsps.map.Tile
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -471,6 +473,9 @@ class World(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
         forInstances = { it in ArchiveRaids.INSTANCE_LOCS },
     )
+
+    /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
+    fun useLocFrom(id: Int, tiles: (Player, ZoneLoc) -> List<Tile>) = locInteractions.useFrom(id, tiles)
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
