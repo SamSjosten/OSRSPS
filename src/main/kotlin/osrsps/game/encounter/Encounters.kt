@@ -14,7 +14,7 @@ class Encounter internal constructor(
     val id: Int,
     val def: EncounterDef,
     override val boss: Npc,
-    private val world: World,
+    override val world: World,
     private val inArea: (Int, Int) -> Boolean,
     startPhase: Int,
 ) : EncounterContext {
@@ -31,6 +31,11 @@ class Encounter internal constructor(
 
     private val hazards = ArrayList<Hazard>()
     private val addList = ArrayList<Npc>()
+
+    /** What [after] put off, by the tick it is due on, oldest first. */
+    private class Later(val tick: Long, val action: EncounterContext.() -> Unit)
+
+    private val later = ArrayList<Later>()
 
     private val startTick = world.tick
 
@@ -88,6 +93,11 @@ class Encounter internal constructor(
         addList += npc
         log("add ${type.name} at $x,$z")
         return npc
+    }
+
+    override fun after(ticks: Int, action: EncounterContext.() -> Unit) {
+        require(ticks >= 1) { "something put off $ticks ticks" }
+        later += Later(world.tick + ticks, action)
     }
 
     override fun log(text: String) {
@@ -155,6 +165,8 @@ class Encounter internal constructor(
         if (bossLeft()) return
         runCycle()
         if (bossLeft()) return
+        runLater()
+        if (bossLeft()) return
         landHazards()
         bossLeft()
     }
@@ -163,7 +175,20 @@ class Encounter internal constructor(
         val percent = phase.endsAtPercent
         if (percent != null && boss.hitpoints * 100 <= boss.maxHitpoints * percent) return true
         val after = phase.endsAfter
-        return after != null && phaseTick >= after
+        if (after != null && phaseTick >= after) return true
+        return phase.endsWhen?.invoke(this) == true
+    }
+
+    /** What was put off to this tick, in the order it was put off; what that puts off again waits its own ticks. */
+    private fun runLater() {
+        val now = world.tick
+        val due = later.filter { it.tick <= now }
+        if (due.isEmpty()) return
+        later.removeAll(due.toSet())
+        for (entry in due) {
+            entry.action(this)
+            if (ended || boss.dead || world.npcs[boss.index] !== boss) return
+        }
     }
 
     private fun runCycle() {
@@ -208,6 +233,7 @@ class Encounter internal constructor(
         log("ends: $why")
         ended = true
         hazards.clear()
+        later.clear()
         for (add in addList) if (world.npcs[add.index] === add) world.removeNpc(add)
         addList.clear()
     }
@@ -245,6 +271,7 @@ class Encounters(private val world: World, defs: List<EncounterDef> = emptyList(
         require(startPhase in def.phases.indices) { "${def.name} has no phase $startPhase" }
         require(list.none { it.boss === boss }) { "$boss is already in a fight" }
         val encounter = Encounter(nextId++, def, boss, world, inArea, startPhase)
+        boss.scriptedAttacks = def.scriptedAttacks
         list += encounter
         encounter.begin()
         return encounter
