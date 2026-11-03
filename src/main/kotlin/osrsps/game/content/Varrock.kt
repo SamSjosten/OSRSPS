@@ -121,6 +121,7 @@ fun registerVarrock(world: World) {
     registerGrandExchangeClerks(world)
     registerVarrockChurches(world)
     registerVarrockFighters(world)
+    registerVarrockSewers(world)
     registerVarrockFitzharmons(world)
     registerVarrockInns(world)
     registerVarrockChampionsGuild(world)

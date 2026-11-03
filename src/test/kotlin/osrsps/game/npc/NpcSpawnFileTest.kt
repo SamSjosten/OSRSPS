@@ -405,6 +405,33 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the Varrock Sewers have their rats, spiders, zombies, skeletons, ghosts and moss giants`() {
+        val names = mapOf(
+            2854 to "rat", 2856 to "giantrat", 2862 to "giantrat1", 2863 to "giantrat1_2", 2864 to "giantrat1_3", 3017 to "giantspider1",
+            3018 to "giantspider2", 3019 to "spider", 3021 to "deadly_red_spider", 3024 to "scorpion", 39 to "zombie_unarmed_sewer2",
+            41 to "zombie_unarmed_sewer4", 44 to "zombie2_c", 55 to "zombie_armed_sewer1", 56 to "zombie_armed_sewer2",
+            57 to "zombie_armed_sewer3", 58 to "zombie_armed_sewer4", 74 to "skeleton_unagressive", 75 to "skeleton_unagressive2",
+            76 to "skeleton_unagressive3", 77 to "skeleton_armed", 80 to "skeleton_armed4", 85 to "ghost", 89 to "ghost5", 92 to "ghost8",
+            2090 to "mossgiant", 2091 to "mossgiant2", 2092 to "mossgiant3", 2093 to "mossgiant4",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("varrock-sewers.json"), types, "varrock-sewers.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        // As many of each as mejrs's live list has.
+        assertEquals(89, spawns.size)
+        assertEquals(29, spawns.count { it.type.id == 2854 })
+        assertEquals(10, spawns.count { it.type.id in 2090..2093 })
+        assertEquals(9, spawns.count { it.type.id == 3021 })
+        assertEquals(9, spawns.count { it.type.id == 3019 })
+        assertEquals(7, spawns.count { it.type.id in 39..58 })
+        assertEquals(9, spawns.count { it.type.id in 74..80 })
+        assertEquals(3, spawns.count { it.type.id in 85..92 })
+        // All under the city, a dungeon's 6400 tiles north of it.
+        assertTrue(spawns.all { it.x in 3150..3300 && it.z in 9840..9920 && it.level == 0 && it.wander > 0 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `Draynor Manor's grounds have the Wiki's 14 undead trees, standing still, and Veronica by the fence`() {
         val result = NpcSpawnFile.parse(file("draynor-manor.json"), manorTypes, "draynor-manor.json")
         assertEquals(emptyList(), result.unknown)
