@@ -69,15 +69,26 @@ object Rick {
     const val PRICE = 75_000
 
     /** Asks yes or no and how many, then sells as many as the coins and the backpack allow. */
-    internal suspend fun Dialogue.purchase(give: (Player, Int) -> Int) = with(RickLines) {
+    internal suspend fun Dialogue.purchase(give: (Player, Int) -> Int): Unit = with(RickLines) {
         if (player.inventory.count(Ned.COINS) < PRICE) return chatNpc(ChatAnim.SAD, CANT_AFFORD)
         if (choice(YES, NO, title = text(BUY_PROMPT)) != 1) return
         val wanted = context.countDialog()
-        val afford = (player.inventory.count(Ned.COINS) / PRICE).toInt()
-        val count = minOf(wanted, afford)
+        val coins = player.inventory.count(Ned.COINS)
+        val count = sellable(wanted, coins, player.inventory.freeSlots)
         if (count <= 0) return
-        val bought = give(player, count)
-        if (bought > 0) Ned.take(player, Ned.COINS, bought * PRICE)
+        // Paid first, so spending the whole coin stack frees its slot for a crystal.
+        Ned.take(player, Ned.COINS, count * PRICE)
+        give(player, count)
+    }
+
+    /**
+     * How many of [wanted] crystals he sells to a player with [coins] and [freeSlots] free backpack slots: no more than
+     * the coins pay for, one a free slot, and one more in the coins' slot when they pay for it with every coin.
+     */
+    fun sellable(wanted: Int, coins: Long, freeSlots: Int): Int {
+        val afford = minOf(wanted.toLong(), coins / PRICE).toInt()
+        if (afford <= freeSlots) return maxOf(afford, 0)
+        return if (coins == (freeSlots + 1).toLong() * PRICE) freeSlots + 1 else freeSlots
     }
 
     private suspend fun Dialogue.offer(menu: Boolean, give: (Player, Int) -> Int): Unit = with(RickLines) {
@@ -157,7 +168,7 @@ object Rick {
 }
 
 fun registerRick(world: World) {
-    // Escape crystals don't stack: one a free slot, and the coins for those that fit.
+    // Escape crystals do not stack: one a free slot ([Rick.sellable] counts them before the coins go).
     val give: (Player, Int) -> Int = { player, count ->
         val type = world.objTypes[Rick.ESCAPE_CRYSTAL] ?: error("No obj type ${Rick.ESCAPE_CRYSTAL} for the escape crystal")
         player.inventory.add(type, count)

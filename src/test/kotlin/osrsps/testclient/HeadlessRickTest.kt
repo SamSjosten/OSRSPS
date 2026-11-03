@@ -105,6 +105,27 @@ class HeadlessRickTest {
         }
     }
 
+    @Test
+    fun `with a full backpack he still sells one when it takes every coin`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                with(RickLines) {
+                    client.command("item ${Ned.COINS} 75000")
+                    client.command("item ${Rick.ESCAPE_CRYSTAL} 27")
+                    client.await("a full backpack") { if (client.inventory(BACKPACK).count { it != null } == 28) Unit else null }
+                    client.op(server, Rick.BUY_CRYSTALS)
+                    client.pick(1)
+                    client.await("the amount prompt") {
+                        client.clientScripts().lastOrNull { it.id == ScriptContext.MESLAYER_MODE7 }
+                    }
+                    client.resumeCount(1)
+                    client.await("the 28th crystal") { if (client.count(Rick.ESCAPE_CRYSTAL) == 28L) Unit else null }
+                    assertEquals(0L, client.count(Ned.COINS))
+                }
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
     }
