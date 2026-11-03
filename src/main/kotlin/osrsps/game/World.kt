@@ -119,6 +119,7 @@ import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerEdgevilleDungeon
+import osrsps.game.content.registerSkullSceptre
 import osrsps.game.content.registerStrongholdOfSecurity
 import osrsps.game.content.registerBarbarianVillage
 import osrsps.game.content.registerCooksGuild
@@ -647,6 +648,12 @@ class World(
                 if (answer >= 0 && answer - 1 != list.current) picked(answer - 1)
             }
         },
+        pickOption = { player, title, options, picked ->
+            scripts.start(player) {
+                dialogues.start(this) { picked(choice(*options.toTypedArray(), title = title) - 1) }
+            }
+        },
+        askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
         now = clansClock,
     )
 
@@ -810,6 +817,7 @@ class World(
         registerCooksGuild(this)
         registerEdgevilleDungeon(this)
         registerStrongholdOfSecurity(this)
+        registerSkullSceptre(this)
         registerHaystacks(this)
         registerLodestones(this)
         registerVarrock(this)

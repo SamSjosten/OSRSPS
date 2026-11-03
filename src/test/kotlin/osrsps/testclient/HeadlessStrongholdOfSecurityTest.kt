@@ -15,6 +15,7 @@ import osrsps.game.Skill
 import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.content.Church
+import osrsps.game.dialogue.Chatbox
 import osrsps.game.content.StrongholdLines
 import osrsps.game.content.StrongholdOfSecurity
 import osrsps.game.loc.LocType
@@ -59,6 +60,14 @@ class HeadlessStrongholdOfSecurityTest {
             type(StrongholdOfSecurity.OOZING_BARRIER_RIGHT, "Oozing barrier", "Open"),
             type(StrongholdOfSecurity.BOX_OF_HEALTH, "Box of Health", "Open"),
             type(StrongholdOfSecurity.PESTILENCE_PORTAL, "Portal", "Use"),
+            type(StrongholdOfSecurity.PESTILENCE_VINE_DOWN, "Dripping vine", "Climb-down"),
+            type(StrongholdOfSecurity.DEATH_LADDER_UP, "Boney ladder", "Climb-up"),
+            type(StrongholdOfSecurity.BONE_CHAIN, "Bone Chain", "Climb-up"),
+            type(StrongholdOfSecurity.PORTAL_OF_DEATH_LEFT, "Portal of Death", "Open"),
+            type(StrongholdOfSecurity.PORTAL_OF_DEATH_RIGHT, "Portal of Death", "Open"),
+            type(StrongholdOfSecurity.CRADLE_OF_LIFE, "Cradle of Life", "Search"),
+            type(StrongholdOfSecurity.DEATH_PORTAL, "Portal", "Use"),
+            type(StrongholdOfSecurity.NOTICE, "Notice", "Read"),
         ).associateBy { it.id },
     )
 
@@ -96,11 +105,25 @@ class HeadlessStrongholdOfSecurityTest {
         ZoneLoc(StrongholdOfSecurity.OOZING_BARRIER_LEFT, LocShape.WALL_STRAIGHT, 0, 2124, 5288, 0),
         ZoneLoc(StrongholdOfSecurity.OOZING_BARRIER_RIGHT, LocShape.WALL_STRAIGHT, 0, 2127, 5287, 0),
         ZoneLoc(StrongholdOfSecurity.OOZING_BARRIER_LEFT, LocShape.WALL_STRAIGHT, 0, 2127, 5288, 0),
+        // The fourth floor, the Sepulchre of Death.
+        ZoneLoc(StrongholdOfSecurity.PESTILENCE_VINE_DOWN, LocShape.CENTREPIECE_STRAIGHT, 0, 2148, 5284, 0),
+        ZoneLoc(StrongholdOfSecurity.DEATH_LADDER_UP, LocShape.CENTREPIECE_STRAIGHT, 3, 2358, 5216, 0),
+        ZoneLoc(StrongholdOfSecurity.BONE_CHAIN, LocShape.CENTREPIECE_STRAIGHT, 1, 2309, 5240, 0),
+        ZoneLoc(StrongholdOfSecurity.BONE_CHAIN, LocShape.CENTREPIECE_STRAIGHT, 0, 2350, 5215, 0),
+        ZoneLoc(StrongholdOfSecurity.CRADLE_OF_LIFE, LocShape.CENTREPIECE_STRAIGHT, 0, 2344, 5214, 0),
+        ZoneLoc(StrongholdOfSecurity.DEATH_PORTAL, LocShape.CENTREPIECE_STRAIGHT, 3, 2365, 5212, 0),
+        ZoneLoc(StrongholdOfSecurity.NOTICE, LocShape.CENTREPIECE_DIAGONAL, 1, 2349, 5211, 0),
+        // A pair on the north edges of z 5218 and 5221, columns 2355 and 2356.
+        ZoneLoc(StrongholdOfSecurity.PORTAL_OF_DEATH_RIGHT, LocShape.WALL_STRAIGHT, 1, 2355, 5218, 0),
+        ZoneLoc(StrongholdOfSecurity.PORTAL_OF_DEATH_LEFT, LocShape.WALL_STRAIGHT, 1, 2356, 5218, 0),
+        ZoneLoc(StrongholdOfSecurity.PORTAL_OF_DEATH_RIGHT, LocShape.WALL_STRAIGHT, 1, 2355, 5221, 0),
+        ZoneLoc(StrongholdOfSecurity.PORTAL_OF_DEATH_LEFT, LocShape.WALL_STRAIGHT, 1, 2356, 5221, 0),
     )
 
     private val gate = NpcType(StrongholdOfSecurity.GATE_OF_WAR_NPC, "Gate of War", ops = listOf("talk", null, null, null, null))
     private val famineDoor = NpcType(StrongholdOfSecurity.FAMINE_DOOR_NPC, "Rickety door", ops = listOf("talk", null, null, null, null))
     private val pestDoor = NpcType(StrongholdOfSecurity.PESTILENCE_DOOR_NPC, "Oozing barrier", ops = listOf("talk", null, null, null, null))
+    private val deathDoor = NpcType(StrongholdOfSecurity.DEATH_DOOR_NPC, "Portal of Death", ops = listOf("talk", null, null, null, null))
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
@@ -108,17 +131,22 @@ class HeadlessStrongholdOfSecurityTest {
             markLoaded(1859 shr 6, 5244 shr 6)
             markLoaded(2021 shr 6, 5215 shr 6)
             markLoaded(2144 shr 6, 5280 shr 6)
+            markLoaded(2344 shr 6, 5214 shr 6)
         }
         World(
             crcs, map, random = GameRandom(12), locTypes = types, staticLocs = StaticLocs().apply { locs.forEach(::add) },
-            objTypes = ObjTypes.of(ObjType(StrongholdOfSecurity.COINS, "Coins", stackable = true), ObjType(StrongholdOfSecurity.NOTES, "Stronghold notes")),
-            npcTypes = NpcTypes.of(gate, famineDoor, pestDoor),
+            objTypes = ObjTypes.of(
+                ObjType(StrongholdOfSecurity.COINS, "Coins", stackable = true), ObjType(StrongholdOfSecurity.NOTES, "Stronghold notes"),
+                ObjType(StrongholdOfSecurity.FANCY_BOOTS, "Fancy boots"), ObjType(StrongholdOfSecurity.FIGHTING_BOOTS, "Fighting boots"),
+            ),
+            npcTypes = NpcTypes.of(gate, famineDoor, pestDoor, deathDoor),
             varTypes = VarTypes(
                 VARP_COUNT,
                 mapOf(
                     StrongholdOfSecurity.VARBIT_FLAP to VarbitType(VARP_SOS_EMOTE, 0, 0),
                     StrongholdOfSecurity.VARBIT_SLAP_HEAD to VarbitType(VARP_SOS_EMOTE, 1, 1),
                     StrongholdOfSecurity.VARBIT_IDEA to VarbitType(VARP_SOS_EMOTE, 2, 2),
+                    StrongholdOfSecurity.VARBIT_STAMP to VarbitType(VARP_SOS_EMOTE, 3, 3),
                 ),
             ),
             cycleMillis = millis,
@@ -413,6 +441,96 @@ class HeadlessStrongholdOfSecurityTest {
                     client.tele(2126, 5288, 0)
                     client.locOp(StrongholdOfSecurity.OOZING_BARRIER_LEFT, 2127, 5288, StrongholdOfSecurity.OPEN)
                     client.awaitAt(2127, 5288, 0)
+                }
+            }
+        }
+    }
+
+    /** An item box, whose text the headless client doesn't read. */
+    private fun HeadlessClient.objbox(what: String) {
+        awaitDialogue(what) { it is DialogueView.Other && it.interfaceId == Chatbox.OBJECTBOX }
+        resumePause(Chatbox.OBJECTBOX, Chatbox.OBJECTBOX_UNIVERSE, 0)
+    }
+
+    private fun HeadlessClient.pickBoots(option: Int) {
+        val texts = listOf(StrongholdLines.CRADLE_FANCY, StrongholdLines.CRADLE_FIGHTING).map { "[${it.key}]" }
+        awaitDialogue("the boots $texts") { it is DialogueView.Menu && it.options == texts }
+        chooseOption(option)
+        objbox("the boots given")
+    }
+
+    @Test
+    fun `the Pit's vine down reaches the Sepulchre of Death, whose ladder, chains, portals, Cradle of Life, boots and portal work`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(2148, 5283, 0)
+                client.locOp(StrongholdOfSecurity.PESTILENCE_VINE_DOWN, 2148, 5284, StrongholdOfSecurity.CLIMB_DOWN)
+                client.awaitAt(StrongholdOfSecurity.DEATH_LANDING.x, StrongholdOfSecurity.DEATH_LANDING.z, 0)
+                client.locOp(StrongholdOfSecurity.DEATH_LADDER_UP, 2358, 5216, StrongholdOfSecurity.CLIMB_UP)
+                client.awaitAt(StrongholdOfSecurity.PESTILENCE_VINE_DOWN_LANDING.x, StrongholdOfSecurity.PESTILENCE_VINE_DOWN_LANDING.z, 0)
+                for ((x, z) in listOf(2310 to 5240, 2351 to 5215)) {
+                    client.tele(x, z, 0)
+                    client.locOp(StrongholdOfSecurity.BONE_CHAIN, x - 1, z, StrongholdOfSecurity.CLIMB_UP)
+                    client.awaitAt(StrongholdOfSecurity.DEATH_LANDING.x, StrongholdOfSecurity.DEATH_LANDING.z, 0)
+                }
+
+                // The portal takes no combat level: refused until the Cradle is searched, even at 126.
+                for (skill in listOf("attack", "strength", "defence", "hitpoints", "prayer", "magic", "ranged")) client.command("setlevel $skill 99")
+                client.tele(2364, 5212, 0)
+                client.locOp(StrongholdOfSecurity.DEATH_PORTAL, 2365, 5212, StrongholdOfSecurity.USE)
+                client.message(StrongholdLines.PORTAL_REFUSE.key)
+                client.continueDialogue()
+
+                // The pair's first portal of death never asks; the second, from the passage, may.
+                client.tele(2355, 5218, 0)
+                client.locOp(StrongholdOfSecurity.PORTAL_OF_DEATH_RIGHT, 2355, 5218, StrongholdOfSecurity.OPEN)
+                client.awaitAt(2355, 5219, 0)
+                var asked = false
+                repeat(20) {
+                    if (asked) return@repeat
+                    client.tele(2355, 5221, 0)
+                    client.locOp(StrongholdOfSecurity.PORTAL_OF_DEATH_RIGHT, 2355, 5221, StrongholdOfSecurity.OPEN)
+                    asked = client.await("through or asked") {
+                        if (client.position == Coord(2355, 5222, 0)) false
+                        else (client.dialogueView as? DialogueView.Chat)?.takeIf { it.name == "Portal of Death" }?.let { true }
+                    }
+                }
+                assertTrue(asked, "the portal of death asked")
+
+                client.tele(2349, 5212, 0)
+                client.locOp(StrongholdOfSecurity.NOTICE, 2349, 5211, StrongholdOfSecurity.READ)
+                client.message(StrongholdLines.NOTICE_READ.key)
+                client.continueDialogue()
+
+                // The Cradle: the Stamp emote, hitpoints back, no coins, and a pair of boots each time it is searched.
+                client.command("boost hitpoints 50")
+                client.await("Hitpoints lowered") { client.stat(Skill.HITPOINTS.id)?.takeIf { it.level == 50 } }
+                client.tele(2345, 5214, 0)
+                client.locOp(StrongholdOfSecurity.CRADLE_OF_LIFE, 2344, 5214, StrongholdOfSecurity.SEARCH)
+                client.message(StrongholdLines.CRADLE_OPEN.key)
+                client.continueDialogue()
+                client.message(StrongholdLines.CRADLE_REWARD.key)
+                client.continueDialogue()
+                client.pickBoots(1)
+                assertEquals(8, client.await("the Stamp emote") { client.varp(VARP_SOS_EMOTE).takeIf { it != 0 } })
+                assertEquals(99, client.stat(Skill.HITPOINTS.id)?.level)
+                client.await("the fancy boots") { client.inventory(BACKPACK).firstOrNull { it?.id == StrongholdOfSecurity.FANCY_BOOTS } }
+                assertTrue(client.inventory(BACKPACK).none { it?.id == StrongholdOfSecurity.COINS }, "no coins from the Cradle")
+                client.locOp(StrongholdOfSecurity.CRADLE_OF_LIFE, 2344, 5214, StrongholdOfSecurity.SEARCH)
+                client.message(StrongholdLines.CRADLE_AGAIN.key)
+                client.continueDialogue()
+                client.pickBoots(2)
+                client.await("the fighting boots") { client.inventory(BACKPACK).firstOrNull { it?.id == StrongholdOfSecurity.FIGHTING_BOOTS } }
+
+                client.tele(2364, 5212, 0)
+                client.locOp(StrongholdOfSecurity.DEATH_PORTAL, 2365, 5212, StrongholdOfSecurity.USE)
+                client.seen("[${StrongholdLines.PORTAL_ENTER.key}]")
+                client.awaitAt(StrongholdOfSecurity.DEATH_PORTAL_LANDING.x, StrongholdOfSecurity.DEATH_PORTAL_LANDING.z, 0)
+                repeat(6) {
+                    client.tele(2355, 5221, 0)
+                    client.locOp(StrongholdOfSecurity.PORTAL_OF_DEATH_RIGHT, 2355, 5221, StrongholdOfSecurity.OPEN)
+                    client.awaitAt(2355, 5222, 0)
                 }
             }
         }

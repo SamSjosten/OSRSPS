@@ -1323,6 +1323,34 @@ Left out: the dripping vine down to the fourth floor (step 14) and the swamp bub
 `NpcCombatTest`, `NpcDropsTest`, `NpcMeleeSpellTest` and `HeadlessCatableponTest` (a real catablepon's Weaken through
 the client).
 
+Step 14a is the fourth floor, the Sepulchre of Death, in the same files.
+
+| Behaviour | Source |
+|-----------|--------|
+| The Pit's dripping vine down lands by the Sepulchre's Boney ladder, which climbs back beside the vine; its two bone chains climb back to the start of the floor, as the Catacomb's ropes | the 241 cache's locs (`sos_pest_ladd_down`, `sos_death_ladd_up`, `sos_death_rope_up`); OSRS Wiki, Boney ladder ("leads back up to the third floor"); the landings guessed, the chains inferred |
+| The portals of death ask as the Gates of War (the door of death's head), and stop once the Cradle of Life is searched | as step 12 |
+| The Cradle of Life: the first search gives the Stamp emote (`sos_emote_stamp`), hitpoints and prayer back, its jingle (`sos_life`) and no coins; every search gives a pair of boots, fancy or fighting. The fancier boots need a Jagex Account, which no account here is | OSRS Wiki, Cradle of Life and Stronghold of Security ("can be used again for more boots"); the stronghold's 10,000 coins is the first three rewards' 2,000 + 3,000 + 5,000 (inferred) |
+| The portal lets through only once the Cradle is searched, at any combat level | OSRS Wiki, Portal (Stronghold of Security) and Stronghold of Security (no level for the fourth; inferred) |
+| The notice by the Cradle can be read | the 241 cache (`sos_thankplayers`); the words wait for the Words thread |
+| Ankou (75, 82, 86), ghosts (76, 77) and skeletons (60, 68, 85), aggressive; the ankou's table with the left skull half (3/100), the skeletons' bones, nothing from the ghosts | OSRS Wiki, Ankou, Ghost, Skeleton (Stronghold of Security), the DPS calculator; mejrs's live NPC list (94 spawns). The ghosts' respawn is inferred and their aggression guessed |
+| The anti-macro shades and zombie (159) by the ladder, not aggressive, give 1 XP for 10 damage; the shades drop their robes, the zombie big bones and its bundles of bones together (a drop line may now give several items) | OSRS Wiki, Shade, Zombie (Sepulchre of Death) |
+
+Left out: the skull sceptre and Solztun (step 14b), and the ghosts' and skeletons' tertiaries (the champion scroll).
+Check: `test-runner/examples/sepulchre-of-death.json`; `HeadlessStrongholdOfSecurityTest`, `StrongholdOfSecurityTest`,
+`NpcCombatTest` and `NpcDropsTest`.
+
+Step 14b is the skull sceptre and Solztun, in `game/content/SkullSceptre.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The left skull half on the right makes the strange skull, the top of the sceptre on the bottom the runed sceptre, and those two the skull sceptre, with 10 charges | OSRS Wiki, Skull sceptre (no level, a tick each) |
+| Invoke takes the player to the Stronghold's entrance in Barbarian Village for a charge, up to level 20 Wilderness; the last charge crumbles a sceptre that isn't imbued. Divine shows the charges in a message box | OSRS Wiki, Skull sceptre; the standard teleport's animation, graphic and 3 ticks guessed |
+| The charges are the player's, as the blowpipe's: two sceptres share them | guessed |
+| Solztun, in the reward room, talks as the Wiki's transcript; once shown the Cradle's boots he imbues every skull sceptre carried. Every account counts as having the authenticator, so its refusals are left out | OSRS Wiki, Solztun and Transcript:Solztun |
+| The imbued sceptre stays when empty and takes bone fragments (a charge each) and pieces (3, the left skull half 5), never past 10; a chisel breaks a piece into that many fragments | OSRS Wiki, Skull sceptre (the Varrock Diary's extra charges wait for the diary) |
+
+Check: `test-runner/examples/skull-sceptre.json` and `HeadlessSkullSceptreTest`.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
