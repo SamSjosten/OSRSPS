@@ -15,6 +15,34 @@ class AgilityDataTest {
     }
 
     @Test
+    fun `Draynor's marks land on its four roofs, 2 in 6 a lap`() {
+        val draynor = AgilityData.load().courses.single { it.key == "draynor" }
+        assertEquals(1, draynor.level)
+        assertEquals(2 to 6, draynor.markChance)
+        assertEquals(
+            listOf(AgilityTile(3099, 3279, 3), AgilityTile(3088, 3274, 3), AgilityTile(3092, 3266, 3), AgilityTile(3099, 3259, 3)),
+            draynor.markSpots,
+        )
+    }
+
+    @Test
+    fun `20 levels over a course cut the mark chance to a fifth`() {
+        val course = AgilityData.load().courses.single { it.key == "draynor" }
+        assertEquals(2 to 6, Agility.markOdds(course, 1))
+        assertEquals(2 to 6, Agility.markOdds(course, 20))
+        assertEquals(2 to 30, Agility.markOdds(course, 21))
+        assertEquals(2 to 30, Agility.markOdds(course, 99))
+    }
+
+    @Test
+    fun `a mark is due three whole minutes after the last`() {
+        assertTrue(Agility.markDue(0, 1_000))
+        assertTrue(!Agility.markDue(1_000, 1_000))
+        assertTrue(!Agility.markDue(1_000, 1_002))
+        assertTrue(Agility.markDue(1_000, 1_003))
+    }
+
+    @Test
     fun `every kind of move parses`() {
         val data = AgilityData.parse(
             """

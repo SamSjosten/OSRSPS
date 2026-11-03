@@ -137,6 +137,7 @@ import osrsps.game.content.ManorHazards
 import osrsps.game.content.registerWaterAndDummies
 import osrsps.game.content.registerWiseOldMan
 import osrsps.game.content.registerBones
+import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -368,6 +369,7 @@ class World(
 
     private val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
+    private val graceful = Graceful(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
     val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
@@ -759,6 +761,7 @@ class World(
         registerLodestones(this)
         registerVarrock(this)
         registerArchiveLobby(this)
+        registerRoguesDen(this)
         registerCrops(this)
         ducks.register()
         homeTeleport.register(handlers)
@@ -2546,11 +2549,12 @@ class World(
     private fun moveSpeed(player: Player) = if (player.runEnabled) MOVE_SPEED_RUN else MOVE_SPEED_WALK
 
     /**
-     * Works out what [player] carries for this tick's run energy, and tells the client when the whole kilograms change
+     * Works out what [player] carries for this tick's run energy, and their graceful bonus, and tells the client when the whole kilograms change
      * (UPDATE_RUNWEIGHT, which the Equipment Stats screen and RuneLite show). Inferred: live sends it on a change only.
      */
     private fun sendWeight(player: Player) {
         player.weightGrams = itemWeights.total(player)
+        player.restoreBonusPercent = graceful.restorePercent(player)
         val kilograms = ItemWeights.kilograms(player.weightGrams)
         if (kilograms != player.sentWeight) {
             player.session.queue(UpdateRunWeight(kilograms))

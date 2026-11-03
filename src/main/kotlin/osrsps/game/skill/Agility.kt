@@ -7,6 +7,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import osrsps.game.ObjType
 import osrsps.game.PlayerEffects
 import osrsps.game.Skill
 import osrsps.game.Stance
@@ -88,11 +89,22 @@ class Obstacle(
 
 /**
  * A course: its [obstacles] in order, the XP for a whole lap on top of theirs ([lapXpTenths], 0 where the last obstacle's
- * XP already holds it, as on the rooftops) and the message with the lap count ([lapLine]).
+ * XP already holds it, as on the rooftops) and the message with the lap count ([lapLine]). Courses with marks of grace
+ * give their Agility [level], the tiles a mark can land on ([markSpots]) and the chance a lap gives one ([markChance],
+ * a numerator and denominator); see [Agility.rollMark].
  */
-class AgilityCourse(val key: String, val obstacles: List<Obstacle>, val lapXpTenths: Int, val lapLine: Line) {
+class AgilityCourse(
+    val key: String,
+    val obstacles: List<Obstacle>,
+    val lapXpTenths: Int,
+    val lapLine: Line,
+    val level: Int = 1,
+    val markSpots: List<AgilityTile> = emptyList(),
+    val markChance: Pair<Int, Int> = 1 to 3,
+) {
     init {
         require(obstacles.size in 1..MAX_OBSTACLES) { "Course $key has ${obstacles.size} obstacles, 1 to $MAX_OBSTACLES" }
+        require(markChance.second >= 1 && markChance.first in 0..markChance.second) { "Course $key has a mark chance of $markChance" }
     }
 
     /** The [Charges] counters: laps done, and which obstacles of this lap are crossed (a bit each). */
@@ -145,6 +157,9 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                     },
                     course.int("lapXpTenths"),
                     AgilityLines.byKey(course.getValue("lapLine").jsonPrimitive.content),
+                    level = course["level"]?.jsonPrimitive?.int ?: 1,
+                    markSpots = course["marks"]?.jsonArray.orEmpty().map { tile(it.jsonArray) },
+                    markChance = course["markChance"]?.jsonArray?.let { it[0].jsonPrimitive.int to it[1].jsonPrimitive.int } ?: (1 to 3),
                 )
             }
             return AgilityData(obstacles, courses)
@@ -201,6 +216,9 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
  * file); the hit coming after the fail moves; and when the real tile moves on a slide (see [slide]).
  */
 class Agility(private val world: World, val data: AgilityData) {
+    /** The clock's minute now, which the marks' timer counts in; tests move it. */
+    var nowMinutes: () -> Long = { System.currentTimeMillis() / 60_000 }
+
     fun register() {
         for ((locId, obstacles) in data.byLoc) {
             world.handlers.onLoc(locId, option(locId, obstacles.first().option)) { op -> cross(op, obstacles) }
@@ -256,6 +274,34 @@ class Agility(private val world: World, val data: AgilityData) {
         player.charges[course.lapsCounter] = laps
         if (course.lapXpTenths > 0) player.skills.addTenths(Skill.AGILITY, course.lapXpTenths)
         player.message(world.textFor(player)[course.lapLine, "count" to laps])
+        rollMark(course)
+    }
+
+    /**
+     * A lap done: a chance at a mark of grace, by the OSRS Wiki's Mark of Grace page (read 2026-11-02). Once three
+     * minutes of the clock have gone since the player's last mark (counted in whole minutes, from the minute it came, and
+     * kept across a logout), each lap has the course's chance, 2/6 on most courses, cut to a fifth when their unboosted
+     * Agility is 20 or more over the course's level. A mark lands on one of the course's spots, for this player alone,
+     * and goes after ten minutes; one landing on a mark already there stacks and the stack's ten minutes start again.
+     *
+     * Inferred: the spot is picked at random, as the Wiki gives the spots but no order; a failed roll leaves the timer
+     * alone, as the Wiki times it from the last mark. Not built: the Wiki's marks staying on the ground with their
+     * timer paused while the player is logged out (ours keep counting down), and the Achievement Diary rerolls.
+     */
+    internal fun ScriptContext.rollMark(course: AgilityCourse) {
+        if (course.markSpots.isEmpty()) return
+        val now = nowMinutes()
+        if (!markDue(player.charges[MARK_MINUTE], now)) return
+        val (numerator, denominator) = markOdds(course, player.skills.baseLevel(Skill.AGILITY))
+        if (!world.random.chance(numerator, denominator)) return
+        val spot = world.random.pick(course.markSpots)
+        val mark = world.objTypes[MARK_OF_GRACE] ?: ObjType(MARK_OF_GRACE, "Mark of grace", stackable = true)
+        val obj = world.groundObjs.addPrivate(
+            mark, 1, spot.x, spot.z, spot.level, player.saveKey,
+            privateTicks = MARK_TICKS, despawnTicks = MARK_TICKS, neverPublic = true,
+        )
+        obj.ticksUntilDespawn = MARK_TICKS
+        player.charges[MARK_MINUTE] = now.coerceIn(1, Int.MAX_VALUE.toLong()).toInt()
     }
 
     /** The obstacle [loc] is: the only one of its type, or the one standing on its tile. */
@@ -328,6 +374,29 @@ class Agility(private val world: World, val data: AgilityData) {
          * The tiles from [start] through each of [waypoints] in turn, one step at a time (straight or diagonal), not
          * counting [start].
          */
+        /** The mark of grace (`grace`). */
+        const val MARK_OF_GRACE = 11849
+
+        /** Ten minutes of ticks, a mark's time on the ground. */
+        const val MARK_TICKS = 1_000
+
+        /** The minutes between marks, and the [osrsps.game.Charges] counter holding the minute of the last one. */
+        const val MARK_TIMER_MINUTES = 3
+        const val MARK_MINUTE = "agility_mark_minute"
+
+        /** 20 levels over a course cut its chance of a mark to a fifth. */
+        const val OVER_LEVEL = 20
+        const val OVER_LEVEL_DIVISOR = 5
+
+        /** A lap's chance of a mark on [course] for a player whose unboosted Agility is [baseLevel]. */
+        fun markOdds(course: AgilityCourse, baseLevel: Int): Pair<Int, Int> {
+            val (numerator, denominator) = course.markChance
+            return if (baseLevel >= course.level + OVER_LEVEL) numerator to denominator * OVER_LEVEL_DIVISOR else numerator to denominator
+        }
+
+        /** Whether a mark last seen at [lastMinute] (0 for never) lets another come at [nowMinute]. */
+        fun markDue(lastMinute: Int, nowMinute: Long): Boolean = lastMinute == 0 || nowMinute >= lastMinute + MARK_TIMER_MINUTES
+
         fun steps(start: Tile, waypoints: List<Tile>): List<Tile> {
             val steps = ArrayList<Tile>()
             var x = start.x
