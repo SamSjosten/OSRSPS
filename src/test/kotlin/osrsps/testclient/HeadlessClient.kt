@@ -589,6 +589,20 @@ class HeadlessClient private constructor(
     /** Kick user on a friends chat member (FRIENDCHAT_KICK). */
     fun kickFromFriendsChat(name: String) = send(GameClientProt.FRIENDCHAT_KICK) { pjstr(name) }
 
+    /** Kick guest on [name], in slot [slot] of the clan channel's list (CLANCHANNEL_KICKUSER: clan type, slot, name). */
+    fun kickFromClanChannel(name: String, slot: Int, clanType: Int = 0) = send(GameClientProt.CLANCHANNEL_KICKUSER) {
+        p1(clanType)
+        p2(slot)
+        pjstr(name)
+    }
+
+    /** Ban guest on [name], in slot [slot] of the clan channel's list (AFFINEDCLANSETTINGS_ADDBANNED_FROMCHANNEL). */
+    fun banFromClanChannel(name: String, slot: Int, clanType: Int = 0) = send(GameClientProt.AFFINEDCLANSETTINGS_ADDBANNED_FROMCHANNEL) {
+        p1(clanType)
+        p2(slot)
+        pjstr(name)
+    }
+
     /** Text typed into a chatbox text prompt (RESUME_P_STRINGDIALOG). */
     fun resumeString(text: String) = send(GameClientProt.RESUME_P_STRINGDIALOG) { pjstr(text) }
 

@@ -773,6 +773,45 @@ class NpcDropsTest {
         zombie.expect("Beer", 10)
     }
 
+    @Test
+    fun `the Pit of Pestilence's catablepons drop as the Wiki's table says, its spiders and scorpions only tertiaries`() {
+        val names = listOf("sos_pest_catablepon", "sos_pest_catablepon3", "sos_pest_giantspider1", "sos_pest_spider", "sos_pest_scorpion")
+        val pitTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2500 + i, name, internalName = name) }.toTypedArray())
+        val pit = NpcDrops.load(pitTypes, objTypes)
+        assertTrue(pit.warnings.all { it.startsWith("no NPC called") }, pit.warnings.toString())
+        for (name in listOf("sos_pest_giantspider1", "sos_pest_spider", "sos_pest_scorpion")) {
+            val drops = pit[pitTypes.find(name)!!]!!
+            assertNull(drops.table, name)
+            assertTrue(drops.always.isEmpty(), name)
+        }
+        assertEquals(
+            listOf("Ensouled scorpion head" to "1/25", "Clue scroll (beginner)" to "1/100"),
+            pit[pitTypes.find("sos_pest_scorpion")!!]!!.tertiary.map { it.item.type.name to "1/${it.denominator}" },
+        )
+        val def = pit[pitTypes.find("sos_pest_catablepon3")!!]!!
+        assertEquals(101, def.table!!.slots)
+        assertEquals(listOf("Bones"), def.always.map { it.type.name })
+        fun Map<String, Int>.expect(key: String, weight: Double, of: Int = 101) {
+            val p = weight / of
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = this[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        val drops = HashMap<String, Int>()
+        val random = GameRandom(53)
+        repeat(KILLS) {
+            for (drop in def.roll(random).drop(1)) drops[drop.type.name] = (drops[drop.type.name] ?: 0) + 1
+        }
+        drops.expect("Top of sceptre", 3.0)
+        drops.expect("Pure essence (noted)", 5.0)
+        assertNull(drops["Rune essence (noted)"], "rune essence is the free-to-play line")
+        drops.expect("Unlit torch", 9.0)
+        drops.expect("Clue scroll (medium)", 1.0)
+        // The allotment seeds at 1/101, potatoes 64/128 of those.
+        drops.expect("Potato seed", 0.5)
+    }
+
     companion object {
         private const val KILLS = 10_000
     }

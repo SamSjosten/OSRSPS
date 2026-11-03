@@ -2164,6 +2164,12 @@ class World(
     /** Kick user on a friends chat member. */
     fun onFriendsChatKick(player: Player, name: String) = act(player) { friendChats.kick(player, name) }
 
+    /** Kick guest in the clan channel's list; see [Clans.kickFromChannel]. */
+    fun onClanKick(player: Player, clanType: Int, name: String) = act(player) { clans.kickFromChannel(player, clanType, name) }
+
+    /** Ban guest in the clan channel's list; see [Clans.banFromChannel]. */
+    fun onClanBan(player: Player, clanType: Int, name: String) = act(player) { clans.banFromChannel(player, clanType, name) }
+
     /** Join Chat's typed name, or Leave Chat (no name). Works while dead, as the client changes its panel at once. */
     fun onFriendsChatJoinLeave(player: Player, name: String?) = actWhileDead(player) {
         if (name == null) friendChats.leave(player) else friendChats.join(player, name)
@@ -2259,6 +2265,7 @@ class World(
         if (interfaceId == Clans.INFO && clans.clickInfo(player, componentId)) return@act
         if (interfaceId == Clans.APPLICANTS && clans.clickApplicants(player, componentId)) return@act
         if (interfaceId == Clans.MEMBERS && clans.clickMembers(player, componentId, sub)) return@act
+        if (interfaceId == Clans.BANNED && clans.clickBanned(player, componentId)) return@act
         if (interfaceId == Clans.PERMISSIONS && clans.clickPermissions(player, componentId, sub)) return@act
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_SETTINGS) {
             clans.openYourInfo(player)
@@ -2311,6 +2318,9 @@ class World(
             return@act
         }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
+            // A delayed player (part way along an agility obstacle, say) can't log out, or they would be saved on a tile
+            // the move only passes through (round 12 exploit review, R12B-1). Inferred from live's p_delay.
+            if (player.scripts.delayed) return@act
             if (inCombat(player)) {
                 player.message(textFor(player)[GameLines.CANT_LOG_OUT])
                 return@act
@@ -2486,7 +2496,8 @@ class World(
 
     fun onResumeString(player: Player, text: String) = act(player) {
         if (player.scripts.delayed) return@act
-        if (!scripts.resumeString(player, text)) logger.debug { "${player.username} typed text nothing waits for" }
+        if (scripts.resumeString(player, text) || clans.typedOnBanned(player, text)) return@act
+        logger.debug { "${player.username} typed text nothing waits for" }
     }
 
     /**
@@ -2806,7 +2817,8 @@ class World(
             player.logoutRequested = false
             player.message(textFor(player)[GameLines.CANT_LOG_OUT])
         }
-        if (player.logoutRequested || player.logoutForced) {
+        // A request made in the tick a delay began waits for the delay to end, so the move finishes first (R12B-1).
+        if (player.logoutForced || (player.logoutRequested && !player.scripts.delayed)) {
             // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
             // the player is removed on the next tick by hand.
             session.queue(Logout)

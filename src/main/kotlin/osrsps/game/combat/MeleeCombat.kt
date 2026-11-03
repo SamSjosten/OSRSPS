@@ -639,6 +639,9 @@ class MeleeCombat(
         val def = combat.npcCombat[npc.type] ?: return
         npc.nextAttackTick = tick + def.attackSpeed
         npc.fightTick = tick
+        // Only an NPC with a spell rolls for it, so World.random runs as before for every other.
+        val spell = def.spell
+        if (spell != null && spellCasts(spell, player) && random.chance(1, spell.chance)) return cast(npc, player, spell.attack, tick)
         val shown = if (anim >= 0) anim else def.anims.attack
         if (shown >= 0) npc.effects.anim(shown)
         npc.face(player)
@@ -720,6 +723,34 @@ class MeleeCombat(
         shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay)
     }
 
+    private fun spellCasts(spell: NpcMeleeSpell, player: Player): Boolean {
+        val skill = spell.attack.drain?.skill ?: return true
+        return spell.casts(player.skills.baseLevel(skill), player.skills.currentLevel(skill))
+    }
+
+    /**
+     * A melee NPC's spell at [player] in its reach ([NpcMeleeSpell]): its animation, the projectile, and a magic roll
+     * against their Magic defence, landing after [HitDelay.MAGIC] as an NPC's shot does ([shoot]); Protect from
+     * Magic blocks it. Guessed: no casting spotanim, and the spell's heights and arc are a player's.
+     */
+    private fun cast(npc: Npc, player: Player, attack: NpcRangedAttack, tick: Long) {
+        val def = combat.npcCombat[npc.type] ?: return
+        val anim = if (attack.anim >= 0) attack.anim else def.anims.attack
+        if (anim >= 0) npc.effects.anim(anim)
+        npc.face(player)
+        if (attack.cast >= 0) npc.effects.spotanim(0, attack.cast, CAST_HEIGHT)
+        val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z).coerceAtLeast(1)
+        val delay = HitDelay.MAGIC.ticks(distance)
+        if (attack.projectile >= 0) projectile(flight(npc, player, attack.projectile, delay))
+        val roll = combat.npcAttack(npc, player, AttackType.MAGIC) ?: return
+        val hit = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
+        val max = attack.maxHit ?: roll.maxHit
+        val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
+        val blocked = protects(player, AttackType.MAGIC)
+        val reduced = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
+        shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay)
+    }
+
     private fun pick(attacks: List<NpcRangedAttack>): NpcRangedAttack {
         if (attacks.size == 1) return attacks[0]
         var roll = random.nextInt(attacks.sumOf { it.weight })
@@ -773,6 +804,11 @@ class MeleeCombat(
     private fun drain(player: Player, drain: StatDrain) {
         val base = player.skills.baseLevel(drain.skill)
         val by = maxOf(1, base * drain.percent / 100)
+        if (drain.stacks) {
+            val current = player.skills.currentLevel(drain.skill)
+            if (current > 1) player.skills.setCurrentLevel(drain.skill, maxOf(1, current - by))
+            return
+        }
         val floor = base - by
         if (player.skills.currentLevel(drain.skill) <= floor) return
         player.skills.setCurrentLevel(drain.skill, floor)
