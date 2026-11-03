@@ -246,6 +246,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-champions-guild.json`: Varrock step 10 (with `::keys on`): in through the Champions' Guild's door past the
   Guildmaster's greeting, his talk, upstairs to buy at Scavvo's and Valaine's (selling to Valaine, who buys anything),
   their talk, down the trapdoor to the basement and back up its ladder, and out of the door again.
+- `varrock-fighters.json`: Varrock step 12 (with `::keys on`): a mugger put in beside a level 3 account attacks it
+  unprovoked and is killed for its bones; a thief, the Black Knight and a grizzly bear are put in and killed (the bear
+  always drops its fur); the Blue Moon Inn's barbarian talks over the drink, screaming twice.
 - `varrock-skilling.json`: Varrock step 11 (with `::keys on`): mines copper at the south-east mine, hammers a bronze
   dagger on the west anvils, cooks a shrimp on a house's range, chops a dying tree to its stump, fills buckets at a sink
   and a well, and hits a training dummy north of the East Bank until level 8 has nothing more to teach.
@@ -289,6 +292,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   clothes line or the wall fails the run at that obstacle's location check; run it again.
 - `agility-gnome.json`: Agility step 6: one lap of the Gnome Stronghold Agility Course at Agility 10 (`::xprate 1`),
   each of the seven obstacles crossed to its landing tile, then the lap count (`::keys on`) and the lap's 110.5 XP.
+- `agility-shortcuts.json`: Agility step 7: the six Misthalin shortcuts at Agility 52, each crossed there and back to
+  its side's tile (the Varrock fence, both underwall tunnels, both Champions' Guild stepping stones, Draynor Manor's
+  broken fence).
 - `draynor-pickpocket.json`: Draynor step 8: the Master Farmer's level message at Thieving 37 (`::keys on`) and an
   attempt at 99; the man's 28-pouch limit, Open-all for 84 coins, and an attempt on him.
 - `draynor-dark-wizards.json`: Draynor step 9: a dark wizard south of the bank, attacked, casting back from where it

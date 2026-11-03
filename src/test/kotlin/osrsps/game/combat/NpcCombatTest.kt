@@ -60,6 +60,7 @@ class NpcCombatTest {
             "giant_update_basic_attack" to 4652, "giant_update_basic_defend" to 4651, "giant_update_basic_death" to 4653,
             "hobgoblin_attack" to 163, "hobgoblin_attackunarmed" to 164, "hobgoblin_block" to 165, "hobgoblin_death" to 167,
             "ghost_update_normal_attack" to 5532, "ghost_update_normal_defend" to 5533, "ghost_update_normal_death" to 5534,
+            "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
         ),
     )
 
@@ -301,6 +302,35 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.AIR, 50), def("house_ghost2").weakness)
         assertEquals(listOf(40, 60), listOf("house_ghost3", "draynor_skeleton").map { def(it).respawnTicks })
         assertEquals(-5, def("house_ghost").defence.against(AttackType.MAGIC))
+    }
+
+    @Test
+    fun `Varrock's fighters fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's (and the DPS calculator's) Strength levels.
+        val city = mapOf(
+            "mugger" to 5, "black_knight" to 25, "thief1" to 13, "qip_soa_thief_male01" to 13, "qip_soa_thief_female01" to 13,
+            "qip_soa_thief_female02" to 13, "barbarianwoman_varrock" to 5, "warrior_woman" to 22, "brownbear" to 18, "giantrat1" to 5,
+        )
+        val cityTypes = NpcTypes.of(*city.entries.mapIndexed { i, (name, str) -> NpcType(2300 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(cityTypes, seqs)
+        assertEquals(city.size, combat.size)
+        fun def(name: String) = combat[cityTypes.find(name)!!]!!
+        for (name in city.keys) {
+            val type = cityTypes.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+        }
+        assertEquals(listOf(1, 4, 2, 2, 3, 3), listOf("mugger", "black_knight", "thief1", "barbarianwoman_varrock", "warrior_woman", "brownbear").map { def(it).maxHit })
+        // Muggers, the bear and the giant rats go for players; the rest wait to be attacked.
+        assertEquals(setOf("mugger", "brownbear", "giantrat1"), city.keys.filter { def(it).aggression != null }.toSet())
+        assertEquals(listOf(5, 6, 4), listOf("black_knight", "barbarianwoman_varrock", "qip_soa_thief_female02").map { def(it).attackSpeed })
+        assertEquals(AttackType.SLASH, def("black_knight").attackType)
+        assertEquals(AttackType.STAB, def("warrior_woman").attackType)
+        assertEquals(NpcCombatAnims(422, 424, 836), def("mugger").anims)
+        assertEquals(NpcCombatAnims(390, 1156, 836), def("black_knight").anims)
+        assertEquals(NpcCombatAnims(4925, 4927, 4929), def("brownbear").anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 20), def("brownbear").weakness)
+        assertEquals(listOf(25, 25, 25, 50, 50), listOf("mugger", "black_knight", "thief1", "warrior_woman", "brownbear").map { def(it).respawnTicks })
+        assertEquals(76, def("black_knight").defence.against(AttackType.SLASH))
     }
 
     @Test

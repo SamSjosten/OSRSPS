@@ -120,6 +120,7 @@ object Varrock {
 fun registerVarrock(world: World) {
     registerGrandExchangeClerks(world)
     registerVarrockChurches(world)
+    registerVarrockFighters(world)
     registerVarrockFitzharmons(world)
     registerVarrockInns(world)
     registerVarrockChampionsGuild(world)
