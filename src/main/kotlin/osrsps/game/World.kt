@@ -632,10 +632,11 @@ class World(
                 listOf(list.title, list.current, list.min, list.max, if (list.nobody) 1 else 0, Clans.component(list.parent, list.component)),
             )
             scripts.start(player) {
-                // clan_rankpopup sends the rank clicked plus one (0 for Guest); closing it sends the current one's.
+                // clan_rankpopup sends the rank clicked plus one (0 for Guest); closing it sends the current one's. The
+                // current rank is taken as no change: else closing a list someone else's change made stale would undo it.
                 val answer = waitForCount()
                 if (list.parent in player.modals.values) interfaces.closeInside(player, list.parent, list.component)
-                if (answer >= 0) picked(answer - 1)
+                if (answer >= 0 && answer - 1 != list.current) picked(answer - 1)
             }
         },
         now = clansClock,

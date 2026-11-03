@@ -801,6 +801,15 @@ class HeadlessClanTest {
                     alice.awaitTicks(2)
                     alice.resumeCount(0)
                     alice.await("Recruitment at Guest") { Unit.takeIf { clans.setting(clan, Clans.VAR_RECRUITMENT) == Clans.RANK_GUEST } }
+                    // A list made stale by someone else's change since: closing it (the current rank it showed) keeps theirs.
+                    alice.await("the list closed again") { if (Clans.POPUPOVERLAY in alice.openInterfaces()) null else Unit }
+                    alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 2)
+                    alice.awaitTicks(2)
+                    clan.settings[Clans.VAR_ASSIGN_RANKS] = 10
+                    alice.resumeCount(0 + 1)
+                    alice.awaitTicks(2)
+                    assertEquals(10, clans.setting(clan, Clans.VAR_ASSIGN_RANKS))
+                    clan.settings[Clans.VAR_ASSIGN_RANKS] = 0
                     // Nobody on Permission access (slot 0) would lock everyone out: refused. A button not built does nothing.
                     alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 0)
                     alice.awaitTicks(2)
