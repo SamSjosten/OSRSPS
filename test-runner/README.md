@@ -215,6 +215,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `pit-of-pestilence.json`: Edgeville step 13b (with `::keys on` and `::god on`): down the Catacomb of Famine's
   ladder and back up the dripping vine, the Box of Health claimed once (5,000 coins, `assertVarbit` 2311), its portal,
   a pair of oozing barriers passed without a question, and up the goo covered vine back to the start of the floor.
+- `sepulchre-of-death.json`: Edgeville step 14a (with `::keys on` and `::god on`): down the Pit of Pestilence's
+  dripping vine and back up the Boney ladder, the portal refused, the notice, the Cradle of Life searched twice (the
+  Stamp emote, `assertVarbit` 2312, then fancy boots and fighting boots), its portal, a pair of portals of death passed
+  without a question, and up a bone chain back to the start of the floor.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.

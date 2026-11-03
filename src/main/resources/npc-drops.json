@@ -837,6 +837,45 @@
         {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/100"}
       ],
       "source": "OSRS Wiki, Scorpion and Clue scroll (beginner), read 2026-11-03: the ensouled head at 1/25 and the beginner clue at 1/100 for scorpions of levels 1 to 59; the Wilderness lines left out; no main table"
+    },
+    {"npcs": ["sos_death_ankou", "sos_death_ankou2", "sos_death_ankou3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 100, "lines": [
+      {"item": 869, "name": "Black knife", "weight": 1}, {"item": 581, "name": "Black robe", "weight": 1},
+      {"item": 560, "name": "Death rune", "count": 10, "weight": 10}, {"item": 565, "name": "Blood rune", "count": 11, "weight": 6},
+      {"item": 890, "name": "Adamant arrow", "min": 5, "max": 14, "weight": 4}, {"item": 563, "name": "Law rune", "count": 2, "weight": 4},
+      {"item": 565, "name": "Blood rune", "count": 5, "weight": 3},
+      {"table": "herbs", "weight": 3}, {"table": "uncommon_seeds", "weight": 1},
+      {"item": 7937, "name": "Pure essence (noted)", "count": 15, "weight": 5}, {"item": 448, "name": "Mithril ore (noted)", "min": 3, "max": 7, "weight": 2},
+      {"item": 995, "name": "Coins", "count": 8, "weight": 33}, {"item": 995, "name": "Coins", "min": 5, "max": 204, "weight": 10},
+      {"item": 9008, "name": "Left skull half", "weight": 3},
+      {"item": 365, "name": "Bass", "weight": 2}, {"item": 187, "name": "Weapon poison", "weight": 2}, {"item": 7082, "name": "Fried mushrooms", "weight": 1},
+      {"table": "gems", "weight": 2},
+      {"nothing": true, "weight": 7}
+    ]}, "tertiary": [{"item": 2722, "name": "Clue scroll (hard)", "chance": "1/512"}],
+      "source": "OSRS Wiki, Ankou, Drops, read 2026-11-03: one table out of 100 for the members world, the Stronghold of Security's lines (law runes 4/100 there, the left skull half 3/100; the Forgotten Cemetery's and the free-to-play lines are out), the herb table at 3/100, the uncommon seed table at 1/100, the gem table (with the chaos talisman) at 2/100, nothing 7/100; the hard clue at 1/512. The slayer-task and Catacombs tertiaries wait for those pieces"
+    },
+    {"npcs": ["sos_death_skeleton_unarmed", "sos_death_skeleton_unarmed2", "sos_death_skeleton_unarmed3", "sos_death_skeleton_unarmed4",
+        "sos_death_skeleton_armed", "sos_death_skeleton_armed2", "sos_death_skeleton_armed3"], "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Skeleton (Stronghold of Security), read 2026-11-03: bones always and nothing else; its skeleton champion scroll (1/5,000) waits for the Champions' Challenge"
+    },
+    {"npcs": ["macro_shade"], "table": {"slots": 128, "lines": [
+      {"item": 546, "name": "Shade robe top", "weight": 32}, {"item": 548, "name": "Shade robe", "weight": 32}, {"nothing": true, "weight": 64}
+    ]},
+      "source": "OSRS Wiki, Shade (Stronghold of Security), read 2026-11-03: the shade robe top and the shade robe 32/128 each, nothing 64/128"
+    },
+    {"npcs": ["macro_zombie"], "always": [{"item": 532, "name": "Big bones"}], "table": {"slots": 256, "lines": [
+      {"items": [{"item": 526, "name": "Bones", "count": 10}, {"item": 532, "name": "Big bones", "count": 10}, {"item": 536, "name": "Dragon bones", "count": 2}], "weight": 1},
+      {"items": [{"item": 532, "name": "Big bones"}, {"item": 536, "name": "Dragon bones"}], "weight": 5},
+      {"item": 536, "name": "Dragon bones", "count": 3, "weight": 1},
+      {"item": 532, "name": "Big bones", "weight": 51}, {"item": 532, "name": "Big bones", "count": 2, "weight": 20},
+      {"item": 532, "name": "Big bones", "count": 6, "weight": 10},
+      {"items": [{"item": 532, "name": "Big bones", "count": 6}, {"item": 526, "name": "Bones", "count": 3}], "weight": 5},
+      {"item": 556, "name": "Air rune", "count": 40, "weight": 20}, {"item": 564, "name": "Cosmic rune", "count": 5, "weight": 20},
+      {"item": 562, "name": "Chaos rune", "count": 35, "weight": 20}, {"item": 562, "name": "Chaos rune", "count": 50, "weight": 15},
+      {"item": 313, "name": "Fishing bait", "count": 27, "weight": 24}, {"item": 313, "name": "Fishing bait", "count": 50, "weight": 40},
+      {"item": 995, "name": "Coins", "count": 26, "weight": 10},
+      {"table": "gems_surface", "weight": 14}
+    ]}, "tertiary": [{"item": 10976, "name": "Long bone", "chance": "1/400"}, {"item": 10977, "name": "Curved bone", "chance": "1/5013"}],
+      "source": "OSRS Wiki, Zombie (Sepulchre of Death), read 2026-11-03: big bones always; the members world's table out of 256, its three bundles (bones, big bones and dragon bones together) as lines of several items, the big bones x6 15/256 of which 5/256 come with 3 bones; the gem table (nature talisman only, so the surface one) at 14/256; the long bone 1/400 and the curved bone 1/5,012.5, taken as 1/5,013"
     }
   ]
 }

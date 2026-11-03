@@ -21,6 +21,7 @@ class StrongholdOfSecurityTest {
     private val leaves = leaves(DOORS)
     private val famineLeaves = leaves(FAMINE_DOORS)
     private val pestLeaves = leaves(PEST_DOORS)
+    private val deathLeaves = leaves(DEATH_DOORS)
     private var byTile = leaves.associateBy { it.x to it.z }
 
     private fun leafAt(door: ZoneLoc, across: Int, along: Int): ZoneLoc? {
@@ -48,6 +49,9 @@ class StrongholdOfSecurityTest {
         assertEquals(60, pestLeaves.size)
         byTile = pestLeaves.associateBy { it.x to it.z }
         oneAskingSide(pestLeaves)
+        assertEquals(72, deathLeaves.size)
+        byTile = deathLeaves.associateBy { it.x to it.z }
+        oneAskingSide(deathLeaves)
     }
 
     @Test
@@ -135,14 +139,23 @@ class StrongholdOfSecurityTest {
 
     @Test
     fun `each floor's reward, portal and doors are its own`() {
-        val (war, famine, pit) = StrongholdOfSecurity.FLOORS
+        val (war, famine, pit, death) = StrongholdOfSecurity.FLOORS
         assertEquals(StrongholdOfSecurity.VARBIT_FLAP, war.varbit)
         assertEquals(StrongholdOfSecurity.VARBIT_SLAP_HEAD, famine.varbit)
         assertEquals(StrongholdOfSecurity.VARBIT_IDEA, pit.varbit)
-        // The Wiki: each portal at 26, 51 and 76 "even if the reward hasn't been claimed before".
-        assertEquals(listOf(26, 51, 76), StrongholdOfSecurity.FLOORS.map { it.portalLevel })
-        assertEquals(listOf(2000, 3000, 5000), StrongholdOfSecurity.FLOORS.map { it.coins })
-        assertEquals(listOf(false, false, true), StrongholdOfSecurity.FLOORS.map { it.restoresAll })
+        assertEquals(StrongholdOfSecurity.VARBIT_STAMP, death.varbit)
+        // The Wiki: each portal at 26, 51 and 76 "even if the reward hasn't been claimed before"; the fourth's only once
+        // the Cradle is searched.
+        assertEquals(listOf(26, 51, 76, null), StrongholdOfSecurity.FLOORS.map { it.portalLevel })
+        // 10,000 coins in all, the Cradle giving boots instead.
+        assertEquals(listOf(2000, 3000, 5000, 0), StrongholdOfSecurity.FLOORS.map { it.coins })
+        assertEquals(10_000, StrongholdOfSecurity.FLOORS.sumOf { it.coins })
+        assertEquals(listOf(false, false, true, false), StrongholdOfSecurity.FLOORS.map { it.restoresAll })
+        assertEquals(listOf(false, false, false, true), StrongholdOfSecurity.FLOORS.map { it.boots })
+        assertTrue(death.contains(0, 2344, 5214))
+        assertFalse(death.contains(0, 2144, 5280))
+        assertTrue(death.doors.intersect(war.doors + famine.doors + pit.doors).isEmpty())
+        assertEquals(setOf(StrongholdOfSecurity.PORTAL_OF_DEATH_LEFT, StrongholdOfSecurity.PORTAL_OF_DEATH_RIGHT), deathLeaves.map { it.id }.toSet())
         assertTrue(famine.contains(0, 2021, 5215))
         assertFalse(famine.contains(0, 1907, 5222))
         assertTrue(pit.contains(0, 2144, 5280))
@@ -153,6 +166,22 @@ class StrongholdOfSecurityTest {
     }
 
     private companion object {
+        /** Portal of Death leaves (id, x, z, angle), as the 241 cache's map square 36,81 places them. */
+        val DEATH_DOORS = listOf(
+        "23727 2308 5225 0, 23727 2309 5205 0, 23727 2311 5225 0, 23727 2312 5205 0, 23727 2315 5187 0, 23727 2318 5187 0",
+        "23727 2320 5212 1, 23727 2320 5215 1, 23727 2323 5188 3, 23727 2323 5191 3, 23727 2323 5240 3, 23727 2323 5243 3",
+        "23727 2333 5194 0, 23727 2333 5227 0, 23727 2333 5238 0, 23727 2336 5194 0, 23727 2336 5227 0, 23727 2336 5238 0",
+        "23727 2341 5221 1, 23727 2341 5224 1, 23727 2344 5188 0, 23727 2347 5188 0, 23727 2352 5245 2, 23727 2355 5245 2",
+        "23727 2356 5218 1, 23727 2356 5221 1, 23727 2359 5189 0, 23727 2359 5232 3, 23727 2359 5235 3, 23727 2360 5194 0",
+        "23727 2361 5204 3, 23727 2361 5207 3, 23727 2362 5189 0, 23727 2363 5194 0, 23727 2366 5218 1, 23727 2366 5221 1",
+        "23728 2308 5224 0, 23728 2309 5204 0, 23728 2311 5224 0, 23728 2312 5204 0, 23728 2315 5186 0, 23728 2318 5186 0",
+        "23728 2319 5212 1, 23728 2319 5215 1, 23728 2324 5188 3, 23728 2324 5191 3, 23728 2324 5240 3, 23728 2324 5243 3",
+        "23728 2333 5193 0, 23728 2333 5226 0, 23728 2333 5237 0, 23728 2336 5193 0, 23728 2336 5226 0, 23728 2336 5237 0",
+        "23728 2340 5221 1, 23728 2340 5224 1, 23728 2344 5187 0, 23728 2347 5187 0, 23728 2352 5246 2, 23728 2355 5218 1",
+        "23728 2355 5221 1, 23728 2355 5246 2, 23728 2359 5188 0, 23728 2360 5193 0, 23728 2360 5232 3, 23728 2360 5235 3",
+        "23728 2362 5188 0, 23728 2362 5204 3, 23728 2362 5207 3, 23728 2363 5193 0, 23728 2365 5218 1, 23728 2365 5221 1"
+        )
+
         /** Oozing barrier leaves (id, x, z, angle), as the 241 cache's map square 33,82 places them. */
         val PEST_DOORS = listOf(
         "23653 2124 5288 0, 23653 2127 5288 0, 23653 2130 5293 3, 23653 2130 5296 3, 23653 2132 5257 3, 23653 2132 5260 3",
