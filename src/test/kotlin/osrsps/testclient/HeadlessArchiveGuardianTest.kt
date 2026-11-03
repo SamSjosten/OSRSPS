@@ -303,14 +303,27 @@ class HeadlessArchiveGuardianTest {
                 assertEquals(2, maxOf(kotlin.math.abs(mx - 3241), kotlin.math.abs(mz - 3220)), "two tiles from her")
                 alice.await("the mushroom ready") { server.world.locs.find(ArchiveGuardian.MUSHROOM_ACTIVE, mx, mz, 0) }
                 player.runEnabled = true
-                // Beside it: it bursts the tick after.
+                // Paused and stepped, so the weariness is counted in game ticks. Beside it: it bursts a tick after.
+                alice.commandReply("pause") { it.startsWith("Paused after tick") }
                 val beside = if (mx > 3241) mx - 1 else mx + 1
-                alice.tele(beside, mz)
-                val burst = alice.await("the burst") { alice.fightLog().firstNotNullOfOrNull { BURST.find(it)?.groupValues?.get(1)?.toInt() } }
+                alice.command("tele $beside $mz 0")
+                val fight = server.world.encounters.all.single()
+                var stepped = 0
+                while (fight.lines.none { BURST.containsMatchIn(it) }) {
+                    assertTrue(++stepped <= 4, "no burst after $stepped ticks: ${fight.lines.takeLast(5)}")
+                    alice.stepTicks(1)
+                }
+                val burst = fight.lines.firstNotNullOf { BURST.find(it)?.groupValues?.get(1)?.toInt() }
                 assertTrue(burst in ArchiveGuardian.MUSHROOM_MIN..ArchiveGuardian.MUSHROOM_MAX, "burst for $burst")
                 assertTrue(server.world.poison.value(player) > 0, "poisoned")
-                assertTrue(player.wearyTicks > 0, "weary")
                 assertFalse(player.runEnabled, "run off")
+                // Weary for the burst's tick's movement and the nine after it: ten in all.
+                assertEquals(ArchiveGuardian.WEARY_TICKS, player.wearyTicks)
+                alice.stepTicks(ArchiveGuardian.WEARY_TICKS - 1)
+                assertEquals(1, player.wearyTicks, "still weary on the tenth tick")
+                alice.stepTicks(1)
+                assertEquals(0, player.wearyTicks)
+                alice.commandReply("resume") { it.startsWith("Resumed") }
                 alice.await("the mushroom gone") { if (server.world.locs.at(mx, mz, 0).none { it.id in MUSHROOMS }) Unit else null }
 
                 // The weariness wears off, counted down by the world, before the poison has hit or weakened; the next

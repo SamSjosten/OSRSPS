@@ -1139,7 +1139,13 @@ class World(
     private fun tick() {
         tick++
         phase = TickPhase.WORLD
-        for (player in players) if (player != null) prayers.startTick(player)
+        for (player in players) {
+            if (player == null) continue
+            prayers.startTick(player)
+            // At the tick's start: before an encounter (NPC phase) wearies anyone, so ten ticks of it are ten movement
+            // phases, and before both of the movement phase's combat checks, so they see the same value.
+            if (player.wearyTicks > 0) player.wearyTicks--
+        }
         endEmptyInstances()
         groundObjs.process()
         phase = TickPhase.INPUT
@@ -1170,8 +1176,6 @@ class World(
         for (player in players) {
             if (player == null) continue
             player.playedTicks++
-            // Before the movement phase, so walking and the slower attacks it brings end on the same tick.
-            if (player.wearyTicks > 0) player.wearyTicks--
             statRestore.process(player)
             poison.process(player)
             specialAttacks.process(player)
