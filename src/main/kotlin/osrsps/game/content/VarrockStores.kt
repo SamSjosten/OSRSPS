@@ -175,6 +175,8 @@ fun registerVarrockStores(world: World) {
         )
         for ((id, talk) in talks) {
             world.handlers.onNpc(id, TALK_TO) { op ->
+                // The Tea Seller won't talk for a while after a theft from his stall.
+                if (world.thieving.refuses(player, op.npc!!, tick)) return@onNpc
                 var trade = false
                 world.dialogues.start(this, op.npc) { trade = talk() }
                 if (trade) world.shopTypes.ofNpc(id)?.let { world.shopScreen.open(player, it) }
