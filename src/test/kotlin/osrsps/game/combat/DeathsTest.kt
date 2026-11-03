@@ -512,6 +512,24 @@ class DeathsTest {
     }
 
     @Test
+    fun `a death that loses items sorts the price checker's in with the rest, so a valuable one being checked is kept`() {
+        val placed = placed { DeathPlace(keepItems = false, 3200, 3201, 0, 3205, 3206, 0) }
+        // A full backpack of bones, and the shield, worth most, in the price checker.
+        alice.inventory.add(bones, 28)
+        alice.priceChecker[0] = InvObj(shield.id, 1)
+        alice.hitpoints = 0
+        placed.die(alice)
+        repeat(Deaths.DEATH_TICKS) { tick++; placed.process() }
+        assertEquals(1L, alice.inventory.count(shield.id))
+        assertEquals(2L, alice.inventory.count(bones.id))
+        assertTrue(alice.priceChecker.contents().isEmpty())
+        val grave = placed.graveOf(alice)!!
+        assertEquals(26L, grave.items.count(bones.id))
+        assertEquals(0L, grave.items.count(shield.id))
+        assertTrue(dropped.isEmpty())
+    }
+
+    @Test
     fun `a death that keeps everything drops what the price checker held and doesn't fit where they come back, with no grave`() {
         val placed = placed { DeathPlace(keepItems = true, 3200, 3201, 0, 3205, 3206, 0) }
         alice.inventory.add(bones, 28)

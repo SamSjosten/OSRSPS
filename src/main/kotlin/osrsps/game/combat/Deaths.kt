@@ -168,11 +168,14 @@ class Deaths(
         if (!player.dead) die(player)
         player.deathTick = -1
         val keep = place?.keepItems == true
+        // The kept items are sorted with the price checker's among them, before it is emptied, so a valuable one being
+        // checked can still be kept.
+        val sorted = if (keep) emptyList() else dropItems(player)
         val over = unchecked(player)
         // Everything kept, what the price checker held and the backpack can't take goes under them where they come
         // back, as closing the screen with a full backpack drops it; left in the closed checker, the next save put it
         // in the bank, which banked from inside a raid (exploit review round 12, RAID-1).
-        val lost = if (keep) emptyList() else dropItems(player) + over
+        val lost = if (keep) emptyList() else sorted + over
         player.deathKeptItems = KEPT_ITEMS
         val charges = lostCharges(player, lost)
         if (lost.isNotEmpty() || charges.isNotEmpty()) bury(player, lost + charges, place)
