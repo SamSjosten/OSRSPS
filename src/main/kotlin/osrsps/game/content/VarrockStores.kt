@@ -22,6 +22,7 @@ object AuburyLines : Lines("aubury", "Transcript:Aubury") {
     val BYE = line("bye", "his parting line, after either no")
     val TELEPORT = line("teleport", "option 4 (after Rune Mysteries), which the player then says")
     val TELEPORT_REPLY = line("teleport_reply", "option 4: his answer, before he teleports the player to the mine")
+    val INCANTATION = line("incantation", "his overhead shout as he sends the player to the mine (his own capitals, not Sedridor's)")
 }
 
 /** Thessalia's lines, from the Wiki's Transcript:Thessalia (Standard dialogue), read 2026-10-30. */
@@ -206,11 +207,11 @@ fun registerVarrockStores(world: World) {
                 world.dialogues.start(this, op.npc) { picked = aubury() }
                 when (picked) {
                     VarrockStores.AuburyChoice.SHOP -> world.shopTypes.ofNpc(id)?.let { world.shopScreen.open(player, it) }
-                    VarrockStores.AuburyChoice.TELEPORT -> teleportToEssenceMine(world, op.npc!!, AUBURY_RETURN)
+                    VarrockStores.AuburyChoice.TELEPORT -> teleportToEssenceMine(world, op.npc!!, AUBURY_RETURN, AuburyLines.INCANTATION)
                     VarrockStores.AuburyChoice.NOTHING -> Unit
                 }
             }
         }
-        world.handlers.onNpc(AUBURY[1], TELEPORT_OP) { op -> teleportToEssenceMine(world, op.npc!!, AUBURY_RETURN) }
+        world.handlers.onNpc(AUBURY[1], TELEPORT_OP) { op -> teleportToEssenceMine(world, op.npc!!, AUBURY_RETURN, AuburyLines.INCANTATION) }
     }
 }

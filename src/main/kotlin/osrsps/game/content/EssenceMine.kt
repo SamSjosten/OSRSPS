@@ -4,6 +4,7 @@ import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
+import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
 import osrsps.game.script.ScriptContext
@@ -151,9 +152,17 @@ object EssenceMine {
     }
 }
 
-/** [npc] sends the player to the rune essence mine; its portals send them back to [returnTo]. */
-suspend fun ScriptContext.teleportToEssenceMine(world: World, npc: Npc, returnTo: Tile = EssenceMine.TO_SEDRIDOR) {
-    npc.effects.say(world.textFor(player)[EssenceMineLines.INCANTATION])
+/**
+ * [npc] sends the player to the rune essence mine, shouting [incantation] (each wizard's own, as live's capitals differ);
+ * its portals send them back to [returnTo].
+ */
+suspend fun ScriptContext.teleportToEssenceMine(
+    world: World,
+    npc: Npc,
+    returnTo: Tile = EssenceMine.TO_SEDRIDOR,
+    incantation: Line = EssenceMineLines.INCANTATION,
+) {
+    npc.effects.say(world.textFor(player)[incantation])
     npc.effects.spotanim(0, EssenceMine.CURSE_CASTING, 92)
     // 2004Scape's essence_mine.rs2: heights 31 (ours are four times 2004Scape's), delay 61, offset 128, 5 cycles a tile.
     world.zones.projectile(
