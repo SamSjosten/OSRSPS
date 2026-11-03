@@ -1,0 +1,348 @@
+{
+  "name": "Draynor piece step 15b: the Wizards' Tower's people: Professor Onglewip's talk, Wizard Traiborn's wizard branch, Wizard Grayzag's lines, and Wizard Mizgog turning away a player without the beads, then trading the four beads for an amulet of accuracy",
+  "account": "test",
+  "steps": [
+    {
+      "step": "waitForLogin"
+    },
+    {
+      "step": "command",
+      "text": "::scenario lumbridge-bare",
+      "expectMessage": "Started scenario lumbridge-bare.",
+      "comment": "::reset at the end puts the account back"
+    },
+    {
+      "step": "command",
+      "text": "::keys on",
+      "expectMessage": "Dialogue shows keys",
+      "comment": "boxes show their keys, whatever data/dialogue.txt holds"
+    },
+    {
+      "step": "command",
+      "text": "::tele 3115 3161 0",
+      "expectMessage": "Teleported to 3115, 3161, 0",
+      "comment": "the ground floor, beside Professor Onglewip"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Professor Onglewip",
+      "option": "Talk-to",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[onglewip.live_here]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[onglewip.stronghold]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[onglewip.where]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[onglewip.north_west]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[onglewip.food]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[onglewip.make_time]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[onglewip.gnomes]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertNoDialogue"
+    },
+    {
+      "step": "command",
+      "text": "::tele 3111 3162 1",
+      "expectMessage": "Teleported to 3111, 3162, 1",
+      "comment": "the first floor, beside Wizard Traiborn"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Wizard Traiborn",
+      "option": "Talk-to",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[traiborn.hello]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[traiborn.teach]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[traiborn.teach]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[traiborn.no_truck]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[traiborn.stop_talking]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[traiborn.stop_talking]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[traiborn.cheerio]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertNoDialogue"
+    },
+    {
+      "step": "command",
+      "text": "::tele 3109 3161 2",
+      "expectMessage": "Teleported to 3109, 3161, 2",
+      "comment": "the second floor, beside Wizard Grayzag"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Wizard Grayzag",
+      "option": "Talk-to",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[grayzag.clever]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[grayzag.well_yes]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[grayzag.watch]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[grayzag.meddler]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertNoDialogue"
+    },
+    {
+      "step": "command",
+      "text": "::tele 3104 3163 2",
+      "expectMessage": "Teleported to 3104, 3163, 2",
+      "comment": "beside Wizard Mizgog"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Wizard Mizgog",
+      "option": "Purchase Amulet",
+      "timeoutMs": 20000,
+      "comment": "no beads yet"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[mizgog.no_beads]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "command",
+      "text": "::item 1474",
+      "expectMessage": "Added 1 x Black bead"
+    },
+    {
+      "step": "command",
+      "text": "::item 1476",
+      "expectMessage": "Added 1 x White bead"
+    },
+    {
+      "step": "command",
+      "text": "::item 1472",
+      "expectMessage": "Added 1 x Yellow bead"
+    },
+    {
+      "step": "command",
+      "text": "::item 1470",
+      "expectMessage": "Added 1 x Red bead"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Wizard Mizgog",
+      "option": "Talk-to",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "chooseOption",
+      "text": "[mizgog.amulet]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[mizgog.amulet]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[mizgog.spare]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[mizgog.have_them]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[mizgog.here_you_go]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[mizgog.gives]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[mizgog.thanks]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[mizgog.what_for]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[mizgog.dont_want]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertInventory",
+      "item": "Amulet of accuracy",
+      "count": 1,
+      "timeoutMs": 5000
+    },
+    {
+      "step": "assertInventory",
+      "item": "Black bead",
+      "count": 0
+    },
+    {
+      "step": "assertInventory",
+      "item": "White bead",
+      "count": 0
+    },
+    {
+      "step": "assertInventory",
+      "item": "Yellow bead",
+      "count": 0
+    },
+    {
+      "step": "assertInventory",
+      "item": "Red bead",
+      "count": 0
+    },
+    {
+      "step": "command",
+      "text": "::reset",
+      "expectMessage": "Back to how you were"
+    }
+  ]
+}
