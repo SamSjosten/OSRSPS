@@ -287,6 +287,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `agility-varrock.json`: Agility step 5: one lap of the Varrock Rooftop Course at Agility 40 (`::xprate 1`), each of
   the nine obstacles crossed to its landing tile, then the lap count (`::keys on`) and the lap's 269.7 XP. A fall on the
   clothes line or the wall fails the run at that obstacle's location check; run it again.
+- `agility-gnome.json`: Agility step 6: one lap of the Gnome Stronghold Agility Course at Agility 10 (`::xprate 1`),
+  each of the seven obstacles crossed to its landing tile, then the lap count (`::keys on`) and the lap's 110.5 XP.
 - `draynor-pickpocket.json`: Draynor step 8: the Master Farmer's level message at Thieving 37 (`::keys on`) and an
   attempt at 99; the man's 28-pouch limit, Open-all for 84 coins, and an attempt on him.
 - `draynor-dark-wizards.json`: Draynor step 9: a dark wizard south of the bank, attacked, casting back from where it

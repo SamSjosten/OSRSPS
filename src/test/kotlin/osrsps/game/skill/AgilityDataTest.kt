@@ -49,6 +49,37 @@ class AgilityDataTest {
     }
 
     @Test
+    fun `the Gnome Stronghold is level 1, 110,5 XP a lap with its 50 XP bonus, and its pipes and branches are one obstacle each`() {
+        val data = AgilityData.load()
+        val gnome = data.courses.single { it.key == "gnome" }
+        assertEquals(1, gnome.level)
+        assertEquals(7, gnome.obstacles.size)
+        assertEquals(500, gnome.lapXpTenths)
+        assertEquals(1_105, gnome.obstacles.sumOf { it.xpTenths } + gnome.lapXpTenths)
+        assertTrue(gnome.obstacles.all { it.success == null })
+        assertEquals(listOf(AgilityTile(2486, 3421, 2)), gnome.markSpots)
+        val pipe = gnome.obstacles.last()
+        assertEquals(listOf(23138, 23139), pipe.locs)
+        assertEquals(listOf(pipe), data.byLoc.getValue(23139))
+        assertEquals(listOf(23560, 23561), gnome.obstacles[4].locs)
+        assertEquals(listOf(23557, 23558), gnome.obstacles[3].locs)
+        assertEquals(listOf(AgilityTile(2487, 3431, 0), AgilityTile(2487, 3435, 0)), pipe.routes.single { it.from.x == 2487 }.at)
+        assertTrue(gnome.obstacles.filter { it.routes.size > 1 }.all { obstacle -> obstacle.routes.all { it.at.isNotEmpty() } })
+    }
+
+    @Test
+    fun `an obstacle names each of its loc types once`() {
+        assertFailsWith<IllegalArgumentException> {
+            AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"alsoLocs\": [1]")}]}""")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"alsoLocs\": [2, 2]")}]}""")
+        }
+        val data = AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"alsoLocs\": [2]")}]}""")
+        assertEquals(data.byLoc.getValue(1), data.byLoc.getValue(2))
+    }
+
+    @Test
     fun `20 levels over a course cut the mark chance to a fifth`() {
         val course = AgilityData.load().courses.single { it.key == "draynor" }
         assertEquals(2 to 6, Agility.markOdds(course, 1))
