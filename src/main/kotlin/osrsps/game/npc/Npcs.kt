@@ -481,6 +481,9 @@ class Npcs(
     private fun tileKey(x: Int, z: Int, level: Int) = (level shl 28) or (x shl 14) or z
 
     companion object {
+        /** A [transform] that lasts as long as the NPC does, as a boss's forms do. */
+        const val FOREVER = Int.MAX_VALUE
+
         /** RSProt's NPC indices run to 65534; far more than one test world needs. */
         const val MAX_NPCS = 32_768
 

@@ -6,6 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import osrsps.game.NpcStat
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -67,6 +68,7 @@ class NpcCombatTest {
             "kalphite_attack_mandibles" to 1184, "kalphite_block" to 1186, "kalphite_death" to 1190,
             "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
+            "npc_archive_guardian_range_attack01" to 14751, "npc_archive_guardian_melee_attack01" to 14752, "npc_archive_guardian_death01" to 14749,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
         ),
     )
@@ -452,6 +454,31 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.FIRE, 20), def("brownbear").weakness)
         assertEquals(listOf(25, 25, 25, 50, 50), listOf("mugger", "black_knight", "thief1", "warrior_woman", "brownbear").map { def(it).respawnTicks })
         assertEquals(76, def("black_knight").defence.against(AttackType.SLASH))
+    }
+
+    @Test
+    fun `the Archive Guardian's two forms fight as the Wiki has them, levitating out of melee's reach`() {
+        val flying = NpcType(16659, "Archive Guardian", size = 5, internalName = "tfa_guardian", stats = NpcStats(attack = 250, defence = 260, strength = 240, hitpoints = 550, ranged = 280, magic = 250))
+        val grounded = NpcType(16660, "Archive Guardian", size = 5, internalName = "tfa_guardian_unshielded", stats = NpcStats(attack = 250, defence = 260, strength = 240, hitpoints = 1100, ranged = 280, magic = 250))
+        val combat = NpcCombat.load(NpcTypes.of(flying, grounded), seqs)
+        val up = combat[flying]!!
+        val down = combat[grounded]!!
+        assertEquals(listOf(5, 5), listOf(up.attackSpeed, down.attackSpeed))
+        assertEquals(listOf(25, 25), listOf(up.maxHit, down.maxHit))
+        assertEquals(AttackType.RANGED, up.attackType)
+        assertEquals(AttackType.CRUSH, down.attackType)
+        assertEquals(true, up.flying)
+        assertEquals(false, down.flying)
+        assertEquals(listOf(NpcRangedAttack(anim = 14751, cast = 4199, projectile = 4201, impact = 4200)), up.attacks)
+        assertEquals(NpcCombatAnims(14752, -1, 14749), down.anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 80), up.weakness)
+        assertEquals(ElementalWeakness(Element.FIRE, 40), down.weakness)
+        assertEquals(mapOf(NpcStat.DEFENCE to 60), up.drainCaps)
+        assertEquals(mapOf(NpcStat.DEFENCE to 60), down.drainCaps)
+        assertTrue(up.poisonImmune && up.venomImmune && down.poisonImmune && down.venomImmune)
+        // The cache's slash bonus is 110 levitating and 90 grounded; the Wiki's crush 20 for both.
+        assertEquals(listOf(110, 90), listOf(up.defence.against(AttackType.SLASH), down.defence.against(AttackType.SLASH)))
+        assertEquals(20, down.defence.against(AttackType.CRUSH))
     }
 
     @Test

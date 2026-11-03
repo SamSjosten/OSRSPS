@@ -112,6 +112,11 @@ data class NpcCombatDef(
      * XP for their damage ([CombatMath.withXpBonus]).
      */
     val xpBonusTenths: Int = 0,
+    /**
+     * It flies out of melee's reach: only ranged, magic and halberds hit it (the Archive Guardian levitating, OSRS Wiki,
+     * The Fractured Archive/Strategies).
+     */
+    val flying: Boolean = false,
 )
 
 /** A stat a hit lowers by [percent] of its base level (Confuse's Attack), when it isn't lowered that far already. */
@@ -255,6 +260,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                     require(percent > -100.0 && percent <= 1000.0) { "an XP bonus of $percent%" }
                     Math.round(percent * 10).toInt()
                 },
+                flying = entry["flying"]?.jsonPrimitive?.boolean ?: false,
             )
         }
 

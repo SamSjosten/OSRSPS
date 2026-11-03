@@ -717,6 +717,25 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `an NPC held at 0, a boss's broken shield, gets no hitpoint back till its fight moves it on`() {
+        val held = spawn()
+        val hurt = spawn(x = 3211)
+        held.holdsAtZero = true
+        melee.hit(held, alice, held.hitpoints, tick)
+        hurt.hitpoints = 3
+        assertEquals(0, held.hitpoints)
+        assertFalse(held.dead)
+        repeat(MeleeCombat.REGEN_TICKS * 2 + 1) { tick() }
+        assertEquals(0, held.hitpoints)
+        assertEquals(5, hurt.hitpoints)
+        // Let go of, it heals as any NPC does: its minute starts on the tick after.
+        held.holdsAtZero = false
+        held.hitpoints = 1
+        repeat(MeleeCombat.REGEN_TICKS + 1) { tick() }
+        assertEquals(2, held.hitpoints)
+    }
+
+    @Test
     fun `a respawned NPC's first hitpoint comes a full minute after the tick it comes back`() {
         addRespawns = true
         val npc = spawn()

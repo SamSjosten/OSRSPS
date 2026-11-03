@@ -1728,9 +1728,10 @@ one of its four levels and the lobby's square left out. The party gathers in the
 is fought in the nexus's hall, where the cache lays its corpse on the nexus's later levels. Then come three rows of
 doors, each with a room behind its west and east door: Ezekiel or Bork and the Smorks, then Moia or Dreadnoth the
 Jellied, then the Dagon'hai Elder or Xarth. Last, the nexus's Passageway north opens to Ocellus's arena. Each room's
-Passageway goes back out to the nexus, and so does its Archive transporter once the room is done. No boss is built
-yet, so each room is done as soon as the first party member walks in: that is the run through empty rooms. Each
-boss's step, from 16 on, adds its fight and ends its room when the boss dies.
+Passageway goes back out to the nexus, and so does its Archive transporter once the room is done. A room whose boss
+isn't built yet is done as soon as the first party member walks in: that is the run through empty rooms. Each boss's
+step, from 16 on, adds its fight and ends its room when the boss dies. The Guardian (step 16) waits in its hall from
+the run's start and its fight begins when a member touches it. The whole instance is multi-way.
 
 A room's contribution points are shared by damage among those who did any, or evenly among who was there if nobody
 did. A party member who dies while someone still stands keeps everything and is down until the room is done. The
@@ -1753,9 +1754,11 @@ loses goes in a grave there. The party lasts through the wipe.
 | A row's other door shut once one is gone through; a row opening once the room before is done; Enter and Quick-enter, Use and Quick-use, the same | guessed, until a recording shows a run |
 | Passageway out at any time; the transporter once the room is done; both to the nexus in front of the room's door | guessed |
 | A room's fight beginning as the first party member stands in it, and the Guardian's in the hall north of the entrance | guessed |
+| The Guardian's fight beginning on Touch on the waiting "Inert Guardian" (`tfa_guardian_start`, 16657) in the middle of the hall, where its corpse lies later; scaled to everyone standing in the run then | 241.4 cache (the NPC and its Touch); where it waits inferred from the corpse; the party size guessed |
+| The whole of a run's instance multi-way | inferred: a raid of up to eight fights one boss |
 | A member who leaves the party sent to the lobby; a logout saving them there, as any instance's exit | guessed |
-| Every room done as it begins, until its boss's step | stand-in |
-| The bosses, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 16 to 31 |
+| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's) |
+| The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 17 to 31 |
 
 `::raid run` shows the run you're in, `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, and
 `::raid clear` marks the room you're in done. Check: `./gradlew test --tests 'osrsps.game.instance.*'
@@ -1783,14 +1786,45 @@ a fight started on a seed plays the same way each time.
 | Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
 | A hazard's hit still counting as combat: it cuts a Home Teleport or lodestone cast short and holds a logout, as the boss's own hit would (exploit review round 11, ENC-1) | guessed |
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
+| A phase also ending when its own test says so (a shield broken); steps put off a few ticks (a laser aimed now, landing later) running after the cycle and before the hazards, never once the fight is over | guessed |
+| A boss whose fight picks its attacks (the Guardian) never swinging, shooting, walking after anyone or retreating by itself, and keeping the first player it took on while they last | guessed |
 | A fight outside an instance covering 32 tiles round the boss's spawn | testing only: the raid's rooms are instances |
-| No bosses yet: each one comes with its own step, from 16 on, with its room and gear sets for `::raid` | not in yet |
+| The Archive Guardian (step 16); the others each come with their own step, from 17 on, with its room and gear sets for `::raid` | not in yet: steps 17 to 27 |
 
 `::raid boss phase=2 party=3 seed=42` starts a fight where you stand, and `::raid digest 100` sums up its first 100
 ticks. Check: `./gradlew test --tests 'osrsps.game.encounter.*' --tests 'osrsps.game.command.RaidCommandsTest'
 --tests 'osrsps.testclient.HeadlessEncounterTest'` (a test boss plays the same 100 ticks on two runs with the same seed
 and differently on another; its phases change at half hitpoints and on time, with an add and a hazard, and the fight
 ends when the boss leaves).
+
+## The Archive Guardian
+
+The raid's first boss (raid step 16a) is `game/raid/ArchiveGuardian.kt`, an encounter on the cache's two forms. It
+waits in the nexus's hall as the "Inert Guardian" until a member touches it. It wakes levitating, with its shield's
+hitpoints, shooting the player it took on every 5 ticks and slamming anyone who stands under it instead; only ranged,
+magic and halberds reach it. With the shield gone it falls to the ground, blasting whoever is under or beside it, with
+its grounded hitpoints, and swings at a player beside it. At 30% it takes off again for good, with no shield, and fires
+a laser at a random player every 10 ticks, its damage shared by everyone on the laser's line. Its death does the room.
+The mushrooms, the vines and the inert guardians round the hall are steps 16b and 16c.
+
+| Guardian behaviour | Source |
+|--------------------|--------|
+| Stats, bonuses, both forms' hitpoints by party size (shield 550 to 1,950, grounded 1,100 to 3,910), 5-tick attacks, max hits 25 and 99+, 80% fire weakness, poison and venom immunity, Defence drained to 60% at most | Wiki, Archive Guardian (read 2026-11-03) |
+| Two forms: `tfa_guardian` (16659) levitating, `tfa_guardian_unshielded` (16660) grounded with slash defence 90 not 110; the animations and spotanims by name | 241.4 cache |
+| Levitating, only ranged, magic and halberds hitting it; shots at the player it chose; a slam on whoever stands under it; the shield's break grounding it; a blast on those under or next to it; the last phase at 30% with no shield; the laser "fatal if more than two players are alive and it isn't reduced", shared by standing in line, "slightly" cut by Protect from Magic | Wiki, The Fractured Archive/Strategies, as a guide site quotes it (the Wiki's own page is too long to read past its equipment) |
+| The grounded form's 40% fire weakness | a guide (osrsbestinslot); the Wiki lists 80% and 40% without saying which form has which |
+| Ranged shots (Protect from Missiles), a crush swing grounded (Protect from Melee), the slam blocked by Protect from Melee | guessed for the slam; the prayers for the others from the attack styles |
+| The first attack 5 ticks into each phase; the laser every 10 ticks, landing 3 after it is aimed; its line from the boss's middle through its target, 32 tiles on | guessed |
+| The slam up to 25, the blast 10 to 20, the laser 80 for one or two players and 40 for each player from three, Protect from Magic taking a tenth | guessed, to fit the Strategies page's words |
+| It never moves, and keeps to one tank till they fall | guessed |
+| The words for melee refused on a flying monster (`combat.flying`) | guessed |
+| The mushrooms, the vines (`archive_guardian_tentacle`), the inert guardians (`tfa_guardian_battery_*`), the step-under timing, a guide's "firebreath" enrage with braziers | not in yet: steps 16b and 16c (the enrage isn't on the Strategies page) |
+
+`::raid guardian party=3` starts it where you stand, `phase=grounded` or `phase=airborne` from a later phase. Check:
+`./gradlew test --tests 'osrsps.testclient.HeadlessArchiveGuardianTest' --tests 'osrsps.game.combat.NpcCombatTest'`
+(touched awake in its hall, through its three phases to its death doing the room, the instance multi-way; the laser
+shared by two on its line; melee refused while it levitates but for a halberd; the laser's line and damage), and in
+RuneLite `test-runner/examples/archive-guardian.json` (the whole fight solo with the right prayers, moved on with `::hit`).
 
 ## The Fractured Archive lobby
 
