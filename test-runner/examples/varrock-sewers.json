@@ -1,5 +1,5 @@
 {
- "name": "Varrock step 15: down the manhole east of the palace and back up its ladder, down the bear pen's trapdoor and back up, the web east of the deadly red spiders (no blade, then a godsword that always cuts), and a moss giant killed for its big bones (::keys on)",
+ "name": "Varrock step 15: down the manhole east of the palace and back up its ladder, down the bear pen's trapdoor and back up, the web east of the deadly red spiders (Slash with no blade, then a godsword used on it, which always cuts), and a moss giant killed for its big bones (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -134,11 +134,12 @@
    "comment": "slash +132, so it cuts every time (the knife's 50% is checked in HeadlessVarrockSewersTest)"
   },
   {
-   "step": "locOption",
+   "step": "useItemOnLoc",
+   "item": "Armadyl godsword",
    "loc": "Web",
-   "option": "Slash",
    "x": 3210,
-   "y": 9898
+   "y": 9898,
+   "comment": "the godsword used on the web; Slash with a blade carried is checked in HeadlessVarrockSewersTest"
   },
   {
    "step": "assertMessage",
