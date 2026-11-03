@@ -8,6 +8,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.Player
+import osrsps.game.Quests
 import osrsps.game.Skill
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Line
@@ -1160,8 +1161,8 @@ class Clans(
         val total = Skill.entries.sumOf { skills.baseLevel(it) }
         return skills.combatLevel >= guestRequirement(clan, GuestRequirement.COMBAT) &&
             total >= guestRequirement(clan, GuestRequirement.SKILL_TOTAL) &&
-            // No quests are built, so everyone has 0 quest points.
-            0 >= guestRequirement(clan, GuestRequirement.QUEST_POINTS) &&
+            // Every account has each quest done at login (Quests.completeAll), and the quest points with them.
+            player.vars[Quests.VARP_QUEST_POINTS] >= guestRequirement(clan, GuestRequirement.QUEST_POINTS) &&
             guestRequirement(clan, GuestRequirement.IRON_STATUS) == 0
     }
 

@@ -2,6 +2,7 @@ package osrsps.testclient
 
 import net.rsprot.protocol.game.outgoing.prot.GameServerProt
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.Quests
 import osrsps.game.World
 import osrsps.game.script.ScriptContext
 import osrsps.game.social.ClanStore
@@ -1093,8 +1094,16 @@ class HeadlessClanTest {
                         val aliceP = server.world.playerNamed("alice")!!
                         clans.setGuestRequirement(aliceP, clan.id, GuestRequirement.COMBAT, 0)
                         clans.setGuestRequirement(aliceP, clan.id, GuestRequirement.SKILL_TOTAL, 0)
+                        // Quest points: the ones every account has from login (all quests done), so one more keeps carol out.
+                        val qp = carolP.vars[Quests.VARP_QUEST_POINTS]
+                        clans.setGuestRequirement(aliceP, clan.id, GuestRequirement.QUEST_POINTS, qp + 1)
+                        carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
+                        carol.await("refused for quest points") { carol.messages().count { it.text == "[clan.guest_requirements name=Odins Gate]" }.takeIf { it == 2 } }
+                        assertFalse(clans.inGuestChannel(carolP))
+                        clans.setGuestRequirement(aliceP, clan.id, GuestRequirement.QUEST_POINTS, qp)
                         carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
                         carol.await("carol back in") { Unit.takeIf { clans.inGuestChannel(carolP) } }
+                        clans.setGuestRequirement(aliceP, clan.id, GuestRequirement.QUEST_POINTS, 0)
 
                         // Iron status: picked from the list; nobody here is an Ironman, but carol, already in, stays.
                         alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = GuestRequirement.IRON_STATUS.slot)
