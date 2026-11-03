@@ -4,6 +4,7 @@ import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
+import osrsps.map.Tile
 
 /** The Varrock General Store keeper's lines, from the Wiki's Transcript:Shop keeper (Varrock), read 2026-10-30. */
 object VarrockShopKeeperLines : GeneralStoreLines("varrock_shop_keeper", "Transcript:Shop keeper (Varrock)", "shop keeper")
@@ -19,6 +20,8 @@ object AuburyLines : Lines("aubury", "Transcript:Aubury") {
     val YES = line("yes", "option 2: the shop opens, with no line from the player")
     val DECLINE = line("decline", "option 3: it's a rune shop, which the player then says")
     val BYE = line("bye", "his parting line, after either no")
+    val TELEPORT = line("teleport", "option 4 (after Rune Mysteries), which the player then says")
+    val TELEPORT_REPLY = line("teleport_reply", "option 4: his answer, before he teleports the player to the mine")
 }
 
 /** Thessalia's lines, from the Wiki's Transcript:Thessalia (Standard dialogue), read 2026-10-30. */
@@ -65,8 +68,8 @@ object TeaSellerLines : Lines("tea_seller", "Transcript:Tea Seller") {
  * (2816), Aubury (aubury_3op, 11435, as every account has done Rune Mysteries; aubury_2op, 11434, talks the same),
  * Thessalia (thessalia_normal, 10477), Asyff (2887) and the Tea Seller (8687). Trade is [registerShops]'s. From the
  * Wiki's transcripts. Guessed: every expression; that the General Store's assistant, who has no transcript, says what
- * the keeper says; that Aubury's two partings are one line. Left out: Aubury's Teleport and its talk option (there is
- * no rune essence mine yet), Thessalia's Makeover and its change top and legwear options (there is no makeover screen
+ * the keeper says; that Aubury's two partings are one line. Aubury's Teleport and his talk's fourth option send the
+ * player to the rune essence mine ([teleportToEssenceMine]), whose portals bring them back to his shop. Left out: Thessalia's Makeover and its change top and legwear options (there is no makeover screen
  * yet), her scythe, bunny ears and frog token options, and Asyff's Fur Clothing, bird costume, hunting clothing and
  * priest gown options.
  */
@@ -79,21 +82,38 @@ object VarrockStores {
     const val TEA_SELLER = 8687
     const val TALK_TO = 1
 
-    /** Aubury's talk; true when the player asked to see the shop. */
-    internal suspend fun Dialogue.aubury(): Boolean = with(AuburyLines) {
+    /** aubury_3op's Teleport. */
+    const val TELEPORT_OP = 4
+
+    /**
+     * Where the essence mine's portals send back a player Aubury sent: his shop (2004Scape's ^essence_mine_to_aubury in
+     * runecraft.constant).
+     */
+    val AUBURY_RETURN = Tile(3253, 3401)
+
+    /** What the player picked in Aubury's talk. */
+    enum class AuburyChoice { NOTHING, SHOP, TELEPORT }
+
+    /** Aubury's talk, with his fourth option, the teleport, as every account has done Rune Mysteries. */
+    internal suspend fun Dialogue.aubury(): AuburyChoice = with(AuburyLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
-        when (choice(CAPE, YES, DECLINE)) {
+        when (choice(CAPE, YES, DECLINE, TELEPORT)) {
             1 -> {
                 chatNpc(ChatAnim.HAPPY, CAPE_1)
                 chatNpc(ChatAnim.HAPPY, CAPE_2)
-                if (choice(VIEW, NO_THANKS) == 1) return@with true
+                if (choice(VIEW, NO_THANKS) == 1) return@with AuburyChoice.SHOP
                 chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
             }
-            2 -> return@with true
-            else -> chatPlayer(ChatAnim.NEUTRAL, DECLINE)
+            2 -> return@with AuburyChoice.SHOP
+            3 -> chatPlayer(ChatAnim.NEUTRAL, DECLINE)
+            else -> {
+                chatPlayer(ChatAnim.QUIZ, TELEPORT)
+                chatNpc(ChatAnim.NEUTRAL, TELEPORT_REPLY)
+                return@with AuburyChoice.TELEPORT
+            }
         }
         chatNpc(ChatAnim.NEUTRAL, BYE)
-        false
+        AuburyChoice.NOTHING
     }
 
     internal suspend fun Dialogue.thessalia(): Boolean = with(ThessaliaLines) {
@@ -170,8 +190,6 @@ fun registerVarrockStores(world: World) {
             THESSALIA to { thessalia() },
             ASYFF to { asyff() },
             TEA_SELLER to { teaSeller() },
-            AUBURY[0] to { aubury() },
-            AUBURY[1] to { aubury() },
         )
         for ((id, talk) in talks) {
             world.handlers.onNpc(id, TALK_TO) { op ->
@@ -182,5 +200,17 @@ fun registerVarrockStores(world: World) {
                 if (trade) world.shopTypes.ofNpc(id)?.let { world.shopScreen.open(player, it) }
             }
         }
+        for (id in AUBURY) {
+            world.handlers.onNpc(id, TALK_TO) { op ->
+                var picked = VarrockStores.AuburyChoice.NOTHING
+                world.dialogues.start(this, op.npc) { picked = aubury() }
+                when (picked) {
+                    VarrockStores.AuburyChoice.SHOP -> world.shopTypes.ofNpc(id)?.let { world.shopScreen.open(player, it) }
+                    VarrockStores.AuburyChoice.TELEPORT -> teleportToEssenceMine(world, op.npc!!, AUBURY_RETURN)
+                    VarrockStores.AuburyChoice.NOTHING -> Unit
+                }
+            }
+        }
+        world.handlers.onNpc(AUBURY[1], TELEPORT_OP) { op -> teleportToEssenceMine(world, op.npc!!, AUBURY_RETURN) }
     }
 }

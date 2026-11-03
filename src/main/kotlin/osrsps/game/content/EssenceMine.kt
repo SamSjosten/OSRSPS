@@ -47,7 +47,7 @@ object EssenceMineLines : Lines("essence_mine", "Rune essence mine") {
  *   four portals aren't on the 241 map, which live fills at each entry with one of seven look-alikes (five locs, two
  *   NPCs; the Wiki's Portal (Rune essence mine)); here `essencemine_portal_1` 34774 stands at 2004Scape's four tiles
  *   always, and every portal loc type's option sends the player back. They come out beside Sedridor (2004Scape's
- *   3106,9572), the only teleporter so far; who sent them will need saving once Aubury and the others send players.
+ *   3106,9572), or beside whoever else sent them ([teleportToEssenceMine]'s returnTo, as Aubury does).
  * - Guessed: that the shout is overhead only (the transcript shows it as his line). The projectiles' heights and timing
  *   are 2004Scape's, not measured on live.
  *   Live's instances (a new one every fifth entry) are left out: everyone shares the one mine.
@@ -76,6 +76,19 @@ object EssenceMine {
 
     /** Where the mine sends players back to Sedridor (2004Scape's essence_mine_to_sedridor). */
     val TO_SEDRIDOR = Tile(3106, 9572)
+
+    /**
+     * Where each player in the mine goes back to: beside whoever sent them ([teleportToEssenceMine]'s returnTo). Kept in
+     * memory only, so a player who logs out in the mine comes back out beside Sedridor (2004Scape keeps it in a varp).
+     */
+    private val returns = java.util.Collections.synchronizedMap(java.util.WeakHashMap<Player, Tile>())
+
+    internal fun sentFrom(player: Player, tile: Tile) {
+        returns[player] = tile
+    }
+
+    /** Where [player] leaves the mine for, forgetting it: beside whoever sent them, or Sedridor. */
+    internal fun takeReturn(player: Player): Tile = returns.remove(player) ?: TO_SEDRIDOR
 
     /** 2004Scape's essence_mine_teleports: where a player sent to the mine lands. */
     val LANDINGS: List<Tile> = listOf(
@@ -138,8 +151,8 @@ object EssenceMine {
     }
 }
 
-/** [npc] sends the player to the rune essence mine. */
-suspend fun ScriptContext.teleportToEssenceMine(world: World, npc: Npc) {
+/** [npc] sends the player to the rune essence mine; its portals send them back to [returnTo]. */
+suspend fun ScriptContext.teleportToEssenceMine(world: World, npc: Npc, returnTo: Tile = EssenceMine.TO_SEDRIDOR) {
     npc.effects.say(world.textFor(player)[EssenceMineLines.INCANTATION])
     npc.effects.spotanim(0, EssenceMine.CURSE_CASTING, 92)
     // 2004Scape's essence_mine.rs2: heights 31 (ours are four times 2004Scape's), delay 61, offset 128, 5 cycles a tile.
@@ -165,6 +178,7 @@ suspend fun ScriptContext.teleportToEssenceMine(world: World, npc: Npc) {
     delay(EssenceMine.SEND_TICKS)
     val landing = EssenceMine.LANDINGS[world.random.nextInt(EssenceMine.LANDINGS.size)]
     val to = EssenceMine.freeTileNear(landing, 1, { x, z -> world.canStand(x, z, 0) }) { world.random.nextInt(it) }
+    EssenceMine.sentFrom(player, returnTo)
     world.teleport(player, to.x, to.z, 0)
 }
 
@@ -203,7 +217,7 @@ fun registerEssenceMine(world: World) {
                 }
                 player.spotanim(CURSE_IMPACT, 124, 30)
                 delay(1)
-                val to = freeTileNear(TO_SEDRIDOR, 2, { x, z -> world.canStand(x, z, 0) }) { world.random.nextInt(it) }
+                val to = freeTileNear(takeReturn(player), 2, { x, z -> world.canStand(x, z, 0) }) { world.random.nextInt(it) }
                 world.teleport(player, to.x, to.z, 0)
             }
         }
