@@ -291,6 +291,8 @@ class Pickpocketing(private val world: World) {
          * women level 25, 26 XP, 2 damage. The warrior's 100 to 240 is worked back from the Wiki's chart (135/256 at 25,
          * 241/256 at 99). The guard's 50 to 240 is GUESSED: the Wiki's chart wasn't readable, so it is the pair with the
          * others' 240 that reaches 100% at 95 with the Ardougne diary's 10%, the Pickpocketing page's 100% level.
+         * Guessed too: that guards and warrior women say the townsfolk's caught line, and the lower case "guard" and
+         * "warrior" in the messages (the Wiki gives neither).
          */
         val POCKETS = listOf(
             Pocket(Townsfolk.MEN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
