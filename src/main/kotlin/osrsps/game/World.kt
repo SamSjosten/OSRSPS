@@ -2302,6 +2302,9 @@ class World(
             return@act
         }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
+            // A delayed player (part way along an agility obstacle, say) can't log out, or they would be saved on a tile
+            // the move only passes through (round 12 exploit review, R12B-1). Inferred from live's p_delay.
+            if (player.scripts.delayed) return@act
             if (inCombat(player)) {
                 player.message(textFor(player)[GameLines.CANT_LOG_OUT])
                 return@act
@@ -2797,7 +2800,8 @@ class World(
             player.logoutRequested = false
             player.message(textFor(player)[GameLines.CANT_LOG_OUT])
         }
-        if (player.logoutRequested || player.logoutForced) {
+        // A request made in the tick a delay began waits for the delay to end, so the move finishes first (R12B-1).
+        if (player.logoutForced || (player.logoutRequested && !player.scripts.delayed)) {
             // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
             // the player is removed on the next tick by hand.
             session.queue(Logout)
