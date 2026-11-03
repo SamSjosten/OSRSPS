@@ -18,7 +18,8 @@ enum class MoveResult { NONE, WALKED, RAN }
  * units a tick, and any tick spent not running restores ⌊agility / 10⌋ + 15. Weight is [Player.weightGrams] in
  * kilograms, counted from 0 to 64 (lighter or heavier has no more effect). Inferred: the weight's fractions count, as
  * the article tells 64.1 kg from 64; the client is only shown whole kilograms. Inferred: the agility is the current
- * (boosted) level, as the article says "Agility level" and a boost counts for Agility's other checks.
+ * (boosted) level, as the article says "Agility level" and a boost counts for Agility's other checks. Graceful pieces make
+ * the restore faster ([Graceful], [Player.restoreBonusPercent]).
  *
  * An obstacle's [Player.forcedSteps] come first: one tile a tick, through anything in the way and while the player is
  * delayed, which the obstacle is for ([osrsps.game.skill.Agility]). They count as walking for energy.
@@ -139,7 +140,8 @@ class Movement(private val collision: CollisionMap) {
         }
         // Every tick that isn't a run restores energy, the one that turned run off too.
         if (result != MoveResult.RAN) {
-            player.runEnergy = (player.runEnergy + agility / 10 + 15).coerceAtMost(MAX_ENERGY)
+            val restore = Graceful.boosted(agility / 10 + 15, player.restoreBonusPercent)
+            player.runEnergy = (player.runEnergy + restore).coerceAtMost(MAX_ENERGY)
             val threshold = autoEnableAt(player)
             if (player.runRanOut && threshold > 0 && player.runEnergy >= threshold) {
                 player.runEnabled = true

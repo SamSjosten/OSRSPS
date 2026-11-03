@@ -57,6 +57,7 @@ class NpcCombatTest {
             "human_dhsword_chop" to 406, "human_dhsword_block" to 410, "barrow_dharok_crush" to 2067,
             "human_staff_pound" to 413, "human_staff_block" to 415, "human_bow" to 426,
             "skeleton_update_attack_weapon" to 5485, "skeleton_update_attack_sword" to 5487, "skeleton_update_defend" to 5489, "skeleton_update_death" to 5491,
+            "hobgoblin_attack" to 163, "hobgoblin_attackunarmed" to 164, "hobgoblin_block" to 165, "hobgoblin_death" to 167,
             "ghost_update_normal_attack" to 5532, "ghost_update_normal_defend" to 5533, "ghost_update_normal_death" to 5534,
         ),
     )
@@ -226,6 +227,44 @@ class NpcCombatTest {
         assertEquals(listOf(35, 70, 60), listOf("zombie_unarmed_sewer1", "skeleton_unarmed", "skeleton_armed").map { def(it).respawnTicks })
         assertEquals(-5, def("skeleton_unarmed").defence.against(AttackType.CRUSH))
         assertEquals(15, def("skeleton_armed").attackBonus)
+    }
+
+    @Test
+    fun `the Edgeville Dungeon's zombies, skeletons and hobgoblins fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's Strength levels: zombies 13, skeletons 18, 17 and 24, hobgoblins 24 and 31.
+        val dungeon = mapOf(
+            "zombie2" to 13, "zombie2_b" to 13, "zombie2_c" to 13,
+            "skeleton_unarmed2" to 18, "skeleton_unarmed4" to 18,
+            "skeleton_unagressive" to 17, "skeleton_unagressive2" to 17, "skeleton_unagressive3" to 17,
+            "skeleton_armed2" to 24, "skeleton_armed4" to 24, "skeleton_armed5" to 24,
+            "hobgoblin_unarmed" to 24, "hobgoblin_armed" to 31,
+        )
+        val dungeonTypes = NpcTypes.of(*dungeon.entries.mapIndexed { i, (name, str) -> NpcType(2200 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(dungeonTypes, seqs)
+        assertEquals(dungeon.size, combat.size)
+        fun def(name: String) = combat[dungeonTypes.find(name)!!]!!
+        for (name in dungeon.keys) {
+            val type = dungeonTypes.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+            assertTrue(def(name).aggression != null, "$name is aggressive")
+        }
+        assertEquals(listOf(2, 3, 3, 4, 3, 5), listOf("zombie2", "skeleton_unarmed4", "skeleton_unagressive", "skeleton_armed5", "hobgoblin_unarmed", "hobgoblin_armed").map { def(it).maxHit })
+        assertEquals(AttackType.SLASH, def("zombie2_b").attackType)
+        assertEquals(AttackType.CRUSH, def("skeleton_unagressive2").attackType)
+        assertEquals(AttackType.STAB, def("hobgoblin_armed").attackType)
+        assertEquals(listOf(5, 4, 6), listOf("zombie2_c", "hobgoblin_unarmed", "hobgoblin_armed").map { def(it).attackSpeed })
+        assertEquals(NpcCombatAnims(5578, 5579, 5580), def("zombie2").anims)
+        assertEquals(NpcCombatAnims(5568, 5567, 5569), def("zombie2_b").anims)
+        assertEquals(NpcCombatAnims(5571, 5574, 5575), def("zombie2_c").anims)
+        assertEquals(NpcCombatAnims(5485, 5489, 5491), def("skeleton_unagressive3").anims)
+        assertEquals(NpcCombatAnims(164, 165, 167), def("hobgoblin_unarmed").anims)
+        assertEquals(NpcCombatAnims(163, 165, 167), def("hobgoblin_armed").anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 50), def("zombie2").weakness)
+        assertEquals(ElementalWeakness(Element.EARTH, 35), def("skeleton_unagressive").weakness)
+        assertNull(def("hobgoblin_armed").weakness)
+        assertEquals(listOf(35, 35, 70, 60, 35), listOf("zombie2", "skeleton_unagressive", "skeleton_unarmed2", "skeleton_armed4", "hobgoblin_armed").map { def(it).respawnTicks })
+        assertEquals(1, def("hobgoblin_armed").defence.against(AttackType.STAB))
+        assertEquals(8, def("hobgoblin_armed").attackBonus)
     }
 
     @Test

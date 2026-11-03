@@ -128,6 +128,19 @@ class MovementTest {
     }
 
     @Test
+    fun `the graceful bonus speeds the restore and not the drain`() {
+        val player = player().apply { runEnabled = true; runEnergy = 5000; restoreBonusPercent = Graceful.FULL_SET }
+        player.skills.setLevel(Skill.AGILITY, 99)
+        movement.request(player, 3220, 3210, invertRun = false)
+        movement.process(player)
+        assertEquals(5000 - 40, player.runEnergy)
+        player.waypoints.clear()
+        movement.process(player)
+        // ⌊1.3 × (⌊99 / 10⌋ + 15)⌋
+        assertEquals(5000 - 40 + 31, player.runEnergy)
+    }
+
+    @Test
     fun `forced steps go a tile a tick through walls and before the route, and count as walking`() {
         val blocked = CollisionMap().apply {
             markLoaded(3200 shr 6, 3200 shr 6)

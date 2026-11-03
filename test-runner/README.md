@@ -199,6 +199,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   and letting in 32 in a chef's hat, the spiral stairs up and down, grain through the hopper into a pot of flour, the
   north-east room's door refusing below 99 and letting 99 through, its range, the Head chef's cape and hood bought for
   99,000 coins, and Romily Weaklax's Pie Shop.
+- `edgeville-dungeon.json`: Edgeville step 10 (with `::keys on` and `::god on`): down the trapdoor south of the bank,
+  a level 18 zombie killed for its bones, iron mined, a metal gate opened, the north gate refusing, the odd looking
+  wall pushed through, and back up the ladder.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
@@ -237,6 +240,12 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-museum-people.json`: Varrock step 9b (with `::keys on`): Historian Minas's information topic, Torrcs,
   Art Critic Jacques and the teacher and pupil on the second floor, then on the Natural History floor Orlando Smith, a
   schoolboy and a natural historian (his first talk ended, then his later greeting and menu).
+- `varrock-champions-guild.json`: Varrock step 10 (with `::keys on`): in through the Champions' Guild's door past the
+  Guildmaster's greeting, his talk, upstairs to buy at Scavvo's and Valaine's (selling to Valaine, who buys anything),
+  their talk, down the trapdoor to the basement and back up its ladder, and out of the door again.
+- `varrock-skilling.json`: Varrock step 11 (with `::keys on`): mines copper at the south-east mine, hammers a bronze
+  dagger on the west anvils, cooks a shrimp on a house's range, chops a dying tree to its stump, fills buckets at a sink
+  and a well, and hits a training dummy north of the East Bank until level 8 has nothing more to teach.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
@@ -264,6 +273,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   after it, the telescope upstairs and the hat talk that confronts him.
 - `draynor-stalls.json`: Draynor step 7: the seed stall's level box at level 1 (`::keys on`), a theft at 27 (one seed,
   10 XP, the stall empty and back 4 ticks later), and Olivia refusing to trade after it. `::reset` makes her forget.
+- `agility-draynor.json`: Agility step 2: one lap of the Draynor Village Rooftop Course at Agility 30 (`::xprate 1`),
+  each of the seven obstacles crossed to its landing tile, then the lap count (`::keys on`) and the lap's 120 XP.
+- `agility-grace.json`: Agility step 3: down the Toad and Chicken's trapdoor into the Rogues' Den and through its door,
+  Grace's shop paid in marks of grace (Value, Buy 1, Value and Sell 1 back at 80%, `::keys on`), up the passageway,
+  then the whole graceful set worn from the backpack (`assertEquipment` needs 0.6.0).
 - `draynor-pickpocket.json`: Draynor step 8: the Master Farmer's level message at Thieving 37 (`::keys on`) and an
   attempt at 99; the man's 28-pouch limit, Open-all for 84 coins, and an attempt on him.
 - `draynor-dark-wizards.json`: Draynor step 9: a dark wizard south of the bank, attacked, casting back from where it

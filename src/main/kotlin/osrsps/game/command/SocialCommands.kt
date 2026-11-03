@@ -2,6 +2,7 @@ package osrsps.game.command
 
 import osrsps.game.World
 import osrsps.game.social.ClanFoundingRule
+import osrsps.game.social.Clans
 import osrsps.game.social.FriendLists
 import osrsps.game.social.Reports
 
@@ -86,13 +87,32 @@ fun CommandRegistry.registerSocialCommands(world: World) {
         reply("Clan ${clan.name} made, for guests to find")
     }
 
+    register("clanjoin", "::clanjoin <name> [recruiter]") {
+        if (args.isEmpty()) fail("Usage: ::clanjoin <name> [recruiter]")
+        // A last word "recruiter" joins at the rank that sees the applicants page.
+        val recruiter = args.size > 1 && args.last().equals("recruiter", ignoreCase = true)
+        val name = (if (recruiter) args.dropLast(1) else args).joinToString(" ")
+        val clan = world.clans.clanNamed(name) ?: fail("No clan called $name")
+        val rank = if (recruiter) Clans.RECRUIT_RANK else Clans.RANK_FOUNDER
+        if (!world.clans.joinTestClan(player, clan, rank)) fail("You're in a clan already")
+        reply("Joined clan ${clan.name}" + if (recruiter) " as a recruiter" else "")
+    }
+
+    register("clanapplicant", "::clanapplicant") {
+        if (args.isNotEmpty()) fail("Usage: ::clanapplicant")
+        val clan = world.clans.clanOf(player) ?: fail("You aren't in a clan")
+        if (!world.clans.addTestApplicant(clan)) fail("${clan.name} has the test applicant already")
+        reply("${Clans.TEST_APPLICANT_NAME} applied to ${clan.name}")
+    }
+
     register("guestclan", "::guestclan", admin = false) {
         if (args.isNotEmpty()) fail("Usage: ::guestclan")
         val clan = world.clans.guestClanOf(player) ?: run {
             reply("You have no guest clan")
             return@register
         }
-        reply("Guest of ${clan.name}, " + if (world.clans.inGuestChannel(player)) "in its channel" else "not in its channel")
+        val applied = if (clan.applicant(player.saveKey) != null) ", applied" else ""
+        reply("Guest of ${clan.name}, " + (if (world.clans.inGuestChannel(player)) "in its channel" else "not in its channel") + applied)
     }
 
     register("ignores", "::ignores", admin = false) {

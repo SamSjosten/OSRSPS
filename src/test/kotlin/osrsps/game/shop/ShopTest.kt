@@ -58,6 +58,11 @@ class ShopTest {
         1139 to 24, 1137 to 84, 1141 to 300, 1143 to 780, 1145 to 1920, 1155 to 44, 1153 to 154, 1157 to 550, 1159 to 1430, 1161 to 3520,
         // The Cooks' Guild's Pie Shop.
         7162 to 5, 2325 to 12, 2327 to 15, 7170 to 54, 2323 to 30, 7178 to 24, 7188 to 100, 7198 to 310, 7208 to 182, 7218 to 140,
+        // The Champions' Guild's shops.
+        1093 to 64000, 1079 to 64000, 1432 to 14400, 1113 to 50000, 1303 to 32000, 1289 to 20800, 1099 to 3900, 1065 to 2500, 1169 to 200,
+        1021 to 32, 1165 to 1056, 1123 to 16640,
+        // Grace's Graceful Clothing: the values are the prices in marks of grace.
+        11850 to 35, 11854 to 55, 11856 to 60, 11858 to 30, 11860 to 40, 11852 to 40, 12641 to 10,
     )
 
     /**
@@ -66,6 +71,8 @@ class ShopTest {
      */
     private val untradeable = setOf(
         4613, 11705, 11706, 11707, 11708, 11709, 12727, 13188, 13328, 13660, 13679, 13681, 13215, 13216, 13217, 13218, 21314, 22364,
+        // Grace's graceful pieces and amylase pack.
+        11850, 11854, 11856, 11858, 11860, 11852, 12641,
     )
 
     private val shopFile = ShopTest::class.java.getResource(ShopTypes.RESOURCE)!!.readText()
@@ -108,9 +115,12 @@ class ShopTest {
             NpcType(2821, "Shop keeper", internalName = "generalshopkeeper5"),
             NpcType(2822, "Shop assistant", internalName = "generalassistant5"),
             NpcType(822, "Oziach", internalName = "oziach"),
+            NpcType(2871, "Scavvo", internalName = "scavvo"),
+            NpcType(2870, "Valaine", internalName = "valaine"),
             NpcType(2200, "Richard", internalName = "wilderness_capeseller_6"),
             NpcType(2872, "Peksa", internalName = "peksa"),
             NpcType(6533, "Romily Weaklax", internalName = "merchant_pies"),
+            NpcType(5919, "Grace", internalName = "rooftops_grace"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -167,6 +177,11 @@ class ShopTest {
         "peksas_helmet_shop" to listOf(24, 84, 300, 780, 1920, 44, 154, 550, 1430, 3520),
         // The Cooks' Guild's, read 2026-11-02.
         "pie_shop" to listOf(5, 12, 15, 54, 30, 24, 100, 310, 182, 140),
+        // The Champions' Guild's, read 2026-11-02.
+        "scavvos_rune_store" to listOf(64000, 64000, 14400, 50000, 32000, 20800, 3900, 2500, 200),
+        "valaines_shop_of_champions" to listOf(41, 1372, 2496, 21632),
+        // Grace's Graceful Clothing, read 2026-11-02: in marks of grace.
+        "graces_graceful_clothing" to listOf(35, 55, 60, 30, 40, 40, 10),
     )
 
     @Test
@@ -186,6 +201,14 @@ class ShopTest {
         assertEquals(shops["richards_wilderness_cape_shop"], shops.ofNpc(2200))
         assertEquals(shops["peksas_helmet_shop"], shops.ofNpc(2872))
         assertEquals(shops["pie_shop"], shops.ofNpc(6533))
+        assertEquals(shops["scavvos_rune_store"], shops.ofNpc(2871))
+        assertEquals(shops["valaines_shop_of_champions"], shops.ofNpc(2870))
+        // Grace is paid in marks of grace and buys back at 80% (the Wiki's 28 for the hood, 8 for the amylase pack).
+        val grace = shops["graces_graceful_clothing"]!!
+        assertEquals(shops.ofNpc(5919), grace)
+        assertEquals(11849, grace.currency)
+        assertEquals(listOf(28, 44, 48, 24, 32, 32, 8), grace.stock.map { Shop(grace).sellPrice(it.type.id, it.type.cost, it.count) })
+        assertTrue(shops.all.filter { it.key != grace.key }.all { it.currency == ShopScreen.COINS })
         // The Al Kharid General Store won't buy silk (the Wiki's page); no other shop refuses anything.
         assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
@@ -212,7 +235,8 @@ class ShopTest {
     fun `a shop missing from the cache is left out with a warning`() {
         val shops = ShopTypes.parse(shopFile, NpcTypes.NONE, ObjTypes.NONE)
         assertEquals(emptyList(), shops.all)
-        assertEquals(29, shops.warnings.size)
+        // One warning per shop in the file, so a new shop never needs this number changed.
+        assertEquals(Regex("\"key\": ").findAll(shopFile).count(), shops.warnings.size)
     }
 
     @Test

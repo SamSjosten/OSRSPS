@@ -49,4 +49,49 @@ class ClanStoreTest {
         assertFalse(Clans.validName("Ódins Gate"))
         assertTrue(Clans.validName("Odins Gate 2"))
     }
+
+    @Test
+    fun `applicants and leaving members are kept in the file`(@TempDir dir: Path) {
+        val store = ClanStore(dir.resolve(ClanStore.FILE_NAME))
+        val clan = store.create("Odins Gate", 0, 20_000, founders())
+        store.addApplicant(clan, "carol", "Carol")
+        store.addApplicant(clan, "carol", "Carol")
+        store.addApplicant(clan, "dave", "dave")
+        assertTrue(store.removeApplicant(clan, "dave"))
+        assertFalse(store.removeApplicant(clan, "dave"))
+        // Applicants wait for the autosave's flush; a member leaving is written at once, with them.
+        assertTrue(store.unwritten)
+        assertTrue(ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!.applicants.isEmpty())
+        store.flush()
+        assertFalse(store.unwritten)
+        assertTrue(store.removeMember(clan, "bob"))
+        val reloaded = ClanStore(dir.resolve(ClanStore.FILE_NAME)).byName("Odins Gate")!!
+        assertEquals(listOf("carol" to "Carol"), reloaded.applicants.map { it.key to it.name })
+        assertEquals(listOf("alice"), reloaded.members.map { it.key })
+    }
+
+    @Test
+    fun `an applicant's levels are kept, and joining a clan drops every application`(@TempDir dir: Path) {
+        val store = ClanStore(dir.resolve(ClanStore.FILE_NAME))
+        val clan = store.create("Odins Gate", 0, 20_000, founders())
+        val other = store.create("Rivals", 0, 20_000, listOf(ClanStore.Member("erin", "erin", 126, 9000)))
+        store.addApplicant(clan, "carol", "Carol", "3|33")
+        store.addApplicant(other, "carol", "Carol")
+        store.addApplicant(other, "dave", "dave")
+        store.flush()
+        store.setApplicantStats(clan.applicant("carol")!!, "3|33")
+        assertFalse(store.unwritten)
+        store.setApplicantStats(clan.applicant("carol")!!, "4|40")
+        assertTrue(store.unwritten)
+        store.flush()
+        val reloaded = ClanStore(dir.resolve(ClanStore.FILE_NAME))
+        assertEquals("4|40", reloaded.byName("Odins Gate")!!.applicant("carol")!!.stats)
+        // Never taken: none.
+        assertEquals("", reloaded.byName("Rivals")!!.applicant("carol")!!.stats)
+
+        store.removeApplications("carol")
+        assertTrue(store.unwritten)
+        assertTrue(clan.applicants.isEmpty())
+        assertEquals(listOf("dave"), other.applicants.map { it.key })
+    }
 }

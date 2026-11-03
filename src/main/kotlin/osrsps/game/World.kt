@@ -117,6 +117,7 @@ import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
+import osrsps.game.content.registerEdgevilleDungeon
 import osrsps.game.content.registerBarbarianVillage
 import osrsps.game.content.registerCooksGuild
 import osrsps.game.content.registerEdgevilleMonastery
@@ -134,8 +135,10 @@ import osrsps.game.content.registerDraynorManor
 import osrsps.game.content.registerDraynorManorPeople
 import osrsps.game.content.registerDraynorManorGrounds
 import osrsps.game.content.ManorHazards
+import osrsps.game.content.registerWaterAndDummies
 import osrsps.game.content.registerWiseOldMan
 import osrsps.game.content.registerBones
+import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -371,6 +374,7 @@ class World(
 
     private val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
+    private val graceful = Graceful(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
     val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
@@ -608,7 +612,15 @@ class World(
         ignoreLists,
         { player -> players.getOrNull(player.index) === player },
         { privateMessages.nextCounter() },
-        clansClock,
+        openModal = { player, id -> interfaces.openModal(player, FrameSlot.MAINMODAL, id) },
+        closeModals = interfaces::closeModals,
+        confirm = { player, title, yes ->
+            scripts.start(player) {
+                dialogues.start(this) { if (choice(ClanLines.CONFIRM_YES, ClanLines.CONFIRM_NO, title = title) == 1) yes() }
+            }
+        },
+        playerByKey = { key -> findPlayer(key) },
+        now = clansClock,
     )
 
     /** Private messages; see [PrivateMessages]. */
@@ -749,6 +761,7 @@ class World(
         registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
+        registerWaterAndDummies(this)
         registerMillLaneMill(this)
         registerBarfyBill(this)
         registerFatherUrhney(this)
@@ -763,11 +776,13 @@ class World(
         registerEdgevilleMonastery(this)
         registerBarbarianVillage(this)
         registerCooksGuild(this)
+        registerEdgevilleDungeon(this)
         registerHaystacks(this)
         registerLodestones(this)
         registerVarrock(this)
         registerArchiveLobby(this)
         archiveRaids.register()
+        registerRoguesDen(this)
         registerCrops(this)
         ducks.register()
         homeTeleport.register(handlers)
@@ -2209,6 +2224,12 @@ class World(
         }
         if (interfaceId == Clans.CREATION && clans.clickCreation(player, componentId, sub, ::askClanName)) return@act
         if (interfaceId == Clans.GUEST_SIDEPANEL && clans.clickGuest(player, componentId, ::askGuestClanName)) return@act
+        if (interfaceId == Clans.INFO && clans.clickInfo(player, componentId)) return@act
+        if (interfaceId == Clans.APPLICANTS && clans.clickApplicants(player, componentId)) return@act
+        if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_SETTINGS) {
+            clans.openYourInfo(player)
+            return@act
+        }
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_CHAT) {
             clans.toggleChannel(player)
             return@act
@@ -2408,7 +2429,9 @@ class World(
     fun onResumePauseButton(player: Player, interfaceId: Int, componentId: Int, sub: Int) = act(player) {
         trades.interrupt(player)
         if (player.scripts.delayed) return@act
-        if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId)) {
+        if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId) &&
+            !clans.reviewApplicant(player, interfaceId, componentId, sub)
+        ) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
         }
     }
@@ -2548,11 +2571,12 @@ class World(
     private fun moveSpeed(player: Player) = if (player.runEnabled) MOVE_SPEED_RUN else MOVE_SPEED_WALK
 
     /**
-     * Works out what [player] carries for this tick's run energy, and tells the client when the whole kilograms change
+     * Works out what [player] carries for this tick's run energy, and their graceful bonus, and tells the client when the whole kilograms change
      * (UPDATE_RUNWEIGHT, which the Equipment Stats screen and RuneLite show). Inferred: live sends it on a change only.
      */
     private fun sendWeight(player: Player) {
         player.weightGrams = itemWeights.total(player)
+        player.restoreBonusPercent = graceful.restorePercent(player)
         val kilograms = ItemWeights.kilograms(player.weightGrams)
         if (kilograms != player.sentWeight) {
             player.session.queue(UpdateRunWeight(kilograms))

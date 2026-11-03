@@ -56,6 +56,11 @@ class ShopType(
      */
     val overstockAbove: Int = 0,
     val overstockPercent: Int = 0,
+    /**
+     * The item the shop is paid in and pays out: coins, or a currency of its own (Grace's marks of grace). The prices
+     * are the same percentages of the item's value, counted in that item.
+     */
+    val currency: Int = ShopScreen.COINS,
 ) {
     init {
         require(stock.size <= size) { "$key has ${stock.size} items but $size slots" }
@@ -99,7 +104,7 @@ class ShopTypes(val all: List<ShopType>, /** What the loader warned about, for t
         /**
          * Reads the shop file: each `shops` entry has a `key`, `title`, `inv` (id) and `size`, `general`, `sellAt`,
          * `buyAt` and `changePer` in tenths of a percent, the `npcs` that run it (ids, gameval names or menu names, as
-         * spawn files take) optionally the item ids it `refuses` to buy, and its `stock`, each an `item` id with its `name`, `count` and `restock` ticks, an optional fixed `price` and `onePerPlayer`, and an optional `overstock` (`above`, `percent`). An item
+         * spawn files take) optionally the item ids it `refuses` to buy, and its `stock`, each an `item` id with its `name`, `count` and `restock` ticks, an optional fixed `price` and `onePerPlayer`, and an optional `overstock` (`above`, `percent`), and an optional `currency` (an item id; coins when left out). An item
          * whose name the cache doesn't agree with is warned about; a shop with an item or NPC the cache lacks is left
          * out with a warning, so a test cache with few items still starts.
          */
@@ -151,6 +156,7 @@ class ShopTypes(val all: List<ShopType>, /** What the loader warned about, for t
                         refuses = entry["refuses"]?.jsonArray?.map { it.jsonPrimitive.int }?.toSet() ?: emptySet(),
                         overstockAbove = entry["overstock"]?.jsonObject?.required("above")?.jsonPrimitive?.int ?: 0,
                         overstockPercent = entry["overstock"]?.jsonObject?.required("percent")?.jsonPrimitive?.int ?: 0,
+                        currency = entry["currency"]?.jsonPrimitive?.int ?: ShopScreen.COINS,
                     )
                 } catch (e: Exception) {
                     throw IllegalArgumentException("$fileName: shop $key: ${e.message}", e)
