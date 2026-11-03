@@ -809,6 +809,18 @@ class HeadlessClanTest {
                     alice.awaitTicks(2)
                     assertEquals(10, clans.setting(clan, Clans.VAR_ASSIGN_RANKS))
                     clan.settings[Clans.VAR_ASSIGN_RANKS] = 0
+                    // bob, a recruiter now (rank 0 meets Guest), opens the applicants page; Back still works after
+                    // Recruitment is raised above him meanwhile.
+                    bob.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_EXIT, 1)
+                    bob.await("bob's settings page first") { bob.openInterfaces().takeIf { Clans.INFO in it && Clans.PERMISSIONS !in it } }
+                    bob.ifButton(Clans.INFO, Clans.INFO_APPLICATIONS, 1)
+                    bob.await("bob's applicants page") { bob.openInterfaces().takeIf { Clans.APPLICANTS in it } }
+                    clan.settings[Clans.VAR_RECRUITMENT] = Clans.RANK_OWNER
+                    bob.ifButton(Clans.APPLICANTS, Clans.APPLICANTS_EXIT, 1)
+                    bob.await("bob's settings page from the applicants page") { bob.openInterfaces().takeIf { Clans.INFO in it && Clans.APPLICANTS !in it } }
+                    bob.ifButton(Clans.INFO, Clans.INFO_PERMISSIONS, 1)
+                    bob.await("bob's permissions page again") { bob.openInterfaces().takeIf { Clans.PERMISSIONS in it } }
+                    clan.settings[Clans.VAR_RECRUITMENT] = Clans.RANK_GUEST
                     // Nobody on Permission access (slot 0) would lock everyone out: refused. A button not built does nothing.
                     alice.ifButton(Clans.PERMISSIONS, Clans.PERMISSIONS_LIST, 1, sub = 0)
                     alice.awaitTicks(2)

@@ -506,9 +506,13 @@ class Clans(
     fun clickApplicants(player: Player, component: Int): Boolean {
         if (component !in APPLICANTS_BUTTONS) return false
         if (APPLICANTS !in player.modals.values) return true
+        // Back works even after Recruitment was raised above the player's rank while the page was open.
+        if (component == APPLICANTS_EXIT) {
+            if (clanOf(player) != null) openInfo(player, asGuest = false)
+            return true
+        }
         val clan = clanOf(player)?.takeIf { isRecruiter(player, it) } ?: return true
         when (component) {
-            APPLICANTS_EXIT -> openInfo(player, asGuest = false)
             APPLICANTS_REFRESH -> showApplicants(player, clan)
             APPLICANTS_ACCEPT, APPLICANTS_REJECT -> {
                 val applicant = reviewing[player.saveKey]?.let { clan.applicant(it) }
