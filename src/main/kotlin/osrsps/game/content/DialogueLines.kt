@@ -77,6 +77,7 @@ object DialogueLines {
         BarfyBillLines,
         BennyLines,
         BirdNestLines,
+        BlueMoonBarbarianLines,
         BlueMoonBartenderLines,
         BlueMoonCookLines,
         BobLines,

@@ -137,4 +137,46 @@ class InstancesTest {
     private companion object {
         const val WALL = 1
     }
+
+    @Test
+    fun `a part takes zones from one level onto another, and the client draws them from the level they came from`() {
+        map.add(3212, 3212, 1, CollisionFlag.FLOOR)
+        val upstairs = ZoneLoc(WALL, LocShape.WALL_STRAIGHT, 1, 3211, 3213, 1)
+        static.add(upstairs)
+        val instance = assertNotNull(instances.create(2, 2, listOf(InstancePart(3208, 3208, 1, 2, 2, 0, 0, 0)), 3222, 3218, 0))
+        val dx = instance.baseX - 3208
+        val dz = instance.baseZ - 3208
+        assertEquals(CollisionFlag.FLOOR, map[3212 + dx, 3212 + dz, 0], "level 1's water, on level 0")
+        assertEquals(0, map[3212 + dx, 3211 + dz, 0], "not level 0's")
+        assertEquals(listOf(upstairs.copy(x = 3211 + dx, z = 3213 + dz, level = 0)), static.at(3211 + dx, 3213 + dz, 0))
+        assertTrue(static.at(3210 + dx, 3210 + dz, 0).isEmpty(), "level 0's wall isn't copied")
+        assertEquals(4, instance.copiedZones)
+        val drawn = assertNotNull(instances.referenceZone(instance.baseX shr 3, instance.baseZ shr 3, 0))
+        assertEquals(Triple(3208 shr 3, 3208 shr 3, 1), Triple(drawn.zoneX, drawn.zoneZ, drawn.level))
+        assertNull(instances.referenceZone(instance.baseX shr 3, instance.baseZ shr 3, 1), "nothing put on level 1")
+    }
+
+    @Test
+    fun `a part laid over an instance's zones replaces their collision and locs`() {
+        map.add(3212, 3212, 1, CollisionFlag.FLOOR)
+        val upstairs = ZoneLoc(WALL, LocShape.WALL_STRAIGHT, 1, 3211, 3213, 1)
+        static.add(upstairs)
+        val instance = create()
+        val dx = instance.baseX - 3208
+        val dz = instance.baseZ - 3208
+        instances.replace(instance, InstancePart(3208, 3208, 1, 2, 2, 0, 0, 0))
+        assertEquals(CollisionFlag.FLOOR, map[3212 + dx, 3212 + dz, 0], "level 1's water")
+        assertEquals(0, map[3212 + dx, 3211 + dz, 0], "level 0's water gone")
+        assertEquals(0, map[3210 + dx, 3210 + dz, 0] and CollisionFlag.WALL_WEST, "level 0's wall gone")
+        assertTrue(static.at(3210 + dx, 3210 + dz, 0).isEmpty())
+        assertEquals(listOf(upstairs.copy(x = 3211 + dx, z = 3213 + dz, level = 0)), static.at(3211 + dx, 3213 + dz, 0))
+        assertEquals(16, instance.copiedZones, "the same zones, level 0's drawn from level 1 now")
+        assertEquals(1, instances.referenceZone(instance.baseX shr 3, instance.baseZ shr 3, 0)?.level)
+        // And back.
+        instances.replace(instance, InstancePart(3208, 3208, 0, 2, 2, 0, 0, 0))
+        assertEquals(CollisionFlag.FLOOR, map[3212 + dx, 3211 + dz, 0])
+        assertTrue(map[3210 + dx, 3210 + dz, 0] and CollisionFlag.WALL_WEST != 0)
+        instances.destroy(instance)
+        assertEquals(CollisionFlag.UNLOADED, map[3212 + dx, 3212 + dz, 0])
+    }
 }

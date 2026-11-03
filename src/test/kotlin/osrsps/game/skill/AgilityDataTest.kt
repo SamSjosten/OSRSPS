@@ -26,6 +26,60 @@ class AgilityDataTest {
     }
 
     @Test
+    fun `Al Kharid is level 20 throughout, 216 XP a lap, and only Tightrope 1 and the zip line hurt`() {
+        val alKharid = AgilityData.load().courses.single { it.key == "alkharid" }
+        assertEquals(20, alKharid.level)
+        assertEquals(8, alKharid.obstacles.size)
+        assertTrue(alKharid.obstacles.all { it.level == 20 && it.levelLine == AgilityLines.ALKHARID_LEVEL })
+        assertEquals(2_160, alKharid.obstacles.sumOf { it.xpTenths } + alKharid.lapXpTenths)
+        assertEquals(listOf("alkharid_tightrope_1", "alkharid_zip_line"), alKharid.obstacles.filter { it.success != null }.map { it.key })
+        assertTrue(alKharid.obstacles.filter { it.success != null }.all { it.damage == 1..5 })
+        assertEquals(5, alKharid.markSpots.size)
+    }
+
+    @Test
+    fun `Varrock is level 30 throughout, 269,7 XP a lap, and only the clothes line and the wall hurt`() {
+        val varrock = AgilityData.load().courses.single { it.key == "varrock" }
+        assertEquals(30, varrock.level)
+        assertEquals(9, varrock.obstacles.size)
+        assertTrue(varrock.obstacles.all { it.level == 30 && it.levelLine == AgilityLines.VARROCK_LEVEL })
+        assertEquals(2_697, varrock.obstacles.sumOf { it.xpTenths } + varrock.lapXpTenths)
+        assertEquals(mapOf("varrock_clothes_line" to 3..8, "varrock_wall" to 2..5), varrock.obstacles.filter { it.success != null }.associate { it.key to it.damage })
+        assertEquals(5, varrock.markSpots.size)
+    }
+
+    @Test
+    fun `the Gnome Stronghold is level 1, 110,5 XP a lap with its 50 XP bonus, and its pipes and branches are one obstacle each`() {
+        val data = AgilityData.load()
+        val gnome = data.courses.single { it.key == "gnome" }
+        assertEquals(1, gnome.level)
+        assertEquals(7, gnome.obstacles.size)
+        assertEquals(500, gnome.lapXpTenths)
+        assertEquals(1_105, gnome.obstacles.sumOf { it.xpTenths } + gnome.lapXpTenths)
+        assertTrue(gnome.obstacles.all { it.success == null })
+        assertEquals(listOf(AgilityTile(2486, 3421, 2)), gnome.markSpots)
+        val pipe = gnome.obstacles.last()
+        assertEquals(listOf(23138, 23139), pipe.locs)
+        assertEquals(listOf(pipe), data.byLoc.getValue(23139))
+        assertEquals(listOf(23560, 23561), gnome.obstacles[4].locs)
+        assertEquals(listOf(23557, 23558), gnome.obstacles[3].locs)
+        assertEquals(listOf(AgilityTile(2487, 3431, 0), AgilityTile(2487, 3435, 0)), pipe.routes.single { it.from.x == 2487 }.at)
+        assertTrue(gnome.obstacles.filter { it.routes.size > 1 }.all { obstacle -> obstacle.routes.all { it.at.isNotEmpty() } })
+    }
+
+    @Test
+    fun `an obstacle names each of its loc types once`() {
+        assertFailsWith<IllegalArgumentException> {
+            AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"alsoLocs\": [1]")}]}""")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"alsoLocs\": [2, 2]")}]}""")
+        }
+        val data = AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"alsoLocs\": [2]")}]}""")
+        assertEquals(data.byLoc.getValue(1), data.byLoc.getValue(2))
+    }
+
+    @Test
     fun `20 levels over a course cut the mark chance to a fifth`() {
         val course = AgilityData.load().courses.single { it.key == "draynor" }
         assertEquals(2 to 6, Agility.markOdds(course, 1))
