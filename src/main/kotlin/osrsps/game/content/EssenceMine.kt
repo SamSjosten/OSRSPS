@@ -48,7 +48,8 @@ object EssenceMineLines : Lines("essence_mine", "Rune essence mine") {
  *   NPCs; the Wiki's Portal (Rune essence mine)); here `essencemine_portal_1` 34774 stands at 2004Scape's four tiles
  *   always, and every portal loc type's option sends the player back. They come out beside Sedridor (2004Scape's
  *   3106,9572), the only teleporter so far; who sent them will need saving once Aubury and the others send players.
- * - Guessed: the projectile's flight, and that the shout is overhead only (the transcript shows it as his line).
+ * - Guessed: that the shout is overhead only (the transcript shows it as his line). The projectiles' heights and timing
+ *   are 2004Scape's, not measured on live.
  *   Live's instances (a new one every fifth entry) are left out: everyone shares the one mine.
  */
 object EssenceMine {
@@ -141,6 +142,7 @@ object EssenceMine {
 suspend fun ScriptContext.teleportToEssenceMine(world: World, npc: Npc) {
     npc.effects.say(world.textFor(player)[EssenceMineLines.INCANTATION])
     npc.effects.spotanim(0, EssenceMine.CURSE_CASTING, 92)
+    // 2004Scape's essence_mine.rs2: heights 31 (ours are four times 2004Scape's), delay 61, offset 128, 5 cycles a tile.
     world.zones.projectile(
         Projectile(
             id = EssenceMine.CURSE_TRAVEL,
@@ -152,9 +154,9 @@ suspend fun ScriptContext.teleportToEssenceMine(world: World, npc: Npc) {
             startHeight = 124,
             endHeight = 124,
             startTime = 61,
-            endTime = 61 + 10 + 5 * maxOf(kotlin.math.abs(npc.x - player.x), kotlin.math.abs(npc.z - player.z)),
+            endTime = 61 + 5 * maxOf(kotlin.math.abs(npc.x - player.x), kotlin.math.abs(npc.z - player.z)),
             angle = 16,
-            progress = 64,
+            progress = 128,
             sourceIndex = npc.index + 1,
             targetIndex = -(player.index + 1),
         ),
@@ -176,7 +178,29 @@ fun registerEssenceMine(world: World) {
         }
         world.handlers.onNpc(SEDRIDOR, TELEPORT_OP) { op -> teleportToEssenceMine(world, op.npc!!) }
         for (portal in PORTALS) {
-            world.handlers.onLoc(portal, 1) {
+            // The way out, as 2004Scape's essence_mine.rs2 has it (its portal, loc_2492): curse_travel from the portal to
+            // the player (heights 15 to 31, no delay, offset 128), curse_impact 30 cycles on, and the teleport a tick later.
+            world.handlers.onLoc(portal, 1) { op ->
+                val loc = op.loc
+                if (loc != null) {
+                    world.zones.projectile(
+                        Projectile(
+                            id = CURSE_TRAVEL,
+                            fromX = loc.x,
+                            fromZ = loc.z,
+                            level = loc.level,
+                            toX = player.x,
+                            toZ = player.z,
+                            startHeight = 60,
+                            endHeight = 124,
+                            startTime = 0,
+                            endTime = 5 * maxOf(kotlin.math.abs(loc.x - player.x), kotlin.math.abs(loc.z - player.z)),
+                            angle = 16,
+                            progress = 128,
+                            targetIndex = -(player.index + 1),
+                        ),
+                    )
+                }
                 player.spotanim(CURSE_IMPACT, 124, 30)
                 delay(1)
                 val to = freeTileNear(TO_SEDRIDOR, 2, { x, z -> world.canStand(x, z, 0) }) { world.random.nextInt(it) }
