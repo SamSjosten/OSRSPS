@@ -265,6 +265,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-dark-wizards.json`: Varrock step 14: into the middle of the stone circle south of the city, where its dark
   wizards (level 7s and 20s) cast at the player unprovoked from where they stand: a casting graphic on a wizard, then
   the spell's impact or a splash on the player.
+- `varrock-aubury-teleport.json`: Aubury's talk (`::keys on`) and his Teleport each send the player to the rune
+  essence mine, and the mine's portal brings them back to his shop.
 - `varrock-sewers.json`: Varrock step 15 (with `::keys on`): opens the manhole east of the palace, climbs down to the
   sewers and back up the ladder, does the same through the bear pen's trapdoor, tries the web east of the deadly red
   spiders with no blade and then uses an Armadyl godsword on it (slash +132, which always cuts), and kills a moss giant for its big

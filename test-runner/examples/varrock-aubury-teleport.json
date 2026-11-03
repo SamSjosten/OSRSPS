@@ -1,0 +1,141 @@
+{
+  "name": "Varrock: Aubury's talk and Teleport sending the player to the rune essence mine, and the mine's portal bringing them back to his shop (::keys on)",
+  "account": "test",
+  "steps": [
+    {
+      "step": "waitForLogin"
+    },
+    {
+      "step": "command",
+      "text": "::scenario lumbridge-bare",
+      "expectMessage": "Started scenario lumbridge-bare.",
+      "comment": "::reset at the end puts the account back"
+    },
+    {
+      "step": "command",
+      "text": "::keys on",
+      "expectMessage": "Dialogue shows keys",
+      "comment": "boxes and messages show their keys, whatever data/dialogue.txt holds"
+    },
+    {
+      "step": "command",
+      "text": "::tele 3253 3401 0",
+      "expectMessage": "Teleported to 3253, 3401, 0",
+      "comment": "Aubury's Rune Shop"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Aubury",
+      "option": "Talk-to",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[aubury.greeting]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[aubury.teleport]",
+      "timeoutMs": 20000,
+      "comment": "his fourth option, as every account has done Rune Mysteries"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[aubury.teleport]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[aubury.teleport_reply]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertSpotanim",
+      "id": 110,
+      "timeoutMs": 20000,
+      "comment": "curse_impact on the player as he sends them"
+    },
+    {
+      "step": "assertLoc",
+      "locId": 34773,
+      "x": 2891,
+      "y": 4847,
+      "timeoutMs": 20000,
+      "comment": "blankrunestone: the player is in the mine (the landing tile is random)"
+    },
+    {
+      "step": "command",
+      "text": "::tele 2886 4850 0",
+      "expectMessage": "Teleported to 2886, 4850, 0",
+      "comment": "beside the north-west portal"
+    },
+    {
+      "step": "locOption",
+      "loc": "Portal",
+      "option": "Use",
+      "x": 2885,
+      "y": 4850,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertLoc",
+      "locId": 2279,
+      "x": 3250,
+      "y": 3404,
+      "timeoutMs": 20000,
+      "comment": "fai_varrock_workbench: back in Aubury's shop (a random free tile within 2 of 3253, 3401), not beside Sedridor"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Aubury",
+      "option": "Teleport",
+      "timeoutMs": 20000,
+      "comment": "his Teleport sends at once, with no talk"
+    },
+    {
+      "step": "assertLoc",
+      "locId": 34773,
+      "x": 2891,
+      "y": 4847,
+      "timeoutMs": 20000,
+      "comment": "blankrunestone: the player is in the mine (the landing tile is random)"
+    },
+    {
+      "step": "command",
+      "text": "::tele 2886 4850 0",
+      "expectMessage": "Teleported to 2886, 4850, 0",
+      "comment": "beside the north-west portal"
+    },
+    {
+      "step": "locOption",
+      "loc": "Portal",
+      "option": "Use",
+      "x": 2885,
+      "y": 4850,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertLoc",
+      "locId": 2279,
+      "x": 3250,
+      "y": 3404,
+      "timeoutMs": 20000,
+      "comment": "fai_varrock_workbench: back in Aubury's shop (a random free tile within 2 of 3253, 3401), not beside Sedridor"
+    },
+    {
+      "step": "command",
+      "text": "::reset",
+      "expectMessage": "Back to how you were"
+    }
+  ]
+}
