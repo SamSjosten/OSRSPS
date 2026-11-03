@@ -21,7 +21,7 @@ object PickpocketLines : Lines("pickpocket", "Pickpocketing") {
     val DEAD = line("dead", "the NPC died before the pickpocket landed")
     val INVENTORY_FULL = line("inventory_full", "pickpocketing with no room for what it gives")
     val POUCHES_FULL = line("pouches_full", "pickpocketing while holding the most coin pouches")
-    val CAUGHT_CITIZEN = line("caught_citizen", "a man or woman who catches a thief: overhead")
+    val CAUGHT_CITIZEN = line("caught_citizen", "a man, woman, guard or warrior who catches a thief: overhead")
     val CAUGHT_FARMER = line("caught_farmer", "a Master Farmer who catches a thief: overhead")
     val POUCH_OPEN = line("pouch_open", "Open on one coin pouch, with the coins it gave", "coins")
     val POUCH_OPEN_ALL = line("pouch_open_all", "Open-all on coin pouches, with the coins they gave", "coins")
@@ -69,7 +69,7 @@ class Pocket(
  * gives the two ends and says they scale up to 85, not how); a next attempt waits [ATTEMPT_TICKS] (the Wiki's 2 ticks a
  * try); the stunned message; no animation for an NPC with no attack animation in npc-combat.json. Left out: Rocky (the
  * pet), gloves of silence, the Ardougne diary and cloak, the thieving cape's boost, the Rogue outfit's extra loot, and
- * pickpocketing NPCs outside Misthalin's builds so far (farmers, H.A.M. members, warriors, guards and on).
+ * pickpocketing NPCs outside Misthalin's builds so far (farmers, H.A.M. members, other towns' guards and on).
  */
 class Pickpocketing(private val world: World) {
 
@@ -77,9 +77,11 @@ class Pickpocketing(private val world: World) {
         for (pocket in POCKETS) {
             for (npc in pocket.npcs) world.handlers.onNpc(npc, PICKPOCKET) { op -> pick(op.npc ?: return@onNpc, pocket) }
         }
-        val pouch = world.objTypes[CITIZEN_POUCH] ?: return
-        option(pouch.iops, "Open")?.let { world.handlers.onObj(CITIZEN_POUCH, it) { op -> open(player, op.sub, all = false) } }
-        option(pouch.iops, "Open-all")?.let { world.handlers.onObj(CITIZEN_POUCH, it) { op -> open(player, op.sub, all = true) } }
+        for ((id, coins) in POUCH_COINS) {
+            val pouch = world.objTypes[id] ?: continue
+            option(pouch.iops, "Open")?.let { world.handlers.onObj(id, it) { op -> open(player, op.sub, id, coins, all = false) } }
+            option(pouch.iops, "Open-all")?.let { world.handlers.onObj(id, it) { op -> open(player, op.sub, id, coins, all = true) } }
+        }
     }
 
     private suspend fun ScriptContext.pick(npc: Npc, pocket: Pocket) {
@@ -153,13 +155,13 @@ class Pickpocketing(private val world: World) {
         error("Unreachable")
     }
 
-    /** Open (one) or Open-all on the coin pouches in [slot]: [COINS_PER_CITIZEN_POUCH] coins each. */
-    private fun open(player: Player, slot: Int, all: Boolean) {
-        val held = player.inventory[slot]?.takeIf { it.id == CITIZEN_POUCH } ?: return
+    /** Open (one) or Open-all on the [pouch]es in [slot]: [coinsEach] coins each. */
+    private fun open(player: Player, slot: Int, pouch: Int, coinsEach: Int, all: Boolean) {
+        val held = player.inventory[slot]?.takeIf { it.id == pouch } ?: return
         val coins = world.objTypes[COINS] ?: return
         val text = world.textFor(player)
         val pouches = if (all) held.count else 1
-        val gain = pouches * COINS_PER_CITIZEN_POUCH
+        val gain = pouches.toLong() * coinsEach
         val have = player.inventory.count(COINS)
         // The coins need a stack of their own, or the slot the last pouch leaves.
         if (have == 0L && player.inventory.freeSlots == 0 && pouches < held.count) {
@@ -171,7 +173,7 @@ class Pickpocketing(private val world: World) {
             return
         }
         player.inventory.remove(slot, pouches)
-        player.inventory.add(coins, gain)
+        player.inventory.add(coins, gain.toInt())
         player.message(text[if (all) PickpocketLines.POUCH_OPEN_ALL else PickpocketLines.POUCH_OPEN, "coins" to gain])
     }
 
@@ -202,6 +204,20 @@ class Pickpocketing(private val world: World) {
         /** pickpocket_coin_pouch_citizen, the men's and women's. */
         const val CITIZEN_POUCH = 22521
         const val COINS_PER_CITIZEN_POUCH = 3
+
+        /** pickpocket_coin_pouch_guard: 30 coins each (the Wiki's Guard page). */
+        const val GUARD_POUCH = 22527
+        const val COINS_PER_GUARD_POUCH = 30
+
+        /** pickpocket_coin_pouch_warrior: 18 coins each (the Wiki's Warrior woman page). */
+        const val WARRIOR_POUCH = 22524
+        const val COINS_PER_WARRIOR_POUCH = 18
+
+        /** Varrock's guards since November 2022: fai_varrock_guard02, its five variants and the captain's look. */
+        val VARROCK_GUARDS = (11911..11917).toList()
+
+        /** warrior_woman, Varrock Palace's two. */
+        const val WARRIOR_WOMAN = 3260
 
         val MASTER_FARMERS = listOf(5730, 5731)
 
@@ -269,11 +285,22 @@ class Pickpocketing(private val world: World) {
             herb(5304, 19_176.14, 9_271.98), // torstol_seed
         )
 
-        /** Men and women: level 1, 8 XP, 1 damage. Master Farmer: level 38, 43 XP, 3 damage. */
+        /**
+         * Men and women: level 1, 8 XP, 1 damage. Master Farmer: level 38, 43 XP, 3 damage. Varrock step 13 (the Wiki's
+         * Pickpocketing, Guard and Warrior woman pages, read 2026-11-03): guards level 40, 46.8 XP, 2 damage; warrior
+         * women level 25, 26 XP, 2 damage. The warrior's 100 to 240 is worked back from the Wiki's chart (135/256 at 25,
+         * 241/256 at 99). The guard's 50 to 240 is GUESSED: the Wiki's chart wasn't readable, so it is the pair with the
+         * others' 240 that reaches 100% at 95 with the Ardougne diary's 10%, the Pickpocketing page's 100% level.
+         */
         val POCKETS = listOf(
             Pocket(Townsfolk.MEN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(Townsfolk.WOMEN, "woman", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(MASTER_FARMERS, "Master Farmer", 38, 430, 90, 240, 3, PickpocketLines.CAUGHT_FARMER, loot = MASTER_FARMER_LOOT),
+            Pocket(VARROCK_GUARDS, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
+            Pocket(listOf(WARRIOR_WOMAN), "warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
         )
+
+        /** Each coin pouch and the coins it holds. */
+        val POUCH_COINS: Map<Int, Int> = POCKETS.mapNotNull { pocket -> pocket.pouch?.let { it to pocket.coins } }.toMap()
     }
 }
