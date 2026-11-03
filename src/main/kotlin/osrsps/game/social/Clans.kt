@@ -1100,7 +1100,9 @@ class Clans(
         val members = online.map { ClanChannelFull.ClanMember(it.username, clan.member(it.saveKey)?.rank ?: RANK_GUEST, FriendLists.WORLD) }
         return ClanChannelFull(
             clanType,
-            ClanChannelFull.JoinUpdate(clan.id, ++updateNum, clan.name, false, setting(clan, PERM_KICK), setting(clan, PERM_TALK), members, ClanChannelFull.DEFAULT_OLDSCHOOL_VERSION, false),
+            // The ranks the channel's own fields need: Kick never below Talk (the settings carry the ranks as set, and
+            // the client works that out from them itself).
+            ClanChannelFull.JoinUpdate(clan.id, ++updateNum, clan.name, false, permission(clan, PERM_KICK), permission(clan, PERM_TALK), members, ClanChannelFull.DEFAULT_OLDSCHOOL_VERSION, false),
         )
     }
 

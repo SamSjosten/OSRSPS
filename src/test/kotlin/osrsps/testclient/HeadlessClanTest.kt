@@ -996,7 +996,9 @@ class HeadlessClanTest {
                         bob.saw("[clan.kicked_guest name=carol]")
                         assertFalse(clans.inGuestChannel(carolP))
                         // Talk raised above Kick: Kick needs Talk's rank, so bob can't kick any more.
-                        clan.settings[Clans.PERM_TALK] = 10
+                        clans.setPermission(server.world.playerNamed("alice")!!, clan.id, Clans.PERM_TALK, 10)
+                        assertEquals(10, clans.setting(clan, Clans.PERM_TALK))
+                        assertEquals(0, clans.setting(clan, Clans.PERM_KICK))
                         assertEquals(10, clans.permission(clan, Clans.PERM_KICK))
                         // Ban rests on Kick, and never needs less than Administrator.
                         assertEquals(Clans.RANK_ADMINISTRATOR, clans.permission(clan, Clans.VAR_BAN_FROM_CHAT))
