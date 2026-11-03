@@ -254,6 +254,27 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `levitating, it holds its fire at a tank out of its range, and shoots them back in it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.tele(3222, 3218)
+                alice.commandReply("raid guardian") { it.startsWith("Started") }
+                // 15 tiles east of its east edge (3226): in the fight, past its range of 10.
+                alice.tele(3241, 3220)
+                alice.await("a held shot") { alice.fightLog().takeIf { lines -> lines.any { it.endsWith("shield: can't reach alice") } } }
+                val held = alice.fightLog().count { it.endsWith("shield: shoots alice") }
+                alice.awaitTicks(6)
+                assertEquals(held, alice.fightLog().count { it.endsWith("shield: shoots alice") }, "no shot while out of range")
+                // Back within 10 tiles, it shoots again.
+                alice.tele(3232, 3220)
+                alice.await("a shot") { alice.fightLog().count { it.endsWith("shield: shoots alice") }.takeIf { it > held } }
+            }
+        }
+    }
+
+    @Test
     fun `levitating, it is out of melee's reach but for a halberd, and grounded anyone can hit it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

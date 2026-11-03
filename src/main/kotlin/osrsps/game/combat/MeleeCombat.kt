@@ -672,10 +672,7 @@ class MeleeCombat(
      * stands still once in range rather than stepping closer, and that a miss shows the splash and no hitsplat.
      */
     private fun shoot(npc: Npc, def: NpcCombatDef, player: Player, tick: Long) {
-        val size = npc.type.size
-        val distance = LineOfSight.distance(npc.x, npc.z, size, player.x, player.z)
-        val inSight = distance in 1..def.range && LineOfSight.clear(collision, npc.level, npc.x, npc.z, size, player.x, player.z)
-        if (!inSight) {
+        if (!inShot(npc, def, player)) {
             if (npc.following !== player) npcs.follow(npc, player)
             return
         }
@@ -683,6 +680,15 @@ class MeleeCombat(
         npc.face(player)
         if (tick < npc.nextAttackTick || def.attacks.isEmpty()) return
         fireAt(npc, player, tick)
+    }
+
+    /** Whether [player] is in [npc]'s range and sight for its magic or ranged attacks, as its fight back asks before a shot. */
+    fun inShot(npc: Npc, player: Player): Boolean = combat.npcCombat[npc.type]?.let { inShot(npc, it, player) } ?: false
+
+    private fun inShot(npc: Npc, def: NpcCombatDef, player: Player): Boolean {
+        val size = npc.type.size
+        val distance = LineOfSight.distance(npc.x, npc.z, size, player.x, player.z)
+        return distance in 1..def.range && LineOfSight.clear(collision, npc.level, npc.x, npc.z, size, player.x, player.z)
     }
 
     /**

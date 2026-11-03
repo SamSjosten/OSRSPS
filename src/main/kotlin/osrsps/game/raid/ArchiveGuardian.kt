@@ -196,6 +196,11 @@ object ArchiveGuardian {
             return
         }
         val tank = tank() ?: return
+        // Out of its range (10) or sight, it holds its fire: it never moves to get them in it. Guessed.
+        if (!world.meleeCombat.inShot(boss, tank)) {
+            log("can't reach ${tank.username}")
+            return
+        }
         world.meleeCombat.fireAt(boss, tank, world.tick)
         log("shoots ${tank.username}")
     }
