@@ -36,7 +36,7 @@ class NpcCombatTest {
     private val seqs = SeqNames(
         mapOf(
             "human_unarmedpunch" to 422, "human_unarmedblock" to 424, "human_death" to 836,
-            "human_caststrike" to 711, "human_castconfuse" to 716,
+            "human_caststrike" to 711, "human_castconfuse" to 716, "human_castweaken" to 717,
             "mouse_attack" to 2705, "mouse_defend" to 2706, "mouse_death" to 2707,
             "imp_attack" to 169, "imp_block" to 170, "imp_death" to 172,
             "cow_update_attack" to 5849, "cow_update_defend" to 5850, "cow_update_death" to 5851,
@@ -196,6 +196,29 @@ class NpcCombatTest {
             listOf(
                 NpcRangedAttack(711, 93, 94, 95),
                 NpcRangedAttack(716, 102, 103, 104, maxHit = 0, drain = StatDrain(Skill.ATTACK, 5)),
+            ),
+            def.attacks,
+        )
+    }
+
+    @Test
+    fun `Varrock's level 20 dark wizards cast Earth Strike and Weaken from 10 tiles`() {
+        val wizards = listOf("bearded_dark_wizard", "qip_ds_young_dark_wizard3", "qip_ds_young_dark_wizard4")
+        val wizardTypes = NpcTypes.of(*wizards.mapIndexed { i, name -> NpcType(2400 + i, "Dark wizard", internalName = name, stats = NpcStats(strength = 17)) }.toTypedArray())
+        val combat = NpcCombat.load(wizardTypes, seqs)
+        assertEquals(wizards.size, combat.size)
+        val def = combat[wizardTypes.find("qip_ds_young_dark_wizard3")!!]!!
+        assertEquals(AttackType.MAGIC, def.attackType)
+        assertEquals(10, def.range)
+        assertEquals(6, def.maxHit)
+        assertEquals(4, def.attackSpeed)
+        assertEquals(50, def.respawnTicks)
+        assertTrue(def.aggression != null)
+        assertEquals(3, def.defence.against(AttackType.MAGIC))
+        assertEquals(
+            listOf(
+                NpcRangedAttack(711, 96, 97, 98),
+                NpcRangedAttack(717, 105, 106, 107, maxHit = 0, drain = StatDrain(Skill.STRENGTH, 5)),
             ),
             def.attacks,
         )
