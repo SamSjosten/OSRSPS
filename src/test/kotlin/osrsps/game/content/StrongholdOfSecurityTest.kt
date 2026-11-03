@@ -14,11 +14,13 @@ import osrsps.map.Tile
  * security questions' shape. The door list is every Gate of War leaf in the 241 cache's Vault of War (map square 29,81).
  */
 class StrongholdOfSecurityTest {
-    private val leaves: List<ZoneLoc> = DOORS.joinToString(", ").split(", ").map { entry ->
+    private fun leaves(list: List<String>): List<ZoneLoc> = list.joinToString(", ").split(", ").map { entry ->
         val (id, x, z, angle) = entry.split(' ').map(String::toInt)
         ZoneLoc(id, LocShape.WALL_STRAIGHT, angle, x, z, 0)
     }
-    private val byTile = leaves.associateBy { it.x to it.z }
+    private val leaves = leaves(DOORS)
+    private val famineLeaves = leaves(FAMINE_DOORS)
+    private var byTile = leaves.associateBy { it.x to it.z }
 
     private fun leafAt(door: ZoneLoc, across: Int, along: Int): ZoneLoc? {
         val alongX = door.angle == 1 || door.angle == 3
@@ -38,7 +40,28 @@ class StrongholdOfSecurityTest {
     @Test
     fun `every leaf in the cache is the second door of its pair from exactly one side`() {
         assertEquals(72, leaves.size)
-        for (door in leaves) {
+        assertEquals(76, famineLeaves.size)
+        oneAskingSide(leaves)
+        byTile = famineLeaves.associateBy { it.x to it.z }
+        oneAskingSide(famineLeaves)
+    }
+
+    @Test
+    fun `a pair of a west and an east edge three tiles apart asks only from its passage`() {
+        byTile = famineLeaves.associateBy { it.x to it.z }
+        // 1997,5215 on its west edge and 1999,5215 on its east edge: the passage is x 1997 to 1999.
+        val west = byTile.getValue(1997 to 5215)
+        val east = byTile.getValue(1999 to 5215)
+        assertFalse(inPassage(west, 1996, 5215))
+        assertTrue(inPassage(west, 1997, 5215))
+        assertTrue(inPassage(east, 1999, 5215))
+        assertFalse(inPassage(east, 2000, 5215))
+        assertEquals(Tile(2000, 5215), through(east, 1999, 5215))
+        assertEquals(Tile(1999, 5216), through(east, 2000, 5216))
+    }
+
+    private fun oneAskingSide(all: List<ZoneLoc>) {
+        for (door in all) {
             val line = StrongholdOfSecurity.crossing(door)
             val alongX = door.angle == 1 || door.angle == 3
             val sides = listOf(line - 1, line).map { across ->
@@ -106,7 +129,36 @@ class StrongholdOfSecurityTest {
         assertFalse(StrongholdOfSecurity.inVaultOfWar(0, 1859, 5300))
     }
 
+    @Test
+    fun `each floor's reward, portal and doors are its own`() {
+        val (war, famine) = StrongholdOfSecurity.FLOORS
+        assertEquals(StrongholdOfSecurity.VARBIT_FLAP, war.varbit)
+        assertEquals(StrongholdOfSecurity.VARBIT_SLAP_HEAD, famine.varbit)
+        assertEquals(listOf(26, 51), StrongholdOfSecurity.FLOORS.map { it.portalLevel })
+        assertEquals(listOf(2000, 3000), StrongholdOfSecurity.FLOORS.map { it.coins })
+        assertTrue(famine.contains(0, 2021, 5215))
+        assertFalse(famine.contains(0, 1907, 5222))
+        assertTrue(war.doors.intersect(famine.doors).isEmpty())
+    }
+
     private companion object {
+        /** Rickety door leaves (id, x, z, angle), as the 241 cache's map square 31,81 places them. */
+        val FAMINE_DOORS = listOf(
+        "17009 1994 5196 1, 17009 1995 5194 3, 17009 1997 5215 0, 17009 1999 5216 2, 17009 2004 5194 1, 17009 2005 5192 3",
+        "17009 2005 5237 1, 17009 2006 5215 0, 17009 2006 5235 3, 17009 2008 5216 2, 17009 2013 5242 1, 17009 2014 5240 3",
+        "17009 2016 5227 0, 17009 2018 5228 2, 17009 2019 5242 1, 17009 2020 5202 1, 17009 2020 5240 3, 17009 2021 5200 3",
+        "17009 2026 5241 1, 17009 2027 5239 3, 17009 2031 5198 1, 17009 2031 5227 1, 17009 2032 5196 3, 17009 2032 5225 3",
+        "17009 2033 5210 1, 17009 2034 5185 0, 17009 2034 5208 3, 17009 2036 5186 2, 17009 2036 5203 1, 17009 2037 5201 3",
+        "17009 2037 5244 0, 17009 2039 5245 2, 17009 2040 5222 0, 17009 2042 5223 2, 17009 2044 5239 1, 17009 2045 5197 1",
+        "17009 2045 5237 3, 17009 2046 5195 3, 17100 1994 5194 3, 17100 1995 5196 1, 17100 1997 5216 0, 17100 1999 5215 2",
+        "17100 2004 5192 3, 17100 2005 5194 1, 17100 2005 5235 3, 17100 2006 5216 0, 17100 2006 5237 1, 17100 2008 5215 2",
+        "17100 2013 5240 3, 17100 2014 5242 1, 17100 2016 5228 0, 17100 2018 5227 2, 17100 2019 5240 3, 17100 2020 5200 3",
+        "17100 2020 5242 1, 17100 2021 5202 1, 17100 2026 5239 3, 17100 2027 5241 1, 17100 2031 5196 3, 17100 2031 5225 3",
+        "17100 2032 5198 1, 17100 2032 5227 1, 17100 2033 5208 3, 17100 2034 5186 0, 17100 2034 5210 1, 17100 2036 5185 2",
+        "17100 2036 5201 3, 17100 2037 5203 1, 17100 2037 5245 0, 17100 2039 5244 2, 17100 2040 5223 0, 17100 2042 5222 2",
+        "17100 2044 5237 3, 17100 2045 5195 3, 17100 2045 5239 1, 17100 2046 5197 1"
+        )
+
         /** Gate of War leaves (id, x, z, angle), as the 241 cache's map square 29,81 places them. */
         val DOORS = listOf(
         "19206 1858 5235 1, 19206 1858 5238 1, 19206 1860 5195 1, 19206 1860 5198 1, 19206 1860 5209 1, 19206 1860 5212 1",

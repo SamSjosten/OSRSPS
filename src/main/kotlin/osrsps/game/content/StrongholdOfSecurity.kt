@@ -22,7 +22,11 @@ object StrongholdLines : Lines("stronghold_of_security", "Stronghold of Security
     val GIFT_OPEN = line("gift_open", "Open on the Gift of Peace, the first time: the chest's message as it opens (Gift of Peace page)")
     val GIFT_REWARD = line("gift_reward", "Open on the Gift of Peace, the first time: the 2,000 coins and the Flap emote (Gift of Peace page)")
     val GIFT_CLAIMED = line("gift_claimed", "Open on the Gift of Peace once its reward is claimed")
-    val PORTAL_REFUSE = line("portal_refuse", "Use on the Vault of War's portal, below combat level 26 and the reward unclaimed")
+    val PORTAL_REFUSE = line("portal_refuse", "Use on a floor's portal, below its combat level and the floor's reward unclaimed")
+    val PORTAL_ENTER = line("portal_enter", "Use on a floor's portal, let through: the message as it takes the player to the reward room")
+    val GRAIN_OPEN = line("grain_open", "Search on the Grain of Plenty, the first time: the message as it opens (Grain of Plenty page)")
+    val GRAIN_REWARD = line("grain_reward", "Search on the Grain of Plenty, the first time: the 3,000 coins and the Slap Head emote")
+    val GRAIN_CLAIMED = line("grain_claimed", "Search on the Grain of Plenty once its reward is claimed")
 
     /** The Doors table's questions, in its order: how many answers each has and which is right (from 1). */
     val QUESTIONS: List<Question> = listOf(
@@ -69,8 +73,20 @@ object StrongholdLines : Lines("stronghold_of_security", "Stronghold of Security
  * - The portal by the entrance (20786 at 1863,5238) takes a player with the reward claimed, or of combat level 26 and
  *   up, to the reward room ([PORTAL_LANDING], guessed); anyone else is told no.
  * - The goblins, minotaurs, rats and wolves fight and drop as npc-combat.json and npc-drops.json have them
- *   (npc-spawns/stronghold-of-security.json), not aggressive; the floor is multi-way (multi-combat.tsv). The ladder
- *   down to the second floor (20785) is the next step's.
+ *   (npc-spawns/stronghold-of-security.json), not aggressive; the floor is multi-way (multi-combat.tsv).
+ *
+ * The second floor, the Catacomb of Famine (Edgeville piece step 13a, map square 31,81), works as the first ([FLOORS]):
+ *
+ * - The reward room's ladder down (20785 at 1902,5222) lands beside the floor's ladder up (19003 at 2042,5246), which
+ *   climbs back up beside the ladder down (the Boney ladder page: a floor's first ladder leads up to the floor above).
+ *   Its four ropes (19001) climb up beside the entrance (inferred). The landings are guessed.
+ * - Its Rickety doors (17009 and 17100) ask as the Gates of War do, as the door of famine (`sos_door_fam` 2495), and
+ *   stop asking once the Grain of Plenty is searched.
+ * - The Grain of Plenty (19000 at 2021,5215), searched once: 3,000 coins, the Slap Head emote (`sos_emote_doh`),
+ *   Hitpoints and Prayer back to full, its jingle (`sos_plenty`).
+ * - The portal (19005 at 2039,5240) lets through at combat level 51 or with the grain searched.
+ * - Flesh crawlers, zombies, giant rats and rats as their Wiki pages; the crawlers and zombies are aggressive. The
+ *   ladder down to the third floor (19004) is the next step's.
  */
 object StrongholdOfSecurity {
     const val ENTRANCE = 20790
@@ -127,12 +143,83 @@ object StrongholdOfSecurity {
     /** The Vault of War: map square 29,81, the ground level. */
     fun inVaultOfWar(level: Int, x: Int, z: Int) = level == 0 && x in 1856..1919 && z in 5184..5247
 
+    /** The Vault of War's ladder down in the reward room, and where climbing back up from the floor below puts the player. */
+    const val WAR_LADDER_DOWN = 20785
+    val WAR_LADDER_DOWN_TILE = Tile(1902, 5222)
+    val WAR_LADDER_DOWN_LANDING = Tile(1903, 5222)
+
+    const val RICKETY_DOOR_LEFT = 17009
+    const val RICKETY_DOOR_RIGHT = 17100
+    const val FAMINE_DOOR_NPC = 2495
+    const val FAMINE_LADDER_UP = 19003
+    val FAMINE_LADDER_UP_TILE = Tile(2042, 5246)
+
+    /** Where the ladder down from the Vault of War puts the player: south of the Catacomb of Famine's ladder up. Guessed. */
+    val FAMINE_LANDING = Tile(2042, 5245)
+    const val FAMINE_ROPE = 19001
+    val FAMINE_ROPE_TILES = listOf(Tile(2011, 5192), Tile(2017, 5210), Tile(2031, 5189), Tile(2040, 5208))
+    const val GRAIN_OF_PLENTY = 19000
+    val GRAIN_OF_PLENTY_TILE = Tile(2021, 5215)
+    const val GRAIN_COINS = 3000
+
+    /** `sos_emote_doh`: the Slap Head emote, unlocked by the Grain of Plenty. */
+    const val VARBIT_SLAP_HEAD = 2310
+    const val JINGLE_PLENTY = 1171
+    const val FAMINE_PORTAL = 19005
+    val FAMINE_PORTAL_TILE = Tile(2039, 5240)
+
+    /** Where the Catacomb of Famine's portal puts the player: east of the Grain of Plenty. Guessed. */
+    val FAMINE_PORTAL_LANDING = Tile(2023, 5215)
+
+    /** The Catacomb of Famine: map square 31,81, the ground level. */
+    fun inCatacombOfFamine(level: Int, x: Int, z: Int) = level == 0 && x in 1984..2047 && z in 5184..5247
+
+    /**
+     * One floor: its doors and the head that asks at them, the varbit its reward sets (its emote's), the reward
+     * (loc, tile, option, coins, jingle and lines), and its portal (loc, tile, combat level and landing).
+     */
+    class Floor(
+        val name: String,
+        val doors: Set<Int>,
+        val doorNpc: Int,
+        val varbit: Int,
+        val contains: (level: Int, x: Int, z: Int) -> Boolean,
+        val reward: Int,
+        val rewardTile: Tile,
+        val rewardOption: Int,
+        val coins: Int,
+        val jingle: Int,
+        val opened: Line,
+        val rewarded: Line,
+        val claimed: Line,
+        val portal: Int,
+        val portalTile: Tile,
+        val portalLevel: Int,
+        val portalLanding: Tile,
+    )
+
+    val FLOORS: List<Floor> = listOf(
+        Floor(
+            "Vault of War", WAR_DOORS, GATE_OF_WAR_NPC, VARBIT_FLAP, ::inVaultOfWar,
+            GIFT_OF_PEACE, GIFT_OF_PEACE_TILE, OPEN, GIFT_COINS, JINGLE_PEACE,
+            StrongholdLines.GIFT_OPEN, StrongholdLines.GIFT_REWARD, StrongholdLines.GIFT_CLAIMED,
+            PORTAL, PORTAL_TILE, PORTAL_LEVEL, PORTAL_LANDING,
+        ),
+        Floor(
+            "Catacomb of Famine", setOf(RICKETY_DOOR_LEFT, RICKETY_DOOR_RIGHT), FAMINE_DOOR_NPC, VARBIT_SLAP_HEAD,
+            ::inCatacombOfFamine, GRAIN_OF_PLENTY, GRAIN_OF_PLENTY_TILE, SEARCH, GRAIN_COINS, JINGLE_PLENTY,
+            StrongholdLines.GRAIN_OPEN, StrongholdLines.GRAIN_REWARD, StrongholdLines.GRAIN_CLAIMED,
+            FAMINE_PORTAL, FAMINE_PORTAL_TILE, 51, FAMINE_PORTAL_LANDING,
+        ),
+    )
+
+    fun claimed(player: Player, floor: Floor): Boolean =
+        player.vars.types.varbit(floor.varbit) != null && player.vars.getVarbit(floor.varbit) != 0
+
+    fun mayUsePortal(player: Player, floor: Floor): Boolean = claimed(player, floor) || player.skills.combatLevel >= floor.portalLevel
+
     fun isAt(loc: ZoneLoc, tile: Tile) = loc.level == 0 && loc.x == tile.x && loc.z == tile.z
 
-    fun claimedPeace(player: Player): Boolean =
-        player.vars.types.varbit(VARBIT_FLAP) != null && player.vars.getVarbit(VARBIT_FLAP) != 0
-
-    fun mayUsePortal(player: Player): Boolean = claimedPeace(player) || player.skills.combatLevel >= PORTAL_LEVEL
 
     /**
      * A wall's crossing line: for a door on the west (angle 0) or east (2) edge of its tile the x between the tiles
@@ -202,8 +289,6 @@ fun registerStrongholdOfSecurity(world: World) {
             world.teleport(player, Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0)
         }
 
-        for (leaf in WAR_DOORS) world.handlers.onLoc(leaf, OPEN) { op -> throughDoor(world, op.loc!!, WAR_DOORS) }
-
         world.handlers.onLoc(DEAD_EXPLORER, SEARCH) { op ->
             if (!isAt(op.loc!!, DEAD_EXPLORER_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
             arriveDelay()
@@ -213,43 +298,72 @@ fun registerStrongholdOfSecurity(world: World) {
             world.message(player, StrongholdLines.EXPLORER_FIND)
         }
 
-        world.handlers.onLoc(GIFT_OF_PEACE, OPEN) { op ->
-            if (!isAt(op.loc!!, GIFT_OF_PEACE_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
-            arriveDelay()
-            if (claimedPeace(player) || player.vars.types.varbit(VARBIT_FLAP) == null) {
-                return@onLoc world.dialogues.start(this) { mesbox(StrongholdLines.GIFT_CLAIMED) }
-            }
-            // Claimed before the box shows, so nothing during it can open the chest twice.
-            player.vars.setVarbit(VARBIT_FLAP, 1)
-            world.objTypes[COINS]?.let { world.groundObjs.give(player, it, GIFT_COINS) }
-            val hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
-            if (player.hitpoints < hitpoints) player.hitpoints = hitpoints
-            val prayer = player.skills.baseLevel(Skill.PRAYER)
-            if (player.skills.currentLevel(Skill.PRAYER) < prayer) player.skills.setCurrentLevel(Skill.PRAYER, prayer)
-            player.jingle(JINGLE_PEACE)
-            world.dialogues.start(this) {
-                mesbox(StrongholdLines.GIFT_OPEN)
-                mesbox(StrongholdLines.GIFT_REWARD)
-            }
+        // Between the floors: the Vault of War's ladder down and the Catacomb of Famine's ladder back up, and its ropes.
+        world.handlers.onLoc(WAR_LADDER_DOWN, CLIMB_DOWN) { op ->
+            if (!isAt(op.loc!!, WAR_LADDER_DOWN_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbTo(world, Climbing.ANIM_PICKUP_FLOOR, FAMINE_LANDING)
+        }
+        world.handlers.onLoc(FAMINE_LADDER_UP, CLIMB_UP) { op ->
+            if (!isAt(op.loc!!, FAMINE_LADDER_UP_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbTo(world, Climbing.ANIM_REACH_FOR_LADDER, WAR_LADDER_DOWN_LANDING)
+        }
+        world.handlers.onLoc(FAMINE_ROPE, CLIMB_UP) { op ->
+            val loc = op.loc!!
+            if (FAMINE_ROPE_TILES.none { isAt(loc, it) }) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            climbTo(world, Climbing.ANIM_REACH_FOR_LADDER, Church.STRONGHOLD)
         }
 
-        world.handlers.onLoc(PORTAL, USE) { op ->
-            if (!isAt(op.loc!!, PORTAL_TILE)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
-            arriveDelay()
-            if (!mayUsePortal(player)) return@onLoc world.dialogues.start(this) { mesbox(StrongholdLines.PORTAL_REFUSE) }
-            world.teleport(player, PORTAL_LANDING.x, PORTAL_LANDING.z, 0)
+        for (floor in FLOORS) {
+            for (leaf in floor.doors) world.handlers.onLoc(leaf, OPEN) { op -> throughDoor(world, op.loc!!, floor) }
+
+            world.handlers.onLoc(floor.reward, floor.rewardOption) { op ->
+                if (!isAt(op.loc!!, floor.rewardTile)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+                arriveDelay()
+                if (claimed(player, floor) || player.vars.types.varbit(floor.varbit) == null) {
+                    return@onLoc world.dialogues.start(this) { mesbox(floor.claimed) }
+                }
+                // Claimed before the box shows, so nothing during it can open the reward twice.
+                player.vars.setVarbit(floor.varbit, 1)
+                world.objTypes[COINS]?.let { world.groundObjs.give(player, it, floor.coins) }
+                val hitpoints = player.skills.baseLevel(Skill.HITPOINTS)
+                if (player.hitpoints < hitpoints) player.hitpoints = hitpoints
+                val prayer = player.skills.baseLevel(Skill.PRAYER)
+                if (player.skills.currentLevel(Skill.PRAYER) < prayer) player.skills.setCurrentLevel(Skill.PRAYER, prayer)
+                player.jingle(floor.jingle)
+                world.dialogues.start(this) {
+                    mesbox(floor.opened)
+                    mesbox(floor.rewarded)
+                }
+            }
+
+            world.handlers.onLoc(floor.portal, USE) { op ->
+                if (!isAt(op.loc!!, floor.portalTile)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+                arriveDelay()
+                if (!mayUsePortal(player, floor)) return@onLoc world.dialogues.start(this) { mesbox(StrongholdLines.PORTAL_REFUSE) }
+                world.message(player, StrongholdLines.PORTAL_ENTER)
+                world.teleport(player, floor.portalLanding.x, floor.portalLanding.z, 0)
+            }
         }
     }
 }
 
+/** A ladder or rope between places: the climbing animation, a tick, then [to] on the ground level. */
+private suspend fun ScriptContext.climbTo(world: World, anim: Int, to: Tile) {
+    arriveDelay()
+    player.anim(anim)
+    delay(1)
+    world.teleport(player, to.x, to.z, 0)
+}
+
 /**
- * Open on a Stronghold door leaf [door] of the set [doors]: through it at once, unless this is the second door of its
- * pair, the floor's reward isn't claimed and the door asks a question ([StrongholdOfSecurity.ASK_CHANCE]), in which case
- * only the right answer lets the player through. Only the Vault of War's doors are built yet.
+ * Open on a door leaf [door] of [floor]: through it at once, unless this is the second door of its pair, the floor's
+ * reward isn't claimed and the door asks a question ([StrongholdOfSecurity.ASK_CHANCE]), in which case only the right
+ * answer lets the player through.
  */
-private suspend fun ScriptContext.throughDoor(world: World, door: ZoneLoc, doors: Set<Int>) {
+private suspend fun ScriptContext.throughDoor(world: World, door: ZoneLoc, floor: StrongholdOfSecurity.Floor) {
+    val doors = floor.doors
     with(StrongholdOfSecurity) {
-        if (!inVaultOfWar(door.level, door.x, door.z)) return world.message(player, GameLines.NOTHING_INTERESTING)
+        if (!floor.contains(door.level, door.x, door.z)) return world.message(player, GameLines.NOTHING_INTERESTING)
         val alongX = door.angle == 1 || door.angle == 3
         // A door leaf of the set on a wall parallel to this one, [across] being its tile's x (or z) across the wall.
         val leafAt = { across: Int, along: Int ->
@@ -261,11 +375,11 @@ private suspend fun ScriptContext.throughDoor(world: World, door: ZoneLoc, doors
         val to = through(door, from.x, from.z) { along -> leafAt(doorAcross, along)?.angle == door.angle }
             ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         arriveDelay()
-        val asks = !claimedPeace(player) &&
+        val asks = !claimed(player, floor) &&
             inPassage(door, from.x, from.z) { across, along -> leafAt(across, along)?.let(::crossing) } &&
             world.random.nextInt(ASK_CHANCE) == 0
         if (asks) {
-            val type = world.npcTypes[GATE_OF_WAR_NPC]
+            val type = world.npcTypes[floor.doorNpc]
             val question = StrongholdLines.QUESTIONS[world.random.nextInt(StrongholdLines.QUESTIONS.size)]
             var right = false
             world.dialogues.start(this@throughDoor) {

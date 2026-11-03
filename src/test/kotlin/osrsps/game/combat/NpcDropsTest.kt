@@ -615,6 +615,44 @@ class NpcDropsTest {
         assertNull(minotaur["Rune essence (noted) x5"])
     }
 
+    @Test
+    fun `the Catacomb of Famine's flesh crawlers, zombies and rats drop as the Wiki's tables say`() {
+        val names = listOf("sos_fam_fleshcrawler", "sos_fam_fleshcrawler3", "sos_fam_zombie_unarmed", "sos_fam_zombie_armed3", "sos_fam_giantrat", "sos_fam_rat")
+        val famineTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2400 + i, name, internalName = name) }.toTypedArray())
+        val famine = NpcDrops.load(famineTypes, objTypes)
+        assertTrue(famine.warnings.all { it.startsWith("no NPC called") }, famine.warnings.toString())
+        fun def(name: String) = famine[famineTypes.find(name)!!]!!
+        assertTrue(def("sos_fam_fleshcrawler").always.isEmpty(), "flesh crawlers leave no bones")
+        assertEquals(100, def("sos_fam_fleshcrawler3").table!!.slots)
+        assertEquals(100, def("sos_fam_zombie_armed3").table!!.slots)
+        assertEquals(listOf("Bones"), def("sos_fam_giantrat").always.map { it.type.name })
+        assertNull(def("sos_fam_rat").table)
+        fun Map<String, Int>.expect(key: String, weight: Int, of: Int = 100) {
+            val p = weight.toDouble() / of
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = this[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        val crawler = HashMap<String, Int>()
+        val random = GameRandom(47)
+        repeat(KILLS) {
+            for (drop in def("sos_fam_fleshcrawler").roll(random)) crawler[drop.type.name] = (crawler[drop.type.name] ?: 0) + 1
+        }
+        crawler.expect("Bottom of sceptre", 3)
+        crawler.expect("Iron ore (noted)", 12)
+        // The herb table at 35/100, guam 32/128 of those.
+        crawler.expect("Grimy guam leaf", 35 * 32, 100 * 128)
+        val zombie = HashMap<String, Int>()
+        repeat(KILLS) {
+            val kill = def("sos_fam_zombie_unarmed").roll(random)
+            assertEquals("Bones", kill.first().type.name)
+            for (drop in kill.drop(1)) zombie[drop.type.name] = (zombie[drop.type.name] ?: 0) + 1
+        }
+        zombie.expect("Steel arrow", 20)
+        zombie.expect("Beer", 10)
+    }
+
     companion object {
         private const val KILLS = 10_000
     }
