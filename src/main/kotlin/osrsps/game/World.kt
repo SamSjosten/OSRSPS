@@ -101,6 +101,7 @@ import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerCandleSeller
 import osrsps.game.content.registerChurch
+import osrsps.game.content.registerEssenceMine
 import osrsps.game.content.registerFatherUrhney
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
@@ -781,6 +782,7 @@ class World(
         registerDraynorManorPeople(this)
         registerWiseOldMan(this)
         registerWizardsTower(this)
+        registerEssenceMine(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerWaterAndDummies(this)

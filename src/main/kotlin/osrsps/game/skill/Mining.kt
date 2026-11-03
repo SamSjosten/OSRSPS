@@ -19,6 +19,8 @@ object MiningLines : Lines("mining", "Mining") {
     val NO_PICKAXE = line("no_pickaxe", "the message with no pickaxe the player's level can use")
     val INVENTORY_FULL = line("inventory_full", "the message when the backpack is full", "ore")
     val EMPTY = line("empty", "the message on Mine on a rock with no ore left")
+    val ESSENCE = line("essence", "the message for each essence mined at the Rune Essence rock (2004Scape's)")
+    val ESSENCE_FULL = line("essence_full", "the message on Mine on the Rune Essence rock with a full backpack (2004Scape's)")
 }
 
 /** A pickaxe: its tool for [SkillTools], its ticks between rolls, and a chance of one tick fewer (dragon, crystal). */
@@ -38,8 +40,13 @@ class RockType(val key: String, val level: Int, val xpTenths: Int, val ore: Int,
  * swing (the click starts the clock, the message and animation, the roll when due, re-running the op each tick) is the
  * 2004Scape project's mining script. Guessed: which empty rock each rock becomes (rockN to rocksN, as the gamevals pair
  * them); the swing message and animation on the click's own tick (2004Scape waits a tick). Out: the amulet of glory's
- * gem chance, mining gloves, Varrock armour and other extra-ore items, the prospector kit, rock golems, gem rocks,
- * essence. No sounds: the 241 synth ids have no names.
+ * gem chance, mining gloves, Varrock armour and other extra-ore items, the prospector kit, rock golems, gem rocks.
+ * No sounds: the 241 synth ids have no names.
+ *
+ * The Rune Essence rock (`blankrunestone` 34773, in the rune essence mine) is its own kind: every roll succeeds, at the
+ * pickaxe's interval, it never empties and has no gem table, and it gives pure essence from Mining 30 (the world counts
+ * as a members world) or rune essence below, for 5 XP each (OSRS Wiki, Rune Essence (rock)); the player keeps mining
+ * until the backpack is full. Its two messages are 2004Scape's, unchecked against live.
  */
 class Mining(private val world: World) {
     val tools = SkillTools(Skill.MINING, PICKAXES.map { it.tool })
@@ -50,6 +57,7 @@ class Mining(private val world: World) {
             val option = mineOption(locId)
             world.handlers.onLoc(locId, option) { op -> mine(op, rock) }
         }
+        world.handlers.onLoc(ESSENCE_ROCK, mineOption(ESSENCE_ROCK)) { op -> mineEssence(op) }
         for (empty in EMPTY_ROCKS) {
             val option = mineOption(empty)
             world.handlers.onLoc(empty, option) { player.message(world.textFor(player)[MiningLines.EMPTY]) }
@@ -115,6 +123,40 @@ class Mining(private val world: World) {
         world.repeatOp(player, op)
     }
 
+    /** Mine on the Rune Essence rock: an essence each roll until the backpack is full. */
+    private suspend fun ScriptContext.mineEssence(op: Op) {
+        if (op.loc == null) return
+        if (op.repeat && player.modalOpen) return stop()
+        val text = world.textFor(player)
+        if (player.inventory.freeSlots == 0) {
+            player.message(text[MiningLines.ESSENCE_FULL])
+            return stop()
+        }
+        val tool = when (val check = tools.best(player)) {
+            is ToolCheck.Found -> check.tool
+            else -> {
+                player.message(text[MiningLines.NO_PICKAXE])
+                return stop()
+            }
+        }
+        val pickaxe = pickaxes.getValue(tool.obj)
+        if (!op.repeat) {
+            player.message(text[MiningLines.SWING])
+            player.anim(tool.anim)
+        }
+        val ticks = if (player.actionDelay < tick) interval(pickaxe) + (if (op.repeat) 0 else 1) else 1
+        if (SkillClock.step(player, tick, ticks) == ClockStep.DUE) {
+            player.anim(tool.anim)
+            val essence = essenceFor(player.skills.currentLevel(Skill.MINING))
+            val type = world.objTypes[essence] ?: error("No obj type $essence for mined essence")
+            player.inventory.add(type, 1)
+            player.skills.addTenths(Skill.MINING, ESSENCE_XP_TENTHS)
+            player.message(text[MiningLines.ESSENCE])
+            // A full backpack ends it on the next run, with the message.
+        }
+        world.repeatOp(player, op)
+    }
+
     /** Ticks until the next roll with [pickaxe]: dragon and crystal sometimes take one fewer. */
     private fun interval(pickaxe: Pickaxe): Int =
         if (pickaxe.fastNumerator > 0 && world.random.chance(pickaxe.fastNumerator, pickaxe.fastDenominator)) pickaxe.ticks - 1
@@ -153,6 +195,16 @@ class Mining(private val world: World) {
         private val GOLD = RockType("gold", 40, 650, 444, 7, 75, 100)
         private val MITHRIL = RockType("mithril", 55, 800, 447, 4, 50, 200)
         private val ADAMANTITE = RockType("adamantite", 70, 950, 449, 2, 25, 400)
+
+        /** blankrunestone, the rune essence mine's four outcrops. */
+        const val ESSENCE_ROCK = 34773
+        const val RUNE_ESSENCE = 1436 // blankrune
+        const val PURE_ESSENCE = 7936 // blankrune_high
+        const val PURE_ESSENCE_LEVEL = 30
+        const val ESSENCE_XP_TENTHS = 50
+
+        /** What the essence rock gives at Mining [level] on a members world. */
+        fun essenceFor(level: Int): Int = if (level >= PURE_ESSENCE_LEVEL) PURE_ESSENCE else RUNE_ESSENCE
 
         const val ROCKS1 = 11390 // rocks1
         const val ROCKS2 = 11391 // rocks2
