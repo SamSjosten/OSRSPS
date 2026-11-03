@@ -1388,10 +1388,17 @@ class Clans(
         store.setSetting(clan, GUEST_LISTEN, if (permitted) 1 else 0)
         sendSettings(clan)
         if (!permitted) {
-            for (guest in channels[clan.id].orEmpty().filter { clan.member(it.saveKey) == null }) {
-                leaveChannel(guest, clan, tell = true, clanType = CLAN_TYPE_LISTENED)
+            // All the guests go at once, and the channel's list goes out once after.
+            val members = channels[clan.id] ?: return
+            val guests = members.filter { clan.member(it.saveKey) == null }
+            if (guests.isEmpty()) return
+            members.removeAll(guests.toSet())
+            if (members.isEmpty()) channels.remove(clan.id)
+            for (guest in guests) {
+                send(guest, ClanChannelFull(CLAN_TYPE_LISTENED, ClanChannelFull.LeaveUpdate))
                 tell(guest, ClanLines.GUESTS_BLOCKED, clan.name)
             }
+            broadcastChannel(clan)
         }
     }
 

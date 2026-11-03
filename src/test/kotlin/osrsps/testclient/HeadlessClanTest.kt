@@ -1057,6 +1057,8 @@ class HeadlessClanTest {
                         alice.await("guests blocked") { Unit.takeIf { !clans.guestsMayListen(clan) } }
                         carol.saw("[clan.guests_blocked name=Odins Gate]")
                         assertFalse(clans.inGuestChannel(carolP))
+                        carol.await("carol's leave update") { carol.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_LISTENED)?.takeIf { it.isEmpty() } }
+                        alice.await("the list without carol") { alice.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_CLAN)?.takeIf { "carol" !in it } }
                         carol.ifButton(Clans.GUEST_SIDEPANEL, Clans.GUEST_CHAT, 1)
                         carol.await("refused while blocked") { carol.messages().count { it.text == "[clan.guests_blocked name=Odins Gate]" }.takeIf { it == 2 } }
                         assertFalse(clans.inGuestChannel(carolP))
