@@ -18,11 +18,11 @@
   {"step": "assertAnimation", "npc": "Thief", "id": 836, "timeoutMs": 10000, "comment": "human_death"},
 
   {"step": "command", "text": "::npc black_knight", "expectMessage": "Spawned Black Knight (516)"},
-  {"step": "command", "text": "::kill black", "expectMessage": "Killed Black Knight #"},
+  {"step": "command", "text": "::kill black_knight", "expectMessage": "Killed Black Knight #"},
   {"step": "assertAnimation", "npc": "Black Knight", "id": 836, "timeoutMs": 10000, "comment": "human_death"},
 
   {"step": "command", "text": "::npc brownbear", "expectMessage": "Spawned Grizzly bear (2838)"},
-  {"step": "command", "text": "::kill grizzly", "expectMessage": "Killed Grizzly bear #"},
+  {"step": "command", "text": "::kill brownbear", "expectMessage": "Killed Grizzly bear #"},
   {"step": "assertAnimation", "npc": "Grizzly bear", "id": 4929, "timeoutMs": 10000, "comment": "bear_rework_death"},
   {"step": "assertGroundItem", "item": "Bear fur", "timeoutMs": 15000, "comment": "with its bones and meat, always"},
 
