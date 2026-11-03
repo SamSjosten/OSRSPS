@@ -286,7 +286,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         val table = def.table
         if (table != null) {
             val lines = table.lines.sortedByDescending { it.weight }.joinToString { line ->
-                val what = line.item?.let(::item) ?: if (line.table != null) "a herb" else "nothing"
+                val what = line.items.takeIf { it.isNotEmpty() }?.joinToString(" + ") { item(it) } ?: if (line.table != null) "a herb" else "nothing"
                 "$what ${line.weight}/${table.slots}"
             }
             reply("One of: $lines")
