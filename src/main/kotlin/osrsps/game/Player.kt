@@ -291,6 +291,12 @@ class Player(
     /** The first tick they aren't stunned on; see [osrsps.game.combat.StatusEffects]. Not saved. */
     var stunnedUntil: Long = 0
 
+    /**
+     * Ticks left of being weary (an Archive Guardian's mushroom, [osrsps.game.raid.ArchiveGuardian]): they walk, never
+     * run, and attack a tick slower; [osrsps.game.Movement] counts it down. Not saved.
+     */
+    var wearyTicks: Int = 0
+
     /** Ticks since special attack energy last came back; see [osrsps.game.combat.SpecialAttacks]. Not saved: a login starts it again. */
     var specRegenTicks: Int = 0
 

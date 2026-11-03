@@ -3,6 +3,7 @@ package osrsps.game.raid
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
+import kotlin.math.sign
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
@@ -11,11 +12,12 @@ import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
+import osrsps.game.npc.Npc
 import osrsps.game.npc.Npcs
 import osrsps.map.Tile
 
 /**
- * The Archive Guardian (raid step 16a), the first boss of every Archive run: three phases on the cache's two forms.
+ * The Archive Guardian (raid steps 16a and 16b), the first boss of every Archive run: three phases on the cache's two forms.
  *
  * - **Shield**: levitating (`tfa_guardian`, 16659), its hitpoints the shield's (the Wiki's "Flying" row, 550 to 1,950).
  *   It shoots its tank, the first player it took on, every 5 ticks (ranged, max hit 25), and slams whoever stands under
@@ -41,8 +43,15 @@ import osrsps.map.Tile
  * attack 5 ticks into each phase, the laser every [LASER_EVERY] ticks landing [LASER_DELAY] after it is aimed); the
  * slam's and the blast's damage ([SLAM_MAX], [BLAST_MIN] to [BLAST_MAX]); the laser's ([laserDamage]) and its line, from
  * the Guardian's middle through its target to [LASER_LENGTH] tiles; Protect from Magic taking a tenth off it; the
- * grounded form's 40% fire weakness (a guide's); that it never moves, and keeps one tank till they fall. The
- * mushrooms, the vines and the inert guardians are steps 16b and 16c.
+ * grounded form's 40% fire weakness (a guide's); that it never moves, and keeps one tank till they fall.
+ *
+ * Step 16b, from guides (osrstoolkit, runescapeguides, bald.gg; read 2026-11-03) and the cache's mushroom locs and
+ * `archive_guardian_tentacle` Vine: mushrooms ([mushrooms]) in the shield phase and between lasers at the end, bursting
+ * on a player who steps beside one for 3 to 10 with poison and weariness ([Player.wearyTicks]), splashing those two
+ * tiles off; vines ([vines]) from [VINES_FROM] ticks into the grounded phase and every [VINES_EVERY] after, each on its
+ * player's side away from the boss, swiping the 3x3 round it [VINE_SWIPES] times, Protect from Melee holding a swipe to
+ * [VINE_PROTECTED_MAX]. Guessed: [MUSHROOMS_EVERY], [MUSHROOM_GROW], [MUSHROOM_FUSE], the splash, [MUSHROOM_POISON],
+ * [WEARY_TICKS] and [VINE_MAX]. The inert guardians are step 16c.
  */
 object ArchiveGuardian {
     /** What `::raid` and the raid flow know the fight by. */
@@ -89,6 +98,54 @@ object ArchiveGuardian {
     /** How far its laser reaches past its middle, in tiles. Guessed: across the hall. */
     const val LASER_LENGTH = 32
 
+    /** `tfa_guardian_mushroom_spawn`, `_active` and `_despawn`: a mushroom growing, ready, and bursting. */
+    const val MUSHROOM_SPAWN = 62578
+    const val MUSHROOM_ACTIVE = 62579
+    const val MUSHROOM_DESPAWN = 62580
+
+    /** `tfa_archive_guardian_mushroom_spawn`, played on a mushroom as it grows. */
+    const val ANIM_MUSHROOM_SPAWN = 14756
+
+    /** Ticks between the shield phase's mushrooms, one by each player. Guessed. */
+    const val MUSHROOMS_EVERY = 15
+
+    /** Ticks a mushroom takes to grow, and the most it waits ready before bursting by itself. Guessed. */
+    const val MUSHROOM_GROW = 2
+    const val MUSHROOM_FUSE = 20
+
+    /**
+     * A burst's damage on whoever is within a tile of it (a guide's "3-10"), with poison of this severity and
+     * [WEARY_TICKS] of weariness; the splash on whoever is two tiles off. The rest guessed.
+     */
+    const val MUSHROOM_MIN = 3
+    const val MUSHROOM_MAX = 10
+    const val MUSHROOM_POISON = 20
+    const val SPLASH_MIN = 1
+    const val SPLASH_MAX = 5
+    const val WEARY_TICKS = 10
+
+    /** `archive_guardian_tentacle`, "Vine": the tendrils of the grounded phase. */
+    const val VINE = 16664
+
+    /** npc_guardian_archive_tentacle_*: a vine coming up, swiping and going down; vfx_guardian_tentacle_intro on its tile. */
+    const val ANIM_VINE_SPAWN = 14771
+    const val ANIM_VINE_SWIPE = 14768
+    const val ANIM_VINE_DESPAWN = 14769
+    const val SPOT_VINE_SPAWN = 4208
+
+    /**
+     * Grounded, the first vines come [VINES_FROM] ticks in and more every [VINES_EVERY], one beside each player on the
+     * side away from the Guardian, each swiping the 3 by 3 round it [VINE_SWIPES] times, [VINES_EVERY] ticks apart (a
+     * guide's 6 ticks, every 3, three swipes).
+     */
+    const val VINES_FROM = 6
+    const val VINES_EVERY = 3
+    const val VINE_SWIPES = 3
+
+    /** A swipe's damage: up to [VINE_MAX], or [VINE_PROTECTED_MAX] under Protect from Melee (a guide's 11). VINE_MAX guessed. */
+    const val VINE_MAX = 22
+    const val VINE_PROTECTED_MAX = 11
+
     /** The laser's damage, before it is shared: [LASER_PER_PLAYER] for each player in the fight, [LASER_MIN] at least. */
     const val LASER_MIN = 80
     const val LASER_PER_PLAYER = 40
@@ -104,12 +161,19 @@ object ArchiveGuardian {
     fun def(types: NpcTypes): EncounterDef? {
         val flying = types[FLYING] ?: return null
         val grounded = types[GROUNDED] ?: return null
+        // A cache without the vine (a test world's) has the fight without them.
+        val vine = types[VINE]
         return EncounterDef(
             NAME, flying,
             listOf(
                 PhaseDef(
                     "shield",
-                    cycle = listOf(CycleStep(ATTACK_SPEED) { shoot() }),
+                    cycle = listOf(
+                        CycleStep(1) {
+                            if (phaseTick % ATTACK_SPEED == 0L) shoot()
+                            if (phaseTick % MUSHROOMS_EVERY == 0L) mushrooms()
+                        },
+                    ),
                     onStart = {
                         boss.holdsAtZero = true
                         form(flying)
@@ -119,7 +183,12 @@ object ArchiveGuardian {
                 ),
                 PhaseDef(
                     "grounded",
-                    cycle = listOf(CycleStep(ATTACK_SPEED) { strike() }),
+                    cycle = listOf(
+                        CycleStep(1) {
+                            if (phaseTick % ATTACK_SPEED == 0L) strike()
+                            if (vine != null && phaseTick >= VINES_FROM && (phaseTick - VINES_FROM) % VINES_EVERY == 0L) vines(vine)
+                        },
+                    ),
                     endsAtPercent = AIRBORNE_AT,
                     onStart = {
                         boss.holdsAtZero = false
@@ -136,7 +205,8 @@ object ArchiveGuardian {
                 ),
                 PhaseDef(
                     "airborne",
-                    cycle = listOf(CycleStep(LASER_EVERY) { laser() }),
+                    // Its laser and its mushrooms by turns (a guide's "alternates mushrooms with his laser").
+                    cycle = listOf(CycleStep(LASER_EVERY) { laser() }, CycleStep(LASER_EVERY) { mushrooms() }),
                     onStart = {
                         boss.holdsAtZero = false
                         // Jumped straight here with ::raid: the grounded hitpoints, down to where this phase begins.
@@ -250,6 +320,96 @@ object ArchiveGuardian {
                 val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
                 log("laser hits ${player.username} for $dealt")
             }
+        }
+    }
+
+    /**
+     * A mushroom by each player, on a free tile two from them, not under the Guardian: growing for [MUSHROOM_GROW] ticks,
+     * then ready till someone comes within a tile or [MUSHROOM_FUSE] ticks pass, when it bursts the tick after. Running
+     * up to one and on two tiles pops it harmlessly (a guide's); walking off leaves a player in the splash.
+     */
+    private fun EncounterContext.mushrooms() {
+        val taken = HashSet<Tile>()
+        for (player in players) {
+            val tiles = (-2..2).flatMap { dx -> (-2..2).map { dz -> Tile(player.x + dx, player.z + dz) } }
+                .filter { max(abs(it.x - player.x), abs(it.z - player.z)) == 2 }
+                .filter { it !in taken && !boss.covers(it.x, it.z) && world.canStand(it.x, it.z, boss.level) }
+                .filter { tile -> players.none { it.x == tile.x && it.z == tile.z } }
+            if (tiles.isEmpty()) continue
+            val tile = tiles[roll(0, tiles.size - 1)]
+            taken += tile
+            val growing = placeLoc(MUSHROOM_SPAWN, tile.x, tile.z)
+            world.zones.locAnim(tile.x, tile.z, boss.level, growing.shape, growing.angle, ANIM_MUSHROOM_SPAWN)
+            log("mushroom at ${tile.x},${tile.z} by ${player.username}")
+            after(MUSHROOM_GROW) {
+                placeLoc(MUSHROOM_ACTIVE, tile.x, tile.z)
+                watch(tile, 0)
+            }
+        }
+    }
+
+    private fun EncounterContext.watch(tile: Tile, waited: Int) {
+        after(1) {
+            val near = players.any { max(abs(it.x - tile.x), abs(it.z - tile.z)) <= 1 }
+            if (!near && waited + 1 < MUSHROOM_FUSE) return@after watch(tile, waited + 1)
+            val bursting = placeLoc(MUSHROOM_DESPAWN, tile.x, tile.z)
+            after(1) {
+                burst(tile)
+                clearLoc(bursting)
+            }
+        }
+    }
+
+    /** A mushroom bursting: poison and weariness within a tile of it ([Player.wearyTicks]), a splash two tiles off. */
+    private fun EncounterContext.burst(tile: Tile) {
+        for (player in players) {
+            if (gone()) return
+            val distance = max(abs(player.x - tile.x), abs(player.z - tile.z))
+            if (distance > 2) continue
+            if (distance == 2) {
+                val dealt = world.meleeCombat.hitPlayer(player, boss, roll(SPLASH_MIN, SPLASH_MAX), world.tick)
+                log("mushroom splashes ${player.username} for $dealt")
+                continue
+            }
+            val dealt = world.meleeCombat.hitPlayer(player, boss, roll(MUSHROOM_MIN, MUSHROOM_MAX), world.tick)
+            log("mushroom bursts on ${player.username} for $dealt")
+            if (player.dead || player.hitpoints <= 0) continue
+            // Run goes off either way; poison immunity keeps the poison and the weariness off, so it can go straight
+            // back on (a guide's word on the Serpentine helm; immunity from a potion counted the same, guessed).
+            player.runEnabled = false
+            if (world.poison.poison(player, MUSHROOM_POISON)) player.wearyTicks = WEARY_TICKS
+        }
+    }
+
+    /** A vine by each player, on the tile beside them away from the Guardian's middle; none for one under it. */
+    private fun EncounterContext.vines(type: NpcType) {
+        val cx = boss.x + boss.type.size / 2
+        val cz = boss.z + boss.type.size / 2
+        for (player in players) {
+            if (boss.covers(player.x, player.z)) continue
+            val x = player.x + (player.x - cx).sign
+            val z = player.z + (player.z - cz).sign
+            val vine = spawnAdd(type, x, z) ?: continue
+            vine.effects.anim(ANIM_VINE_SPAWN)
+            world.zones.mapAnim(x, z, boss.level, SPOT_VINE_SPAWN)
+            swipe(vine, 1)
+        }
+    }
+
+    private fun EncounterContext.swipe(vine: Npc, swipe: Int) {
+        after(VINES_EVERY) {
+            if (world.npcs[vine.index] !== vine) return@after
+            vine.effects.anim(ANIM_VINE_SWIPE)
+            for (player in players) {
+                if (gone()) return@after
+                if (max(abs(player.x - vine.x), abs(player.z - vine.z)) > 1) continue
+                val damage = if (world.prayers.protects(player, AttackType.CRUSH)) roll(0, VINE_PROTECTED_MAX) else roll(0, VINE_MAX)
+                val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
+                log("vine hits ${player.username} for $dealt")
+            }
+            if (swipe < VINE_SWIPES) return@after swipe(vine, swipe + 1)
+            after(1) { vine.effects.anim(ANIM_VINE_DESPAWN) }
+            after(2) { if (world.npcs[vine.index] === vine) world.removeNpc(vine) }
         }
     }
 

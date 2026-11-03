@@ -34,6 +34,17 @@ class MovementTest {
     }
 
     @Test
+    fun `a weary player walks with run on, and runs again once it wears off`() {
+        val player = player().apply { runEnabled = true; wearyTicks = 2 }
+        movement.request(player, 3220, 3210, invertRun = false)
+        assertEquals(MoveResult.WALKED, movement.process(player))
+        assertEquals(MoveResult.WALKED, movement.process(player))
+        assertEquals(0, player.wearyTicks)
+        assertEquals(MoveResult.RAN, movement.process(player))
+        assertEquals(3214, player.x)
+    }
+
+    @Test
     fun `ctrl-click inverts run for that route`() {
         val player = player()
         movement.request(player, 3214, 3210, invertRun = true)

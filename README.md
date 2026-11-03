@@ -1822,7 +1822,10 @@ hitpoints, shooting the player it took on every 5 ticks and slamming anyone who 
 magic and halberds reach it. With the shield gone it falls to the ground, blasting whoever is under or beside it, with
 its grounded hitpoints, and swings at a player beside it. At 30% it takes off again for good, with no shield, and fires
 a laser at a random player every 10 ticks, its damage shared by everyone on the laser's line. Its death does the room.
-The mushrooms, the vines and the inert guardians round the hall are steps 16b and 16c.
+While its shield is up, and between lasers at the end, it grows a mushroom two tiles from each player; stepping beside one
+bursts it, poisoning and wearying (no running, attacks a tick slower), and the burst splashes anyone two tiles off.
+Grounded, a vine rises on each player's side away from it every 3 ticks and swipes the tiles round it three times.
+The inert guardians round the hall are step 16c.
 
 | Guardian behaviour | Source |
 |--------------------|--------|
@@ -1835,13 +1838,18 @@ The mushrooms, the vines and the inert guardians round the hall are steps 16b an
 | The slam up to 25, the blast 10 to 20, the laser 80 for one or two players and 40 for each player from three, Protect from Magic taking a tenth | guessed, to fit the Strategies page's words |
 | It never moves, and keeps to one tank till they fall | guessed |
 | The words for melee refused on a flying monster (`combat.flying`) | guessed |
-| The mushrooms, the vines (`archive_guardian_tentacle`), the inert guardians (`tfa_guardian_battery_*`), the step-under timing, a guide's "firebreath" enrage with braziers | not in yet: steps 16b and 16c (the enrage isn't on the Strategies page) |
+| Mushrooms (locs 62578 to 62580, `tfa_archive_guardian_mushroom_spawn`), the Vine (16664, `archive_guardian_tentacle`, its spawn, swipe and despawn animations and `vfx_guardian_tentacle_intro`) | 241.4 cache |
+| Mushrooms in the shield phase and alternating with the laser at the end; their 3 to 10, poison and weariness (slower attacks, no running); a run beside one and on popping it, a walk leaving a weaker splash; vines from 6 ticks into the grounded phase, then every 3, each on the player's side away from the boss and swiping a 3x3 three times on a 3-tick cycle, Protect from Melee capping a swipe at 11 | guides (osrstoolkit, runescapeguides, bald.gg; read 2026-11-03) |
+| A mushroom round each player every 15 ticks, 2 tiles off, growing for 2 and bursting after 20 if no one comes; the splash 1 to 5 at 2 tiles; poison severity 20 (hits of 4); weary 10 ticks, a tick on each attack; a vine swipe up to 22 unprayed | guessed |
+| The inert guardians (`tfa_guardian_battery_*`), the step-under timing, a guide's "firebreath" enrage with braziers, the Serpentine helm stopping the mushrooms' poison and weariness (no poison is the only part in) | not in yet: step 16c (the enrage isn't on the Strategies page) |
 
 `::raid guardian party=3` starts it where you stand, `phase=grounded` or `phase=airborne` from a later phase. Check:
-`./gradlew test --tests 'osrsps.testclient.HeadlessArchiveGuardianTest' --tests 'osrsps.game.combat.NpcCombatTest'`
+`./gradlew test --tests 'osrsps.testclient.HeadlessArchiveGuardianTest' --tests 'osrsps.game.combat.NpcCombatTest' --tests 'osrsps.game.MovementTest'`
 (touched awake in its hall, through its three phases to its death doing the room, the instance multi-way; the laser
-shared by two on its line; melee refused while it levitates but for a halberd; the laser's line and damage), and in
-RuneLite `test-runner/examples/archive-guardian.json` (the whole fight solo with the right prayers, moved on with `::hit`).
+shared by two on its line; melee refused while it levitates but for a halberd; the laser's line and damage; a mushroom
+bursting with poison and weariness, then splashing; a vine's swipes held to 11 by Protect from Melee; a weary player
+walking with run on), and in RuneLite `test-runner/examples/archive-guardian.json` (the whole fight solo with the right
+prayers, moved on with `::hit`) and `test-runner/examples/archive-guardian-hazards.json` (a vine and a mushroom).
 
 ## The Fractured Archive lobby
 

@@ -553,6 +553,7 @@ class World(
         words = ::textFor, cure = {
             poison.clear(it)
             statusEffects.clear(it)
+            it.wearyTicks = 0
             specialAttacks.refill(it)
         },
         placeOf = ::deathPlace,

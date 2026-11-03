@@ -4,6 +4,7 @@ import osrsps.game.NpcType
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.npc.Npc
+import osrsps.game.zone.ZoneLoc
 import osrsps.map.Tile
 
 /**
@@ -96,6 +97,16 @@ interface EncounterContext {
 
     /** Puts in an add of [type] on [x], [z] on the boss's level, gone when the fight ends; null with no room for it. */
     fun spawnAdd(type: NpcType, x: Int, z: Int): Npc?
+
+    /**
+     * Puts a loc of type [id] (a centrepiece, facing north) on [x], [z] on the boss's level, replacing what is on its
+     * layer there, until [clearLoc] or the fight's end puts the tile back as the cache has it. What grows in the fight:
+     * a mushroom.
+     */
+    fun placeLoc(id: Int, x: Int, z: Int): ZoneLoc
+
+    /** Puts [loc]'s tile back as the cache has it, if [placeLoc] put it there and nothing has changed it since. */
+    fun clearLoc(loc: ZoneLoc)
 
     /** The adds that are still in. */
     val adds: List<Npc>
