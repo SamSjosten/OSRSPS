@@ -1,5 +1,5 @@
 {
-  "about": "The Wizards' Tower (Draynor piece step 14, the building): the six level 9 wizards on the ground and first floors, the second floor's caged lesser demon and the basement's chicken. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live), checked against the 241 cache's types and the OSRS Wiki's Wizards' Tower page. Step 15a adds Archmage Sedridor in the basement; Step 15b adds Traiborn, Mizgog, Grayzag and Professor Onglewip; Jalarast and Rick come with step 15c.",
+  "about": "The Wizards' Tower (Draynor piece step 14, the building): the six level 9 wizards on the ground and first floors, the second floor's caged lesser demon and the basement's chicken. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live), checked against the 241 cache's types and the OSRS Wiki's Wizards' Tower page. Step 15a adds Archmage Sedridor in the basement; Step 15b adds Traiborn, Mizgog, Grayzag and Professor Onglewip; Step 15c adds Wizard Jalarast; Rick comes with step 15d.",
   "spawns": [
     {"npc": "wizard", "x": 3107, "z": 3158, "wander": 3, "restrict": "indoors", "source": "Wizard (level 9), the ground floor's west room. mejrs NPCList_OSRS; Wiki, Wizards' Tower (two rooms of them on the ground floor, one or two upstairs); wander range guessed"},
     {"npc": "wizard", "x": 3110, "z": 3158, "wander": 3, "restrict": "indoors", "source": "Wizard (level 9), the ground floor's west room. mejrs NPCList_OSRS; Wiki, Wizards' Tower (two rooms of them on the ground floor, one or two upstairs); wander range guessed"},
@@ -13,6 +13,7 @@
     {"npc": 5081, "x": 3112, "z": 3162, "level": 1, "wander": 2, "restrict": "indoors", "source": "Wizard Traiborn (traiborn), the first floor (step 15b). mejrs NPCList_OSRS; Wiki, Wizards' Tower; wander range guessed"},
     {"npc": 7747, "x": 3103, "z": 3163, "level": 2, "wander": 2, "restrict": "indoors", "source": "Wizard Mizgog (wizard_mizgog_post, the type wizard_mizgog shows after Imp Catcher), the second floor (step 15b). mejrs NPCList_OSRS (5005 on that tile); Wiki, Wizards' Tower; wander range guessed"},
     {"npc": 5006, "x": 3110, "z": 3161, "level": 2, "wander": 2, "restrict": "indoors", "source": "Wizard Grayzag (wizard_grayzag), the second floor (step 15b). mejrs NPCList_OSRS; Wiki, Wizards' Tower; wander range guessed"},
-    {"npc": 2560, "x": 3115, "z": 3160, "wander": 2, "restrict": "indoors", "source": "Professor Onglewip (aluft_gnome_mage), the ground floor (step 15b). mejrs NPCList_OSRS; Wiki, Professor Onglewip; wander range guessed"}
+    {"npc": 2560, "x": 3115, "z": 3160, "wander": 2, "restrict": "indoors", "source": "Professor Onglewip (aluft_gnome_mage), the ground floor (step 15b). mejrs NPCList_OSRS; Wiki, Professor Onglewip; wander range guessed"},
+    {"npc": 3232, "x": 3108, "z": 3161, "level": 1, "wander": 2, "restrict": "indoors", "source": "Wizard Jalarast (armourmaking_wizard), the first floor (step 15c). mejrs NPCList_OSRS; Wiki, Wizards' Tower; wander range guessed"}
   ]
 }

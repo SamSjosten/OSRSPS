@@ -4,6 +4,7 @@ import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
+import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 
 /** Wizard Traiborn's standard lines (the Wiki's Transcript:Traiborn; 2004Scape's traiborn.rs2 for the boxes and faces). */
@@ -207,5 +208,135 @@ fun registerWizardsTowerPeople(world: World) {
         world.handlers.onNpc(MIZGOG, PURCHASE_AMULET) { op -> world.dialogues.start(this, op.npc) { purchaseAmulet(give) } }
         world.handlers.onNpc(GRAYZAG, TALK_TO) { op -> world.dialogues.start(this, op.npc) { grayzag() } }
         world.handlers.onNpc(ONGLEWIP, TALK_TO) { op -> world.dialogues.start(this, op.npc) { onglewip() } }
+    }
+}
+
+/** Wizard Jalarast's lines on a members' world (the Wiki's Transcript:Wizard Jalarast). */
+object JalarastLines : Lines("jalarast", "Transcript:Wizard Jalarast") {
+    val HELLO = line("hello", "his greeting")
+    val WHAT_DO = line("what_do", "option 1, which the player then says")
+    val STUDYING = line("studying", "option 1: his answer")
+    val WHATS_THAT = line("whats_that", "option 1's menu, option 1, which the player then says")
+    val SPECIAL = line("special", "his line on what splitbark armour is")
+    val EASY = line("easy", "his line on its being easy to make but the pieces being hard to get")
+    val GOOD_LUCK = line("good_luck", "the menu after his easy line, option 1, which the player then says; the talk ends")
+    val MAKE_SOME = line("make_some", "the option asking him to make some, which the player then says")
+    val WEARING = line("wearing", "option 2, which the player then says")
+    val THIS_IS = line("this_is", "option 2: his answer")
+    val NEED_BARK = line("need_bark", "after the player asks him to make some: what he needs and where it comes from")
+    val DISCOUNT = line("discount", "his offer to make it at a discount")
+    val GO_LOOKING = line("go_looking", "the menu after his offer, option 1, which the player then says; the talk ends")
+    val HOW_MUCH = line("how_much", "the menu after his offer, option 2, which the player then says")
+    val PIECES = line("pieces", "his answer: how many of each the pieces take")
+    val PRICES = line("prices", "his answer: what each piece costs")
+    val MAKE_ARMOUR = line("make_armour", "option 3, which the player then says")
+    val CERTAINLY = line("certainly", "option 3: his answer, before the Buy menu")
+    val NO_THANKS = line("no_thanks", "option 4, which the player then says; the talk ends")
+    val BUY_HELM = line("buy_helm", "the Buy menu's option 1")
+    val BUY_BODY = line("buy_body", "the Buy menu's option 2")
+    val BUY_LEGS = line("buy_legs", "the Buy menu's option 3")
+    val BUY_GAUNTLETS = line("buy_gauntlets", "the Buy menu's option 4")
+    val BUY_BOOTS = line("buy_boots", "the Buy menu's option 5")
+    val THERE_YOU_GO = line("there_you_go", "his line when he makes a piece")
+    val NEED_HELM = line("need_helm", "his line when the player lacks a helm's bark, cloth or coins")
+    val NEED_BODY = line("need_body", "his line when the player lacks a body's bark, cloth or coins")
+    val NEED_LEGS = line("need_legs", "his line when the player lacks the legs' bark, cloth or coins")
+    val NEED_GAUNTLETS = line("need_gauntlets", "his line when the player lacks the gauntlets' bark, cloth or coins")
+    val NEED_BOOTS = line("need_boots", "his line when the player lacks the boots' bark, cloth or coins")
+}
+
+/**
+ * Wizard Jalarast (`armourmaking_wizard` 3232) on the Wizards' Tower's first floor (Draynor piece step 15c), who makes
+ * splitbark armour from hollow bark and fine cloth for coins, as the Wiki's transcript and Wizard Jalarast page have it
+ * (a members' world). His talk's third option and the Buy menu make a piece; Trade opens the Buy menu.
+ *
+ * Guessed: that Trade goes straight to the Buy menu (the Wiki doesn't say), and every chathead face.
+ */
+object Jalarast {
+    const val JALARAST = 3232
+    const val TALK_TO = 1
+    const val TRADE = 3
+
+    const val BARK = 3239
+    const val FINE_CLOTH = 3470
+
+    /** A piece: what it is, how many bark and fine cloth it takes, its coins, and his line when the player lacks them. */
+    enum class Piece(val obj: Int, val materials: Int, val coins: Int, val option: Line, val need: Line) {
+        HELM(3385, 2, 6_000, JalarastLines.BUY_HELM, JalarastLines.NEED_HELM),
+        BODY(3387, 4, 37_000, JalarastLines.BUY_BODY, JalarastLines.NEED_BODY),
+        LEGS(3389, 3, 32_000, JalarastLines.BUY_LEGS, JalarastLines.NEED_LEGS),
+        GAUNTLETS(3391, 1, 1_000, JalarastLines.BUY_GAUNTLETS, JalarastLines.NEED_GAUNTLETS),
+        BOOTS(3393, 1, 1_000, JalarastLines.BUY_BOOTS, JalarastLines.NEED_BOOTS),
+    }
+
+    fun canMake(player: Player, piece: Piece): Boolean =
+        player.inventory.count(BARK) >= piece.materials && player.inventory.count(FINE_CLOTH) >= piece.materials &&
+            player.inventory.count(Ned.COINS) >= piece.coins
+
+    internal suspend fun Dialogue.buy(give: (Player, Int) -> Unit) {
+        val piece = Piece.entries[choice(*Piece.entries.map { it.option }.toTypedArray()) - 1]
+        if (!canMake(player, piece)) return chatNpc(ChatAnim.NEUTRAL, piece.need)
+        Ned.take(player, BARK, piece.materials)
+        Ned.take(player, FINE_CLOTH, piece.materials)
+        Ned.take(player, Ned.COINS, piece.coins)
+        give(player, piece.obj)
+        chatNpc(ChatAnim.HAPPY, JalarastLines.THERE_YOU_GO)
+    }
+
+    /** From his explanation of the armour: the menu to end or ask him to make some. */
+    private suspend fun Dialogue.afterEasy() = with(JalarastLines) {
+        if (choice(GOOD_LUCK, MAKE_SOME) == 1) chatPlayer(ChatAnim.NEUTRAL, GOOD_LUCK) else makeSome()
+    }
+
+    private suspend fun Dialogue.makeSome() = with(JalarastLines) {
+        chatPlayer(ChatAnim.QUIZ, MAKE_SOME)
+        chatNpc(ChatAnim.NEUTRAL, NEED_BARK)
+        chatNpc(ChatAnim.HAPPY, DISCOUNT)
+        if (choice(GO_LOOKING, HOW_MUCH) == 2) {
+            chatPlayer(ChatAnim.QUIZ, HOW_MUCH)
+            chatNpc(ChatAnim.NEUTRAL, PIECES)
+            chatNpc(ChatAnim.NEUTRAL, PRICES)
+        }
+        chatPlayer(ChatAnim.HAPPY, GO_LOOKING)
+    }
+
+    internal suspend fun Dialogue.talk(give: (Player, Int) -> Unit): Unit = with(JalarastLines) {
+        chatNpc(ChatAnim.NEUTRAL, HELLO)
+        when (choice(WHAT_DO, WEARING, MAKE_ARMOUR, NO_THANKS)) {
+            1 -> {
+                chatPlayer(ChatAnim.QUIZ, WHAT_DO)
+                chatNpc(ChatAnim.NEUTRAL, STUDYING)
+                if (choice(WHATS_THAT, MAKE_SOME) == 1) {
+                    chatPlayer(ChatAnim.QUIZ, WHATS_THAT)
+                    chatNpc(ChatAnim.NEUTRAL, SPECIAL)
+                    chatNpc(ChatAnim.NEUTRAL, EASY)
+                    afterEasy()
+                } else {
+                    makeSome()
+                }
+            }
+            2 -> {
+                chatPlayer(ChatAnim.QUIZ, WEARING)
+                chatNpc(ChatAnim.NEUTRAL, THIS_IS)
+                chatNpc(ChatAnim.NEUTRAL, EASY)
+                afterEasy()
+            }
+            3 -> {
+                chatPlayer(ChatAnim.QUIZ, MAKE_ARMOUR)
+                chatNpc(ChatAnim.HAPPY, CERTAINLY)
+                buy(give)
+            }
+            else -> chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
+        }
+    }
+}
+
+fun registerJalarast(world: World) {
+    val give: (Player, Int) -> Unit = { player, obj ->
+        world.objTypes[obj]?.let { world.groundObjs.give(player, it, 1) } ?: error("No obj type $obj for splitbark armour")
+    }
+    with(Jalarast) {
+        world.handlers.onNpc(JALARAST, TALK_TO) { op -> world.dialogues.start(this, op.npc) { talk(give) } }
+        world.handlers.onNpc(JALARAST, TRADE) { op -> world.dialogues.start(this, op.npc) { buy(give) } }
     }
 }
