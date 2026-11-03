@@ -85,6 +85,22 @@
   {
    "step": "clickWidget",
    "interfaceId": 706,
+   "component": 12,
+   "slot": 7,
+   "op": 1,
+   "comment": "Talk in chat (step 11e): the rank list again, from Guest"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 289
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 706,
    "component": 5,
    "comment": "Back: the settings page"
   },
