@@ -30,6 +30,46 @@
       "source": "OSRS Wiki, Dark wizard (level 20: ids 510, 5088, 5089), read 2026-11-03: speed 4, Earth Strike and Weaken, respawn 50, aggressive; max hit 6 and the defence bonuses from the DPS calculator's 510 (weirdgloop/osrs-dps-calc monsters.json). Spotanims are the spells' own (earthstrike_* 96 to 98, weaken_* 105 to 107), Weaken lowering Strength 5% (Wiki, Weaken). Guessed, as the level 7s: the two spells as likely as each other, the 10-tile range and the unarmed block"
     },
     {
+      "npcs": ["mossgiant", "mossgiant2", "mossgiant3", "mossgiant4"],
+      "attackSpeed": 6, "maxHit": 6, "attackType": "crush", "attackBonus": 33, "strengthBonus": 31,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_update_moss_attack", "defend": "giant_update_moss_defend", "death": "giant_update_moss_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Moss giant (level 42, ids 2090 to 2093), read 2026-11-03: aggressive, respawn 30; speed 6, max hit 6, crush, the bonuses and the fire weakness from the DPS calculator's 2090. They stand and walk with giant_update_moss_ready and _walk, so the giant_update_moss fight animations are taken"
+    },
+    {
+      "npcs": ["giantspider2"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Giant spider (Level 27, id 3018), read 2026-11-03: respawn 30; speed 4, max hit 3, stab, no bonuses and the fire weakness from the DPS calculator's 3018. Guessed: aggressive, as the Level 2 infobox has it (the Level 27 one doesn't say), and the spider_update fight animations it stands with"
+    },
+    {
+      "npcs": ["deadly_red_spider"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 15, "slash": 16, "crush": 7, "magic": 12, "light": 16, "standard": 16, "heavy": 16 },
+      "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "fire", "percent": 40 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Deadly red spider (id 3021), read 2026-11-03: aggressive, not poisonous, speed 4, max hit 3, stab, respawn 30; the bonuses and the fire weakness from the DPS calculator's 3021. The spider_update fight animations it stands with, guessed"
+    },
+    {
+      "npcs": ["ghost", "ghost5", "ghost8"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 5, "slash": 5, "crush": 5, "magic": -5, "light": 5, "standard": 5, "heavy": 5 },
+      "anims": { "attack": "ghost_update_tendrill_attack", "defend": "ghost_update_tendrill_defend", "death": "ghost_update_tendrill_death" },
+      "respawnTicks": 40,
+      "weakness": { "element": "air", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Ghost (Level 19; the Varrock Sewers' 85, 89 and 92), read 2026-11-01 for Draynor Manor's: speed 4, max hit 2, crush, the bonuses, respawn 40, weak to air 50%, aggressive. These stand and walk with ghost_update_tendrill_ready and _walk, so the ghost_update_tendrill fight animations are taken"
+    },
+    {
       "npcs": ["man", "man2", "man3", "man4", "al_kharid_man", "varrock_man1"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
@@ -344,7 +384,7 @@
       "source": "OSRS Wiki, Monk (level 5, id 2579, Edgeville Monastery) and the DPS calculator's 2579, read 2026-11-01: not aggressive. The animations are guessed (a crush with no weapon). Left out: healing itself 2 hitpoints now and then in a fight, whose chance the Wiki doesn't give"
     },
     {
-      "npcs": ["zombie_unarmed_sewer1", "zombie_unarmed_sewer2", "zombie_unarmed_sewer3"],
+      "npcs": ["zombie_unarmed_sewer1", "zombie_unarmed_sewer2", "zombie_unarmed_sewer3", "zombie_unarmed_sewer4"],
       "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
       "anims": { "attack": "zombie_update_attack_normal", "defend": "zombie_update_defend_normal", "death": "zombie_update_death_normal" },
