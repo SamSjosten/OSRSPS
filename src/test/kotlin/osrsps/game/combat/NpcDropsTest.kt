@@ -510,6 +510,61 @@ class NpcDropsTest {
         assertNull(giant["Coins x5"])
     }
 
+    @Test
+    fun `the Vault of War's goblins, minotaurs, wolves and rats drop as the Wiki's tables say`() {
+        val names = listOf(
+            "sos_war_goblin_armed", "sos_war_goblin_helmet", "sos_war_goblin_green_soldier_1", "sos_war_goblin_armed2",
+            "sos_war_goblin_helmet2", "sos_war_goblin_green_soldier_2", "sos_war_minotaur", "sos_war_minotaur3",
+            "sos_war_wolf", "sos_war_wolf2", "sos_war_rat",
+        )
+        val vaultTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2300 + i, name, internalName = name) }.toTypedArray())
+        val vault = NpcDrops.load(vaultTypes, objTypes)
+        assertTrue(vault.warnings.all { it.startsWith("no NPC called") }, vault.warnings.toString())
+        fun def(name: String) = vault[vaultTypes.find(name)!!]!!
+        for (name in names.take(6)) assertEquals(128, def(name).table!!.slots, name)
+        assertEquals(101, def("sos_war_minotaur").table!!.slots)
+        assertEquals(listOf("Wolf bones"), def("sos_war_wolf2").always.map { it.type.name })
+        assertNull(def("sos_war_wolf").table)
+        assertEquals(listOf("Clue scroll (beginner)" to 128), def("sos_war_wolf").tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Bones"), def("sos_war_rat").always.map { it.type.name })
+        assertNull(def("sos_war_rat").table)
+        assertEquals(
+            listOf("Ensouled minotaur head" to 50, "Clue scroll (beginner)" to 60, "Clue scroll (easy)" to 101),
+            def("sos_war_minotaur3").tertiary.map { it.item.type.name to it.denominator },
+        )
+        fun kills(name: String, seed: Long): Map<String, Int> {
+            val random = GameRandom(seed)
+            val counts = HashMap<String, Int>()
+            repeat(KILLS) {
+                val kill = def(name).roll(random)
+                assertEquals("Bones", kill.first().type.name)
+                for (drop in kill.drop(1).filter { !it.type.name.startsWith("Clue scroll") && !it.type.name.startsWith("Ensouled") }) {
+                    val key = "${drop.type.name} x${drop.count}"
+                    counts[key] = (counts[key] ?: 0) + 1
+                }
+            }
+            return counts
+        }
+        fun Map<String, Int>.expect(key: String, weight: Int, of: Int = 128) {
+            val p = weight.toDouble() / of
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = this[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        val goblin = kills("sos_war_goblin_helmet2", 45)
+        goblin.expect("Coins x8", 34)
+        goblin.expect("Energy potion(2) x1", 13)
+        goblin.expect("Goblin mail x1", 10)
+        assertNull(goblin["Coins x10"])
+        val minotaur = kills("sos_war_minotaur", 46)
+        minotaur.expect("Coins x7", 20, 101)
+        minotaur.expect("Right skull half x1", 3, 101)
+        minotaur.expect("Pure essence (noted) x15", 5, 101)
+        assertEquals(10, (5..14).sumOf { minotaur["Iron arrow x$it"]?.let { 1 } ?: 0 }, "iron arrows come 5 to 14")
+        assertNull(minotaur["Rune essence (noted) x5"])
+    }
+
     companion object {
         private const val KILLS = 10_000
     }

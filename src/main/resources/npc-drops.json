@@ -601,6 +601,41 @@
       "npcs": ["house_ghost", "house_ghost2", "house_ghost3", "house_ghost4", "house_ghost5"],
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}],
       "source": "OSRS Wiki, Ghost, Drops (Level 19), read 2026-11-01: no bones and no main table, only the beginner clue; the Wilderness-only looting bag is left out. Skeleton (Draynor Manor) lists no drops, so it drops nothing"
+    },
+    {"npcs": ["sos_war_goblin_armed", "sos_war_goblin_helmet", "sos_war_goblin_green_soldier_1", "sos_war_goblin_armed2", "sos_war_goblin_helmet2", "sos_war_goblin_green_soldier_2"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+      {"item": 1351, "name": "Bronze axe", "weight": 3}, {"item": 1321, "name": "Bronze scimitar", "weight": 1}, {"item": 1237, "name": "Bronze spear", "weight": 9},
+      {"item": 882, "name": "Bronze arrow", "count": 7, "weight": 3}, {"item": 558, "name": "Mind rune", "count": 2, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 4, "weight": 3},
+      {"item": 559, "name": "Body rune", "count": 2, "weight": 3}, {"item": 825, "name": "Bronze javelin", "count": 5, "weight": 2}, {"item": 562, "name": "Chaos rune", "weight": 1},
+      {"item": 561, "name": "Nature rune", "weight": 1},
+      {"table": "herbs", "weight": 2},
+      {"item": 995, "name": "Coins", "count": 8, "weight": 34}, {"item": 995, "name": "Coins", "count": 5, "weight": 8}, {"item": 995, "name": "Coins", "count": 16, "weight": 7},
+      {"item": 995, "name": "Coins", "count": 24, "weight": 3},
+      {"item": 3012, "name": "Energy potion(2)", "weight": 13}, {"item": 288, "name": "Goblin mail", "weight": 10}, {"item": 2347, "name": "Hammer", "weight": 9},
+      {"nothing": true, "weight": 8},
+      {"item": 10999, "name": "Goblin book", "weight": 2}, {"item": 1987, "name": "Grapes", "weight": 1}, {"item": 1007, "name": "Red cape", "weight": 1}, {"item": 438, "name": "Tin ore", "weight": 1}
+    ]},
+      "tertiary": [{"item": 13447, "name": "Ensouled goblin head", "chance": "1/30"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/80"}, {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Goblin (Vault of War), Drops, read 2026-11-03: one table for every level, the members world's lines (the free-to-play coins x10 and its extra nothing are out), as changed 2026-09-16. The goblin skull (Rag and Bone Man) and the champion scroll are left out"
+    },
+    {"npcs": ["sos_war_minotaur", "sos_war_minotaur3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 101, "lines": [
+      {"item": 884, "name": "Iron arrow", "min": 5, "max": 14, "weight": 10}, {"item": 1237, "name": "Bronze spear", "weight": 10}, {"item": 1155, "name": "Bronze full helm", "weight": 10},
+      {"item": 882, "name": "Bronze arrow", "count": 3, "weight": 3}, {"item": 1205, "name": "Bronze dagger", "weight": 4},
+      {"item": 558, "name": "Mind rune", "weight": 1},
+      {"item": 995, "name": "Coins", "count": 2, "weight": 11}, {"item": 995, "name": "Coins", "count": 7, "weight": 20}, {"item": 995, "name": "Coins", "min": 5, "max": 84, "weight": 7},
+      {"item": 437, "name": "Copper ore (noted)", "weight": 6}, {"item": 439, "name": "Tin ore (noted)", "weight": 6}, {"item": 7937, "name": "Pure essence (noted)", "count": 15, "weight": 5},
+      {"item": 2142, "name": "Cooked meat", "weight": 3}, {"item": 9007, "name": "Right skull half", "weight": 3},
+      {"table": "gems_surface", "weight": 1},
+      {"nothing": true, "weight": 1}
+    ]},
+      "tertiary": [{"item": 13456, "name": "Ensouled minotaur head", "chance": "1/50"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/60"}, {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/101"}],
+      "source": "OSRS Wiki, Minotaur, Drops, read 2026-11-03: one table for both levels, out of 101, the members world's lines (the free-to-play rune essence and higher arrow and helm rates are out). The members lines sum to 100/101, so the last 1/101 is taken as nothing (inferred). The gem table lists the nature talisman, so the surface gem table is taken. The coins 5 to 84 are taken as evenly likely (guessed)"
+    },
+    {"npcs": ["sos_war_wolf", "sos_war_wolf2"], "always": [{"item": 2859, "name": "Wolf bones"}],
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Wolf, Drops, read 2026-11-03: wolf bones always (members world), and only the Stronghold's wolves drop the beginner clue, listed as Rare; its 1/128 is guessed. The Rag and Bone Man bone and the Wilderness looting bag are left out"
+    },
+    {"npcs": ["sos_war_rat"], "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Rat, Drops (Stronghold of Security rats), read 2026-11-03: bones always; the quest-only rat's tail and rat bone are left out"
     }
   ]
 }

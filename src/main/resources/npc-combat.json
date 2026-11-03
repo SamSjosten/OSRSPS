@@ -81,12 +81,12 @@
       "source": "OSRS Wiki, Woman (3112 and 3113 are taken to match 3111: the cache gives all three the same levels and bonuses)"
     },
     {
-      "npcs": ["rat", "rat_indoors"],
+      "npcs": ["rat", "rat_indoors", "sos_war_rat"],
       "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": -47, "strengthBonus": -53,
       "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
       "anims": { "attack": "mouse_attack", "defend": "mouse_defend", "death": "mouse_death" },
       "respawnTicks": 2,
-      "source": "OSRS Wiki, Rat (ids 2854, 2855); it stands and walks with mouse_ready and mouse_walk, so it fights with the mouse animations"
+      "source": "OSRS Wiki, Rat (ids 2854, 2855, and the Stronghold of Security's 2492, read 2026-11-03: the same speed, max hit, style, bonuses and 2-tick respawn); it stands and walks with mouse_ready and mouse_walk, so it fights with the mouse animations"
     },
     {
       "npcs": ["imp"],
@@ -466,6 +466,63 @@
       "weakness": { "element": "air", "percent": 50 },
       "aggressive": true,
       "source": "OSRS Wiki, Ghost (Level 19, ids 473, 474 and 505 to 507 in Draynor Manor), read 2026-11-01: speed 4, max hit 2, crush, the bonuses, respawn 40, weak to air 50%, aggressive. They stand and walk with ghost_update_normal_ready and _walk, so the normal fight animations are taken; the default hunt range is guessed"
+    },
+    {
+      "npcs": ["sos_war_goblin_armed", "sos_war_goblin_green_soldier_1"],
+      "attackSpeed": 6, "maxHit": 1, "attackType": "stab", "attackBonus": 12, "strengthBonus": 12,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "slice_surface_goblin_squat_attack_spear", "defend": "slice_surface_goblin_defend_spear", "death": "slice_surface_goblin_death_spear" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Goblin (Vault of War) (Level 5, id 2484) and the DPS calculator's 2484 and 2486 (level 11), read 2026-11-03: speed 6, max hit 1, stab, attack and strength 12, no defence bonuses, respawn 35, not aggressive. The Wiki gives the respawn for the level 5 only, so the others' is taken as the same (inferred). They stand and walk with the spear squat animations, so the spear fight animations are taken"
+    },
+    {
+      "npcs": ["sos_war_goblin_armed2", "sos_war_goblin_green_soldier_2"],
+      "attackSpeed": 6, "maxHit": 3, "attackType": "stab", "attackBonus": 22, "strengthBonus": 22,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "slice_surface_goblin_squat_attack_spear", "defend": "slice_surface_goblin_defend_spear", "death": "slice_surface_goblin_death_spear" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Goblin (Vault of War) (Level 16, ids 2487 and 2489) and the DPS calculator's 2487, read 2026-11-03: speed 6, max hit 3, stab, attack and strength 22, no defence bonuses, not aggressive. 2489 is taken to match 2487 (same level; the calculator lists 2487 only). Respawn taken as the level 5's 35 (inferred); spear animations as they stand and walk with them"
+    },
+    {
+      "npcs": ["sos_war_goblin_helmet"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 4, "slash": 6, "crush": 8, "magic": 4, "light": 4, "standard": 4, "heavy": 4 },
+      "anims": { "attack": "slice_surface_goblin_squat_attack_spear", "defend": "slice_surface_goblin_defend_spear", "death": "slice_surface_goblin_death_spear" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Goblin (Vault of War) (Level 13, id 2485) and the DPS calculator's 2485, read 2026-11-03: speed 4, max hit 2, crush, the bonuses, not aggressive. Respawn taken as the level 5's 35 (inferred); it stands and walks with the spear squat animations, so the spear fight animations are taken (guessed for a crush attack)"
+    },
+    {
+      "npcs": ["sos_war_goblin_helmet2"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 14, "slash": 16, "crush": 18, "magic": 14, "light": 14, "standard": 14, "heavy": 14 },
+      "anims": { "attack": "slice_surface_goblin_squat_attack_spear", "defend": "slice_surface_goblin_defend_spear", "death": "slice_surface_goblin_death_spear" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Goblin (Vault of War) (Level 25, id 2488) and the DPS calculator's 2488, read 2026-11-03: speed 4, max hit 3, crush, the bonuses, not aggressive. Respawn taken as the level 5's 35 (inferred); spear fight animations as for the level 13 (guessed)"
+    },
+    {
+      "npcs": ["sos_war_minotaur"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+      "anims": { "attack": "mino_attack", "defend": "mino_parry", "death": "mino_death" },
+      "respawnTicks": 15,
+      "source": "OSRS Wiki, Minotaur (Level 12, id 2481) and the DPS calculator's 2481, read 2026-11-03: speed 4, max hit 2, crush, the bonuses, respawn 15, not aggressive. It stands and walks with mino_ready and mino_walk, so the mino fight animations are taken"
+    },
+    {
+      "npcs": ["sos_war_minotaur3"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": -10, "slash": -10, "crush": -10, "magic": -21, "light": -10, "standard": -10, "heavy": -10 },
+      "anims": { "attack": "mino_attack", "defend": "mino_parry", "death": "mino_death" },
+      "respawnTicks": 15,
+      "source": "OSRS Wiki, Minotaur (Level 27, id 2483) and the DPS calculator's 2483, read 2026-11-03: speed 4, max hit 3 (the calculator's; the Wiki's version data is unclear), crush, the bonuses, respawn 15, not aggressive; the mino fight animations"
+    },
+    {
+      "npcs": ["sos_war_wolf", "sos_war_wolf2"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "dog_update_wolf_attack", "defend": "dog_update_wolf_defend", "death": "dog_update_wolf_death" },
+      "respawnTicks": 90,
+      "weakness": { "element": "fire", "percent": 25 },
+      "source": "OSRS Wiki, Wolf (Levels 11 and 14, ids 2491 and 2490, Stronghold of Security) and the DPS calculator's 2490 and 2491, read 2026-11-03: speed 4, max hit 2, stab, no bonuses, respawn 90, weak to fire 25%, not aggressive. They stand and walk with dog_update_wolf_ready and _walk, so the wolf fight animations are taken"
     }
   ]
 }
