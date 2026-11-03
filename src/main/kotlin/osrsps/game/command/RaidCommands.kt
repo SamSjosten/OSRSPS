@@ -5,19 +5,23 @@ import kotlin.math.max
 import osrsps.game.World
 import osrsps.game.encounter.Encounter
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.raid.ArchiveRaids
+import osrsps.game.raid.ArchiveRoom
 import osrsps.game.raid.PartyScaling
 
 /**
  * `::raid`: starts a boss fight where you stand, at a phase, for a party size and on a seed, so a fight can be played
  * from any point and the same way twice (raid step 12); and shows, logs and stops the fight you are in. The fight's
  * room and gear sets come with each boss's step. In an instance the fight covers the instance; elsewhere, the
- * [FIGHT_RADIUS] tiles round the boss's spawn.
+ * [FIGHT_RADIUS] tiles round the boss's spawn. In an Archive run (raid step 15), `::raid run` shows it, `::raid tp`
+ * goes to a room of it or the nexus and `::raid clear` marks the room you're in done, for testing.
  */
 fun CommandRegistry.registerRaidCommands(world: World) {
     val encounters = world.encounters
-    val usage = "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop"
+    val usage = "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop | " +
+        "::raid run | ::raid tp <nexus|room> | ::raid clear"
 
-    register("raid", "::raid [boss [phase=] [party=] [seed=]] | log | digest | stop", admin = true) {
+    register("raid", "::raid [boss [phase=] [party=] [seed=]] | log | digest | stop | run | tp | clear", admin = true) {
         fun here(): Encounter? = encounters.all.firstOrNull { !it.ended && it.boss.level == player.level && it.covers(player.x, player.z) }
         fun mine(): Encounter = here() ?: fail("You're not in a fight.")
         when (args.firstOrNull()?.lowercase()) {
@@ -46,6 +50,44 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                 if (fight.droppedLines > 0) fail("The log has let go of its first ${fight.droppedLines} lines, so it can't be summed up from the start")
                 val lines = fight.lines.filter { it.substringBefore(' ').toLong() <= upTo }
                 reply("${fight.def.name} to tick $upTo: ${lines.size} lines, digest ${"%08x".format(lines.joinToString("\n").hashCode())}")
+            }
+            "run" -> {
+                if (args.size != 1) fail(usage)
+                val run = world.archiveRaids.at(player.x, player.z) ?: world.parties.of(player)?.let(world.archiveRaids::of)
+                    ?: fail("You're not in an Archive run.")
+                val raids = world.archiveRaids
+                val where = when {
+                    !run.instance.contains(player.x, player.z) -> "outside it"
+                    else -> raids.roomAt(run, player.x, player.z)?.let { if (it == ArchiveRoom.GUARDIAN) "in the nexus's hall" else "in ${it.boss}'s room" }
+                        ?: "in the nexus's entrance"
+                }
+                reply("${raids.describe(run)}. You're $where.")
+            }
+            "tp" -> {
+                // Testing only: to a room of the run you're in, or the nexus, as its door or passage would take you.
+                if (args.size != 2) fail(usage)
+                val raids = world.archiveRaids
+                val run = raids.at(player.x, player.z) ?: fail("You're not in an Archive run.")
+                val name = args[1].lowercase()
+                val (tile, room) = if (name == "nexus") {
+                    raids.tile(run, ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z) to null
+                } else {
+                    val room = ArchiveRoom.named(name) ?: fail("Rooms: nexus, ${ArchiveRoom.entries.joinToString { it.name.lowercase() }}")
+                    raids.tile(run, room.entryX, room.entryZ) to room
+                }
+                world.teleport(player, tile.x, tile.z, 0)
+                reply("To ${room?.boss?.let { "$it's room" } ?: "the nexus"} at ${tile.x}, ${tile.z}.")
+            }
+            "clear" -> {
+                // Testing only: the room you're in counts as done, as if its boss died.
+                if (args.size != 1) fail(usage)
+                val raids = world.archiveRaids
+                val run = raids.at(player.x, player.z) ?: fail("You're not in an Archive run.")
+                val room = raids.roomAt(run, player.x, player.z) ?: fail("You're in the nexus.")
+                if (room in run.cleared) fail("${room.boss}'s room is done already.")
+                if (room.stage != run.stage) fail("${room.boss}'s room isn't the run's next.")
+                raids.clear(run, room)
+                reply("Cleared ${room.boss}'s room.")
             }
             "stop" -> {
                 if (args.size != 1) fail(usage)

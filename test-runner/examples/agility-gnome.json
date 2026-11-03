@@ -1,0 +1,220 @@
+{
+ "name": "Agility step 6: one lap of the Gnome Stronghold Agility Course, every obstacle crossed to its landing tile, 110.5 XP with the lap bonus and the lap count (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::xprate 1",
+   "expectMessage": "XP rate set to 1x",
+   "comment": "live's rate; ::xprate restore at the end goes back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel agility 10",
+   "expectMessage": "10",
+   "comment": "1,154 XP: a lap's 110.5 opens no level-up box"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2474 3438 0",
+   "expectMessage": "Teleported to 2474, 3438, 0",
+   "comment": "north of the log balance, at the start of the course"
+  },
+  {
+   "step": "locOption",
+   "loc": "Log balance",
+   "option": "Walk-across",
+   "x": 2474,
+   "y": 3435
+  },
+  {
+   "step": "assertLocation",
+   "x": 2474,
+   "y": 3429,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "obstacle 1 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 10,
+   "xp": 1164,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 1's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Obstacle net",
+   "option": "Climb-over",
+   "x": 2473,
+   "y": 3425
+  },
+  {
+   "step": "assertLocation",
+   "x": 2473,
+   "y": 3424,
+   "plane": 1,
+   "timeoutMs": 20000,
+   "comment": "obstacle 2 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 10,
+   "xp": 1174,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 2's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Tree branch",
+   "option": "Climb",
+   "x": 2473,
+   "y": 3422
+  },
+  {
+   "step": "assertLocation",
+   "x": 2473,
+   "y": 3420,
+   "plane": 2,
+   "timeoutMs": 20000,
+   "comment": "obstacle 3 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 10,
+   "xp": 1180,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 3's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Balancing rope",
+   "option": "Walk-on",
+   "x": 2478,
+   "y": 3420
+  },
+  {
+   "step": "assertLocation",
+   "x": 2483,
+   "y": 3420,
+   "plane": 2,
+   "timeoutMs": 20000,
+   "comment": "obstacle 4 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 10,
+   "xp": 1190,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 4's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Tree branch",
+   "option": "Climb-down",
+   "x": 2486,
+   "y": 3419
+  },
+  {
+   "step": "assertLocation",
+   "x": 2487,
+   "y": 3420,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "obstacle 5 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 10,
+   "xp": 1197,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 5's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Obstacle net",
+   "option": "Climb-over",
+   "x": 2485,
+   "y": 3426
+  },
+  {
+   "step": "assertLocation",
+   "x": 2485,
+   "y": 3427,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "obstacle 6 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 10,
+   "xp": 1207,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 6's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Obstacle pipe",
+   "option": "Squeeze-through",
+   "x": 2484,
+   "y": 3431
+  },
+  {
+   "step": "assertLocation",
+   "x": 2484,
+   "y": 3437,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "obstacle 7 of 7 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 10,
+   "xp": 1214,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 7's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[agility.gnome_laps count=1]"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 10,
+   "xp": 1264,
+   "comment": "1,154 at level 10, then the lap's 110.5 with its 50 XP bonus"
+  },
+  {
+   "step": "command",
+   "text": "::xprate restore",
+   "expectMessage": "XP rate back to "
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

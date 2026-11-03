@@ -110,8 +110,8 @@ class HeadlessDraynorRooftopTest {
     fun `a lap leaves a mark of grace on a roof for the player alone, then none until three minutes have gone`(@TempDir dir: Path) {
         // Every due lap gives a mark here, so the timer is what's tested; the odds are AgilityDataTest's.
         val text = AgilityData::class.java.getResource(AgilityData.RESOURCE)!!.readText()
-        val always = AgilityData.parse(text.replace("\"markChance\": [2, 6]", "\"markChance\": [6, 6]"))
-        val spots = always.courses.single().markSpots
+        val always = AgilityData.parse(text.replace(Regex("\"markChance\": \\[\\s*2,\\s*6\\s*]"), "\"markChance\": [6, 6]"))
+        val spots = always.courses.single { it.key == "draynor" }.markSpots
         val minute = AtomicLong(29_000_000)
         server(dir, always).use { server ->
             server.world.agility.nowMinutes = { minute.get() }
