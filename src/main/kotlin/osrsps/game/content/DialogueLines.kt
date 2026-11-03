@@ -195,6 +195,7 @@ object DialogueLines {
         MageOfZamorakLines,
         MakeLines,
         ManLines,
+        ManorBasementLines,
         ManorGroundsLines,
         ManorWitchLines,
         MillLines,
