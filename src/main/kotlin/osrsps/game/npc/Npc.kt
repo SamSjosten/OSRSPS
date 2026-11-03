@@ -184,6 +184,18 @@ class Npc(
     var incoming: Int = 0
         internal set
 
+    /**
+     * Its attacks come from its boss fight ([osrsps.game.encounter.Encounter]) alone: it faces whoever it fights but
+     * never swings, shoots or walks after them by itself, and keeps to the first player it took on while they last.
+     */
+    var scriptedAttacks: Boolean = false
+
+    /**
+     * A hit that takes it to 0 hitpoints leaves it standing there, at 0, for its boss fight to change it (a shield
+     * broken, a phase over) rather than killing it; later hits do nothing until the fight lets it die again.
+     */
+    var holdsAtZero: Boolean = false
+
     /** True from the hit that killed it until it is taken out of the world; it can't be attacked meanwhile. */
     var dead: Boolean = false
         internal set
