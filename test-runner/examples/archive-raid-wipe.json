@@ -68,6 +68,12 @@
    "expectMessage": "To Archive Guardian's room"
   },
   {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the Guardian waits to be touched (raid step 16); its fight is archive-guardian.json, so here its room is just marked done"
+  },
+  {
    "step": "waitTicks",
    "ticks": 3
   },

@@ -1,0 +1,214 @@
+{
+ "name": "Raid step 16a: the Archive Guardian solo, from Touch in the nexus's hall through its shield (shots blocked by Protect from Missiles), its fall to the ground (Protect from Melee) and its lift-off at 30% with the laser (Protect from Magic), to its death doing the room; phases moved on with ::hit",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99",
+   "comment": "for the protection prayers through the whole fight"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99",
+   "comment": "enough to live through a solo laser (80)"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room",
+   "comment": "the nexus's hall, south of the waiting Guardian"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "You're not in a fight",
+   "comment": "nothing begins till it is touched"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 548,
+   "component": 69,
+   "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 22,
+   "comment": "prayerbook:prayer14, Protect from Missiles, before it wakes"
+  },
+  {
+   "step": "command",
+   "text": "::prayers",
+   "expectMessage": "Protect from Missiles"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 16657,
+   "option": "Touch",
+   "timeoutMs": 20000,
+   "comment": "tfa_guardian_start, the Inert Guardian: the fight begins"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "phase 1 (shield)",
+   "comment": "levitating, with the shield's 550 hitpoints for a player alone (counted as two)"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Archive Guardian 550/550 hp"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12,
+   "comment": "two of its shots, every 5 ticks"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "shield: shoots test"
+  },
+  {
+   "step": "command",
+   "text": "::hp",
+   "expectMessage": "You have 99/99 hitpoints",
+   "comment": "every shot blocked by Protect from Missiles"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 23,
+   "comment": "prayerbook:prayer15, Protect from Melee, for the grounded phase"
+  },
+  {
+   "step": "command",
+   "text": "::hit 550",
+   "expectMessage": "0/550 hp",
+   "comment": "the shield gone: it holds at 0 and drops"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Archive Guardian",
+   "id": 14747,
+   "timeoutMs": 5000,
+   "comment": "npc_archive_guardian_idle_to_ground01, its fall"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "phase 2 (grounded)"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Archive Guardian 1100/1100 hp",
+   "comment": "the grounded hitpoints for a player alone, full"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 21,
+   "comment": "prayerbook:prayer13, Protect from Magic, for the laser"
+  },
+  {
+   "step": "command",
+   "text": "::hit 770",
+   "expectMessage": "330/1100 hp",
+   "comment": "down to 30%"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "phase 3 (airborne)",
+   "comment": "in the air again for good, with no shield"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints.",
+   "comment": "back to full after the landing's blast (10 to 20, which no prayer blocks) and any swing after Protect from Melee went off, so the laser alone is counted below"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 16,
+   "comment": "its first laser: aimed 10 ticks into the phase, landing 3 after"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "airborne: laser hits test for 72",
+   "comment": "80 for a player alone, a tenth off for Protect from Magic"
+  },
+  {
+   "step": "command",
+   "text": "::hp",
+   "expectMessage": "You have 27/99 hitpoints"
+  },
+  {
+   "step": "command",
+   "text": "::hit 330",
+   "expectMessage": "0/1100 hp, dead"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian;",
+   "comment": "its death does the room: the first row of doors opens"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

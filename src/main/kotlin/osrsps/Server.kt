@@ -57,6 +57,7 @@ import osrsps.game.combat.Spells
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
+import osrsps.game.raid.ArchiveGuardian
 import osrsps.game.raid.PartyScaling
 import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.SkillUnlocks
@@ -246,7 +247,7 @@ class GameServer(
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, partyScaling = partyScaling, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
-            specialAttackCosts = specialAttackCosts,
+            specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes)),
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)
