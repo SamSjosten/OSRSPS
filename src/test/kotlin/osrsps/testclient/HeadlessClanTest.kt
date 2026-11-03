@@ -707,6 +707,7 @@ class HeadlessClanTest {
                     bob.ifButton(Clans.MEMBERS, 11, 1, sub = 0)
                     bob.awaitTicks(2)
                     assertNull(bob.rankPopup(since))
+                    assertFalse(bob.opEnabled(Clans.MEMBERS, 11, 0, 1))
 
                     alice.yourClanTab()
                     alice.await("alice's clan page") { alice.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
@@ -753,10 +754,8 @@ class HeadlessClanTest {
                     alice.awaitTicks(2)
                     assertEquals(Clans.RANK_ADMINISTRATOR, clan.member(bobKey)?.rank)
 
-                    // bob, an Administrator now, edits ranks below his own: alice's isn't.
-                    bob.ifButton(Clans.MEMBERS, Clans.MEMBERS_EXIT, 1)
-                    bob.await("bob's settings page again") { bob.openInterfaces().takeIf { Clans.INFO in it && Clans.MEMBERS !in it } }
-                    bob.ifButton(Clans.INFO, Clans.INFO_MEMBERS, 1)
+                    // bob, an Administrator now, edits ranks below his own: alice's isn't. His open page got Edit rank.
+                    assertTrue(Clans.MEMBERS in bob.openInterfaces())
                     bob.await("bob's Edit rank") { Unit.takeIf { bob.opEnabled(Clans.MEMBERS, 11, 0, 1) } }
                     bob.ifButton(Clans.MEMBERS, 11, 1, sub = 0)
                     bob.saw("[clan.rank_too_high name=alice]")

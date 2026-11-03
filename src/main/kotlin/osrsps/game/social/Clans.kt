@@ -929,8 +929,21 @@ class Clans(
         pickingRank.remove(player.saveKey)
         openModal(player, MEMBERS)
         setEvents(player, MEMBERS, MEMBERS_EXIT, -1, -1, OP1, 0)
-        if (!mayEditRanks(player, clan)) return
-        for (column in MEMBERS_COLUMNS) setEvents(player, MEMBERS, column, 0, MAX_MEMBERS - 1, OP1, 0)
+        memberColumnEvents(player, clan)
+    }
+
+    /** The members page columns' op for [player]: on when they may edit ranks in [clan], else off. */
+    private fun memberColumnEvents(player: Player, clan: ClanStore.Clan) {
+        val ops = if (mayEditRanks(player, clan)) OP1 else 0
+        for (column in MEMBERS_COLUMNS) setEvents(player, MEMBERS, column, 0, MAX_MEMBERS - 1, ops, 0)
+    }
+
+    /** After a rank or permission change in [clan]: each online member with its members page open gets their ops again. */
+    private fun refreshMembersPages(clan: ClanStore.Clan) {
+        for (member in clan.members) {
+            val player = playerByKey(member.key) ?: continue
+            if (MEMBERS in player.modals.values) memberColumnEvents(player, clan)
+        }
     }
 
     private fun mayEditRanks(player: Player, clan: ClanStore.Clan): Boolean = has(player, clan, VAR_ASSIGN_RANKS)
@@ -980,6 +993,7 @@ class Clans(
         store.setRank(clan, target, rank)
         sendSettings(clan)
         broadcastChannel(clan)
+        refreshMembersPages(clan)
     }
 
     /** The settings page's Permissions button as a member: the permissions page, drawn from the clan settings. */
@@ -1043,6 +1057,7 @@ class Clans(
         if (id == VAR_PERMISSION_ACCESS && rank == RANK_NOBODY) return
         store.setSetting(clan, id, rank)
         sendSettings(clan)
+        refreshMembersPages(clan)
     }
 
     /** Shows the creation panel's list and name to [player], if they have it open. */
