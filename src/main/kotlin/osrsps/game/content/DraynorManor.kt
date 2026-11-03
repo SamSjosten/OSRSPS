@@ -28,7 +28,7 @@ import osrsps.map.Tile
  * - The bookcases (`hauntedbookcasel` 155 and `r` 156 at 3097,3358 and 3359) open from the east only, as 2004Scape's
  *   quest_haunted script has them: they turn into an invisible wall with the open bookcase beside each for [PASSAGE_TICKS]
  *   and the player is put in the room behind, on the tile the script names. The lever there (`hauntedleverup` 160)
- *   pulls down for [LEVER_TICKS] and lets the player back out two tiles east. The basement's ladder is step 13.
+ *   pulls down for [LEVER_TICKS] and lets the player back out two tiles east. The basement is [DraynorManorBasement].
  * - The closet behind the stairs (`closet_door` 131 at 3107,3367) is locked; the Ernest the Chicken key (275), which
  *   can't be had once the quest is done, unlocks it and the player walks through as 2004Scape's script has it. Taking the
  *   rubber tube there sets the skeleton on the player (the Wiki, Skeleton (Draynor Manor)).
@@ -150,6 +150,7 @@ fun registerDraynorManor(world: World) {
         }
         world.handlers.onLoc(SPIRAL_UP, CLIMB) { op -> climbStairs(world, op.loc!!, 1) }
         world.handlers.onLoc(SPIRAL_DOWN, CLIMB) { op -> climbStairs(world, op.loc!!, -1) }
+        registerDraynorManorBasement(world)
         for (id in listOf(BOOKCASE_L, BOOKCASE_R)) {
             world.handlers.onLoc(id, SEARCH) { op ->
                 val bookcase = op.loc!!

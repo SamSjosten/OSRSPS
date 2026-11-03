@@ -196,6 +196,9 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
         const val OLIVIA = 500
         const val FORTUNATO = 1260
 
+        /** tea_seller, Varrock's Tea Seller, who keeps the tea stall. */
+        const val TEA_SELLER = 8687
+
         /** farming_market_guard, Draynor's two Market Guards. */
         const val MARKET_GUARD = 5732
 
@@ -223,6 +226,8 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
             StallLoot(5311, 12), // wildblood_hop_seed
             StallLoot(5321, 9), // watermelon_seed
         )
+        /** cup_of_tea, the tea stall's only item (the Wiki's Tea stall page). */
+        val TEA_LOOT = listOf(StallLoot(1978, 1))
         val WINE_LOOT = listOf(
             StallLoot(1935, 39), // jug_empty
             StallLoot(1937, 20), // jug_water
@@ -233,11 +238,15 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
 
         /**
          * By loc type. Seed stall: level 27, 10 XP, back in 2.4 seconds (4 ticks). Wine stall (`rag_market_stall`, "Market
-         * stall"): level 22, 27 XP, 4.8 seconds (8 ticks), empty as `rag_market_stall_empty`.
+         * stall"): level 22, 27 XP, 4.8 seconds (8 ticks), empty as `rag_market_stall_empty`. Varrock step 13, the tea
+         * stall (`tea_stall`, the Wiki's Tea stall page, read 2026-11-03): level 5, 16 XP, back in 2.4 seconds (4 ticks), a
+         * cup of tea each time; no guards (the Wiki: Varrock's are too far off to come). Guessed: it empties to `market`
+         * as the seed stall does, and its owner's ban is the Stalls page's 20 minutes.
          */
         val STALLS: Map<Int, Stall> = listOf(
             Stall(7053, 634, 27, 100, 4, SEED_LOOT, OLIVIA, OLIVIA_REFUSE_TICKS, setOf(MARKET_GUARD)),
             Stall(14011, 14012, 22, 270, 8, WINE_LOOT, FORTUNATO, STALL_REFUSE_TICKS, setOf(MARKET_GUARD)),
+            Stall(635, 634, 5, 160, 4, TEA_LOOT, TEA_SELLER, STALL_REFUSE_TICKS, emptySet()),
         ).associateBy { it.loc }
     }
 }

@@ -39,6 +39,9 @@ class ClanStore(private val file: Path? = null) {
         /** Applicants, oldest first. */
         val applicants = ArrayList<Applicant>()
 
+        /** Clan setting vars set by its members (permissions), by var id; unset ones take their defaults. */
+        val settings = HashMap<Int, Int>()
+
         fun member(key: String): Member? = members.firstOrNull { it.key == key }
 
         fun applicant(key: String): Applicant? = applicants.firstOrNull { it.key == key }
@@ -126,6 +129,12 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "${member.key} joined clan '${clan.name}'" }
     }
 
+    /** Sets [clan]'s setting var [id] to [value], written at the next [flush]. */
+    fun setSetting(clan: Clan, id: Int, value: Int) {
+        clan.settings[id] = value
+        unwritten = true
+    }
+
     /**
      * Gives [member] of [clan] [rank], written at the next [flush] (the autosave), not now: an editor can pick ranks as
      * fast as they click, and each write is the whole file.
@@ -185,6 +194,7 @@ class ClanStore(private val file: Path? = null) {
                             }
                         }
                     }
+                    putJsonObject("settings") { for ((id, value) in clan.settings) put(id.toString(), value) }
                     putJsonArray("applicants") {
                         for (applicant in clan.applicants) {
                             addJsonObject {
@@ -210,7 +220,8 @@ class ClanStore(private val file: Path? = null) {
                 Member(m["key"]!!.jsonPrimitive.content, m["name"]!!.jsonPrimitive.content, m["rank"]!!.jsonPrimitive.int, m["joined"]!!.jsonPrimitive.int)
             }
             val clan = Clan(obj["id"]!!.jsonPrimitive.long, obj["name"]!!.jsonPrimitive.content, obj["created"]!!.jsonPrimitive.long, members.toMutableList())
-            // Files from before applications have none.
+            // Files from before settings or applications have none.
+            for ((id, value) in obj["settings"]?.jsonObject.orEmpty()) clan.settings[id.toInt()] = value.jsonPrimitive.int
             for (a in obj["applicants"]?.jsonArray.orEmpty()) {
                 val o = a.jsonObject
                 clan.applicants += Applicant(o["key"]!!.jsonPrimitive.content, o["name"]!!.jsonPrimitive.content, o["stats"]?.jsonPrimitive?.content.orEmpty())

@@ -205,6 +205,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `hill-giants.json`: Edgeville step 11 (with `::keys on` and `::god on`): the brass key taken, the shed's door
   locked and then unlocked with it, the ladder down, a hill giant killed for its big bones, Obor's gate refusing, and
   back up.
+- `stronghold-of-security.json`: Edgeville step 12 (with `::keys on` and `::god on`): down the entrance in the
+  Barbarian Village mine, the Dead Explorer's notes, the portal to the reward room at combat level 34, the Gift of
+  Peace claimed once (2,000 coins, `assertVarbit` 2309), a pair of Gates of War passed without a question, and back up
+  the reward room's ladder.
 - `edgeville-multi.json`: Edgeville step 6: the multi-way icon's varbit (`assertVarbit` 4605) on in Barbarian
   Village, off at Edgeville bank and on again after walking back in over the village's north edge, on the road from Edgeville. Needs 0.8.0 for
   `assertVarbit`.
@@ -252,6 +256,16 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-skilling.json`: Varrock step 11 (with `::keys on`): mines copper at the south-east mine, hammers a bronze
   dagger on the west anvils, cooks a shrimp on a house's range, chops a dying tree to its stump, fills buckets at a sink
   and a well, and hits a training dummy north of the East Bank until level 8 has nothing more to teach.
+- `varrock-thieving.json`: Varrock step 13 (with `::keys on`): the tea stall's level box at Thieving 4, a theft at 5
+  from its west side (a cup of tea, 16 XP, the stall empty for 4 ticks and back), then at 99 a pickpocket of a palace
+  guard and of a warrior woman behind the palace (each a coin pouch, or a stun).
+- `varrock-dark-wizards.json`: Varrock step 14: into the middle of the stone circle south of the city, where its dark
+  wizards (level 7s and 20s) cast at the player unprovoked from where they stand: a casting graphic on a wizard, then
+  the spell's impact or a splash on the player.
+- `varrock-sewers.json`: Varrock step 15 (with `::keys on`): opens the manhole east of the palace, climbs down to the
+  sewers and back up the ladder, does the same through the bear pen's trapdoor, tries the web east of the deadly red
+  spiders with no blade and then uses an Armadyl godsword on it (slash +132, which always cuts), and kills a moss giant for its big
+  bones.
 - `varrock-guards.json`: a Varrock guard and an Edgeville guard each put in on a quiet tile and killed, each dying with
   `human_death` and leaving bones.
 - `draynor-willows.json`: Draynor step 2: the bronze axe taken off the logs by the willows and back 30 seconds later,
@@ -308,6 +322,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `draynor-manor-inside.json`: Draynor step 12a: Draynor Manor's main staircase and spiral stairs up and down, the top
   floor's tinderbox, the bookcase passage and its lever, the locked closet, and out by the back door, which won't open
   from outside (`::keys on`, `::god on`).
+- `wizards-tower.json`: Draynor step 14: the Wizards' Tower's spiral staircase up its three floors and back down (the
+  middle's Climb menu too), the ladder to the basement and back, a library bookcase's three boxes and the first floor's
+  boxes (`::keys on`), a level 9 wizard casting Fire Strike back and its bones, and the caged lesser demon hit by Fire
+  Strike through its railing while a punch can't reach it. Needs 0.7.0 for `castOnNpc` and `assertSpotanim`.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.

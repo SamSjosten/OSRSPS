@@ -16,6 +16,60 @@
       "source": "OSRS Wiki, Dark wizard (level 7: ids 512, 5086, 5087): speed 4, max hit 2, magic, Water Strike and Confuse, the bonuses and respawn 50. Aggressive (the Wiki's infobox). Spotanims are the spells' own (waterstrike_* 93 to 95, confuse_* 102 to 104), Confuse lowering Attack 5% (Wiki, Confuse). Guessed: the two spells as likely as each other, the 10-tile range (a spell's), and the unarmed block"
     },
     {
+      "npcs": ["bearded_dark_wizard", "qip_ds_young_dark_wizard3", "qip_ds_young_dark_wizard4"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "magic", "attackBonus": 0, "strengthBonus": 0,
+      "range": 10,
+      "attacks": [
+        { "anim": "human_caststrike", "cast": 96, "projectile": 97, "impact": 98 },
+        { "anim": "human_castweaken", "cast": 105, "projectile": 106, "impact": 107, "maxHit": 0, "drain": { "skill": "strength", "percent": 5 } }
+      ],
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 3, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_caststrike", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 50,
+      "aggressive": true,
+      "source": "OSRS Wiki, Dark wizard (level 20: ids 510, 5088, 5089), read 2026-11-03: speed 4, Earth Strike and Weaken, respawn 50, aggressive; max hit 6 and the defence bonuses from the DPS calculator's 510 (weirdgloop/osrs-dps-calc monsters.json). Spotanims are the spells' own (earthstrike_* 96 to 98, weaken_* 105 to 107), Weaken lowering Strength 5% (Wiki, Weaken). Guessed, as the level 7s: the two spells as likely as each other, the 10-tile range and the unarmed block"
+    },
+    {
+      "npcs": ["mossgiant", "mossgiant2", "mossgiant3", "mossgiant4"],
+      "attackSpeed": 6, "maxHit": 6, "attackType": "crush", "attackBonus": 33, "strengthBonus": 31,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_update_moss_attack", "defend": "giant_update_moss_defend", "death": "giant_update_moss_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Moss giant (level 42, ids 2090 to 2093), read 2026-11-03: aggressive, respawn 30; speed 6, max hit 6, crush, the bonuses and the fire weakness from the DPS calculator's 2090. They stand and walk with giant_update_moss_ready and _walk, so the giant_update_moss fight animations are taken"
+    },
+    {
+      "npcs": ["giantspider2"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Giant spider (Level 27, id 3018), read 2026-11-03: respawn 30; speed 4, max hit 3, stab, no bonuses and the fire weakness from the DPS calculator's 3018. Guessed: aggressive, as the Level 2 infobox has it (the Level 27 one doesn't say), and the spider_update fight animations it stands with"
+    },
+    {
+      "npcs": ["deadly_red_spider"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 15, "slash": 16, "crush": 7, "magic": 12, "light": 16, "standard": 16, "heavy": 16 },
+      "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "fire", "percent": 40 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Deadly red spider (id 3021), read 2026-11-03: aggressive, not poisonous, speed 4, max hit 3, stab, respawn 30; the bonuses and the fire weakness from the DPS calculator's 3021. The spider_update fight animations it stands with, guessed"
+    },
+    {
+      "npcs": ["ghost", "ghost5", "ghost8"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 5, "slash": 5, "crush": 5, "magic": -5, "light": 5, "standard": 5, "heavy": 5 },
+      "anims": { "attack": "ghost_update_tendrill_attack", "defend": "ghost_update_tendrill_defend", "death": "ghost_update_tendrill_death" },
+      "respawnTicks": 40,
+      "weakness": { "element": "air", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Ghost (Level 19; the Varrock Sewers' 85, 89 and 92), read 2026-11-01 for Draynor Manor's: speed 4, max hit 2, crush, the bonuses, respawn 40, weak to air 50%, aggressive. These stand and walk with ghost_update_tendrill_ready and _walk, so the ghost_update_tendrill fight animations are taken"
+    },
+    {
       "npcs": ["man", "man2", "man3", "man4", "al_kharid_man", "varrock_man1"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
@@ -81,12 +135,12 @@
       "source": "OSRS Wiki, Woman (3112 and 3113 are taken to match 3111: the cache gives all three the same levels and bonuses)"
     },
     {
-      "npcs": ["rat", "rat_indoors"],
+      "npcs": ["rat", "rat_indoors", "sos_war_rat"],
       "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": -47, "strengthBonus": -53,
       "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
       "anims": { "attack": "mouse_attack", "defend": "mouse_defend", "death": "mouse_death" },
       "respawnTicks": 2,
-      "source": "OSRS Wiki, Rat (ids 2854, 2855); it stands and walks with mouse_ready and mouse_walk, so it fights with the mouse animations"
+      "source": "OSRS Wiki, Rat (ids 2854, 2855, and the Stronghold of Security's 2492, read 2026-11-03: the same speed, max hit, style, bonuses and 2-tick respawn); it stands and walks with mouse_ready and mouse_walk, so it fights with the mouse animations"
     },
     {
       "npcs": ["imp"],
@@ -330,7 +384,7 @@
       "source": "OSRS Wiki, Monk (level 5, id 2579, Edgeville Monastery) and the DPS calculator's 2579, read 2026-11-01: not aggressive. The animations are guessed (a crush with no weapon). Left out: healing itself 2 hitpoints now and then in a fight, whose chance the Wiki doesn't give"
     },
     {
-      "npcs": ["zombie_unarmed_sewer1", "zombie_unarmed_sewer2", "zombie_unarmed_sewer3"],
+      "npcs": ["zombie_unarmed_sewer1", "zombie_unarmed_sewer2", "zombie_unarmed_sewer3", "zombie_unarmed_sewer4"],
       "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
       "anims": { "attack": "zombie_update_attack_normal", "defend": "zombie_update_defend_normal", "death": "zombie_update_death_normal" },
@@ -468,6 +522,63 @@
       "source": "OSRS Wiki, Ghost (Level 19, ids 473, 474 and 505 to 507 in Draynor Manor), read 2026-11-01: speed 4, max hit 2, crush, the bonuses, respawn 40, weak to air 50%, aggressive. They stand and walk with ghost_update_normal_ready and _walk, so the normal fight animations are taken; the default hunt range is guessed"
     },
     {
+      "npcs": ["sos_war_goblin_armed", "sos_war_goblin_green_soldier_1"],
+      "attackSpeed": 6, "maxHit": 1, "attackType": "stab", "attackBonus": 12, "strengthBonus": 12,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "slice_surface_goblin_squat_attack_spear", "defend": "slice_surface_goblin_defend_spear", "death": "slice_surface_goblin_death_spear" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Goblin (Vault of War) (Level 5, id 2484) and the DPS calculator's 2484 and 2486 (level 11), read 2026-11-03: speed 6, max hit 1, stab, attack and strength 12, no defence bonuses, respawn 35, not aggressive. The Wiki gives the respawn for the level 5 only, so the others' is taken as the same (inferred). They stand and walk with the spear squat animations, so the spear fight animations are taken"
+    },
+    {
+      "npcs": ["sos_war_goblin_armed2", "sos_war_goblin_green_soldier_2"],
+      "attackSpeed": 6, "maxHit": 3, "attackType": "stab", "attackBonus": 22, "strengthBonus": 22,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "slice_surface_goblin_squat_attack_spear", "defend": "slice_surface_goblin_defend_spear", "death": "slice_surface_goblin_death_spear" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Goblin (Vault of War) (Level 16, ids 2487 and 2489) and the DPS calculator's 2487, read 2026-11-03: speed 6, max hit 3, stab, attack and strength 22, no defence bonuses, not aggressive. 2489 is taken to match 2487 (same level; the calculator lists 2487 only). Respawn taken as the level 5's 35 (inferred); spear animations as they stand and walk with them"
+    },
+    {
+      "npcs": ["sos_war_goblin_helmet"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 4, "slash": 6, "crush": 8, "magic": 4, "light": 4, "standard": 4, "heavy": 4 },
+      "anims": { "attack": "slice_surface_goblin_squat_attack_spear", "defend": "slice_surface_goblin_defend_spear", "death": "slice_surface_goblin_death_spear" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Goblin (Vault of War) (Level 13, id 2485) and the DPS calculator's 2485, read 2026-11-03: speed 4, max hit 2, crush, the bonuses, not aggressive. Respawn taken as the level 5's 35 (inferred); it stands and walks with the spear squat animations, so the spear fight animations are taken (guessed for a crush attack)"
+    },
+    {
+      "npcs": ["sos_war_goblin_helmet2"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 14, "slash": 16, "crush": 18, "magic": 14, "light": 14, "standard": 14, "heavy": 14 },
+      "anims": { "attack": "slice_surface_goblin_squat_attack_spear", "defend": "slice_surface_goblin_defend_spear", "death": "slice_surface_goblin_death_spear" },
+      "respawnTicks": 35,
+      "source": "OSRS Wiki, Goblin (Vault of War) (Level 25, id 2488) and the DPS calculator's 2488, read 2026-11-03: speed 4, max hit 3, crush, the bonuses, not aggressive. Respawn taken as the level 5's 35 (inferred); spear fight animations as for the level 13 (guessed)"
+    },
+    {
+      "npcs": ["sos_war_minotaur"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+      "anims": { "attack": "mino_attack", "defend": "mino_parry", "death": "mino_death" },
+      "respawnTicks": 15,
+      "source": "OSRS Wiki, Minotaur (Level 12, id 2481) and the DPS calculator's 2481, read 2026-11-03: speed 4, max hit 2, crush, the bonuses, respawn 15, not aggressive. It stands and walks with mino_ready and mino_walk, so the mino fight animations are taken"
+    },
+    {
+      "npcs": ["sos_war_minotaur3"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": -10, "slash": -10, "crush": -10, "magic": -21, "light": -10, "standard": -10, "heavy": -10 },
+      "anims": { "attack": "mino_attack", "defend": "mino_parry", "death": "mino_death" },
+      "respawnTicks": 15,
+      "source": "OSRS Wiki, Minotaur (Level 27, id 2483) and the DPS calculator's 2483, read 2026-11-03: speed 4, max hit 3 (the calculator's; the Wiki's version data is unclear), crush, the bonuses, respawn 15, not aggressive; the mino fight animations"
+    },
+    {
+      "npcs": ["sos_war_wolf", "sos_war_wolf2"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "dog_update_wolf_attack", "defend": "dog_update_wolf_defend", "death": "dog_update_wolf_death" },
+      "respawnTicks": 90,
+      "weakness": { "element": "fire", "percent": 25 },
+      "source": "OSRS Wiki, Wolf (Levels 11 and 14, ids 2491 and 2490, Stronghold of Security) and the DPS calculator's 2490 and 2491, read 2026-11-03: speed 4, max hit 2, stab, no bonuses, respawn 90, weak to fire 25%, not aggressive. They stand and walk with dog_update_wolf_ready and _walk, so the wolf fight animations are taken"
+    },
+    {
       "npcs": ["mugger"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": -21,
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
@@ -550,6 +661,28 @@
       "immune": ["poison", "venom"],
       "drainCap": { "defence": 60 },
       "source": "OSRS Wiki, Archive Guardian (id 16659; the grounded form is 16660 in the 241.4 cache), read 2026-11-03: speed 5, max hit 25, crush (the infobox's style), the defence bonuses but slash 90, the cache's param for this form against 110 for the levitating one, immune to poison and venom, Defence drained to 60% at most. Grounded it swings with npc_archive_guardian_melee_attack01. Guessed: the 40% fire weakness (a guide's, osrsbestinslot; the Wiki lists 80% and 40% without saying which form has which), no block animation, the respawn, which never comes"
+    },
+    {
+      "npcs": ["wizard"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "magic", "attackBonus": 0, "strengthBonus": 0,
+      "range": 8,
+      "attacks": [
+        { "anim": "human_caststrike", "cast": 99, "projectile": 100, "impact": 101 }
+      ],
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 3, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_caststrike", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 30,
+      "source": "OSRS Wiki, Wizard (level 9, id 3257, Wizards' Tower), read 2026-11-03: speed 4, max hit 4, magic, the bonuses (all 0 but magic defence 3), respawn 30, not aggressive, no elemental weakness. The spell is Fire Strike held to max hit 4, as 2004Scape's wizard.rs2 casts it (the Wiki: like a weaker Fire Strike); its spotanims are Fire Strike's own (firestrike_casting 99, _travel 100, _impact 101). The 8-tile range is 2004Scape's attackrange. Guessed: the unarmed block"
+    },
+    {
+      "npcs": ["lesser_demon"],
+      "attackSpeed": 4, "maxHit": 8, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": -10, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "demon_attack", "defend": "demon_block", "death": "demon_death" },
+      "respawnTicks": 30,
+      "weakness": { "element": "water", "percent": 40 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Lesser demon (level 82, id 2005), read 2026-11-03: speed 4, max hit 8, slash, no attack or melee and ranged defence bonuses, magic defence -10, weak to water 40%, respawn 30, aggressive. The Wizards' Tower's caged one is this type: its cage keeps it from reaching anyone (Wiki, Wizards' Tower). The fight animations are the demon_ ones beside the demon_ready and demon_walk the type stands and walks with"
     }
   ]
 }

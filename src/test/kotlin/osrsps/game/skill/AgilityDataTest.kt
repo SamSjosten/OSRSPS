@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import osrsps.game.content.Examines
 import osrsps.map.Tile
 
 /** agility.json's format, and the step and angle sums the obstacles use. */
@@ -120,6 +121,12 @@ class AgilityDataTest {
         is AgilityMove.Slide -> last.to
         is AgilityMove.Walk -> AgilityTile(last.path.last().x, last.path.last().z, 0)
         else -> error("No tile in $last")
+    }
+
+    @Test
+    fun `every obstacle loc type, and Grace, has an examine`() {
+        for (id in AgilityData.load().obstacles.flatMap { it.locs }) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+        assertEquals("examine.npc_5919", Examines.npc(5919)?.key)
     }
 
     @Test
