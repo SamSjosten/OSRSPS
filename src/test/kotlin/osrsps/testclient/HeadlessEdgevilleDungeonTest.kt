@@ -10,6 +10,9 @@ import osrsps.game.GameRandom
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
+import osrsps.game.InventoryTab
 import osrsps.game.SeqNames
 import osrsps.game.World
 import osrsps.game.combat.NpcCombat
@@ -53,6 +56,10 @@ class HeadlessEdgevilleDungeonTest {
             type(EdgevilleDungeon.WALL_RIGHT_OPEN, "Odd looking wall"),
             type(EdgevilleDungeon.NORTH_GATE_LEFT, "Gate", "Open"),
             type(EdgevilleDungeon.NORTH_GATE_RIGHT, "Gate", "Open"),
+            type(EdgevilleDungeon.SHED_DOOR, "Door", "Open"),
+            type(EdgevilleDungeon.SHED_LADDER, "Ladder", "Climb-down"),
+            type(EdgevilleDungeon.OBOR_GATE_LEFT, "Gate", "Open"),
+            type(EdgevilleDungeon.OBOR_GATE_RIGHT, "Gate", "Open"),
         ).associateBy { it.id },
     )
 
@@ -65,6 +72,11 @@ class HeadlessEdgevilleDungeonTest {
         ZoneLoc(EdgevilleDungeon.WALL_RIGHT, LocShape.WALL_STRAIGHT, 0, 3094, 9896, 0),
         ZoneLoc(EdgevilleDungeon.NORTH_GATE_LEFT, LocShape.WALL_STRAIGHT, 1, 3131, 9917, 0),
         ZoneLoc(EdgevilleDungeon.NORTH_GATE_RIGHT, LocShape.WALL_STRAIGHT, 1, 3132, 9917, 0),
+        ZoneLoc(EdgevilleDungeon.SHED_DOOR, LocShape.WALL_STRAIGHT, 3, 3115, 3450, 0),
+        ZoneLoc(EdgevilleDungeon.SHED_LADDER, LocShape.CENTREPIECE_STRAIGHT, 3, 3116, 3452, 0),
+        ZoneLoc(LumbridgeCastle.CELLAR_LADDER, LocShape.CENTREPIECE_STRAIGHT, 3, 3116, 9852, 0),
+        ZoneLoc(EdgevilleDungeon.OBOR_GATE_LEFT, LocShape.WALL_STRAIGHT, 0, 3095, 9832, 0),
+        ZoneLoc(EdgevilleDungeon.OBOR_GATE_RIGHT, LocShape.WALL_STRAIGHT, 0, 3095, 9833, 0),
         // Made up: the trapdoor type somewhere else, where it climbs nowhere, and the gate type outside the middle.
         ZoneLoc(EdgevilleDungeon.TRAPDOOR, LocShape.GROUND_DECOR, 0, STRAY_X, 3468, 0),
         ZoneLoc(EdgevilleDungeon.GATE_LEFT, LocShape.WALL_STRAIGHT, 1, 3105, 9944, 0),
@@ -75,18 +87,29 @@ class HeadlessEdgevilleDungeonTest {
         internalName = "zombie2", stats = NpcStats(attack = 13, defence = 18, strength = 13, hitpoints = 24),
     )
 
+    private val giant = NpcType(
+        GIANT, "Hill Giant", ops = listOf(null, "Attack", null, null, null), combatLevel = 28,
+        internalName = "giant", stats = NpcStats(attack = 18, defence = 26, strength = 22, hitpoints = 35),
+    )
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             markLoaded(3097 shr 6, 3468 shr 6)
             for (x in listOf(3094, 3131, 3145)) markLoaded(x shr 6, 9867 shr 6)
             markLoaded(3131 shr 6, 9917 shr 6)
             markLoaded(3105 shr 6, 9944 shr 6)
+            markLoaded(3115 shr 6, 3450 shr 6)
+            markLoaded(3116 shr 6, 9852 shr 6)
         }
-        val npcTypes = NpcTypes.of(zombie)
-        val objTypes = DropTestItems.objTypes()
+        val npcTypes = NpcTypes.of(zombie, giant)
+        val drops = DropTestItems.objTypes()
+        val objTypes = ObjTypes.of(*(0 until drops.size).mapNotNull { drops[it] }.toTypedArray(), ObjType(EdgevilleDungeon.BRASS_KEY, "Brass key"))
         World(
             crcs, map, random = GameRandom(10), objTypes = objTypes, locTypes = types, staticLocs = StaticLocs().apply { locs.forEach(::add) },
-            npcTypes = npcTypes, npcSpawns = listOf(NpcSpawn(zombie, ZOMBIE_X, ZOMBIE_Z, wander = 0, source = "test")),
+            npcTypes = npcTypes, npcSpawns = listOf(
+                NpcSpawn(zombie, ZOMBIE_X, ZOMBIE_Z, wander = 0, source = "test"),
+                NpcSpawn(giant, GIANT_X, GIANT_Z, wander = 0, source = "test"),
+            ),
             npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), npcDrops = NpcDrops.load(npcTypes, objTypes), cycleMillis = millis,
         )
     }
@@ -218,7 +241,63 @@ class HeadlessEdgevilleDungeonTest {
         }
     }
 
+    @Test
+    fun `the shed's door is locked both ways, the brass key takes the player through, and its ladder goes down to the hill giants`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fay").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3115, 3449, 0)
+                client.locOp(EdgevilleDungeon.SHED_DOOR, 3115, 3450, EdgevilleDungeon.OPEN)
+                client.seen(DialogueText.NONE[EdgevilleDungeonLines.DOOR_LOCKED])
+                client.awaitTicks(2)
+                assertEquals(Coord(3115, 3449, 0), client.position)
+
+                client.command("item ${EdgevilleDungeon.BRASS_KEY}")
+                val slot = client.await("the key") { client.inventory(BACKPACK).indexOfFirst { it?.id == EdgevilleDungeon.BRASS_KEY }.takeIf { it >= 0 } }
+                client.locTarget(EdgevilleDungeon.SHED_DOOR, 3115, 3450, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, EdgevilleDungeon.BRASS_KEY)
+                client.seen(DialogueText.NONE[EdgevilleDungeonLines.DOOR_UNLOCK])
+                client.awaitAt(3115, 3450, 0)
+                // The key is kept, and takes the player back out.
+                assertEquals(1, client.inventory(BACKPACK).count { it?.id == EdgevilleDungeon.BRASS_KEY })
+                client.locTarget(EdgevilleDungeon.SHED_DOOR, 3115, 3450, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, EdgevilleDungeon.BRASS_KEY)
+                client.awaitAt(3115, 3449, 0)
+
+                client.tele(3116, 3451, 0)
+                client.locOp(EdgevilleDungeon.SHED_LADDER, 3116, 3452, EdgevilleDungeon.CLIMB)
+                client.awaitAt(3116, 9851, 0)
+                client.locOp(LumbridgeCastle.CELLAR_LADDER, 3116, 9852, 1)
+                client.awaitAt(3116, 3451, 0)
+            }
+        }
+    }
+
+    @Test
+    fun `a hill giant killed drops big bones, and Obor's gate stays shut`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gus").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3096, 9832, 0)
+                client.locOp(EdgevilleDungeon.OBOR_GATE_LEFT, 3095, 9832, EdgevilleDungeon.OPEN)
+                client.seen(DialogueText.NONE[EdgevilleDungeonLines.OBOR_CLOSED])
+
+                client.tele(GIANT_X - 1, GIANT_Z, 0)
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("setlevel attack 99")
+                client.command("setlevel strength 99")
+                val npc = client.await("the giant in view") { client.npcs().firstOrNull { it.id == GIANT } }
+                client.npcOp(npc.index, 2)
+                client.await("the giant's death", timeoutMillis = 60_000) { if (client.npcs().none { it.id == GIANT }) Unit else null }
+                client.await("the big bones") { client.groundObjs().firstOrNull { it.id == BIG_BONES } }
+            }
+        }
+    }
+
     private companion object {
+        const val GIANT = 2098
+        const val GIANT_X = 3111
+        const val GIANT_Z = 9841
+        const val BIG_BONES = 532
+        const val BACKPACK = 93
         const val STRAY_X = 3110
         const val ZOMBIE = 42
         const val ZOMBIE_X = 3139

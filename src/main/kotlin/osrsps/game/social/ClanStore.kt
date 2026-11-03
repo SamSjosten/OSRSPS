@@ -28,12 +28,19 @@ private val logger = KotlinLogging.logger {}
 class ClanStore(private val file: Path? = null) {
     class Member(val key: String, var name: String, var rank: Int, val joinedDay: Int)
 
-    /** A player who applied to join (Apply on the clan's settings page as a guest), by save key and name. */
-    class Applicant(val key: String, var name: String)
+    /**
+     * A player who applied to join (Apply on the clan's settings page as a guest), by save key and name. [stats] is what
+     * the applicants page shows of them, as client script 4375 reads it after the name: combat level, total level, then
+     * the 24 skill levels in its order, `|` between; empty if never taken (files from before it).
+     */
+    class Applicant(val key: String, var name: String, var stats: String = "")
 
     class Clan(val id: Long, var name: String, val createdMillis: Long, val members: MutableList<Member>) {
         /** Applicants, oldest first. */
         val applicants = ArrayList<Applicant>()
+
+        /** Clan setting vars set by its members (permissions), by var id; unset ones take their defaults. */
+        val settings = HashMap<Int, Int>()
 
         fun member(key: String): Member? = members.firstOrNull { it.key == key }
 
@@ -90,10 +97,22 @@ class ClanStore(private val file: Path? = null) {
      * Adds [key] to [clan]'s applicants, unless already there. Written at the next [flush] (the autosave), not now: a
      * player can apply and withdraw as fast as they click, and each write is the whole file.
      */
-    fun addApplicant(clan: Clan, key: String, name: String) {
+    fun addApplicant(clan: Clan, key: String, name: String, stats: String = "") {
         if (clan.applicant(key) != null) return
-        clan.applicants += Applicant(key, name)
+        clan.applicants += Applicant(key, name, stats)
         unwritten = true
+    }
+
+    /** [applicant]'s levels as they are now, written at the next [flush] when they changed. */
+    fun setApplicantStats(applicant: Applicant, stats: String) {
+        if (applicant.stats == stats) return
+        applicant.stats = stats
+        unwritten = true
+    }
+
+    /** Takes [key] off every clan's applicants (they joined a clan), written at the next [flush]. */
+    fun removeApplications(key: String) {
+        for (clan in clans.values) if (clan.applicants.removeIf { it.key == key }) unwritten = true
     }
 
     /** Takes [key] off [clan]'s applicants, written at the next [flush] as [addApplicant]'s; false if they weren't one. */
@@ -108,6 +127,22 @@ class ClanStore(private val file: Path? = null) {
         clan.members += member
         save()
         logger.info { "${member.key} joined clan '${clan.name}'" }
+    }
+
+    /** Sets [clan]'s setting var [id] to [value], written at the next [flush]. */
+    fun setSetting(clan: Clan, id: Int, value: Int) {
+        clan.settings[id] = value
+        unwritten = true
+    }
+
+    /**
+     * Gives [member] of [clan] [rank], written at the next [flush] (the autosave), not now: an editor can pick ranks as
+     * fast as they click, and each write is the whole file.
+     */
+    fun setRank(clan: Clan, member: Member, rank: Int) {
+        member.rank = rank
+        unwritten = true
+        logger.info { "${member.key} is now rank $rank in clan '${clan.name}'" }
     }
 
     /** Takes [key] out of [clan]'s members and saves; false if they weren't one. */
@@ -159,11 +194,13 @@ class ClanStore(private val file: Path? = null) {
                             }
                         }
                     }
+                    putJsonObject("settings") { for ((id, value) in clan.settings) put(id.toString(), value) }
                     putJsonArray("applicants") {
                         for (applicant in clan.applicants) {
                             addJsonObject {
                                 put("key", applicant.key)
                                 put("name", applicant.name)
+                                if (applicant.stats.isNotEmpty()) put("stats", applicant.stats)
                             }
                         }
                     }
@@ -183,10 +220,11 @@ class ClanStore(private val file: Path? = null) {
                 Member(m["key"]!!.jsonPrimitive.content, m["name"]!!.jsonPrimitive.content, m["rank"]!!.jsonPrimitive.int, m["joined"]!!.jsonPrimitive.int)
             }
             val clan = Clan(obj["id"]!!.jsonPrimitive.long, obj["name"]!!.jsonPrimitive.content, obj["created"]!!.jsonPrimitive.long, members.toMutableList())
-            // Files from before applications have none.
+            // Files from before settings or applications have none.
+            for ((id, value) in obj["settings"]?.jsonObject.orEmpty()) clan.settings[id.toInt()] = value.jsonPrimitive.int
             for (a in obj["applicants"]?.jsonArray.orEmpty()) {
                 val o = a.jsonObject
-                clan.applicants += Applicant(o["key"]!!.jsonPrimitive.content, o["name"]!!.jsonPrimitive.content)
+                clan.applicants += Applicant(o["key"]!!.jsonPrimitive.content, o["name"]!!.jsonPrimitive.content, o["stats"]?.jsonPrimitive?.content.orEmpty())
             }
             clans[clan.id] = clan
             if (clan.id >= nextId) nextId = clan.id + 1

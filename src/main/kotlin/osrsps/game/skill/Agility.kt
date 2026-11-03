@@ -3,10 +3,12 @@ package osrsps.game.skill
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import osrsps.game.ObjType
 import osrsps.game.PlayerEffects
 import osrsps.game.Skill
 import osrsps.game.Stance
@@ -26,6 +28,17 @@ import kotlin.math.sign
 object AgilityLines : Lines("agility", "Agility") {
     val LEVEL = line("level", "the message when an obstacle with no level line of its own needs a higher Agility level", "level")
     val DRAYNOR_LAPS = line("draynor_laps", "Draynor Village Rooftop Course: the lap count message after each lap", "count")
+    val ALKHARID_LAPS = line("alkharid_laps", "Al Kharid Rooftop Course: the lap count message after each lap", "count")
+    val ALKHARID_LEVEL = line("alkharid_level", "Al Kharid Rooftop Course: an obstacle clicked below level 20", "level")
+    val VARROCK_LAPS = line("varrock_laps", "Varrock Rooftop Course: the lap count message after each lap", "count")
+    val VARROCK_LEVEL = line("varrock_level", "Varrock Rooftop Course: an obstacle clicked below level 30", "level")
+    val GNOME_LAPS = line("gnome_laps", "Gnome Stronghold Agility Course: the lap count message after each lap", "count")
+    val VARROCK_FENCE_LEVEL = line("varrock_fence_level", "Shortcut: the Varrock south fence clicked below level 13", "level")
+    val GRAND_EXCHANGE_TUNNEL_LEVEL = line("grand_exchange_tunnel_level", "Shortcut: the Grand Exchange underwall tunnel clicked below level 21", "level")
+    val CHAMPIONS_GUILD_STONE_LEVEL = line("champions_guild_stone_level", "Shortcut: the Champions' Guild stepping stone clicked below level 31", "level")
+    val DRAYNOR_TUNNEL_LEVEL = line("draynor_tunnel_level", "Shortcut: the Draynor underwall tunnel clicked below level 42", "level")
+    val DRAYNOR_MANOR_FENCE_LEVEL = line("draynor_manor_fence_level", "Shortcut: Draynor Manor's broken fence clicked below level 49", "level")
+    val CHAMPIONS_GUILD_SOUTH_STONES_LEVEL = line("champions_guild_south_stones_level", "Shortcut: the Champions' Guild south stepping stones clicked below level 52", "level")
 
     /** A line by its key, for agility.json to name one. */
     fun byKey(key: String): Line = lines.firstOrNull { it.key == key } ?: error("No agility line $key")
@@ -53,19 +66,27 @@ sealed interface AgilityMove {
      * (20 ms) after the update and arriving at [endCycles], with [anim]; [ticks] ticks later they stand on [to].
      */
     data class Slide(val to: AgilityTile, val anim: Int, val startCycles: Int, val endCycles: Int, val ticks: Int) : AgilityMove
+
+    /**
+     * Gives [tenths] Agility XP partway across, with no wait: the Champions' Guild south stepping stones give theirs on
+     * the first and third stone (OSRS Wiki). The obstacle's own XP still comes at the end.
+     */
+    data class Xp(val tenths: Int) : AgilityMove
 }
 
 /**
- * One way across an obstacle: the tile the player starts from, what crossing does, and, for an obstacle that can be
- * failed, what a failure does instead ([fail], empty for one that can't).
+ * One way across an obstacle: the tile the player starts from, what crossing does, for an obstacle that can be failed
+ * what a failure does instead ([fail], empty for one that can't), and where the obstacle is one of several locs, the
+ * tiles of the locs this route is for ([at], empty for every loc).
  */
-class AgilityRoute(val from: AgilityTile, val moves: List<AgilityMove>, val fail: List<AgilityMove>)
+class AgilityRoute(val from: AgilityTile, val moves: List<AgilityMove>, val fail: List<AgilityMove>, val at: List<AgilityTile> = emptyList())
 
 /**
- * An obstacle: the loc and its option (by the start of the cache's option text), the Agility level and XP in tenths,
- * where it stands when several locs of the same type are different obstacles ([at], null when there is one), its ways
- * across ([routes], the nearest to the player is taken), and for one that can fail its success pair ([success], out of
- * 256 as [SuccessRoll]'s) and the damage a failure deals ([damage]).
+ * An obstacle: the loc and its option (by the start of the cache's option text), any other loc types that are the same
+ * obstacle ([alsoLocs], as the Gnome Stronghold's two pipes), the Agility level and XP in tenths, where it stands when
+ * several locs of the same type are different obstacles ([at], null when there is one), its ways across ([routes]: of
+ * those for the loc clicked, the one starting nearest the player is taken), and for one that can fail its success pair ([success], out of 256 as
+ * [SuccessRoll]'s) and the damage a failure deals ([damage]).
  */
 class Obstacle(
     val key: String,
@@ -79,20 +100,43 @@ class Obstacle(
     val damage: IntRange,
     /** What the player is told below [level]; [AgilityLines.LEVEL] for an obstacle with no line of its own. */
     val levelLine: Line = AgilityLines.LEVEL,
+    val alsoLocs: List<Int> = emptyList(),
+    /** XP in tenths for a failure, as the Champions' Guild stepping stone's 1; 0 for most. */
+    val failXpTenths: Int = 0,
+    /**
+     * Whether a click walks the player to the nearest route's start rather than beside the loc, for a loc that can't be
+     * reached from beside it: a stepping stone in a river, jumped onto from the bank. See [osrsps.game.loc.LocInteractions.useFrom].
+     */
+    val fromStart: Boolean = false,
 ) {
+    /** Every loc type that is this obstacle. */
+    val locs: List<Int> get() = listOf(loc) + alsoLocs
+
     init {
         require(routes.isNotEmpty()) { "Obstacle $key has no route" }
+        require(loc !in alsoLocs && alsoLocs.toSet().size == alsoLocs.size) { "Obstacle $key lists a loc twice" }
         require((success == null) == routes.all { it.fail.isEmpty() }) { "Obstacle $key needs both a success pair and fail moves, or neither" }
     }
 }
 
 /**
  * A course: its [obstacles] in order, the XP for a whole lap on top of theirs ([lapXpTenths], 0 where the last obstacle's
- * XP already holds it, as on the rooftops) and the message with the lap count ([lapLine]).
+ * XP already holds it, as on the rooftops) and the message with the lap count ([lapLine]). Courses with marks of grace
+ * give their Agility [level], the tiles a mark can land on ([markSpots]) and the chance a lap gives one ([markChance],
+ * a numerator and denominator); see [Agility.rollMark].
  */
-class AgilityCourse(val key: String, val obstacles: List<Obstacle>, val lapXpTenths: Int, val lapLine: Line) {
+class AgilityCourse(
+    val key: String,
+    val obstacles: List<Obstacle>,
+    val lapXpTenths: Int,
+    val lapLine: Line,
+    val level: Int = 1,
+    val markSpots: List<AgilityTile> = emptyList(),
+    val markChance: Pair<Int, Int> = 1 to 3,
+) {
     init {
         require(obstacles.size in 1..MAX_OBSTACLES) { "Course $key has ${obstacles.size} obstacles, 1 to $MAX_OBSTACLES" }
+        require(markChance.second >= 1 && markChance.first in 0..markChance.second) { "Course $key has a mark chance of $markChance" }
     }
 
     /** The [Charges] counters: laps done, and which obstacles of this lap are crossed (a bit each). */
@@ -108,7 +152,7 @@ class AgilityCourse(val key: String, val obstacles: List<Obstacle>, val lapXpTen
 /** agility.json: every obstacle and course. */
 class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse> = emptyList()) {
     /** By loc type: those that share one are told apart by [Obstacle.at]. */
-    val byLoc: Map<Int, List<Obstacle>> = obstacles.groupBy { it.loc }
+    val byLoc: Map<Int, List<Obstacle>> = obstacles.flatMap { obstacle -> obstacle.locs.map { it to obstacle } }.groupBy({ it.first }, { it.second })
 
     /** The course each course obstacle is on, and where in it. */
     val courseOf: Map<Obstacle, Pair<AgilityCourse, Int>> =
@@ -145,6 +189,9 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                     },
                     course.int("lapXpTenths"),
                     AgilityLines.byKey(course.getValue("lapLine").jsonPrimitive.content),
+                    level = course["level"]?.jsonPrimitive?.int ?: 1,
+                    markSpots = course["marks"]?.jsonArray.orEmpty().map { tile(it.jsonArray) },
+                    markChance = course["markChance"]?.jsonArray?.let { it[0].jsonPrimitive.int to it[1].jsonPrimitive.int } ?: (1 to 3),
                 )
             }
             return AgilityData(obstacles, courses)
@@ -159,12 +206,16 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                     tile(route.getValue("from").jsonArray),
                     route.getValue("moves").jsonArray.map { move(key, it.jsonObject) },
                     route["fail"]?.jsonArray?.map { move(key, it.jsonObject) } ?: emptyList(),
+                    route["at"]?.jsonArray.orEmpty().map { tile(it.jsonArray) },
                 )
             }
             return Obstacle(
                 key, json.int("loc"), json.getValue("option").jsonPrimitive.content, json.int("level"), json.int("xpTenths"),
                 json["at"]?.jsonArray?.let(::tile), routes, success, damage,
                 json["levelLine"]?.jsonPrimitive?.content?.let(AgilityLines::byKey) ?: AgilityLines.LEVEL,
+                json["alsoLocs"]?.jsonArray.orEmpty().map { it.jsonPrimitive.int },
+                json["failXpTenths"]?.jsonPrimitive?.int ?: 0,
+                json["fromStart"]?.jsonPrimitive?.boolean ?: false,
             )
         }
 
@@ -178,6 +229,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
             "slide" -> AgilityMove.Slide(
                 tile(json.getValue("to").jsonArray), json.int("anim"), json.int("startCycles"), json.int("endCycles"), json.int("ticks"),
             )
+            "xp" -> AgilityMove.Xp(json.int("tenths"))
             else -> error("Obstacle $key has a move of unknown type ${json["type"]}")
         }
 
@@ -201,9 +253,17 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
  * file); the hit coming after the fail moves; and when the real tile moves on a slide (see [slide]).
  */
 class Agility(private val world: World, val data: AgilityData) {
+    /** The clock's minute now, which the marks' timer counts in; tests move it. */
+    var nowMinutes: () -> Long = { System.currentTimeMillis() / 60_000 }
+
     fun register() {
         for ((locId, obstacles) in data.byLoc) {
             world.handlers.onLoc(locId, option(locId, obstacles.first().option)) { op -> cross(op, obstacles) }
+            if (obstacles.none { it.fromStart }) continue
+            world.useLocFrom(locId) { player, loc ->
+                val obstacle = obstacleAt(obstacles, loc)?.takeIf { it.fromStart } ?: return@useLocFrom emptyList()
+                routesFor(obstacle, loc, player.level).map { Tile(it.from.x, it.from.z) }
+            }
         }
     }
 
@@ -222,16 +282,19 @@ class Agility(private val world: World, val data: AgilityData) {
             player.message(world.textFor(player)[obstacle.levelLine, "level" to obstacle.level])
             return
         }
-        val route = obstacle.routes.filter { it.from.level == player.level }.minByOrNull { distance(it.from) } ?: return
+        val route = routeFor(obstacle, loc) ?: return
         if (!walkTo(route.from)) return
         val success = obstacle.success?.let { (low, high) ->
             SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.AGILITY))
         } ?: true
         for (move in if (success) route.moves else route.fail) play(move)
         if (success) {
-            player.skills.addTenths(Skill.AGILITY, obstacle.xpTenths)
+            // Most shortcuts give no XP, and no XP drop either.
+            if (obstacle.xpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.xpTenths)
             crossed(obstacle)
-        } else if (!obstacle.damage.isEmpty()) {
+        } else {
+            if (obstacle.failXpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.failXpTenths)
+            if (obstacle.damage.isEmpty()) return
             val damage = world.random.between(obstacle.damage.first, obstacle.damage.last)
             world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
         }
@@ -256,11 +319,55 @@ class Agility(private val world: World, val data: AgilityData) {
         player.charges[course.lapsCounter] = laps
         if (course.lapXpTenths > 0) player.skills.addTenths(Skill.AGILITY, course.lapXpTenths)
         player.message(world.textFor(player)[course.lapLine, "count" to laps])
+        rollMark(course)
+    }
+
+    /**
+     * A lap done: a chance at a mark of grace, by the OSRS Wiki's Mark of Grace page (read 2026-11-02). Once three
+     * minutes of the clock have gone since the player's last mark (counted in whole minutes, from the minute it came, and
+     * kept across a logout), each lap has the course's chance, 2/6 on most courses, cut to a fifth when their unboosted
+     * Agility is 20 or more over the course's level. A mark lands on one of the course's spots, for this player alone,
+     * and goes after ten minutes; one landing on a mark already there stacks and the stack's ten minutes start again.
+     *
+     * Inferred: the spot is picked at random, as the Wiki gives the spots but no order; a failed roll leaves the timer
+     * alone, as the Wiki times it from the last mark. Not built: the Wiki's marks staying on the ground with their
+     * timer paused while the player is logged out (ours keep counting down), and the Achievement Diary rerolls.
+     */
+    internal fun ScriptContext.rollMark(course: AgilityCourse) {
+        if (course.markSpots.isEmpty()) return
+        val now = nowMinutes()
+        if (!markDue(player.charges[MARK_MINUTE], now)) return
+        val (numerator, denominator) = markOdds(course, player.skills.baseLevel(Skill.AGILITY))
+        if (!world.random.chance(numerator, denominator)) return
+        val spot = world.random.pick(course.markSpots)
+        val mark = world.objTypes[MARK_OF_GRACE] ?: ObjType(MARK_OF_GRACE, "Mark of grace", stackable = true)
+        val obj = world.groundObjs.addPrivate(
+            mark, 1, spot.x, spot.z, spot.level, player.saveKey,
+            privateTicks = MARK_TICKS, despawnTicks = MARK_TICKS, neverPublic = true,
+        )
+        obj.ticksUntilDespawn = MARK_TICKS
+        player.charges[MARK_MINUTE] = now.coerceIn(1, Int.MAX_VALUE.toLong()).toInt()
     }
 
     /** The obstacle [loc] is: the only one of its type, or the one standing on its tile. */
     private fun obstacleAt(obstacles: List<Obstacle>, loc: ZoneLoc): Obstacle? =
         obstacles.singleOrNull()?.takeIf { it.at == null } ?: obstacles.firstOrNull { it.at == AgilityTile(loc.x, loc.z, loc.level) }
+
+    /**
+     * The way across from where the player is: of the routes on their level, those that name the loc clicked (one net or
+     * pipe of several), or if none does those that name no loc, then the one starting nearest the player (a fence's
+     * side).
+     */
+    private fun ScriptContext.routeFor(obstacle: Obstacle, loc: ZoneLoc): AgilityRoute? =
+        routesFor(obstacle, loc, player.level).minByOrNull { distance(it.from) }
+
+    /** The routes across [obstacle] from [level] for the [loc] clicked; see [routeFor]. */
+    private fun routesFor(obstacle: Obstacle, loc: ZoneLoc, level: Int): List<AgilityRoute> {
+        val here = obstacle.routes.filter { it.from.level == level }
+        val clicked = AgilityTile(loc.x, loc.z, loc.level)
+        val named = here.filter { clicked in it.at }
+        return named.ifEmpty { here.filter { it.at.isEmpty() } }
+    }
 
     private fun ScriptContext.distance(tile: AgilityTile) = maxOf(abs(tile.x - player.x), abs(tile.z - player.z))
 
@@ -297,6 +404,7 @@ class Agility(private val world: World, val data: AgilityData) {
             is AgilityMove.Teleport -> world.teleport(player, move.to.x, move.to.z, move.to.level)
             is AgilityMove.Walk -> walk(move)
             is AgilityMove.Slide -> slide(move)
+            is AgilityMove.Xp -> player.skills.addTenths(Skill.AGILITY, move.tenths)
         }
     }
 
@@ -328,6 +436,29 @@ class Agility(private val world: World, val data: AgilityData) {
          * The tiles from [start] through each of [waypoints] in turn, one step at a time (straight or diagonal), not
          * counting [start].
          */
+        /** The mark of grace (`grace`). */
+        const val MARK_OF_GRACE = 11849
+
+        /** Ten minutes of ticks, a mark's time on the ground. */
+        const val MARK_TICKS = 1_000
+
+        /** The minutes between marks, and the [osrsps.game.Charges] counter holding the minute of the last one. */
+        const val MARK_TIMER_MINUTES = 3
+        const val MARK_MINUTE = "agility_mark_minute"
+
+        /** 20 levels over a course cut its chance of a mark to a fifth. */
+        const val OVER_LEVEL = 20
+        const val OVER_LEVEL_DIVISOR = 5
+
+        /** A lap's chance of a mark on [course] for a player whose unboosted Agility is [baseLevel]. */
+        fun markOdds(course: AgilityCourse, baseLevel: Int): Pair<Int, Int> {
+            val (numerator, denominator) = course.markChance
+            return if (baseLevel >= course.level + OVER_LEVEL) numerator to denominator * OVER_LEVEL_DIVISOR else numerator to denominator
+        }
+
+        /** Whether a mark last seen at [lastMinute] (0 for never) lets another come at [nowMinute]. */
+        fun markDue(lastMinute: Int, nowMinute: Long): Boolean = lastMinute == 0 || nowMinute >= lastMinute + MARK_TIMER_MINUTES
+
         fun steps(start: Tile, waypoints: List<Tile>): List<Tile> {
             val steps = ArrayList<Tile>()
             var x = start.x

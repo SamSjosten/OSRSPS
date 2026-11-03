@@ -67,6 +67,7 @@ import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.Aggression
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
+import osrsps.game.combat.DeathPlace
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.MagicCombat
@@ -117,6 +118,7 @@ import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerEdgevilleDungeon
+import osrsps.game.content.registerStrongholdOfSecurity
 import osrsps.game.content.registerBarbarianVillage
 import osrsps.game.content.registerCooksGuild
 import osrsps.game.content.registerEdgevilleMonastery
@@ -134,8 +136,10 @@ import osrsps.game.content.registerDraynorManor
 import osrsps.game.content.registerDraynorManorPeople
 import osrsps.game.content.registerDraynorManorGrounds
 import osrsps.game.content.ManorHazards
+import osrsps.game.content.registerWaterAndDummies
 import osrsps.game.content.registerWiseOldMan
 import osrsps.game.content.registerBones
+import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
 import osrsps.game.content.registerLumbridgeCastle
@@ -163,6 +167,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.Encounters
+import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.Parties
 import osrsps.game.raid.PartyScaling
 import osrsps.game.script.Handlers
@@ -203,11 +208,13 @@ import osrsps.game.social.Reports
 import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.Trades
 import osrsps.game.zone.ZoneKey
+import osrsps.game.zone.ZoneLoc
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.Route
 import osrsps.map.RouteTarget
+import osrsps.map.Tile
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -339,6 +346,9 @@ class World(
     /** Raid parties; see [Parties]. */
     val parties = Parties()
 
+    /** The Fractured Archive's runs; see [ArchiveRaids]. */
+    val archiveRaids = ArchiveRaids(this)
+
     /** Boss fights in progress; see [Encounters]. */
     val encounters = Encounters(this, encounterDefs)
 
@@ -367,6 +377,7 @@ class World(
 
     private val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
+    private val graceful = Graceful(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
     val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
@@ -460,7 +471,11 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
+        forInstances = { it in ArchiveRaids.INSTANCE_LOCS },
     )
+
+    /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
+    fun useLocFrom(id: Int, tiles: (Player, ZoneLoc) -> List<Tile>) = locInteractions.useFrom(id, tiles)
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
@@ -488,6 +503,7 @@ class World(
         special = { specialAttacks.use(it, combat.weapon(it)) },
         specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
         projectile = zones::projectile,
+        npcDamaged = { npc, player, dealt -> archiveRaids.damaged(npc, player, dealt) },
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
@@ -534,7 +550,20 @@ class World(
             statusEffects.clear(it)
             specialAttacks.refill(it)
         },
+        placeOf = ::deathPlace,
+        teleport = { player, x, z, level -> teleport(player, x, z, level) },
     )
+
+    /**
+     * Where a player dying here comes back and their grave goes: a raid's say ([ArchiveRaids.deathPlace]); in any other
+     * instance the grave goes to its exit, since nobody could get back in to it (exploit review round 9, INST-1), and
+     * they come back at the spawn; elsewhere, null: the spawn, and the grave where they fell.
+     */
+    private fun deathPlace(player: Player): DeathPlace? {
+        archiveRaids.deathPlace(player)?.let { return it }
+        val instance = instances.at(player.x, player.z) ?: return null
+        return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
+    }
 
     /** The words of every dialogue line now; see [loadDialogue]. */
     var dialogueText: DialogueText = DialogueText.NONE
@@ -597,6 +626,20 @@ class World(
             }
         },
         playerByKey = { key -> findPlayer(key) },
+        pickRank = { player, list, picked ->
+            interfaces.openInside(player, list.parent, list.component, Clans.POPUPOVERLAY)
+            interfaces.runClientScript(
+                player, Clans.SCRIPT_RANK_POPUP,
+                listOf(list.title, list.current, list.min, list.max, if (list.nobody) 1 else 0, Clans.component(list.parent, list.component)),
+            )
+            scripts.start(player) {
+                // clan_rankpopup sends the rank clicked plus one (0 for Guest); closing it sends the current one's. The
+                // current rank is taken as no change: else closing a list someone else's change made stale would undo it.
+                val answer = waitForCount()
+                if (list.parent in player.modals.values) interfaces.closeInside(player, list.parent, list.component)
+                if (answer >= 0 && answer - 1 != list.current) picked(answer - 1)
+            }
+        },
         now = clansClock,
     )
 
@@ -738,6 +781,7 @@ class World(
         registerWiseOldMan(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
+        registerWaterAndDummies(this)
         registerMillLaneMill(this)
         registerBarfyBill(this)
         registerFatherUrhney(this)
@@ -753,10 +797,13 @@ class World(
         registerBarbarianVillage(this)
         registerCooksGuild(this)
         registerEdgevilleDungeon(this)
+        registerStrongholdOfSecurity(this)
         registerHaystacks(this)
         registerLodestones(this)
         registerVarrock(this)
         registerArchiveLobby(this)
+        archiveRaids.register()
+        registerRoguesDen(this)
         registerCrops(this)
         ducks.register()
         homeTeleport.register(handlers)
@@ -1102,6 +1149,7 @@ class World(
         deaths.process()
         npcScripts.process()
         encounters.process()
+        archiveRaids.process()
         thieving.process()
         npcs.process()
         fishing.process()
@@ -2198,6 +2246,9 @@ class World(
         if (interfaceId == Clans.CREATION && clans.clickCreation(player, componentId, sub, ::askClanName)) return@act
         if (interfaceId == Clans.GUEST_SIDEPANEL && clans.clickGuest(player, componentId, ::askGuestClanName)) return@act
         if (interfaceId == Clans.INFO && clans.clickInfo(player, componentId)) return@act
+        if (interfaceId == Clans.APPLICANTS && clans.clickApplicants(player, componentId)) return@act
+        if (interfaceId == Clans.MEMBERS && clans.clickMembers(player, componentId, sub)) return@act
+        if (interfaceId == Clans.PERMISSIONS && clans.clickPermissions(player, componentId, sub)) return@act
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_SETTINGS) {
             clans.openYourInfo(player)
             return@act
@@ -2401,7 +2452,9 @@ class World(
     fun onResumePauseButton(player: Player, interfaceId: Int, componentId: Int, sub: Int) = act(player) {
         trades.interrupt(player)
         if (player.scripts.delayed) return@act
-        if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId)) {
+        if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId) &&
+            !clans.reviewApplicant(player, interfaceId, componentId, sub)
+        ) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
         }
     }
@@ -2541,11 +2594,12 @@ class World(
     private fun moveSpeed(player: Player) = if (player.runEnabled) MOVE_SPEED_RUN else MOVE_SPEED_WALK
 
     /**
-     * Works out what [player] carries for this tick's run energy, and tells the client when the whole kilograms change
+     * Works out what [player] carries for this tick's run energy, and their graceful bonus, and tells the client when the whole kilograms change
      * (UPDATE_RUNWEIGHT, which the Equipment Stats screen and RuneLite show). Inferred: live sends it on a change only.
      */
     private fun sendWeight(player: Player) {
         player.weightGrams = itemWeights.total(player)
+        player.restoreBonusPercent = graceful.restorePercent(player)
         val kilograms = ItemWeights.kilograms(player.weightGrams)
         if (kilograms != player.sentWeight) {
             player.session.queue(UpdateRunWeight(kilograms))
@@ -2678,6 +2732,11 @@ class World(
         // Guessed safe rather than checked: the client may carry zones that stay in view across a rebuild, but sending
         // them all again in full is right either way. The ground items and loc changes a reconnect missed go again too.
         player.zoneView.reset()
+    }
+
+    /** Sends everyone in [instance] its zones again: for a part of it laid anew ([Instances.replace]). */
+    fun redrawInstance(instance: Instance) {
+        for (player in players) if (player != null && instance.contains(player.x, player.z)) rebuild(player)
     }
 
     /**

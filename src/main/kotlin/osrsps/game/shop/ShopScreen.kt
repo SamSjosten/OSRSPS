@@ -37,6 +37,10 @@ object ShopLines : Lines("shop", "Shop") {
     val CANT_SELL_COINS = line("cant_sell_coins", "Value or Sell on coins")
     val CANT_SELL = line("cant_sell", "Value or Sell on an untradeable item")
     val WRONG_SHOP = line("wrong_shop", "Value or Sell on an item a specialist shop doesn't stock")
+    val COSTS_IN = line("costs_in", "Value on an item in a shop paid in another item than coins (Grace's marks of grace)", "item", "price", "currency")
+    val BUYS_FOR_IN = line("buys_for_in", "Value on an inventory item such a shop would buy, at its price in that item", "item", "price", "currency")
+    val NOT_ENOUGH_CURRENCY = line("not_enough_currency", "buying in such a shop without enough of that item", "currency")
+    val CANT_SELL_CURRENCY = line("cant_sell_currency", "Value or Sell on that item in such a shop", "currency")
     val ALREADY_HAVE = line("already_have", "buying an item a player may own one of (Diango's Chronicle) with one held or banked", "item")
 }
 
@@ -190,6 +194,7 @@ class ShopScreen(
 
     private fun valueInShop(player: Player, shop: Shop, type: ObjType) {
         val price = shop.buyPrice(type.id, type.cost, shop.count(type.id))
+        if (shop.type.currency != COINS) return valueIn(player, shop, ShopLines.COSTS_IN, type.name, price)
         value(player, ShopLines.COSTS_ONE, ShopLines.COSTS, type.name, price)
     }
 
@@ -197,6 +202,7 @@ class ShopScreen(
         val base = unnoted(type)
         if (!canSell(player, shop, base)) return
         val price = shop.sellPrice(base.id, base.cost, shop.count(base.id))
+        if (shop.type.currency != COINS) return valueIn(player, shop, ShopLines.BUYS_FOR_IN, base.name, price)
         value(player, ShopLines.BUYS_FOR_ONE, ShopLines.BUYS_FOR, base.name, price)
     }
 
@@ -216,12 +222,13 @@ class ShopScreen(
                 return message(player, ShopLines.ALREADY_HAVE, "item" to type.name)
             }
             val price = shop.buyPrice(type.id, type.cost, stock)
-            val coinSlot = inv.slotOf(COINS)
-            if (coinSlot < 0 || inv[coinSlot]!!.count < price) return message(player, ShopLines.NOT_ENOUGH_COINS)
+            val currency = shop.type.currency
+            val coinSlot = inv.slotOf(currency)
+            if (coinSlot < 0 || inv[coinSlot]!!.count < price) return notEnough(player, shop)
             // Paying with the last coins frees their slot for the item, as 2004Scape lets it.
             inv.remove(coinSlot, price)
             if (inv.add(type, 1) == 0) {
-                coinsBack(player, price)
+                coinsBack(player, shop, price)
                 return message(player, ShopLines.NOT_ENOUGH_SPACE)
             }
             shop.take(shop.slotOf(type.id), 1)
@@ -243,18 +250,25 @@ class ShopScreen(
             if (!shop.hasRoom(base.id)) return message(player, ShopLines.NO_ROOM)
             val price = shop.sellPrice(base.id, base.cost, shop.count(base.id))
             val freesSlot = !type.stackable && !type.isCert || inv[from]!!.count == 1
-            if (price > 0 && inv.slotOf(COINS) < 0 && inv.freeSlots == 0 && !freesSlot) return message(player, ShopLines.NOT_ENOUGH_SPACE)
-            if (price > 0 && inv.count(COINS) + price > Inventory.MAX_STACK) return message(player, ShopLines.NOT_ENOUGH_SPACE)
+            val currency = shop.type.currency
+            if (price > 0 && inv.slotOf(currency) < 0 && inv.freeSlots == 0 && !freesSlot) return message(player, ShopLines.NOT_ENOUGH_SPACE)
+            if (price > 0 && inv.count(currency) + price > Inventory.MAX_STACK) return message(player, ShopLines.NOT_ENOUGH_SPACE)
             inv.remove(from, 1)
             shop.put(base.id, 1)
-            if (price > 0) coinsBack(player, price)
+            if (price > 0) coinsBack(player, shop, price)
         }
     }
 
     private fun canSell(player: Player, shop: Shop, base: ObjType): Boolean {
+        val currency = shop.type.currency
+        if (currency != COINS && base.id == currency) {
+            message(player, ShopLines.CANT_SELL_CURRENCY, "currency" to currencyName(currency))
+            return false
+        }
         val refusal = when {
             base.id == COINS -> ShopLines.CANT_SELL_COINS
-            !base.tradeable -> ShopLines.CANT_SELL
+            // Grace buys back the graceful pieces she sells, which no one can trade (the OSRS Wiki's store table).
+            !base.tradeable && !(currency != COINS && shop.type.stocks(base.id)) -> ShopLines.CANT_SELL
             !shop.type.general && !shop.type.stocks(base.id) || base.id in shop.type.refuses -> ShopLines.WRONG_SHOP
             else -> null
         }
@@ -262,10 +276,20 @@ class ShopScreen(
         return refusal == null
     }
 
-    private fun coinsBack(player: Player, count: Int) {
-        val coins = objTypes[COINS] ?: ObjType(COINS, "Coins", stackable = true)
-        player.inventory.add(coins, count)
+    private fun coinsBack(player: Player, shop: Shop, count: Int) {
+        val currency = shop.type.currency
+        val type = objTypes[currency] ?: ObjType(currency, if (currency == COINS) "Coins" else "Currency", stackable = true)
+        player.inventory.add(type, count)
     }
+
+    private fun notEnough(player: Player, shop: Shop) {
+        val currency = shop.type.currency
+        if (currency == COINS) message(player, ShopLines.NOT_ENOUGH_COINS)
+        else message(player, ShopLines.NOT_ENOUGH_CURRENCY, "currency" to currencyName(currency))
+    }
+
+    /** The name a shop's currency goes by in its messages: the item's own (Mark of grace). */
+    private fun currencyName(currency: Int): String = objTypes[currency]?.name ?: "item $currency"
 
     /** What a note stands for, else [type]; only when the item links back, so a one-way cache link can't sell as another. */
     private fun unnoted(type: ObjType): ObjType =
@@ -274,6 +298,10 @@ class ShopScreen(
     /** A value check's message: [one] for a price of 1 coin, else [many] with the price written as 1,000 and so on. */
     private fun value(player: Player, one: Line, many: Line, item: String, price: Int) =
         if (price == 1) message(player, one, "item" to item) else message(player, many, "item" to item, "price" to "%,d".format(price))
+
+    /** A value check in a shop with its own currency: one line whatever the price, the currency named. */
+    private fun valueIn(player: Player, shop: Shop, line: Line, item: String, price: Int) =
+        message(player, line, "item" to item, "price" to "%,d".format(price), "currency" to currencyName(shop.type.currency))
 
     private fun message(player: Player, line: Line, vararg values: Pair<String, Any>) =
         send(player, MessageGame(CHATTYPE_GAMEMESSAGE, words(player).get(line, *values)))

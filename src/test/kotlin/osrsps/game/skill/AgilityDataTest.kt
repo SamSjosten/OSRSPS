@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import osrsps.game.content.Examines
 import osrsps.map.Tile
 
 /** agility.json's format, and the step and angle sums the obstacles use. */
@@ -12,6 +13,149 @@ class AgilityDataTest {
     @Test
     fun `the shipped file loads`() {
         AgilityData.load()
+    }
+
+    @Test
+    fun `Draynor's marks land on its four roofs, 2 in 6 a lap`() {
+        val draynor = AgilityData.load().courses.single { it.key == "draynor" }
+        assertEquals(1, draynor.level)
+        assertEquals(2 to 6, draynor.markChance)
+        assertEquals(
+            listOf(AgilityTile(3099, 3279, 3), AgilityTile(3088, 3274, 3), AgilityTile(3092, 3266, 3), AgilityTile(3099, 3259, 3)),
+            draynor.markSpots,
+        )
+    }
+
+    @Test
+    fun `Al Kharid is level 20 throughout, 216 XP a lap, and only Tightrope 1 and the zip line hurt`() {
+        val alKharid = AgilityData.load().courses.single { it.key == "alkharid" }
+        assertEquals(20, alKharid.level)
+        assertEquals(8, alKharid.obstacles.size)
+        assertTrue(alKharid.obstacles.all { it.level == 20 && it.levelLine == AgilityLines.ALKHARID_LEVEL })
+        assertEquals(2_160, alKharid.obstacles.sumOf { it.xpTenths } + alKharid.lapXpTenths)
+        assertEquals(listOf("alkharid_tightrope_1", "alkharid_zip_line"), alKharid.obstacles.filter { it.success != null }.map { it.key })
+        assertTrue(alKharid.obstacles.filter { it.success != null }.all { it.damage == 1..5 })
+        assertEquals(5, alKharid.markSpots.size)
+    }
+
+    @Test
+    fun `Varrock is level 30 throughout, 269,7 XP a lap, and only the clothes line and the wall hurt`() {
+        val varrock = AgilityData.load().courses.single { it.key == "varrock" }
+        assertEquals(30, varrock.level)
+        assertEquals(9, varrock.obstacles.size)
+        assertTrue(varrock.obstacles.all { it.level == 30 && it.levelLine == AgilityLines.VARROCK_LEVEL })
+        assertEquals(2_697, varrock.obstacles.sumOf { it.xpTenths } + varrock.lapXpTenths)
+        assertEquals(mapOf("varrock_clothes_line" to 3..8, "varrock_wall" to 2..5), varrock.obstacles.filter { it.success != null }.associate { it.key to it.damage })
+        assertEquals(5, varrock.markSpots.size)
+    }
+
+    @Test
+    fun `the Gnome Stronghold is level 1, 110,5 XP a lap with its 50 XP bonus, and its pipes and branches are one obstacle each`() {
+        val data = AgilityData.load()
+        val gnome = data.courses.single { it.key == "gnome" }
+        assertEquals(1, gnome.level)
+        assertEquals(7, gnome.obstacles.size)
+        assertEquals(500, gnome.lapXpTenths)
+        assertEquals(1_105, gnome.obstacles.sumOf { it.xpTenths } + gnome.lapXpTenths)
+        assertTrue(gnome.obstacles.all { it.success == null })
+        assertEquals(listOf(AgilityTile(2486, 3421, 2)), gnome.markSpots)
+        val pipe = gnome.obstacles.last()
+        assertEquals(listOf(23138, 23139), pipe.locs)
+        assertEquals(listOf(pipe), data.byLoc.getValue(23139))
+        assertEquals(listOf(23560, 23561), gnome.obstacles[4].locs)
+        assertEquals(listOf(23557, 23558), gnome.obstacles[3].locs)
+        assertEquals(listOf(AgilityTile(2487, 3431, 0), AgilityTile(2487, 3435, 0)), pipe.routes.single { it.from.x == 2487 }.at)
+        assertTrue(gnome.obstacles.filter { it.routes.size > 1 }.all { obstacle -> obstacle.routes.all { it.at.isNotEmpty() } })
+    }
+
+    @Test
+    fun `the Misthalin shortcuts are on no course, go both ways, and have the Wiki's levels and XP`() {
+        val data = AgilityData.load()
+        val shortcuts = data.obstacles.filter { it.key.startsWith("shortcut_") }
+        assertEquals(
+            mapOf(
+                "shortcut_varrock_fence" to (13 to 0),
+                "shortcut_grand_exchange_tunnel" to (21 to 0),
+                "shortcut_champions_guild_stone" to (31 to 30),
+                "shortcut_draynor_tunnel" to (42 to 0),
+                "shortcut_draynor_manor_fence" to (49 to 15),
+                "shortcut_champions_guild_south_stones" to (52 to 50),
+            ),
+            // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
+            shortcuts.associate { shortcut ->
+                val partway = shortcut.routes.map { route -> route.moves.filterIsInstance<AgilityMove.Xp>().sumOf { it.tenths } }.toSet()
+                shortcut.key to (shortcut.level to shortcut.xpTenths + partway.single())
+            },
+        )
+        // The south stones' 2.5 XP comes on the first and third stone each way, after the jump onto it.
+        val southStones = shortcuts.single { it.key == "shortcut_champions_guild_south_stones" }
+        for (route in southStones.routes) {
+            assertEquals(listOf(1, 4), route.moves.withIndex().filter { it.value is AgilityMove.Xp }.map { it.index })
+            assertTrue(route.moves.filterIsInstance<AgilityMove.Xp>().all { it.tenths == 25 })
+        }
+        // Only the stones, whose sides are river, are used from the bank.
+        assertEquals(
+            setOf("shortcut_champions_guild_stone", "shortcut_champions_guild_south_stones"),
+            shortcuts.filter { it.fromStart }.map { it.key }.toSet(),
+        )
+        assertTrue(shortcuts.none { it in data.courseOf })
+        assertTrue(shortcuts.all { it.routes.size == 2 })
+        // Each has its own level line, as live words each refusal for its obstacle.
+        assertEquals(shortcuts.size, shortcuts.map { it.levelLine }.toSet().size)
+        assertTrue(shortcuts.none { it.levelLine == AgilityLines.LEVEL })
+        // Each way ends where the other starts.
+        for (shortcut in shortcuts) {
+            val (there, back) = shortcut.routes
+            assertEquals(back.from, landing(there.moves), shortcut.key)
+            assertEquals(there.from, landing(back.moves), shortcut.key)
+        }
+        val stone = shortcuts.single { it.key == "shortcut_champions_guild_stone" }
+        assertEquals(10, stone.failXpTenths)
+        assertEquals(1..3, stone.damage)
+        assertTrue(stone.routes.all { landing(it.fail) == landing(it.moves) })
+    }
+
+    /** Where a list of moves leaves the player, from its last move that names a tile. */
+    private fun landing(moves: List<AgilityMove>): AgilityTile = when (val last = moves.last { it !is AgilityMove.Anim }) {
+        is AgilityMove.Teleport -> last.to
+        is AgilityMove.Slide -> last.to
+        is AgilityMove.Walk -> AgilityTile(last.path.last().x, last.path.last().z, 0)
+        else -> error("No tile in $last")
+    }
+
+    @Test
+    fun `every obstacle loc type, and Grace, has an examine`() {
+        for (id in AgilityData.load().obstacles.flatMap { it.locs }) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+        assertEquals("examine.npc_5919", Examines.npc(5919)?.key)
+    }
+
+    @Test
+    fun `an obstacle names each of its loc types once`() {
+        assertFailsWith<IllegalArgumentException> {
+            AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"alsoLocs\": [1]")}]}""")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"alsoLocs\": [2, 2]")}]}""")
+        }
+        val data = AgilityData.parse("""{"obstacles": [${obstacle("a", 1, extra = ", \"alsoLocs\": [2]")}]}""")
+        assertEquals(data.byLoc.getValue(1), data.byLoc.getValue(2))
+    }
+
+    @Test
+    fun `20 levels over a course cut the mark chance to a fifth`() {
+        val course = AgilityData.load().courses.single { it.key == "draynor" }
+        assertEquals(2 to 6, Agility.markOdds(course, 1))
+        assertEquals(2 to 6, Agility.markOdds(course, 20))
+        assertEquals(2 to 30, Agility.markOdds(course, 21))
+        assertEquals(2 to 30, Agility.markOdds(course, 99))
+    }
+
+    @Test
+    fun `a mark is due three whole minutes after the last`() {
+        assertTrue(Agility.markDue(0, 1_000))
+        assertTrue(!Agility.markDue(1_000, 1_000))
+        assertTrue(!Agility.markDue(1_000, 1_002))
+        assertTrue(Agility.markDue(1_000, 1_003))
     }
 
     @Test

@@ -276,7 +276,7 @@
       "source": "OSRS Wiki, Giant spider, read 2026-10-30: no bones; the looting bag, Larran's key and slayer's enchantment drop only in the Wilderness or on Krystilia's tasks"
     },
     {
-      "npcs": ["giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1_2", "giantrat1_3"],
+      "npcs": ["giantrat", "giantrat_grey", "giantrat_grey2", "giantrat_grey3", "giantrat1", "giantrat1_2", "giantrat1_3"],
       "always": [{"item": 526, "name": "Bones"}, {"item": 2134, "name": "Raw rat meat"}],
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
       "source": "OSRS Wiki, Giant rat, the Level 3 and 6 table, read 2026-10-30 (the giant rat bone drops only during Rag and Bone Man I, which every account has done; the looting bag only in the Wilderness)"
@@ -343,7 +343,7 @@
       "source": "OSRS Wiki, Goblin, drop table 2 (some level 5 goblins), read 2026-10-30; the free-to-play lines (Coins x10, the larger nothing) are out"
     },
     {
-      "npcs": ["fai_barbarian_2", "fai_barbarian_5", "fai_barbarian_6", "fai_barbarian_7", "fai_barbarian_10", "fai_barbarian_11", "fai_barbarian_12", "fai_barbarian_13", "fai_barbarian_female_2", "fai_barbarian_female_3", "fai_barbarian_female_4"],
+      "npcs": ["fai_barbarian_2", "fai_barbarian_5", "fai_barbarian_6", "fai_barbarian_7", "fai_barbarian_10", "fai_barbarian_11", "fai_barbarian_12", "fai_barbarian_13", "fai_barbarian_female_2", "fai_barbarian_female_3", "fai_barbarian_female_4", "barbarianwoman_varrock"],
       "always": [{"item": 526, "name": "Bones"}],
       "table": {
         "slots": 128,
@@ -494,6 +494,37 @@
       "always": [{"item": 526, "name": "Bones"}],
       "source": "OSRS Wiki, Monk, read 2026-11-01: bones always; the medium clue key is the Ardougne monks' only"
     },
+    {"npcs": ["bearded_dark_wizard", "qip_ds_young_dark_wizard3", "qip_ds_young_dark_wizard4"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+      {"item": 1379, "name": "Staff", "weight": 4},
+      {"item": 1017, "name": "Wizard hat", "weight": 4},
+      {"item": 581, "name": "Black robe", "weight": 3},
+      {"item": 557, "name": "Earth rune", "count": 36, "weight": 4},
+      {"item": 556, "name": "Air rune", "count": 10, "weight": 3},
+      {"item": 555, "name": "Water rune", "count": 10, "weight": 3},
+      {"item": 557, "name": "Earth rune", "count": 10, "weight": 3},
+      {"item": 554, "name": "Fire rune", "count": 10, "weight": 3},
+      {"item": 556, "name": "Air rune", "count": 18, "weight": 2},
+      {"item": 555, "name": "Water rune", "count": 18, "weight": 2},
+      {"item": 557, "name": "Earth rune", "count": 18, "weight": 2},
+      {"item": 554, "name": "Fire rune", "count": 18, "weight": 2},
+      {"item": 561, "name": "Nature rune", "count": 4, "weight": 7},
+      {"item": 562, "name": "Chaos rune", "count": 4, "weight": 6},
+      {"item": 558, "name": "Mind rune", "count": 10, "weight": 3},
+      {"item": 559, "name": "Body rune", "count": 10, "weight": 3},
+      {"item": 558, "name": "Mind rune", "count": 18, "weight": 2},
+      {"item": 559, "name": "Body rune", "count": 18, "weight": 2},
+      {"item": 565, "name": "Blood rune", "count": 2, "weight": 2},
+      {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 1},
+      {"item": 563, "name": "Law rune", "count": 3, "weight": 1},
+      {"item": 995, "name": "Coins", "count": 1, "weight": 17},
+      {"item": 995, "name": "Coins", "count": 4, "weight": 9},
+      {"item": 995, "name": "Coins", "count": 30, "weight": 1},
+      {"nothing": true, "weight": 16},
+      {"item": 1444, "name": "Water talisman", "weight": 2},
+      {"item": 1442, "name": "Fire talisman", "weight": 2},
+      {"item": 3010, "name": "Energy potion(3)", "weight": 16},
+      {"item": 3008, "name": "Energy potion(4)", "weight": 3}
+    ]}, "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/35"}], "source": "OSRS Wiki, Dark wizard (levels 20, 22 and 23 share the table), read 2026-11-03: the members table (wizard hat 4/128, blood runes), after the 19 August 2026 change of the coin lines to energy potions; the Wilderness looting bag left out"},
     {"npcs": ["zombie_unarmed_sewer1", "zombie_unarmed_sewer2", "zombie_unarmed_sewer3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
       {"item": 1139, "name": "Bronze med helm", "weight": 4}, {"item": 1291, "name": "Bronze longsword", "weight": 1}, {"item": 1349, "name": "Iron axe", "weight": 1},
       {"item": 884, "name": "Iron arrow", "count": 5, "weight": 7}, {"item": 559, "name": "Body rune", "count": 6, "weight": 5}, {"item": 558, "name": "Mind rune", "count": 5, "weight": 5},
@@ -580,10 +611,93 @@
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/70"}],
       "source": "OSRS Wiki, Hobgoblin, Drops (Level 28), read 2026-11-02, with the members world's lines. The level 42 (3050) is taken to drop the same (inferred: osrsreboxed merges both levels' rows, with a few more weapons and an iron javelin). The looting bag, the ecumenical key (both Wilderness-only) and the champion scroll are left out"
     },
+    {"npcs": ["giant", "giant2", "giant3", "giant4", "giant5", "giant6"], "always": [{"item": 532, "name": "Big bones"}], "preroll": [{"item": 20754, "name": "Giant key", "chance": "1/128"}], "table": {"slots": 127, "lines": [
+      {"item": 1203, "name": "Iron dagger", "weight": 4}, {"item": 1153, "name": "Iron full helm", "weight": 5}, {"item": 1191, "name": "Iron kiteshield", "weight": 3},
+      {"item": 1295, "name": "Steel longsword", "weight": 2},
+      {"item": 884, "name": "Iron arrow", "count": 3, "weight": 6}, {"item": 554, "name": "Fire rune", "count": 15, "weight": 3}, {"item": 555, "name": "Water rune", "count": 7, "weight": 3},
+      {"item": 563, "name": "Law rune", "count": 2, "weight": 3}, {"item": 886, "name": "Steel arrow", "count": 10, "weight": 2}, {"item": 558, "name": "Mind rune", "count": 3, "weight": 2},
+      {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 2}, {"item": 561, "name": "Nature rune", "count": 6, "weight": 2}, {"item": 562, "name": "Chaos rune", "count": 2, "weight": 1},
+      {"item": 560, "name": "Death rune", "count": 2, "weight": 1},
+      {"table": "herbs", "weight": 7}, {"table": "general_seeds", "weight": 18},
+      {"item": 995, "name": "Coins", "count": 38, "weight": 14}, {"item": 995, "name": "Coins", "count": 52, "weight": 10}, {"item": 995, "name": "Coins", "count": 15, "weight": 8},
+      {"item": 995, "name": "Coins", "count": 8, "weight": 6}, {"item": 995, "name": "Coins", "count": 88, "weight": 2},
+      {"item": 225, "name": "Limpwurt root", "weight": 11}, {"item": 1917, "name": "Beer", "weight": 6}, {"item": 1446, "name": "Body talisman", "weight": 2},
+      {"nothing": true, "weight": 1},
+      {"table": "gems", "weight": 3}
+    ]},
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/50"}],
+      "source": "OSRS Wiki, Hill Giant, Drops, read 2026-11-02: the members world's lines, off Giants' Plateau (the iron full helm and steel longsword). The giant key is the page's pre-roll at 1/128 (the Wilderness's 2/128 is left out): it takes the main table's place when it hits, and the table's rows, 127/128 as listed, are the 127 slots left. The beginner clue's 1/50 is osrsreboxed's 2098 (read 2026-11-02). The looting bag and the champion scroll are left out"
+    },
     {
       "npcs": ["house_ghost", "house_ghost2", "house_ghost3", "house_ghost4", "house_ghost5"],
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}],
       "source": "OSRS Wiki, Ghost, Drops (Level 19), read 2026-11-01: no bones and no main table, only the beginner clue; the Wilderness-only looting bag is left out. Skeleton (Draynor Manor) lists no drops, so it drops nothing"
+    },
+    {"npcs": ["sos_war_goblin_armed", "sos_war_goblin_helmet", "sos_war_goblin_green_soldier_1", "sos_war_goblin_armed2", "sos_war_goblin_helmet2", "sos_war_goblin_green_soldier_2"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+      {"item": 1351, "name": "Bronze axe", "weight": 3}, {"item": 1321, "name": "Bronze scimitar", "weight": 1}, {"item": 1237, "name": "Bronze spear", "weight": 9},
+      {"item": 882, "name": "Bronze arrow", "count": 7, "weight": 3}, {"item": 558, "name": "Mind rune", "count": 2, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 4, "weight": 3},
+      {"item": 559, "name": "Body rune", "count": 2, "weight": 3}, {"item": 825, "name": "Bronze javelin", "count": 5, "weight": 2}, {"item": 562, "name": "Chaos rune", "weight": 1},
+      {"item": 561, "name": "Nature rune", "weight": 1},
+      {"table": "herbs", "weight": 2},
+      {"item": 995, "name": "Coins", "count": 8, "weight": 34}, {"item": 995, "name": "Coins", "count": 5, "weight": 8}, {"item": 995, "name": "Coins", "count": 16, "weight": 7},
+      {"item": 995, "name": "Coins", "count": 24, "weight": 3},
+      {"item": 3012, "name": "Energy potion(2)", "weight": 13}, {"item": 288, "name": "Goblin mail", "weight": 10}, {"item": 2347, "name": "Hammer", "weight": 9},
+      {"nothing": true, "weight": 8},
+      {"item": 10999, "name": "Goblin book", "weight": 2}, {"item": 1987, "name": "Grapes", "weight": 1}, {"item": 1007, "name": "Red cape", "weight": 1}, {"item": 438, "name": "Tin ore", "weight": 1}
+    ]},
+      "tertiary": [{"item": 13447, "name": "Ensouled goblin head", "chance": "1/30"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/80"}, {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Goblin (Vault of War), Drops, read 2026-11-03: one table for every level, the members world's lines (the free-to-play coins x10 and its extra nothing are out), as changed 2026-09-16. The goblin skull (Rag and Bone Man) and the champion scroll are left out"
+    },
+    {"npcs": ["sos_war_minotaur", "sos_war_minotaur3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 101, "lines": [
+      {"item": 884, "name": "Iron arrow", "min": 5, "max": 14, "weight": 10}, {"item": 1237, "name": "Bronze spear", "weight": 10}, {"item": 1155, "name": "Bronze full helm", "weight": 10},
+      {"item": 882, "name": "Bronze arrow", "count": 3, "weight": 3}, {"item": 1205, "name": "Bronze dagger", "weight": 4},
+      {"item": 558, "name": "Mind rune", "weight": 1},
+      {"item": 995, "name": "Coins", "count": 2, "weight": 11}, {"item": 995, "name": "Coins", "count": 7, "weight": 20}, {"item": 995, "name": "Coins", "min": 5, "max": 84, "weight": 7},
+      {"item": 437, "name": "Copper ore (noted)", "weight": 6}, {"item": 439, "name": "Tin ore (noted)", "weight": 6}, {"item": 7937, "name": "Pure essence (noted)", "count": 15, "weight": 5},
+      {"item": 2142, "name": "Cooked meat", "weight": 3}, {"item": 9007, "name": "Right skull half", "weight": 3},
+      {"table": "gems_surface", "weight": 1},
+      {"nothing": true, "weight": 1}
+    ]},
+      "tertiary": [{"item": 13456, "name": "Ensouled minotaur head", "chance": "1/50"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/60"}, {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/101"}],
+      "source": "OSRS Wiki, Minotaur, Drops, read 2026-11-03: one table for both levels, out of 101, the members world's lines (the free-to-play rune essence and higher arrow and helm rates are out). The members lines sum to 100/101, so the last 1/101 is taken as nothing (inferred). The gem table lists the nature talisman, so the surface gem table is taken. The coins 5 to 84 are taken as evenly likely (guessed)"
+    },
+    {"npcs": ["sos_war_wolf", "sos_war_wolf2"], "always": [{"item": 2859, "name": "Wolf bones"}],
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Wolf, Drops, read 2026-11-03: wolf bones always (members world), and only the Stronghold's wolves drop the beginner clue, listed as Rare; its 1/128 is guessed. The Rag and Bone Man bone and the Wilderness looting bag are left out"
+    },
+    {"npcs": ["sos_war_rat"], "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Rat, Drops (Stronghold of Security rats), read 2026-11-03: bones always; the quest-only rat's tail and rat bone are left out"
+    },
+    {
+      "npcs": ["mugger"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {"slots": 128, "lines": [{"item": 877, "name": "Bronze bolts", "min": 2, "max": 12, "weight": 27}, {"item": 558, "name": "Mind rune", "count": 9, "weight": 3}, {"item": 555, "name": "Water rune", "count": 6, "weight": 2}, {"item": 557, "name": "Earth rune", "count": 5, "weight": 2}, {"table": "herbs", "weight": 13}, {"item": 995, "name": "Coins", "count": 5, "weight": 12}, {"item": 995, "name": "Coins", "count": 15, "weight": 3}, {"item": 995, "name": "Coins", "count": 25, "weight": 1}, {"item": 954, "name": "Rope", "weight": 40}, {"nothing": true, "weight": 13}, {"item": 946, "name": "Knife", "weight": 1}, {"item": 313, "name": "Fishing bait", "weight": 6}, {"item": 436, "name": "Copper ore", "weight": 2}, {"item": 1139, "name": "Bronze med helm", "weight": 2}, {"item": 1965, "name": "Cabbage", "weight": 1}]},
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/80"}, {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Mugger, drops (Regular), read 2026-11-02: the members world leaves out the free-to-play-only Coins x10 (13/128)"
+    },
+    {
+      "npcs": ["thief1", "qip_soa_thief_male01", "qip_soa_thief_female01", "qip_soa_thief_female02"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {"slots": 128, "lines": [{"item": 1139, "name": "Bronze med helm", "weight": 2}, {"item": 1203, "name": "Iron dagger", "weight": 1}, {"item": 877, "name": "Bronze bolts", "min": 2, "max": 12, "weight": 22}, {"item": 882, "name": "Bronze arrow", "count": 7, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 4, "weight": 2}, {"item": 554, "name": "Fire rune", "count": 6, "weight": 2}, {"item": 558, "name": "Mind rune", "count": 9, "weight": 2}, {"item": 562, "name": "Chaos rune", "count": 2, "weight": 1}, {"table": "herbs", "weight": 23}, {"item": 995, "name": "Coins", "count": 3, "weight": 38}, {"item": 995, "name": "Coins", "count": 5, "weight": 9}, {"item": 995, "name": "Coins", "count": 15, "weight": 4}, {"item": 995, "name": "Coins", "count": 25, "weight": 1}, {"nothing": true, "weight": 8}, {"item": 313, "name": "Fishing bait", "weight": 5}, {"item": 436, "name": "Copper ore", "weight": 2}, {"item": 1440, "name": "Earth talisman", "weight": 2}, {"item": 1965, "name": "Cabbage", "weight": 1}]},
+      "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}, {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Thief, drops (Standard), read 2026-11-02; the Varrock gang's thieves (5217 to 5220) are taken to drop the same (guessed: the Wiki lists only the standard table). Left out: the free-to-play-only Coins x10 (23/128) and the energy potion, whose rate the Wiki gives as unknown"
+    },
+    {
+      "npcs": ["black_knight"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {"slots": 128, "lines": [{"item": 1279, "name": "Iron sword", "weight": 4}, {"item": 1153, "name": "Iron full helm", "weight": 2}, {"item": 1424, "name": "Steel mace", "weight": 1}, {"item": 888, "name": "Mithril arrow", "count": 3, "weight": 4}, {"item": 559, "name": "Body rune", "count": 9, "weight": 3}, {"item": 562, "name": "Chaos rune", "count": 6, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 10, "weight": 3}, {"item": 560, "name": "Death rune", "count": 2, "weight": 2}, {"item": 563, "name": "Law rune", "count": 3, "weight": 2}, {"item": 564, "name": "Cosmic rune", "count": 7, "weight": 1}, {"item": 558, "name": "Mind rune", "count": 2, "weight": 1}, {"table": "herbs", "weight": 3}, {"table": "general_seeds", "weight": 18}, {"item": 2353, "name": "Steel bar", "weight": 6}, {"item": 438, "name": "Tin ore", "weight": 1}, {"item": 1933, "name": "Pot of flour", "weight": 1}, {"item": 995, "name": "Coins", "count": 35, "weight": 21}, {"item": 995, "name": "Coins", "count": 6, "weight": 11}, {"item": 995, "name": "Coins", "count": 58, "weight": 10}, {"item": 995, "name": "Coins", "count": 12, "weight": 9}, {"item": 995, "name": "Coins", "count": 80, "weight": 2}, {"item": 995, "name": "Coins", "count": 1, "weight": 14}, {"nothing": true, "weight": 2}, {"item": 2309, "name": "Bread", "weight": 1}, {"table": "gems_surface", "weight": 3}]},
+      "source": "OSRS Wiki, Black Knight, drops, read 2026-11-02: the free-to-play-only coin lines (x5 18/128, x10 3/128) are left out; the Coins x1 line drops always only during Wanted!, which isn't built, so it stays at 14/128; the gem table's talisman row is the nature talisman, as above ground; the looting bag and Wilderness slayer drops only in the Wilderness"
+    },
+    {
+      "npcs": ["brownbear"],
+      "always": [{"item": 526, "name": "Bones"}, {"item": 948, "name": "Bear fur"}, {"item": 2136, "name": "Raw bear meat"}],
+      "tertiary": [{"item": 13462, "name": "Ensouled bear head", "chance": "1/25"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}],
+      "source": "OSRS Wiki, Grizzly bear (Level 21), drops, read 2026-11-02: bear ribs drop only during Rag and Bone Man I, which every account has done; the looting bag and Wilderness slayer drops only in the Wilderness"
+    },
+    {
+      "npcs": ["warrior_woman"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Warrior woman, drops, read 2026-11-02: bones alone (the coins are her pickpocket loot; Rocky is a Thieving pet)"
     }
   ]
 }

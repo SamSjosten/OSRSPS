@@ -55,7 +55,9 @@ object NpcSpawnFile {
         "barbarian-village.json",
         "cooks-guild.json",
         "edgeville-dungeon.json",
+        "stronghold-of-security.json",
         "fractured-archive-lobby.json",
+        "rogues-den.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

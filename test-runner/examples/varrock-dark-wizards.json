@@ -1,0 +1,56 @@
+{
+ "name": "Varrock step 14: the stone circle's dark wizards go for a player in the middle unprovoked and cast from where they stand: a casting graphic on a wizard, then a spell's impact or a splash on the player",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "99",
+   "comment": "eleven wizards casting at once can't kill; combat level 25 keeps the level 20s aggressive"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3227 3369 0",
+   "expectMessage": "Teleported to 3227, 3369, 0",
+   "comment": "the middle of the stone circle south of Varrock"
+  },
+  {
+   "step": "assertSpotanim",
+   "npc": "Dark wizard",
+   "ids": [
+    93,
+    102,
+    96,
+    105
+   ],
+   "timeoutMs": 30000,
+   "comment": "unprovoked: a level 7's Water Strike or Confuse casting, or a level 20's Earth Strike or Weaken casting"
+  },
+  {
+   "step": "assertSpotanim",
+   "ids": [
+    95,
+    104,
+    98,
+    107,
+    85
+   ],
+   "timeoutMs": 20000,
+   "comment": "waterstrike_impact, confuse_impact, earthstrike_impact, weaken_impact or failedspell_impact on the player"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

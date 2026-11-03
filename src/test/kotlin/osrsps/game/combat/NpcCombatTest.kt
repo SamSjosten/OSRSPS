@@ -36,7 +36,7 @@ class NpcCombatTest {
     private val seqs = SeqNames(
         mapOf(
             "human_unarmedpunch" to 422, "human_unarmedblock" to 424, "human_death" to 836,
-            "human_caststrike" to 711, "human_castconfuse" to 716,
+            "human_caststrike" to 711, "human_castconfuse" to 716, "human_castweaken" to 717,
             "mouse_attack" to 2705, "mouse_defend" to 2706, "mouse_death" to 2707,
             "imp_attack" to 169, "imp_block" to 170, "imp_death" to 172,
             "cow_update_attack" to 5849, "cow_update_defend" to 5850, "cow_update_death" to 5851,
@@ -57,8 +57,12 @@ class NpcCombatTest {
             "human_dhsword_chop" to 406, "human_dhsword_block" to 410, "barrow_dharok_crush" to 2067,
             "human_staff_pound" to 413, "human_staff_block" to 415, "human_bow" to 426,
             "skeleton_update_attack_weapon" to 5485, "skeleton_update_attack_sword" to 5487, "skeleton_update_defend" to 5489, "skeleton_update_death" to 5491,
+            "giant_update_basic_attack" to 4652, "giant_update_basic_defend" to 4651, "giant_update_basic_death" to 4653,
             "hobgoblin_attack" to 163, "hobgoblin_attackunarmed" to 164, "hobgoblin_block" to 165, "hobgoblin_death" to 167,
             "ghost_update_normal_attack" to 5532, "ghost_update_normal_defend" to 5533, "ghost_update_normal_death" to 5534,
+            "mino_attack" to 4266, "mino_parry" to 4267, "mino_death" to 4265,
+            "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
+            "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
         ),
     )
 
@@ -198,6 +202,29 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `Varrock's level 20 dark wizards cast Earth Strike and Weaken from 10 tiles`() {
+        val wizards = listOf("bearded_dark_wizard", "qip_ds_young_dark_wizard3", "qip_ds_young_dark_wizard4")
+        val wizardTypes = NpcTypes.of(*wizards.mapIndexed { i, name -> NpcType(2400 + i, "Dark wizard", internalName = name, stats = NpcStats(strength = 17)) }.toTypedArray())
+        val combat = NpcCombat.load(wizardTypes, seqs)
+        assertEquals(wizards.size, combat.size)
+        val def = combat[wizardTypes.find("qip_ds_young_dark_wizard3")!!]!!
+        assertEquals(AttackType.MAGIC, def.attackType)
+        assertEquals(10, def.range)
+        assertEquals(6, def.maxHit)
+        assertEquals(4, def.attackSpeed)
+        assertEquals(50, def.respawnTicks)
+        assertTrue(def.aggression != null)
+        assertEquals(3, def.defence.against(AttackType.MAGIC))
+        assertEquals(
+            listOf(
+                NpcRangedAttack(711, 96, 97, 98),
+                NpcRangedAttack(717, 105, 106, 107, maxHit = 0, drain = StatDrain(Skill.STRENGTH, 5)),
+            ),
+            def.attacks,
+        )
+    }
+
+    @Test
     fun `the Draynor Sewers' zombies and skeletons fight as the Wiki has them, each max hit the formula's`() {
         // The 241 cache's Strength levels and the Wiki's: zombies 9 and 21, skeletons 18 and 24.
         val sewer = mapOf(
@@ -238,6 +265,7 @@ class NpcCombatTest {
             "skeleton_unagressive" to 17, "skeleton_unagressive2" to 17, "skeleton_unagressive3" to 17,
             "skeleton_armed2" to 24, "skeleton_armed4" to 24, "skeleton_armed5" to 24,
             "hobgoblin_unarmed" to 24, "hobgoblin_armed" to 31,
+            "giant" to 22, "giant4" to 22, "giant6" to 22,
         )
         val dungeonTypes = NpcTypes.of(*dungeon.entries.mapIndexed { i, (name, str) -> NpcType(2200 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
         val combat = NpcCombat.load(dungeonTypes, seqs)
@@ -265,6 +293,44 @@ class NpcCombatTest {
         assertEquals(listOf(35, 35, 70, 60, 35), listOf("zombie2", "skeleton_unagressive", "skeleton_unarmed2", "skeleton_armed4", "hobgoblin_armed").map { def(it).respawnTicks })
         assertEquals(1, def("hobgoblin_armed").defence.against(AttackType.STAB))
         assertEquals(8, def("hobgoblin_armed").attackBonus)
+        // Step 11's hill giants: 22 Strength and +16 make 4.
+        assertEquals(4, def("giant4").maxHit)
+        assertEquals(6, def("giant").attackSpeed)
+        assertEquals(AttackType.CRUSH, def("giant6").attackType)
+        assertEquals(NpcCombatAnims(4652, 4651, 4653), def("giant").anims)
+        assertEquals(ElementalWeakness(Element.EARTH, 25), def("giant4").weakness)
+        assertEquals(30, def("giant6").respawnTicks)
+    }
+
+    @Test
+    fun `the Vault of War's goblins, minotaurs, wolves and rats fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's Strength levels (the DPS calculator's); 2489 is taken as 2487's.
+        val vault = mapOf(
+            "sos_war_goblin_armed" to 2, "sos_war_goblin_green_soldier_1" to 3, "sos_war_goblin_armed2" to 11,
+            "sos_war_goblin_green_soldier_2" to 11, "sos_war_goblin_helmet" to 13, "sos_war_goblin_helmet2" to 23,
+            "sos_war_minotaur" to 10, "sos_war_minotaur3" to 25, "sos_war_wolf" to 15, "sos_war_wolf2" to 10, "sos_war_rat" to 1,
+        )
+        val vaultTypes = NpcTypes.of(*vault.entries.mapIndexed { i, (name, str) -> NpcType(2300 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(vaultTypes, seqs)
+        assertEquals(vault.size, combat.size)
+        fun def(name: String) = combat[vaultTypes.find(name)!!]!!
+        for (name in vault.keys) {
+            val type = vaultTypes.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+            assertNull(def(name).aggression, "$name is not aggressive")
+        }
+        assertEquals(listOf(1, 1, 3, 2, 3, 2, 3, 2, 2, 0), listOf(
+            "sos_war_goblin_armed", "sos_war_goblin_green_soldier_1", "sos_war_goblin_armed2", "sos_war_goblin_helmet",
+            "sos_war_goblin_helmet2", "sos_war_minotaur", "sos_war_minotaur3", "sos_war_wolf", "sos_war_wolf2", "sos_war_rat",
+        ).map { def(it).maxHit })
+        assertEquals(listOf(6, 4, 4, 4, 4), listOf("sos_war_goblin_armed", "sos_war_goblin_helmet", "sos_war_minotaur", "sos_war_wolf", "sos_war_rat").map { def(it).attackSpeed })
+        assertEquals(listOf(35, 35, 15, 90, 2), listOf("sos_war_goblin_armed", "sos_war_goblin_helmet2", "sos_war_minotaur3", "sos_war_wolf2", "sos_war_rat").map { def(it).respawnTicks })
+        assertEquals(NpcCombatAnims(4266, 4267, 4265), def("sos_war_minotaur").anims)
+        assertEquals(NpcCombatAnims(6559, 6557, 6558), def("sos_war_wolf").anims)
+        assertEquals(NpcCombatAnims(6188, 6189, 6190), def("sos_war_goblin_helmet").anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 25), def("sos_war_wolf2").weakness)
+        assertEquals(-21, def("sos_war_minotaur3").defence.against(AttackType.MAGIC))
+        assertEquals(18, def("sos_war_goblin_helmet2").defence.against(AttackType.CRUSH))
     }
 
     @Test
@@ -292,6 +358,35 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.AIR, 50), def("house_ghost2").weakness)
         assertEquals(listOf(40, 60), listOf("house_ghost3", "draynor_skeleton").map { def(it).respawnTicks })
         assertEquals(-5, def("house_ghost").defence.against(AttackType.MAGIC))
+    }
+
+    @Test
+    fun `Varrock's fighters fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's (and the DPS calculator's) Strength levels.
+        val city = mapOf(
+            "mugger" to 5, "black_knight" to 25, "thief1" to 13, "qip_soa_thief_male01" to 13, "qip_soa_thief_female01" to 13,
+            "qip_soa_thief_female02" to 13, "barbarianwoman_varrock" to 5, "warrior_woman" to 22, "brownbear" to 18, "giantrat1" to 5,
+        )
+        val cityTypes = NpcTypes.of(*city.entries.mapIndexed { i, (name, str) -> NpcType(2300 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(cityTypes, seqs)
+        assertEquals(city.size, combat.size)
+        fun def(name: String) = combat[cityTypes.find(name)!!]!!
+        for (name in city.keys) {
+            val type = cityTypes.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+        }
+        assertEquals(listOf(1, 4, 2, 2, 3, 3), listOf("mugger", "black_knight", "thief1", "barbarianwoman_varrock", "warrior_woman", "brownbear").map { def(it).maxHit })
+        // Muggers, the bear and the giant rats go for players; the rest wait to be attacked.
+        assertEquals(setOf("mugger", "brownbear", "giantrat1"), city.keys.filter { def(it).aggression != null }.toSet())
+        assertEquals(listOf(5, 6, 4), listOf("black_knight", "barbarianwoman_varrock", "qip_soa_thief_female02").map { def(it).attackSpeed })
+        assertEquals(AttackType.SLASH, def("black_knight").attackType)
+        assertEquals(AttackType.STAB, def("warrior_woman").attackType)
+        assertEquals(NpcCombatAnims(422, 424, 836), def("mugger").anims)
+        assertEquals(NpcCombatAnims(390, 1156, 836), def("black_knight").anims)
+        assertEquals(NpcCombatAnims(4925, 4927, 4929), def("brownbear").anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 20), def("brownbear").weakness)
+        assertEquals(listOf(25, 25, 25, 50, 50), listOf("mugger", "black_knight", "thief1", "warrior_woman", "brownbear").map { def(it).respawnTicks })
+        assertEquals(76, def("black_knight").defence.against(AttackType.SLASH))
     }
 
     @Test

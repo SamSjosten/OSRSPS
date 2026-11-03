@@ -1,0 +1,324 @@
+{
+ "name": "Agility step 7: the six Misthalin shortcuts, each crossed there and back at Agility 52",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::xprate 1",
+   "expectMessage": "XP rate set to 1x",
+   "comment": "live's rate; ::xprate restore at the end goes back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel agility 52",
+   "expectMessage": "52",
+   "comment": "the highest of the six shortcuts"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "99",
+   "comment": "the Champions' Guild stone can fail; a fall still lands on the far bank"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3240 3335 0",
+   "expectMessage": "Teleported to 3240, 3335, 0",
+   "comment": "one side of the Varrock south fence"
+  },
+  {
+   "step": "locOption",
+   "loc": "Fence",
+   "option": "Jump-over",
+   "x": 3240,
+   "y": 3335
+  },
+  {
+   "step": "assertLocation",
+   "x": 3240,
+   "y": 3334,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "across the Varrock south fence; the tile is inferred from the map"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "locOption",
+   "loc": "Fence",
+   "option": "Jump-over",
+   "x": 3240,
+   "y": 3335
+  },
+  {
+   "step": "assertLocation",
+   "x": 3240,
+   "y": 3335,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back across the Varrock south fence"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3137 3517 0",
+   "expectMessage": "Teleported to 3137, 3517, 0",
+   "comment": "one side of the Grand Exchange underwall tunnel"
+  },
+  {
+   "step": "locOption",
+   "loc": "Underwall tunnel",
+   "option": "Climb-into",
+   "x": 3138,
+   "y": 3516
+  },
+  {
+   "step": "assertLocation",
+   "x": 3142,
+   "y": 3512,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "across the Grand Exchange underwall tunnel; the tile is inferred from the map"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "locOption",
+   "loc": "Underwall tunnel",
+   "option": "Climb-into",
+   "x": 3141,
+   "y": 3513
+  },
+  {
+   "step": "assertLocation",
+   "x": 3137,
+   "y": 3517,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back across the Grand Exchange underwall tunnel"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3149 3363 0",
+   "expectMessage": "Teleported to 3149, 3363, 0",
+   "comment": "one side of the Champions' Guild stepping stone"
+  },
+  {
+   "step": "locOption",
+   "loc": "Stepping stone",
+   "option": "Jump-onto",
+   "x": 3151,
+   "y": 3363
+  },
+  {
+   "step": "assertLocation",
+   "x": 3154,
+   "y": 3363,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "across the Champions' Guild stepping stone; the tile is inferred from the map"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "locOption",
+   "loc": "Stepping stone",
+   "option": "Jump-onto",
+   "x": 3151,
+   "y": 3363
+  },
+  {
+   "step": "assertLocation",
+   "x": 3149,
+   "y": 3363,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back across the Champions' Guild stepping stone"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3066 3257 0",
+   "expectMessage": "Teleported to 3066, 3257, 0",
+   "comment": "one side of the Draynor underwall tunnel"
+  },
+  {
+   "step": "locOption",
+   "loc": "Underwall tunnel",
+   "option": "Climb-into",
+   "x": 3067,
+   "y": 3257
+  },
+  {
+   "step": "assertLocation",
+   "x": 3070,
+   "y": 3257,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "across the Draynor underwall tunnel; the tile is inferred from the map"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "locOption",
+   "loc": "Underwall tunnel",
+   "option": "Climb-into",
+   "x": 3069,
+   "y": 3257
+  },
+  {
+   "step": "assertLocation",
+   "x": 3066,
+   "y": 3257,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back across the Draynor underwall tunnel"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3085 3352 0",
+   "expectMessage": "Teleported to 3085, 3352, 0",
+   "comment": "one side of the Draynor Manor broken fence"
+  },
+  {
+   "step": "locOption",
+   "loc": "Broken fence",
+   "option": "Squeeze-Through",
+   "x": 3085,
+   "y": 3352
+  },
+  {
+   "step": "assertLocation",
+   "x": 3086,
+   "y": 3352,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "across the Draynor Manor broken fence; the tile is inferred from the map"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "locOption",
+   "loc": "Broken fence",
+   "option": "Squeeze-Through",
+   "x": 3085,
+   "y": 3352
+  },
+  {
+   "step": "assertLocation",
+   "x": 3085,
+   "y": 3352,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back across the Draynor Manor broken fence"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3193 3338 0",
+   "expectMessage": "Teleported to 3193, 3338, 0",
+   "comment": "one side of the Champions' Guild south stepping stones"
+  },
+  {
+   "step": "locOption",
+   "loc": "Stepping stone",
+   "option": "Jump-to",
+   "x": 3193,
+   "y": 3340
+  },
+  {
+   "step": "assertLocation",
+   "x": 3193,
+   "y": 3346,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "across the Champions' Guild south stepping stones; the tile is inferred from the map"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "locOption",
+   "loc": "Stepping stone",
+   "option": "Jump-to",
+   "x": 3193,
+   "y": 3344
+  },
+  {
+   "step": "assertLocation",
+   "x": 3193,
+   "y": 3338,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back across the Champions' Guild south stepping stones"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "synced: the shortcut's script ends a tick after the landing tile can show, and a click while it runs is dropped; most shortcuts give no XP to wait on"
+  },
+  {
+   "step": "command",
+   "text": "::xprate restore",
+   "expectMessage": "XP rate back to "
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
